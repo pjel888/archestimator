@@ -15,6 +15,7 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   writeJsonNoOverwrite,
@@ -147,7 +148,7 @@ function processForPid(manifest: RuntimeModeManifest, pid: number): PreviewProce
 
 function resolveOutputPath(manifest: RuntimeModeManifest, output?: string): string {
   if (output !== undefined && output !== "auto:mode-proof") throw new Error("mode proof output must be auto:mode-proof");
-  const path = ensureContainedRunPath(manifest.run_root, "mode-proof.json");
+  const path = resolveManifestLogicalOutput(manifest, "mode-proof");
   if (existsSync(path)) throw new Error(`mode proof already exists: ${path}`);
   return path;
 }

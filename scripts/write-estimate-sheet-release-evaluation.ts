@@ -24,10 +24,12 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   sha256File,
   sha256Json,
   writeNoOverwrite,
   type PerformanceReportV1,
+  type EstimateOutputRole,
   type RunManifestV1,
   type SourceFingerprint,
 } from "./lib/estimate-sheet-performance-contract";
@@ -272,24 +274,15 @@ function assertRecursiveUnit010Proof(
 
 function resolveRunArtifact(manifest: RunManifestV1, value: string, defaultRole: string): string {
   const selected = value.startsWith("auto:") ? value.slice("auto:".length) : value;
-  const relativePath = value.startsWith("auto:")
-    ? selected === "hosted"
-      ? "reports/hosted-d1.json"
-      : selected === "release"
-        ? "release-evaluation.md"
-        : selected === "release-gates-json"
-          ? "receipts/release-gates-json.json"
-          : selected === "release-gates-md"
-            ? "receipts/release-gates-md.md"
-            : `receipts/${selected || defaultRole}.json`
-    : value;
-  const path = ensureContainedRunPath(manifest.run_root, relativePath);
+  const path = value.startsWith("auto:")
+    ? resolveManifestLogicalOutput(manifest, (selected || defaultRole) as EstimateOutputRole)
+    : ensureContainedRunPath(manifest.run_root, value);
   assertRegularFile(path, `${defaultRole} artifact`);
   return path;
 }
 
 function resolveCommandReceipt(manifest: RunManifestV1, role: CommandGateRole): string {
-  const path = ensureContainedRunPath(manifest.run_root, `receipts/command-${role}.json`);
+  const path = resolveManifestLogicalOutput(manifest, role);
   assertRegularFile(path, `${role} command receipt`);
   return path;
 }
@@ -318,7 +311,7 @@ function validateCommandReceipt(manifest: RunManifestV1, role: CommandGateRole):
     dependency: {
       role,
       overall: receipt.overall,
-      immutable_path: relativePortable(manifest.run_root, path),
+      immutable_path: relativePortable(manifest.immutable_run_root, path),
       sha256: sha256File(path),
     },
   };
@@ -375,11 +368,12 @@ function validateReleaseGateOutputs(
     const matches = receipt.child_outputs.filter((child) => child.role === role && child.schema_id === schema_id);
     if (matches.length !== 1) throw new Error(`release-gates receipt child ${role} is missing or duplicated`);
     const child = matches[0]!;
-    const path = ensureContainedRunPath(manifest.run_root, child.immutable_path);
+    const path = resolveManifestLogicalOutput(manifest, role);
+    if (resolve(child.immutable_path) !== path) throw new Error(`${role} child output path is not canonical`);
     assertRegularFile(path, role);
     assertSha256(child.sha256, `${role} receipt hash`);
     if (sha256File(path) !== child.sha256) throw new Error(`${role} hash mismatch`);
-    return { role, schema_id, path, immutable_path: relativePortable(manifest.run_root, path), sha256: child.sha256 };
+    return { role, schema_id, path, immutable_path: relativePortable(manifest.immutable_run_root, path), sha256: child.sha256 };
   });
   const json = dependencies.find((entry) => entry.role === "release-gates-json")!;
   const markdown = dependencies.find((entry) => entry.role === "release-gates-md")!;
@@ -470,7 +464,7 @@ function resolveHostedDependency(manifest: RunManifestV1, reference: string): { 
   }
   return {
     report,
-    dependency: { immutable_path: relativePortable(manifest.run_root, path), sha256: sha256File(path) },
+    dependency: { immutable_path: relativePortable(manifest.immutable_run_root, path), sha256: sha256File(path) },
   };
 }
 
@@ -655,7 +649,9 @@ export function writeEstimateSheetReleaseEvaluation(input: {
     created_at: createdAt,
   };
   const evaluation: ReleaseEvaluationV1 = { ...payload, payload_sha256: sha256Json(payload) };
-  const outputPath = ensureContainedRunPath(manifest.run_root, input.output === undefined || input.output === "auto:release" ? "release-evaluation.md" : input.output);
+  const outputPath = input.output === undefined || input.output === "auto:release"
+    ? resolveManifestLogicalOutput(manifest, "release")
+    : ensureContainedRunPath(manifest.run_root, input.output);
   const markdown = renderReleaseEvaluation(evaluation);
   parseReleaseEvaluationMarkdown(markdown);
   writeNoOverwrite(outputPath, markdown, 0o600);

@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 
-import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { randomBytes } from "node:crypto";
 import {
   closeSync,
@@ -75,6 +74,7 @@ import { generateLocalBetterAuthD1SchemaSqlProof } from "./generate-cloudflare-b
 import {
   buildLocalD1PrepareCommands,
   executeLocalD1PrepareCommands,
+  openLocalD1ReadOnlyReader,
 } from "./lib/estimate-sheet-local-d1-prepare";
 import {
   assertBottleneckDecision,
@@ -1259,73 +1259,105 @@ function fixtureSeedSql(input: {
   return lines;
 }
 
-async function seedFixtureRole(
-  db: D1Database,
-  input: {
-    fixture: EstimateSheetPerformanceFixture;
-    ids: FixtureIds;
-    sessionToken: string;
-    email: string;
-    timestamp: string;
-    expiresAt: string;
-  },
-): Promise<void> {
-  const { fixture, ids, sessionToken, email, timestamp, expiresAt } = input;
-  await db.batch([
-    db.prepare('INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)').bind(ids.user, "Estimate performance user", email, 1, timestamp, timestamp),
-    db.prepare('INSERT INTO "session" (id, expiresAt, token, createdAt, updatedAt, userId) VALUES (?, ?, ?, ?, ?, ?)').bind(ids.session, expiresAt, sessionToken, timestamp, timestamp, ids.user),
-    db.prepare("INSERT INTO closed_beta_allowed_emails (id, normalized_email, status, invited_at, accepted_at, created_at, updated_at) VALUES (?, ?, 'active', ?, ?, ?, ?)").bind(ids.allowlist, email, timestamp, timestamp, timestamp, timestamp),
-    db.prepare("INSERT INTO legal_terms_acceptances (id, user_id, terms_key, terms_version, terms_effective_date, terms_content_hash, privacy_policy_version, acceptance_method, acceptance_context, accepted_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'authenticated_clickwrap', 'workshop_terms_gate', ?, ?)").bind(ids.legal, ids.profile, CURRENT_TERMS.key, CURRENT_TERMS.version, CURRENT_TERMS.effectiveDate, CURRENT_TERMS.contentHash, CURRENT_TERMS.privacyPolicyVersion, timestamp, timestamp),
-    db.prepare("INSERT INTO profiles (id, email, display_name, role, default_workspace_id, created_at, updated_at) VALUES (?, ?, ?, 'member', ?, ?, ?)").bind(ids.profile, email, "Estimate performance profile", ids.workspace, timestamp, timestamp),
-    db.prepare("INSERT INTO workspaces (id, name, slug, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").bind(ids.workspace, "Estimate performance workspace", `perf-${ids.workspace.slice(0, 8)}`, ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) VALUES (?, ?, 'admin', ?, ?)").bind(ids.workspace, ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO projects (id, workspace_id, name, project_code, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(ids.project, ids.workspace, "Estimate performance project", "PERF", ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO project_members (project_id, workspace_id, user_id, role, added_by, created_at, updated_at) VALUES (?, ?, ?, 'admin', ?, ?, ?)").bind(ids.project, ids.workspace, ids.profile, ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO estimates (id, project_id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").bind(ids.estimate, ids.project, "Estimate performance sheet", ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO estimate_sheet_members (estimate_id, project_id, user_id, role, added_by, created_at, updated_at) VALUES (?, ?, ?, 'admin', ?, ?, ?)").bind(ids.estimate, ids.project, ids.profile, ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO estimate_sheet_access_settings (estimate_id, project_id, inherit_project_access, updated_by, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?)").bind(ids.estimate, ids.project, ids.profile, timestamp, timestamp),
-    db.prepare("INSERT INTO estimate_tabs (id, estimate_id, name, sort_order, is_default, created_by, created_at, updated_at) VALUES (?, ?, 'Main', 0, 1, ?, ?, ?)").bind(ids.tab, ids.estimate, ids.profile, timestamp, timestamp),
-  ]);
-  const nodes = flattenEstimatePerformanceNodes(fixture);
-  const nodeIdByFixtureId = new Map(nodes.map((node, index) => [node.id, ids.nodes[index]!]));
-  await batchInChunks(db, nodes.map((node, index) => db.prepare("INSERT INTO estimate_nodes (id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 'area', ?, ?, ?, ?)").bind(
-    ids.nodes[index]!, ids.estimate, ids.tab, `Fixture node ${index + 1}`,
-    node.parentId ? nodeIdByFixtureId.get(node.parentId) ?? null : null,
-    index, timestamp, timestamp,
-  )));
-  const fixtureNodeIndexes = new Map(nodes.map((node, index) => [node.id, index]));
-  await batchInChunks(db, fixture.rows.map((row, index) => db.prepare("INSERT INTO estimate_row_items (id, estimate_id, node_id, description, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, source_snapshot_json, sort_order, row_revision, source_library_item_id, metadata_json, supplier, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'pc', ?, ?, ?, ?, ?, ?, ?, '{}', 'Fixture supplier', ?, ?)").bind(
-    ids.rows[index]!, ids.estimate, ids.nodes[fixtureNodeIndexes.get(row.nodeId) ?? 0]!, row.description,
-    row.material, row.quantity, row.unitCost, row.miscCost, row.contingencyPercentage,
-    JSON.stringify(row.sourceSnapshot), index, row.rowRevision, row.sourceLibraryItemId, timestamp, timestamp,
-  )));
+function findPreparedD1DatabasePath(persistRoot: string): string {
+  const candidates: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const path = resolve(directory, entry.name);
+      const stat = lstatSync(path);
+      if (stat.isSymbolicLink()) throw new Error(`Wrangler persistence tree contains a symbolic link: ${path}`);
+      if (stat.isDirectory()) {
+        visit(path);
+      } else if (stat.isFile() && entry.name.endsWith(".sqlite")) {
+        candidates.push(path);
+      }
+    }
+  };
+  visit(persistRoot);
+  if (candidates.length !== 1) {
+    throw new Error(`Wrangler persistence root must contain exactly one D1 SQLite database, found ${candidates.length}`);
+  }
+  return candidates[0]!;
 }
 
-async function validateSeededRole(db: D1Database, ids: FixtureIds, sessionToken: string, migrationHead: string): Promise<void> {
-  const expectedCounts: Array<[string, number, string, unknown[]]> = [
-    ["estimate_row_items", ids.rows.length, "SELECT COUNT(*) AS count FROM estimate_row_items WHERE estimate_id = ?", [ids.estimate]],
-    ["estimate_nodes", ids.nodes.length, "SELECT COUNT(*) AS count FROM estimate_nodes WHERE estimate_id = ?", [ids.estimate]],
-    ["estimate_tabs", 1, "SELECT COUNT(*) AS count FROM estimate_tabs WHERE id = ?", [ids.tab]],
-    ["profiles", 1, "SELECT COUNT(*) AS count FROM profiles WHERE id = ? AND email IS NOT NULL", [ids.profile]],
-    ["session", 1, 'SELECT COUNT(*) AS count FROM "session" WHERE id = ? AND token = ? AND userId = ?', [ids.session, sessionToken, ids.user]],
-    ["allowlist", 1, "SELECT COUNT(*) AS count FROM closed_beta_allowed_emails WHERE id = ? AND status = 'active'", [ids.allowlist]],
-    ["legal", 1, "SELECT COUNT(*) AS count FROM legal_terms_acceptances WHERE id = ? AND user_id = ? AND terms_version = ?", [ids.legal, ids.profile, CURRENT_TERMS.version]],
-  ];
-  for (const [label, expected, sql, binds] of expectedCounts) {
-    const row = await db.prepare(sql).bind(...binds).first<{ count: number }>();
-    if (Number(row?.count ?? -1) !== expected) throw new Error(`prepared D1 ${label} seed reconciliation failed`);
+async function validatePreparedLocalD1(input: {
+  persistRoot: string;
+  records: Array<{ ids: FixtureIds; sessionToken: string }>;
+  migrationHead: string;
+  migrationCount: number;
+}): Promise<void> {
+  const reader = await openLocalD1ReadOnlyReader(findPreparedD1DatabasePath(input.persistRoot));
+  try {
+    const schemaTables = reader.all<{ name: string }>(
+      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name IN ('account', 'rateLimit', 'session', 'user', 'verification') ORDER BY name ASC",
+    );
+    if (canonicalJson(schemaTables.map((row) => row.name)) !== canonicalJson([...EXPECTED_BETTER_AUTH_TABLES].sort())) {
+      throw new Error("applied Better Auth D1 table set is incomplete");
+    }
+    const ledger = reader.first<{ count: number }>("SELECT COUNT(*) AS count FROM d1_migrations");
+    if (Number(ledger?.count ?? -1) !== input.migrationCount) {
+      throw new Error("prepared D1 migration ledger is incomplete");
+    }
+    const migration = reader.first<{ name: string }>("SELECT name FROM d1_migrations ORDER BY name DESC LIMIT 1");
+    if (migration?.name !== input.migrationHead) throw new Error("prepared D1 migration head is stale");
+
+    for (const record of input.records) {
+      const { ids, sessionToken } = record;
+      const expectedCounts: Array<[string, number, string, Array<string | number>]> = [
+        ["user", 1, 'SELECT COUNT(*) AS count FROM "user" WHERE id = ?', [ids.user]],
+        ["session", 1, 'SELECT COUNT(*) AS count FROM "session" WHERE id = ? AND token = ? AND userId = ?', [ids.session, sessionToken, ids.user]],
+        ["allowlist", 1, "SELECT COUNT(*) AS count FROM closed_beta_allowed_emails WHERE id = ? AND status = 'active'", [ids.allowlist]],
+        ["legal", 1, "SELECT COUNT(*) AS count FROM legal_terms_acceptances WHERE id = ? AND user_id = ? AND terms_version = ?", [ids.legal, ids.profile, CURRENT_TERMS.version]],
+        ["profiles", 1, "SELECT COUNT(*) AS count FROM profiles WHERE id = ? AND default_workspace_id = ?", [ids.profile, ids.workspace]],
+        ["workspaces", 1, "SELECT COUNT(*) AS count FROM workspaces WHERE id = ? AND created_by = ?", [ids.workspace, ids.profile]],
+        ["workspace_members", 1, "SELECT COUNT(*) AS count FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role = 'admin'", [ids.workspace, ids.profile]],
+        ["projects", 1, "SELECT COUNT(*) AS count FROM projects WHERE id = ? AND workspace_id = ?", [ids.project, ids.workspace]],
+        ["project_members", 1, "SELECT COUNT(*) AS count FROM project_members WHERE project_id = ? AND workspace_id = ? AND user_id = ? AND role = 'admin'", [ids.project, ids.workspace, ids.profile]],
+        ["estimates", 1, "SELECT COUNT(*) AS count FROM estimates WHERE id = ? AND project_id = ?", [ids.estimate, ids.project]],
+        ["estimate_sheet_members", 1, "SELECT COUNT(*) AS count FROM estimate_sheet_members WHERE estimate_id = ? AND project_id = ? AND user_id = ? AND role = 'admin'", [ids.estimate, ids.project, ids.profile]],
+        ["estimate_sheet_access_settings", 1, "SELECT COUNT(*) AS count FROM estimate_sheet_access_settings WHERE estimate_id = ? AND project_id = ? AND inherit_project_access = 1", [ids.estimate, ids.project]],
+        ["estimate_tabs", 1, "SELECT COUNT(*) AS count FROM estimate_tabs WHERE id = ? AND estimate_id = ?", [ids.tab, ids.estimate]],
+        ["estimate_nodes", ids.nodes.length, "SELECT COUNT(*) AS count FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?", [ids.estimate, ids.tab]],
+        ["estimate_row_items", ids.rows.length, "SELECT COUNT(*) AS count FROM estimate_row_items WHERE estimate_id = ?", [ids.estimate]],
+      ];
+      for (const [label, expected, sql, binds] of expectedCounts) {
+        const row = reader.first<{ count: number }>(sql, binds);
+        if (Number(row?.count ?? -1) !== expected) throw new Error(`prepared D1 ${label} seed reconciliation failed`);
+      }
+
+      const accessSql = `
+        SELECT estimate.id
+        FROM estimates AS estimate
+        JOIN projects AS project ON project.id = estimate.project_id
+        JOIN workspace_members AS workspace_member
+          ON workspace_member.workspace_id = project.workspace_id AND workspace_member.user_id = ?
+        JOIN project_members AS project_member
+          ON project_member.project_id = project.id AND project_member.workspace_id = project.workspace_id AND project_member.user_id = ?
+        JOIN estimate_sheet_members AS estimate_member
+          ON estimate_member.estimate_id = estimate.id AND estimate_member.project_id = project.id AND estimate_member.user_id = ?
+        WHERE project.workspace_id = ? AND project.id = ? AND estimate.id = ?
+          AND workspace_member.role IN ('owner', 'admin', 'member')
+          AND project_member.role IN ('owner', 'admin', 'editor', 'viewer')
+          AND estimate_member.role IN ('owner', 'admin', 'editor', 'viewer')
+        LIMIT 1
+      `;
+      const access = reader.first<{ id: string }>(accessSql, [
+        ids.profile, ids.profile, ids.profile, ids.workspace, ids.project, ids.estimate,
+      ]);
+      if (!access) throw new Error("prepared D1 route authorization hierarchy is incomplete");
+
+      const wrongTenant = reader.first<{ id: string }>(accessSql, [
+        ids.profile, ids.profile, ids.profile, `auth-denial-wrong-tenant-${ids.workspace}`, ids.project, ids.estimate,
+      ]);
+      const revokedUser = `auth-denial-revoked-membership-${ids.profile}`;
+      const revokedMembership = reader.first<{ id: string }>(accessSql, [
+        revokedUser, revokedUser, revokedUser, ids.workspace, ids.project, ids.estimate,
+      ]);
+      if (wrongTenant || revokedMembership) throw new Error("prepared D1 authorization denial probes failed closed");
+    }
+  } finally {
+    reader.close();
   }
-  const access = await db.prepare(`
-    SELECT estimate.id
-    FROM estimates AS estimate
-    JOIN projects AS project ON project.id = estimate.project_id
-    JOIN workspace_members AS member ON member.workspace_id = project.workspace_id AND member.user_id = ?
-    WHERE project.id = ? AND estimate.id = ? AND member.role IN ('owner', 'admin', 'member')
-    LIMIT 1
-  `).bind(ids.profile, ids.project, ids.estimate).first();
-  if (!access) throw new Error("prepared D1 route authorization hierarchy is incomplete");
-  const migration = await db.prepare("SELECT name FROM d1_migrations ORDER BY name DESC LIMIT 1").first<{ name: string }>();
-  if (migration?.name !== migrationHead) throw new Error("prepared D1 migration head is stale");
 }
 
 async function provisionLocalD1(input: {
@@ -1361,10 +1393,10 @@ async function provisionLocalD1(input: {
   const migrationHead = migrations.at(-1)?.name;
   if (!migrationHead) throw new Error("active migration head is unavailable");
   const binding = localWranglerBinding(input.repoRoot, wrangler.unstable_readConfig);
-  const schemaPath = resolve(resourceRoot, "better-auth-schema.sql");
+  const schemaPath = resolve(input.runPath, "better-auth-schema.sql");
   const migrationsPath = resolve(resourceRoot, "migrations.json");
   const localConfigPath = resolve(resourceRoot, "wrangler-local.json");
-  const seedPath = resolve(resourceRoot, "seed.sql");
+  const seedPath = resolve(input.runPath, "seed.sql");
   const cleanupSqlPath = resolve(resourceRoot, "cleanup.sql");
   writeNoOverwrite(schemaPath, `${schemaProof.sql.trim()}\n`, 0o600);
   writeJsonNoOverwrite(migrationsPath, {
@@ -1417,37 +1449,19 @@ async function provisionLocalD1(input: {
     writeNoOverwrite(statePath, `${JSON.stringify(state, null, 2)}\n`, 0o600);
   }
 
-  const proxy = await wrangler.getPlatformProxy<{ ARCH_DB: D1Database }>({
-    configPath: localConfigPath,
-    persist: { path: persistRoot },
-    remoteBindings: false,
-    envFiles: [],
+  const commands = buildLocalD1PrepareCommands({
+    runRoot: input.runPath,
+    persistRoot,
+    schemaPath,
+    seedPath,
   });
-  try {
-    const db = proxy.env.ARCH_DB;
-    const generatedStatements = wrangler.unstable_splitSqlQuery(schemaProof.sql);
-    await db.batch(generatedStatements.map((statement) => db.prepare(statement)));
-    await applyMigrations(db, migrations);
-    const schemaTables = await db.prepare("SELECT name FROM sqlite_schema WHERE type = 'table' AND name IN ('account', 'rateLimit', 'session', 'user', 'verification') ORDER BY name ASC").all<{ name: string }>();
-    if (canonicalJson(schemaTables.results.map((row) => row.name).sort()) !== canonicalJson([...EXPECTED_BETTER_AUTH_TABLES].sort())) {
-      throw new Error("applied Better Auth D1 table set is incomplete");
-    }
-    const ledger = await db.prepare("SELECT COUNT(*) AS count FROM d1_migrations").first<{ count: number }>();
-    if (Number(ledger?.count ?? -1) !== migrations.length) throw new Error("prepared D1 migration ledger is incomplete");
-    for (const record of records) {
-      await seedFixtureRole(db, {
-        fixture: input.fixture,
-        ids: record.ids,
-        sessionToken: record.sessionToken,
-        email: record.email,
-        timestamp,
-        expiresAt,
-      });
-      await validateSeededRole(db, record.ids, record.sessionToken, migrationHead);
-    }
-  } finally {
-    await proxy.dispose();
-  }
+  executeLocalD1PrepareCommands({ repoRoot: input.repoRoot, commands });
+  await validatePreparedLocalD1({
+    persistRoot,
+    records,
+    migrationHead,
+    migrationCount: migrations.length,
+  });
 
   const authFixtureHash = sha256Json({
     schema: "estimate-sheet-auth-fixture.v1",

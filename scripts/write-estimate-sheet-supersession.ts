@@ -18,6 +18,7 @@ import {
   isSha256,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   sha256File,
   sha256Json,
   validateFingerprintContent,
@@ -303,7 +304,9 @@ export function writeEstimateSheetSupersession(input: {
   };
   const receipt: SupersessionReceiptV1 = { ...payload, payload_sha256: sha256Json(payload) };
   assertSupersessionReceipt(receipt);
-  const outputPath = ensureContainedRunPath(manifest.run_root, input.output ?? "receipts/supersession.json");
+  const outputPath = input.output === undefined || input.output === "auto:supersession"
+    ? resolveManifestLogicalOutput(manifest, "supersession")
+    : ensureContainedRunPath(manifest.run_root, input.output);
   writeJsonNoOverwrite(outputPath, receipt, 0o600);
   return { receipt, outputPath };
 }
@@ -333,7 +336,7 @@ export function main(argv = process.argv.slice(2)): number {
     unit,
     runManifest,
     decision: resolve(planRoot, decision),
-    output: "receipts/supersession.json",
+    output: "auto:supersession",
   });
   process.stdout.write(`${canonicalJson({ ...result.receipt, output_path: result.outputPath })}\n`);
   return 0;

@@ -26,6 +26,7 @@ import {
   isSha256,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   sha256File,
   sha256Hex,
   sha256Json,
@@ -627,7 +628,7 @@ export function writeEstimateSheetBottleneckDecision(input: {
   assertFixtureIdentity(fixture, reports.jsdom, inputBindings.fixture.binding, fingerprints);
 
   if (input.tests !== "auto:decision-tests") throw new Error("decision tests must be auto:decision-tests");
-  const testPath = ensureContainedRunPath(manifest.run_root, "receipts/decision-tests.json");
+  const testPath = resolveManifestLogicalOutput(manifest, "decision-tests");
   validateDecisionTestReceipt(testPath, manifest);
   const testBinding: DecisionEvidenceBinding = {
     unit_id: "UNIT-004",
@@ -671,7 +672,9 @@ export function writeEstimateSheetBottleneckDecision(input: {
   };
   const decision: BottleneckDecisionV1 = { ...payload, payload_sha256: sha256Json(payload) };
   assertBottleneckDecision(decision);
-  const outputPath = ensureContainedRunPath(manifest.run_root, input.output ?? "receipts/decision.json");
+  const outputPath = input.output === undefined || input.output === "auto:decision"
+    ? resolveManifestLogicalOutput(manifest, "decision")
+    : ensureContainedRunPath(manifest.run_root, input.output);
   writeJsonNoOverwrite(outputPath, decision, 0o600);
   return { decision, outputPath };
 }
@@ -701,7 +704,7 @@ export function main(argv = process.argv.slice(2)): number {
     runManifest,
     inputIndex: resolve(planRoot, inputIndex),
     tests,
-    output: "receipts/decision.json",
+    output: "auto:decision",
   });
   process.stdout.write(`${canonicalJson({ ...result.decision, output_path: result.outputPath })}\n`);
   return 0;

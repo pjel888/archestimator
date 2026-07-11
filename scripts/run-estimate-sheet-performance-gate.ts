@@ -9,12 +9,12 @@ import {
   assertRunManifest,
   cliBoolean,
   cliString,
-  ensureContainedRunPath,
   fingerprintContentEqual,
   isPlainObject,
   normalizeArgv,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
@@ -181,14 +181,14 @@ function resolveChildOutputSpecs(manifest: RunManifestV1, role: string, specs: s
     return [];
   }
   const expected = [
-    { spec: "OUTPUT_FILE:auto:release-gates-json", env_key: "OUTPUT_FILE" as const, role: "release-gates-json" as const, extension: "json", schema_id: "cloudflare-release-gates" as const },
-    { spec: "MARKDOWN_FILE:auto:release-gates-md", env_key: "MARKDOWN_FILE" as const, role: "release-gates-md" as const, extension: "md", schema_id: "cloudflare-release-gates-markdown" as const },
+    { spec: "OUTPUT_FILE:auto:release-gates-json", env_key: "OUTPUT_FILE" as const, role: "release-gates-json" as const, schema_id: "cloudflare-release-gates" as const },
+    { spec: "MARKDOWN_FILE:auto:release-gates-md", env_key: "MARKDOWN_FILE" as const, role: "release-gates-md" as const, schema_id: "cloudflare-release-gates-markdown" as const },
   ];
   if (specs.length !== expected.length || expected.some(({ spec }) => !specs.includes(spec))) {
     throw new Error("release-gates requires the exact JSON and Markdown child outputs");
   }
-  return expected.map(({ env_key, role: outputRole, extension, schema_id }) => {
-    const immutable_path = ensureContainedRunPath(manifest.run_root, `receipts/${outputRole}.${extension}`);
+  return expected.map(({ env_key, role: outputRole, schema_id }) => {
+    const immutable_path = resolveManifestLogicalOutput(manifest, outputRole);
     if (existsSync(immutable_path)) throw new Error(`child output already exists: ${immutable_path}`);
     return { env_key, role: outputRole, immutable_path, schema_id };
   });
@@ -210,7 +210,7 @@ function validateChildOutputs(outputs: Array<Omit<ChildOutputBinding, "sha256">>
 
 function resolveReceiptPath(manifest: RunManifestV1, role: string, output?: string): string {
   if (output !== undefined && output !== `auto:${role}`) throw new Error(`gate output must be auto:${role}`);
-  const path = ensureContainedRunPath(manifest.run_root, `receipts/command-${role}.json`);
+  const path = resolveManifestLogicalOutput(manifest, role as Parameters<typeof resolveManifestLogicalOutput>[1]);
   if (existsSync(path)) throw new Error(`gate receipt already exists: ${path}`);
   return path;
 }

@@ -33,12 +33,14 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
   writeJsonNoOverwrite,
   writeNoOverwrite,
   type PerformanceReportV1,
+  type EstimateOutputRole,
   type RunManifestV1,
   type TestReceiptV1,
 } from "./lib/estimate-sheet-performance-contract";
@@ -452,12 +454,12 @@ function resolveOutputPath(manifest: RunManifestV1, value: string): string {
   if (!value.startsWith("auto:")) return ensureContainedRunPath(manifest.run_root, value);
   const role = value.slice("auto:".length);
   if (!/^[a-z0-9][a-z0-9-]*$/u.test(role)) throw new Error("D1 output role is invalid");
-  return ensureContainedRunPath(manifest.run_root, `reports/${role}.json`);
+  return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
 }
 
 function resolveTestReceipt(manifest: RunManifestV1, value: string): { path: string; receipt: TestReceiptV1 } {
   const path = value.startsWith("auto:")
-    ? ensureContainedRunPath(manifest.run_root, `receipts/${value.slice("auto:".length)}.json`)
+    ? resolveManifestLogicalOutput(manifest, value.slice("auto:".length) as EstimateOutputRole)
     : ensureContainedRunPath(manifest.run_root, value);
   const receipt = readJsonFile<TestReceiptV1>(path);
   assertTestReceipt(receipt);

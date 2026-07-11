@@ -38,6 +38,7 @@ import {
   parseStrictCli,
   readJsonFile,
   replaceFileAtomically,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
@@ -45,6 +46,7 @@ import {
   writeJsonNoOverwrite,
   writeNoOverwrite,
   type PerformanceReportV1,
+  type EstimateOutputRole,
   type RunManifestV1,
   type SourceFingerprint,
   type TestReceiptV1,
@@ -809,7 +811,8 @@ function replaceCleanupManifest(path: string, input: Omit<RawCleanupManifest, "p
 function resolveDependencyPath(manifest: RunManifestV1, value: string, kind: "tests" | "gate"): string {
   if (value.startsWith("auto:")) {
     const role = value.slice("auto:".length);
-    return ensureContainedRunPath(manifest.run_root, kind === "gate" ? `receipts/command-${role}.json` : `receipts/${role}.json`);
+    void kind;
+    return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
   }
   return ensureContainedRunPath(manifest.run_root, value);
 }
@@ -1011,7 +1014,9 @@ function writeHostedReport(input: {
   if (serialized.includes("aeperf:") || /(?:authorization|cookie|secret|token|password)\s*[=:]/iu.test(serialized)) {
     throw new Error("HOSTED_REPORT_CONTAINS_SENSITIVE_MATERIAL");
   }
-  const output = ensureContainedRunPath(input.manifest.run_root, input.output === undefined || input.output === "auto:hosted" ? "reports/hosted-d1.json" : input.output);
+  const output = input.output === undefined || input.output === "auto:hosted"
+    ? resolveManifestLogicalOutput(input.manifest, "hosted")
+    : ensureContainedRunPath(input.manifest.run_root, input.output);
   writeJsonNoOverwrite(output, report, 0o600);
   return { report, output };
 }

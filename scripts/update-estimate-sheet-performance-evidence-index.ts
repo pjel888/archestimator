@@ -39,6 +39,7 @@ import {
   parseStrictCli,
   readJsonFile,
   replaceFileAtomically,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
@@ -46,6 +47,7 @@ import {
   writeJsonNoOverwrite,
   writeNoOverwrite,
   type PerformanceReportV1,
+  type EstimateOutputRole,
   type RunManifestV1,
   type SourceFingerprint,
 } from "./lib/estimate-sheet-performance-contract";
@@ -239,40 +241,27 @@ function readTransitionJournal(repoRoot: string): { path: string; journal: Index
 }
 
 function asInsideRun(manifest: RunManifestV1, path: string, label: string): string {
-  const resolved = ensureContainedRunPath(manifest.run_root, path);
+  const resolved = isAbsolute(path) ? resolve(path) : ensureContainedRunPath(manifest.run_root, path);
+  if (!isContained(manifest.run_root, resolved) && !isContained(manifest.immutable_run_root, resolved)) {
+    throw new Error(`${label} escapes the prepared mutable and immutable run roots`);
+  }
   assertRegularFile(resolved, label);
   return resolved;
 }
 
 function resolveRunArtifact(manifest: RunManifestV1, value: string): string {
   if (!value.startsWith("auto:")) return value;
-  const role = value.slice("auto:".length);
+  const requestedRole = value.slice("auto:".length);
+  const role = requestedRole === "d1-local" ? "d1" : requestedRole === "hosted-d1" ? "hosted" : requestedRole;
   if (!role) throw new Error("auto evidence role is empty");
-  const paths: Readonly<Record<string, string>> = {
-    fixture: "fixtures/fixture.json",
-    jsdom: "reports/jsdom.json",
-    browser: "reports/browser.json",
-    d1: "reports/d1.json",
-    "d1-local": "reports/d1.json",
-    integration: "reports/integration.json",
-    "unit-proof": "reports/unit-proof.json",
-    hosted: "reports/hosted-d1.json",
-    "hosted-d1": "reports/hosted-d1.json",
-    decision: "receipts/decision.json",
-    supersession: "receipts/supersession.json",
-    release: "release-evaluation.md",
-    "mode-proof": "mode-proof.json",
-  };
-  const path = paths[role];
-  if (!path) throw new Error(`unknown auto evidence role: ${role}`);
-  return path;
+  return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
 }
 
 function resolveGateArtifact(manifest: RunManifestV1, value: string): string {
   if (!value.startsWith("auto:")) return ensureContainedRunPath(manifest.run_root, value);
   const role = value.slice("auto:".length);
   if (!/^[a-z0-9][a-z0-9-]*$/u.test(role)) throw new Error("auto gate role is invalid");
-  return ensureContainedRunPath(manifest.run_root, `receipts/command-${role}.json`);
+  return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
 }
 
 function assertProjectionIsNotSource(projectionPath: string, sources: string[]): void {
@@ -294,6 +283,18 @@ function planDurableCopy(planRoot: string, source: string, destination: string):
   return {
     absolutePath: destination,
     relativePath: relativeToPlan(planRoot, destination),
+    bytes,
+    sha256: sha256Hex(bytes),
+  };
+}
+
+function bindExistingDurableSource(planRoot: string, source: string): PlannedDurableSource {
+  assertRegularFile(source, "existing immutable evidence source");
+  if (!isContained(planRoot, source)) throw new Error(`existing immutable evidence escapes plan root: ${source}`);
+  const bytes = readFileSync(source);
+  return {
+    absolutePath: source,
+    relativePath: relativeToPlan(planRoot, source),
     bytes,
     sha256: sha256Hex(bytes),
   };
@@ -1268,10 +1269,14 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
     assertProjectionIsNotSource(primaryProjection, sourcePaths);
     for (const entry of secondary) assertProjectionIsNotSource(entry.projectPath, sourcePaths);
 
-    const durableRoot = resolve(immutableRunRoot, manifest.unit_id, manifest.run_id);
-    const primaryExtension = extname(evidencePath) || ".json";
-    const durablePrimary = planDurableCopy(planRoot, evidencePath, resolve(durableRoot, "reports", `${primarySpec.role}${primaryExtension}`));
-    const durableSecondary = secondary.map((entry) => planDurableCopy(planRoot, entry.evidencePath, resolve(durableRoot, "secondary", `${entry.role}${extname(entry.evidencePath) || ".json"}`)));
+    const durableRoot = resolve(manifest.immutable_run_root);
+    if (!isContained(immutableRunRoot, durableRoot)) throw new Error("manifest immutable run root escapes the configured immutable evidence root");
+    if (!isContained(durableRoot, evidencePath)) throw new Error("primary evidence is not a canonical immutable run output");
+    for (const entry of secondary) {
+      if (!isContained(durableRoot, entry.evidencePath)) throw new Error(`secondary evidence ${entry.role} is not a canonical immutable run output`);
+    }
+    const durablePrimary = bindExistingDurableSource(planRoot, evidencePath);
+    const durableSecondary = secondary.map((entry) => bindExistingDurableSource(planRoot, entry.evidencePath));
     const durableProofChildren = proofChildren.map((child, index) => {
       if (!/^[a-z0-9][a-z0-9-]*$/u.test(child.role)) throw new Error(`proof child role is not path-safe: ${child.role}`);
       const destination = resolve(
@@ -1384,9 +1389,8 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
         immutable,
       };
     });
+    const boundExistingSources = [durablePrimary, ...durableSecondary];
     const plannedDurableSources = [
-      durablePrimary,
-      ...durableSecondary,
       ...durableDependencies,
       ...(durableCleanup ? [durableCleanup] : []),
       durableIndex,
@@ -1428,6 +1432,9 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
 
     createDurableDirectories(repoRoot, createdDirectories);
     for (const source of plannedDurableSources) materializeDurableSource(source);
+    for (const source of boundExistingSources) {
+      if (sha256File(source.absolutePath) !== source.sha256) throw new Error(`canonical immutable evidence changed before projection: ${source.relativePath}`);
+    }
     input.faultInjector?.("IMMUTABLE_WRITTEN");
 
     for (const replacement of replacements) {
@@ -1448,6 +1455,9 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
     if (sha256File(planPath) !== currentJournal.new_plan_sha256) throw new Error("committed plan manifest readback mismatch");
     for (const source of plannedDurableSources) {
       if (sha256File(source.absolutePath) !== source.sha256) throw new Error(`immutable evidence changed before commit readback: ${source.relativePath}`);
+    }
+    for (const source of boundExistingSources) {
+      if (sha256File(source.absolutePath) !== source.sha256) throw new Error(`canonical immutable evidence changed before commit readback: ${source.relativePath}`);
     }
     for (const replacement of replacements) {
       if (sha256File(replacement.target) !== replacement.newSha256) throw new Error(`projection readback mismatch: ${relativeToPlan(planRoot, replacement.target)}`);

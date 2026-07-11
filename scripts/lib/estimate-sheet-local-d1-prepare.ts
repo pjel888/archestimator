@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { isAbsolute, relative, resolve } from "node:path";
 
+import type { SQLQueryBindings } from "bun:sqlite";
+
 export type LocalD1PrepareCommandRole = "better-auth-schema" | "application-migrations" | "fixture-seed";
 
 export type LocalD1PrepareCommand = {
@@ -19,6 +21,32 @@ export type LocalD1PrepareCommandRunner = (
   args: string[],
   options: { cwd: string; env: NodeJS.ProcessEnv },
 ) => CommandResult;
+
+export type LocalD1ReadOnlyReader = {
+  first<T extends Record<string, unknown>>(sql: string, binds?: readonly SQLQueryBindings[]): T | null;
+  all<T extends Record<string, unknown>>(sql: string, binds?: readonly SQLQueryBindings[]): T[];
+  close(): void;
+};
+
+export async function openLocalD1ReadOnlyReader(databasePath: string): Promise<LocalD1ReadOnlyReader> {
+  const moduleName = "bun:sqlite";
+  const { Database } = await import(moduleName);
+  const database = new Database(requireAbsolutePath(databasePath, "local D1 database"), {
+    readonly: true,
+    strict: true,
+  });
+  return {
+    first<T extends Record<string, unknown>>(sql: string, binds: readonly SQLQueryBindings[] = []): T | null {
+      return database.query<T, SQLQueryBindings[]>(sql).get(...binds) ?? null;
+    },
+    all<T extends Record<string, unknown>>(sql: string, binds: readonly SQLQueryBindings[] = []): T[] {
+      return database.query<T, SQLQueryBindings[]>(sql).all(...binds);
+    },
+    close(): void {
+      database.close(true);
+    },
+  };
+}
 
 function requireAbsolutePath(path: string, label: string): string {
   if (!isAbsolute(path)) throw new Error(`${label} must be absolute`);

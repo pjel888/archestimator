@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import {
   buildEstimatePerformanceFixture,
   flattenEstimatePerformanceNodes,
@@ -36,12 +36,14 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
   writeJsonNoOverwrite,
   type PerformanceReportV1,
   type BrowserScope,
+  type EstimateOutputRole,
   type FingerprintContent,
   type RunManifestV1,
   type TestReceiptV1,
@@ -233,10 +235,7 @@ function resolveArtifactPath(manifest: RunManifestV1, value: string, kind: "test
   if (!value.startsWith("auto:")) return ensureContainedRunPath(manifest.run_root, value);
   const role = value.slice("auto:".length);
   if (!role) throw new Error(`${kind} output role is empty`);
-  if (kind === "test") return ensureContainedRunPath(manifest.run_root, `receipts/${role}.json`);
-  if (kind === "gate") return ensureContainedRunPath(manifest.run_root, `receipts/command-${role}.json`);
-  if (kind === "fixture") return ensureContainedRunPath(manifest.run_root, `fixtures/${role}.json`);
-  return ensureContainedRunPath(manifest.run_root, `reports/${role}.json`);
+  return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
 }
 
 function assertTestReceiptForRun(path: string, manifest: RunManifestV1): TestReceiptV1 {
@@ -289,10 +288,8 @@ function requireAutoRole(value: string | undefined, expectedRole: string, label:
 }
 
 function resolveProofChildPath(manifest: RunManifestV1, role: string, kind: "mode" | "browser" | "d1" | "test" | "gate"): string {
-  if (kind === "mode") return ensureContainedRunPath(manifest.run_root, "mode-proof.json");
-  if (kind === "browser" || kind === "d1") return ensureContainedRunPath(manifest.run_root, `reports/${role}.json`);
-  if (kind === "test") return ensureContainedRunPath(manifest.run_root, `receipts/${role}.json`);
-  return ensureContainedRunPath(manifest.run_root, `receipts/command-${role}.json`);
+  void kind;
+  return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
 }
 
 function readProofChild(path: string, label: string): { value: unknown; sha256: string } {
@@ -308,7 +305,7 @@ function readProofChild(path: string, label: string): { value: unknown; sha256: 
 }
 
 function proofChild(role: string, schemaId: string, path: string, sha256: string, manifest: RunManifestV1): ValidatedChild {
-  const immutablePath = relative(manifest.run_root, path).replaceAll("\\", "/");
+  const immutablePath = relative(manifest.immutable_run_root, path).replaceAll("\\", "/");
   if (!immutablePath || immutablePath.startsWith("../")) throw new Error(`child path escapes the immutable run: ${role}`);
   return { role, schemaId, path: immutablePath, sha256 };
 }
@@ -782,7 +779,7 @@ function validateProofChildren(
     children.push(validateProofGateReceipt(resolveProofChildPath(manifest, role, "gate"), manifest, role, mode.proof.build_hash));
   }
   for (const child of children) {
-    const childPath = ensureContainedRunPath(manifest.run_root, child.path);
+    const childPath = ensureContainedRunPath(manifest.immutable_run_root, child.path);
     assertRegularFile(childPath, `proof child ${child.role}`);
     if (sha256File(childPath) !== child.sha256) throw new Error(`proof child ${child.role} changed during envelope validation`);
   }
@@ -809,8 +806,10 @@ export function assertEstimateSheetProofEnvelopeArtifact(input: {
   const spec = PROOF_SPECS[manifest.unit_id];
   if (!spec) throw new Error("proof envelopes are restricted to UNIT-005 through UNIT-010");
   const expectedRole = spec.schema === INTEGRATION_SCHEMA ? "integration" : "unit-proof";
-  const envelopePath = ensureContainedRunPath(manifest.run_root, input.envelopePath);
-  const expectedPath = ensureContainedRunPath(manifest.run_root, `reports/${expectedRole}.json`);
+  const envelopePath = isAbsolute(input.envelopePath)
+    ? resolve(input.envelopePath)
+    : ensureContainedRunPath(manifest.immutable_run_root, input.envelopePath);
+  const expectedPath = resolveManifestLogicalOutput(manifest, expectedRole);
   if (envelopePath !== expectedPath) throw new Error(`proof envelope path must be reports/${expectedRole}.json`);
   const loaded = readProofChild(envelopePath, "proof envelope");
   if (!isPlainObject(loaded.value)) throw new Error("proof envelope must be an object");
@@ -859,7 +858,7 @@ export function assertEstimateSheetProofEnvelopeArtifact(input: {
     envelopeSha256: loaded.sha256,
     children: expectedChildren.map((child) => ({
       ...child,
-      absolutePath: ensureContainedRunPath(manifest.run_root, child.immutablePath),
+      absolutePath: ensureContainedRunPath(manifest.immutable_run_root, child.immutablePath),
     })),
   };
 }
@@ -908,7 +907,7 @@ export function createEstimateSheetProofEnvelope(input: {
 
   const expectedOutputRole = spec.schema === INTEGRATION_SCHEMA ? "integration" : "unit-proof";
   requireAutoRole(input.output, expectedOutputRole, "proof envelope output");
-  const envelopePath = ensureContainedRunPath(manifest.run_root, `reports/${expectedOutputRole}.json`);
+  const envelopePath = resolveManifestLogicalOutput(manifest, expectedOutputRole);
   const current = computeEstimateSheetSourceFingerprint({ repoRoot: process.cwd() }).fingerprint;
   if (!fingerprintContentEqual(current.application, manifest.applicationFingerprint)
     || !fingerprintContentEqual(current.producer, manifest.producerFingerprint)) {
