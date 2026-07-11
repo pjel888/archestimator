@@ -82,6 +82,27 @@ const SHELL_INERT_TEST_PATH_PATTERN = /^[A-Za-z0-9._/-]+$/u;
 const REQUIREMENT_ID_PATTERN = /^(?:REQ|UX|SEC|DATA|PERF|OPS)-\d+$/u;
 const TRACE_ID_PATTERN = /^(?:SRC|REQ|UX|SEC|DATA|PERF|OPS|ASSUMP|DEC-AUTO|AUTH|RISK|AC|TEST|EVID|ART|UNIT|GATE|SLICE)-[A-Z0-9-]+$/u;
 
+const ESTIMATE_RUNTIME_CONTRACT = "estimate-sheet-runtime-manifest-state.v1";
+const ESTIMATE_RUNTIME_REGISTRY = {
+  artifact_id: "ART-052",
+  projection_path: "evidence/runtime/evidence-index.json",
+};
+const ESTIMATE_RUNTIME_PROJECTIONS = [
+  ["ART-039", "EVID-002", "SECONDARY", "fixture", "evidence/runtime/fixture-manifest.json", "UNIT-001"],
+  ["ART-040", "EVID-002", "PRIMARY", "jsdom", "evidence/runtime/jsdom-baseline.json", "UNIT-001"],
+  ["ART-041", "EVID-003", "PRIMARY", "browser", "evidence/runtime/browser-baseline.json", "UNIT-002"],
+  ["ART-042", "EVID-004", "PRIMARY", "d1-local", "evidence/runtime/d1-local-baseline.json", "UNIT-003"],
+  ["ART-043", "EVID-013", "PRIMARY", "decision", "evidence/runtime/bottleneck-decision.json", "UNIT-004"],
+  ["ART-044", "EVID-005", "PRIMARY", "unit-005", "evidence/runtime/unit-005-route-d1.json", "UNIT-005"],
+  ["ART-045", "EVID-006", "PRIMARY", "unit-006", "evidence/runtime/unit-006-graph.json", "UNIT-006"],
+  ["ART-046", "EVID-007", "PRIMARY", "unit-007", "evidence/runtime/unit-007-derived-state.json", "UNIT-007"],
+  ["ART-047", "EVID-008", "PRIMARY", "unit-008", "evidence/runtime/unit-008-render-a11y.json", "UNIT-008"],
+  ["ART-048", "EVID-009", "PRIMARY", "unit-009", "evidence/runtime/unit-009-mutations.json", "UNIT-009"],
+  ["ART-049", "EVID-010", "PRIMARY", "integrated-local", "evidence/runtime/integrated-local-proof.json", "UNIT-010"],
+  ["ART-050", "EVID-011", "PRIMARY", "hosted-d1", "evidence/runtime/hosted-d1-proof.json", "UNIT-011"],
+  ["ART-051", "EVID-011", "SECONDARY", "release", "evidence/runtime/release-evaluation.md", "UNIT-011"],
+].map(([artifact_id, evidence_id, relationship, role, projection_path, unit_id]) => ({ artifact_id, evidence_id, relationship, role, projection_path, unit_id }));
+
 export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -211,6 +232,147 @@ function expectReferences(ids, index, label, errors) {
 
 function includesString(record, key, value) {
   return Array.isArray(record?.[key]) && record[key].includes(value);
+}
+
+function exactObjectKeys(value, expected) {
+  return isPlainObject(value)
+    && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...expected].sort());
+}
+
+function containsRuntimeRegistrySelfEntry(value) {
+  const pending = [value];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (Array.isArray(current)) {
+      pending.push(...current);
+    } else if (isPlainObject(current)) {
+      if (
+        current.artifact_id === ESTIMATE_RUNTIME_REGISTRY.artifact_id
+        || current.artifactId === ESTIMATE_RUNTIME_REGISTRY.artifact_id
+        || current.projection_path === ESTIMATE_RUNTIME_REGISTRY.projection_path
+      ) return true;
+      pending.push(...Object.values(current));
+    }
+  }
+  return false;
+}
+
+async function validateEstimateRuntimeExtension({ manifest, root, artifacts, evidence, units, errors }) {
+  const runtime = manifest.runtime_evidence;
+  if (!isPlainObject(runtime) || runtime.contract_version !== ESTIMATE_RUNTIME_CONTRACT) return;
+  if (!exactObjectKeys(runtime, ["contract_version", "transition_sequence", "latest_unit_id", "latest_run_id", "registry", "projections"])) {
+    errors.push("runtime_evidence: invalid closed shape");
+  }
+  if (!Number.isSafeInteger(runtime.transition_sequence) || runtime.transition_sequence < 0) {
+    errors.push("runtime_evidence: transition_sequence must be a non-negative safe integer");
+  }
+  const latestNull = runtime.latest_unit_id === null && runtime.latest_run_id === null;
+  const latestPresent = /^UNIT-\d+$/u.test(runtime.latest_unit_id ?? "")
+    && typeof runtime.latest_run_id === "string"
+    && /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(runtime.latest_run_id);
+  if ((!latestNull && !latestPresent) || (runtime.transition_sequence === 0 && !latestNull)) {
+    errors.push("runtime_evidence: latest unit/run tuple does not match transition sequence");
+  }
+  if (runtime.transition_sequence > 0 && !latestPresent && manifest.terminal_status !== "ACHIEVED") {
+    errors.push("runtime_evidence: nonzero transition sequence requires latest unit/run");
+  }
+  if (!exactObjectKeys(runtime.registry, ["artifact_id", "projection_path", "immutable_path", "sha256"])
+    || runtime.registry.artifact_id !== ESTIMATE_RUNTIME_REGISTRY.artifact_id
+    || runtime.registry.projection_path !== ESTIMATE_RUNTIME_REGISTRY.projection_path) {
+    errors.push("runtime_evidence: registry mapping mismatch");
+  }
+  if (!Array.isArray(runtime.projections) || runtime.projections.length !== ESTIMATE_RUNTIME_PROJECTIONS.length) {
+    errors.push(`runtime_evidence: expected ${ESTIMATE_RUNTIME_PROJECTIONS.length} ordered projections`);
+    return;
+  }
+
+  const rows = [];
+  for (let index = 0; index < ESTIMATE_RUNTIME_PROJECTIONS.length; index += 1) {
+    const expected = ESTIMATE_RUNTIME_PROJECTIONS[index];
+    const row = runtime.projections[index];
+    if (!exactObjectKeys(row, ["artifact_id", "evidence_id", "relationship", "role", "projection_path", "immutable_path", "sha256"])) {
+      errors.push(`runtime_evidence: projection ${index} invalid closed shape`);
+      continue;
+    }
+    for (const key of ["artifact_id", "evidence_id", "relationship", "role", "projection_path"]) {
+      if (row[key] !== expected[key]) errors.push(`runtime_evidence: projection ${index} ${key} mismatch`);
+    }
+    rows.push({ ...row, unit_id: expected.unit_id, registry: false });
+  }
+  if (isPlainObject(runtime.registry)) rows.push({ ...runtime.registry, unit_id: null, registry: true });
+
+  for (const row of rows) {
+    if (!SHA256_PATTERN.test(row.sha256 ?? "")) {
+      errors.push(`runtime_evidence: ${row.artifact_id} hash is invalid`);
+      continue;
+    }
+    const artifact = artifacts.get(row.artifact_id);
+    if (!artifact || artifact.path !== row.projection_path || artifact.sha256 !== row.sha256) {
+      errors.push(`runtime_evidence: ${row.artifact_id} artifact reciprocity mismatch`);
+    }
+    if (row.immutable_path === null) {
+      if (!row.registry && row.relationship === "PRIMARY") {
+        const evidenceRecord = evidence.get(row.evidence_id);
+        if (evidenceRecord?.status !== "STALE") errors.push(`runtime_evidence: ${row.evidence_id} must be STALE while placeholder-backed`);
+      }
+      continue;
+    }
+    const allowedPrefix = row.registry
+      ? "evidence/runtime/runs/"
+      : `evidence/runtime/runs/${row.unit_id}/`;
+    if (!isSafeRelativePath(row.immutable_path) || !row.immutable_path.startsWith(allowedPrefix) || row.immutable_path === row.projection_path) {
+      errors.push(`runtime_evidence: ${row.artifact_id} immutable path is unsafe or cyclic`);
+      continue;
+    }
+    const immutable = resolveInside(root, row.immutable_path);
+    const projection = resolveInside(root, row.projection_path);
+    if (!immutable || !projection) {
+      errors.push(`runtime_evidence: ${row.artifact_id} path escapes plan root`);
+      continue;
+    }
+    try {
+      const [immutableReal, projectionReal] = await Promise.all([realpath(immutable), realpath(projection)]);
+      if (immutableReal !== immutable || projectionReal !== projection) throw new Error("symlink traversal");
+      const [immutableInfo, projectionInfo, immutableBytes, projectionBytes] = await Promise.all([
+        stat(immutable), stat(projection), readFile(immutable), readFile(projection),
+      ]);
+      if (!immutableInfo.isFile() || !projectionInfo.isFile()) throw new Error("not a regular file");
+      if (!immutableBytes.equals(projectionBytes) || sha256(immutableBytes) !== row.sha256) {
+        throw new Error("immutable/projection bytes or hash differ");
+      }
+      if (row.registry) {
+        const parsed = JSON.parse(immutableBytes.toString("utf8"));
+        if (containsRuntimeRegistrySelfEntry(parsed)) throw new Error("registry contains cyclic self-entry");
+      }
+    } catch (error) {
+      errors.push(`runtime_evidence: ${row.artifact_id} ${error.message}`);
+    }
+    if (!row.registry && row.relationship === "PRIMARY") {
+      const evidenceRecord = evidence.get(row.evidence_id);
+      const unit = units.get(row.unit_id);
+      const unitOneRefreeze = row.unit_id === "UNIT-001"
+        && evidenceRecord?.status === "STALE"
+        && manifest.next_unit === "UNIT-001"
+        && ["READY", "IN_PROGRESS"].includes(unit?.status);
+      if (!evidenceRecord
+        || (!unitOneRefreeze && evidenceRecord.status !== "PASS")
+        || evidenceRecord.artifact_path !== row.projection_path
+        || evidenceRecord.sha256 !== row.sha256) {
+        errors.push(`runtime_evidence: ${row.evidence_id} materialized evidence reciprocity mismatch`);
+      }
+    }
+  }
+
+  for (const expected of ESTIMATE_RUNTIME_PROJECTIONS.filter((row) => row.relationship === "PRIMARY")) {
+    const unit = units.get(expected.unit_id);
+    const row = runtime.projections.find((candidate) => candidate.artifact_id === expected.artifact_id);
+    if (["VERIFIED", "SUPERSEDED"].includes(unit?.status) && row?.immutable_path === null) {
+      errors.push(`runtime_evidence: ${expected.unit_id}=${unit.status} requires materialized ${expected.artifact_id}`);
+    }
+    if (unit?.status === "IN_PROGRESS" && runtime.latest_unit_id !== expected.unit_id) {
+      errors.push(`runtime_evidence: latest unit must match ${expected.unit_id}=IN_PROGRESS`);
+    }
+  }
 }
 
 async function validateExistingTestIdentity(testRecord, baseline, errors) {
@@ -785,6 +947,8 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
   const evidence = indexRecords(manifest.evidence_index, "evidence_index", /^EVID-\d+$/u, RECORD_STATES.evidence, errors);
   const slices = indexRecords(manifest.ready_slices, "ready_slices", /^SLICE-\d+$/u, null, errors);
 
+  await validateEstimateRuntimeExtension({ manifest, root, artifacts, evidence, units, errors });
+
   if (write) {
     for (const source of sources.values()) {
       if (source.status === "CURRENT" && changedArtifactPaths.has(source.artifact_path)) {
@@ -1089,8 +1253,17 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     }
     for (const unitId of memberIds) {
       const unitStatus = units.get(unitId)?.status;
-      if (!["VERIFIED", "READY", "IN_PROGRESS"].includes(unitStatus)) {
-        errors.push(`ready_slices: ${slice.id} includes ${unitId}=${unitStatus}, expected VERIFIED, READY, or IN_PROGRESS`);
+      const runtimeSpec = ESTIMATE_RUNTIME_PROJECTIONS.find(
+        (row) => row.unit_id === unitId && row.relationship === "PRIMARY",
+      );
+      const estimateSupersession = manifest.runtime_evidence?.contract_version === ESTIMATE_RUNTIME_CONTRACT
+        && unitStatus === "SUPERSEDED"
+        && ["UNIT-005", "UNIT-006", "UNIT-007", "UNIT-008", "UNIT-009"].includes(unitId)
+        && manifest.next_unit !== unitId
+        && evidence.get(runtimeSpec?.evidence_id)?.status === "PASS"
+        && evidence.get("EVID-013")?.status === "PASS";
+      if (!["VERIFIED", "READY", "IN_PROGRESS"].includes(unitStatus) && !estimateSupersession) {
+        errors.push(`ready_slices: ${slice.id} includes ${unitId}=${unitStatus}, expected VERIFIED, decision-backed SUPERSEDED, READY, or IN_PROGRESS`);
       }
     }
     const members = new Set(memberIds);

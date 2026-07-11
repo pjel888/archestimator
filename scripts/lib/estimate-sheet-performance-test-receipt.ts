@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   ESTIMATE_UNITS,
   TEST_RECEIPT_SCHEMA,
@@ -8,13 +8,15 @@ import {
   canonicalJson,
   ensureContainedRunPath,
   fingerprintContentEqual,
+  isContained,
+  isPlainObject,
   isSha256,
   normalizeArgv,
-  nowIso,
   readJsonFile,
   resolveRunManifestPath,
   redactedFailureIds,
   sha256File,
+  sha256Json,
   writeJsonNoOverwrite,
   type EstimateUnit,
   type FingerprintContent,
@@ -143,12 +145,6 @@ export type ReceiptEnvironment = {
   buildHash?: string | null;
 };
 
-function parseJsonEnv(name: string): unknown {
-  const raw = process.env[name]?.trim();
-  if (!raw) return undefined;
-  try { return JSON.parse(raw); } catch { throw new Error(`${name} must contain JSON`); }
-}
-
 export function readReceiptEnvironment(env = process.env): ReceiptEnvironment {
   const role = env.ESTIMATE_PERF_TEST_OUTPUT_ROLE?.trim() || undefined;
   let runRoot = env.ESTIMATE_PERF_RUN_ROOT?.trim() || undefined;
@@ -159,6 +155,34 @@ export function readReceiptEnvironment(env = process.env): ReceiptEnvironment {
   if (!enabled) return { enabled: false };
   if (!unitRaw) throw new Error("test receipt requires ESTIMATE_PERF_UNIT");
   const unitId = ensureUnit(unitRaw);
+  const refreezeAdmission = env.ESTIMATE_PERF_REFREEZE_ADMISSION?.trim() || undefined;
+  if (refreezeAdmission) {
+    const repoRoot = process.cwd();
+    const admissionPath = resolve(repoRoot, refreezeAdmission);
+    if (!isContained(repoRoot, admissionPath)) throw new Error("refreeze admission escapes the repository");
+    const admission = readJsonFile<Record<string, unknown>>(admissionPath);
+    const payload = structuredClone(admission);
+    const payloadSha256 = payload.payload_sha256;
+    delete payload.payload_sha256;
+    const focusedRun = admission.focused_run;
+    if (admission.schema_version !== "estimate-sheet-refreeze-admission.v1"
+      || admission.status !== "RECORDED"
+      || admission.unit_id !== "UNIT-002"
+      || payloadSha256 !== sha256Json(payload)
+      || !isPlainObject(focusedRun)
+      || focusedRun.receipt_role !== role
+      || typeof focusedRun.run_root !== "string"
+      || typeof focusedRun.run_id !== "string") {
+      throw new Error("refreeze admission receipt binding is invalid");
+    }
+    if (unitId !== "UNIT-002") throw new Error("refreeze test receipts require UNIT-002");
+    const admittedRunRoot = resolve(repoRoot, focusedRun.run_root);
+    if (!isContained(repoRoot, admittedRunRoot)) throw new Error("refreeze focused run escapes the repository");
+    if (runRoot && resolve(runRoot) !== admittedRunRoot) throw new Error("explicit run root conflicts with refreeze admission");
+    if (runId && runId !== focusedRun.run_id) throw new Error("explicit run id conflicts with refreeze admission");
+    runRoot = admittedRunRoot;
+    runId = focusedRun.run_id;
+  }
   if (!runRoot || !runId) {
     const manifest = readJsonFile<RunManifestV1>(resolveRunManifestPath(process.cwd(), unitId, env.ESTIMATE_PERF_RUN_MANIFEST));
     runRoot = manifest.run_root;

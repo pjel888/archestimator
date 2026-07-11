@@ -13,7 +13,7 @@ import {
   fsyncSync,
   closeSync,
 } from "node:fs";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /**
  * Shared, dependency-free contracts for the estimate-sheet performance
@@ -77,22 +77,87 @@ export const BROWSER_SCOPES = [
 ] as const;
 export type BrowserScope = (typeof BROWSER_SCOPES)[number];
 
+export const BROWSER_SCOPE_BY_UNIT = {
+  "UNIT-002": "baseline",
+  "UNIT-005": "route",
+  "UNIT-007": "derived-state",
+  "UNIT-008": "render-a11y",
+  "UNIT-009": "mutations",
+  "UNIT-010": "full-local",
+} as const satisfies Partial<Record<EstimateUnit, BrowserScope>>;
+
 export const ESTIMATE_OUTPUT_ROLES = [
   "fixture",
-  "dom-tests",
-  "e2e-tests",
   "jsdom",
   "browser",
   "browser-child",
-  "d1-local",
-  "hosted-d1",
+  "d1",
+  "d1-child",
+  "integration",
+  "unit-proof",
+  "hosted",
   "mode-proof",
   "decision",
   "supersession",
   "release",
+  "cleanup",
+  "decision-tests",
+  "dom-tests",
+  "e2e-tests",
+  "dom-graph",
+  "dom-performance",
+  "refreeze-tests",
+  "release-gates-json",
+  "release-gates-md",
+  "fingerprint-reference",
+  "typecheck",
+  "error-handling",
+  "next-build",
+  "opennext-build",
+  "browser-check",
+  "d1-check",
+  "react-doctor",
+  "wrangler-auth",
+  "provider-resources",
   "release-gates",
 ] as const;
 export type EstimateOutputRole = (typeof ESTIMATE_OUTPUT_ROLES)[number];
+
+export const ESTIMATE_LOGICAL_OUTPUTS = {
+  fixture: "fixtures/fixture.json",
+  jsdom: "reports/jsdom.json",
+  browser: "reports/browser.json",
+  "browser-child": "reports/browser-child.json",
+  d1: "reports/d1.json",
+  "d1-child": "reports/d1-child.json",
+  integration: "reports/integration.json",
+  "unit-proof": "reports/unit-proof.json",
+  hosted: "reports/hosted-d1.json",
+  "mode-proof": "mode-proof.json",
+  decision: "receipts/decision.json",
+  supersession: "receipts/supersession.json",
+  release: "release-evaluation.md",
+  cleanup: "cleanup-receipt.json",
+  "decision-tests": "receipts/decision-tests.json",
+  "dom-tests": "receipts/dom-tests.json",
+  "e2e-tests": "receipts/e2e-tests.json",
+  "dom-graph": "receipts/dom-graph.json",
+  "dom-performance": "receipts/dom-performance.json",
+  "refreeze-tests": "receipts/refreeze-tests.json",
+  "release-gates-json": "receipts/release-gates-json.json",
+  "release-gates-md": "receipts/release-gates-md.md",
+  "fingerprint-reference": "receipts/command-fingerprint-reference.json",
+  typecheck: "receipts/command-typecheck.json",
+  "error-handling": "receipts/command-error-handling.json",
+  "next-build": "receipts/command-next-build.json",
+  "opennext-build": "receipts/command-opennext-build.json",
+  "browser-check": "receipts/command-browser-check.json",
+  "d1-check": "receipts/command-d1-check.json",
+  "react-doctor": "receipts/command-react-doctor.json",
+  "wrangler-auth": "receipts/command-wrangler-auth.json",
+  "provider-resources": "receipts/command-provider-resources.json",
+  "release-gates": "receipts/command-release-gates.json",
+} as const satisfies Record<EstimateOutputRole, string>;
 
 export const PERFORMANCE_BUDGETS = {
   fieldInpP75Ms: 200,
@@ -172,6 +237,11 @@ export type PerformanceReportV1 = {
   head: string;
   applicationFingerprint: FingerprintContent;
   producerFingerprint: FingerprintContent;
+  inputApplicationFingerprint?: FingerprintContent;
+  inputProducerFingerprint?: FingerprintContent;
+  admissionKind?: "planning" | "refreeze" | "predecessor";
+  admissionPath?: string;
+  admissionSha256?: string;
   fixtureHash: string;
   buildHash: string | null;
   authFixtureHash?: string;
@@ -191,7 +261,26 @@ export type PerformanceReportV1 = {
   overall: "PASS" | "FAIL";
   failures?: string[];
   skips?: Array<{ metric: string; reason: string; residualRisk: string }>;
-  [key: string]: unknown;
+  browserScope?: BrowserScope;
+  browser?: Record<string, unknown>;
+  device?: Record<string, unknown>;
+  environment?: Record<string, unknown>;
+  d1?: Record<string, unknown>;
+  cleanup?: Record<string, unknown>;
+  modeSnapshot?: Record<string, unknown>;
+  route?: Record<string, unknown>;
+  interactions?: Record<string, unknown>;
+  bundle?: Record<string, unknown>;
+  rsc?: Record<string, unknown>;
+  heap?: Record<string, unknown>;
+  query?: Record<string, unknown>;
+  fixtureDistribution?: Record<string, unknown>;
+  ownershipCensus?: Record<string, unknown>;
+  rawSamples?: unknown[];
+  finalSnapshot?: Record<string, unknown>;
+  provider?: Record<string, unknown>;
+  deployment?: Record<string, unknown>;
+  buildMode: "not-applicable" | "opennext-preview";
 };
 
 export type RunManifestV1 = {
@@ -203,7 +292,9 @@ export type RunManifestV1 = {
   evidence_class?: PerformanceReportV1["evidenceClass"];
   cleanupRequirement: "REQUIRED" | "NOT_APPLICABLE";
   run_root: string;
+  immutable_run_root?: string;
   pointer_path: string;
+  logical_outputs?: Record<EstimateOutputRole, string>;
   created_at: string;
   status: "PREPARED" | "MEASURING" | "FINALIZED" | "CLEANUP_VERIFIED" | "INVALIDATED";
   sourceFingerprint: SourceFingerprint;
@@ -223,10 +314,30 @@ export type RunManifestV1 = {
   mutationJournal: unknown[];
   previewProcesses: unknown[];
   runtimeEnv?: string;
+  runtimeEnvSha256?: string;
   storageState?: string;
+  storageStateSha256?: string;
+  storageStateExpiresAt?: string;
   activePreview?: unknown;
+  leasedPort?: number;
+  port?: number;
+  processJournal?: string;
+  routePath?: string;
+  route?: Record<string, unknown>;
+  fixture_hash?: string;
+  auth_fixture_hash?: string;
+  activatedModes?: string[];
+  wranglerState?: string;
+  resources?: Record<string, unknown>;
+  buildReceipt?: string;
+  build_hash?: string;
+  cleanupReceipt?: string;
+  cleanupReceiptSha256?: string;
+  admissionKind?: "planning" | "refreeze" | "predecessor";
   admissionPath?: string;
   admissionSha256?: string;
+  inputApplicationFingerprint?: FingerprintContent;
+  inputProducerFingerprint?: FingerprintContent;
 };
 
 export type TestReceiptV1 = {
@@ -295,6 +406,49 @@ export function sha256Json(value: unknown): string {
 
 export function sha256File(path: string): string {
   return sha256Hex(readFileSync(path));
+}
+
+export function sha256DirectoryTree(root: string): string {
+  const rootStats = lstatSync(root);
+  if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error(`tree root is not a real directory: ${root}`);
+  const entries: Array<{ path: string; type: "directory" | "file"; sha256?: string; size?: number }> = [];
+  const visit = (directory: string, prefix: string): void => {
+    for (const name of readdirSync(directory).sort()) {
+      const absolute = join(directory, name);
+      const relativePath = prefix ? `${prefix}/${name}` : name;
+      const stats = lstatSync(absolute);
+      if (stats.isSymbolicLink()) throw new Error(`tree contains a symbolic link: ${relativePath}`);
+      if (stats.isDirectory()) {
+        entries.push({ path: relativePath, type: "directory" });
+        visit(absolute, relativePath);
+      } else if (stats.isFile()) {
+        entries.push({ path: relativePath, type: "file", sha256: sha256File(absolute), size: stats.size });
+      } else {
+        throw new Error(`tree contains an unsupported entry: ${relativePath}`);
+      }
+    }
+  };
+  visit(root, "");
+  return sha256Json(entries);
+}
+
+export function sha256OpenNextBuild(repoRoot = process.cwd()): string {
+  const worker = resolve(repoRoot, ".open-next/worker.js");
+  const assets = resolve(repoRoot, ".open-next/assets");
+  assertRegularFile(worker, "OpenNext worker");
+  return sha256Json({ worker: sha256File(worker), assets: sha256DirectoryTree(assets) });
+}
+
+export function sha256NextBuild(repoRoot = process.cwd()): string {
+  const buildId = resolve(repoRoot, ".next/BUILD_ID");
+  const server = resolve(repoRoot, ".next/server");
+  const staticAssets = resolve(repoRoot, ".next/static");
+  assertRegularFile(buildId, "Next.js build ID");
+  return sha256Json({
+    buildId: sha256File(buildId),
+    server: sha256DirectoryTree(server),
+    static: sha256DirectoryTree(staticAssets),
+  });
 }
 
 export function isSha256(value: unknown): value is string {
@@ -500,12 +654,24 @@ function validateTrace(value: unknown, errors: string[]): void {
 
 function validateMetricMap(value: unknown, errors: string[]): void {
   if (!isPlainObject(value)) { errors.push("metrics must be an object"); return; }
+  if (Object.keys(value).length === 0) errors.push("metrics must not be empty");
   for (const [key, metric] of Object.entries(value)) {
-    if (!isPlainObject(metric)) continue;
-    if (metric.status !== undefined && !["PASS", "FAIL", "SKIPPED"].includes(String(metric.status))) errors.push(`metrics.${key}.status invalid`);
+    if (!key) errors.push("metrics contains an empty metric id");
+    if (!isPlainObject(metric)) { errors.push(`metrics.${key} must be an object`); continue; }
+    if (!["PASS", "FAIL", "SKIPPED"].includes(String(metric.status))) errors.push(`metrics.${key}.status invalid`);
     if (metric.value !== undefined && typeof metric.value !== "number" && metric.value !== null) errors.push(`metrics.${key}.value invalid`);
     if (typeof metric.value === "number" && !Number.isFinite(metric.value)) errors.push(`metrics.${key}.value non-finite`);
     if (metric.status === "SKIPPED" && (typeof metric.reason !== "string" || typeof metric.residualRisk !== "string")) errors.push(`metrics.${key} skipped metric requires reason and residualRisk`);
+  }
+}
+
+function requireNonEmptyObject(value: unknown, label: string, errors: string[]): void {
+  if (!isPlainObject(value) || Object.keys(value).length === 0) errors.push(`${label} must be a non-empty object`);
+}
+
+function forbidFields(value: Record<string, unknown>, fields: readonly string[], evidenceClass: string, errors: string[]): void {
+  for (const field of fields) {
+    if (value[field] !== undefined) errors.push(`${evidenceClass} forbids ${field}`);
   }
 }
 
@@ -515,11 +681,24 @@ export function validatePerformanceReport(value: unknown, options: { strict?: bo
   if (value.schema_version !== PERFORMANCE_REPORT_SCHEMA) errors.push("schema_version must be estimate-sheet-performance-report.v1");
   if (!(typeof value.evidenceClass === "string" && ["jsdom", "local-browser", "local-d1", "hosted-d1"].includes(value.evidenceClass))) errors.push("evidenceClass invalid");
   validateTrace(value.trace, errors);
+  const traceUnit = isPlainObject(value.trace) ? String(value.trace.unitId ?? "") : "";
   if (typeof value.head !== "string" || !/^[0-9a-f]{7,64}$/u.test(value.head)) errors.push("head invalid");
   errors.push(...validateFingerprintContent(value.applicationFingerprint, "applicationFingerprint"));
   errors.push(...validateFingerprintContent(value.producerFingerprint, "producerFingerprint"));
+  if (value.inputApplicationFingerprint !== undefined) errors.push(...validateFingerprintContent(value.inputApplicationFingerprint, "inputApplicationFingerprint"));
+  if (value.inputProducerFingerprint !== undefined) errors.push(...validateFingerprintContent(value.inputProducerFingerprint, "inputProducerFingerprint"));
+  if (value.admissionKind !== undefined && !["planning", "refreeze", "predecessor"].includes(String(value.admissionKind))) errors.push("admissionKind invalid");
+  if ((value.admissionPath === undefined) !== (value.admissionSha256 === undefined)) errors.push("admission path/hash must be present together");
+  if ((value.inputApplicationFingerprint === undefined) !== (value.inputProducerFingerprint === undefined)) errors.push("input application/producer fingerprints must be present together");
+  if ((value.admissionKind === undefined) !== (value.admissionPath === undefined)) errors.push("admission kind/path must be present together");
+  if ((value.admissionKind === undefined) !== (value.inputApplicationFingerprint === undefined)) errors.push("admission/input fingerprints must be present together");
+  if (value.admissionPath !== undefined && (typeof value.admissionPath !== "string" || !value.admissionPath)) errors.push("admissionPath invalid");
+  if (value.admissionSha256 !== undefined && !isSha256(value.admissionSha256)) errors.push("admissionSha256 invalid");
   if (!isSha256(value.fixtureHash)) errors.push("fixtureHash invalid");
   if (value.buildHash !== null && !isSha256(value.buildHash)) errors.push("buildHash must be null or sha256");
+  if (!isSha256(value.authFixtureHash)) errors.push("authFixtureHash invalid");
+  if (!isPlainObject(value.toolHashes) || Object.keys(value.toolHashes).length === 0) errors.push("toolHashes must be a non-empty object");
+  else for (const [role, digest] of Object.entries(value.toolHashes)) if (!role || !isSha256(digest)) errors.push(`toolHashes.${role} invalid`);
   if (typeof value.runId !== "string" || !value.runId) errors.push("runId missing");
   if (typeof value.generatedAt !== "string" || Number.isNaN(Date.parse(value.generatedAt))) errors.push("generatedAt invalid");
   if (!isPlainObject(value.method)) errors.push("method must be an object");
@@ -531,20 +710,49 @@ export function validatePerformanceReport(value: unknown, options: { strict?: bo
   }
   validateMetricMap(value.metrics, errors);
   if (!(["PASS", "FAIL"] as unknown[]).includes(value.overall)) errors.push("overall must be PASS or FAIL");
-  if (value.failures !== undefined && (!Array.isArray(value.failures) || value.failures.some((item) => typeof item !== "string"))) errors.push("failures invalid");
+  if (value.failures !== undefined && (!Array.isArray(value.failures) || value.failures.some((item) => typeof item !== "string" || !item))) errors.push("failures invalid");
   if (value.skips !== undefined && (!Array.isArray(value.skips) || value.skips.some((item) => !isPlainObject(item) || typeof item.metric !== "string" || typeof item.reason !== "string" || typeof item.residualRisk !== "string"))) errors.push("skips invalid");
+  if (isPlainObject(value.metrics)) {
+    const failedMetrics = Object.entries(value.metrics).filter(([, metric]) => isPlainObject(metric) && metric.status === "FAIL");
+    if (failedMetrics.length > 0 && value.overall !== "FAIL") errors.push("overall must be FAIL when a metric fails");
+    if (value.overall === "FAIL" && (!Array.isArray(value.failures) || value.failures.length === 0)) errors.push("FAIL report requires failures");
+  }
 
   const evidenceClass = value.evidenceClass;
+  const browserOnlyFields = ["browserScope", "browser", "device", "environment", "modeSnapshot", "route", "interactions", "bundle", "rsc", "heap", "finalSnapshot"] as const;
+  const d1OnlyFields = ["d1", "query", "provider", "deployment", "cleanup"] as const;
   if (evidenceClass === "jsdom" || evidenceClass === "local-d1" || evidenceClass === "hosted-d1") {
     if (value.buildHash !== null) errors.push(`${evidenceClass} buildHash must be null`);
+    if (value.buildMode !== "not-applicable") errors.push(`${evidenceClass} buildMode must be not-applicable`);
+  }
+  if (evidenceClass === "jsdom") {
+    if (traceUnit !== "UNIT-001") errors.push("jsdom report is valid only for UNIT-001");
+    forbidFields(value, [...browserOnlyFields, ...d1OnlyFields], "jsdom", errors);
   }
   if (evidenceClass === "local-browser") {
     if (value.buildHash === null) errors.push("local-browser requires buildHash");
+    if (value.buildMode !== "opennext-preview") errors.push("local-browser buildMode must be opennext-preview");
     if (!BROWSER_SCOPES.includes(value.browserScope as BrowserScope)) errors.push("local-browser browserScope invalid");
+    const expectedScope = BROWSER_SCOPE_BY_UNIT[traceUnit as keyof typeof BROWSER_SCOPE_BY_UNIT];
+    if (!expectedScope) errors.push("local-browser unit does not own a browser scope");
+    else if (value.browserScope !== expectedScope) errors.push(`local-browser browserScope for ${traceUnit} must be ${expectedScope}`);
+    for (const field of ["browser", "device", "environment", "modeSnapshot", "finalSnapshot"] as const) requireNonEmptyObject(value[field], `local-browser ${field}`, errors);
+    forbidFields(value, d1OnlyFields, "local-browser", errors);
+  }
+  if (evidenceClass === "local-d1") {
+    if (!["UNIT-003", "UNIT-005", "UNIT-010"].includes(traceUnit)) errors.push("local-d1 report unit invalid");
+    requireNonEmptyObject(value.d1, "local-d1 d1", errors);
+    forbidFields(value, browserOnlyFields, "local-d1", errors);
+    forbidFields(value, ["provider", "deployment", "cleanup"], "local-d1", errors);
+  }
+  if (evidenceClass === "hosted-d1") {
+    if (traceUnit !== "UNIT-011") errors.push("hosted-d1 report is valid only for UNIT-011");
+    for (const field of ["d1", "provider", "deployment", "cleanup"] as const) requireNonEmptyObject(value[field], `hosted-d1 ${field}`, errors);
+    forbidFields(value, browserOnlyFields, "hosted-d1", errors);
   }
   if (options.strict) {
     const allowed = new Set([
-      "schema_version", "evidenceClass", "trace", "head", "applicationFingerprint", "producerFingerprint", "fixtureHash", "buildHash", "authFixtureHash", "toolHashes", "runId", "generatedAt", "method", "metrics", "scenarios", "overall", "failures", "skips", "browserScope", "browser", "device", "environment", "d1", "cleanup", "modeSnapshot", "route", "interactions", "bundle", "rsc", "heap", "query", "fixtureDistribution", "ownershipCensus", "rawSamples", "finalSnapshot", "provider", "deployment", "buildMode",
+      "schema_version", "evidenceClass", "trace", "head", "applicationFingerprint", "producerFingerprint", "inputApplicationFingerprint", "inputProducerFingerprint", "admissionKind", "admissionPath", "admissionSha256", "fixtureHash", "buildHash", "authFixtureHash", "toolHashes", "runId", "generatedAt", "method", "metrics", "scenarios", "overall", "failures", "skips", "browserScope", "browser", "device", "environment", "d1", "cleanup", "modeSnapshot", "route", "interactions", "bundle", "rsc", "heap", "query", "fixtureDistribution", "ownershipCensus", "rawSamples", "finalSnapshot", "provider", "deployment", "buildMode",
     ]);
     for (const key of Object.keys(value)) if (!allowed.has(key)) errors.push(`unknown report field: ${key}`);
   }
@@ -556,6 +764,179 @@ export function assertPerformanceReport(value: unknown, options?: { strict?: boo
   if (errors.length) throw new Error(`invalid performance report:\n- ${errors.join("\n- ")}`);
 }
 
+const NOT_APPLICABLE_UNITS = ["UNIT-001", "UNIT-004", "UNIT-005", "UNIT-006", "UNIT-007", "UNIT-008", "UNIT-009"] as const;
+const LOCAL_BROWSER_NAMESPACE_ROLES = {
+  "UNIT-002": ["browser"],
+  "UNIT-005": ["mode", "browser", "d1"],
+  "UNIT-006": ["mode"],
+  "UNIT-007": ["mode", "browser"],
+  "UNIT-008": ["mode", "browser"],
+  "UNIT-009": ["mode", "browser"],
+  "UNIT-010": ["mode", "browser", "d1"],
+} as const satisfies Partial<Record<EstimateUnit, readonly string[]>>;
+const LOCAL_FIXTURE_MANIFEST_FIELDS = ["fixture", "fixture_hash", "auth_fixture_hash", "wranglerState", "resources"] as const;
+const LOCAL_BROWSER_MANIFEST_FIELDS = [
+  "leasedPort", "port", "runtimeEnv", "runtimeEnvSha256", "storageState", "storageStateSha256",
+  "storageStateExpiresAt", "processJournal", "routePath", "route", "activatedModes", "activePreview",
+  "buildReceipt", "build_hash",
+] as const;
+const CLEANUP_MANIFEST_FIELDS = ["cleanupReceipt", "cleanupReceiptSha256"] as const;
+const RUN_MANIFEST_FIELDS = new Set([
+  "schema_version", "package_id", "unit_id", "run_id", "profile", "evidence_class", "cleanupRequirement",
+  "run_root", "immutable_run_root", "pointer_path", "logical_outputs", "created_at", "status", "sourceFingerprint",
+  "applicationFingerprint", "producerFingerprint", "fixture", "namespaces", "mutationJournal", "previewProcesses",
+  "runtimeEnv", "runtimeEnvSha256", "storageState", "storageStateSha256", "storageStateExpiresAt", "activePreview",
+  "leasedPort", "port", "processJournal", "routePath", "route", "fixture_hash", "auth_fixture_hash",
+  "activatedModes", "wranglerState", "resources", "buildReceipt", "build_hash", "cleanupReceipt",
+  "cleanupReceiptSha256", "admissionKind", "admissionPath", "admissionSha256", "inputApplicationFingerprint",
+  "inputProducerFingerprint",
+]);
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function forbidManifestFields(value: Record<string, unknown>, fields: readonly string[], label: string, errors: string[]): void {
+  for (const field of fields) if (hasOwn(value, field)) errors.push(`${label} manifest cannot contain ${field}`);
+}
+
+function validateAbsoluteContainedPath(value: unknown, root: unknown, label: string, errors: string[]): void {
+  if (typeof value !== "string" || !isAbsolute(value)) {
+    errors.push(`${label} must be absolute`);
+    return;
+  }
+  if (typeof root === "string" && isAbsolute(root) && !isContained(root, value)) errors.push(`${label} must stay inside run_root`);
+}
+
+function validateRelativePath(value: unknown, root: unknown, label: string, errors: string[]): void {
+  if (typeof value !== "string" || !value || isAbsolute(value) || value.includes("\\") || value.includes("\0")) {
+    errors.push(`${label} must be a safe relative path`);
+    return;
+  }
+  const segments = value.split("/");
+  if (segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    errors.push(`${label} must be a safe relative path`);
+    return;
+  }
+  if (typeof root !== "string" || !isAbsolute(root)) return;
+  const resolved = resolve(root, value);
+  const normalized = relative(root, resolved).split(sep).join("/");
+  if (!isContained(root, resolved) || normalized !== value) errors.push(`${label} must be a safe relative path`);
+}
+
+function validateLogicalOutputs(value: unknown, immutableRunRoot: unknown, errors: string[]): void {
+  if (!isPlainObject(value)) {
+    errors.push("logical_outputs must be a complete role map");
+    return;
+  }
+  const actualKeys = Object.keys(value).sort();
+  const expectedKeys = [...ESTIMATE_OUTPUT_ROLES].sort();
+  if (canonicalJson(actualKeys) !== canonicalJson(expectedKeys)) errors.push("logical_outputs role set is not exact");
+  const paths = new Set<string>();
+  for (const role of ESTIMATE_OUTPUT_ROLES) {
+    const path = value[role];
+    if (path !== ESTIMATE_LOGICAL_OUTPUTS[role]) errors.push(`logical_outputs.${role} is not canonical`);
+    validateRelativePath(path, immutableRunRoot, `logical_outputs.${role}`, errors);
+    if (typeof path === "string") {
+      if (paths.has(path)) errors.push(`logical_outputs path is duplicated: ${path}`);
+      paths.add(path);
+    }
+  }
+}
+
+function validateNamespaceRoles(value: unknown, expectedRoles: readonly string[], errors: string[]): void {
+  if (!isPlainObject(value)) {
+    errors.push("namespaces must be an object");
+    return;
+  }
+  if (canonicalJson(Object.keys(value).sort()) !== canonicalJson([...expectedRoles].sort())) {
+    errors.push(`namespace roles must be exactly ${expectedRoles.length ? expectedRoles.join(",") : "empty"}`);
+  }
+  const identifiers = new Set<string>();
+  for (const role of expectedRoles) {
+    const namespace = value[role];
+    if (!isPlainObject(namespace)) {
+      errors.push(`namespaces.${role} must be an object`);
+      continue;
+    }
+    const allowedKeys = ["idSha256", "preStateSha256", "postStateSha256", "commandId"];
+    for (const key of Object.keys(namespace)) if (!allowedKeys.includes(key)) errors.push(`unknown namespaces.${role} field: ${key}`);
+    if (!isSha256(namespace.idSha256)) errors.push(`namespaces.${role}.idSha256 invalid`);
+    else if (identifiers.has(namespace.idSha256)) errors.push("namespace identifiers must be distinct");
+    else identifiers.add(namespace.idSha256);
+    if (!isSha256(namespace.preStateSha256)) errors.push(`namespaces.${role}.preStateSha256 invalid`);
+    const hasPostState = hasOwn(namespace, "postStateSha256");
+    const hasCommand = hasOwn(namespace, "commandId");
+    if (hasPostState !== hasCommand) errors.push(`namespaces.${role} mutation outcome must contain postStateSha256 and commandId together`);
+    if (hasPostState && !isSha256(namespace.postStateSha256)) errors.push(`namespaces.${role}.postStateSha256 invalid`);
+    if (hasCommand && (typeof namespace.commandId !== "string" || !namespace.commandId)) errors.push(`namespaces.${role}.commandId invalid`);
+  }
+}
+
+function validateLocalFixtureFields(value: Record<string, unknown>, expectedRoles: readonly string[], errors: string[]): void {
+  if (!isPlainObject(value.fixture)) errors.push("local manifest fixture must be an object");
+  else {
+    const fixtureKeys = ["profile", "namespaceIdSha256", "preStateSha256"];
+    for (const key of Object.keys(value.fixture)) if (!fixtureKeys.includes(key)) errors.push(`unknown fixture field: ${key}`);
+    if (value.fixture.profile !== "limit") errors.push("local manifest fixture profile must be limit");
+    if (!isSha256(value.fixture.namespaceIdSha256)) errors.push("fixture.namespaceIdSha256 invalid");
+    if (!isSha256(value.fixture.preStateSha256)) errors.push("fixture.preStateSha256 invalid");
+    const primaryNamespace = isPlainObject(value.namespaces) ? value.namespaces[expectedRoles[0] ?? ""] : undefined;
+    if (!isPlainObject(primaryNamespace)
+      || value.fixture.namespaceIdSha256 !== primaryNamespace.idSha256
+      || value.fixture.preStateSha256 !== primaryNamespace.preStateSha256) {
+      errors.push("fixture does not bind the primary unit namespace");
+    }
+  }
+  if (!isSha256(value.fixture_hash)) errors.push("fixture_hash invalid");
+  if (!isSha256(value.auth_fixture_hash)) errors.push("auth_fixture_hash invalid");
+  if (isPlainObject(value.fixture) && value.fixture.preStateSha256 !== value.fixture_hash) errors.push("fixture_hash differs from fixture pre-state");
+  validateAbsoluteContainedPath(value.wranglerState, value.run_root, "wranglerState", errors);
+  if (!isPlainObject(value.resources) || Object.keys(value.resources).length === 0) errors.push("local manifest resources must be a non-empty object");
+}
+
+function validateLifecyclePair(
+  value: Record<string, unknown>,
+  pathKey: "buildReceipt" | "cleanupReceipt",
+  hashKey: "build_hash" | "cleanupReceiptSha256",
+  errors: string[],
+): void {
+  const hasPath = hasOwn(value, pathKey);
+  const hasHash = hasOwn(value, hashKey);
+  if (hasPath !== hasHash) errors.push(`${pathKey}/${hashKey} must be present together`);
+  if (hasPath) validateAbsoluteContainedPath(value[pathKey], value.run_root, pathKey, errors);
+  if (hasHash && !isSha256(value[hashKey])) errors.push(`${hashKey} invalid`);
+}
+
+function validateLocalBrowserFields(value: Record<string, unknown>, expectedRoles: readonly string[], errors: string[]): void {
+  if (!Number.isInteger(value.port) || Number(value.port) < 1_024 || Number(value.port) > 65_535) errors.push("local-browser port invalid");
+  if (value.leasedPort !== value.port) errors.push("local-browser leasedPort must equal port");
+  for (const [pathKey, hashKey] of [["runtimeEnv", "runtimeEnvSha256"], ["storageState", "storageStateSha256"]] as const) {
+    validateAbsoluteContainedPath(value[pathKey], value.run_root, pathKey, errors);
+    if (!isSha256(value[hashKey])) errors.push(`${hashKey} invalid`);
+  }
+  validateAbsoluteContainedPath(value.processJournal, value.run_root, "processJournal", errors);
+  if (typeof value.storageStateExpiresAt !== "string" || Number.isNaN(Date.parse(value.storageStateExpiresAt))) errors.push("storageStateExpiresAt invalid");
+  if (typeof value.routePath !== "string" || !value.routePath.startsWith("/") || value.routePath.startsWith("//")) errors.push("routePath invalid");
+  if (!isPlainObject(value.route)) errors.push("local-browser route must be an object");
+  else {
+    const routeKeys = ["path", "projectId", "nodeId", "fixtureRole"];
+    for (const key of Object.keys(value.route)) if (!routeKeys.includes(key)) errors.push(`unknown route field: ${key}`);
+    const expectedRole = expectedRoles.includes("browser") ? "browser" : "mode";
+    if (value.route.path !== value.routePath || value.route.fixtureRole !== expectedRole
+      || typeof value.route.projectId !== "string" || !value.route.projectId
+      || typeof value.route.nodeId !== "string" || !value.route.nodeId) {
+      errors.push("local-browser route binding is invalid");
+    }
+  }
+  if (value.activatedModes !== undefined && (!Array.isArray(value.activatedModes)
+    || value.activatedModes.some((mode) => typeof mode !== "string" || !mode)
+    || new Set(value.activatedModes).size !== value.activatedModes.length)) {
+    errors.push("activatedModes invalid");
+  }
+  validateLifecyclePair(value, "buildReceipt", "build_hash", errors);
+}
+
 export function validateRunManifest(value: unknown): string[] {
   const errors: string[] = [];
   if (!isPlainObject(value)) return ["run manifest must be an object"];
@@ -564,19 +945,81 @@ export function validateRunManifest(value: unknown): string[] {
   if (!(ESTIMATE_UNITS as readonly string[]).includes(String(value.unit_id))) errors.push("unit_id invalid");
   if (typeof value.run_id !== "string" || !value.run_id) errors.push("run_id missing");
   if (typeof value.run_root !== "string" || !isAbsolute(value.run_root)) errors.push("run_root must be absolute");
+  if (typeof value.immutable_run_root !== "string" || !isAbsolute(value.immutable_run_root)) errors.push("immutable_run_root must be absolute");
   if (typeof value.pointer_path !== "string" || !isAbsolute(value.pointer_path)) errors.push("pointer_path must be absolute");
+  if (typeof value.run_root === "string" && isAbsolute(value.run_root)
+    && typeof value.pointer_path === "string" && value.pointer_path !== resolve(value.run_root, "run-pointer.json")) {
+    errors.push("pointer_path must be run_root/run-pointer.json");
+  }
+  validateLogicalOutputs(value.logical_outputs, value.immutable_run_root, errors);
   if (!["REQUIRED", "NOT_APPLICABLE"].includes(String(value.cleanupRequirement))) errors.push("cleanupRequirement invalid");
   if (!["PREPARED", "MEASURING", "FINALIZED", "CLEANUP_VERIFIED", "INVALIDATED"].includes(String(value.status))) errors.push("status invalid");
+  if (typeof value.created_at !== "string" || Number.isNaN(Date.parse(value.created_at))) errors.push("created_at invalid");
+  if (!isPlainObject(value.sourceFingerprint)) errors.push("sourceFingerprint must be an object");
+  else {
+    if (typeof value.sourceFingerprint.contract_version !== "string" || !value.sourceFingerprint.contract_version) errors.push("sourceFingerprint.contract_version missing");
+    if (typeof value.sourceFingerprint.head !== "string" || !/^[0-9a-f]{7,64}$/u.test(value.sourceFingerprint.head)) errors.push("sourceFingerprint.head invalid");
+    if (!Number.isInteger(value.sourceFingerprint.path_count) || Number(value.sourceFingerprint.path_count) < 0) errors.push("sourceFingerprint.path_count invalid");
+    if (!isSha256(value.sourceFingerprint.path_list_sha256)) errors.push("sourceFingerprint.path_list_sha256 invalid");
+    errors.push(...validateFingerprintContent(value.sourceFingerprint.application, "sourceFingerprint.application"));
+    errors.push(...validateFingerprintContent(value.sourceFingerprint.producer, "sourceFingerprint.producer"));
+  }
   errors.push(...validateFingerprintContent(value.applicationFingerprint, "applicationFingerprint"));
   errors.push(...validateFingerprintContent(value.producerFingerprint, "producerFingerprint"));
+  if (isPlainObject(value.sourceFingerprint)
+    && (!fingerprintContentEqual(value.sourceFingerprint.application, value.applicationFingerprint)
+      || !fingerprintContentEqual(value.sourceFingerprint.producer, value.producerFingerprint))) {
+    errors.push("sourceFingerprint application/producer must match manifest fingerprints");
+  }
+  if (value.inputApplicationFingerprint !== undefined) errors.push(...validateFingerprintContent(value.inputApplicationFingerprint, "inputApplicationFingerprint"));
+  if (value.inputProducerFingerprint !== undefined) errors.push(...validateFingerprintContent(value.inputProducerFingerprint, "inputProducerFingerprint"));
+  if (value.admissionKind !== undefined && !["planning", "refreeze", "predecessor"].includes(String(value.admissionKind))) errors.push("admissionKind invalid");
+  if ((value.admissionPath === undefined) !== (value.admissionSha256 === undefined)) errors.push("admission path/hash must be present together");
+  if ((value.inputApplicationFingerprint === undefined) !== (value.inputProducerFingerprint === undefined)) errors.push("input application/producer fingerprints must be present together");
+  if ((value.admissionKind === undefined) !== (value.admissionPath === undefined)) errors.push("admission kind/path must be present together");
+  if ((value.admissionKind === undefined) !== (value.inputApplicationFingerprint === undefined)) errors.push("admission/input fingerprints must be present together");
+  if (value.admissionPath !== undefined) validateRelativePath(value.admissionPath, value.run_root, "admissionPath", errors);
+  if (value.admissionSha256 !== undefined && !isSha256(value.admissionSha256)) errors.push("admissionSha256 invalid");
   if (!Array.isArray(value.mutationJournal)) errors.push("mutationJournal must be an array");
   if (!Array.isArray(value.previewProcesses)) errors.push("previewProcesses must be an array");
-  if (!isPlainObject(value.namespaces)) errors.push("namespaces must be an object");
+
   if (value.cleanupRequirement === "NOT_APPLICABLE") {
-    for (const key of ["runtimeEnv", "storageState", "activePreview"]) if (value[key] !== undefined) errors.push(`NOT_APPLICABLE manifest cannot contain ${key}`);
+    if (value.profile !== "artifact-only") errors.push("NOT_APPLICABLE manifest profile must be artifact-only");
+    if (!(NOT_APPLICABLE_UNITS as readonly unknown[]).includes(value.unit_id)) errors.push("NOT_APPLICABLE manifest unit is not allowed");
+    if (value.evidence_class !== "jsdom") errors.push("NOT_APPLICABLE manifest evidence_class must be jsdom");
+    validateNamespaceRoles(value.namespaces, [], errors);
     if (Array.isArray(value.previewProcesses) && value.previewProcesses.length) errors.push("NOT_APPLICABLE manifest cannot launch preview processes");
     if (Array.isArray(value.mutationJournal) && value.mutationJournal.length) errors.push("NOT_APPLICABLE manifest cannot contain mutations");
+    forbidManifestFields(value, [...LOCAL_FIXTURE_MANIFEST_FIELDS, ...LOCAL_BROWSER_MANIFEST_FIELDS, ...CLEANUP_MANIFEST_FIELDS], "NOT_APPLICABLE", errors);
+  } else if (value.cleanupRequirement === "REQUIRED") {
+    if (value.evidence_class === "local-browser") {
+      const expectedRoles = LOCAL_BROWSER_NAMESPACE_ROLES[value.unit_id as keyof typeof LOCAL_BROWSER_NAMESPACE_ROLES];
+      if (!expectedRoles) errors.push("local-browser manifest unit is not allowed");
+      if (value.profile !== "limit") errors.push("local-browser manifest profile must be limit");
+      validateNamespaceRoles(value.namespaces, expectedRoles ?? [], errors);
+      validateLocalFixtureFields(value, expectedRoles ?? [], errors);
+      validateLocalBrowserFields(value, expectedRoles ?? [], errors);
+    } else if (value.evidence_class === "local-d1") {
+      if (value.unit_id !== "UNIT-003") errors.push("local-d1 manifest unit must be UNIT-003");
+      if (value.profile !== "limit") errors.push("local-d1 manifest profile must be limit");
+      validateNamespaceRoles(value.namespaces, ["d1"], errors);
+      validateLocalFixtureFields(value, ["d1"], errors);
+      if (Array.isArray(value.previewProcesses) && value.previewProcesses.length) errors.push("local-d1 manifest cannot launch preview processes");
+      forbidManifestFields(value, LOCAL_BROWSER_MANIFEST_FIELDS, "local-d1", errors);
+    } else if (value.evidence_class === "hosted-d1") {
+      if (value.unit_id !== "UNIT-011") errors.push("hosted-d1 manifest unit must be UNIT-011");
+      if (value.profile !== "artifact-only") errors.push("hosted-d1 manifest profile must be artifact-only");
+      validateNamespaceRoles(value.namespaces, [], errors);
+      if (Array.isArray(value.previewProcesses) && value.previewProcesses.length) errors.push("hosted-d1 manifest cannot launch preview processes");
+      if (Array.isArray(value.mutationJournal) && value.mutationJournal.length) errors.push("hosted-d1 manifest cannot contain local mutations");
+      forbidManifestFields(value, [...LOCAL_FIXTURE_MANIFEST_FIELDS, ...LOCAL_BROWSER_MANIFEST_FIELDS], "hosted-d1", errors);
+    } else {
+      errors.push("REQUIRED manifest evidence_class invalid");
+      validateNamespaceRoles(value.namespaces, [], errors);
+    }
+    validateLifecyclePair(value, "cleanupReceipt", "cleanupReceiptSha256", errors);
   }
+  for (const key of Object.keys(value)) if (!RUN_MANIFEST_FIELDS.has(key)) errors.push(`unknown run manifest field: ${key}`);
   return errors;
 }
 
@@ -625,7 +1068,7 @@ export function redactedFailureIds(values: unknown[]): string[] {
 }
 
 export function defaultRunRoot(repoRoot = process.cwd()): string {
-  return resolve(defaultEvidenceRoot(repoRoot), "runs");
+  return resolve(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs");
 }
 
 export function defaultPlanRoot(repoRoot = process.cwd()): string {
@@ -636,8 +1079,20 @@ export function defaultEvidenceRoot(repoRoot = process.cwd()): string {
   return resolve(defaultPlanRoot(repoRoot), "evidence/runtime");
 }
 
+export function defaultImmutableRunRoot(repoRoot = process.cwd()): string {
+  return resolve(defaultEvidenceRoot(repoRoot), "runs");
+}
+
 export function resolveRunManifestPath(repoRoot: string, unit: string, explicitPath?: string): string {
   if (explicitPath) return resolve(repoRoot, explicitPath);
+  const plan = readJsonFile<{
+    runtime_evidence?: { latest_unit_id?: unknown; latest_run_id?: unknown };
+  }>(resolve(defaultPlanRoot(repoRoot), "plan-pack.json"));
+  const latestUnitId = plan.runtime_evidence?.latest_unit_id;
+  const latestRunId = plan.runtime_evidence?.latest_run_id;
+  if (latestUnitId !== unit || typeof latestRunId !== "string" || !latestRunId) {
+    throw new Error(`plan state does not identify a committed prepared run for ${unit}`);
+  }
   const unitRoot = resolve(defaultRunRoot(repoRoot), unit);
   if (!existsSync(unitRoot)) throw new Error(`no prepared run exists for ${unit}`);
   const candidates = readdirSync(unitRoot, { withFileTypes: true })
@@ -645,10 +1100,9 @@ export function resolveRunManifestPath(repoRoot: string, unit: string, explicitP
     .map((entry) => resolve(unitRoot, entry.name, "run-manifest.json"))
     .filter((path) => existsSync(path))
     .map((path) => ({ path, manifest: readJsonFile<RunManifestV1>(path) }))
-    .filter(({ manifest }) => manifest.unit_id === unit && manifest.status === "PREPARED")
-    .sort((left, right) => right.manifest.created_at.localeCompare(left.manifest.created_at));
-  if (!candidates.length) throw new Error(`no prepared run exists for ${unit}`);
-  if (candidates[1]?.manifest.created_at === candidates[0]!.manifest.created_at) throw new Error(`prepared run order is ambiguous for ${unit}`);
+    .filter(({ manifest }) => manifest.unit_id === unit && manifest.run_id === latestRunId && manifest.status === "PREPARED");
+  if (!candidates.length) throw new Error(`no committed prepared run exists for ${unit}/${latestRunId}`);
+  if (candidates.length !== 1) throw new Error(`committed prepared run is ambiguous for ${unit}/${latestRunId}`);
   return candidates[0]!.path;
 }
 
