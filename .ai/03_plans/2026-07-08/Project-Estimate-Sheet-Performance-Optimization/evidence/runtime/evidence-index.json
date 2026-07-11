@@ -1,6 +1,1 @@
-{
-  "artifactId": "ART-052",
-  "projection": "evidence-index.json",
-  "schema": "estimate-sheet-evidence-registry-placeholder.v1",
-  "status": "STALE"
-}
+{"created_at":"2026-07-11T19:34:35.557Z","dependencySources":[{"immutable_path":"evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/dependencies/01-admission.json","sha256":"234175a60912c666d65440537f3117699aa9dd5d84679c44af12af0fc315facd"}],"evidence":[{"id":"EVID-002","immutable_path":"evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/reports/jsdom.json","sha256":"9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77"}],"payload_sha256":"b86350bdd853ec70dc630f58f63ff9c63a5a729fb6e6a8916ecb40e0f1a5ee7f","projection":{"path":"evidence/runtime/jsdom-baseline.json","source":"immutable-run"},"run_id":"c017a99a-dff0-4896-8997-d60774c2193f","schema_version":"estimate-sheet-evidence-index.v1","secondaryEvidence":[{"immutable_path":"evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/fixtures/fixture.json","projection_path":"evidence/runtime/fixture-manifest.json","role":"fixture","sha256":"d9236eab7e1d8674587d274c4625b1adc0600ee88ca2b1aa4f4e7b7e483f56dd"}],"status":"VERIFIED","unit_id":"UNIT-001"}
