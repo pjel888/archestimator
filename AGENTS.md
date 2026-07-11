@@ -59,7 +59,7 @@ when the task is genuinely non-trivial, ambiguous, or high-risk.
   change, nearby tests, or an agent's own judgment never authorize running
   tests on their own — when they seem warranted, record a `TEST_PROPOSAL`
   (named risk + exact command) and wait. `TEST_TASK` is the only execution
-  trigger and requires an explicit user request. See
+  trigger and requires an explicit testing request from the user. See
   `.ai/00_system/VALIDATION_MATRIX.md`.
 - Implementation has a zero-artificial-blocker contract. Memory sync, optional
   tools, reviewer availability, hosted proof, release evidence, and other
@@ -207,7 +207,7 @@ wait.
   evidence; await explicit user authorization before any test runs. The previous
   `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
 - `TEST_TASK` is the only decision that authorizes creating, expanding, or
-  running tests, and it requires an explicit user request.
+  running tests, and it requires an explicit testing request from the user.
 - Playwright, browser automation, screenshots, Storybook, builds, full suites,
   and visual/manual QA are opt-in evidence surfaces that require explicit user
   authorization. State the exact claim they prove before the user authorizes

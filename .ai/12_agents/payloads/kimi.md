@@ -65,9 +65,9 @@ chooses isolation or the risk/parallelism justifies it. Keep file scope disjoint
 Apply the **User Test Authorization Gate**: tests are user-gated, not automatic.
 Ordinary UI edits use decisive source, semantic, type/LSP, or design-lint
 evidence without creating or running tests. `TEST_TASK` is the only decision
-that authorizes test execution and requires an explicit user request. `TARGETED`
+that authorizes test execution and requires an explicit testing request from the user. `TARGETED`
 identifies an MVP mission-critical interaction claim that would benefit from a
-test but authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait.
+test but authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
 Browser or broad gates require an explicit user request.
 
 ## Design-System Guidance

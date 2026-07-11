@@ -26,8 +26,8 @@ automation, or broad validation gate unless the user has explicitly requested
 testing for the current task. Critical risk, high blast radius, a user-visible
 change, a nearby test, or your own judgment never authorizes running tests —
 when they seem warranted, record a `TEST_PROPOSAL` (named risk + exact command)
-and wait. `TEST_TASK` is the only execution trigger and requires an explicit
-user request. `TARGETED`/`BROADER` authorize proposing, not running. Use the
+and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. Map explicit testing/QA output to `TEST_TASK`; it is the only execution trigger and requires an explicit
+user request. `TARGETED` (mission-critical)/`BROADER` authorize proposing, not running. Use the
 cheapest decisive non-test evidence otherwise.
 
 Read for speed — pull, don't preload (see `AGENTS.md` "Read for speed"). Minimum read:

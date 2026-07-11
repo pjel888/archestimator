@@ -26,7 +26,7 @@ Assess whether Archestimator failures can be detected, diagnosed, contained, and
 ## Evidence and test gate
 
 - Verification is required. Prefer source/config, current sanitized logs, alert definitions, narrow fault evidence, and provider receipts.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`.
+- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
 - Reliability or release-critical claims may justify `TARGETED` or `BROADER` evidence when cheaper checks cannot prove them. Never request blanket load, build, browser, or test runs without naming the SLO or failure-mode claim.
 
 ## Output

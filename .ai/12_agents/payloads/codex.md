@@ -75,9 +75,9 @@ authorized and proven safe.
 Verification is required; **tests are user-gated under the User Test
 Authorization Gate**, not automatic. `test_requirement` defaults to
 `NOT_REQUIRED`. `TEST_TASK` is the only decision that authorizes test execution
-and requires an explicit user request. `TARGETED` identifies an MVP
+and requires an explicit testing request from the user. `TARGETED` identifies an MVP
 mission-critical claim that would benefit from a test but authorizes
-**proposing it only** — record a `TEST_PROPOSAL` and wait. Broad suites,
+**proposing it only** — record a `TEST_PROPOSAL` and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. Broad suites,
 builds, and browser/manual gates require an explicit user request.
 For Codex/OpenCode adapter changes, run `bun run validate:agents`; for Codex
 role/config changes also run `codex debug prompt-input` and verify zero stderr.

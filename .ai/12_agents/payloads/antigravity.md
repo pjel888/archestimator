@@ -66,9 +66,9 @@ Lead owns integration.
 Follow the **User Test Authorization Gate** in
 `.ai/00_system/VALIDATION_MATRIX.md`: tests are user-gated, not automatic.
 Ordinary edits use decisive non-test evidence. `TEST_TASK` is the only decision
-that authorizes test execution and requires an explicit user request. `TARGETED`
+that authorizes test execution and requires an explicit testing request from the user. `TARGETED`
 identifies an MVP mission-critical claim that would benefit from a test but
-authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait. Broad or
+authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. Broad or
 browser gates require an explicit user request. Report results and unresolved
 failures.
 

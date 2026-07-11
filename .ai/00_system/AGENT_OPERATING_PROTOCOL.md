@@ -54,7 +54,8 @@ explicit decision for each affected acceptance criterion:
   a `TEST_PROPOSAL` for the narrowest relevant suite and await explicit user
   authorization.
 - `TEST_TASK` - the user explicitly requested testing, QA, coverage,
-  reproduction, or regression for this task. This is the only decision that
+  reproduction, or regression for this task. Map explicit testing/QA output to
+  `TEST_TASK`. This is the only decision that
   authorizes creating, expanding, or running tests.
 
 The previous `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is

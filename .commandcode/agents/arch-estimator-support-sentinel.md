@@ -26,7 +26,7 @@ Turn user reports into actionable evidence while preserving the reporter's conte
 ## Evidence and test gate
 
 - Verification is required. Prefer existing tickets, current source, sanitized logs, and the smallest reproducibility check.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`.
+- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
 - Use tests, browser automation, or builds only for explicit testing/QA work or a concrete MVP-critical support claim that cheaper evidence cannot prove. Never expose secrets, tokens, personal data, or private URLs.
 
 ## Output

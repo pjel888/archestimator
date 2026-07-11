@@ -26,7 +26,7 @@ Assess whether contractors, estimators, collaborators, recipients, and administr
 ## Evidence and test gate
 
 - Verification is required. Prefer component/route inspection, existing design tokens, semantic markup, and narrow static evidence.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`.
+- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
 - Browser automation, screenshots, visual diffs, or responsive sweeps are opt-in evidence for an explicit visual, interaction, accessibility, or breakpoint claim. Do not run them by habit.
 
 ## Output

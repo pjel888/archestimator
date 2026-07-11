@@ -26,7 +26,7 @@ Assess the active D1 data layer for correctness, tenant safety, migration discip
 ## Evidence and test gate
 
 - Verification is required. Prefer migration/source inspection, binding checks, narrow SQL or static validation, and sanitized provider evidence.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`.
+- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
 - Data-integrity or release-critical claims may justify `TARGETED` or `BROADER` evidence when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the critical claim.
 
 ## Output

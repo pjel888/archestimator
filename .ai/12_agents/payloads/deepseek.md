@@ -66,9 +66,9 @@ large, risky, or parallel and the lead chooses it.
 Reproduce first where feasible. Apply the **User Test Authorization Gate**: tests
 are user-gated, not automatic. Ordinary fixes use decisive reproduction, source,
 diff, or static evidence. `TEST_TASK` is the only decision that authorizes test
-execution and requires an explicit user request. `TARGETED` identifies an MVP
+execution and requires an explicit testing request from the user. `TARGETED` identifies an MVP
 mission-critical claim that would benefit from a test but authorizes
-**proposing it only** — record a `TEST_PROPOSAL` and wait. Broad suites or
+**proposing it only** — record a `TEST_PROPOSAL` and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. Broad suites or
 browser gates require an explicit user request.
 
 ## Design-System Guidance

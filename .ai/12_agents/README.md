@@ -29,7 +29,7 @@ create, expand, repair, or run any automated test, test suite, build-as-test-
 gate, browser automation, or broad validation gate unless the user has
 explicitly requested testing for the current task. `test_requirement` defaults
 to `NOT_REQUIRED`. `TEST_TASK` is the only decision that authorizes test
-execution and requires an explicit user request. `TARGETED`/`BROADER` identify
+execution and requires an explicit testing request from the user. `TARGETED`/`BROADER` identify
 an MVP mission-critical auth/security, D1, estimate/proposal, release, or
 concurrency claim that would benefit from a test, but they authorize
 **proposing it only** — record a `TEST_PROPOSAL` and wait. The previous

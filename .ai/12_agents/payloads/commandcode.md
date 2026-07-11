@@ -67,10 +67,10 @@ shared files.
 Review outputs need file/line evidence. Edits follow the **User Test
 Authorization Gate** in `.ai/00_system/VALIDATION_MATRIX.md`: tests are
 user-gated, not automatic. Ordinary edits use decisive non-test evidence.
-`TEST_TASK` is the only decision that authorizes test execution and requires an
+Map explicit testing/QA output to `TEST_TASK`; it is the only decision that authorizes test execution and requires an
 explicit user request. `TARGETED` identifies an MVP mission-critical claim that
 would benefit from a test but authorizes **proposing it only** — record a
-`TEST_PROPOSAL` and wait. Broad or browser gates require an explicit user
+`TEST_PROPOSAL` and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. Broad or browser gates require an explicit user
 request.
 
 ## Design-System Guidance

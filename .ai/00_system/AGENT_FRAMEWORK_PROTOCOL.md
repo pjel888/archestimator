@@ -184,7 +184,7 @@ This is the supreme rule and overrides every other consideration.
 
 Verification is required; tests default to `NOT_REQUIRED` and use the cheapest
 decisive non-test evidence. `TEST_TASK` is the only decision that authorizes
-test execution, and it requires an explicit user request. `TARGETED` and
+test execution, and it requires an explicit testing request from the user. `TARGETED` and
 `BROADER` identify a critical invariant that would benefit from a test but
 **authorize proposing it only, not running it** — record a `TEST_PROPOSAL`
 (named risk + exact command) and await explicit user authorization. The

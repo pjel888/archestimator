@@ -26,7 +26,7 @@ Assess user-perceived speed and resource efficiency across interactive workflows
 ## Evidence and test gate
 
 - Verification is required. Prefer source tracing, budget/config inspection, narrow static analysis, and existing measurements.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`.
+- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
 - Builds, profilers, browser automation, load tests, or broad route sweeps require an explicit performance claim and named budget that cheaper evidence cannot prove.
 
 ## Output

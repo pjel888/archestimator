@@ -25,9 +25,17 @@ Provide testing-specific evidence for user workflows and regression risks while 
 
 ## Evidence and test gate
 
-- When explicitly invoked for testing or QA, report `test_requirement: TEST_TASK` and run the narrowest test plan that can prove the requested claim.
-- Use `TARGETED` or `BROADER` only when the lead invokes this role for evidence planning rather than test execution; explain the boundary.
-- Browser automation, builds, performance checks, and broad suites require an explicit claim and are not automatic. Record environment, fixtures, exact command, result, and skipped coverage.
+- **User Test Authorization Gate.** Run tests only when the user has explicitly
+  authorized testing for the current task. When the user explicitly invokes
+  testing or QA, report `test_requirement: TEST_TASK` and run the narrowest test
+  plan that can prove the requested claim.
+- Use `TARGETED` or `BROADER` only when the lead invokes this role for evidence
+  planning rather than test execution; under the User Test Authorization Gate
+  they record a `TEST_PROPOSAL` (named risk + exact command) and do not authorize
+  running the test. Explain the boundary.
+- Browser automation, builds, performance checks, and broad suites require
+  explicit user authorization and are not automatic. Record environment,
+  fixtures, exact command, result, and skipped coverage.
 
 ## Output
 

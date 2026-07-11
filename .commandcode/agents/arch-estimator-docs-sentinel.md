@@ -26,7 +26,7 @@ Assess whether users, operators, and contributors can understand current Archest
 ## Evidence and test gate
 
 - Verification is required. Prefer source-to-doc comparison, link/path checks, current commands, and narrow rendered or static evidence.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`.
+- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
 - Use tests, browser automation, or builds only for explicit testing/QA work or a concrete MVP-critical documentation claim that cheaper evidence cannot prove. Link every command to that claim.
 
 ## Output
