@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "a81ae22063ac4a60a1a3405a0926c93a00d65ae285c89d5c6c6e9f800d54affb"
+      "sha256": "b7d0d8df4b4cb2403018ace332d20e3f9c1a94e0ad988018f34d8d6ec69bc362"
     },
     {
       "id": "ART-002",
@@ -129,7 +129,7 @@
       "id": "ART-019",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "a6db82babbb7dc86095af9d7c77c78955d3b904f70babe17e282454639ea7f9a"
+      "sha256": "119c7ecbd7ee24d39b3edbca38a0b1ffb8d85a3ea00032d4bc4b2e9da1d5350f"
     },
     {
       "id": "ART-020",
@@ -2240,5 +2240,5 @@
     "cloudflare-worker-version-deployment-or-durable-object-routing-change"
   ],
   "updated_at": "2026-07-11T02:05:00.000Z",
-  "manifest_sha256": "2bd1c7dc5bfc7aa56fa54c0a733db8b28af3186424829377d3c83774a422f827"
+  "manifest_sha256": "6e8a36e697e9b934d7f1995e2b3a3b325c531b7b7e32f879275d479855abe089"
 }
