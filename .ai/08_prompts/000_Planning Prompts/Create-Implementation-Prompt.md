@@ -105,9 +105,14 @@ failure/recovery/cleanup, entry/exit
 gate, and final evidence slot.
 
 Default `test_requirement` to `NOT_REQUIRED`, `test_trigger` to `NONE`, and
-record the cheapest decisive proof in `test_rationale`. Map explicit testing
-scope to `TEST_TASK` plus `EXPLICIT_TEST_TASK`; map `TARGETED` only to a named
-MVP-critical invariant that cheaper evidence cannot prove or one already-
+record the cheapest decisive proof in `test_rationale`. Under the **User Test
+Authorization Gate**, `TARGETED`, `BROADER`, `MVP_CRITICAL_INVARIANT`, and
+`CHEAPEST_DECISIVE_EXISTING_TEST` authorize a **`TEST_PROPOSAL` only**, never
+execution — the unit records the named risk + exact command so the executing
+agent waits for explicit user authorization. Map explicit testing scope to
+`TEST_TASK` plus `EXPLICIT_TEST_TASK`; it is the only decision that authorizes
+test execution and requires an explicit user request. Map `TARGETED` only to a
+named MVP-critical invariant that cheaper evidence cannot prove or one already-
 existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; map `BROADER`
 only to an integrated critical boundary that targeted evidence cannot cover.
 Do not prescribe speculative source code or ceremonial tests.
