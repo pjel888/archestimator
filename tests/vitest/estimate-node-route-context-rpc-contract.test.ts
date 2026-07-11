@@ -18,7 +18,7 @@ describe("estimate_node_route_context repository fast path", () => {
   it("uses the D1 fast-path hook before the selected-node fallback and has no provider RPC", () => {
     expect(repositorySource).toContain("async function readEstimateNodeRouteContextD1FastPath");
     expect(repositorySource).toContain("const fastRouteContext = await readEstimateNodeRouteContextD1FastPath");
-    expect(repositorySource).toContain("if (fastRouteContext) return fastRouteContext;");
+    expect(repositorySource).toContain("if (fastRouteContext?.estimate && await canAccessEstimateInD1(database, fastRouteContext.estimate.id, userContext)) return fastRouteContext;");
     expect(repositorySource).not.toContain(".rpc(");
     expect(repositorySource).not.toContain("readSupabaseAuthStorageKey");
     expect(repositorySource).not.toContain("parseEstimateNodeRouteContextRpcPayload");

@@ -95,18 +95,21 @@ describe("estimate node route server concurrency", () => {
 
   it("relies on the workshop layout for auth before protected route children render", () => {
     const layoutBody = readFunctionBody(workshopLayoutSource, "export default async function WorkshopLayout");
-    const finalChildrenReturnIndex = layoutBody.lastIndexOf("return children;");
+    const finalShellReturnIndex = layoutBody.lastIndexOf("return <WorkshopShell>{children}</WorkshopShell>;");
     const loginRedirectIndex = layoutBody.indexOf('if (!currentUser) redirect("/login")');
     const termsGateIndex = layoutBody.indexOf("getCurrentUserTermsAcceptanceStatus(currentUser.userId)");
+    const bypassBranchIndex = layoutBody.indexOf("if (termsGateBypassed)");
 
     expect(workshopLayoutSource).toContain('import { getCurrentUserContext } from "@/lib/auth/session"');
     expect(layoutBody).toContain("shouldBypassTermsAcceptanceGate(requestPath)");
     expect(layoutBody).toContain("const currentUser = await getCurrentUserContext();");
-    expect(finalChildrenReturnIndex).toBeGreaterThanOrEqual(0);
+    expect(finalShellReturnIndex).toBeGreaterThanOrEqual(0);
     expect(loginRedirectIndex).toBeGreaterThanOrEqual(0);
     expect(termsGateIndex).toBeGreaterThanOrEqual(0);
-    expect(loginRedirectIndex).toBeLessThan(finalChildrenReturnIndex);
-    expect(termsGateIndex).toBeLessThan(finalChildrenReturnIndex);
+    expect(bypassBranchIndex).toBeGreaterThanOrEqual(0);
+    expect(bypassBranchIndex).toBeLessThan(loginRedirectIndex);
+    expect(loginRedirectIndex).toBeLessThan(termsGateIndex);
+    expect(termsGateIndex).toBeLessThan(finalShellReturnIndex);
   });
 
   it("does not introduce route-level caches or privileged clients around request-scoped helpers", () => {

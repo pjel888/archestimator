@@ -119,10 +119,10 @@ it("accepts D1-backed signed cookie session fixtures", async () => {
 const SCHEMA_SQL_PROOF = {
   generated: true,
   staticReviewReady: true,
-  statementCount: 7,
+  statementCount: 8,
   byteLength: 1253,
   sha256: "proof-sha",
-  tableNames: ["account", "session", "user", "verification"],
+  tableNames: ["account", "rateLimit", "session", "user", "verification"],
   indexNames: ["account_userId_idx", "session_userId_idx", "verification_identifier_idx"],
   expectedCoreTablesPresent: true,
   expectedIndexesPresent: true,
@@ -180,7 +180,7 @@ const PROVIDER_PROOF = {
       error: null,
     },
     cleanupReady: true,
-    tableNames: ["account", "session", "user", "verification"],
+    tableNames: ["account", "rateLimit", "session", "user", "verification"],
     indexNames: ["account_userId_idx", "session_userId_idx", "verification_identifier_idx"],
     rowsRemaining: 0,
     error: null,
@@ -240,8 +240,8 @@ describe("Cloudflare Better Auth proof generator", () => {
 
     expect(proof.generated).toBe(true);
     expect(proof.staticReviewReady).toBe(true);
-    expect(proof.statementCount).toBe(7);
-    expect(proof.tableNames).toEqual(["account", "session", "user", "verification"]);
+    expect(proof.statementCount).toBe(8);
+    expect(proof.tableNames).toEqual(["account", "rateLimit", "session", "user", "verification"]);
     expect(proof.indexNames).toEqual(["account_userId_idx", "session_userId_idx", "verification_identifier_idx"]);
     expect(proof.sql).toContain('create table "user"');
     expect(proof.sql).toContain('create index "session_userId_idx"');
@@ -332,7 +332,7 @@ describe("Cloudflare Better Auth proof generator", () => {
       googleOAuthProviderReady: true,
       productionCutoverReady: true,
       providerBackedCallbackSessionCutoverReady: true,
-      tableNames: ["account", "session", "user", "verification"],
+      tableNames: ["account", "rateLimit", "session", "user", "verification"],
     });
     expect(report.productionCutoverBlockers).not.toEqual(
       expect.arrayContaining([
