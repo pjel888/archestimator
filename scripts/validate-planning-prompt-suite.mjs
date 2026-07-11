@@ -225,6 +225,8 @@ requireText("Frontier-Planning-Kernel.md", [
   ["atomic shared lease registry", ".ai/99_scratch/leases/"],
   ["same-agent provenance", "same-agent-separated"],
   ["stage-relative completion", "Stage completion requires"],
+  ["conditional test field", "test_requirement"],
+  ["default no-test decision", "NOT_REQUIRED"],
 ]);
 
 requireText("Plan-Pack-Schema.md", [
@@ -239,6 +241,8 @@ requireText("Plan-Pack-Schema.md", [
   ["package action ceiling", "package_action_ceiling"],
   ["independent state machines", "Use independent state machines"],
   ["terminal states", "AUTH_BLOCKED|TECH_BLOCKED"],
+  ["conditional test decisions", "`NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`"],
+  ["testless criteria", "`NOT_REQUIRED` is the default and requires `test_ids: []`"],
 ]);
 
 requireText("Creating-Plan-Prompt.md", [
@@ -246,6 +250,7 @@ requireText("Creating-Plan-Prompt.md", [
   ["normalized profiles", "`focused`, `standard`, or `high-blast-radius`"],
   ["manifest creation", "Create `plan-pack.json`"],
   ["read-only final checker", "final checking pass is read-only"],
+  ["test decision classification", "Classify each criterion's `test_requirement`"],
 ]);
 
 requireText("Improve-Plan-Prompt.md", [
@@ -253,6 +258,7 @@ requireText("Improve-Plan-Prompt.md", [
   ["semantic inventory", "semantic diff"],
   ["stale evidence invalidation", "invalidate stale review evidence"],
   ["non-editing final verifier", "final verifier does not edit"],
+  ["ceremonial-test removal", "Delete ceremonial test requirements"],
 ]);
 
 requireText("Create-Implementation-Prompt.md", [
@@ -261,6 +267,7 @@ requireText("Create-Implementation-Prompt.md", [
   ["candidate isolation", "unpromoted candidate"],
   ["concurrent promotion guard", "changed concurrently"],
   ["read-only final checker", "profile-selected read-only final check"],
+  ["default no-test compile", "Default `test_requirement` to `NOT_REQUIRED`"],
 ]);
 
 requireText("Executing-Plan-Prompt.md", [
@@ -274,6 +281,7 @@ requireText("Executing-Plan-Prompt.md", [
   ["authorization terminal", "terminal_status: ACHIEVED"],
   ["technical terminal", "TECH_BLOCKED"],
   ["post-move proof", "post-move state"],
+  ["no-test execution", "Run no tests for `NOT_REQUIRED`"],
 ]);
 
 requireText("Multi-Agent-Execution-Directive.md", [
@@ -285,6 +293,7 @@ requireText("Multi-Agent-Execution-Directive.md", [
   ["tactic exhaustion", "mark it exhausted"],
   ["read-only verifier", "final verifier is read-only"],
   ["post-move proof", "After the move"],
+  ["worker test decision", "`test_requirement`"],
 ]);
 
 const gates = contents.get("Frontier-Applicability-Gates.md") ?? "";
@@ -296,8 +305,8 @@ if (new Set(gateIds).size < 10) {
 const evals = contents.get("Prompt-Evaluation-Suite.md") ?? "";
 const evalMatches = [...evals.matchAll(/^### EVAL-(\d{2}) - /gmu)];
 const evalNumbers = evalMatches.map((match) => Number(match[1]));
-if (evalNumbers.length < 30) {
-  errors.push(`Prompt-Evaluation-Suite.md: expected at least 30 scenarios, found ${evalNumbers.length}`);
+if (evalNumbers.length < 33) {
+  errors.push(`Prompt-Evaluation-Suite.md: expected at least 33 scenarios, found ${evalNumbers.length}`);
 }
 for (let index = 0; index < evalNumbers.length; index += 1) {
   if (evalNumbers[index] !== index + 1) {
@@ -321,6 +330,9 @@ requireText("Prompt-Evaluation-Suite.md", [
   ["model and cost reporting", "token/context cost"],
   ["assertion-level pass", "every scenario assertion and every applicable dimension"],
   ["diagnostic score only", "total is diagnostic only"],
+  ["routine no-test scenario", "EVAL-32 - Routine Source Change Beside Existing Tests"],
+  ["explicit testing scenario", "EVAL-33 - Explicit Testing Task"],
+  ["unnecessary test-call metric", "unnecessary tool/test calls"],
 ]);
 
 const rubricRows = [
@@ -374,6 +386,15 @@ try {
   );
 } catch (error) {
   errors.push(`research basis: missing or unreadable (${error.message})`);
+}
+
+try {
+  await readFile(
+    resolve(root, ".ai/13_research/2026-07-11-openai-gpt-5-6-agent-prompt-efficiency.md"),
+    "utf8",
+  );
+} catch (error) {
+  errors.push(`GPT-5.6 research basis: missing or unreadable (${error.message})`);
 }
 
 const fixturePath = resolve(root, "tests/fixtures/planning-prompt-suite/valid-plan-pack");

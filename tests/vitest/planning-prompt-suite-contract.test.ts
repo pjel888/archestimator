@@ -65,6 +65,27 @@ describe("frontier planning prompt contracts", () => {
     expect(result.stdout).toContain("plan-pack validation passed");
   });
 
+  it("requires every selected test to pass before its criterion passes", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_ids = ["TEST-001"];
+      manifest.tests = [{
+        id: "TEST-001",
+        status: "SKIPPED",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-001"],
+        evidence_ids: [],
+      }];
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("AC-001=PASS requires TEST-001=PASS");
+  });
+
   it("rejects an observed run scope above the package action ceiling", () => {
     const folder = copyFixture();
     mutateManifest(folder, (manifest) => {
@@ -298,8 +319,6 @@ describe("frontier planning prompt contracts", () => {
     mutateManifest(folder, (manifest) => {
       const criteria = manifest.criteria as Array<Record<string, unknown>>;
       criteria[0].status = "N/A";
-      const tests = manifest.tests as Array<Record<string, unknown>>;
-      tests[0].status = "SKIPPED";
       const gates = manifest.gates as Array<Record<string, unknown>>;
       gates[0].status = "N/A";
     });

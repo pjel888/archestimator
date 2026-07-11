@@ -15,7 +15,7 @@
     "scoped_status_sha256": "3cd071578da9b1defea10138bb46365882f2a0c6be71ceb531b016634d4ebde1",
     "scoped_diff_sha256": "53aa6ef6e6c7984e39a69196abd74030e100b929c7e431d12d9ea2b6e3f0d21f"
   },
-  "updated_at": "2026-07-11T13:00:53+08:00",
+  "updated_at": "2026-07-11T05:00:53.000Z",
   "stale_triggers": [
     "scoped-source-baseline-drift",
     "migration-or-lease-generation-change",
@@ -31,73 +31,73 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "ded6725d71907c54fc1c6e7f9158b9664f72af03c7539d018e128ff841ea1814"
+      "sha256": "96fa4b0b9114ce362b40547a2904b8292839d4e07a40c87727aac37a040fedf7"
     },
     {
       "id": "ART-002",
       "role": "supporting",
       "path": "01_EXECUTIVE_SUMMARY_AND_TARGET_STATE.md",
-      "sha256": "e99f607d12391b60e46bceaadc04676416f91c817811dbb71a565fce41a913d6"
+      "sha256": "9e7ef40e7c2e644edf2a83505e7ea51e61ee9f62814020b524c08c6f3c529528"
     },
     {
       "id": "ART-003",
       "role": "supporting",
       "path": "02_SCOPE_NON_GOALS_AND_TERMINOLOGY.md",
-      "sha256": "235d8954ea7100260c9a04e69cdc837974af58031586583731745f1c1ced6589"
+      "sha256": "a85aa10a4197e9444353974f835f976306b74c8ac6bfe0c4e51797ff93f47c33"
     },
     {
       "id": "ART-004",
       "role": "supporting",
       "path": "03_SOURCE_CODEBASE_AND_STALENESS_AUDIT.md",
-      "sha256": "faebebc1ece028f7ddaeeef9f6f8c0d5e9439c6e7a1e55c12755ac760df46e6c"
+      "sha256": "edcd841785921f747154f232df30900b5caf9717090e273d324609d4b4164068"
     },
     {
       "id": "ART-005",
       "role": "supporting",
       "path": "04_ADMIN_INFORMATION_ARCHITECTURE_UX_AND_ACCESSIBILITY.md",
-      "sha256": "f5ca46a56ac52ea1dbb5cff3d32d93e3697b630e59dfea93ca043243fba0bb31"
+      "sha256": "177905c528ba808b526037204c45f4570c499be24345170b66e19ce4f0a822d9"
     },
     {
       "id": "ART-006",
       "role": "supporting",
       "path": "05_USER_360_IDENTITY_ACTIVITY_AND_LIFECYCLE.md",
-      "sha256": "315cf7f3409693a6773fcb802704780fc6682e621a9b860ee183d55e65826513"
+      "sha256": "0f9ed93208a6fe2b58b69ae6e872c5b05fd4528223e9735f9afcb1efb024dae9"
     },
     {
       "id": "ART-007",
       "role": "supporting",
       "path": "06_NOTIFICATION_MANAGER_PRODUCT_AND_OPERATOR_WORKFLOWS.md",
-      "sha256": "61293f6af81689e65d37af1e4cc94b140009db09057fdbbf512b374c61385c40"
+      "sha256": "208c855af5cb3f80678f19923297f9fd90bc4e2dfd584e169ebb29b401ff73f5"
     },
     {
       "id": "ART-008",
       "role": "supporting",
       "path": "07_NOTIFICATION_DATA_DISPATCH_AND_SCHEDULING.md",
-      "sha256": "3cd7813c0edf54632865510285756f748d71daf73b6ee6332063d3abef588509"
+      "sha256": "e7140fbb52bef537827b1b92347e0c0b0f375257d2ec8d143596d585e5c5ba88"
     },
     {
       "id": "ART-009",
       "role": "supporting",
       "path": "08_AUTHORIZATION_SECURITY_PRIVACY_AND_COMPLIANCE.md",
-      "sha256": "dfabaf253b8ddc1e318ba15bb29fecfabc419fb0943daa325a35a19373075e2c"
+      "sha256": "8f9cb6a46c19562f234eda841056f3c6999853280a87ef95af6b9bdf07939e98"
     },
     {
       "id": "ART-010",
       "role": "supporting",
       "path": "09_OPERATIONS_SUPPORT_FLAGS_OBSERVABILITY_AND_ANALYTICS.md",
-      "sha256": "e22968cc5418ade4f0b09ff775b404e5327d406ea184b7d721e01871fc5dbdbb"
+      "sha256": "f4ab7db9507fc383abfc180b734509e372ba231f009deae26627dbaf2f4ed47f"
     },
     {
       "id": "ART-011",
       "role": "supporting",
       "path": "10_DATA_MIGRATIONS_APIS_PERFORMANCE_AND_COST.md",
-      "sha256": "d31f6c5348a32e5c8d6a4113f0126c3d67f4f3bbfafa242d93e4b7b901cf9c21"
+      "sha256": "e1f778ff2d3f22d791a2e4ff31f1c76b5e9911705211ac598de075f6abc2d9cb"
     },
     {
       "id": "ART-012",
       "role": "supporting",
       "path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "sha256": "4f1359856f515880200d83c6785f7149daf49f3003c766207149fd0889521869"
+      "sha256": "4fac56e78f24817e14fc82909ebbaeb50fbc7f7ee000958bab7e01d276458643"
     },
     {
       "id": "ART-013",
@@ -109,37 +109,37 @@
       "id": "ART-014",
       "role": "supporting",
       "path": "13_OVERLAP_DEPENDENCY_AND_CONSUMER_RECEIPTS.md",
-      "sha256": "e23562b4a636644468aa03dd81a5a195b9cb37651590a980d6131e7c57319637"
+      "sha256": "cd2c210695951db5ddd82f68c6d9728d7445433048226aa29ffdff5989b44364"
     },
     {
       "id": "ART-015",
       "role": "supporting",
       "path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "sha256": "141e6e747a32e53204765b5a7851df2964f873a917e9da263e082b6cc2d66d95"
+      "sha256": "226e77557bc3d1349c0dc4158aff4cd5fe39ceeffb99821db16ffbfed6610c3b"
     },
     {
       "id": "ART-016",
       "role": "supporting",
       "path": "15_REQUIREMENTS_TRACEABILITY_AND_FINAL_AUDIT.md",
-      "sha256": "114d8521bcd8bb2c79a687e8a155c4dcbda5fbfcf0c1f49586b44a9a5fe20e26"
+      "sha256": "6f360a378d10f2b995730d6a73e31bb09d5029dd7d5d5de9807106dfa88a5284"
     },
     {
       "id": "ART-017",
       "role": "supporting",
       "path": "16_RESEARCH_AND_SPECIALIST_EVIDENCE.md",
-      "sha256": "16473f747329851d57784221fe2ef6610965b787480f668c9813e97c8f58586c"
+      "sha256": "27f47b4bcec50b7d8a85def50660ce6009f5b5325dd21022fa2064ed6191db3c"
     },
     {
       "id": "ART-018",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "271fc5887376ad3c7d85b00120d014c9b5267aeef773c002ece974b52d14c634"
+      "sha256": "055c3aae88ea8904e14b33b91c4070bc3623f8f5b2230a08b204ade5716d0d29"
     },
     {
       "id": "ART-019",
       "role": "supporting",
       "path": "LOOP_LEDGER.md",
-      "sha256": "b5522f5fef805f065576f56472566be000f3a3994739064d1f822ada8be06c5a"
+      "sha256": "d321e612f49b69744100d01e4e774fad5a18a79d7f00e700981d4490ce538092"
     },
     {
       "id": "ART-020",
@@ -265,7 +265,7 @@
       "id": "ART-040",
       "role": "supporting",
       "path": "17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md",
-      "sha256": "PENDING_REFRESH"
+      "sha256": "236b9d36d7de4fd567cccdf45729c8c1b1fdfff87fff07849212ddcc79e73ff5"
     }
   ],
   "sources": [
@@ -2324,6 +2324,7 @@
         "REQ-010",
         "REQ-011",
         "REQ-014",
+        "REQ-015",
         "SEC-005",
         "DATA-004",
         "PERF-002",
@@ -2348,6 +2349,7 @@
       ],
       "requirement_ids": [
         "REQ-007",
+        "REQ-010",
         "REQ-012",
         "REQ-013",
         "REQ-014",
@@ -3132,5 +3134,5 @@
     }
   ],
   "next_unit": "UNIT-001",
-  "manifest_sha256": "f32f6f9437ee58f5741873eb587350875f491bde49a858241de75ff9a34dda15"
+  "manifest_sha256": "46747cd16cbcf035bad5a75ceedae38000855138816725d7bcf3298309884470"
 }
