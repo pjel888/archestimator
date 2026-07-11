@@ -2,7 +2,7 @@
 
 ## Audit Timestamp and Authority
 
-Audit date: 2026-07-11 Asia/Manila. Current worktree source, migrations, focused tests, and canonical `.ai` state govern implementation facts. The archived 2026-07-10 Admin Dashboard pack is historical design evidence, not current completion proof.
+Audit date: 2026-07-11 Asia/Manila. Improve-stage refresh observed current worktree/source repeatedly because Corporate and Teamwork are concurrently changing. Current source, migrations, focused tests, and canonical `.ai` state govern implementation facts. The archived 2026-07-10 Admin Dashboard pack is historical design evidence, not current completion proof.
 
 ## Scoped Baseline Pathspecs
 
@@ -65,6 +65,7 @@ Routes and real current status:
 - current `MAX(session.updatedAt)` is restricted to unexpired sessions and changes on Better Auth update cadence; it is not durable last use.
 - current auth audit records initiation but does not provide a complete durable successful-login writer.
 - current GlobalPresence broadcasts a total count, not per-user online identity.
+- Corporate membership is already a partial User 360 footprint: the current detail page consumes `listUserCorporateAccounts` and renders account/role/job-title links. Preserve and extend that producer contract; do not rebuild Corporate reads or mutations in Admin.
 
 ## Activity Sources Available for User 360
 
@@ -101,6 +102,8 @@ These have different scopes, redaction, retention, deletion, and trust propertie
 14. audit write failures can be ignored after successful mutations.
 15. API user/signup routes are degraded placeholders.
 16. maintenance mode is visible but not enforced.
+17. `tests/vitest/activity-plan-ownership.test.ts` still reads the removed live Activity plan path after the completed pack moved to the archive.
+18. notification feed/unread repository queries do not consistently apply notification start/expiry eligibility.
 
 ## Fresh Test Evidence
 
@@ -109,6 +112,17 @@ These have different scopes, redaction, retention, deletion, and trust propertie
 - Independent admin lane: nine admin-focused files produced 24 passes and 2 failures; failures were searched-user bind order and stale flag audit expectation.
 
 These are planning evidence only. They do not prove implementation readiness or hosted behavior.
+
+Improve-stage combined admin/notification run initially produced 59/61 passing tests with two known failures: searched-user bind order and the stale exact flag-audit expectation. The broader source-drift lane then included Activity ownership and produced 66/69 passing tests with the same two failures plus the stale archived-plan path. `UNIT-001` must reproduce the exact current command in its receipt, classify all three, and may not pass with any fourth/unclassified failure. The inbox-only notification suites remain green, while no focused test currently invokes the admin broadcast action/component; that absence is a characterization gap, not proof that broadcasting is safe.
+
+## Improve-Stage Overlap and Migration Observation
+
+- Activity is now an archived completed baseline (`0862aa3a9f4c382f1e0121f69f52f6d2a53d180c585fd07b32353b361abf15ae`, `COMPLETE/READY/ARCHIVED/ACHIEVED`), but its source has post-archive worktree drift. Admin must bind the current actor-filter/read-model source hashes in addition to the archived manifest before UNIT-005/013.
+- Corporate is `IN_PROGRESS`; its observed manifest hash changed during audit and therefore is evidence of active ownership, not a durable downstream receipt. Preserve its existing User 360 membership footprint.
+- Teamwork is `IN_PROGRESS/BOUNDARY`; its manifest also changed during audit. UNIT-005/008/014 require a final producer receipt, not an improve-stage hash snapshot.
+- Beta Operating remains `NOT_STARTED/BOUNDARY/ACTIVE`; Beta Readiness remains `NOT_STARTED/BOUNDARY/ACTIVE` and owns migration generation.
+- Active migrations now extend through `0065_activity_history_lifecycle.sql`; the shared generation registry reserves later numbers for other packs and Admin has no allocation. No Admin migration may be named or created until a fresh generation lease is acquired.
+- `wrangler.jsonc` now has three cron triggers and still only the upload Queue/DLQ binding; notification Queue/DLQ remains a separate hosted authorization boundary.
 
 ## Data-Lifecycle Conflicts
 

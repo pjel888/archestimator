@@ -24,12 +24,13 @@ Before every unit:
 
 - reproduce and lock the searched-user placeholder-order defect;
 - reconcile the stale admin flag test with the current before/after audit contract;
+- repair the Activity ownership test's stale live-plan path after the producer pack was archived;
 - add characterization tests for fake audit data, account affected-row behavior, admin notification UUID/readability, schema-bound validation, and non-atomic publish residue;
 - inventory Better Auth users missing profiles and profiles missing Better Auth users without mutating data;
 - verify active Corporate, Teamwork, Activity, Beta Operating, and observability manifests and record consumer revisions;
 - reserve migration numbers through the shared lease only after the active migration list is fresh.
 
-**Pass:** known-red baseline is intentional and fully enumerated; no unclassified failure remains; overlap and migration receipts are current.
+**Pass:** the current combined suite has exactly the three classified reds before repair and no unclassified failure; all three are green after repair; archived Activity plus source-drift, Corporate/Teamwork in-progress, Beta, and migration-generation receipts are current enough to state their exact downstream blocks. This unit does not promote cross-pack/D1 dependents or claim an Admin migration allocation.
 
 ### UNIT-002: Repair Existing Admin Correctness Baseline
 
@@ -50,7 +51,7 @@ Before every unit:
 ### UNIT-003: Canonical Admin Capability and Sensitive-Action Policy
 
 **Depends on:** UNIT-002  
-**Work:** define capabilities separate from platform product roles; require server-side checks per read/action; protect last privileged operator; require fresh-auth/reason/case reference for high-risk actions; prohibit unsafe self/peer changes; rate-limit interventions; audit sensitive reads and all mutations; use no-store/private responses.
+**Work:** define capabilities separate from platform product roles; require server-side checks per read/action; protect last privileged operator; produce a version-matched Better Auth reauthentication receipt and implement the one-time actor/session/action-bound freshness contract before enabling dependent actions; require reason/case reference; prohibit unsafe self/peer changes; rate-limit interventions; audit sensitive reads and all mutations; use no-store/private responses.
 
 **Pass:** denial matrix covers anonymous, member, limited operator, full operator, protected peer, self, and stale/fresh session paths.
 
@@ -64,6 +65,7 @@ Before every unit:
 - add durable successful-login facts and rate-limited authenticated heartbeat;
 - define last product activity rollup from normalized events;
 - keep online presence ephemeral and identity-safe;
+- split the presence v2 protocol into self-only ordinary-user writes and admin-only sensitive reads, integrate the authenticated product heartbeat writer, and preserve aggregate-only v1 sockets;
 - add provenance/as-of/availability fields to user summary DTOs.
 
 **Pass:** fixtures distinguish signup, profile provision, login, authenticated use, product activity, and online state; expired/deleted sessions do not erase durable login/use history.
@@ -78,35 +80,35 @@ Before every unit:
 ### UNIT-006: Safe Account and Session Operations
 
 **Depends on:** UNIT-003, UNIT-004  
-**Work:** suspend/ban/reactivate with reason, optional expiry, case reference, affected-row proof, relevant Better Auth session revocation, protected-admin floor, user notification policy, idempotency, atomic audit, and visible intervention history. Add single-session and revoke-all controls without exposing tokens.
+**Work:** suspend/ban/reactivate with reason, optional expiry, case reference, affected-row proof, relevant Better Auth session revocation, protected-admin floor, user notification policy, idempotency, atomic audit, and visible intervention history. Add single-session and revoke-all controls without exposing tokens. Create a transactional security-notice outbox with explicit timing, provider-disabled result, retry/audit state, and no false claim that an inaccessible inbox informed a banned user.
 
 **Pass:** status and session state agree after every success/failure/crash boundary; nonexistent targets and protected operators cannot produce false-success audit rows.
 
 ### UNIT-007: Notification Campaign Domain and Authoring UX
 
-**Depends on:** UNIT-002, UNIT-003  
-**Work:** introduce campaign and run lifecycles with immutable content versions; drafts, templates, preview, test audience/test send, review/approval, optimistic locking, content validation, safe action links, schedule/expiry/misfire, duplication, pause/resume/retry/reconcile transitions, and complete history filters.
+**Depends on:** UNIT-002, UNIT-003, UNIT-012  
+**Work:** introduce campaign and run lifecycles with immutable content versions; versioned/archivable templates that copy into campaigns; drafts, preview, test audience/test send, review/approval, optimistic locking, content validation, safe action links, one-time and recurring schedule revisions/occurrences with DST and series edit/cancel semantics, expiry/misfire, duplication, pause/resume/retry/reconcile transitions, and complete history filters.
 
 **Pass:** lifecycle transition matrix and concurrent-editor tests pass; no draft or unapproved content is user-visible.
 
 ### UNIT-008: Audience Builder, Reach Preview, and Preferences
 
 **Depends on:** UNIT-004, UNIT-007 and Corporate/Teamwork consumer receipts  
-**Work:** typed audience rules for all active users, explicit users, signup/use cohorts, beta stage, corporate account/role, workspace/project membership/role, account status, and notification preference policy. Show eligible/excluded counts with reasons and freshness. Freeze rule revision/audience semantics at approval/publish. Define mandatory security/operational override and quiet-hours/digest behavior.
+**Work:** typed audience rules for all active users, explicit users, signup/use cohorts, beta stage, corporate account/role, workspace/project membership/role, account status, and notification preference policy. Enforce the reconciliation-state eligibility matrix and canonical-to-inbox key adapter for every selector. Implement `/settings/notifications` typed current-user preference reads/actions, defaults, channel/surface semantics, mandatory override, quiet hours, time zones, digest cadence, and deferred reason/deadline state. Show eligible/excluded counts with reasons and freshness. Freeze rule revision/audience semantics at approval/publish.
 
 **Pass:** invalid/cross-tenant targets are denied; preview and publish use the same rule revision; suspended/banned/erased users and preference exclusions are deterministic.
 
 ### UNIT-009: Durable Scheduling, Fanout, Retry, and Reconciliation
 
-**Depends on:** UNIT-007, UNIT-008  
-**Work:** transactional publish command and outbox; mandatory per-run recipient ledger; dedicated notification queue/DLQ adapter, consumer, local emulation, and proposed binding as the v1 default; arbitrary-future scheduler; bounded recipient chunks; stable idempotency; partial acknowledgement; retry/backoff; DLQ/failed-recipient state; pause/resume/cancel concurrency; schedule-misfire handling; crash recovery; reconciliation; free-tier budgets. A generalized queue requires a recorded replacement decision and the typed isolation/migration proof in doc 07. Do not create or bind the hosted Queue/DLQ in this local unit.
+**Depends on:** UNIT-007, UNIT-008, UNIT-012  
+**Work:** transactional publish command and outbox; mandatory per-occurrence recipient ledger; dedicated notification queue/DLQ adapter, consumer, local emulation, and proposed binding as the v1 default; bounded-horizon one-time/recurrence/future-enrollment scheduler with immutable occurrences and high-water marks; digest bucket/jobs; bounded recipient chunks; stable idempotency; partial acknowledgement; retry/backoff; DLQ/failed-recipient state; pause/resume/cancel concurrency; schedule-misfire handling; crash recovery; reconciliation; numeric free-tier formulas, limits, and headroom stop thresholds. A generalized queue requires a recorded replacement decision and the typed isolation/migration proof in doc 07. Do not create or bind the hosted Queue/DLQ in this local unit.
 
 **Pass:** fault injection after every state transition cannot duplicate recipients or lose the campaign; scheduled execution is at-most-one logical publish with recoverable at-least-once processing.
 
 ### UNIT-010: Notification History, Metrics, Cancellation, and Retraction
 
 **Depends on:** UNIT-009  
-**Work:** scheduled/sent/failed/cancelled/expired/retracted lists; detail timeline; intended/eligible/excluded/materialized/pending/failed/retried metrics; read/dismiss/modal-ack rates; action-click tracking only through a safe internal event/redirect; cancel pending work; retract materialized inbox items with tombstones; replacement/supersession flow; export of aggregate evidence only.
+**Work:** scheduled/sent/failed/cancelled/expired/retracted lists; campaign, schedule-revision, occurrence, run, and recipient timelines; intended/eligible/excluded/materialized/deferred/digested/pending/failed/retried metrics with per-occurrence and campaign-total denominators; read/dismiss/modal-ack rates; action-click tracking only through a safe internal event/redirect; cancel one occurrence or remaining series; retract scoped materialized inbox items with tombstones; replacement/supersession flow; export of aggregate evidence only.
 
 **Pass:** every metric names denominator/as-of/semantics; cancellation races and retraction visibility are proven; evidence is preserved.
 
@@ -126,7 +128,7 @@ Before every unit:
 
 ### UNIT-013: Audit, Security, Privacy, Retention, and DSAR
 
-**Depends on:** UNIT-003 through UNIT-010  
+**Depends on:** UNIT-003 through UNIT-011  
 **Work:** immutable/tombstoned admin actors instead of cascade loss; privileged-read audit; redacted summaries; retention classes for admin, notification, support, usage, client error, and security facts; legal holds; DSAR export/erase/anonymize policy; notification orphan cleanup; audit tamper/access monitoring.
 
 **Pass:** retention/hold/DSAR tests cover every User 360 and campaign source; raw credentials/tokens/IP/UA never appear in DTOs, logs, exports, or audit summaries.

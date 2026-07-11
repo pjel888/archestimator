@@ -33,6 +33,8 @@ The implementation stores event time, source, collected/updated time, and confid
 
 `currently_online` is sourced from authenticated per-user presence in the existing `GlobalPresence` Durable Object contract, extended with an opaque stable user key, connection generation, server-observed heartbeat, and bounded expiry. The DO never stores or emits raw session tokens, email, IP, URL parameters, or activity payloads. Connect/disconnect is advisory; heartbeat freshness plus TTL is authoritative so lost WebSocket disconnects converge. Admin reads receive only `online|offline|unknown`, observed-at, freshness deadline, and source availability under an exact capability.
 
+The extension is a v2 protocol with separate capabilities. Ordinary product clients receive only self-bound `presence:write`, may heartbeat only the user key bound into their short-lived token, and never receive a roster or any user-key broadcast. Admin reads require `presence:read_sensitive` and use a separate authenticated query path that returns the bounded status DTO for requested canonical IDs. V1 aggregate-count sockets remain aggregate-only and cannot be upgraded by message content. Token version, audience, subject, expiry, connection generation, and capability are enforced on connect and every sensitive operation; reconnect, hibernation restore, multi-tab collapse, expired/replayed tokens, writer-to-reader escalation, and unavailable DO behavior have denial tests. The authenticated product shell owns the heartbeat writer; admin pages never manufacture ordinary-user presence.
+
 If the DO or binding is unavailable, User 360 returns `unknown` with source/as-of/error class and does not infer presence from Better Auth sessions or the durable authenticated-use heartbeat. Multi-tab connections collapse by user key; a user becomes offline only after every live generation expires. Presence is ephemeral, excluded from product-activity history and DSAR exports except for separately justified aggregate operational metrics, and receives focused DO tests for reconnect, duplicate tabs, missed disconnect, expiry, unauthorized subscription, and degraded reads.
 
 ## Authenticated Heartbeat
@@ -106,6 +108,8 @@ Controls:
 `active -> suspended -> active` and `active|suspended -> banned -> active` are explicit commands. Every command includes actor, target, prior state, desired state, reason code, free-text note policy, optional expiry, case/incident reference, idempotency key, affected-row proof, session-revocation result, user-notification result, and audit result.
 
 Business mutation and audit/outbox must be recoverable as one logical command. A missing target, stale expected state, protected target, or audit persistence failure cannot be reported as success.
+
+Account intervention notices use a separate transactional security-notice outbox, not the campaign manager. The command records whether notice intent is created before or atomically with the access mutation, the redacted content class, allowed destination, provider state, retry state, and audit linkage. In-app delivery is supplemental only because a suspended/banned user may not be able to read it. When no proven external channel is enabled, the action reports `notice_delivery_unavailable` without claiming the user was informed; policy decides whether that blocks the intervention or requires a case escalation. Email/provider dispatch remains disabled until UNIT-018 hosted proof, and retries cannot expose the internal reason/case note.
 
 ## User 360 Product Footprint
 

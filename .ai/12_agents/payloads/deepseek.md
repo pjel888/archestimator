@@ -63,8 +63,11 @@ large, risky, or parallel and the lead chooses it.
 
 ## Validation Rules
 
-Reproduce first where feasible. Fixes require failing test/regression proof when
-possible and green targeted checks.
+Reproduce first where feasible. Apply the shared `NOT_REQUIRED`-by-default test
+gate: ordinary fixes use decisive reproduction, source, diff, or static evidence.
+Create or run a targeted regression test only for explicit testing/QA work or an
+MVP mission-critical claim that cheaper evidence cannot prove; broad suites or
+browser gates require an explicit or integrated critical claim.
 
 ## Design-System Guidance
 

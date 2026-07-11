@@ -1,6 +1,6 @@
 # Frontier Applicability Gates
 
-<!-- FRONTIER-PLAN-SUITE: 2026-07-10 -->
+<!-- FRONTIER-PLAN-SUITE: 2026-07-11 -->
 
 Load only sections triggered by the task. Mark each gate's applicability and
 criterion status separately, then link current evidence; do not copy irrelevant
@@ -20,9 +20,11 @@ Require:
   mobile/responsive behavior.
 - Existing `src/components/ui/` reuse and `DESIGN.md` consultation, treating it
   as an alpha guide rather than owner preference law.
-- Component/DOM evidence for behavior; browser/manual proof only for claims that
-  static/DOM tests cannot prove, such as real routing, layout, focus across
+- Source/static/DOM evidence for behavior; browser/manual proof only for claims that
+  cheaper evidence cannot prove, such as real routing, layout, focus across
   navigation, responsive composition, or browser integration.
+- Ordinary UI and cosmetic changes use `test_requirement: NOT_REQUIRED` unless
+  the task explicitly asks for tests or a named MVP-critical interaction needs one.
 
 Hard fail: a user-facing unit lacks affected states, acceptance criteria, or an
 evidence plan.
@@ -44,7 +46,8 @@ Require:
   contract, and navigation refresh semantics.
 - React state owner, derived-state strategy, effect necessity/cleanup/race
   behavior, pending/optimistic behavior, hydration stability, and accessibility.
-- Type/lint/build/test proof proportionate to the changed behavior.
+- The cheapest relevant type/lint/static/runtime proof; apply the test gate
+  before any build or test.
 
 Hard fail: framework-sensitive decisions rely on model memory, or auth/cache
 boundaries are implicit.
@@ -64,7 +67,9 @@ Require:
 - Existing utility/package evaluation before new dependency adoption; for any
   dependency change, official current docs, maintenance/license/security/bundle
   implications, rejected alternatives, and rollback/removal path.
-- Contract tests and consumer/provider checks at the narrowest matching surface.
+- Consumer/provider compatibility checks at the narrowest matching surface;
+  contract tests only for explicit testing scope or a mission-critical shared
+  contract that cheaper evidence cannot prove.
 
 Hard fail: a public/shared contract changes without consumer mapping,
 compatibility strategy, or runtime-boundary validation.
@@ -86,7 +91,8 @@ Require:
 - Queue retry/idempotency/DLQ/poison-message/amplification and cron overlap.
 - Email recipient/authz/delivery/failure/redaction behavior and Images transform
   or signed-access behavior when used.
-- Local emulator/test evidence separated from hosted/provider proof.
+- Local migration/query/emulator evidence separated from hosted/provider proof;
+  tests are required only for an implicated critical integrity invariant.
 
 Use only the Cloudflare resources authorized in `AGENTS.md`. Historical
 Supabase/Vercel/Resend artifacts are migration archaeology unless current repo
@@ -116,26 +122,35 @@ Require:
 Hard fail: raw and hashed credentials are conflated, public acceptance material
 is unclear, authorization is client-only, or denial evidence is missing.
 
-## GATE-VERIFY-01: Error Handling, Tests, And Failure Semantics
+## GATE-VERIFY-01: Evidence, Critical Tests, And Failure Semantics
 
-**Triggers:** behavior change, defect fix, server/API/observability/email/ops
-surface, async failure path, or a readiness claim.
+**Triggers:** explicit testing/QA/coverage/reproduction work; an MVP-critical
+auth/security/privacy, D1/data-integrity, estimate/money/proposal,
+release/observability, or shared-contract risk; or a changed sensitive failure
+path whose correctness cheaper evidence cannot establish.
 
 Require:
 
-- Proof strategy chosen before behavior edits: existing red test, new/strengthened
-  red test, characterization, or a justified substitute.
+- A recorded `test_requirement`: `NOT_REQUIRED`, `TARGETED`, `BROADER`, or
+  `TEST_TASK`, with trigger, critical invariant, cheaper-evidence analysis, and
+  evidence destination.
+- `NOT_REQUIRED` by default, with no test creation or execution. Use source,
+  diff, path/reference, static/type/lint, dry-run, or narrow runtime evidence.
+- When tests are required, the smallest decisive test first; use broader suites,
+  builds, browsers, or adversarial matrices only when the integrated critical
+  claim cannot be proved more cheaply.
 - Happy, nil/missing, invalid/boundary, denied, timeout/cancel, concurrent,
   retry/idempotency, partial-success, stale/degraded, and recovery cases as
-  applicable.
+  applicable to the selected evidence, not as a universal matrix.
 - Structured safe errors and logging; no swallowed sensitive-path failures or
   unredacted secret/customer data; operator and user recovery behavior.
-- Test isolation, deterministic fixtures/clock/randomness, cleanup, expected
-  failure signal, expected pass signal, and evidence destination.
+- For selected tests: isolation, deterministic fixtures/clock/randomness,
+  cleanup, expected failure signal, and expected pass signal.
 - Required repository error-handling gates for touched sensitive surfaces.
 
-Hard fail: a changed failure path is unobservable, silently swallowed, or has no
-falsifiable regression proof.
+Hard fail: a changed sensitive failure path is unobservable or silently
+swallowed; a required test is absent/skipped; or tests are demanded without an
+explicit trigger or named MVP-critical invariant.
 
 ## GATE-PERF-01: Performance, Scalability, And Reliability
 
@@ -190,7 +205,8 @@ Require:
 - Shared-worktree ownership/integration, durable state, resume, failure/timeout,
   and cleanup behavior.
 - Autonomous decision and hard-gate isolation semantics.
-- Deterministic contract validation plus semantic scenario evals.
+- Deterministic contract validation; add semantic model trials only when model
+  behavior is the explicit eval target or structural checks cannot prove it.
 - `validate:agents` and relevant adapter resolver when adapter/payload surfaces
   change.
 
@@ -204,12 +220,14 @@ dependency removal, broad migration, or deslop work.
 
 Require:
 
-- Before behavior characterization/regression coverage.
+- Current behavior, caller, and invariant evidence before editing.
 - Caller/import/graph impact proportional to blast radius.
 - Deletion criteria and proof of no required references/runtime behavior.
 - One smell/boundary at a time; prefer deletion/existing utilities over layers.
 - Compatibility/migration order and rollback/fix-forward.
-- Focused tests plus broader checks where shared behavior changes.
+- Apply the test gate. Use tests only for explicit regression scope or a named
+  mission-critical invariant; never run a broader suite merely because shared
+  behavior changed.
 
-Hard fail: behavior is assumed unchanged without characterization, or unrelated
-cleanup expands the diff.
+Hard fail: behavior is assumed unchanged without evidence, or unrelated cleanup
+expands the diff.

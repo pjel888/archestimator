@@ -19,9 +19,11 @@ Platform product roles (`ceo|admin|member`) are not sufficient as a long-term op
 
 Every layout, route handler, Server Action, repository entrypoint, export, and sensitive deep link checks capabilities server-side. UI visibility is convenience only. Default is deny.
 
+Every Server Action is treated as a directly reachable POST entrypoint. It derives identity and capability inside the action, validates a bounded DTO, applies origin/CSRF and rate controls, and returns only serializable safe result data. A render-time layout/page check never substitutes for action authorization.
+
 ## High-Risk Action Controls
 
-- fresh authentication for ban, revoke-all, mandatory-wide publish, retraction, maintenance activation, and privileged-role changes;
+- fresh authentication for ban, revoke-all, mandatory-wide publish, retraction, maintenance activation, and privileged-role changes. UNIT-003 must first produce a version-matched Better Auth reauthentication receipt from installed docs/source; session `createdAt`/`updatedAt` is explicitly invalid evidence. The selected contract must prove an accepted primary factor or supported challenge, a maximum 10-minute freshness window, one-time server evidence bound to actor/session/action class, expiry and replay denial, and safe OAuth/magic-link fallback. Until that receipt passes, every fresh-auth-dependent action remains disabled and returns a stable `reauth_unavailable` result;
 - typed reason plus optional bounded note and incident/case reference;
 - self-target, protected account, last-admin, and peer-elevation floor;
 - expected prior state/version and affected-row proof;

@@ -79,12 +79,33 @@ Each campaign declares one:
 
 The default is `snapshot_only`. Retrying a failed run never silently expands a frozen audience.
 
+`eligible_until_expiry` and `on_signup_until_expiry` do not mutate a completed run. They create append-only enrollment occurrences on a bounded scheduler sweep. Each occurrence has a campaign/policy-window identity, evaluator revision, high-water mark, frozen recipient delta, run/jobs, and unique `(campaign_id, policy_window_id, user_id)` guard. A retry can only revisit the frozen delta for its occurrence. Cancellation closes future enrollment before the next claim; retraction applies to every materialized occurrence; expiry closes enrollment and allows the campaign to become terminal. History and metrics show the initial occurrence, later enrollment occurrences, per-occurrence denominators, and campaign totals separately.
+
+## Reconciliation-State Eligibility
+
+Audience preview and publication use the canonical Better Auth user ID mapped to the inbox delivery key through one versioned identity adapter. Selector type never bypasses reconciliation policy:
+
+| Reconciliation state | Preview | Materialize | Required reason/action |
+| --- | --- | --- | --- |
+| `matched` | eligible subject to rules/preferences | yes | none |
+| `auth_user_missing_profile` | excluded | no | `profile_required`; repair before send |
+| `profile_missing_auth_user` | excluded | no | `canonical_user_missing` |
+| `email_mismatch` | excluded | no | `identity_mismatch`; repair before send |
+| `duplicate_or_ambiguous` | excluded | no | `identity_ambiguous`; manual repair |
+| `synthetic_runtime_profile_observed` | excluded | no | `synthetic_identity`; never target |
+| `erased_or_tombstoned` | excluded | no | `privacy_tombstone` |
+
+Explicit user IDs, imported lists, and cohort rules all apply this matrix. Preview retains aggregate exclusion reasons; the recipient ledger retains only the minimum repair/reconciliation evidence permitted by retention policy.
+
 ## Scheduling
 
-- v1 schedules exactly one logical occurrence per campaign; recurring campaigns are an explicit non-goal rather than an implied partial feature;
+- scheduling supports one-time and recurring campaigns; recurrence uses a bounded RFC 5545-compatible subset (daily, weekly, monthly-by-date/day, interval, selected weekdays, start, optional count/end) stored as a typed rule rather than free-form RRULE input;
 - store UTC execution time, original IANA time zone, and entered local time;
 - validate past times, DST gaps/ambiguity, expiry-before-start, and approval freshness;
-- scheduler creates/claims an idempotent run; it does not perform unbounded fanout inline;
+- every recurrence produces an immutable logical occurrence with scheduled local/UTC time, rule revision, audience policy, status, and unique `(campaign_id, schedule_revision, occurrence_key)`; scheduler creates/claims an idempotent run and never performs unbounded fanout inline;
+- editing a recurrence creates a new schedule revision and never rewrites completed occurrence history; the operator chooses whether already-created pending occurrences are cancelled or retained, and the choice is audited;
+- pausing a recurring campaign prevents future occurrence claims without hiding completed history; cancelling can target one occurrence or the remaining series; retraction targets explicit occurrence(s) or all materialized occurrences with a scope preview;
+- DST policy is explicit per schedule (`preserve_local_time` by default, or `preserve_utc_interval` where valid); gaps use a configured skip-or-next-valid rule and ambiguous times record the selected offset;
 - display `next_attempt_at`, scheduler freshness, and stalled state;
 - reschedule creates an auditable transition and invalidates stale approvals when policy requires it;
 - cancellation wins through version/claim checks and prevents new chunks while preserving completed materialization.
@@ -115,6 +136,8 @@ Rates always state denominator. `materialized` is not called device delivery. `s
 ## Preferences and Mandatory Notices
 
 Preferences may cover kind/channel, digest cadence, quiet hours/time zone, and non-mandatory opt-out. Security, legal, or critical operational notices can override preferences only through a documented policy with visible operator warning and user-facing classification. Transactional auth, invite, and publication emails remain outside campaigns unless a reviewed channel contract explicitly joins them.
+
+The user-facing owner is `/settings/notifications`, backed by typed current-user reads/actions rather than admin mutation. Defaults are enabled in-app immediate delivery, no quiet hours, and no digest until the user opts in. Center-only materialization may occur during quiet hours without a toast/modal interruption; interruptive surfaces are deferred to `deliver_after`. Digest-enabled non-mandatory items enter a per-user/channel/time-zone bucket with a deadline, occurrence IDs, and idempotent digest job. Mandatory notices bypass opt-out, quiet hours, and digest only when their policy class and reason are recorded; the UI explains the override without exposing internal operator notes. DST, time-zone changes, disabled channels, expiry-before-delivery, digest failure/retry, and preference changes after audience approval have deterministic recipient reason/state transitions.
 
 ## Cancellation, Retraction, and Replacement
 

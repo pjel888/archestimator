@@ -80,8 +80,12 @@ work.
 
 ## Validation Rules
 
-Use `.ai/00_system/VALIDATION_MATRIX.md`. Run focused checks first, then broader
-gates when behavior/source changes.
+Use `.ai/00_system/VALIDATION_MATRIX.md`. Verification is required;
+`test_requirement` defaults to `NOT_REQUIRED`. Create or run tests only for an
+explicit testing/QA task or an MVP mission-critical claim that cheaper evidence
+cannot prove. Use targeted tests first. Broad suites, builds, and browser proof
+require an explicit request or an integrated critical claim. Ordinary edits use
+the cheapest decisive non-test evidence and do not create or run tests.
 
 ## Design-System Guidance
 

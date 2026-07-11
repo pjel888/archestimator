@@ -1,7 +1,7 @@
 # Agent Framework Protocol
 
-**Date:** 2026-06-04
-**Status:** Phase 1A repo-local framework protocol.
+**Date:** 2026-07-11
+**Status:** Active repo-local framework protocol.
 
 ## Purpose
 
@@ -31,8 +31,8 @@ Supermemory local at `http://localhost:6767` is the shared cross-agent memory
 layer for Codex, Claude Code, OpenCode, CommandCode, Antigravity, Kimi,
 DeepSeek, Hermes if approved, Gemini if reapproved, Ollama-backed embedding
 pipelines, Cursor, and future harnesses when their integration is configured.
-It augments `.ai`; it never replaces current source, tests, `.ai`, provider
-evidence, or the lead orchestrator's final verification.
+It augments `.ai`; it never replaces current source, selected verification,
+`.ai`, provider evidence, or the lead orchestrator's final judgment.
 
 At the start of meaningful work, each coding agent or its orchestrator must:
 
@@ -127,12 +127,11 @@ commands, expose connector capabilities, or declare a default lane, but they
 must not fork policy, bypass `.ai/00_system`, or claim completion without the
 same evidence.
 
-Use `ultrawork` for parallelism, `ultragoal` for durable goal execution,
-`omo:ulw-loop` for criterion-led real-surface proof, `autopilot` for the full
-clarify-plan-execute-review-QA lifecycle, `omo:ultraresearch` for exhaustive
-research, `ultraqa` for adversarial behavior proof, and `vercel:agent-browser`
-for browser-facing proof. Direct solo execution remains valid for narrow work
-where a loop would add ceremony without improving correctness.
+Select one primary execution surface from task shape. `ultrawork`, `ultragoal`,
+`omo:ulw-loop`, `autopilot`, `omo:ultraresearch`, `ultraqa`, and browser agents
+are optional bounded helpers, not a mandatory chain. Use them only when their
+extra context/tool cost produces measurable coordination or proof value. Direct
+solo execution remains valid for narrow or tightly coupled work.
 
 ## Shared Behavioral Guardrails
 
@@ -159,6 +158,17 @@ Do not vendor an external `CLAUDE.md`, Cursor rule, or skill as a parallel
 authority for this repo. Tool-specific copies may exist only as thin adapters
 that point back to `.ai/00_system` and preserve the same assumption, simplicity,
 surgical-change, and goal-proof requirements.
+
+## Shared Test Decision
+
+All agents, roles, prompts, and adapters use the test gate in
+`AGENT_OPERATING_PROTOCOL.md`. Verification is required; tests default to
+`NOT_REQUIRED`. `TARGETED`, `BROADER`, or `TEST_TASK` must name the explicit
+testing request or MVP-critical invariant that cheaper evidence cannot prove.
+High blast radius changes planning and review depth but does not make tests
+automatic. Do not add or run a test merely because code changed, tests exist,
+or a role traditionally writes tests. Browser automation, builds, and full
+suites require the same explicit or integrated-critical justification.
 
 ## Durable Loop Artifacts And Loop Ledger
 
@@ -197,15 +207,15 @@ implementation work persists loop state in `.ai`, never in chat:
 ## Follow-up Bugs / Plans
 ```
 
-Maker/checker: the lane that implements does not treat its own edits as final — use a separate review
-lane, adversarial self-review, targeted test, or graph/impact check before claiming done. Worker
+Maker/checker: the lane that implements does not treat its own edits as final. Use a separate review
+lane, fresh-context self-review, or a task-appropriate deterministic check before claiming done. Worker
 success, one green check, or a completed iteration is not completion; the lead owns final integration
 and evidence. Maker/checker separation is expected when risk, breadth, or user-visible impact justifies it.
 
 Proof-boundary labels (use precisely; never call a local check provider/browser proof):
 `local-only` · `provider-proven` · `browser-proven` · `manual-proof-pending` · `not-verified`. Match
-the surface to the claim: code → focused tests/type/lint/build-when-justified; minor cosmetic UI
-edits → static review, focused type/LSP/lint, or nearby component/unit checks when adequate; UI
+the surface to the claim: code -> focused source/static/type/lint evidence plus selected tests only
+when the test gate requires them; minor cosmetic UI edits -> static review or a relevant focused check; UI
 interaction/routing/auth/data/responsive-layout/a11y/complex-composition claims → targeted
 browser/manual/Playwright proof; Cloudflare D1/R2/DO/Queue/Email/Images → active migration/
 binding/repository/emulator proof plus hosted provider evidence only when claimed;
@@ -261,7 +271,7 @@ usually enough. Add deeper checks when they materially affect correctness:
 |---|---:|---|---|
 | plan-only | `.ai/03_plans`, related `.ai` state/log/task docs | lead high for strategy/architecture; lower lanes for lookup | path checks, graph/repo-truth where relevant, `git diff --check` |
 | read-only | none | lower lanes for inventory; high lanes for risk judgment | command/source citations and no writes |
-| implementation | scoped source/tests/docs | lead high/standard; workers matched to slice complexity | focused source checks and targeted tests; broader `bun run validate`/`bun run build` only when meaningful |
+| implementation | scoped source/tests/docs | lead high/standard; workers matched to slice complexity | test decision plus the cheapest decisive evidence; targeted/broad tests only when selected |
 | review | none unless explicitly assigned | independent reviewer at standard/high; final call by lead | findings with severity and file references |
 | debug | usually none until root cause known | high for root cause; lower lanes for reproduction inventory | reproduction or documented blocker |
 | release/provider-proof | evidence docs only unless action approved | high lead, cautious provider lanes | local/provider/manual proof separated |
@@ -286,16 +296,18 @@ decision instead of silently activating the lane.
 
 ## Model And Effort Routing
 
-The lead orchestrator should reserve the highest-capability model/reasoning for
-planning the work, assigning lanes, integrating results, resolving conflicts,
-and making final quality calls. Worker lanes should use the cheapest model and
-effort tier that can reliably complete their bounded task.
+The current frontier default is GPT-5.6. Choose model and reasoning effort by
+measured task need, not role prestige: `medium` is the balanced default, `low`
+fits latency-sensitive bounded work, and `high`/`xhigh` are reserved for cases
+where representative evidence shows a quality gain. Compare one effort level
+lower before retaining an expensive override. Worker lanes use the cheapest
+model and effort tier that reliably completes their bounded task.
 
 Default tiers:
 
 - **Low:** file search, inventory, path checks, simple docs cleanup, status
   checks, and deterministic evidence gathering.
-- **Standard:** ordinary implementation, focused tests, straightforward
+- **Standard:** ordinary implementation, task-selected checks, straightforward
   refactors, and normal review.
 - **High:** architecture, security, data integrity, auth, migrations,
   multi-surface behavior, ambiguous debugging, adversarial review, and release
@@ -309,8 +321,8 @@ assignment.
 
 ## Multi-Agent Rules
 
-- Use multi-agent orchestration whenever independent lanes materially improve
-  quality, speed, or coverage.
+- Use multi-agent orchestration only when concrete independent lanes materially
+  improve quality, elapsed time, or coverage after coordination cost.
 - Use the smallest lane set that captures that benefit.
 - The lead owns scope, integration, validation, and final evidence.
 - Write-capable agents need exact disjoint file scopes. Use the current checkout
@@ -321,8 +333,8 @@ assignment.
 - Workers report blockers and recommended handoffs upward; they do not widen
   scope or re-plan the whole task.
 - Maker/checker separation is preferred for non-trivial implementation: use a
-  different lane for review, adversarial QA, or final verification when
-  practical.
+  different lane for review or final verification when practical; add
+  adversarial QA only for an implicated critical claim or explicit request.
 - Loop workflows must preserve state outside chat: `.ai`, `.omx`, issue
   trackers, or another approved durable surface.
 

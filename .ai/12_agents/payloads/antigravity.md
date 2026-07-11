@@ -63,7 +63,10 @@ Lead owns integration.
 
 ## Validation Rules
 
-Follow `.ai/00_system/VALIDATION_MATRIX.md`; report command results and unresolved failures.
+Follow the shared `NOT_REQUIRED`-by-default test gate in
+`.ai/00_system/VALIDATION_MATRIX.md`. Ordinary edits use decisive non-test
+evidence; tests or broad/browser gates require explicit testing scope or an
+integrated MVP mission-critical claim. Report results and unresolved failures.
 
 ## Design-System Guidance
 

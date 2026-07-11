@@ -51,7 +51,7 @@ This pack may consume current domain contracts but may not duplicate or redefine
 **External/current dependency owns:** user/session/account schema and session/auth semantics.  
 **Admin owns:** read-only safe projections and supported admin/session commands.  
 **Required receipt:** installed-version local docs/source plus official Better Auth admin/session docs at implementation time.  
-**Decision:** evaluate the official admin plugin for supported ban/session operations, but do not adopt it automatically; current custom roles/profile status/Cloudflare D1 contracts may require bounded custom integration.
+**Decision:** do not add the Better Auth admin plugin in this plan. First use the installed version's supported session/auth APIs through a narrow adapter while keeping Archestimator capability/account-status ownership local. Reverse only if version-matched official docs/source prove a required ban/session/reauth operation cannot be implemented safely through the installed APIs and a dependency review proves plugin compatibility with D1, existing roles, migrations, and denial tests.
 
 ## Notification Inbox
 
@@ -84,21 +84,21 @@ result: PASS|FAIL|STALE
 
 ## Planning-Time Producer Receipts
 
-These receipts prove the consumed planning revisions observed on 2026-07-11, not producer implementation completion. `UNIT-001` must recompute every manifest hash, inspect changed paths, and append execution-time receipts before downstream edits. Any mismatch makes the affected receipt `STALE` and blocks its consumer unit.
+These are improve-stage observations, not downstream execution receipts. Corporate and Teamwork changed during the audit, so their observed hashes intentionally document drift and must not be treated as frozen. `UNIT-001` must recompute every manifest/source hash, inspect changed paths, and append execution-time receipts immediately before promotion. Any mismatch keeps the affected consumer blocked.
 
 | Receipt | Producer | Observed manifest SHA-256 | Consumed by | Result |
 | --- | --- | --- | --- | --- |
-| RCPT-ACTIVITY-001 | `PLAN-2026-07-10-activity-history-mapping` | `b67289ca1a135187b3687f41a5adbb1a41cdb36b77463d8a455a99fadbf0a763` | UNIT-004, UNIT-005, UNIT-013 | PASS for planning revision; execution refresh required |
+| RCPT-ACTIVITY-001 | archived `PLAN-2026-07-10-activity-history-mapping` | `0862aa3a9f4c382f1e0121f69f52f6d2a53d180c585fd07b32353b361abf15ae` | UNIT-004, UNIT-005, UNIT-013 | STALE for consumption: producer completed/archived, then source drifted; bind archive plus current source hashes |
 | RCPT-BETA-OPS-001 | `PLAN-2026-07-10-beta-operating-contract` | `be0a3228e21e36714555b732852b505d26d40709e1cde13fd84bb798f7d2d003` | UNIT-001, UNIT-002, UNIT-014 | PASS for planning revision; shared-file collision check required |
 | RCPT-BETA-READY-001 | `PLAN-2026-07-10-beta-readiness-program` | `ebdf9a8edf1cc3ab1f27821354ebdacb99f78d902cf9aafc300be6a04d1d5e73` | UNIT-001, every D1 unit, UNIT-016 | PASS for planning revision; migration lease generation required |
-| RCPT-CORPORATE-001 | `PLAN-2026-07-11-corporate-accounts` | `aaf99c5d5ad65fbbd64d7180887857d3f995ef68bf91317bb6353b08e400a351` | UNIT-005, UNIT-008 | PASS for planning revision; read-contract implementation receipt required |
-| RCPT-TEAMWORK-001 | `PLAN-2026-07-11-teamwork-feature-audit-and-plan` | `575e10ab696583805cee702af600b2241c0b65fb019d8cb264564b3f49f273aa` | UNIT-005, UNIT-008, UNIT-014 | PASS for planning revision; membership/activity producer receipt required |
+| RCPT-CORPORATE-001 | `PLAN-2026-07-11-corporate-accounts` | last stable observation `e0546a2e8adb41303f9147bb68dc2c1a6b1219e882465c1964251448fb9c968a` | UNIT-005, UNIT-008 | STALE/IN_PROGRESS: preserve current detail membership UI; wait for final read-contract receipt |
+| RCPT-TEAMWORK-001 | `PLAN-2026-07-11-teamwork-feature-audit-and-plan` | last stable observation `f948306b6a358992814c01a9cb0e16fa9500da7c057cc573132a00440846c825` | UNIT-005, UNIT-008, UNIT-014 | STALE/IN_PROGRESS/BOUNDARY: wait for final membership/activity receipt |
 
 The notification inbox, Better Auth, observability, and support contracts are source-owned rather than separate ready producer packs in this baseline. `UNIT-001` records installed/source revisions and focused compatibility tests for them before dependent work. Planning receipt PASS never converts a producer's conditionally-ready or hosted-bound state into implementation proof.
 
 ## GATE-OVERLAP-001
 
-The manifest keeps this gate `FAIL` during planning. `UNIT-001` is the only advertised ready unit. It may set the gate `PASS` only after execution-time receipts include current manifest/source hashes, consumed contract IDs/fields, privacy/authz assertions, collision ownership, migration lease generation where applicable, and focused consumer-test commands. A stale/failing Activity receipt blocks UNIT-005/013; Corporate or Teamwork blocks UNIT-005/008/014; Beta Operating collision blocks the named repair paths; Beta Readiness lease failure blocks every D1 unit. Downstream units move from `PLANNED` to `READY` only after their dependency and applicable receipt conditions pass.
+The manifest keeps this gate `FAIL`. `UNIT-001` is the only advertised ready unit and can verify/classify the current baseline without pretending all producer packs are finished. Do not flip this shared gate globally: append per-receipt results and promote only a unit whose dependencies and applicable receipts pass. Execution-time receipts must include current manifest/source hashes, consumed contract IDs/fields, privacy/authz assertions, collision ownership, migration lease generation where applicable, and focused consumer-test commands. Activity source drift blocks UNIT-005/013; Corporate or Teamwork blocks UNIT-005/008/014; Beta Operating collision blocks named repair paths; Beta Readiness generation/lease blocks every D1 unit. UNIT-002 may become ready after UNIT-001 only if its exact shared-file collision receipt passes; every D1 unit also requires an Admin migration allocation.
 
 ## Shared-File Coordination
 

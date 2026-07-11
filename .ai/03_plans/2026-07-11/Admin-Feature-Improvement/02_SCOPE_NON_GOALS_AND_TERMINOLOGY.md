@@ -24,7 +24,7 @@
 - redefining Corporate Account roles, Teamwork authorization, Activity event taxonomy, publication authority, support delivery, or observability alert ownership;
 - using product notification campaigns as a substitute for operational alert sinks or transactional auth/invite emails;
 - destructive deletion of campaign/audit evidence as a rollback mechanism;
-- recurring/rrule campaigns in v1; v1 supports one scheduled occurrence per campaign, and recurrence requires a later occurrence-generation, edit/cancel, DST, and history contract;
+- arbitrary cron expressions or unbounded free-form RRULE input; recurring campaigns use the bounded typed recurrence contract in docs 06/07;
 - server-side GA4, Clarity, or Cloudflare analytics reads without credentials, quota/cost validation, and hosted proof;
 - a paid Cloudflare add-on or new third-party admin product without explicit owner authorization;
 - browser screenshots as proof of data correctness; visual proof is reserved for later interaction/layout/accessibility claims.
@@ -41,11 +41,14 @@
 | Last login | Successful authentication/session creation, retained independently of surviving sessions |
 | Online | Ephemeral authenticated presence younger than a declared freshness window |
 | Campaign | Admin-authored notification intent with lifecycle, audience, schedule, content version, and audit history |
+| Template | Versioned, archivable authoring starting point copied into a campaign; never directly publishable |
+| Schedule revision | Immutable one-time or recurring timing rule plus time-zone/DST policy |
+| Occurrence | Immutable logical execution or enrollment window created from a schedule/policy revision |
 | Definition | Immutable user-facing notification content and behavior materialized for publication |
 | Audience rule | Versioned server-side eligibility expression |
 | Audience snapshot | Frozen eligible/excluded recipient set or deterministic query revision used for one publish run |
 | Materialized delivery | A row exists in `notification_deliveries`; not device/email delivery proof |
-| Campaign run | One idempotent publish attempt over a frozen campaign version and audience |
+| Campaign run | One idempotent publish attempt over one immutable occurrence and frozen recipient delta |
 | Retraction | Durable suppression/tombstone of a previously materialized campaign while preserving evidence |
 | Replacement | New campaign that supersedes an incorrect prior campaign |
 | Operator audit | Immutable redacted record of privileged reads and mutations |

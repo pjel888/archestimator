@@ -27,7 +27,8 @@ repo truth  or in       smallest     narrowest     proof           stop /
             required)
 ```
 
-Repeat until a proven pass, an explicit blocker, an owner decision, an approval-gated action, or the iteration cap.
+Repeat until a proven pass, explicit cancel, a true authorization boundary after
+all safe work, or a technical impasse after materially distinct recovery paths.
 
 ### Activation criteria
 
@@ -36,30 +37,35 @@ Use the loop for non-trivial work: 2+ steps, ambiguous scope, multi-file impact,
 ### Stop conditions (one is true)
 
 1. **Proven pass** against acceptance criteria with evidence (not just a green check).
-2. **Explicit blocker** with evidence — owner/escalation needed.
-3. **Owner decision** required before proceeding.
-4. **Approval-gated action** needs fresh authorization (destructive, paid, production, cross-provider).
-5. **Iteration cap reached** with remaining risks documented.
+2. **Explicit cancel** from the user or controlling workflow.
+3. **Authorization boundary** for a destructive, paid, credential-gated,
+   production, or cross-project action after all safe work and a continuation
+   packet are complete.
+4. **Technical impasse** after materially different recovery paths are
+   exhausted, with evidence and a resume trigger.
 
-Default cap: 3–6 meaningful iterations unless the task sets its own. Never loop endlessly; never stop on a self-report, a plan doc, or one green check unless the requested outcome is fully proven.
+An iteration budget triggers replanning; it never proves completion. Never stop
+on a self-report, plan doc, or one green check unless the requested outcome is
+fully proven.
 
-### Validation proportionality
+### Verification and test decision
 
-Validation is proportional to risk, not ceremony:
+Verification is required; tests default to `NOT_REQUIRED`. Use `TARGETED` only
+for an explicit testing request or a named MVP-critical invariant that cheaper
+evidence cannot prove. Use `BROADER` only when the integrated critical boundary
+cannot be covered by targeted evidence. Use `TEST_TASK` when tests/QA/coverage/
+reproduction are the deliverable. Record the decision before editing.
 
-| Risk class | Validation floor |
-|---|---|
-| Docs/config | `git diff --check` + path checks |
-| Narrow source change | type/LSP check or targeted test for the touched behavior |
-| Shared logic, auth, database, security, release | targeted tests + broader `bun run validate`/build when justified |
-| UI cosmetic (spacing, copy, color, icon, class) | static review + focused type/LSP/lint; browser proof only when interaction/routing/a11y/responsive risk exists |
-| Blast-radius justification | multi-agent orchestration, broad E2E, Storybook, visual QA, provider proof |
-
-Minor cosmetic UI edits do NOT automatically require Playwright, browser automation, or visual QA. Reserve those for interaction changes, routing/auth/data behavior, responsive risk, accessibility semantics, complex composition, or explicit visual-proof requests.
+Ordinary docs, config, source, refactors, and cosmetic UI use the cheapest
+decisive source/diff/path/static/type/lint evidence and do not create or run
+tests. Browser automation, builds, full suites, Storybook, and provider drills
+require an explicit task or the exact critical claim they prove. See
+`.ai/00_system/VALIDATION_MATRIX.md`.
 
 ## Loop Surface Routing
 
-Pick the loop surface that matches the work:
+Pick one primary surface that matches the work. Add a helper only when it
+materially improves elapsed time, context isolation, or required evidence:
 
 - **Direct execution** — small, reversible, tightly coupled work.
 - **`ultrawork`** — in-session parallel lanes with lightweight evidence.
@@ -74,19 +80,18 @@ Pick the loop surface that matches the work:
 
 A dated `.ai/03_plans/<YYYY-MM-DD>-<slug>/` plan pack with `LOOP_LEDGER.md` is required only for HIGH-BLAST-RADIUS or explicitly exhaustive work. Ordinary non-trivial work runs an in-session loop; it does not require a dated plan pack.
 
-Examples of high-blast-radius: schema migrations, auth/RLS changes, provider migrations, framework upgrades, multi-PR refactors, security-critical paths. If unsure, ask the lead or default to in-session.
+Examples of high-blast-radius: D1 schema migrations, auth/security changes,
+provider migrations, framework upgrades, multi-PR refactors, and agent-contract
+changes. High blast radius deepens planning/review; it does not automatically
+require tests.
 
 ## Completion Gate
 
-A loop is complete only when the stop condition is proven by evidence **outside** the worker's own report:
-
-- File edit → `lsp_diagnostics` clean on changed files.
-- Build → exit code 0.
-- Test → pass, with pre-existing failures explicitly noted.
-- Delegation → result verified file-by-file.
-- Real user-facing surface → exercised by the matching tool (curl, tmux, browser, CLI), not just type-asserted.
-
-"Tests pass" + "lsp clean" + "build green" ≠ done for end-to-end delegation. **Real usage is the gate.**
+A loop is complete only when fresh evidence proves each acceptance criterion,
+the lead has reconciled delegated work with actual files, and no in-scope work,
+active lease, or cleanup remains. Use the matching real surface only when the
+claim depends on runtime, browser, provider, or manual behavior. Tests, builds,
+and LSP output support only the claims they actually exercise.
 
 ## Reading Chain (per-task pull order)
 

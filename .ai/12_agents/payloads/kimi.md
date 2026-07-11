@@ -62,7 +62,11 @@ chooses isolation or the risk/parallelism justifies it. Keep file scope disjoint
 
 ## Validation Rules
 
-Run targeted UI tests where useful, `bun run lint:design-system` for substantial or shared UI changes, and broader checks per `.ai/00_system/VALIDATION_MATRIX.md`.
+Apply the shared `NOT_REQUIRED`-by-default test gate. Ordinary UI edits use
+decisive source, semantic, type/LSP, or design-lint evidence without creating or
+running tests. Targeted UI tests or browser proof require explicit testing scope
+or an MVP mission-critical interaction claim that cheaper evidence cannot prove;
+broad gates require an explicit or integrated critical claim.
 
 ## Design-System Guidance
 

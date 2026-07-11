@@ -14,9 +14,39 @@ Use the lightest path that can satisfy the request:
 
 1. Identify the target result, obvious constraints, affected files, and stop condition.
 2. Read only the relevant `.ai` docs and source files.
-3. Edit directly when the task is clear and reversible.
-4. Verify with the narrowest evidence that proves the change.
-5. Update `.ai` state/docs only when a durable decision or project reality changes.
+3. Classify `test_requirement` before editing.
+4. Edit directly when the task is clear and reversible.
+5. Verify with the narrowest evidence that proves the change.
+6. Update `.ai` state/docs only when a durable decision or project reality changes.
+
+## Verification And Test Gate
+
+Verification is always required; automated tests are conditional. Use one
+explicit decision for each affected acceptance criterion:
+
+- `NOT_REQUIRED` - default. Do not create or run tests. Use the cheapest
+  decisive source, diff, path/reference, type, lint, static, dry-run, or narrow
+  runtime evidence needed for the claim.
+- `TARGETED` - run the smallest test that proves a named MVP-critical invariant.
+- `BROADER` - use a broader suite only when targeted evidence cannot cover an
+  integrated critical boundary.
+- `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
+  requested deliverable.
+
+Tests are justified only by an explicit testing request or a concrete
+MVP-critical risk that cheaper evidence cannot prove: auth/authz, credentials,
+privacy or public access; D1 schema/data integrity; estimate, price, total,
+proposal, or export correctness; first-user release/rollback/observability;
+or concurrency/shared contracts whose failure could leak, corrupt, deny
+access, or materially misstate results. A source edit, multi-file change,
+user-visible change, nearby test, or high-blast label alone is not a test
+trigger. Browser automation, Storybook, builds, full `validate`, and broad
+regression suites require an explicit task or an integrated critical claim.
+
+Record the decision and trigger in a plan/ledger for non-trivial work. A
+justified `NOT_REQUIRED` is a completed verification choice, not a gap. Rerun
+only evidence invalidated by later edits; stop when the acceptance criteria have
+sufficient fresh evidence.
 
 ## Karpathy-Inspired Guardrails
 
@@ -87,12 +117,11 @@ DO/Queue/Email/Images integration state, and repair mistakes forward without
 per-change approval.
 
 Default posture: act, measure, and fix forward. The product has no external
-users yet, so do not treat every database or provider-facing edit as a release
-ceremony. Prefer the smallest evidence that proves the changed behavior: focused
-SQL checks, targeted tests, type generation, advisory checks, or a narrow app
-smoke. Use broad `bun run validate`, full builds, full regression suites, or
-manual QA loops only when the change touches shared logic, auth/security, RLS,
-data integrity, release readiness, or another high-blast-radius surface.
+users yet, so do not treat every database or provider-facing edit as release
+ceremony. Apply the test gate above, then use the smallest decisive evidence:
+focused SQL/schema checks, type generation, static checks, or a narrow app
+smoke. Use broad suites, builds, or manual QA only for an explicit request or an
+integrated MVP-critical claim that targeted evidence cannot prove.
 
 Standing authorization is not a license to cross hard boundaries. Never mutate
 historical Supabase project `ebxxqidacheyapmmzavr`, the unrelated
@@ -118,16 +147,17 @@ or run-log work, also follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 
 The normal Archestimator product-development loop is proportional:
 
-1. Discover and audit current reality from source, tests, provider boundaries,
-   and current `.ai` truth.
+1. Discover and audit current reality from source, available evidence, provider
+   boundaries, and current `.ai` truth.
 2. Plan at the lightest depth that reduces risk: in-session for ordinary work,
    dated `.ai/03_plans/<YYYY-MM-DD>-<slug>/` plan pack for high-blast-radius or
    explicitly exhaustive work.
 3. Research uncertain implementation, product, dependency, policy, or UX claims
    and store durable source-backed notes in `.ai/13_research/`.
 4. Execute through the smallest loop surface that preserves quality.
-5. Drive the result through its real matching surface: code tests, HTTP, browser,
-   provider dashboard, CLI transcript, database diff, or manual proof packet.
+5. Drive the result through its real matching surface: source/static evidence,
+   selected tests, HTTP, browser, provider dashboard, CLI transcript, database
+   diff, or manual proof packet as the claim requires.
 6. Record what passed, what failed, cleanup receipts, and the next decision in
    `.ai`, `.omx`, `.omo`, an issue tracker, or another approved durable state.
 
@@ -135,11 +165,12 @@ The normal Archestimator product-development loop is proportional:
 
 MVP speed default: prefer the lightest path that proves the change. A **dated
 `.ai/03_plans/` plan pack + `LOOP_LEDGER.md` is required only for HIGH-BLAST-RADIUS
-work** — where a wrong move is expensive or hard to reverse: database/Supabase/RLS/RPC/
+work** — where a wrong move is expensive or hard to reverse: database/D1/
 migration/generated-types; auth, invites, or publication/shared links; security; data
 integrity; launch/release readiness; cross-cutting or codebase-wide refactors/audits;
 architecture changes; agent-framework/prompt/payload/orchestration changes; or any work the
-owner explicitly asks to be planned exhaustively. For these, plan thoroughly and verify hard.
+owner explicitly asks to be planned exhaustively. High blast radius increases planning and
+review depth; it does not override the conditional test gate.
 
 Ordinary non-trivial work — a normal feature, a multi-file edit within one area, a
 component/hook change, a focused performance fix, routine debugging — does **NOT** need a dated
@@ -165,14 +196,13 @@ replan, or narrower diagnostic; it never proves completion or creates an owner
 handoff. Never stop on a worker self-report, plan doc, or one green check unless
 the whole requested outcome is proven.
 
-Proportionality: the loop increases speed, quality, and memory — it is not ceremony. Validation stays
-proportional to risk (`VALIDATION_MATRIX.md`). Minor cosmetic UI edits such as spacing, copy, color,
-icon, or class tweaks do not automatically require Playwright, browser automation, or visual QA; use
-static review, focused type/LSP/lint, or a nearby component/unit check when that proves the edit.
-Reserve targeted browser/manual proof for interaction changes, routing/auth/data behavior, responsive
-layout risk, accessibility semantics, complex composition, explicit visual-proof requests, or higher
-blast radius. Reserve broad `bun run validate`/build/E2E/Storybook/visual/provider proof and
-multi-agent orchestration for blast radius that justifies them. Durable loop
+Proportionality: the loop increases speed, quality, and memory; it is not
+ceremony. Apply the test gate and `VALIDATION_MATRIX.md`. Minor cosmetic UI
+edits use static review and relevant focused checks. Reserve browser/manual
+proof for a browser-only interaction, routing, auth/data, responsive,
+accessibility, composition, or explicit visual claim. Reserve broad
+`validate`/build/E2E/Storybook/provider proof for explicit or integrated
+MVP-critical claims. Durable loop
 artifacts (plan pack + `LOOP_LEDGER.md`) live in `.ai`, not chat — see `AGENT_FRAMEWORK_PROTOCOL.md`.
 Reusable prompt: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 
@@ -277,8 +307,8 @@ Default routing posture:
 
 - Low-effort/lower-cost lanes: simple lookup, grep, inventory, formatting,
   narrow docs checks, and bounded evidence collection.
-- Standard lanes: ordinary implementation, regression mapping, focused tests,
-  and straightforward refactors.
+- Standard lanes: ordinary implementation, focused deterministic checks,
+  task-gated tests, and straightforward refactors.
 - High-effort/highest-model lanes: orchestration, architecture, security, data
   integrity, complex implementation, adversarial review, final quality calls,
   and any task where a wrong answer is expensive.
@@ -305,7 +335,7 @@ When using parallel agents:
 
 Default roles:
 - Claude: planning, architecture, critique, writing, strategy
-- Codex: implementation, refactoring, tests, PR-ready diffs
+- Codex: implementation, refactoring, task-gated tests, PR-ready diffs
 - OpenCode: exploration, fallback planning/review, codebase traversal, flexible coding bench
 - CommandCode: taste-aware implementation/review, project-convention checks, PR work, and plan-mode codebase review
 - Antigravity CLI (`agy`): extra terminal-agent lane for independent planning, review, audit, implementation, and long-context checks when another agent should run in a separate terminal/task environment
@@ -348,7 +378,8 @@ Default roles:
 
 - Do not promise future work when a tool can do it now.
 - Do not claim completion from intent; claim completion only from evidence.
-- If validation is skipped, say why and what risk remains.
+- Report the selected evidence and test decision. A deliberate `NOT_REQUIRED`
+  test decision is not skipped verification.
 - If a doc is stale and the current task allows editing, patch the canonical doc instead of compensating in chat.
 - If a doc is stale and the current task is read-only, name the canonical doc and the exact stale claim in the final report.
 - For multi-agent or looped work, completion requires lead-owned integration,

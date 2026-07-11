@@ -89,13 +89,17 @@ Budgets are acceptance targets, not claims about current performance. Hosted bud
 
 Before enabling scheduled/fanout/provided analytics:
 
-- estimate D1 reads/writes per active user, campaign, recipient, retry, and reconciliation;
-- estimate Queue operations including retries/DLQ;
-- estimate Cron frequency and Worker invocations;
+- calculate, for each campaign occurrence with `N` evaluated users, `E` eligible, `X` excluded, `C` chunk size, and `R` retried chunks: D1 candidate reads `N`, recipient-ledger writes `N`, delivery writes `E`, progress/job/event writes `<= 8 + 4*ceil(E/C) + 3R`, and reconciliation reads `N + E`; record deviations from this upper-bound model;
+- calculate Queue operations as initial chunk messages `ceil(E/C)`, consumer deliveries/acks `2*ceil(E/C)`, retry deliveries/acks `2R`, and DLQ transfer/read operations separately; no retry budget assumes zero failures;
+- calculate Cron/Worker invocations from sweep frequency plus bounded expanded occurrences, future-enrollment windows, digest buckets, outbox recovery, and reconciliation; show campaigns/day and peak concurrent occurrences;
+- run the representative 10k-user table for 1, 5, and 20 campaign occurrences/day at 50%, 90%, and 100% eligibility, plus 0%, 1%, and 5% retry rates;
 - estimate DO alarms/storage only if selected;
 - confirm current free-tier included limits from official Cloudflare docs at implementation time;
-- add operational guards for max audience, chunk size, concurrency, preview frequency, and retry count;
+- refuse enablement when modeled normal-day usage exceeds 50% of any verified daily included quota, modeled peak/retry day exceeds 70%, or retained recipient evidence exceeds the measured storage headroom; require an explicit smaller cap, lower frequency, retention reduction that preserves audit semantics, or AUTH-001 approval before proceeding;
+- initial guard defaults are max audience 10,000, chunk size 100, two concurrent campaign consumers, one preview per operator per 10 seconds, three recoverable attempts, one bounded recurrence-expansion horizon, and one future-enrollment sweep per configured scheduler interval; benchmark may lower these and may raise them only while the 50%/70% headroom gates remain green;
 - do not enable paid add-ons without explicit approval.
+
+UNIT-009 cannot pass with prose-only cost review. Its receipt must include the current official quota source/version, formulas, seeded measurements, resulting operations/day and storage projection, chosen caps, stop decision, and the kill-switch/readback command. Hosted UNIT-017 repeats the calculation with observed queue/D1/Worker metrics before release.
 
 ## Data Integrity Gates
 

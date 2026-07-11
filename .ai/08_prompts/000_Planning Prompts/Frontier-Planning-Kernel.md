@@ -1,6 +1,6 @@
 # Frontier Planning Kernel
 
-<!-- FRONTIER-PLAN-SUITE: 2026-07-10 -->
+<!-- FRONTIER-PLAN-SUITE: 2026-07-11 -->
 
 This kernel governs every prompt in this directory. It turns a brief or plan
 pack into an evidence-driven autonomous delivery loop. Stage prompts specialize
@@ -22,7 +22,7 @@ Keep two evidence axes separate:
 
 - **Outcome authority:** the current request/brief defines the desired outcome
   within higher-priority repository, safety, provider, cost, and scope limits.
-- **Implementation reality:** current source, tests, configs, migrations,
+- **Implementation reality:** current source, selected evidence, configs, migrations,
   provider readback, and canonical `.ai` decisions outrank older plans,
   archives, summaries, and model memory for claims about the current system.
   Local installed docs and official primary sources govern version-sensitive
@@ -51,6 +51,8 @@ Before broad work, define:
 - Current affected surface and likely blast radius.
 - Constraints, forbidden actions, and authorized provider/project boundary.
 - Required evidence classes and final deliverables.
+- `test_requirement` for each criterion: `NOT_REQUIRED`, `TARGETED`, `BROADER`,
+  or `TEST_TASK`, with its trigger and cheaper-evidence rationale.
 - Stage stop condition and outer-goal completion condition, each proven at the
   evidence class it requires.
 
@@ -112,7 +114,8 @@ lead codebase AI.
 For every material choice or conflict:
 
 1. Classify it as an ordinary decision or a true `AUTH-*` boundary.
-2. Gather the smallest decisive evidence: source/tests/config, canonical
+2. Gather the smallest decisive evidence: source/config, selected checks,
+   existing tests only when relevant, canonical
    decisions, local docs, official primary sources, provider readback, focused
    experiment, or relevant specialist output.
 3. Generate at least two viable options when the choice is material.
@@ -137,8 +140,8 @@ selecting the execution shape:
 - Installed skills/workflows and their current instructions.
 - Native role-specialized agents and concurrency limits.
 - Repo search, code intelligence, local framework docs, and graph tools.
-- Test, type, lint, build, static-analysis, browser, provider, and production
-  proof surfaces.
+- Relevant static/type/lint/test/build/browser/provider/production proof
+  surfaces after the test decision; do not inventory or invoke them by habit.
 - MCP/connectors, official-doc retrieval, and local memory when configured.
 
 Use every materially useful capability, not every capability by name. Record
@@ -153,7 +156,7 @@ tools. Route:
 | Architecture/material tradeoff | `architect` |
 | Implementation/refactor | `executor` |
 | Root-cause diagnosis | `debugger` |
-| Test/eval design | `test-engineer` |
+| Required test/eval design | `test-engineer` only for `TARGETED`, `BROADER`, or `TEST_TASK` |
 | Adversarial review | `critic` / `code-reviewer` |
 | Completion proof | `verifier` |
 
@@ -206,8 +209,9 @@ change invalidates the receipt. Mark it stale and rerun before relying on it.
 
 ## 8. Orchestration And Integration
 
-The highest-capability active agent is lead. It owns scope, routing, file
-ownership, integration, validation, and the final claim.
+The designated lead owns scope, routing, file ownership, integration,
+validation, and the final claim. Use the model/effort level sufficient for that
+judgment rather than assuming the most expensive lane is always better.
 
 1. Build a dependency DAG and identify the critical path.
 2. Dispatch ready nodes from the same dependency layer only when parallel work
@@ -251,8 +255,8 @@ is unavailable, serialize through a shared host registry and recheck actual
 resource state immediately before use.
 
 Choose verification topology by profile and implicated risk, not ritual role
-count. `focused` uses deterministic checks plus a fresh-context review;
-`standard` adds one independent checker when it materially improves coverage;
+count. `focused` uses the selected deterministic evidence and lead review;
+`standard` adds one independent checker only when it materially improves coverage;
 `high-blast-radius` adds only the domain specialists needed for the changed
 authority, security, data, architecture, release, or completion claims. If an
 independent checker is unavailable, use a fresh-context separated pass plus
@@ -264,8 +268,26 @@ Run:
 
 `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> RECORD -> DECIDE`
 
+Verification is required; tests are conditional. Classify every criterion:
+
+- `NOT_REQUIRED` - default. Do not create or run tests; use the cheapest
+  decisive source/diff/path/reference/static/type/lint/dry-run/runtime evidence.
+- `TARGETED` - the smallest test proving a named MVP-critical invariant that
+  cheaper evidence cannot prove.
+- `BROADER` - an integrated critical boundary cannot be established by targeted
+  evidence alone.
+- `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
+  requested deliverable.
+
+Explicit testing scope or a concrete MVP-critical auth/security/privacy,
+D1/data-integrity, estimate/money/proposal, release/observability, or shared-
+contract risk may trigger tests. Source changes, file count, user visibility,
+existing tests, and high-blast classification do not. Broad suites, builds,
+browser automation, and manual QA require an explicit or integrated critical
+claim. Record the decision, trigger, evidence, and invalidation condition.
+
 For every failed criterion, form a hypothesis, run the smallest discriminating
-test, inspect output, update the decision/evidence ledger, and choose the next
+check or experiment, inspect output, update the decision/evidence ledger, and choose the next
 action. Repeated low-yield iterations trigger a strategy/tool/context change,
 not a premature owner handoff. After repeated failures of the same tactic, mark
 that tactic exhausted and change the hypothesis, tool, decomposition, or
@@ -295,14 +317,14 @@ A true hard gate exists only when the next action itself:
 - Conflicts with a higher-priority instruction.
 
 Uncertainty, an unavailable optional tool, reviewer identity, failed first
-approach, dirty worktree, missing tests, design choice, or lack of owner
+approach, dirty worktree, a `NOT_REQUIRED` test decision, design choice, or lack of owner
 preference is not a hard gate.
 
 For `AUTH-*`:
 
 1. Isolate the exact prohibited side effect.
 2. Continue every safe action permitted by `current_run_scope`. In
-   `IMPLEMENT_LOCAL`, this includes code, tests, migration authoring,
+   `IMPLEMENT_LOCAL`, this includes code, selected tests, migration authoring,
    mocks/fixtures, dry runs, runbooks, and integration; `PLAN_ONLY` remains
    planning-only.
 3. Choose a safe no-op, feature-off, free-tier, backward-compatible, or
@@ -320,7 +342,7 @@ For `AUTH-*`:
 Every requirement maps to:
 
 `source -> fact/assumption -> decision -> implementation unit -> acceptance
-criterion -> test/proof -> expected signal -> actual evidence -> status`
+criterion -> test decision -> proof -> expected signal -> actual evidence -> status`
 
 Use criterion statuses `PASS`, `FAIL`, `BOUNDARY`, and `N/A` with timestamp,
 freshness, and evidence location. Evidence itself uses
@@ -356,10 +378,12 @@ Outer-goal completion additionally requires:
 - No pending implementable work or unresolved internal decision.
 - No unresolved P0/P1 finding.
 - Current code/plan/diff reconciled; unrelated changes preserved.
-- Required tests/checks read and passed, or the dependent claim narrowed.
+- Selected checks passed; every required test is `PASS`, and no test exists only
+  to satisfy ceremony.
 - Security, privacy, data, accessibility, performance, reliability, operations,
   rollout, and rollback gates satisfied or evidence-backed `N/A`.
-- Adversarial review and fresh final verification findings repaired.
+- Required review and fresh final verification findings repaired; adversarial
+  QA runs only for an implicated critical claim or explicit task.
 - Every temporary artifact/agent/resource cleaned or intentionally retained.
 - Every `AUTH-*` isolated to a release-only packet with all local prerequisites
   complete.

@@ -64,7 +64,10 @@ shared files.
 
 ## Validation Rules
 
-Review outputs need file/line evidence. Edits follow `.ai/00_system/VALIDATION_MATRIX.md`.
+Review outputs need file/line evidence. Edits follow the shared
+`NOT_REQUIRED`-by-default test gate in `.ai/00_system/VALIDATION_MATRIX.md`;
+ordinary edits use decisive non-test evidence, and tests or broad/browser gates
+require explicit testing scope or an integrated MVP mission-critical claim.
 
 ## Design-System Guidance
 

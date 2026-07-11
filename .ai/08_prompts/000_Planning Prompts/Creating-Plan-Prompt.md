@@ -50,7 +50,7 @@ The plan pack must:
 - use a capability/task-shape router and all materially useful available
   evidence surfaces;
 - define exact implementation units, dependency layers, ownership/contention,
-  tests/evidence, recovery, rollout, and resume state;
+  test decisions/evidence, recovery, rollout, and resume state;
 - separate implementation readiness from hosted/provider/production release
   proof;
 - survive adversarial review and a fresh final verification pass;
@@ -99,7 +99,8 @@ Build:
 - known-unknown and assumption inventory;
 - affected route/file/symbol/data/provider/operations map;
 - direct/transitive blast-radius and compatibility map;
-- existing test/evidence and known-red inventory.
+- existing evidence, known-red inventory, and tests only when relevant to a
+  selected `TARGETED`, `BROADER`, or `TEST_TASK` decision.
 
 ## Phase 3: Capability And Workstream Routing
 
@@ -117,14 +118,17 @@ reassign, change tool, or complete locally. Never fabricate independence.
 1. Assign stable IDs from the schema.
 2. Convert every brief item into observable current/target behavior,
    acceptance criteria, failure behavior, evidence class, and affected surfaces.
-3. For each changed boundary, map the applicable negative paths, such as missing,
+3. Classify each criterion's `test_requirement`. Default to `NOT_REQUIRED` and
+   forbid test creation/execution unless the task explicitly requests testing
+   or a named MVP-critical invariant cannot be proved more cheaply.
+4. For each changed boundary, map the applicable negative paths, such as missing,
    invalid, unauthorized, concurrent, retry, partial-failure, and recovery states.
-4. Resolve conflicts and every material internal choice through the kernel's
+5. Resolve conflicts and every material internal choice through the kernel's
    autonomous decision protocol. Record `DEC-AUTO-*`; leave no routine owner
    decision.
-5. For missing but discoverable evidence, run bounded discovery/research/spikes
+6. For missing but discoverable evidence, run bounded discovery/research/spikes
    or create exact first-class units that produce it before dependent work.
-6. For each true `AUTH-*`, choose the best safe fallback, isolate release impact,
+7. For each true `AUTH-*`, choose the best safe fallback, isolate release impact,
    and provide the exact continuation packet.
 
 Do not invent external business facts. Use reversible labeled assumptions only
@@ -145,7 +149,7 @@ feature needs:
 
 Build a dependency DAG and critical path. Every `UNIT-*` must satisfy the full
 Execution Unit Packet in the schema, including exact current paths/symbols or a
-bounded discovery unit, proof-first/characterization strategy, shared-worktree
+bounded discovery unit, test decision and cheapest decisive proof, shared-worktree
 ownership, failure/recovery, checkpoint/resume, and objective exit evidence.
 
 Do not include speculative production code or exact imports merely to appear
@@ -190,7 +194,8 @@ The critic must try to find:
 - inconsistent package/implementation/release/lifecycle status.
 
 The final checking pass is read-only. It audits every active requirement,
-decision, unit, gate, risk, and deliverable as `PASS|FAIL|BOUNDARY|N/A` against
+decision, unit, applicable test, gate, risk, and deliverable as
+`PASS|FAIL|BOUNDARY|N/A` against
 current files and evidence. Return failures to an authoring pass, then rerun the
 affected check. Record provenance without reviewer-based score caps or owner
 acceptance.

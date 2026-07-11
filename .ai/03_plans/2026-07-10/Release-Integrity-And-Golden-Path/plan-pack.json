@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
-    "scoped_status_sha256": "f23674305bcfba4a8fd7b406f20ee7479b19d06102a8bae5031078ebb3cd777c",
-    "scoped_diff_sha256": "60248a9586f3dfc53de37424b4d05dd8c0016d32cabf17a2b017f2d66e001773"
+    "head": "3584dd60b3d7ddeb7fe97c6e2d0266cd02e78e14",
+    "scoped_status_sha256": "f13c75f737199895ae015dd356e0158039c27fbc509a4d261497c7fc0fc22e1b",
+    "scoped_diff_sha256": "5094c43b9f0aaca60eb913be2055db01bd5869740f295cf45b680c7383ca4524"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -1207,7 +1207,7 @@
         "UNIT-009",
         "UNIT-010"
       ],
-      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+      "source_revision": "3584dd60b3d7ddeb7fe97c6e2d0266cd02e78e14",
       "valid_until": null
     },
     {
@@ -1243,7 +1243,7 @@
         "GATE-003",
         "GATE-004"
       ],
-      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+      "source_revision": "3584dd60b3d7ddeb7fe97c6e2d0266cd02e78e14",
       "valid_until": null
     }
   ],
@@ -1258,5 +1258,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T04:10:00.000Z",
-  "manifest_sha256": "2fb0e45e4af9f17e9d8c4a82663fde61235afd8037ffca676a8a14d959a71708"
+  "manifest_sha256": "4c0cf53150913fee799fd8aef629ccc90adde3fef6fdf39a87f53e20ab485657"
 }

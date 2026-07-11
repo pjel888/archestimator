@@ -56,7 +56,7 @@ migration, security, or rollback risk); `/codex:rescue` or the
 `codex:codex-rescue` subagent when stuck, wanting a second implementation, or
 delegating Codex's builder lane. When Claude is the active lead, Codex output is
 evidence, not the final claim, and never provider proof. Keep write-capable
-rescue runs in a disjoint scope and inside the standing Supabase/provider boundaries. The
+rescue runs in a disjoint scope and inside the standing Cloudflare/provider boundaries. The
 stop-time review gate is opt-in via `/codex:setup`.
 
 ## Allowed Edit Scope
@@ -79,7 +79,10 @@ read-only.
 ## Validation Rules
 
 Docs-only changes require referenced paths and `git diff --check`. Source/UI
-changes follow `.ai/00_system/VALIDATION_MATRIX.md`.
+changes follow the shared `NOT_REQUIRED`-by-default test gate in
+`.ai/00_system/VALIDATION_MATRIX.md`; ordinary edits use decisive non-test
+evidence, while tests or broad/browser gates require explicit testing scope or
+an integrated MVP mission-critical claim that cheaper evidence cannot prove.
 
 ## Design-System Guidance
 

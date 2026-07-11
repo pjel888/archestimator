@@ -23,6 +23,16 @@ before claiming completion. Adapter-specific skills, prompt files, or rules may
 reference these guardrails, but they must point back to `.ai/00_system` rather
 than fork a second behavioral contract.
 
+All agents also inherit one test gate: verification is mandatory, while
+`test_requirement` defaults to `NOT_REQUIRED`. Create or run tests only when the
+user explicitly requests testing/QA, the task itself is test work, or an MVP
+mission-critical auth/security, D1 schema/data-integrity, estimate/proposal
+financial-math, public-share/authorization, release/rollback/observability, or
+concurrency/shared-contract claim cannot be proven with cheaper evidence. Use
+targeted tests first. Broad suites, builds, and browser proof require an explicit
+request or an integrated critical claim. Ordinary edits use the cheapest
+decisive non-test evidence and do not create or run tests.
+
 <!-- supermemory-bootstrap: required -->
 All agents and harnesses also inherit the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: run `bun run supermemory:ensure`
@@ -43,7 +53,7 @@ do not restate the policy.
 
 | Agent/harness | Status | Primary lane | Notes |
 |---|---|---|---|
-| Codex | approved | implementation, tests, validation, PR-ready diffs | Default builder for source and docs execution. |
+| Codex | approved | implementation, task-scoped testing, validation, PR-ready diffs | Default builder for source and docs execution. |
 | Claude | approved | planning, architecture, critique, writing | Default review/planning lane; implementation only if assigned. |
 | OpenCode | conditional | exploration, fallback planning/review | Verify installed schema before config edits. |
 | CommandCode | conditional | taste-aware review, sentinel checks, PR work | Sentinels default read-only unless assigned. |

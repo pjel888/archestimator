@@ -53,6 +53,8 @@ For every allowed and denied transition, assert expected version, actor capabili
 - preferences, quiet hours, mandatory override;
 - preview/publish evaluator revision parity;
 - snapshot versus future-user policy;
+- every identity reconciliation state through all-users, explicit-ID, and cohort selectors; explicit IDs cannot bypass repair-before-send policy or the canonical-to-inbox key adapter;
+- append-only future-enrollment occurrence/window high-water marks, uniqueness, expiry, cancellation, retry non-expansion, and per-occurrence denominators;
 - cross-tenant and complexity/injection denial;
 - audience changes between preview, approval, schedule, and run.
 
@@ -87,6 +89,19 @@ After recovery, prove exact intended/eligible/materialized/failed counts, no dup
 - edit/reschedule invalidates approval as specified;
 - expiry before/during/after run;
 - clock skew and stale lease recovery.
+- daily/weekly/monthly bounded recurrence expansion, horizon/high-water restart, series edit revision, cancel one/remaining series, scoped retraction, count/end boundaries, DST preserve-local/preserve-UTC policies, gap skip/next-valid, ambiguous-offset choice, and immutable completed history;
+
+## Preference and Digest Tests
+
+- `/settings/notifications` read/action authorization, validation, defaults, and optimistic updates;
+- kind/channel opt-out, center versus interruptive-surface semantics, mandatory override warnings/reasons, and disabled provider/channel behavior;
+- quiet-hours entry/exit, time-zone/DST and time-zone-change behavior, `deliver_after`, expiry-before-deferred-delivery, and preference changes after approval/claim;
+- digest bucket membership, window identity, idempotent job, retry/failure, duplicate prevention, expiry, and exact occurrence attribution;
+
+## Presence and Fresh-Auth Tests
+
+- ordinary self-only presence writes, subject/key mismatch, writer-to-reader escalation denial, v1 aggregate-only compatibility, admin sensitive-read capability, reconnect/multi-tab/hibernation/TTL convergence, expired/replayed tokens, and DO-unavailable `unknown` state;
+- version-matched reauthentication adapter, accepted method, 10-minute maximum, actor/session/action binding, one-time use, expiry/replay/stale denial, unsupported OAuth/magic-link fallback, and proof that session timestamps never satisfy freshness;
 
 ## Metrics Tests
 

@@ -24,11 +24,11 @@ Publish returns accepted run identity; outbox/job + queue handles fanout. Reject
 
 ### DEC-AUTO-006: Cron Sweep Plus Queue Is Preferred Scheduler
 
-Periodic due-campaign sweep and durable jobs provide arbitrary-future recovery. DO alarms remain an alternative if precision/scale evidence justifies complexity.
+Periodic due-campaign sweep and durable jobs provide arbitrary-future recovery for one-time schedules, bounded recurrence expansion, future-user enrollment windows, and digests. Immutable occurrences/high-water marks prevent recurrence from mutating retry audiences. DO alarms remain an alternative if precision/scale evidence justifies complexity.
 
 ### DEC-AUTO-007: Snapshot Is Default Audience Policy
 
-Retry does not expand audience. Explicit future-user modes exist for onboarding/release use cases.
+Retry does not expand audience. Explicit future-user modes create separate append-only enrollment occurrences with unique user/window guards; they never mutate a completed run.
 
 ### DEC-AUTO-008: Metrics Use Materialization Language
 
@@ -50,12 +50,52 @@ Core in-app manager does not depend on GA4, Clarity, CF Access, or email campaig
 
 Use current stack/primitives. A dependency requires explicit evidence and authority.
 
+### DEC-AUTO-013: Recurrence and Templates Are First-Class
+
+Complete scheduling includes a bounded typed recurrence contract, immutable schedule revisions/occurrences, DST policy, series edit/cancel/retract history, and versioned archivable templates copied into campaigns. Rejected: one-shot-only scheduling or directly publishable templates.
+
+### DEC-AUTO-014: User Preferences Are Product-Owned
+
+`/settings/notifications` owns current-user choices. Admin owns defaults/mandatory policy but cannot silently rewrite user preferences. Quiet hours defer interruptive surfaces; digests use durable per-user buckets/jobs. Rejected: admin-only preference flags or applying quiet hours to historical center visibility.
+
+### DEC-AUTO-015: No Better Auth Admin Plugin by Default
+
+Use installed-version supported APIs behind narrow adapters. Do not add the plugin unless a version-matched gap and dependency review prove it necessary and compatible. Rejected: automatic adoption; Archestimator owns capability/status semantics and D1 migrations.
+
+### DEC-AUTO-016: Placeholder Admin APIs Are Removed When Unused
+
+Trace consumers first. Delete placeholder routes with no real HTTP consumer; implement only routes required by external, streaming, export, DO, or provider consumers. Server Components/Actions use typed repositories/actions. Rejected: preserving fake endpoints for speculative compatibility.
+
+### DEC-AUTO-017: Existing Workshop Operator Tools Stay Linked
+
+Do not relocate or duplicate mutation ownership in this pack. Admin provides stable navigation and bounded read summaries; a surface moves only with a named owner, redirect, and consumer tests. Rejected: leaving the choice to each executor.
+
+### DEC-AUTO-018: Dedicated Notification Queue Is the Default
+
+Keep upload and notification payload, retry, backpressure, and DLQ ownership isolated. A generalized queue can replace this only through a recorded decision proving typed envelopes, per-kind policy/metrics, migration, and zero upload regression.
+
+### DEC-AUTO-019: Approval Separation Is Policy-Driven and Deterministic
+
+Compose, review, and publish are separate capabilities. While exactly one eligible operator exists, a recorded `single_operator_mode` permits explicit self-review only with fresh auth, reach/risk summary, and a 60-second cancellable grace window. When two or more eligible reviewers exist, mandatory notices and campaigns above the configured wide-audience threshold require a different reviewer; lower-risk campaigns may retain policy-configured self-review. Rejected: implicit approval or runtime executor choice.
+
+## Decision Record Metadata
+
+All decisions are owned by the implementation lead and checked by the independent verifier. Evidence freshness is the improve-stage baseline plus cited source/overlap receipts; relevant source, manifest, dependency, quota, or provider drift reopens the affected record.
+
+| IDs | Evidence and options considered | Confidence | Consequence, rollback, or revision trigger |
+| --- | --- | --- | --- |
+| 001-003 | Better Auth/profile/session/admin/activity source; canonical user vs profile, collapsed vs separate timestamps, raw union vs adapters | high | preserve provenance/partial states; revise only with source-owned canonical contract and migration proof |
+| 004-009 | inbox schema/repository/action and synchronous broadcast defects; control plane vs drafts-in-inbox, sync vs async, Cron vs alarms, snapshot vs enrollment occurrences, materialized vs delivered, tombstone vs delete | high | additive compatibility and recoverable evidence; rollback disables new authoring/consumers and never deletes history |
+| 010-012 | broad role checks, provider boundaries, dependency inventory | high | exact capabilities, isolated optional providers, no dependency by default; reopen on version/provider proof |
+| 013-014 | user request for a comprehensive scheduled manager plus recurrence/template/preference/digest audit gaps | high | all are required; rollback disables authoring/delivery while preserving versions, occurrences, and choices |
+| 015-019 | installed Better Auth/Next architecture, placeholder-route inventory, workshop ownership, upload-specific Queue, current single-operator reality | medium-high | plugin-free, delete-unused, link-not-duplicate, dedicated queue, deterministic approval policy; reverse only through stated falsifiers and focused regression proof |
+
 ## Assumptions
 
 | ID | Assumption | Validation / revision trigger |
 | --- | --- | --- |
 | ASSUMP-001 | Initial user scale is within D1/Queue free-tier with chunked fanout | calculate current counts and hosted limits before enabling wide publish |
-| ASSUMP-002 | One primary operator allows optional rather than mandatory two-human approval | revise when more admins exist or policy requires separation |
+| ASSUMP-002 | Exactly one eligible notification reviewer exists at initial rollout | count at enablement; DEC-AUTO-019 automatically changes separation behavior when the count reaches two |
 | ASSUMP-003 | 1–5 minute schedule precision is acceptable | user/business requirement or benchmark proves tighter need |
 | ASSUMP-004 | Existing notification inbox is the canonical in-app surface | revise only through explicit product decision and migration plan |
 | ASSUMP-005 | Activity producer contracts can support person-level admin consumption | block UNIT-005 until source-matched receipt exists |
@@ -86,25 +126,17 @@ Use current stack/primitives. A dependency requires explicit evidence and author
 
 ## True Authorization Boundaries
 
-### AUTH-001: Paid Cloudflare or Third-Party Service
+Each boundary blocks only the named side effect/claim. Local design, code, migrations, emulation, tests, redacted inventories, cost calculations, and rollback preparation continue. The safe fallback is feature-off, current free-tier/bound-resource behavior, and an honest `BOUNDARY`/`N/A`; no boundary authorizes a false release claim.
 
-No paid add-on, plan upgrade, or new vendor without explicit owner approval.
+| ID | Prohibited side effect / higher-priority boundary | Dependent claim only | Completed prerequisites and gathered evidence | Exact unblock procedure and expected result | Rollback and post-action proof |
+| --- | --- | --- | --- | --- | --- |
+| AUTH-001 | enable a paid Cloudflare tier/add-on or new paid vendor without owner approval | only the capability whose measured free-tier model breaches the 50% normal/70% peak headroom gate | UNIT-009 formulas, current official quota/version, seeded/hosted measurements, lower-cap/frequency/retention alternatives | present redacted cost table, exact SKU/price/account/resource/scope and rejected free alternative; obtain explicit owner approval; record approval reference; rerun cost gate expecting modeled and observed headroom PASS | disable paid feature/consumer, restore caps, confirm billing/resource state and core feature-off reconciliation; no spend claim from local proof |
+| AUTH-002 | read/configure GA4, Clarity, Access, Email Routing, or optional delivery without credentials/config authority | only each optional provider slice in UNIT-018 | provider applicability receipt, source/config hash, no-secret adapter/tests, disabled UI | set only required secret env outside repo, run provider-specific preflight/least-privilege read or bounded test, expect source-matched redacted artifact; never print values | remove/rotate credential/config, disable slice, verify no exposed route/job and core in-app manager remains green |
+| AUTH-003 | deploy/cut over or claim production readiness without a separately requested release and current gates | UNIT-017/019 hosted/release claims | local RC audit, migration/rollback rehearsal, source-matched artifacts, release report | follow current `cf:release-gates`/deploy instructions under explicit release request, expect deployed source revision and hosted gates PASS | disable flags/consumers, apply documented forward fix, verify route/queue/D1/readiness artifacts and incident state |
+| AUTH-004 | claim legal retention/consent approval or activate a policy that requires counsel/designated approval | legal-approved portion of UNIT-013 | field taxonomy, safe conservative retention/erasure/hold defaults, tests, unresolved policy list | present policy diff/field-purpose/retention/DSAR/hold matrix to designated reviewer; record approved revision and rerun lifecycle tests | revert feature flag/policy config without deleting evidence, preserve holds, verify prior approved revision and audit trail |
+| AUTH-005 | create/bind a new hosted notification Queue/DLQ outside already-bound resources | hosted notification fanout proof in UNIT-017 | dedicated topology decision, names/account boundary, free-tier model, local emulation/fault tests, `wrangler.jsonc` proposal, deployment/rollback/readback plan | present exact queue/DLQ names and account, obtain explicit owner authorization, create resources and bind via approved Cloudflare commands, deploy under AUTH-003, then read back bindings and run bounded retry/DLQ proof expecting PASS | disable consumer/scheduler, drain/reconcile D1-authoritative jobs, remove binding/resource only when evidence retention is safe, redeploy/read back old config and prove upload Queue unaffected |
 
-### AUTH-002: External Provider Credentials/Configuration
-
-GA4, Clarity, Cloudflare Access, Email Routing, and optional delivery need credentials/configuration and source-matched proof. Never print/store secrets.
-
-### AUTH-003: Production Deployment/Release
-
-Standing authority covers bound Cloudflare resource changes, but production deploy/cutover is separate from this planning task and follows current release instructions/gates.
-
-### AUTH-004: Legal Retention/Consent Policy
-
-Technical implementation may prepare controls, but claims of legal/compliance approval require the designated review.
-
-### AUTH-005: New Hosted Notification Queue/DLQ
-
-Local authoring and emulation are allowed. Creating or binding a new Cloudflare Queue/DLQ is outside the standing mandate for resources already bound in `wrangler.jsonc`; obtain explicit owner authorization after presenting names, free-tier/cost impact, account boundary, deployment order, rollback, and proof commands.
+Authorization packets are revalidated immediately before the side effect. The executor records actor/authority reference, timestamp, exact redacted command, exit/result artifact, source/config/provider hashes, rollback readiness, and post-action verification in the applicable unit receipt.
 
 ## Pre-Mortem
 

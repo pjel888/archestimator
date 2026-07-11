@@ -65,7 +65,8 @@ Build a criterion matrix using `PASS|FAIL|BOUNDARY|N/A` and exact evidence:
 - exact implementation DAG, units, ownership/contention, integration, resume;
 - applicable UX/a11y, framework, data/provider, security/privacy, performance,
   reliability/operations gates;
-- test/evidence strategy, adversarial cases, cleanup, rollout/recovery;
+- test decision/evidence strategy, selected adversarial cases, cleanup,
+  rollout/recovery;
 - package, implementation, release, terminal, and lifecycle status;
 - capability routing, research effect, review provenance, and final audit.
 
@@ -88,7 +89,9 @@ Repair in dependency order:
 5. **Design/contracts** - repair architecture, domain, UX, data, auth, cache,
    provider, performance, and operations boundaries from current evidence.
 6. **Execution DAG** - make units exact, dependency-layered, contention-aware,
-   proof-first where practical, recoverable, checkpointed, and resumable.
+   test-gated, recoverable, checkpointed, and resumable. Delete ceremonial test
+   requirements and add tests only for explicit testing scope or a named
+   MVP-critical invariant that cheaper evidence cannot prove.
 7. **Evidence** - map every claim to the right evidence class, method, expected
    signal, freshness, cleanup, and final status.
 8. **Rollout/recovery** - repair flags/exposure, monitoring, rollback/fix-forward,
@@ -140,7 +143,7 @@ owner handoff or arbitrary score cap.
 The final verifier does not edit. Re-read the brief, manifest, canonical source
 files, current repository facts, and each artifact carrying active IDs or
 canonical authority. Audit each
-explicit requirement, decision, unit, test, gate, risk, invariant, deliverable,
+explicit requirement, decision, unit, applicable test, gate, risk, invariant, deliverable,
 and prompt completion condition as `PASS|FAIL|BOUNDARY|N/A`.
 
 Final `IMPLEMENTATION_READY` requires:

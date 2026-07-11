@@ -28,6 +28,10 @@ Names are conceptual; final migration names/numbers follow the migration lease.
 - immutable content/audience hash;
 - created_by, created_at, review status.
 
+### `notification_templates` and `notification_template_versions`
+
+Templates are admin-owned reusable starting points, never publishable objects. A template has owner, name, category, active/archived state, current optimistic version, and provenance. Immutable versions contain typed content defaults, allowed variables with typed schemas, surface/channel constraints, and validation hash. Creating a campaign copies a resolved template version into a new campaign version; later template edits cannot mutate campaign history. Archive prevents new use but preserves provenance. Template create/edit/archive/duplicate/preview actions use the same content validation and exact capabilities as campaigns; no unbounded Liquid/HTML/code execution is allowed.
+
 ### `notification_campaign_reviews`
 
 Reviewer, verdict, campaign/version hash, validation summary, note, time. A changed hash invalidates approval.
@@ -40,6 +44,10 @@ Reviewer, verdict, campaign/version hash, validation summary, note, time. A chan
 - expected/claimed/materialized/excluded/failed/retried counts;
 - started/completed/next-retry timestamps, lease owner/expiry, error class;
 - definition id emitted on successful publish contract.
+
+### `notification_schedule_revisions` and `notification_occurrences`
+
+Schedule revisions retain one-time or bounded recurring rules, time-zone/DST policy, start/end/count, creator, approval hash, and supersession. Occurrences are immutable logical schedule facts keyed by campaign, schedule revision, and occurrence key, with intended local time, resolved UTC/offset, status, run identity, misfire evidence, and series-scope cancellation/retraction links. Editing a series creates a new revision and an audited disposition for pending occurrences; completed history is never recalculated.
 
 ### `notification_campaign_recipients` authoritative ledger
 
@@ -56,6 +64,10 @@ Immutable redacted lifecycle/audit facts. Keep operator audit and campaign state
 ### `notification_preferences`
 
 User, kind/channel, enabled, quiet-hours/time zone, digest cadence, updated source/time. Mandatory override policy is not represented by silently rewriting preferences.
+
+### `notification_digest_buckets`
+
+Per user/channel/time-zone bucket with window identity, occurrence/delivery membership, `deliver_after`, expiry deadline, status, attempts, and idempotent job identity. A preference change affects only unclaimed materialization according to an explicit policy; claimed/sent evidence remains immutable. Center-only rows can materialize while interruptive toast/modal delivery is deferred. Expired content is never emitted by a delayed interruptive surface or digest.
 
 ## Existing Tables
 
@@ -92,7 +104,7 @@ Consumer behavior:
 
 A small periodic Cron sweeper claims due campaigns and creates publish runs; queue performs fanout. This supports arbitrary future schedules and restart recovery. Frequency and daily operation cost must fit the free-tier posture.
 
-V1 has one logical scheduled occurrence per campaign. The idempotency tuple retains `logical schedule` terminology so a later recurrence design can add occurrence identity without corrupting existing run history; no recurrence UI or implicit repeat behavior ships in this plan.
+One-time, recurring, and future-user enrollment schedules all create immutable occurrences. The sweeper expands only a bounded horizon, records a high-water mark per schedule revision/policy window, and applies unique occurrence/enrollment identities before emitting jobs. It never expands an unbounded series in one request. Retry operates on one frozen occurrence; recurrence/enrollment creates a different occurrence and therefore cannot expand a retry audience.
 
 ### Alternative
 
@@ -109,11 +121,13 @@ A dedicated Durable Object alarm per campaign/shard can schedule precise wake-up
 ## Idempotency and Concurrency
 
 - stable command idempotency keys from campaign/version/logical occurrence;
+- unique schedule occurrence `(campaign_id,schedule_revision,occurrence_key)` and future-enrollment `(campaign_id,policy_window_id,user_id)` guards;
 - unique delivery `(notification_id,user_id)` remains final duplicate guard;
 - optimistic campaign version on every edit/transition;
 - run and job leases with expiry/steal rules;
 - cancel/retract flags rechecked before every chunk;
 - retries preserve frozen audience;
+- recurring/future-user expansion advances only through audited high-water marks and bounded horizon claims, never a retry path;
 - reconciliation compares intended eligible set, recipient/checkpoint state, and actual deliveries;
 - pause, resume, retry, and reconcile commands use expected run state/version plus stable idempotency keys; workers re-read state before every chunk;
 - scheduler misfires distinguish late-valid from expired-before-start and never silently publish an expired campaign;

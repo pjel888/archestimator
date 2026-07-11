@@ -64,7 +64,7 @@ Build a compile ledger proving that every accepted:
 - constraint/invariant and affected surface;
 - risk/mitigation/recovery;
 - UX/a11y/security/data/performance/operations obligation;
-- test/evidence/rollout gate;
+- test-decision/evidence/rollout gate;
 - true `AUTH-*` fallback/continuation packet
 
 appears in the canonical plan or is explicitly superseded/rejected with
@@ -93,18 +93,21 @@ schema. The plan must name:
   environment-singleton contention;
 - maximum useful concurrency and serialized units;
 - interface/migration/generated-artifact order;
-- focused proof and integration checks after each layer;
+- focused proof at meaningful dependency boundaries, without repeating the same
+  command after every unit;
 - failure/retry/reassignment/local fallback;
 - durable checkpoints and resume actions.
 
 Every unit includes objective/non-goals, linked IDs, preconditions, current
 patterns, contracts/invariants, approach, expected postconditions, applicable
-gates, test/evidence plan, expected signals, failure/recovery/cleanup, entry/exit
+gates, `test_requirement` plus evidence plan, expected signals,
+failure/recovery/cleanup, entry/exit
 gate, and final evidence slot.
 
-For behavior changes, default to proof-first or characterization-first when a
-practical seam exists. If no test change is appropriate, record the reason and
-stronger substitute evidence. Do not prescribe speculative source code.
+Default `test_requirement` to `NOT_REQUIRED` and record the cheapest decisive
+proof. Select `TARGETED`, `BROADER`, or `TEST_TASK` only for explicit testing
+scope or a named MVP-critical invariant that cheaper evidence cannot prove. Do
+not prescribe speculative source code or ceremonial tests.
 
 ## Phase 5: Write And Promote `IMPLEMENTATION_PLAN.md`
 
@@ -128,7 +131,8 @@ Use this concise structure:
 5. **Dependency DAG and coordination** - critical path, layers, ownership,
    contention, concurrency, integration, lease/resource rules.
 6. **Execution units** - full schema packet for every unit.
-7. **Verification contract** - gate matrix, tests/files/commands/procedures,
+7. **Verification contract** - gate matrix, test decision, selected tests/files/
+   commands/procedures,
    expected signals, evidence classes/freshness, adversarial scenarios, cleanup.
 8. **Rollout, recovery, and operations** - flags/exposure, observability,
    rollback/fix-forward, data repair, support, post-release proof.
@@ -149,7 +153,7 @@ Use the kernel's profile-selected checking topology. Try to disprove:
 - zero internal open decisions;
 - dependency/parallel-safety and shared-resource ownership;
 - security/data/authz/UX/accessibility/performance/recovery coverage;
-- evidence-class correctness and test specificity;
+- evidence-class correctness and test-gate justification;
 - resumability after worker failure/context loss;
 - status tuple and `AUTH-*` isolation;
 - executor ability to start without broad rediscovery.

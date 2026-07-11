@@ -75,7 +75,7 @@
       "id": "ART-010",
       "role": "security",
       "path": "08_SECURITY_PRIVACY_THREAT_MODEL.md",
-      "sha256": "5dda7dbc41bae9adcaf26c0f6d68fc566100cbad367cf624b3863b0dab59cf38"
+      "sha256": "d677cf7be79978cf21bae40dd3fa487d5629a08a5d574233294020242658c485"
     },
     {
       "id": "ART-011",
@@ -117,7 +117,7 @@
       "id": "ART-017",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "6e00781db44443256deda989c787652513a545c278ad15a88f8d241b4121b3f8"
+      "sha256": "3a1eaac6fc72fedbcd3665fc159989905f005d4657f94f96256edc0225376ae7"
     }
   ],
   "sources": [
@@ -3796,5 +3796,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T03:45:00.000Z",
-  "manifest_sha256": "6b74f7dd83b8cf8beef77bfe14b63b956b24d7a7cd5ef8404df8044b49a658a5"
+  "manifest_sha256": "1482ae109af86ec2d1747b479cbb9948fa641e8681521d77125428db888e1f63"
 }

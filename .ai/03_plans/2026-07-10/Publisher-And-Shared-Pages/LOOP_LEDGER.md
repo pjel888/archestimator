@@ -307,3 +307,60 @@ Planning stage is complete when:
   `bd80a006b2a30dfba2880c0ec1e4881b399b100200a1849e3130e1ed26144edf`.
 - The observed migration tail invalidated only the old lease; readiness and
   implementation state remain unchanged.
+
+## 2026-07-11T03:45:00+08:00 - Improve stage: source-freshness repair and hash refreeze
+
+- **Scope:** `PLAN_ONLY`; only Publisher plan-pack artifacts changed.
+- **HEAD advanced** from `e373bc865b...` to `6069d87c271dc1509e97d1155da4d62c78d771cd`.
+- **Three parallel verification lanes** re-proved all source claims against the
+  current HEAD: 23 file paths/symbols (all PASS), 7 migration-table column lists
+  (all exact match, zero drift from migrations 0016-0065), dead-code/TS-union/
+  cursor-helper/signerName/currency claims (all PASS).
+- **P1-1 repair — migration path collision:** The durable lease
+  (`MIGRATION_LEASE_GENERATION.json` generation 11) reissued Publisher's
+  allocation from `0053` to `0066` (`migrations/0066_publication_foreign_keys.sql`,
+  status `UNCLAIMED`). The pack's prior `0053` references were stale and would
+  collide with the live `0053_corporate_account_owner_integrity.sql`. All
+  `0053` references updated to `0066` across `IMPLEMENTATION_PLAN.md`,
+  `07_DATA_DATABASE_API_NETWORK_PLAN.md`, `08_SECURITY_PRIVACY_THREAT_MODEL.md`,
+  `10_BLAST_RADIUS_AND_DEPENDENCIES.md`, and `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md`.
+- **P1-2 repair — CHECK constraint inversion:** The data plan claimed "Current
+  CHECK excludes `download_attempt_blocked`" for `project_publication_events`;
+  the current CHECK **includes** it (`0014:43-45`). The text now correctly
+  describes the current CHECK and adds a preflight requirement to scan for
+  existing rows with that value before the fail-closed copy.
+- **P2 repair — SEC-007 precision:** `download_attempt_blocked` is in
+  `project_publication_events.event_type`, NOT `shared_link_events.event_type`
+  (which never referenced it). SEC-007 now correctly attributes the CHECK
+  change to `project_publication_events` and notes `shared_link_events` is
+  copied byte-for-byte.
+- **P2 repair — SEC-008 framing:** The denial matrix described a route
+  (`/workshop/publisher/preview/[projectId]`) and RBAC-on-every-render behavior
+  in present tense, but both are PLANNED UNIT-014 deliverables. The route does
+  not exist; `assertProjectPublicationManager` is a private mutation guard at
+  `actions.ts:394` (rank >= 30), not yet a server-component read-time RBAC
+  helper. The matrix is now labeled as the UNIT-014 target contract, and
+  UNIT-014 must make the guard importable into the route module.
+- **P2 repair — path precision:** UNIT-019 `CostDonutChart` path corrected to
+  `src/components/charts/CostDonutChart.tsx` with `COLLATED_ROW_LIMIT` at
+  `SharePageTabs.tsx:28`.
+- **Baseline refrozen:** scoped status SHA-256
+  `698e100b5a7fc9f567f2b6b341327c88a0497fc1bd10907b4418c520e8ca7e6b`,
+  scoped diff SHA-256
+  `7f35473a3198388a9426d3337209a5074ec3ff275114475e77aaa3472e2ee1e3`.
+- **Manifest hash refreshed** to
+  `6b74f7dd83b8cf8beef77bfe14b63b956b24d7a7cd5ef8404df8044b49a658a5`.
+- **Migration-lease owner-manifest drift:** The improve-stage manifest edit
+  changed both the raw file hash and the `manifest_sha256` field. The durable
+  lease still records the pre-edit `owner_manifest_file_sha256`
+  (`1ce4884395...`) and `owner_manifest_self_sha256` (`e125172e8...`). Per
+  `MIGRATION_LEASE_PROTOCOL.md` this is owner-manifest drift requiring a
+  monotonic Program reissue (generation >=12) before UNIT-008 can write. The
+  Publisher pack does not edit cross-pack Program artifacts; UNIT-008's
+  immediate precondition already fail-closes on this mismatch. The Program
+  must reissue with the current Publisher digests. This is a cross-pack
+  coordination boundary, not a Publisher-internal defect.
+- **Status tuple unchanged:** `CONDITIONALLY_READY/NOT_STARTED/NOT_EVALUATED/
+  ACTIVE/ACTIVE`. `SLICE-001` (`UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`,
+  `UNIT-010`) remains dependency-closed; `next_unit=UNIT-001`.
+- **Validation:** `bun run validate:plan-pack` passes clean.

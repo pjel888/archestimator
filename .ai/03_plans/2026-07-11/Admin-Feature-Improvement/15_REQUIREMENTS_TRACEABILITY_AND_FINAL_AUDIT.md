@@ -10,15 +10,15 @@
 | REQ-004 | User 360 exposes summary, access, activity, sessions/security, product footprint, support, notifications, interventions | P0 | 004,005 | adapter/integration/cross-tenant tests |
 | REQ-005 | Signup, profile provision, login, authenticated use, product activity, and online are separately defined and sourced | P0 | 004,005 | lifecycle fixture matrix |
 | REQ-006 | Suspend/ban/reactivate and session revoke are row-proven, protected, idempotent, audited, and recoverable | P0 | 003,006 | action/failure/concurrency tests |
-| REQ-007 | Notification campaigns support draft, review, approval, schedule, publish, fail, cancel, expire, retract, supersede | P0 | 007,009,010 | lifecycle state-machine tests |
-| REQ-008 | Composer supports typed content, preview, test send, immutable versions, safe action links, and validation parity | P0 | 007 | domain + DOM tests |
-| REQ-009 | Audience builder supports typed user/activity/beta/corporate/workspace/project cohorts and reach exclusions | P0 | 008 | evaluator parity/denial tests |
-| REQ-010 | Scheduling preserves UTC, IANA zone, local intent, DST behavior, next-attempt and scheduler freshness | P0 | 007,009 | scheduler/date matrix |
+| REQ-007 | Notification campaigns support draft, review, approval, schedule, publish, fail, cancel, expire, retract, supersede with occurrence-level history | P0 | 007,009,010 | lifecycle/occurrence state-machine tests |
+| REQ-008 | Composer supports typed content, versioned templates, preview, test send, immutable versions, safe action links, and validation parity | P0 | 007 | domain + DOM tests |
+| REQ-009 | Audience builder supports typed user/activity/beta/corporate/workspace/project cohorts, reconciliation-state eligibility, canonical inbox keys, and reach exclusions | P0 | 008 | evaluator parity/reconciliation/denial tests |
+| REQ-010 | One-time and recurring scheduling preserves immutable occurrences, UTC/IANA/local intent, DST policy, series edit/cancel history, next-attempt and scheduler freshness | P0 | 007,009,010 | recurrence/scheduler/date matrix |
 | REQ-011 | Publication is asynchronous, idempotent, chunked, retryable, DLQ-visible, and reconcilable | P0 | 009 | fault injection + hosted queue proof |
 | REQ-012 | Manager shows sent/scheduled/draft/failed/cancelled/expired/retracted history and complete campaign detail | P0 | 007,010 | repository/DOM tests |
 | REQ-013 | Metrics state intended, eligible, excluded, materialized, pending, failed, retried, read, dismiss, ack denominators | P0 | 010 | exact aggregation fixtures |
 | REQ-014 | Cancel/retract/replacement preserve evidence and converge user inbox visibility | P0 | 009,010 | race/reconciliation tests |
-| REQ-015 | Preferences, quiet hours/digest, and mandatory notice overrides have explicit policy | P1 | 008,010 | preference/override tests |
+| REQ-015 | User-owned preference UI/actions, channel/surface defaults, quiet hours/deferred state, digest buckets/jobs, and mandatory overrides are complete and deterministic | P0 | 008,009,010 | action/DOM/scheduler/override tests |
 | REQ-016 | Support adds assignment, priority/SLA, tags, notes, canned replies, escalation, attachment/email boundaries | P1 | 011 | support action/DO/retention tests |
 | REQ-017 | Configuration registry is typed, audited, consumer-linked, and maintenance mode is enforced | P1 | 012 | flag consumer/mutation denial tests |
 | REQ-018 | Audit/security operations use real immutable data, filters, sensitive-read audit, and durable actor history | P0 | 002,003,013 | repository/audit/erasure tests |
@@ -42,7 +42,7 @@
 | --- | --- | --- | --- |
 | SEC-001 | Deny-by-default exact capabilities on every route/action/read/export | 003,016 | role/capability denial matrix |
 | SEC-002 | No raw token, OAuth secret, IP, UA, credential, or unrestricted payload reaches client/log/audit/export | 004,005,006,007,013 | static/runtime redaction scans |
-| SEC-003 | High-risk actions require fresh auth, protected-account floor, reason, rate limit, idempotency, audit | 003,006,007,010 | action/adversarial tests |
+| SEC-003 | High-risk actions require version-proven one-time fresh auth bound to actor/session/action, protected-account floor, reason, rate limit, idempotency, audit | 003,006,007,010 | adapter/action/replay tests |
 | SEC-004 | User/activity/audience reads cannot leak cross-tenant or guessed-ID data | 005,008 | denial tests |
 | SEC-005 | Notification content/rules/queue messages resist injection, tampering, replay, and abuse | 007,008,009 | fuzz/abuse/replay tests |
 | SEC-006 | Admin/audit/user/notification/support data has retention, DSAR, erasure, anonymization, legal-hold contracts | 013 | lifecycle proof |
@@ -54,7 +54,7 @@
 | DATA-001 | Canonical auth identity/profile reconciliation and idempotent repair | 004 | mismatch/repair matrix |
 | DATA-002 | Durable login, authenticated-use heartbeat, product-activity rollups with provenance | 004 | repository/rate-limit tests |
 | DATA-003 | Normalized activity adapters retain source/scope/redaction/retention and cursor stability | 005 | adapter/cursor/partial tests |
-| DATA-004 | Campaign/version/review/run/job/event/preference schema enforces lifecycle integrity | 007,008,009 | migration/domain tests |
+| DATA-004 | Campaign/version/template/schedule-revision/occurrence/review/run/recipient/job/event/preference/digest schema enforces lifecycle integrity | 007,008,009 | migration/domain tests |
 | DATA-005 | Existing definitions/deliveries remain inbox-compatible and legacy broadcasts import honestly | 002,007,010 | integration/backfill tests |
 | DATA-006 | Migration lease, replay, indexes, orphan/invariant scans, fix-forward rollback are complete | 001,016 | migration receipts |
 
@@ -90,7 +90,7 @@
 | signup and last use | docs 02/05 distinguish canonical milestones | covered |
 | full notification manager | docs 06/07, units 007–010 | covered |
 | sent notification history | docs 04/06, REQ-012 | covered |
-| scheduling | docs 06/07, REQ-010 | covered |
+| complete one-time and recurring scheduling | docs 06/07, REQ-010 | covered with occurrence, DST, series edit/cancel, and history contracts |
 | whole-codebase tailored gaps | docs 03/09/13 and specialist evidence | covered |
 | no coding during planning | target-scoped status/inventory and proof boundary show only this new plan folder was written by the planning lane | PASS |
 | conditionally ready, validated pack | exact manifest hashes; one-unit ready slice; downstream packets; plan-pack/planning-suite validators; diff check; sequential architecture and critic repair loops | PASS |

@@ -27,6 +27,15 @@ OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Gemini only if explicitly
 reapproved, and future payloads must map their local capabilities back to that
 shared loop.
 
+The shared validation contract keeps verification mandatory and defaults
+`test_requirement` to `NOT_REQUIRED`. Tests are reserved for explicit
+testing/QA work or MVP mission-critical claims that cheaper evidence cannot
+prove. Target tests narrowly when required; use broad suites, builds, or browser
+proof only for explicit or integrated critical claims. Ordinary edits use the
+cheapest decisive non-test evidence and do not create or run tests. Payloads
+reference this contract; they must not invent always-on TDD, coverage, or broad
+regression gates.
+
 <!-- supermemory-bootstrap: required -->
 All payloads inherit the Supermemory local memory contract from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`. Before meaningful work, run

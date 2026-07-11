@@ -1,7 +1,7 @@
 # Codex Payload
 
 Status: approved
-Primary lane: implementation, refactoring, tests, validation, PR-ready diffs
+Primary lane: implementation, refactoring, task-scoped testing, validation, PR-ready diffs
 Secondary lane: repo audit, release evidence, `.ai` docs execution
 Prohibited lanes: paid actions, unapproved provider/GitHub/Notion mutation, secret handling by chat
 Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
@@ -52,8 +52,9 @@ local edits can use focused file/caller/import checks.
 
 ## Allowed Edit Scope
 
-Codex may edit source, tests, docs, `.ai`, and local config only when the task
-explicitly scopes them and validation is available.
+Codex may edit source, docs, `.ai`, and local config when the task scopes them.
+Test files require an explicit testing/QA task or the shared mission-critical
+test gate.
 
 ## Disallowed Edit Scope
 
@@ -71,12 +72,12 @@ authorized and proven safe.
 
 ## Validation Rules
 
-Use focused checks first. Run `bun run validate`, `bun run build`, and broader
-browser/manual gates for shared, risky, release, auth, database, security, or
-route-wide changes. Minor cosmetic UI edits such as spacing, copy, color, icon,
-or class-only tweaks do not automatically need Playwright/browser proof; use
-static review, focused type/LSP/lint, or nearby component/unit checks when that
-proves the edit. Docs/config-only changes usually need path checks and `git diff --check`.
+Verification is required; `test_requirement` defaults to `NOT_REQUIRED`. Tests
+run only for explicit testing/QA work or an MVP mission-critical claim that
+cheaper evidence cannot prove, and targeted tests come first. Broad suites,
+builds, and browser/manual gates require an explicit request or an integrated
+critical claim. Ordinary edits use focused source/diff/path, type/LSP, lint, or
+other decisive non-test evidence and do not create or run tests.
 For Codex/OpenCode adapter changes, run `bun run validate:agents`; for Codex
 role/config changes also run `codex debug prompt-input` and verify zero stderr.
 

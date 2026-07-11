@@ -76,6 +76,13 @@ Show immutable version, lifecycle timeline, audience rule/snapshot, intended/eli
 - scheduled list includes exact next attempt and freshness;
 - edit after approval creates a new version and requires re-review;
 - cancel and reschedule are explicit state transitions, not field edits.
+- one-time and recurring schedules expose rule summary, next occurrence, schedule revision, series state, DST policy, and bounded upcoming occurrences;
+- edits create a new schedule revision and require an explicit disposition for pending occurrences;
+- cancel/retract controls require an explicit scope: this occurrence, remaining series, or all materialized occurrences where permitted.
+
+### Templates and Preferences
+
+Templates have searchable active/archived lists, immutable version history, allowed-variable schemas, preview, duplicate, archive, and provenance into campaigns; they cannot be sent directly. Admin Preferences/Policy shows defaults, mandatory classes, quiet-hours/digest behavior, and configuration health. End users own their choices at `/settings/notifications`, with accessible channel/kind toggles, time zone, quiet hours, and digest cadence plus disabled/unavailable states.
 
 ## Interaction Safety
 

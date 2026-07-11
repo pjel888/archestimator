@@ -69,7 +69,10 @@ chooses isolation or the risk/parallelism justifies it.
 
 ## Validation Rules
 
-Docs-only: path checks and `git diff --check`. Config changes require the
+Apply the shared `NOT_REQUIRED`-by-default test gate: ordinary edits use decisive
+non-test evidence, while tests or broad/browser gates require explicit testing
+scope or an integrated MVP mission-critical claim. Docs-only changes use path
+checks and `git diff --check`. Config changes require the
 official/installed validation command for that tool plus repo checks. For
 OpenCode config changes, use the documented repo-root `opencode.json` for
 project configuration. Reserve `.opencode/` for intentionally authored OpenCode

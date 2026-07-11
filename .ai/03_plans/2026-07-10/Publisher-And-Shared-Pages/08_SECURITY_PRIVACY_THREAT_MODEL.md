@@ -99,11 +99,18 @@ and `TEST-029` include static zero-consumer checks for AC-047. Historical migrat
 
 ## SEC-008 - Manager Preview Authorization
 
-The preview URL is `/workshop/publisher/preview/[projectId]`. The server component
-performs this sequence for every render:
+The preview URL is `/workshop/publisher/preview/[projectId]` — a **new** route
+created by PLANNED `UNIT-014`; it does not exist in current source. The target
+contract is that the new server component performs this sequence for every render:
 
 1. Resolve the current Better Auth user context.
-2. Run `assertProjectPublicationManager` for the route `projectId`.
+2. Run `assertProjectPublicationManager` for the route `projectId`. Current
+   source defines this guard at `src/lib/publication/actions.ts:394` as a
+   private mutation-side helper that checks `requireCurrentUserContext()`,
+   project existence, and an `actorRank >= managerRank (30)` gate. UNIT-014
+   must make it importable into the preview route module (export or extract to
+   a shared publication authorization helper) and re-verify the rank/workspace
+   logic against D1-backed data before relying on it for read-time RBAC.
 3. Load the current publication and sanitized snapshot server-side.
 4. Render the existing recipient presentation in explicit read-only preview mode.
 5. Disable or omit comment and decision mutations and show a persistent preview

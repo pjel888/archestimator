@@ -1,6 +1,6 @@
 # Agent Self-Diagnostic Protocol
 
-**Date:** 2026-05-25
+**Date:** 2026-07-11
 **Status:** Active quality-control protocol for Archestimator agents.
 
 ## Why this exists
@@ -41,28 +41,24 @@ Do this before further planning or coding:
    - `git status --short --branch`
    - `git branch --show-current`
    - inspect changed files before editing any already-modified file.
-2. Read the active source-of-truth chain:
-   - `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`
-   - `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
-   - `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
-   - `.ai/00_system/VALIDATION_MATRIX.md`
-   - `.ai/README.md`
-   - `.ai/10_state/current-state.md`
-   - `.ai/10_state/decisions.md`
-   - `.ai/10_state/known-issues.md`
-   - relevant active plan/spec only after the current-state docs are read.
+2. Re-read `AGENTS.md` and only the FAST PATH block at the top of
+   `.ai/10_state/current-state.md`. Use `DOCS_SOURCE_OF_TRUTH.md` to pull the
+   narrow protocol, decision, issue, plan, or spec that the failure actually
+   touches; do not linear-read append-only history.
 3. For whole-codebase, roadmap, architecture, or docs-sync work, gather fresh evidence before acting:
    - code-review graph/GitNexus overview or query when available;
    - current `src/app` route tree;
    - current package scripts and major dependencies;
-   - current `supabase/migrations` list;
-   - current focused test files for the affected feature.
+   - active `wrangler.jsonc` bindings and current `./migrations/` list when data
+     or provider facts matter;
+   - current evidence surfaces, and test files only when the test gate resolves
+     to `TARGETED`, `BROADER`, or `TEST_TASK`.
 4. State the task frame internally before acting:
    - goal;
    - non-goals;
    - current active branch;
    - files likely touched;
-   - validation command(s);
+   - `test_requirement`, validation evidence, and command(s) when needed;
    - stop conditions.
 5. Reduce scope:
    - choose the smallest useful change;
@@ -80,7 +76,8 @@ Do this before further planning or coding:
 - Summarize old material as `historical context`, not active instruction, unless current-state docs point to it.
 - Do not continue from a long degraded session for implementation work; start a fresh session or delegate to an isolated builder with a concise brief.
 - Do not let a model-specific skill override repo-local `.ai` source-of-truth docs.
-- Do not trust memory-derived route, feature, Supabase, AI, or package facts without a cheap current-file check.
+- Do not trust memory-derived route, feature, provider, AI, or package facts
+  without a cheap current-file check.
 
 ## When modifying `.ai` docs
 
