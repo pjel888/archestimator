@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Copy, Eye, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -12,21 +12,17 @@ type ShareLinkDisplayProps = {
   previewHref?: string;
 };
 
-function readAbsoluteClientLink(clientLinkPath: string) {
-  if (/^https?:\/\//i.test(clientLinkPath)) return clientLinkPath;
-  if (typeof window === "undefined") return clientLinkPath;
-  return new URL(clientLinkPath, window.location.origin).toString();
+function subscribeToBrowserState() {
+  return () => undefined;
 }
 
 export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: ShareLinkDisplayProps) {
   const [message, setMessage] = useState<string | null>(null);
-  const [absoluteLink, setAbsoluteLink] = useState(clientLinkPath);
-  const [nativeShareAvailable, setNativeShareAvailable] = useState(false);
-
-  useEffect(() => {
-    setAbsoluteLink(readAbsoluteClientLink(clientLinkPath));
-    setNativeShareAvailable(typeof navigator.share === "function");
-  }, [clientLinkPath]);
+  const browserOrigin = useSyncExternalStore(subscribeToBrowserState, () => window.location.origin, () => null);
+  const nativeShareAvailable = useSyncExternalStore(subscribeToBrowserState, () => typeof navigator.share === "function", () => false);
+  const absoluteLink = /^https?:\/\//i.test(clientLinkPath) || !browserOrigin
+    ? clientLinkPath
+    : new URL(clientLinkPath, browserOrigin).toString();
 
   async function copyLink() {
     try {
@@ -63,7 +59,7 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
         className="w-full rounded-xs border border-divider bg-white px-2 py-2 text-[11px] leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       />
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <Button type="button" variant="primary" size="sm" className="min-h-11 sm:min-h-8" aria-label={`Copy shared link for ${projectName}`} onClick={() => void copyLink()}>
+        <Button type="button" variant="primary" size="sm" className="min-h-11 sm:min-h-8" onClick={() => void copyLink()}>
           <Copy size={14} aria-hidden="true" />
           Copy
         </Button>

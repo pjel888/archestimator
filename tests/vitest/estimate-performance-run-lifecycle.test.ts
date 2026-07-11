@@ -6,6 +6,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   RUN_MANIFEST_SCHEMA,
+  defaultRunRoot,
+  replaceFileAtomically,
+  sha256File,
   sha256Hex,
   validateRunManifest,
   writeNoOverwrite,
@@ -80,5 +83,30 @@ describe("estimate-sheet performance run lifecycle contract", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
-});
 
+  it("stores immutable runs beneath the plan runtime evidence root", () => {
+    const repoRoot = join(tmpdir(), "estimate-sheet-repo");
+    expect(defaultRunRoot(repoRoot)).toBe(join(
+      repoRoot,
+      ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs",
+    ));
+  });
+
+  it("atomically replaces only the expected registered bytes", () => {
+    const root = mkdtempSync(join(tmpdir(), "estimate-sheet-replace-"));
+    const target = join(root, "projection.json");
+    try {
+      writeNoOverwrite(target, "stale\n", 0o644);
+      const staleSha256 = sha256File(target);
+      const currentSha256 = replaceFileAtomically(target, "current\n", staleSha256, 0o644);
+      expect(currentSha256).toBe(sha256Hex("current\n"));
+      expect(readFileSync(target, "utf8")).toBe("current\n");
+
+      expect(() => replaceFileAtomically(target, "unexpected\n", staleSha256, 0o644))
+        .toThrow(/current hash mismatch/);
+      expect(readFileSync(target, "utf8")).toBe("current\n");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

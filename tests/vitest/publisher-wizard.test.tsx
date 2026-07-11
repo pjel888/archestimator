@@ -48,6 +48,31 @@ const row: ProjectPublicationRosterRow = {
   workspaceId: "workspace-1",
 };
 
+function createPublisherSummary(overrides: Record<string, unknown> = {}) {
+  return {
+    canManagePublication: true,
+    clientLinkPath: "/share/token",
+    expiresAt: null,
+    latestActivityAt: null,
+    latestOpenedAt: null,
+    latestRecipientOpen: null,
+    locationVisibility: "locality",
+    openCount: 0,
+    passwordRequired: false,
+    projectId: "project-1",
+    publicationId: "publication-1",
+    publishedAt: "2026-07-11T00:00:00.000Z",
+    selectedEstimateCount: 1,
+    selectedEstimateIds: ["estimate-1"],
+    snapshotVersion: 1,
+    staleSnapshotWarning: null,
+    status: "published",
+    tokenCopyAvailable: true,
+    workspaceId: "workspace-1",
+    ...overrides,
+  };
+}
+
 function renderWizard(overrides: Partial<React.ComponentProps<typeof ShareWizard>> = {}) {
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
@@ -102,7 +127,7 @@ describe("ShareWizard", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /next/i })).not.toBeDisabled());
     fireEvent.click(await screen.findByRole("button", { name: /next/i }));
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
-    fireEvent.click(screen.getByRole("button", { name: /update link/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Share" }));
 
     await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
       clearPassword: true,
@@ -122,8 +147,52 @@ describe("ShareWizard", () => {
     });
     renderWizard({ row: { ...row, publicationId: null, status: "unpublished" } });
 
-    expect(await screen.findByText("Add an estimate before generating a shared link.")).toBeInTheDocument();
+    expect(await screen.findByText("Add an estimate before sharing this project.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+  });
+
+  it("keeps an existing password unless the user removes it", async () => {
+    drawerActionMocks.readPublisherPublicationDrawerData.mockResolvedValueOnce({
+      collaborationSummary: null,
+      currentUserEmail: "owner@example.test",
+      estimateSheets: [{ id: "estimate-1", name: "Base", sheetCode: "E-1" }],
+      summary: createPublisherSummary({ passwordRequired: true }),
+    });
+    renderWizard({ initialStep: 3, row: { ...row, passwordRequired: true } });
+
+    const shareButton = await screen.findByRole("button", { name: "Share" });
+    await waitFor(() => expect(shareButton).not.toBeDisabled());
+    fireEvent.click(shareButton);
+
+    await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
+      clearPassword: false,
+      password: undefined,
+      projectId: "project-1",
+      selectedEstimateIds: ["estimate-1"],
+    }));
+  });
+
+  it("treats an empty saved estimate scope as all estimates", async () => {
+    drawerActionMocks.readPublisherPublicationDrawerData.mockResolvedValueOnce({
+      collaborationSummary: null,
+      currentUserEmail: "owner@example.test",
+      estimateSheets: [
+        { id: "estimate-1", name: "Base", sheetCode: "E-1" },
+        { id: "estimate-2", name: "Alternate", sheetCode: "E-2" },
+      ],
+      summary: createPublisherSummary({ selectedEstimateCount: 0, selectedEstimateIds: [] }),
+    });
+    renderWizard({ initialStep: 3 });
+
+    expect(await screen.findByText("2 of 2")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+
+    await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
+      clearPassword: true,
+      password: undefined,
+      projectId: "project-1",
+      selectedEstimateIds: ["estimate-1", "estimate-2"],
+    }));
   });
 });
 

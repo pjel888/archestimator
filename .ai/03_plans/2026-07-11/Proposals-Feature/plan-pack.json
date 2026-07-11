@@ -1005,11 +1005,13 @@
         "REQ-006",
         "REQ-007",
         "REQ-008",
+        "REQ-009",
         "REQ-010",
         "UX-001",
         "UX-002",
         "SEC-001",
         "DATA-001",
+        "DATA-002",
         "OPS-001"
       ],
       "artifact_path": "01_AUDIT_AND_CURRENT_STATE.md",
@@ -1281,5 +1283,5 @@
     }
   ],
   "updated_at": "2026-07-11T00:00:00.000Z",
-  "manifest_sha256": "b59bd6eb010a73b25635cb9c3e6cd9d98391a5603a2042fa235823d758e33008"
+  "manifest_sha256": "050bd105ffd79e2f697e4b5e3ff9de6ab7ef1691d2665e6640c39c40f88f8718"
 }

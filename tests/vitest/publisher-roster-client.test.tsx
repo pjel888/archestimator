@@ -289,11 +289,12 @@ describe("PublisherRosterClient", () => {
     renderPublisherRosterClient();
 
     const tableView = screen.getByRole("table", { name: "Shared link manager roster" }).closest("div.rounded-xs");
-    const cardView = screen.getAllByText("Lewis Residence")
+    const cardGrid = screen.getAllByText("Lewis Residence")
       .map((element) => element.closest("div.grid-cols-2"))
-      .find((element) => element?.className.includes("xl:grid-cols-3"));
+      .find((element) => element?.className.includes("xl:grid-cols-2"));
+    const cardView = cardGrid?.parentElement;
 
-    expect(cardView).toHaveClass("min-[768px]:grid");
+    expect(cardView).toHaveClass("min-[768px]:block");
     expect(tableView).toHaveClass("min-[768px]:hidden");
 
     fireEvent.click(screen.getByRole("button", { name: "Table" }));
@@ -358,7 +359,7 @@ describe("PublisherRosterClient", () => {
     });
 
     expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Access" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Team access" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("publisher-project-members-panel")).toHaveTextContent("Access for project-active");
   });
 

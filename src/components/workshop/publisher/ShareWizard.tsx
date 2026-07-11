@@ -33,7 +33,6 @@ export function ShareWizard({ initialStep, onOpenChange, open, row }: ShareWizar
   const [password, setPassword] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
-  const initializedPasswordProjectRef = useRef<string | null>(null);
   const drawer = usePublisherDrawer(row?.projectId ?? null, open);
   const summary = drawer.data?.summary;
   const estimates = drawer.data?.estimateSheets ?? [];
@@ -45,25 +44,6 @@ export function ShareWizard({ initialStep, onOpenChange, open, row }: ShareWizar
   const hasEstimates = estimates.length > 0;
   const canGenerate = Boolean(canManage && hasEstimates && selectedEstimateIds.length > 0 && !drawer.isMutating);
   const clientLinkPath = summary?.clientLinkPath;
-
-  useEffect(() => {
-    if (!open) {
-      initializedPasswordProjectRef.current = null;
-      return;
-    }
-    setStep(clampStep(initialStep));
-    setFeedback(null);
-    setPasswordRequired(Boolean(row?.passwordRequired));
-    setPassword("");
-    setSelectedEstimateIdsOverride(null);
-    initializedPasswordProjectRef.current = null;
-  }, [initialStep, open, row?.passwordRequired, row?.projectId]);
-
-  useEffect(() => {
-    if (!open || !row || !summary || initializedPasswordProjectRef.current === row.projectId) return;
-    setPasswordRequired(Boolean(summary.passwordRequired));
-    initializedPasswordProjectRef.current = row.projectId;
-  }, [open, row, summary]);
 
   useEffect(() => {
     if (!open) return;
