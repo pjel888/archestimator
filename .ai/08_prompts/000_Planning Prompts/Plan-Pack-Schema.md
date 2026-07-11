@@ -368,6 +368,15 @@ Represent implementation units as a directed acyclic graph:
 
 ### H. Verification And Adversarial QA
 
+- **User Test Authorization Gate (supreme rule).** No criterion authorizes
+  creating, expanding, repairing, or running a test on the agent's own
+  authority. `TARGETED`, `BROADER`, `MVP_CRITICAL_INVARIANT`, and
+  `CHEAPEST_DECISIVE_EXISTING_TEST` identify a risk that would benefit from a
+  test; they require a `TEST_PROPOSAL` field (named risk + exact command) on the
+  criterion and do **not** authorize execution. Only `TEST_TASK` plus
+  `EXPLICIT_TEST_TASK` — an explicit user testing request — authorizes test
+  execution. The plan records this distinction so the executing agent never
+  auto-runs tests.
 - Acceptance criteria are observable and falsifiable.
 - Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, `test_trigger` as `NONE`, `EXPLICIT_TEST_TASK`, `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`, and a substantive `test_rationale` explaining why cheaper evidence is or is not sufficient. `NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`; `TEST_TASK` maps only to `EXPLICIT_TEST_TASK`; `TARGETED` maps only to `MVP_CRITICAL_INVARIANT` or `CHEAPEST_DECISIVE_EXISTING_TEST`; `BROADER` maps only to `MVP_CRITICAL_INVARIANT`; `MVP_CRITICAL_INVARIANT` rationale names the critical invariant and why cheaper evidence is insufficient; `CHEAPEST_DECISIVE_EXISTING_TEST` selects exactly one already-existing focused test, binds its path/command/baseline hash through the `TEST-*` record, and permits no test creation, expansion, repair, deletion, or skip.
 - `BROADER` rationale must state why targeted evidence is insufficient. The

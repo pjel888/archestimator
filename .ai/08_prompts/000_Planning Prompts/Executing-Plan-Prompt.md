@@ -137,15 +137,19 @@ For each ready unit:
    than reimplementing it.
 4. Resolve any new decision autonomously and record/update `DEC-AUTO-*`.
 5. Confirm the criterion's `test_requirement`, `test_trigger`, and
-   `test_rationale` before behavior edits:
+   `test_rationale` before behavior edits. The **User Test Authorization Gate**
+   is supreme: only `TEST_TASK` plus an explicit user request authorizes test
+   execution; every other decision uses non-test evidence:
    - `NOT_REQUIRED` by default: do not create or run tests; select the cheapest
      decisive source/diff/path/static/type/lint/dry-run/runtime evidence;
-   - `TARGETED`: run the smallest test proving the named MVP-critical invariant,
-     or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` when
-     it is cheaper and more decisive than non-test evidence; do not edit tests
-     under that trigger;
-   - `BROADER`: name why targeted proof cannot cover the integrated boundary;
-   - `TEST_TASK`: implement only the requested testing/QA scope.
+   - `TARGETED`: identifies a named MVP-critical invariant (or one existing
+     focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`) that would benefit
+     from a test, but **authorizes a `TEST_PROPOSAL` only, not execution** —
+     record the named risk + exact command and continue with non-test evidence;
+   - `BROADER`: identifies an integrated boundary that targeted proof cannot
+     cover; **authorizes a `TEST_PROPOSAL` only, not execution**;
+   - `TEST_TASK`: implement only the requested testing/QA scope, and only when
+     the user has explicitly authorized testing for this task.
 6. Implement the smallest coherent slice using current patterns. Add no
    dependency unless higher-priority authority explicitly permits it and current
    surfaces cannot satisfy the requirement. Add an abstraction only when the
@@ -187,9 +191,12 @@ the entire plan.
 
 After all implementation units are integrated:
 
-1. Reconcile every criterion's test decision. Run selected `TARGETED`/
-   `TEST_TASK` tests; run a broader suite/build only for `BROADER` with the exact
-   integrated critical claim recorded. Run no tests for `NOT_REQUIRED`.
+1. Reconcile every criterion's test decision under the **User Test
+   Authorization Gate.** Run tests only for `TEST_TASK` when the user has
+   explicitly authorized testing for this task. `TARGETED` and `BROADER`
+   decisions identify a risk that would benefit from a test but do **not**
+   authorize execution — surface them as a `TEST_PROPOSAL` (named risk + exact
+   command) in the report and continue with non-test evidence. Run no tests for `NOT_REQUIRED`.
 2. Run the declared performance evaluator when performance is claimed.
 3. Run targeted browser proof only for browser-only interaction/routing/session/
    focus/responsive/visual claims.

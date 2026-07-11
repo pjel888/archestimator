@@ -124,11 +124,20 @@ is unclear, authorization is client-only, or denial evidence is missing.
 
 ## GATE-VERIFY-01: Evidence, Critical Tests, And Failure Semantics
 
-**Triggers:** explicit testing/QA/coverage/reproduction work; an MVP-critical
+**Supreme rule — User Test Authorization Gate.** Do not create, expand, repair,
+or run any automated test, test suite, build-as-test-gate, browser automation,
+or broad validation gate unless the user has explicitly requested testing for
+the current task. The user is the only authority who authorizes test execution;
+a critical risk, high blast radius, nearby test, or agent judgment never
+authorizes running tests. When tests seem warranted, record a `TEST_PROPOSAL`
+(named risk + exact command) and wait.
+
+**Triggers (identify risk; do not authorize execution):** explicit
+testing/QA/coverage/reproduction work; an MVP-critical
 auth/security/privacy, D1/data-integrity, estimate/money/proposal,
 release/observability, or shared-contract risk; or a changed sensitive failure
 path whose correctness cheaper evidence cannot establish; or one existing
-focused test that is demonstrably the cheapest decisive proof.
+focused test that would be the cheapest decisive proof.
 
 Require:
 
@@ -137,29 +146,32 @@ Require:
   evidence destination.
 - `NOT_REQUIRED` by default, with no test creation or execution. Use source,
   diff, path/reference, static/type/lint, dry-run, or narrow runtime evidence.
-- `TEST_TASK` plus `EXPLICIT_TEST_TASK` for explicit testing/QA/coverage/
-  reproduction/regression output; do not map that request to `TARGETED`.
-- `TARGETED` plus `MVP_CRITICAL_INVARIANT` only when cheaper evidence cannot
-  prove a named critical invariant.
-- `CHEAPEST_DECISIVE_EXISTING_TEST` selects only one already-existing focused
-  test under `TARGETED`; its rationale must compare cheaper evidence and it
-  permits no test creation, expansion, repair, deletion, or skip.
-- When tests are required, the smallest decisive test first; use broader suites,
-  builds, browsers, or adversarial matrices only when the integrated critical
-  claim cannot be proved more cheaply.
+- `TEST_TASK` plus `EXPLICIT_TEST_TASK` only when the user has explicitly
+  requested testing/QA/coverage/reproduction/regression output; this is the
+  only decision that authorizes test execution. Do not map an explicit request
+  to `TARGETED`.
+- `TARGETED` plus `MVP_CRITICAL_INVARIANT` identifies a named critical invariant
+  cheaper evidence cannot prove, but **authorizes a `TEST_PROPOSAL` only, not
+  test execution.** Likewise `CHEAPEST_DECISIVE_EXISTING_TEST` identifies one
+  already-existing focused test under `TARGETED` that would be decisive, but it
+  does not authorize running it; record a `TEST_PROPOSAL` and wait. Neither
+  trigger permits test creation, expansion, repair, deletion, or skip on the
+  agent's own authority.
+- When the user has authorized tests, the smallest decisive test first; use
+  broader suites, builds, browsers, or adversarial matrices only when the
+  integrated critical claim cannot be proved more cheaply.
 - Happy, nil/missing, invalid/boundary, denied, timeout/cancel, concurrent,
   retry/idempotency, partial-success, stale/degraded, and recovery cases as
   applicable to the selected evidence, not as a universal matrix.
 - Structured safe errors and logging; no swallowed sensitive-path failures or
   unredacted secret/customer data; operator and user recovery behavior.
-- For selected tests: isolation, deterministic fixtures/clock/randomness,
+- For authorized tests: isolation, deterministic fixtures/clock/randomness,
   cleanup, expected failure signal, and expected pass signal.
 - Required repository error-handling gates for touched sensitive surfaces.
 
 Hard fail: a changed sensitive failure path is unobservable or silently
-swallowed; a required test is absent/skipped; or tests are demanded without an
-explicit trigger, named MVP-critical invariant, or evidenced existing-test
-exception.
+swallowed; tests are created or run without explicit user authorization; or a
+recorded `TEST_PROPOSAL` is missing the named risk or exact command.
 
 ## GATE-PERF-01: Performance, Scalability, And Reliability
 
