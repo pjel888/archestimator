@@ -183,11 +183,13 @@ arbitrary readiness caps or fabricated independence.
 The final verifier is read-only and cannot edit, waive gates, change statuses,
 or promote/archive a plan pack.
 
-When an explicit task or implicated MVP-critical risk selects adversarial QA, it
+When an explicit user-authorized testing task selects adversarial QA, it
 tries to disprove objective fidelity, authz/data/privacy,
 concurrency/retry/idempotency, stale/degraded behavior, accessibility,
 performance, recovery, parallel safety, evidence class, and completion. Every
-non-clean P0/P1/material P2 reopens the responsible DAG node.
+non-clean P0/P1/material P2 reopens the responsible DAG node. An implicated
+MVP-critical risk alone does not authorize adversarial QA execution — it
+authorizes a `TEST_PROPOSAL` only.
 
 ## 9. Completion Audit
 
