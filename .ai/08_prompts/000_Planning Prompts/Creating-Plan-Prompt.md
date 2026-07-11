@@ -99,8 +99,10 @@ Build:
 - known-unknown and assumption inventory;
 - affected route/file/symbol/data/provider/operations map;
 - direct/transitive blast-radius and compatibility map;
-- existing evidence, known-red inventory, and tests only when relevant to a
-  selected `TARGETED`, `BROADER`, or `TEST_TASK` decision.
+- existing evidence, known-red inventory, and tests only when an explicit user
+  testing request (`TEST_TASK`) makes them relevant; `TARGETED`/`BROADER`
+  identify a risk but do not authorize test execution under the User Test
+  Authorization Gate.
 
 ## Phase 3: Capability And Workstream Routing
 
@@ -125,12 +127,16 @@ reassign, change tool, or complete locally. Never fabricate independence.
    Explicit user/system deliverables and evidence required to prove a core criterion remain `CORE`;
    mixed core/aux links are core.
 3. Classify each criterion's `test_requirement`, `test_trigger`, and
-   `test_rationale`. Default to `NOT_REQUIRED` plus `NONE` and forbid test
-   creation/execution unless the task explicitly requests testing, a named
-   MVP-critical invariant cannot be proved more cheaply, or one already-existing
-   focused test is demonstrably the cheapest decisive proof. The existing-test
-   exception permits exactly one run and no test creation, expansion, repair,
-   deletion, skip, or TDD workflow.
+   `test_rationale`. Default to `NOT_REQUIRED` plus `NONE`. Under the **User Test
+   Authorization Gate**, forbid test creation/execution on the agent's own
+   authority in every case. Map an explicit user testing request to `TEST_TASK`
+   plus `EXPLICIT_TEST_TASK` (the only execution trigger). Map a named
+   MVP-critical invariant that cannot be proved more cheaply to `TARGETED` plus
+   `MVP_CRITICAL_INVARIANT`, or one already-existing focused test that is
+   demonstrably the cheapest decisive proof to `CHEAPEST_DECISIVE_EXISTING_TEST`
+   — both authorize a **`TEST_PROPOSAL` only** (named risk + exact command),
+   never execution; the plan records the proposal so the executing agent waits
+   for explicit user authorization before running anything.
 4. For each changed boundary, map the applicable negative paths, such as missing,
    invalid, unauthorized, concurrent, retry, partial-failure, and recovery states.
 5. Resolve conflicts and every material internal choice through the kernel's
