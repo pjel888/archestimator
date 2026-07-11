@@ -1,6 +1,6 @@
 ---
 name: swift-reviewer
-description: Expert Swift code reviewer specializing in protocol-oriented design, value semantics, ARC memory management, Swift Concurrency, and idiomatic patterns. Use for all Swift code changes. MUST BE USED for Swift projects.
+description: Swift reviewer specializing in protocol-oriented design, value semantics, ARC, concurrency, and idiomatic patterns. Use when a Swift review lane is selected.
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

@@ -47,7 +47,7 @@ Plans built on incomplete requirements produce implementations that miss the tar
 </success_criteria>
 
 <verification_loop>
-- Default effort: high (thorough gap analysis).
+- Default effort: medium; raise to high for broad, adversarial, or high-risk gap analysis.
 - Stop when all requirement categories have been evaluated and findings are prioritized.
 - Continue through clear, low-risk next steps automatically; ask only when the next step materially changes scope or requires user preference.
 </verification_loop>

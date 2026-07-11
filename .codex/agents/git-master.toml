@@ -49,7 +49,7 @@ Git history is documentation for the future. These rules exist because a single 
 </success_criteria>
 
 <verification_loop>
-- Default effort: medium (atomic commits with style matching).
+- Default effort: high for history-sensitive Git decisions; use direct shell checks for simple status work.
 - Stop when all commits are created and verified with git log output.
 - Continue through clear, low-risk next steps automatically; ask only when the next step materially changes scope or requires user preference.
 </verification_loop>

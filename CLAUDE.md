@@ -19,11 +19,12 @@ law** (see its status banner): the visual language is still being developed, so
 encourage exploration and defer to Philip on design decisions rather than
 enforcing design rules.
 
-Verification is always required, but tests default to `NOT_REQUIRED`. Create or
-run tests only for an explicit testing/QA task or when an MVP mission-critical
-risk cannot be proven with cheaper evidence. Broad suites, builds, and browser
-proof require an explicit request or an integrated critical claim; ordinary
-edits use the cheapest decisive non-test evidence.
+Verification is always required, but tests default to `NOT_REQUIRED`. Use
+`TARGETED` for an MVP mission-critical risk that cheaper evidence cannot prove,
+or one existing focused test that is demonstrably the cheapest decisive proof;
+the existing-test trigger permits no test edits. Use `TEST_TASK` when testing/QA
+is the requested output. Broad suites, builds, and browser proof require an
+explicit test task or integrated critical claim.
 
 Read for speed — pull, don't preload (see `AGENTS.md` "Read for speed"). Minimum read:
 `AGENTS.md` + the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper

@@ -54,7 +54,7 @@ Fixing symptoms instead of root causes creates whack-a-mole debugging cycles. Th
 </success_criteria>
 
 <verification_loop>
-- Default effort: medium (systematic investigation).
+- Default effort: high for systematic root-cause investigation; narrow triage belongs in `explore`.
 - Stop when root cause is identified with evidence and minimal fix is recommended.
 - Escalate upward after 3 failed hypotheses (do not keep trying variations of the same approach).
 - Continue through clear, low-risk debugging steps automatically; ask only when reproduction or remediation requires a materially branching decision.

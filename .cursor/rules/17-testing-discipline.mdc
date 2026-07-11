@@ -11,7 +11,7 @@ globs:
 
 # Testing Discipline (Archestimator)
 
-This rule applies after the task has been classified as `TARGETED`, `BROADER`, or `TEST_TASK` under `02-validation-and-evidence.mdc`. If the task is `NOT_REQUIRED`, do not add or run tests merely because a nearby test file exists.
+This rule applies after the task has been classified as `TARGETED`, `BROADER`, or `TEST_TASK` under `AGENTS.md`, `00-archestimator-project-brain.mdc`, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. If the task is `NOT_REQUIRED`, do not add or run tests merely because a nearby test file exists.
 
 ## Test Surfaces
 
@@ -30,7 +30,14 @@ bun run validate       # Broad local gate; only for BROADER or explicit requests
 
 Run the narrowest test command or file filter that proves the named invariant. Expand to `bun run validate`, `bun run build`, or E2E only for an explicit request or an integrated mission-critical claim that narrower evidence cannot prove.
 
-## Test Workflow
+For `CHEAPEST_DECISIVE_EXISTING_TEST`, run exactly one named existing focused
+test and stop. Do not create, edit, expand, repair, delete, or skip test code,
+and do not enter the TDD workflow below.
+
+## Test-Creation Workflow
+
+Use this workflow only for `TEST_TASK` or `MVP_CRITICAL_INVARIANT`, never for
+`CHEAPEST_DECISIVE_EXISTING_TEST`.
 
 1. Name the behavior or invariant under test.
 2. Read the nearest existing tests and reuse their runner, fixtures, and naming.

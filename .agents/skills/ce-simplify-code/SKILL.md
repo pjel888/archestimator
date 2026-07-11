@@ -22,7 +22,7 @@ If none of the above produces a non-empty scope, stop and ask the user what to s
 
 Spawn the three reviewer agents below in a single message via the platform's subagent dispatch primitive — `Agent`/`Task` in Claude Code, `spawn_agent` in Codex, `subagent` in Pi via the `pi-subagents` extension. Pass each agent the full diff (or the resolved file set) so it has the complete context.
 
-**Model selection.** Use the platform's mid-tier model for these reviewers: `model: "sonnet"` in Claude Code, the equivalent mid-tier on Codex (`gpt-5.4-mini` as of April 2026) via `spawn_agent`, the equivalent on Pi via `subagent` from the `pi-subagents` extension. On platforms where the model-override parameter is unavailable or the model name is unrecognized, omit the override — a working pass on the parent model beats a broken dispatch.
+**Model selection.** Use the platform's configured mid-tier route for these reviewers: `model: "sonnet"` in Claude Code, the current repository role-matrix route in Codex via `spawn_agent`, and the configured equivalent in Pi via `subagent` from the `pi-subagents` extension. Do not hardcode a dated Codex model alias. When the model-override parameter is unavailable, the role matrix is unavailable, or the model name is unrecognized, omit the override so the pass inherits the working session model.
 
 **Permission mode.** Omit the `mode` parameter on the dispatch call so the user's configured permission settings apply.
 

@@ -1,6 +1,6 @@
 ---
 name: opensource-sanitizer
-description: Verify an open-source fork is fully sanitized before release. Scans for leaked secrets, PII, internal references, and dangerous files using 20+ regex patterns. Generates a PASS/FAIL/PASS-WITH-WARNINGS report. Second stage of the opensource-pipeline skill. Use PROACTIVELY before any public release.
+description: Verify an open-source fork is sanitized before release. Scans for secrets, PII, internal references, and dangerous files and reports PASS, FAIL, or PASS-WITH-WARNINGS when the release-sanitization stage is selected.
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

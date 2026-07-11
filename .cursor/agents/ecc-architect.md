@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Software architecture specialist for system design, scalability, and technical decision-making. Use PROACTIVELY when planning new features, refactoring large systems, or making architectural decisions.
+description: Software architecture specialist for system design, scalability, and technical decisions. Use for an explicit architecture lane or a material cross-boundary tradeoff.
 tools: ["Read", "Grep", "Glob"]
 model: opus
 ---
@@ -117,37 +117,33 @@ For each design decision, document:
 For significant architectural decisions, create ADRs:
 
 ```markdown
-# ADR-001: Use Redis for Semantic Search Vector Storage
+# ADR-001: Coordinate collaboration state in a Durable Object
 
 ## Context
-Need to store and query 1536-dimensional embeddings for semantic market search.
+Concurrent editors need ordered room state and WebSocket fan-out without
+creating a second authority for durable estimate data.
 
 ## Decision
-Use Redis Stack with vector search capability.
+Use the existing room Durable Object for connection coordination and keep
+durable business records behind the D1 repository boundary.
 
 ## Consequences
 
 ### Positive
-- Fast vector similarity search (<10ms)
-- Built-in KNN algorithm
-- Simple deployment
-- Good performance up to 100K vectors
+- one ordered coordinator per room
+- existing Worker bindings and deployment substrate
+- durable data access remains centralized in repositories
 
 ### Negative
-- In-memory storage (expensive for large datasets)
-- Single point of failure without clustering
-- Limited to cosine similarity
+- reconnect and replay behavior must be explicit
+- room and database state have different lifecycles
 
 ### Alternatives Considered
-- **PostgreSQL pgvector**: Slower, but persistent storage
-- **Pinecone**: Managed service, higher cost
-- **Weaviate**: More features, more complex setup
+- client-only presence: insufficient ordering and fan-out guarantees
+- direct writes from every socket: duplicates authorization and persistence logic
 
 ## Status
 Accepted
-
-## Date
-2025-01-15
 ```
 
 ## System Design Checklist
@@ -192,29 +188,24 @@ Watch for these architectural anti-patterns:
 - **Tight Coupling**: Components too dependent
 - **God Object**: One class/component does everything
 
-## Project-Specific Architecture (Example)
+## Archestimator Architecture
 
-Example architecture for an AI-powered SaaS platform:
+Verify details from `AGENTS.md`, `package.json`, `wrangler.jsonc`, and current
+source before making a recommendation.
 
-### Current Architecture
-- **Frontend**: Next.js 15 (Vercel/Cloud Run)
-- **Backend**: FastAPI or Express (Cloud Run/Railway)
-- **Database**: PostgreSQL (Supabase)
-- **Cache**: Redis (Upstash/Railway)
-- **AI**: Claude API with structured output
-- **Real-time**: Supabase subscriptions
+### Current Boundaries
+- **Application**: Next.js 16 + React 19, deployed through OpenNext on Cloudflare Workers
+- **Data**: D1 through repository modules and application-layer authorization predicates
+- **Storage/media**: R2 and Cloudflare Images through bound server-side adapters
+- **Realtime coordination**: Durable Objects for collaboration, presence, and support rooms
+- **Background work**: Queues and cron handlers defined by `wrangler.jsonc`
+- **Authentication**: Better Auth backed by D1
 
-### Key Design Decisions
-1. **Hybrid Deployment**: Vercel (frontend) + Cloud Run (backend) for optimal performance
-2. **AI Integration**: Structured output with Pydantic/Zod for type safety
-3. **Real-time Updates**: Supabase subscriptions for live data
-4. **Immutable Patterns**: Spread operators for predictable state
-5. **Many Small Files**: High cohesion, low coupling
-
-### Scalability Plan
-- **10K users**: Current architecture sufficient
-- **100K users**: Add Redis clustering, CDN for static assets
-- **1M users**: Microservices architecture, separate read/write databases
-- **10M users**: Event-driven architecture, distributed caching, multi-region
+### Design Constraints
+1. Keep authorization at server and repository boundaries; client state is not authority.
+2. Use Durable Objects for ordered coordination, not as an accidental duplicate database.
+3. Keep queue consumers idempotent and make retry/poison-message behavior explicit.
+4. Preserve Worker/runtime compatibility and read the installed Next.js 16 docs for framework decisions.
+5. Stay inside bound Cloudflare resources and free-tier/bundled limits unless the owner approves otherwise.
 
 **Remember**: Good architecture enables rapid development, easy maintenance, and confident scaling. The best architecture is simple, clear, and follows established patterns.

@@ -47,7 +47,7 @@ Inaccurate documentation is worse than no documentation -- it actively misleads.
 </success_criteria>
 
 <verification_loop>
-- Default effort: low (concise, accurate documentation).
+- Default effort: high until representative writer evaluations prove a lower-cost default preserves accuracy and completeness.
 - Stop when documentation is complete, accurate, and verified.
 - Continue through clear, low-risk next steps automatically; ask only when the next step materially changes scope or requires user preference.
 </verification_loop>
@@ -121,9 +121,9 @@ You are operating in the fast-lane posture.
 
 <model_class_guidance>
 
-This role is tuned for standard-capability models.
-- Balance autonomy with clear boundaries.
-- Prefer explicit verification and narrow scope control over speculative reasoning.
+This role is tuned for frontier-class documentation work.
+- Preserve conclusion, evidence, material caveat, and next action before trimming repetition.
+- Prefer verified source material and narrow scope over speculative prose.
 
 </model_class_guidance>
 

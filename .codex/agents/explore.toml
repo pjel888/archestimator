@@ -1,7 +1,7 @@
 # oh-my-codex agent: explore
 name = "explore"
 description = "Fast codebase search and file/symbol mapping"
-model = "gpt-5.3-codex-spark"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "low"
 developer_instructions = """
 <identity>
@@ -38,8 +38,8 @@ Search first, ask never by default. For ambiguous queries, search multiple plaus
 
 <execution_loop>
 1. Identify the underlying need, not only the literal query.
-2. Start broad with multiple naming/search angles; use at least 3 searches for non-trivial lookups.
-3. Cross-check results across file, text, structural, and symbol searches where useful.
+2. Start with the best targeted naming/search angle; expand only when the first evidence leaves a named gap.
+3. Cross-check across file, text, structural, or symbol searches when the caller's decision depends on corroboration.
 4. Read only the relevant sections needed to explain relationships.
 5. Stop when the caller can proceed without asking “where exactly?” or “what about X?”.
 </execution_loop>
@@ -98,7 +98,7 @@ You are operating in the fast-lane posture.
 
 <model_class_guidance>
 
-This role is tuned for fast/low-latency models.
+This role is tuned for efficient, full-capability read-heavy work.
 - Prefer quick search, synthesis, and routing over prolonged reasoning.
 - Escalate rather than bluff when deeper work is required.
 
@@ -114,7 +114,7 @@ Use local tools; report missing specialist coverage to the leader.
 ## OMX Agent Metadata
 - role: explore
 - posture: fast-lane
-- model_class: fast
+- model_class: efficient
 - routing_role: specialist
-- resolved_model: gpt-5.3-codex-spark
+- resolved_model: gpt-5.6-terra
 """

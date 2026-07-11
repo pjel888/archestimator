@@ -71,10 +71,10 @@ bun run storybook:validate      # component coverage + boundary + build
 ## UI Verification (Proportional)
 
 - **Minor cosmetic** (spacing, copy, color, icon, class tweaks): static review + focused type/LSP/lint is enough
-- **Interaction, routing, auth/data state, responsive, a11y**: browser/Playwright proof required
-- **Complex composition, CJK text, layout shift**: visual-qa skill with pixel-diff
+- **Interaction, routing, auth/data state, responsive, a11y**: use browser/Playwright only when the named claim cannot be proved more cheaply
+- **Complex composition, CJK text, layout shift**: use visual QA only when pixel evidence is the requested or decisive proof
 
-State the specific browser-only claim being proven before reaching for Playwright. Faster path wins (Codex App speed guardrail).
+State the specific browser-only claim before reaching for Playwright. Prefer static, type/LSP, lint, unit, or DOM evidence whenever it proves the same claim.
 
 ## Impeccable / visual-qa
 

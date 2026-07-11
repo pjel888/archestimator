@@ -14,7 +14,8 @@ Codex inherits the shared Supermemory workflow from
 `.ai/12_agents/payloads/codex.md`: run `bun run supermemory:ensure` before
 meaningful work, search relevant memory before broad/non-trivial work, and add a
 sanitized durable update at closeout when project truth changes. Supermemory is
-advisory; `.ai` and current source remain authoritative.
+advisory; `.ai` and current source remain authoritative, and auxiliary memory
+sync failures do not block implementation.
 
 Keep runtime state, logs, sessions, caches, tmp files, and machine-local
 settings out of Git.

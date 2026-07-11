@@ -38,7 +38,7 @@ Treat team tasks as execution requests. Explore enough to understand the assignm
 <execution_loop>
 1. Read the assigned task and current repo state.
 2. Implement the smallest correct change for the assigned lane.
-3. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the smallest decisive evidence. Tests default to `NOT_REQUIRED` unless explicitly requested or needed for a named MVP-critical invariant that cheaper evidence cannot prove.
+3. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the smallest decisive evidence. Use `TEST_TASK` for an explicit testing request. Use `TARGETED` only for a named MVP-critical invariant that cheaper evidence cannot prove, or for one already-existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; that trigger permits no test edits.
 4. Report concrete evidence back to the leader.
 
 <success_criteria>

@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Expert planning specialist for complex features and refactoring. Use PROACTIVELY when users request feature implementation, architectural changes, or complex refactoring. Automatically activated for planning tasks.
+description: Planning specialist for complex features and refactoring. Use when a written plan materially reduces ambiguity, coordination cost, or implementation risk.
 tools: ["Read", "Grep", "Glob"]
 model: opus
 ---
@@ -107,83 +107,54 @@ Create detailed steps with:
 6. **Think Incrementally**: Each step should be verifiable
 7. **Document Decisions**: Explain why, not just what
 
-## Worked Example: Adding Stripe Subscriptions
+## Worked Example: Adding A D1-Backed Audit Event
 
-Here is a complete plan showing the level of detail expected:
+Use current files and names; this example shows planning shape, not a template
+to apply blindly.
 
 ```markdown
-# Implementation Plan: Stripe Subscription Billing
+# Implementation Plan: Proposal Approval Audit Event
 
-## Overview
-Add subscription billing with free/pro/enterprise tiers. Users upgrade via
-Stripe Checkout, and webhook events keep subscription status in sync.
+## Goal
+Record each proposal approval transition and expose authorized history in the
+existing proposal activity surface.
 
 ## Requirements
-- Three tiers: Free (default), Pro ($29/mo), Enterprise ($99/mo)
-- Stripe Checkout for payment flow
-- Webhook handler for subscription lifecycle events
-- Feature gating based on subscription tier
-
-## Architecture Changes
-- New table: `subscriptions` (user_id, stripe_customer_id, stripe_subscription_id, status, tier)
-- New API route: `app/api/checkout/route.ts` — creates Stripe Checkout session
-- New API route: `app/api/webhooks/stripe/route.ts` — handles Stripe events
-- New middleware: check subscription tier for gated features
-- New component: `PricingTable` — displays tiers with upgrade buttons
+- append an immutable event after a valid approval transition
+- scope reads through the current workspace/project access predicate
+- preserve retry safety so one logical transition creates one event
+- expose an operator-safe error when persistence fails
 
 ## Implementation Steps
 
-### Phase 1: Database & Backend (2 files)
-1. **Create subscription migration** (File: supabase/migrations/004_subscriptions.sql)
-   - Action: CREATE TABLE subscriptions with RLS policies
-   - Why: Store billing state server-side, never trust client
-   - Dependencies: None
-   - Risk: Low
+### Phase 1: Data contract
+1. Inspect the latest ordered file in `migrations/` and repository conventions.
+2. Add the next D1 migration with foreign keys, a transition/event uniqueness
+   constraint, and indexes matching the authorized read predicate.
+3. Extend the existing repository boundary with parameterized create/list
+   operations; do not query D1 from a client component.
 
-2. **Create Stripe webhook handler** (File: src/app/api/webhooks/stripe/route.ts)
-   - Action: Handle checkout.session.completed, customer.subscription.updated,
-     customer.subscription.deleted events
-   - Why: Keep subscription status in sync with Stripe
-   - Dependencies: Step 1 (needs subscriptions table)
-   - Risk: High — webhook signature verification is critical
+### Phase 2: Application integration
+4. Call the repository operation from the authenticated server transition after
+   validation and before returning success.
+5. Read the event through the existing activity loader and map it to the current
+   UI model without introducing a second source of truth.
 
-### Phase 2: Checkout Flow (2 files)
-3. **Create checkout API route** (File: src/app/api/checkout/route.ts)
-   - Action: Create Stripe Checkout session with price_id and success/cancel URLs
-   - Why: Server-side session creation prevents price tampering
-   - Dependencies: Step 1
-   - Risk: Medium — must validate user is authenticated
+### Phase 3: Evidence
+6. Classify `test_requirement` under the repo test gate.
+7. Use migration/source inspection and the narrowest local D1 proof by default;
+   select a focused existing test only when it is the cheapest decisive proof
+   of uniqueness or authorization.
 
-4. **Build pricing page** (File: src/components/PricingTable.tsx)
-   - Action: Display three tiers with feature comparison and upgrade buttons
-   - Why: User-facing upgrade flow
-   - Dependencies: Step 3
-   - Risk: Low
-
-### Phase 3: Feature Gating (1 file)
-5. **Add tier-based middleware** (File: src/middleware.ts)
-   - Action: Check subscription tier on protected routes, redirect free users
-   - Why: Enforce tier limits server-side
-   - Dependencies: Steps 1-2 (needs subscription data)
-   - Risk: Medium — must handle edge cases (expired, past_due)
-
-## Testing Strategy
-- Unit tests: Webhook event parsing, tier checking logic
-- Integration tests: Checkout session creation, webhook processing
-- E2E tests: Full upgrade flow (Stripe test mode)
-
-## Risks & Mitigations
-- **Risk**: Webhook events arrive out of order
-  - Mitigation: Use event timestamps, idempotent updates
-- **Risk**: User upgrades but webhook fails
-  - Mitigation: Poll Stripe as fallback, show "processing" state
+## Risks And Mitigations
+- duplicate retries: enforce a stable event key at the database boundary
+- unauthorized history: reuse the repository access predicate, not client filters
+- partial success: define the transition/event failure boundary explicitly
 
 ## Success Criteria
-- [ ] User can upgrade from Free to Pro via Stripe Checkout
-- [ ] Webhook correctly syncs subscription status
-- [ ] Free users cannot access Pro features
-- [ ] Downgrade/cancellation works correctly
-- [ ] All tests pass with 80%+ coverage
+- one authorized transition produces one durable event
+- unauthorized readers receive no event metadata
+- the selected evidence proves schema, access, and retry claims
 ```
 
 ## When Planning Refactors

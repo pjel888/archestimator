@@ -1,6 +1,6 @@
 ---
 name: vue-reviewer
-description: Expert Vue.js code reviewer specializing in Composition API correctness, reactivity pitfalls, component architecture, template security, and Vue-specific performance. Use for any change touching .vue, .ts/.js files with Vue imports, or Vue ecosystem code (Pinia, Vue Router, Nuxt). MUST BE USED for Vue projects.
+description: Vue reviewer specializing in Composition API correctness, reactivity, component architecture, template security, and performance. Use when a Vue ecosystem review lane is selected.
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---

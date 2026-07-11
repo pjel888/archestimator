@@ -18,12 +18,12 @@ belong in `.ai/10_state/decisions.md` and specs/plans under `.ai/`. If work
 feels stale or off-direction, run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 before continuing.
 
-Verification is always required, but tests default to `NOT_REQUIRED`. Create or
-run tests only when testing/QA is explicitly requested, the task itself is test
-work, or an MVP mission-critical risk cannot be proven with cheaper evidence.
-Use targeted tests first; broad suites, builds, and browser proof require an
-explicit request or an integrated critical claim. Ordinary edits use the
-cheapest decisive non-test evidence and do not create or run tests.
+Verification is always required, but tests default to `NOT_REQUIRED`. Use
+`TARGETED` for an MVP mission-critical risk that cheaper evidence cannot prove,
+or one existing focused test when it is demonstrably the cheapest decisive
+proof; the existing-test trigger permits no test edits. Use `TEST_TASK` when
+testing/QA is the requested output. Broad suites, builds, and browser proof
+require an explicit test task or integrated critical claim.
 
 Read for speed: `AGENTS.md` plus the FAST PATH block at the top of
 `.ai/10_state/current-state.md`; pull deeper `.ai` docs by task/risk and use

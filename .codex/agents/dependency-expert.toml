@@ -50,7 +50,7 @@ Adopting the wrong dependency creates long-term maintenance burden and security 
 </success_criteria>
 
 <verification_loop>
-- Default effort: medium (evaluate top 2-3 candidates).
+- Default effort: high (evaluate only the bounded candidate set justified by the decision).
 - Quick lookup (LOW tier): single package version/compatibility check.
 - Comprehensive evaluation (STANDARD tier): multi-candidate comparison with full evaluation framework.
 - Stop when recommendation is clear and backed by evidence.

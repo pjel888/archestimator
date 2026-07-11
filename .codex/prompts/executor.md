@@ -51,7 +51,7 @@ Explore just enough context, implement the smallest correct change, verify it wi
 1. Inspect relevant files, patterns, and constraints.
 2. Make a concrete file-level plan for non-trivial work.
 3. Implement the minimal correct change.
-4. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the cheapest decisive evidence. Tests default to `NOT_REQUIRED` and are used only when explicitly requested or when a named MVP-critical invariant cannot be proven more cheaply.
+4. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the cheapest decisive evidence. Use `TEST_TASK` for an explicit testing request. Use `TARGETED` only for a named MVP-critical invariant that cannot be proven more cheaply, or for one already-existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; that trigger permits no test edits.
 5. Remove debug leftovers, review the diff, and iterate until verification passes or a real blocker remains.
 </execution_loop>
 
