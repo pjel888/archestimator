@@ -2,65 +2,80 @@
 
 **Last updated:** 2026-07-11
 
+## User Test Authorization Gate (Supreme Rule)
+
+**Do not create, expand, repair, or run any automated test, test suite,
+build-as-test-gate, browser automation, or broad validation gate unless the
+user has explicitly requested testing for the current task.** This is the
+supreme rule. It overrides every other `test_requirement`, `TARGETED`,
+`MVP-critical`, blast-radius, or "nearby tests exist" consideration in this
+repo and in every adapter, payload, prompt, sentinel, or rule file that cites
+this matrix.
+
+Philip Lewis (the owner) is the only authority who authorizes test execution.
+A critical risk, a high blast radius, a user-visible change, an existing test
+file nearby, or an agent's own judgment that tests are warranted is **never**
+sufficient to run tests. When the user has not explicitly requested tests:
+
+- Use the cheapest decisive **non-test** evidence (source, diff, path/reference,
+  static, type-check, lint, dry-run, narrow runtime check that is not the test
+  suite).
+- If you believe tests are genuinely warranted for a critical risk, do **not**
+  run them. Record a **`TEST_PROPOSAL`** (the named risk + the exact test
+  command you would run) in your report and await explicit user authorization.
+- Completing all safe requested local work is never blocked by the absence of
+  test authorization; treat an unrun test like any other unverified claim and
+  report it as a residual risk.
+
+`TEST_TASK` is the only decision that authorizes creating, expanding, or
+running tests, and it requires an explicit user request for the current task.
+
 ## Governing Rule
 
-Verification is mandatory; tests are conditional. Before editing, record one
+Verification is mandatory; tests are user-gated. Before editing, record one
 `test_requirement` for each affected acceptance criterion:
 
 | Decision | Use | Evidence floor |
 |---|---|---|
 | `NOT_REQUIRED` | Default for docs, config, routine source, copy, style, and bounded refactors | Cheapest decisive source/diff/path/reference/static/type/lint/dry-run evidence |
-| `TARGETED` | A named MVP-critical invariant cannot be proved more cheaply, or one existing focused test is itself the cheapest decisive proof | Smallest decisive automated test; no test edits for the existing-test trigger |
-| `BROADER` | Targeted evidence cannot cover an integrated critical boundary | Narrowest relevant suite/build/integration surface |
-| `TEST_TASK` | Testing, QA, coverage, reproduction, or regression proof is the requested output | Tests specified by the task, no unrelated expansion |
+| `TARGETED` | A named critical invariant *would* benefit from a test, but only authorizes proposing it, never running it | Cheapest decisive non-test evidence + a `TEST_PROPOSAL` recorded for user approval |
+| `BROADER` | A critical invariant that *would* benefit from a broader suite, but only authorizes proposing it, never running it | Cheapest decisive non-test evidence + a `TEST_PROPOSAL` for the narrowest relevant suite |
+| `TEST_TASK` | The user explicitly requested testing/QA/coverage/reproduction/regression for this task | Tests specified by the task, no unrelated expansion |
 
 Do not create or run tests merely because code changed, the diff spans files,
 the behavior is user-visible, nearby tests exist, or a task is high blast
-radius. A valid `NOT_REQUIRED` decision is not a validation gap. An existing
-focused test may run under `CHEAPEST_DECISIVE_EXISTING_TEST` only when the
-rationale shows that exact command is cheaper and more decisive than source,
-type, lint, static, dry-run, or narrow runtime evidence; it does not authorize
-creating, expanding, or repairing tests.
+radius. A valid `NOT_REQUIRED` decision is not a validation gap. A critical
+risk that cheaper evidence cannot prove does **not** authorize running tests on
+your own — it authorizes a `TEST_PROPOSAL` only. The previous
+`CHEAPEST_DECISIVE_EXISTING_TEST` exception is withdrawn: even one existing
+focused test may not run without explicit user authorization.
 
-Tests are justified by an explicit testing request or one of these
-MVP-critical risks when cheaper evidence is insufficient:
-
-- auth/authz, sessions, secrets, tenant isolation, public links, or privacy;
-- D1 migration/schema/data integrity, destructive writes, or recovery;
-- estimate, price, total, cost, proposal, publication, or export correctness;
-- first-user release, rollback, error handling, observability, or support path;
-- concurrency or shared contracts whose failure can leak, corrupt, deny access,
-  or materially misstate results;
-- a severe recurring defect where regression proof is the requested result.
-
-Use targeted tests first. Escalate to `BROADER` only when the integrated claim
-cannot be established by targeted evidence. Later edits invalidate only the
-evidence they affect; rerun that evidence, not the entire matrix.
+Later edits invalidate only the non-test evidence they affect; rerun that
+evidence, not the entire matrix.
 
 ## Fast Selection
 
 | Change/claim | Default decision | Selective evidence |
 |---|---|---|
 | Markdown, prompt, adapter, static config | `NOT_REQUIRED` | `git diff --check`, path/reference checks, affected deterministic validator |
-| Routine source or local refactor | `NOT_REQUIRED`, or `TARGETED` only for `CHEAPEST_DECISIVE_EXISTING_TEST` | focused source/diff/type/LSP/lint/static evidence, or one cheaper decisive existing test without test edits |
+| Routine source or local refactor | `NOT_REQUIRED` | focused source/diff/type/LSP/lint/static evidence |
 | Cosmetic UI | `NOT_REQUIRED` | static component/class/copy review; no browser automation |
-| Browser-only interaction, routing, focus, responsive, or a11y claim | `NOT_REQUIRED` or `TARGETED` by criticality | narrow DOM/browser/manual proof only if static evidence cannot prove the claim |
-| Explicit test/QA/coverage task | `TEST_TASK` | requested test surface and the smallest supporting checks |
-| MVP-critical invariant above | `TARGETED` | smallest positive/negative test that proves the named invariant |
-| Cross-boundary release or migration claim | `TARGETED` or `BROADER` | targeted checks, then only the integrated release/migration gate required |
+| Browser-only interaction, routing, focus, responsive, or a11y claim | `NOT_REQUIRED` | static/DOM/manual reasoning; propose (`TEST_PROPOSAL`) a browser test only if static evidence cannot prove the claim and the user authorizes it |
+| Explicit test/QA/coverage task requested by the user | `TEST_TASK` | requested test surface and the smallest supporting checks |
+| Critical invariant cheaper evidence cannot prove (auth, D1, estimate/proposal correctness, release) | `NOT_REQUIRED` + `TEST_PROPOSAL` | cheapest decisive non-test evidence; record the proposed test for user approval, do not run it |
+| Cross-boundary release or migration claim | `NOT_REQUIRED` + `TEST_PROPOSAL` | targeted non-test checks; propose the integrated release/migration gate for user approval |
 | Hosted/provider/production claim | independent of test decision | exact provider/hosted evidence; local tests cannot prove it |
 
 ## Broad Gates
 
 `bun run validate`, `bun run build`, full Vitest/Bun suites, Playwright,
 Storybook, visual QA, provider drills, and manual regression loops are not
-default completion gates. Run one only when:
-
-1. the user explicitly asks for it;
-2. a release/cutover task names it;
-3. the selected `BROADER` decision states the integrated critical claim it
-   proves; or
-4. the command itself is the changed mission-critical contract.
+default completion gates. **Run one only when the user explicitly asks for
+it.** The earlier exceptions (a release/cutover task naming it, a `BROADER`
+decision, a changed mission-critical contract) no longer authorize running
+these on the agent's own judgment — they authorize a `TEST_PROPOSAL` only.
+The user may pre-authorize a named gate in writing for a specific task; absent
+that, never run a broad gate.
 
 Before browser automation, state the browser-only claim. If a source/static/
 DOM check can prove it, use that faster surface. Before a broad suite, state why
