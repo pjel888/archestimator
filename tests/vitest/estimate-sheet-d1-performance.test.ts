@@ -18,6 +18,7 @@ import {
   type LocalD1StatementRecord,
 } from "../../scripts/measure-estimate-sheet-d1";
 import {
+  ESTIMATE_LOGICAL_OUTPUTS,
   RUN_MANIFEST_SCHEMA,
   sha256Hex,
   type FingerprintContent,
@@ -34,16 +35,26 @@ const fingerprint: FingerprintContent = {
 };
 
 function makeManifest(runRoot: string): RunManifestV1 {
+  const runId = "00000000-0000-4000-8000-000000000003";
+  const runKey = `${runId}-${digest.slice(0, 12)}-0123456789ab`;
+  const mutableRunRoot = join(runRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-003", runKey);
+  const immutableRunRoot = join(runRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs/UNIT-003", runKey);
+  const namespace = {
+    idSha256: sha256Hex("isolated-d1-namespace"),
+    preStateSha256: digest,
+  };
   return {
     schema_version: RUN_MANIFEST_SCHEMA,
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
     unit_id: "UNIT-003",
-    run_id: "00000000-0000-4000-8000-000000000003",
+    run_id: runId,
     profile: "limit",
     evidence_class: "local-d1",
     cleanupRequirement: "REQUIRED",
-    run_root: runRoot,
-    pointer_path: join(runRoot, "current.json"),
+    run_root: mutableRunRoot,
+    immutable_run_root: immutableRunRoot,
+    pointer_path: join(mutableRunRoot, "run-pointer.json"),
+    logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: {
@@ -57,10 +68,29 @@ function makeManifest(runRoot: string): RunManifestV1 {
     applicationFingerprint: fingerprint,
     producerFingerprint: fingerprint,
     namespaces: {
-      d1: {
-        idSha256: sha256Hex("isolated-d1-namespace"),
-        preStateSha256: sha256Hex("empty-d1-pre-state"),
-      },
+      d1: namespace,
+    },
+    fixture: { profile: "limit", namespaceIdSha256: namespace.idSha256, preStateSha256: namespace.preStateSha256 },
+    fixture_hash: digest,
+    auth_fixture_hash: digest,
+    wranglerState: join(mutableRunRoot, "wrangler-state"),
+    resources: {
+      d1Binding: "ARCH_DB",
+      wranglerState: join(mutableRunRoot, "wrangler-state"),
+      localConfig: join(mutableRunRoot, "resources/d1/wrangler-local.json"),
+      localConfigSha256: digest,
+      generatedSchema: join(mutableRunRoot, "better-auth-schema.sql"),
+      generatedSchemaSha256: digest,
+      migrations: join(mutableRunRoot, "resources/d1/migrations.json"),
+      migrationsSha256: digest,
+      migrationHead: "0040_operational_incidents.sql",
+      migrationCount: 40,
+      seedSql: join(mutableRunRoot, "seed.sql"),
+      seedSqlSha256: digest,
+      cleanupSql: join(mutableRunRoot, "resources/d1/cleanup.sql"),
+      cleanupSqlSha256: digest,
+      cleanupStateSha256ByRole: { d1: digest },
+      unitLease: join(runRoot, ".ai/99_scratch/estimate-sheet-performance/leases/units/UNIT-003"),
     },
     mutationJournal: [],
     previewProcesses: [],
