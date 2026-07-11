@@ -75,3 +75,14 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 - Scoped review found Corporate/Teamwork ledger and manifest updates that preserve their `IN_PROGRESS`/provider boundaries, plus planning-prompt and collaboration-action test changes. No changed scoped Admin or notification source invalidated the notification-manager architecture or the exact three-failure characterization suite.
 - Two new consecutive baseline snapshots were identical: HEAD `fe745aef4d6212bc0f89f27ce8e7110e93f9648a`; scoped status `a3cd1cee1a17f7c68522b42199166d7db26bc8eb8a026555d0d413d6b9444b2b`; scoped diff `36292a2f46106f9f1ac06b9eca6cd8849aa62afd38850b0c2ee5e44b36be3999`.
 - Refreeze decision: preserve all producer blocks, update the exact scoped baseline, refresh dependent hashes, and rerun the complete mechanical gate. Any later drift repeats this check.
+
+## 2026-07-11 — PLAN-011 — FINAL CONCURRENT COMMIT SETTLE
+
+- A later concurrent commit advanced the Corporate producer ledger while preserving its provider boundary; no Admin or notification source changed.
+- The final scoped snapshot remained identical across repeated checks and a further 10-second HEAD-settle check: HEAD `2caa352bb258cb3544dc866a915c63a048de3933`; scoped status `4c41abc37ffeadecd648d6f1c77e45e15b786fd335915c2cb0d157b062ac9220`; scoped diff `676c042cfa20e673d5452c50cd89c44deaf866ea1fa61fcf9f14ebc19f57eb0f`.
+- The package retains the same conditional readiness and overlap blocks; only the exact baseline and dependent hashes are refrozen.
+
+## 2026-07-11 — PLAN-012 — HEAD-ONLY REFREEZE
+
+- A final concurrent commit touched this pack and validator tooling outside the scoped implementation/producer pathspecs. Scoped status and diff hashes remained byte-identical, and HEAD then remained stable for 10 seconds.
+- The baseline HEAD alone advances to `09cc3fc88a21cb045878db78034cf2fe93757172`; all semantic, overlap, characterization, and conditional-readiness conclusions remain unchanged.
