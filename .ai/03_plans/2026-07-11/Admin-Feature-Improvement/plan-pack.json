@@ -11,11 +11,11 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
-    "scoped_status_sha256": "d3d1740369b6869b2a8ec7ef352fa7fca8a1264cfc8a087713d1478c1f295d90",
-    "scoped_diff_sha256": "626de45b40036341405106f21113ab5d3c2d86c22ca53bbb2504ecec9fa28ca8"
+    "head": "c522cc5569e3278d355d778589eecf373b2c797a",
+    "scoped_status_sha256": "3cd071578da9b1defea10138bb46365882f2a0c6be71ceb531b016634d4ebde1",
+    "scoped_diff_sha256": "53aa6ef6e6c7984e39a69196abd74030e100b929c7e431d12d9ea2b6e3f0d21f"
   },
-  "updated_at": "2026-07-11T04:40:29.069Z",
+  "updated_at": "2026-07-11T13:00:53+08:00",
   "stale_triggers": [
     "scoped-source-baseline-drift",
     "migration-or-lease-generation-change",
@@ -151,115 +151,115 @@
       "id": "ART-021",
       "role": "evidence",
       "path": "evidence/UNIT-001-receipt.md",
-      "sha256": "2ed2099c7cfd044d17ec255ca371968513d2bf12b5ad101ddcdd2317b87933dd"
+      "sha256": "8e11d9ea1dfc2aeb55e70a63cadb24ef091018e73e04f5f3325da79b7c412cd9"
     },
     {
       "id": "ART-022",
       "role": "evidence",
       "path": "evidence/UNIT-002-receipt.md",
-      "sha256": "dbf546bf74c59b7f4123fb95834d04e8c176c5427af234d430d203241706b82e"
+      "sha256": "db27ebd5a98aa33ed7808e41cb6f5975204748564595b82afc5101f726960499"
     },
     {
       "id": "ART-023",
       "role": "evidence",
       "path": "evidence/UNIT-003-receipt.md",
-      "sha256": "8cb4cb366be3a05daafaf9e16186a32498992c1a83a292562ee1a1aea26b6ca3"
+      "sha256": "4095ccb16cd9bd4893d25a4ca9b77cc5dcb29b288244a8733620221ff2040a01"
     },
     {
       "id": "ART-024",
       "role": "evidence",
       "path": "evidence/UNIT-004-receipt.md",
-      "sha256": "1d52aaf5ec5179bfae9278f0d9a19c38190786efa0a6d08e9da7226929a0dcd4"
+      "sha256": "f252572334626230ac0257841077609dd9bcad58896bf2844f88bdc088733442"
     },
     {
       "id": "ART-025",
       "role": "evidence",
       "path": "evidence/UNIT-005-receipt.md",
-      "sha256": "a18c4bf212485c8e6c6743115e5fb32fd5e68214069c45f089dd03519d1b21b7"
+      "sha256": "658a21d54c26d550e0b2212d72fa22e64607141570ad743e2c64786aa38f1b87"
     },
     {
       "id": "ART-026",
       "role": "evidence",
       "path": "evidence/UNIT-006-receipt.md",
-      "sha256": "12ac7539a85c4c997c84550f48b18f695f6d37b4903c6dcd301e66147ee3e8c5"
+      "sha256": "42304b77bd347370847edb7bd8e22186a6b428b4a7c45d3b481729055c51b41b"
     },
     {
       "id": "ART-027",
       "role": "evidence",
       "path": "evidence/UNIT-007-receipt.md",
-      "sha256": "647e79a9f3d1fd14f576d36d0a1ca751eccea0008c5fe8f24315c33c0be0a853"
+      "sha256": "6640fb2ea95e41d92e0952f385ee6c02b32d25313191cf8a77508362d395ca8f"
     },
     {
       "id": "ART-028",
       "role": "evidence",
       "path": "evidence/UNIT-008-receipt.md",
-      "sha256": "c940311b5ac7bd914455be75df18002f3b50a44a743594371ae54fab204370e5"
+      "sha256": "4c07b2e7717d26dd144a9b7a2e690ac78271bf4cfa70b78fc571f3b3c905da82"
     },
     {
       "id": "ART-029",
       "role": "evidence",
       "path": "evidence/UNIT-009-receipt.md",
-      "sha256": "88b1367eec9ae7764e49e7ccf5cea227a2677ca524da289c9682775c8124b741"
+      "sha256": "99f9838c1f39fd46672f6150102fcba2bf57ea8cb4e5aaecec9794418beb18a7"
     },
     {
       "id": "ART-030",
       "role": "evidence",
       "path": "evidence/UNIT-010-receipt.md",
-      "sha256": "8e7f7f74a93c985cd27b46bb9335054ebf8c10ae77f001ebfecfe0f1562d20d7"
+      "sha256": "16cc284ccc867c03127cb31068b2274d17b65a98b2c902bbd74f9e4990f4e968"
     },
     {
       "id": "ART-031",
       "role": "evidence",
       "path": "evidence/UNIT-011-receipt.md",
-      "sha256": "5219050e8c4d511720415bb69249f46eca5bbe82d04cad6d8f1426866174ee4d"
+      "sha256": "e81752540f80397f1f78940d6bc8c2e4108e7aeefbfe271239c69be99123fa5d"
     },
     {
       "id": "ART-032",
       "role": "evidence",
       "path": "evidence/UNIT-012-receipt.md",
-      "sha256": "5105a67fe6b86c7ac8f4c40d0c4e62edf5790a8192fd1b7d7fffd8dc85209cfd"
+      "sha256": "0c7636ba9d2ada791feccfd21886a9a85164572fd9a23f7045ed0a2e06ae4871"
     },
     {
       "id": "ART-033",
       "role": "evidence",
       "path": "evidence/UNIT-013-receipt.md",
-      "sha256": "0251ecbab4f0c46ef64f5af1f20c82420f4da9eea4865c6c9cfe4c3543bea992"
+      "sha256": "23d9abd75923c6add4872df1ef94519c4dc34dcca58a6114638f95856dc23b9d"
     },
     {
       "id": "ART-034",
       "role": "evidence",
       "path": "evidence/UNIT-014-receipt.md",
-      "sha256": "0340c6bfac68d70a22e4d10ae536b81c7f42e584779b5ac672e9637fdbb71c46"
+      "sha256": "9f89e6019be7e11332873a8837e25cbb4630ea03aad7307b394b4561eab70b40"
     },
     {
       "id": "ART-035",
       "role": "evidence",
       "path": "evidence/UNIT-015-receipt.md",
-      "sha256": "61e6c3fd23887eb8f14ce30f5c18411f2815b0561a433a70259543846aa62cc6"
+      "sha256": "2ff5e6a12a44150e3ec5281b7673965f624798613d8fc9f09ab99a3724f663e5"
     },
     {
       "id": "ART-036",
       "role": "evidence",
       "path": "evidence/UNIT-016-receipt.md",
-      "sha256": "b4cfe839905cbce7b6943ae5b2d9b32b0371470022377fe8627bd814512e169b"
+      "sha256": "aaedf9289669bf39b96de835faf28c984625d9565c8b49fcd6c50a49b91eb03e"
     },
     {
       "id": "ART-037",
       "role": "evidence",
       "path": "evidence/UNIT-017-receipt.md",
-      "sha256": "08a7414053b3e21a2a1402a47a3cae02a1a20db234acced581ffa315cb96be70"
+      "sha256": "fdea81b73257617ed9894f85678c6119bb2742c1aee7768ae8e5f7bade0ea2d9"
     },
     {
       "id": "ART-038",
       "role": "evidence",
       "path": "evidence/UNIT-018-receipt.md",
-      "sha256": "e9b04a21ca6d81748efb44c4507fd6c281dd987906b175b55c0c2a4ededf8955"
+      "sha256": "7a19d9e587f234b542cb56ecc8a356ca500b5d5f47a25b71d4b3f1c645e78431"
     },
     {
       "id": "ART-039",
       "role": "evidence",
       "path": "evidence/UNIT-019-receipt.md",
-      "sha256": "d25caf7f9c45837ab2c2696bd520a2237040d25057dbdf178f17e01678af9a5b"
+      "sha256": "f3a132c3ad4af286816495ecab549ebb72e9d9a8ceb67feab2cd6e5a3bbf74d8"
     },
     {
       "id": "ART-040",
@@ -2871,7 +2871,7 @@
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-001-receipt.md",
-      "sha256": "2ed2099c7cfd044d17ec255ca371968513d2bf12b5ad101ddcdd2317b87933dd",
+      "sha256": "8e11d9ea1dfc2aeb55e70a63cadb24ef091018e73e04f5f3325da79b7c412cd9",
       "claim_ids": [
         "UNIT-001",
         "AC-001",
@@ -2885,7 +2885,7 @@
       "id": "EVID-003",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-002-receipt.md",
-      "sha256": "dbf546bf74c59b7f4123fb95834d04e8c176c5427af234d430d203241706b82e",
+      "sha256": "db27ebd5a98aa33ed7808e41cb6f5975204748564595b82afc5101f726960499",
       "claim_ids": [
         "UNIT-002",
         "AC-002",
@@ -2898,7 +2898,7 @@
       "id": "EVID-004",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-003-receipt.md",
-      "sha256": "8cb4cb366be3a05daafaf9e16186a32498992c1a83a292562ee1a1aea26b6ca3",
+      "sha256": "4095ccb16cd9bd4893d25a4ca9b77cc5dcb29b288244a8733620221ff2040a01",
       "claim_ids": [
         "UNIT-003",
         "AC-003",
@@ -2911,7 +2911,7 @@
       "id": "EVID-005",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-004-receipt.md",
-      "sha256": "1d52aaf5ec5179bfae9278f0d9a19c38190786efa0a6d08e9da7226929a0dcd4",
+      "sha256": "f252572334626230ac0257841077609dd9bcad58896bf2844f88bdc088733442",
       "claim_ids": [
         "UNIT-004",
         "AC-004",
@@ -2924,7 +2924,7 @@
       "id": "EVID-006",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-005-receipt.md",
-      "sha256": "a18c4bf212485c8e6c6743115e5fb32fd5e68214069c45f089dd03519d1b21b7",
+      "sha256": "658a21d54c26d550e0b2212d72fa22e64607141570ad743e2c64786aa38f1b87",
       "claim_ids": [
         "UNIT-005",
         "AC-005",
@@ -2937,7 +2937,7 @@
       "id": "EVID-007",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-006-receipt.md",
-      "sha256": "12ac7539a85c4c997c84550f48b18f695f6d37b4903c6dcd301e66147ee3e8c5",
+      "sha256": "42304b77bd347370847edb7bd8e22186a6b428b4a7c45d3b481729055c51b41b",
       "claim_ids": [
         "UNIT-006",
         "AC-006",
@@ -2950,7 +2950,7 @@
       "id": "EVID-008",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-007-receipt.md",
-      "sha256": "647e79a9f3d1fd14f576d36d0a1ca751eccea0008c5fe8f24315c33c0be0a853",
+      "sha256": "6640fb2ea95e41d92e0952f385ee6c02b32d25313191cf8a77508362d395ca8f",
       "claim_ids": [
         "UNIT-007",
         "AC-007",
@@ -2963,7 +2963,7 @@
       "id": "EVID-009",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-008-receipt.md",
-      "sha256": "c940311b5ac7bd914455be75df18002f3b50a44a743594371ae54fab204370e5",
+      "sha256": "4c07b2e7717d26dd144a9b7a2e690ac78271bf4cfa70b78fc571f3b3c905da82",
       "claim_ids": [
         "UNIT-008",
         "AC-008",
@@ -2976,7 +2976,7 @@
       "id": "EVID-010",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-009-receipt.md",
-      "sha256": "88b1367eec9ae7764e49e7ccf5cea227a2677ca524da289c9682775c8124b741",
+      "sha256": "99f9838c1f39fd46672f6150102fcba2bf57ea8cb4e5aaecec9794418beb18a7",
       "claim_ids": [
         "UNIT-009",
         "AC-009",
@@ -2989,7 +2989,7 @@
       "id": "EVID-011",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-010-receipt.md",
-      "sha256": "8e7f7f74a93c985cd27b46bb9335054ebf8c10ae77f001ebfecfe0f1562d20d7",
+      "sha256": "16cc284ccc867c03127cb31068b2274d17b65a98b2c902bbd74f9e4990f4e968",
       "claim_ids": [
         "UNIT-010",
         "AC-010",
@@ -3002,7 +3002,7 @@
       "id": "EVID-012",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-011-receipt.md",
-      "sha256": "5219050e8c4d511720415bb69249f46eca5bbe82d04cad6d8f1426866174ee4d",
+      "sha256": "e81752540f80397f1f78940d6bc8c2e4108e7aeefbfe271239c69be99123fa5d",
       "claim_ids": [
         "UNIT-011",
         "AC-011",
@@ -3015,7 +3015,7 @@
       "id": "EVID-013",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-012-receipt.md",
-      "sha256": "5105a67fe6b86c7ac8f4c40d0c4e62edf5790a8192fd1b7d7fffd8dc85209cfd",
+      "sha256": "0c7636ba9d2ada791feccfd21886a9a85164572fd9a23f7045ed0a2e06ae4871",
       "claim_ids": [
         "UNIT-012",
         "AC-012",
@@ -3028,7 +3028,7 @@
       "id": "EVID-014",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-013-receipt.md",
-      "sha256": "0251ecbab4f0c46ef64f5af1f20c82420f4da9eea4865c6c9cfe4c3543bea992",
+      "sha256": "23d9abd75923c6add4872df1ef94519c4dc34dcca58a6114638f95856dc23b9d",
       "claim_ids": [
         "UNIT-013",
         "AC-013",
@@ -3042,7 +3042,7 @@
       "id": "EVID-015",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-014-receipt.md",
-      "sha256": "0340c6bfac68d70a22e4d10ae536b81c7f42e584779b5ac672e9637fdbb71c46",
+      "sha256": "9f89e6019be7e11332873a8837e25cbb4630ea03aad7307b394b4561eab70b40",
       "claim_ids": [
         "UNIT-014",
         "AC-014",
@@ -3055,7 +3055,7 @@
       "id": "EVID-016",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-015-receipt.md",
-      "sha256": "61e6c3fd23887eb8f14ce30f5c18411f2815b0561a433a70259543846aa62cc6",
+      "sha256": "2ff5e6a12a44150e3ec5281b7673965f624798613d8fc9f09ab99a3724f663e5",
       "claim_ids": [
         "UNIT-015",
         "AC-015",
@@ -3068,7 +3068,7 @@
       "id": "EVID-017",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-016-receipt.md",
-      "sha256": "b4cfe839905cbce7b6943ae5b2d9b32b0371470022377fe8627bd814512e169b",
+      "sha256": "aaedf9289669bf39b96de835faf28c984625d9565c8b49fcd6c50a49b91eb03e",
       "claim_ids": [
         "UNIT-016",
         "AC-016",
@@ -3082,7 +3082,7 @@
       "id": "EVID-018",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-017-receipt.md",
-      "sha256": "08a7414053b3e21a2a1402a47a3cae02a1a20db234acced581ffa315cb96be70",
+      "sha256": "fdea81b73257617ed9894f85678c6119bb2742c1aee7768ae8e5f7bade0ea2d9",
       "claim_ids": [
         "UNIT-017",
         "AC-017",
@@ -3097,7 +3097,7 @@
       "id": "EVID-019",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-018-receipt.md",
-      "sha256": "e9b04a21ca6d81748efb44c4507fd6c281dd987906b175b55c0c2a4ededf8955",
+      "sha256": "7a19d9e587f234b542cb56ecc8a356ca500b5d5f47a25b71d4b3f1c645e78431",
       "claim_ids": [
         "UNIT-018",
         "AC-018",
@@ -3112,7 +3112,7 @@
       "id": "EVID-020",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-019-receipt.md",
-      "sha256": "d25caf7f9c45837ab2c2696bd520a2237040d25057dbdf178f17e01678af9a5b",
+      "sha256": "f3a132c3ad4af286816495ecab549ebb72e9d9a8ceb67feab2cd6e5a3bbf74d8",
       "claim_ids": [
         "UNIT-019",
         "AC-019",

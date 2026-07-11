@@ -156,7 +156,8 @@ A new plan must state:
   states as applicable;
 - non-goals;
 - files expected to change;
-- validation gate;
+- validation gate and explicit `test_requirement` (`NOT_REQUIRED` by default;
+  `TARGETED`, `BROADER`, or `TEST_TASK` only with the trigger named);
 - deletion criteria if Philip rejects the direction.
 - loop surface selection when the work is non-trivial: direct, `ultrawork`,
   `ultragoal`, `omo:ulw-loop`, `autopilot`, `ultraqa`,

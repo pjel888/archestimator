@@ -71,8 +71,8 @@ stream; zero-filled placeholders are never a frozen baseline.
 ```json
 {
   "schema_version": "1.0",
-  "suite_version": "2026-07-10",
-  "package_id": "PLAN-2026-07-10-validator-fixture",
+  "suite_version": "2026-07-11",
+  "package_id": "PLAN-2026-07-11-validator-fixture",
   "profile": "focused",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "IMPLEMENT_LOCAL",
@@ -140,21 +140,14 @@ stream; zero-filled placeholders are never a frozen baseline.
       "id": "AC-001",
       "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "NOT_REQUIRED",
       "requirement_ids": ["REQ-001", "SEC-001"],
-      "test_ids": ["TEST-001"],
+      "test_ids": [],
       "evidence_ids": ["EVID-001"],
       "authorization_boundary_id": null
     }
   ],
-  "tests": [
-    {
-      "id": "TEST-001",
-      "status": "PASS",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": ["AC-001"],
-      "evidence_ids": ["EVID-001"]
-    }
-  ],
+  "tests": [],
   "gates": [
     {
       "id": "GATE-VERIFY-001",
@@ -197,7 +190,6 @@ stream; zero-filled placeholders are never a frozen baseline.
         "SEC-001",
         "UNIT-001",
         "AC-001",
-        "TEST-001",
         "GATE-VERIFY-001"
       ],
       "source_revision": "fixture-v1",
@@ -206,8 +198,8 @@ stream; zero-filled placeholders are never a frozen baseline.
   ],
   "stale_triggers": ["source-or-config-hash-change"],
   "next_unit": null,
-  "updated_at": "2026-07-10T00:00:00.000Z",
-  "manifest_sha256": "e9351c9a6b6e23180bb68484563137cf09575f0ec78c7f35a15b281251a0df0f"
+  "updated_at": "2026-07-11T00:00:00.000Z",
+  "manifest_sha256": "e0f73fffe3b08b6032b4511acc80fafb2f55ff9c7104a9bd1658f6bf863ca2f3"
 }
 ```
 <!-- END VALID PLAN-PACK EXAMPLE -->
@@ -359,8 +351,7 @@ Represent implementation units as a directed acyclic graph:
 ### H. Verification And Adversarial QA
 
 - Acceptance criteria are observable and falsifiable.
-- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`,
-  `BROADER`, or `TEST_TASK`, plus the trigger and why cheaper evidence is or is
+- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, plus the trigger and why cheaper evidence is or is
   not sufficient. `NOT_REQUIRED` is the default and requires `test_ids: []`.
 - `TARGETED`, `BROADER`, and `TEST_TASK` require linked `TEST-*`; a criterion
   cannot be `PASS` unless every linked required test is `PASS`.

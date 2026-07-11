@@ -89,8 +89,7 @@ Repair in dependency order:
 5. **Design/contracts** - repair architecture, domain, UX, data, auth, cache,
    provider, performance, and operations boundaries from current evidence.
 6. **Execution DAG** - make units exact, dependency-layered, contention-aware,
-   test-gated, recoverable, checkpointed, and resumable. Delete ceremonial test
-   requirements and add tests only for explicit testing scope or a named
+   test-gated, recoverable, checkpointed, and resumable. Delete ceremonial test requirements and add tests only for explicit testing scope or a named
    MVP-critical invariant that cheaper evidence cannot prove.
 7. **Evidence** - map every claim to the right evidence class, method, expected
    signal, freshness, cleanup, and final status.
