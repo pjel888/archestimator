@@ -2,6 +2,7 @@ import "server-only";
 
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
+import { anonymizeActivityActor, type ActivityOutboxDatabase } from "@/lib/activity/activity-outbox";
 import {
   eraseSupportDataForPrivacyRequest,
   listSupportDataForPrivacyRequest,
@@ -225,4 +226,39 @@ export async function exportPrivacyRequestSupportData(requesterUserId: string, d
 
 export async function erasePrivacyRequestSupportData(requesterUserId: string, dbOverride?: D1DatabaseLike) {
   return eraseSupportDataForPrivacyRequest(requesterUserId, dbOverride);
+}
+
+export type PrivacyActivityExportRow = {
+  id: string;
+  event_type: string;
+  created_at: string;
+  estimate_id: string;
+  project_id: string;
+};
+
+export async function exportPrivacyRequestActivityData(
+  input: { requesterUserId: string; workspaceId: string },
+  dbOverride?: D1DatabaseLike,
+): Promise<PrivacyActivityExportRow[]> {
+  const db = dbOverride ?? await getCloudflareD1Database();
+  if (!db) return [];
+  const result = await db.prepare<PrivacyActivityExportRow>(
+    `SELECT id, event_type, created_at, estimate_id, project_id
+     FROM estimate_sheet_events
+     WHERE workspace_id = ? AND actor_user_id = ?
+     ORDER BY created_at ASC, id ASC`,
+  ).bind(input.workspaceId, input.requesterUserId).all<PrivacyActivityExportRow>();
+  return result.results ?? [];
+}
+
+export async function erasePrivacyRequestActivityData(
+  input: { requesterUserId: string; workspaceId: string },
+  dbOverride?: D1DatabaseLike,
+): Promise<number> {
+  const db = dbOverride ?? await getCloudflareD1Database();
+  if (!db) return 0;
+  return anonymizeActivityActor(db as unknown as ActivityOutboxDatabase, {
+    actorUserId: input.requesterUserId,
+    workspaceId: input.workspaceId,
+  });
 }

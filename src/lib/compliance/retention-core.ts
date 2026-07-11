@@ -51,6 +51,7 @@ export type RetentionRule = {
   action: RetentionAction;
   selectSql: string;
   applySql: string;
+  skippedLegalHoldCountSql?: string;
 };
 
 export type RetentionRunResult = {
@@ -120,11 +121,30 @@ export const DEFAULT_RETENTION_RULES: readonly RetentionRule[] = [
   {
     className: "estimate_sheet_events",
     ttlDays: 365,
-    action: "purged",
+    action: "anonymized",
     selectSql:
-      "SELECT id FROM estimate_sheet_events WHERE created_at < ?1 LIMIT 500",
+      `SELECT event.id
+       FROM estimate_sheet_events event
+       WHERE event.created_at < ?1
+         AND NOT EXISTS (
+           SELECT 1
+           FROM activity_event_legal_holds hold
+           WHERE hold.event_id = event.id
+             AND hold.released_at IS NULL
+         )
+       LIMIT 500`,
     applySql:
-      "DELETE FROM estimate_sheet_events WHERE id IN (SELECT value FROM json_each(?1))",
+      "UPDATE estimate_sheet_events SET actor_user_id = 'anonymized-activity-actor' WHERE id IN (SELECT value FROM json_each(?1))",
+    skippedLegalHoldCountSql:
+      `SELECT COUNT(*) AS count
+       FROM estimate_sheet_events event
+       WHERE event.created_at < ?1
+         AND EXISTS (
+           SELECT 1
+           FROM activity_event_legal_holds hold
+           WHERE hold.event_id = event.id
+             AND hold.released_at IS NULL
+         )`,
   },
   {
     className: "privacy_requests_completed",
@@ -195,6 +215,24 @@ export async function runRetentionPassInD1(
     const cutoffTimestamp = cutoffDate.toISOString();
 
     try {
+      if (!options.dryRun && rule.skippedLegalHoldCountSql) {
+        const heldResult = await db.prepare(rule.skippedLegalHoldCountSql)
+          .bind(cutoffTimestamp)
+          .all<{ count: number | string }>();
+        const heldCount = Number(heldResult.results?.[0]?.count ?? 0);
+        if (Number.isFinite(heldCount) && heldCount > 0) {
+          await recordRetentionEventInD1(db, {
+            className: rule.className,
+            action: "skipped_legal_hold",
+            rowsAffected: heldCount,
+            cutoffTimestamp,
+            cronRunId: options.cronRunId,
+            notes: "active legal hold prevented activity-event purge",
+            metadata: { held_count: heldCount },
+          });
+        }
+      }
+
       const selectStmt = db.prepare(rule.selectSql);
       const selectResult = await selectStmt
         .bind(cutoffTimestamp)

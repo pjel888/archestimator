@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PrivacyRequestInput } from "@/lib/compliance/privacy-request-repository";
 
 const fakeRows: unknown[] = [];
+const prepared: Array<{ sql: string; values: unknown[] }> = [];
 
 class FakeStatement {
   constructor(private sql: string) {}
-  bind(..._vals: unknown[]) {
-    void _vals;
+  bind(...values: unknown[]) {
+    prepared.push({ sql: this.sql, values });
     return this;
   }
   async first() {
@@ -33,6 +34,7 @@ class FakeD1 {
 describe("privacy request register (P0.5)", () => {
   beforeEach(() => {
     fakeRows.length = 0;
+    prepared.length = 0;
     vi.resetModules();
   });
 
@@ -113,5 +115,23 @@ describe("privacy request register (P0.5)", () => {
     const rows = await mod.listPrivacyRequests();
     expect(rows.length).toBe(2);
     expect(rows[0]!.id).toBe("row-2");
+  });
+
+  it("exports and anonymizes activity through workspace-scoped privacy helpers", async () => {
+    vi.doMock("@/lib/cloudflare/d1", () => ({
+      getCloudflareD1Database: async () => new FakeD1(),
+    }));
+    const mod = await import("@/lib/compliance/privacy-request-repository");
+    const database = new FakeD1();
+
+    await mod.exportPrivacyRequestActivityData({ requesterUserId: "user-a", workspaceId: "workspace-a" }, database as never);
+    await mod.erasePrivacyRequestActivityData({ requesterUserId: "user-a", workspaceId: "workspace-a" }, database as never);
+
+    const exportStatement = prepared.find((statement) => statement.sql.includes("FROM estimate_sheet_events"));
+    const anonymizeStatement = prepared.find((statement) => statement.sql.includes("SET actor_user_id"));
+    expect(exportStatement?.sql).toContain("WHERE workspace_id = ? AND actor_user_id = ?");
+    expect(exportStatement?.values).toEqual(["workspace-a", "user-a"]);
+    expect(anonymizeStatement?.sql).toContain("WHERE workspace_id = ? AND actor_user_id = ?");
+    expect(anonymizeStatement?.values).toEqual(["anonymized-activity-actor", "workspace-a", "user-a"]);
   });
 });

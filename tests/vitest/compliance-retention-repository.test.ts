@@ -51,6 +51,9 @@ class FakeD1Statement {
 
   async all<R>() {
     this.database.allCalls.push({ sql: this.sql, values: this.values });
+    if (this.sql.includes("COUNT(*) AS count")) {
+      return { results: [{ count: this.database.heldEventCount }] as R[] };
+    }
     return { results: [...this.database.selectRows] as R[] };
   }
 
@@ -88,6 +91,7 @@ class FakeD1Statement {
 class FakeD1Database {
   allCalls: PreparedStatementCall[] = [];
   applyChanges = 0;
+  heldEventCount = 0;
   prepared: PreparedStatementCall[] = [];
   retentionEvents: RetentionEventInsert[] = [];
   runCalls: PreparedStatementCall[] = [];
@@ -120,6 +124,10 @@ describe("retention repository", () => {
       expect(rule.applySql).toContain("?1");
       expect(rule.selectSql).not.toMatch(/[:@$][A-Za-z_]\w*/);
       expect(rule.applySql).not.toMatch(/[:@$][A-Za-z_]\w*/);
+      if (rule.skippedLegalHoldCountSql) {
+        expect(rule.skippedLegalHoldCountSql).toContain("?1");
+        expect(rule.skippedLegalHoldCountSql).not.toMatch(/[:@$][A-Za-z_]\w*/);
+      }
     }
   });
 
@@ -208,6 +216,33 @@ describe("retention repository", () => {
         rowsAffected: 1,
       }),
     );
+  });
+
+  it("records a redacted legal-hold skip receipt without selecting or deleting held activity", async () => {
+    const database = new FakeD1Database();
+    database.heldEventCount = 3;
+    database.applyChanges = 1;
+    database.selectRows = [{ id: "purgeable-event" }];
+
+    const activityRule = DEFAULT_RETENTION_RULES.find((rule) => rule.className === "estimate_sheet_events");
+    expect(activityRule).toBeDefined();
+
+    const results = await runRetentionPassInD1(database, [activityRule!], { cronRunId: "worker-cron" });
+
+    expect(results).toEqual([expect.objectContaining({ rowsAffected: 1, skipped: false })]);
+    expect(database.retentionEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        action: "skipped_legal_hold",
+        className: "estimate_sheet_events",
+        cronRunId: "worker-cron",
+        notes: "active legal hold prevented activity-event purge",
+        rowsAffected: 3,
+      }),
+      expect.objectContaining({ action: "anonymized", rowsAffected: 1 }),
+    ]));
+    expect(database.runCalls.some((call) => call.sql.includes("UPDATE estimate_sheet_events SET actor_user_id"))).toBe(true);
+    expect(database.retentionEvents[0]?.metadataJson).toBe(JSON.stringify({ held_count: 3 }));
+    expect(database.retentionEvents[0]?.metadataJson).not.toContain("purgeable-event");
   });
 
   it("recordRetentionEvent no-ops safely without a D1 binding", async () => {
