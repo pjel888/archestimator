@@ -129,6 +129,7 @@ describe("estimate sheet bulk row delete partial failures", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "off");
     actionMocks.deleteEstimateRowItemsBulk.mockRejectedValue(new Error("bulk delete failed"));
     actionMocks.restoreDeletedEstimateRows.mockResolvedValue({
       eventId: "restore-event-1",
@@ -142,6 +143,7 @@ describe("estimate sheet bulk row delete partial failures", () => {
   afterEach(() => {
     cleanup();
     resetEstimateWorkspaceState();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 

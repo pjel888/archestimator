@@ -6,7 +6,17 @@ const d1Mocks = vi.hoisted(() => ({
   getCloudflareD1Database: vi.fn(),
 }));
 
+const authMocks = vi.hoisted(() => ({
+  requireCurrentUserContext: vi.fn(),
+}));
+
+const accessMocks = vi.hoisted(() => ({
+  canAccessWholeProjectInD1: vi.fn(),
+}));
+
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+vi.mock("@/lib/auth/session", () => authMocks);
+vi.mock("@/lib/authz/d1-access", () => accessMocks);
 
 type PreparedD1Statement = {
   sql: string;
@@ -70,6 +80,8 @@ function findPrepared(database: FakeD1Database, pattern: RegExp) {
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", role: "member" });
+  accessMocks.canAccessWholeProjectInD1.mockResolvedValue(true);
 });
 
 describe("project estimate summary D1 scoping guard", () => {

@@ -23,6 +23,35 @@ function getNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function callIfFunction(receiver: UnknownRecord, value: unknown): unknown {
+  return typeof value === "function" ? value.call(receiver) : value;
+}
+
+function normalizeVitestTask(task: unknown): UnknownRecord | null {
+  if (!task || typeof task !== "object") return null;
+  const record = task as UnknownRecord;
+  const children = record.children && typeof record.children === "object"
+    ? Array.from(record.children as Iterable<unknown>).map(normalizeVitestTask).filter((child): child is UnknownRecord => child !== null)
+    : [];
+  return {
+    state: callIfFunction(record, record.state),
+    ...(children.length ? { children } : {}),
+  };
+}
+
+function normalizeVitestModules(testModules: unknown[]): UnknownRecord[] {
+  return testModules.map((module) => {
+    const record = module as UnknownRecord;
+    const diagnostic = callIfFunction(record, record.diagnostic);
+    const normalized = normalizeVitestTask(module);
+    return {
+      filepath: typeof record.relativeModuleId === "string" ? record.relativeModuleId : record.moduleId,
+      duration: diagnostic && typeof diagnostic === "object" ? (diagnostic as UnknownRecord).duration : 0,
+      ...(normalized ? { children: normalized.children ?? [] } : {}),
+    };
+  });
+}
+
 function visitResult(node: unknown, counters: { passed: number; failed: number; skipped: number; failures: unknown[] }): void {
   if (!node || typeof node !== "object") return;
   const record = node as UnknownRecord;
@@ -128,6 +157,12 @@ export class EstimateSheetVitestReporter {
     });
     if (!env.receiptPath) throw new Error("receipt environment has no output path");
     writeTestReceipt(env.receiptPath, receipt);
+  }
+
+  // Vitest 4 no longer calls the legacy onFinished reporter hook. Keep the
+  // receipt normalization in one place while accepting its current lifecycle.
+  async onTestRunEnd(testModules: unknown[]): Promise<void> {
+    await this.onFinished(normalizeVitestModules(testModules));
   }
 }
 

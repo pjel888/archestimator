@@ -369,8 +369,11 @@ describe("estimate sheet tree drag/drop", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
   });
 
-  it("renders handle-draggable rows with tree semantics and expanded folders by default", () => {
-    renderTree();
+  it("renders handle-draggable rows with tree semantics and expanded folders by default", async () => {
+    await act(async () => {
+      renderTree();
+      await Promise.resolve();
+    });
 
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
 
@@ -389,8 +392,11 @@ describe("estimate sheet tree drag/drop", () => {
     expect(treeNodeDragHandle("kitchen")).toHaveAttribute("draggable", "true");
   });
 
-  it("routes Project-tab component drops on tree rows through the library item insert event", () => {
-    renderTree();
+  it("routes Project-tab component drops on tree rows through the library item insert event", async () => {
+    await act(async () => {
+      renderTree();
+      await Promise.resolve();
+    });
     const projectComponentItem: EstimateRowItem = {
       ...rowItem("project-component-row"),
       material: "Project Component",
@@ -413,8 +419,11 @@ describe("estimate sheet tree drag/drop", () => {
     dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(projectComponentItem));
 
     try {
-      fireEvent.dragOver(treeNodeRow("kitchen"), { dataTransfer });
-      fireEvent.drop(treeNodeRow("kitchen"), { dataTransfer });
+      await act(async () => {
+        fireEvent.dragOver(treeNodeRow("kitchen"), { dataTransfer });
+        fireEvent.drop(treeNodeRow("kitchen"), { dataTransfer });
+        await Promise.resolve();
+      });
 
       expect(onAddLibraryItem).toHaveBeenCalledTimes(1);
       const event = onAddLibraryItem.mock.calls[0]?.[0] as CustomEvent;
@@ -430,14 +439,24 @@ describe("estimate sheet tree drag/drop", () => {
     }
   });
 
-  it("keeps collapsed tree state after selecting a node and remounting for the new route", () => {
-    const firstRender = renderTree();
+  it("keeps collapsed tree state after selecting a node and remounting for the new route", async () => {
+    let firstRender!: ReturnType<typeof renderTree>;
+    await act(async () => {
+      firstRender = renderTree();
+      await Promise.resolve();
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: "Collapse all tree" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Collapse all tree" }));
+      await Promise.resolve();
+    });
     expect(renderedIds()).toEqual(["project-scope"]);
 
-    firstRender.unmount();
-    renderTree(fixtureTree(), "site-works");
+    await act(async () => {
+      firstRender.unmount();
+      renderTree(fixtureTree(), "site-works");
+      await Promise.resolve();
+    });
     expect(renderedIds()).toEqual(["project-scope"]);
 
     firstRender.queryClient.clear();

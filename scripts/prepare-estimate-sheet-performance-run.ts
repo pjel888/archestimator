@@ -17,6 +17,7 @@ import {
   requireUnit,
   sha256File,
   sha256Hex,
+  writeNoOverwrite,
   writeJsonNoOverwrite,
   type EstimateUnit,
   type FixtureProfile,
@@ -46,14 +47,15 @@ function readPlanPack(planRoot: string): PlanPack {
   return JSON.parse(readFileSync(path, "utf8")) as PlanPack;
 }
 
-function readAdmission(repoRoot: string, path: string | undefined, unit: EstimateUnit): { path: string; sha256: string } | undefined {
+function readAdmission(repoRoot: string, path: string | undefined, unit: EstimateUnit): { sha256: string; bytes: Buffer } | undefined {
   if (!path) return undefined;
   const admissionPath = resolve(repoRoot, path);
   if (!existsSync(admissionPath)) throw new Error(`planning admission is missing: ${admissionPath}`);
   const admission = JSON.parse(readFileSync(admissionPath, "utf8")) as Record<string, unknown>;
   if (admission.schema_version !== "estimate-sheet-planning-admission.v1") throw new Error("planning admission schema is invalid");
   if (admission.unit_id !== unit || admission.package_status !== "IMPLEMENTATION_READY" || admission.next_unit !== unit) throw new Error("planning admission does not admit the selected unit");
-  return { path: path.replaceAll("\\", "/"), sha256: sha256File(admissionPath) };
+  const bytes = readFileSync(admissionPath);
+  return { sha256: sha256File(admissionPath), bytes };
 }
 
 function namespace(seed: string): { idSha256: string; preStateSha256: string } {
@@ -94,6 +96,7 @@ export function prepareEstimateSheetPerformanceRun(input: {
   const runPath = resolve(unitRoot, `${runId}-${applicationShort}-${inputShort}`);
   const pointerPath = resolve(runPath, "run-pointer.json");
   const runManifestPath = resolve(runPath, "run-manifest.json");
+  const immutableAdmissionPath = resolve(runPath, "dependencies/planning-admission.json");
   const profile = artifactOnly ? "artifact-only" : input.profile;
   const fixtureProfile = profile === "artifact-only" ? undefined : requireProfile(profile);
   const cleanupRequirement = cleanupNotApplicable ? "NOT_APPLICABLE" : "REQUIRED";
@@ -124,8 +127,9 @@ export function prepareEstimateSheetPerformanceRun(input: {
     namespaces,
     mutationJournal: [],
     previewProcesses: [],
-    ...(admission ? { admissionPath: admission.path, admissionSha256: admission.sha256 } : {}),
+    ...(admission ? { admissionPath: "dependencies/planning-admission.json", admissionSha256: admission.sha256 } : {}),
   };
+  if (admission) writeNoOverwrite(immutableAdmissionPath, admission.bytes, 0o600);
   writeJsonNoOverwrite(runManifestPath, run, 0o600);
   writeJsonNoOverwrite(pointerPath, { schema_version: "estimate-sheet-performance-run-pointer.v1", unit_id: input.unit, run_id: runId, run_root: runPath, run_manifest: "run-manifest.json", application_fingerprint: fingerprint.application.content_sha256, producer_fingerprint: fingerprint.producer.content_sha256 }, 0o600);
   return { run, runManifestPath, pointerPath };

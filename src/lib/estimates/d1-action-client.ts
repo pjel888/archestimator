@@ -147,7 +147,7 @@ type ExistingEstimateEventRow = Pick<
   "id" | "estimate_id" | "estimate_node_id" | "estimate_tab_id" | "target_row_id" | "event_type" | "payload" | "new_snapshot"
 >;
 
-type HistoryEventInput = {
+export type HistoryEventInput = {
   projectId: string;
   estimateId: string;
   workspaceId?: string | null;
@@ -434,7 +434,7 @@ async function readEstimateContext(database: D1DatabaseLike, estimateId: string,
   );
 }
 
-async function prepareHistoryEventInsert(database: D1DatabaseLike, input: HistoryEventInput) {
+export async function prepareHistoryEventInsert(database: D1DatabaseLike, input: HistoryEventInput) {
   const existing = await first<{ id: string; payload: string }>(
     database,
     `
@@ -446,12 +446,13 @@ async function prepareHistoryEventInsert(database: D1DatabaseLike, input: Histor
     `,
     [input.estimateId, input.correlationId],
   );
-  if (existing) return { eventId: existing.id, statement: null };
+  if (existing) return { eventId: existing.id, statement: null, outboxStatement: null };
 
   const project = input.workspaceId ? null : await readProjectContext(database, input.projectId);
   const workspaceId = input.workspaceId ?? project?.workspace_id;
   if (!workspaceId) throw new Error("Estimate history event workspace could not be resolved.");
   const eventId = randomUUID();
+  const createdAt = nowIso();
   return {
     eventId,
     statement: {
@@ -498,15 +499,45 @@ async function prepareHistoryEventInsert(database: D1DatabaseLike, input: Histor
         JSON.stringify(input.payload ?? {}),
         JSON.stringify(input.metadata ?? {}),
         input.totalDelta ?? null,
-        nowIso(),
+        createdAt,
       ],
+    },
+    outboxStatement: {
+      sql: `
+        INSERT INTO activity_event_outbox (
+          id, workspace_id, event_id, status, attempt_count, available_at, created_at, updated_at
+        )
+        VALUES (?, ?, ?, 'pending', 0, ?, ?, ?)
+        ON CONFLICT(event_id) DO NOTHING
+      `,
+      values: [randomUUID(), workspaceId, eventId, createdAt, createdAt, createdAt],
     },
   };
 }
 
-async function insertHistoryEvent(database: D1DatabaseLike, input: HistoryEventInput) {
+export async function insertHistoryEvent(database: D1DatabaseLike, input: HistoryEventInput) {
   const prepared = await prepareHistoryEventInsert(database, input);
-  if (prepared.statement) await run(database, prepared.statement.sql, prepared.statement.values);
+  if (prepared.statement) {
+    await runBatch(database, [prepared.statement, prepared.outboxStatement]);
+  }
+  return prepared.eventId;
+}
+
+/**
+ * Keeps a domain mutation and its activity event/outbox durable in the same
+ * D1 batch. A retry may repeat an idempotent mutation, but never creates a
+ * second event because the correlation ID is unique per estimate.
+ */
+export async function runMutationWithHistory(
+  database: D1DatabaseLike,
+  mutationStatements: Array<{ sql: string; values?: unknown[] }>,
+  historyInput: HistoryEventInput,
+) {
+  const prepared = await prepareHistoryEventInsert(database, historyInput);
+  const statements = prepared.statement
+    ? [...mutationStatements, prepared.statement, prepared.outboxStatement]
+    : mutationStatements;
+  await runBatch(database, statements);
   return prepared.eventId;
 }
 
@@ -623,6 +654,7 @@ function insertColumnsForTable(table: string, payload: Record<string, unknown>) 
 const D1_MAX_BATCH_STATEMENTS = 1000;
 /** Pack restore inserts so large subtrees stay under the D1 batch limit. */
 const D1_RESTORE_INSERT_CHUNK_SIZE = 40;
+const MAX_RESTORABLE_ROW_BATCH_SIZE = 100;
 
 function buildInsertRecordStatement(table: string, payload: Record<string, unknown>) {
   const record = assignInsertDefaults(table, payload);
@@ -1133,8 +1165,7 @@ async function updateEstimateDetails(database: D1DatabaseLike, args: Record<stri
   if (assignments.length === 0) return { estimateId };
   assignments.push("updated_at = ?");
   values.push(nowIso(), estimateId, projectId);
-  await run(database, `UPDATE estimates SET ${assignments.join(", ")} WHERE id = ? AND project_id = ?`, values);
-  await insertHistoryEvent(database, {
+  await runMutationWithHistory(database, [{ sql: `UPDATE estimates SET ${assignments.join(", ")} WHERE id = ? AND project_id = ?`, values }], {
     projectId,
     estimateId,
     eventType: "estimate_details_updated",
@@ -1157,7 +1188,7 @@ async function createEstimateTab(database: D1DatabaseLike, args: Record<string, 
     [estimateId],
   );
   const tabId = randomUUID();
-  await insertRecord(database, "estimate_tabs", {
+  const insert = buildInsertRecordStatement("estimate_tabs", {
     id: tabId,
     estimate_id: estimateId,
     name: String(args.tab_name ?? "New Tab"),
@@ -1165,7 +1196,7 @@ async function createEstimateTab(database: D1DatabaseLike, args: Record<string, 
     is_default: false,
     created_by: args.acting_user_id ?? null,
   });
-  await insertHistoryEvent(database, {
+  await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1184,8 +1215,10 @@ async function renameEstimateTab(database: D1DatabaseLike, args: Record<string, 
   const tab = await readTabById(database, estimateId, tabId);
   if (!tab) throw new Error("Estimate tab not found in the current estimate.");
   const name = String(args.next_name ?? "").trim();
-  await run(database, "UPDATE estimate_tabs SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ?", [name, nowIso(), tabId, estimateId]);
-  await insertHistoryEvent(database, {
+  await runMutationWithHistory(database, [{
+    sql: "UPDATE estimate_tabs SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
+    values: [name, nowIso(), tabId, estimateId],
+  }], {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1204,11 +1237,11 @@ async function reorderEstimateTabs(database: D1DatabaseLike, args: Record<string
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
   const updates = Array.isArray(args.sort_updates) ? args.sort_updates as Array<Record<string, unknown>> : [];
-  await runBatch(database, updates.map((update) => ({
+  const mutationStatements = updates.map((update) => ({
     sql: "UPDATE estimate_tabs SET sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
     values: [readNumber(update.sort_order), nowIso(), update.id, estimateId],
-  })));
-  await insertHistoryEvent(database, {
+  }));
+  await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
     eventType: "estimate_tabs_reordered",
@@ -1228,7 +1261,8 @@ async function duplicateEstimateTab(database: D1DatabaseLike, args: Record<strin
   if (!sourceTab) throw new Error("Estimate tab not found in the current estimate.");
   const maxRow = await first<{ max_sort_order: number | null }>(database, "SELECT MAX(sort_order) AS max_sort_order FROM estimate_tabs WHERE estimate_id = ?", [estimateId]);
   const nextTabId = randomUUID();
-  await insertRecord(database, "estimate_tabs", {
+  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
+  const tabInsert = buildInsertRecordStatement("estimate_tabs", {
     id: nextTabId,
     estimate_id: estimateId,
     name: typeof args.next_name === "string" && args.next_name.trim() ? args.next_name.trim() : `${sourceTab.name} Copy`,
@@ -1237,12 +1271,13 @@ async function duplicateEstimateTab(database: D1DatabaseLike, args: Record<strin
     metadata: sourceTab.metadata,
     created_by: args.acting_user_id ?? null,
   });
+  mutationStatements.push({ sql: tabInsert.sql, values: tabInsert.values });
   const nodes = await all<EstimateNodeRow>(database, "SELECT * FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ? ORDER BY sort_order ASC", [estimateId, sourceTabId]);
   const nodeIdBySource = new Map<string, string>();
   for (const node of nodes.map(serializeNodeRow)) {
     const nextNodeId = randomUUID();
     nodeIdBySource.set(node.id, nextNodeId);
-    await insertRecord(database, "estimate_nodes", {
+    const nodeInsert = buildInsertRecordStatement("estimate_nodes", {
       id: nextNodeId,
       estimate_id: estimateId,
       estimate_tab_id: nextTabId,
@@ -1252,6 +1287,7 @@ async function duplicateEstimateTab(database: D1DatabaseLike, args: Record<strin
       sort_order: node.sort_order,
       metadata_json: node.metadata,
     });
+    mutationStatements.push({ sql: nodeInsert.sql, values: nodeInsert.values });
   }
   if (nodeIdBySource.size > 0) {
     const sourceNodeIds = [...nodeIdBySource.keys()];
@@ -1263,16 +1299,20 @@ async function duplicateEstimateTab(database: D1DatabaseLike, args: Record<strin
     for (const row of rows.map(serializeRowItem)) {
       const nextNodeId = row.node_id ? nodeIdBySource.get(row.node_id) : null;
       if (!nextNodeId) continue;
-      await insertRecord(database, "estimate_row_items", {
+      const rowInsert = buildInsertRecordStatement("estimate_row_items", {
         ...row,
         id: randomUUID(),
         node_id: nextNodeId,
         source_snapshot: row.source_snapshot,
         metadata: row.metadata,
       });
+      mutationStatements.push({ sql: rowInsert.sql, values: rowInsert.values });
     }
   }
-  await insertHistoryEvent(database, {
+  if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
+    throw new Error("Estimate tab duplication is too large to persist atomically with activity history.");
+  }
+  await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
     estimateTabId: nextTabId,
@@ -1288,8 +1328,11 @@ async function archiveEstimateTab(database: D1DatabaseLike, args: Record<string,
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
   const tabId = String(args.target_tab_id ?? "");
-  await run(database, "UPDATE estimate_tabs SET archived_at = ?, updated_at = ? WHERE id = ? AND estimate_id = ?", [nowIso(), nowIso(), tabId, estimateId]);
-  await insertHistoryEvent(database, {
+  const archivedAt = nowIso();
+  await runMutationWithHistory(database, [{
+    sql: "UPDATE estimate_tabs SET archived_at = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
+    values: [archivedAt, archivedAt, tabId, estimateId],
+  }], {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1312,12 +1355,18 @@ async function deleteEstimateTab(database: D1DatabaseLike, args: Record<string, 
   );
   const nodes = await all<{ id: string }>(database, "SELECT id FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?", [estimateId, tabId]);
   const nodeIds = nodes.map((node) => node.id);
+  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
   if (nodeIds.length > 0) {
-    await run(database, `DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(nodeIds)})`, [estimateId, ...nodeIds]);
-    await run(database, `DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(nodeIds)})`, [estimateId, ...nodeIds]);
+    mutationStatements.push(
+      { sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(nodeIds)})`, values: [estimateId, ...nodeIds] },
+      { sql: `DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(nodeIds)})`, values: [estimateId, ...nodeIds] },
+    );
   }
-  await run(database, "DELETE FROM estimate_tabs WHERE id = ? AND estimate_id = ?", [tabId, estimateId]);
-  await insertHistoryEvent(database, {
+  mutationStatements.push({
+    sql: "DELETE FROM estimate_tabs WHERE id = ? AND estimate_id = ?",
+    values: [tabId, estimateId],
+  });
+  await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1333,7 +1382,7 @@ async function createEstimateNode(database: D1DatabaseLike, args: Record<string,
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const nodeId = randomUUID();
-  await insertRecord(database, "estimate_nodes", {
+  const insert = buildInsertRecordStatement("estimate_nodes", {
     id: nodeId,
     estimate_id: estimateId,
     estimate_tab_id: args.target_tab_id ?? null,
@@ -1343,7 +1392,7 @@ async function createEstimateNode(database: D1DatabaseLike, args: Record<string,
     sort_order: readNumber(args.initial_sort_order),
     metadata_json: {},
   });
-  const eventId = await insertHistoryEvent(database, {
+  const eventId = await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
     projectId,
     estimateId,
     estimateNodeId: nodeId,
@@ -1363,8 +1412,10 @@ async function renameEstimateNode(database: D1DatabaseLike, args: Record<string,
   const node = await readNodeById(database, estimateId, nodeId);
   if (!node) throw new Error("Estimate tree node not found in the current project.");
   const name = String(args.next_name ?? "").trim();
-  await run(database, "UPDATE estimate_nodes SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ?", [name, nowIso(), nodeId, estimateId]);
-  await insertHistoryEvent(database, {
+  await runMutationWithHistory(database, [{
+    sql: "UPDATE estimate_nodes SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
+    values: [name, nowIso(), nodeId, estimateId],
+  }], {
     projectId,
     estimateId,
     estimateNodeId: nodeId,
@@ -1435,7 +1486,7 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
     sql: "UPDATE estimate_nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
     values: [update.parent_id, update.sort_order, nowIso(), update.id, estimateId],
   }));
-  if (history.statement) statements.push(history.statement);
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
   await runBatch(database, statements);
   return { updatedNodeCount: moveUpdates.length };
 }
@@ -1507,7 +1558,7 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
       { sql: `DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(deletedNodeIds)})`, values: [estimateId, ...deletedNodeIds] },
     );
   }
-  if (history.statement) statements.push(history.statement);
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
   await runBatch(database, statements);
   return { eventId: history.eventId, deletedNodeIds, fallbackNodeId, payload: { deletedNodeIds, fallbackNodeId } };
 }
@@ -1611,7 +1662,7 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
     ...buildPackedInsertStatements("estimate_nodes", nodesToRestore),
     ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
   ];
-  if (history.statement) statements.push(history.statement);
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
   if (statements.length > D1_MAX_BATCH_STATEMENTS) {
     throw new Error("Deleted subtree is too large to restore in one D1 batch.");
   }
@@ -1647,7 +1698,7 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     [estimateId, nodeId],
   );
   const rowId = typeof payload.id === "string" && payload.id ? payload.id : randomUUID();
-  await insertRecord(database, "estimate_row_items", {
+  const insert = buildInsertRecordStatement("estimate_row_items", {
     id: rowId,
     estimate_id: estimateId,
     node_id: nodeId,
@@ -1672,9 +1723,8 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     link_state: payload.linkState ?? "unlinked",
     sort_order: readNumber(sort?.max_sort_order, -1000) + 1000,
   });
-  const row = await readRowById(database, estimateId, rowId);
-  if (!row) throw new Error("Estimate row item was not created.");
-  const eventId = await insertHistoryEvent(database, {
+  const insertedRow = insert.record as unknown as EstimateRowItemRow;
+  const eventId = await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
     projectId,
     estimateId,
     estimateNodeId: nodeId,
@@ -1682,11 +1732,13 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     eventType: "row_inserted",
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId,
-    newSnapshot: row,
-    rowContext: { material: row.material, supplier: row.supplier },
+    newSnapshot: insert.record,
+    rowContext: { material: insertedRow.material, supplier: insertedRow.supplier },
     payload: { rowId },
-    totalDelta: computeEstimateRowLineTotal(row),
+    totalDelta: computeEstimateRowLineTotal(insertedRow),
   });
+  const row = await readRowById(database, estimateId, rowId);
+  if (!row) throw new Error("Estimate row item was not created.");
   return rowItemHistoryResult(row, eventId);
 }
 
@@ -1719,6 +1771,41 @@ function updateValuesForRowPatch(rowPatch: Record<string, unknown>) {
     columns.push([column, column.endsWith("_json") ? jsonString(value, column === "source_snapshot_json" ? null : {}) : value]);
   }
   return columns;
+}
+
+function applyRowPatchForActivity(
+  row: EstimateRowItemRow,
+  rowPatch: Record<string, unknown>,
+  nextRevision: number,
+): EstimateRowItemRow {
+  const next = { ...row, row_revision: nextRevision };
+  const fieldMap: Record<string, keyof EstimateRowItemRow> = {
+    material: "material",
+    description: "description",
+    supplier: "supplier",
+    unit: "unit",
+    unitCost: "unit_cost",
+    quantity: "quantity",
+    quantityBase: "quantity_base",
+    quantityContingencyAmount: "quantity_contingency_amount",
+    contingencyPercentage: "contingency_percentage",
+    adjustmentPercentage: "adjustment_percentage",
+    miscCost: "misc_cost",
+    sourceSnapshot: "source_snapshot",
+    metadata: "metadata",
+    linkState: "link_state",
+    sourceLibraryItemId: "source_library_item_id",
+    categoryNodeId: "category_node_id",
+    supplierId: "supplier_id",
+    discipline: "discipline",
+    designation: "designation",
+  };
+  for (const [patchKey, rowKey] of Object.entries(fieldMap)) {
+    if (Object.prototype.hasOwnProperty.call(rowPatch, patchKey)) {
+      (next as Record<string, unknown>)[rowKey] = rowPatch[patchKey];
+    }
+  }
+  return serializeRowItem(next);
 }
 
 const SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS = new Set([
@@ -1765,6 +1852,25 @@ const SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS = new Set([
   "unit",
   "unit_cost",
 ]);
+
+const MAX_PROPAGATED_ACTIVITY_FACTS = 100;
+
+type VariantActivityIdentity = {
+  id: string | null;
+  label: string | null;
+};
+
+function getVariantActivityIdentity(snapshot: unknown): VariantActivityIdentity | null {
+  const row = readJsonRecord(snapshot);
+  const source = readJsonRecord(row.sourceSnapshot ?? row.source_snapshot_json);
+  const id = typeof source.priceOptionId === "string" && source.priceOptionId ? source.priceOptionId : null;
+  const label = typeof source.priceOptionLabel === "string" && source.priceOptionLabel ? source.priceOptionLabel : null;
+  return id || label ? { id, label } : null;
+}
+
+function variantsDiffer(previous: VariantActivityIdentity | null, next: VariantActivityIdentity | null) {
+  return previous?.id !== next?.id || previous?.label !== next?.label;
+}
 
 function pickSharedProjectComponentSourceSnapshot(value: unknown) {
   if (value === null) return null;
@@ -1819,10 +1925,16 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
 }) {
   const sharedPatch = pickSharedProjectComponentPatch(input.rowPatch);
   const sharedColumns = updateValuesForRowPatch(sharedPatch);
-  if (sharedColumns.length === 0) return { rowIds: [] as string[], totalDelta: 0 };
+  if (sharedColumns.length === 0) return {
+    rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
+    mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+  };
 
   const componentId = getProjectComponentIdentity(rowMetadata(input.sourceRow), null, rowSourceSnapshot(input.sourceRow));
-  if (!componentId) return { rowIds: [] as string[], totalDelta: 0 };
+  if (!componentId) return {
+    rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
+    mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+  };
 
   const siblingRows = await all<EstimateRowItemRow>(
     database,
@@ -1848,10 +1960,14 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
     `,
     [input.projectId, input.sourceRow.id, componentId],
   );
-  if (siblingRows.length === 0) return { rowIds: [] as string[], totalDelta: 0 };
+  if (siblingRows.length === 0) return {
+    rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
+    mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+  };
 
   const propagatedAt = nowIso();
   const statements: Array<{ sql: string; values?: unknown[] }> = [];
+  const facts: Array<Record<string, unknown>> = [];
   let totalDelta = 0;
 
   for (const row of siblingRows) {
@@ -1868,6 +1984,24 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
     }
     if (columns.length === 0) continue;
 
+    if (facts.length < MAX_PROPAGATED_ACTIVITY_FACTS) {
+      facts.push({
+        rowId: row.id,
+        before: {
+          material: row.material,
+          unitCost: readNumber(row.unit_cost),
+          sourceSnapshot: rowSourceSnapshot(row),
+        },
+        after: {
+          material: Object.prototype.hasOwnProperty.call(sharedPatch, "material") ? sharedPatch.material : row.material,
+          unitCost: Object.prototype.hasOwnProperty.call(sharedPatch, "unitCost") ? sharedPatch.unitCost : readNumber(row.unit_cost),
+          sourceSnapshot: Object.prototype.hasOwnProperty.call(sharedPatch, "sourceSnapshot")
+            ? mergeSharedSourceSnapshotIntoRow(row, sharedPatch.sourceSnapshot)
+            : rowSourceSnapshot(row),
+        },
+      });
+    }
+
     if (Object.prototype.hasOwnProperty.call(sharedPatch, "unitCost")) {
       totalDelta += computeEstimateRowLineTotal({ ...row, unit_cost: sharedPatch.unitCost as EstimateRowItemRow["unit_cost"] }) - computeEstimateRowLineTotal(row);
     }
@@ -1882,10 +2016,12 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
     });
   }
 
-  await runBatch(database, statements);
   return {
     rowIds: siblingRows.map((row) => row.id),
     totalDelta,
+    facts,
+    truncatedCount: Math.max(0, siblingRows.length - facts.length),
+    mutationStatements: statements,
   };
 }
 
@@ -1912,13 +2048,28 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   const values = columns.map(([, value]) => value);
   assignments.push("row_revision = ?", "updated_at = ?");
   values.push(nextRevision, nowIso(), rowId, estimateId);
-  await run(database, `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`, values);
-  const updated = await readRowById(database, estimateId, rowId);
-  if (!updated) throw new Error("Estimate row item was not found after update.");
+  const updated = applyRowPatchForActivity(row, effectiveRowPatch, nextRevision);
   const propagation = eventType === "row_updated"
     ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch: effectiveRowPatch })
-    : { rowIds: [] as string[], totalDelta: 0 };
-  const eventId = await insertHistoryEvent(database, {
+    : {
+      rowIds: [] as string[],
+      totalDelta: 0,
+      facts: [] as Array<Record<string, unknown>>,
+      truncatedCount: 0,
+      mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+    };
+  const previousVariant = getVariantActivityIdentity(row);
+  const nextVariant = getVariantActivityIdentity(updated);
+  const changedFields = columns.map(([column]) => column);
+  if (variantsDiffer(previousVariant, nextVariant)) changedFields.push("variant_changed");
+  const mutationStatements = [{
+    sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`,
+    values,
+  }, ...propagation.mutationStatements];
+  if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
+    throw new Error("Component propagation is too large to persist atomically with activity history.");
+  }
+  const eventId = await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
     estimateNodeId: updated.node_id,
@@ -1926,11 +2077,18 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
     eventType,
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId,
-    changedFields: columns.map(([column]) => column),
+    changedFields,
     oldSnapshot: row,
     newSnapshot: updated,
     rowContext: { material: updated.material, supplier: updated.supplier },
-    payload: { rowId, propagatedRowIds: propagation.rowIds },
+    payload: {
+      rowId,
+      variant: variantsDiffer(previousVariant, nextVariant) ? { previous: previousVariant, next: nextVariant } : null,
+      propagatedRowIds: propagation.rowIds,
+      propagatedRowCount: propagation.rowIds.length,
+      propagatedRowFacts: propagation.facts,
+      propagatedRowFactsTruncated: propagation.truncatedCount,
+    },
     totalDelta: computeEstimateRowLineTotal(updated) - computeEstimateRowLineTotal(row) + propagation.totalDelta,
   });
   return rowItemHistoryResult(updated, eventId);
@@ -1959,8 +2117,10 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
   if (readNumber(row.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
-  await run(database, "DELETE FROM estimate_row_items WHERE id = ? AND estimate_id = ?", [rowId, estimateId]);
-  const eventId = await insertHistoryEvent(database, {
+  const eventId = await runMutationWithHistory(database, [{
+    sql: "DELETE FROM estimate_row_items WHERE id = ? AND estimate_id = ?",
+    values: [rowId, estimateId],
+  }], {
     projectId,
     estimateId,
     estimateNodeId: row.node_id,
@@ -1981,6 +2141,7 @@ async function moveRowItem(database: D1DatabaseLike, args: Record<string, unknow
   const estimateId = String(args.target_estimate_id ?? "");
   const updates = Array.isArray(args.move_updates) ? args.move_updates as Array<Record<string, unknown>> : [];
   const rows: Array<{ rowId: string; nodeId: string; sortOrder: number; rowRevision: number }> = [];
+  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
   for (const update of updates) {
     const rowId = String(update.rowId ?? "");
     const current = await readRowById(database, estimateId, rowId);
@@ -1990,10 +2151,13 @@ async function moveRowItem(database: D1DatabaseLike, args: Record<string, unknow
     const nextRevision = readNumber(current.row_revision, 1) + 1;
     const nodeId = String(update.nodeId ?? "");
     const sortOrder = readNumber(update.sortOrder);
-    await run(database, "UPDATE estimate_row_items SET node_id = ?, sort_order = ?, row_revision = ?, updated_at = ? WHERE id = ? AND estimate_id = ?", [nodeId, sortOrder, nextRevision, nowIso(), rowId, estimateId]);
+    mutationStatements.push({
+      sql: "UPDATE estimate_row_items SET node_id = ?, sort_order = ?, row_revision = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
+      values: [nodeId, sortOrder, nextRevision, nowIso(), rowId, estimateId],
+    });
     rows.push({ rowId, nodeId, sortOrder, rowRevision: nextRevision });
   }
-  const eventId = await insertHistoryEvent(database, {
+  const eventId = await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
     estimateNodeId: String(args.target_node_id ?? "") || null,
@@ -2021,9 +2185,8 @@ async function updateSheetAdjustment(database: D1DatabaseLike, args: Record<stri
   const rowRevision = existing ? readNumber(existing.row_revision, 1) + 1 : 1;
   const updatedAt = nowIso();
   const updatedBy = String(args.acting_user_id ?? "") || null;
-  await run(
-    database,
-    `
+  const mutation = {
+    sql: `
       INSERT INTO estimate_sheet_adjustments (estimate_id, mode, percentage, row_revision, updated_at, updated_by)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(estimate_id, mode) DO UPDATE SET
@@ -2032,9 +2195,9 @@ async function updateSheetAdjustment(database: D1DatabaseLike, args: Record<stri
         updated_at = excluded.updated_at,
         updated_by = excluded.updated_by
     `,
-    [estimateId, mode, percentage, rowRevision, updatedAt, updatedBy],
-  );
-  const eventId = await insertHistoryEvent(database, {
+    values: [estimateId, mode, percentage, rowRevision, updatedAt, updatedBy],
+  };
+  const eventId = await runMutationWithHistory(database, [mutation], {
     projectId,
     estimateId,
     eventType: "sheet_adjustment_updated",
@@ -2053,8 +2216,10 @@ async function deleteRowsBulk(database: D1DatabaseLike, args: Record<string, unk
   if (rowIds.length === 0) throw new Error("Select at least one estimate row.");
   const rows = await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`, [estimateId, ...rowIds]);
   if (rows.length !== rowIds.length) throw new Error("One or more estimate row items were not found in the current project.");
-  await run(database, `DELETE FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`, [estimateId, ...rowIds]);
-  const eventId = await insertHistoryEvent(database, {
+  const eventId = await runMutationWithHistory(database, [{
+    sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`,
+    values: [estimateId, ...rowIds],
+  }], {
     projectId,
     estimateId,
     eventType: "rows_deleted",
@@ -2065,6 +2230,133 @@ async function deleteRowsBulk(database: D1DatabaseLike, args: Record<string, unk
     totalDelta: -sumEstimateRowLineTotals(rows),
   });
   return { eventId, deletedRowIds: rowIds, deletedRowCount: rowIds.length, payload: { eventId, deletedRowIds: rowIds, deletedRowCount: rowIds.length } };
+}
+
+async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record<string, unknown>) {
+  const projectId = String(args.target_project_id ?? "");
+  const estimateId = String(args.target_estimate_id ?? "");
+  const sourceEventId = String(args.source_delete_event_id ?? "");
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  const sourceEvent = await first<EstimateEventRow>(
+    database,
+    `
+      SELECT *
+      FROM estimate_sheet_events
+      WHERE id = ?
+        AND estimate_id = ?
+        AND project_id = ?
+        AND workspace_id = ?
+      LIMIT 1
+    `,
+    [sourceEventId, estimateId, projectId, project.workspace_id],
+  );
+  if (!sourceEvent || !["row_deleted", "rows_deleted"].includes(sourceEvent.event_type)) {
+    throw new Error("Deleted row history snapshot was not found in the current estimate.");
+  }
+
+  const snapshot = readJsonRecord(sourceEvent.old_snapshot);
+  const snapshotRows = Array.isArray(snapshot.rows)
+    ? snapshot.rows.map(readJsonRecord)
+    : typeof snapshot.id === "string"
+      ? [snapshot]
+      : [];
+  if (snapshotRows.length === 0) throw new Error("Deleted row history snapshot does not contain restorable rows.");
+  if (snapshotRows.length > MAX_RESTORABLE_ROW_BATCH_SIZE) {
+    throw new Error(`Deleted row history snapshot exceeds the ${MAX_RESTORABLE_ROW_BATCH_SIZE}-row restore limit.`);
+  }
+
+  const snapshotRowIds = new Set<string>();
+  for (const row of snapshotRows) {
+    const rowId = typeof row.id === "string" ? row.id : "";
+    if (!rowId || row.estimate_id !== estimateId || snapshotRowIds.has(rowId)) {
+      throw new Error("Deleted row history snapshot is malformed.");
+    }
+    snapshotRowIds.add(rowId);
+  }
+
+  const requestedRowIds = Array.isArray(args.target_row_ids)
+    ? args.target_row_ids.filter((id): id is string => typeof id === "string")
+    : [];
+  if (requestedRowIds.length > MAX_RESTORABLE_ROW_BATCH_SIZE || new Set(requestedRowIds).size !== requestedRowIds.length) {
+    throw new Error("Requested row restore selection is invalid.");
+  }
+  if (requestedRowIds.some((rowId) => !snapshotRowIds.has(rowId))) {
+    throw new Error("Requested rows are not present in the deleted row history snapshot.");
+  }
+  const rowsToRestore = requestedRowIds.length > 0
+    ? snapshotRows.filter((row) => requestedRowIds.includes(String(row.id)))
+    : snapshotRows;
+
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (existingEvent) {
+    const existingPayload = readJsonRecord(existingEvent.payload);
+    const restoredRowIds = Array.isArray(existingPayload.restoredRowIds)
+      ? existingPayload.restoredRowIds.filter((id): id is string => typeof id === "string")
+      : [];
+    if (
+      existingEvent.event_type !== "estimate_rows_restored"
+      || existingPayload.sourceEventId !== sourceEventId
+      || restoredRowIds.length === 0
+    ) {
+      throw new Error("Restore correlation is already associated with a different estimate mutation.");
+    }
+    const restoredRows = await Promise.all(restoredRowIds.map(async (rowId) => {
+      const row = await readRowById(database, estimateId, rowId);
+      if (!row) throw new Error("Idempotent row restore event exists but restored rows are missing.");
+      return rowItemHistoryResult(row, existingEvent.id);
+    }));
+    return {
+      eventId: existingEvent.id,
+      sourceEventId,
+      restoredRowIds,
+      restoredRowCount: restoredRows.length,
+      restoredRows,
+    };
+  }
+
+  const restoredRowIds = rowsToRestore.map((row) => String(row.id));
+  const collidingRows = await all<{ id: string }>(
+    database,
+    `SELECT id FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(restoredRowIds)})`,
+    [estimateId, ...restoredRowIds],
+  );
+  if (collidingRows.length > 0) throw new Error("One or more estimate rows to restore already exist.");
+
+  const history = await prepareHistoryEventInsert(database, {
+    projectId,
+    estimateId,
+    workspaceId: project.workspace_id,
+    targetRowId: restoredRowIds.length === 1 ? restoredRowIds[0] ?? null : null,
+    eventType: "estimate_rows_restored",
+    actorUserId: String(args.acting_user_id ?? "") || null,
+    correlationId,
+    newSnapshot: { rows: rowsToRestore },
+    payload: {
+      sourceEventId,
+      restoredRowIds,
+      restoredRowCount: restoredRowIds.length,
+    },
+  });
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  if (statements.length > D1_MAX_BATCH_STATEMENTS) {
+    throw new Error("Deleted row restore is too large to persist in one D1 batch.");
+  }
+  await runBatch(database, statements);
+  return {
+    eventId: history.eventId,
+    sourceEventId,
+    restoredRowIds,
+    restoredRowCount: restoredRowIds.length,
+    restoredRows: rowsToRestore.map((row) => rowItemHistoryResult(row as EstimateRowItemRow, history.eventId)),
+  };
 }
 
 async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, unknown>, sourceRootNodeId?: string | null) {
@@ -2083,11 +2375,12 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
   const sourceRoots = nodesToCopy.filter((node) => !node.parent_id || !allowedNodeIds.has(node.parent_id));
   const nodeIdBySource = new Map<string, string>();
   const insertedRootNodeIds: string[] = [];
+  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
   for (const node of nodesToCopy) {
     const nextNodeId = randomUUID();
     nodeIdBySource.set(node.id, nextNodeId);
     if (sourceRoots.some((root) => root.id === node.id)) insertedRootNodeIds.push(nextNodeId);
-    await insertRecord(database, "estimate_nodes", {
+    const nodeInsert = buildInsertRecordStatement("estimate_nodes", {
       id: nextNodeId,
       estimate_id: estimateId,
       estimate_tab_id: targetTabId,
@@ -2097,13 +2390,14 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
       sort_order: readNumber(node.sort_order),
       metadata_json: readJson(node.metadata, {}),
     });
+    mutationStatements.push({ sql: nodeInsert.sql, values: nodeInsert.values });
   }
   let insertedRowItemCount = 0;
   for (const row of templateRows) {
     if (!allowedNodeIds.has(row.template_node_id)) continue;
     const nodeId = nodeIdBySource.get(row.template_node_id);
     if (!nodeId) continue;
-    await insertRecord(database, "estimate_row_items", {
+    const rowInsert = buildInsertRecordStatement("estimate_row_items", {
       id: randomUUID(),
       estimate_id: estimateId,
       node_id: nodeId,
@@ -2126,9 +2420,13 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
       link_state: row.link_state ?? "unlinked",
       metadata: readJson(row.metadata, {}),
     });
+    mutationStatements.push({ sql: rowInsert.sql, values: rowInsert.values });
     insertedRowItemCount += 1;
   }
-  const eventId = await insertHistoryEvent(database, {
+  if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
+    throw new Error("Template insertion is too large to persist atomically with activity history.");
+  }
+  const eventId = await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
     estimateNodeId: targetParentNodeId,
@@ -2401,9 +2699,7 @@ async function callEstimateAction<T>(
   if (name === "update_estimate_sheet_adjustment_with_history") return await updateSheetAdjustment(database, args) as T;
   if (name === "preview_bulk_delete_estimate_sheets") return await previewBulkDeleteEstimateSheets(database, args) as T;
   if (name === "execute_bulk_delete_estimate_sheets") return await executeBulkDeleteEstimateSheets(database, args) as T;
-  if (name === "restore_deleted_estimate_rows_with_history") {
-    throw new Error("Deleted row restore requires a Cloudflare D1 history snapshot and is not available for this event.");
-  }
+  if (name === "restore_deleted_estimate_rows_with_history") return await restoreDeletedEstimateRows(database, args) as T;
   if (name === "restore_deleted_estimate_nodes_with_history") return await restoreDeletedEstimateNodes(database, args) as T;
   throw new Error(`Unsupported Cloudflare D1 estimate action: ${name}`);
 }

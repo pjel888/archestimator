@@ -533,6 +533,7 @@ describe("estimate sheet library insertion persistence", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "off");
     delete process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED;
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
@@ -703,14 +704,16 @@ describe("estimate sheet library insertion persistence", () => {
     }));
   });
 
-  it("ignores malformed library replacement drag payloads without throwing or replacing", () => {
+  it("ignores malformed library replacement drag payloads without throwing or replacing", async () => {
     renderPersistedEstimateSheet(nodesWithRow);
     const targetCell = screen.getByLabelText("Kitchen Sink replaceable estimate component");
     const dataTransfer = createDataTransferStub("none");
     dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, "{");
 
-    fireEvent.dragOver(targetCell, { dataTransfer });
-    expect(() => fireEvent.drop(targetCell, { dataTransfer })).not.toThrow();
+    await act(async () => {
+      expect(() => fireEvent.drop(targetCell, { dataTransfer })).not.toThrow();
+      await Promise.resolve();
+    });
 
     expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
   });

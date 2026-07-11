@@ -22,6 +22,9 @@ import {
 type Metric = { value?: number; threshold?: number; status?: string };
 type Report = { metrics?: Record<string, Metric>; overall?: string; applicationFingerprint?: unknown; producerFingerprint?: unknown; application_fingerprint?: unknown; producer_fingerprint?: unknown };
 
+const BOTTLENECK_DECISION_SCHEMA: typeof DECISION_SCHEMA =
+  "estimate-sheet-bottleneck-decision.v1";
+
 export type BottleneckBranch = {
   action: "activate" | "supersede";
   failedMetricIds: string[];
@@ -98,7 +101,7 @@ export function writeEstimateSheetBottleneckDecision(input: {
   const failures = Object.values(branches).some((branch) => branch.predicate.length === 0) ? ["invalid-predicate"] : [];
   const partial = Object.keys(evidencePaths).length === 0;
   if (partial) failures.push("no-baseline-evidence");
-  const payload = { schema_version: DECISION_SCHEMA, unit_id: "UNIT-004" as const, run_id: manifest.run_id, application_fingerprint: manifest.applicationFingerprint, producer_fingerprint: manifest.producerFingerprint, branches, ranking, predecessor: { application_fingerprint: manifest.applicationFingerprint, producer_fingerprint: manifest.producerFingerprint }, evidence, overall: failures.length ? "FAIL" as const : "PASS" as const, failures, created_at: nowIso() };
+  const payload = { schema_version: BOTTLENECK_DECISION_SCHEMA, unit_id: "UNIT-004" as const, run_id: manifest.run_id, application_fingerprint: manifest.applicationFingerprint, producer_fingerprint: manifest.producerFingerprint, branches, ranking, predecessor: { application_fingerprint: manifest.applicationFingerprint, producer_fingerprint: manifest.producerFingerprint }, evidence, overall: failures.length ? "FAIL" as const : "PASS" as const, failures, created_at: nowIso() };
   const decision: BottleneckDecisionV1 = { ...payload, payload_sha256: sha256Json(payload) };
   const outputPath = ensureContainedRunPath(manifest.run_root, input.output ?? "bottleneck-decision.json");
   writeJsonNoOverwrite(outputPath, decision, 0o600);
@@ -126,4 +129,3 @@ if (import.meta.main) {
   try { process.exitCode = main(); }
   catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }
 }
-

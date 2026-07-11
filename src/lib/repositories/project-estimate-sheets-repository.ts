@@ -1,5 +1,5 @@
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { canAccessProjectInD1 } from "@/lib/authz/d1-access";
+import { canAccessWholeProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
 import { selectFirstEstimateNodeIds, type EstimateFirstNodeSourceRow } from "@/lib/estimates/tree-hierarchy";
@@ -59,13 +59,41 @@ function normalizeProjectEstimateSheetLimit(limit: number | undefined): number |
 }
 
 
-async function assertCanAccessProjectEstimateSheets(projectId: string, db: D1DatabaseLike) {
+type ProjectEstimateSheetScope = {
+  accessibleEstimateIds: string[] | null;
+};
+
+async function resolveProjectEstimateSheetScope(
+  projectId: string,
+  db: D1DatabaseLike,
+): Promise<ProjectEstimateSheetScope> {
   const user = await requireCurrentUserContext();
-  const allowed = await canAccessProjectInD1(db, projectId, user);
-  if (!allowed) {
+  if (await canAccessWholeProjectInD1(db, projectId, user)) {
+    return { accessibleEstimateIds: null };
+  }
+
+  const { results = [] } = await db
+    .prepare<{ estimate_id: string }>(
+      `SELECT estimate_id
+       FROM estimate_sheet_members
+       WHERE project_id = ?
+         AND user_id = ?`,
+    )
+    .bind(projectId, user.userId)
+    .all<{ estimate_id: string }>();
+  const accessibleEstimateIds = [...new Set(results.map((row) => row.estimate_id))];
+  if (accessibleEstimateIds.length === 0) {
     throw new Error("Unauthorized project estimate sheet access.");
   }
-  return user;
+  return { accessibleEstimateIds };
+}
+
+function appendEstimateScope(sql: string, accessibleEstimateIds: string[] | null) {
+  if (!accessibleEstimateIds) return { sql, values: [] as D1Value[] };
+  return {
+    sql: `${sql} AND id IN (${estimateIdPlaceholders(accessibleEstimateIds)})`,
+    values: accessibleEstimateIds,
+  };
 }
 
 async function requireProjectEstimateSheetsD1Database(): Promise<D1DatabaseLike> {
@@ -90,15 +118,15 @@ export async function listProjectEstimateSheetsForProject(
   options: ListProjectEstimateSheetsForProjectOptions = {},
 ): Promise<ProjectEstimateSheetSummary[]> {
   const db = await requireProjectEstimateSheetsD1Database();
-  await assertCanAccessProjectEstimateSheets(projectId, db);
+  const scope = await resolveProjectEstimateSheetScope(projectId, db);
   const safeLimit = normalizeProjectEstimateSheetLimit(options.limit);
-  const values: D1Value[] = [projectId];
-  let sql = `
+  const scoped = appendEstimateScope(`
     SELECT id, name, sheet_code, updated_at
     FROM estimates
-    WHERE project_id = ?
-    ORDER BY sheet_code ASC, id ASC
-  `;
+    WHERE project_id = ?`, scope.accessibleEstimateIds);
+  const values: D1Value[] = [projectId, ...scoped.values];
+  let sql = `${scoped.sql}
+    ORDER BY sheet_code ASC, id ASC`;
   if (safeLimit) {
     sql += " LIMIT ?";
     values.push(safeLimit);
@@ -116,10 +144,14 @@ export async function listProjectEstimateSheetsForProject(
 
 export async function countProjectEstimateSheetsForProject(projectId: string): Promise<number> {
   const db = await requireProjectEstimateSheetsD1Database();
-  await assertCanAccessProjectEstimateSheets(projectId, db);
+  const scope = await resolveProjectEstimateSheetScope(projectId, db);
+  const scoped = appendEstimateScope(
+    "SELECT COUNT(*) AS count FROM estimates WHERE project_id = ?",
+    scope.accessibleEstimateIds,
+  );
   const row = await db
-    .prepare<{ count: number | string | null }>("SELECT COUNT(*) AS count FROM estimates WHERE project_id = ?")
-    .bind(projectId)
+    .prepare<{ count: number | string | null }>(scoped.sql)
+    .bind(projectId, ...scoped.values)
     .first<{ count: number | string | null }>();
 
   return Number(row?.count ?? 0);
@@ -134,16 +166,16 @@ export async function listRecentProjectEstimateSheets(
     Math.max(1, Number.isFinite(limit) ? Math.trunc(limit) : RECENT_ESTIMATE_SHEET_DEFAULT_LIMIT),
   );
   const db = await requireProjectEstimateSheetsD1Database();
-  await assertCanAccessProjectEstimateSheets(projectId, db);
-  const { results: estimateRows = [] } = await db
-    .prepare<RecentProjectEstimateSheetD1Row>(`
+  const scope = await resolveProjectEstimateSheetScope(projectId, db);
+  const scoped = appendEstimateScope(`
       SELECT id, project_id, name, sheet_code, project_budget, updated_at
       FROM estimates
-      WHERE project_id = ?
+      WHERE project_id = ?`, scope.accessibleEstimateIds);
+  const { results: estimateRows = [] } = await db
+    .prepare<RecentProjectEstimateSheetD1Row>(`${scoped.sql}
       ORDER BY updated_at DESC, id DESC
-      LIMIT ?
-    `)
-    .bind(projectId, safeLimit)
+      LIMIT ?`)
+    .bind(projectId, ...scoped.values, safeLimit)
     .all<RecentProjectEstimateSheetD1Row>();
 
   const estimateIds = estimateRows.map((estimate) => estimate.id);

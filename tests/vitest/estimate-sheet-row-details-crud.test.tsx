@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
@@ -184,11 +184,16 @@ describe("estimate sheet row details and CRUD entry points", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "off");
     actionMocks.deleteEstimateRowItem.mockResolvedValue(undefined);
     actionMocks.updateEstimateRowItem.mockImplementation((input: Record<string, unknown>) => {
       const base = input.rowId === expressRowId ? emptyExpressRow : projectSpecificRow;
       return Promise.resolve(updateResult(input, base));
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("opens project-specific component-card editing in the shared component modal", async () => {

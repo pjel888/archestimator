@@ -10,6 +10,7 @@ const actionMocks = vi.hoisted(() => ({
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateNodes: vi.fn(),
   restoreDeletedEstimateRows: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
@@ -36,7 +37,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function renderEstimateSheet() {
+function renderEstimateSheet({ canEditEstimate = false }: { canEditEstimate?: boolean } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -44,6 +45,7 @@ function renderEstimateSheet() {
         selectedNodeId="living-area"
         projectId="project-1"
         estimateId="estimate-1"
+        canEditEstimate={canEditEstimate}
         renderSidebar={false}
         proposalExportMetadata={{
           projectId: "project-1",
@@ -71,6 +73,12 @@ describe("estimate sheet version control UI", () => {
       nextCursor: null,
       rowNextCursor: null,
       nodeNextCursor: null,
+    });
+    actionMocks.restoreDeletedEstimateNodes.mockResolvedValue({
+      tree: [],
+      restoredNodeCount: 1,
+      restoredNodeIds: ["deleted-area"],
+      restoredRootNodeIds: ["deleted-area"],
     });
   });
 
@@ -570,6 +578,82 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetDialog).queryByText(/User 4E23801D/i)).not.toBeInTheDocument();
     expect(within(sheetDialog).queryByText("Drag or add a component here")).not.toBeInTheDocument();
     expect(sheetDialog.querySelector("[data-row-history-component-card]")).not.toBeInTheDocument();
+  });
+
+  it("restores a deleted Area from activity history and reloads the feed", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [{
+        id: "deleted-area-event",
+        eventType: "node_deleted_with_children",
+        eventSource: "server_action",
+        createdAt: "2026-05-24T11:48:00.000Z",
+        actorUserId: null,
+        targetRowId: null,
+        estimateNodeId: "deleted-area",
+        rowContext: {},
+        oldSnapshot: { nodes: [] },
+        newSnapshot: null,
+        changedFields: ["node"],
+        totalDelta: 0,
+        payload: { deletedNodeIds: ["deleted-area"], deletedRootNodeIds: ["deleted-area"] },
+        correlationId: "deleted-area-correlation",
+      }],
+      rowEvents: [],
+      nodeEvents: [],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet({ canEditEstimate: true });
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+
+    await user.click(within(sheetDialog).getByRole("button", { name: "Restore deleted Area" }));
+
+    await waitFor(() => expect(actionMocks.restoreDeletedEstimateNodes).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      sourceEventId: "deleted-area-event",
+      nodeIds: ["deleted-area"],
+      targetTabId: undefined,
+    }));
+    await waitFor(() => expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not expose activity-history recovery controls to read-only users", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [{
+        id: "deleted-row-event",
+        eventType: "row_deleted",
+        eventSource: "server_action",
+        createdAt: "2026-05-24T11:48:00.000Z",
+        actorUserId: null,
+        targetRowId: "deleted-row",
+        estimateNodeId: "living-area",
+        rowContext: {},
+        oldSnapshot: { id: "deleted-row" },
+        newSnapshot: null,
+        changedFields: ["row"],
+        totalDelta: 0,
+        payload: { rowId: "deleted-row" },
+        correlationId: "deleted-row-correlation",
+      }],
+      rowEvents: [],
+      nodeEvents: [],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+
+    expect(within(sheetDialog).queryByRole("button", { name: "Restore deleted row" })).not.toBeInTheDocument();
+    expect(actionMocks.restoreDeletedEstimateRows).not.toHaveBeenCalled();
   });
 
   it("loads more sheet activity with the returned cursor", async () => {

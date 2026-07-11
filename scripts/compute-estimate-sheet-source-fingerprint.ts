@@ -74,6 +74,21 @@ export function computeEstimateSheetSourceFingerprint(input: {
   return { bytes, fingerprint };
 }
 
+export function compareEstimateSheetSourceFingerprintReference(input: {
+  repoRoot?: string;
+  referencePath?: string;
+  verify?: boolean;
+} = {}): { bytes: Buffer; referenceBytes: Buffer } {
+  const repoRoot = resolve(input.repoRoot ?? process.cwd());
+  const referencePath = input.referencePath ?? referenceFingerprintPath(repoRoot);
+  const result = computeEstimateSheetSourceFingerprint({ repoRoot, referencePath, verify: input.verify });
+  const referenceBytes = runReference(repoRoot, referencePath, input.verify === true);
+  if (sha256Hex(referenceBytes) !== sha256Hex(result.bytes) || !referenceBytes.equals(result.bytes)) {
+    throw new Error("typed fingerprint output differs from reference output");
+  }
+  return { bytes: result.bytes, referenceBytes };
+}
+
 export function main(argv = process.argv.slice(2)): number {
   const values = parseStrictCli(argv);
   if (cliBoolean(values, "help")) {
@@ -84,10 +99,13 @@ export function main(argv = process.argv.slice(2)): number {
   const compareReference = cliString(values, "compare-reference");
   const output = cliString(values, "output");
   const verify = cliBoolean(values, "verify");
-  const result = computeEstimateSheetSourceFingerprint({ repoRoot, referencePath: compareReference ?? referenceFingerprintPath(repoRoot), verify });
+  const referencePath = compareReference ?? referenceFingerprintPath(repoRoot);
+  const result = compareReference
+    ? compareEstimateSheetSourceFingerprintReference({ repoRoot, referencePath, verify })
+    : computeEstimateSheetSourceFingerprint({ repoRoot, referencePath, verify });
   if (compareReference) {
-    const expected = readFileSync(compareReference);
-    if (sha256Hex(expected) !== sha256Hex(result.bytes) || expected.toString("utf8") !== result.bytes.toString("utf8")) throw new Error("typed fingerprint output differs from reference output");
+    // compareEstimateSheetSourceFingerprintReference has already executed and
+    // byte-compared the immutable reference under the sanitized runtime.
   }
   if (output) {
     writeNoOverwrite(resolve(repoRoot, output), result.bytes, 0o600);
@@ -101,4 +119,3 @@ if (import.meta.main) {
   try { process.exitCode = main(); }
   catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }
 }
-

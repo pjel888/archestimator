@@ -1188,7 +1188,13 @@ describe("estimate sheet version control server actions", () => {
       search: "hardwood",
     });
 
-    expect(eventsQuery.in).toHaveBeenCalledWith("event_type", ["row_updated", "template_inserted"]);
+    expect(eventsQuery.in).toHaveBeenCalledWith("event_type", [
+      "row_updated",
+      "estimate_row_updated",
+      "template_inserted",
+      "estimate_template_inserted",
+      "template_node_subtree_inserted",
+    ]);
     expect(eventsQuery.gte).toHaveBeenCalledWith("created_at", "2026-05-01T00:00:00.000Z");
     expect(eventsQuery.lte).toHaveBeenCalledWith("created_at", "2026-05-25T00:00:00.000Z");
     expect(eventsQuery.or).toHaveBeenCalledWith(expect.stringContaining("event_type.ilike.%hardwood%"));

@@ -4,7 +4,17 @@ const d1Mocks = vi.hoisted(() => ({
   getCloudflareD1Database: vi.fn(),
 }));
 
+const authMocks = vi.hoisted(() => ({
+  requireCurrentUserContext: vi.fn(),
+}));
+
+const accessMocks = vi.hoisted(() => ({
+  canAccessWholeProjectInD1: vi.fn(),
+}));
+
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+vi.mock("@/lib/auth/session", () => authMocks);
+vi.mock("@/lib/authz/d1-access", () => accessMocks);
 
 type PreparedD1Statement = {
   sql: string;
@@ -31,6 +41,9 @@ class FakeD1Statement {
   }
 
   async all() {
+    if (this.sql.includes("FROM estimate_sheet_members")) {
+      return { results: this.database.accessibleEstimateIds.map((estimate_id) => ({ estimate_id })) };
+    }
     if (this.sql.includes("FROM estimates")) return { results: this.database.estimates };
     if (this.sql.includes("FROM estimate_nodes")) return { results: this.database.nodes };
     if (this.sql.includes("FROM estimate_row_items")) return { results: this.database.rowItems };
@@ -43,6 +56,7 @@ class FakeD1Database {
   estimates: unknown[] = [];
   nodes: unknown[] = [];
   rowItems: unknown[] = [];
+  accessibleEstimateIds: string[] = [];
   count = 0;
 
   prepare(sql: string) {
@@ -59,6 +73,8 @@ function findPrepared(database: FakeD1Database, pattern: RegExp) {
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", role: "member" });
+  accessMocks.canAccessWholeProjectInD1.mockResolvedValue(true);
 });
 
 describe("project estimate sheet repository", () => {
@@ -215,5 +231,59 @@ describe("project estimate sheet repository", () => {
     const query = findPrepared(database, /ORDER BY sheet_code ASC, id ASC/);
     expect(query.sql).toContain("LIMIT ?");
     expect(query.values).toEqual(["project-1", 3]);
+  });
+
+  it("selects and counts only direct sheet grants for a sheet-only collaborator", async () => {
+    const database = new FakeD1Database();
+    database.accessibleEstimateIds = ["estimate-allowed"];
+    database.estimates = [{
+      id: "estimate-allowed",
+      name: "Allowed estimate",
+      sheet_code: "EST-001",
+      updated_at: "2026-07-11T00:00:00.000Z",
+    }];
+    database.count = 1;
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    accessMocks.canAccessWholeProjectInD1.mockResolvedValue(false);
+
+    const { countProjectEstimateSheetsForProject, listProjectEstimateSheetsForProject } = await import(
+      "@/lib/repositories/project-estimate-sheets-repository",
+    );
+    await expect(listProjectEstimateSheetsForProject("project-1")).resolves.toHaveLength(1);
+    await expect(countProjectEstimateSheetsForProject("project-1")).resolves.toBe(1);
+
+    const estimateQueries = database.prepared.filter((entry) => entry.sql.includes("FROM estimates"));
+    expect(estimateQueries).toHaveLength(2);
+    for (const query of estimateQueries) {
+      expect(query.sql).toContain("AND id IN (?)");
+      expect(query.values).toEqual(["project-1", "estimate-allowed"]);
+    }
+    expect(accessMocks.canAccessWholeProjectInD1).toHaveBeenCalledWith(
+      database,
+      "project-1",
+      { userId: "user-1", role: "member" },
+    );
+  });
+
+  it("limits recent sheet cards to direct sheet grants for a sheet-only collaborator", async () => {
+    const database = new FakeD1Database();
+    database.accessibleEstimateIds = ["estimate-allowed"];
+    database.estimates = [{
+      id: "estimate-allowed",
+      project_id: "project-1",
+      name: "Allowed estimate",
+      sheet_code: "EST-001",
+      project_budget: null,
+      updated_at: "2026-07-11T00:00:00.000Z",
+    }];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    accessMocks.canAccessWholeProjectInD1.mockResolvedValue(false);
+
+    const { listRecentProjectEstimateSheets } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    await expect(listRecentProjectEstimateSheets("project-1")).resolves.toHaveLength(1);
+
+    const estimatesQuery = findPrepared(database, /ORDER BY updated_at DESC, id DESC/);
+    expect(estimatesQuery.sql).toContain("AND id IN (?)");
+    expect(estimatesQuery.values).toEqual(["project-1", "estimate-allowed", 5]);
   });
 });

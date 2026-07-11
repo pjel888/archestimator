@@ -747,10 +747,11 @@ async function copyProjectSourceSubtreeInD1(
       sql: `
         INSERT INTO estimate_sheet_events (
           id, estimate_id, workspace_id, project_id, estimate_node_id, estimate_tab_id,
-          event_type, event_source, correlation_id, actor_user_id, changed_fields,
-          row_context, old_snapshot, new_snapshot, payload, metadata, created_at
+          target_row_id, event_type, event_source, correlation_id, actor_user_id,
+          changed_fields, row_context, old_snapshot, new_snapshot, payload, metadata,
+          total_delta, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       values: [
         eventId,
@@ -759,6 +760,7 @@ async function copyProjectSourceSubtreeInD1(
         input.targetProjectId,
         input.targetParentNodeId,
         targetParent.estimate_tab_id,
+        null,
         "project_source_inserted",
         "server_action",
         correlationId,
@@ -769,6 +771,7 @@ async function copyProjectSourceSubtreeInD1(
         null,
         JSON.stringify(payload),
         "{}",
+        0,
         now,
       ],
     },

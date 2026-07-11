@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { normalizeEventType, storedEventTypesForCanonicalEventType } from "@/lib/activity/event-type-normalization";
 import { assertEstimateActionRateLimit } from "@/lib/estimates/action-rate-limit";
 import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { LEGACY_BLANK_ROW_TAG, getProjectComponentIdentity, isExpressComponentRow, readEstimateRowMetadata, readExpressComponentMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata, type EstimateRowMetadata } from "@/lib/estimates/express-components";
@@ -952,7 +953,7 @@ function normalizeHistoryEvent(row: Tables<"estimate_sheet_events">, actorLabels
   const actorUserId = row.actor_user_id;
   return {
     id: row.id,
-    eventType: row.event_type,
+    eventType: normalizeEventType(row.event_type, { changedFields: readStringArray(row.changed_fields) }),
     eventSource: row.event_source,
     createdAt: row.created_at,
     actorUserId,
@@ -1042,7 +1043,7 @@ function normalizeActivitySearch(value: string | undefined) {
 function normalizeActivityReadFilters(input: FetchEstimateSheetVersionControlInput): ActivityReadFilters {
   const eventTypes = Array.from(new Set((input.eventTypes ?? []).flatMap((eventType) => {
     const trimmed = eventType.trim();
-    return trimmed ? [trimmed] : [];
+    return trimmed ? storedEventTypesForCanonicalEventType(trimmed) : [];
   })));
   for (const eventType of eventTypes) {
     if (!/^[a-z0-9_]+$/.test(eventType)) throw new Error("Activity event type filter contains unsupported characters.");

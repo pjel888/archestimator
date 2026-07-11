@@ -27,6 +27,7 @@ import {
 import type {
   CollaborationInvitationSummary,
   CollaborationRole,
+  EligibleProjectMemberCandidate,
   EstimateSheetMemberSummary,
   EstimateSheetAccessMode,
   ProjectCollaborationSummary,
@@ -2757,6 +2758,7 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     readOptionalEstimateSheetAccessSettings(database, estimateIds),
     readOptionalCollaborationInvitations(database, project.id),
   ]);
+  const directProjectRoleByUserId = new Map(projectMembers.map((member) => [member.user_id, member.role]));
 
   const collaboratorRoles = new Map<
     string,
@@ -2836,15 +2838,22 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       avatarUrl: collaboratorProfile?.avatar_url ?? null,
       role: role?.role ?? "viewer",
       source: role?.source ?? "workspace",
-      online: userId === profile.id,
+      directProjectRole: canReadProjectRoster ? directProjectRoleByUserId.get(userId) ?? null : null,
+      // Presence is a realtime overlay. Server-rendered membership must not
+      // imply that the current user (or any collaborator) has an active room.
+      online: false,
     };
   });
 
   const sheetMemberCountByEstimateId = new Map<string, number>();
+  const directSheetMemberIdsByEstimateId = new Map<string, Set<string>>();
   const currentUserSheetRoleByEstimateId = new Map<string, CollaborationRole>();
   const sheetMembersByEstimateId = new Map<string, EstimateSheetMemberSummary[]>();
   for (const member of sheetMembers) {
     sheetMemberCountByEstimateId.set(member.estimate_id, (sheetMemberCountByEstimateId.get(member.estimate_id) ?? 0) + 1);
+    const memberIds = directSheetMemberIdsByEstimateId.get(member.estimate_id) ?? new Set<string>();
+    memberIds.add(member.user_id);
+    directSheetMemberIdsByEstimateId.set(member.estimate_id, memberIds);
     if (member.user_id === profile.id) {
       currentUserSheetRoleByEstimateId.set(member.estimate_id, member.role);
     }
@@ -2856,7 +2865,9 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       avatarUrl: collaboratorProfile?.avatar_url ?? null,
       role: member.role,
       source: "sheet",
-      online: member.user_id === profile.id,
+      // The summary remains an authorization snapshot; live presence arrives
+      // separately from the authorized realtime client.
+      online: false,
       estimateId: member.estimate_id,
     };
     const existing = sheetMembersByEstimateId.get(member.estimate_id) ?? [];
@@ -2867,6 +2878,20 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
   const sheetInheritanceByEstimateId = new Map(sheetSettings.map((settings) => [settings.estimate_id, settings.inherit_project_access]));
   const currentUserRole = collaboratorRoles.get(profile.id)?.role ?? "viewer";
   const canManageAccess = Boolean(currentUserProjectLevelRole && canManageCollaborationRole(currentUserProjectLevelRole));
+  const eligibleProjectMemberCandidates: EligibleProjectMemberCandidate[] = canManageAccess
+    ? (workspaceMembers ?? [])
+      .filter((member) => member.user_id !== profile.id && !directProjectRoleByUserId.has(member.user_id))
+      .flatMap((member) => {
+        const candidateProfile = profiles.get(member.user_id);
+        if (!candidateProfile) return [];
+        return [{
+          id: member.user_id,
+          displayName: readProfileDisplayName(candidateProfile, member.user_id),
+          email: candidateProfile.email ?? null,
+        }];
+      })
+      .sort((left, right) => left.displayName.localeCompare(right.displayName))
+    : [];
   const accessibleEstimateIds = new Set(estimateIds);
   const estimateSheets = (estimates ?? []).map((estimate) => {
     const overrideCount = sheetMemberCountByEstimateId.get(estimate.id) ?? 0;
@@ -2876,6 +2901,24 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
         ? "sheet-overrides"
         : "inherits-project"
       : "restricted";
+    const currentUserRoleAtEstimate = inheritsProjectAccess
+      ? readHighestCollaborationRole(currentUserProjectLevelRole, currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer") ?? "viewer"
+      : currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer";
+    const canManageEstimateAccess = canManageAccess || canManageCollaborationRole(currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer");
+    const eligibleMemberCandidates: EligibleProjectMemberCandidate[] = canManageEstimateAccess && canReadProjectRoster
+      ? collaboratorIds
+        .filter((userId) => userId !== profile.id && !directSheetMemberIdsByEstimateId.get(estimate.id)?.has(userId))
+        .flatMap((userId) => {
+          const candidateProfile = profiles.get(userId);
+          if (!candidateProfile) return [];
+          return [{
+            id: userId,
+            displayName: readProfileDisplayName(candidateProfile, userId),
+            email: candidateProfile.email ?? null,
+          }];
+        })
+        .sort((left, right) => left.displayName.localeCompare(right.displayName))
+      : [];
 
     return {
       estimateId: estimate.id,
@@ -2883,7 +2926,9 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       name: estimate.name,
       accessMode,
       overrideCount,
-      canManageAccess: canManageAccess || canManageCollaborationRole(currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer"),
+      canManageAccess: canManageEstimateAccess,
+      currentUserRole: currentUserRoleAtEstimate,
+      eligibleMemberCandidates,
       members: sheetMembersByEstimateId.get(estimate.id) ?? [],
     };
   });
@@ -2901,6 +2946,9 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       scope: invitation.scope,
       estimateId: invitation.estimate_id,
       expiresAt: invitation.expires_at,
+      canManage: invitation.scope === "project"
+        ? canManageAccess
+        : Boolean(invitation.estimate_id && estimateSheets.find((sheet) => sheet.estimateId === invitation.estimate_id)?.canManageAccess),
     }));
 
   return {
@@ -2910,6 +2958,7 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     currentUserRole,
     canManageAccess,
     collaborators,
+    eligibleProjectMemberCandidates,
     pendingInvitations,
     estimateSheets,
     realtime: {

@@ -47,9 +47,24 @@ describe("estimate-sheet source fingerprint contract", () => {
     expect(existsSync(typedHelper)).toBe(true);
   });
 
+  it("byte-compares the typed helper output with a fresh immutable reference invocation", () => {
+    const result = spawnSync("bun", ["run", typedHelper, "--", `--compare-reference=${reference}`], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH ?? "/opt/homebrew/bin:/usr/bin:/bin",
+        HOME: "/tmp/archestimator-fingerprint-home",
+        LC_ALL: "C",
+        LANG: "C",
+        TZ: "UTC",
+      },
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ contract_version: "estimate-sheet-source-fingerprint.v2" });
+  });
+
   it("does not treat the three generated .impeccable metadata files as source scope", () => {
     const fingerprint = runReference();
     expect(fingerprint.generated_metadata_exclusion_rule).toBe("untracked-impeccable-metadata-exclusions.v1");
   });
 });
-
