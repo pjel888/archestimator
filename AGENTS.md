@@ -51,12 +51,15 @@ when the task is genuinely non-trivial, ambiguous, or high-risk.
 - Supabase project `ebxxqidacheyapmmzavr` is historical provider-exit evidence only. Never mutate it, never mutate the unrelated `archestimator` provider project, and never mutate other Cloudflare accounts/projects outside the resources bound in `wrangler.jsonc`.
 - Philip grants standing authorization for Archestimator Cloudflare D1/R2/Durable Object/Queue/Email changes inside the resources bound in `wrangler.jsonc`. Agents may create, edit, and apply D1 migrations in `./migrations/`; run scoped SQL against the bound D1 database; adjust schema, indexes, RPC-style queries, triggers, and seed/test data; manage R2 object policies; configure DO state; and fix mistakes forward without per-change owner approval, as long as the work stays inside the bound Cloudflare resources.
 - Current cost posture: stay on free-tier / bundled Cloudflare limits; do not enable paid add-ons (D1 paid plan, R2 paid tier, Workers Smart Placement paid, Workers Analytics paid, dedicated egress, etc.) without explicit owner approval. Rely on daily D1 backups plus the `cf:d1-restore-rehearsal` script for the cheaper recovery path.
-- Verification is required; tests default to `NOT_REQUIRED`. Use `TARGETED` for
-  a named MVP-critical invariant that cheaper evidence cannot prove, or one
-  existing focused test when it is demonstrably the cheapest decisive proof;
-  that last trigger does not authorize test edits. Use `TEST_TASK` when
-  testing/QA is the requested output. Broad `validate`/build/browser/manual QA
-  requires an explicit test task or integrated critical claim. See
+- Verification is required; **tests are user-gated, not automatic.** The
+  **User Test Authorization Gate** is the supreme rule: do not create, expand,
+  repair, or run any automated test, test suite, build-as-test-gate, browser
+  automation, or broad validation gate unless the user has explicitly requested
+  testing for the current task. Critical risk, high blast radius, user-visible
+  change, nearby tests, or an agent's own judgment never authorize running
+  tests on their own — when they seem warranted, record a `TEST_PROPOSAL`
+  (named risk + exact command) and wait. `TEST_TASK` is the only execution
+  trigger and requires an explicit user request. See
   `.ai/00_system/VALIDATION_MATRIX.md`.
 - Implementation has a zero-artificial-blocker contract. Memory sync, optional
   tools, reviewer availability, hosted proof, release evidence, and other
@@ -177,21 +180,38 @@ For GitHub security PRs, review comments, CodeQL/GitGuardian/Dependabot/secret-s
 
 ## Verification Policy
 
-Verification is proportional; tests are conditional:
+Verification is proportional; **tests are user-gated, not automatic.**
+
+### User Test Authorization Gate (supreme rule)
+
+**Do not create, expand, repair, or run any automated test, test suite,
+build-as-test-gate, browser automation, or broad validation gate unless the
+user has explicitly requested testing for the current task.** This is the
+supreme rule and overrides every other `test_requirement`, `TARGETED`,
+`MVP-critical`, blast-radius, or "nearby tests exist" consideration. The owner
+(Philip) is the only authority who authorizes test execution. Critical risk,
+high blast radius, a user-visible change, a nearby test file, or an agent's
+own judgment that tests are warranted is never sufficient to run tests — when
+they seem warranted, record a `TEST_PROPOSAL` (named risk + exact command) and
+wait.
+
+### Decisions
 
 - Default `test_requirement=NOT_REQUIRED`: do not create or run tests. Use the
   cheapest decisive source, diff, path/reference, type, lint, static, dry-run,
   or narrow runtime evidence.
-- Use `TARGETED` for a named MVP-critical auth/security, D1/data-integrity,
-  estimate/money/proposal, release/observability, or shared-contract invariant
-  that cheaper evidence cannot prove. It may also run one existing focused test
-  under `CHEAPEST_DECISIVE_EXISTING_TEST` when that exact test is cheaper and
-  more decisive than non-test evidence; do not create or expand tests under it.
-- Use `BROADER` only when targeted evidence cannot cover the integrated
-  critical boundary. Use `TEST_TASK` when testing/QA is the requested output.
+- `TARGETED` / `BROADER` identify a critical invariant (auth/security,
+  D1/data-integrity, estimate/money/proposal, release/observability,
+  shared-contract) that would benefit from a test, but **authorize proposing it
+  only, not running it.** Record a `TEST_PROPOSAL` and continue with non-test
+  evidence; await explicit user authorization before any test runs. The previous
+  `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
+- `TEST_TASK` is the only decision that authorizes creating, expanding, or
+  running tests, and it requires an explicit user request.
 - Playwright, browser automation, screenshots, Storybook, builds, full suites,
-  and visual/manual QA are opt-in evidence surfaces. State the exact claim they
-  prove before running them.
+  and visual/manual QA are opt-in evidence surfaces that require explicit user
+  authorization. State the exact claim they prove before the user authorizes
+  them.
 
 Do not claim provider, GitHub, Notion, Vercel, production, or manual proof from local-only checks. If a check is skipped, state why and what risk remains.
 
