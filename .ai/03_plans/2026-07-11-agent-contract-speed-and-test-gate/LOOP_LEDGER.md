@@ -14,11 +14,14 @@ verification, bounded delegation, and current Cloudflare-first stack truth.
 
 ## Test Requirement
 
-- Decision: `NOT_REQUIRED` for application tests.
+- Application decision: `NOT_REQUIRED`.
 - Reason: this task changes prompts, policy, and deterministic validators, not
   application behavior.
-- Substitute proof: affected prompt/agent validators, adapter resolution,
-  source/diff checks, scenario assertions, and independent read-only review.
+- Validator-contract decision: `TARGETED` with
+  `test_trigger: MVP_CRITICAL_INVARIANT` because static inspection cannot prove
+  that a required-but-skipped test blocks a passing plan criterion.
+- Proof: affected prompt/agent validators, 32 focused validator-contract tests,
+  adapter resolution, source/diff checks, and independent read-only review.
 
 ## Iteration Log
 
@@ -36,12 +39,23 @@ verification, bounded delegation, and current Cloudflare-first stack truth.
 
 ### Iteration 2 - Implement
 
-- Status: IN_PROGRESS
-- Scope: canonical protocols, adapters, planning suite, and validators.
+- Status: PASS
+- Result: canonical protocols, root/tool adapters, role briefs, planning suite,
+  schema, validators, fixtures, and current-state truth use the shared contract.
+- Efficiency: `AGENTS.md` is 19,308 bytes; `CLAUDE.md` was reduced to a compact
+  entry surface; CommandCode role briefs fell from 1,888 to 544 lines.
 
 ### Iteration 3 - Verify And Close
 
-- Status: PLANNED
-- Required evidence: planning-prompt validator, agent validator, relevant tool
-  resolvers, diff/consistency checks, independent review, current-state/run-log
-  update, and sanitized Supermemory closeout.
+- Status: PASS AFTER REPAIR
+- Initial checker findings: missing manifest; test trigger/rationale not machine
+  enforced; incomplete model/self-diagnostic drift guards; stale CommandCode
+  taste and regenerated graph control surfaces.
+- Repairs: manifest added, trigger/rationale mappings enforced with negative
+  tests, current model allowlist/config pin asserted, self-diagnostic added to
+  policy scanning, taste/graph drift deleted and guarded.
+- Evidence: `bun run validate:planning-prompts` passed 10 documents / 10 gates /
+  33 scenarios; focused Vitest passed 32/32; `bun run validate:agents`, syntax,
+  whitespace, Codex resolver, and graph-neutralizer checks passed.
+- Boundary: no broad application suite, build, browser/Storybook/manual QA,
+  provider, hosted, paid, or production action was required or claimed.

@@ -11,6 +11,10 @@ Use one four-state test decision in planning and execution:
 - `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
   requested deliverable.
 
+Every criterion also records `test_trigger` as `NONE`,
+`EXPLICIT_TEST_TASK`, or `MVP_CRITICAL_INVARIANT`, plus a substantive
+`test_rationale`. `BROADER` must explain why targeted evidence is insufficient.
+
 Verification never becomes optional. For `NOT_REQUIRED`, use the cheapest
 decisive evidence: current-source inspection, focused diff/path/reference
 checks, relevant static/type/lint checks, dry runs, or a narrow runtime smoke
@@ -47,3 +51,10 @@ Stop when all active agent surfaces use the same test decision, the planning
 schema and validator permit no-test criteria, affected deterministic checks
 pass, independent review has no unresolved material finding, and durable state
 is recorded. Do not run application tests merely because policy files changed.
+
+## Completion
+
+U-01 through U-07 are complete. The first independent verifier found missing
+manifest and validator-trigger enforcement plus two durable adapter-guard gaps;
+all were repaired before the final replay. Evidence is recorded in
+`evidence/validation-summary.md` and the implementation run log.

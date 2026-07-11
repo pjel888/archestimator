@@ -1,7 +1,7 @@
 # Agent Contract Speed And Test Gate
 
 **Date:** 2026-07-11  
-**Status:** ACTIVE  
+**Status:** COMPLETE / ARCHIVE_READY  
 **Owner:** lead orchestrator
 
 ## Outcome
@@ -32,7 +32,10 @@ worktree changes are out of scope.
    broad suites remain exceptional.
 4. Prompts state outcomes, constraints, evidence, autonomy, and stop conditions
    once, then pull detailed policy on demand.
-5. Affected deterministic validators, adapter resolvers, diff checks, and an
-   independent read-only review pass.
+5. Affected deterministic validators, the targeted validator-contract test,
+   adapter resolvers, diff checks, and an independent read-only review pass.
 
 See `IMPLEMENTATION_PLAN.md` and `LOOP_LEDGER.md`.
+
+Archive target:
+`.ai/09_archive/store/2026-07-11-agent-contract-speed-and-test-gate-complete/`.
