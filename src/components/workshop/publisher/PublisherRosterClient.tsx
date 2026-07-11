@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
@@ -8,6 +8,9 @@ import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { WorkshopCollectionLayout } from "@/components/workshop/WorkshopCollectionLayout";
 import { PublisherNoRowsEmptyState } from "@/components/workshop/publisher/PublisherEmptyState";
 import { PublisherDrawer, type PublisherDrawerTabId } from "@/components/workshop/publisher/PublisherDrawer";
+import { PublisherPagination } from "@/components/workshop/publisher/PublisherPagination";
+import { PublisherRosterCard } from "@/components/workshop/publisher/PublisherRosterCard";
+import { ShareWizard } from "@/components/workshop/publisher/ShareWizard";
 import {
   PublisherRosterRow,
   type PublisherRosterCopyState,
@@ -96,6 +99,14 @@ function readDrawerIntent(
   return row ? { key: `${drawerProjectId}:${tab}`, row, tab } : null;
 }
 
+function readWizardIntent(params: URLSearchParams, rows: ProjectPublicationRosterRowData[]) {
+  const projectId = params.get("wizard");
+  if (!projectId) return null;
+  const row = rows.find((item) => item.projectId === projectId);
+  const step = Number.parseInt(params.get("step") ?? "1", 10);
+  return row ? { row, step: Number.isFinite(step) ? step : 1 } : null;
+}
+
 export function PublisherRosterClient({ filters, roster }: PublisherRosterClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -103,18 +114,26 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
   const searchParamString = searchParams.toString();
   const [isPending, startTransition] = useTransition();
   const [searchValue, setSearchValue] = useState(filters.search);
+  const [view, setView] = useState<"cards" | "table">("cards");
   const [copyStateByPublicationId, setCopyStateByPublicationId] = useState<Record<string, PublisherRosterCopyState>>({});
   const drawerIntent = useMemo(
     () => readDrawerIntent(new URLSearchParams(searchParamString), roster.rows),
     [roster.rows, searchParamString],
   );
+  const wizardIntent = useMemo(
+    () => readWizardIntent(new URLSearchParams(searchParamString), roster.rows),
+    [roster.rows, searchParamString],
+  );
   const [manualDrawerRow, setManualDrawerRow] = useState<ProjectPublicationRosterRowData | null>(null);
   const [manualDrawerInitialTab, setManualDrawerInitialTab] = useState<PublisherDrawerTabId>("overview");
   const [dismissedDrawerIntentKey, setDismissedDrawerIntentKey] = useState<string | null>(null);
+  const [manualWizardRow, setManualWizardRow] = useState<ProjectPublicationRosterRowData | null>(null);
   const manualDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const activeDrawerIntent = drawerIntent?.key === dismissedDrawerIntentKey ? null : drawerIntent;
   const drawerRow = manualDrawerRow ?? activeDrawerIntent?.row ?? null;
   const drawerInitialTab = manualDrawerRow ? manualDrawerInitialTab : activeDrawerIntent?.tab ?? "overview";
+  const wizardRow = manualWizardRow ?? wizardIntent?.row ?? null;
+  const wizardStep = wizardIntent?.step ?? 1;
 
   const tabs = useMemo<readonly TabItem[]>(
     () => STATUS_TABS.map((tab) => ({ id: tab.id, label: tab.label })),
@@ -125,8 +144,8 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
     [filters.projectId, roster.projectOptions],
   );
 
-  function replaceQuery(patch: PublisherRosterQueryPatch, resetPage = true) {
-    const params = writePublisherRosterSearchParams(new URLSearchParams(searchParams.toString()), {
+  const replaceQuery = useCallback((patch: PublisherRosterQueryPatch, resetPage = true) => {
+    const params = writePublisherRosterSearchParams(new URLSearchParams(searchParamString), {
       ...patch,
       page: resetPage ? 1 : patch.page,
     });
@@ -134,7 +153,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
     startTransition(() => {
       router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
     });
-  }
+  }, [pathname, router, searchParamString, startTransition]);
 
   function clearDrawerQuery() {
     const params = new URLSearchParams(searchParams.toString());
@@ -146,10 +165,24 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
     });
   }
 
+  function closeWizard() {
+    setManualWizardRow(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("wizard");
+    params.delete("step");
+    const query = params.toString();
+    startTransition(() => router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false }));
+  }
+
   function handleSearchChange(nextValue: string) {
     setSearchValue(nextValue);
-    replaceQuery({ search: nextValue });
   }
+
+  useEffect(() => {
+    if (searchValue === filters.search) return;
+    const timeout = window.setTimeout(() => replaceQuery({ search: searchValue }), 300);
+    return () => window.clearTimeout(timeout);
+  }, [filters.search, replaceQuery, searchValue]);
 
   async function handleCopyLink(row: ProjectPublicationRosterRowData) {
     if (!row.publicationId || !row.clientLinkPath) return;
@@ -177,7 +210,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
 
   return (
     <section
-      aria-label="Publisher roster"
+      aria-label="Shared link roster"
       aria-busy={isPending}
       className="flex h-full min-h-0 flex-col bg-transparent"
       data-publisher-roster="true"
@@ -187,8 +220,8 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
         searchPlaceholder="Search publications"
         searchValue={searchValue}
         onSearchChange={handleSearchChange}
-        toolbarLabel="Publisher roster tools"
-        toolbarPrefix="publisher roster"
+        toolbarLabel="Shared link roster tools"
+        toolbarPrefix="shared link roster"
         filterSlot={
           <DropdownSelect
             aria-label="Filter by project"
@@ -204,7 +237,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
             tabs={tabs}
             activeId={filters.status}
             onChange={(id) => replaceQuery({ status: id as PublisherRosterStatusFilter })}
-            ariaLabel="Publication status filters"
+            ariaLabel="Shared link status filters"
             controlsPanels={false}
             variant="pills"
             className="px-2 py-1 [&_[role=tablist]]:border-0"
@@ -218,25 +251,65 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
               Showing {startRow}-{endRow} of {roster.totalRows}
               {roster.truncated ? " (capped)" : ""}
             </p>
-            {roster.hasNextPage ? <p>More results available</p> : null}
+            <div className="flex items-center gap-3">
+              <PublisherPagination hasNextPage={roster.hasNextPage} page={roster.page} onPageChange={(page) => replaceQuery({ page }, false)} />
+              <div className="hidden gap-2 min-[768px]:flex" role="group" aria-label="Roster view">
+                <button type="button" aria-pressed={view === "cards"} onClick={() => setView("cards")}>Cards</button>
+                <button type="button" aria-pressed={view === "table"} onClick={() => setView("table")}>Table</button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 min-[768px]:hidden">
-            <PublisherNoRowsEmptyState variant="mobile" />
+          <div className="grid gap-2 min-[768px]:hidden">
+            {hasRows ? roster.rows.map((row) => (
+              <PublisherRosterCard
+                key={row.publicationId ?? `draft:${row.projectId}`}
+                row={row}
+                copyLabel={row.publicationId && copyStateByPublicationId[row.publicationId] === "copied" ? "Copied" : "Copy link"}
+                onCopyLink={handleCopyLink}
+                onSharePublication={(nextRow) => setManualWizardRow(nextRow)}
+                onManagePublication={(nextRow, trigger) => {
+                  manualDrawerTriggerRef.current = trigger;
+                  setManualDrawerInitialTab("overview");
+                  setManualDrawerRow(nextRow);
+                }}
+              />
+            )) : <PublisherNoRowsEmptyState variant={hasActiveFilters(filters) ? "filtered" : "no-publications"} />}
           </div>
 
-          <div className="hidden min-h-0 flex-1 overflow-hidden rounded-xs border border-hairline bg-surface/55 shadow-[0_1px_0_rgba(17,24,39,0.03)] min-[768px]:flex">
+          <div className={view === "cards"
+            ? "hidden grid-cols-2 gap-3 min-[768px]:grid xl:grid-cols-3"
+            : "hidden grid-cols-2 gap-3 min-[768px]:hidden xl:grid-cols-3"}>
+            {hasRows ? roster.rows.map((row) => (
+              <PublisherRosterCard
+                key={row.publicationId ?? `draft:${row.projectId}`}
+                row={row}
+                copyLabel={row.publicationId && copyStateByPublicationId[row.publicationId] === "copied" ? "Copied" : "Copy link"}
+                onCopyLink={handleCopyLink}
+                onSharePublication={(nextRow) => setManualWizardRow(nextRow)}
+                onManagePublication={(nextRow, trigger) => {
+                  manualDrawerTriggerRef.current = trigger;
+                  setManualDrawerInitialTab("overview");
+                  setManualDrawerRow(nextRow);
+                }}
+              />
+            )) : <PublisherNoRowsEmptyState variant={hasActiveFilters(filters) ? "filtered" : "no-publications"} />}
+          </div>
+
+          <div className={view === "table"
+            ? "hidden min-h-0 flex-1 overflow-hidden rounded-xs border border-hairline bg-surface/55 shadow-[0_1px_0_rgba(17,24,39,0.03)] min-[768px]:flex"
+            : "hidden min-h-0 flex-1 overflow-hidden rounded-xs border border-hairline bg-surface/55 shadow-[0_1px_0_rgba(17,24,39,0.03)] min-[768px]:hidden"}>
             {hasRows ? (
               <div className="min-h-0 w-full overflow-auto">
                 <table className="min-w-[920px] w-full border-collapse text-left">
-                  <caption className="sr-only">Publication manager roster</caption>
+                  <caption className="sr-only">Shared link manager roster</caption>
                   <thead className="sticky top-0 z-10 border-b border-hairline bg-surface/95 text-[9px] uppercase leading-3 text-tertiary">
                     <tr>
-                      <th scope="col" className="px-3 py-2 font-medium">Publication</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Shared link</th>
                       <th scope="col" className="px-3 py-2 font-medium">Status</th>
                       <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">Recipients</th>
                       <th scope="col" className="px-3 py-2 font-medium">Latest activity</th>
-                      <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">Sheet scope</th>
+                      <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">Estimates</th>
                       <th scope="col" className="px-3 py-2 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -252,6 +325,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
                           setManualDrawerInitialTab("overview");
                           setManualDrawerRow(nextRow);
                         }}
+                        onSharePublication={(nextRow) => setManualWizardRow(nextRow)}
                       />
                     ))}
                   </tbody>
@@ -267,9 +341,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
       </WorkshopCollectionLayout>
 
       <output aria-live="polite" aria-atomic="true" className="sr-only">
-        {Object.entries(copyStateByPublicationId)
-          .map(([publicationId, state]) => `${publicationId}: ${state}`)
-          .join(" ")}
+        {Object.entries(copyStateByPublicationId).find(([, state]) => state !== "idle")?.join(": ") ?? ""}
       </output>
       <PublisherDrawer
         key={drawerRow ? `${drawerRow.projectId}:${drawerInitialTab}` : "publisher-drawer-closed"}
@@ -288,6 +360,13 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
             clearDrawerQuery();
           }
         }}
+      />
+      <ShareWizard
+        key={wizardRow ? `${wizardRow.projectId}:${wizardStep}` : "share-wizard-closed"}
+        initialStep={wizardStep}
+        open={wizardRow !== null}
+        row={wizardRow}
+        onOpenChange={(nextOpen) => { if (!nextOpen) closeWizard(); }}
       />
     </section>
   );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowSquareOut, LinkSimple, LockKey, SlidersHorizontal, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, LinkSimple, LockKey, ShareNetwork, SlidersHorizontal, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { StatusBadge, type StatusBadgeStatus } from "@/components/ui/status-badge";
@@ -15,6 +15,7 @@ type PublisherRosterRowProps = {
   copyState?: PublisherRosterCopyState;
   onCopyLink: (row: ProjectPublicationRosterRowData) => void;
   onManagePublication: (row: ProjectPublicationRosterRowData, trigger: HTMLButtonElement) => void;
+  onSharePublication: (row: ProjectPublicationRosterRowData, trigger: HTMLButtonElement) => void;
 };
 
 const statusCopy = {
@@ -61,6 +62,7 @@ export function PublisherRosterRow({
   copyState = "idle",
   onCopyLink,
   onManagePublication,
+  onSharePublication,
 }: PublisherRosterRowProps) {
   const status = readStatusCopy(row);
   const publishedDate = formatDate(row.publishedAt);
@@ -131,6 +133,11 @@ export function PublisherRosterRow({
       </td>
       <td className="min-w-[104px] px-3 py-2 align-middle">
         <div className="flex items-center justify-end gap-1">
+          {row.canManagePublication ? (
+            <Button type="button" variant="secondary" size="sm" className="min-h-7 px-2 py-0 text-[10px]" onClick={(event) => onSharePublication(row, event.currentTarget)}>
+              <ShareNetwork size={12} aria-hidden="true" /> Share
+            </Button>
+          ) : null}
           <Tooltip label={copyLabel} side="top">
             <Button
               type="button"
@@ -157,13 +164,13 @@ export function PublisherRosterRow({
               </Link>
             </Tooltip>
           ) : null}
-          <Tooltip label={row.canManagePublication ? "Manage publication" : "View publication details"} side="top">
+          <Tooltip label={row.canManagePublication ? "Manage shared link" : "View shared link details"} side="top">
             <Button
               type="button"
               variant="plain"
               size="icon-xs"
               className="border border-transparent text-tertiary hover:border-hairline hover:bg-surface"
-              aria-label={`${row.canManagePublication ? "Manage publication" : "View publication details"} for ${row.projectName}`}
+              aria-label={`${row.canManagePublication ? "Manage shared link" : "View shared link details"} for ${row.projectName}`}
               onClick={(event) => onManagePublication(row, event.currentTarget)}
             >
               <SlidersHorizontal size={12} weight="regular" aria-hidden="true" />

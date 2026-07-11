@@ -11,5 +11,5 @@ export default function Error({
   unstable_retry?: () => void;
   reset?: () => void;
 }) {
-  return <WorkshopRouteErrorState error={error} reset={reset} unstable_retry={unstable_retry} routeLabel="Publisher" />;
+  return <WorkshopRouteErrorState error={error} reset={reset} unstable_retry={unstable_retry} routeLabel="Share" />;
 }

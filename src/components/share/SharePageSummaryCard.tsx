@@ -1,6 +1,7 @@
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 
 type SharePageSummaryCardProps = {
+  expiresAt?: string | null;
   snapshot: ProjectPublicationSnapshot;
 };
 const shareSummaryMoneyFormatter = new Intl.NumberFormat("en-PH", {
@@ -22,6 +23,16 @@ function formatPreparedOn(generatedAt: string) {
   });
 }
 
+function formatExpiry(expiresAt: string) {
+  const date = new Date(expiresAt);
+  if (Number.isNaN(date.getTime())) return expiresAt;
+  return date.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 /**
  * T1-C (Shared Link Improvement — MVP): the inline trust Summary card (AC-UX-12).
  *
@@ -35,9 +46,11 @@ function formatPreparedOn(generatedAt: string) {
  * Client-Portal scale (the /share px-cap exemption permits the larger sizes; this
  * file keeps every client-facing string at or above 11px).
  */
-export function SharePageSummaryCard({ snapshot }: SharePageSummaryCardProps) {
+export function SharePageSummaryCard({ expiresAt, snapshot }: SharePageSummaryCardProps) {
   const { project } = snapshot;
   const currencyCode = project.currencyCode;
+  const issuance = snapshot.issuance;
+  const validThrough = issuance?.validThrough ?? expiresAt;
 
   const stats: { label: string; value: string }[] = [
     {
@@ -51,6 +64,14 @@ export function SharePageSummaryCard({ snapshot }: SharePageSummaryCardProps) {
     { label: "Currency", value: currencyCode },
     ...(project.clientName ? [{ label: "Prepared for", value: project.clientName }] : []),
     { label: "Prepared on", value: formatPreparedOn(snapshot.generatedAt) },
+    ...(issuance
+      ? [
+          { label: "Issue", value: `#${issuance.issueNumber} · v${issuance.version}` },
+          { label: "Issued on", value: formatPreparedOn(issuance.issuedAt) },
+          { label: "Scope", value: `${issuance.selectedEstimateIds.length} ${issuance.selectedEstimateIds.length === 1 ? "sheet" : "sheets"}` },
+        ]
+      : []),
+    ...(validThrough ? [{ label: "Available until", value: formatExpiry(validThrough) }] : []),
   ];
 
   return (

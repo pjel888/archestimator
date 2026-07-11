@@ -41,6 +41,7 @@ type ShareEstimateViewMode = "tree" | "collated";
 
 type SharePageTabsState = {
   activeIdOverride: string | null;
+  collatedRowLimit: number;
   sheetViews: Record<string, ShareEstimateViewMode>;
   gridSearchByEstimateId: Record<string, string>;
   estimateTabOverrides: Record<string, string>;
@@ -50,6 +51,7 @@ type SharePageTabsState = {
 
 type SharePageTabsAction =
   | { type: "activeEstimateSelected"; estimateId: string }
+  | { type: "collatedRowsExpanded"; limit: number }
   | { type: "viewChanged"; estimateId: string; view: ShareEstimateViewMode }
   | { type: "gridSearchChanged"; key: string; value: string }
   | { type: "estimateTabSelected"; estimateId: string; tabId: string }
@@ -58,6 +60,7 @@ type SharePageTabsAction =
 
 const INITIAL_SHARE_PAGE_TABS_STATE: SharePageTabsState = {
   activeIdOverride: null,
+  collatedRowLimit: COLLATED_ROW_LIMIT,
   sheetViews: {},
   gridSearchByEstimateId: {},
   estimateTabOverrides: {},
@@ -72,6 +75,11 @@ function sharePageTabsReducer(state: SharePageTabsState, action: SharePageTabsAc
         ...state,
         activeIdOverride: action.estimateId,
       };
+    case "collatedRowsExpanded":
+      return {
+        ...state,
+        collatedRowLimit: action.limit,
+      };
     case "viewChanged":
       return {
         ...state,
@@ -80,6 +88,7 @@ function sharePageTabsReducer(state: SharePageTabsState, action: SharePageTabsAc
     case "gridSearchChanged":
       return {
         ...state,
+        collatedRowLimit: COLLATED_ROW_LIMIT,
         gridSearchByEstimateId: { ...state.gridSearchByEstimateId, [action.key]: action.value },
       };
     case "estimateTabSelected":
@@ -252,6 +261,7 @@ export default function SharePageTabs({
   const [tabsState, dispatchTabsState] = useReducer(sharePageTabsReducer, INITIAL_SHARE_PAGE_TABS_STATE);
   const {
     activeIdOverride,
+    collatedRowLimit,
     sheetViews,
     gridSearchByEstimateId,
     estimateTabOverrides,
@@ -266,6 +276,7 @@ export default function SharePageTabs({
   const currentView = sheetViews[activeId] ?? "tree";
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const collatedRowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
   const estimateTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const setViewForCurrentSheet = (view: ShareEstimateViewMode) => {
@@ -485,7 +496,7 @@ export default function SharePageTabs({
         .some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
   }, [activeContentRows, activeGridSearch]);
-  const visibleCollatedRows = filteredRows.slice(0, COLLATED_ROW_LIMIT);
+  const visibleCollatedRows = filteredRows.slice(0, collatedRowLimit);
   const hiddenCollatedRowCount = Math.max(filteredRows.length - visibleCollatedRows.length, 0);
   const createRowReviewTarget = useCallback((row: (typeof activeContentRows)[number]): ShareReviewTarget => ({
     kind: "row",
@@ -516,6 +527,45 @@ export default function SharePageTabs({
       onReviewTargetChange?.(target);
     },
     [createRowReviewTarget, onReviewTargetChange],
+  );
+
+  const handleCollatedRowKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLTableRowElement>, index: number) => {
+      const rowCount = visibleCollatedRows.length;
+      if (rowCount === 0) return;
+
+      let nextIndex = index;
+      switch (event.key) {
+        case "ArrowDown":
+          nextIndex = (index + 1) % rowCount;
+          break;
+        case "ArrowUp":
+          nextIndex = (index - 1 + rowCount) % rowCount;
+          break;
+        case "Home":
+          nextIndex = 0;
+          break;
+        case "End":
+          nextIndex = rowCount - 1;
+          break;
+        case "Enter":
+        case " ":
+          event.preventDefault();
+          handleRowReview(visibleCollatedRows[index]);
+          return;
+        default:
+          return;
+      }
+
+      event.preventDefault();
+      const currentRow = event.currentTarget;
+      const nextRow = collatedRowRefs.current[nextIndex];
+      if (!nextRow) return;
+      currentRow.tabIndex = -1;
+      nextRow.tabIndex = 0;
+      nextRow.focus();
+    },
+    [handleRowReview, visibleCollatedRows],
   );
 
   useEffect(() => {
@@ -576,7 +626,7 @@ export default function SharePageTabs({
           >
             {(["tree", "collated"] as const).map((mode) => {
               const isActive = currentView === mode;
-              const label = mode === "tree" ? "Scope outline" : "Line item table";
+              const label = mode === "tree" ? "Summary" : "Details";
               return (
                 <button
                   key={mode}
@@ -731,14 +781,20 @@ export default function SharePageTabs({
           <div>
             <div className="flex flex-col gap-2 border-b border-hairline bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <h3 className="text-[13px] font-medium leading-[18px] tracking-normal text-ink">Line item table</h3>
+                <h3 className="text-[13px] font-medium leading-[18px] tracking-normal text-ink">Details</h3>
                 <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
                   {filteredRows.length} line item{filteredRows.length === 1 ? "" : "s"} shown for client review
                 </p>
                 {hiddenCollatedRowCount > 0 ? (
-                  <output className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
-                    Showing first {COLLATED_ROW_LIMIT} of {filteredRows.length} line items. Filter rows to narrow the table.
-                  </output>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] leading-[16px] tracking-normal text-secondary">
+                    <span>Showing {visibleCollatedRows.length} of {filteredRows.length} line items.</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => dispatchTabsState({ type: "collatedRowsExpanded", limit: collatedRowLimit + COLLATED_ROW_LIMIT })}>
+                      Show more
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => dispatchTabsState({ type: "collatedRowsExpanded", limit: filteredRows.length })}>
+                      Load all
+                    </Button>
+                  </div>
                 ) : null}
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[360px]">
@@ -785,7 +841,13 @@ export default function SharePageTabs({
                     return (
                       <tr
                         key={row.id}
-                        className={`border-t border-hairline ${isSelectedReviewTarget ? "bg-surfaceMuted" : ""}`}
+                        ref={(element) => {
+                          collatedRowRefs.current[index] = element;
+                        }}
+                        tabIndex={index === 0 ? 0 : -1}
+                        onClick={() => handleRowReview(row)}
+                        onKeyDown={(event) => handleCollatedRowKeyDown(event, index)}
+                        className={`group cursor-pointer border-t border-hairline outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus ${isSelectedReviewTarget ? "bg-surfaceMuted" : "hover:bg-surfaceMuted/60"}`}
                         data-review-target-selected={isSelectedReviewTarget ? "true" : undefined}
                       >
                         <td className="border-r border-hairline px-2 py-2 text-secondary">{index + 1}</td>
@@ -808,17 +870,9 @@ export default function SharePageTabs({
                               <span className="mt-0.5 block text-[12px] leading-[16px] text-secondary">
                                 Qty {row.quantity} · {row.unit}
                               </span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="mt-1 min-h-8 px-2"
-                                aria-pressed={isSelectedReviewTarget}
-                                aria-label={`Ask about item: ${row.description || row.material || "line item"}`}
-                                onClick={() => handleRowReview(row)}
-                              >
-                                Ask about item
-                              </Button>
+                              <span className="mt-1 block text-[11px] leading-[16px] text-tertiary opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                                Select to ask a question
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -842,6 +896,19 @@ export default function SharePageTabs({
           </div>
         ) : (
           <div className="flex gap-0" ref={contentRef}>
+            <details className="w-full border-b border-hairline bg-white lg:hidden">
+              <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium leading-[18px] tracking-normal text-ink">
+                Browse estimate sections
+              </summary>
+              <div className="h-[360px] border-t border-hairline">
+                <ShareEstimateTreePanel
+                  nodes={treeNodes}
+                  currencyCode={currencyCode}
+                  showInlineRows={false}
+                  onNavigate={handleTreeNavigate}
+                />
+              </div>
+            </details>
             <ShareEstimateTreePanel
               nodes={treeNodes}
               currencyCode={currencyCode}
@@ -849,7 +916,7 @@ export default function SharePageTabs({
               onNavigate={handleTreeNavigate}
               className="hidden lg:flex lg:w-[260px] lg:flex-shrink-0 border-r border-hairline"
             />
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <ShareEstimateTreeView
                 nodes={treeNodes}
                 currencyCode={currencyCode}

@@ -6,6 +6,7 @@ import {
   assertSameOriginPublicFormPost,
   createPublicFormCsrfToken,
 } from "@/lib/publication/security";
+import { readBoundedFormData } from "@/lib/http/read-bounded-body";
 
 export const dynamic = "force-dynamic";
 
@@ -84,13 +85,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   let recipientToken = "";
   let csrfToken = "";
-  try {
-    const formData = await request.formData();
-    recipientToken = readRecipientToken(formData);
-    csrfToken = formData.get("csrf")?.toString().trim() || "";
-  } catch {
-    recipientToken = "";
+  const parsedFormData = await readBoundedFormData(request, 1024);
+  if (!parsedFormData.ok) {
+    return textResponse(parsedFormData.error, parsedFormData.status);
   }
+  recipientToken = readRecipientToken(parsedFormData.value);
+  csrfToken = parsedFormData.value.get("csrf")?.toString().trim() || "";
 
   const origin = assertSameOriginPublicFormPost(request, csrfToken);
   if (!origin.ok) {

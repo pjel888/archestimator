@@ -14,6 +14,7 @@ import {
   getSharedLinkSessionCookieParts,
   hasPublicationAccessCookie,
 } from "@/lib/publication/security";
+import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 
 export const dynamic = "force-dynamic";
@@ -161,7 +162,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const { token: routeToken } = await params;
   const token = routeToken.trim();
-  const body = (await request.json().catch(() => ({}))) as { recipientToken?: unknown };
+  const parsedBody = await readBoundedJsonBody<{ recipientToken?: unknown }>(request, 256);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status, headers: noStoreHeaders });
+  }
+  const body = parsedBody.value;
   const recipientToken = typeof body.recipientToken === "string" ? body.recipientToken.trim() : "";
   if (!recipientToken) {
     return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });

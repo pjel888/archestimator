@@ -18,6 +18,7 @@ type SnapshotProjectInput = {
   location: string | null;
   locationVisibility?: ProjectPublicationLocationVisibility | null;
   currencyCode: string;
+  senderName?: string | null;
   // P9 additive
   coverImageUrl?: string | null;
 };
@@ -239,8 +240,10 @@ type LegacyPublicationSnapshotEstimateTab = Omit<PublicationSnapshotEstimateTab,
   rows?: LegacyPublicationSnapshotRow[];
 };
 
-function sanitizeSnapshotRow(row: LegacyPublicationSnapshotRow): PublicationSnapshotRow {
-  const idMaps = currentSanitizeIdMaps;
+function sanitizeSnapshotRow(
+  row: LegacyPublicationSnapshotRow,
+  idMaps: ReturnType<typeof createPublicationSnapshotIdMaps>,
+): PublicationSnapshotRow {
   const snapshotRow: PublicationSnapshotRow = {
     id: mapPublicSnapshotId(idMaps, "row", row.id),
     description: row.description,
@@ -262,8 +265,10 @@ function sanitizeSnapshotRowIds(value: unknown): string[] | undefined {
   return value.filter((rowId): rowId is string => typeof rowId === "string" && rowId.length > 0);
 }
 
-function sanitizeSnapshotEstimateTab(tab: LegacyPublicationSnapshotEstimateTab): PublicationSnapshotEstimateTab {
-  const idMaps = currentSanitizeIdMaps;
+function sanitizeSnapshotEstimateTab(
+  tab: LegacyPublicationSnapshotEstimateTab,
+  idMaps: ReturnType<typeof createPublicationSnapshotIdMaps>,
+): PublicationSnapshotEstimateTab {
   const snapshotTab: PublicationSnapshotEstimateTab = {
     id: mapPublicSnapshotId(idMaps, "tab", tab.id),
     name: tab.name,
@@ -271,15 +276,13 @@ function sanitizeSnapshotEstimateTab(tab: LegacyPublicationSnapshotEstimateTab):
     isDefault: tab.isDefault,
     rowCount: tab.rowCount,
     totalCost: tab.totalCost,
-    treeNodes: sanitizeSnapshotTreeNodes(tab.treeNodes),
+    treeNodes: sanitizeSnapshotTreeNodes(tab.treeNodes, idMaps),
   };
   const rowIds = sanitizeSnapshotRowIds(tab.rowIds)?.map((rowId) => mapPublicSnapshotId(idMaps, "row", rowId));
   if (rowIds) snapshotTab.rowIds = rowIds;
-  if (Array.isArray(tab.rows)) snapshotTab.rows = tab.rows.map((row) => sanitizeSnapshotRow(row));
+  if (Array.isArray(tab.rows)) snapshotTab.rows = tab.rows.map((row) => sanitizeSnapshotRow(row, idMaps));
   return snapshotTab;
 }
-
-let currentSanitizeIdMaps: ReturnType<typeof createPublicationSnapshotIdMaps> | null = null;
 
 function mapPublicSnapshotId(
   idMaps: ReturnType<typeof createPublicationSnapshotIdMaps> | null,
@@ -290,15 +293,17 @@ function mapPublicSnapshotId(
   return idMaps.rawToPublic.get(value.toLowerCase()) ?? value;
 }
 
-function sanitizeSnapshotTreeNodes(nodes: PublicationSnapshotTreeNode[] | undefined): PublicationSnapshotTreeNode[] | undefined {
+function sanitizeSnapshotTreeNodes(
+  nodes: PublicationSnapshotTreeNode[] | undefined,
+  idMaps: ReturnType<typeof createPublicationSnapshotIdMaps>,
+): PublicationSnapshotTreeNode[] | undefined {
   if (!Array.isArray(nodes)) return undefined;
-  const idMaps = currentSanitizeIdMaps;
   return nodes.map((node) => {
     const treeNode: PublicationSnapshotTreeNode = {
       id: mapPublicSnapshotId(idMaps, "node", node.id),
       name: node.name,
       kind: node.kind,
-      children: sanitizeSnapshotTreeNodes(node.children) ?? [],
+      children: sanitizeSnapshotTreeNodes(node.children, idMaps) ?? [],
     };
     if (node.tabId) treeNode.tabId = mapPublicSnapshotId(idMaps, "tab", node.tabId);
     return treeNode;
@@ -307,41 +312,36 @@ function sanitizeSnapshotTreeNodes(nodes: PublicationSnapshotTreeNode[] | undefi
 
 export function sanitizeProjectPublicationSnapshotForPublicRead(snapshot: ProjectPublicationSnapshot): ProjectPublicationSnapshot {
   const idMaps = createPublicationSnapshotIdMaps(snapshot);
-  currentSanitizeIdMaps = idMaps;
-  try {
-    const internalSnapshot = snapshot as InternalProjectPublicationSnapshot;
-    const { _privateIdNamespace: _privateIdNamespace, ...snapshotWithoutPrivate } = internalSnapshot;
-    const locationVisibility = normalizeProjectPublicationLocationVisibility(snapshot.project.locationVisibility);
-    const project =
-      "coverImageUrl" in snapshot.project
-        ? {
-            ...snapshot.project,
-            id: mapPublicSnapshotId(idMaps, "project", snapshot.project.id),
-            location: sanitizeProjectPublicationLocation(snapshot.project.location, locationVisibility),
-            locationVisibility,
-            coverImageUrl: normalizePublicationImageUrl(snapshot.project.coverImageUrl),
-          }
-        : {
-            ...snapshot.project,
-            id: mapPublicSnapshotId(idMaps, "project", snapshot.project.id),
-            location: sanitizeProjectPublicationLocation(snapshot.project.location, locationVisibility),
-            locationVisibility,
-          };
+  const internalSnapshot = snapshot as InternalProjectPublicationSnapshot;
+  const { _privateIdNamespace: _privateIdNamespace, ...snapshotWithoutPrivate } = internalSnapshot;
+  const locationVisibility = normalizeProjectPublicationLocationVisibility(snapshot.project.locationVisibility);
+  const project =
+    "coverImageUrl" in snapshot.project
+      ? {
+          ...snapshot.project,
+          id: mapPublicSnapshotId(idMaps, "project", snapshot.project.id),
+          location: sanitizeProjectPublicationLocation(snapshot.project.location, locationVisibility),
+          locationVisibility,
+          coverImageUrl: normalizePublicationImageUrl(snapshot.project.coverImageUrl),
+        }
+      : {
+          ...snapshot.project,
+          id: mapPublicSnapshotId(idMaps, "project", snapshot.project.id),
+          location: sanitizeProjectPublicationLocation(snapshot.project.location, locationVisibility),
+          locationVisibility,
+        };
 
-    return {
-      ...snapshotWithoutPrivate,
-      project,
-      estimates: (snapshot.estimates ?? []).map((estimate) => ({
-        ...estimate,
-        id: mapPublicSnapshotId(idMaps, "estimate", estimate.id),
-        rows: (estimate.rows ?? []).map((row) => sanitizeSnapshotRow(row as LegacyPublicationSnapshotRow)),
-        treeNodes: sanitizeSnapshotTreeNodes(estimate.treeNodes),
-        tabs: estimate.tabs?.map((tab) => sanitizeSnapshotEstimateTab(tab as LegacyPublicationSnapshotEstimateTab)),
-      })),
-    };
-  } finally {
-    currentSanitizeIdMaps = null;
-  }
+  return {
+    ...snapshotWithoutPrivate,
+    project,
+    estimates: (snapshot.estimates ?? []).map((estimate) => ({
+      ...estimate,
+      id: mapPublicSnapshotId(idMaps, "estimate", estimate.id),
+      rows: (estimate.rows ?? []).map((row) => sanitizeSnapshotRow(row as LegacyPublicationSnapshotRow, idMaps)),
+      treeNodes: sanitizeSnapshotTreeNodes(estimate.treeNodes, idMaps),
+      tabs: estimate.tabs?.map((tab) => sanitizeSnapshotEstimateTab(tab as LegacyPublicationSnapshotEstimateTab, idMaps)),
+    })),
+  };
 }
 
 function buildSnapshotTreeNodes(nodes: SnapshotNodeInput[]): PublicationSnapshotTreeNode[] {
@@ -485,16 +485,19 @@ export function buildProjectPublicationSnapshot({
 }): ProjectPublicationSnapshot {
   const snapshotEstimates = estimates.map(buildSnapshotEstimate);
   const locationVisibility = normalizeProjectPublicationLocationVisibility(project.locationVisibility);
+  const senderName = project.senderName?.trim();
   const snapshotProject =
     "coverImageUrl" in project
       ? {
           ...project,
+          ...(senderName ? { senderName } : {}),
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
           coverImageUrl: normalizePublicationImageUrl(project.coverImageUrl),
         }
       : {
           ...project,
+          ...(senderName ? { senderName } : {}),
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
         };

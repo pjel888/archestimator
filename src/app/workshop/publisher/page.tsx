@@ -37,10 +37,10 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
 export default function PublisherPage({ searchParams }: PublisherPageProps) {
   return (
     <WorkshopRouteHeader
-      title="Publisher"
+      title="Share"
       eyebrow="Workspace"
       showEyebrow={false}
-      breadcrumbs={["Publisher"]}
+      breadcrumbs={["Share"]}
       contentClassName=""
     >
       <WorkshopCanvasWash className="publisher-canvas-wash" />

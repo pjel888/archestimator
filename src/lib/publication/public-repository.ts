@@ -4,7 +4,10 @@ import { cache } from "react";
 import { deriveCredentialVersion, getClientIp, hashPublicationToken, isPublicationTokenShape, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
 import {
   createSharedLinkTargetLabelMapFromLabelsJson,
+  encodeSharedLinkActivityCursor,
+  isBeforeSharedLinkActivityCursor,
   resolveSharedLinkStoredTargetMetadata,
+  type SharedLinkActivityCursor,
   validateSharedLinkReviewTarget,
 } from "@/lib/publication/activity-helpers";
 import {
@@ -25,7 +28,7 @@ import {
 
 type Json = JsonValue;
 
-export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";
+export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "password_attempt";
 
 export type ProjectPublicationAccessStage =
   | "page_visit"
@@ -38,6 +41,7 @@ export type ResolvedProjectPublicationAccess = {
   publicationId: string;
   status: "published";
   passwordRequired: boolean;
+  expiresAt: string | null;
   snapshotVersion: number;
   credentialVersion: string;
 };
@@ -64,6 +68,12 @@ export type SharedLinkPublicComment = {
   targetLabel: string | null;
   targetSecondaryLabel: string | null;
   snapshotVersionAtComment: number | null;
+};
+
+export type SharedLinkPublicCommentsPage = {
+  comments: SharedLinkPublicComment[];
+  hasMore: boolean;
+  nextCursor: string | null;
 };
 
 type SharedLinkPublicCommentRow = SharedLinkCommentD1Row;
@@ -642,6 +652,7 @@ function toResolvedAccess(data: PublicationLookupRow): ResolvedProjectPublicatio
     publicationId: data.id,
     status: "published",
     passwordRequired: Boolean(data.password_hash),
+    expiresAt: data.expires_at,
     snapshotVersion: data.snapshot_version,
     credentialVersion: deriveCredentialVersion(data.password_hash),
   };
@@ -775,15 +786,16 @@ export async function recordProjectPublicationEvent({
 
     if (recipientId) {
       const openedAt = new Date().toISOString();
-      await store.markRecipientOpened({ publicationId: publication.id, recipientId, openedAt });
-
-      await store.insertSharedLinkEvent({
-        publicationId: publication.id,
-        recipientId,
-        eventType: "open",
-        metadata: eventMetadata as Record<string, Json>,
+      await store.markRecipientOpenedWithActivation({
         ipHash,
+        metadata: eventMetadata as Record<string, Json>,
+        openedAt,
+        projectId: publication.project_id,
+        publicationId: publication.id,
+        publishedBy: publication.published_by,
+        recipientId,
         userAgentHash,
+        workspaceId: publication.workspace_id,
       });
     }
   }
@@ -867,16 +879,33 @@ export async function resolveSharedLinkRecipientIdentity({
 
 export async function loadSharedLinkPublicComments({
   publicationId,
+  cursor = null,
+  limit = 50,
 }: {
   publicationId: string;
-}): Promise<SharedLinkPublicComment[]> {
-  if (!publicationId.trim()) return [];
+  cursor?: SharedLinkActivityCursor | null;
+  limit?: number;
+}): Promise<SharedLinkPublicCommentsPage> {
+  if (!publicationId.trim()) return { comments: [], hasMore: false, nextCursor: null };
 
   const store = createPublicationServiceClient();
-  const data = await store.listPublicComments(publicationId, 200);
+  const pageLimit = Math.min(Math.max(Number.isFinite(limit) ? Math.floor(limit) : 50, 1), 100);
+  const data = await store.listPublicActivityComments({
+    publicationId,
+    cursor,
+    limit: pageLimit + 1,
+  });
+  const cursorSafeData = data.filter((comment) => isBeforeSharedLinkActivityCursor(comment, cursor));
+  const page = cursorSafeData.slice(0, pageLimit);
+  const hasMore = cursorSafeData.length > pageLimit;
+  const nextCursor = hasMore && page.length ? encodeSharedLinkActivityCursor(page[page.length - 1]!) : null;
 
   const snapshot = await loadPublicationSnapshotForPublicIds(publicationId);
-  return data.map((comment) => mapSharedLinkPublicComment(comment, snapshot));
+  return {
+    comments: [...page].reverse().map((comment) => mapSharedLinkPublicComment(comment, snapshot)),
+    hasMore,
+    nextCursor,
+  };
 }
 
 function mapSharedLinkPublicComment(comment: SharedLinkPublicCommentRow, snapshot: ProjectPublicationSnapshot | null): SharedLinkPublicComment {
@@ -989,6 +1018,8 @@ export async function insertSharedLinkComment(params: {
     tokenHash: pubHash,
     recipientTokenHash,
     publicationId,
+    projectId: publicationContext.project_id,
+    publishedBy: publicationContext.published_by,
     estimateId: validatedTarget.estimateId,
     rowId: validatedTarget.rowId,
     body: sanitizedBody,
@@ -996,6 +1027,7 @@ export async function insertSharedLinkComment(params: {
     targetKind: targetContext.targetKind,
     targetLabel: targetContext.targetLabel,
     targetSecondaryLabel: targetContext.targetSecondaryLabel ?? null,
+    workspaceId: publicationContext.workspace_id,
   });
   if (!commentId) throw new Error("Failed to insert comment.");
 
@@ -1073,6 +1105,8 @@ export async function submitSharedLinkDecision(params: {
     tokenHash: pubHash,
     recipientTokenHash,
     publicationId,
+    projectId: publicationContext.project_id,
+    publishedBy: publicationContext.published_by,
     decision: params.decision,
     note: trimmedNote,
     expectedSnapshotVersion: params.expectedSnapshotVersion,
@@ -1082,6 +1116,7 @@ export async function submitSharedLinkDecision(params: {
     targetKind: targetContext.targetKind,
     targetLabel: targetContext.targetLabel,
     targetSecondaryLabel: targetContext.targetSecondaryLabel ?? null,
+    workspaceId: publicationContext.workspace_id,
   });
   if (!responseId) {
     throw new Error("Decision already submitted.");

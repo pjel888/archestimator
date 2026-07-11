@@ -18,6 +18,7 @@ import {
 } from "@/lib/publication/public-repository";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";
+import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 
 export const dynamic = "force-dynamic";
 
@@ -147,7 +148,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       credentialVersion: access.credentialVersion,
     })
   ) {
-    return Response.json({ error: "password_required" }, { status: 401, headers: noStoreHeaders });
+    return Response.json({ error: "password_required" }, { status: 423, headers: noStoreHeaders });
   }
 
   const sessionName = createSharedLinkSessionCookieName(token);
@@ -194,14 +195,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const { token: routeToken } = await params;
   const token = routeToken.trim();
-  const body = (await request.json().catch(() => ({}))) as {
+  const parsedBody = await readBoundedJsonBody<{
     decision?: string;
     estimateId?: unknown;
     note?: string | null;
     rowId?: unknown;
     signerName?: unknown;
     viewToken?: unknown;
-  };
+  }>(request, 4 * 1024);
+  if (!parsedBody.ok) {
+    return Response.json({ error: parsedBody.error }, { status: parsedBody.status, headers: { "Cache-Control": "no-store" } });
+  }
+  const body = parsedBody.value;
 
   const decision = (body.decision || "").toString().trim();
   if (!isDecisionType(decision)) {
@@ -303,10 +308,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  if (decision === "accepted" && !signerName) {
+  if ((decision === "accepted" || decision === "declined") && !signerName) {
     const ipHash = getIpHash(request);
     logStructured("error", "/api/share/[token]/decision", "VALIDATION_SIGNER_NAME_REQUIRED", ipHash);
-    return Response.json({ error: "Your name is required to approve this proposal." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    return Response.json({ error: "Your name is required to record this response." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   const rateCheck = await checkSharedLinkDecisionRateLimit({ publicationId: access.publicationId, recipientId });

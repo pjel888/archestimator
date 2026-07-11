@@ -42,12 +42,14 @@ type SharePageProps = {
 function ProjectPublicationView({
   recipientEmail,
   recipientSessionStatus,
+  expiresAt,
   snapshot,
   token,
   viewToken,
 }: {
   recipientEmail?: string | null;
   recipientSessionStatus?: "invalid";
+  expiresAt?: string | null;
   snapshot: ProjectPublicationSnapshot;
   token: string;
   viewToken: string;
@@ -59,9 +61,9 @@ function ProjectPublicationView({
       {/* T1-C MVP: single-column ShareContainer replaces the 960px cap (UX-14). Width
           ladder lives once in ShareContainer; share-print-content stays on this wrapper. */}
       <ShareContainer className="share-print-content flex flex-col gap-5 py-6">
-        <SharePageProposalHeader project={snapshot.project} />
+        <SharePageProposalHeader project={snapshot.project} token={token} />
         <section id="share-summary">
-          <SharePageSummaryCard snapshot={snapshot} />
+          <SharePageSummaryCard expiresAt={expiresAt} snapshot={snapshot} />
         </section>
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
@@ -74,11 +76,48 @@ function ProjectPublicationView({
           token={token}
           viewToken={viewToken}
         />
+        <SharePageNoScriptEstimates snapshot={snapshot} />
         <footer className="share-print-hidden border-t border-hairline pt-3 text-[11px] leading-[15px] text-tertiary">
           Shared via Archestimator. Access is protected for invited recipients.
         </footer>
       </ShareContainer>
     </main>
+  );
+}
+
+function SharePageNoScriptEstimates({ snapshot }: { snapshot: ProjectPublicationSnapshot }) {
+  return (
+    <noscript>
+      <section aria-label="Proposal estimates">
+        <h2>Proposal estimates</h2>
+        {snapshot.estimates.map((estimate) => (
+          <section key={estimate.id}>
+            <h3>{estimate.name}</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Description</th>
+                  <th scope="col">Quantity</th>
+                  <th scope="col">Unit</th>
+                  <th scope="col">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estimate.rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.description}</td>
+                    <td>{row.quantity}</td>
+                    <td>{row.unit}</td>
+                    <td>{`${snapshot.project.currencyCode} ${row.rowTotal.toFixed(2)}`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))}
+        <p>Comments and responses need JavaScript. Open the personalized review link from your email in a browser with JavaScript enabled.</p>
+      </section>
+    </noscript>
   );
 }
 
@@ -305,6 +344,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
     <ProjectPublicationView
       recipientEmail={recipientEmailForBanner}
       recipientSessionStatus={recipientSessionStatus}
+      expiresAt={publication.expiresAt}
       snapshot={publication.snapshot}
       token={token}
       viewToken={viewToken}

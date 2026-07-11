@@ -120,7 +120,7 @@ export function SharePageDecisionConfirmDialog({
           Applies to {activeReviewTargetLabel}
         </div>
 
-        {decision === "accepted" ? (
+        {decision === "accepted" || decision === "declined" ? (
           <div className="mt-3">
             <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-secondary" htmlFor="decision-signer-name">
               Your name
@@ -166,7 +166,7 @@ export function SharePageDecisionConfirmDialog({
             variant={decision === "declined" ? "secondary" : "primary"}
             size="sm"
             onClick={onConfirm}
-            disabled={isSubmitting || (decision === "accepted" && !signerNameDraft.trim())}
+            disabled={isSubmitting || ((decision === "accepted" || decision === "declined") && !signerNameDraft.trim())}
           >
             {isSubmitting ? "Recording..." : "Confirm"}
           </Button>

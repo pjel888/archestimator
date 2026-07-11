@@ -6,19 +6,6 @@ type PublisherNoRowsEmptyStateProps = {
   variant?: "filtered" | "no-publications" | "mobile";
 };
 
-export function PublisherDisabledEmptyState() {
-  return (
-    <div className="flex h-full items-center justify-center p-2">
-      <EmptyState
-        icon={<FileX size={16} weight="regular" aria-hidden="true" />}
-        title="Publisher unavailable"
-        description="This workspace is not in the Publisher rollout yet."
-        className="w-full max-w-sm rounded-xs"
-      />
-    </div>
-  );
-}
-
 export function PublisherNoRowsEmptyState({ variant = "no-publications" }: PublisherNoRowsEmptyStateProps) {
   const copy = {
     filtered: {
@@ -28,7 +15,7 @@ export function PublisherNoRowsEmptyState({ variant = "no-publications" }: Publi
     },
     mobile: {
       icon: <Monitor size={16} weight="regular" aria-hidden="true" />,
-      title: "Publisher needs more width",
+      title: "Sharing needs more width",
       description: "Open this workspace on a wider screen to manage shared pages.",
     },
     "no-publications": {

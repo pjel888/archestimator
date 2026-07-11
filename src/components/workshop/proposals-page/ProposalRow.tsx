@@ -64,8 +64,8 @@ function getChipClassName(tone: ProposalState["tone"]) {
 }
 
 function readActionErrorMessage(error: Exclude<OpenRecipientProposalActionState, null>["error"]) {
-  if (error === "not-a-recipient") return "This proposal is not assigned to your signed-in email.";
-  if (error === "unavailable") return "This proposal is no longer available.";
+  if (error === "not-a-recipient") return "Open the link from your email invitation, or ask the sender to invite your signed-in email.";
+  if (error === "unavailable") return "This proposal is no longer available. Contact the sender for an updated link.";
   if (error === "invalid") return "This proposal could not be opened.";
   return "The proposal could not be opened.";
 }
@@ -131,6 +131,11 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
             Expires <time dateTime={proposal.expiresAt}>{formatProposalDate(proposal.expiresAt)}</time>
           </span>
         ) : null}
+        {disabled ? (
+          <span className="w-full text-[10px] leading-4 text-secondary">
+            This proposal can no longer be reviewed. Contact the sender for the next steps.
+          </span>
+        ) : null}
         <span className="w-full text-[10px] leading-4 text-tertiary">
           Last activity <time dateTime={proposal.lastActivityAt ?? undefined}>{formatProposalDate(proposal.lastActivityAt)}</time>
         </span>
@@ -139,7 +144,15 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
       <div className="flex min-w-0 flex-col items-stretch gap-2 md:items-end">
         <form action={formAction}>
           <input type="hidden" name="publicationId" value={proposal.publicationId} />
-          <Button type="submit" variant="brand" size="sm" disabled={disabled || isPending} className="w-full md:w-auto">
+          <Button
+            type="submit"
+            variant="brand"
+            size="sm"
+            disabled={disabled || isPending}
+            className="w-full md:w-auto"
+            aria-label={disabled ? `${proposalState.label}: contact the sender for next steps` : undefined}
+            title={disabled ? `${proposalState.label}: contact the sender for next steps` : undefined}
+          >
             <ArrowSquareOut size={13} weight="regular" aria-hidden="true" />
             {disabled ? proposalState.label : isPending ? "Opening" : "Review"}
           </Button>

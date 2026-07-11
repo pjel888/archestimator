@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { CoverImagePlaceholder } from "@/components/share/CoverImagePlaceholder";
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 
 interface SharePageHeroProps {
@@ -24,7 +25,7 @@ export default function SharePageHero({ project }: SharePageHeroProps) {
   const coverImageUrl = normalizePublicationImageUrl(project?.coverImageUrl);
 
   if (!coverImageUrl) {
-    return null;
+    return <CoverImagePlaceholder projectName={project.name} />;
   }
 
   return (

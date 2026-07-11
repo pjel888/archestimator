@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 
 type ProjectPublicationPasswordFormProps = {
   token: string;
@@ -14,6 +15,7 @@ function createCsrfToken() {
 
 export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPasswordFormProps) {
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [status, setStatus] = useState<"idle" | "submitting" | "invalid" | "error" | "locked">("idle");
 
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
@@ -60,17 +62,32 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
     <form className="mt-4 grid gap-2" onSubmit={submitPassword}>
       <label className="grid gap-1 text-[13px] font-medium leading-[18px] tracking-normal text-secondary">
         Password
-        <input
-          className="h-9 border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none focus:bg-accentSoft disabled:cursor-not-allowed disabled:opacity-60"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.currentTarget.value)}
-          autoComplete="current-password"
-          disabled={isSubmitting || isLocked}
-          aria-invalid={feedback ? "true" : undefined}
-          aria-describedby={feedback ? feedbackId : undefined}
-        />
+        <span className="flex h-9 border border-hairline bg-white focus-within:bg-accentSoft">
+          <input
+            className="min-w-0 flex-1 bg-transparent px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            type={isPasswordVisible ? "text" : "password"}
+            value={password}
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            autoComplete="current-password"
+            disabled={isSubmitting || isLocked}
+            aria-invalid={feedback ? "true" : undefined}
+            aria-describedby={feedback ? feedbackId : undefined}
+          />
+          <button
+            type="button"
+            className="grid w-9 place-items-center text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={isPasswordVisible ? "Hide entered value" : "Show entered value"}
+            aria-pressed={isPasswordVisible}
+            disabled={isSubmitting || isLocked}
+            onClick={() => setIsPasswordVisible((visible) => !visible)}
+          >
+            {isPasswordVisible ? <EyeSlash size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          </button>
+        </span>
       </label>
+      <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
+        Don&apos;t have the password? Contact the sender who shared this proposal.
+      </p>
       {feedback ? (
         <p id={feedbackId} role="alert" className="text-[13px] leading-[18px] tracking-normal text-danger">
           {feedback}

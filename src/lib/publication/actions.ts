@@ -391,7 +391,7 @@ function workspaceRoleRank(role: WorkspaceMemberRole | null | undefined) {
   return 0;
 }
 
-async function assertProjectPublicationManager(projectId: string): Promise<PublicationManagerContext> {
+export async function assertProjectPublicationManager(projectId: string): Promise<PublicationManagerContext> {
   assertUuid(projectId, "Project");
 
   const currentUser = await requireCurrentUserContext();
@@ -682,6 +682,7 @@ async function buildSnapshotForProject(
       location: context.project.location,
       locationVisibility,
       currencyCode: context.project.currency_code,
+      senderName: context.currentUserDisplayName,
       // P9: capture cover for receiver hero (from metadata at publish; additive)
       coverImageUrl:
         readStringMetadataValue(context.project.metadata, "projectImageUrl") ??
@@ -897,31 +898,28 @@ export async function republishProjectPublication({
   if (resolvedEstimateIds.length === 0) {
     return { ok: false, message: "Select at least one estimate to publish." };
   }
-  const clientLinkPath = readClientLinkPath(latest);
-  const passwordUpdate =
-    clearPassword
-      ? { password_hash: null }
-      : password
-        ? { password_hash: await hashPublicationPassword(password) }
-        : {};
-  // AC-MOD-10: only touch expires_at when the caller explicitly passes it. Spreading {}
-  // when expiresAt === undefined keeps the stored expiry intact (e.g. plain "Update shared
-  // page"); null clears it (reactivation); a string sets it.
-  const expiresUpdate = expiresAt === undefined ? {} : { expires_at: expiresAt };
-  const { error } = await context.admin
-    .from("project_publications")
-    .update({
-      snapshot_json: snapshot,
-      activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
-      location_visibility: normalizedLocationVisibility,
-      selected_estimate_ids: resolvedEstimateIds,
-      snapshot_version: latest.snapshot_version + 1,
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...passwordUpdate,
-      ...expiresUpdate,
-    })
-    .eq("id", latest.id);
+  const previousClientLinkPath = readClientLinkPath(latest);
+  const token = createPublicationToken();
+  const clientLinkPath = `/share/${token}`;
+  const passwordHash = clearPassword
+    ? null
+    : password
+      ? await hashPublicationPassword(password)
+      : latest.password_hash;
+  const effectiveExpiresAt = expiresAt === undefined ? latest.expires_at : expiresAt;
+  const { data: publicationId, error } = await callPublicationD1Procedure<string>(context.admin, "replace_project_publication", {
+    target_workspace_id: context.project.workspace_id,
+    target_project_id: context.project.id,
+    p_token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
+    p_encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
+    p_password_hash: passwordHash,
+    p_snapshot_json: snapshot,
+    p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+    p_location_visibility: normalizedLocationVisibility,
+    p_selected_estimate_ids: resolvedEstimateIds,
+    p_published_by: context.currentUserId,
+    p_expires_at: effectiveExpiresAt,
+  });
 
   if (error) throw error;
   await recordPublisherAuditEvent({
@@ -932,12 +930,12 @@ export async function republishProjectPublication({
       location_visibility: normalizedLocationVisibility,
       password_changed: Boolean(password),
       password_cleared: clearPassword,
-      publication_id: latest.id,
+      publication_id: publicationId ?? null,
       selected_estimate_count: resolvedEstimateIds.length,
     },
   });
-  revalidatePublicationRoutes(context.project.id, clientLinkPath);
-  return { ok: true, message: "Shared page updated.", clientLinkPath };
+  revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
+  return { ok: true, message: "New shared page issued.", clientLinkPath };
 }
 
 export async function rotateProjectPublicationLink({

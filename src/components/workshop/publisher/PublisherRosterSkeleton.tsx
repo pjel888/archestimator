@@ -2,9 +2,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function PublisherRosterSkeleton() {
   return (
-    <div className="flex h-full flex-col p-2" aria-label="Loading Publisher roster">
+    <div className="flex h-full flex-col p-2" aria-label="Loading shared link roster">
       <output aria-live="polite" aria-atomic="true" className="sr-only">
-        Loading Publisher roster.
+        Loading shared link roster.
       </output>
       <div className="mb-2 flex min-h-10 items-center justify-between gap-2 border-b border-hairline pb-2">
         <div className="flex items-center gap-2">

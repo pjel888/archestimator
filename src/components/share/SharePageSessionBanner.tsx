@@ -57,9 +57,7 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
   return (
     <div className="border-b border-hairline bg-surfaceMuted">
       <div className={`${SHARE_CONTAINER_WIDTH} flex items-start justify-between gap-3 py-2.5`}>
-        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
-          Sign in as a recipient to comment and respond to this proposal.
-        </p>
+        <div><p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Use your personalized link to comment and respond.</p><p className="mt-1 text-[12px] leading-[16px] text-secondary">Get your personalized link from the email sent by the project team, or contact the sender for a new invitation.</p></div>
         <button
           type="button"
           onClick={() => setDismissed(true)}

@@ -182,7 +182,7 @@ export function PublisherDrawer({ initialTab = "overview", open, row, onOpenChan
       }
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Publication update failed.",
+        text: error instanceof Error ? error.message : "Shared link update failed.",
         tone: "error",
       });
     } finally {
@@ -252,7 +252,7 @@ export function PublisherDrawer({ initialTab = "overview", open, row, onOpenChan
         open={open}
         onOpenChange={onOpenChange}
         title={row.projectName}
-        description="Publication detail and manager actions"
+        description="Shared link details and manager actions"
         side="right"
         size="wide"
         modal
@@ -335,7 +335,7 @@ export function PublisherDrawer({ initialTab = "overview", open, row, onOpenChan
             tabs={tabs}
             activeId={activeTab}
             onChange={(id) => setActiveTab(id as PublisherDrawerTabId)}
-            ariaLabel="Publisher publication sections"
+            ariaLabel="Shared link sections"
             controlsPanels={false}
             idBase="publisher-drawer"
             variant="pills"
@@ -364,7 +364,7 @@ export function PublisherDrawer({ initialTab = "overview", open, row, onOpenChan
                   <p className="mt-1 text-ink">{row.recipientCount === 1 ? "1 recipient" : `${row.recipientCount} recipients`}</p>
                 </div>
                 <div className="rounded-xs border border-hairline bg-white px-3 py-2">
-                  <SectionLabel>Sheet scope</SectionLabel>
+                  <SectionLabel>Estimate scope</SectionLabel>
                   <p className="mt-1 text-ink">
                     {summary?.selectedEstimateCount === 1
                       ? "1 sheet"
@@ -411,7 +411,7 @@ export function PublisherDrawer({ initialTab = "overview", open, row, onOpenChan
                   selectedIds={selectedEstimateIds}
                   onChange={setSelectedEstimateIdsOverride}
                   disabled={!canManagePublication || publicationBusy}
-                  aria-label="Select estimates to include in Publisher shared link"
+                  aria-label="Select estimates to include in this shared link"
                 />
                 {!hasSelectableEstimate ? (
                   <p className="text-[9px] leading-3 text-warning">Select at least one estimate before updating the shared page.</p>

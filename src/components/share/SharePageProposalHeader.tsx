@@ -1,11 +1,14 @@
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
+import { ProposalStatusBadge } from "@/components/share/ProposalStatusBadge";
 
 type SharePageProposalHeaderProps = {
   project: ProjectPublicationSnapshot["project"];
+  token?: string;
 };
 
-export function SharePageProposalHeader({ project }: SharePageProposalHeaderProps) {
+export function SharePageProposalHeader({ project, token }: SharePageProposalHeaderProps) {
   const metaItems = [
+    project.senderName ? `Shared by ${project.senderName}` : null,
     project.clientName ? `Prepared for ${project.clientName}` : null,
     project.projectCode ? `Project ${project.projectCode}` : null,
     project.location,
@@ -22,9 +25,7 @@ export function SharePageProposalHeader({ project }: SharePageProposalHeaderProp
             <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">{metaItems.join(" • ")}</p>
           ) : null}
         </div>
-        <div className="shrink-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[12px] font-medium leading-[16px] tracking-normal text-tertiary">
-          Awaiting your review
-        </div>
+        <ProposalStatusBadge token={token} />
       </div>
     </section>
   );

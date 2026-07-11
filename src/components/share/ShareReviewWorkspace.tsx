@@ -13,10 +13,13 @@ import {
 } from "@/components/share/share-review-target";
 import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
 import { Button } from "@/components/ui/button";
+import { SharePrintButton } from "@/components/share/SharePrintButton";
+import { StickyDecisionBar } from "@/components/share/StickyDecisionBar";
 
 type ShareReviewWorkspaceProps = {
   currencyCode: string;
   estimates: PublicationSnapshotEstimate[];
+  previewMode?: "manager-read-only";
   token: string;
   viewToken: string;
 };
@@ -24,6 +27,7 @@ type ShareReviewWorkspaceProps = {
 export default function ShareReviewWorkspace({
   currencyCode,
   estimates,
+  previewMode,
   token,
   viewToken,
 }: ShareReviewWorkspaceProps) {
@@ -32,7 +36,8 @@ export default function ShareReviewWorkspace({
   const targetLabel = shareReviewTargetDisplay(normalizedTarget);
 
   return (
-    <div className="space-y-5 pb-16 sm:pb-0">
+    <div className="space-y-5 pb-16 sm:pb-0" style={{ scrollPaddingBottom: "5rem" }}>
+      <div className="flex justify-end"><SharePrintButton /></div>
       <output
         className="share-print-hidden flex flex-col gap-2 rounded-xs border border-hairline bg-surfaceMuted px-3 py-2 text-[12px] leading-[16px] tracking-normal text-secondary sm:flex-row sm:items-center sm:justify-between"
       >
@@ -57,13 +62,8 @@ export default function ShareReviewWorkspace({
         />
       </section>
 
-      <section id="share-discussion">
-        <SharePageComments token={token} viewToken={viewToken} reviewTarget={normalizedTarget} />
-      </section>
-
-      <section id="share-response">
-        <SharePageDecision token={token} viewToken={viewToken} reviewTarget={normalizedTarget} />
-      </section>
+      {previewMode ? <p className="rounded-xs border border-hairline bg-surfaceMuted p-3 text-[12px] text-secondary">Recipient comments and response controls are disabled in manager preview.</p> : <><section id="share-discussion"><SharePageComments token={token} viewToken={viewToken} reviewTarget={normalizedTarget} /></section><section id="share-response"><SharePageDecision token={token} viewToken={viewToken} reviewTarget={normalizedTarget} /></section></>}
+      {previewMode ? null : <StickyDecisionBar />}
 
       <nav
         aria-label="Proposal review sections"
@@ -72,8 +72,7 @@ export default function ShareReviewWorkspace({
         <div className="mx-auto grid max-w-[520px] grid-cols-4 gap-1 text-[11px] font-medium leading-none tracking-normal">
           <a className="rounded-xs px-2 py-2 text-center text-secondary hover:bg-surfaceMuted hover:text-ink" href="#share-summary">Summary</a>
           <a className="rounded-xs px-2 py-2 text-center text-secondary hover:bg-surfaceMuted hover:text-ink" href="#share-estimates">Items</a>
-          <a className="rounded-xs px-2 py-2 text-center text-secondary hover:bg-surfaceMuted hover:text-ink" href="#share-discussion">Questions</a>
-          <a className="rounded-xs px-2 py-2 text-center text-secondary hover:bg-surfaceMuted hover:text-ink" href="#share-response">Respond</a>
+          {previewMode ? <span className="rounded-xs px-2 py-2 text-center text-secondary">Preview only</span> : <><a className="rounded-xs px-2 py-2 text-center text-secondary hover:bg-surfaceMuted hover:text-ink" href="#share-discussion">Questions</a><a className="rounded-xs px-2 py-2 text-center text-secondary hover:bg-surfaceMuted hover:text-ink" href="#share-response">Respond</a></>}
         </div>
       </nav>
     </div>

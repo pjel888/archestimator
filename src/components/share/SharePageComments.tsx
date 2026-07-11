@@ -49,6 +49,12 @@ type CommentPostResponse = {
   comment?: LoadedComment;
 };
 
+type CommentPage = {
+  comments: Comment[];
+  hasMore: boolean;
+  nextCursor: string | null;
+};
+
 interface SharePageCommentsProps {
   token: string;
   viewToken: string;
@@ -62,9 +68,13 @@ type SharePageCommentsState = {
   comments: Comment[];
   draft: string;
   isLoadingComments: boolean;
+  isLoadingMoreComments: boolean;
   isPosting: boolean;
   error: string | null;
   loadError: string | null;
+  loadMoreError: string | null;
+  hasMoreComments: boolean;
+  nextCommentsCursor: string | null;
   lastAnnouncement: string;
   isExpanded: boolean;
   retryStatus: string | null;
@@ -74,9 +84,13 @@ type SharePageCommentsState = {
 type SharePageCommentsAction =
   | { type: "announcementSet"; message: string }
   | { type: "commentsLoadStarted" }
-  | { type: "commentsLoaded"; comments: Comment[] }
+  | { type: "commentsLoaded"; page: CommentPage }
   | { type: "commentsLoadFailed"; error: string }
   | { type: "commentsLoadSettled" }
+  | { type: "commentsMoreLoadStarted" }
+  | { type: "commentsMoreLoaded"; page: CommentPage }
+  | { type: "commentsMoreLoadFailed"; error: string }
+  | { type: "commentsMoreLoadSettled" }
   | { type: "draftChanged"; draft: string; clearError?: boolean }
   | { type: "errorSet"; error: string | null }
   | { type: "expandedToggled" }
@@ -91,9 +105,13 @@ const INITIAL_SHARE_PAGE_COMMENTS_STATE: SharePageCommentsState = {
   comments: [],
   draft: "",
   isLoadingComments: false,
+  isLoadingMoreComments: false,
   isPosting: false,
   error: null,
   loadError: null,
+  loadMoreError: null,
+  hasMoreComments: false,
+  nextCommentsCursor: null,
   lastAnnouncement: "",
   isExpanded: true,
   retryStatus: null,
@@ -116,7 +134,9 @@ function sharePageCommentsReducer(state: SharePageCommentsState, action: SharePa
     case "commentsLoaded":
       return {
         ...state,
-        comments: action.comments,
+        comments: action.page.comments,
+        hasMoreComments: action.page.hasMore,
+        nextCommentsCursor: action.page.nextCursor,
       };
     case "commentsLoadFailed":
       return {
@@ -127,6 +147,31 @@ function sharePageCommentsReducer(state: SharePageCommentsState, action: SharePa
       return {
         ...state,
         isLoadingComments: false,
+      };
+    case "commentsMoreLoadStarted":
+      return {
+        ...state,
+        isLoadingMoreComments: true,
+        loadMoreError: null,
+      };
+    case "commentsMoreLoaded": {
+      const existingIds = new Set(state.comments.map((comment) => comment.id));
+      return {
+        ...state,
+        comments: [...action.page.comments.filter((comment) => !existingIds.has(comment.id)), ...state.comments],
+        hasMoreComments: action.page.hasMore,
+        nextCommentsCursor: action.page.nextCursor,
+      };
+    }
+    case "commentsMoreLoadFailed":
+      return {
+        ...state,
+        loadMoreError: action.error,
+      };
+    case "commentsMoreLoadSettled":
+      return {
+        ...state,
+        isLoadingMoreComments: false,
       };
     case "draftChanged":
       return {
@@ -215,9 +260,13 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
     comments,
     draft,
     isLoadingComments,
+    isLoadingMoreComments,
     isPosting,
     error,
     loadError,
+    loadMoreError,
+    hasMoreComments,
+    nextCommentsCursor,
     lastAnnouncement,
     isExpanded,
     retryStatus,
@@ -284,24 +333,35 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
     } catch {}
   }, [DRAFT_KEY, draft]);
 
+  const loadCommentPage = useCallback(async (cursor?: string | null, signal?: AbortSignal): Promise<CommentPage> => {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+    const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment${query}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal,
+      cache: "no-store",
+    });
+    if (res.status === 401 || res.status === 404) return { comments: [], hasMore: false, nextCursor: null };
+    if (!res.ok) throw new Error("Could not load discussion.");
+    const json = (await res.json().catch(() => ({}))) as {
+      comments?: LoadedComment[];
+      hasMore?: boolean;
+      nextCursor?: string | null;
+    };
+    const loadedComments = Array.isArray(json.comments) ? json.comments : [];
+    return {
+      comments: loadedComments.map(mapLoadedComment),
+      hasMore: json.hasMore === true,
+      nextCursor: typeof json.nextCursor === "string" && json.nextCursor ? json.nextCursor : null,
+    };
+  }, [token]);
+
   const commentsQuery = useQuery({
     queryKey: ["share-comments", token] as const,
     enabled: isValid,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
-    queryFn: async ({ signal }) => {
-      const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        signal,
-        cache: "no-store",
-      });
-      if (res.status === 401 || res.status === 404) return [] as Comment[];
-      if (!res.ok) throw new Error("Could not load discussion.");
-      const json = (await res.json().catch(() => ({}))) as { comments?: LoadedComment[] };
-      const loadedComments = Array.isArray(json.comments) ? json.comments : [];
-      return loadedComments.map(mapLoadedComment);
-    },
+    queryFn: ({ signal }) => loadCommentPage(null, signal),
   });
 
   const loadComments = useCallback(async () => {
@@ -323,10 +383,26 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
       return;
     }
     if (commentsQuery.data) {
-      dispatchCommentsState({ type: "commentsLoaded", comments: commentsQuery.data });
+      dispatchCommentsState({ type: "commentsLoaded", page: commentsQuery.data });
       dispatchCommentsState({ type: "commentsLoadSettled" });
     }
   }, [commentsQuery.data, commentsQuery.error, commentsQuery.isError, commentsQuery.isFetching, isValid]);
+
+  const loadMoreComments = useCallback(async () => {
+    if (!nextCommentsCursor || isLoadingMoreComments) return;
+    dispatchCommentsState({ type: "commentsMoreLoadStarted" });
+    try {
+      const page = await loadCommentPage(nextCommentsCursor);
+      dispatchCommentsState({ type: "commentsMoreLoaded", page });
+    } catch (loadError) {
+      dispatchCommentsState({
+        type: "commentsMoreLoadFailed",
+        error: readErrorMessage(loadError) || "Could not load more discussion.",
+      });
+    } finally {
+      dispatchCommentsState({ type: "commentsMoreLoadSettled" });
+    }
+  }, [isLoadingMoreComments, loadCommentPage, nextCommentsCursor]);
 
   const flushQueue = useCallback(async () => {
     const q = loadQueue();
@@ -569,9 +645,10 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
         ) : comments.length === 0 ? (
           <p className="text-[12px] leading-[16px] tracking-normal text-secondary">No comments yet. Add a note or question below.</p>
         ) : (
-          <ul className="max-w-[600px] space-y-3">
-            {comments.map((c) => (
-              <li key={c.id} className="rounded-xs border border-hairline bg-white p-2">
+          <>
+            <ul className="max-w-[600px] space-y-3">
+              {comments.map((c) => (
+                <li key={c.id} className="rounded-xs border border-hairline bg-white p-2">
                 <div className="text-[12px] leading-[16px] tracking-normal text-secondary">
                   {c.authorName || c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {c.isOptimistic ? " (sending...)" : ""}
@@ -583,9 +660,18 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
                   </div>
                 ) : null}
                 <div className="mt-0.5 whitespace-pre-wrap break-words">{c.body}</div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+            {hasMoreComments ? (
+              <div className="mt-3">
+                <Button variant="ghost" size="sm" onClick={() => void loadMoreComments()} disabled={isLoadingMoreComments}>
+                  {isLoadingMoreComments ? "Loading more comments..." : "Load more comments"}
+                </Button>
+                {loadMoreError ? <p className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger" role="alert">{loadMoreError}</p> : null}
+              </div>
+            ) : null}
+          </>
         )}
         {/* Live region for discrete announcements (rate, success, revert) */}
         <div className="sr-only" aria-live="polite">{lastAnnouncement}</div>

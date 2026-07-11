@@ -3,6 +3,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Result, type D1Value } from "@/lib/cloudflare/d1";
+import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
+import { validateActivationProducerIntent } from "@/lib/onboarding/activation-producer-contract";
 
 export type PublicationAdminJson = string | number | boolean | null | { [key: string]: PublicationAdminJson | undefined } | PublicationAdminJson[];
 
@@ -465,6 +467,48 @@ function pickSelectedWriteRow(row: Record<string, unknown>, selectValue: string)
   );
 }
 
+function withImmutableIssuance(
+  snapshot: unknown,
+  {
+    issuedAt,
+    issueNumber,
+    selectedEstimateIds,
+    supersedes,
+    validThrough,
+  }: {
+    issuedAt: string;
+    issueNumber: number;
+    selectedEstimateIds: string[];
+    supersedes: { issueNumber: number; version: number } | null;
+    validThrough: string | null;
+  },
+) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return snapshot;
+
+  const snapshotRecord = snapshot as Record<string, unknown>;
+  const project = snapshotRecord.project;
+  const senderNameValue =
+    project && typeof project === "object" && !Array.isArray(project)
+      ? (project as Record<string, unknown>).senderName
+      : null;
+  const senderName = typeof senderNameValue === "string" ? senderNameValue.trim() || null : null;
+
+  return {
+    ...snapshotRecord,
+    issuance: {
+      assumptions: [],
+      exclusions: [],
+      issueNumber,
+      issuedAt,
+      selectedEstimateIds,
+      senderName,
+      supersedes,
+      validThrough,
+      version: issueNumber,
+    },
+  };
+}
+
 async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string, unknown>) {
   const project = await first<{ id: string }>(
     db,
@@ -479,8 +523,27 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
     [args.target_project_id],
   );
   const nextVersion = Number(versionRow?.snapshot_version ?? 0) + 1;
+  const previousPublication = await first<{ snapshot_version: number | null }>(
+    db,
+    "SELECT snapshot_version FROM project_publications WHERE project_id = ? AND status = 'published' LIMIT 1",
+    [args.target_project_id],
+  );
   const publicationId = randomUUID();
   const at = nowIso();
+  const issuedSnapshot = withImmutableIssuance(args.p_snapshot_json, {
+    issuedAt: at,
+    issueNumber: nextVersion,
+    selectedEstimateIds: Array.isArray(args.p_selected_estimate_ids)
+      ? args.p_selected_estimate_ids.filter((value): value is string => typeof value === "string")
+      : [],
+    supersedes: previousPublication
+      ? {
+          issueNumber: Number(previousPublication.snapshot_version ?? 0),
+          version: Number(previousPublication.snapshot_version ?? 0),
+        }
+      : null,
+    validThrough: typeof args.p_expires_at === "string" ? args.p_expires_at : null,
+  });
 
   const statements = [
     db
@@ -505,7 +568,7 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
         normalizeD1Value(args.p_token_hash),
         normalizeD1Value(args.p_encrypted_token),
         normalizeD1Value(args.p_password_hash),
-        jsonText(args.p_snapshot_json),
+        jsonText(issuedSnapshot),
         jsonText(args.p_activity_target_labels_json),
         normalizeD1Value(args.p_location_visibility ?? "locality"),
         jsonText(args.p_selected_estimate_ids, []),
@@ -517,6 +580,28 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
         at,
       ),
   ];
+
+  const activationIntent = validateActivationProducerIntent({
+    domainMutationId: publicationId,
+    milestone: "publication_created",
+    occurredAt: at,
+    projectId: String(args.target_project_id),
+    source: "publication",
+    userId: String(args.p_published_by),
+    workspaceId: String(args.target_workspace_id),
+  });
+  if (activationIntent.status === "accepted") {
+    statements.push(prepareActivationOutboxIntent(db, {
+      domainMutationId: publicationId,
+      dedupeKey: activationIntent.dedupeKey,
+      milestone: "publication_created",
+      occurredAt: at,
+      projectId: String(args.target_project_id),
+      source: "publication",
+      userId: String(args.p_published_by),
+      workspaceId: String(args.target_workspace_id),
+    }));
+  }
 
   if (db.batch) {
     await db.batch(statements);

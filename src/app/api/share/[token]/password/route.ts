@@ -11,6 +11,7 @@ import {
   createPublicationAccessCookie,
 } from "@/lib/publication/security";
 import { logAppError } from "@/lib/observability/logger";
+import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { after } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +61,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const { token: routeToken } = await params;
   const token = routeToken.trim();
-  const body = (await request.json().catch(() => ({}))) as { password?: string };
+  const parsedBody = await readBoundedJsonBody<{ password?: string }>(request, 256);
+  if (!parsedBody.ok) {
+    return Response.json({ error: parsedBody.error }, { status: parsedBody.status, headers: noStoreHeaders });
+  }
+  const body = parsedBody.value;
   const password = typeof body.password === "string" ? body.password : "";
 
   const durableRateLimit = await checkProjectPublicationPasswordRateLimit({ token, request });

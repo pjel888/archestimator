@@ -3,11 +3,16 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
+import { validateActivationProducerIntent } from "@/lib/onboarding/activation-producer-contract";
 
 export type JsonValue = string | number | boolean | null | { [key: string]: JsonValue | undefined } | JsonValue[];
 
 export type PublicationAccessRow = {
   id: string;
+  workspace_id: string;
+  project_id: string;
+  published_by: string;
   status: "published" | "expired" | "revoked";
   password_hash: string | null;
   expires_at: string | null;
@@ -22,6 +27,9 @@ export type PublicationSnapshotRow = PublicationAccessRow & {
 export type PublicationWriteContextRow = {
   activity_target_labels_json: JsonValue;
   id: string;
+  workspace_id: string;
+  project_id: string;
+  published_by: string;
   snapshot_json: JsonValue;
   snapshot_version: number;
 };
@@ -90,7 +98,7 @@ export type SharedLinkActivityEventD1Row = {
   recipient_id: string | null;
 };
 
-export type PublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";
+export type PublicationEventType = "open" | "password_success" | "password_failure" | "password_attempt";
 
 type RawPublicationRow = Omit<PublicationSnapshotRow, "snapshot_json"> & {
   snapshot_json?: string | null;
@@ -216,7 +224,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       const db = await getDb();
       return first<PublicationAccessRow>(
         db,
-        `SELECT id, status, password_hash, expires_at, revoked_at, snapshot_version
+        `SELECT id, workspace_id, project_id, published_by, status, password_hash, expires_at, revoked_at, snapshot_version
          FROM project_publications
          WHERE token_hash = ?
          LIMIT 1`,
@@ -228,7 +236,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       const db = await getDb();
       const row = await first<RawPublicationRow>(
         db,
-        `SELECT id, status, password_hash, snapshot_json, expires_at, revoked_at, snapshot_version
+        `SELECT id, workspace_id, project_id, published_by, status, password_hash, snapshot_json, expires_at, revoked_at, snapshot_version
          FROM project_publications
          WHERE token_hash = ?
          LIMIT 1`,
@@ -241,7 +249,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       const db = await getDb();
       const row = await first<RawWriteContextRow>(
         db,
-        `SELECT id, activity_target_labels_json, snapshot_json, snapshot_version
+        `SELECT id, workspace_id, project_id, published_by, activity_target_labels_json, snapshot_json, snapshot_version
          FROM project_publications
          WHERE token_hash = ?
          LIMIT 1`,
@@ -254,7 +262,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       const db = await getDb();
       const row = await first<RawActivityContextRow>(
         db,
-        `SELECT id, status, revoked_at, expires_at, password_hash, activity_target_labels_json, snapshot_version
+        `SELECT id, workspace_id, project_id, published_by, status, revoked_at, expires_at, password_hash, activity_target_labels_json, snapshot_version
          FROM project_publications
          WHERE token_hash = ?
          LIMIT 1`,
@@ -372,6 +380,54 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
          WHERE publication_id = ? AND id = ?`,
         [input.openedAt, input.openedAt, input.publicationId, input.recipientId],
       );
+    },
+
+    async markRecipientOpenedWithActivation(input: {
+      ipHash: string | null;
+      metadata: Record<string, JsonValue>;
+      openedAt: string;
+      projectId: string;
+      publicationId: string;
+      publishedBy: string;
+      recipientId: string;
+      userAgentHash: string | null;
+      workspaceId: string;
+    }) {
+      const db = await getDb();
+      if (!db.batch) throw new Error("Activation recipient events require D1 batch support.");
+      const activationIntent = validateActivationProducerIntent({
+        domainMutationId: `${input.publicationId}:${input.recipientId}:open`,
+        milestone: "recipient_opened",
+        occurredAt: input.openedAt,
+        projectId: input.projectId,
+        source: "recipient",
+        userId: input.publishedBy,
+        workspaceId: input.workspaceId,
+      });
+      if (activationIntent.status !== "accepted") throw new Error("Activation recipient event is invalid.");
+      await db.batch([
+        db.prepare(`UPDATE shared_link_recipients
+          SET delivery_status = 'opened', last_opened_at = ?, updated_at = ?
+          WHERE publication_id = ? AND id = ?`).bind(
+          input.openedAt, input.openedAt, input.publicationId, input.recipientId,
+        ),
+        db.prepare(`INSERT INTO shared_link_events
+          (id, publication_id, recipient_id, event_type, metadata_json, ip_hash, user_agent_hash, created_at)
+          VALUES (?, ?, ?, 'open', ?, ?, ?, ?)`).bind(
+          randomUUID(), input.publicationId, input.recipientId, jsonText(input.metadata, {}),
+          input.ipHash, input.userAgentHash, input.openedAt,
+        ),
+        prepareActivationOutboxIntent(db, {
+          domainMutationId: `${input.publicationId}:${input.recipientId}:open`,
+          dedupeKey: activationIntent.dedupeKey,
+          milestone: "recipient_opened",
+          occurredAt: input.openedAt,
+          projectId: input.projectId,
+          source: "recipient",
+          userId: input.publishedBy,
+          workspaceId: input.workspaceId,
+        }),
+      ]);
     },
 
     async insertSharedLinkEvent(input: {
@@ -586,12 +642,15 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       estimateId: string | null;
       expectedSnapshotVersion: number;
       publicationId: string;
+      projectId: string;
+      publishedBy: string;
       recipientTokenHash: string;
       rowId: string | null;
       targetKind: "proposal" | "estimate" | "row";
       targetLabel: string | null;
       targetSecondaryLabel: string | null;
       tokenHash: string;
+      workspaceId: string;
     }): Promise<string | null> {
       const db = await getDb();
       const activeAt = nowIso();
@@ -620,27 +679,38 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       if (!recipient) throw new Error("Recipient not found.");
 
       const id = randomUUID();
-      await execute(
-        db,
-        `INSERT INTO shared_link_comments
+      if (!db.batch) throw new Error("Activation recipient events require D1 batch support.");
+      const createdAt = nowIso();
+      const activationIntent = validateActivationProducerIntent({
+        domainMutationId: id,
+        milestone: "recipient_engaged",
+        occurredAt: createdAt,
+        projectId: input.projectId,
+        source: "recipient",
+        userId: input.publishedBy,
+        workspaceId: input.workspaceId,
+      });
+      if (activationIntent.status !== "accepted") throw new Error("Activation recipient event is invalid.");
+      await db.batch([
+        db.prepare(`INSERT INTO shared_link_comments
           (id, publication_id, recipient_id, author_email, estimate_id, row_id, body,
            target_kind, target_label, target_secondary_label, snapshot_version_at_comment, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          publication.id,
-          recipient.id,
-          recipient.email,
-          input.estimateId,
-          input.rowId,
-          input.body.slice(0, 1000),
-          input.targetKind,
-          input.targetLabel,
-          input.targetSecondaryLabel,
-          input.expectedSnapshotVersion,
-          nowIso(),
-        ],
-      );
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          id, publication.id, recipient.id, recipient.email, input.estimateId, input.rowId,
+          input.body.slice(0, 1000), input.targetKind, input.targetLabel,
+          input.targetSecondaryLabel, input.expectedSnapshotVersion, createdAt,
+        ),
+        prepareActivationOutboxIntent(db, {
+          domainMutationId: id,
+          dedupeKey: activationIntent.dedupeKey,
+          milestone: "recipient_engaged",
+          occurredAt: createdAt,
+          projectId: input.projectId,
+          source: "recipient",
+          userId: input.publishedBy,
+          workspaceId: input.workspaceId,
+        }),
+      ]);
       return id;
     },
 
@@ -650,6 +720,8 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       expectedSnapshotVersion: number;
       note: string | null;
       publicationId: string;
+      projectId: string;
+      publishedBy: string;
       recipientTokenHash: string;
       rowId: string | null;
       signerName: string | null;
@@ -657,6 +729,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       targetLabel: string | null;
       targetSecondaryLabel: string | null;
       tokenHash: string;
+      workspaceId: string;
     }): Promise<string | null> {
       const db = await getDb();
       const activeAt = nowIso();
@@ -703,14 +776,23 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
         : null;
 
       const id = randomUUID();
-      await execute(
-        db,
-        `INSERT INTO shared_link_responses
+      if (!db.batch) throw new Error("Activation recipient events require D1 batch support.");
+      const activationIntent = validateActivationProducerIntent({
+        domainMutationId: id,
+        milestone: "recipient_decided",
+        occurredAt: submittedAt,
+        projectId: input.projectId,
+        source: "recipient",
+        userId: input.publishedBy,
+        workspaceId: input.workspaceId,
+      });
+      if (activationIntent.status !== "accepted") throw new Error("Activation recipient event is invalid.");
+      await db.batch([
+        db.prepare(`INSERT INTO shared_link_responses
           (id, publication_id, recipient_id, decision, note, snapshot_version_at_decision,
            estimate_id, row_id, signer_name, signature_intent_hash, target_kind,
            target_label, target_secondary_label, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
           id,
           publication.id,
           recipient.id,
@@ -725,8 +807,18 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
           input.targetLabel,
           input.targetSecondaryLabel,
           submittedAt,
-        ],
-      );
+        ),
+        prepareActivationOutboxIntent(db, {
+          domainMutationId: id,
+          dedupeKey: activationIntent.dedupeKey,
+          milestone: "recipient_decided",
+          occurredAt: submittedAt,
+          projectId: input.projectId,
+          source: "recipient",
+          userId: input.publishedBy,
+          workspaceId: input.workspaceId,
+        }),
+      ]);
       return id;
     },
   };

@@ -23,10 +23,10 @@ export function PublisherActivityFeed({ projectId = null }: PublisherActivityFee
   return (
     <SharedLinkActivityFeed
       loadActivity={loadActivity}
-      feedLabel={projectId ? "Publisher project activity" : "Publisher workspace activity"}
-      loadingLabel="Loading Publisher activity"
-      emptyLabel="No Publisher activity yet."
-      footerLabel="Publisher activity refreshes when you reopen this tab. Use Refresh for the latest."
+      feedLabel={projectId ? "Shared link project activity" : "Shared link workspace activity"}
+      loadingLabel="Loading shared link activity"
+      emptyLabel="No shared link activity yet."
+      footerLabel="Shared link activity refreshes when you reopen this tab. Use Refresh for the latest."
       isOwner
     />
   );

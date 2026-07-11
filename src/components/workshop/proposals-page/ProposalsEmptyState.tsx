@@ -8,7 +8,7 @@ export function ProposalsEmptyState() {
       </span>
       <h2 className="text-[12px] font-medium text-ink">No proposals yet</h2>
       <p className="mt-2 max-w-[34rem] text-[10px] leading-5 text-secondary">
-        Proposals sent to your signed-in email address will appear here.
+        This inbox shows proposals sent to your email address.
       </p>
     </div>
   );

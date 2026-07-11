@@ -118,13 +118,13 @@ type ProjectPublicationRosterQueryRow = {
   workspace_id: string;
 };
 
-type PublicationActivityRow = {
+type PublicationLatestActivityRow = {
   publication_id: string;
-  created_at: string;
+  latest_created_at: string | null;
 };
 
 type CurrentWorkspaceProjectItem = Awaited<ReturnType<typeof listCurrentWorkspaceProjects>>["projects"][number];
-type PublicationRecipientCountRow = { publication_id: string };
+type PublicationRecipientCountRow = { publication_id: string; recipient_count: number };
 type PublicationEstimateUpdatedAtRow = { id: string; project_id: string; updated_at: string | null };
 
 async function requirePublisherRosterD1Database() {
@@ -481,27 +481,13 @@ async function readRecipientCountsByPublicationId(
   if (publicationIds.length === 0) return new Map<string, number>();
   const rows = await all<PublicationRecipientCountRow>(
     database,
-    `SELECT publication_id
+    `SELECT publication_id, COUNT(*) AS recipient_count
      FROM shared_link_recipients
      WHERE publication_id IN (${placeholders(publicationIds)})
-     LIMIT ?`,
-    [...publicationIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+     GROUP BY publication_id`,
+    publicationIds,
   );
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    counts.set(row.publication_id, (counts.get(row.publication_id) ?? 0) + 1);
-  }
-  return counts;
-}
-
-function latestActivityMap(rows: PublicationActivityRow[]) {
-  const latestByPublicationId = new Map<string, string | null>();
-  for (const row of rows) {
-    const current = latestByPublicationId.get(row.publication_id);
-    if (current && Date.parse(current) >= Date.parse(row.created_at)) continue;
-    latestByPublicationId.set(row.publication_id, row.created_at);
-  }
-  return latestByPublicationId;
+  return new Map(rows.map((row) => [row.publication_id, row.recipient_count]));
 }
 
 async function readLatestCommentAtByPublicationId(
@@ -509,16 +495,15 @@ async function readLatestCommentAtByPublicationId(
   publicationIds: string[],
 ) {
   if (publicationIds.length === 0) return new Map<string, string | null>();
-  const rows = await all<PublicationActivityRow>(
+  const rows = await all<PublicationLatestActivityRow>(
     database,
-    `SELECT publication_id, created_at
+    `SELECT publication_id, MAX(created_at) AS latest_created_at
      FROM shared_link_comments
      WHERE publication_id IN (${placeholders(publicationIds)})
-     ORDER BY created_at DESC
-     LIMIT ?`,
-    [...publicationIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+     GROUP BY publication_id`,
+    publicationIds,
   );
-  return latestActivityMap(rows);
+  return new Map(rows.map((row) => [row.publication_id, row.latest_created_at]));
 }
 
 async function readLatestResponseAtByPublicationId(
@@ -526,16 +511,15 @@ async function readLatestResponseAtByPublicationId(
   publicationIds: string[],
 ) {
   if (publicationIds.length === 0) return new Map<string, string | null>();
-  const rows = await all<PublicationActivityRow>(
+  const rows = await all<PublicationLatestActivityRow>(
     database,
-    `SELECT publication_id, created_at
+    `SELECT publication_id, MAX(created_at) AS latest_created_at
      FROM shared_link_responses
      WHERE publication_id IN (${placeholders(publicationIds)})
-     ORDER BY created_at DESC
-     LIMIT ?`,
-    [...publicationIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+     GROUP BY publication_id`,
+    publicationIds,
   );
-  return latestActivityMap(rows);
+  return new Map(rows.map((row) => [row.publication_id, row.latest_created_at]));
 }
 
 async function readEstimateUpdatedAtRows(

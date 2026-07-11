@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useCallback, useMemo, useReducer, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
@@ -235,6 +235,23 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
     window.setTimeout(() => previouslyFocusedRef.current?.focus(), 0);
   }, []);
 
+  const openConfirm = useCallback((decision: DecisionType) => {
+    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dispatchDecisionUi({ type: "openConfirm", decision });
+  }, []);
+
+  useEffect(() => {
+    const handleRequestedDecision = (event: Event) => {
+      if (!isValid) return;
+      const decision = (event as CustomEvent<DecisionType>).detail;
+      if (decision === "accepted" || decision === "declined" || decision === "revision_requested") {
+        openConfirm(decision);
+      }
+    };
+    window.addEventListener("share:request-decision", handleRequestedDecision);
+    return () => window.removeEventListener("share:request-decision", handleRequestedDecision);
+  }, [isValid, openConfirm]);
+
   // AC-UX-07: anonymous (no recipient session) visitors must see a clear, friendly
   // read-only explanation of how to respond — never a silently empty decision area.
   // Security-reviewed copy: no bypass implication; directs the visitor to their own link.
@@ -257,16 +274,11 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
     );
   }
 
-  const openConfirm = (decision: DecisionType) => {
-    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dispatchDecisionUi({ type: "openConfirm", decision });
-  };
-
   const confirmDecision = async () => {
     if (!pendingDecision || isSubmitting) return;
     const signerName = signerNameDraft.trim();
-    if (pendingDecision === "accepted" && !signerName) {
-      dispatchDecisionUi({ type: "setError", message: "Your name is required to approve this proposal." });
+    if ((pendingDecision === "accepted" || pendingDecision === "declined") && !signerName) {
+      dispatchDecisionUi({ type: "setError", message: "Your name is required to record this response." });
       return;
     }
 
@@ -275,7 +287,7 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
     const payload = {
       decision: pendingDecision,
       note: noteDraft.trim() || null,
-      signerName: pendingDecision === "accepted" ? signerName : null,
+      signerName: pendingDecision === "accepted" || pendingDecision === "declined" ? signerName : null,
       viewToken,
       ...serializeShareReviewTarget(activeReviewTarget),
     };

@@ -54,13 +54,6 @@ function roleLabel(role: string | null) {
   return "Viewer";
 }
 
-function targetHref(row: InviteResolutionRow) {
-  if (row.scope === "estimate" && row.estimate_id && row.project_id) {
-    return `/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`;
-  }
-  return row.project_id ? `/workshop/projects/${row.project_id}` : "/workshop/projects";
-}
-
 async function resolveInviteEntryState(rawToken: string, requestHeaders: Headers) {
   const config = readInviteEntryConfig();
   if (!config.enabled || !isRouteTokenShapeValid(rawToken)) {
@@ -171,25 +164,16 @@ function InvitePreview({
 }
 
 function TerminalInviteState({
-  row,
   state,
   title,
 }: {
-  row: InviteResolutionRow | null;
   state: "expired" | "revoked";
   title: string;
 }) {
-  const senderEmail = row?.inviter_email?.trim() || null;
-
   return (
     <InviteShell state={state}>
       <h1 className="text-[12px] font-medium leading-4">{title}</h1>
       <p className="text-[10px] leading-4 text-secondary">{TERMINAL_INVITE_RECOVERY_COPY}</p>
-      {senderEmail ? (
-        <p className="text-[10px] leading-4 text-secondary">
-          Contact the sender at <span className="font-medium text-ink">{senderEmail}</span>.
-        </p>
-      ) : null}
       <Link className={inviteSecondaryActionClassName} href="/contact">
         Contact Archestimator
       </Link>
@@ -217,16 +201,12 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
       <InviteShell state="wrong-account">
         <h1 className="text-[12px] font-medium leading-4">This invite is for another account</h1>
         <p className="text-[10px] leading-4 text-secondary">
-          Sign out and continue with {state.row.invited_email ?? "the invited email"} to accept this invite.
+          Sign out, then continue with the account that received this invite.
         </p>
         <dl className="grid gap-2 rounded-xs bg-surfaceMuted p-3 text-[10px] leading-4 text-secondary">
           <div className="flex justify-between gap-3">
             <dt className="text-tertiary">Signed in as</dt>
             <dd>{state.currentEmail ?? "Unknown"}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt className="text-tertiary">Invited email</dt>
-            <dd>{state.row.invited_email ?? "Not available"}</dd>
           </div>
         </dl>
         <form method="post" action={`/invite/${encodeURIComponent(decodedToken)}/sign-out`}>
@@ -237,22 +217,19 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
       </InviteShell>
     );
   }
-  if (state.kind === "already-used" && state.row) {
+  if (state.kind === "already-used") {
     return (
       <InviteShell state="already-used">
         <h1 className="text-[12px] font-medium leading-4">You already have access</h1>
-        <p className="text-[10px] leading-4 text-secondary">This invite was already accepted.</p>
-        <a className="text-[12px] font-medium text-ink underline" href={targetHref(state.row)}>
-          Open project
-        </a>
+        <p className="text-[10px] leading-4 text-secondary">This invite was already accepted. Sign in to continue.</p>
       </InviteShell>
     );
   }
   if (state.kind === "expired") {
-    return <TerminalInviteState row={state.row} state="expired" title={EXPIRED_COPY} />;
+    return <TerminalInviteState state="expired" title={EXPIRED_COPY} />;
   }
   if (state.kind === "revoked") {
-    return <TerminalInviteState row={state.row} state="revoked" title="This invite was revoked." />;
+    return <TerminalInviteState state="revoked" title="This invite was revoked." />;
   }
   if (state.kind === "rate-limited") {
     return (

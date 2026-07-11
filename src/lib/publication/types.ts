@@ -114,6 +114,24 @@ export type PublicationSnapshotEstimate = {
 export type ProjectPublicationSnapshot = {
   schemaVersion: 1 | 1.2 | 1.3;
   generatedAt: string;
+  /**
+   * Immutable issuance identity written by the publication transaction. Older
+   * snapshots omit it and remain readable.
+   */
+  issuance?: {
+    issueNumber: number;
+    version: number;
+    issuedAt: string;
+    validThrough: string | null;
+    senderName: string | null;
+    selectedEstimateIds: string[];
+    assumptions: string[];
+    exclusions: string[];
+    supersedes: {
+      issueNumber: number;
+      version: number;
+    } | null;
+  };
   project: {
     id: string;
     name: string;
@@ -122,6 +140,7 @@ export type ProjectPublicationSnapshot = {
     location: string | null;
     locationVisibility: ProjectPublicationLocationVisibility;
     currencyCode: string;
+    senderName?: string | null;
     // P9: cover from projects.metadata (projectImageUrl etc) captured at publish time for hero
     coverImageUrl?: string | null;
   };

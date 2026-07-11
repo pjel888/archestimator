@@ -116,6 +116,7 @@ export function readPublicationAccessCookieSecret() {
     process.env.PUBLICATION_ACCESS_COOKIE_SECRET?.trim() ??
     process.env.ARCHESTIMATOR_PUBLICATION_ACCESS_COOKIE_SECRET?.trim();
   if (configured) return configured;
+  if (process.env.NODE_ENV === "production") throw new Error("PUBLICATION_ACCESS_COOKIE_SECRET is required in production.");
   return readPublicationTokenHashSecret();
 }
 

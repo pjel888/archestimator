@@ -17,7 +17,9 @@ import {
   hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
+import { parseSharedLinkActivityCursor } from "@/lib/publication/activity-helpers";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";
+import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 
 export const dynamic = "force-dynamic";
 
@@ -28,50 +30,53 @@ const CIRCUIT_COOLDOWN_MS = 2 * 60 * 1000;
 const CIRCUIT_MIN_SAMPLES = 4;
 const CIRCUIT_THRESHOLD = 0.5;
 
-let commentAttemptTimes: number[] = [];
-let comment5xxTimes: number[] = [];
-let commentCircuitOpenUntil = 0;
-let commentConsecutive5xx = 0;
+const bestEffortIsolateFailureShedding = (() => {
+  let commentAttemptTimes: number[] = [];
+  let comment5xxTimes: number[] = [];
+  let commentCircuitOpenUntil = 0;
+  let commentConsecutive5xx = 0;
 
-function pruneCircuit(now: number) {
-  commentAttemptTimes = commentAttemptTimes.filter((t) => now - t < CIRCUIT_WINDOW_MS);
-  comment5xxTimes = comment5xxTimes.filter((t) => now - t < CIRCUIT_WINDOW_MS);
-}
+  const pruneCircuit = (now: number) => {
+    commentAttemptTimes = commentAttemptTimes.filter((time) => now - time < CIRCUIT_WINDOW_MS);
+    comment5xxTimes = comment5xxTimes.filter((time) => now - time < CIRCUIT_WINDOW_MS);
+  };
 
-function recordAttempt(now: number) {
-  pruneCircuit(now);
-  commentAttemptTimes.push(now);
-}
+  const recordAttempt = (now: number) => {
+    pruneCircuit(now);
+    commentAttemptTimes.push(now);
+  };
 
-function record5xx(now: number) {
-  pruneCircuit(now);
-  comment5xxTimes.push(now);
-  commentConsecutive5xx += 1;
-  const fails = comment5xxTimes.length;
-  const attempts = Math.max(commentAttemptTimes.length, 1);
-  if (
-    commentConsecutive5xx >= CIRCUIT_MIN_SAMPLES ||
-    (attempts >= CIRCUIT_MIN_SAMPLES && fails / attempts > CIRCUIT_THRESHOLD)
-  ) {
-    commentCircuitOpenUntil = now + CIRCUIT_COOLDOWN_MS;
-  }
-}
+  const record5xx = (now: number) => {
+    pruneCircuit(now);
+    comment5xxTimes.push(now);
+    commentConsecutive5xx += 1;
+    const failures = comment5xxTimes.length;
+    const attempts = Math.max(commentAttemptTimes.length, 1);
+    if (
+      commentConsecutive5xx >= CIRCUIT_MIN_SAMPLES ||
+      (attempts >= CIRCUIT_MIN_SAMPLES && failures / attempts > CIRCUIT_THRESHOLD)
+    ) {
+      commentCircuitOpenUntil = now + CIRCUIT_COOLDOWN_MS;
+    }
+  };
 
-function recordSuccess() {
-  commentConsecutive5xx = 0;
-}
-
-function isCircuitOpen(now: number): boolean {
-  if (now < commentCircuitOpenUntil) return true;
-  // auto close if cooldown passed
-  if (commentCircuitOpenUntil > 0 && now >= commentCircuitOpenUntil) {
-    commentCircuitOpenUntil = 0;
-    comment5xxTimes = [];
-    commentAttemptTimes = [];
+  const recordSuccess = () => {
     commentConsecutive5xx = 0;
-  }
-  return false;
-}
+  };
+
+  const isCircuitOpen = (now: number): boolean => {
+    if (now < commentCircuitOpenUntil) return true;
+    if (commentCircuitOpenUntil > 0 && now >= commentCircuitOpenUntil) {
+      commentCircuitOpenUntil = 0;
+      comment5xxTimes = [];
+      commentAttemptTimes = [];
+      commentConsecutive5xx = 0;
+    }
+    return false;
+  };
+
+  return { recordAttempt, record5xx, recordSuccess, isCircuitOpen };
+})();
 
 function getIpHash(request: Request): string {
   const ip = request.headers.get("cf-connecting-ip")
@@ -176,6 +181,10 @@ function readOptionalReviewTargetId(value: unknown, label: string): { ok: true; 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token: routeToken } = await params;
   const token = routeToken.trim();
+  const parsedCursor = parseSharedLinkActivityCursor(new URL(request.url).searchParams.get("cursor"));
+  if (!parsedCursor.ok) {
+    return Response.json({ error: parsedCursor.error }, { status: 400, headers: noStoreHeaders });
+  }
   const access = await resolveProjectPublicationAccessByToken(token);
   if (!access) {
     return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
@@ -190,7 +199,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       credentialVersion: access.credentialVersion,
     })
   ) {
-    return Response.json({ error: "password_required" }, { status: 401, headers: noStoreHeaders });
+    return Response.json({ error: "password_required" }, { status: 423, headers: noStoreHeaders });
   }
 
   const sessionName = createSharedLinkSessionCookieName(token);
@@ -221,8 +230,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     );
   }
 
-  const comments = await loadSharedLinkPublicComments({ publicationId: access.publicationId });
-  return Response.json({ comments }, { headers: noStoreHeaders });
+  const page = await loadSharedLinkPublicComments({
+    publicationId: access.publicationId,
+    cursor: parsedCursor.cursor,
+    limit: 50,
+  });
+  return Response.json(page, { headers: noStoreHeaders });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -233,12 +246,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const { token: routeToken } = await params;
   const token = routeToken.trim();
-  const body = (await request.json().catch(() => ({}))) as {
+  const parsedBody = await readBoundedJsonBody<{
     body?: string;
     estimateId?: unknown;
     rowId?: unknown;
     viewToken?: unknown;
-  };
+  }>(request, 2 * 1024);
+  if (!parsedBody.ok) {
+    return Response.json({ error: parsedBody.error }, { status: parsedBody.status, headers: { "Cache-Control": "no-store" } });
+  }
+  const body = parsedBody.value;
 
   const rawBody = (body.body || "").toString();
   if (!rawBody.trim()) {
@@ -342,8 +359,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   // P12 circuit breaker check (early, before rate/RPC)
   const now = Date.now();
-  recordAttempt(now);
-  if (isCircuitOpen(now)) {
+  bestEffortIsolateFailureShedding.recordAttempt(now);
+  if (bestEffortIsolateFailureShedding.isCircuitOpen(now)) {
     const ipHash = getIpHash(request);
     logStructured("error", "/api/share/[token]/comment", "CIRCUIT_OPEN", ipHash, { status: 503 });
     return Response.json({ error: "Service temporarily unavailable due to high error rate. Please retry shortly." }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "120" } });
@@ -377,7 +394,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       estimateId: estimateId.value,
       rowId: rowId.value,
     });
-    recordSuccess();
+    bestEffortIsolateFailureShedding.recordSuccess();
 
     // P8/D9: best-effort owner email digest. `after()` keeps the public POST fast while
     // still letting Next drain the async send/log work instead of abandoning a raw promise.
@@ -408,7 +425,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const status = knownRecipientFailure ? 403 : 500;
     const ipHash = getIpHash(request);
     if (status === 500) {
-      record5xx(Date.now());
+      bestEffortIsolateFailureShedding.record5xx(Date.now());
       logAppError(error, {
         event: "route_error",
         context: {
