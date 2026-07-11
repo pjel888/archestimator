@@ -54,9 +54,17 @@ export type ProjectPublicationRosterProjectOption = {
   projectCode: string | null;
 };
 
+export type ProjectPublicationRosterShareOption = ProjectPublicationRosterProjectOption & {
+  canManagePublication: boolean;
+  clientName: string | null;
+  estimateCount: number | null;
+  status: ProjectPublicationStatus | "unknown";
+};
+
 export type ProjectPublicationRosterResult = {
   rows: ProjectPublicationRosterRow[];
   projectOptions: ProjectPublicationRosterProjectOption[];
+  shareProjectOptions?: ProjectPublicationRosterShareOption[];
   totalRows: number;
   page: number;
   pageSize: number;
@@ -126,6 +134,13 @@ type PublicationLatestActivityRow = {
 type CurrentWorkspaceProjectItem = Awaited<ReturnType<typeof listCurrentWorkspaceProjects>>["projects"][number];
 type PublicationRecipientCountRow = { publication_id: string; recipient_count: number };
 type PublicationEstimateUpdatedAtRow = { id: string; project_id: string; updated_at: string | null };
+type PublicationEstimateCountRow = { project_id: string; estimate_count: number | null };
+type PublicationProjectStatusRow = {
+  project_id: string;
+  status: ProjectPublicationStatus;
+  expires_at: string | null;
+  revoked_at: string | null;
+};
 
 async function requirePublisherRosterD1Database() {
   const database = await getCloudflareD1Database();
@@ -281,6 +296,25 @@ function toProjectOption(project: PublisherRosterProjectInput): ProjectPublicati
     name: project.name,
     projectCode: project.projectCode,
   };
+}
+
+function toShareProjectOptions(
+  projects: PublisherRosterProjectInput[],
+  estimateCountByProjectId: ReadonlyMap<string, number>,
+  statusByProjectId: ReadonlyMap<string, ProjectPublicationStatus>,
+): ProjectPublicationRosterShareOption[] {
+  return projects
+    .filter((project) => project.canManagePublication)
+    .map((project) => ({
+      canManagePublication: true,
+      clientName: project.clientName,
+      estimateCount: estimateCountByProjectId.get(project.id) ?? 0,
+      id: project.id,
+      name: project.name,
+      projectCode: project.projectCode,
+      status: statusByProjectId.get(project.id) ?? "unpublished",
+    }))
+    .sort(compareProjectOptions);
 }
 
 export function composePublisherRosterResult({
@@ -542,6 +576,57 @@ async function readEstimateUpdatedAtRows(
   }));
 }
 
+async function readEstimateCountsByProjectId(
+  database: D1DatabaseLike,
+  projectIds: string[],
+) {
+  if (projectIds.length === 0) return new Map<string, number>();
+  const rows = await all<PublicationEstimateCountRow>(
+    database,
+    `SELECT project_id, COUNT(*) AS estimate_count
+     FROM estimates
+     WHERE project_id IN (${placeholders(projectIds)})
+     GROUP BY project_id`,
+    projectIds,
+  );
+  return new Map(rows.map((row) => [row.project_id, row.estimate_count ?? 0]));
+}
+
+async function readLatestPublicationStatusByProjectId(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  projectIds: string[],
+  nowMs: number,
+) {
+  if (projectIds.length === 0) return new Map<string, ProjectPublicationStatus>();
+  const rows = await all<PublicationProjectStatusRow>(
+    database,
+    `SELECT publication.project_id, publication.status, publication.expires_at, publication.revoked_at
+     FROM project_publications AS publication
+     WHERE publication.workspace_id = ?
+       AND publication.project_id IN (${placeholders(projectIds)})
+       AND publication.id = (
+         SELECT latest.id
+         FROM project_publications AS latest
+         WHERE latest.workspace_id = publication.workspace_id
+           AND latest.project_id = publication.project_id
+         ORDER BY latest.published_at DESC, latest.id DESC
+         LIMIT 1
+       )`,
+    [workspaceId, ...projectIds],
+  );
+  const statusByProjectId = new Map<string, ProjectPublicationStatus>();
+  for (const row of rows) {
+    if (statusByProjectId.has(row.project_id)) continue;
+    statusByProjectId.set(row.project_id, readPublicationStatus({
+      expiresAt: row.expires_at,
+      revokedAt: row.revoked_at,
+      status: row.status,
+    }, nowMs));
+  }
+  return statusByProjectId;
+}
+
 export async function readWorkspacePublicationsRoster(
   workspaceId: string,
   userId: string,
@@ -561,23 +646,34 @@ export async function readWorkspacePublicationsRoster(
   const queryProjects = allRosterProjects
     .filter((project) => (filters.projectId ? project.id === filters.projectId : true));
 
-  if (queryProjects.length === 0) {
-    return composePublisherRosterResult({ filters, projects: allRosterProjects, publications: [] });
+  if (allRosterProjects.length === 0) {
+    return {
+      ...composePublisherRosterResult({ filters, projects: [], publications: [] }),
+      shareProjectOptions: [],
+    };
   }
 
   const database = await requirePublisherRosterD1Database();
   const projectIds = queryProjects.map((project) => project.id);
-  const publicationRows = await readRosterPublications(database, workspace.id, projectIds);
+  const manageableProjectIds = allRosterProjects
+    .filter((project) => project.canManagePublication)
+    .map((project) => project.id);
+  const [publicationRows, estimateRows, estimateCountByProjectId, statusByProjectId] = await Promise.all([
+    readRosterPublications(database, workspace.id, projectIds),
+    readEstimateUpdatedAtRows(database, projectIds),
+    readEstimateCountsByProjectId(database, manageableProjectIds),
+    readLatestPublicationStatusByProjectId(database, workspace.id, manageableProjectIds, Date.now()),
+  ]);
   const publicationIds = publicationRows.map((publication) => publication.id);
-  const [estimateRows, recipientCountByPublicationId, latestCommentAtByPublicationId, latestResponseAtByPublicationId] =
+  const [recipientCountByPublicationId, latestCommentAtByPublicationId, latestResponseAtByPublicationId] =
     await Promise.all([
-      readEstimateUpdatedAtRows(database, projectIds),
       readRecipientCountsByPublicationId(database, publicationIds),
       readLatestCommentAtByPublicationId(database, publicationIds),
       readLatestResponseAtByPublicationId(database, publicationIds),
     ]);
 
-  return composePublisherRosterResult({
+  return {
+    ...composePublisherRosterResult({
     estimateRows,
     filters,
     latestCommentAtByPublicationId,
@@ -586,5 +682,7 @@ export async function readWorkspacePublicationsRoster(
     publications: publicationRows.map(toRosterPublicationInput),
     recipientCountByPublicationId,
     truncated: publicationRows.length >= PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT,
-  });
+    }),
+    shareProjectOptions: toShareProjectOptions(allRosterProjects, estimateCountByProjectId, statusByProjectId),
+  };
 }

@@ -13,8 +13,8 @@ export function PublisherNoRowsEmptyState({ action, variant = "no-publications" 
   const copy = {
     filtered: {
       icon: <FileX size={16} weight="regular" aria-hidden="true" />,
-      title: "No matching publications",
-      description: "Clear the active filters or search by project, client, or publication.",
+      title: "No matching client links",
+      description: "Clear the filters or search by project or client name.",
     },
     mobile: {
       icon: <Monitor size={16} weight="regular" aria-hidden="true" />,
@@ -23,8 +23,8 @@ export function PublisherNoRowsEmptyState({ action, variant = "no-publications" 
     },
     "no-publications": {
       icon: <FileX size={16} weight="regular" aria-hidden="true" />,
-      title: "No publishable projects",
-      description: "Projects you can manage will appear here once they are ready for shared pages.",
+      title: "No client links yet",
+      description: "Choose a project to create its first client link.",
     },
   }[variant];
 
@@ -34,11 +34,11 @@ export function PublisherNoRowsEmptyState({ action, variant = "no-publications" 
       title={copy.title}
       description={copy.description}
       action={action ?? (variant === "no-publications" ? (
-        <Link href="/workshop/projects" className="inline-flex min-h-9 items-center justify-center rounded-xs border border-divider bg-surface px-3 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+        <Link href="/workshop/projects" className="inline-flex min-h-8 items-center justify-center rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
           View projects
         </Link>
       ) : null)}
-      className="h-full min-h-56 w-full rounded-xs"
+      className="h-full min-h-44 w-full rounded-xs [&>p:first-of-type]:!text-[12px] [&>p:nth-of-type(2)]:!max-w-xs [&>p:nth-of-type(2)]:!text-[10px]"
     />
   );
 }

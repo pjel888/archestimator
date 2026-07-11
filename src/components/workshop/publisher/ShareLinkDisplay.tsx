@@ -50,32 +50,32 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
 
   return (
     <section aria-label="Shared link" className="space-y-2 rounded-xs border border-hairline bg-surfaceMuted/50 p-3">
-      <label htmlFor="share-wizard-link" className="text-[11px] font-medium leading-4 text-ink">Shared link</label>
+      <label htmlFor="share-wizard-link" className="text-[10px] font-medium leading-4 text-ink">Client link</label>
       <input
         id="share-wizard-link"
         readOnly
         value={absoluteLink}
         onFocus={(event) => event.currentTarget.select()}
-        className="w-full rounded-xs border border-divider bg-white px-2 py-2 text-[11px] leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        className="min-h-8 w-full rounded-xs border border-divider bg-white px-2.5 py-1.5 text-[10px] leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       />
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <Button type="button" variant="primary" size="sm" className="min-h-11 sm:min-h-8" onClick={() => void copyLink()}>
-          <Copy size={14} aria-hidden="true" />
+        <Button type="button" variant="primary" size="sm" className="min-h-8 px-2.5 !text-[10px]" onClick={() => void copyLink()}>
+          <Copy size={13} aria-hidden="true" />
           Copy
         </Button>
         {previewHref ? (
-          <Link href={previewHref} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-8" aria-label={`Preview shared page for ${projectName}`}>
-            <Eye size={14} aria-hidden="true" /> Preview
+          <Link href={previewHref} className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={`Preview shared page for ${projectName}`}>
+            <Eye size={13} aria-hidden="true" /> Preview
           </Link>
         ) : null}
         {nativeShareAvailable ? (
-          <Button type="button" variant="secondary" size="sm" className="min-h-11 sm:min-h-8" aria-label={`Share link for ${projectName}`} onClick={() => void shareLink()}>
-            <ShareNetwork size={14} aria-hidden="true" />
+          <Button type="button" variant="secondary" size="sm" className="min-h-8 px-2.5 !text-[10px]" aria-label={`Share link for ${projectName}`} onClick={() => void shareLink()}>
+            <ShareNetwork size={13} aria-hidden="true" />
             Share
           </Button>
         ) : null}
       </div>
-      {message ? <p role="status" className="text-[10px] text-secondary">{message}</p> : null}
+      {message ? <p role="status" className="text-[10px] leading-4 text-secondary">{message}</p> : null}
     </section>
   );
 }

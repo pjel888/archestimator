@@ -2,7 +2,6 @@ import { Suspense } from "react";
 
 import { PublisherRosterClient } from "@/components/workshop/publisher/PublisherRosterClient";
 import { PublisherRosterSkeleton } from "@/components/workshop/publisher/PublisherRosterSkeleton";
-import { WorkshopCanvasWash } from "@/components/workshop/WorkshopCanvasWash";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { parseRosterFilters } from "@/lib/publisher/roster-filter";
@@ -49,15 +48,12 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
 export default function PublisherPage({ searchParams }: PublisherPageProps) {
   return (
     <WorkshopRouteHeader
-      title="Share"
+      title="Client links"
       eyebrow="Workspace"
       showEyebrow={false}
-      breadcrumbs={["Share"]}
-      description="Create, review, and manage the client links for every project."
-      contentClassName="relative flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2"
+      breadcrumbs={["Share", "Client links"]}
+      contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden bg-surfaceMuted/35 p-2"
     >
-      <WorkshopCanvasWash className="publisher-canvas-wash" />
-
       <div className="min-h-0 flex-1 overflow-hidden">
         <Suspense fallback={<PublisherRosterSkeleton />}>
           <PublisherData searchParams={searchParams} />

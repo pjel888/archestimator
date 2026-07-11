@@ -38,6 +38,11 @@ export type SheetProps = {
   contentId?: string;
   bodyClassName?: string;
   contentClassName?: string;
+  headerClassName?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
+  closeButtonClassName?: string;
+  footerClassName?: string;
 };
 
 const horizontalSizeClasses: Record<SheetSize, string> = {
@@ -78,6 +83,11 @@ export function Sheet({
   contentId,
   bodyClassName,
   contentClassName,
+  headerClassName,
+  titleClassName,
+  descriptionClassName,
+  closeButtonClassName,
+  footerClassName,
 }: SheetProps) {
   const isBottom = side === "bottom";
 
@@ -104,16 +114,16 @@ export function Sheet({
             )}
             data-side={side}
           >
-            <DialogHeader>
+            <DialogHeader className={headerClassName}>
               <div className="min-w-0">
-                <DialogTitle>{title}</DialogTitle>
-                {description ? <DialogDescription>{description}</DialogDescription> : null}
+                <DialogTitle className={titleClassName}>{title}</DialogTitle>
+                {description ? <DialogDescription className={descriptionClassName}>{description}</DialogDescription> : null}
               </div>
-              <DialogCloseButton />
+              <DialogCloseButton className={closeButtonClassName} />
             </DialogHeader>
             <DialogBody className={bodyClassName}>{children}</DialogBody>
             {footer ? (
-              <DialogFooter>
+              <DialogFooter className={footerClassName}>
                 <DialogActions right={footer} />
               </DialogFooter>
             ) : null}
