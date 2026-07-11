@@ -59,6 +59,14 @@ const RECORD_STATES = {
   boundary: new Set(["ACTIVE", "RESOLVED", "SUPERSEDED"]),
 };
 
+const SUPPORTED_SUITE_VERSIONS = new Set(["2026-07-10", "2026-07-11"]);
+const TEST_REQUIREMENTS = new Set([
+  "NOT_REQUIRED",
+  "TARGETED",
+  "BROADER",
+  "TEST_TASK",
+]);
+
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const REQUIREMENT_ID_PATTERN = /^(?:REQ|UX|SEC|DATA|PERF|OPS)-\d+$/u;
 const TRACE_ID_PATTERN = /^(?:SRC|REQ|UX|SEC|DATA|PERF|OPS|ASSUMP|DEC-AUTO|AUTH|RISK|AC|TEST|EVID|ART|UNIT|GATE|SLICE)-[A-Z0-9-]+$/u;
@@ -535,8 +543,8 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
   if (manifest.schema_version !== "1.0") {
     errors.push('schema_version: expected "1.0"');
   }
-  if (manifest.suite_version !== "2026-07-10") {
-    errors.push('suite_version: expected "2026-07-10"');
+  if (!SUPPORTED_SUITE_VERSIONS.has(manifest.suite_version)) {
+    errors.push('suite_version: expected "2026-07-10" or "2026-07-11"');
   }
   if (!/^PLAN-\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/u.test(manifest.package_id ?? "")) {
     errors.push(`package_id: invalid ${JSON.stringify(manifest.package_id)}`);
@@ -740,14 +748,36 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     expectReferences(criterionIds, criteria, `risks: ${risk.id}`, errors);
   }
 
+  const usesConditionalTestGate = manifest.suite_version === "2026-07-11";
+
   for (const criterion of criteria.values()) {
     const requirementIds = expectStringArray(criterion, "requirement_ids", `criteria: ${criterion.id}`, errors, { minimum: 1, pattern: REQUIREMENT_ID_PATTERN });
-    const testIds = expectStringArray(criterion, "test_ids", `criteria: ${criterion.id}`, errors, { minimum: criterion.status === "N/A" ? 0 : 1, pattern: /^TEST-\d+$/u });
+    const testRequirement = criterion.test_requirement;
+    if (usesConditionalTestGate && !TEST_REQUIREMENTS.has(testRequirement)) {
+      errors.push(`criteria: ${criterion.id}.test_requirement expected NOT_REQUIRED, TARGETED, BROADER, or TEST_TASK`);
+    }
+    const requiresTests = usesConditionalTestGate
+      ? criterion.status !== "N/A" && testRequirement !== "NOT_REQUIRED"
+      : criterion.status !== "N/A";
+    const testIds = expectStringArray(criterion, "test_ids", `criteria: ${criterion.id}`, errors, { minimum: requiresTests ? 1 : 0, pattern: /^TEST-\d+$/u });
     const evidenceIds = expectStringArray(criterion, "evidence_ids", `criteria: ${criterion.id}`, errors, { minimum: criterion.status === "N/A" ? 0 : 1, pattern: /^EVID-\d+$/u });
     expectReferences(requirementIds, requirements, `criteria: ${criterion.id}`, errors);
     expectReferences(testIds, tests, `criteria: ${criterion.id}`, errors);
     expectReferences(evidenceIds, evidence, `criteria: ${criterion.id}`, errors);
     links.recordEvidence.set(criterion.id, evidenceIds);
+    if (usesConditionalTestGate && testRequirement === "NOT_REQUIRED" && testIds.length > 0) {
+      errors.push(`criteria: ${criterion.id} test_ids must be empty when test_requirement is NOT_REQUIRED`);
+    }
+    if (usesConditionalTestGate && criterion.status === "N/A" && testRequirement !== "NOT_REQUIRED") {
+      errors.push(`criteria: ${criterion.id} must use test_requirement NOT_REQUIRED when status is N/A`);
+    }
+    if (usesConditionalTestGate && criterion.status === "PASS" && requiresTests) {
+      for (const testId of testIds) {
+        if (tests.get(testId)?.status !== "PASS") {
+          errors.push(`criteria: ${criterion.id}=PASS requires ${testId}=PASS`);
+        }
+      }
+    }
     if (criterion.status === "BOUNDARY") {
       const boundary = authorizationBoundaries.get(criterion.authorization_boundary_id);
       if (boundary?.status !== "ACTIVE") {

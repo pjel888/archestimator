@@ -259,3 +259,38 @@ Append a new run with timestamp, scope, baseline/status hashes, completed units,
   via `AUTH-001/002/003`. Exact next action: run `validate:plan-pack -- --write`
   to refresh ordinary artifact/self hashes, then resume implementation at
   `UNIT-001` only in a future execution run.
+
+## 2026-07-11T04:45:00Z - Concurrent-workspace baseline refresh and manifest hash repair
+
+- Scope remained `PLAN_ONLY`; no workflow, application, test, migration, provider,
+  GitHub, staging, production, browser, or external-email action ran.
+- During final verification, the shared workspace advanced through several
+  concurrent commits (`235a4422f`, `b05e20c05`, `16912bfb8`, `7b0548d6f`,
+  `3584dd60b`, and others) by other active agents adding collaboration, activity
+  history, corporate-account, and estimate-sheet-performance work. This is the
+  expected shared-workspace condition under `AGENTS.md`.
+- A concurrent improvement run applied the same source-drift repairs recorded
+  above (baseline refresh, SRC-008, migration tail, UNIT-008 DAG, ledger) and
+  committed them. Its one residual defect: `manifest_sha256` was left stale
+  (`2fb0e45e...`) relative to the committed content. The lead recomputed it
+  correctly (`baa613cb...` per the schema canonicalization: delete the field,
+  recursively sort object keys, preserve array order, `JSON.stringify` no
+  whitespace, SHA-256 the UTF-8 bytes).
+- Re-verified all critical source claims at current HEAD `3584dd60b`: zero active
+  `.github/workflows` (four disabled); `cf:upload-version` still direct
+  `wrangler versions upload`; `next.config.ts` `ignoreBuildErrors:true`;
+  migration tail still `0065_activity_history_lifecycle.sql` (57 files); nine-pack
+  registry intact. Concurrent feature commits did not touch this pack's
+  source-claim surface.
+- Recomputed `PLAN-PACK-SCOPED-BASELINE-v1` (2x stable) over the 19 recorded
+  pathspecs at HEAD `3584dd60b3d7ddeb7fe97c6e2d0266cd02e78e14`: scoped status
+  SHA-256 `f13c75f737199895ae015dd356e0158039c27fbc509a4d261497c7fc0fc22e1b`,
+  scoped diff SHA-256
+  `5094c43b9f0aaca60eb913be2055db01bd5869740f295cf45b680c7383ca4524`. The
+  baseline binds concurrent uncommitted working-tree changes in the scoped
+  pathspec set (scripts/, src/app/..., tests/) that belong to other active agents;
+  those are preserved and not part of this pack. A later HEAD or scoped change
+  requires another scoped check.
+- Readiness remains `CONDITIONALLY_READY/NOT_STARTED`; `release_status: BOUNDARY`
+  via `AUTH-001/002/003`. The pack validates clean; resume implementation at
+  `UNIT-001` only in a future execution run.

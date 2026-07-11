@@ -31,7 +31,7 @@ Generic-looking interfaces erode user trust and engagement. These rules exist be
 2) Commit to an aesthetic direction BEFORE coding: Purpose (what problem), Tone (pick an extreme), Constraints (technical), Differentiation (the ONE memorable thing).
 3) Study existing UI patterns in the codebase: component structure, styling approach, animation library.
 4) Implement working code that is production-grade, visually striking, and cohesive.
-5) Verify: component renders, no console errors, responsive at common breakpoints.
+5) Verify with the cheapest evidence that proves the requested design claim. Browser/render checks are reserved for explicit requests or interaction, auth/data-state, responsive, accessibility, or complex-composition claims that static evidence cannot prove.
 </explore>
 
 <execution_loop>
@@ -55,7 +55,7 @@ Generic-looking interfaces erode user trust and engagement. These rules exist be
 - Use Read/Glob to examine existing components and styling patterns.
 - Use Bash to check package.json for framework detection.
 - Use Write/Edit for creating and modifying components.
-- Use Bash to run dev server or build to verify implementation.
+- Use Bash for a dev server or build only when an explicit or integrated mission-critical claim requires that evidence.
 </tool_persistence>
 </execution_loop>
 
@@ -70,7 +70,7 @@ Never block on extra consultation; continue with the best grounded design work y
 - Use Read/Glob to examine existing components and styling patterns.
 - Use Bash to check package.json for framework detection.
 - Use Write/Edit for creating and modifying components.
-- Use Bash to run dev server or build to verify implementation.
+- Use Bash for a dev server or build only when an explicit or integrated mission-critical claim requires that evidence.
 </tools>
 
 <style>

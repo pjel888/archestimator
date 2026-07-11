@@ -44,7 +44,7 @@ and final completion auditor. Deliver the requested repository outcome with:
 - every in-scope requirement implemented and traced;
 - current architecture/pattern reuse and small coherent diffs;
 - no internally resolvable decision or owner gate left open;
-- matching tests/evidence and adversarial findings closed;
+- matching evidence, required tests, and selected review findings closed;
 - security, data integrity, accessibility, performance, reliability, operations,
   and recovery gates satisfied when applicable;
 - durable checkpoint/resume evidence throughout;
@@ -77,9 +77,10 @@ and final completion auditor. Deliver the requested repository outcome with:
      and freshness;
    - resource leases and cleanup state;
    - stop and resume conditions.
-6. Run the smallest declared prerequisite check needed by the first ready unit,
-   such as fixture load, focused test discovery, type check, or local service
-   health. Record known-red failures separately from task regressions.
+6. Run only the smallest prerequisite needed by the first ready unit, such as a
+   path/reference check, type check, or local service health. Discover tests only
+   when the criterion is `TARGETED`, `BROADER`, or `TEST_TASK`. Record known-red
+   failures separately from task regressions.
 
 Any later relevant source/plan/config/migration/provider change invalidates
 dependent evidence. Mark it stale and rerun the affected gate before relying on
@@ -96,7 +97,8 @@ Before broad edits, verify:
 - zero internally resolvable open decisions;
 - evidence methods/expected signals and recovery/resume instructions.
 
-Repair stale paths, missing tests, obsolete assumptions, internal `FAIL`, vague
+Repair stale paths, invalid test decisions or missing required tests, obsolete
+assumptions, internal `FAIL`, vague
 units, or plan conflicts using the kernel decision protocol. If
 `IMPLEMENTATION_PLAN.md` is missing or competing guides exist, compile/repair it
 inside the plan pack, update its manifest/hash, and continue. Do not return plan
@@ -133,18 +135,19 @@ For each ready unit:
 3. Confirm the unit is not already satisfied. If it is, prove and record rather
    than reimplementing it.
 4. Resolve any new decision autonomously and record/update `DEC-AUTO-*`.
-5. Choose evidence strategy before behavior edits:
-   - existing failing test;
-   - strengthened/updated test and observed expected failure;
-   - new failing test;
-   - characterization baseline;
-   - deliberate no-test exception with stronger substitute.
+5. Confirm the criterion's test decision before behavior edits:
+   - `NOT_REQUIRED` by default: do not create or run tests; select the cheapest
+     decisive source/diff/path/static/type/lint/dry-run/runtime evidence;
+   - `TARGETED`: run the smallest test proving the named MVP-critical invariant;
+   - `BROADER`: name why targeted proof cannot cover the integrated boundary;
+   - `TEST_TASK`: implement only the requested testing/QA scope.
 6. Implement the smallest coherent slice using current patterns. Add no
    dependency unless higher-priority authority explicitly permits it and current
    surfaces cannot satisfy the requirement. Add an abstraction only when the
    evidence-backed unit needs it.
-7. Cover applicable happy, failure, boundary, authz, concurrency, retry,
-   stale/degraded, accessibility, performance, and recovery behavior.
+7. Cover only applicable happy, failure, boundary, authz, concurrency, retry,
+   stale/degraded, accessibility, performance, and recovery behavior using the
+   selected evidence; do not expand into a universal test matrix.
 8. Run the unit's focused proof, inspect exit/output, review the actual diff,
    reconcile interfaces, update evidence fingerprints, release resources, and
    mark complete only when the exit gate passes.
@@ -160,13 +163,13 @@ action.
 
 ## Phase 5: Integrate By Dependency Layer
 
-After every serial unit or parallel batch:
+At each meaningful dependency or integration boundary:
 
 - inspect the real worktree, not worker summaries;
 - map actual changes to units and detect collisions/scope drift;
 - serialize/re-run colliding units against the integrated state;
-- run focused unit proofs, shared-interface/contract checks, and the layer's
-  integration smoke in dependency order;
+- run only evidence invalidated or newly required by integration; use a layer
+  smoke or contract test only when its selected critical claim needs one;
 - invalidate and rerun evidence affected by later changes;
 - fix regressions before starting the next dependent layer;
 - update current-state/docs/generated artifacts required by the implementation;
@@ -179,15 +182,16 @@ the entire plan.
 
 After all implementation units are integrated:
 
-1. Run targeted requirement tests and then broader type/lint/build/regression
-   checks proportional to shared logic, auth/security, data integrity, provider,
-   release, and blast radius.
+1. Reconcile every criterion's test decision. Run selected `TARGETED`/
+   `TEST_TASK` tests; run a broader suite/build only for `BROADER` with the exact
+   integrated critical claim recorded. Run no tests for `NOT_REQUIRED`.
 2. Run the declared performance evaluator when performance is claimed.
 3. Run targeted browser proof only for browser-only interaction/routing/session/
    focus/responsive/visual claims.
 4. Run provider/hosted/production proof only against authorized resources and
    only when that evidence class is required and available.
-5. Execute the adversarial scenario matrix and cleanup all fixtures/temp state.
+5. Execute only adversarial scenarios selected by an explicit task or implicated
+   MVP-critical risk, then clean their fixtures/temp state.
 6. Run error-handling/observability/support/release gates required by current
    Archestimator instructions for touched sensitive surfaces.
 
@@ -203,11 +207,11 @@ The final verifier is read-only: it reports findings and cannot edit artifacts,
 change statuses, waive gates, or promote/archive the pack.
 
 Review for objective fidelity, architecture, simplicity, security/privacy,
-data integrity, accessibility, performance/reliability, tests/evidence,
+data integrity, accessibility, performance/reliability, verification evidence,
 operations/recovery, scope drift, and concurrent-work safety. Feed non-clean
 findings back into the DAG until clean.
 
-Then audit every original requirement, accepted decision, unit, test, gate,
+Then audit every original requirement, accepted decision, unit, applicable test, gate,
 risk, invariant, deliverable, and cleanup obligation against current artifacts:
 
 `ID | implementation evidence | validation evidence/hash | freshness | status | residual risk`

@@ -13,7 +13,7 @@ Turn `/admin` from a functional scaffold into Archestimator's trustworthy operat
 The two primary product outcomes are:
 
 1. A truthful **User 360** view: canonical signup, last successful login, last authenticated use, product activity, sessions/security, memberships, projects/estimates, support, notifications, and audited interventions.
-2. A complete **Notification Manager**: draft, preview, review, test, target, schedule, publish, pause/cancel/retract, inspect sent history, measure engagement, reconcile failures, and preserve an immutable operator audit trail.
+2. A complete **Notification Manager**: draft, template, preview, review, test, target, one-time or recurring schedule, publish, pause/cancel/retract, inspect campaign/occurrence/sent history, manage user preferences/quiet hours/digests, measure engagement, reconcile failures, and preserve an immutable operator audit trail.
 
 This is a plan pack only. It does not implement source, migrations, provider configuration, or runtime behavior.
 
@@ -61,6 +61,7 @@ The current admin surface is useful but not a safe production control plane:
 | `14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md` | Closed decisions, reversible assumptions, risks, true authorization gates |
 | `15_REQUIREMENTS_TRACEABILITY_AND_FINAL_AUDIT.md` | Requirement-to-unit-to-test traceability and planning completion audit |
 | `16_RESEARCH_AND_SPECIALIST_EVIDENCE.md` | Official primary-source research and independent read-only audit synthesis |
+| `17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md` | Before-state invalidation, semantic repairs, readiness matrix, orchestration provenance |
 | `evidence/2026-07-11-planning-audit-evidence.md` | Fresh commands, tests, source observations, and proof boundary |
 | `LOOP_LEDGER.md` | Append-only planning and future execution coordination ledger |
 | `plan-pack.json` | Versioned manifest, exact hashes, stable IDs, unit DAG, ready slice |

@@ -43,3 +43,13 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 - Critic re-review found no high/major blocker and requested only final evidence refresh plus the exact support-monitoring command; both were repaired.
 - Final advertised state: `CONDITIONALLY_READY`, UNIT-001 ready, UNIT-002..016 planned behind dependencies/receipts, UNIT-017..019 blocked by hosted/applicability/release boundaries.
 - No application code, migration, provider resource, deployment, or browser state changed.
+
+## 2026-07-11 — PLAN-007 — IMPROVE-STAGE INVALIDATION AND REPAIR
+
+- Native goal/run: `019f4f58-08ab-7050-b894-436d9839145e`; scope `PLAN_ONLY`; incoming manifest hash `f32f6f9437ee58f5741873eb587350875f491bde49a858241de75ff9a34dda15` and HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd` were invalidated by current scoped/producer drift.
+- Lanes: lead `running/write-owner`; source-drift explorer `complete/read-only`; architecture reviewer `complete/read-only`; adversarial critic `complete/read-only`. No lane edited source or shared producer plans.
+- Leases/resources: target plan folder owned by lead; no source, migration, Queue, provider, deployment, browser, or hosted-resource lease/action. Migration observation confirms Admin has no allocation.
+- Independent findings: recurrence/template/preferences/digest, future-enrollment occurrence semantics, reauthentication, reconciliation-state audience policy, presence protocol, cost thresholds, transactional intervention notices, decision/AUTH packets, ordering, receipt specificity, and stale producer receipts required repair.
+- Repairs: docs 02-17 and unit-specific PLANNED receipts; only `UNIT-001` remains eligible as the dependency-closed ready slice after final refreeze and review.
+- Invalidation history: Activity completed/archived then source drifted; Corporate and Teamwork remained in progress and changed during review; the current combined test classification has three known failures.
+- Resume packet: re-read `17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md`, recompute the exact doc-03 baseline, refresh manifest hashes with the validator, run planning-suite and whitespace/path checks, then obtain maker-separated final verification. Any concurrent drift repeats this bounded refresh rather than promoting downstream units.

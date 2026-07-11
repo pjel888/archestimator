@@ -29,10 +29,18 @@ task brief or plan does not invoke the four stages directly.
 `Prompt-Evaluation-Suite.md` defines the semantic regression scenarios and
 grading assertions for future prompt changes.
 
+Verification is mandatory; tests are conditional. Every criterion records
+`test_requirement` as `NOT_REQUIRED` (default), `TARGETED`, `BROADER`, or
+`TEST_TASK`. Do not create or run tests for `NOT_REQUIRED`; select tests only for
+explicit testing scope or a named MVP-critical invariant that cheaper evidence
+cannot prove.
+
 ## Validation
 
-- `bun run validate:planning-prompts` checks suite structure, load order,
-  context budget, eval inventory/rubric, and the semantic plan-pack fixture.
+- `bun run validate:planning-prompts` is the fast deterministic contract check
+  for suite edits. It checks structure, load order, context budget, eval
+  inventory/rubric, and the semantic plan-pack fixture; it is not a product test
+  suite.
 - `bun run validate:plan-pack -- <planning-folder>` checks required manifest
   shape, hashes, traceability, DAG/slices, evidence freshness, real-path
   containment, and cross-status semantics.
@@ -60,7 +68,8 @@ artifact, and never create files merely to match another pack's count.
 ## Research Basis
 
 The primary-source review is recorded in
-`.ai/13_research/frontier-planning-and-autonomous-execution-2026-07-10.md`.
-Its governing conclusions are context economy, task-shape orchestration,
-durable checkpoints, deterministic evidence first, and evaluator loops driven
-by failed criteria rather than ritual cycles.
+`.ai/13_research/frontier-planning-and-autonomous-execution-2026-07-10.md` and
+`.ai/13_research/2026-07-11-openai-gpt-5-6-agent-prompt-efficiency.md`.
+The governing conclusions are lean single-source instructions, task-shape
+orchestration, conditional tests, durable checkpoints, deterministic evidence
+first, and evaluator loops driven by failed criteria rather than ritual cycles.

@@ -1,16 +1,17 @@
 # Frontier Plan-Pack Schema
 
-<!-- FRONTIER-PLAN-SUITE: 2026-07-10 -->
+<!-- FRONTIER-PLAN-SUITE: 2026-07-11 -->
 
 This schema defines the logical contract for plan packs. Physical file count is
-adaptive; every applicable logical field is mandatory.
+adaptive; every applicable logical field is mandatory. The `tests` index may be
+empty when all criteria use `test_requirement: NOT_REQUIRED`.
 
 ## 1. Depth Profile
 
 | Profile | Use | Required shape |
 |---|---|---|
 | `focused` | Narrow, reversible, bounded work | Compact pack; all logical fields may share a few files |
-| `standard` | Multi-file or multi-domain work | Separate high-density artifacts for execution, tests, decisions, and evidence |
+| `standard` | Multi-file or multi-domain work | Separate high-density artifacts only where execution, decisions, required tests, or evidence have distinct owners/lifecycles |
 | `high-blast-radius` | Auth, security, data, provider, migration, release, architecture, agent framework, or codebase-wide work | Durable research, threat/data/failure models, rollback proof, live ledger, adversarial QA, final audit |
 
 Choose the lightest profile that covers the risk. Do not omit a logical field
@@ -24,7 +25,9 @@ repeat context. Every split must be substantive, cross-linked, registered in
 
 ## 2. Canonical Manifest
 
-Every pack has one versioned `plan-pack.json`. It is the machine-readable index
+Every pack has one versioned `plan-pack.json`. New or materially refreshed packs
+use `suite_version: 2026-07-11`; the validator accepts `2026-07-10` only for
+compatibility with existing packs. The manifest is the machine-readable index
 and state record; Markdown supplies rationale and bounded execution context. Use
 stable key order and UTF-8/LF when hashing. Hash file bytes with SHA-256 and store
 repo-relative paths. For `manifest_sha256`, delete the top-level field, recursively
@@ -240,7 +243,8 @@ lead/integrator after a frozen-state validation pass.
 - `AUTH-*`: true authorization boundary
 - `RISK-*`: risk
 - `AC-*`: acceptance criterion
-- `TEST-*`: test/adversarial proof scenario
+- `TEST-*`: selected test/adversarial proof scenario; optional when the criterion
+  uses `test_requirement: NOT_REQUIRED`
 - `EVID-*`: evidence record
 - `ART-*`: hashed artifact record
 - `UNIT-*`: implementation unit
@@ -315,16 +319,16 @@ primary source. Research must change a decision, unit, risk, or proof gate.
 
 ### D. Requirements And Traceability
 
-| Requirement ID | Source IDs | Outcome | Decision IDs | Unit IDs | AC IDs | Test/Gate IDs | Evidence class | Final status |
+| Requirement ID | Source IDs | Outcome | Decision IDs | Unit IDs | AC IDs | Test requirement / Test-Gate IDs | Evidence class | Final status |
 |---|---|---|---|---|---|---|---|---|
 
-No orphan requirement, work unit, test, gate, risk, or decision. Explicitly
+No orphan requirement, work unit, selected test, gate, risk, or decision. Explicitly
 reject/defer out-of-scope items with rationale; do not silently drop them.
 
 ### E. Current-State Model
 
 - Repo-relative files, symbols, routes, configs, schemas, provider bindings,
-  tests, and relevant execution flows.
+  relevant evidence/test surfaces, and execution flows.
 - Current user/data/control flow and ownership boundaries.
 - Known-red baseline and pre-existing failures separated from new failures.
 - Direct/transitive blast radius and compatibility constraints.
@@ -355,6 +359,11 @@ Represent implementation units as a directed acyclic graph:
 ### H. Verification And Adversarial QA
 
 - Acceptance criteria are observable and falsifiable.
+- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`,
+  `BROADER`, or `TEST_TASK`, plus the trigger and why cheaper evidence is or is
+  not sufficient. `NOT_REQUIRED` is the default and requires `test_ids: []`.
+- `TARGETED`, `BROADER`, and `TEST_TASK` require linked `TEST-*`; a criterion
+  cannot be `PASS` unless every linked required test is `PASS`.
 - Each criterion names evidence class, setup, command/procedure, expected pass
   signal, actual evidence destination, cleanup, and failure response.
 - Cover applicable happy, nil/missing, empty, invalid, boundary, error,
@@ -399,7 +408,7 @@ Rollback:
 Post-action verification:
 ```
 
-An `AUTH-*` cannot hide achievable code, tests, migration authoring, dry runs,
+An `AUTH-*` cannot hide achievable code, selected tests, migration authoring, dry runs,
 or documentation.
 
 ## 7. Execution Unit Packet
@@ -416,7 +425,9 @@ Dependencies and preconditions:
 Owned scope and responsible role:
 Approach and invariants:
 Expected postconditions/compatibility:
-Test/proof IDs, command/procedure, expected signal, evidence class/path:
+Test requirement and trigger:
+Selected test IDs (empty for NOT_REQUIRED):
+Proof IDs, command/procedure, expected signal, evidence class/path:
 Failure response and replan trigger:
 Checkpoint/resume state:
 ```
@@ -449,7 +460,7 @@ evidence and freshness. Evidence records separately use
 | Architecture/data/contracts | | | | |
 | Security/privacy | | | | |
 | Performance/reliability | | | | |
-| Tests/adversarial QA | | | | |
+| Test decision / selected adversarial QA | | | | |
 | Operations/rollout/rollback | | | | |
 | Completion audit | | | | |
 
@@ -459,7 +470,7 @@ Reviewer provenance is metadata, not a score ceiling.
 The validator enforces cross-state invariants. In particular, `COMPLETE` requires
 `package_status: IMPLEMENTATION_READY`, only `VERIFIED` non-superseded units, and
 no ready slice/next unit; `ACHIEVED` requires `COMPLETE` plus non-failing required
-criteria/tests/evidence and lifecycle `N/A`, `ARCHIVE_READY`, or `ARCHIVED`;
+criteria/selected tests/evidence and lifecycle `N/A`, `ARCHIVE_READY`, or `ARCHIVED`;
 `last_observed_run_scope` cannot exceed `package_action_ceiling`;
 `ARCHIVE_READY` or `ARCHIVED` requires `ACHIEVED`;
 every accepted requirement at `COMPLETE` has a non-superseded `VERIFIED` unit,
@@ -472,7 +483,9 @@ boundary evidence. `TECH_BLOCKED` requires an incomplete blocked unit with no
 ready fallback. Every accepted requirement advertised as ready must reference at
 least one `CURRENT` source. `release_status: READY` requires complete
 implementation, no active authorization boundary, and no failed/boundary/unrun
-required verification. Active ready work must name `next_unit`; it must be
+required verification. For suite `2026-07-11`, `NOT_REQUIRED` criteria have no
+tests, while every linked required test must be `PASS` before its criterion can
+pass. Active ready work must name `next_unit`; it must be
 `READY|IN_PROGRESS` and belong to a dependency-closed ready slice whose members
 are only `VERIFIED`, `READY`, or `IN_PROGRESS`. Source/requirement and risk/unit
 trace links are reciprocal.

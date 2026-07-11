@@ -105,7 +105,8 @@ Every lane receives a bounded packet:
 - read/write boundary and prohibited side effects;
 - dependencies/preconditions and interfaces assumed;
 - required deliverable and structured evidence fields;
-- tests/commands/procedures and expected signals;
+- `test_requirement`, its trigger, and only the selected commands/procedures and
+  expected signals;
 - failure/retry/cleanup/rollback/resume requirements;
 - stop condition and instruction not to replan the global task or spawn further
   orchestration unless explicitly authorized.
@@ -147,8 +148,8 @@ After every batch, the lead:
 1. inspects the actual worktree/provider state rather than the summary;
 2. maps actual changes to units and detects collisions/scope drift;
 3. reruns colliding writers serially when necessary;
-4. validates each unit in dependency order;
-5. runs shared-interface and layer integration checks;
+4. validates each unit with its selected evidence in dependency order;
+5. runs shared-interface/layer checks only when integration creates a new claim;
 6. invalidates evidence affected by later edits and reruns it;
 7. fixes failures before releasing dependents;
 8. updates durable state and releases lanes/leases/temp resources.
@@ -180,14 +181,15 @@ arbitrary readiness caps or fabricated independence.
 The final verifier is read-only and cannot edit, waive gates, change statuses,
 or promote/archive a plan pack.
 
-Adversarial QA tries to disprove objective fidelity, authz/data/privacy,
+When an explicit task or implicated MVP-critical risk selects adversarial QA, it
+tries to disprove objective fidelity, authz/data/privacy,
 concurrency/retry/idempotency, stale/degraded behavior, accessibility,
 performance, recovery, parallel safety, evidence class, and completion. Every
 non-clean P0/P1/material P2 reopens the responsible DAG node.
 
 ## 9. Completion Audit
 
-Before completion, audit every original requirement, decision, unit, test,
+Before completion, audit every original requirement, decision, unit, applicable test,
 gate, risk, invariant, deliverable, and cleanup obligation against actual
 artifacts using `PASS|FAIL|BOUNDARY|N/A`.
 

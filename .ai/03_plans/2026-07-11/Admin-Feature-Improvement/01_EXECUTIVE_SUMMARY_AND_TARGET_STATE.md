@@ -75,7 +75,7 @@ Archestimator needs one calm, dense, reliable operator workspace for first-user 
 8. Audit and Security
 9. Operations and Incidents
 
-Observability remains a distinct operational area but may be grouped under Operations after its data contract is real. Existing routes remain compatible during rollout.
+Observability remains at its existing route and is linked under Operations; no route merge or mutation-owner move is part of this plan. A later information-architecture revision may change grouping only with redirects, ownership, and consumer tests. Existing routes remain compatible during rollout.
 
 ## Target Data Semantics
 

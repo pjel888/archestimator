@@ -39,12 +39,12 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 2. Convert Metis findings into requirements and acceptance criteria.
 3. Resolve or carry forward Momus objections.
 4. Split execution into sequenced steps or independent lanes.
-5. Map each deliverable to verification evidence.
+5. Map each deliverable to the cheapest decisive verification evidence and record `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK` for tests.
 6. State stop, rollback, and escalation conditions.
 7. Provide the recommended OMX handoff.
 
 **Pass 2 — Self-Verification (machine-checkable acceptance contract):**
-8. Verify every claim in the verification matrix has an explicit evidence source (test/build/lint/e2e/doc).
+8. Verify every claim in the verification matrix has an explicit evidence source and test-gate decision. Tests/build/browser evidence is used only for explicit requests or integrated MVP-critical claims that cheaper evidence cannot prove.
 9. Verify every step lists its owner / lane / executor; no shared-file conflicts between parallel lanes.
 10. Verify stop, rollback, and acceptance criteria are mutually consistent (no acceptance criterion is satisfied by a state that also triggers rollback).
 11. Verify no destructive, credential-gated, or external-production step is unauthorized.
@@ -90,9 +90,9 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 1. ...
 
 ### Verification Matrix
-| Claim | Required evidence | Owner/lane |
-| --- | --- | --- |
-| ... | ... | ... |
+| Claim | Required evidence | Test requirement | Owner/lane |
+| --- | --- | --- | --- |
+| ... | ... | `NOT_REQUIRED` | ... |
 
 ### Handoff
 - Recommended next workflow: ...

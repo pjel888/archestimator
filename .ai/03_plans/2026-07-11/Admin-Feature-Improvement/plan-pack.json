@@ -260,6 +260,12 @@
       "role": "evidence",
       "path": "evidence/UNIT-019-receipt.md",
       "sha256": "d25caf7f9c45837ab2c2696bd520a2237040d25057dbdf178f17e01678af9a5b"
+    },
+    {
+      "id": "ART-040",
+      "role": "supporting",
+      "path": "17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md",
+      "sha256": "PENDING_REFRESH"
     }
   ],
   "sources": [
@@ -498,11 +504,13 @@
       ],
       "unit_ids": [
         "UNIT-007",
-        "UNIT-009"
+        "UNIT-009",
+        "UNIT-010"
       ],
       "criterion_ids": [
         "AC-007",
-        "AC-009"
+        "AC-009",
+        "AC-010"
       ]
     },
     {
@@ -574,10 +582,12 @@
       ],
       "unit_ids": [
         "UNIT-008",
+        "UNIT-009",
         "UNIT-010"
       ],
       "criterion_ids": [
         "AC-008",
+        "AC-009",
         "AC-010"
       ]
     },
@@ -1595,6 +1605,7 @@
         "REQ-010",
         "REQ-011",
         "REQ-014",
+        "REQ-015",
         "SEC-005",
         "DATA-004",
         "PERF-002",
@@ -1614,6 +1625,7 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-007",
+        "REQ-010",
         "REQ-012",
         "REQ-013",
         "REQ-014",
@@ -2247,7 +2259,8 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
-        "UNIT-003"
+        "UNIT-003",
+        "UNIT-012"
       ],
       "requirement_ids": [
         "REQ-007",
@@ -2303,7 +2316,8 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-007",
-        "UNIT-008"
+        "UNIT-008",
+        "UNIT-012"
       ],
       "requirement_ids": [
         "REQ-007",
@@ -2406,7 +2420,8 @@
         "UNIT-007",
         "UNIT-008",
         "UNIT-009",
-        "UNIT-010"
+        "UNIT-010",
+        "UNIT-011"
       ],
       "requirement_ids": [
         "REQ-018",
@@ -2682,6 +2697,48 @@
       "affected_ids": [
         "PERF-004"
       ]
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-007", "REQ-008", "REQ-010", "DATA-004"]
+    },
+    {
+      "id": "DEC-AUTO-014",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-015", "DATA-004"]
+    },
+    {
+      "id": "DEC-AUTO-015",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-006", "SEC-003"]
+    },
+    {
+      "id": "DEC-AUTO-016",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-001", "REQ-002"]
+    },
+    {
+      "id": "DEC-AUTO-017",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-021"]
+    },
+    {
+      "id": "DEC-AUTO-018",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-011", "PERF-002", "PERF-003"]
+    },
+    {
+      "id": "DEC-AUTO-019",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-007", "SEC-003"]
     }
   ],
   "authorization_boundaries": [

@@ -49,7 +49,7 @@ Campaign state describes operator intent; run state describes execution. Run sta
 9. Observe durable run/job progress.
 10. Inspect sent history and engagement; cancel, retract, retry, reconcile, or supersede as allowed.
 
-For a single current operator, maker/checker may be a configurable policy rather than a mandatory second human, but the schema supports reviewer identity and the UI never self-labels an unreviewed draft as approved.
+Compose, review, and publish are separate capabilities. Under DEC-AUTO-019, exactly one eligible operator may explicitly self-review only in recorded single-operator mode with fresh auth, a reach/risk summary, and a 60-second cancellable grace window. With two or more eligible reviewers, mandatory or wide campaigns require a different reviewer. The UI never self-labels an unreviewed draft as approved.
 
 ## Audience Rules
 

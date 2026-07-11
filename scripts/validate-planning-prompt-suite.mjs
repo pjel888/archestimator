@@ -85,7 +85,7 @@ const requiredSections = {
     "GATE-CONTRACT-01: TypeScript, API, Network, And Dependency Contracts",
     "GATE-DATA-01: Data, D1, R2, Durable Objects, Queues, Cron, Email, And Images",
     "GATE-SEC-01: Auth, Public Links, Invitations, Sessions, And Secrets",
-    "GATE-VERIFY-01: Error Handling, Tests, And Failure Semantics",
+    "GATE-VERIFY-01: Evidence, Critical Tests, And Failure Semantics",
     "GATE-PERF-01: Performance, Scalability, And Reliability",
     "GATE-OPS-01: Observability, Release, And Operations",
     "GATE-AGENT-01: Agent Framework, Prompt, Skill, Or Orchestration Work",
@@ -180,7 +180,7 @@ for (const [file, headings] of Object.entries(requiredSections)) {
 }
 
 for (const file of sharedFiles.slice(1)) {
-  requireText(file, [["suite version marker", "FRONTIER-PLAN-SUITE: 2026-07-10"]]);
+  requireText(file, [["suite version marker", "FRONTIER-PLAN-SUITE: 2026-07-11"]]);
 }
 
 for (const file of stageFiles) {

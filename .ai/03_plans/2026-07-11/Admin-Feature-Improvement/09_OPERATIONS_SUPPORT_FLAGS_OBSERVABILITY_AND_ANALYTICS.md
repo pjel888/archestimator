@@ -88,12 +88,12 @@ Every funnel names event sources, missing instrumentation, dedupe rules, identit
 
 ## Fragmented Operator Tools
 
-Inventory admin-only workshop settings (closed beta users, feedback review, upload/scan operations, and other platform tools). Choose per surface:
+Inventory admin-only workshop settings (closed beta users, feedback review, upload/scan operations, and other platform tools), then apply DEC-AUTO-017 deterministically:
 
-- link from `/admin` while domain remains workshop-owned;
-- migrate route/UI to `/admin` with unchanged repository/authorization owner;
-- replace duplicate UI with one shared operator component;
-- defer with visible rationale.
+- link from `/admin` by default while the domain remains workshop-owned;
+- share an existing component only when two current UIs duplicate the same read-only presentation;
+- migrate a route/UI only through a separately recorded owner/redirect/consumer-test decision; this pack does not choose migration during execution;
+- mark unavailable/unfinished tools visibly without creating a second mutation path.
 
 Do not maintain two mutation paths for the same operation.
 

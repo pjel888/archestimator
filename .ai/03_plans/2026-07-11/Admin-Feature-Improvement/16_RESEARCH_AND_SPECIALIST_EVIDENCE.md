@@ -12,8 +12,9 @@ Source: <https://better-auth.com/docs/plugins/admin>
 
 Current official capabilities include list/get users, roles, ban/unban, list/revoke sessions, revoke all sessions, impersonation, and custom access control. The plugin adds ban and impersonation schema fields. Plan impact:
 
-- evaluate supported session revocation/admin APIs before writing custom Better Auth table mutations;
+- use supported installed-version session/auth APIs behind a narrow adapter before any custom Better Auth table mutation;
 - do not adopt plugin roles wholesale because Archestimator has `ceo|admin|member`, a separate profile projection, closed-beta gating, and custom account status;
+- do not add the plugin by default; reverse only through DEC-AUTO-015's version-matched incompatibility/dependency proof;
 - impersonation remains out of scope unless separately threat-modeled and explicitly requested.
 
 ### Better Auth Session Security
@@ -50,6 +51,19 @@ Source: <https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
 
 OWASP distinguishes audit/security/transaction logs, recommends sanitization and restricted access, and warns against recording tokens/secrets/sensitive personal data. Plan impact: separate operator/domain/operational facts, redacted structured audit, sensitive-read logging, access/retention controls, and no raw session/IP/UA/token values.
 
+### Installed Next.js 16 Guides
+
+Sources: `node_modules/next/dist/docs/01-app/02-guides/server-actions.md`, `authentication.md`, `01-getting-started/05-server-and-client-components.md`, and `08-caching.md`.
+
+Plan impact:
+
+- Server Actions are reachable POST entrypoints, so every action performs authorization and validation internally; page/layout gates are insufficient;
+- action inputs/outputs are bounded serializable DTOs and sensitive admin data remains server-owned;
+- actions from one client dispatch sequentially, so wide work returns accepted durable run identity rather than holding the request for fanout;
+- `revalidatePath` is used only for explicit read-your-write refresh; admin/user-specific data is private/no-store unless a safe cache key includes every authorization/privacy dimension;
+- minimal client islands preserve server component boundaries;
+- a rolling deploy/action-ID mismatch must surface a recoverable refresh/retry state without duplicating an idempotent command.
+
 ## Specialist Audit: Admin Surface
 
 Independent read-only exploration identified the route/repository/migration/test inventory; confirmed searched-user binding, affected-row, privileged-target, fake-audit, notification validation/atomicity, maintenance, placeholder API, activity semantics, and overview gaps; and found 24/26 focused admin tests passing with two classified failures.
@@ -85,6 +99,10 @@ Independent read-only exploration established:
 
 Focused notification suites passed 30 tests; admin broadcast lacked focused integration coverage.
 
+## Improve-Stage Independent Reviews
+
+The source-drift explorer found stale overlap/baseline receipts, Activity archival plus post-archive source drift, Corporate/Teamwork in-progress changes, migration tail through `0065` with no Admin allocation, three current classified test failures, and otherwise unchanged manager/User 360 gaps. The architect rejected readiness until freshness, packets, decisions, AUTH records, ordering, and recurrence/template scope were repaired. The adversarial critic found no P0 but required end-to-end preferences/digest, append-only future enrollment, proofable fresh auth, identity-state targeting, presence capability separation, numeric cost gates, recurrence, and transactional intervention-notice semantics. The repairs are recorded in doc 17.
+
 ## Research Decisions Changed
 
 - use supported Better Auth session revocation where compatible rather than direct token-table deletion;
@@ -97,7 +115,7 @@ Focused notification suites passed 30 tests; admin broadcast lacked focused inte
 ## Not Proven / Deferred
 
 - exact hosted Queue/Cron/D1 limits and current account usage at implementation time;
-- whether a dedicated queue or generalized jobs queue is operationally best;
+- whether measured limits force replacement of the dedicated queue default; a generalized queue is not an open ordinary choice;
 - whether DO alarms outperform Cron sweep for required precision;
 - provider credentials/configuration for GA4, Clarity, Access, Email Routing;
 - legal approval of retention/consent periods;

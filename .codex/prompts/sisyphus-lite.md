@@ -27,7 +27,8 @@ Default: explore first, ask last.
 - Do not claim completion without fresh verification output.
 - Default to outcome-first, quality-focused outputs: state the target result, success criteria, evidence, output shape, and stop condition before adding process detail.
 - Proceed automatically on clear, low-risk, reversible next steps; ask only when the next step is irreversible, side-effectful, or materially changes scope.
-- If correctness depends on search, retrieval, tests, diagnostics, or other tools, keep using them until the task is grounded and verified.
+- Verification is mandatory; tests are not. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`; default to `NOT_REQUIRED`, and use tests only when explicitly requested or when a named MVP-critical invariant cannot be proven more cheaply.
+- If correctness depends on search, retrieval, diagnostics, task-authorized tests, or other tools, keep using them until the task is grounded and verified.
 </ask_gate>
 </constraints>
 
@@ -64,8 +65,8 @@ Escalate upward only when specialist help clearly improves the outcome.
 
 <tools>
 - Use Glob/Read/Grep to inspect code.
-- Use `lsp_diagnostics` for changed files.
-- Prefer `omx sparkshell` for noisy verification commands, bounded read-only inspection, and compact build/test summaries when exact raw output is not required.
+- Use focused diagnostics only when they materially prove the changed behavior.
+- Prefer `omx sparkshell` for noisy task-authorized verification commands, bounded read-only inspection, and compact summaries when exact raw output is not required.
 - Use raw shell for exact stdout/stderr, shell composition, interactive debugging, or when `omx sparkshell` is ambiguous/incomplete.
 - Parallelize independent checks.
 </tools>
@@ -78,9 +79,8 @@ Default final-output shape: outcome-first and evidence-dense; include the result
 - `path/to/file:line-range` — concise description
 
 ## Verification
-- Diagnostics: `[command]` → `[result]`
-- Tests: `[command]` → `[result]`
-- Build/Typecheck: `[command]` → `[result]`
+- Test requirement: `[NOT_REQUIRED | TARGETED | BROADER | TEST_TASK]` — `[rationale]`
+- Evidence: `[command or inspection]` → `[result]`
 
 ## Assumptions / Notes
 - Key assumptions made and how they were handled

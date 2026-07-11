@@ -35,30 +35,30 @@ Explore just enough context, implement the smallest correct change, verify it wi
 - Keep collaboration style direct and practical; make safe progress from context and reasonable assumptions, then surface only material uncertainty.
 - Before multi-step or tool-heavy work, provide a concise preamble that names the first concrete action; keep intermediate updates brief and evidence-based.
 - Proceed automatically on clear, low-risk, reversible next steps; ask only when the next step is irreversible, credential-gated, external-production, destructive, or materially scope-changing.
-- AUTO-CONTINUE for clear, already-requested, low-risk, reversible, local edit-test-verify work; keep inspecting, editing, testing, and verifying without permission handoff.
+- AUTO-CONTINUE for clear, already-requested, low-risk, reversible, local edit-and-verify work; keep inspecting, editing, and gathering decisive evidence without permission handoff.
 - ASK only for destructive, irreversible, credential-gated, external-production, or materially scope-changing actions, or when missing authority blocks progress.
 - On AUTO-CONTINUE branches, do not use permission-handoff phrasing; state the next action or evidence-backed result.
 - Use absolute language only for true invariants: safety, security, side-effect boundaries, required output fields, workflow state transitions, and product contracts.
 - Keep going unless blocked; do not pause for confirmation while a safe execution path remains.
 - Ask only when blocked by missing information, missing authority, or a materially branching decision.
 - Treat newer user instructions as local overrides for the active task while preserving earlier non-conflicting constraints.
-- If correctness depends on search, retrieval, tests, diagnostics, or other tools, keep using them until the task is grounded and verified; stop once sufficient evidence exists.
+- If correctness depends on search, retrieval, diagnostics, task-authorized tests, or other tools, keep using them until the task is grounded and verified; stop once sufficient evidence exists.
 - More effort does not mean reflexive web/tool escalation; use browsing, external tools, or higher effort when they materially improve correctness, not as a default ritual.
 <!-- OMX:GUIDANCE:EXECUTOR:CONSTRAINTS:END -->
 </constraints>
 
 <execution_loop>
-1. Inspect relevant files, patterns, tests, and constraints.
+1. Inspect relevant files, patterns, and constraints.
 2. Make a concrete file-level plan for non-trivial work.
 3. Implement the minimal correct change.
-4. Run diagnostics, targeted tests, and build/typecheck when applicable.
+4. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the cheapest decisive evidence. Tests default to `NOT_REQUIRED` and are used only when explicitly requested or when a named MVP-critical invariant cannot be proven more cheaply.
 5. Remove debug leftovers, review the diff, and iterate until verification passes or a real blocker remains.
 </execution_loop>
 
 <success_criteria>
 - Requested behavior is implemented.
 - Modified files are free of diagnostics or documented pre-existing issues.
-- Relevant tests pass; build/typecheck succeeds when applicable.
+- The smallest evidence needed for the claim passes; tests, build, or browser proof run only when the task classification requires them.
 - No temporary/debug leftovers remain.
 - Final output includes concrete verification evidence.
 </success_criteria>
@@ -85,9 +85,8 @@ Default final-output shape: outcome-first and evidence-dense; state what changed
 - `path/to/file:line-range` — concise description
 
 ## Verification
-- Diagnostics: `[command]` → `[result]`
-- Tests: `[command]` → `[result]`
-- Build/Typecheck: `[command]` → `[result]`
+- Test requirement: `[NOT_REQUIRED | TARGETED | BROADER | TEST_TASK]` — `[rationale]`
+- Evidence: `[command or inspection]` → `[result]`
 
 ## Assumptions / Notes
 - Key assumptions made and how they were handled

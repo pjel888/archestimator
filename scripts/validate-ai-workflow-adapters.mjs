@@ -575,8 +575,75 @@ function checkCodexAgentRoles() {
       if (typeof data.developer_instructions !== "string" || !data.developer_instructions.trim()) {
         warn(`${rel(file)} has no non-empty developer_instructions field.`);
       }
+      if (data.model === "gpt-5.5") {
+        fail(`${rel(file)} uses stale frontier model gpt-5.5; use gpt-5.6 or the role's existing specialist/fast-lane model.`);
+      }
+      const resolvedModel = data.developer_instructions?.match(/^- resolved_model:\s*(\S+)\s*$/m)?.[1];
+      if (resolvedModel && resolvedModel !== data.model) {
+        fail(`${rel(file)} resolved_model ${resolvedModel} does not match top-level model ${data.model}.`);
+      }
     } catch (error) {
       fail(error.message);
+    }
+  }
+}
+
+function checkActiveGuidancePolicyDrift() {
+  const roots = [
+    "AGENTS.md",
+    "CODEX.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".agents/README.md",
+    ".claude/README.md",
+    ".codex/README.md",
+    ".commandcode/README.md",
+    ".ai/00_system/AGENT_OPERATING_PROTOCOL.md",
+    ".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
+    ".ai/00_system/VALIDATION_MATRIX.md",
+    ".ai/08_prompts/000_Planning Prompts",
+    ".ai/08_prompts/templates/codebase-ai-loop-task.md",
+    ".ai/12_agents",
+    ".codex/agents",
+    ".codex/prompts",
+    ".cursor/rules/02-validation-and-evidence.mdc",
+    ".cursor/rules/17-testing-discipline.mdc",
+  ];
+  const files = [...new Set(roots.flatMap((root) => {
+    const full = join(repoRoot, root);
+    if (!existsSync(full)) return [];
+    if (statSync(full).isFile()) return [full];
+    return walkFiles(full, (path) => /\.(md|mdc|toml)$/.test(path));
+  }))];
+
+  const blanketMandates = [
+    /\b(?:always|must|required to)\s+(?:write|add|create)\s+(?:a\s+|the\s+)?(?:failing\s+)?tests?\s+(?:first|before)\b/i,
+    /\b(?:always|must|required to)\s+run\s+(?:all\s+)?tests?\b/i,
+    /\brun all tests after (?:any |every )?changes?\b/i,
+    /\bfor (?:all|every|any|behavior-bearing) (?:changes?|tasks?|features?).{0,100}\b(?:tdd|test[- ]first|write (?:a|the) failing test first)\b/i,
+    /\bwriting code before (?:a|the|its) failing test\b/i,
+    /\b(?:never skip (?:the )?red(?: phase)?|do not write (?:implementation|code) before (?:a|the|its) failing test)\b/i,
+    /\b(?:diagnostics,?\s*)?tests?\s*(?:,?\s*and\s*)?build evidence (?:is|are) mandatory\b/i,
+    /\b(?:always|must|required to)\s+run\s+(?:the\s+)?(?:full|entire|broad)\s+(?:test\s+)?suite\b/i,
+    /\b(?:always|must|required to)\s+run\s+(?:a\s+|the\s+)?(?:full\s+)?build\b/i,
+  ];
+  const metaOrHistorical = /\b(?:historical|legacy|archaeology|deprecated|stale|superseded|previous|former|earlier|older|reject(?:ed|s)?|forbid(?:den|s)?|anti[- ]pattern|do not require|don't require|never require|must not require|not a mandate|does not require)\b/i;
+  const negatedSupabase = /\b(?:do not|don't|never|must not|cannot|can't|prohibited|historical|legacy|archaeology|deprecated|stale|superseded|forbidden|avoid|read-only)\b/i;
+  const activeSupabaseMutation = [
+    /\b(?:bunx\s+|npx\s+)?supabase\s+(?:db\s+(?:push|reset)|migration\s+(?:up|repair|new)|functions\s+deploy|secrets\s+set)\b/i,
+    /\b(?:run|execute|apply|extend|create|edit|write|push|reset|repair|deploy|mutate|modify|update|delete)\b.{0,100}\bsupabase\/migrations\b/i,
+    /\bsupabase\b.{0,120}\b(?:mutat(?:e|ion)|database write|schema change|migration|migrate|deploy|push|reset|rpc|sql changes?)\b/i,
+  ];
+
+  for (const file of files) {
+    for (const [index, line] of readText(file).split(/\r?\n/).entries()) {
+      if (!line.trim() || metaOrHistorical.test(line)) continue;
+      if (blanketMandates.some((pattern) => pattern.test(line))) {
+        fail(`${rel(file)}:${index + 1} contains a blanket test/build mandate; verification must use the shared test gate.`);
+      }
+      if (!negatedSupabase.test(line) && activeSupabaseMutation.some((pattern) => pattern.test(line))) {
+        fail(`${rel(file)}:${index + 1} contains active Supabase mutation guidance; Supabase is historical and read-only.`);
+      }
     }
   }
 }
@@ -663,6 +730,7 @@ function checkNoTrackedLocalState() {
 checkOpenCodeConfig();
 checkCodexConfig();
 checkCodexAgentRoles();
+checkActiveGuidancePolicyDrift();
 checkAgentPayloadContracts();
 checkSupermemoryBootstrapContract();
 checkActiveGuidanceReferences();
