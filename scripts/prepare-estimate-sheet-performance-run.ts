@@ -1,9 +1,21 @@
 #!/usr/bin/env bun
 
 import { randomBytes } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+} from "node:fs";
 import { createServer } from "node:net";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 
 import { makeSignature } from "better-auth/crypto";
 import {
@@ -32,6 +44,7 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  replaceFileAtomically,
   requireUnit,
   sha256File,
   sha256Hex,
@@ -55,7 +68,6 @@ import {
   finalizedRefreezeReceiptPath,
 } from "./compute-estimate-sheet-source-fingerprint";
 import {
-  commitEstimateSheetPlanOnlyTransition,
   recoverEstimateSheetIndexTransition,
 } from "./update-estimate-sheet-performance-evidence-index";
 import { generateLocalBetterAuthD1SchemaSqlProof } from "./generate-cloudflare-better-auth-proof";
@@ -222,7 +234,7 @@ type ScopeFileRecords = {
   producer: ScopeFileRecord[];
 };
 
-type PrepareTransitionFaultPhase = "JOURNAL_PREPARED" | "IMMUTABLE_WRITTEN" | "PROJECTION_WRITTEN" | "MANIFEST_COMMITTED";
+type PrepareTransitionFaultPhase = "ALLOCATION_JOURNALED" | "JOURNAL_PREPARED" | "IMMUTABLE_WRITTEN" | "PROJECTION_WRITTEN" | "MANIFEST_COMMITTED";
 
 export type PreparedRun = {
   run: ExtendedRunManifest;
