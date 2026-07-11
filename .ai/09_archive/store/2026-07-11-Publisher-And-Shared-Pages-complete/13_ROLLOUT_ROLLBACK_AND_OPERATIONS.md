@@ -2,7 +2,7 @@
 
 ## Authority And Status
 
-This pack is `CONDITIONALLY_READY` with `implementation_status=NOT_STARTED` and
+This pack is `IMPLEMENTATION_READY` with `implementation_status=COMPLETE` and
 `release_status=NOT_EVALUATED`. Last observed scope remains `PLAN_ONLY`; the
 action ceiling is `IMPLEMENT_LOCAL`. No command in this document is evidence that
 it has run.

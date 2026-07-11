@@ -57,7 +57,7 @@
       "id": "ART-007",
       "role": "migration-generation",
       "path": "MIGRATION_LEASE_GENERATION.json",
-      "sha256": "a5308a2fd9f4dbc1e2161a6584dec7838d05cc472d0ecb73632f7e5e0522bc37"
+      "sha256": "57ad5f0cbce06d6e26980cb08023f61adc903c0d9f4bbffad64685bab9ece1b4"
     },
     {
       "id": "ART-008",
@@ -767,5 +767,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T03:02:21.000Z",
-  "manifest_sha256": "ebdf9a8edf1cc3ab1f27821354ebdacb99f78d902cf9aafc300be6a04d1d5e73"
+  "manifest_sha256": "32111b59886c9d85a576deb7adf7cb3589f3aa8f9ef12c146647da854ebf18a5"
 }

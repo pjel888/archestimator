@@ -53,7 +53,9 @@ Before broad work, define:
 - Required evidence classes and final deliverables.
 - `test_requirement` for each criterion: `NOT_REQUIRED`, `TARGETED`, `BROADER`,
   or `TEST_TASK`; `test_trigger`: `NONE`, `EXPLICIT_TEST_TASK`, or
-  `MVP_CRITICAL_INVARIANT`; and a substantive `test_rationale`.
+  `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`; and a
+  substantive `test_rationale`. The existing-test trigger permits one already
+  existing focused test and no test creation or expansion.
 - Stage stop condition and outer-goal completion condition, each proven at the
   evidence class it requires.
 
@@ -166,9 +168,11 @@ Autopilot, Ultragoal, Ultrawork, Autoresearch, UltraQA, browser agents, provider
 CLIs, optional memory integrations, or graph tools are optional execution
 surfaces, not evidence. If unavailable, use the nearest native capability and
 record the substitution. A project-level contract may explicitly promote a
-capability to a required, machine-checked bootstrap invariant; when it does,
-repair that capability or fail closed instead of silently applying the optional
-fallback. Archestimator's Supermemory contract is such an invariant.
+capability to a required, machine-checked bootstrap attempt; when it does,
+repair that capability, then continue through the canonical local state when
+repair is unavailable. Archestimator requires the Supermemory preflight and
+bounded repair, but memory availability or indexing is auxiliary and cannot
+block a core requested deliverable.
 
 Prefer direct work for tightly coupled scope. Parallelize independent lanes.
 Use durable goal execution for long/resumable work, evaluator-gated research
@@ -274,18 +278,23 @@ Verification is required; tests are conditional. Classify every criterion:
 - `NOT_REQUIRED` - default. Do not create or run tests; use the cheapest
   decisive source/diff/path/reference/static/type/lint/dry-run/runtime evidence.
 - `TARGETED` - the smallest test proving a named MVP-critical invariant that
-  cheaper evidence cannot prove.
+  cheaper evidence cannot prove, or one already-existing focused test under
+  `CHEAPEST_DECISIVE_EXISTING_TEST` when that test is the cheapest decisive
+  evidence and requires no test edit.
 - `BROADER` - an integrated critical boundary cannot be established by targeted
   evidence alone.
 - `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
   requested deliverable.
 
-Explicit testing scope or a concrete MVP-critical auth/security/privacy,
-D1/data-integrity, estimate/money/proposal, release/observability, or shared-
-contract risk may trigger tests. Source changes, file count, user visibility,
-existing tests, and high-blast classification do not. Broad suites, builds,
-browser automation, and manual QA require an explicit or integrated critical
-claim. Record the decision, trigger, evidence, and invalidation condition.
+Map explicit testing scope to `TEST_TASK` plus `EXPLICIT_TEST_TASK`. Map a
+concrete MVP-critical auth/security/privacy, D1/data-integrity,
+estimate/money/proposal, release/observability, or shared-contract risk to
+`TARGETED` plus `MVP_CRITICAL_INVARIANT` when cheaper evidence is insufficient.
+Source changes, file count, user visibility, existing tests, and high-blast
+classification do not trigger tests by themselves. Broad suites, builds,
+browser automation, and manual QA require an explicit test task or integrated
+critical claim. Record the decision, trigger, evidence, and invalidation
+condition.
 
 For every failed criterion, form a hypothesis, run the smallest discriminating
 check or experiment, inspect output, update the decision/evidence ledger, and choose the next
@@ -295,9 +304,15 @@ that tactic exhausted and change the hypothesis, tool, decomposition, or
 approach. Stop only on a proven stage/goal pass, explicit user cancel, or a hard
 boundary after all safe in-scope progress is exhausted.
 
-Use `TECH_BLOCKED` only when multiple materially different recovery tactics are
-exhausted, no ready DAG node, local substitute, diagnostic, or evidence-producing
-fallback remains, and the blocker is not an authorization boundary. Record exact
+Use `TECH_BLOCKED` only when a core requested deliverable remains impossible
+after multiple materially different implementation recovery tactics are
+exhausted, no ready core DAG node or local substitute remains, and the blocker
+is not an authorization boundary. Auxiliary requirements such as memory sync,
+optional tooling, review availability, hosted proof, or release evidence use
+`completion_role: AUXILIARY` only when they are outside the authoritative
+requested outcome and are not needed to prove a core criterion. Explicit
+user/system deliverables and mixed core/aux links are always core; they cannot be reclassified to manufacture completion. Auxiliary work cannot justify
+`TECH_BLOCKED`. Record exact
 evidence, attempted tactics, preserved state, and the external/change-of-state
 resume trigger. An iteration budget is a replan/escalation trigger, never by
 itself a terminal justification.
@@ -365,27 +380,31 @@ non-applicable P2 observations do not create ritual iterations.
 
 ## 12. Completion Contract
 
-Stage completion requires:
+Stage completion requires the following for an implementation or `ACHIEVED` claim:
 
-- The active stage deliverable and every in-scope obligation are complete.
-- No unresolved internal decision, P0/P1 finding, stale required evidence,
-  active lane/lease, or cleanup item remains for that stage.
+- The active core stage deliverable and every core in-scope obligation are
+  complete. Auxiliary obligations remain visible but do not block that claim.
+- No unresolved core-linked internal decision, P0/P1 finding, stale required
+  evidence, active lane/lease, or cleanup item remains for that stage.
 - Statuses truthfully distinguish planning, implementation, release, and
   lifecycle state.
 
 Outer-goal completion additionally requires:
 
-- Every original requirement/deliverable classified with authoritative proof.
-- No pending implementable work or unresolved internal decision.
-- No unresolved P0/P1 finding.
+- Every original requirement/deliverable is classified as `CORE|AUXILIARY` with
+  authoritative proof; every core requirement is complete.
+- No pending core implementable work or unresolved core-linked internal decision.
+- No unresolved core-linked P0/P1 finding.
 - Current code/plan/diff reconciled; unrelated changes preserved.
-- Selected checks passed; every required test is `PASS`, and no test exists only
-  to satisfy ceremony.
+- Selected core-linked checks passed; every core-required test is `PASS`, and no
+  test exists only to satisfy ceremony. Release readiness remains strict over
+  every release-required criterion, gate, and test.
 - Security, privacy, data, accessibility, performance, reliability, operations,
   rollout, and rollback gates satisfied or evidence-backed `N/A`.
-- Required review and fresh final verification findings repaired; adversarial
-  QA runs only for an implicated critical claim or explicit task.
-- Every temporary artifact/agent/resource cleaned or intentionally retained.
+- Core-required review and fresh final verification findings are repaired;
+  adversarial QA runs only for an implicated critical claim or explicit task.
+- Every core-owned temporary artifact/agent/resource is cleaned or intentionally
+  retained; auxiliary cleanup gaps are recorded without downgrading implementation.
 - Every `AUTH-*` isolated to a release-only packet with all local prerequisites
   complete.
 

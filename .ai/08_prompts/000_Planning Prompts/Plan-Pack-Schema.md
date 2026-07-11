@@ -238,7 +238,15 @@ lead/integrator after a frozen-state validation pass.
 - `RISK-*`: risk
 - `AC-*`: acceptance criterion
 - `TEST-*`: selected test/adversarial proof scenario; optional when the criterion
-  uses `test_requirement: NOT_REQUIRED`
+  uses `test_requirement: NOT_REQUIRED`. A test selected by
+  `CHEAPEST_DECISIVE_EXISTING_TEST` also records
+  `execution_mode: EXISTING_READ_ONLY`, repository-relative
+  `existing_test_path`, exact `test_command`, and `existing_test_sha256` for the
+  unchanged file at the exact Git commit in `baseline.head`. The command is one
+  direct allowlisted test-runner invocation with that shell-inert path
+  (`[A-Za-z0-9._/-]+`) as its sole exact selector;
+  shell composition, redirection, broad-selection flags, and extra commands are
+  invalid.
 - `EVID-*`: evidence record
 - `ART-*`: hashed artifact record
 - `UNIT-*`: implementation unit
@@ -277,6 +285,14 @@ applicability. Neither is an evidence result.
 - `release_status`: `NOT_EVALUATED|READY|BOUNDARY|NOT_READY`.
 - `plan_lifecycle`: `N/A|ACTIVE|ARCHIVE_READY|ARCHIVED`.
 - `terminal_status`: `ACTIVE|ACHIEVED|AUTH_BLOCKED|TECH_BLOCKED|CANCELLED`.
+- Each requirement may set `completion_role: CORE|AUXILIARY`; omitted values
+  are legacy-compatible `CORE`. Linked criteria, units, gates, tests, and risks
+  are core when they reference any `CORE` requirement. Auxiliary failures stay
+  visible but cannot make `implementation_status` incomplete, block `ACHIEVED`,
+  or justify `TECH_BLOCKED`.
+- Explicit user/system deliverables and evidence required to prove a core
+  criterion cannot be marked auxiliary. A record with mixed core/aux links is
+  core. `AUXILIARY` is a scope fact, never an escape hatch for failed core work.
 - `package_action_ceiling`: `IMPLEMENT_LOCAL|EXTERNAL_ACTIONS`; this describes
   intended package reach and never grants authority.
 - `last_observed_run_scope`: the most recent recomputed runtime scope, retained
@@ -353,7 +369,7 @@ Represent implementation units as a directed acyclic graph:
 ### H. Verification And Adversarial QA
 
 - Acceptance criteria are observable and falsifiable.
-- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, `test_trigger` as `NONE`, `EXPLICIT_TEST_TASK`, or `MVP_CRITICAL_INVARIANT`, and a substantive `test_rationale` explaining why cheaper evidence is or is not sufficient. `NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`; `TEST_TASK` requires `test_trigger: EXPLICIT_TEST_TASK`.
+- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, `test_trigger` as `NONE`, `EXPLICIT_TEST_TASK`, `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`, and a substantive `test_rationale` explaining why cheaper evidence is or is not sufficient. `NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`; `TEST_TASK` maps only to `EXPLICIT_TEST_TASK`; `TARGETED` maps only to `MVP_CRITICAL_INVARIANT` or `CHEAPEST_DECISIVE_EXISTING_TEST`; `BROADER` maps only to `MVP_CRITICAL_INVARIANT`; `MVP_CRITICAL_INVARIANT` rationale names the critical invariant and why cheaper evidence is insufficient; `CHEAPEST_DECISIVE_EXISTING_TEST` selects exactly one already-existing focused test, binds its path/command/baseline hash through the `TEST-*` record, and permits no test creation, expansion, repair, deletion, or skip.
 - `BROADER` rationale must state why targeted evidence is insufficient. The
   machine validator enforces these mappings for suite `2026-07-11`; legacy
   `2026-07-10` packs remain compatible without the new fields.
@@ -459,23 +475,31 @@ evidence and freshness. Evidence records separately use
 | Operations/rollout/rollback | | | | |
 | Completion audit | | | | |
 
-Numeric scores may summarize this matrix but cannot override any `FAIL`.
+Numeric scores may summarize this matrix but cannot override a `FAIL` within
+the evaluated claim's role/scope. `release_status: READY` evaluates all
+release-required records, including auxiliary operational evidence.
 Reviewer provenance is metadata, not a score ceiling.
 
 The validator enforces cross-state invariants. In particular, `COMPLETE` requires
-`package_status: IMPLEMENTATION_READY`, only `VERIFIED` non-superseded units, and
-no ready slice/next unit; `ACHIEVED` requires `COMPLETE` plus non-failing required
-criteria/selected tests/evidence and lifecycle `N/A`, `ARCHIVE_READY`, or `ARCHIVED`;
+`package_status: IMPLEMENTATION_READY`, only `VERIFIED` non-superseded core units,
+and no ready slice/next unit; `ACHIEVED` requires `COMPLETE` plus non-failing
+core-linked required criteria/selected tests/evidence and lifecycle `N/A`,
+`ARCHIVE_READY`, or `ARCHIVED`;
 `last_observed_run_scope` cannot exceed `package_action_ceiling`;
 `ARCHIVE_READY` or `ARCHIVED` requires `ACHIEVED`;
-every accepted requirement at `COMPLETE` has a non-superseded `VERIFIED` unit,
-and at `ACHIEVED|AUTH_BLOCKED` has a `PASS|BOUNDARY` criterion. `OPEN|REALIZED`
-risks block those terminal states. Boundary statuses require an active
+every accepted core requirement at `COMPLETE` has a non-superseded `VERIFIED`
+unit, and at `ACHIEVED|AUTH_BLOCKED` has a `PASS|BOUNDARY` criterion.
+`OPEN|REALIZED` core-linked risks block those terminal states. Boundary statuses require an active
 authorization-boundary record, and every active boundary reciprocally names a
 `BOUNDARY` criterion/gate and forces `release_status: BOUNDARY`; `AUTH_BLOCKED`
-also requires no unfinished internal unit or failed internal gate and complete
-boundary evidence. `TECH_BLOCKED` requires an incomplete blocked unit with no
-ready fallback. Every accepted requirement advertised as ready must reference at
+also requires no unfinished core unit or failed core-linked gate and complete
+boundary evidence. `TECH_BLOCKED` requires an incomplete blocked unit linked to
+a `CORE` requirement with no ready core fallback; the requirement row may remain
+accepted, and auxiliary-only failures are rejected as blockers.
+`implementation_status: COMPLETE` and `ACHIEVED`
+evaluate core-linked records, while `release_status: READY` remains strict over
+all release-required criteria, gates, and tests. Every accepted core requirement
+advertised as ready must reference at
 least one `CURRENT` source. `release_status: READY` requires complete
 implementation, no active authorization boundary, and no failed/boundary/unrun
 required verification. For suite `2026-07-11`, `NOT_REQUIRED` criteria have no

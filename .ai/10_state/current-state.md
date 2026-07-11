@@ -1,7 +1,113 @@
 # Current State
 
+<!-- FAST PATH:START -->
+## Fast Path Current Snapshot
+
+Read only this bounded block at startup. Verify mutable details against current
+source, then use `rg -n "<feature/keyword>" .ai/10_state/current-state.md` for
+task-specific history. Do not linear-read the detailed history below.
+
+- **Authority:** current source, `AGENTS.md`, and canonical `.ai/00_system` docs
+  override historical entries. Older entries may describe superseded provider,
+  branch, validation, or workflow policy.
+- **Stage:** preparing for first users. Prioritize auth, estimating workflows,
+  cost library, proposal packages, collaboration/publication proof, provider
+  evidence, support readiness, and fast iteration.
+- **Runtime:** Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 on
+  Cloudflare Workers/OpenNext. `wrangler.jsonc` is the executable source for
+  active D1, R2, Durable Object, Queue, Images, Email, and cron configuration.
+- **Provider posture:** Cloudflare/D1 is active. `migrations/` is the only active
+  migration directory. Supabase projects and `supabase/migrations/` are
+  historical provider-exit evidence and must not be mutated or extended.
+- **Cloudflare scope:** standing authorization is limited to the resources bound
+  in `wrangler.jsonc`; paid add-ons and out-of-scope provider resources still
+  require explicit approval.
+- **Shared worktree:** preserve unfamiliar changes, stay on the current branch,
+  and do not create/switch branches or worktrees unless explicitly requested or
+  required by an approved plan.
+- **Agent bootstrap:** run `bun run supermemory:ensure` before meaningful work
+  and search relevant memory before broad/non-trivial/recovery work. Canonical
+  `.ai` state is durable; unavailable or unsearchable memory sync is a degraded
+  auxiliary capability, not an implementation blocker unless Supermemory itself
+  is the requested core deliverable.
+- **Agent routing:** use the smallest useful lane set. Sol owns hard judgment;
+  Terra handles bounded read-heavy work; native delegation depth is one and
+  three active lanes is the normal soft limit.
+- **Verification:** select the cheapest decisive evidence. Tests default to
+  `NOT_REQUIRED`; explicit test work maps to `TEST_TASK`; `TARGETED` is reserved
+  for a critical invariant or one existing focused test that is the cheapest
+  decisive proof. Broad suites/build/browser proof remain explicitly or
+  critically gated.
+- **Browser gate:** Codex App browser automation, screenshots, Storybook, and
+  visual QA are opt-in and require a named browser-only claim.
+- **Local debugging:** start with `bun run ops:agent-debug-snapshot`, then use
+  `bun run logs:debug`, `bun run logs:tail -- --error --last 20`, or
+  `bun run logs:explain <record_id>` as needed. Logs narrow hypotheses; source
+  inspection and selected tests prove fixes.
+- **Dev runtime:** `bun dev` intentionally uses Turbopack with memory safeguards.
+  Preserve the supported Node preflight and current memory protections.
+- **Planning:** ordinary non-trivial work uses an in-session loop. A dated plan
+  pack is required only for high-blast-radius or explicitly exhaustive work.
+
+<!-- FAST PATH:END -->
+
+## Detailed Append-only History
+
+Historical entries are preserved verbatim for retrieval and audit. They can
+conflict with current source and current policy; use them as evidence, not
+authority.
+
+### 2026-07-11 - Zero-Artificial-Blocker Correction
+
+- This entry supersedes the terminal classification in "Agent Workflow Closeout
+  Correction" below. The agent-framework implementation was complete; failed
+  Supermemory indexing was auxiliary capability evidence, not a core blocker.
+- Policy, planning schema, the semantic validator, Cursor startup, and contract
+  tests now distinguish `CORE` from `AUXILIARY`. Explicit requested outcomes and
+  mixed links remain core; auxiliary-only failures cannot justify
+  `TECH_BLOCKED` or downgrade completed implementation.
+- Release and authorization truth remain separate. `release_status: READY`
+  still evaluates all release-required evidence, while local implementation can
+  be `COMPLETE / ACHIEVED` with a visible auxiliary degradation.
+- The archived optimization pack is corrected to `IMPLEMENTATION_READY /
+  COMPLETE / NOT_EVALUATED / ARCHIVED / ACHIEVED`; its historical provider
+  failure record remains intact.
+
+### 2026-07-11 - Agent Workflow Closeout Correction
+
+- The agent-contract implementation and focused local proof remain complete,
+  but the plan pack is `TECH_BLOCKED` rather than achieved because the required
+  Supermemory closeout documents were not searchable after ingestion.
+- `scripts/supermemory-memory.mjs` now polls terminal document state and then
+  requires an exact-ID search hit before reporting success.
+- The current external cause is an OpenAI `billing_not_active` response during
+  Supermemory extraction. `bun run supermemory:ensure` still passes server
+  health, but it is not evidence that a document was indexed.
+
+### 2026-07-11 - Frontier Agent Depth And Context Efficiency
+
+- Agent framework optimization is locally complete and archived at
+  `.ai/09_archive/store/2026-07-11-frontier-agent-depth-and-context-efficiency-complete/`.
+- Codex uses native context/compaction, depth-one subagents, six threads as a
+  ceiling, and an exact 22-role matrix. Sol owns judgment/output-critical roles;
+  explorer and researcher use Terra as upgrades from older Spark/mini defaults;
+  writer remains Sol/high until representative parity evaluation exists.
+- The required startup read is the 48-line / 3,018-byte FAST PATH above; the
+  full append-only history remains available through targeted retrieval.
+- Cursor has one always-loaded 4,824-byte project rule and six local hook
+  scripts. Startup, shell, and Tab security boundaries are fail-closed; shell
+  classification covers nested/env/package-runner/background forms and Git
+  long/short/clustered no-verify flags.
+- `bun run validate:agents` is the fast static gate;
+  `bun run validate:agents:full` additionally runs the OpenCode resolver.
+- The existing-test exception is run-only and baseline-bound: exactly one
+  tracked unchanged test, one direct allowlisted command, no test edits or TDD.
+- Local proof: agent static/full validators and planning suite pass; focused
+  agent/Cursor/planning contracts pass. Browser/provider/hosted/product-runtime
+  proof was not applicable to this agent-tooling-only change.
+
 <!-- ============================================================
-FAST PATH — READ THIS BLOCK, NOT THE WHOLE FILE.
+HISTORICAL STARTUP SNAPSHOT (superseded; retained verbatim).
 
 This file is an APPEND-ONLY history log (newest entries near the top). It is
 reference material, not a required linear read. On a normal task: read this

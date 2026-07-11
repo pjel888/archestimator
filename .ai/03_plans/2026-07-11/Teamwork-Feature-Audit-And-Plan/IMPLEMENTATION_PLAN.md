@@ -424,3 +424,18 @@ Resume state: exact failed ID, receipt/hash, next unit.
 - Risks are mitigated/accepted/closed and no unresolved critical security/data risk remains.
 - Release status is evaluated using the existing production evidence gates, not inferred.
 - `plan-pack.json` is updated last and validates without `--write`.
+
+## Final Closure Addendum (2026-07-11)
+
+The conditions above are satisfied. The source-local activity, invitation,
+privacy, publisher, realtime identity, Durable Object, cursor, and estimate
+conflict/refetch contracts are covered by current focused tests. The previously
+blocked units `UNIT-009`, `UNIT-014`, `UNIT-015`, and `UNIT-016` through
+`UNIT-019` are verified by the current receipts. `AUTH-001` is resolved after
+the bound D1 migration and source-matched Worker deployment; the exact hosted
+invitation and UI/DO proof results are recorded in
+[`evidence/TEAMWORK-FINAL-INTEGRATION-v1.md`](evidence/TEAMWORK-FINAL-INTEGRATION-v1.md).
+
+This pack is complete and archived. `release_status=NOT_EVALUATED` remains
+intentional because Workers Logs and alert-delivery environment gates are a
+separate release proof surface and are not configured in the current shell.

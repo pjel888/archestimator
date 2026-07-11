@@ -28,7 +28,8 @@ repo truth  or in       smallest     narrowest     proof           stop /
 ```
 
 Repeat until a proven pass, explicit cancel, a true authorization boundary after
-all safe work, or a technical impasse after materially distinct recovery paths.
+all safe work, or a technical impasse that makes a core requested deliverable
+impossible after materially distinct recovery paths.
 
 ### Activation criteria
 
@@ -41,8 +42,10 @@ Use the loop for non-trivial work: 2+ steps, ambiguous scope, multi-file impact,
 3. **Authorization boundary** for a destructive, paid, credential-gated,
    production, or cross-project action after all safe work and a continuation
    packet are complete.
-4. **Technical impasse** after materially different recovery paths are
-   exhausted, with evidence and a resume trigger.
+4. **Technical impasse** that makes a core requested deliverable impossible
+   after materially different recovery paths are exhausted, with evidence and a
+   resume trigger. Auxiliary memory, tooling, review, hosted-proof, and release
+   evidence gaps are recorded without stopping implementation.
 
 An iteration budget triggers replanning; it never proves completion. Never stop
 on a self-report, plan doc, or one green check unless the requested outcome is

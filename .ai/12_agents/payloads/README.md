@@ -28,11 +28,12 @@ reapproved, and future payloads must map their local capabilities back to that
 shared loop.
 
 The shared validation contract keeps verification mandatory and defaults
-`test_requirement` to `NOT_REQUIRED`. Tests are reserved for explicit
-testing/QA work or MVP mission-critical claims that cheaper evidence cannot
-prove. Target tests narrowly when required; use broad suites, builds, or browser
-proof only for explicit or integrated critical claims. Ordinary edits use the
-cheapest decisive non-test evidence and do not create or run tests. Payloads
+`test_requirement` to `NOT_REQUIRED`. Map explicit testing/QA output to
+`TEST_TASK`. Map `TARGETED` only to MVP mission-critical claims that cheaper
+evidence cannot prove, or one existing focused test that is demonstrably the
+cheapest decisive proof. The existing-test trigger permits no test edits. Use
+broad suites, builds, or browser proof only for an explicit test task or
+integrated critical claim. Payloads
 reference this contract; they must not invent always-on TDD, coverage, or broad
 regression gates.
 
@@ -43,7 +44,9 @@ All payloads inherit the Supermemory local memory contract from
 broad/non-trivial/recovery work and add one sanitized durable update at closeout
 when project truth changes. Treat memories as advisory until verified against
 `.ai`, source, tests, or provider evidence. Never store secrets there and never
-commit `.supermemory/`.
+commit `.supermemory/`. Availability or indexing failures are degraded memory
+sync, not implementation blockers, unless Supermemory itself is the requested
+core deliverable.
 
 Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent
 payloads must still state their fail-closed behavior. Run

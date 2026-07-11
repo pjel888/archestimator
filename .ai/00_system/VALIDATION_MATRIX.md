@@ -10,13 +10,17 @@ Verification is mandatory; tests are conditional. Before editing, record one
 | Decision | Use | Evidence floor |
 |---|---|---|
 | `NOT_REQUIRED` | Default for docs, config, routine source, copy, style, and bounded refactors | Cheapest decisive source/diff/path/reference/static/type/lint/dry-run evidence |
-| `TARGETED` | A named MVP-critical invariant cannot be proved more cheaply | Smallest decisive automated test |
+| `TARGETED` | A named MVP-critical invariant cannot be proved more cheaply, or one existing focused test is itself the cheapest decisive proof | Smallest decisive automated test; no test edits for the existing-test trigger |
 | `BROADER` | Targeted evidence cannot cover an integrated critical boundary | Narrowest relevant suite/build/integration surface |
 | `TEST_TASK` | Testing, QA, coverage, reproduction, or regression proof is the requested output | Tests specified by the task, no unrelated expansion |
 
 Do not create or run tests merely because code changed, the diff spans files,
 the behavior is user-visible, nearby tests exist, or a task is high blast
-radius. A valid `NOT_REQUIRED` decision is not a validation gap.
+radius. A valid `NOT_REQUIRED` decision is not a validation gap. An existing
+focused test may run under `CHEAPEST_DECISIVE_EXISTING_TEST` only when the
+rationale shows that exact command is cheaper and more decisive than source,
+type, lint, static, dry-run, or narrow runtime evidence; it does not authorize
+creating, expanding, or repairing tests.
 
 Tests are justified by an explicit testing request or one of these
 MVP-critical risks when cheaper evidence is insufficient:
@@ -38,7 +42,7 @@ evidence they affect; rerun that evidence, not the entire matrix.
 | Change/claim | Default decision | Selective evidence |
 |---|---|---|
 | Markdown, prompt, adapter, static config | `NOT_REQUIRED` | `git diff --check`, path/reference checks, affected deterministic validator |
-| Routine source or local refactor | `NOT_REQUIRED` | focused source/diff review; relevant type/LSP/lint/static check only when useful |
+| Routine source or local refactor | `NOT_REQUIRED`, or `TARGETED` only for `CHEAPEST_DECISIVE_EXISTING_TEST` | focused source/diff/type/LSP/lint/static evidence, or one cheaper decisive existing test without test edits |
 | Cosmetic UI | `NOT_REQUIRED` | static component/class/copy review; no browser automation |
 | Browser-only interaction, routing, focus, responsive, or a11y claim | `NOT_REQUIRED` or `TARGETED` by criticality | narrow DOM/browser/manual proof only if static evidence cannot prove the claim |
 | Explicit test/QA/coverage task | `TEST_TASK` | requested test surface and the smallest supporting checks |
@@ -74,7 +78,8 @@ bun run lint:design                   # Impeccable detector for applicable desig
 bun run validate:error-handling       # Touched sensitive error-handling surfaces
 bun run validate:planning-prompts     # Planning-suite contract changes
 bun run validate:plan-pack -- <path>  # A plan-pack manifest or state change
-bun run validate:agents               # Agent payload/adapter/routing changes
+bun run validate:agents               # Fast static agent payload/adapter/routing gate
+bun run validate:agents:full          # Static gate plus OpenCode resolver when relevant
 ```
 
 For Codex/OpenCode adapter changes, also run the installed resolver that owns
@@ -82,7 +87,7 @@ the changed surface:
 
 ```bash
 codex debug prompt-input
-opencode debug config
+bun run validate:agents:full
 ```
 
 These are deterministic contract checks, not permission to run application
@@ -119,7 +124,7 @@ proof.
 
 For each loop iteration:
 
-1. name the criterion and `test_requirement`;
+1. name the criterion, `test_requirement`, and `test_trigger`;
 2. run the smallest evidence-producing check;
 3. inspect its actual output;
 4. record result, freshness, and invalidation trigger;

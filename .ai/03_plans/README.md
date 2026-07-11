@@ -86,6 +86,11 @@ These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/` on 202
 
 Archived closeout / superseded plans:
 
+- `.ai/09_archive/store/2026-07-11-frontier-agent-depth-and-context-efficiency-complete/` -
+  locally implemented agent depth/context-efficiency upgrade with verified code
+  and contract tests. The pack is `COMPLETE / ACHIEVED`; failed Supermemory
+  exact-ID indexing remains recorded as auxiliary degraded-memory evidence and
+  does not block the implementation.
 - `.ai/09_archive/store/2026-07-11-agent-contract-speed-and-test-gate-complete/` -
   completed frontier agent-contract upgrade. Contains the conditional four-state
   test gate, current Cloudflare/D1 stack guidance, GPT-5.6 adapter pins, concise

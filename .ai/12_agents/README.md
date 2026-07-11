@@ -24,22 +24,23 @@ reference these guardrails, but they must point back to `.ai/00_system` rather
 than fork a second behavioral contract.
 
 All agents also inherit one test gate: verification is mandatory, while
-`test_requirement` defaults to `NOT_REQUIRED`. Create or run tests only when the
-user explicitly requests testing/QA, the task itself is test work, or an MVP
-mission-critical auth/security, D1 schema/data-integrity, estimate/proposal
-financial-math, public-share/authorization, release/rollback/observability, or
-concurrency/shared-contract claim cannot be proven with cheaper evidence. Use
-targeted tests first. Broad suites, builds, and browser proof require an explicit
-request or an integrated critical claim. Ordinary edits use the cheapest
-decisive non-test evidence and do not create or run tests.
+`test_requirement` defaults to `NOT_REQUIRED`. Map explicit testing/QA output to
+`TEST_TASK`. Map `TARGETED` only to an MVP mission-critical auth/security, D1
+schema/data-integrity, estimate/proposal financial-math, public-share/
+authorization, release/rollback/observability, or concurrency/shared-contract
+claim that cheaper evidence cannot prove, or to one existing focused test that
+is demonstrably the cheapest decisive proof. The existing-test trigger permits
+no test edits. Broad suites, builds, and browser proof require an explicit test
+task or integrated critical claim.
 
 <!-- supermemory-bootstrap: required -->
 All agents and harnesses also inherit the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: run `bun run supermemory:ensure`
 before meaningful work, search relevant memory before broad/non-trivial/recovery
 work, and add one sanitized durable update at closeout when project truth
-changes. A harness that cannot start local processes must receive a healthy
-check from its orchestrator or fail closed. Supermemory is advisory memory, not
+changes. A harness that cannot start local processes should inherit a healthy
+check from its orchestrator; if that is unavailable, it continues from current
+source and `.ai` with degraded memory sync. Supermemory is advisory memory, not
 authority; `.ai`, current source, tests, and provider evidence win.
 
 The loop activation criteria (trivial vs non-trivial), the named loop shape, stop
@@ -92,6 +93,8 @@ follow `payloads/_template.md` or intentionally fail closed.
 Codex and OpenCode are thin adapters over this shared contract, and every
 payload in `payloads/` must keep the shared header schema and fail-closed
 behavior. When changing `.ai/12_agents/payloads`, `.codex/`, `opencode.json`,
-or related tool adapter files, run `bun run validate:agents` plus the relevant
-tool resolver (`codex debug prompt-input` or `opencode debug config`) before
-claiming the agent surface is clean.
+or related tool adapter files, run the fast static `bun run validate:agents`
+gate plus the relevant tool resolver (`codex debug prompt-input` for Codex;
+`bun run validate:agents:full` for OpenCode) before claiming that changed
+surface is clean. The full gate intentionally pays the OpenCode resolver cost;
+the default gate does not.

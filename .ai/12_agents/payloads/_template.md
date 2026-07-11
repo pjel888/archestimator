@@ -81,11 +81,12 @@ work.
 ## Validation Rules
 
 Use `.ai/00_system/VALIDATION_MATRIX.md`. Verification is required;
-`test_requirement` defaults to `NOT_REQUIRED`. Create or run tests only for an
-explicit testing/QA task or an MVP mission-critical claim that cheaper evidence
-cannot prove. Use targeted tests first. Broad suites, builds, and browser proof
-require an explicit request or an integrated critical claim. Ordinary edits use
-the cheapest decisive non-test evidence and do not create or run tests.
+`test_requirement` defaults to `NOT_REQUIRED`. Map explicit testing/QA output to
+`TEST_TASK`. Map `TARGETED` only to an MVP mission-critical claim that cheaper
+evidence cannot prove, or one existing focused test that is demonstrably the
+cheapest decisive proof. The existing-test trigger permits no test edits. Broad
+suites, builds, and browser proof require an explicit test task or integrated
+critical claim.
 
 ## Design-System Guidance
 

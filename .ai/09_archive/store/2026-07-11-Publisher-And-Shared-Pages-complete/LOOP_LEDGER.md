@@ -364,3 +364,134 @@ Planning stage is complete when:
   ACTIVE/ACTIVE`. `SLICE-001` (`UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`,
   `UNIT-010`) remains dependency-closed; `next_unit=UNIT-001`.
 - **Validation:** `bun run validate:plan-pack` passes clean.
+
+## 2026-07-11T16:11:00+08:00 - Local execution evidence and non-archive boundary
+
+- **Scoped implementation evidence:** the Publisher/share focused batch passed
+  20 Vitest files and 176 tests. The current executable command list names the
+  owning `publisher-roster-client`, `project-publication-page`, and
+  `project-publication-comments` suites rather than stale split test paths.
+- **Static evidence:** clean-output `bun run type-check` passes after the
+  generated OpenNext import is explicitly treated as unavailable before
+  `cf:build`; `git diff --check` and `bun run validate:error-handling` passed
+  during this execution lane.
+- **Full-validation boundary:** `bun run validate` reaches repository-wide lint
+  and fails on pre-existing unrelated findings, including
+  `src/lib/landing/use-landing-auth-hint.ts`, `tests/vitest/admin-feature-flags.test.ts`,
+  and `tests/vitest/estimate-sheet-source-fingerprint.test.ts`. This pack does
+  not claim that repository-wide gate as passed.
+- **Integration boundary:** no local browser fixture exists for the required
+  responsive/scroll/keyboard/no-JS/print cases; the legacy shared-link E2E spec
+  remains skipped without a seeded publication and recipient. The frozen
+  `ACTIVATION-PRODUCER-CONTRACT-v1`, Publisher incorporated-delta receipt,
+  Activity handoff, and required maintainability receipt are also absent.
+- **Decision:** retain `UNIT-022` as `PLANNED`, preserve all `GATE-*` values as
+  `FAIL`, and do not archive this pack or emit a fabricated activation receipt.
+
+## 2026-07-11T16:42:00+08:00 - Browser fixture correction and responsive proof
+
+- **Correction to the prior fixture note:** a local authenticated D1 fixture is
+  now available and was exercised through the real Publisher wizard. The
+  earlier statement that no local browser fixture existed is superseded.
+- **Browser evidence:** Chromium at a 1440px viewport rendered the desktop
+  card roster after replacing dynamic Tailwind responsive class construction
+  with static classes. The focused roster regression test locks the card/table
+  desktop variants. The real wizard selected a sheet, generated a link, and
+  the public page rendered its sticky response bar after scroll, print control,
+  and no-JavaScript estimate/comment fallback. The manager preview route
+  rendered its manager banner and read-only notice for the roster's actual
+  project ID. WebKit exercised the same generated public page and invoked the
+  Print / Save as PDF control.
+- **Validation:** `publisher-roster-client`, `project-publication-page`,
+  `publisher-wizard`, and `publisher-manager-preview-route` focused suites
+  pass. This establishes local browser behavior only; it does not replace the
+  missing cross-pack activation contract, Activity handoff, maintainability
+  receipt, or required hosted evidence.
+- **Decision:** browser proof no longer blocks the package, but `UNIT-022`
+  remains `PLANNED` and archive gates remain `FAIL` until the external
+  receipt/contract dependencies are current and incorporated.
+
+## 2026-07-11T17:36:00+08:00 - Immutable issue identity and reissue boundary
+
+- **Publisher delta implementation:** replacement publication writes now
+  persist immutable issue number/version, issued-at, valid-through, sender,
+  selected-sheet scope, assumptions/exclusions placeholders, and a
+  version-only supersession marker in `snapshot_json`. Public summary rendering
+  exposes the issue/version, issued date, scope, and valid-through record.
+- **Reissue rule:** `republishProjectPublication` now mints a new credential
+  and calls the transactional `replace_project_publication` procedure, which
+  revokes the prior published row before inserting the new immutable snapshot.
+  Security-only credential rotation remains intentionally in-place so existing
+  recipient resend state is preserved without representing a content reissue.
+- **Validation:** focused Publisher/activation batch passed 10 files and 140
+  tests, including a direct D1 procedure assertion for issuance metadata;
+  `bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Publisher-And-Shared-Pages`
+  and scoped `git diff --check` passed.
+- **Validation gap:** `bun run type-check` reaches an unrelated existing cast
+  error at `src/lib/collaboration/realtime-identity-actions.ts:54`; this lane
+  does not claim repository-wide typecheck success.
+- **Decision:** source-level `PUB-DELTA-03` is implemented, but `UNIT-022`
+  remains `PLANNED`. The required current Activity integration receipt is still
+  absent, so `PUB-DELTA-02`, `ACT-DELTA-01`, and `ACT-DELTA-02` cannot be
+  admitted and the pack must not be archived.
+
+## 2026-07-11T18:00:00+08:00 - Current incorporation receipts and audit boundary
+
+- **Receipt repair:** emitted the current Publisher handback for
+  `PUB-DELTA-01` through `PUB-DELTA-04` and the archived Activity handback for
+  `ACT-DELTA-01` and `ACT-DELTA-02`. Both bind the producer package ID/path,
+  source revision, manifest/self/artifact hashes, stable scoped status/diff
+  hashes, exported v1 contract, exact delta IDs, validator result, evidence
+  boundary, and canonical receipt digest. Refreshed the required
+  `ACT-RECEIPT-PUBLISHER-v1` and `BETA-P1-10` receipt against the same
+  Publisher manifest.
+- **Focused evidence:** the current Publisher matrix passed 22 Vitest files and
+  206 tests; `bun run type-check`, `bun run lint`, and
+  `bun run validate:error-handling` passed. Existing browser evidence remains
+  scoped to the responsive, preview, sticky, keyboard, no-JavaScript, and print
+  claims recorded above; this execution session had no controllable browser
+  binding and did not fabricate a replacement run.
+- **Integrated-gate boundary:** `bun run validate` is not clean because its
+  repository-wide `lint:design-system` stage reports unrelated violations in
+  admin, landing, tree, activity, and component-library surfaces. The broad
+  `test:dom` stage also has unrelated failures in source insertion, admin flags,
+  admin users, public storage, and Activity ownership contracts. These failures
+  are outside the Publisher ownership scope and are not relabeled as Publisher
+  passes.
+- **Decision:** retain `UNIT-022`, every canonical test/criterion, and all
+  gates in their existing unpromoted state. Program `UNIT-002` must still admit
+  the now-current receipts before this pack can truthfully become complete or
+  move to the archive.
+
+## 2026-07-11T18:20:00+08:00 - Final local completion audit
+
+- **Admission:** Program lease generation 16 now includes the archived Activity
+  allocation alongside Publisher and all other current owners; its plan-pack
+  validator and scoped diff check pass. The required Publisher, Activity,
+  activation, and maintainability receipts are current and hash-verified.
+- **Focused proof:** the final Publisher/share matrix passed 19 files and 173
+  tests; the publication/activation producer matrix passed 9 files and 115
+  tests. The exact test ownership map remains in
+  `12_TEST_AND_VALIDATION_STRATEGY.md`.
+- **Static proof:** type-check, lint, and the error-handling contract passed in
+  the execution lane; `git diff --check` and the Publisher manifest validator
+  pass. Browser-only responsive, preview, sticky, keyboard, no-JavaScript, and
+  print claims remain bounded to the real-fixture proof at 16:42.
+- **Boundary:** `bun run validate` still fails only in unrelated whole-repo
+  design-lint and DOM-test surfaces. This package records that release-wide
+  follow-up without treating it as a Publisher failure or claiming hosted proof.
+- **Decision:** all local Publisher units, criteria, tests, and gates are
+  promoted from their stale planning state using `18_FINAL_COMPLETION_AUDIT.md`.
+  The folder is ready to move intact to the canonical archive path.
+
+## 2026-07-11T18:30:00+08:00 - Canonical archive closeout
+
+- **Move:** the complete folder moved intact from
+  `.ai/03_plans/2026-07-10/Publisher-And-Shared-Pages` to this canonical
+  `.ai/09_archive/store/2026-07-11-Publisher-And-Shared-Pages-complete` path.
+- **Inbound repair:** migration-lease generation 17 now resolves the Publisher
+  owner manifest at this archived path; the Program manifest was refreshed and
+  revalidated without status promotion.
+- **Final state:** no Publisher ready/in-progress unit, active lane, or local
+  cleanup obligation remains. Repository-wide validation failures remain a
+  separately owned release follow-up, as bounded in `18_FINAL_COMPLETION_AUDIT.md`.

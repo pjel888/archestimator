@@ -100,3 +100,15 @@ new `AdminAccountStatusControls.tsx` component.
 reject if the user is the last owner.
 **Paths:** `src/lib/admin/corporate-account-repository.ts` (modified).
 **Test:** type-check.
+
+## Final Closure Addendum (2026-07-11)
+
+All units in this execution DAG are now VERIFIED. The implementation includes
+the source-local fixes discovered during the audit (including stable Better
+Auth profile identifiers in admin actions), the local D1 integration receipt,
+and the two passing Corporate Accounts browser proofs. The authoritative
+closeout is [`evidence/CORPORATE-FINAL-INTEGRATION-v1.md`](evidence/CORPORATE-FINAL-INTEGRATION-v1.md).
+
+The pack is complete and archived. Release readiness is intentionally separate:
+`release_status=NOT_EVALUATED` while Workers Logs and alert-delivery gates are
+absent from the current shell.

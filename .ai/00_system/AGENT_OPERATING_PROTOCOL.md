@@ -27,20 +27,26 @@ explicit decision for each affected acceptance criterion:
 - `NOT_REQUIRED` - default. Do not create or run tests. Use the cheapest
   decisive source, diff, path/reference, type, lint, static, dry-run, or narrow
   runtime evidence needed for the claim.
-- `TARGETED` - run the smallest test that proves a named MVP-critical invariant.
+- `TARGETED` - run the smallest test that proves a named MVP-critical invariant,
+  or one existing focused test when it is demonstrably cheaper and more decisive
+  than the available non-test evidence. The latter trigger does not authorize
+  creating, expanding, or repairing test code.
 - `BROADER` - use a broader suite only when targeted evidence cannot cover an
   integrated critical boundary.
 - `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
   requested deliverable.
 
-Tests are justified only by an explicit testing request or a concrete
-MVP-critical risk that cheaper evidence cannot prove: auth/authz, credentials,
+Tests are justified only by an explicit testing request, a concrete
+MVP-critical risk that cheaper evidence cannot prove, or the narrow
+`CHEAPEST_DECISIVE_EXISTING_TEST` exception above. Critical risks include auth/authz, credentials,
 privacy or public access; D1 schema/data integrity; estimate, price, total,
 proposal, or export correctness; first-user release/rollback/observability;
 or concurrency/shared contracts whose failure could leak, corrupt, deny
 access, or materially misstate results. A source edit, multi-file change,
 user-visible change, nearby test, or high-blast label alone is not a test
-trigger. Browser automation, Storybook, builds, full `validate`, and broad
+trigger. For the existing-test exception, record why that exact test is both
+cheaper and more decisive than non-test evidence. Browser automation, Storybook,
+builds, full `validate`, and broad
 regression suites require an explicit task or an integrated critical claim.
 
 Record the decision and trigger in a plan/ledger for non-trivial work. A
@@ -190,8 +196,11 @@ EXECUTE the next smallest coherent change → VERIFY with the narrowest evidence
 Stop only when one is true: (1) proven pass against acceptance criteria; (2)
 explicit user cancel; (3) a true authorization boundary prevents the outer
 outcome after every safe in-scope action and an exact continuation packet; or
-(4) a technical impasse remains after materially distinct recovery paths, with
-evidence and a resume trigger. An iteration budget triggers a strategy change,
+(4) a core requested deliverable remains technically impossible after
+materially distinct implementation fallbacks, with evidence and a resume
+trigger. Auxiliary memory, tooling, review, hosted-proof, or release-evidence
+gaps never satisfy condition (4) and never downgrade completed local work. An
+iteration budget triggers a strategy change,
 replan, or narrower diagnostic; it never proves completion or creates an owner
 handoff. Never stop on a worker self-report, plan doc, or one green check unless
 the whole requested outcome is proven.
@@ -317,7 +326,7 @@ Loop engineering is preferred for repeatable, multi-step, or autonomous work:
 define the goal, split the work, run independent lanes, observe evidence,
 persist state, decide the next action, and stop only on a proven pass, explicit
 cancel, a true authorization boundary after all safe work, or an evidenced
-technical impasse after distinct recovery paths.
+core-deliverable technical impasse after distinct implementation fallbacks.
 
 When using parallel agents:
 
@@ -329,9 +338,9 @@ When using parallel agents:
 - Do not let a subagent revive stale routes, stale data assumptions, or superseded `.ai` plans without checking current-state first.
 - Workers do not choose their own model tier, widen their own scope, or become
   the orchestrator unless the lead explicitly hands off that role.
-- Fail closed when a requested lane is deprecated, unapproved, missing, or
-  running in an incompatible workflow state; fall back to the nearest approved
-  lane and record the reason.
+- When a requested lane is deprecated, unapproved, missing, or incompatible,
+  fall back to the nearest approved lane or lead execution and record the
+  reason; lane availability must not become an implementation blocker.
 
 Default roles:
 - Claude: planning, architecture, critique, writing, strategy

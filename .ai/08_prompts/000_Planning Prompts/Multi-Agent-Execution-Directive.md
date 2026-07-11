@@ -189,16 +189,19 @@ non-clean P0/P1/material P2 reopens the responsible DAG node.
 
 ## 9. Completion Audit
 
-Before completion, audit every original requirement, decision, unit, applicable test,
-gate, risk, invariant, deliverable, and cleanup obligation against actual
-artifacts using `PASS|FAIL|BOUNDARY|N/A`.
+Before completion, audit every original requirement, decision, unit, applicable
+test, gate, risk, invariant, deliverable, and cleanup obligation against actual
+artifacts using `PASS|FAIL|BOUNDARY|N/A`. Preserve
+`completion_role: CORE|AUXILIARY` through linked records.
 
 Record the kernel/schema status tuple and validate its cross-field semantics.
 
-Do not complete while any implementable work, internal `FAIL`, unresolved
-P0/P1, stale required evidence, active lane/lease, or cleanup remains. A true
-release-only boundary narrows only the external claim and must have a complete
-fallback/continuation packet.
+Do not complete while any core implementable work, core-linked `FAIL`,
+unresolved P0/P1, stale required core evidence, active core lane/lease, or core
+cleanup remains. Auxiliary memory, tooling, review, hosted-proof, and release
+evidence gaps remain visible but cannot block completed implementation or
+justify `TECH_BLOCKED`. A true release-only boundary narrows only the external
+claim and must have a complete fallback/continuation packet.
 
 For a completed plan pack, freeze writes/lanes, refresh manifest/evidence hashes,
 run final checks, then follow the canonical archive-move/reference-repair policy.

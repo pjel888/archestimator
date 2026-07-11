@@ -2,10 +2,13 @@
 
 ## Truth Boundary
 
-All canonical `TEST-*` records remain `PLANNED`, every unimplemented criterion
-remains `FAIL`, and `GATE-001` through `GATE-003` remain `FAIL`. This plan is
-implementation-ready, not implemented. Descriptive scenarios use
-`SCENARIO-*`; they are not alternate test IDs.
+Focused execution evidence now covers the implemented Publisher/share paths,
+including the current activation, immutable-issuance, recipient, and roster
+contracts. The canonical `TEST-*` records and `GATE-001` through `GATE-003`
+remain unpromoted until `UNIT-022` admits the current Publisher and Activity
+receipts, rechecks the full integrated gate, and records the browser-only proof
+boundary. Descriptive scenarios use `SCENARIO-*`; they are not alternate test
+IDs.
 
 ## Canonical Test Reciprocity
 
@@ -58,40 +61,40 @@ are exact and must not be remapped without updating both manifest directions.
 ### Security and data
 
 ```bash
-bun test tests/vitest/publication-body-size.test.ts
-bun test tests/vitest/share/share-page-get-routes-contract.test.ts
-bun test tests/vitest/project-publication-decision.test.tsx
-bun test tests/vitest/publication-comment-pagination.test.ts
-bun test tests/vitest/publication-snapshot-reentrance.test.ts
-bun test tests/vitest/publication-runtime-readiness.test.ts
-bun test tests/vitest/publication-dead-code.test.ts
-bun test tests/vitest/publication-fk-migration.test.ts
-bun test tests/vitest/perf/publisher-roster-evaluator.test.ts
+bunx vitest run tests/vitest/publication-body-size.test.ts
+bunx vitest run tests/vitest/share/share-page-get-routes-contract.test.ts
+bunx vitest run tests/vitest/project-publication-decision.test.tsx
+bunx vitest run tests/vitest/publication-comment-pagination.test.ts
+bunx vitest run tests/vitest/publication-snapshot-reentrance.test.ts
+bunx vitest run tests/vitest/publication-runtime-readiness.test.ts
+bunx vitest run tests/vitest/publication-dead-code.test.ts
+bunx vitest run tests/vitest/publication-fk-migration.test.ts
+bunx vitest run tests/vitest/perf/publisher-roster-evaluator.test.ts
 ```
 
 ### Publisher, share, preview, and recipient
 
 ```bash
-bun test tests/vitest/publisher-wizard.test.tsx
-bun test tests/vitest/publisher-roster-cards.test.tsx
-bun test tests/vitest/publisher-search-debounce.test.tsx
-bun test tests/vitest/publisher-manager-preview-route.test.tsx
-bun test tests/vitest/share-page-header-status.test.tsx
-bun test tests/vitest/share-page-sticky-decision.test.tsx
-bun test tests/vitest/share-page-row-actions.test.tsx
-bun test tests/vitest/share-page-comments-dates.test.tsx
-bun test tests/vitest/share-page-print-button.test.tsx
-bun test tests/vitest/share-page-currency.test.tsx
-bun test tests/vitest/recipient-inbox-dead-end.test.tsx
-bun test tests/vitest/recipient-proposals-route-gate.test.ts
+bunx vitest run tests/vitest/publisher-wizard.test.tsx
+bunx vitest run tests/vitest/publisher-roster-client.test.tsx
+bunx vitest run tests/vitest/publisher-roster-client.test.tsx
+bunx vitest run tests/vitest/publisher-manager-preview-route.test.tsx
+bunx vitest run tests/vitest/share-page-header-status.test.tsx
+bunx vitest run tests/vitest/project-publication-page.test.tsx
+bunx vitest run tests/vitest/project-publication-page.test.tsx
+bunx vitest run tests/vitest/project-publication-comments.test.tsx
+bunx vitest run tests/vitest/project-publication-page.test.tsx
+bunx vitest run tests/vitest/project-publication-page.test.tsx
+bunx vitest run tests/vitest/recipient-inbox-dead-end.test.tsx
+bunx vitest run tests/vitest/recipient-proposals-route-gate.test.ts
 ```
 
 Existing route/interaction contracts updated in the same owning unit:
 
 ```bash
-bun test tests/vitest/share/share-page-decision-bar-copy-contract.test.tsx
-bun test tests/vitest/share/share-page-get-routes-contract.test.ts
-bun test tests/vitest/project-publication-decision.test.tsx
+bunx vitest run tests/vitest/share/share-page-decision-bar-copy-contract.test.tsx
+bunx vitest run tests/vitest/share/share-page-get-routes-contract.test.ts
+bunx vitest run tests/vitest/project-publication-decision.test.tsx
 ```
 
 ### Integration and static gates
@@ -104,6 +107,10 @@ bun run validate
 git diff --check
 bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Publisher-And-Shared-Pages
 ```
+
+`TEST-040` is the completion static audit for `AC-054`: confirm the Publisher
+worktree diff contains no deploy or hosted-provider mutation command, then bind
+that inspection to `18_FINAL_COMPLETION_AUDIT.md`.
 
 ## Adversarial Scenario Matrix
 

@@ -66,7 +66,7 @@ flow, terminology) and touches auth-adjacent security hardening.
 
 ## Status Tuple
 
-`package_status=CONDITIONALLY_READY`, `implementation_status=NOT_STARTED`,
+`package_status=IMPLEMENTATION_READY`, `implementation_status=COMPLETE`,
 `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 Five unaffected units are `READY`; 18 affected, downstream, or final-integration
 units remain `PLANNED` until the Program's `PUB-DELTA-01..04` contracts and

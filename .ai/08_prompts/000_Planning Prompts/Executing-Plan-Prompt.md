@@ -97,9 +97,10 @@ Before broad edits, verify:
 - zero internally resolvable open decisions;
 - evidence methods/expected signals and recovery/resume instructions.
 
-Repair stale paths, invalid test decisions or missing required tests, obsolete
-assumptions, internal `FAIL`, vague
-units, or plan conflicts using the kernel decision protocol. If
+Repair stale paths, invalid test decisions or missing core-required tests,
+obsolete assumptions, core-linked internal `FAIL`, vague core units, or plan
+conflicts using the kernel decision protocol. Attempt auxiliary repairs when
+useful, but record unresolved auxiliary failures without stopping core work. If
 `IMPLEMENTATION_PLAN.md` is missing or competing guides exist, compile/repair it
 inside the plan pack, update its manifest/hash, and continue. Do not return plan
 repair to the owner.
@@ -139,7 +140,10 @@ For each ready unit:
    `test_rationale` before behavior edits:
    - `NOT_REQUIRED` by default: do not create or run tests; select the cheapest
      decisive source/diff/path/static/type/lint/dry-run/runtime evidence;
-   - `TARGETED`: run the smallest test proving the named MVP-critical invariant;
+   - `TARGETED`: run the smallest test proving the named MVP-critical invariant,
+     or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` when
+     it is cheaper and more decisive than non-test evidence; do not edit tests
+     under that trigger;
    - `BROADER`: name why targeted proof cannot cover the integrated boundary;
    - `TEST_TASK`: implement only the requested testing/QA scope.
 6. Implement the smallest coherent slice using current patterns. Add no
@@ -212,15 +216,18 @@ data integrity, accessibility, performance/reliability, verification evidence,
 operations/recovery, scope drift, and concurrent-work safety. Feed non-clean
 findings back into the DAG until clean.
 
-Then audit every original requirement, accepted decision, unit, applicable test, gate,
-risk, invariant, deliverable, and cleanup obligation against current artifacts:
+Then audit every original requirement, accepted decision, unit, applicable test,
+gate, risk, invariant, deliverable, and cleanup obligation against current
+artifacts. Preserve each requirement's `completion_role: CORE|AUXILIARY` and
+derive linked records from that role:
 
 `ID | implementation evidence | validation evidence/hash | freshness | status | residual risk`
 
-Use `PASS|FAIL|BOUNDARY|N/A`. Do not mark the outer goal complete when an in-scope
-item is `FAIL`, weak/missing/stale, or still implementable. A `BOUNDARY` narrows
-only the external release/provider claim when all safe implementation work and
-its continuation packet are complete.
+Use `PASS|FAIL|BOUNDARY|N/A`. Do not mark the outer goal complete when a `CORE`
+item is `FAIL`, weak/missing/stale, or still implementable. An `AUXILIARY`
+failure remains visible but cannot downgrade completed implementation or justify
+`TECH_BLOCKED`. A `BOUNDARY` narrows only the external release/provider claim
+when all safe implementation work and its continuation packet are complete.
 
 Record the explicit status tuple:
 
@@ -274,9 +281,10 @@ exact fallback/continuation packet is complete. Stop only because the prohibited
 side effect cannot be performed under higher-priority authority. Do not redefine
 success around a smaller result or label `AUTH_BLOCKED` as completion.
 
-Use `TECH_BLOCKED` only under the kernel's strict exhausted-recovery rule, with
-no ready work or evidence-producing fallback and an exact resume trigger. It is
-not completion and cannot be inferred from an iteration count.
+Use `TECH_BLOCKED` only under the kernel's strict exhausted-recovery rule for a
+core requested deliverable, with no ready core work or implementation fallback
+and an exact resume trigger. Auxiliary closeout, memory, tooling, review, hosted
+proof, and release-evidence failures cannot create that terminal state.
 
 Return a concise before/after report: outcome, requirements delivered, key
 decisions, changed files/systems, verification commands/results, adversarial and

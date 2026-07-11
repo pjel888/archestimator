@@ -60,7 +60,10 @@
 | `AC-019` | a real D1 stale write is rejected with the stable code; authoritative state refetches; local input remains available to reapply/copy; telemetry fires |
 | `AC-020` | owner authorizes a source-matched Worker version/deployment strategy, including 0% override limits and nonzero DO canary/cutover when required |
 
-All implementation/product criteria are `FAIL` at plan time because evidence is planned, not collected. `AC-020` is `BOUNDARY` because it is governed by active `AUTH-001`.
+At plan time, implementation/product criteria were `FAIL` because evidence was
+planned rather than collected. That historical planning state is superseded by
+the final integration receipt: `AC-001` through `AC-020` are now `PASS`,
+`AUTH-001` is resolved, and all required tests and units are current.
 
 ## Planning Readiness Audit
 
@@ -91,4 +94,9 @@ All implementation/product criteria are `FAIL` at plan time because evidence is 
 
 ## Status Ceiling
 
-The package is `CONDITIONALLY_READY`: `UNIT-001` through `UNIT-008` plus `UNIT-010` through `UNIT-013` are dependency-closed and executable. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` are blocked by the missing source-matched Activity/Publisher consumer receipts (the overlap packs themselves now pass their validators); `UNIT-016` through `UNIT-019` remain blocked by `AUTH-001` plus their unresolved dependencies. Product criteria remain `FAIL` except boundary criterion `AC-020`; implementation, release, lifecycle, and terminal states must be elevated independently and only with fresh evidence.
+The final package is `IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED /
+ARCHIVED / ACHIEVED`. All units are `VERIFIED`, all accepted requirements have
+passing criteria, all required tests are `PASS`, and all risks are `CLOSED`.
+`release_status=NOT_EVALUATED` is deliberate: production observability and alert
+delivery require separate hosted environment gates. See
+[`evidence/TEAMWORK-FINAL-INTEGRATION-v1.md`](evidence/TEAMWORK-FINAL-INTEGRATION-v1.md).

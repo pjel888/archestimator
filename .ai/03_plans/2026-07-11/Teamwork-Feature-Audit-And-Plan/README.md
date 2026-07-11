@@ -2,8 +2,8 @@
 
 **Package:** `PLAN-2026-07-11-teamwork-feature-audit-and-plan`
 **Profile:** `high-blast-radius`
-**Status tuple:** `CONDITIONALLY_READY / IN_PROGRESS / BOUNDARY / ACTIVE / ACTIVE`
-**Action ceiling:** `EXTERNAL_ACTIONS`; this records the plan's hosted-proof reach and grants no authority. The current run is `IMPLEMENT_LOCAL`; release remains a separate evidence stage.
+**Status tuple:** `IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED / ARCHIVED / ACHIEVED`
+**Action ceiling:** `EXTERNAL_ACTIONS`; this records the authorized bound-resource proof reach. The implementation is complete; release remains a separate evidence stage.
 
 This pack is the implementation entry point for private multi-user teamwork across projects and estimate sheets. It covers membership and role semantics, invitations, restricted-sheet access, presence, visible cursors, durable activity facts, the Publisher boundary, Cloudflare feasibility, rollout, and proof.
 
@@ -11,7 +11,7 @@ This pack is the implementation entry point for private multi-user teamwork acro
 
 1. Recompute the scoped baseline in `03_SOURCE_CODEBASE_ARCHIVE_AND_STALENESS_AUDIT.md`. Any mismatch requires re-auditing affected claims before work starts.
 2. Execute only from `IMPLEMENTATION_PLAN.md`; it is the sole canonical execution artifact.
-3. Start with `UNIT-001`. The advertised local slice contains `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013`; it is dependency-closed and ordered. `TEAMWORK-ACTIVITY-CONTRACT-v1` and `TEAMWORK-PUBLISHER-ACCESS-v1` are source-matched receipts against current valid owner manifests. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` remain open on their documented source-local integration gaps.
+3. The execution DAG is complete. `TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`, the hosted D1 invitation receipt, and the hosted UI/DO receipt are source-matched evidence against the current implementation. The final integration receipt is the closeout authority.
 4. Keep source edits outside this plan folder until the baseline and known-red tests have been reconciled.
 5. Record each iteration in `LOOP_LEDGER.md` and update `plan-pack.json` last. Do not treat a targeted local repair as a completed product criterion.
 
@@ -58,9 +58,9 @@ The target product state is a coherent Team access surface where:
 - The shared worktree was dirty at planning time. Existing changes are source inputs, not ours to revert.
 - Fresh 2026-07-11 execution evidence confirms that Activity History Mapping and Publisher and Shared Pages each pass their plan validators. `TEAMWORK-ACTIVITY-CONTRACT-v1` and `TEAMWORK-PUBLISHER-ACCESS-v1` bind those current manifests to source-level compatibility evidence. They do not prove release, hosted, or final-integration readiness.
 - GitNexus was 53 commits stale. Its blast-radius counts are directional; current source and focused tests are authoritative.
-- Two focused collaboration tests are known red because of fixture/assertion drift. `UNIT-001` reconciles them before behavioral edits.
+- The former collaboration fixture/assertion drift was reconciled and the focused collaboration/realtime/publisher suites now pass.
 - Cloudflare Workers for Platforms is intentionally deferred because the current product does not host customer code and the service adds a paid-plan dependency.
 
 ## Completion Boundary
 
-This planning package is complete when its validator, planning-prompt suite, and independent read-only review pass. `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013` form the locally executable slice. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` remain open until their lifecycle/outbox, route-contract, and local-integration evidence gaps close. Hosted units `UNIT-016` through `UNIT-019` also remain blocked by `AUTH-001`, which governs a source-matched Worker version/deployment and the nonzero Durable Object canary or cutover needed for current-code hosted proof. Product implementation is complete only after all units are `VERIFIED`, both hosted receipts exist, the final integration receipt passes, and release status is evaluated separately.
+This planning package is complete when its validator, planning-prompt suite, and independent read-only review pass. All units `UNIT-001` through `UNIT-019` are now `VERIFIED`; `AUTH-001` is resolved by the authorized source-matched Worker deployment and bound D1/DO proofs; the final integration receipt passes; and release status remains separately `NOT_EVALUATED` because hosted observability/alert gates are absent. See [`evidence/TEAMWORK-FINAL-INTEGRATION-v1.md`](evidence/TEAMWORK-FINAL-INTEGRATION-v1.md).

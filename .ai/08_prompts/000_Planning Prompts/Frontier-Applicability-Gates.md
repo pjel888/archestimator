@@ -127,7 +127,8 @@ is unclear, authorization is client-only, or denial evidence is missing.
 **Triggers:** explicit testing/QA/coverage/reproduction work; an MVP-critical
 auth/security/privacy, D1/data-integrity, estimate/money/proposal,
 release/observability, or shared-contract risk; or a changed sensitive failure
-path whose correctness cheaper evidence cannot establish.
+path whose correctness cheaper evidence cannot establish; or one existing
+focused test that is demonstrably the cheapest decisive proof.
 
 Require:
 
@@ -136,6 +137,13 @@ Require:
   evidence destination.
 - `NOT_REQUIRED` by default, with no test creation or execution. Use source,
   diff, path/reference, static/type/lint, dry-run, or narrow runtime evidence.
+- `TEST_TASK` plus `EXPLICIT_TEST_TASK` for explicit testing/QA/coverage/
+  reproduction/regression output; do not map that request to `TARGETED`.
+- `TARGETED` plus `MVP_CRITICAL_INVARIANT` only when cheaper evidence cannot
+  prove a named critical invariant.
+- `CHEAPEST_DECISIVE_EXISTING_TEST` selects only one already-existing focused
+  test under `TARGETED`; its rationale must compare cheaper evidence and it
+  permits no test creation, expansion, repair, deletion, or skip.
 - When tests are required, the smallest decisive test first; use broader suites,
   builds, browsers, or adversarial matrices only when the integrated critical
   claim cannot be proved more cheaply.
@@ -150,7 +158,8 @@ Require:
 
 Hard fail: a changed sensitive failure path is unobservable or silently
 swallowed; a required test is absent/skipped; or tests are demanded without an
-explicit trigger or named MVP-critical invariant.
+explicit trigger, named MVP-critical invariant, or evidenced existing-test
+exception.
 
 ## GATE-PERF-01: Performance, Scalability, And Reliability
 

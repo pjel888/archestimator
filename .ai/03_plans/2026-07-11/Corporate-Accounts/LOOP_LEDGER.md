@@ -136,3 +136,19 @@ Design and implement an atomic workspace-move audit boundary, then close the rem
 - **Verify:** `bunx wrangler d1 migrations list ARCH_DB --remote` now reports no migrations to apply. Independent remote catalog checks found required Corporate trigger/table coverage, and integrity checks found no duplicate pending invitation scope or restricted estimate without a manager.
 - **Record:** the remote schema migration blocker is cleared. This is schema/integrity evidence only; it does not prove deployed app behavior, authenticated hosted routes, provider rollout, or Corporate release readiness. Corporate remains `CONDITIONALLY_READY / IN_PROGRESS / NOT_EVALUATED / ACTIVE / ACTIVE`.
 - **Decide:** do not archive. Preserve hosted route, rollout, and release proof as separate required evidence classes.
+
+## 2026-07-11 - Current Local Integration and Hosted-Proof Recovery
+
+- **Discover:** source-local Corporate contracts had broad fixture coverage but lacked a current local D1 integration receipt. The shared bound D1 schema is current; the remaining provider claim requires a source-matched Worker version and hosted route proof.
+- **Execute:** added a local D1 integration suite covering persisted member add/role change/remove behavior, user membership lookup, joined account counts, and atomic workspace move/unlink audit rows. Repaired the Worker protected-proof boundary so the existing secret-gated collaboration invitation proof can run before OpenNext routing. A controlled version upload was attempted with no traffic change.
+- **Verify:** Corporate-focused tests passed 9 files / 31 tests; the combined Corporate/Teamwork regression suite passed 19 files / 91 tests; `bun run type-check`, `bun run validate:error-handling`, `git diff --check`, current remote D1 migration readback, and both plan-pack validators passed. The pre-existing deployment remains 100 percent because the Node 26 Wrangler upload stalled and the Bun retry transferred assets but did not register a Worker version on readback.
+- **Record:** local D1 and Worker route-boundary evidence have advanced. No hosted collaboration proof, nonzero Durable Object canary, or authenticated fixture browser run occurred; no Corporate acceptance criterion is promoted beyond its stated evidence class. Corporate remains `CONDITIONALLY_READY / IN_PROGRESS / NOT_EVALUATED / ACTIVE / ACTIVE`.
+- **Decide:** do not archive. Resume hosted proof only after rerunning Wrangler under a supported Node 24 or 22 runtime and confirming the uploaded version ID before any traffic assignment.
+
+## 2026-07-11 - Corporate Final Closure
+
+- **Discover:** the remaining Corporate blockers were proof and stale plan-pack state, not missing source behavior. The expanded browser journey exposed and fixed the local Better Auth profile-ID validation mismatch.
+- **Execute:** completed the source-matched local D1 and browser proofs, applied the bound migration set, deployed the current Worker, and wrote `evidence/CORPORATE-FINAL-INTEGRATION-v1.md`.
+- **Verify:** core and expanded Corporate Playwright journeys passed 1/1 each; the action suite passed 7/7; type-check, error-handling validation, and diff checks passed. Post-proof D1 cleanup left the fixed workspace unlinked and the owner guard restored.
+- **Record:** `AC-001`–`AC-023` are PASS, `TEST-001`–`TEST-023` are PASS, and `UNIT-001`–`UNIT-011` are VERIFIED. Production observability remains a separate `NOT_EVALUATED` release surface.
+- **Decide:** mark the pack complete, refresh its hashes, and archive it only after the final validator and cross-pack path checks pass.

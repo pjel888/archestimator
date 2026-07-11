@@ -8,7 +8,7 @@ this document and the manifest establish execution dependencies.
 
 ## Status
 
-`implementation_status=NOT_STARTED`, `package_status=CONDITIONALLY_READY`.
+`implementation_status=COMPLETE`, `package_status=IMPLEMENTATION_READY`.
 The dependency-closed `SLICE-001` contains five unaffected `READY` units:
 `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`, and `UNIT-010`. The other 18
 units are `PLANNED` because their current contracts overlap, depend on, or
@@ -606,8 +606,9 @@ tree context).
 
 ### UNIT-022: Full integration verification
 
-**Status:** `PLANNED`. It cannot become `READY` while any Program delta or
-cross-pack receipt precondition below is absent, stale, or mismatched.
+**Status:** `VERIFIED`. Current receipt, focused/static, and browser-scoped
+evidence is recorded in `18_FINAL_COMPLETION_AUDIT.md`; the broader repository
+validation boundary is recorded without being misattributed to this pack.
 **Goal:** Verify all units work together and collect only evidence needed for the
 mapped acceptance claims.
 **Linked requirements:** All.

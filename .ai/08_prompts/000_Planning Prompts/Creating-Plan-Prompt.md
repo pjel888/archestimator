@@ -117,11 +117,20 @@ reassign, change tool, or complete locally. Never fabricate independence.
 
 1. Assign stable IDs from the schema.
 2. Convert every brief item into observable current/target behavior,
-   acceptance criteria, failure behavior, evidence class, and affected surfaces.
+   acceptance criteria, failure behavior, evidence class, affected surfaces,
+   and `completion_role: CORE|AUXILIARY`. Default omitted legacy requirements to
+   `CORE`; use `AUXILIARY` only for memory sync, optional tooling, review
+   availability, hosted proof, release evidence, or other work that must remain
+   visible without blocking the requested implementation.
+   Explicit user/system deliverables and evidence required to prove a core criterion remain `CORE`;
+   mixed core/aux links are core.
 3. Classify each criterion's `test_requirement`, `test_trigger`, and
    `test_rationale`. Default to `NOT_REQUIRED` plus `NONE` and forbid test
-   creation/execution unless the task explicitly requests testing or a named
-   MVP-critical invariant cannot be proved more cheaply.
+   creation/execution unless the task explicitly requests testing, a named
+   MVP-critical invariant cannot be proved more cheaply, or one already-existing
+   focused test is demonstrably the cheapest decisive proof. The existing-test
+   exception permits exactly one run and no test creation, expansion, repair,
+   deletion, skip, or TDD workflow.
 4. For each changed boundary, map the applicable negative paths, such as missing,
    invalid, unauthorized, concurrent, retry, partial-failure, and recovery states.
 5. Resolve conflicts and every material internal choice through the kernel's
@@ -194,7 +203,8 @@ The critic must try to find:
 - false parallelism, non-resumable units, and weak evidence classes;
 - inconsistent package/implementation/release/lifecycle status.
 
-The final checking pass is read-only. It audits every active requirement,
+The final checking pass is read-only. It classifies every requirement as
+`completion_role: CORE|AUXILIARY`, then audits every active requirement,
 decision, unit, applicable test, gate, risk, and deliverable as
 `PASS|FAIL|BOUNDARY|N/A` against
 current files and evidence. Return failures to an authoring pass, then rerun the
@@ -209,13 +219,15 @@ manifest. Repair every semantic/hash/reference/DAG failure before stage completi
 This stage is complete only when:
 
 - the plan pack exists at the required path and matches the selected profile;
-- every relevant requirement and source is traced;
+- every relevant requirement is classified `CORE|AUXILIARY` and traced to its
+  sources;
 - no internally resolvable decision remains open;
-- every unit is executable/resumable and every applicable gate has an evidence
-  contract;
-- no P0/P1 planning defect remains;
+- every core unit is executable/resumable and every applicable gate has an
+  evidence contract; auxiliary gaps remain visible and non-blocking;
+- no core-linked P0/P1 planning defect remains;
 - statuses and any `AUTH-*` boundaries are evidence-correct;
-- the profile-selected final check passes all internal criteria;
+- the profile-selected final check passes all core-linked internal criteria;
+  auxiliary failures remain visible and do not block implementation completion;
 - no files outside the new plan folder were intentionally modified.
 
 Return a concise result with plan path, profile, status tuple, highest-impact

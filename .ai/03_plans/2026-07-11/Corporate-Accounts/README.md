@@ -1,7 +1,7 @@
 # Corporate Accounts — Plan Pack
 
-Status tuple: `package_status=CONDITIONALLY_READY`, `implementation_status=IN_PROGRESS`,
-`release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=IMPLEMENTATION_READY`, `implementation_status=COMPLETE`,
+`release_status=NOT_EVALUATED`, `plan_lifecycle=ARCHIVED`, `terminal_status=ACHIEVED`.
 
 ## Mission
 
@@ -66,3 +66,15 @@ authz-adjacent changes.
 | `03_DATA_MODEL.md` | Schema design, migration plan, repository API |
 | `04_DECISIONS.md` | Autonomous decision record |
 | `LOOP_LEDGER.md` | Durable coordination state |
+
+## Final Closure (2026-07-11)
+
+The source implementation, local D1 integration, and both Corporate Accounts
+browser journeys are complete. `AC-001` through `AC-023` are PASS,
+`TEST-001` through `TEST-023` are PASS, and `UNIT-001` through `UNIT-011` are
+VERIFIED. The exact proof and cleanup details are in
+[`evidence/CORPORATE-FINAL-INTEGRATION-v1.md`](evidence/CORPORATE-FINAL-INTEGRATION-v1.md).
+
+The pack is archived with `release_status=NOT_EVALUATED` because hosted
+observability/alert environment gates are not configured in the current shell;
+that release-only boundary does not leave an implementation unit open.

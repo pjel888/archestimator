@@ -66,8 +66,11 @@ shared files.
 
 Review outputs need file/line evidence. Edits follow the shared
 `NOT_REQUIRED`-by-default test gate in `.ai/00_system/VALIDATION_MATRIX.md`;
-ordinary edits use decisive non-test evidence, and tests or broad/browser gates
-require explicit testing scope or an integrated MVP mission-critical claim.
+ordinary edits use decisive non-test evidence. Map explicit testing output to
+`TEST_TASK`. Map `TARGETED` only to an MVP mission-critical claim that cheaper
+evidence cannot prove, or one existing focused test under
+`CHEAPEST_DECISIVE_EXISTING_TEST` with no test edits. Broad or browser gates
+require an explicit test task or integrated critical claim.
 
 ## Design-System Guidance
 

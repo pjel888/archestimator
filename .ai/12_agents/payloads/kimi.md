@@ -64,9 +64,11 @@ chooses isolation or the risk/parallelism justifies it. Keep file scope disjoint
 
 Apply the shared `NOT_REQUIRED`-by-default test gate. Ordinary UI edits use
 decisive source, semantic, type/LSP, or design-lint evidence without creating or
-running tests. Targeted UI tests or browser proof require explicit testing scope
-or an MVP mission-critical interaction claim that cheaper evidence cannot prove;
-broad gates require an explicit or integrated critical claim.
+running tests. Map explicit testing output to `TEST_TASK`. Map `TARGETED` only
+to an MVP mission-critical interaction claim that cheaper evidence cannot prove,
+or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no
+test edits. Browser or broad gates require an explicit test task or integrated
+critical claim.
 
 ## Design-System Guidance
 

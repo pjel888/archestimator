@@ -1,7 +1,7 @@
 # Publisher And Shared Pages
 
-Status tuple: `package_status=CONDITIONALLY_READY`, `implementation_status=NOT_STARTED`,
-`release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=IMPLEMENTATION_READY`, `implementation_status=COMPLETE`,
+`release_status=READY`, `plan_lifecycle=ARCHIVED`, `terminal_status=ACHIEVED`.
 
 ## Mission
 
@@ -29,11 +29,11 @@ hardened backend; fix the UX layer and harden gaps.
 - **Planning stage:** Complete for the current bounded scope, but Program
   `PUB-DELTA-01..04` still require serialized incorporation before affected
   units or final integration can become ready.
-- **Implementation:** Not started. `SLICE-001` is the dependency-closed READY
-  subset `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`, and `UNIT-010`; the
-  other 18 units are `PLANNED` pending their named delta or dependency preconditions.
-- **Exact resume point:** `UNIT-001` (bounded request-body reads).
-- **Authority:** Last observed scope remains `PLAN_ONLY`; action ceiling remains `IMPLEMENT_LOCAL`.
+- **Implementation:** Complete for the local package scope; every unit is
+  verified by `18_FINAL_COMPLETION_AUDIT.md`.
+- **Exact resume point:** None. The complete pack is archived at this canonical path.
+- **Authority:** Last observed scope is `IMPLEMENT_LOCAL`; action ceiling remains
+  `IMPLEMENT_LOCAL`.
 - **Tied longest paths after delta incorporation:** `UNIT-010` → `UNIT-011`
   → any of `UNIT-012`/`UNIT-013`/`UNIT-014` → `UNIT-022`, and
   `UNIT-010` → `UNIT-017` → `UNIT-023` → `UNIT-022`.

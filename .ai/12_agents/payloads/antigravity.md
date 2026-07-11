@@ -65,8 +65,11 @@ Lead owns integration.
 
 Follow the shared `NOT_REQUIRED`-by-default test gate in
 `.ai/00_system/VALIDATION_MATRIX.md`. Ordinary edits use decisive non-test
-evidence; tests or broad/browser gates require explicit testing scope or an
-integrated MVP mission-critical claim. Report results and unresolved failures.
+evidence. Map explicit testing output to `TEST_TASK`. Map `TARGETED` only to an
+MVP mission-critical claim that cheaper evidence cannot prove, or one existing
+focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no test edits. Broad
+or browser gates require an explicit test task or integrated critical claim.
+Report results and unresolved failures.
 
 ## Design-System Guidance
 

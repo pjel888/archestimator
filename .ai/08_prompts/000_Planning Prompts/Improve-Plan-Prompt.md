@@ -147,8 +147,9 @@ and prompt completion condition as `PASS|FAIL|BOUNDARY|N/A`.
 
 Final `IMPLEMENTATION_READY` requires:
 
-- every accepted requirement references at least one `CURRENT` source;
-- no internal `FAIL`, orphan trace, unresolved contradiction, or P0/P1;
+- every requirement is correctly classified as `completion_role: CORE|AUXILIARY`;
+- every accepted core requirement references at least one `CURRENT` source;
+- no core-linked `FAIL`, orphan trace, unresolved contradiction, or P0/P1;
 - no internally resolvable owner/input/approval task;
 - every `AUTH-*` is genuine, isolated, fallback-complete, and release-scoped;
 - the implementation plan can start/resume at an exact unit;
@@ -165,7 +166,9 @@ Run `bun run validate:plan-pack -- <planning-folder>` and repair every failure.
 
 Stop only at a kernel terminal state: verified stage completion, explicit
 cancellation, evidence-complete `AUTH_BLOCKED`, or strictly proven
-`TECH_BLOCKED`. Do not redefine an incomplete planning result as completion.
+`TECH_BLOCKED` for a core requested deliverable. Auxiliary memory, tooling,
+review, hosted-proof, and release-evidence gaps remain visible but cannot block
+or downgrade completed implementation.
 
 Return a concise report with:
 

@@ -65,9 +65,11 @@ large, risky, or parallel and the lead chooses it.
 
 Reproduce first where feasible. Apply the shared `NOT_REQUIRED`-by-default test
 gate: ordinary fixes use decisive reproduction, source, diff, or static evidence.
-Create or run a targeted regression test only for explicit testing/QA work or an
-MVP mission-critical claim that cheaper evidence cannot prove; broad suites or
-browser gates require an explicit or integrated critical claim.
+Map explicit testing/QA output to `TEST_TASK`. Map `TARGETED` only to an MVP
+mission-critical claim that cheaper evidence cannot prove, or one existing
+focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no test edits. Broad
+suites or browser gates require an explicit test task or integrated critical
+claim.
 
 ## Design-System Guidance
 

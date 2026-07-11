@@ -105,10 +105,12 @@ failure/recovery/cleanup, entry/exit
 gate, and final evidence slot.
 
 Default `test_requirement` to `NOT_REQUIRED`, `test_trigger` to `NONE`, and
-record the cheapest decisive proof in `test_rationale`. Select `TARGETED`,
-`BROADER`, or `TEST_TASK` only for explicit testing
-scope or a named MVP-critical invariant that cheaper evidence cannot prove. Do
-not prescribe speculative source code or ceremonial tests.
+record the cheapest decisive proof in `test_rationale`. Map explicit testing
+scope to `TEST_TASK` plus `EXPLICIT_TEST_TASK`; map `TARGETED` only to a named
+MVP-critical invariant that cheaper evidence cannot prove or one already-
+existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; map `BROADER`
+only to an integrated critical boundary that targeted evidence cannot cover.
+Do not prescribe speculative source code or ceremonial tests.
 
 ## Phase 5: Write And Promote `IMPLEMENTATION_PLAN.md`
 
@@ -166,13 +168,15 @@ provenance, not readiness through an arbitrary score cap.
 
 Mark the canonical plan `IMPLEMENTATION_READY` only when:
 
-- every accepted requirement references at least one `CURRENT` source, and every
-  superseded/stale source item is explicitly dispositioned;
+- every requirement is classified `completion_role: CORE|AUXILIARY`, every
+  accepted core requirement references at least one `CURRENT` source, and every
+  superseded/stale core source item is explicitly dispositioned;
 - every internal decision is closed;
-- every unit is exact, dependency-safe, recoverable, and evidence-backed;
+- every core unit is exact, dependency-safe, recoverable, and evidence-backed;
 - all applicable gates have methods, expected signals, freshness, and evidence
   slots;
-- no unresolved P0/P1 or internal `FAIL` remains;
+- no unresolved core-linked P0/P1 or internal `FAIL` remains; auxiliary failures
+  stay visible without blocking implementation readiness;
 - true boundaries have complete fallbacks/continuation packets;
 - `README.md` and readiness artifacts point to `IMPLEMENTATION_PLAN.md`;
 - the profile-selected read-only final check passes the compile ledger;
