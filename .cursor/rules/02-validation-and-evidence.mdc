@@ -1,136 +1,105 @@
 ---
-description: "Validation commands, evidence classes, completion gates. Always loaded. No 'done' claim without proof."
+description: "Evidence selection and completion gates. Verification is required; tests are opt-in or MVP-critical."
 alwaysApply: true
 ---
 
-# Validation And Evidence (No 'Done' Without Proof)
+# Validation And Evidence
 
-Verification is proportional to risk. Claim nothing without executed evidence.
+Verification is always required. Tests are not.
 
-## Quick Reference — Run These Commands
+Classify the task before choosing commands:
+
+| Test requirement | Use when |
+|---|---|
+| `NOT_REQUIRED` | Default. Cheaper evidence can prove the requested change. |
+| `TARGETED` | The user explicitly asks for testing/QA/coverage/regression/reproduction, or one MVP-critical invariant cannot be proven more cheaply. |
+| `BROADER` | The user explicitly asks for a broad suite, or an integrated MVP-critical claim spans boundaries that targeted checks cannot prove. |
+| `TEST_TASK` | The requested deliverable is tests, test infrastructure, flaky-test repair, or test-suite analysis. |
+
+Being a source edit, multi-file change, user-visible change, or adjacent to existing tests does not by itself require tests. Do not create or run tests when the classification is `NOT_REQUIRED`.
+
+## MVP-Critical Test Triggers
+
+Select `TARGETED` or `BROADER` only when automated tests are the cheapest decisive evidence for one of these risks:
+
+- auth, authorization, sessions, secrets, public shares, or invites
+- D1 migrations, data integrity, destructive writes, concurrency, or rollback safety
+- estimating calculations, money, totals, proposal, or export correctness
+- first-user golden paths, release/cutover, rollback, observability, or error-handling contracts
+- shared contracts where a silent failure could leak data, corrupt state, deny access, or misstate money
+
+Name the invariant and explain why source inspection, static checks, dry runs, or a narrower smoke cannot prove it before running a test.
+
+## Cheapest Decisive Evidence
+
+Choose only the evidence needed for the claim:
+
+| Claim | Typical evidence |
+|---|---|
+| Docs/config/prompt change | focused diff + `git diff --check` + path/reference check |
+| Narrow source change | focused source/diff inspection; type/LSP/lint only when relevant |
+| Schema or D1 change | migration/source inspection plus a scoped dry run or local apply when the claim requires it |
+| Runtime/route behavior | the smallest route, CLI, or local smoke that exercises the boundary |
+| Task-scoped critical behavior | the smallest targeted test that proves the named invariant |
+| Integrated critical behavior | broader suite/build only when targeted evidence cannot prove the integration |
+| Browser-only interaction claim | focused browser proof only when static/DOM evidence cannot prove it |
+| Hosted/provider claim | provider-backed or hosted evidence; local checks are insufficient |
+
+Useful commands are a menu, not a checklist:
 
 ```bash
-# Type check
+git diff --check
 bun run type-check
-
-# Lint + design system
 bun run lint
-bun run lint:design-system
-
-# Tests (pick the right one for the surface)
-bun run test           # Bun unit tests (tests/unit/)
-bun run test:dom       # Vitest DOM tests (tests/vitest/)
-bun run test:e2e       # Playwright E2E (Chromium, mutating specs need env flags)
-
-# Build
-bun run build          # Next.js production build
-
-# Full broad gate (use for shared/auth/data/release changes)
-bun run validate       # type-check + lint + error-handling + design-system + design + unit + dom
-
-# Cloudflare / D1
-bun run cf:typegen                          # regenerate cloudflare-env.d.ts from wrangler.jsonc
-bun run cf:preview                          # opennextjs-cloudflare build + wrangler preview (local bindings)
-bun run cf:check-readiness                  # Worker readiness gate
-
-# Debugging snapshot (read-only, always safe to run)
+bun run validate:error-handling
+bun run test
+bun run test:dom
+bun run test:e2e
+bun run validate
+bun run build
+bun run cf:check-readiness
 bun run ops:agent-debug-snapshot
-
-# Logs
-bun run logs:debug                                  # explain latest dev error
-bun run logs:tail -- --error --last 20              # recent errors
-bun run logs:explain <record_id>                    # specific record
-
-# D1 migrations (local preview)
-wrangler d1 migrations apply ARCH_DB --local
 ```
 
-## Proportional Gate Selection
+Do not repeat an unchanged gate. Re-run only evidence invalidated by later edits.
 
-| Risk class | Required gate |
-|---|---|
-| Docs/config | `git diff --check` + path checks |
-| Narrow source change | `bun run type-check` + targeted test |
-| Shared logic, UI polish | `bun run validate` subset (lint + relevant tests) |
-| Auth, database, security, release | `bun run validate` + `bun run build` + targeted tests |
-| Route-wide, RSC, Server Action | Above + manual/curl/Playwright proof |
-| Cloudflare D1 migration | Migration applied locally + `bun run cf:preview` smoke |
-| Pre-push / release | `bun run validate && bun run build && bun run test:e2e` |
-
-## Evidence Classes — Use The Strongest That Proves The Claim
+## Evidence Classes
 
 | Class | Examples | Cannot prove |
 |---|---|---|
-| Local static | `git diff --check`, source map | Runtime, browser, provider, hosted behavior |
-| Local automated | typecheck, lint, unit/DOM tests | Provider/production state |
-| Browser/manual | Playwright, manual QA transcript | Provider/production unless targeting them |
-| Provider-backed | Cloudflare readback, wrangler proof, D1/R2/DO/Queue/Email proof | User UX unless paired with UI proof |
-| Hosted/production | deployed route probe, Workers Logs | Local code path details without source read |
-| Inferred | reasoning from code/docs | Completion claims requiring direct proof |
+| Local static | diff, source inspection, type/LSP/lint | runtime, browser, provider, hosted behavior |
+| Local automated | targeted test, scoped smoke, build | provider or production state |
+| Browser/manual | focused interaction proof | provider state unless it targets the provider |
+| Provider-backed | Cloudflare readback, Wrangler proof, D1/R2/DO/Queue/Email proof | user UX without matching surface proof |
+| Hosted/production | deployed route probe, Workers Logs | local implementation details without source evidence |
+| Inferred | reasoning from code/docs | claims that require direct execution evidence |
 
-**Never claim provider/GitHub/Vercel/production proof from local-only checks.**
+Never claim provider, GitHub, Vercel, production, or manual proof from local-only checks.
 
-## Completion Audit (Before Saying "Done")
+## Completion Audit
 
-For every requirement, named artifact, command, test, gate:
+Before a completion claim:
 
-1. Identify the authoritative source
-2. Identify implementation evidence (file + line refs)
-3. Identify validation evidence (executed command output)
-4. Classify status: `proven` | `contradicted` | `incomplete` | `weak_or_indirect` | `missing` | `blocked_with_evidence` | `deferred_with_rationale` | `not_applicable_with_reason`
-5. Continue work while evidence is weak/missing/contradicted
+1. Map each requirement to its authoritative source and implementation evidence.
+2. Record the test classification and rationale.
+3. Run the smallest decisive validation and read its exit status/output.
+4. Classify the result as `proven`, `contradicted`, `incomplete`, `blocked_with_evidence`, `deferred_with_rationale`, or `not_applicable_with_reason`.
+5. Continue only while additional work materially improves the claim.
 
-**Never claim** "100% complete", "zero errors", "production proven", "provider proven", "no data loss" unless evidence supports that exact claim.
+Tests skipped under `NOT_REQUIRED` are an intentional gate decision, not an incomplete task. Report the strongest substitute evidence and any residual risk.
 
-## Forbidden Verification Anti-Patterns
+## Safety Boundaries
 
-- "Should work now" — RUN IT
-- "Tests pass" without showing RED to GREEN output
-- Deleting failing tests to make build green
-- "Fixed the bug" without naming the scenario that proves it
-- Writing code before its failing test (TDD: RED first, then GREEN)
-- `as any`, `@ts-ignore`, `@ts-expect-error` type suppressions
-- Empty `catch (e) {}` blocks in server/API/observability/email/ops surfaces
-- `console.error` bypassing the structured logger in covered runtime paths
-- Claiming `validate`/`build`/test passed without reading the exit code
+- Never delete, weaken, or skip a failing test merely to produce green output.
+- Never claim a command passed without reading its exit code.
+- Do not use type suppressions or empty error handlers to hide a failure.
+- Sensitive runtime paths must use the structured logger; use `bun run validate:error-handling` when that contract is in scope.
+- Mutating E2E/provider actions still require their existing environment and approval gates.
 
-## UI Verification Discipline
+## Browser Guardrail
 
-UI verification is proportional (Codex App speed guardrail):
+Playwright, screenshots, Storybook, and visual QA are not default completion gates. Use them only when the user requests browser evidence or a mission-critical interaction, routing, auth/data-state, responsive, accessibility, or complex-composition claim cannot be proven with cheaper evidence. State the browser-only claim before running them.
 
-- **Minor cosmetic** (spacing, copy, color, icon, class tweaks) → static review + focused type/LSP/lint is enough
-- **Interaction, routing, auth/data state, responsive layout, a11y semantics** → browser/Playwright proof required
-- **Complex composition, CJK text, layout shift risk** → visual-qa skill with pixel-diff
+## Skipped Or Unavailable Evidence
 
-State the specific browser-only claim being proven before reaching for Playwright. If a faster path proves it, use that and report browser proof as intentionally skipped.
-
-## Error-Handling Gate
-
-Sensitive surfaces (server/API/route/global-error/toast/client-error/D1/observability/email/ops) must not swallow errors in empty `catch` or `.catch` handlers, and must not bypass the structured logger with raw `console.error`. The static gate is `bun run validate:error-handling`. For a written artifact: `bun run ops:check-error-handling`.
-
-## Debugging Snapshot For Handoffs
-
-When debugging or for "what do the logs say?" handoffs, run `bun run ops:agent-debug-snapshot`. It produces a redacted local debugging readiness report (log readiness, latest error metadata/freshness/origin, prior matching ledger records, incident/alert readiness, hosted proof gates, machine-readable `readinessGates.local.failures` and `readinessGates.production.failures`) without exposing raw logs/stacks/secrets.
-
-If snapshot marks latest local error stale → reproduce a fresh failure before treating it as root cause.
-If snapshot marks latest local error test-origin → rerun with explicit `ARCHESTIMATOR_DEV_LOG_PATH` or reproduce in dev.
-
-## TDD Discipline (For Behavior-Bearing Changes)
-
-For features, fixes, refactors, perf, glue, config-with-logic:
-
-1. **RED**: Write the failing test first. Run it. Capture assertion message.
-2. **GREEN**: Smallest change that flips RED to GREEN. Re-run. Capture GREEN.
-3. **SURFACE**: Exercise the real user-facing surface. Capture artifact.
-4. **REFACTOR**: Optional, tests stay green.
-
-**Exemption whitelist** (no new test needed): pure formatting, comment-only, dependency bumps with no behavior delta, rename-only moves. Justify each exemption.
-
-## Skipped Checks
-
-Record for every skipped/failed/unavailable validation:
-- What was not performed
-- Why
-- Risk left behind
-- Strongest substitute evidence
-- Exact command/credential/owner action needed to complete it
+Record what was not performed, why, the remaining risk, the substitute evidence used, and the exact command or authority needed if the missing proof is still material.

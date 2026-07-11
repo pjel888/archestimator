@@ -5,9 +5,9 @@ developer_instructions = "You have oh-my-codex installed. AGENTS.md is the orche
 model_auto_compact_token_limit = 200000
 # End oh-my-codex seeded behavioral defaults
 
-model = "gpt-5.5"
+model = "gpt-5.6"
 model_context_window = 400000
-plan_mode_reasoning_effort = "xhigh"
+plan_mode_reasoning_effort = "high"
 [mcp_servers.code-review-graph]
 args = [
     "code-review-graph==2.3.5",

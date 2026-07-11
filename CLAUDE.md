@@ -10,13 +10,20 @@ Primary Claude role:
 - edge-case review
 - proposal/package/spec quality review
 
-Implementation baseline is now Next.js + Bun with Supabase/Postgres,
-TanStack Query, Zustand, and repository boundaries. Keep recommendations
-aligned with `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
+Implementation baseline is Next.js + Bun on Cloudflare Workers/OpenNext with
+D1, R2, Durable Objects, Queues/Cron, Email, Images, Better Auth, TanStack
+Query, Zustand, and repository boundaries. Keep recommendations aligned with
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
 `.ai/10_state/decisions.md`. Treat `DESIGN.md` as an **alpha-stage guide, not
 law** (see its status banner): the visual language is still being developed, so
 encourage exploration and defer to Philip on design decisions rather than
 enforcing design rules.
+
+Verification is always required, but tests default to `NOT_REQUIRED`. Create or
+run tests only for an explicit testing/QA task or when an MVP mission-critical
+risk cannot be proven with cheaper evidence. Broad suites, builds, and browser
+proof require an explicit request or an integrated critical claim; ordinary
+edits use the cheapest decisive non-test evidence.
 
 Read for speed — pull, don't preload (see `AGENTS.md` "Read for speed"). Minimum read:
 `AGENTS.md` + the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper
@@ -52,7 +59,7 @@ unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"AL
 
 ## Codex Delegation (codex-plugin-cc)
 
-When Claude is the active lead, Codex is the implementation/diff/test/deep-bug
+When Claude is the active lead, Codex is the implementation/diff/task-scoped-test/deep-bug
 lane; Claude owns product judgment, planning, review, and final integration, and
 delegates execution-heavy or deep-analysis work rather than grinding it solo.
 **Codex review gate (scoped for MVP speed):** require a

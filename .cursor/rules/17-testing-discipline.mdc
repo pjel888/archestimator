@@ -1,5 +1,5 @@
 ---
-description: "Testing discipline. Bun unit, Vitest DOM, Playwright E2E. TDD, coverage, mutating-spec env flags."
+description: "Task-scoped testing discipline for Bun, Vitest, and Playwright after the shared test gate authorizes test work."
 globs:
   - "tests/**"
   - "e2e/**"
@@ -11,107 +11,60 @@ globs:
 
 # Testing Discipline (Archestimator)
 
-Three test surfaces, each with a clear role:
+This rule applies after the task has been classified as `TARGETED`, `BROADER`, or `TEST_TASK` under `02-validation-and-evidence.mdc`. If the task is `NOT_REQUIRED`, do not add or run tests merely because a nearby test file exists.
 
-| Surface | Runner | Location | Role |
+## Test Surfaces
+
+| Surface | Runner | Location | Use for |
 |---|---|---|---|
-| Unit | Bun test | `tests/unit/` | Pure logic, red-first migration guard, UI baseline regression |
-| DOM / integration | Vitest 4 + jsdom | `tests/vitest/` | Route handlers, server actions, RPC contracts, RTL components, schema migrations, security contracts, observability, AI audit trails |
-| E2E | Playwright (Chromium) | `e2e/` | Landing audit, auth smoke, tree DnD, AI package builder, invite entry, teamspace collaboration, shared link receiver |
-
-## Commands
+| Unit | Bun test | `tests/unit/` | Pure logic and narrow source contracts |
+| DOM/integration | Vitest + jsdom | `tests/vitest/` | Routes, actions, repositories, components, migrations, security, and observability |
+| E2E | Playwright | `e2e/` | Browser-only critical flows that cheaper evidence cannot prove |
 
 ```bash
-bun run test           # Bun unit tests (tests/unit/)
-bun run test:dom       # Vitest DOM tests (tests/vitest/)
-bun run test:e2e       # Playwright E2E (Chromium)
-bun run validate       # type + lint + error-handling + design-system + design + unit + dom
+bun run test           # Bun unit tests
+bun run test:dom       # Vitest DOM/integration tests
+bun run test:e2e       # Playwright E2E
+bun run validate       # Broad local gate; only for BROADER or explicit requests
 ```
 
-For broad/shared/auth/data/release gates: `bun run validate && bun run build`.
+Run the narrowest test command or file filter that proves the named invariant. Expand to `bun run validate`, `bun run build`, or E2E only for an explicit request or an integrated mission-critical claim that narrower evidence cannot prove.
 
-## TDD (Red -> Green -> Surface)
+## Test Workflow
 
-For behavior-bearing changes (features, fixes, refactors, perf, glue, config-with-logic):
+1. Name the behavior or invariant under test.
+2. Read the nearest existing tests and reuse their runner, fixtures, and naming.
+3. Add the smallest behavior-focused regression or contract test.
+4. Run that test and read the assertion and exit status.
+5. Broaden only when cross-boundary evidence is required.
 
-1. **RED**: Write the failing test FIRST. Run it. Capture assertion message proving it fails for the right reason.
-2. **GREEN**: Write the smallest change that flips RED to GREEN. Re-run. Capture GREEN output.
-3. **SURFACE**: Exercise the real user-facing surface (browser, curl, tmux, etc.). Capture artifact path.
-4. **REFACTOR**: Optional, tests must stay green throughout.
+Use RED -> GREEN when the user explicitly requests TDD or when a mission-critical regression needs pre-change characterization. Otherwise, test-first is optional; proof quality matters more than ceremony.
 
-**Exemption whitelist** (no new test required): pure formatting, comment-only edits, dependency version bumps with no behavior delta, rename-only moves. Justify each exemption.
+## Test Quality
 
-## Mutating E2E Env Flags
+- Assert observable behavior, not implementation details.
+- Keep one coherent behavior per test and use descriptive names.
+- Avoid order dependence, empty assertions, success-only mocks, and over-mocking.
+- Fix the implementation when a valid test fails; change the test only when its contract is wrong and explain why.
+- Never delete, weaken, or `.skip()` a valid failing test to ship.
+- Do not add coverage-only tests that prove no meaningful behavior.
 
-Some Playwright specs require explicit env flags to run (gated to prevent accidental damage):
+Tests that verify logger file output must use an explicit temporary `ARCHESTIMATOR_DEV_LOG_PATH`; default `NODE_ENV=test` runs must not pollute `logs/dev.ndjson`.
+
+## Mutating E2E Safety
+
+Mutating Playwright specs remain opt-in:
 
 ```bash
-ARCHESTIMATOR_E2E_MUTATING_DND=1           # Tree drag-and-drop
-ARCHESTIMATOR_E2E_AI_PACKAGE_BUILDER=1     # AI package builder (deferred feature)
-ARCHESTIMATOR_E2E_INVITE_ENTRY=1           # Collaboration invites
-ARCHESTIMATOR_E2E_COLLABORATION=1          # Teamspace collaboration
-ARCHESTIMATOR_E2E_SHARED_LINK=1            # Shared link receiver
+ARCHESTIMATOR_E2E_MUTATING_DND=1
+ARCHESTIMATOR_E2E_AI_PACKAGE_BUILDER=1
+ARCHESTIMATOR_E2E_INVITE_ENTRY=1
+ARCHESTIMATOR_E2E_COLLABORATION=1
+ARCHESTIMATOR_E2E_SHARED_LINK=1
 ```
 
-Mutating specs need D1/Worker-parity local bindings (`bun run cf:preview`) or operator-scoped service credentials.
+Use D1/Worker-parity local bindings (`bun run cf:preview`) or operator-scoped credentials as required by the specific spec. Do not infer permission to mutate hosted resources from a test request.
 
-## Local D1 / Worker-Parity
+## Result Reporting
 
-For E2E against real bindings:
-
-```bash
-bun run cf:preview    # opennextjs-cloudflare build + wrangler preview (local bindings)
-```
-
-Tests must use explicit temp `ARCHESTIMATOR_DEV_LOG_PATH` when verifying logger file output. Default `NODE_ENV=test` runs must NOT pollute `logs/dev.ndjson`.
-
-## Vitest DOM Patterns
-
-- Use `@testing-library/react` (RTL) for component tests
-- Mock Server Actions with `vi.mock()` or `vi.fn()`
-- Mock TanStack Query with `QueryClientProvider` in test setup
-- Mock D1 with in-memory stub or `miniflare` for repository tests
-- Assert behavior, not implementation details
-- Accessibility assertions via `@testing-library/jest-dom`
-
-## Bun Unit Patterns
-
-- Red-first migration guard: when a new migration is added, a unit test fails until the schema is correct
-- UI baseline regression: asserts exact source text presence/absence (catches drift)
-
-## Playwright E2E Patterns
-
-- Page Object Model for repeated flows
-- Run Chromium-headless in CI
-- Mutating specs gated behind env flags
-- Assert user-visible state, not internal
-- Use `data-testid` attributes for stable selectors
-- Screenshots/traces on failure
-
-## Coverage
-
-Target: ~80%+ on shared logic, auth, data, security surfaces. Coverage is enforced informally — don't write tests just to hit a number; write tests that prove behavior.
-
-## Forbidden
-
-- Deleting failing tests to make build green
-- Tests that pass for the wrong reason (no assertion, mock returning success)
-- Tests that depend on test execution order
-- `as any` in tests to satisfy types (use `@total-typescript/shoehorn` for partial test data if needed)
-- Skipping the RED phase — write the test first
-- Tests that pass when the bug is present (i.e., testing the wrong thing)
-- Tests that mock so much they test nothing
-- Tests with no assertion
-- Empty `catch (e) {}` in test fixtures (use the structured logger or `console.error` is OK in test-only code)
-
-## When A Test Fails
-
-1. Read the assertion message
-2. Reproduce locally
-3. Fix the implementation, NOT the test (unless the test itself is wrong)
-4. If the test is wrong: justify why, fix it, document the change
-5. Never delete or `.skip()` a failing test to ship — that's a rejection-level violation
-
-## CI
-
-GitHub Actions (`.github/workflows/ci.yml`): triggers on PRs and pushes to `main`/`feat/*`. Runs `bun install --frozen-lockfile` → `bun run validate` → `bun run build` → Playwright smoke.
+Report the classification, invariant, exact command, pass/fail counts, and any untested boundary. Do not claim a broad suite, build, browser flow, provider state, or production behavior passed unless that exact evidence ran successfully.

@@ -30,7 +30,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 - Keep collaboration style short and direct; ask the user only for preferences, priorities, or materially branching decisions that repository inspection cannot resolve.
 - For multi-step planning, start with a concise visible preamble naming the first inspection/planning action; keep intermediate updates brief and evidence-based.
 - Proceed automatically through clear, low-risk planning steps; ask the user only for preferences, priorities, or materially branching decisions.
-- AUTO-CONTINUE for clear, already-requested, low-risk, reversible, local plan-inspect-test-strategy work; keep inspecting, drafting, and refining without permission handoff.
+- AUTO-CONTINUE for clear, already-requested, low-risk, reversible, local plan-inspect-and-verify work; keep inspecting, drafting, and refining without permission handoff.
 - ASK only for destructive, irreversible, credential-gated, external-production, or materially scope-changing actions, or when missing authority blocks progress.
 - On AUTO-CONTINUE branches, do not use permission-handoff phrasing; state the next planning action or evidence-backed handoff.
 - Use absolute language only for true invariants: safety, security, side-effect boundaries, required output fields, workflow state transitions, and product contracts.
@@ -40,7 +40,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 - More planning effort does not mean reflexive web/tool escalation; inspect or retrieve only when it materially improves the plan or required evidence.
 <!-- OMX:GUIDANCE:PLANNER:CONSTRAINTS:END -->
 </ask_gate>
-- Before finalizing, check missing requirements, risks, and test coverage.
+- Before finalizing, check missing requirements, risks, verification evidence, and the test-gate decision (`NOT_REQUIRED` by default; tests only for explicit or MVP-critical proof needs).
 - In consensus mode, include required RALPLAN-DR and ADR structures.
 </constraints>
 

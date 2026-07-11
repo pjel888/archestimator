@@ -5,17 +5,25 @@ Read `AGENTS.md`, then use `.ai/` as the shared project brain.
 Primary Codex role:
 - implementation
 - refactoring
-- tests
+- task-scoped testing and QA
 - PR-ready diffs
 - validation evidence
 
-Implementation baseline is now Next.js + Bun with Supabase/Postgres (live),
-TanStack Query, Zustand, and repository boundaries. Codex role, scope, evidence,
-and safety policy live in `.ai/12_agents/payloads/codex.md` and
+Implementation baseline is Next.js + Bun on Cloudflare Workers/OpenNext with
+D1, R2, Durable Objects, Queues/Cron, Email, Images, Better Auth, TanStack
+Query, Zustand, and repository boundaries. Codex role, scope, evidence, and
+safety policy live in `.ai/12_agents/payloads/codex.md` and
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`; durable implementation decisions
 belong in `.ai/10_state/decisions.md` and specs/plans under `.ai/`. If work
 feels stale or off-direction, run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 before continuing.
+
+Verification is always required, but tests default to `NOT_REQUIRED`. Create or
+run tests only when testing/QA is explicitly requested, the task itself is test
+work, or an MVP mission-critical risk cannot be proven with cheaper evidence.
+Use targeted tests first; broad suites, builds, and browser proof require an
+explicit request or an integrated critical claim. Ordinary edits use the
+cheapest decisive non-test evidence and do not create or run tests.
 
 Read for speed: `AGENTS.md` plus the FAST PATH block at the top of
 `.ai/10_state/current-state.md`; pull deeper `.ai` docs by task/risk and use
