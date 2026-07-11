@@ -11,6 +11,9 @@ import {
 } from "./estimate-surface-variant";
 import { estimateSurfaceClass } from "./estimate-surface-class";
 import { ProjectEstimateMetadataPublisher } from "./ProjectEstimateMetadataStrip";
+import {
+  EstimatePerformanceModeProvider,
+} from "./estimate-performance-mode-context";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
@@ -18,6 +21,11 @@ import { estimateQueryKeys, useEstimateEditCapabilityQuery, useEstimateTabsQuery
 import { useEstimateActiveTab } from "@/hooks/use-estimate-workspace-state";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import {
+  ALL_OFF_ESTIMATE_PERFORMANCE_MODE_SNAPSHOT,
+  getEstimatePerformanceModeMetadata,
+  type EstimatePerformanceModeSnapshot,
+} from "@/lib/estimates/estimate-performance-modes";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
@@ -100,6 +108,8 @@ type EstimateWorkspaceClientProps = {
   surfaceVariant?: EstimateSurfaceVariant;
   /** Disable shallow URL writes when the workspace is embedded as a non-route mockup. */
   disableRouteSync?: boolean;
+  /** Server-resolved deployment mode snapshot; defaults to immutable all-off. */
+  estimatePerformanceModeSnapshot?: EstimatePerformanceModeSnapshot;
 };
 
 export function EstimateWorkspaceClient({
@@ -131,6 +141,7 @@ export function EstimateWorkspaceClient({
   libraryEnableReusableProjectSources,
   surfaceVariant = "paper",
   disableRouteSync = false,
+  estimatePerformanceModeSnapshot = ALL_OFF_ESTIMATE_PERFORMANCE_MODE_SNAPSHOT,
 }: EstimateWorkspaceClientProps) {
   const queryClient = useQueryClient();
   const tabQueriesEnabled = Boolean(activeTabId);
@@ -165,9 +176,10 @@ export function EstimateWorkspaceClient({
   const resolvedLibraryShowSourceTrustChips = libraryShowSourceTrustChips ?? projectId !== "hero-sanitized-project";
   const resolvedLibraryUseStoredPreferences = libraryUseStoredPreferences ?? !disableRouteSync;
   const resolvedLibraryEnableReusableProjectSources = libraryEnableReusableProjectSources ?? !disableRouteSync;
+  const modeMetadata = getEstimatePerformanceModeMetadata(estimatePerformanceModeSnapshot);
 
   return (
-    <>
+    <EstimatePerformanceModeProvider snapshot={estimatePerformanceModeSnapshot}>
     <ProjectEstimateMetadataPublisher
       metadata={{
         projectId,
@@ -199,6 +211,13 @@ export function EstimateWorkspaceClient({
         estimateSurfaceClass(surfaceVariant, "root"),
       )}
       aria-label={`${projectName} estimates`}
+      data-estimate-performance-mode-schema={modeMetadata.schemaVersion}
+      data-estimate-performance-mode-source={modeMetadata.source}
+      data-estimate-performance-mode-route-fast-path={modeMetadata.routeFastPath}
+      data-estimate-performance-mode-graph={modeMetadata.graph}
+      data-estimate-performance-mode-incremental-derivation={modeMetadata.incrementalDerivation}
+      data-estimate-performance-mode-render-boundary={modeMetadata.renderBoundary}
+      data-estimate-performance-mode-entity-patch={modeMetadata.entityPatch}
     >
       <EstimateSheetTree
         projectId={projectId}
@@ -248,6 +267,6 @@ export function EstimateWorkspaceClient({
       />
     </section>
     </EstimateSurfaceVariantProvider>
-    </>
+    </EstimatePerformanceModeProvider>
   );
 }

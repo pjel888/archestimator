@@ -5,6 +5,8 @@ import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspace
 import { EstimateSheetRouteSkeleton } from "@/components/workshop/EstimateSheetRouteSkeleton";
 import type { EstimateSheetAdjustment } from "@/lib/estimates/types";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
+import { loadEstimatePerformanceModeSnapshot } from "@/lib/estimates/estimate-performance-modes.server";
+import type { EstimatePerformanceModeSnapshot } from "@/lib/estimates/estimate-performance-modes";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { resolveEstimateEditCapability, resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
@@ -38,6 +40,7 @@ type EstimateWorkspaceResolvedProps = {
     versionLabel: string;
     currency: string;
   };
+  estimatePerformanceModeSnapshot: EstimatePerformanceModeSnapshot;
 };
 
 function readEstimateVersionLabel(metadata: Json): string {
@@ -63,6 +66,10 @@ export default function ProjectEstimateNodePage({ params, searchParams }: Projec
 async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNodePageProps) {
   const { projectId, nodeId } = await params;
   assertRouteErrorSmoke({ routeLabel: "Estimate workspace", searchParams: await searchParams });
+
+  // Resolve deployment-scoped performance modes once at the server boundary.
+  // The snapshot is inert plumbing until an evidence-gated unit consumes it.
+  const estimatePerformanceModeSnapshot = await loadEstimatePerformanceModeSnapshot();
 
   // The component-library dataset stays lazy-loaded through a server action, so
   // first paint is not gated on library queries.
@@ -101,6 +108,7 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
       loadLimitState={loadLimitState}
       sheetAdjustment={sheetAdjustment}
       proposalExportMetadata={proposalExportMetadata}
+      estimatePerformanceModeSnapshot={estimatePerformanceModeSnapshot}
     />
   );
 }
@@ -116,6 +124,7 @@ function EstimateWorkspaceResolved({
   loadLimitState,
   sheetAdjustment,
   proposalExportMetadata,
+  estimatePerformanceModeSnapshot,
 }: EstimateWorkspaceResolvedProps) {
   // The route-context resolver already returns the tab list on the dominant
   // tab-present path. Missing tab/edit affordance data fails closed on first
@@ -139,6 +148,7 @@ function EstimateWorkspaceResolved({
       sheetAdjustment={sheetAdjustment}
       canEditEstimate={prefetchedCanEditEstimate === true}
       proposalExportMetadata={proposalExportMetadata}
+      estimatePerformanceModeSnapshot={estimatePerformanceModeSnapshot}
       surfaceVariant="glass"
     />
   );
