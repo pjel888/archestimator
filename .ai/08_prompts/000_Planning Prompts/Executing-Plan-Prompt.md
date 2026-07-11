@@ -135,7 +135,8 @@ For each ready unit:
 3. Confirm the unit is not already satisfied. If it is, prove and record rather
    than reimplementing it.
 4. Resolve any new decision autonomously and record/update `DEC-AUTO-*`.
-5. Confirm the criterion's test decision before behavior edits:
+5. Confirm the criterion's `test_requirement`, `test_trigger`, and
+   `test_rationale` before behavior edits:
    - `NOT_REQUIRED` by default: do not create or run tests; select the cheapest
      decisive source/diff/path/static/type/lint/dry-run/runtime evidence;
    - `TARGETED`: run the smallest test proving the named MVP-critical invariant;

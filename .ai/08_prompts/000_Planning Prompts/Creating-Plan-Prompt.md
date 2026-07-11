@@ -118,9 +118,10 @@ reassign, change tool, or complete locally. Never fabricate independence.
 1. Assign stable IDs from the schema.
 2. Convert every brief item into observable current/target behavior,
    acceptance criteria, failure behavior, evidence class, and affected surfaces.
-3. Classify each criterion's `test_requirement`. Default to `NOT_REQUIRED` and
-   forbid test creation/execution unless the task explicitly requests testing
-   or a named MVP-critical invariant cannot be proved more cheaply.
+3. Classify each criterion's `test_requirement`, `test_trigger`, and
+   `test_rationale`. Default to `NOT_REQUIRED` plus `NONE` and forbid test
+   creation/execution unless the task explicitly requests testing or a named
+   MVP-critical invariant cannot be proved more cheaply.
 4. For each changed boundary, map the applicable negative paths, such as missing,
    invalid, unauthorized, concurrent, retry, partial-failure, and recovery states.
 5. Resolve conflicts and every material internal choice through the kernel's

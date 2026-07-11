@@ -52,7 +52,8 @@ Before broad work, define:
 - Constraints, forbidden actions, and authorized provider/project boundary.
 - Required evidence classes and final deliverables.
 - `test_requirement` for each criterion: `NOT_REQUIRED`, `TARGETED`, `BROADER`,
-  or `TEST_TASK`, with its trigger and cheaper-evidence rationale.
+  or `TEST_TASK`; `test_trigger`: `NONE`, `EXPLICIT_TEST_TASK`, or
+  `MVP_CRITICAL_INVARIANT`; and a substantive `test_rationale`.
 - Stage stop condition and outer-goal completion condition, each proven at the
   evidence class it requires.
 

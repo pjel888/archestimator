@@ -30,10 +30,10 @@ task brief or plan does not invoke the four stages directly.
 grading assertions for future prompt changes.
 
 Verification is mandatory; tests are conditional. Every criterion records
-`test_requirement` as `NOT_REQUIRED` (default), `TARGETED`, `BROADER`, or
-`TEST_TASK`. Do not create or run tests for `NOT_REQUIRED`; select tests only for
-explicit testing scope or a named MVP-critical invariant that cheaper evidence
-cannot prove.
+`test_requirement`, `test_trigger`, and a substantive `test_rationale`.
+`NOT_REQUIRED` plus `NONE` is the default; select tests only for explicit
+testing scope or a named MVP-critical invariant that cheaper evidence cannot
+prove.
 
 ## Validation
 

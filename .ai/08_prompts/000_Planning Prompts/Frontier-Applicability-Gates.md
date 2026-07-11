@@ -131,8 +131,8 @@ path whose correctness cheaper evidence cannot establish.
 
 Require:
 
-- A recorded `test_requirement`: `NOT_REQUIRED`, `TARGETED`, `BROADER`, or
-  `TEST_TASK`, with trigger, critical invariant, cheaper-evidence analysis, and
+- A recorded `test_requirement`, `test_trigger`, and substantive
+  `test_rationale`, with critical invariant, cheaper-evidence analysis, and
   evidence destination.
 - `NOT_REQUIRED` by default, with no test creation or execution. Use source,
   diff, path/reference, static/type/lint, dry-run, or narrow runtime evidence.

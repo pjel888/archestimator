@@ -141,6 +141,8 @@ stream; zero-filled placeholders are never a frozen baseline.
       "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Focused source inspection and deterministic validator evidence prove this criterion without a product test.",
       "requirement_ids": ["REQ-001", "SEC-001"],
       "test_ids": [],
       "evidence_ids": ["EVID-001"],
@@ -199,7 +201,7 @@ stream; zero-filled placeholders are never a frozen baseline.
   "stale_triggers": ["source-or-config-hash-change"],
   "next_unit": null,
   "updated_at": "2026-07-11T00:00:00.000Z",
-  "manifest_sha256": "e0f73fffe3b08b6032b4511acc80fafb2f55ff9c7104a9bd1658f6bf863ca2f3"
+  "manifest_sha256": "625dd2494e604efa6cec9aeba898238f8858743ea1b6798b7605df4f5084b9a5"
 }
 ```
 <!-- END VALID PLAN-PACK EXAMPLE -->
@@ -351,8 +353,10 @@ Represent implementation units as a directed acyclic graph:
 ### H. Verification And Adversarial QA
 
 - Acceptance criteria are observable and falsifiable.
-- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, plus the trigger and why cheaper evidence is or is
-  not sufficient. `NOT_REQUIRED` is the default and requires `test_ids: []`.
+- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, `test_trigger` as `NONE`, `EXPLICIT_TEST_TASK`, or `MVP_CRITICAL_INVARIANT`, and a substantive `test_rationale` explaining why cheaper evidence is or is not sufficient. `NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`; `TEST_TASK` requires `test_trigger: EXPLICIT_TEST_TASK`.
+- `BROADER` rationale must state why targeted evidence is insufficient. The
+  machine validator enforces these mappings for suite `2026-07-11`; legacy
+  `2026-07-10` packs remain compatible without the new fields.
 - `TARGETED`, `BROADER`, and `TEST_TASK` require linked `TEST-*`; a criterion
   cannot be `PASS` unless every linked required test is `PASS`.
 - Each criterion names evidence class, setup, command/procedure, expected pass

@@ -99,13 +99,14 @@ schema. The plan must name:
 - durable checkpoints and resume actions.
 
 Every unit includes objective/non-goals, linked IDs, preconditions, current
-patterns, contracts/invariants, approach, expected postconditions, applicable
-gates, `test_requirement` plus evidence plan, expected signals,
+ patterns, contracts/invariants, approach, expected postconditions, applicable
+ gates, `test_requirement`, `test_trigger`, `test_rationale`, and evidence plan, expected signals,
 failure/recovery/cleanup, entry/exit
 gate, and final evidence slot.
 
-Default `test_requirement` to `NOT_REQUIRED` and record the cheapest decisive
-proof. Select `TARGETED`, `BROADER`, or `TEST_TASK` only for explicit testing
+Default `test_requirement` to `NOT_REQUIRED`, `test_trigger` to `NONE`, and
+record the cheapest decisive proof in `test_rationale`. Select `TARGETED`,
+`BROADER`, or `TEST_TASK` only for explicit testing
 scope or a named MVP-critical invariant that cheaper evidence cannot prove. Do
 not prescribe speculative source code or ceremonial tests.
 

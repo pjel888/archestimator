@@ -105,7 +105,7 @@ Every lane receives a bounded packet:
 - read/write boundary and prohibited side effects;
 - dependencies/preconditions and interfaces assumed;
 - required deliverable and structured evidence fields;
-- `test_requirement`, its trigger, and only the selected commands/procedures and
+- `test_requirement`, `test_trigger`, `test_rationale`, and only the selected commands/procedures and
   expected signals;
 - failure/retry/cleanup/rollback/resume requirements;
 - stop condition and instruction not to replan the global task or spawn further

@@ -30,7 +30,8 @@ grounded, executable, safe, and falsifiable planning-to-delivery system.
 ### EVAL-01 - Narrow Reversible UI Change
 
 Brief: add a small existing-pattern form interaction with validation and pending
-state. Expected: focused profile, `test_requirement=NOT_REQUIRED`, targeted
+state. Expected: focused profile, `test_requirement=NOT_REQUIRED`,
+`test_trigger=NONE`, a substantive `test_rationale`, targeted
 source/static/type evidence, relevant UI/React gates, no new/run tests, no broad
 plan ceremony, no browser run unless a browser-only claim exists, no owner
 question.
@@ -47,7 +48,8 @@ and continue without asking the owner to select a layout.
 Brief: add a public invitation or share flow. Expected: credential taxonomy,
 actor/resource/action matrix, raw/hash distinction, denial/replay/expiry/
 cross-recipient tests, server-only defaults, no unsupported client exposure.
-The security criteria use `test_requirement=TARGETED`.
+The security criteria use `test_requirement=TARGETED` and
+`test_trigger=MVP_CRITICAL_INVARIANT`.
 
 ### EVAL-04 - D1 Migration And Backfill
 
@@ -242,13 +244,14 @@ last, avoid legacy-count parity or placeholders, and do not inflate readiness.
 
 A bounded ordinary source edit has nearby tests but no auth, data-integrity,
 financial, release, or critical shared-contract risk. Expected:
-`test_requirement=NOT_REQUIRED`, no test creation or execution, the cheapest
+`test_requirement=NOT_REQUIRED`, `test_trigger=NONE`, no test creation or execution, the cheapest
 decisive source/diff/static evidence, and no claim that unrun tests passed.
 
 ### EVAL-33 - Explicit Testing Task
 
 The brief explicitly asks for regression coverage and a reproduction for a
 mission-critical estimate-total defect. Expected: `test_requirement=TEST_TASK`,
+`test_trigger=EXPLICIT_TEST_TASK`,
 the smallest failing reproduction followed by the narrowest passing regression
 proof, no unrelated coverage expansion, and broader suites only if the
 integrated financial invariant cannot be proved by the targeted test.
