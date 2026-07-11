@@ -70,6 +70,8 @@ describe("frontier planning prompt contracts", () => {
     mutateManifest(folder, (manifest) => {
       const criteria = manifest.criteria as Array<Record<string, unknown>>;
       criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "MVP_CRITICAL_INVARIANT";
+      criteria[0].test_rationale = "Static inspection cannot prove that required tests block a passing criterion.";
       criteria[0].test_ids = ["TEST-001"];
       manifest.tests = [{
         id: "TEST-001",
@@ -84,6 +86,51 @@ describe("frontier planning prompt contracts", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("AC-001=PASS requires TEST-001=PASS");
+  });
+
+  it("requires a trigger and rationale for every new-suite test decision", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      delete criteria[0].test_trigger;
+      delete criteria[0].test_rationale;
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("test_trigger expected NONE, EXPLICIT_TEST_TASK, or MVP_CRITICAL_INVARIANT");
+    expect(result.stderr).toContain("test_rationale must be a non-empty string");
+  });
+
+  it("requires broader verification to explain why targeted evidence is insufficient", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "BROADER";
+      criteria[0].test_trigger = "MVP_CRITICAL_INVARIANT";
+      criteria[0].test_rationale = "Run a broad suite for confidence.";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("BROADER must explain why targeted evidence is insufficient");
+  });
+
+  it("reserves TEST_TASK for an explicit testing request", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TEST_TASK";
+      criteria[0].test_trigger = "MVP_CRITICAL_INVARIANT";
+      criteria[0].test_rationale = "The criterion needs testing-specific evidence for a critical invariant.";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("TEST_TASK requires test_trigger EXPLICIT_TEST_TASK");
   });
 
   it("rejects an observed run scope above the package action ceiling", () => {

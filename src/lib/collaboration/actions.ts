@@ -726,7 +726,7 @@ async function issueInviteEntryLink({
       invitation.project_id,
       invitation.estimate_id,
       context.currentUserId,
-      JSON.stringify({ delivery_method: deliveryMethod, token_hint: inviteToken.tokenHint }),
+      JSON.stringify({ delivery_method: deliveryMethod }),
       timestamp,
     )
     .run();
@@ -829,7 +829,7 @@ async function recordCollaborationInvitationDelivery({
       row.estimate_id,
       context.currentUserId,
       deliveryMethod === "copy_url" ? "collaboration_invite_link_copied" : "collaboration_invite_email_sent",
-      JSON.stringify({ delivery_method: deliveryMethod, token_id: tokenId }),
+      JSON.stringify({ delivery_method: deliveryMethod }),
       timestamp,
     )
     .run();

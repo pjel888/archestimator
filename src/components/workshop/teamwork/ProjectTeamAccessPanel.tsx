@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { PublisherProjectMembersPanel } from "@/components/workshop/publisher/PublisherProjectMembersPanel";
+import { ProjectMembersAccessPanel } from "@/components/workshop/teamwork/ProjectMembersAccessPanel";
 import {
   overlayProjectCollaborationPresence,
   useProjectCollaborationQuery,
@@ -47,15 +47,13 @@ function ProjectTeamPresenceBridge({
 }
 
 /**
- * Project-scoped entry point for the existing access surface. The Publisher
- * caller remains a compatibility consumer until its plan-pack receipt moves
- * the implementation itself into this Teamwork directory.
+ * Project-scoped entry point for Teamwork-owned collaboration management.
  */
 export function ProjectTeamAccessPanel(props: ProjectTeamAccessPanelProps) {
   return (
     <>
       <ProjectTeamPresenceBridge {...props} />
-      <PublisherProjectMembersPanel {...props} />
+      <ProjectMembersAccessPanel {...props} />
     </>
   );
 }

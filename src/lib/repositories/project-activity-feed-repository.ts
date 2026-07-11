@@ -618,8 +618,23 @@ function estimateEventTypesForActions(actions: readonly ProjectActivityConcreteA
 function collaborationEventTypesForActions(actions: readonly ProjectActivityConcreteActionBucket[]) {
   if (!actions.length) return null;
   const eventTypes: string[] = [];
-  if (actions.includes("invited")) eventTypes.push("invite_email_attempted", "invite_email_sent", "member_removed", "role_changed");
-  if (actions.includes("edited")) eventTypes.push("project_metadata_updated");
+  if (actions.includes("invited")) {
+    eventTypes.push(
+      "invite_email_attempted",
+      "invite_email_sent",
+      "member_added",
+      "member_removed",
+      "role_changed",
+      "collaboration_invite_token_issued",
+      "collaboration_invite_link_copied",
+      "collaboration_invite_email_sent",
+      "collaboration_invite_revoked",
+      "collaboration_invite_accepted",
+    );
+  }
+  if (actions.includes("edited")) {
+    eventTypes.push("project_metadata_updated", "estimate_access_inherited", "estimate_access_restricted");
+  }
   if (actions.includes("system")) return null;
   return Array.from(new Set(eventTypes));
 }

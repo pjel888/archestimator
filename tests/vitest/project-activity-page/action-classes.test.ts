@@ -40,6 +40,9 @@ describe("project activity action classes", () => {
     [activity({ source: "decision", action: "approved", raw: { eventType: "approved" } }), "decided"],
     [activity({ source: "system", action: "changed", raw: { eventType: "role_changed" } }), "invited"],
     [activity({ source: "system", action: "changed", raw: { eventType: "project_metadata_updated" } }), "edited"],
+    [activity({ source: "system", action: "added", raw: { eventType: "member_added" } }), "invited"],
+    [activity({ source: "system", action: "changed", raw: { eventType: "estimate_access_restricted" } }), "edited"],
+    [activity({ source: "system", action: "invited", raw: { eventType: "collaboration_invite_email_sent" } }), "invited"],
     [activity({ source: "system", action: "recorded", raw: { eventType: "unknown" } }), "system"],
   ] as const)("maps non-estimate activity to %s", (item, bucket) => {
     expect(deriveActionBucket(item)).toBe(bucket);

@@ -486,10 +486,29 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
 
 const COLLABORATION_EVENT_ACTIONS: Record<string, ActivityAction> = {
   invite_email_attempted: "invited",
+  invite_email_sent: "invited",
+  member_added: "added",
   role_changed: "changed",
   member_removed: "removed",
+  estimate_access_inherited: "changed",
+  estimate_access_restricted: "changed",
+  collaboration_invite_token_issued: "invited",
+  collaboration_invite_link_copied: "invited",
+  collaboration_invite_email_sent: "invited",
+  collaboration_invite_email_delivery_failed: "recorded",
+  collaboration_invite_revoked: "removed",
+  collaboration_invite_accepted: "added",
   project_metadata_updated: "changed",
 };
+
+const COLLABORATION_METADATA_DENYLIST = /(?:email|token|url|secret|password)/i;
+
+function sanitizeCollaborationMetadata(metadata: Record<string, unknown> | null | undefined) {
+  if (!metadata) return undefined;
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([key]) => !COLLABORATION_METADATA_DENYLIST.test(key)),
+  );
+}
 
 function collaborationActionAndTitle(
   event: CollaborationActivityInput,
@@ -498,11 +517,23 @@ function collaborationActionAndTitle(
   const metadata = isRecord(event.metadata) ? event.metadata : {};
   switch (event.eventType) {
     case "invite_email_attempted":
+    case "invite_email_sent":
+    case "collaboration_invite_token_issued":
+    case "collaboration_invite_link_copied":
+    case "collaboration_invite_email_sent":
       return { action: "invited", title: `${actorName} invited a collaborator.` };
+    case "member_added":
+    case "collaboration_invite_accepted":
+      return { action: "added", title: `${actorName} added a collaborator.` };
     case "role_changed":
       return { action: "changed", title: `${actorName} changed a collaborator's role.` };
     case "member_removed":
+    case "collaboration_invite_revoked":
       return { action: "removed", title: `${actorName} removed a collaborator.` };
+    case "estimate_access_inherited":
+      return { action: "changed", title: `${actorName} restored inherited estimate access.` };
+    case "estimate_access_restricted":
+      return { action: "changed", title: `${actorName} restricted estimate access.` };
     case "project_metadata_updated": {
       const changed = Array.isArray(metadata.changed_fields) ? metadata.changed_fields.map(String) : [];
       if (changed.length === 1 && changed[0] === "name") {
@@ -546,7 +577,9 @@ export function composeCollaborationActivity(
       actor,
       target: { kind: "system", label: "Project" },
       title,
-      raw: audience === "client" ? undefined : { id: event.id, eventType: event.eventType, payload: event.metadata ?? undefined },
+      raw: audience === "client"
+        ? undefined
+        : { id: event.id, eventType: event.eventType, payload: sanitizeCollaborationMetadata(event.metadata) },
     });
 
     return audience === "client"

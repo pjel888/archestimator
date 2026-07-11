@@ -91,3 +91,9 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 
 - An unrelated Cloudflare evidence commit advanced global HEAD without touching any scoped pathspec; scoped status and diff hashes remained identical.
 - After a 15-second stable-HEAD check, the baseline HEAD advances to `a14f6e9e2eb1bef10376b5d7cec9392f2b566bfd`. This is a mechanical refreeze only.
+
+## 2026-07-11 — PLAN-014 — ACTIVITY SOURCE-DRIFT RECHECK
+
+- Concurrent Activity/Teamwork source added collaboration event mappings, metadata redaction, and feed filtering while the Teamwork producer ledger still states `TEAMWORK-ACTIVITY-CONTRACT-v1` and publisher-access receipts are absent. The Admin plan therefore preserves, rather than removes, its source-drift and producer-receipt blocks.
+- The exact focused characterization suite was rerun after the source change: 6 files, 24 tests, 21 passed, and the same three classified failures with no fourth failure.
+- After a 15-second HEAD settle and two further identical scoped snapshots, the final baseline is HEAD `0b3dff99d66eabf947ca930072ac2980409542a7`; scoped status `31dd9a798d24f538b4dbf3c33be237f052b1f803d8564481c9d72224cb80a8f1`; scoped diff `b6e07060ee13b1d2d4720fdf1c5c4d57a61f2d1e3d16a241da364d306d090a84`.

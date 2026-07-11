@@ -50,7 +50,8 @@ describe("Publisher page contract", () => {
   });
 
   it("wires Publisher access management through shared collaboration actions", () => {
-    const panelSource = readFileSync("src/components/workshop/publisher/PublisherProjectMembersPanel.tsx", "utf8");
+    const panelSource = readFileSync("src/components/workshop/teamwork/ProjectMembersAccessPanel.tsx", "utf8");
+    const compatibilitySource = readFileSync("src/components/workshop/publisher/PublisherProjectMembersPanel.tsx", "utf8");
     const collaborationActionsSource = readFileSync("src/lib/collaboration/actions.ts", "utf8");
     const collaborationTypesSource = readFileSync("src/lib/collaboration/types.ts", "utf8");
 
@@ -61,6 +62,8 @@ describe("Publisher page contract", () => {
     expect(panelSource).toContain("DataTable");
     expect(panelSource).toContain("Avatar");
     expect(panelSource).toContain("StatusBadge");
+    expect(compatibilitySource).toContain("ProjectMembersAccessPanel as PublisherProjectMembersPanel");
+    expect(compatibilitySource).not.toContain("@/lib/collaboration/actions");
     expect(collaborationActionsSource).toContain("export async function removeEstimateSheetCollaborator");
     expect(collaborationActionsSource).toContain("assertEstimateAccessManager(projectId, estimateId)");
     expect(collaborationActionsSource).toContain("Every restricted estimate needs at least one owner or admin.");

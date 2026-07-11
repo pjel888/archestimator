@@ -9,8 +9,8 @@ const presenceMocks = vi.hoisted(() => ({
   useProjectPresence: vi.fn(),
 }));
 
-vi.mock("@/components/workshop/publisher/PublisherProjectMembersPanel", () => ({
-  PublisherProjectMembersPanel: () => (
+vi.mock("@/components/workshop/teamwork/ProjectMembersAccessPanel", () => ({
+  ProjectMembersAccessPanel: () => (
     <div data-testid="publisher-compatibility-panel" />
   ),
 }));

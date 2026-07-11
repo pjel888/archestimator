@@ -68,9 +68,18 @@ const sharedEventBuckets: Record<string, ProjectActivityConcreteActionBucket> = 
 const collaborationEventBuckets: Record<string, ProjectActivityConcreteActionBucket> = {
   invite_email_attempted: "invited",
   invite_email_sent: "invited",
+  member_added: "invited",
   member_removed: "invited",
   project_metadata_updated: "edited",
   role_changed: "invited",
+  estimate_access_inherited: "edited",
+  estimate_access_restricted: "edited",
+  collaboration_invite_token_issued: "invited",
+  collaboration_invite_link_copied: "invited",
+  collaboration_invite_email_sent: "invited",
+  collaboration_invite_email_delivery_failed: "system",
+  collaboration_invite_revoked: "invited",
+  collaboration_invite_accepted: "invited",
 };
 
 function readRawEventType(activity: ActivityViewModel) {

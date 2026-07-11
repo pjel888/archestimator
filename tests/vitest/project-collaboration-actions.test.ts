@@ -74,7 +74,7 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("Teamspace invite delivery is disabled until email delivery is explicitly enabled.");
     expect(actions).toContain("readEmailDeliveryConfig");
     expect(actions).toContain("Invitation created. Share the invite link manually.");
-    expect(actions).toContain("[collaboration] invite email delivery failed");
+    expect(actions).toContain("collaboration_invite_email_delivery_failed");
     expect(actions).toContain("Link-based invites are unavailable. Enable project invite entry before inviting new users.");
     expect(actions).toContain("Link-based estimate invites are unavailable. Enable project invite entry before inviting new users.");
     expect(actions).toContain("const inviteEntryEnabled = isProjectInviteEntryEnabled()");
@@ -82,15 +82,20 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("Invite email resend is disabled until email delivery is explicitly enabled.");
   });
 
-  it("writes best-effort collaboration audit events without raw token metadata", () => {
-    expect(actions).toContain("recordCollaborationAuditEvent");
+  it("batches collaboration access mutations with their durable audit event", () => {
+    expect(actions).toContain("prepareCollaborationAuditEvent");
+    expect(actions).toContain("persistAccessMutationWithAudit");
+    expect(actions).toContain("Collaboration access changes require transactional D1 support.");
     expect(actions).toContain("collaboration_audit_events");
     expect(actions).toContain("invite_email_attempted");
     expect(actions).toContain("role_changed");
     expect(actions).toContain("member_removed");
     expect(actions).toContain("metadata");
+    expect(actions).not.toMatch(/console\.(warn|error)/);
     expect(actions).not.toContain("metadata: { rawToken");
     expect(actions).not.toContain("metadata: { token_hash");
+    expect(actions).not.toContain("token_hint: inviteToken.tokenHint");
+    expect(actions).not.toContain("token_id: tokenId");
   });
 
   it("keeps an existing-profile email invite pending until the acceptance flow completes", () => {
@@ -117,7 +122,9 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("setEstimateSheetAccessMode");
     expect(actions).toContain("addProjectCollaborator");
     expect(actions).toContain("addEstimateSheetCollaborator");
-    expect(actions).toContain("upsertSheetOwnerBeforeRestricting");
+    expect(actions).toContain("directManagerRole");
+    expect(actions).not.toContain("upsertSheetOwnerBeforeRestricting");
+    expect(actions).toContain("collaborationRoleForRank(context.estimateActorRank)");
     expect(actions).toContain("collaborationRoleRank");
     expect(actions).toContain("Cannot assign a role at or above your own access level.");
     expect(actions).toContain("Ownership transfer requires a dedicated flow.");
@@ -136,6 +143,7 @@ describe("project collaboration management actions", () => {
     expect(projectRemoval).toContain("assertTargetRoleCanBeMutated(context.actorRank");
     expect(projectRemoval).toContain("removalMode: ProjectCollaboratorRemovalMode");
     expect(projectRemoval).toContain("Project removal requires transactional D1 support.");
+    expect(projectRemoval).toContain("prepareCollaborationAuditEvent");
     expect(projectRemoval).toContain("remove_all_direct_grants");
     expect(actions).toContain("retain_sheet_grants");
     expect(estimateRemoval).toContain("assertEstimateSheetRemovalAllowed(context, userId)");
@@ -157,6 +165,7 @@ describe("project collaboration management actions", () => {
     expect(addEstimate).toContain("The selected user is no longer available.");
     expect(changeProject).toContain("not a project member. Use the add-member command.");
     expect(changeProject).toContain('eventType: "role_changed"');
+    expect(changeProject).toContain("persistAccessMutationWithAudit");
     const changeEstimate = actions.match(/export async function updateEstimateSheetCollaboratorRole[\s\S]*?\n}\n\nasync function sendCollaboratorRemovalNotification/)?.[0];
     expect(changeEstimate).toContain("no direct estimate access. Use the add-member command.");
     expect(changeEstimate).toContain("Every restricted estimate needs at least one owner or admin.");

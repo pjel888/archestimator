@@ -380,29 +380,39 @@ function isFolderNode(node: TreeNode): boolean {
   return Boolean(node.children && node.children.length > 0);
 }
 
-/** Flatten tree into visible nodes (expanded children included) */
+/**
+ * Flatten tree into visible nodes (expanded children included).
+ *
+ * Uses a threaded accumulator (`out`) instead of returning-and-spreading
+ * per recursion level. Each visible node is pushed exactly once, so the
+ * function is strictly O(V) in visible nodes with no O(Σ depth) spread-copy
+ * overhead and no intermediate array allocation per depth. A cached-length
+ * `for` loop avoids the per-iteration callback + closure overhead of
+ * `forEach`.
+ */
 function flattenTree(
   nodes: TreeNode[],
   expandedIds: Set<string>,
-  depth = 0
+  depth = 0,
+  out: FlatNode[] = [],
 ): FlatNode[] {
-  const result: FlatNode[] = [];
-  nodes.forEach((node, index) => {
+  for (let i = 0, len = nodes.length; i < len; i++) {
+    const node = nodes[i];
     const isExpanded = expandedIds.has(node.id);
-    result.push({
+    out.push({
       id: node.id,
       node,
       depth,
       isFolder: isFolderNode(node),
       isExpanded,
-      setSize: nodes.length,
-      posInSet: index + 1,
+      setSize: len,
+      posInSet: i + 1,
     });
-    if (node.children && node.children.length > 0 && isExpanded) {
-      result.push(...flattenTree(node.children, expandedIds, depth + 1));
+    if (node.children?.length && isExpanded) {
+      flattenTree(node.children, expandedIds, depth + 1, out);
     }
-  });
-  return result;
+  }
+  return out;
 }
 
 function indexTree(nodes: TreeNode[], into = new Map<string, TreeNode>()): Map<string, TreeNode> {
