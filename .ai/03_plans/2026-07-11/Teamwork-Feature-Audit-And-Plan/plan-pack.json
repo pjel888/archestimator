@@ -129,7 +129,7 @@
       "id": "ART-019",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "119c7ecbd7ee24d39b3edbca38a0b1ffb8d85a3ea00032d4bc4b2e9da1d5350f"
+      "sha256": "5090a97d7ebe6eda065b138d860c9f700d9ae79d1c8a4ea58760bc508e76b8aa"
     },
     {
       "id": "ART-020",
@@ -2240,5 +2240,5 @@
     "cloudflare-worker-version-deployment-or-durable-object-routing-change"
   ],
   "updated_at": "2026-07-11T02:05:00.000Z",
-  "manifest_sha256": "6e8a36e697e9b934d7f1995e2b3a3b325c531b7b7e32f879275d479855abe089"
+  "manifest_sha256": "9adb85f8ea96212b03ca8af26ad23b606ecf7693de9615525309ee0e9cc1d0a4"
 }

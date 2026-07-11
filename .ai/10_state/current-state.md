@@ -111,6 +111,8 @@ Stable current truth (verify against git/source before relying on a detail):
   split remains substantive, cross-linked, manifest-registered, and subordinate
   to one canonical execution artifact. `PLAN-PACK-SCOPED-BASELINE-v1` binds the
   ordered relevant pathspec scope, tracked diff, and untracked file contents.
+  The completed implementation/evidence pack is archived at
+  `.ai/09_archive/store/2026-07-11-agent-contract-speed-and-test-gate-complete/`.
   Runtime authority is recomputed as `current_run_scope`; plans cannot grant
   actions. Ordinary decisions use `DEC-AUTO-*`; only true boundaries use
   `AUTH-*`; implementation, release, lifecycle, evidence, and terminal states

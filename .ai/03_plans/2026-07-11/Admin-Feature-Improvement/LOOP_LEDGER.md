@@ -86,3 +86,8 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 
 - A final concurrent commit touched this pack and validator tooling outside the scoped implementation/producer pathspecs. Scoped status and diff hashes remained byte-identical, and HEAD then remained stable for 10 seconds.
 - The baseline HEAD alone advances to `09cc3fc88a21cb045878db78034cf2fe93757172`; all semantic, overlap, characterization, and conditional-readiness conclusions remain unchanged.
+
+## 2026-07-11 — PLAN-013 — SHARED-WORKSPACE SETTLE
+
+- An unrelated Cloudflare evidence commit advanced global HEAD without touching any scoped pathspec; scoped status and diff hashes remained identical.
+- After a 15-second stable-HEAD check, the baseline HEAD advances to `a14f6e9e2eb1bef10376b5d7cec9392f2b566bfd`. This is a mechanical refreeze only.

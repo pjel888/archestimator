@@ -86,6 +86,11 @@ These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/` on 202
 
 Archived closeout / superseded plans:
 
+- `.ai/09_archive/store/2026-07-11-agent-contract-speed-and-test-gate-complete/` -
+  completed frontier agent-contract upgrade. Contains the conditional four-state
+  test gate, current Cloudflare/D1 stack guidance, GPT-5.6 adapter pins, concise
+  agent surfaces, deterministic validators, focused 32-test contract proof, and
+  independent no-residual-P0/P1/P2 closeout review.
 - `.ai/09_archive/store/2026-07-10-frontier-planning-prompt-autonomy/` -
   completed frontier planning-prompt autonomy upgrade. Contains the canonical
   implementation plan, loop ledger, deterministic manifest, 28-test validation

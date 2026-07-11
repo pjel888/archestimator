@@ -242,7 +242,9 @@ requireText("Plan-Pack-Schema.md", [
   ["independent state machines", "Use independent state machines"],
   ["terminal states", "AUTH_BLOCKED|TECH_BLOCKED"],
   ["conditional test decisions", "`NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`"],
-  ["testless criteria", "`NOT_REQUIRED` is the default and requires `test_ids: []`"],
+  ["test trigger decisions", "`NONE`, `EXPLICIT_TEST_TASK`, or `MVP_CRITICAL_INVARIANT`"],
+  ["test decision rationale", "`test_rationale`"],
+  ["testless criteria", "`NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`"],
 ]);
 
 requireText("Creating-Plan-Prompt.md", [
