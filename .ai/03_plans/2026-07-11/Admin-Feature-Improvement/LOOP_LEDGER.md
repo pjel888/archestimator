@@ -97,3 +97,8 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 - Concurrent Activity/Teamwork source added collaboration event mappings, metadata redaction, and feed filtering while the Teamwork producer ledger still states `TEAMWORK-ACTIVITY-CONTRACT-v1` and publisher-access receipts are absent. The Admin plan therefore preserves, rather than removes, its source-drift and producer-receipt blocks.
 - The exact focused characterization suite was rerun after the source change: 6 files, 24 tests, 21 passed, and the same three classified failures with no fourth failure.
 - After a 15-second HEAD settle and two further identical scoped snapshots, the final baseline is HEAD `0b3dff99d66eabf947ca930072ac2980409542a7`; scoped status `31dd9a798d24f538b4dbf3c33be237f052b1f803d8564481c9d72224cb80a8f1`; scoped diff `b6e07060ee13b1d2d4720fdf1c5c4d57a61f2d1e3d16a241da364d306d090a84`.
+
+## 2026-07-11 — PLAN-015 — FINAL SHARED COMMIT REFREEZE
+
+- The shared commit stream then incorporated plan/current-state producer updates without changing the conclusion from PLAN-014. HEAD remained stable for 20 seconds before this final recomputation.
+- Final exact baseline: HEAD `557fd92f5b4a41b9db159036edb3d250615cce06`; scoped status `c7c712773135f2325bba49cf0e3f5ac918498a6903086075e55f6fe7bae93840`; scoped diff `3dda78354678152d18cb0e704776e27531d7eaa92145c07429854593cd88c33a`.
