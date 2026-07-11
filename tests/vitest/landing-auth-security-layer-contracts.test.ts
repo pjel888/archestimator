@@ -52,10 +52,12 @@ describe("Landing-Page-Auth-Security-Layer contracts", () => {
     expect(actions).toMatch(/await\s+requireCurrentUserContext\s*\(/);
   });
 
-  it("fail-closes project estimate sheet repository reads behind project access (SEC-3)", () => {
+  it("scopes project estimate sheet repository reads to whole-project or direct-sheet access (SEC-3)", () => {
     const sheets = readProjectFile("src/lib/repositories/project-estimate-sheets-repository.ts");
     expect(sheets).toContain("requireCurrentUserContext");
-    expect(sheets).toContain("canAccessProjectInD1");
+    expect(sheets).toContain("canAccessWholeProjectInD1");
+    expect(sheets).toContain("estimate_sheet_members");
+    expect(sheets).toContain("AND id IN");
   });
 
   it("separates terms-gate secret from BETTER_AUTH_SECRET fallback (SEC-13)", () => {
@@ -78,7 +80,7 @@ describe("Landing-Page-Auth-Security-Layer contracts", () => {
 
   it("keeps protected workshop prefix and public allowlist fail-closed (SEC-2)", () => {
     const proxy = readProjectFile("src/lib/auth/request-proxy.ts");
-    expect(proxy).toContain('PROTECTED_PREFIXES = ["/workshop"]');
+    expect(proxy).toContain('PROTECTED_PREFIXES = ["/workshop", "/admin"]');
     expect(proxy).toContain("LOGIN_PATH");
     expect(proxy).toContain("/access-required");
     expect(proxy).toContain("hasBetterAuthSessionCookie");
