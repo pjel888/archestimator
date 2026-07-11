@@ -273,28 +273,34 @@ Run:
 
 `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> RECORD -> DECIDE`
 
-Verification is required; tests are conditional. Classify every criterion:
+Verification is required; **tests are user-gated under the User Test
+Authorization Gate, not automatic.** The user (owner) is the only authority who
+authorizes test execution. Classify every criterion:
 
 - `NOT_REQUIRED` - default. Do not create or run tests; use the cheapest
   decisive source/diff/path/reference/static/type/lint/dry-run/runtime evidence.
-- `TARGETED` - the smallest test proving a named MVP-critical invariant that
-  cheaper evidence cannot prove, or one already-existing focused test under
-  `CHEAPEST_DECISIVE_EXISTING_TEST` when that test is the cheapest decisive
-  evidence and requires no test edit.
-- `BROADER` - an integrated critical boundary cannot be established by targeted
-  evidence alone.
+- `TARGETED` - identifies a named MVP-critical invariant that cheaper evidence
+  cannot prove, or one already-existing focused test under
+  `CHEAPEST_DECISIVE_EXISTING_TEST`. **Authorizes proposing a test only, not
+  running it** — record a `TEST_PROPOSAL` (named risk + exact command) and
+  await explicit user authorization.
+- `BROADER` - identifies an integrated critical boundary that targeted evidence
+  cannot cover. **Authorizes proposing the narrowest suite only, not running
+  it** — record a `TEST_PROPOSAL` and await explicit user authorization.
 - `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
-  requested deliverable.
+  requested deliverable. This is the only decision that authorizes test
+  execution and requires an explicit user request.
 
 Map explicit testing scope to `TEST_TASK` plus `EXPLICIT_TEST_TASK`. Map a
 concrete MVP-critical auth/security/privacy, D1/data-integrity,
 estimate/money/proposal, release/observability, or shared-contract risk to
-`TARGETED` plus `MVP_CRITICAL_INVARIANT` when cheaper evidence is insufficient.
-Source changes, file count, user visibility, existing tests, and high-blast
-classification do not trigger tests by themselves. Broad suites, builds,
-browser automation, and manual QA require an explicit test task or integrated
-critical claim. Record the decision, trigger, evidence, and invalidation
-condition.
+`TARGETED` plus `MVP_CRITICAL_INVARIANT` when cheaper evidence is insufficient
+— this identifies the risk and authorizes a `TEST_PROPOSAL`, but it does **not**
+authorize running the test without explicit user authorization. Source changes,
+file count, user visibility, existing tests, and high-blast classification do
+not trigger tests by themselves. Broad suites, builds, browser automation, and
+manual QA require explicit user authorization. Record the decision, trigger,
+evidence, and invalidation condition.
 
 For every failed criterion, form a hypothesis, run the smallest discriminating
 check or experiment, inspect output, update the decision/evidence ledger, and choose the next
