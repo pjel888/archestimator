@@ -11,11 +11,11 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "557fd92f5b4a41b9db159036edb3d250615cce06",
-    "scoped_status_sha256": "c7c712773135f2325bba49cf0e3f5ac918498a6903086075e55f6fe7bae93840",
-    "scoped_diff_sha256": "3dda78354678152d18cb0e704776e27531d7eaa92145c07429854593cd88c33a"
+    "head": "8b25baec08732b14a4a5b4a90069627bd6b2acf9",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "3391e312d3d0b9367179a6a8574669640a19d61ad442d649e472a890a5812178"
   },
-  "updated_at": "2026-07-11T05:32:57.000Z",
+  "updated_at": "2026-07-11T05:35:31.000Z",
   "stale_triggers": [
     "scoped-source-baseline-drift",
     "migration-or-lease-generation-change",
@@ -139,7 +139,7 @@
       "id": "ART-019",
       "role": "supporting",
       "path": "LOOP_LEDGER.md",
-      "sha256": "7b01931cb906b5bbf6eb52e386be1a0e9cd168f2e400dec953502104b19143ab"
+      "sha256": "d04f3b5a2b7715109ba20d1927fec6c1d7ee9daf6fb7e01dacd029f4d36d3b74"
     },
     {
       "id": "ART-020",
@@ -3143,5 +3143,5 @@
     }
   ],
   "next_unit": "UNIT-001",
-  "manifest_sha256": "3cb9a16e8c6fa04a344d881bf19f03a4a69dc5fd7dafb88534980e60231380af"
+  "manifest_sha256": "1abf84d5fe223992bdf4fd465caa6db2518e31b7ae7f6179025a9a5e0355b031"
 }

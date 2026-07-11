@@ -102,3 +102,8 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 
 - The shared commit stream then incorporated plan/current-state producer updates without changing the conclusion from PLAN-014. HEAD remained stable for 20 seconds before this final recomputation.
 - Final exact baseline: HEAD `557fd92f5b4a41b9db159036edb3d250615cce06`; scoped status `c7c712773135f2325bba49cf0e3f5ac918498a6903086075e55f6fe7bae93840`; scoped diff `3dda78354678152d18cb0e704776e27531d7eaa92145c07429854593cd88c33a`.
+
+## 2026-07-11 — PLAN-016 — CLEAN-WORKTREE FINAL FREEZE
+
+- The Teamwork receipt files are now committed, but the Teamwork canonical execution artifact and ledger still describe them as missing and its manifest does not register them. Admin therefore treats the files as candidate producer evidence, not accepted execution-time receipts; the existing producer gate remains closed until Teamwork reconciles and validates its canonical pack.
+- The shared worktree settled clean. Final exact baseline: HEAD `8b25baec08732b14a4a5b4a90069627bd6b2acf9`; scoped status `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; scoped diff `3391e312d3d0b9367179a6a8574669640a19d61ad442d649e472a890a5812178`.
