@@ -4,6 +4,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   unlinkSync,
@@ -598,6 +599,22 @@ export function defaultPlanRoot(repoRoot = process.cwd()): string {
 
 export function defaultEvidenceRoot(repoRoot = process.cwd()): string {
   return resolve(defaultPlanRoot(repoRoot), "evidence/runtime");
+}
+
+export function resolveRunManifestPath(repoRoot: string, unit: string, explicitPath?: string): string {
+  if (explicitPath) return resolve(repoRoot, explicitPath);
+  const unitRoot = resolve(defaultRunRoot(repoRoot), unit);
+  if (!existsSync(unitRoot)) throw new Error(`no prepared run exists for ${unit}`);
+  const candidates = readdirSync(unitRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => resolve(unitRoot, entry.name, "run-manifest.json"))
+    .filter((path) => existsSync(path))
+    .map((path) => ({ path, manifest: readJsonFile<RunManifestV1>(path) }))
+    .filter(({ manifest }) => manifest.unit_id === unit && manifest.status === "PREPARED")
+    .sort((left, right) => right.manifest.created_at.localeCompare(left.manifest.created_at));
+  if (!candidates.length) throw new Error(`no prepared run exists for ${unit}`);
+  if (candidates[1]?.manifest.created_at === candidates[0]!.manifest.created_at) throw new Error(`prepared run order is ambiguous for ${unit}`);
+  return candidates[0]!.path;
 }
 
 export function ensureContainedRunPath(runRoot: string, path: string): string {

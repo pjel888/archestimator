@@ -8,12 +8,11 @@ import path from "node:path";
 const root = process.cwd();
 const receiptPath = ".ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json";
 const allocationTemplates = [
-  ["PLAN-2026-07-10-publisher-and-shared-pages", ".ai/03_plans/2026-07-10/Publisher-And-Shared-Pages/plan-pack.json", "publication_foreign_keys", "publisher"],
+  ["PLAN-2026-07-10-publisher-and-shared-pages", ".ai/09_archive/store/2026-07-11-Publisher-And-Shared-Pages-complete/plan-pack.json", "publication_foreign_keys", "publisher"],
   ["PLAN-2026-07-10-first-user-activation-and-cohort-operations", ".ai/03_plans/2026-07-10/First-User-Activation-And-Cohort-Operations/plan-pack.json", "beta_activation_events", "activation"],
   ["PLAN-2026-07-10-estimate-intelligence-and-price-governance", ".ai/03_plans/2026-07-10/Estimate-Intelligence-And-Price-Governance/plan-pack.json", "estimate_intelligence_inputs", "estimate-intelligence"],
   ["PLAN-2026-07-10-calculation-and-output-parity", ".ai/03_plans/2026-07-10/Calculation-And-Output-Parity/plan-pack.json", "estimate_calculation_input_constraints", "calculation-parity"],
-  ["PLAN-2026-07-10-activity-history-mapping", ".ai/03_plans/2026-07-10/Activity-History-Mapping/plan-pack.json", "activity_history_indexes", "activity-history-indexes"],
-  ["PLAN-2026-07-10-activity-history-mapping", ".ai/03_plans/2026-07-10/Activity-History-Mapping/plan-pack.json", "activity_history_lifecycle", "activity-history-lifecycle"],
+  ["PLAN-2026-07-10-activity-history-mapping", ".ai/09_archive/store/2026-07-11-Activity-History-Mapping-complete/plan-pack.json", "activity_history_indexes", "activity"],
 ];
 
 function canonicalize(value) {
@@ -35,36 +34,53 @@ async function sha256(filePath) {
 }
 
 const current = JSON.parse(await readFile(path.join(root, receiptPath), "utf8"));
+const currentAllocationsById = new Map(current.allocations.map((allocation) => [allocation.allocation_id, allocation]));
 const migrationPaths = (await readdir(path.join(root, "migrations")))
   .filter((file) => /^\d{4}_.+\.sql$/u.test(file))
   .sort()
   .map((file) => `migrations/${file}`);
 const tailEntries = await Promise.all(migrationPaths.map(async (file) => ({ path: file, sha256: await sha256(file) })));
 const highestObservedNumber = Number(path.basename(migrationPaths.at(-1) ?? "0000_").slice(0, 4));
-const activeTemplates = [];
+const existingPathsBySuffix = new Map(allocationTemplates.map((template) => {
+  const [, , suffix] = template;
+  return [suffix, migrationPaths.find((file) => file.endsWith(`_${suffix}.sql`)) ?? null];
+}));
+let nextActiveNumber = highestObservedNumber;
+const activeNumbersBySuffix = new Map();
 for (const template of allocationTemplates) {
   const [, , suffix] = template;
-  const existing = migrationPaths.find((file) => file.endsWith(`_${suffix}.sql`));
-  if (!existing) activeTemplates.push(template);
+  if (!existingPathsBySuffix.get(suffix)) {
+    nextActiveNumber += 1;
+    activeNumbersBySuffix.set(suffix, String(nextActiveNumber).padStart(4, "0"));
+  }
 }
-const allocations = activeTemplates.map((template, index) => {
-  const number = String(highestObservedNumber + index + 1).padStart(4, "0");
-  const [ownerPackageId, manifestPath, suffix, allocationId] = template;
-  return [number, ownerPackageId, manifestPath, `migrations/${number}_${suffix}.sql`, allocationId];
-});
 
-const ownerRows = await Promise.all(allocations.map(async ([number, ownerPackageId, manifestPath, plannedPath, allocationId]) => {
+const ownerRows = await Promise.all(allocationTemplates.map(async ([ownerPackageId, manifestPath, suffix, allocationId]) => {
   const manifestText = await readFile(path.join(root, manifestPath), "utf8");
   const manifest = JSON.parse(manifestText);
+  const existingPath = existingPathsBySuffix.get(suffix);
+  const previous = currentAllocationsById.get(allocationId);
+  const consumed = Boolean(existingPath);
+  const number = consumed
+    ? path.basename(existingPath).slice(0, 4)
+    : activeNumbersBySuffix.get(suffix);
+  const plannedPath = consumed
+    ? existingPath
+    : `migrations/${number}_${suffix}.sql`;
   const row = {
     allocation_id: allocationId,
     number,
     owner_package_id: ownerPackageId,
     owner_manifest_path: manifestPath,
     planned_path: plannedPath,
-    owner_manifest_file_sha256: createHash("sha256").update(manifestText).digest("hex"),
-    owner_manifest_self_sha256: manifest.manifest_sha256,
-    status: "UNCLAIMED",
+    owner_manifest_file_sha256: consumed && previous?.owner_manifest_file_sha256
+      ? previous.owner_manifest_file_sha256
+      : createHash("sha256").update(manifestText).digest("hex"),
+    owner_manifest_self_sha256: consumed && previous?.owner_manifest_self_sha256
+      ? previous.owner_manifest_self_sha256
+      : manifest.manifest_sha256,
+    status: consumed ? "CONSUMED" : "UNCLAIMED",
+    ...(consumed ? { consumed_file_sha256: await sha256(existingPath) } : {}),
     allocation_sha256: "",
   };
   row.allocation_sha256 = digest(row, "allocation_sha256");
@@ -92,4 +108,4 @@ const next = {
 next.allocation_set_sha256 = createHash("sha256").update(JSON.stringify(canonicalize(ownerRows))).digest("hex");
 next.receipt_sha256 = digest(next, "receipt_sha256");
 await writeFile(path.join(root, receiptPath), `${JSON.stringify(next, null, 2)}\n`);
-console.log(`Reissued migration lease generation ${next.generation}: ${next.migration_tail.latest_path} -> ${ownerRows.map((row) => row.number).join(", ")}`);
+console.log(`Reissued migration lease generation ${next.generation}: ${next.migration_tail.latest_path} -> ${ownerRows.map((row) => `${row.number}:${row.status}`).join(", ")}`);

@@ -12,6 +12,7 @@ import {
   normalizeArgv,
   nowIso,
   readJsonFile,
+  resolveRunManifestPath,
   redactedFailureIds,
   sha256File,
   writeJsonNoOverwrite,
@@ -150,14 +151,19 @@ function parseJsonEnv(name: string): unknown {
 
 export function readReceiptEnvironment(env = process.env): ReceiptEnvironment {
   const role = env.ESTIMATE_PERF_TEST_OUTPUT_ROLE?.trim() || undefined;
-  const runRoot = env.ESTIMATE_PERF_RUN_ROOT?.trim() || undefined;
-  const runId = env.ESTIMATE_PERF_RUN_ID?.trim() || undefined;
+  let runRoot = env.ESTIMATE_PERF_RUN_ROOT?.trim() || undefined;
+  let runId = env.ESTIMATE_PERF_RUN_ID?.trim() || undefined;
   const unitRaw = env.ESTIMATE_PERF_UNIT?.trim() || undefined;
   const fixtureRole = env.ESTIMATE_PERF_FIXTURE_ROLE?.trim() || undefined;
   const enabled = Boolean(role);
   if (!enabled) return { enabled: false };
-  if (!runRoot || !runId || !unitRaw) throw new Error("test receipt requires ESTIMATE_PERF_RUN_ROOT, ESTIMATE_PERF_RUN_ID, and ESTIMATE_PERF_UNIT");
+  if (!unitRaw) throw new Error("test receipt requires ESTIMATE_PERF_UNIT");
   const unitId = ensureUnit(unitRaw);
+  if (!runRoot || !runId) {
+    const manifest = readJsonFile<RunManifestV1>(resolveRunManifestPath(process.cwd(), unitId, env.ESTIMATE_PERF_RUN_MANIFEST));
+    runRoot = manifest.run_root;
+    runId = manifest.run_id;
+  }
   if (!ESTIMATE_UNITS.includes(unitId)) throw new Error(`unsupported receipt unit ${unitId}`);
   const receiptPath = receiptOutputPath({ runRoot, role: role as string, outputPath: env.ESTIMATE_PERF_TEST_RECEIPT_PATH });
   return {

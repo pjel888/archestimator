@@ -26,9 +26,10 @@ const agentPayloadStatuses = new Set(["approved", "conditional", "deprecated", "
 const failClosedStatuses = new Set(["deprecated", "unapproved", "non-agent"]);
 const supportedCodexAgentModels = new Set([
   "gpt-5.6",
-  "gpt-5.4-mini",
-  "gpt-5.3-codex-spark",
+  "gpt-5.6-terra",
 ]);
+const resolverModes = new Set(["none", "opencode", "all"]);
+let resolverMode = "none";
 
 function rel(path) {
   return relative(repoRoot, path) || ".";
@@ -40,6 +41,20 @@ function fail(message) {
 
 function warn(message) {
   warnings.push(message);
+}
+
+function parseCliOptions() {
+  for (const arg of process.argv.slice(2)) {
+    const match = arg.match(/^--resolver=(none|opencode|all)$/u);
+    if (match) {
+      resolverMode = match[1];
+    } else {
+      fail(`Unknown validator argument ${JSON.stringify(arg)}; use --resolver=none|opencode|all.`);
+    }
+  }
+  if (!resolverModes.has(resolverMode)) {
+    fail(`Unsupported resolver mode ${JSON.stringify(resolverMode)}.`);
+  }
 }
 
 function readText(path) {
@@ -470,7 +485,9 @@ function checkOpenCodeConfig() {
   }
 
   let config;
-  const resolvedOutput = runOpenCodeResolver();
+  const resolvedOutput = resolverMode === "opencode" || resolverMode === "all"
+    ? runOpenCodeResolver()
+    : null;
   try {
     config = parseJsonc(join(repoRoot, "opencode.json"));
   } catch (error) {
@@ -567,11 +584,45 @@ function checkCodexConfig() {
   if (!/^model = "gpt-5\.6"$/mu.test(config)) {
     fail(".codex/config.toml must pin the current frontier default model gpt-5.6.");
   }
+  if (/^model_(?:context_window|auto_compact_token_limit)\s*=/mu.test(config)) {
+    fail(".codex/config.toml must use current model metadata/default compaction instead of manual context caps.");
+  }
+  const agentsStart = config.indexOf("[agents]");
+  const agentsTable = agentsStart === -1
+    ? ""
+    : config.slice(agentsStart + "[agents]".length).split(/\n(?=\[)/u, 1)[0];
+  if (!/^max_depth\s*=\s*1\s*$/mu.test(agentsTable)) {
+    fail(".codex/config.toml [agents].max_depth must stay at the native depth-one contract.");
+  }
+  if (!/^max_threads\s*=\s*6\s*$/mu.test(agentsTable)) {
+    fail(".codex/config.toml [agents].max_threads must stay at the six-thread ceiling.");
+  }
 }
 
 function checkCodexAgentRoles() {
+  const matrixPath = ".ai/12_agents/codex-role-model-matrix.json";
+  let matrix;
+  try {
+    matrix = JSON.parse(readRepoText(matrixPath));
+  } catch (error) {
+    fail(`${matrixPath} is missing or invalid JSON: ${error.message}`);
+    return;
+  }
+  const expectedRoles = matrix?.roles;
+  if (!expectedRoles || typeof expectedRoles !== "object" || Array.isArray(expectedRoles)) {
+    fail(`${matrixPath} must define a roles object.`);
+    return;
+  }
+
   const dir = join(repoRoot, ".codex/agents");
-  for (const file of walkFiles(dir, (path) => path.endsWith(".toml"))) {
+  const files = walkFiles(dir, (path) => path.endsWith(".toml")).sort();
+  const actualRoleNames = files.map((file) => basename(file, ".toml"));
+  const expectedRoleNames = Object.keys(expectedRoles).sort();
+  if (JSON.stringify(actualRoleNames) !== JSON.stringify(expectedRoleNames)) {
+    fail(`${matrixPath} roles must exactly match .codex/agents/*.toml; expected ${actualRoleNames.join(", ")}.`);
+  }
+
+  for (const file of files) {
     try {
       const data = parseCodexAgentToml(file);
       const name = typeof data.name === "string" ? data.name.trim() : "";
@@ -586,12 +637,333 @@ function checkCodexAgentRoles() {
       if (!supportedCodexAgentModels.has(data.model)) {
         fail(`${rel(file)} uses unsupported model ${JSON.stringify(data.model)}; use the current frontier or approved specialist/fast-lane model.`);
       }
-      const resolvedModel = data.developer_instructions?.match(/^- resolved_model:\s*(\S+)\s*$/m)?.[1];
-      if (resolvedModel && resolvedModel !== data.model) {
-        fail(`${rel(file)} resolved_model ${resolvedModel} does not match top-level model ${data.model}.`);
+      const expected = expectedRoles[name];
+      if (!expected) continue;
+      const instructionMetadata = Object.fromEntries(
+        ["posture", "model_class", "routing_role", "resolved_model"].map((key) => [
+          key,
+          data.developer_instructions?.match(new RegExp(`^- ${key}:\\s*(\\S+)\\s*$`, "m"))?.[1],
+        ]),
+      );
+      for (const [field, actual] of [
+        ["model", data.model],
+        ["reasoning_effort", data.model_reasoning_effort],
+        ["posture", instructionMetadata.posture],
+        ["model_class", instructionMetadata.model_class],
+        ["routing_role", instructionMetadata.routing_role],
+      ]) {
+        if (actual !== expected[field]) {
+          fail(`${rel(file)} ${field} ${JSON.stringify(actual)} does not match ${matrixPath} ${JSON.stringify(expected[field])}.`);
+        }
+      }
+      if (instructionMetadata.resolved_model !== data.model) {
+        fail(`${rel(file)} resolved_model ${instructionMetadata.resolved_model} does not match top-level model ${data.model}.`);
       }
     } catch (error) {
       fail(error.message);
+    }
+  }
+}
+
+function checkFastPathContract() {
+  const path = ".ai/10_state/current-state.md";
+  const text = readRepoText(path);
+  const startMarker = "<!-- FAST PATH:START -->";
+  const endMarker = "<!-- FAST PATH:END -->";
+  const count = (needle) => text.split(needle).length - 1;
+  if (count(startMarker) !== 1 || count(endMarker) !== 1) {
+    fail(`${path} must contain exactly one explicit FAST PATH:START/FAST PATH:END marker pair.`);
+    return;
+  }
+  const start = text.indexOf(startMarker);
+  const end = text.indexOf(endMarker);
+  if (start === -1 || end <= start) {
+    fail(`${path} FAST PATH markers are out of order.`);
+    return;
+  }
+  const block = text.slice(start, end + endMarker.length);
+  const lineCount = block.split(/\r?\n/u).length;
+  const byteCount = Buffer.byteLength(block, "utf8");
+  if (lineCount > 150) {
+    fail(`${path} FAST PATH is ${lineCount} lines; the startup contract allows at most 150.`);
+  }
+  if (byteCount > 16 * 1024) {
+    fail(`${path} FAST PATH is ${byteCount} bytes; the startup contract allows at most 16 KiB.`);
+  }
+  for (const required of [
+    "Cloudflare/D1 is active",
+    "migrations/",
+    "supabase/migrations/",
+    "historical provider-exit evidence",
+    "must not be mutated or extended",
+  ]) {
+    if (!block.includes(required)) {
+      fail(`${path} FAST PATH must contain current provider posture phrase ${JSON.stringify(required)}.`);
+    }
+  }
+  if (/standing authorization.{0,120}Supabase|Supabase project.{0,120}(?:create|edit|apply) migrations/is.test(block)) {
+    fail(`${path} FAST PATH contains superseded active Supabase mutation authority.`);
+  }
+}
+
+function checkCloudflareSourceTruth() {
+  let wrangler;
+  try {
+    wrangler = parseJsonc(join(repoRoot, "wrangler.jsonc"));
+  } catch (error) {
+    fail(`wrangler.jsonc is not valid JSONC: ${error.message}`);
+    return;
+  }
+  const bindingNames = [
+    ...(wrangler.d1_databases ?? []).map((entry) => entry.binding),
+    ...(wrangler.r2_buckets ?? []).map((entry) => entry.binding),
+    ...(wrangler.durable_objects?.bindings ?? []).map((entry) => entry.name),
+    ...(wrangler.queues?.producers ?? []).map((entry) => entry.binding),
+    wrangler.images?.binding,
+    ...(wrangler.send_email ?? []).map((entry) => entry.name),
+  ].filter(Boolean);
+  const crons = wrangler.triggers?.crons ?? [];
+  const agents = readRepoText("AGENTS.md");
+  for (const value of [...bindingNames, ...crons]) {
+    if (!agents.includes(value)) {
+      fail(`AGENTS.md is missing current wrangler.jsonc fact ${JSON.stringify(value)}.`);
+    }
+  }
+  const cursorBrain = readRepoText(".cursor/rules/00-archestimator-project-brain.mdc");
+  if (!cursorBrain.includes("wrangler.jsonc") || !cursorBrain.includes("migrations/")) {
+    fail(".cursor/rules/00-archestimator-project-brain.mdc must point to source-defined Cloudflare bindings and migrations.");
+  }
+  if (/\b\d+\s+(?:active\s+)?(?:D1\s+)?migrations\b/iu.test(cursorBrain)) {
+    fail(".cursor/rules/00-archestimator-project-brain.mdc must not copy a mutable migration count.");
+  }
+}
+
+function checkCursorRules() {
+  const ruleDir = join(repoRoot, ".cursor/rules");
+  const alwaysLoaded = walkFiles(ruleDir, (path) => path.endsWith(".mdc"))
+    .filter((path) => /^alwaysApply:\s*true\s*$/mu.test(readText(path)));
+  if (alwaysLoaded.length !== 1 || rel(alwaysLoaded[0]) !== ".cursor/rules/00-archestimator-project-brain.mdc") {
+    fail(`Cursor must have exactly one alwaysApply rule at .cursor/rules/00-archestimator-project-brain.mdc; found ${alwaysLoaded.map(rel).join(", ") || "none"}.`);
+  } else if (statSync(alwaysLoaded[0]).size > 8 * 1024) {
+    fail(`${rel(alwaysLoaded[0])} exceeds the 8 KiB always-loaded context budget.`);
+  }
+  for (const removed of [
+    ".cursor/rules/01-shared-worktree-safety.mdc",
+    ".cursor/rules/02-validation-and-evidence.mdc",
+    ".cursor/rules/03-agent-orchestration.mdc",
+  ]) {
+    if (repoExists(removed)) fail(`${removed} must remain consolidated into the compact Cursor brain rule.`);
+  }
+}
+
+function checkCursorHooks() {
+  const path = ".cursor/hooks.json";
+  let config;
+  try {
+    config = JSON.parse(readRepoText(path));
+  } catch (error) {
+    fail(`${path} is not valid JSON: ${error.message}`);
+    return;
+  }
+  const expectedEvents = [
+    "beforeReadFile",
+    "beforeShellExecution",
+    "beforeSubmitPrompt",
+    "beforeTabFileRead",
+    "sessionStart",
+  ];
+  const actualEvents = Object.keys(config.hooks ?? {}).sort();
+  if (JSON.stringify(actualEvents) !== JSON.stringify(expectedEvents)) {
+    fail(`${path} must register only the five truthful local events: ${expectedEvents.join(", ")}.`);
+  }
+  const configuredScripts = new Set();
+  for (const [event, entries] of Object.entries(config.hooks ?? {})) {
+    if (!Array.isArray(entries) || entries.length !== 1) {
+      fail(`${path} ${event} must contain exactly one handler.`);
+      continue;
+    }
+    const entry = entries[0];
+    if (entry.event !== event || typeof entry.description !== "string" || !entry.description.trim()) {
+      fail(`${path} ${event} must have a matching event and truthful non-empty description.`);
+    }
+    const match = typeof entry.command === "string"
+      ? entry.command.match(/^node\s+(\.cursor\/hooks\/[A-Za-z0-9._-]+\.js)$/u)
+      : null;
+    if (!match) {
+      fail(`${path} ${event} must execute one repo-local Node hook script.`);
+      continue;
+    }
+    if (["beforeShellExecution", "beforeTabFileRead"].includes(event) && entry.failClosed !== true) {
+      fail(`${path} ${event} must declare failClosed: true because it enforces a security boundary.`);
+    }
+    if (event === "sessionStart" && entry.failClosed !== false) {
+      fail(`${path} sessionStart must declare failClosed: false so auxiliary memory availability cannot block implementation.`);
+    }
+    configuredScripts.add(match[1]);
+    if (!repoExists(match[1])) {
+      fail(`${path} ${event} references missing script ${match[1]}.`);
+    } else if (/runExistingHook|getPluginRoot|scripts\/hooks\//u.test(readRepoText(match[1]))) {
+      fail(`${match[1]} delegates to the removed missing-hook adapter contract.`);
+    }
+  }
+  const allowedScripts = new Set([".cursor/hooks/adapter.js", ...configuredScripts]);
+  for (const file of walkFiles(join(repoRoot, ".cursor/hooks"), (file) => file.endsWith(".js"))) {
+    if (!allowedScripts.has(rel(file))) {
+      fail(`${rel(file)} is an unregistered Cursor hook wrapper; delete dead lifecycle work or register a truthful handler.`);
+    }
+  }
+  const adapter = readRepoText(".cursor/hooks/adapter.js");
+  if (/runExistingHook|getPluginRoot|scripts\/hooks\//u.test(adapter)) {
+    fail(".cursor/hooks/adapter.js must stay local and must not delegate to missing scripts/hooks targets.");
+  }
+  const sessionStart = readRepoText(".cursor/hooks/session-start.js");
+  if (!sessionStart.includes("supermemory:ensure") || !sessionStart.includes("DEGRADED") || sessionStart.includes("BLOCKED: Supermemory")) {
+    fail(".cursor/hooks/session-start.js must report degraded Supermemory availability without blocking session startup.");
+  }
+  const shell = readRepoText(".cursor/hooks/before-shell-execution.js");
+  for (const required of ["--no-verify", "commitShortClusterHasNoVerify", "bunx", "npx", "background", "nestedShellClauses", "tmux", "process.exit(2)"]) {
+    if (!shell.includes(required)) fail(`.cursor/hooks/before-shell-execution.js is missing ${JSON.stringify(required)}.`);
+  }
+  for (const readHook of [".cursor/hooks/before-read-file.js", ".cursor/hooks/before-tab-file-read.js"]) {
+    if (!readRepoText(readHook).includes("file_path")) {
+      fail(`${readHook} must consume Cursor's official top-level file_path input.`);
+    }
+  }
+  if (!readRepoText(".cursor/hooks/before-tab-file-read.js").includes("process.exit(2)")) {
+    fail(".cursor/hooks/before-tab-file-read.js must fail closed when its input cannot be inspected.");
+  }
+}
+
+function checkCursorAgents() {
+  const agentDir = join(repoRoot, ".cursor/agents");
+  const triggerPattern = /\b(?:PROACTIVELY|MUST BE USED|automatically activated|automatically invoke[ds]?|always use this agent)\b/iu;
+  for (const file of walkFiles(agentDir, (path) => path.endsWith(".md"))) {
+    const text = readText(file);
+    const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/u)?.[1] ?? "";
+    const description = frontmatter.match(/^description:\s*(.+)$/mu)?.[1] ?? "";
+    if (!description) {
+      fail(`${rel(file)} must define a frontmatter description.`);
+    } else if (triggerPattern.test(description)) {
+      fail(`${rel(file)} frontmatter contains unconditional activation language: ${description}`);
+    }
+  }
+  const staleCorePatterns = [
+    [".cursor/agents/ecc-architect.md", /Next\.js 15|Vercel\s*\/\s*Postgres\s*\/\s*Supabase/iu],
+    [".cursor/agents/ecc-planner.md", /(?:create|add|write).{0,80}supabase\/migrations|row[- ]level security|\bRLS policies\b/iu],
+    [".cursor/agents/ecc-database-reviewer.md", /PostgreSQL\s*\/\s*Supabase|\bRLS policies\b|active migrations.{0,80}supabase\/migrations/iu],
+  ];
+  for (const [file, pattern] of staleCorePatterns) {
+    if (pattern.test(readRepoText(file))) {
+      fail(`${file} contains stale active project architecture/provider guidance.`);
+    }
+  }
+  const projectFacingFiles = [
+    ".cursor/agents/ecc-architect.md",
+    ".cursor/agents/ecc-code-reviewer.md",
+    ".cursor/agents/ecc-database-reviewer.md",
+    ".cursor/agents/ecc-e2e-runner.md",
+    ".cursor/agents/ecc-planner.md",
+    ".cursor/agents/ecc-security-reviewer.md",
+    ".cursor/agents/ecc-tdd-guide.md",
+  ];
+  const staleProjectPrescription = /Next\.js 15|Vercel\s*\/\s*Postgres\s*\/\s*Supabase|active migrations.{0,100}supabase\/migrations|(?:create|add|write).{0,100}supabase\/migrations/iu;
+  for (const file of projectFacingFiles) {
+    if (staleProjectPrescription.test(readRepoText(file))) {
+      fail(`${file} contains stale project-specific provider or framework guidance.`);
+    }
+  }
+
+  const tddGuide = readRepoText(".cursor/agents/ecc-tdd-guide.md").replace(/\s+/gu, " ");
+  for (const required of ["CHEAPEST_DECISIVE_EXISTING_TEST", "do not use TDD", "run exactly the named existing focused test"]) {
+    if (!tddGuide.includes(required)) {
+      fail(`.cursor/agents/ecc-tdd-guide.md must preserve the no-edit existing-test branch: missing ${JSON.stringify(required)}.`);
+    }
+  }
+  const e2eGuide = readRepoText(".cursor/agents/ecc-e2e-runner.md").replace(/\s+/gu, " ");
+  for (const required of ["browser-only claim", "cheaper evidence cannot prove"]) {
+    if (!e2eGuide.includes(required)) {
+      fail(`.cursor/agents/ecc-e2e-runner.md must keep browser work opt-in: missing ${JSON.stringify(required)}.`);
+    }
+  }
+  const designRule = readRepoText(".cursor/rules/14-design-system-components.mdc").replace(/\s+/gu, " ");
+  for (const required of ["specific browser-only claim", "cannot be proved more cheaply", "Prefer static, type/LSP, lint, unit, or DOM evidence"]) {
+    if (!designRule.includes(required)) {
+      fail(`.cursor/rules/14-design-system-components.mdc must preserve proportional browser evidence: missing ${JSON.stringify(required)}.`);
+    }
+  }
+
+  for (const testEngineerPath of [".codex/agents/test-engineer.toml", ".codex/prompts/test-engineer.md"]) {
+    const testEngineer = readRepoText(testEngineerPath).replace(/\s+/gu, " ");
+    for (const required of ["CHEAPEST_DECISIVE_EXISTING_TEST", "run-only", "without modifying any test file", "do not use TDD"]) {
+      if (!testEngineer.includes(required)) {
+        fail(`${testEngineerPath} must keep the cheapest-existing-test lane read-only: missing ${JSON.stringify(required)}.`);
+      }
+    }
+  }
+}
+
+function checkStaleModelGuidance() {
+  const roots = [
+    ".codex/agents",
+    ".codex/prompts",
+    ".agents/skills/prometheus-strict",
+    ".agents/skills/ce-code-review",
+    ".agents/skills/ce-simplify-code",
+  ];
+  for (const root of roots) {
+    const full = join(repoRoot, root);
+    const files = statSync(full).isFile() ? [full] : walkFiles(full, (path) => /\.(?:md|toml)$/u.test(path));
+    for (const file of files) {
+      const hardcodedModels = [...readText(file).matchAll(/\bgpt-5\.\d+(?:-[a-z0-9][a-z0-9.-]*)?\b/giu)]
+        .map((match) => match[0].toLowerCase());
+      for (const model of hardcodedModels) {
+        if (!supportedCodexAgentModels.has(model)) {
+          fail(`${rel(file)} contains stale hardcoded model guidance ${JSON.stringify(model)}; use the current role matrix or session inheritance.`);
+        }
+      }
+    }
+  }
+}
+
+function checkTestGateSummaryContract() {
+  const paths = [
+    "AGENTS.md",
+    "CODEX.md",
+    "CLAUDE.md",
+    ".ai/00_system/AGENT_OPERATING_PROTOCOL.md",
+    ".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
+    ".ai/00_system/VALIDATION_MATRIX.md",
+    ".ai/10_state/current-state.md",
+    ".ai/12_agents/README.md",
+    ".ai/12_agents/payloads/README.md",
+    ".ai/12_agents/payloads/_template.md",
+    ".ai/12_agents/payloads/antigravity.md",
+    ".ai/12_agents/payloads/claude.md",
+    ".ai/12_agents/payloads/codex.md",
+    ".ai/12_agents/payloads/commandcode.md",
+    ".ai/12_agents/payloads/deepseek.md",
+    ".ai/12_agents/payloads/kimi.md",
+    ".ai/12_agents/payloads/opencode.md",
+    ".cursor/rules/00-archestimator-project-brain.mdc",
+  ];
+  for (const path of paths) {
+    const text = readRepoText(path).replace(/\s+/gu, " ");
+    const mapsExplicitToTestTask =
+      /TEST_TASK.{0,160}explicit (?:test|testing|QA)/iu.test(text) ||
+      /explicit (?:test|testing|QA).{0,160}TEST_TASK/iu.test(text);
+    const mapsTargetedToCritical =
+      /TARGETED.{0,240}(?:MVP|mission-critical|critical invariant)/iu.test(text) ||
+      /(?:MVP|mission-critical|critical invariant).{0,240}TARGETED/iu.test(text);
+    const preservesExistingTestGate =
+      /CHEAPEST_DECISIVE_EXISTING_TEST|existing focused test.{0,120}cheapest decisive|cheapest decisive.{0,120}existing focused test/iu.test(text);
+    if (!mapsExplicitToTestTask) {
+      fail(`${path} must map explicit testing/QA output to TEST_TASK.`);
+    }
+    if (!mapsTargetedToCritical) {
+      fail(`${path} must reserve TARGETED for a named critical invariant or the existing-test exception.`);
+    }
+    if (!preservesExistingTestGate) {
+      fail(`${path} must preserve the CHEAPEST_DECISIVE_EXISTING_TEST exception without authorizing test edits.`);
     }
   }
 }
@@ -617,7 +989,8 @@ function checkActiveGuidancePolicyDrift() {
     ".codex/prompts",
     ".commandcode/agents",
     ".commandcode/taste",
-    ".cursor/rules/02-validation-and-evidence.mdc",
+    ".cursor/rules/00-archestimator-project-brain.mdc",
+    ".cursor/rules/14-design-system-components.mdc",
     ".cursor/rules/17-testing-discipline.mdc",
   ];
   const files = [...new Set(roots.flatMap((root) => {
@@ -773,9 +1146,17 @@ function checkNoTrackedLocalState() {
   }
 }
 
+parseCliOptions();
 checkOpenCodeConfig();
 checkCodexConfig();
 checkCodexAgentRoles();
+checkFastPathContract();
+checkCloudflareSourceTruth();
+checkCursorRules();
+checkCursorHooks();
+checkCursorAgents();
+checkStaleModelGuidance();
+checkTestGateSummaryContract();
 checkActiveGuidancePolicyDrift();
 checkAgentPayloadContracts();
 checkSupermemoryBootstrapContract();

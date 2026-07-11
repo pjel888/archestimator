@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
 import {
   lstat,
   readFile,
@@ -9,6 +10,9 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const ENUMS = {
   profile: new Set(["focused", "standard", "high-blast-radius"]),
@@ -70,9 +74,11 @@ const TEST_TRIGGERS = new Set([
   "NONE",
   "EXPLICIT_TEST_TASK",
   "MVP_CRITICAL_INVARIANT",
+  "CHEAPEST_DECISIVE_EXISTING_TEST",
 ]);
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+const SHELL_INERT_TEST_PATH_PATTERN = /^[A-Za-z0-9._/-]+$/u;
 const REQUIREMENT_ID_PATTERN = /^(?:REQ|UX|SEC|DATA|PERF|OPS)-\d+$/u;
 const TRACE_ID_PATTERN = /^(?:SRC|REQ|UX|SEC|DATA|PERF|OPS|ASSUMP|DEC-AUTO|AUTH|RISK|AC|TEST|EVID|ART|UNIT|GATE|SLICE)-[A-Z0-9-]+$/u;
 
@@ -207,6 +213,110 @@ function includesString(record, key, value) {
   return Array.isArray(record?.[key]) && record[key].includes(value);
 }
 
+async function validateExistingTestIdentity(testRecord, baseline, errors) {
+  const label = `tests: ${testRecord.id}`;
+  if (testRecord.execution_mode !== "EXISTING_READ_ONLY") {
+    errors.push(`${label}: execution_mode must be EXISTING_READ_ONLY for CHEAPEST_DECISIVE_EXISTING_TEST`);
+  }
+
+  const testPath = expectNonEmptyString(testRecord, "existing_test_path", label, errors);
+  const testCommand = expectNonEmptyString(testRecord, "test_command", label, errors);
+  const expectedHash = expectNonEmptyString(testRecord, "existing_test_sha256", label, errors);
+  if (expectedHash && !SHA256_PATTERN.test(expectedHash)) {
+    errors.push(`${label}: existing_test_sha256 must be a SHA-256 digest`);
+  }
+  const testPathIsSafe = !testPath || (isSafeRelativePath(testPath) && SHELL_INERT_TEST_PATH_PATTERN.test(testPath));
+  if (testPath && !testPathIsSafe) {
+    errors.push(`${label}: existing_test_path must be a shell-inert repository-relative path using only A-Z, a-z, 0-9, dot, underscore, slash, or hyphen`);
+  }
+  if (testPath && !/(?:^|\/)(?:__tests__|e2e|tests?)(?:\/|$)|\.(?:spec|test)\.[A-Za-z0-9]+$/u.test(testPath)) {
+    errors.push(`${label}: existing_test_path must identify a test file or test directory`);
+  }
+  if (testCommand) {
+    if (/[\r\n;&|<>`$*?{}\[\]]/u.test(testCommand) || /["'\\]/u.test(testCommand)) {
+      errors.push(`${label}: test_command must be one direct command without shell composition, quoting, or redirection`);
+    } else {
+      const tokens = testCommand.trim().split(/\s+/u);
+      const noExecutionFlags = [];
+      const vitestExecutionFlags = [/^--maxWorkers=1$/u];
+      const playwrightExecutionFlags = [/^--workers=1$/u];
+      const allowedRunners = [
+        { prefix: ["bun", "test"], flags: noExecutionFlags },
+        { prefix: ["bun", "x", "playwright", "test"], flags: playwrightExecutionFlags },
+        { prefix: ["bun", "x", "vitest", "run"], flags: vitestExecutionFlags },
+        { prefix: ["bunx", "playwright", "test"], flags: playwrightExecutionFlags },
+        { prefix: ["bunx", "vitest", "run"], flags: vitestExecutionFlags },
+        { prefix: ["node", "--test"], flags: noExecutionFlags },
+        { prefix: ["npx", "playwright", "test"], flags: playwrightExecutionFlags },
+        { prefix: ["npx", "vitest", "run"], flags: vitestExecutionFlags },
+        { prefix: ["pnpm", "exec", "playwright", "test"], flags: playwrightExecutionFlags },
+        { prefix: ["pnpm", "exec", "vitest", "run"], flags: vitestExecutionFlags },
+        { prefix: ["yarn", "playwright", "test"], flags: playwrightExecutionFlags },
+        { prefix: ["yarn", "vitest", "run"], flags: vitestExecutionFlags },
+      ];
+      const runner = allowedRunners.find((candidate) =>
+        candidate.prefix.every((token, index) => tokens[index] === token),
+      );
+      const selectorIndex = runner?.prefix.length ?? -1;
+      if (!runner || tokens[selectorIndex] !== testPath) {
+        errors.push(`${label}: test_command must use an allowlisted direct runner with existing_test_path as its sole selector`);
+      } else if (tokens.slice(selectorIndex + 1).some((token) =>
+        !runner.flags.some((pattern) => pattern.test(token)),
+      )) {
+        errors.push(`${label}: test_command options after existing_test_path must be read-only and runner-allowlisted`);
+      }
+      if (tokens.some((token) => ["--all", "--changed", "--projects", "--related"].includes(token.split("=", 1)[0]))) {
+        errors.push(`${label}: test_command cannot add a broad-selection flag`);
+      }
+    }
+  }
+  if (!testPathIsSafe) return;
+
+  const baselineHead = baseline?.head;
+  if (typeof baselineHead !== "string" || !/^[a-f0-9]{40,64}$/u.test(baselineHead)) {
+    errors.push(`${label}: CHEAPEST_DECISIVE_EXISTING_TEST requires an exact Git commit in baseline.head`);
+    return;
+  }
+  if (!testPath || !expectedHash || !SHA256_PATTERN.test(expectedHash)) return;
+
+  try {
+    const { stdout: rootOutput } = await execFileAsync(
+      "git",
+      ["-C", process.cwd(), "rev-parse", "--show-toplevel"],
+      { encoding: "utf8", maxBuffer: 1024 * 1024 },
+    );
+    const repositoryRoot = await realpath(rootOutput.trim());
+    const absolute = resolveInside(repositoryRoot, testPath);
+    if (!absolute) {
+      errors.push(`${label}: existing_test_path escapes the repository root`);
+      return;
+    }
+
+    const actual = await realpath(absolute);
+    const info = await stat(actual);
+    if (actual !== absolute || !info.isFile()) {
+      errors.push(`${label}: existing_test_path must be a regular non-symlink file`);
+      return;
+    }
+
+    const currentHash = sha256(await readFile(actual));
+    const { stdout: baselineBytes } = await execFileAsync(
+      "git",
+      ["-C", repositoryRoot, "show", `${baselineHead}:${testPath}`],
+      { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 },
+    );
+    const baselineHash = sha256(Buffer.isBuffer(baselineBytes) ? baselineBytes : Buffer.from(baselineBytes));
+    if (baselineHash !== expectedHash) {
+      errors.push(`${label}: existing_test_sha256 does not match the test at baseline.head`);
+    }
+    if (currentHash !== expectedHash) {
+      errors.push(`${label}: existing test changed after baseline; the read-only exception is invalid`);
+    }
+  } catch (error) {
+    errors.push(`${label}: could not prove the existing test at baseline.head (${error.message})`);
+  }
+}
+
 function validateDag(unitEdges, errors) {
   const visiting = new Set();
   const visited = new Set();
@@ -277,13 +387,32 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
     tests,
     units,
   } = indexes;
+  const ids = (value) => (Array.isArray(value) ? value : []);
   const activeUnits = [...units.values()].filter((unit) => unit.status !== "SUPERSEDED");
+  const coreRequirementIds = new Set(
+    [...requirements.values()]
+      .filter((requirement) => requirement.completion_role !== "AUXILIARY")
+      .map((requirement) => requirement.id),
+  );
+  const coreCriteria = [...criteria.values()].filter((criterion) =>
+    ids(criterion.requirement_ids).some((id) => coreRequirementIds.has(id)));
+  const coreCriterionIds = new Set(coreCriteria.map((criterion) => criterion.id));
+  const coreGates = [...gates.values()].filter((gate) =>
+    ids(gate.criterion_ids).some((id) => coreCriterionIds.has(id)));
+  const coreTests = [...tests.values()].filter((test) =>
+    ids(test.criterion_ids).some((id) => coreCriterionIds.has(id)));
+  const coreUnits = activeUnits.filter((unit) =>
+    ids(unit.requirement_ids).some((id) => coreRequirementIds.has(id)));
+  const coreUnitIds = new Set(coreUnits.map((unit) => unit.id));
+  const coreRisks = [...risks.values()].filter((risk) =>
+    ids(risk.unit_ids).some((id) => coreUnitIds.has(id))
+    || ids(risk.criterion_ids).some((id) => coreCriterionIds.has(id)));
   const activeBoundaries = [...authorizationBoundaries.values()].filter(
     (boundary) => boundary.status === "ACTIVE",
   );
-  const blockedUnits = activeUnits.filter((unit) => unit.status === "BLOCKED");
-  const readyUnits = activeUnits.filter((unit) => ["READY", "IN_PROGRESS"].includes(unit.status));
-  const unfinishedUnits = activeUnits.filter((unit) => unit.status !== "VERIFIED");
+  const blockedCoreUnits = coreUnits.filter((unit) => unit.status === "BLOCKED");
+  const readyCoreUnits = coreUnits.filter((unit) => ["READY", "IN_PROGRESS"].includes(unit.status));
+  const unfinishedCoreUnits = coreUnits.filter((unit) => unit.status !== "VERIFIED");
 
   if (manifest.next_unit !== null) {
     const next = units.get(manifest.next_unit);
@@ -298,7 +427,7 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
     if (![...slices.values()].some((slice) => links.sliceUnits.get(slice.id)?.includes(manifest.next_unit))) {
       errors.push(`next_unit: ${manifest.next_unit} is not present in a ready slice`);
     }
-  } else if (manifest.terminal_status === "ACTIVE" && readyUnits.length > 0) {
+  } else if (manifest.terminal_status === "ACTIVE" && readyCoreUnits.length > 0) {
     errors.push("next_unit: ACTIVE packs with ready/in-progress work require an exact next unit");
   }
 
@@ -306,12 +435,13 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
     if (manifest.package_status !== "IMPLEMENTATION_READY") {
       errors.push("implementation_status: COMPLETE requires package_status IMPLEMENTATION_READY");
     }
-    for (const unit of unfinishedUnits) {
+    for (const unit of unfinishedCoreUnits) {
       errors.push(`implementation_status: COMPLETE conflicts with ${unit.id}=${unit.status}`);
     }
     for (const requirement of requirements.values()) {
       if (
-        requirement.status === "ACCEPTED"
+        coreRequirementIds.has(requirement.id)
+        && requirement.status === "ACCEPTED"
         && !((links.requirementUnits.get(requirement.id) ?? []).some((unitId) => units.get(unitId)?.status === "VERIFIED"))
       ) {
         errors.push(`implementation_status: COMPLETE requires ${requirement.id} to have a non-superseded VERIFIED unit`);
@@ -323,7 +453,7 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
   }
 
   if (manifest.implementation_status === "NOT_STARTED") {
-    for (const unit of activeUnits) {
+    for (const unit of coreUnits) {
       if (["IN_PROGRESS", "DONE", "VERIFIED"].includes(unit.status)) {
         errors.push(`implementation_status: NOT_STARTED conflicts with ${unit.id}=${unit.status}`);
       }
@@ -334,7 +464,7 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
     if (slices.size === 0) {
       errors.push("package_status: IMPLEMENTATION_READY requires a ready slice until implementation is complete");
     }
-    for (const unit of activeUnits) {
+    for (const unit of coreUnits) {
       if (["PLANNED", "BLOCKED"].includes(unit.status)) {
         errors.push(`package_status: IMPLEMENTATION_READY conflicts with ${unit.id}=${unit.status}`);
       }
@@ -342,7 +472,7 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
   }
 
   if (manifest.package_status === "CONDITIONALLY_READY") {
-    if (slices.size === 0 || !activeUnits.some((unit) => ["PLANNED", "BLOCKED"].includes(unit.status))) {
+    if (slices.size === 0 || !coreUnits.some((unit) => ["PLANNED", "BLOCKED"].includes(unit.status))) {
       errors.push("package_status: CONDITIONALLY_READY requires a ready slice and an explicitly unready remaining unit");
     }
   }
@@ -398,6 +528,7 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
       errors.push("terminal_status: ACHIEVED requires plan_lifecycle N/A, ARCHIVE_READY, or ARCHIVED");
     }
     for (const requirement of requirements.values()) {
+      if (!coreRequirementIds.has(requirement.id)) continue;
       if (["PROPOSED", "BLOCKED"].includes(requirement.status)) {
         errors.push(`terminal_status: ACHIEVED conflicts with ${requirement.id}=${requirement.status}`);
       }
@@ -408,17 +539,17 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
         errors.push(`terminal_status: ACHIEVED requires ${requirement.id} to have a PASS or BOUNDARY criterion`);
       }
     }
-    for (const record of [...criteria.values(), ...gates.values()]) {
+    for (const record of [...coreCriteria, ...coreGates]) {
       if (record.status === "FAIL") {
         errors.push(`terminal_status: ACHIEVED conflicts with ${record.id}=FAIL`);
       }
     }
-    for (const test of tests.values()) {
+    for (const test of coreTests) {
       if (["PLANNED", "FAIL", "STALE"].includes(test.status)) {
         errors.push(`terminal_status: ACHIEVED conflicts with ${test.id}=${test.status}`);
       }
     }
-    for (const risk of risks.values()) {
+    for (const risk of coreRisks) {
       if (["OPEN", "REALIZED"].includes(risk.status)) {
         errors.push(`terminal_status: ACHIEVED conflicts with ${risk.id}=${risk.status}`);
       }
@@ -429,13 +560,14 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
     if (activeBoundaries.length === 0 || manifest.release_status !== "BOUNDARY") {
       errors.push("terminal_status: AUTH_BLOCKED requires an active AUTH record and release_status BOUNDARY");
     }
-    if (manifest.next_unit !== null || slices.size > 0 || readyUnits.length > 0) {
+    if (manifest.next_unit !== null || slices.size > 0 || readyCoreUnits.length > 0) {
       errors.push("terminal_status: AUTH_BLOCKED requires no ready/in-progress work or ready slice");
     }
-    for (const unit of unfinishedUnits) {
+    for (const unit of unfinishedCoreUnits) {
       errors.push(`terminal_status: AUTH_BLOCKED conflicts with unfinished ${unit.id}=${unit.status}`);
     }
     for (const requirement of requirements.values()) {
+      if (!coreRequirementIds.has(requirement.id)) continue;
       if (["PROPOSED", "BLOCKED"].includes(requirement.status)) {
         errors.push(`terminal_status: AUTH_BLOCKED conflicts with ${requirement.id}=${requirement.status}`);
       }
@@ -446,17 +578,17 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
         errors.push(`terminal_status: AUTH_BLOCKED requires ${requirement.id} to have a PASS or BOUNDARY criterion`);
       }
     }
-    for (const record of [...criteria.values(), ...gates.values()]) {
+    for (const record of [...coreCriteria, ...coreGates]) {
       if (record.status === "FAIL") {
         errors.push(`terminal_status: AUTH_BLOCKED conflicts with ${record.id}=FAIL`);
       }
     }
-    for (const test of tests.values()) {
+    for (const test of coreTests) {
       if (["PLANNED", "FAIL", "STALE"].includes(test.status)) {
         errors.push(`terminal_status: AUTH_BLOCKED conflicts with ${test.id}=${test.status}`);
       }
     }
-    for (const risk of risks.values()) {
+    for (const risk of coreRisks) {
       if (["OPEN", "REALIZED"].includes(risk.status)) {
         errors.push(`terminal_status: AUTH_BLOCKED conflicts with ${risk.id}=${risk.status}`);
       }
@@ -464,10 +596,10 @@ function validateTerminalSemantics(manifest, indexes, links, errors) {
   }
 
   if (manifest.terminal_status === "TECH_BLOCKED") {
-    if (manifest.implementation_status !== "INCOMPLETE" || blockedUnits.length === 0) {
-      errors.push("terminal_status: TECH_BLOCKED requires implementation_status INCOMPLETE and a BLOCKED unit");
+    if (manifest.implementation_status !== "INCOMPLETE" || blockedCoreUnits.length === 0) {
+      errors.push("terminal_status: TECH_BLOCKED requires implementation_status INCOMPLETE plus a BLOCKED unit linked to a core requested deliverable; auxiliary-only failures cannot block implementation");
     }
-    if (manifest.next_unit !== null || slices.size > 0 || readyUnits.length > 0) {
+    if (manifest.next_unit !== null || slices.size > 0 || readyCoreUnits.length > 0) {
       errors.push("terminal_status: TECH_BLOCKED requires no ready/in-progress work or ready slice");
     }
   }
@@ -724,6 +856,9 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
   }
 
   for (const requirement of requirements.values()) {
+    if (requirement.completion_role !== undefined && !["CORE", "AUXILIARY"].includes(requirement.completion_role)) {
+      errors.push(`requirements: ${requirement.id}.completion_role expected CORE or AUXILIARY`);
+    }
     const minimum = requirement.status === "ACCEPTED" ? 1 : 0;
     const sourceIds = expectStringArray(requirement, "source_ids", `requirements: ${requirement.id}`, errors, { minimum, pattern: /^SRC-\d+$/u });
     const unitIds = expectStringArray(requirement, "unit_ids", `requirements: ${requirement.id}`, errors, { minimum, pattern: /^UNIT-\d+$/u });
@@ -754,6 +889,9 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
   }
 
   const usesConditionalTestGate = manifest.suite_version === "2026-07-11";
+  const cheapestExistingTestIds = new Set();
+  const cheapestExistingTestPaths = new Set();
+  let cheapestExistingTestCriteria = 0;
 
   for (const criterion of criteria.values()) {
     const requirementIds = expectStringArray(criterion, "requirement_ids", `criteria: ${criterion.id}`, errors, { minimum: 1, pattern: REQUIREMENT_ID_PATTERN });
@@ -766,7 +904,7 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
       errors.push(`criteria: ${criterion.id}.test_requirement expected NOT_REQUIRED, TARGETED, BROADER, or TEST_TASK`);
     }
     if (usesConditionalTestGate && !TEST_TRIGGERS.has(testTrigger)) {
-      errors.push(`criteria: ${criterion.id}.test_trigger expected NONE, EXPLICIT_TEST_TASK, or MVP_CRITICAL_INVARIANT`);
+      errors.push(`criteria: ${criterion.id}.test_trigger expected NONE, EXPLICIT_TEST_TASK, MVP_CRITICAL_INVARIANT, or CHEAPEST_DECISIVE_EXISTING_TEST`);
     }
     if (usesConditionalTestGate && testRationale && testRationale.trim().length < 20) {
       errors.push(`criteria: ${criterion.id}.test_rationale must explain the selected evidence path`);
@@ -779,6 +917,48 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     }
     if (usesConditionalTestGate && testRequirement === "TEST_TASK" && testTrigger !== "EXPLICIT_TEST_TASK") {
       errors.push(`criteria: ${criterion.id} TEST_TASK requires test_trigger EXPLICIT_TEST_TASK`);
+    }
+    if (usesConditionalTestGate && testTrigger === "EXPLICIT_TEST_TASK" && testRequirement !== "TEST_TASK") {
+      errors.push(`criteria: ${criterion.id} EXPLICIT_TEST_TASK requires test_requirement TEST_TASK`);
+    }
+    if (
+      usesConditionalTestGate &&
+      testRequirement === "TARGETED" &&
+      testTrigger !== "MVP_CRITICAL_INVARIANT" &&
+      testTrigger !== "CHEAPEST_DECISIVE_EXISTING_TEST"
+    ) {
+      errors.push(`criteria: ${criterion.id} TARGETED requires test_trigger MVP_CRITICAL_INVARIANT or CHEAPEST_DECISIVE_EXISTING_TEST`);
+    }
+    if (usesConditionalTestGate && testRequirement === "BROADER" && testTrigger !== "MVP_CRITICAL_INVARIANT") {
+      errors.push(`criteria: ${criterion.id} BROADER requires test_trigger MVP_CRITICAL_INVARIANT`);
+    }
+    if (
+      usesConditionalTestGate &&
+      testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" &&
+      testRequirement !== "TARGETED"
+    ) {
+      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST requires test_requirement TARGETED`);
+    }
+    if (
+      usesConditionalTestGate &&
+      testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" &&
+      testRationale &&
+      !(/existing/i.test(testRationale) && /cheapest/i.test(testRationale) && /decisive/i.test(testRationale))
+    ) {
+      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST rationale must identify the existing test as the cheapest decisive proof`);
+    }
+    if (
+      usesConditionalTestGate &&
+      testTrigger === "MVP_CRITICAL_INVARIANT" &&
+      testRationale &&
+      !(
+        /critical/i.test(testRationale) &&
+        /invariant/i.test(testRationale) &&
+        /cheaper|non-test/i.test(testRationale) &&
+        /insufficient|cannot|does not|not enough|unable/i.test(testRationale)
+      )
+    ) {
+      errors.push(`criteria: ${criterion.id} MVP_CRITICAL_INVARIANT rationale must name the critical invariant and explain why cheaper evidence is insufficient`);
     }
     if (
       usesConditionalTestGate &&
@@ -800,6 +980,9 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     if (usesConditionalTestGate && testRequirement === "NOT_REQUIRED" && testIds.length > 0) {
       errors.push(`criteria: ${criterion.id} test_ids must be empty when test_requirement is NOT_REQUIRED`);
     }
+    if (usesConditionalTestGate && testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" && testIds.length !== 1) {
+      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST requires exactly one test_id`);
+    }
     if (usesConditionalTestGate && criterion.status === "N/A" && testRequirement !== "NOT_REQUIRED") {
       errors.push(`criteria: ${criterion.id} must use test_requirement NOT_REQUIRED when status is N/A`);
     }
@@ -808,6 +991,14 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
         if (tests.get(testId)?.status !== "PASS") {
           errors.push(`criteria: ${criterion.id}=PASS requires ${testId}=PASS`);
         }
+      }
+    }
+    if (usesConditionalTestGate && testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" && testIds.length === 1) {
+      const testRecord = tests.get(testIds[0]);
+      cheapestExistingTestCriteria += 1;
+      cheapestExistingTestIds.add(testIds[0]);
+      if (typeof testRecord?.existing_test_path === "string" && testRecord.existing_test_path.trim()) {
+        cheapestExistingTestPaths.add(testRecord.existing_test_path);
       }
     }
     if (criterion.status === "BOUNDARY") {
@@ -819,6 +1010,16 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
       }
     } else if (criterion.authorization_boundary_id !== null) {
       errors.push(`criteria: ${criterion.id} authorization_boundary_id must be null unless status is BOUNDARY`);
+    }
+  }
+
+  if (usesConditionalTestGate && cheapestExistingTestCriteria > 0) {
+    if (cheapestExistingTestIds.size !== 1 || cheapestExistingTestPaths.size !== 1) {
+      errors.push("criteria: CHEAPEST_DECISIVE_EXISTING_TEST permits exactly one shared test_id and existing_test_path per plan pack");
+    }
+    for (const testId of cheapestExistingTestIds) {
+      const testRecord = tests.get(testId);
+      if (testRecord) await validateExistingTestIdentity(testRecord, manifest.baseline, errors);
     }
   }
 
@@ -904,11 +1105,13 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
 
   const readySliceUnitIds = new Set([...links.sliceUnits.values()].flat());
   for (const requirement of requirements.values()) {
+    const isCoreRequirement = requirement.completion_role !== "AUXILIARY";
     const appliesToAdvertisedWork = manifest.package_status === "IMPLEMENTATION_READY"
       || (manifest.package_status === "CONDITIONALLY_READY"
         && (links.requirementUnits.get(requirement.id) ?? []).some((unitId) => readySliceUnitIds.has(unitId)));
     if (
-      requirement.status === "ACCEPTED"
+      isCoreRequirement
+      && requirement.status === "ACCEPTED"
       && appliesToAdvertisedWork
       && !(links.requirementSources.get(requirement.id) ?? []).some((sourceId) => sources.get(sourceId)?.status === "CURRENT")
     ) {

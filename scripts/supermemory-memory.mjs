@@ -51,15 +51,16 @@ function assertSanitized(content) {
   }
 }
 
-async function request(path, body) {
+async function request(path, body, method = "POST") {
   const timeoutMs = Number.parseInt(process.env.SUPERMEMORY_API_TIMEOUT_MS || "10000", 10);
+  const headers = {
+    authorization: `Bearer ${readApiKey()}`,
+  };
+  if (body !== undefined) headers["content-type"] = "application/json";
   const response = await fetch(new URL(path, apiUrl), {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${readApiKey()}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
+    method,
+    headers,
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     redirect: "error",
     signal: AbortSignal.timeout(Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 10000),
   }).catch((error) => {
@@ -72,6 +73,52 @@ async function request(path, body) {
   } catch {
     fail("local API returned invalid JSON.");
   }
+}
+
+function positiveInteger(value, fallback) {
+  const parsed = Number.parseInt(value || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
+}
+
+function searchContainsDocument(searchResult, documentId) {
+  return Array.isArray(searchResult?.results) && searchResult.results.some((entry) =>
+    entry?.documentId === documentId || entry?.id === documentId);
+}
+
+async function waitForSearchableDocument(accepted, content) {
+  const documentId = accepted?.id;
+  if (typeof documentId !== "string" || !documentId) {
+    fail("local API accepted a memory without returning a document id.");
+  }
+
+  const timeoutMs = positiveInteger(process.env.SUPERMEMORY_INDEX_TIMEOUT_MS, 240000);
+  const pollMs = positiveInteger(process.env.SUPERMEMORY_INDEX_POLL_MS, 1000);
+  const deadline = Date.now() + timeoutMs;
+  let latest = accepted;
+
+  while (Date.now() <= deadline) {
+    latest = await request(`/v3/documents/${encodeURIComponent(documentId)}`, undefined, "GET");
+    if (["done", "failed"].includes(latest?.status)) {
+      const searchResult = await request("/v3/search", {
+        includeFullDocs: true,
+        limit: 10,
+        q: content,
+      });
+      if (searchContainsDocument(searchResult, documentId)) {
+        return { ...accepted, indexedStatus: latest.status, searchable: true };
+      }
+      if (latest.status === "failed") {
+        fail(`document ${documentId} failed during indexing and was not found by search.`);
+      }
+    }
+    await sleep(Math.min(pollMs, Math.max(1, deadline - Date.now())));
+  }
+
+  fail(`document ${documentId} was not searchable within ${timeoutMs}ms.`);
 }
 
 function readAddContent() {
@@ -97,7 +144,7 @@ if (command === "search") {
   const content = readAddContent();
   if (!content) fail("usage: bun run supermemory:add -- <sanitized memory>.");
   assertSanitized(content);
-  result = await request("/v3/documents", {
+  const accepted = await request("/v3/documents", {
     containerTag: "archestimator",
     content,
     metadata: {
@@ -106,6 +153,7 @@ if (command === "search") {
     },
     taskType: "memory",
   });
+  result = await waitForSearchableDocument(accepted, content);
 } else {
   fail("usage: supermemory-memory.mjs <search|add> <text>.");
 }

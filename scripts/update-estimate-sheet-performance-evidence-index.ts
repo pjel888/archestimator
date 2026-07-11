@@ -11,10 +11,12 @@ import {
   cliBoolean,
   cliString,
   defaultEvidenceRoot,
+  defaultPlanRoot,
   ensureContainedRunPath,
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveRunManifestPath,
   sha256File,
   sha256Json,
   writeJsonNoOverwrite,
@@ -147,11 +149,14 @@ export function main(argv = process.argv.slice(2)): number {
     console.log("Usage: bun run scripts/update-estimate-sheet-performance-evidence-index.ts --run-manifest=PATH --evidence-id=EVID-001 --evidence=PATH --project=PATH [--dependency=PATH,PATH] [--cleanup=PATH] [--status=VERIFIED]");
     return 0;
   }
-  const runManifest = cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST;
-  if (!runManifest) throw new Error("evidence index requires --run-manifest");
+  const unit = cliString(values, "unit", true) as string;
+  const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const evidenceId = cliString(values, "evidence-id", true) as string;
   const evidencePath = cliString(values, "evidence", true) as string;
-  const projectPath = cliString(values, "project") ?? resolve(defaultEvidenceRoot(), `${basename(evidencePath, ".json")}.json`);
+  const projectValue = cliString(values, "project");
+  const projectPath = projectValue
+    ? resolve(projectValue.startsWith("evidence/") ? defaultPlanRoot() : process.cwd(), projectValue)
+    : resolve(defaultEvidenceRoot(), `${basename(evidencePath, ".json")}.json`);
   const status = cliString(values, "status") as EvidenceIndexV1["status"] | undefined;
   if (status !== undefined && !["VERIFIED", "BLOCKED", "INCOMPLETE"].includes(status)) throw new Error(`invalid index status: ${status}`);
   const dependencies = (cliString(values, "dependency") ?? "").split(",").filter(Boolean);
@@ -160,7 +165,10 @@ export function main(argv = process.argv.slice(2)): number {
   if (also.length !== alsoProjects.length) throw new Error("--also and --also-project counts must match");
   const result = updateEstimateSheetPerformanceEvidenceIndex({
     runManifest, evidenceId, evidencePath, projectPath, status, dependencies, cleanupReceipt: cliString(values, "cleanup"),
-    secondary: also.map((evidence, index) => ({ role: evidence.replace(/^auto:/u, ""), evidencePath: evidence, projectPath: alsoProjects[index]! })),
+    secondary: also.map((evidence, index) => {
+      const project = alsoProjects[index]!;
+      return { role: evidence.replace(/^auto:/u, ""), evidencePath: evidence, projectPath: resolve(project.startsWith("evidence/") ? defaultPlanRoot() : process.cwd(), project) };
+    }),
   });
   process.stdout.write(`${canonicalJson({ ...result.index, index_path: result.indexPath, projection_path: result.projectionPath })}\n`);
   return 0;

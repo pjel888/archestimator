@@ -4,6 +4,9 @@
   "main": "worker.ts",
   "compatibility_date": "2026-06-29",
   "compatibility_flags": ["nodejs_compat"],
+  "alias": {
+    "server-only": "./node_modules/server-only/empty.js"
+  },
   "workers_dev": true,
   "routes": [
     {

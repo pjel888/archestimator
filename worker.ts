@@ -4,6 +4,7 @@ import {
 } from "./src/lib/cloudflare/scheduled-upload-jobs";
 import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
 import { reconcileActivityOutbox } from "./src/lib/activity/activity-outbox";
+import { reconcileActivationOutbox } from "./src/lib/onboarding/activation-outbox";
 import { normalizePathForLog } from "./src/lib/observability/safe-path";
 import { redactMessage } from "./src/lib/observability/redact";
 import { recordCronRunEvent } from "./src/lib/admin/observability-repository";
@@ -157,13 +158,22 @@ export default {
         if (proofResponse) return responseWithRequestId(proofResponse, requestId);
 
         const collaborationRoomResponse = await routeCollaborationRoomRequest(request, env);
-        if (collaborationRoomResponse) return responseWithRequestId(collaborationRoomResponse, requestId);
+        if (collaborationRoomResponse) {
+          if (request.headers.get("upgrade")?.toLowerCase() === "websocket") return collaborationRoomResponse;
+          return responseWithRequestId(collaborationRoomResponse, requestId);
+        }
 
         const globalPresenceResponse = await routeGlobalPresenceRequest(request, env);
-        if (globalPresenceResponse) return responseWithRequestId(globalPresenceResponse, requestId);
+        if (globalPresenceResponse) {
+          if (request.headers.get("upgrade")?.toLowerCase() === "websocket") return globalPresenceResponse;
+          return responseWithRequestId(globalPresenceResponse, requestId);
+        }
 
         const supportInboxResponse = await routeSupportInboxRequest(request, env);
-        if (supportInboxResponse) return responseWithRequestId(supportInboxResponse, requestId);
+        if (supportInboxResponse) {
+          if (request.headers.get("upgrade")?.toLowerCase() === "websocket") return supportInboxResponse;
+          return responseWithRequestId(supportInboxResponse, requestId);
+        }
 
         const cachedPublicPageResponse = await routeStaticPublicPageThroughCache(
           request,
@@ -220,9 +230,11 @@ export default {
         Promise.all([
           runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }),
           reconcileActivityOutbox(env.ARCH_DB),
-        ]).then(([results, outbox]) => {
+          reconcileActivationOutbox(env.ARCH_DB),
+        ]).then(([results, outbox, activationOutbox]) => {
           console.log("Retention pass completed", JSON.stringify(results));
           console.log("Activity outbox reconciliation completed", JSON.stringify(outbox));
+          console.log("Activation outbox reconciliation completed", JSON.stringify(activationOutbox));
           recordCronRunEvent({
             cronName: `retention-pass:${cronName}`,
             startedAt,

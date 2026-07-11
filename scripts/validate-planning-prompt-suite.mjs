@@ -220,11 +220,14 @@ requireText("Frontier-Planning-Kernel.md", [
   ["autonomous decisions", "DEC-AUTO-*"],
   ["authorization isolation", "AUTH-*"],
   ["technical terminal", "TECH_BLOCKED"],
+  ["core-only technical terminal", "core requested deliverable"],
+  ["auxiliary anti-abuse", "cannot be reclassified to manufacture completion"],
   ["status separation", "terminal_status"],
   ["evidence invalidation", "evidence fingerprint"],
   ["atomic shared lease registry", ".ai/99_scratch/leases/"],
   ["same-agent provenance", "same-agent-separated"],
   ["stage-relative completion", "Stage completion requires"],
+  ["core-relative completion", "every core requirement is complete"],
   ["conditional test field", "test_requirement"],
   ["default no-test decision", "NOT_REQUIRED"],
 ]);
@@ -241,8 +244,11 @@ requireText("Plan-Pack-Schema.md", [
   ["package action ceiling", "package_action_ceiling"],
   ["independent state machines", "Use independent state machines"],
   ["terminal states", "AUTH_BLOCKED|TECH_BLOCKED"],
+  ["completion role", "completion_role"],
+  ["auxiliary non-blocking", "auxiliary-only failures"],
+  ["mixed-link core precedence", "mixed core/aux links"],
   ["conditional test decisions", "`NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`"],
-  ["test trigger decisions", "`NONE`, `EXPLICIT_TEST_TASK`, or `MVP_CRITICAL_INVARIANT`"],
+  ["test trigger decisions", "`NONE`, `EXPLICIT_TEST_TASK`, `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`"],
   ["test decision rationale", "`test_rationale`"],
   ["testless criteria", "`NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`"],
 ]);
@@ -253,6 +259,9 @@ requireText("Creating-Plan-Prompt.md", [
   ["manifest creation", "Create `plan-pack.json`"],
   ["read-only final checker", "final checking pass is read-only"],
   ["test decision classification", "Classify each criterion's `test_requirement`"],
+  ["requirement completion role", "completion_role: CORE|AUXILIARY"],
+  ["auxiliary planning gaps", "auxiliary gaps remain visible and non-blocking"],
+  ["explicit-deliverable core rule", "Explicit user/system deliverables"],
 ]);
 
 requireText("Improve-Plan-Prompt.md", [
@@ -261,6 +270,8 @@ requireText("Improve-Plan-Prompt.md", [
   ["stale evidence invalidation", "invalidate stale review evidence"],
   ["non-editing final verifier", "final verifier does not edit"],
   ["ceremonial-test removal", "Delete ceremonial test requirements"],
+  ["auxiliary completion audit", "completion_role: CORE|AUXILIARY"],
+  ["core source readiness", "accepted core requirement references at least one `CURRENT` source"],
 ]);
 
 requireText("Create-Implementation-Prompt.md", [
@@ -270,6 +281,8 @@ requireText("Create-Implementation-Prompt.md", [
   ["concurrent promotion guard", "changed concurrently"],
   ["read-only final checker", "profile-selected read-only final check"],
   ["default no-test compile", "Default `test_requirement` to `NOT_REQUIRED`"],
+  ["implementation completion role", "completion_role: CORE|AUXILIARY"],
+  ["auxiliary readiness gaps", "auxiliary failures"],
 ]);
 
 requireText("Executing-Plan-Prompt.md", [
@@ -282,6 +295,7 @@ requireText("Executing-Plan-Prompt.md", [
   ["read-only verifier", "final verifier is read-only"],
   ["authorization terminal", "terminal_status: ACHIEVED"],
   ["technical terminal", "TECH_BLOCKED"],
+  ["core-only technical blocker", "core requested deliverable"],
   ["post-move proof", "post-move state"],
   ["no-test execution", "Run no tests for `NOT_REQUIRED`"],
 ]);
@@ -296,6 +310,7 @@ requireText("Multi-Agent-Execution-Directive.md", [
   ["read-only verifier", "final verifier is read-only"],
   ["post-move proof", "After the move"],
   ["worker test decision", "`test_requirement`"],
+  ["worker completion role", "completion_role: CORE|AUXILIARY"],
 ]);
 
 const gates = contents.get("Frontier-Applicability-Gates.md") ?? "";
@@ -340,8 +355,8 @@ requireText("Prompt-Evaluation-Suite.md", [
 const rubricRows = [
   ...evals.matchAll(/^\| ([^|]+) \| ([^|]+) \|$/gmu),
 ].filter((match) => match[1].trim() !== "Dimension" && !/^-+$/u.test(match[1].trim()));
-if (rubricRows.length !== 18) {
-  errors.push(`Prompt-Evaluation-Suite.md: expected 18 rubric dimensions, found ${rubricRows.length}`);
+if (rubricRows.length !== 19) {
+  errors.push(`Prompt-Evaluation-Suite.md: expected 19 rubric dimensions, found ${rubricRows.length}`);
 }
 
 const combinedLineCount = [...contents.values()].reduce(

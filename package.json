@@ -66,6 +66,7 @@
     "graph:gitnexus": "node scripts/run-safe-gitnexus-command.mjs",
     "graph:neutralize": "node scripts/neutralize-graph-mandate.mjs",
     "validate:agents": "node scripts/validate-ai-workflow-adapters.mjs",
+    "validate:agents:full": "node scripts/validate-ai-workflow-adapters.mjs --resolver=all",
     "validate:plan-pack": "node scripts/validate-plan-pack.mjs",
     "validate:planning-prompts": "node scripts/validate-planning-prompt-suite.mjs",
     "supermemory:configure": "node scripts/configure-supermemory-server.mjs --install-launch-agent",

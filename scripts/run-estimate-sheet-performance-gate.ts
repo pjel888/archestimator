@@ -13,6 +13,7 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveRunManifestPath,
   redactedFailureIds,
   sha256Hex,
   writeJsonNoOverwrite,
@@ -48,16 +49,15 @@ function splitCommand(argv: string[]): { options: string[]; command: string[] } 
   return { options: argv.slice(0, separator), command: argv.slice(separator + 1) };
 }
 
-function resolveManifest(repoRoot: string, path?: string): RunManifestV1 {
-  if (!path) throw new Error("gate requires --run-manifest");
-  const manifest = readJsonFile<RunManifestV1>(resolve(repoRoot, path));
+function resolveManifest(repoRoot: string, unit: string, path?: string): RunManifestV1 {
+  const manifest = readJsonFile<RunManifestV1>(resolveRunManifestPath(repoRoot, unit, path));
   assertRunManifest(manifest);
   return manifest;
 }
 
 export function runEstimateSheetPerformanceGate(input: {
   repoRoot?: string;
-  runManifest: string;
+  runManifest?: string;
   unit: string;
   role: string;
   command: string[];
@@ -68,7 +68,7 @@ export function runEstimateSheetPerformanceGate(input: {
   if (!ALLOWED_ROLES.has(input.role)) throw new Error(`gate role is not allowlisted: ${input.role}`);
   if (!input.command.length) throw new Error("gate requires a child command after --");
   if (input.command.some((token) => token.includes("\0"))) throw new Error("child command contains NUL");
-  const manifest = resolveManifest(repoRoot, input.runManifest);
+  const manifest = resolveManifest(repoRoot, input.unit, input.runManifest);
   if (manifest.unit_id !== input.unit) throw new Error("gate unit does not match run manifest");
   const before = computeEstimateSheetSourceFingerprint({ repoRoot }).fingerprint;
   const started = Date.now();
@@ -111,7 +111,7 @@ export function main(argv = process.argv.slice(2)): number {
   if (cliBoolean(values, "help")) { console.log("Usage: bun run scripts/run-estimate-sheet-performance-gate.ts --unit=UNIT-001 --role=typecheck --run-manifest=PATH --output=auto:typecheck -- command args..."); return 0; }
   const unit = cliString(values, "unit", true) as string;
   const role = cliString(values, "role", true) as string;
-  const runManifest = cliString(values, "run-manifest", true) as string;
+  const runManifest = cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST;
   const result = runEstimateSheetPerformanceGate({ repoRoot: process.cwd(), runManifest, unit, role, command: split.command, output: cliString(values, "output") });
   process.stdout.write(`${JSON.stringify({ ...result.receipt, receipt_path: result.receiptPath }, null, 2)}\n`);
   return result.exitCode;

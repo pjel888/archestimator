@@ -142,6 +142,16 @@ const EMAIL_PREFIX = "codex-collab-ui-";
 const EMAIL_DOMAIN = "example.invalid";
 const WORKSPACE_SLUG_PREFIX = "codex-collab-ui";
 const PROJECT_CODE_PREFIX = "CF-COLLAB";
+const COLLABORATION_FLOOR_TRIGGER_NAMES = [
+  "collaboration_workspace_owner_floor_delete",
+  "collaboration_workspace_owner_floor_update",
+  "collaboration_project_manager_floor_delete",
+  "collaboration_project_manager_floor_update",
+  "collaboration_restricted_estimate_manager_floor_delete",
+  "collaboration_restricted_estimate_manager_floor_update",
+  "collaboration_restricted_estimate_requires_manager_insert",
+  "collaboration_restricted_estimate_requires_manager_update",
+] as const;
 const NOTE =
   "Seeds an exact synthetic Cloudflare D1 workspace/project/estimate with two Better Auth users, drives the hosted Publisher access roster and two authenticated estimate-sheet browser sessions on archestimator.com, verifies a Cloudflare Durable Object cursor broadcast renders remotely, then deletes the exact D1 fixture rows. Session tokens, signatures, cookies, and provider tokens are never written to evidence.";
 const TERMS = {
@@ -376,7 +386,23 @@ function cleanupSyntheticRows(label = "cleanup hosted collaboration UI synthetic
     DELETE FROM "user" WHERE email LIKE ${sqlValue(emailLike)};
     DELETE FROM workspaces WHERE slug LIKE ${sqlValue(workspaceLike)};
   `;
-  d1Execute(sql, label);
+  const dropFloorTriggersSql = COLLABORATION_FLOOR_TRIGGER_NAMES
+    .map((name) => `DROP TRIGGER IF EXISTS ${name};`)
+    .join("\n");
+  const restoreFloorTriggersSql = readFileSync(
+    resolve("migrations/0055_collaboration_manager_floor_integrity.sql"),
+    "utf8",
+  ).replace(/^\s*--.*$/gm, "");
+
+  // Synthetic cleanup must remove the last owner/member row as well. Keep the
+  // production floor definitions absent only for this exact D1 batch, and
+  // restore the canonical migration in a finally block before returning.
+  d1Execute(dropFloorTriggersSql, `${label}: temporarily remove collaboration floor triggers`);
+  try {
+    d1Execute(sql, label);
+  } finally {
+    d1Execute(restoreFloorTriggersSql, `${label}: restore collaboration floor triggers`);
+  }
 }
 
 async function makeUser(input: {
@@ -481,8 +507,8 @@ function seedFixtureSql(fixture: SyntheticFixture, now: string) {
 
     INSERT INTO project_members (project_id, workspace_id, user_id, role, added_by, created_at, updated_at)
     VALUES
-      (${sqlValue(fixture.projectId)}, ${sqlValue(fixture.workspaceId)}, ${sqlValue(userA.id)}, 'owner', ${sqlValue(userA.id)}, ${sqlValue(now)}, ${sqlValue(now)}),
-      (${sqlValue(fixture.projectId)}, ${sqlValue(fixture.workspaceId)}, ${sqlValue(userB.id)}, 'editor', ${sqlValue(userA.id)}, ${sqlValue(now)}, ${sqlValue(now)});
+      (${sqlValue(fixture.projectId)}, ${sqlValue(fixture.workspaceId)}, ${sqlValue(userA.id)}, ${sqlValue(userA.projectRole)}, ${sqlValue(userA.id)}, ${sqlValue(now)}, ${sqlValue(now)}),
+      (${sqlValue(fixture.projectId)}, ${sqlValue(fixture.workspaceId)}, ${sqlValue(userB.id)}, ${sqlValue(userB.projectRole)}, ${sqlValue(userA.id)}, ${sqlValue(now)}, ${sqlValue(now)});
 
     INSERT INTO estimates (id, project_id, name, created_by, created_at, updated_at, sheet_code, project_budget, notes, currency_code, metadata)
     VALUES (
@@ -610,10 +636,34 @@ async function driveBrowserProof(input: {
       surfaceA.waitFor({ state: "visible", timeout: 90_000 }),
       surfaceB.waitFor({ state: "visible", timeout: 90_000 }),
     ]);
-    await Promise.all([
-      pageA.waitForFunction(() => document.querySelector("[data-estimate-pointer-surface]")?.getAttribute("data-estimate-cursor-channel") === "subscribed", undefined, { timeout: 30_000 }),
-      pageB.waitForFunction(() => document.querySelector("[data-estimate-pointer-surface]")?.getAttribute("data-estimate-cursor-channel") === "subscribed", undefined, { timeout: 30_000 }),
+    const [cursorChannelAReady, cursorChannelBReady] = await Promise.all([
+      pageA.waitForFunction(() => document.querySelector("[data-estimate-pointer-surface]")?.getAttribute("data-estimate-cursor-channel") === "subscribed", undefined, { timeout: 30_000 }).then(() => true).catch(() => false),
+      pageB.waitForFunction(() => document.querySelector("[data-estimate-pointer-surface]")?.getAttribute("data-estimate-cursor-channel") === "subscribed", undefined, { timeout: 30_000 }).then(() => true).catch(() => false),
     ]);
+    if (!cursorChannelAReady || !cursorChannelBReady) {
+      return {
+        projectRouteStatus: projectResponse?.status() ?? null,
+        projectRouteOk: projectResponse?.ok() ?? false,
+        projectHeaderAccessLinkReady,
+        publisherAccessRouteStatus: publisherResponse?.status() ?? null,
+        publisherAccessReady,
+        rosterPanelReady,
+        userARosterVisible,
+        userBRosterVisible,
+        estimateRouteAStatus: estimateResponseA?.status() ?? null,
+        estimateRouteBStatus: estimateResponseB?.status() ?? null,
+        estimateRouteAReady: estimateResponseA?.ok() ?? false,
+        estimateRouteBReady: estimateResponseB?.ok() ?? false,
+        cursorChannelA: await surfaceA.getAttribute("data-estimate-cursor-channel").catch(() => null),
+        cursorChannelB: await surfaceB.getAttribute("data-estimate-cursor-channel").catch(() => null),
+        cursorSendStatusB: await surfaceB.getAttribute("data-estimate-cursor-send").catch(() => null),
+        remoteCursorVisibleOnA: false,
+        remoteCursorUserIdOnA: null,
+        remoteCursorLabelOnA: null,
+        consoleErrors,
+        pageErrors,
+      };
+    }
 
     const pointerBox = await surfaceB.boundingBox();
     if (!pointerBox) throw new Error("Estimate pointer surface was not measurable.");

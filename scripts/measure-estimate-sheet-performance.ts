@@ -21,6 +21,7 @@ import {
   nowIso,
   parseStrictCli,
   readJsonFile,
+  resolveRunManifestPath,
   sha256File,
   sha256Hex,
   writeJsonNoOverwrite,
@@ -218,8 +219,8 @@ export function main(argv = process.argv.slice(2)): number {
   if (!EVIDENCE_CLASSES.has(evidenceClass)) throw new Error(`invalid evidence class: ${evidenceClass}`);
   const policy = (cliString(values, "budget-policy") ?? "enforce") as "record-only" | "enforce";
   if (!BUDGET_POLICIES.has(policy)) throw new Error(`invalid budget policy: ${policy}`);
-  const runManifest = cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST;
-  if (!runManifest) throw new Error("measurement requires --run-manifest or ESTIMATE_PERF_RUN_MANIFEST");
+  const unit = cliString(values, "unit", true) as string;
+  const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const output = cliString(values, "output");
   const outputRole: string = output?.replace(/^auto:/u, "") ?? evidenceClass;
   const result = measureEstimateSheetPerformance({

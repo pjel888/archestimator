@@ -87,6 +87,11 @@ const nextConfig: NextConfig = {
         turbopack: {
           resolveAlias: {
             sharp: "./src/lib/uploads/sharp-cloudflare-stub.ts",
+            // OpenNext bundles the server function outside Next's RSC resolver.
+            // Keep server-only as a compile-time boundary in normal builds, but
+            // use its empty server implementation in the Cloudflare bundle so
+            // the marker package cannot execute at Worker module evaluation.
+            "server-only": "./node_modules/server-only/empty.js",
           },
         },
       }
