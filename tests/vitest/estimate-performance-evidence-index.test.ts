@@ -95,7 +95,7 @@ function createIndexFixture() {
 
   mkdirSync(join(planRoot, "evidence/runtime"), { recursive: true });
   mkdirSync(runRoot, { recursive: true });
-  const livePlan = JSON.parse(execFileSync("git", ["show", "HEAD:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"], {
+  const livePlan = JSON.parse(execFileSync("git", ["show", "5c0418e65:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"], {
     cwd: process.cwd(),
     encoding: "utf8",
   })) as EstimateSheetPlanManifest;

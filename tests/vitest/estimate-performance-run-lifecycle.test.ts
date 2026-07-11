@@ -135,7 +135,7 @@ function createPrepareRepositoryFixture() {
     ...admission.independent_reviews.map((review) => review.path),
   ]) copyFixtureFile(sourceRoot, repoRoot, path);
   const planPath = join(planRoot, "plan-pack.json");
-  writeFileSync(planPath, execFileSync("git", ["show", "HEAD:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"], {
+  writeFileSync(planPath, execFileSync("git", ["show", "5c0418e65:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"], {
     cwd: sourceRoot,
   }));
   return {
