@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { randomBytes } from "node:crypto";
 import {
   closeSync,
@@ -71,6 +72,10 @@ import {
   recoverEstimateSheetIndexTransition,
 } from "./update-estimate-sheet-performance-evidence-index";
 import { generateLocalBetterAuthD1SchemaSqlProof } from "./generate-cloudflare-better-auth-proof";
+import {
+  buildLocalD1PrepareCommands,
+  executeLocalD1PrepareCommands,
+} from "./lib/estimate-sheet-local-d1-prepare";
 import {
   assertBottleneckDecision,
   type BottleneckDecisionV1,
@@ -1214,24 +1219,6 @@ function localWranglerBinding(
     databaseId: binding.database_id,
     compatibilityDate: config.compatibility_date,
   };
-}
-
-async function applyMigrations(db: D1Database, migrations: MigrationDescriptor[]): Promise<void> {
-  await db.prepare("CREATE TABLE IF NOT EXISTS d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at TEXT NOT NULL)").run();
-  for (const migration of migrations) {
-    const existing = await db.prepare("SELECT name FROM d1_migrations WHERE name = ?").bind(migration.name).first();
-    if (existing) continue;
-    await db.batch([
-      ...migration.statements.map((statement) => db.prepare(statement)),
-      db.prepare("INSERT INTO d1_migrations (name, applied_at) VALUES (?, ?)").bind(migration.name, "2026-07-11T00:00:00.000Z"),
-    ]);
-  }
-}
-
-async function batchInChunks(db: D1Database, statements: D1PreparedStatement[], size = 50): Promise<void> {
-  for (let index = 0; index < statements.length; index += size) {
-    await db.batch(statements.slice(index, index + size));
-  }
 }
 
 function fixtureSeedSql(input: {
