@@ -606,6 +606,8 @@ function checkActiveGuidancePolicyDrift() {
     ".ai/12_agents",
     ".codex/agents",
     ".codex/prompts",
+    ".commandcode/agents",
+    ".commandcode/taste",
     ".cursor/rules/02-validation-and-evidence.mdc",
     ".cursor/rules/17-testing-discipline.mdc",
   ];
@@ -634,12 +636,47 @@ function checkActiveGuidancePolicyDrift() {
     /\b(?:run|execute|apply|extend|create|edit|write|push|reset|repair|deploy|mutate|modify|update|delete)\b.{0,100}\bsupabase\/migrations\b/i,
     /\bsupabase\b.{0,120}\b(?:mutat(?:e|ion)|database write|schema change|migration|migrate|deploy|push|reset|rpc|sql changes?)\b/i,
   ];
+  const commandCodeAgentPrefix = ".commandcode/agents/";
+  const commandCodeGuidancePrefix = ".commandcode/";
 
   for (const file of files) {
-    for (const [index, line] of readText(file).split(/\r?\n/).entries()) {
+    const text = readText(file);
+    const normalizedPath = rel(file).replaceAll("\\", "/");
+    if (
+      (normalizedPath === "AGENTS.md" || normalizedPath === "CLAUDE.md") &&
+      (
+        text.includes("<!-- gitnexus:start -->") ||
+        text.includes("<!-- code-review-graph MCP tools -->") ||
+        text.includes("MUST run impact analysis before editing any symbol")
+      )
+    ) {
+      fail(`${normalizedPath} contains a regenerated absolute graph mandate; keep only the proportional graph policy.`);
+    }
+    if (normalizedPath.startsWith(commandCodeAgentPrefix)) {
+      const lineCount = text.split(/\r?\n/).length;
+      if (lineCount > 80) {
+        fail(`${normalizedPath} is ${lineCount} lines; CommandCode role briefs must stay at or below 80 lines.`);
+      }
+      if (!text.includes("test_requirement")) {
+        fail(`${normalizedPath} must carry the shared test_requirement decision.`);
+      }
+      for (const required of ["Cloudflare", "D1"]) {
+        if (!text.includes(required)) {
+          fail(`${normalizedPath} must identify ${required} as current project context.`);
+        }
+      }
+    }
+
+    for (const [index, line] of text.split(/\r?\n/).entries()) {
       if (!line.trim() || metaOrHistorical.test(line)) continue;
       if (blanketMandates.some((pattern) => pattern.test(line))) {
         fail(`${rel(file)}:${index + 1} contains a blanket test/build mandate; verification must use the shared test gate.`);
+      }
+      if (
+        normalizedPath.startsWith(commandCodeGuidancePrefix) &&
+        /\b(?:Supabase|Postgres(?:SQL)?|RLS|row[- ]level security)\b/i.test(line)
+      ) {
+        fail(`${normalizedPath}:${index + 1} contains stale active provider guidance; use Cloudflare D1 and application authorization predicates.`);
       }
       if (!negatedSupabase.test(line) && activeSupabaseMutation.some((pattern) => pattern.test(line))) {
         fail(`${rel(file)}:${index + 1} contains active Supabase mutation guidance; Supabase is historical and read-only.`);

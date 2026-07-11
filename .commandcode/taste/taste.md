@@ -1,60 +1,40 @@
-# workflow
-See [workflow/taste.md](workflow/taste.md)
+# CommandCode Taste Notes
 
-# agent-orchestration
-- For complex multi-faceted tasks, spawn parallel sub-agents with dedicated /goal instructions, split work into independent pieces, dispatch concurrently, and synthesize results as they return. Have agents be able to communicate with each other to resolve conflicts. Assume multiple AI agents share the same directory. Confidence: 0.80
+Advisory only. `AGENTS.md`, `.ai/00_system`, current source, and provider
+evidence override these preferences. Current runtime is OpenNext on Cloudflare
+Workers with D1, R2, Durable Objects, Queues/Cron, Email, Images, and Better
+Auth. Historical provider examples are not implementation guidance.
 
-# mvp-mandate
-- Pre-launch MVP (no external users yet): favor fast, useful iteration and proportional validation over heavyweight regression ceremony, per the standing Supabase mandate in `.ai/10_state/decisions.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Boundaries still hold and are not optional: stay inside Supabase project `ebxxqidacheyapmmzavr` only; no irreversible destructive data loss without a recovery path and fresh owner approval; run broad validation for shared-logic / auth / RLS / data-integrity / release changes. Advisory taste only — `.ai`, source, tests, and provider evidence win. Confidence: 0.85
+## Workflow
 
-# review-format
-- When requesting multi-faceted architecture/code reviews, use the structured format: TASK (one-line objective), DELIVERABLE (specific outputs expected), SCOPE (repo paths, read-only constraint), VERIFY (citation standards, status markers like CLEAR/WATCH/BLOCK, EXPAND section). Confidence: 0.80
-# dependencies
-- Use react-complex-tree (https://rct.lukasbach.com/) for estimate tree components. Confidence: 0.85
+- Use parallel agents only for bounded independent work; the lead owns scope,
+  integration, verification, and the final claim.
+- Verification is always required. Classify `test_requirement` as
+  `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`; default to
+  `NOT_REQUIRED` and use the cheapest decisive evidence.
+- Broad tests, builds, browser proof, or repeated review passes need an explicit
+  task or a concrete MVP-critical claim that cheaper evidence cannot prove.
+- Plans use adaptive document depth and one canonical execution artifact. Do
+  not require fixed document counts, perfect scores, or ceremonial passes.
 
-# supabase
-- Prefer atomic RPC functions (security-invoker, RLS-scoped) over per-row update loops for mutations. Confidence: 0.75
-- Use deferrable unique constraints with nulls-not-distinct for sort-order integrity in tree/hierarchy tables. Confidence: 0.70
+See [workflow/taste.md](workflow/taste.md).
 
-# ui
-See [ui/taste.md](ui/taste.md)
-- When implementing reusable UI components from Storybook, actually import and use the Storybook component code directly — do not just mimic its appearance with inline styles. The goal is component reuse, not visual imitation. Confidence: 0.85
+## Product And Architecture
 
-# architecture
-- Use optimistic local updates with shared React Query cache write/rollback for drag-and-drop reordering. Confidence: 0.70
-- All estimate tree interactions (clicking nodes, expanding, nesting) must use optimistic local state updates before syncing to Supabase; never block UI on server response. Confidence: 0.75
-- Prefer optimistic local-first updates with immediate UI response over waiting for Supabase round-trips for all estimate mutations (tree and sheet). Confidence: 0.75
-- Modal overlays must cover the main sidebar (high z-index, fixed viewport overlay). Confidence: 0.65
-- Use optimistic local-first state management for all estimate interactions (tree clicks, nesting, reordering) — update UI immediately, then sync to Supabase asynchronously. Confidence: 0.80
+- Prefer existing UI primitives and `react-complex-tree` where it remains the
+  established estimate-tree engine.
+- Keep server state in repositories/TanStack Query and transient UI state local.
+  Optimistic mutations require scoped rollback and current D1 authorization.
+- Group nodes sort before area nodes when both are siblings.
+- Hide `ProjectMiniSidebar` on estimate-detail routes.
+- The brand name is `archestimator`, always lowercase.
 
-# workshop-routing
-- Hide ProjectMiniSidebar on estimate detail routes (/workshop/projects/[projectId]/estimates/[nodeId]). Confidence: 0.70
+## Design
 
-# testing
-- Use Vitest for testing. Confidence: 0.85
-- Run bun run type-check, bun run lint, bun run validate, bun run build, and git diff --check as validation pipeline before reviews. Confidence: 0.85
+See [ui/taste.md](ui/taste.md). Treat `DESIGN.md` as alpha-stage guidance and
+defer final design judgment to the owner. Reuse Storybook components when they
+are current and actually fit the task; do not imitate them with duplicate code.
 
-# research
-- When researching drag-and-drop or tree UI patterns, prefer primary/authoritative sources: WAI-ARIA APG, React Complex Tree docs, Atlassian/other design systems, NN/g. Confidence: 0.70
-
-# planning-audits
-- Structure feature audits as four documents: 01-current-inventory (code-level catalog), 02-feature-gap-analysis (ranked gaps with severity), 03-ux-paths-and-happy-paths (user journeys with cross-surface maps), 04-prioritized-improvement-roadmap (phased P0–P4 with concrete code snippets and file paths). Apply the UX paths pattern to bug-triage docs as well. Confidence: 0.75
-- For collaboration/sharing UX path studies, cover three perspectives: the inviter's view (status signifiers for pending/unaccepted invites, role management), the invitee's view (all acceptance flow branches), and the projects-list view (how shared projects are designated, removal risk, ownership indicators). Confidence: 0.70
-- Score all plan documents from 1-100% on strategy, implementation readiness, quality, truth, and integrity. Iterate with 2nd and 3rd passes until all documents reach 100% before declaring the plan complete. Confidence: 0.80
-- After completing a plan pack, add an implementation handoff prompt markdown file in the same plan folder so another AI agent can implement it autonomously. Confidence: 0.85
-
-# estimate-tree
-- When group nodes and area nodes are siblings, group nodes must always be sorted before area nodes. Confidence: 0.70
-- Inline rename fields must stay active until explicitly committed (Enter/check button), explicitly cancelled (Escape/reset button), or blurred with valid changed value; use orange border + subtle orange background to indicate editing state, and show right-aligned check and reset icon buttons. Confidence: 0.80
-
-# branding
-- The brand name "archestimator" is always all lowercase, never capitalized. Confidence: 0.85
-
-# color-palette
-- The landing page uses three accent colors alongside the existing warm/neutral palette: brand orange (#a9532d), deep blue-green (rgb(8, 50, 65) / #083241), and muted yellow (#d8a84f). Use these for diagram node outlines and small accents, not large filled blocks. Confidence: 0.70
-
-# landing-page
-- Landing page design references: Amigo.ai (https://www.amigo.ai/) and Intercom (https://www.intercom.com/). The landing page should feel like a hybrid of these two sites. Confidence: 0.85
-- When doing rapid visual/landing page work, skip all tests to maximize iteration speed. Confidence: 0.80
-- Use rough.js and rough-notation for hand-drawn/whiteboard-style animated diagrams on the landing page; reject React Flow and other corporate graph-editor tools as too enterprise-looking for landing page diagrams. Confidence: 0.80
-- Landing page explanatory diagrams must follow the simplification principle: maximum 4 major workflow elements, no duplicate nodes, one thought bubble per concept, never split connected concepts into separate boxes. Whitespace is part of the design. Confidence: 0.75
+For external research, prefer primary sources. For UI work, browser or visual
+proof is opt-in unless interaction, responsive behavior, or accessibility is
+the claim being verified.

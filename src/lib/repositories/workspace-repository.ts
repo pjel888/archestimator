@@ -2722,24 +2722,27 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
   const { profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
-  // T2.2 / F-P8 (supersedes Estimates-List F7 / P1-3): reuse the request-cached
-  // project lookup instead of re-fetching `projects` here (and again in the
-  // publication summary). One project fetch per render across all three layout fans.
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const database = await requireWorkspaceRepositoryD1Database();
+  const project = await readProjectForWorkspaceContext(database, projectId);
   if (!project) return null;
 
-  const database = await requireWorkspaceRepositoryD1Database();
+  // A direct restricted-sheet manager cannot open the broader project surface,
+  // but may manage the sheets they are explicitly authorized to administer.
+  // The Team summary is scoped below to those sheets in that case.
+  const canAccessWholeProject = await canAccessWholeProjectInD1(database, project.id, context);
 
   // T2.3 / F-P1: workspace_members and estimates are independent of each other —
   // run them in a single parallel wave instead of two serial round-trips.
   const [workspaceMembers, rawEstimates] = await Promise.all([
-    all<Pick<Tables<"workspace_members">, "workspace_id" | "user_id" | "role">>(
-      database,
-      `SELECT workspace_id, user_id, role
-       FROM workspace_members
-       WHERE workspace_id = ?`,
-      [project.workspace_id],
-    ),
+    canAccessWholeProject
+      ? all<Pick<Tables<"workspace_members">, "workspace_id" | "user_id" | "role">>(
+        database,
+        `SELECT workspace_id, user_id, role
+         FROM workspace_members
+         WHERE workspace_id = ?`,
+        [project.workspace_id],
+      )
+      : Promise.resolve([]),
     all<Pick<Tables<"estimates">, "id" | "project_id" | "name" | "sheet_code">>(
       database,
       `SELECT id, project_id, name, sheet_code
@@ -2750,10 +2753,11 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     ),
   ]);
   const estimates = await filterAccessibleEstimates(database, rawEstimates ?? [], context);
+  if (!canAccessWholeProject && estimates.length === 0) return null;
 
   const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
   const [projectMembers, sheetMembers, sheetSettings, pendingInvitationRows] = await Promise.all([
-    getCachedProjectMembers(project.id),
+    canAccessWholeProject ? getCachedProjectMembers(project.id) : Promise.resolve([]),
     readOptionalEstimateSheetMembers(database, estimateIds),
     readOptionalEstimateSheetAccessSettings(database, estimateIds),
     readOptionalCollaborationInvitations(database, project.id),

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProjectTeamAccessPanel } from "@/components/workshop/teamwork/ProjectTeamAccessPanel";
-import { getProjectCollaborationSummary, getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import { getProjectCollaborationSummary } from "@/lib/repositories/workspace-repository";
 
 type ProjectTeamAccessPageProps = {
   params: Promise<{ projectId: string }>;
@@ -9,10 +9,7 @@ type ProjectTeamAccessPageProps = {
 
 export default async function ProjectTeamAccessPage({ params }: ProjectTeamAccessPageProps) {
   const { projectId } = await params;
-  const { project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) notFound();
-
-  const summary = await getProjectCollaborationSummary(project.id);
+  const summary = await getProjectCollaborationSummary(projectId);
   if (!summary) notFound();
 
   return (
@@ -23,7 +20,7 @@ export default async function ProjectTeamAccessPage({ params }: ProjectTeamAcces
           Manage project members and estimate-specific access where your role allows it.
         </p>
         <div className="mt-4">
-          <ProjectTeamAccessPanel projectId={project.id} initialSummary={summary} />
+          <ProjectTeamAccessPanel projectId={summary.projectId} initialSummary={summary} />
         </div>
       </div>
     </main>

@@ -1,15 +1,18 @@
 import { expect, test } from "@playwright/test";
 
-const devAuthEnabled = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1";
+const bypassSecret = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET?.trim() ?? "";
+const workspaceId = process.env.ARCHESTIMATOR_E2E_CORPORATE_WORKSPACE_ID?.trim() ?? "";
+const devAuthEnabled = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1" && bypassSecret.length >= 32;
+const corporateJourneyEnabled = devAuthEnabled && Boolean(workspaceId);
 
 test.describe("corporate accounts admin journey", () => {
-  test.skip(!devAuthEnabled, "Requires the local development auth bypass.");
+  test.skip(
+    !corporateJourneyEnabled,
+    "Requires valid dev auth plus ARCHESTIMATOR_E2E_CORPORATE_WORKSPACE_ID for a seeded local workspace.",
+  );
   test.describe.configure({ mode: "serial", retries: 0 });
 
   test.beforeEach(async ({ page }) => {
-    const bypassSecret = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET;
-    if (!bypassSecret) return;
-
     await page.context().addCookies([
       {
         name: "archestimator-dev-auth-bypass",
@@ -58,8 +61,8 @@ test.describe("corporate accounts admin journey", () => {
       .getByRole("button", { name: "Link workspace" })
       .locator("xpath=ancestor::form");
     const workspaceSelect = workspaceForm.locator("select");
-    expect(await workspaceSelect.locator("option").count()).toBeGreaterThan(1);
-    await workspaceSelect.selectOption({ index: 1 });
+    await expect(workspaceSelect.locator(`option[value="${workspaceId}"]`)).toHaveCount(1);
+    await workspaceSelect.selectOption(workspaceId);
     await page.getByRole("button", { name: "Link workspace" }).click();
     await expect(page.getByText("Workspace linked.")).toBeVisible();
 

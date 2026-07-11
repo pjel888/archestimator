@@ -92,10 +92,20 @@ Stable current truth (verify against git/source before relying on a detail):
   survived 13.5 minutes and three clean warm cycles across 25 routes with 93
   memory samples and zero persistence/compaction/restart events. The
   `type-check` script retains its measured 4 GiB heap budget.
-- Frontier planning/execution suite (2026-07-10):
-  `.ai/08_prompts/000_Planning Prompts/` now uses one shared kernel, a versioned
+- Frontier agent/planning contract (2026-07-11): root and tool adapters now
+  share one lean autonomy, routing, verification, and stop contract based on
+  official GPT-5.6 guidance. `AGENTS.md` is below the Codex 32 KiB project-doc
+  limit; duplicated graph blocks were removed from root/Claude entry files; and
+  all 16 CommandCode role briefs were reduced from 1,888 to 544 lines while
+  retaining distinct review scopes and current Cloudflare/D1 context. Tests are
+  a conditional proof method: every criterion records `test_requirement` as
+  `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`; `NOT_REQUIRED` is the
+  default, while explicit testing work or a concrete MVP-critical invariant can
+  select the narrowest sufficient test. High blast deepens planning/review but
+  does not itself mandate tests, builds, browser automation, or broad suites.
+  `.ai/08_prompts/000_Planning Prompts/` uses one shared kernel, a versioned
   `plan-pack.json` schema, 10 stable applicability gates, five concise stage
-  prompts, and 31 semantic regression scenarios. Physical document count is
+  prompts, and 33 semantic regression scenarios. Physical document count is
   adaptive rather than capped: independently gated domains split when ownership,
   evidence, invalidation, review, or retrieval boundaries differ, while every
   split remains substantive, cross-linked, manifest-registered, and subordinate
@@ -107,7 +117,9 @@ Stable current truth (verify against git/source before relying on a detail):
   remain separate. Validate the suite with `bun run validate:planning-prompts`
   and any pack with
   `bun run validate:plan-pack -- <planning-folder>`. Same-agent provenance does
-  not cap readiness or require owner acceptance. Active provider authority is
+  not cap readiness or require owner acceptance. `bun run validate:agents`
+  guards current adapter/provider/test policy and regenerated graph drift.
+  Active provider authority is
   the Cloudflare resources bound in `wrangler.jsonc`; historical Supabase project
   `ebxxqidacheyapmmzavr` remains read-only archaeology.
 - Beta readiness planning suite (2026-07-10): nine high-blast plan packs under

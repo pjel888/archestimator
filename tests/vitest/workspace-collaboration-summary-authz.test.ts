@@ -48,13 +48,15 @@ class FakeD1Statement {
 }
 
 class FakeD1Database {
+  canAccessWholeProject = false;
+
   prepare(sql: string) {
     return new FakeD1Statement(this, sql);
   }
 
   first(sql: string, values: unknown[]) {
     if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project")) {
-      return { allowed: 1 };
+      return this.canAccessWholeProject ? { allowed: 1 } : null;
     }
     if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM estimates estimate")) {
       return values[0] === ACCESSIBLE_ESTIMATE_ID ? { allowed: 1 } : null;

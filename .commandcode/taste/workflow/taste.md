@@ -1,17 +1,14 @@
-# workflow
+# Workflow Taste
 
-> **Advisory taste only, subordinate to `.ai/00_system` and `.ai/12_agents/payloads/commandcode.md`.** The autonomous commit / push / merge / branch-delete / autopilot directives below apply ONLY when the lead orchestrator has explicitly assigned an implementation lane on an isolated branch/worktree, and remain bounded by the canonical approval gates (no production deploy, no destructive/irreversible action, no provider/GitHub mutation without fresh approval). Default posture is read-only review. `.ai` wins on conflict.
+Advisory only; `.ai/00_system` and the lead orchestrator control execution.
 
-- Conduct read-only architecture/code reviews with CLEAR/WATCH/BLOCK status before committing feature changes. Confidence: 0.90
-- Map blast radius (CRITICAL/LOW) and affected file references before implementing UI changes. Confidence: 0.80
-- Prefer reusable UI primitives (e.g., modal) over inline or feature-specific solutions. Confidence: 0.75
-- For planning audits, perform second and third passes on the same documents to catch gaps the first pass missed (e.g., frozen state, missing error handling, inference bugs). Confidence: 0.75
-- Integrate shadcn UI primitives (built on Radix) for new UI components; do not use shadcn add --all — add only the specific primitives needed per feature slice. Confidence: 0.85
-- Prefer direct implementation over asking clarifying questions mid-task — proceed with best judgment and the user will correct in subsequent iterations. (advisory; only under an explicit lead implementation assignment) Confidence: 0.85
-- After meaningful batches of changes: stage, commit with descriptive messages, push to branch, and ensure all worktrees are merged into main. (advisory; only under an explicit lead implementation assignment) Confidence: 0.70
-- Before merging a feature branch to main, first check that local main is up-to-date with the remote (git fetch + check behind/ahead status). Confidence: 0.65
-- After merging a feature branch to main: delete the local and remote branch, delete the worktree, and archive the plan folder to `.ai/09_archive/store/`. Then inspect for leftover branches/worktrees and offer to clean them up. (advisory; only under an explicit lead implementation assignment) Confidence: 0.75
-- Recovery branches (e.g., `wip/post-shared-link-merge-recovery`) containing stashed work should be merged into main when their files are needed to resolve build errors or missing dependencies. (advisory; only under an explicit lead implementation assignment) Confidence: 0.75
-- When implementing from plan documents, create comprehensive implementation prompts that force autonomous autopilot execution with plan tracking, continuous state updates to `.ai/01_roadmap` and `.ai/10_state`, and loop until 0 errors remain. (advisory; only under an explicit lead implementation assignment) Confidence: 0.75
-- Before declaring work complete, self-audit output against established taste/plan patterns and proactively volunteer any gaps or improvements found — don't wait for the user to ask. Confidence: 0.70
-- Archive folders in `.ai/09_archive/store` must be prefixed with `YYYY-MM-DD-` date format. Confidence: 0.70
+- Start with the smallest current-source read that can answer the task.
+- Use read-only review unless the lead assigns a bounded implementation scope.
+- Delegate only independent work with an explicit deliverable and stop condition.
+- Keep shared-worktree edits disjoint and preserve unrelated changes.
+- Choose one primary workflow; named helpers are optional, not a mandatory chain.
+- Verify the claim with the cheapest decisive evidence under the shared
+  `test_requirement` gate.
+- Never commit, push, merge, delete branches/worktrees, archive another lane's
+  plan, or mutate providers merely because a taste file suggests it.
+- Record durable state only when project truth actually changes.
