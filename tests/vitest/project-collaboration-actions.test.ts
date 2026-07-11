@@ -203,8 +203,7 @@ describe("project collaboration management actions", () => {
     expect(teamworkMembersPanel).toContain("Access mode for");
     expect(teamworkMembersPanel).toContain("Invite to");
     expect(publisherMembersPanel).toContain("@/components/workshop/teamwork/ProjectMembersAccessPanel");
-    expect(publisherMembersPanel).toContain("export function PublisherProjectMembersPanel");
-    expect(publisherMembersPanel).toContain("<ProjectMembersAccessPanel {...props} />");
+    expect(publisherMembersPanel).toContain("ProjectMembersAccessPanel as PublisherProjectMembersPanel");
     expect(publisherMembersPanel).not.toContain("@/lib/collaboration/actions");
   });
 });

@@ -350,6 +350,41 @@ export function writeJsonNoOverwrite(path: string, value: unknown, mode = 0o600)
   writeNoOverwrite(path, `${canonicalJson(value)}\n`, mode);
 }
 
+/** Atomically replace a registered file only while its expected bytes remain current. */
+export function replaceFileAtomically(
+  path: string,
+  bytes: string | Uint8Array,
+  expectedCurrentSha256: string,
+  mode = 0o644,
+): string {
+  if (!isSha256(expectedCurrentSha256)) throw new Error("expected current hash must be a SHA-256 digest");
+  assertRegularFile(path, "atomic replacement target");
+  if (sha256File(path) !== expectedCurrentSha256) throw new Error(`current hash mismatch for ${path}`);
+
+  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+  try {
+    const fd = openSync(temporary, "wx", mode);
+    try {
+      writeFileSync(fd, bytes);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    chmodSync(temporary, mode);
+
+    // Recheck after the new bytes are durable so a concurrent writer cannot be hidden.
+    assertRegularFile(path, "atomic replacement target");
+    if (sha256File(path) !== expectedCurrentSha256) throw new Error(`current hash mismatch for ${path}`);
+    renameSync(temporary, path);
+    const parentFd = openSync(dirname(path), "r");
+    try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
+    return sha256File(path);
+  } catch (error) {
+    try { unlinkSync(temporary); } catch { /* preserve the primary error */ }
+    throw error;
+  }
+}
+
 export function readJsonFile<T>(path: string): T {
   assertRegularFile(path);
   return JSON.parse(readFileSync(path, "utf8")) as T;
@@ -590,7 +625,7 @@ export function redactedFailureIds(values: unknown[]): string[] {
 }
 
 export function defaultRunRoot(repoRoot = process.cwd()): string {
-  return resolve(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs");
+  return resolve(defaultEvidenceRoot(repoRoot), "runs");
 }
 
 export function defaultPlanRoot(repoRoot = process.cwd()): string {
