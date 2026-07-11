@@ -33,11 +33,13 @@ task-specific history. Do not linear-read the detailed history below.
 - **Agent routing:** use the smallest useful lane set. Sol owns hard judgment;
   Terra handles bounded read-heavy work; native delegation depth is one and
   three active lanes is the normal soft limit.
-- **Verification:** select the cheapest decisive evidence. Tests default to
-  `NOT_REQUIRED`; explicit test work maps to `TEST_TASK`; `TARGETED` is reserved
-  for a critical invariant or one existing focused test that is the cheapest
-  decisive proof. Broad suites/build/browser proof remain explicitly or
-  critically gated.
+- **Verification:** select the cheapest decisive evidence. **Tests are
+  user-gated under the User Test Authorization Gate, not automatic.** Do not
+  create, expand, repair, or run tests unless the user explicitly requests them.
+  `TEST_TASK` is the only execution trigger and requires an explicit user
+  request. `TARGETED`/`BROADER` identify a risk that would benefit from a test
+  but authorize a `TEST_PROPOSAL` only — record it and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. `NOT_REQUIRED` is
+  the default and uses non-test evidence.
 - **Browser gate:** Philip grants standing authorization for repo-local browser
   automation, screenshots, Storybook, and visual QA without per-run approval.
   Name the claim each capture proves, keep credentials out of artifacts, and

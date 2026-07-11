@@ -4,9 +4,9 @@
   "package_id": "PLAN-2026-07-08-project-estimate-sheet-performance",
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
-  "last_observed_run_scope": "PLAN_ONLY",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
   "package_status": "IMPLEMENTATION_READY",
-  "implementation_status": "NOT_STARTED",
+  "implementation_status": "IN_PROGRESS",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
@@ -352,9 +352,9 @@
   ],
   "runtime_evidence": {
     "contract_version": "estimate-sheet-runtime-manifest-state.v1",
-    "transition_sequence": 0,
-    "latest_unit_id": null,
-    "latest_run_id": null,
+    "transition_sequence": 3,
+    "latest_unit_id": "UNIT-001",
+    "latest_run_id": "9b21f9c2-eba7-43d4-ab83-a0f7975b2b3e",
     "registry": {
       "artifact_id": "ART-052",
       "projection_path": "evidence/runtime/evidence-index.json",
@@ -479,7 +479,8 @@
         "immutable_path": null,
         "sha256": "34e4ec3521506b4e04ffef366d35a96e226ec6893f792d147ab1b22466282ba7"
       }
-    ]
+    ],
+    "latest_run_manifest_sha256": "70f19f66843d4f40223bacce80a10d679f54825df9c9d9db6f09acf49d684df3"
   },
   "sources": [
     {
@@ -3212,7 +3213,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -4046,6 +4047,6 @@
     "unit-owned-shared-worktree-diff-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T13:50:41.879Z",
-  "manifest_sha256": "4a9c9c4615f0bacc3aa7798ad2edbc2c08c1581eaad8da56ae497f9c047f93bd"
+  "updated_at": "2026-07-11T19:30:12.250Z",
+  "manifest_sha256": "86dec61f8652c0d6008d525418e2a93fd685c811949fa6c8313135510272e958"
 }

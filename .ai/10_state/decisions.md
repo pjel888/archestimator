@@ -1,5 +1,43 @@
 # Decisions
 
+## 2026-07-11 — User Test Authorization Gate: tests are never automatic
+
+**Decision:** No agent may create, expand, repair, or run any automated test,
+test suite, build-as-test-gate, browser automation, or broad validation gate
+unless the user (Philip) has explicitly requested testing for the current task.
+This **User Test Authorization Gate** is the supreme verification rule and
+overrides every other `test_requirement`, `TARGETED`, `MVP-critical`,
+blast-radius, or "nearby tests exist" consideration in the repo.
+
+**Root cause:** The previous contract defaulted to `NOT_REQUIRED` but granted
+every agent self-authorization loopholes (any agent could decide a change was
+"MVP-critical" — auth, D1, estimate/proposal correctness, release — and run
+tests on its own). Because Archestimator is an estimating/auth/D1 platform,
+nearly every change qualified, so agents auto-tested constantly at high token
+cost.
+
+**New behavior:**
+- `NOT_REQUIRED` (default): cheapest decisive non-test evidence; no tests.
+- `TARGETED` / `BROADER`: identify a critical invariant that would benefit from
+  a test, but **authorize proposing it only** — record a `TEST_PROPOSAL` (named
+  risk + exact command) and wait for explicit user authorization.
+- `TEST_TASK`: the only execution trigger; requires an explicit user request.
+- The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is
+  withdrawn; even one existing focused test needs user authorization.
+
+**Scope of change:** `VALIDATION_MATRIX.md`, `AGENT_OPERATING_PROTOCOL.md`,
+`AGENT_FRAMEWORK_PROTOCOL.md`, `AGENTS.md`, `CLAUDE.md`, `CODEX.md`,
+`.cursorrules`, `.cursor/rules/00-archestimator-project-brain.mdc`,
+`.cursor/rules/17-testing-discipline.mdc`, `.commandcode/README.md` + 16
+sentinels, `.ai/12_agents/README.md` + `payloads/README.md` + 8 payloads,
+`AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `codebase-ai-loop-task.md`, all 10
+planning-prompt files, `.gemini/GEMINI.md`, `current-state.md` FAST PATH.
+
+**Preserved:** the `test_requirement` enum values in the plan-pack JSON schema
+(keeps validators valid); deterministic contract gates (`validate:agents`,
+`validate:planning-prompts`, `type-check`, `lint`) which are not application
+tests.
+
 ## 2026-07-10 — Verified Supermemory is a coding-agent bootstrap invariant
 
 **Decision:** Every Archestimator coding-agent session must run

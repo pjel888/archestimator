@@ -1,0 +1,191 @@
+{
+  "schema_version": "estimate-sheet-planning-admission.v1",
+  "unit_id": "UNIT-001",
+  "package_id": "PLAN-2026-07-08-project-estimate-sheet-performance",
+  "recorded_at": "2026-07-10T19:37:01.276Z",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "next_unit": "UNIT-001",
+  "plan_pack": {
+    "path": ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json",
+    "file_sha256": "a7e979a11cfbcb4a9da32c19c47ea125a2289ffea81c8b8e7f6fe2ccc82bc7e8",
+    "manifest_sha256": "4a9c9c4615f0bacc3aa7798ad2edbc2c08c1581eaad8da56ae497f9c047f93bd"
+  },
+  "review_candidate": {
+    "schema_version": "estimate-sheet-planning-review-candidate.v1",
+    "package_id": "PLAN-2026-07-08-project-estimate-sheet-performance",
+    "review_plan_pack": {
+      "path": ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json",
+      "file_sha256": "390753aad000b8e201a0ae79e8ef3288ab0be1847c76a69915196f7aa8fb21be",
+      "manifest_sha256": "b001c9c8c2195f781f91335c40035199b86715ecad7db34f706420f1a43fc05a"
+    },
+    "promotion_plan_pack": {
+      "path": ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json",
+      "file_sha256": "a7e979a11cfbcb4a9da32c19c47ea125a2289ffea81c8b8e7f6fe2ccc82bc7e8",
+      "manifest_sha256": "4a9c9c4615f0bacc3aa7798ad2edbc2c08c1581eaad8da56ae497f9c047f93bd"
+    },
+    "promotion_contract": {
+      "changed_json_value_count": 130,
+      "ready_slice": {
+        "id": "SLICE-001",
+        "unit_ids": [
+          "UNIT-001",
+          "UNIT-002",
+          "UNIT-003",
+          "UNIT-004",
+          "UNIT-005",
+          "UNIT-006",
+          "UNIT-007",
+          "UNIT-008",
+          "UNIT-009",
+          "UNIT-010",
+          "UNIT-011"
+        ]
+      },
+      "next_unit": "UNIT-001"
+    },
+    "key_artifacts": [
+      {
+        "artifact_id": "ART-031",
+        "role": "canonical-execution",
+        "path": "IMPLEMENTATION_PLAN.md",
+        "sha256": "5561e758a0b61556c4a43e0eb2e845cf50edb30ddaebb0a0e30b0f5da9a1d394"
+      },
+      {
+        "artifact_id": "ART-034",
+        "role": "evidence",
+        "path": "evidence/2026-07-10-frontier-plan-readiness.md",
+        "sha256": "21c63f347d248b8df6e1a63b9ad71ada5cf33b95460632ae7cd2d08dc033f248"
+      },
+      {
+        "artifact_id": "ART-036",
+        "role": "verification-helper",
+        "path": "evidence/source-fingerprint-v1.mjs",
+        "sha256": "55194a9c4e4b01e6e95db763da35b15b102a6dc0d47dc3e01107117d58d2533c"
+      },
+      {
+        "artifact_id": "ART-037",
+        "role": "verification-helper",
+        "path": "evidence/record-unit001-planning-admission.mjs",
+        "sha256": "45fad6533863b2f09b099940cee6da881e1dfd4332d0448812f01c26f17f3d79"
+      }
+    ],
+    "artifact_registry_sha256": "054209309d704311897e441656374585588b2ae3e4b420eb9b36e265deef279e",
+    "validators": [
+      {
+        "path": "scripts/validate-plan-pack.mjs",
+        "sha256": "c4813f0965c6426f04427a346a2fe7168d8194048b2ef8694bd36622954dd000"
+      },
+      {
+        "path": "scripts/lib/plan-pack-validator.mjs",
+        "sha256": "a33f04aa5eb0927f8b49bbd62a294f7e35beaca75456e2e1ea10104580a5d9d8"
+      }
+    ],
+    "validation": {
+      "review_validator_stdout_sha256": "3039b50fd6557bffa667e8f7b009fd6e8d8f4e915e3523694b7bb4ce832e7574",
+      "promotion_validator_stdout_sha256": "3039b50fd6557bffa667e8f7b009fd6e8d8f4e915e3523694b7bb4ce832e7574",
+      "reference_stdout_sha256": "26284c6a1f2a70f673c506c45781e9a089225c8fbc22b6311d77e163183b45db",
+      "reference_payload_sha256": "e374ddf79a8364188753bcb4cc795b29b035950e63a55fdff1d89dc2a0f750d0"
+    },
+    "source_fingerprint": {
+      "contract_version": "estimate-sheet-source-fingerprint.v2",
+      "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+      "head": "f7421fe9b95477d673781c82aac9a0883af700de",
+      "path_count": 2022,
+      "path_list_sha256": "39f5fa9de2a8e43e83188f262f648bffcd8a9a7641108982deb366f57de68f1a",
+      "scoped_status_sha256": "a32dfb610fd8a04f837dd0b7514bc6e1b1d3c111eb428d41cb2b54964add1fe2",
+      "scoped_diff_sha256": "c5b196ef34dcfc70aa486776e31c1d5c7fd349819c0df1bd20a9083a2557e514",
+      "application": {
+        "contract_version": "estimate-sheet-application-fingerprint.v1",
+        "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+        "package_projection_rule": "package-json-without-scripts.v1",
+        "path_count": 1195,
+        "path_list_sha256": "5b59de62c22bacf2c75ff46675226e43ac627ecc88ecce211a4536269c70425b",
+        "content_sha256": "d3641d8a74928ad9e9e0373289702708ab69fbd0600cb7581d5971bf157946f4"
+      },
+      "producer": {
+        "contract_version": "estimate-sheet-producer-fingerprint.v1",
+        "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+        "package_projection_rule": "full-package-json.v1",
+        "path_count": 839,
+        "path_list_sha256": "c6d724b0ec4e8f5023f3642160918ed52a56f1bd5c39a637d792545bb5ae911b",
+        "content_sha256": "7a72d311538f402d448d1ae6a96a192fe05006fb19a25ce85cfaf6b44799b363"
+      },
+      "status_bytes": 324,
+      "tracked_diff_bytes": 12414,
+      "untracked_record_count": 1,
+      "untracked_record_bytes": 146
+    },
+    "candidate_sha256": "b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f"
+  },
+  "independent_reviews": [
+    {
+      "path": ".ai/99_scratch/estimate-sheet-performance/reviews/b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f/architect.json",
+      "file_sha256": "94d1d5596773329e48b10e44cf8d9460bf50e9f09211715078d9230bb0ad8a83",
+      "schema_version": "estimate-sheet-independent-review.v1",
+      "role": "architect",
+      "reviewer_id": "architect-reviewer-20260711",
+      "verdict": "CLEAN",
+      "candidate_sha256": "b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f",
+      "reviewed_at": "2026-07-10T19:35:20.325Z",
+      "payload_sha256": "2b709aaeb200b8e56c1e436ebc1b01d41bd017876d67836fe33b7de3ee226914"
+    },
+    {
+      "path": ".ai/99_scratch/estimate-sheet-performance/reviews/b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f/critic.json",
+      "file_sha256": "c22fab02b844a55f8d40371decc48cfd585d8d1d62c27478b77317d326dc521e",
+      "schema_version": "estimate-sheet-independent-review.v1",
+      "role": "critic",
+      "reviewer_id": "critic-reviewer-20260711",
+      "verdict": "CLEAN",
+      "candidate_sha256": "b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f",
+      "reviewed_at": "2026-07-10T19:35:22.483Z",
+      "payload_sha256": "3931b24f1b71c448aa8743558948147c08b11ef8b4b721521b2cec403516c15f"
+    },
+    {
+      "path": ".ai/99_scratch/estimate-sheet-performance/reviews/b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f/fingerprint-verifier.json",
+      "file_sha256": "9c794e8e3fb63db06d4c52bae47386deaf01196cc09f633ae51ef74860190c36",
+      "schema_version": "estimate-sheet-independent-review.v1",
+      "role": "fingerprint-verifier",
+      "reviewer_id": "fingerprint-verifier-20260711",
+      "verdict": "CLEAN",
+      "candidate_sha256": "b6d1fb3001d4b3fd0acc45e8302d5cd1596a2da99dc5258f9e055ff7d3ae9e0f",
+      "reviewed_at": "2026-07-10T19:35:24.592Z",
+      "payload_sha256": "f3330d3f0d938dfeeffe2329191acaca4b07e473917679563fd3e06dc8c7e764"
+    }
+  ],
+  "admission_validation": {
+    "validator_stdout_sha256": "3039b50fd6557bffa667e8f7b009fd6e8d8f4e915e3523694b7bb4ce832e7574",
+    "reference_stdout_sha256": "26284c6a1f2a70f673c506c45781e9a089225c8fbc22b6311d77e163183b45db",
+    "source_fingerprint": {
+      "contract_version": "estimate-sheet-source-fingerprint.v2",
+      "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+      "head": "f7421fe9b95477d673781c82aac9a0883af700de",
+      "path_count": 2022,
+      "path_list_sha256": "39f5fa9de2a8e43e83188f262f648bffcd8a9a7641108982deb366f57de68f1a",
+      "scoped_status_sha256": "a32dfb610fd8a04f837dd0b7514bc6e1b1d3c111eb428d41cb2b54964add1fe2",
+      "scoped_diff_sha256": "c5b196ef34dcfc70aa486776e31c1d5c7fd349819c0df1bd20a9083a2557e514",
+      "application": {
+        "contract_version": "estimate-sheet-application-fingerprint.v1",
+        "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+        "package_projection_rule": "package-json-without-scripts.v1",
+        "path_count": 1195,
+        "path_list_sha256": "5b59de62c22bacf2c75ff46675226e43ac627ecc88ecce211a4536269c70425b",
+        "content_sha256": "d3641d8a74928ad9e9e0373289702708ab69fbd0600cb7581d5971bf157946f4"
+      },
+      "producer": {
+        "contract_version": "estimate-sheet-producer-fingerprint.v1",
+        "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+        "package_projection_rule": "full-package-json.v1",
+        "path_count": 839,
+        "path_list_sha256": "c6d724b0ec4e8f5023f3642160918ed52a56f1bd5c39a637d792545bb5ae911b",
+        "content_sha256": "7a72d311538f402d448d1ae6a96a192fe05006fb19a25ce85cfaf6b44799b363"
+      },
+      "status_bytes": 324,
+      "tracked_diff_bytes": 12414,
+      "untracked_record_count": 1,
+      "untracked_record_bytes": 146
+    },
+    "reference_payload_sha256": "e374ddf79a8364188753bcb4cc795b29b035950e63a55fdff1d89dc2a0f750d0"
+  },
+  "payload_sha256": "80df664ba2994608c35b5f0062a350e0c49ee9acaaef0120df1265ad8fb50aa4"
+}
