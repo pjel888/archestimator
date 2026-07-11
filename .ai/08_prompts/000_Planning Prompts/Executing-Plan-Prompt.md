@@ -79,7 +79,9 @@ and final completion auditor. Deliver the requested repository outcome with:
    - stop and resume conditions.
 6. Run only the smallest prerequisite needed by the first ready unit, such as a
    path/reference check, type check, or local service health. Discover tests only
-   when the criterion is `TARGETED`, `BROADER`, or `TEST_TASK`. Record known-red
+   when the user has authorized a testing task (`TEST_TASK`); `TARGETED`/`BROADER`
+   do not authorize test discovery or execution under the User Test Authorization
+   Gate. Record known-red
    failures separately from task regressions.
 
 Any later relevant source/plan/config/migration/provider change invalidates
