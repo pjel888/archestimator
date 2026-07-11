@@ -68,3 +68,10 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 - Fresh gates before this ledger append: `validate:plan-pack` passed; `validate:planning-prompts` passed with 10 documents, 10 gates, 33 scenarios, 2,629 lines, and a valid semantic fixture; staged and unstaged `git diff --check` passed; trailing-whitespace scan returned no findings.
 - Final status remains `CONDITIONALLY_READY`: only `UNIT-001` is the dependency-closed implementation entry; downstream units remain planned or boundary-blocked until their named producer, migration, authorization, hosted, and release receipts pass.
 - No application source, migration, provider resource, deployment, browser, or hosted state was changed by this planning lane.
+
+## 2026-07-11 — PLAN-010 — CONCURRENT-DRIFT REFREEZE
+
+- The post-validation baseline check detected concurrent HEAD movement and scoped producer/test work after PLAN-009; the stale PLAN-009 baseline was not treated as current proof.
+- Scoped review found Corporate/Teamwork ledger and manifest updates that preserve their `IN_PROGRESS`/provider boundaries, plus planning-prompt and collaboration-action test changes. No changed scoped Admin or notification source invalidated the notification-manager architecture or the exact three-failure characterization suite.
+- Two new consecutive baseline snapshots were identical: HEAD `fe745aef4d6212bc0f89f27ce8e7110e93f9648a`; scoped status `a3cd1cee1a17f7c68522b42199166d7db26bc8eb8a026555d0d413d6b9444b2b`; scoped diff `36292a2f46106f9f1ac06b9eca6cd8849aa62afd38850b0c2ee5e44b36be3999`.
+- Refreeze decision: preserve all producer blocks, update the exact scoped baseline, refresh dependent hashes, and rerun the complete mechanical gate. Any later drift repeats this check.

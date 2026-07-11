@@ -45,6 +45,42 @@ manual QA need an explicit or integrated critical claim.
 | U-06 | Independent adversarial review and repair | verifier/reviewer | U-03..U-05 | findings ledger |
 | U-07 | State, run log, and Supermemory closeout | lead | U-06 | durable receipts |
 
+## Source Audit
+
+`PLAN-PACK-SCOPED-BASELINE-v1` uses this ordered, duplicate-free list of
+literal repo-relative pathspecs:
+
+1. `AGENTS.md`
+2. `CLAUDE.md`
+3. `CODEX.md`
+4. `.codex/config.toml`
+5. `.codex/agents`
+6. `.codex/prompts`
+7. `.commandcode/README.md`
+8. `.commandcode/agents`
+9. `.commandcode/taste/taste.md`
+10. `.commandcode/workflow/taste.md`
+11. `.cursor/rules/02-validation-and-evidence.mdc`
+12. `.cursor/rules/17-testing-discipline.mdc`
+13. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+14. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+15. `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
+16. `.ai/00_system/VALIDATION_MATRIX.md`
+17. `.ai/03_plans/README.md`
+18. `.ai/05_logs/2026-07-11-agent-contract-speed-and-test-gate-implementation-run.md`
+19. `.ai/08_prompts/000_Planning Prompts`
+20. `.ai/08_prompts/templates/codebase-ai-loop-task.md`
+21. `.ai/10_state/current-state.md`
+22. `.ai/12_agents/README.md`
+23. `.ai/12_agents/payloads`
+24. `.ai/13_research/2026-07-11-openai-gpt-5-6-agent-prompt-efficiency.md`
+25. `scripts/lib/plan-pack-validator.mjs`
+26. `scripts/neutralize-graph-mandate.mjs`
+27. `scripts/validate-ai-workflow-adapters.mjs`
+28. `scripts/validate-planning-prompt-suite.mjs`
+29. `tests/fixtures/planning-prompt-suite/valid-plan-pack/plan-pack.json`
+30. `tests/vitest/planning-prompt-suite-contract.test.ts`
+
 ## Stop Condition
 
 Stop when all active agent surfaces use the same test decision, the planning

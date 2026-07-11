@@ -29,7 +29,7 @@ conditional under the four-state test decision.
 The checker reported no P0. Its P1/P2 findings were repaired: manifest closure,
 machine-enforced test trigger/rationale mappings, current model/config guards,
 self-diagnostic drift coverage, CommandCode taste drift, and generated graph
-mandates.
+mandates. A separate closeout checker then found no residual P0/P1/P2 issue.
 
 ## Proof Boundary
 
