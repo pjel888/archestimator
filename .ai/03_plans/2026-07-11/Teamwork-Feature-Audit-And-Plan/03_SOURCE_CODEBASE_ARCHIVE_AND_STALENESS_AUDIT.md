@@ -86,8 +86,7 @@ The stale index missed known current imports for realtime identity. Implementati
 
 - `.ai/06_specs/teamspaces-collaboration-spec.md` still describes Supabase Presence/Broadcast/RLS and a fuller modal than the active implementation. It must be superseded or rewritten during `UNIT-019`.
 - Historical Supabase triggers and RLS tests do not prove active D1 invariants.
-- The Publisher pack currently fails its validator on eight stale artifact hashes; any Team access DTO/component change also requires an owner-refreshed Publisher manifest and `TEAMWORK-PUBLISHER-ACCESS-v1`.
-- The Activity pack currently fails its validator on five stale artifact hashes. `UNIT-009` and `UNIT-014` must treat both overlap manifests as inadmissible until their owners refresh and revalidate them; even a later general PASS will not substitute for `TEAMWORK-ACTIVITY-CONTRACT-v1` or `TEAMWORK-PUBLISHER-ACCESS-v1`.
+- **Overlap-pack status (re-verified 2026-07-11 improve pass):** As of this re-audit, both overlap packs **pass** `bun run validate:plan-pack` — their owners refreshed the previously-stale artifact hashes. (At the original planning freeze they failed: Activity on five hashes, Publisher on eight.) Their manifests are therefore no longer *inadmissible for staleness*. However, both packs remain `CONDITIONALLY_READY` / `NOT_STARTED`; internal pack validity is necessary but not sufficient for the Teamwork consumer contracts. `UNIT-009` and `UNIT-014` are still blocked until each produces its source-matched receipt (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) against the *current* overlap manifest, with passing producer/consumer compatibility tests. A general overlap PASS never substitutes for those receipts.
 - Existing hosted invitation and cursor evidence proves bounded scenarios but explicitly does not prove production cutover or the complete two-client in-app roster journey.
 
 ## Official Cloudflare Sources
@@ -164,7 +163,11 @@ scoped_status_sha256=8762cf893208095118f595db91b86ff33577613c365d8d89dc1ddc7b917
 scoped_diff_sha256=d1174d75ebed8ad48ad49caedf4ad04d0b2abdeb64bba696dd9813875662e6ef
 ```
 
-The scoped status includes concurrent edits to both overlap packs, the planning-prompt suite, and current state. After those writes became stable, the independent verifier recomputed the exact ordered 48-path baseline: 3,320 status bytes, 392,568 tracked-diff bytes, and zero untracked files. The re-audit found five Activity and eight Publisher artifact-hash mismatches, so this pack records both overlap manifests as stale rather than claiming a PASS. Any implementation-time mismatch requires another ledger observation, targeted re-audit, and baseline refresh. Do not silently change pathspecs.
+The scoped status includes concurrent edits to both overlap packs, the planning-prompt suite, and current state. After those writes became stable, the independent verifier recomputed the exact ordered 48-path baseline: 3,320 status bytes, 392,568 tracked-diff bytes, and zero untracked files. Any implementation-time mismatch requires another ledger observation, targeted re-audit, and baseline refresh. Do not silently change pathspecs.
+
+### Improve-pass re-baseline (2026-07-11)
+
+During the improve-stage audit, HEAD advanced from `e373bc865` to `f7421fe9b` due to concurrent agent commits (plan-pack/admin consolidation and corporate-accounts work). A targeted drift check confirmed that **no Teamwork-relevant source anchor changed**: `src/lib/auth/roles.ts`, `src/lib/authz/d1-access.ts`, the entire `src/lib/collaboration/` tree, `collaboration-room.ts`/`-router.ts`/`-client.ts`, the workshop collaboration UI, the invite routes, and migrations `0007`/`0008`/`0013`/`0030` are all byte-identical to the frozen baseline. The only in-scope-path changes were additive: `account_status` on `profile-d1-store.ts`, a 9-line `session.ts` addition, and three corporate-accounts/admin migrations (`0050`-`0052`) — none of which affects any RBAC, invitation, repository, realtime, or atomicity claim. The original `e373bc865` fingerprint is preserved above as the planning-freeze record; `UNIT-001` must recompute the scoped baseline at execution start per the stale-trigger rule, but no re-audit of substantive claims is required for the drift observed.
 
 ### Migration set scope note
 

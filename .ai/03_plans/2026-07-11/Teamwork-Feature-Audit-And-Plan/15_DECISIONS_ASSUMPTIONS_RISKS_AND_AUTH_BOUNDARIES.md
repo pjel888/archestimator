@@ -26,7 +26,7 @@
 - Better Auth profile email remains the exact recipient identity for invitation acceptance.
 - Existing bound Cloudflare resources are sufficient for this slice.
 - Current product scale fits one room per project/estimate topic after caps and multiplexing; this must be measured.
-- The Activity and Publisher owners can refresh their currently stale manifests and provide source-matched consumer receipts during implementation; until then `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` remain blocked.
+- The Activity and Publisher owners refresh their manifests and provide source-matched consumer receipts during implementation. As of the 2026-07-11 improve pass, both overlap packs pass their own validators (the previously-stale hashes were refreshed), but both remain `CONDITIONALLY_READY` / `NOT_STARTED` and neither consumer receipt (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) yet exists; until those receipts are produced against the current manifests, `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` remain blocked.
 - The repo remains on free-tier/bundled Cloudflare limits unless the owner explicitly changes the cost posture.
 
 Every assumption is a stale trigger if invalidated.
@@ -40,8 +40,8 @@ Every assumption is a stale trigger if invalidated.
 | concurrent manager-floor violation | critical | active D1 invariant + concurrency tests | no migration verification without proof |
 | partial invite acceptance grants access | critical | one transaction + failure injection | fail closed |
 | owner/equal-admin privilege escalation | critical | target dominance and filtered UI | deny and log stable code |
-| Activity manifest or contract/source drift | high | owner-refresh the five stale hashes, revalidate, then bind exact producer/consumer hashes | `UNIT-009` and integrated QA remain blocked |
-| Publisher manifest drift or DTO breakage | high | owner-refresh the eight stale hashes, revalidate, then run compatibility receipt and caller tests | `UNIT-014` and integrated QA remain blocked; retain adapter/old path |
+| Activity manifest or contract/source drift | high | manifests now pass (refreshed 2026-07-11); produce `TEAMWORK-ACTIVITY-CONTRACT-v1` against current manifest, then bind exact producer/consumer hashes | `UNIT-009` and integrated QA remain blocked until the receipt exists |
+| Publisher manifest drift or DTO breakage | high | manifests now pass (refreshed 2026-07-11); produce `TEAMWORK-PUBLISHER-ACCESS-v1` against current manifest, then run compatibility receipt and caller tests | `UNIT-014` and integrated QA remain blocked until the receipt exists; retain adapter/old path |
 | viewer/forged realtime broadcast | high | token capabilities and DO enforcement | keep cursors flag off |
 | silent token expiry/reconnect failure | high | auth ack/refresh/state machine | degraded UI, no false subscribed state |
 | optimistic D1 conflict not recognized | high | stable code normalization and real-adapter tests | fix before concurrent UX claim |
@@ -53,7 +53,7 @@ Every assumption is a stale trigger if invalidated.
 
 ## Authorization Boundaries
 
-There is no active authorization boundary blocking the advertised local ready slice (`UNIT-001` through `UNIT-008`, plus `UNIT-010` through `UNIT-013`). The stale Activity and Publisher manifests are technical dependency blockers, not authorization boundaries; they block `UNIT-009`, `UNIT-014`, and downstream `UNIT-015`.
+There is no active authorization boundary blocking the advertised local ready slice (`UNIT-001` through `UNIT-008`, plus `UNIT-010` through `UNIT-013`). The Activity and Publisher packs now pass their own validators (refreshed 2026-07-11), but the missing Teamwork consumer receipts (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) and the packs' `NOT_STARTED` implementation status are technical dependency blockers, not authorization boundaries; they block `UNIT-009`, `UNIT-014`, and downstream `UNIT-015`.
 
 External actions still require their unit's normal credentials and gates:
 

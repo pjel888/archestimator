@@ -79,7 +79,7 @@ This pack's action ceiling is `EXTERNAL_ACTIONS` because its outer DAG includes 
 - branch/worktree creation, pushing, or history rewriting;
 - owner-transfer behavior not specified here.
 
-The repo provides standing authorization for scoped Cloudflare resources, but a production Worker version/deployment or traffic allocation is a distinct release side effect and requires the explicit `AUTH-001` packet. This boundary does not block the independent local slice (`UNIT-001` through `UNIT-008`, plus `UNIT-010` through `UNIT-013`); the separate overlap-manifest blockers still govern `UNIT-009`, `UNIT-014`, and `UNIT-015`.
+The repo provides standing authorization for scoped Cloudflare resources, but a production Worker version/deployment or traffic allocation is a distinct release side effect and requires the explicit `AUTH-001` packet. This boundary does not block the independent local slice (`UNIT-001` through `UNIT-008`, plus `UNIT-010` through `UNIT-013`); the missing source-matched Activity/Publisher consumer receipts still govern `UNIT-009`, `UNIT-014`, and `UNIT-015` (the overlap packs themselves now pass their validators).
 
 ## Source-Matched Hosted Proof Strategy
 

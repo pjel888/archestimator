@@ -16,7 +16,7 @@ This is the sole canonical execution artifact for `PLAN-2026-07-11-teamwork-feat
 
 ## Ready Slice
 
-`SLICE-001` contains `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013`; it is dependency-closed, and `UNIT-001` is next. `UNIT-009` is blocked on an owner-refreshed Activity manifest, `UNIT-014` is blocked on an owner-refreshed Publisher manifest, and `UNIT-015` is blocked downstream of both. `UNIT-016` through `UNIT-019` are also outside the ready slice and blocked by `AUTH-001` plus their unresolved dependencies.
+`SLICE-001` contains `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013`; it is dependency-closed, and `UNIT-001` is next. `UNIT-009` is blocked on the missing `TEAMWORK-ACTIVITY-CONTRACT-v1` consumer receipt against the now-valid Activity manifest, `UNIT-014` is blocked on the missing `TEAMWORK-PUBLISHER-ACCESS-v1` consumer receipt against the now-valid Publisher manifest, and `UNIT-015` is blocked downstream of both. `UNIT-016` through `UNIT-019` are also outside the ready slice and blocked by `AUTH-001` plus their unresolved dependencies.
 
 ## Dependency DAG
 
@@ -29,12 +29,12 @@ UNIT-001 baseline/tests/conflict contract
               -> UNIT-006 scoped Teamwork DTO
                   -> UNIT-007 project access UI
                   -> UNIT-008 estimate access UI
-              -> UNIT-009 Activity producer contract [blocked: Activity manifest]
+              -> UNIT-009 Activity producer contract [blocked: TEAMWORK-ACTIVITY-CONTRACT-v1 receipt]
       -> UNIT-010 realtime server protocol
           -> UNIT-011 realtime client/presence
               -> UNIT-012 supported cursor UX
                   -> UNIT-013 performance/ops/cost gates
-UNIT-006 + UNIT-007 + UNIT-008 -> UNIT-014 Publisher compatibility [blocked: Publisher manifest]
+UNIT-006 + UNIT-007 + UNIT-008 -> UNIT-014 Publisher compatibility [blocked: TEAMWORK-PUBLISHER-ACCESS-v1 receipt]
 UNIT-007 + UNIT-008 + UNIT-009 + UNIT-012 + UNIT-013 + UNIT-014 -> UNIT-015 local integration QA [blocked: 009 + 014]
 UNIT-013 + UNIT-015 -> UNIT-016 hosted deployment authorization/version preparation [AUTH-001]
 UNIT-005 + UNIT-009 + UNIT-015 + UNIT-016 -> UNIT-017 hosted D1 invitation proof
@@ -54,13 +54,13 @@ UNIT-014 + UNIT-015 + UNIT-017 + UNIT-018 -> UNIT-019 final integration/readines
 | `UNIT-006` | repository executor | privacy checker | 002, 004, 005 | scoped Teamwork summary DTO/capabilities / `READY` |
 | `UNIT-007` | UI executor | designer/accessibility checker | 005, 006 | project member/invite management UI / `READY` |
 | `UNIT-008` | UI executor | designer/accessibility checker | 005, 006 | estimate inheritance/direct-access UI / `READY` |
-| `UNIT-009` | Teamwork event executor | Activity consumer | 003, 005 | immutable facts + Activity receipt / `BLOCKED: Activity manifest` |
+| `UNIT-009` | Teamwork event executor | Activity consumer | 003, 005 | immutable facts + Activity receipt / `BLOCKED: TEAMWORK-ACTIVITY-CONTRACT-v1` |
 | `UNIT-010` | realtime executor | security checker | 001, 002 | DO protocol-v2 and revocation enforcement / `READY` |
 | `UNIT-011` | client executor | realtime verifier | 006, 010 | authorized client/refresh/presence / `READY` |
 | `UNIT-012` | UI executor | designer/accessibility checker | 008, 011 | trusted accessible estimate cursors / `READY` |
 | `UNIT-013` | performance/ops executor | verifier | 003, 004, 010, 011, 012 | budgets, telemetry, flags, cost / `READY` |
-| `UNIT-014` | Teamwork integration executor | Publisher consumer | 006, 007, 008 | Publisher compatibility receipt / `BLOCKED: Publisher manifest` |
-| `UNIT-015` | test-engineer | independent verifier | 007, 008, 009, 012, 013, 014 | local integration/adversarial QA + hosted dry-run packet / `BLOCKED: 009 + 014` |
+| `UNIT-014` | Teamwork integration executor | Publisher consumer | 006, 007, 008 | Publisher compatibility receipt / `BLOCKED: TEAMWORK-PUBLISHER-ACCESS-v1` |
+| `UNIT-015` | test-engineer | independent verifier | 007, 008, 009, 012, 013, 014 | local integration/adversarial QA + hosted dry-run packet / `BLOCKED: 009 + 014 receipts` |
 | `UNIT-016` | release executor | owner + release verifier | 013, 015 | source-matched version/deployment receipt / `BLOCKED: AUTH-001` |
 | `UNIT-017` | hosted D1 executor | independent verifier | 005, 009, 015, 016 | hosted D1 invitation receipt / `BLOCKED: AUTH-001` |
 | `UNIT-018` | hosted realtime executor | independent security/browser verifier | 010, 011, 012, 013, 015, 016 | hosted DO/two-client receipt / `BLOCKED: AUTH-001` |
@@ -216,11 +216,11 @@ Resume state: mode/member state matrix and pending defects.
 **Write scope:** Teamwork event adapter/fixtures/producer calls, cross-pack receipt; Activity consumer changes only under allocated ownership.
 **Requirements:** `REQ-011`, `DATA-002`.
 **Invariants:** access-changing facts are atomic, redacted, immutable, idempotent; realtime traffic excluded.
-**Current blocker:** Activity owner must refresh its five stale artifact hashes and its validator must pass before this unit binds a manifest hash or accepts a consumer acknowledgement.
+**Current blocker:** the Activity pack now passes its own validator (refreshed 2026-07-11), but `TEAMWORK-ACTIVITY-CONTRACT-v1` does not yet exist. This unit must produce that receipt against the current Activity manifest and obtain the consumer acknowledgement before claiming integrated Activity completion.
 
 Steps:
 
-1. Revalidate the current Activity pack before freezing its manifest and record the source/manifest hashes.
+1. Revalidate the current Activity pack and record its source/manifest hashes.
 2. Agree `TEAMWORK-ACTIVITY-CONTRACT-v1` envelope and event vocabulary.
 3. Implement Teamwork adapter and producer transaction calls.
 4. Run Activity reader/composer/history compatibility tests.
@@ -312,11 +312,11 @@ Resume state: measured budgets, current flags, cost envelope.
 **Write scope:** Teamwork component extraction and Publisher consumer adapter/tests/receipt.
 **Requirements:** `REQ-012`.
 **Invariants:** public recipient authority separate; no internal mutation in public client; current Publisher behavior preserved.
-**Current blocker:** Publisher owner must refresh its eight stale artifact hashes and its validator must pass before this unit binds a manifest hash or starts the compatibility receipt.
+**Current blocker:** the Publisher pack now passes its own validator (refreshed 2026-07-11), but `TEAMWORK-PUBLISHER-ACCESS-v1` does not yet exist. This unit must produce that receipt against the current Publisher manifest before claiming compatibility completion.
 
 Steps:
 
-1. Recompute Publisher baseline/manifest validation.
+1. Revalidate the Publisher pack and record its manifest hash.
 2. Move/extract internal access component to Teamwork ownership.
 3. Migrate Publisher callers through versioned DTO/adapter.
 4. Run public/internal denial and Publisher route/DOM tests.
@@ -331,7 +331,7 @@ Resume state: migrated callers and receipt hash.
 **Write scope:** tests/evidence and fixes in owning units only.
 **Requirements:** `UX-001`, `UX-002`, `UX-003`, `UX-004`, `DATA-004`, `OPS-002`.
 **Invariants:** all accepted local criteria proven; known-red cleared/classified; no sensitive evidence; browser used only for browser-only claims.
-**Current blocker:** both `UNIT-009` and `UNIT-014` must be verified against owner-refreshed overlap manifests and accepted consumer receipts.
+**Current blocker:** both `UNIT-009` and `UNIT-014` must produce their source-matched consumer receipts (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) against the now-valid overlap manifests and pass compatibility tests.
 
 Steps:
 

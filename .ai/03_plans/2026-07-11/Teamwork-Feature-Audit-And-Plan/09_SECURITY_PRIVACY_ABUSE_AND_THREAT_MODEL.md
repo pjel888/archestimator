@@ -46,6 +46,7 @@
 | arbitrary event/payload | DO format-checks event name only, forwards payload untouched (`collaboration-room.ts:53-55,130-138`) | event registry/schema/size/rate validation | fuzz/property tests |
 | unauthorized socket exhaustion | no auth deadline, no eviction of unauthorized sockets | auth timeout, caps, token buckets | abuse/load tests |
 | stale membership access | 300s token TTL is the only revocation path; no socket close on removal | membership version/refresh/revocation budget | hosted removal test |
+| stale HTTP/D1 access after removal | removed member's existing Better-Auth web session is not invalidated; the 5s/30s revocation budget is realtime-only | D1 access predicates (`canAccessProjectInD1` etc.) re-check membership at request time, so reads fail once the row is gone; document that the revocation latency budget is realtime-only and that HTTP reads rely on per-request D1 authorization rather than session invalidation; note any cached/derived authorization as a residual risk | denial test: removed member's next server-action/read is denied; audit that no authorization is cached beyond the request |
 | key reuse | four-secret fallback chain ending in invite pepper (`realtime-room-token.ts:4-9`) | dedicated versioned realtime keys, fail-closed in production | env/config gate |
 | sensitive telemetry | raw UUID topics/arbitrary metadata | hashing and allowlisted fields | static/error-handling gate |
 | public/internal authority mix | Publisher access presentation | explicit type/repository/route separation | cross-boundary denial tests |

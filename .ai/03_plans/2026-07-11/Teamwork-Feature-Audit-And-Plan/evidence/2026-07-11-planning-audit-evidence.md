@@ -17,7 +17,8 @@ Read-only/codebase-planning evidence for `PLAN-2026-07-11-teamwork-feature-audit
 - All ten documents in `.ai/08_prompts/000_Planning Prompts/` were reviewed.
 - Planning-prompt evaluation suite: PASS, 10 documents, 10 gates, 31 scenarios.
 - Initial overlap audit: Publisher PASS; Activity FAIL on three artifact hashes. This is preserved as historical planning evidence.
-- Final targeted re-audit after independent-verifier drift detection: Activity FAIL on five stale artifact hashes and Publisher FAIL on eight stale artifact hashes. Their source trees had stopped changing, so the failures are recorded as execution-time owner-refresh dependencies rather than silently rewritten by this pack.
+- Final targeted re-audit after independent-verifier drift detection: Activity FAIL on five stale artifact hashes and Publisher FAIL on eight stale artifact hashes. Their source trees had stopped changing, so the failures were recorded as execution-time owner-refresh dependencies rather than silently rewritten by this pack.
+- **Improve-pass re-audit (2026-07-11):** both overlap owners have since refreshed their manifests. `bun run validate:plan-pack` now **passes** for both `.ai/03_plans/2026-07-10/Activity-History-Mapping` and `.../Publisher-And-Shared-Pages`. The previously-recorded hash mismatches are resolved. However, both packs remain `CONDITIONALLY_READY` / `NOT_STARTED`, and the Teamwork consumer receipts (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) do not yet exist; `UNIT-009`/`UNIT-014`/`UNIT-015` remain blocked on those receipts, not on manifest staleness.
 - Activity mismatch receipt: `README.md`, `11_IMPLEMENTATION_PLAN.md`, `12_COORDINATION_AND_MULTI_AGENT.md`, `LOOP_LEDGER.md`, and `15_PERFORMANCE_AND_QUERY_AUDIT.md`.
 - Publisher mismatch receipt: `IMPLEMENTATION_PLAN.md`, `04_REQUIREMENTS_SPECIFICATION.md`, `07_DATA_DATABASE_API_NETWORK_PLAN.md`, `08_SECURITY_PRIVACY_THREAT_MODEL.md`, `10_BLAST_RADIUS_AND_DEPENDENCIES.md`, `11_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md`, `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md`, and `LOOP_LEDGER.md`.
 - The Teamwork profile is `high-blast-radius` because scope spans authorization, D1, invitations, Durable Objects, realtime clients, UI, security, performance, operations, and cross-pack contracts.
@@ -60,7 +61,7 @@ These results are known-red planning inputs, not implementation completion evide
 - Estimate cursors are production-wired but DO capability, identity, refresh, rate, and client auth-ready contracts are incomplete.
 - Project/global presence and row/tree synchronization are not complete product surfaces.
 - Active D1 revision conflict string does not match the client stable conflict recognizer.
-- Neither overlap manifest currently validates. Even after their owners refresh them, general pack validity will not prove the future Teamwork producer/consumer contracts; exact source-matched receipts remain required.
+- Neither overlap manifest was valid at the original planning freeze. Both now pass (refreshed 2026-07-11), but general pack validity does not prove the future Teamwork producer/consumer contracts; exact source-matched receipts remain required.
 
 ## Cloudflare Platforms Evidence
 
@@ -112,14 +113,14 @@ Current source and focused tests override stale graph omissions.
 
 ## Planning Verdict
 
-The source audit, decisions, split local/hosted DAG, risk controls, proof stages, and stop conditions are sufficient for a conditionally ready package. The dependency-closed independent local slice may execute; Activity/Publisher integration units wait for owner-refreshed manifests, and hosted version/deployment plus DO proof remain behind `AUTH-001`. All product acceptance criteria remain unproven until their planned evidence is collected.
+The source audit, decisions, split local/hosted DAG, risk controls, proof stages, and stop conditions are sufficient for a conditionally ready package. The dependency-closed independent local slice may execute; Activity/Publisher integration units wait for their source-matched consumer receipts against the now-valid overlap manifests, and hosted version/deployment plus DO proof remain behind `AUTH-001`. All product acceptance criteria remain unproven until their planned evidence is collected.
 
 ## Improve-Stage Precision Pass (2026-07-11)
 
 A second improve-stage audit re-verified every substantive source claim against the same HEAD (`e373bc865`) using four parallel read-only lanes. Results:
 
-- **HEAD unchanged** from the frozen baseline; the scoped fingerprint remains valid.
-- **Overlap packs unchanged:** Activity still fails on the exact five artifact hashes recorded (`README.md`, `11_IMPLEMENTATION_PLAN.md`, `12_COORDINATION_AND_MULTI_AGENT.md`, `LOOP_LEDGER.md`, `15_PERFORMANCE_AND_QUERY_AUDIT.md`); Publisher still fails on the exact eight recorded. No commits to either pack since `4c7684f8a` (2026-07-10 21:02), predating this plan. The `UNIT-009`/`UNIT-014` blockers are still accurately described.
+- **HEAD advanced** from the frozen baseline `e373bc865` to `f7421fe9b` due to concurrent agent commits. A targeted drift check confirmed **no Teamwork-relevant source anchor changed** (`roles.ts`, `d1-access.ts`, the collaboration tree, the DO/router/client, the invite routes, and migrations `0007`/`0008`/`0013`/`0030` are byte-identical). The only in-scope changes were additive (`account_status` field, corporate-accounts migrations `0050`-`0052`), affecting no substantive claim. The original fingerprint is preserved as the planning-freeze record; `UNIT-001` recomputes at execution start.
+- **Overlap packs now pass:** both Activity and Publisher owners refreshed their manifests; `bun run validate:plan-pack` passes for both. The `UNIT-009`/`UNIT-014` blockers are restated as "missing source-matched consumer receipts against the now-valid manifests," not "stale manifests."
 - **All confirmed defects stayed confirmed** (sheet-metadata leak, manager-policy dead-control, target-dominance absence, re-invite role overwrite, missing D1 invariants, non-atomic acceptance, literal-vs-code conflict string, event allow-all, no capability enforcement, no revocation path, client no-ack, no reconnect/refresh, key fallback chain, pending invites unrendered, project actions dead at runtime).
 - **Precision repairs applied** (no conclusion changed): exact file:line anchors added to `03`/`04`/`05`/`06`/`07`/`09`; `ceo` platform role added; target-dominance wording corrected from "inconsistent" to "uniformly absent"; display-label gap relocated from DO to client hook; auth-ready split into send-gated vs subscribe-ungated.
 - **Three newly stated facts** (all implied before, now explicit with evidence): (1) D1 exposes no transaction API, only `batch` (`src/lib/cloudflare/d1.ts:20-24`); (2) `/workshop/pending-invite/route.ts:70` accepts membership on a GET via the signed cookie bridge; (3) the realtime signing secret falls back through four secrets ending in the invite pepper (`realtime-room-token.ts:4-9`).

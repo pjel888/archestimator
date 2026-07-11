@@ -112,6 +112,8 @@ Every command returns a stable discriminated result. Expected denials/conflicts 
 
 ## Optimistic Concurrency Contract
 
+> **Scope note:** the conflict-string divergence below originates in the Estimates domain (`src/lib/estimates/`), not in collaboration/membership code. It is a pre-existing defect. The Teamwork plan adopts it because the concurrent-editing UX (`UNIT-012`) depends on a trustworthy conflict signal, and the repair is small (one shared normalization helper). `UNIT-001`/`UNIT-004` own the normalization; if a separate Estimates fix pack is opened, coordinate to avoid duplicate edits to `d1-action-client.ts` and `row-revision-conflict.ts`.
+
 Concurrent editors still rely on estimate-row revision control even though CRDT/OT is out of scope. The active estimate-action path throws the literal `"Estimate row revision conflict."` at `src/lib/estimates/d1-action-client.ts:1906, 1961, 1989, 2020`, while the stable code constant is `estimate_sheet_row_revision_conflict` (`src/lib/estimates/row-revision-conflict.ts:1`). The recognizers (`isEstimateRowRevisionConflict` at `row-revision-conflict.ts:12-21` and `readMutationErrorCode` at `src/hooks/use-estimate-row-mutations.ts:87-95`) match only on the code string or its substring, so the literal is uncaught and surfaces as a generic `mutation_error`. A separate path (`src/lib/ai/package-builder/apply.ts:1325, 1437`) already throws the correct code, but there is no shared normalization layer between the two paths.
 
 `UNIT-001`/`UNIT-004` must normalize the D1 error to the stable code (prefer one shared helper used by both the server throw sites and the client/server recognizers) and prove:

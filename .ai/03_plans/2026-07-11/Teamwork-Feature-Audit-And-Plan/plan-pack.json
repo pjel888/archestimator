@@ -21,19 +21,19 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "f91e22432e01687f06cd4c1b612fa29a25bf55e05cf16300a04c766bc211fbb5"
+      "sha256": "d3a0e16c380cc1c3115a357a4de331add950fef688814c092cf45a1e80f01c18"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "2d19358934532037d85a7056c6b16157d85a77984129a25d117109f377ca2e2e"
+      "sha256": "a1553f5631d6fdd4f2b8b4b02ee56a77c179da70d8e57c8c283f2b9cc0a403ef"
     },
     {
       "id": "ART-003",
       "role": "summary",
       "path": "01_EXECUTIVE_SUMMARY_AND_OUTCOME.md",
-      "sha256": "32d45ef764d00c508eebf78404dc3f997e86f2d2f537c25b8096d0e4216a88d7"
+      "sha256": "8dd90a682ccb4cf7dbbf6f09e3efcd32ef98ab7460a838465ec828194f28bdde"
     },
     {
       "id": "ART-004",
@@ -45,31 +45,31 @@
       "id": "ART-005",
       "role": "audit",
       "path": "03_SOURCE_CODEBASE_ARCHIVE_AND_STALENESS_AUDIT.md",
-      "sha256": "d6a3a77296c8ca6581909534360c5ffff4ec77a5595acbd3036f0e9d3a2f502a"
+      "sha256": "dd21c1ee836a41d5ea3ee1e3e25c43ad6b9c655b85c4110c26ff383c4a011963"
     },
     {
       "id": "ART-006",
       "role": "authorization",
       "path": "04_ACTOR_RESOURCE_ACTION_RBAC_MATRIX.md",
-      "sha256": "be31af91663e971b6de34e4fbb68ec3c289c7918de5652631d2d6117253d7ced"
+      "sha256": "d8e0d47b6044c580a6c76b30d4c40f0626a0cbc1992391afabfa625eb82d82d5"
     },
     {
       "id": "ART-007",
       "role": "invitation-lifecycle",
       "path": "05_INVITATION_MEMBERSHIP_AND_LIFECYCLE.md",
-      "sha256": "066b6954daa72c60adb2ce1d2ada378ce85ac8aa4a6c4742e11571a6f8739399"
+      "sha256": "bfbfe0e4d01271228e1a3189022d051a91249dea4f60fb3a424541b250be98b5"
     },
     {
       "id": "ART-008",
       "role": "data-plan",
       "path": "06_DATA_SCHEMA_REPOSITORY_API_AND_MIGRATION.md",
-      "sha256": "64ab0eac3dda28032b471f136007a7bb36e3b2286c3658e5e5314fd9dfa7e39e"
+      "sha256": "392bb7564eccf9595177a48f95f703ee4919865a8bf9761a6416c2ed476496e2"
     },
     {
       "id": "ART-009",
       "role": "realtime-contract",
       "path": "07_REALTIME_PRESENCE_CURSOR_AND_DURABLE_OBJECT_CONTRACT.md",
-      "sha256": "b09d28830897fc4e374524aad83d675c7d51be4c1c55d49a8b248e214b5cad93"
+      "sha256": "cee236ce58414d1a162b879dcb0848ce264bae4d6c2834eadd42b59da24584fd"
     },
     {
       "id": "ART-010",
@@ -81,19 +81,19 @@
       "id": "ART-011",
       "role": "security",
       "path": "09_SECURITY_PRIVACY_ABUSE_AND_THREAT_MODEL.md",
-      "sha256": "8795a115d04a646522d59947d3b371434a2944a7b2682bb549af4bc4df97b48c"
+      "sha256": "ab6ff8cd9d64ad2cb3288dc122493dab1689431d26613e68f3074b45a8c596ba"
     },
     {
       "id": "ART-012",
       "role": "activity-contract",
       "path": "10_ACTIVITY_AUDIT_EVENT_AND_CROSS_PACK_CONTRACTS.md",
-      "sha256": "734de1938a25965a99d985a676967dd8785d3ec70cabf5ffe2399d063af35f96"
+      "sha256": "a4caf3ed7d6c42992cc58ad8360b87b708eb91a996f4d044ea6c756d1c5ead0f"
     },
     {
       "id": "ART-013",
       "role": "publisher-boundary",
       "path": "11_PUBLISHER_SHARED_PAGES_BOUNDARY_AND_RECEIPTS.md",
-      "sha256": "e94914f82d9749758cbde5c862fdbb65088731ec9a911b551e9d41bd564b601a"
+      "sha256": "4212d9a19b8192645433fcee8cad59962c41e0e7c4e714fbc55cd7a162004084"
     },
     {
       "id": "ART-014",
@@ -111,31 +111,31 @@
       "id": "ART-016",
       "role": "rollout",
       "path": "14_ROLLOUT_FIX_FORWARD_OPERATIONS_AND_RELEASE_BOUNDARIES.md",
-      "sha256": "c3739c7f1126ead95860d13af850765edde8d9b4c341ba51c35e943d55d10d1e"
+      "sha256": "bedb5634463bc51a87659ff2c8565941a990bd77a3b79e02d50be7249e01eaf3"
     },
     {
       "id": "ART-017",
       "role": "decisions-risks",
       "path": "15_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "sha256": "4f59ba43d88dc9803722644fe8798a8460560612f3f8cacf50afca244d4bde5e"
+      "sha256": "8bddf103dd7fa1a44a8318e2521fc2f298a551da9b8c39dc9a75d6a6e9fde337"
     },
     {
       "id": "ART-018",
       "role": "traceability",
       "path": "16_REQUIREMENTS_TRACEABILITY_AND_FINAL_AUDIT.md",
-      "sha256": "f5cd4d21ddc60f855f9cafaf830e28df2b1696edde80c6b405079458ba8aa087"
+      "sha256": "9bc9899aef9254988cc90b83c4dd7191db928a73b3dc449eea05879d32a19621"
     },
     {
       "id": "ART-019",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "3b24eaf0e37ca62592016ae97ddd2f6851493ff894a6218524dfbac5e902ab8f"
+      "sha256": "0bc3a4e589d389fe83c1d7effdf9411ad71895a7abe7dbd1cae8ace556d883fb"
     },
     {
       "id": "ART-020",
       "role": "planning-evidence",
       "path": "evidence/2026-07-11-planning-audit-evidence.md",
-      "sha256": "1689f9d4d80d55c1a224f0cfc1aac713796b4b9fc9b45c4b773839136428e192"
+      "sha256": "d60066b63a281fd514905401d2187380f0059db9af57502fa348d5843dac7d15"
     }
   ],
   "sources": [
@@ -1562,7 +1562,7 @@
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "evidence/2026-07-11-planning-audit-evidence.md",
-      "sha256": "1689f9d4d80d55c1a224f0cfc1aac713796b4b9fc9b45c4b773839136428e192",
+      "sha256": "d60066b63a281fd514905401d2187380f0059db9af57502fa348d5843dac7d15",
       "claim_ids": [
         "GATE-UX-01",
         "GATE-NEXT-01",
@@ -1572,7 +1572,7 @@
         "GATE-VERIFY-01",
         "GATE-PERF-01"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "f7421fe9b95477d673781c82aac9a0883af700de",
       "valid_until": null
     },
     {
@@ -1646,13 +1646,13 @@
       "id": "EVID-003",
       "status": "PASS",
       "artifact_path": "evidence/2026-07-11-planning-audit-evidence.md",
-      "sha256": "1689f9d4d80d55c1a224f0cfc1aac713796b4b9fc9b45c4b773839136428e192",
+      "sha256": "d60066b63a281fd514905401d2187380f0059db9af57502fa348d5843dac7d15",
       "claim_ids": [
         "AUTH-001",
         "AC-020",
         "GATE-OPS-01"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "f7421fe9b95477d673781c82aac9a0883af700de",
       "valid_until": null
     }
   ],
@@ -2240,5 +2240,5 @@
     "cloudflare-worker-version-deployment-or-durable-object-routing-change"
   ],
   "updated_at": "2026-07-10T18:36:54.269Z",
-  "manifest_sha256": "e9985a5ec6090c8033c1ecdef358683705b2e130f096af69870db7130fc71a40"
+  "manifest_sha256": "19fdf35ac299fe656e5a6411b0d7f1510b2709ece64865caa90f58bae540d3a0"
 }

@@ -75,7 +75,7 @@ Activity must acknowledge the producer contract with exact reader/composer compa
 
 ## Current Integration State
 
-The Activity pack is stable at this planning observation but its manifest is stale: the validator reports five artifact-hash mismatches (`README.md`, `11_IMPLEMENTATION_PLAN.md`, `12_COORDINATION_AND_MULTI_AGENT.md`, `LOOP_LEDGER.md`, and `15_PERFORMANCE_AND_QUERY_AUDIT.md`). `UNIT-009` must obtain an owner-refreshed validating manifest before it binds hashes or accepts a consumer acknowledgement. A later general PASS will prove only internal pack consistency, not compatibility with the future Teamwork event adapter.
+At the original planning freeze the Activity pack's manifest was stale (five artifact-hash mismatches). As of the 2026-07-11 improve-pass re-audit, the Activity owner has refreshed those hashes and `bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Activity-History-Mapping` now **passes**. The manifest is therefore no longer inadmissible for staleness. However, the Activity pack remains `CONDITIONALLY_READY` / `NOT_STARTED`; internal pack validity is necessary but not sufficient for the Teamwork consumer contract. `UNIT-009` remains blocked until it produces `TEAMWORK-ACTIVITY-CONTRACT-v1` against the *current* Activity manifest, with passing producer/consumer compatibility tests and both manifest hashes bound in the receipt. A general Activity PASS proves only internal pack consistency, not compatibility with the future Teamwork event adapter.
 
 Implementation sequence:
 
