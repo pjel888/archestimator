@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  ESTIMATE_LOGICAL_OUTPUTS,
   INDEX_SCHEMA,
   PERFORMANCE_REPORT_SCHEMA,
   canonicalJson,
@@ -33,7 +34,6 @@ function createIndexFixture() {
   const root = mkdtempSync(join(tmpdir(), "estimate-index-"));
   const livePlanRoot = resolve(process.cwd(), ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization");
   const planRoot = join(root, "plan");
-  const runRoot = join(root, "runs", "UNIT-001", "test-run");
   const immutableRunRoot = join(planRoot, "evidence/runtime/runs");
   const projection = join(planRoot, "evidence/runtime/jsdom-baseline.json");
   const fixtureProjection = join(planRoot, "evidence/runtime/fixture-manifest.json");
@@ -53,6 +53,9 @@ function createIndexFixture() {
     application: fingerprint,
     producer: fingerprint,
   };
+  const runKey = `test-run-${fingerprint.content_sha256.slice(0, 12)}-0123456789ab`;
+  const runRoot = join(root, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-001", runKey);
+  const immutableUnitRunRoot = join(immutableRunRoot, "UNIT-001", runKey);
 
   mkdirSync(join(planRoot, "evidence/runtime"), { recursive: true });
   mkdirSync(runRoot, { recursive: true });
@@ -100,11 +103,11 @@ function createIndexFixture() {
       bundleSha256: sha256Hex(canonicalJson({ fixturePayloadSha256, reportPayloadSha256 })),
     },
   };
-  mkdirSync(join(runRoot, "reports"), { recursive: true });
-  mkdirSync(join(runRoot, "fixtures"), { recursive: true });
+  mkdirSync(join(immutableUnitRunRoot, "reports"), { recursive: true });
+  mkdirSync(join(immutableUnitRunRoot, "fixtures"), { recursive: true });
   mkdirSync(join(runRoot, "dependencies"), { recursive: true });
-  writeFileSync(join(runRoot, "reports/jsdom.json"), `${canonicalJson(report)}\n`, { mode: 0o600 });
-  writeFileSync(join(runRoot, "fixtures/fixture.json"), `${canonicalJson(fixture)}\n`, { mode: 0o600 });
+  writeFileSync(join(immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom), `${canonicalJson(report)}\n`, { mode: 0o600 });
+  writeFileSync(join(immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture), `${canonicalJson(fixture)}\n`, { mode: 0o600 });
   writeFileSync(join(runRoot, "dependencies/planning-admission.json"), "{\"schema_version\":\"estimate-sheet-planning-admission.v1\"}\n", { mode: 0o600 });
   writeFileSync(join(runRoot, "run-manifest.json"), `${JSON.stringify({
     schema_version: "estimate-sheet-performance-run.v1",
@@ -112,9 +115,12 @@ function createIndexFixture() {
     unit_id: "UNIT-001",
     run_id: "test-run",
     profile: "artifact-only",
+    evidence_class: "jsdom",
     cleanupRequirement: "NOT_APPLICABLE",
     run_root: runRoot,
-    pointer_path: join(root, "current.json"),
+    immutable_run_root: immutableUnitRunRoot,
+    pointer_path: join(runRoot, "run-pointer.json"),
+    logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint,
@@ -140,10 +146,10 @@ function createIndexFixture() {
     planRoot,
     immutableRunRoot,
     runManifest: join(runRoot, "run-manifest.json"),
-    evidencePath: "reports/jsdom.json",
+    evidencePath: "auto:jsdom",
     projectPath: projection,
     cleanupNotApplicable: true,
-    secondary: [{ role: "fixture", evidencePath: "fixtures/fixture.json", projectPath: fixtureProjection }],
+    secondary: [{ role: "fixture", evidencePath: "auto:fixture", projectPath: fixtureProjection }],
     sourceFingerprint,
     faultInjector,
   });
@@ -152,6 +158,7 @@ function createIndexFixture() {
     planRoot,
     runRoot,
     immutableRunRoot,
+    immutableUnitRunRoot,
     projection,
     fixtureProjection,
     planPath,
@@ -227,130 +234,22 @@ describeIndex("estimate-sheet performance evidence index", () => {
   });
 
   it("materializes immutable evidence, projects source bytes, and commits the terminal plan transition", () => {
-    const root = mkdtempSync(join(tmpdir(), "estimate-index-"));
-    const liveRepoRoot = process.cwd();
-    const repoRoot = root;
-    const planRoot = join(root, "plan");
-    const runRoot = join(root, "runs", "UNIT-001", "test-run");
-    const immutableRunRoot = join(planRoot, "evidence/runtime/runs");
-    const fingerprint = {
-      contract_version: "estimate-sheet-application-fingerprint.v1",
-      path_count: 1,
-      path_list_sha256: sha256Hex("paths"),
-      content_sha256: sha256Hex("content"),
-    };
-    const sourceFingerprint = {
-      contract_version: "estimate-sheet-source-fingerprint.v2" as const,
-      head: "1234567",
-      path_count: 1,
-      path_list_sha256: sha256Hex("source-paths"),
-      application: fingerprint,
-      producer: fingerprint,
-    };
+    const fixture = createIndexFixture();
     try {
-      mkdirSync(join(planRoot, "evidence/runtime"), { recursive: true });
-      mkdirSync(runRoot, { recursive: true });
-      const livePlanRoot = resolve(liveRepoRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization");
-      const livePlan = JSON.parse(readFileSync(join(livePlanRoot, "plan-pack.json"), "utf8")) as EstimateSheetPlanManifest;
-      const inProgress = deriveEstimateSheetPrepareTransition(livePlan, {
-        unitId: "UNIT-001",
-        runId: "test-run",
-        updatedAt: "2026-07-11T00:00:00.000Z",
-      });
-      writeFileSync(join(planRoot, "plan-pack.json"), `${JSON.stringify(inProgress, null, 2)}\n`);
-      for (const name of ["fixture-manifest.json", "jsdom-baseline.json", "evidence-index.json"]) {
-        copyFileSync(join(livePlanRoot, "evidence/runtime", name), join(planRoot, "evidence/runtime", name));
-      }
-
-      const baseFixture = buildEstimatePerformanceFixture("small", {
-        runId: "test-run",
-        generatedAt: "2026-07-11T00:00:00.000Z",
-        applicationFingerprint: fingerprint.content_sha256,
-        producerFingerprint: fingerprint.content_sha256,
-      });
-      const fixturePayloadSha256 = sha256Hex(stableStringify(fixturePayloadWithoutLinkage(baseFixture)));
-      const report = {
-        schema_version: PERFORMANCE_REPORT_SCHEMA,
-        evidenceClass: "jsdom" as const,
-        trace: { packageId: "PLAN-2026-07-08-project-estimate-sheet-performance", unitId: "UNIT-001" as const },
-        head: "1234567",
-        applicationFingerprint: fingerprint,
-        producerFingerprint: fingerprint,
-        fixtureHash: fixturePayloadSha256,
-        buildHash: null,
-        authFixtureHash: sha256Hex("test-auth-fixture"),
-        toolHashes: { evaluator: sha256Hex("test-evaluator") },
-        runId: "test-run",
-        generatedAt: "2026-07-11T00:00:00.000Z",
-        method: { warmups: 3, samples: 30, workerCount: 1, retries: 0, profile: "small" as const },
-        metrics: { measured: { status: "PASS" as const, value: 1 } },
-        overall: "PASS" as const,
-        buildMode: "not-applicable" as const,
-      };
-      const reportPayloadSha256 = sha256Hex(canonicalJson(report));
-      const fixture = {
-        ...baseFixture,
-        linkage: {
-          counterpartPayloadSha256: reportPayloadSha256,
-          bundleSha256: sha256Hex(canonicalJson({ fixturePayloadSha256, reportPayloadSha256 })),
-        },
-      };
-      mkdirSync(join(runRoot, "reports"), { recursive: true });
-      mkdirSync(join(runRoot, "fixtures"), { recursive: true });
-      mkdirSync(join(runRoot, "dependencies"), { recursive: true });
-      writeFileSync(join(runRoot, "reports/jsdom.json"), `${canonicalJson(report)}\n`, { mode: 0o600 });
-      writeFileSync(join(runRoot, "fixtures/fixture.json"), `${canonicalJson(fixture)}\n`, { mode: 0o600 });
-      writeFileSync(join(runRoot, "dependencies/planning-admission.json"), "{\"schema_version\":\"estimate-sheet-planning-admission.v1\"}\n", { mode: 0o600 });
-      writeFileSync(join(runRoot, "run-manifest.json"), `${JSON.stringify({
-        schema_version: "estimate-sheet-performance-run.v1",
-        package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
-        unit_id: "UNIT-001",
-        run_id: "test-run",
-        profile: "artifact-only",
-        cleanupRequirement: "NOT_APPLICABLE",
-        run_root: runRoot,
-        pointer_path: join(root, "current.json"),
-        created_at: "2026-07-11T00:00:00.000Z",
-        status: "PREPARED",
-        sourceFingerprint,
-        applicationFingerprint: fingerprint,
-        producerFingerprint: fingerprint,
-        namespaces: {},
-        mutationJournal: [],
-        previewProcesses: [],
-        admissionKind: "planning",
-        admissionPath: "dependencies/planning-admission.json",
-        admissionSha256: sha256File(join(runRoot, "dependencies/planning-admission.json")),
-        inputApplicationFingerprint: fingerprint,
-        inputProducerFingerprint: fingerprint,
-      })}\n`, { mode: 0o600 });
-
-      const projection = join(planRoot, "evidence/runtime/jsdom-baseline.json");
-      const fixtureProjection = join(planRoot, "evidence/runtime/fixture-manifest.json");
-      const result = updateEstimateSheetPerformanceEvidenceIndex({
-        repoRoot,
-        planRoot,
-        immutableRunRoot,
-        runManifest: join(runRoot, "run-manifest.json"),
-        evidencePath: "reports/jsdom.json",
-        projectPath: projection,
-        cleanupNotApplicable: true,
-        secondary: [{ role: "fixture", evidencePath: "fixtures/fixture.json", projectPath: fixtureProjection }],
-        sourceFingerprint,
-      });
+      const result = fixture.run();
       expect(result.index.schema_version).toBe(INDEX_SCHEMA);
       expect(result.index.evidence[0]?.id).toBe("EVID-002");
-      expect(readFileSync(projection, "utf8")).toBe(readFileSync(join(runRoot, "reports/jsdom.json"), "utf8"));
-      expect(readFileSync(fixtureProjection, "utf8")).toBe(readFileSync(join(runRoot, "fixtures/fixture.json"), "utf8"));
-      expect(readFileSync(join(planRoot, "evidence/runtime/evidence-index.json"), "utf8")).toContain(INDEX_SCHEMA);
-      const transitioned = JSON.parse(readFileSync(join(planRoot, "plan-pack.json"), "utf8"));
+      expect(readFileSync(fixture.projection, "utf8")).toBe(readFileSync(join(fixture.immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom), "utf8"));
+      expect(readFileSync(fixture.fixtureProjection, "utf8")).toBe(readFileSync(join(fixture.immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture), "utf8"));
+      expect(readFileSync(join(fixture.planRoot, "evidence/runtime/evidence-index.json"), "utf8")).toContain(INDEX_SCHEMA);
+      const transitioned = JSON.parse(readFileSync(fixture.planPath, "utf8"));
       expect(transitioned.runtime_evidence.transition_sequence).toBe(2);
       expect(transitioned.next_unit).toBe("UNIT-002");
       expect(transitioned.units.find((unit: { id: string }) => unit.id === "UNIT-001")?.status).toBe("VERIFIED");
       expect(transitioned.evidence_index.find((evidence: { id: string }) => evidence.id === "EVID-002")?.status).toBe("PASS");
-      expect(result.indexPath).toContain("evidence/runtime/runs/UNIT-001/test-run/evidence-index.json");
+      expect(result.indexPath).toBe(join(fixture.immutableUnitRunRoot, "evidence-index.json"));
     } finally {
-      rmSync(root, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
@@ -372,7 +271,8 @@ describeIndex("estimate-sheet performance evidence index", () => {
       expect(readFileSync(fixture.planPath)).toEqual(fixture.original.plan);
       expect(readFileSync(fixture.projection)).toEqual(fixture.original.projection);
       expect(readFileSync(fixture.fixtureProjection)).toEqual(fixture.original.fixtureProjection);
-      expect(existsSync(fixture.immutableRunRoot)).toBe(false);
+      expect(existsSync(join(fixture.immutableUnitRunRoot, "evidence-index.json"))).toBe(false);
+      expect(existsSync(join(fixture.immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom))).toBe(true);
       expect(existsSync(fixture.journalPath)).toBe(false);
     } finally {
       fixture.cleanup();
@@ -396,8 +296,8 @@ describeIndex("estimate-sheet performance evidence index", () => {
         unit_id: "UNIT-001",
         run_id: "test-run",
       });
-      expect(readFileSync(fixture.projection, "utf8")).toBe(readFileSync(join(fixture.runRoot, "reports/jsdom.json"), "utf8"));
-      expect(readFileSync(fixture.fixtureProjection, "utf8")).toBe(readFileSync(join(fixture.runRoot, "fixtures/fixture.json"), "utf8"));
+      expect(readFileSync(fixture.projection, "utf8")).toBe(readFileSync(join(fixture.immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom), "utf8"));
+      expect(readFileSync(fixture.fixtureProjection, "utf8")).toBe(readFileSync(join(fixture.immutableUnitRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture), "utf8"));
       expect(existsSync(fixture.journalPath)).toBe(false);
     } finally {
       fixture.cleanup();

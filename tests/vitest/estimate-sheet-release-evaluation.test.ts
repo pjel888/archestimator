@@ -149,10 +149,12 @@ function setupEvaluation(options: {
   const repoRoot = mkdtempSync(join(tmpdir(), "estimate-release-"));
   roots.push(repoRoot);
   const planRoot = join(repoRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization");
-  const runRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-011/run");
-  const immutableRunRoot = join(planRoot, "evidence/runtime/runs/UNIT-011", RUN_ID);
-  mkdirSync(runRoot, { recursive: true });
   const fingerprint = sourceFingerprint();
+  const runKey = `${RUN_ID}-${fingerprint.application.content_sha256.slice(0, 12)}-0123456789ab`;
+  const runRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-011", runKey);
+  const immutableRunRoot = join(planRoot, "evidence/runtime/runs/UNIT-011", runKey);
+  mkdirSync(runRoot, { recursive: true });
+  mkdirSync(immutableRunRoot, { recursive: true });
   const manifest: RunManifestV1 = {
     schema_version: "estimate-sheet-performance-run.v1",
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
@@ -170,13 +172,18 @@ function setupEvaluation(options: {
     sourceFingerprint: fingerprint,
     applicationFingerprint: fingerprint.application,
     producerFingerprint: fingerprint.producer,
+    admissionKind: "predecessor",
+    admissionPath: "dependencies/admission.json",
+    admissionSha256: "d".repeat(64),
+    inputApplicationFingerprint: fingerprint.application,
+    inputProducerFingerprint: fingerprint.producer,
     namespaces: {},
     mutationJournal: [],
     previewProcesses: [],
   };
   const runManifest = join(runRoot, "run-manifest.json");
   writeJson(runManifest, manifest);
-  writeJson(join(runRoot, "reports/hosted-d1.json"), hostedReport(fingerprint, options.hostedOverall));
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.hosted), hostedReport(fingerprint, options.hostedOverall));
 
   const localDurableRoot = join(planRoot, `evidence/runtime/runs/UNIT-010/${LOCAL_RUN_ID}`);
   const childReferences = LOCAL_PROOF_CHILDREN.map(([role, schemaId, immutablePath], index) => {
@@ -245,8 +252,8 @@ function setupEvaluation(options: {
   const productionReady = options.productionReady ?? true;
   const localReady = options.localReady ?? productionReady;
   const observabilityReady = options.observabilityReady ?? productionReady;
-  const releaseJsonPath = join(runRoot, "receipts/release-gates-json.json");
-  const releaseMarkdownPath = join(runRoot, "receipts/release-gates-md.md");
+  const releaseJsonPath = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["release-gates-json"]);
+  const releaseMarkdownPath = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["release-gates-md"]);
   writeJson(releaseJsonPath, {
     mode: "cloudflare-release-gates",
     readiness: {
@@ -277,15 +284,15 @@ function setupEvaluation(options: {
       sha256: sha256File(releaseMarkdownPath),
     },
   ];
-  writeJson(join(runRoot, "receipts/command-error-handling.json"), commandReceipt({ role: "error-handling", fingerprint }));
-  writeJson(join(runRoot, "receipts/command-typecheck.json"), commandReceipt({ role: "typecheck", fingerprint, overall: options.typecheckOverall }));
-  writeJson(join(runRoot, "receipts/command-release-gates.json"), commandReceipt({
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["error-handling"]), commandReceipt({ role: "error-handling", fingerprint }));
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.typecheck), commandReceipt({ role: "typecheck", fingerprint, overall: options.typecheckOverall }));
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["release-gates"]), commandReceipt({
     role: "release-gates",
     fingerprint,
     overall: options.releaseCommandOverall ?? (productionReady ? "PASS" : "FAIL"),
     childOutputs,
   }));
-  return { repoRoot, planRoot, runRoot, runManifest };
+  return { repoRoot, planRoot, runRoot, immutableRunRoot, runManifest };
 }
 
 function evaluate(setup: ReturnType<typeof setupEvaluation>) {
@@ -377,7 +384,7 @@ describe("estimate-sheet release evaluation contract", () => {
 
   it("rejects mutated child outputs and noncanonical Markdown bytes", () => {
     const setup = setupEvaluation({ productionReady: true });
-    writeFileSync(join(setup.runRoot, "receipts/release-gates-json.json"), "{\"mode\":\"mutated\"}\n", { mode: 0o600 });
+    writeFileSync(join(setup.immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["release-gates-json"]), "{\"mode\":\"mutated\"}\n", { mode: 0o600 });
     expect(() => evaluate(setup)).toThrow(/hash mismatch/);
 
     const clean = setupEvaluation({ productionReady: true });

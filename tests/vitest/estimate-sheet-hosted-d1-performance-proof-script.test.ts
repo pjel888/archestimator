@@ -68,17 +68,19 @@ function writeJson(path: string, value: unknown): void {
 function setupRun(options: { databaseId?: string } = {}) {
   const repoRoot = mkdtempSync(join(tmpdir(), "estimate-hosted-d1-"));
   roots.push(repoRoot);
-  const runRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-011/run");
+  const fingerprint = sourceFingerprint();
+  const runKey = `${RUN_ID}-${fingerprint.application.content_sha256.slice(0, 12)}-0123456789ab`;
+  const runRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-011", runKey);
   const immutableRunRoot = join(
     repoRoot,
     ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs/UNIT-011",
-    RUN_ID,
+    runKey,
   );
   const manifestRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-d1-proof/runs");
   mkdirSync(runRoot, { recursive: true });
+  mkdirSync(immutableRunRoot, { recursive: true });
   mkdirSync(manifestRoot, { recursive: true });
   mkdirSync(join(repoRoot, "node_modules/wrangler"), { recursive: true });
-  const fingerprint = sourceFingerprint();
   const manifest: RunManifestV1 = {
     schema_version: "estimate-sheet-performance-run.v1",
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
@@ -96,6 +98,11 @@ function setupRun(options: { databaseId?: string } = {}) {
     sourceFingerprint: fingerprint,
     applicationFingerprint: fingerprint.application,
     producerFingerprint: fingerprint.producer,
+    admissionKind: "predecessor",
+    admissionPath: "dependencies/admission.json",
+    admissionSha256: "d".repeat(64),
+    inputApplicationFingerprint: fingerprint.application,
+    inputProducerFingerprint: fingerprint.producer,
     namespaces: {},
     mutationJournal: [],
     previewProcesses: [],
@@ -111,7 +118,7 @@ function setupRun(options: { databaseId?: string } = {}) {
       database_id: options.databaseId ?? "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
     }],
   });
-  writeJson(join(runRoot, "receipts/dom-tests.json"), {
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["dom-tests"]), {
     schema_version: "estimate-sheet-test-receipt.v1",
     test_class: "vitest",
     argv: ["bun", "run", "test:dom"],
@@ -132,7 +139,7 @@ function setupRun(options: { databaseId?: string } = {}) {
     failure_ids: [],
   });
   for (const role of ["wrangler-auth", "provider-resources"]) {
-    writeJson(join(runRoot, `receipts/command-${role}.json`), {
+    writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS[role as "wrangler-auth" | "provider-resources"]), {
       schema_version: "estimate-sheet-command-receipt.v1",
       role,
       unit_id: "UNIT-011",
@@ -142,7 +149,7 @@ function setupRun(options: { databaseId?: string } = {}) {
       producer_fingerprint: fingerprint.producer,
     });
   }
-  return { repoRoot, runRoot, manifestRoot, runManifest, manifest, fingerprint };
+  return { repoRoot, runRoot, immutableRunRoot, manifestRoot, runManifest, manifest, fingerprint };
 }
 
 function envelope(results: unknown[], meta: { rowsRead?: number; rowsWritten?: number; changes?: number } = {}) {
@@ -254,7 +261,7 @@ describe("estimate-sheet hosted D1 proof producer", () => {
     expect(result.attempt.blockers).toContain("HOSTED_TEST_RECEIPT_REQUIRED");
     expect(result.output).toContain("/attempts/");
     expect(spawned).toBe(false);
-    expect(existsSync(join(setup.runRoot, "reports/hosted-d1.json"))).toBe(false);
+    expect(existsSync(join(setup.immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.hosted))).toBe(false);
   });
 
   it("produces strict hosted evidence only after bound remote queries and exact eleven-table cleanup", () => {
@@ -333,7 +340,7 @@ describe("estimate-sheet hosted D1 proof producer", () => {
     expect(result.attempt.indexable).toBe(false);
     expect(result.attempt.blockers).toContain("CLEANUP_RECONCILIATION_MISMATCH");
     expect(existsSync(join(setup.manifestRoot, RUN_ID, "cleanup.json"))).toBe(true);
-    expect(existsSync(join(setup.runRoot, "reports/hosted-d1.json"))).toBe(false);
+    expect(existsSync(join(setup.immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.hosted))).toBe(false);
   });
 
   it("recovers a committed cleanup after response loss without publishing hosted proof", () => {
@@ -372,7 +379,7 @@ describe("estimate-sheet hosted D1 proof producer", () => {
     expect(calls).toHaveLength(2);
     expect(existsSync(join(setup.manifestRoot, RUN_ID, "cleanup.json"))).toBe(false);
     expect(existsSync(output)).toBe(true);
-    expect(existsSync(join(setup.runRoot, "reports/hosted-d1.json"))).toBe(false);
+    expect(existsSync(join(setup.immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.hosted))).toBe(false);
   });
 
   it("reissues only the named run exact-ID transaction when recovery still finds rows", () => {
