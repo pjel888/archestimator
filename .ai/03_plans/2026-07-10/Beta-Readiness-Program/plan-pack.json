@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
-    "scoped_status_sha256": "d61b0d6a4ad51a0678c4060a60201e85335d003dfa9522329c09d944147b71d4",
-    "scoped_diff_sha256": "4d2f1ad051e580a6d1ea10c6150f80e5df3d7232dab791a68f16819fbc8b5c8d"
+    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+    "scoped_status_sha256": "82a92a78548892d7c5f34d8b33cd3f4af457dc04671f41a0d349a7c4ea93b56f",
+    "scoped_diff_sha256": "4aff39590883087efe93827f4ff136ecd1efd955e9aba1dc86257df7c2097485"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,43 +21,43 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "34cd42c5b6888723aad26e091a43481fcd3794a9652d22dca7ed88c4dd57aa81"
+      "sha256": "e0724ae879a6af7d68ef147ea2d85e75d1040c66dcda7c1078bbda36bd164d47"
     },
     {
       "id": "ART-002",
       "role": "audit",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "22e1c57f6c2b1100bcd0b7749bc97b1dfbccc1fa07b5b0af93af5ad5e81a2b94"
+      "sha256": "bc3c16bef373144ede411cf463de919a053d54e7a6655a130ee4a70f8e7d4ce2"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "8e8aa45e5d66153acd1a5435c94c8fccff86e5c895b6cea6ee01b70c9d368369"
+      "sha256": "f11520cca629b89a84c2b5533af9bdadd0c1e0be3a9eb4002845cae0ee058326"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3bc05cd881f31260b8d568869969d38497a60760bc7a4b2ad3dde8ff69f06013"
+      "sha256": "d6c9d3273f753213aa6a548bded5de8b8de9dd650814b6854bbefc540671055b"
     },
     {
       "id": "ART-005",
       "role": "verification-rollout",
       "path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "adacc17b8a2310730177bb6e19f014c8c92cc60dc899aeaff3fb25ca4e001762"
+      "sha256": "fec53bcbef630b96762d823f86eb38590290bce87be347b578198a5b693cb46d"
     },
     {
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "df6dc5170ab3638878e167823c30d498ca45bb073ce6ca15cba893bee8e779f9"
+      "sha256": "5c963ecb45de6d5d016118fc1dd0a63087cff4749520425fd08fc523e8a2f347"
     },
     {
       "id": "ART-007",
       "role": "migration-generation",
       "path": "MIGRATION_LEASE_GENERATION.json",
-      "sha256": "bf016d376b556ff7b09efbeb32e8a5a277135458fa5fbadaeeabca173477a273"
+      "sha256": "a5308a2fd9f4dbc1e2161a6584dec7838d05cc472d0ecb73632f7e5e0522bc37"
     },
     {
       "id": "ART-008",
@@ -75,7 +75,7 @@
       "id": "ART-010",
       "role": "migration-lease-protocol",
       "path": "MIGRATION_LEASE_PROTOCOL.md",
-      "sha256": "e42b404212fd627c10b73c894418b64d70e2e67613f080489967c191536fe0d8"
+      "sha256": "1aa776328ffdc67adec7f2a2034647b3a27f8e28ed69444e813cc5f3d074aae8"
     },
     {
       "id": "ART-011",
@@ -710,7 +710,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "22e1c57f6c2b1100bcd0b7749bc97b1dfbccc1fa07b5b0af93af5ad5e81a2b94",
+      "sha256": "bc3c16bef373144ede411cf463de919a053d54e7a6655a130ee4a70f8e7d4ce2",
       "claim_ids": [
         "REQ-001",
         "OPS-001",
@@ -725,14 +725,14 @@
         "UNIT-004",
         "UNIT-005"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "adacc17b8a2310730177bb6e19f014c8c92cc60dc899aeaff3fb25ca4e001762",
+      "sha256": "fec53bcbef630b96762d823f86eb38590290bce87be347b578198a5b693cb46d",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -752,7 +752,7 @@
         "GATE-GITHUB-001",
         "GATE-LEGAL-001"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     }
   ],
@@ -766,6 +766,6 @@
     "legal-or-cohort-scope-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T19:00:05.000Z",
-  "manifest_sha256": "b888ba310556dcbf555fd3258531de4c6a38651c8e6dbc07e14473dc0af41b8f"
+  "updated_at": "2026-07-11T03:02:21.000Z",
+  "manifest_sha256": "ebdf9a8edf1cc3ab1f27821354ebdacb99f78d902cf9aafc300be6a04d1d5e73"
 }

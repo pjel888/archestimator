@@ -30,13 +30,20 @@ does not make planned provenance or revision fixtures current proof.
 ## Audit Boundary
 
 This audit was rechecked at git revision
-`e373bc865b978e237deb1d92011c96b0a3639fb4` plus current uncommitted planning
-changes on 2026-07-10. No estimate-intelligence source, test, migration,
-configuration, cited Beta-audit input, or Activity integration source relevant to
-this pack changed from the original
-`081a0757a9d7f34e75342a18e353f3014403de1e` inspection through this HEAD; the
-later proposals-list extraction and project-card drag changes are outside this
-ledger. This provenance recheck is not implementation proof and does not treat
+`6069d87c271dc1509e97d1155da4d62c78d771cd` plus current uncommitted planning
+changes on 2026-07-11. The scoped baseline was refreshed against the current
+HEAD and untracked `migrations/0053_corporate_account_owner_integrity.sql` tail.
+All 31 cited source paths and symbols were verified present against the current
+worktree; the `src/lib/estimate-health/` target directory remains absent as
+expected. The concurrent estimate-sheet performance-mode framework commits
+(`e70d7da70`, `6069d87c2`) added `estimate-performance-modes.server.ts`,
+`estimate-performance-modes.ts`, and performance test files inside the scoped
+`src/lib/estimates` and `tests/vitest` pathspecs; these do not touch any cited
+estimate-intelligence symbol, producer, repository, or route-state contract.
+No estimate-intelligence source, test, migration, configuration, cited Beta-audit
+input, or Activity integration source relevant to this pack changed from the
+original `081a0757a9d7f34e75342a18e353f3014403de1e` inspection through this HEAD.
+This provenance recheck is not implementation proof and does not treat
 hosted/provider state as proven.
 
 ## Source Ledger

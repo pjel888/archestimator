@@ -23,7 +23,7 @@ blocker. Every unit is executable; exactly `UNIT-001` is next.
 
 | Lane | Owned paths | Must not edit concurrently |
 |---|---|---|
-| data/executor | `migrations/0054_beta_activation_events.sql`, `src/lib/onboarding/**`, activation retention/outbox seams, privacy lifecycle adapters, repository tests | other migrations or Publisher/Estimate owner files |
+| data/executor | `migrations/0067_beta_activation_events.sql`, `src/lib/onboarding/**`, activation retention/outbox seams, privacy lifecycle adapters, repository tests | other migrations or Publisher/Estimate owner files |
 | activation UI/executor | `FirstProjectZeroState.tsx`, `FirstEstimateChecklist.tsx`, Getting Started route, scoped projects page/client seams | unrelated project grid/card behavior |
 | orchestration/executor | activation actions, scoped `NewProjectForm`/project metadata seams | Publisher/Estimate integration files before freeze |
 | cohort/executor | `src/lib/admin/activation-cohort-repository.ts` and tests | `src/app/admin/**` presentation |
@@ -38,15 +38,21 @@ Status: `READY`. Requirements: `DATA-001`, `SEC-001`.
 
 Exact paths:
 
-- new `migrations/0054_beta_activation_events.sql`;
+- new `migrations/0067_beta_activation_events.sql`;
 - new `src/lib/onboarding/activation-types.ts`;
 - new `src/lib/onboarding/activation-repository.ts`;
 - new `src/lib/onboarding/activation-outbox.ts`;
 - new `src/lib/onboarding/activation-retention.ts`;
 - `src/lib/compliance/retention-core.ts` activation rule registration;
 - `src/lib/compliance/privacy-request-repository.ts` export/erase adapters;
-- `worker.ts` bounded activation reconciliation/retention scheduled seam, serialized
-  with the current scheduled-upload owner;
+- `worker.ts` bounded activation reconciliation/retention scheduled seam. The
+  existing `scheduled()` handler (L184) fans every cron into
+  `runCloudflareScheduledUploadJobs`; the `"30 3 * * *"` branch (L218) already
+  runs `runRetentionPassInD1` + `reconcileActivityOutbox` in parallel via
+  `ctx.waitUntil`. Add the activation reconciler/purge as another parallel
+  `ctx.waitUntil` inside that same `"30 3 * * *"` branch (or its own cron branch)
+  so it is serialized with the existing retention/outbox owners, not with the
+  upload-jobs fan-out;
 - new `tests/vitest/beta-activation-migration.test.ts`;
 - new `tests/vitest/beta-activation-repository.test.ts`;
 - new `tests/vitest/beta-activation-outbox.test.ts`;
@@ -59,11 +65,14 @@ Steps:
    `.ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json`
    immediately before any
    migration edit: schema/generation, current sorted migration-tail digest, this
-   owner package ID and manifest digest, the `0054_beta_activation_events.sql`
-   unclaimed allocation, allocation digest, and canonical receipt digest must all
-   recheck. If it is missing, stale, consumed, collided, or mismatched, stop before
-   source edits and have the Program preserve consumed facts and atomically reissue
-   every affected unconsumed allocation; resume only after all references validate.
+   owner package ID and manifest digest, the `0067_beta_activation_events.sql`
+   unclaimed allocation (Program generation 11, slot `0067`), allocation digest, and
+   canonical receipt digest must all recheck. If it is missing, stale, consumed,
+   collided, or mismatched, stop before source edits and have the Program preserve
+   consumed facts and atomically reissue every affected unconsumed allocation;
+   resume only after all references validate. Historical ledger entries recorded
+   earlier slots (`0051`/`0052`/`0053`/`0054`); those are superseded receipts — the
+   current authoritative allocation is `0067`.
 2. Write additive progress, event, outbox, and retention-hold tables; checks;
    composite tenant FKs; tenant-scoped unique dedupe constraints; explicit
    membership-delete restriction; and every index from the source audit.
@@ -148,7 +157,9 @@ Exact paths:
 - `src/components/workshop/NewProjectForm.tsx:263-365` blank result seam;
 - `src/components/workshop/ProjectDetailsModal.tsx` typed type/floor-area fields;
 - new `src/lib/projects/project-activation-metadata.ts`;
-- existing `src/lib/estimates/actions.ts:2338-2367,3145-3177` reused unchanged;
+- existing `src/lib/estimates/actions.ts:2338-2367` (`createEstimateSheetDraft`,
+  the public draft-creation action) and `:3145-3177`
+  (`insertEstimateTemplateIntoEstimate`, template insertion) reused unchanged;
   this unit does not extract or relocate those helpers;
 - new `tests/vitest/activation-path-actions.test.ts`;
 - strengthen `project-creation-ui`, `projects-page-create-optimistic`, and
@@ -188,7 +199,9 @@ Exact paths:
 
 - new `src/components/workshop/FirstEstimateChecklist.tsx`;
 - new `src/app/workshop/getting-started/page.tsx`;
-- `src/components/workshop/WorkshopSettingsModalContentView.tsx:65-93`;
+- `src/components/workshop/WorkshopSettingsModalContentView.tsx:74-102` (the
+  `supportSettings` array; line 65 falls in the Account/sign-out group, so use
+  the `supportSettings` range that begins at L74);
 - `src/app/workshop/projects/[projectId]/layout.tsx:ProjectLayout` composes the
   checklist above project and estimate route children without embedding it in
   `EstimateSheetContent`;
@@ -226,10 +239,13 @@ Exact paths owned here:
   `invite_accepted` in the same D1 statement batch as invitation acceptance;
 - `src/lib/projects/actions.ts:createProjectRecord` records the project and
   workspace-ready intents in the same D1 transaction selected by `UNIT-003`;
-- `src/lib/estimates/actions.ts:createEstimateWithDefaultTab`,
-  `createEstimateSheetDraft`, `createEstimateNode`,
-  `insertEstimateRowItemFromLibrary`, `updateEstimateRowItem`, and
-  `updateEstimateSheetAdjustment` own estimate/area/row/positive-total intents;
+- `src/lib/estimates/actions.ts:createEstimateSheetDraft` (L2339, the public
+  draft-creation action that checks edit access and returns the canonical row),
+  plus `createEstimateNode` (L2890),
+  `insertEstimateRowItemFromLibrary` (L3289), `updateEstimateRowItem` (L3387),
+  and `updateEstimateSheetAdjustment` (L3354) own estimate/area/row/positive-total
+  intents. The private `createEstimateWithDefaultTab` helper (L1936) is reused
+  unchanged inside that chain; this unit does not extract or relocate it;
 - `src/components/workshop/estimate-sheet/use-estimate-proposal-preview.ts:downloadProposalExport`
   calls new
   `src/app/api/activation/proposal-export-completed/route.ts` only after a
@@ -282,7 +298,11 @@ Status: `READY`. Dependency: `UNIT-005`. Requirements: `SEC-001`, `PERF-001`,
 Exact paths:
 
 - new `src/lib/admin/activation-cohort-repository.ts`;
-- reuse `src/lib/admin/require-admin.ts:8-24` at the server caller boundary;
+- reuse `src/lib/admin/require-admin.ts:requireAdminContext` (L12) at the server
+  caller boundary (page/admin Server Component context). For any Server Action or
+  API-route cohort caller, reuse `assertAdminApiAccess` (L19) /
+  `gateAdminApiMutation` (L78) with origin checks. The plain name `requireAdmin`
+  does not exist; only `requireAdminContext` is exported for page contexts;
 - read-only joins to `support_conversations` from migration `0042`;
 - new `tests/vitest/admin-activation-cohort-repository.test.ts`;
 - new `tests/vitest/admin-activation-cohort-access.test.ts`.

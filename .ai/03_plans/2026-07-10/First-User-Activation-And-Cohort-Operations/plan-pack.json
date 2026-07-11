@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
-    "scoped_status_sha256": "2427c707a9e6d89a8d52fd037d841ffdc6bfa3a6f45702da96242a572db9ead2",
-    "scoped_diff_sha256": "c2af5971303d62018cf37fabf27fcc89792d3ec5dd87dfe25e5a948364690892"
+    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+    "scoped_status_sha256": "61453011166d659bcd4fae9cf6bbf6c8884b451e07f9160bbeafbe1f257e005d",
+    "scoped_diff_sha256": "b8940cab9538df7acae76aa7b51c7bdbdc69b6cb697b0a1d6c96f7d2a7ea1455"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,25 +21,25 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "aae247b2331840acfe936091b2c1b2193a4e7cce344b4138b5bb9d8f7a239ef0"
+      "sha256": "dfe7e2fb1c79867b18aeab29ef5f6a07a28fce5671b7dbfb29240c07cf79725b"
     },
     {
       "id": "ART-002",
       "role": "audit",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "7f03d9718e47aede0e9dfe8b5a1fe78a6fa6fd2324a98eba33addbf104897799"
+      "sha256": "52abe5d933638cc77b2d269de23f1618c8b3aef5f2ef5b3f1f2dff29851b5ebf"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "62016ba50856036adcff5a07bb5cb7bed42115d8c9f45849c783d28c4e37cf03"
+      "sha256": "ff38a44104917a0189589d54b6e2e72ae37d37112f5a5191bf1a63486d8e53d9"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "2d03346d10e9fb7189c2378bbb9d3bed81ef458872f1e25369096cf953890188"
+      "sha256": "55e23d99d7b9f3f578aa96b9625ab9cb7cf669f54ab965276ad45358fcc1f13e"
     },
     {
       "id": "ART-005",
@@ -51,7 +51,7 @@
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "ea3444e023fd882710b3a2444561c08f50b2f5bf7159bf5c3f4a151305e4380f"
+      "sha256": "266780240d1faf37a920d4b6908a81deb68b4c011c7704a01689951c88692e7d"
     },
     {
       "id": "ART-007",
@@ -63,7 +63,7 @@
       "id": "ART-008",
       "role": "data-lifecycle",
       "path": "ACTIVATION_LEDGER_DATA_LIFECYCLE_AND_IDEMPOTENCY.md",
-      "sha256": "9c51d6eecc52dd1b3b492a62dde1cbe4fa51a2cdf035decd693835c8ddba9bc1"
+      "sha256": "7a5b4332704805fc5ddf2ea8ad5af8ade2fc4af7ecbea35d4dbb930b6111dec5"
     },
     {
       "id": "ART-009",
@@ -75,7 +75,7 @@
       "id": "ART-010",
       "role": "cohort-operations",
       "path": "COHORT_QUERY_ABANDONMENT_AND_SUPPORT_MODEL.md",
-      "sha256": "2ae3b84447cca6c24739ea4ef967ea54a916cccb530535c1c3f9ca0ae614c3cc"
+      "sha256": "385897c9fa14bf68207d20b929135bf3b27774d486bbdab39a78880b80750149"
     },
     {
       "id": "ART-011",
@@ -896,7 +896,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "7f03d9718e47aede0e9dfe8b5a1fe78a6fa6fd2324a98eba33addbf104897799",
+      "sha256": "52abe5d933638cc77b2d269de23f1618c8b3aef5f2ef5b3f1f2dff29851b5ebf",
       "claim_ids": [
         "UX-001",
         "REQ-001",
@@ -914,7 +914,7 @@
         "UNIT-006",
         "UNIT-007"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     },
     {
@@ -947,7 +947,7 @@
         "GATE-OPS-001",
         "GATE-VERIFY-001"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     }
   ],
@@ -958,6 +958,6 @@
     "consumer-pack-manifest-or-threshold-policy-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T18:58:56.000Z",
-  "manifest_sha256": "296b7bc11343b57769889d03fb8c5dc28c318fb04151463d60d6cd3d1e226944"
+  "updated_at": "2026-07-11T03:35:00.000Z",
+  "manifest_sha256": "fc771cfdd4e7207a1e32a4b7c3d92783545a0e873195effbc61a67a113e38461"
 }

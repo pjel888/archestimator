@@ -8,7 +8,7 @@
 | `SRC-002` | `scripts/generate-cloudflare-d1-restore-rehearsal.ts:38-58,324-347` | Current source observation | Report is deliberately `localOnly:true`, `providerBacked:false`. |
 | `SRC-003` | `scripts/check-cloudflare-d1-auth-realtime-readiness.ts:1169-1187` | Current source observation | Restore gate checks ready booleans but does not require provider-backed or reject local-only proof. |
 | `SRC-004` | `tests/vitest/cloudflare-d1-restore-rehearsal-script.test.ts:18-30`; `tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts:474-535` | Current test observation | Tests preserve local truth and contain provider-backed fixtures, but do not catch the gate's false-positive predicate. |
-| `SRC-005` | `migrations/0001_closed_beta_feedback.sql` through current workspace `migrations/0052_corporate_accounts.sql`; `wrangler.jsonc` | Current source observation | Active D1 schema, the concurrent untracked migration tail observed during planning, and bound resource identity for validation. |
+| `SRC-005` | `migrations/0001_closed_beta_feedback.sql` through current workspace `migrations/0053_corporate_account_owner_integrity.sql`; `wrangler.jsonc` | Current source observation | Active D1 schema, the current migration tail including the corporate ownership-invariant triggers/backfill, and bound resource identity for validation. |
 | `SRC-006` | `src/lib/auth/better-auth-cloudflare.ts:188-260`; `src/lib/authz/d1-access.ts`; `scripts/generate-cloudflare-d1-authz-access-matrix.ts` | Current security observation | Recovery must verify access isolation and decide treatment of restored sessions. |
 
 ## Explicit Assumptions
@@ -74,16 +74,22 @@ review:
 ## Baseline And Stale Triggers
 
 Re-audited at current HEAD
-`e373bc865b978e237deb1d92011c96b0a3639fb4`. The concurrent untracked
-`migrations/0051_profiles_account_status.sql` first advanced the observed tail
-beyond 0050 and invalidated generation 2. The later concurrent
-`migrations/0052_corporate_accounts.sql` then occupied Publisher's generation-3
-slot and invalidated that receipt before any planned owner claimed it. The
-Program therefore supersedes generation 3 with generation 4 and reissues the
-five provisional owner slots as 0053..0057. No recovery implementation or
-provider claim is inferred from either concurrent migration. This audit remains
-planning evidence only; scoped status/diff hashes are recomputed from the
-settled current workspace before freeze using `PLAN-PACK-SCOPED-BASELINE-v1`.
+`6069d87c271dc1509e97d1155da4d62c78d771cd` (supersedes the earlier
+`e373bc865b978e237deb1d92011c96b0a3639fb4` planning baseline). The active
+migration tail is `migrations/0053_corporate_account_owner_integrity.sql`, an
+untracked workspace file that establishes the corporate ownership invariant:
+five triggers enforce that every `corporate_accounts` row has a nonblank
+`created_by` (BEFORE INSERT/UPDATE ABORT), that the creator becomes an `owner`
+member (AFTER INSERT upsert), and that the last `owner` member cannot be deleted
+or demoted (BEFORE DELETE/UPDATE OF role ABORT). It also runs a one-time backfill
+INSERT promoting `created_by` to `owner` for accounts lacking one. This invariant
+is recovery-relevant: post-restore integrity (UNIT-003), application/authz proof
+(UNIT-004), and the controlled-write/Mutation layer must account for the trigger
+schema objects, the ownership-completeness predicate, the backfill's effect on
+row counts, and the trigger's INSERT side effect. No recovery implementation or
+provider claim is inferred from the migration; this audit remains planning
+evidence only. Scoped status/diff hashes are recomputed from the settled current
+workspace before freeze using `PLAN-PACK-SCOPED-BASELINE-v1`.
 
 Ordered literal pathspecs:
 

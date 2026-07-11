@@ -126,11 +126,11 @@ content-addressed receipt:
 
 | Slot | Owner pack | Planned migration | Consumption condition |
 |---|---|---|---|
-| `0053` | `Publisher-And-Shared-Pages` | `0053_publication_foreign_keys.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
-| `0054` | `First-User-Activation-And-Cohort-Operations` | `0054_beta_activation_events.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
-| `0055` | `Estimate-Intelligence-And-Price-Governance` | `0055_estimate_intelligence_inputs.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
-| `0056` | `Calculation-And-Output-Parity` | `0056_estimate_calculation_input_constraints.sql` | Current generation/tail/owner-manifest hashes match, slot is unclaimed, and legacy scan is clean |
-| `0057` | `Activity-History-Mapping` | `0057_activity_history_indexes.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
+| `0055` | `Publisher-And-Shared-Pages` | `0055_publication_foreign_keys.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
+| `0056` | `First-User-Activation-And-Cohort-Operations` | `0056_beta_activation_events.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
+| `0057` | `Estimate-Intelligence-And-Price-Governance` | `0057_estimate_intelligence_inputs.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
+| `0058` | `Calculation-And-Output-Parity` | `0058_estimate_calculation_input_constraints.sql` | Current generation/tail/owner-manifest hashes match, slot is unclaimed, and legacy scan is clean |
+| `0059` | `Activity-History-Mapping` | `0059_activity_history_indexes.sql` | Current generation/tail/owner-manifest hashes match and slot is unclaimed |
 
 The durable artifact `MIGRATION_LEASE_GENERATION.json` is part of this pack. It
 contains `schema_version`, monotonic `generation`, `observed_at`, sorted

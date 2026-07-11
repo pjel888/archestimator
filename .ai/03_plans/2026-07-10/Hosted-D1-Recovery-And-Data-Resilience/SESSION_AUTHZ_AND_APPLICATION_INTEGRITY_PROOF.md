@@ -29,6 +29,7 @@ sessions, deploy ingress, or claim a passed rehearsal.
 | Fresh disposable user | Own workspace representative reads | Allowed and sourced from restored target. |
 | Fresh disposable user | Foreign workspace/project/estimate/publication/support data | Denied with no existence disclosure. |
 | Corporate-only owner/team_leader/member/viewer | Linked or foreign workspace/project/estimate and platform-admin data | Denied; corporate membership, role, or link alone is not product or platform authorization. |
+| Restored corporate accounts | Ownership-completeness check (every account has at least one `owner`) | A pre-0053 restore or failed backfill yielding ownerless accounts is an integrity/authz failure even when counts match; the 0053 ownership triggers must survive the round-trip. |
 | Public recipient context | Explicit public/share projection only | Allowed only under current share predicate; no protected/internal metadata. |
 | Revoked pre-recovery session | Any authenticated route | Denied offline and after ingress. |
 | Authorized proof runner | One run-labeled controlled write in disposable scope | Written, observed, then rolled back/deleted; no other scope changes. |
@@ -41,6 +42,15 @@ cannot accidentally pass against another D1 database.
 
 - Restored sessions are bearer-equivalent credential material; no restored
   ingress exists until they are invalidated offline.
+- The rehearsal proves the safe blanket default: delete all restored session rows
+  in the isolated disposable target before any ingress is reachable. This is
+  correct for a disposable target that receives no real traffic, but it does NOT
+  prove the selective invalidation a real production cutover would need
+  (sessions created between the export bookmark and cutover are legitimate and
+  must be preserved while pre-export sessions die). REQ-005's acceptance boundary
+  is therefore rehearsal-scoped: it proves pre-recovery tokens cannot authenticate
+  after blanket invalidation. A production selective-invalidation strategy and its
+  proof are a separate Operating/Release concern, not this rehearsal's deliverable.
 - Row deletion plus offline adapter denial are both required. An empty cookie,
   HTTP success, or missing UI entry is insufficient.
 - Invalidation failure, partial deletion, or inability to enumerate affected

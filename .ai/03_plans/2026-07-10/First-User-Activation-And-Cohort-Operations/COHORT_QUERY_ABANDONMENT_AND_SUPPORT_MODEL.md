@@ -5,7 +5,9 @@ and `UNIT-006`. It owns no Admin presentation or outreach policy.
 
 ## Query Contract
 
-The server caller must satisfy `requireAdmin` before invoking the repository.
+The server caller must satisfy `requireAdminContext` (page context) or
+`assertAdminApiAccess`/`gateAdminApiMutation` (action/API context) before
+invoking the repository; the plain `requireAdmin` name does not exist.
 The repository returns an allowlisted DTO with opaque user ID, activation stage
 and timestamps, selected path, safe project reference/name, derived stopped
 state, and latest support status/time. It excludes email, token material, IP/user

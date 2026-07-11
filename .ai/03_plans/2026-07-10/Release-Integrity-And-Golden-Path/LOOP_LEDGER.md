@@ -207,3 +207,55 @@ Append a new run with timestamp, scope, baseline/status hashes, completed units,
   `279e7f41663e13e15787989c92bda32339d83ba9c99b88ed4f0bafef8bad21d3`.
 - Candidate-disposition rules are planning-only; readiness remains
   `CONDITIONALLY_READY/NOT_STARTED`.
+
+## 2026-07-11T04:10:00Z - Improvement run: source drift repair and baseline refresh
+
+- Scope remained `PLAN_ONLY`; no workflow, application, test, migration, provider,
+  GitHub, staging, production, browser, or external-email action ran.
+- Fresh source re-audit at HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd`
+  (superseding the prior `e373bc865b978e237deb1d92011c96b0a3639fb4` baseline)
+  observed three stale source-audit facts and repaired them without changing any
+  design, decision, unit, gate, requirement, or authorization boundary:
+  - Migration tail advanced from `0052_corporate_accounts.sql` to
+    `0065_activity_history_lifecycle.sql` (57 tracked migrations; concurrent
+    additions 0053, 0054, 0055, 0060, 0065). Updated `SOURCE_AND_CODEBASE_AUDIT.md`
+    current-state #5 and `SRC-008`.
+  - `SRC-008` Corporate Accounts description was stale: the folder at
+    `.ai/03_plans/2026-07-11/Corporate-Accounts/` now has a manifest at
+    `CONDITIONALLY_READY` / `IN_PROGRESS` (previously "no manifest"). The candidate
+    disposition logic (validated receipt when included, else exact exclusion) is
+    unchanged and still correct.
+  - E2E spec inventory grew by `estimate-sheet-component-interop.spec.ts` and
+    `estimate-sheet-performance.spec.ts`. Updated `SRC-004` and current-state #3.
+- Recomputed `PLAN-PACK-SCOPED-BASELINE-v1` three times (stable) over the recorded
+  19 pathspecs: scoped status SHA-256
+  `f23674305bcfba4a8fd7b406f20ee7479b19d06102a8bae5031078ebb3cd777c`, scoped diff
+  SHA-256 `60248a9586f3dfc53de37424b4d05dd8c0016d32cabf17a2b017f2d66e001773`.
+  Refreshed `plan-pack.json.baseline` and both evidence `source_revision` values.
+- Verified still-current facts: `.github/workflows/` remains empty (four disabled
+  workflows parked); `next.config.ts:84` `ignoreBuildErrors:true` confirmed;
+  `README.md:384` still asserts active CI; `cf:upload-version` is still direct
+  `wrangler versions upload` (UNIT-002 repair remains valid); installed
+  `@opennextjs/cloudflare@^1.20.1` exposes the `upload` subcommand (UNIT-002
+  target path confirmed); `open-next.config.ts` exists; nine-pack registry intact.
+- Criterion matrix: intent/scope, requirements/traceability, decisions, DAG/units,
+  UX/a11y, architecture/data, security/privacy, performance, tests/QA,
+  operations/rollout, and completion audit all `PASS`; source authority/freshness
+  repaired from `FAIL` to `PASS` after the baseline refresh; current-state
+  grounding repaired from `BOUNDARY` to `PASS` after SRC-008 update.
+- Adversarial review (distinct read-only lanes) found two additional defects and
+  the lead repaired both:
+  - P1: `SRC-008` was defined in `SOURCE_AND_CODEBASE_AUDIT.md` and cited in the
+    ledger but absent from `plan-pack.json` `sources` (only SRC-001..007). Added
+    `SRC-008` to the manifest `sources` with `affected_ids: [REQ-008]` and added
+    `SRC-008` to `REQ-008.source_ids`, restoring reciprocal traceability.
+  - P2: `UNIT-008` manifest `depends_on` was `[UNIT-001, UNIT-007]` but the DAG
+    prose and status line omitted `UNIT-001`. The manifest is authoritative
+    (UNIT-008 cannot require a check for a workflow UNIT-001 has not created;
+    IMPLEMENTATION_PLAN.md:72,285 confirm UNIT-001 must pass before UNIT-008), so
+    the prose DAG edge and status line were updated to `UNIT-001 + UNIT-007 +
+    AUTH-001 -> UNIT-008`.
+- Readiness remains `CONDITIONALLY_READY/NOT_STARTED`; `release_status: BOUNDARY`
+  via `AUTH-001/002/003`. Exact next action: run `validate:plan-pack -- --write`
+  to refresh ordinary artifact/self hashes, then resume implementation at
+  `UNIT-001` only in a future execution run.

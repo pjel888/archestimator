@@ -170,7 +170,8 @@ success from stale state. Hosted delivery/acknowledgment remains Unit 007.
 **Steps:** document raw/hash/encrypted/derived/public taxonomy; verify actual
 installed token storage and cookie-cache state; expose/admin-protect sign-out/
 current, specific-session, other-session, and all-session operations as required;
-make `requireCurrentUserContext` fail closed for suspended/banned profiles and
+extend existing server-component account-status enforcement (`session.ts:80-86`
+already redirects banned/suspended for the current request) to the edge path and
 make suspend/ban prove the target row changed plus revoke that user's active
 sessions atomically or return failure;
 test each operation independently with multiple sessions, assert the exact targeted

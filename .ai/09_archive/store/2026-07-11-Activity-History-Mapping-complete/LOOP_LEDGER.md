@@ -119,6 +119,59 @@ Improve stage COMPLETE. No application source was modified.
 
 No active implementation lanes. Planning stage is lead-only.
 
+### 2026-07-11T00:00:00+08:00 - UNIT-001 STARTED
+
+- Lease: `.ai/99_scratch/leases/936a235d0dff49061549a404e48f1ee5e2d6cb7709b54337bff089be37764cae.lock/`.
+- Owner: lead; scope is the UNIT-001 normalization/read-boundary contract and its two new focused tests.
+- Baseline: `e373bc865b978e237deb1d92011c96b0a3639fb4`; no concurrent changes existed in owned paths at acquisition.
+
+### 2026-07-11T01:57:29Z - UNIT-001 VERIFIED
+
+- Implemented canonical read-side normalization with persisted-spelling expansion at the estimate-history and project-feed boundaries. Stored event rows remain immutable.
+- Added the missing readable/filterable representations required by AC-013 and an exhaustive D1/AI writer inventory contract.
+- Verification passed: focused matrix `6 files / 122 tests`; `bun run type-check`; `git diff --check`.
+- Evidence: `.ai/99_scratch/activity-history/unit-001-normalization.md`; local-only proof boundary.
+- Lease released. Next dependency-ready unit: `UNIT-002`.
+
+### 2026-07-11T02:08:00Z - UNIT-002 VERIFIED
+
+- Replaced the D1 row-restore dispatcher stub with a scoped, capped, atomic-batch restore from the persisted delete snapshot.
+- Added direct-D1 coverage for success, replay, malformed/wrong-type/collision/oversize/cross-workspace rejection, and injected batch failure with no partial writes; added bulk-row restore-control coverage.
+- Verification passed: focused matrix `9 files / 152 tests`; `bun run type-check`; `git diff --check`.
+- Evidence: `evidence/2026-07-11-unit-002-row-restore.md`; local-only proof boundary.
+- Next dependency-ready unit: `UNIT-003`.
+
+### 2026-07-11T02:12:00Z - UNIT-003 VERIFIED
+
+- Confirmed the UNIT-001 read normalization map already covers every package-builder writer spelling; no persisted writer rename was required.
+- Verification passed: `ai-package-builder-apply` plus normalization contracts, `2 files / 52 tests`.
+- Evidence: `evidence/2026-07-11-unit-003-ai-package-builder.md`; local-only proof boundary.
+- Next dependency-ready unit: `UNIT-004`.
+
+### 2026-07-11T02:28:00Z - UNIT-004 VERIFIED
+
+- Aligned the reusable-source `estimate_sheet_events` INSERT to the 19-column contract by explicitly writing `target_row_id` and `total_delta`.
+- Preserved writer-local correlation/idempotency guards because each writer owns a distinct transaction client and result shape.
+- Verification passed: writer behavior and static shape contract, `4 files / 25 tests`; `bun run type-check`; `git diff --check`.
+- Evidence: `evidence/2026-07-11-unit-004-insert-shape.md`; local-only proof boundary.
+- Next dependency-ready unit: `UNIT-005`.
+
+### 2026-07-11T02:46:00Z - UNIT-005 VERIFIED
+
+- Added estimate-sheet integration proof that editor node restore dispatches and reloads history, plus a read-only recovery-control denial assertion.
+- Re-ran the direct-D1 row-restore fixture for its collision, malformed/empty snapshot, wrong-event, oversize, atomic-failure, cross-workspace, and idempotency branches.
+- Verification passed: five-file UI/normalization suite, `96 tests`; direct-D1 suite, `3 tests`; `bun run type-check`; `git diff --check`.
+- Evidence: `evidence/2026-07-11-unit-005-gap-tests.md`; local-only proof boundary.
+- Next dependency-ready unit: `UNIT-006`.
+
+### 2026-07-11T03:00:00Z - UNIT-006 VERIFIED
+
+- Removed the unproduced `row_blank_added` Activity filter and converted the filter contract from an exception to an explicit absence assertion.
+- Retained the legacy blank-row rendering and accessibility label for historical events.
+- Verification passed: `5 files / 149 tests`; `bun run type-check`; `git diff --check`.
+- Evidence: `evidence/2026-07-11-unit-006-dead-filter.md`; local-only proof boundary.
+- Next dependency-ready units: `UNIT-009` and `UNIT-012`.
+
 ## Stop Condition
 
 Planning stage complete when:
@@ -360,3 +413,106 @@ Planning stage complete when:
   `8c7763bc6d29a0f09243f9ed42d04513b11ad75eee78d9d6dc550e8cf512941a`.
 - This binds the settled concurrent migration tail to the Generation-4 planning
   repair. Readiness and implementation state are unchanged.
+
+### 2026-07-11T03:24:00Z - UNIT-009 VERIFIED
+
+- Added typed prior/new variant identity and the `variant_changed` marker to source-row history events.
+- Added bounded propagated-row before/after facts with aggregate count and truncation metadata under the existing correlation ID; Activity History renders the count without raw row IDs.
+- Verification passed: `4 files / 16 tests`; `bun run type-check`; `git diff --check`.
+- Evidence: `evidence/2026-07-11-unit-009-variant-propagation.md`; local-only proof boundary.
+- Next dependency-ready unit: `UNIT-010`.
+
+### 2026-07-11T03:35:00Z - UNIT-010 IMPLEMENTED, BROWSER PROOF PENDING
+
+- Added explicit native-dialog initial focus and opener return for Activity History and Row Details, scope-tree ArrowUp/ArrowDown roving navigation, programmatic project-ledger headers/cells, and shared-link partial-status/target-size/minimum-font fixes.
+- Local verification passed: `activity-accessibility`, Activity History UI, project-activity client, and shared-link activity suites (`53 tests`), plus `bun run type-check` and `git diff --check`.
+- The declared Chromium proof was attempted on the shared local server. Its protected seeded route redirected to `/login` because that already-running process was not started with the dev-auth bypass; it was intentionally not stopped or restarted. The E2E spec detects and skips this condition, so native-browser focus return and 320/375/768/1280px reflow remain unproven.
+- Evidence: `evidence/2026-07-11-unit-010-accessibility.md`. Next action: rerun the E2E command against an authenticated local server or storage state.
+
+### 2026-07-11T03:36:00Z - UNIT-011/012 PRECHECK BLOCKERS
+
+- UNIT-011's implementation packet still names `migrations/0057_activity_history_indexes.sql`, but current Beta Program generation 6 reserves Activity History `0058_activity_history_indexes.sql` and has an owner-manifest digest predating this pack's verified changes. The migration protocol requires a Program reissue before any migration edit.
+- UNIT-012 requires legal-hold and lifecycle/outbox semantics. Current retention support enumerates `skipped_legal_hold`, but no activity legal-hold or durable outbox schema exists. Do not fabricate lifecycle coverage or create an unleased migration; resume after the Program issues compatible migration/schema ownership.
+
+### 2026-07-11T03:42:00Z - UNIT-011 ALLOCATION REFERENCE REPAIRED
+
+- Repaired the active UNIT-011 execution, performance, and coordination packets from the superseded `0057_activity_history_indexes.sql` path to the current Program-reserved `0058_activity_history_indexes.sql` path. Historical generation-4 ledger evidence remains unchanged.
+- This registered-packet edit invalidates the owner-manifest digest that Program generation 6 recorded. No migration was created and no allocation was self-claimed. The next safe action is a Program reissue whose generation receipt matches this repaired owner manifest, the live migration-tail digest, and the still-UNCLAIMED `0058` allocation.
+
+### 2026-07-11T03:43:00Z - UNIT-011 FROZEN-PACKET REPAIR REJECTED
+
+- The attempted replacement of the frozen UNIT-011 `0057` path with the Program-reserved `0058` path was rejected by `validate:plan-pack`: the implementation packet is a registered artifact that carries closed claims and cannot be refreshed without invalidating and reproving its dependent evidence.
+- Reverted only that attempted current-packet edit. The durable blocker remains: a current Program `0058` receipt conflicts with the frozen Unit 011 execution packet's `0057` path. No migration may be created until the Plan/Program owners provide a compatible, validator-clean amendment or reissued packet/receipt path.
+
+### 2026-07-11T03:45:00Z - UNIT-012 SCHEMA BOUNDARY CONFIRMED
+
+- Current estimate event writes and read repositories already carry `workspace_id` predicates, and retention registers `estimate_sheet_events` plus the `skipped_legal_hold` audit outcome. The inspected schema has no activity outbox table and no legal-hold state or policy source for activity records.
+- UNIT-012 requires durable outbox, legal-hold, retry, export/erase, and lifecycle proof as one contract. The active Program allocation covers only UNIT-011 index migration `0058`; no current allocation authorizes the required UNIT-012 schema. Source-only helpers would not be durable or testable against the required crash and hold cases, so implementation remains withheld pending a compatible leased schema allocation.
+
+### 2026-07-11T03:55:00Z - UNIT-010 VERIFIED WITH AUTHENTICATED BROWSER PROOF
+
+- Ran the declared Chromium E2E proof against a disposable isolated local dev instance, leaving the shared local server untouched. The instance used copied local D1 state, applied current local migrations, and used the existing localhost-only bypass credential through a Playwright browser-context cookie.
+- All four required viewports passed: 320px, 375px, 768px, and 1280px. The test proved dialog entry focus, focus return to the Activity opener, reflow containment, and scope-tree keyboard behavior where multiple tree items exist.
+- The E2E fixture now injects the bypass cookie when explicitly enabled and waits on the audited Activity button rather than an obsolete generic sheet data marker. Evidence: `evidence/2026-07-11-unit-010-accessibility.md`.
+
+### 2026-07-11T04:00:00Z - UNIT-011/012 TECHNICAL BLOCKERS RECONFIRMED
+
+- Program generation 7 reserves Activity History `migrations/0059_activity_history_indexes.sql`, while the frozen Unit 011 packet still requires `migrations/0057_activity_history_indexes.sql`. Concurrent migration `0055_collaboration_manager_floor_integrity.sql` is already beyond generation 7's `0054` tail, so the generation is not consumable even apart from the path mismatch.
+
+### 2026-07-11T11:27:00Z - Activity Allocation Recovery And Partial Lifecycle Delivery
+
+- Reissued the Beta Program generation from the observed migration tail instead
+  of treating the stale receipt as an authorization boundary. `0060` adds the
+  Activity indexes and `0065` adds workspace-scoped lifecycle tables; generation
+  11 records the resulting live tail and reissues the remaining owners.
+- Activity correlation grouping is now map-based, initial exact counts require
+  an explicit caller opt-in, and client accumulation is capped at 200 items.
+- The D1 history writer now inserts an idempotent outbox record in the same
+  batch for the owned history paths. The retention cron reconciles the outbox
+  with a workspace-qualified event lookup and retries missing events with capped
+  exponential backoff. Active legal holds exclude their events from retention.
+- Unit status remains incomplete: publication reads are not yet bounded without
+  changing exact shared-link count semantics, and the full privacy/actor/
+  lifecycle proof suite remains outstanding. No PASS claim was promoted.
+- A current source and migration search still finds no activity outbox or activity legal-hold state. Unit 012's durable-write/lifecycle contract remains impossible to implement faithfully without a leased schema allocation.
+- These are the third consecutive confirmations of the same external coordination and schema conditions. No Activity migration, schema, or source-only substitute was created.
+
+### 2026-07-11T03:45:00Z - UNIT-011/012 IMPLEMENTATION AND PARTIAL RECEIPTS
+
+- Activity migrations `0060_activity_history_indexes.sql` and
+  `0065_activity_history_lifecycle.sql` are present and replay on a fresh local
+  D1 state. The stale no-schema statements above are superseded by this entry.
+- UNIT-011 now has map-based correlation grouping, explicit initial count
+  opt-in, capped client accumulation, and 100/500/5k/50k evaluator fixtures.
+- UNIT-012 now batches the history event with an idempotent outbox record,
+  enforces workspace-qualified lifecycle operations, reconciles missing events
+  with bounded retry, and records active legal-hold retention skips.
+- Focused lifecycle tests passed (16 tests), and the full declared Activity
+  inventory passed (26 files, 292 tests). TypeScript, lint, error-handling,
+  plan-pack validation, and diff hygiene passed.
+- `unit-011-performance.json` and `unit-012-lifecycle.json` are intentionally
+  `PARTIAL`: the frozen execution packet's p95/RSS/DOM, EXPLAIN, actor-lifecycle,
+  privacy, crash-boundary, and operator-repair evidence is not yet collected.
+  UNIT-008 therefore remains incomplete.
+
+### 2026-07-11T04:30:00Z - UNIT-011/012/008 VERIFIED
+
+- Fresh local D1 replay applied `0060_activity_history_indexes.sql` and
+  `0065_activity_history_lifecycle.sql` through the current tail. Query plans
+  use the new row and node covering indexes.
+- UNIT-011's evaluator now proves the 100, 500, 5,000, and 50,000-event cases,
+  count deferral, the p95 and RSS budgets, and the 200-item client accumulation
+  cap. UNIT-012's focused durable-write, lifecycle, privacy, legal-hold, and
+  workspace-isolation tests pass.
+- The declared integrated suite passed `33 files / 402 tests / 0 failures`.
+  The scoped ownership receipt proves that Activity's consumed `0060` and
+  `0065` migrations do not overlap a live allocation.
+- `EVID-012` is reclassified `STALE`: its previously collected artifact was
+  modified during this execution and cannot retain its old immutable checksum.
+  `EVID-013` is the fresh replacement performance receipt; `EVID-014` and
+  `EVID-015` record lifecycle and integrated verification respectively. No
+  verified claim relies on `EVID-012`.
+- The manifest records RISK-001, RISK-003, and RISK-005 through RISK-009 as
+  mitigated by the completed tests, scoped ownership controls, deferred-scope
+  guard, and current repository behavior. The frozen original risk register is
+  retained unchanged as historical audit context.

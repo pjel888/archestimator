@@ -40,7 +40,7 @@ UNIT-001 + UNIT-002 + UNIT-005 + all nine pack receipts + every candidate dispos
   -> UNIT-006 Release truth producer
 UNIT-001..UNIT-006
   -> UNIT-007 Read-only hosted discovery and boundary packets
-UNIT-007 + AUTH-001 -> UNIT-008 GitHub control mutation/readback
+UNIT-001 + UNIT-007 + AUTH-001 -> UNIT-008 GitHub control mutation/readback
 UNIT-004 + UNIT-007 + AUTH-002 -> UNIT-009 Isolated staging proof
 UNIT-002 + UNIT-005 + UNIT-006 + UNIT-008 + UNIT-009 + AUTH-003
   -> UNIT-010 Production deploy, smoke, rollback, and decision
@@ -287,7 +287,7 @@ Merge-queue result: `merge_queue_enabled=true` returns a bounded
 
 ### `UNIT-008` - Apply and read back GitHub controls
 
-**Status:** `BLOCKED` by `AUTH-001` and `UNIT-007`.
+**Status:** `BLOCKED` by `AUTH-001`, `UNIT-001`, and `UNIT-007`.
 
 Apply only the approved ruleset, check, environment/secret, retention, and
 scheduled-workflow mutations in `github-control-packet.json`. Before requiring a

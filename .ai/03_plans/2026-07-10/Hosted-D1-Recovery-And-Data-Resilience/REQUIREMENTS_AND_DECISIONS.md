@@ -55,7 +55,7 @@ Require explicit account/database IDs and refuse identical source/target IDs. Re
 
 ### `DEC-AUTO-004` — Invalidate restored sessions before traffic by default
 
-The safe default is revoke/delete restored Better Auth sessions and require reauthentication, with an alternate acceptance possible only through the operating-contract risk decision. Rejected: assuming database restore preserves the intended revocation timeline.
+The safe default is revoke/delete restored Better Auth sessions and require reauthentication, with an alternate acceptance possible only through the operating-contract risk decision. The rehearsal proves the blanket delete-all case in the isolated disposable target (no real traffic, so deleting every restored row is safe). It does not prove the selective invalidation a real production cutover requires (preserving post-export legitimate re-authentications while killing pre-export sessions); that selective strategy and its proof are a separate Operating/Release concern. Rejected: assuming database restore preserves the intended revocation timeline.
 
 ### `DEC-AUTO-005` — Use deterministic aggregates, not exported row contents, as evidence
 
@@ -79,16 +79,24 @@ least 256 random bits for one rehearsal, keep the raw key only in the approved
 operator process/OS credential store and the disposable Worker secret, and never
 place it in a URL, cookie, body, artifact, command transcript, or log. Each probe
 uses the fixed `POST /__recovery/probe` route on the unique noncanonical
-`workers.dev` URL, `application/json`, an at-most 8 KiB
-stream-capped body, the run ID, a five-minute timestamp window, and a unique
-random nonce covered by an HMAC over method/path/run/timestamp/nonce/body digest.
-The signed run ID must equal the independent Worker-secret configuration before
-nonce/cardinality access. Before application dispatch, atomically insert only the nonce digest into a
-run-scoped disposable-target table, reject duplicate/expired/invalid signatures,
-and enforce at most 32 successful probes plus five failed attempts per minute per
-run. Destroy the Worker secret, operator key alias, and nonce/attempt table during
-cleanup, delete the Worker/URL, and prove every absence. Rejected: a reusable static header, because it
-has no replay, expiry, request-binding, or bounded-use proof.
+`workers.dev` URL, `application/json`, an at-most 8 KiB stream-capped body bound
+by a per-request arrival deadline, the run ID, a five-minute timestamp window,
+and a unique random nonce covered by an HMAC over
+method/path/run/timestamp/nonce/body digest. The signed run ID must equal the
+independent Worker-secret configuration before nonce/cardinality access, using a
+constant-time comparison whose timing is indistinguishable from an HMAC failure
+so the five-failed-attempts/minute cap bounds any residual timing oracle. Before
+deploy, list existing Workers in the account and refuse on a name collision so a
+repeated run ID cannot overwrite another Worker. Before application dispatch,
+atomically insert only the nonce digest into a run-scoped disposable-target
+table, reject duplicate/expired/invalid signatures, and enforce at most 32
+successful probes plus five failed attempts per minute per run. Destroy the Worker
+secret, operator key alias, and nonce/attempt table during cleanup, delete the
+Worker/URL, prove every absence, and run a delayed second URL-absence re-check to
+cover workers.dev edge propagation. Rejected: a reusable static header, because
+it has no replay, expiry, request-binding, or bounded-use proof; rejected:
+non-constant-time secret comparison, because it leaks the expected run ID despite
+the safe error envelope.
 
 ## Risks
 

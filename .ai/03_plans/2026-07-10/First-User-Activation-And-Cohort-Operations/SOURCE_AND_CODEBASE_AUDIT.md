@@ -35,9 +35,11 @@ matching untracked files. It is planning provenance only.
 
 ## Baseline and method
 
-Observed baseline: `e373bc865b978e237deb1d92011c96b0a3639fb4` in a shared,
-dirty worktree. Source and line anchors must be re-read before editing. The
-installed Next.js 16 guidance was consulted at:
+Observed baseline: `6069d87c271dc1509e97d1155da4d62c78d771cd` in a shared,
+dirty worktree (supersedes the earlier `e373bc86...` observation; the prior HEAD
+remained accurate for the zero-state anchors but the migration tail, worker seam,
+and scoped hashes have moved). Source and line anchors must be re-read before
+editing. The installed Next.js 16 guidance was consulted at:
 
 - `node_modules/next/dist/docs/01-app/02-guides/server-actions.md`;
 - `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`;
@@ -52,17 +54,21 @@ Manifest source `SRC-001` denotes the combined Beta-audit, installed Next.js,
 and current repository baseline summarized below. It is planning evidence only
 and is stale on any listed source, schema, auth, or dependency change.
 
-Freshness re-audit at this revision confirmed the zero-state anchors below remain
-exact. Concurrent Projects changes include project-card drag/deferred/drop
-cleanup and extraction of status-tab grid classes into
-`project-grid-layout.ts`. The extracted helper changes only status-tab/card-grid
-presentation; it does not add or invalidate the audited true-zero branch,
-activation ledger, producer, or cohort repository. Concurrent Admin gate and
-landing auth-hint changes likewise add none of those activation surfaces. The
-current `requireAdminContext`/API helper surface still supplies a reusable
-platform-admin boundary; exact line anchors are re-read rather than leased. A
-prior focused empty/group characterization passed 40/40; this final source read
-is provenance inspection, not fresh runtime proof.
+Freshness re-audit at this revision (`6069d87c...`) confirmed the zero-state
+anchors below remain exact: `projects-page-client.tsx:1947-1956`,
+`:3264-3335`, and `:3422` are unchanged, and `project-grid-layout.ts:40-53`
+still supplies only presentation classes. The migration tail has advanced to
+`migrations/0065_activity_history_lifecycle.sql`; `0054` is now
+`0054_collaboration_pending_invitation_uniqueness.sql`, so Activation's
+Program allocation (generation 11) is `0067_beta_activation_events.sql`,
+`UNCLAIMED`. The Admin boundary is `requireAdminContext` (L12) plus the API
+helpers `assertAdminApiAccess` (L19) and `gateAdminApiMutation` (L78); the
+plain `requireAdmin` name does not exist. `worker.ts:184` fans all crons into
+`runCloudflareScheduledUploadJobs`, and the `"30 3 * * *"` branch (L218) already
+runs `runRetentionPassInD1` + `reconcileActivityOutbox` in parallel via
+`ctx.waitUntil`. No activation ledger, producer, cohort repository, or
+true-zero path exists yet. A prior focused empty/group characterization passed
+40/40; this final source read is provenance inspection, not fresh runtime proof.
 
 ## Audit source
 
@@ -82,13 +88,13 @@ sequence at `:317-321`, and acceptance at `:323-329`. Its backlog assigns
 | Status-tab/card grid layout | `project-grid-layout.ts:40-53` supplies responsive presentation classes consumed by the Projects client | presentation-only; no activation state or action | preserve the helper boundary while extracting zero-state UI |
 | Blank creation | `NewProjectForm.tsx:263-338` | good creation/default estimate, no activation result | preserve flow; record path and committed milestones |
 | Project write | `src/lib/projects/actions.ts:781-837` authenticates, inserts D1, revalidates | no activation intent; create-role denial not explicit here | shared server helper enforces owner/admin/member and commits a canonical activation outbox intent in the same D1 transaction |
-| Estimate draft | `src/lib/estimates/actions.ts:2338-2367` checks edit access and returns canonical row | no onboarding orchestration | compose in activation action; do not fork estimate creation |
-| Template insertion | `src/lib/estimates/actions.ts:3145-3177` enforces current project/edit access | UI assumes an existing estimate/parent | activation orchestrator creates target, then uses this canonical insert path |
+| Estimate draft | `src/lib/estimates/actions.ts:2338-2367` (`createEstimateSheetDraft`) checks edit access and returns canonical row | no onboarding orchestration | compose in activation action; do not fork estimate creation |
+| Template insertion | `src/lib/estimates/actions.ts:3145-3177` (`insertEstimateTemplateIntoEstimate`) enforces current project/edit access | UI assumes an existing estimate/parent | activation orchestrator creates target, then uses this canonical insert path |
 | Sample data | `workshop-sample-projects.ts` and `sampleEstimateTree` are display/demo fixtures | not a user-owned persisted first-value result | versioned safe payload persisted into a clearly labeled user-owned project |
 | Project details | `ProjectDetailsModal.tsx:342-539` edits ordinary fields | no project type/floor area source | typed metadata fields and validation; avoid schema-wide parallel model |
 | Account onboarding | `migrations/0005_account_settings.sql:1-37` | account completion is not product activation | separate activation progress/event tables |
 | Support | `migrations/0042_support_conversations.sql:4-41` and repository | real status exists | join only status/last-message time; never message bodies |
-| Admin auth | `src/lib/admin/require-admin.ts` | reusable page/API gates exist; concurrent same-origin/no-store helpers do not authorize cohort reads | `listBetaActivationCohort` is server-only and requires admin context |
+| Admin auth | `src/lib/admin/require-admin.ts` (`requireAdminContext` L12, `assertAdminApiAccess` L19, `gateAdminApiMutation` L78) | reusable page/API gates exist; concurrent same-origin/no-store helpers do not authorize cohort reads | `listBetaActivationCohort` is server-only and requires `requireAdminContext` (page) or `assertAdminApiAccess`/`gateAdminApiMutation` (action/API); the plain `requireAdmin` name does not exist |
 | Admin data | `src/lib/admin/users-repository.ts:60-157` has bounded pagination/signup query | no activation stages | add separate activation cohort repository; presentation remains external |
 | Admin UI | `src/app/admin/page.tsx:21-43,58-120`; users page `:4-16` | Signups, incidents, and health probes are repository-backed; Active Teams remains unavailable and activation stages are absent | presentation remains out of scope and is consumed by `Beta-Operating-Contract` |
 
@@ -112,7 +118,7 @@ creates a second project for the same submitted attempt.
 - Blank: existing `NewProjectForm` behavior stays available without extra steps.
 - Import: not rendered as available. No coming-soon control implies support.
 
-### D1 model in `migrations/0054_beta_activation_events.sql`
+### D1 model in `migrations/0067_beta_activation_events.sql`
 
 `beta_activation_progress`:
 

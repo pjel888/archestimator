@@ -204,3 +204,44 @@ Append timestamp, run scope, current provider constraints, baseline hashes, comp
   `da5d4a76ec01a7bcc079879c25e257d684f83bde333c95ac61c12a6d8f49b858`.
 - The observed migration tail and Corporate integrity requirements are bound as
   planning inputs; readiness remains `CONDITIONALLY_READY/NOT_STARTED`.
+
+## 2026-07-11 - IMPROVE-B adversarial repair and source re-freeze
+
+- Re-verified source reality against current HEAD
+  `6069d87c271dc1509e97d1155da4d62c78d771cd` (supersedes the
+  `e373bc865b` baseline by 18 commits). The active migration tail is now
+  `migrations/0053_corporate_account_owner_integrity.sql`, an untracked workspace
+  file that establishes the corporate ownership invariant: five triggers enforce
+  a nonblank creator and at least one `owner` member, plus a one-time backfill.
+  0053 is a real file, not a "provisional owner slot." All recorded source line
+  references (SRC-002..006) remain accurate at the cited lines; the
+  readiness-gate false-positive defect (`providerBacked` never required in the
+  predicate) is still present and confirmed.
+- Integrity model repaired: the Schema, Referential, Domain, and Mutation layers
+  and UNIT-003 now cover the five 0053 ownership triggers, the
+  ownership-completeness invariant, last-owner protection, the backfill's
+  row-count effect, and the trigger-induced INSERT side effect on the controlled
+  write / rollback.
+- Adversarial threat-model repairs (P1): constant-time secret comparison with
+  timing indistinguishable from HMAC failure; per-request body-arrival deadline
+  (slow-loris); pre-deploy Worker-name collision preflight; independent
+  production-source absence query for the run-labeled controlled write; delayed
+  second workers.dev URL-absence re-check for edge propagation.
+- Session scope repaired: DEC-AUTO-004 and REQ-005 now honestly scope the
+  rehearsal proof to blanket delete-all in the isolated target, documenting that
+  selective production invalidation is a separate Operating/Release concern.
+- Verification, runbook, authorization packet, and performance model updated to
+  carry the new denial cases, preflight, and cleanup re-check.
+- Scoped baseline re-frozen at HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd`,
+  scoped status SHA-256
+  `c438e507c098b140e1c9ac849f3c07add2c68390288d463453468b842a610e01`,
+  scoped diff SHA-256
+  `35ccafad2a72c9007366a29c76212aad1ce6ac08af572b53027ddcd21d09d400`.
+  Four consecutive exact-scope reads matched. The settle followed transient
+  concurrent workspace activity in the shared pathspec set.
+- EVID-001 source proof re-collected against the new HEAD and migration tail;
+  all SRC-001..006 line references re-verified current. EVID-002 remains PLANNED.
+- Scope remained `PLAN_ONLY`; no provider, D1, Worker, export, credential,
+  migration, browser, application, auth, or release action occurred. Planning
+  artifacts only changed. Readiness remains
+  `CONDITIONALLY_READY/NOT_STARTED/BOUNDARY/ACTIVE`.

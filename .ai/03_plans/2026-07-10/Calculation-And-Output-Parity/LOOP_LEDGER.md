@@ -276,3 +276,41 @@ leases, mark stale receipts, and clear `next_unit` only after all units are VERI
   `bd80a006b2a30dfba2880c0ec1e4881b399b100200a1849e3130e1ed26144edf`.
 - The observed migration tail invalidated only the old lease; readiness and
   implementation state remain unchanged.
+
+## 2026-07-11T12:00:00.000Z - Improve-stage baseline refresh and re-audit
+
+- Supersedes the generation-4 baseline fingerprints above. Current `main` HEAD is
+  `6069d87c271dc1509e97d1155da4d62c78d771cd`; scoped status SHA-256 is
+  `25704e03c3dc112a0284d3b7ade000ce7665c09e3bb8dff56df3ed2020d53042`;
+  scoped diff SHA-256 is
+  `a0f675269811698024885eccd3728d0c30107bcc9bbbf0244081e9f0cfccfb7a`.
+- Driven by improve-stage source-drift handling, not implementation. Re-audit
+  confirmed all 16 cited formula-owner files (line oracle, editable model, chart
+  aggregation, both summary SQL owners, publication snapshot/share,
+  proposal-export model/workbook/settings/types, and the unification oracle
+  test/fixtures) are byte-identical between `e373bc86..6069d87c` via an empty
+  `git diff` over the cited paths. `SRC-001` through `SRC-005` and `EVID-001`
+  remain `CURRENT`; no requirement, decision, risk, unit, test, gate, or
+  criterion claim changed.
+- Scoped drift is structural only: `main` advanced through estimate-sheet,
+  performance-evidence, admin/corporate-account, and project-collaboration test
+  churn; an untracked `migrations/0053_corporate_account_owner_integrity.sql`;
+  and untracked estimate-sheet identity/fan-out/perf tests. None are the parity
+  oracle or a cited calculation row-formula owner.
+- Readiness and execution state are unchanged: `CONDITIONALLY_READY`,
+  `NOT_STARTED`, `NOT_EVALUATED`, `ACTIVE`, `ACTIVE`; `SLICE-001` =
+  `UNIT-001, UNIT-002`; exact next node `UNIT-001`.
+
+## 2026-07-11T12:00:00.000Z - Generation-5 migration-slot hazard (advisory)
+
+- The untracked `migrations/0053_corporate_account_owner_integrity.sql` does not
+  match the generation-4 receipt's Publisher-allocated
+  `migrations/0053_publication_foreign_keys.sql` slot. While `0053` remains
+  untracked, the generation-4 receipt (tail `0052`) is internally consistent and
+  Calculation's `0056` allocation stays `UNCLAIMED`.
+- When `0053_corporate_account_owner_integrity.sql` is tracked (or any other
+  pack claims a lower number), the migration tail advances and the Program must
+  emit generation 5 with reissued unconsumed slots. `UNIT-003` must reject any
+  receipt whose tail, allocations, owner manifests, or digests do not bind the
+  then-current live tail before writing `migrations/<n>_estimate_calculation_input_constraints.sql`.
+  This is advisory; no migration or product action occurred.

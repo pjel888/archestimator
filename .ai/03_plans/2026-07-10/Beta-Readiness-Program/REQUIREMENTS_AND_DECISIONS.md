@@ -83,7 +83,7 @@ Acceptance: `AC-007`; unit: `UNIT-005`; boundary: `AUTH-002`.
 | ID | Status now | Observable completion signal | Proof surface |
 |---|---|---|---|
 | `AC-001` | FAIL | Registry contains all 20 IDs once; automated duplicate/missing check returns zero | local program audit |
-| `AC-002` | FAIL | Every dependency has current manifest/artifact/diff hashes, tuple, lease owner, receipt timestamp, plus one valid durable 0053..0057 migration generation receipt | owner-pack and migration receipts |
+| `AC-002` | FAIL | Every dependency has current manifest/artifact/diff hashes, tuple, lease owner, receipt timestamp, plus one valid durable 0055..0059 migration generation receipt | owner-pack and migration receipts |
 | `AC-003` | FAIL | Publisher/Activity incorporated-delta receipts name exact delta IDs and validate with stable scoped hashes and no overlapping file ownership | integration and validator receipts |
 | `AC-004` | FAIL | All nine packs occur exactly once in the BETA-P1-10 matrix and provide a current bounded extraction receipt or explicit justified N/A | owner-pack final audits and Program matrix audit |
 | `AC-005` | FAIL | All release rows have fresh matching-surface receipts, including distinct Release `UNIT-007/008/009/010` receipts, and no open P0 defect | release truth artifact |

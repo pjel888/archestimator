@@ -643,3 +643,151 @@ only with independent coordination work. Never infer completion from this ledger
   `4d2f1ad051e580a6d1ea10c6150f80e5df3d7232dab791a68f16819fbc8b5c8d`.
 - Owner verification passed before and after the observation window. No
   readiness, execution, release, or allocation state changed.
+
+## 2026-07-11T02:03:00.000Z - Generation-5 collision reissue + tail/owner-manifest drift repair
+
+- A concurrent writer created the out-of-suite
+  `migrations/0053_corporate_account_owner_integrity.sql` after generation 4 had
+  reserved `0053` for Publisher. The live migration tail therefore collides with
+  the generation-4 Publisher allocation and supersedes the complete
+  generation-4 `0053..0057` map. The corporate owner-integrity migration is
+  observed source, not a consumed plan allocation.
+- Separately, the `Activity-History-Mapping` owner manifest drifted under a
+  concurrent in-flight edit (its own pack currently fails its validator with
+  stale artifact/evidence hashes). Its generation-receipt owner row now records
+  the current live file/self digests as observation facts; Activity must still
+  re-pass its own validator before consuming its `0058` allocation.
+- Generation 5 binds live tail `0053` and reissues five provisional `UNCLAIMED`
+  owner slots monotonically: Publisher `0054`, Activation `0055`, Estimate
+  `0056`, Calculation `0057`, and Activity `0058`. Requirements and owner
+  package IDs are unchanged; only collision-free planned paths, owner-manifest
+  digests, and content-addressed receipts change.
+- Receipt SHA-256 is
+  `02294aa072acb26a291ee496028de32c1ec379d9068275a4d599d7c7d189c3d3`;
+  allocation-set SHA-256 is
+  `d54758c9a071db2082ce628cd4d36f679321548955e574d85628e459839685a0`;
+  migration-tail SHA-256 is
+  `9b3c25f40d0b32b81063443f705cca7f14c6ab042c11d975006f47d82a4c8569`.
+- Scope remained `PLAN_ONLY`; no migration was claimed or created and no
+  product, provider, browser, GitHub, or production action occurred. All
+  Program allocation references (`README.md`, `IMPLEMENTATION_PLAN.md`,
+  `MIGRATION_LEASE_PROTOCOL.md`, `REQUIREMENTS_AND_DECISIONS.md`,
+  `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md`, `SOURCE_AND_CODEBASE_AUDIT.md`)
+  now read `0054..0058`.
+
+## 2026-07-11T02:04:00.000Z - Generation-5 Program baseline observation
+
+- Three exact Program-scope reads matched at HEAD
+  `6069d87c271dc1509e97d1155da4d62c78d771cd`. The scoped status and diff
+  digests are recorded in `plan-pack.json baseline`; they now include the new
+  `0053` migration tail and the three concurrently-added untracked scripts in
+  `scripts/` (estimate-sheet performance/release tooling). HEAD advanced from
+  `e373bc86` because the shared worktree moved forward through unrelated work.
+- No readiness, execution, release, or allocation state changed. The Program
+  remains `CONDITIONALLY_READY/NOT_STARTED/BOUNDARY`; `UNIT-001` remains the
+  only ready and next unit.
+
+## 2026-07-11T02:28:09.000Z - Generation-6 owner-manifest-drift reissue + adversarial proof
+
+- After the generation-5 reissue, three migration-lease owner manifests drifted
+  under further concurrent edits (Estimate Intelligence, Calculation Parity,
+  Activity-History-Mapping). Per `MIGRATION_LEASE_PROTOCOL.md`, owner-manifest
+  drift makes the receipt stale; the Program reissues monotonically.
+- A settle-window poll confirmed all five owner packs passed
+  `bun run validate:plan-pack` in two consecutive windows immediately before
+  reissue. Generation 6 preserves the settled `0053` tail, the `0054..0058`
+  UNCLAIMED allocation map, and all ownership semantics; only the
+  content-addressed owner-manifest digests and aggregate receipts change.
+- Receipt SHA-256 `6461bd9e42f67c6d12a69256581c58ae418ef3a508392c1be6784b2a767973df`;
+  allocation-set SHA-256 `4b9f9fc739d8864cd9c3ea7fcc02cdd885dafd709ce3177ffc982c5cd42dbf10`;
+  migration-tail SHA-256 `9b3c25f40d0b32b81063443f705cca7f14c6ab042c11d975006f47d82a4c8569`.
+- Phase 5 adversarial review re-ran the `ADVERSARIAL_INTEGRATION_QA.md`
+  "Migration Generation Fixtures" against the generation-6 receipt: 11/11
+  fixtures passed (zero digests, duplicate numbers/owners, missing fifth owner,
+  path traversal, allocation outside `migrations/`, altered-row-retained-digest,
+  migration-tail drift, owner-manifest drift, malformed JSON, and the valid
+  positive control). The collision/drift/reissue scenario that occurred for real
+  is now adversarially proven to be rejected.
+- Scope remained `PLAN_ONLY`; no migration was claimed or created and no
+  product, provider, browser, GitHub, or production action occurred.
+
+## 2026-07-11T02:28:30.000Z - Stable-window scoped-baseline re-freeze
+
+- Per `Plan-Pack-Schema.md` §2.1, the prior `baseline.scoped_diff_sha256`
+  mismatch on recompute was treated as source drift requiring a ledger
+  observation and baseline refresh (not merely a documented residual). The five
+  owner-pack lanes settled; two consecutive identical Program-scope reads were
+  observed before freezing.
+- Final baseline: HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd`;
+  scoped status SHA-256 `d89d17291db2a8cccc67e0a615ea0e06eeff694130d16d3bb92f30201324edd0`;
+  scoped diff SHA-256 `9be56f8a9ad52ee20f20781199a133e61cf9c5eae847ddae5beb44a99d8a677f`.
+- All artifact hashes, evidence source revisions, and `manifest_sha256`
+  (`09f65578f9065568f1d0cc880188bd93a9bb759be763248e12e5ee60b9a390d1`) were
+  refreshed in the same settle window. The Program pack remains
+  `CONDITIONALLY_READY/NOT_STARTED/BOUNDARY`; `UNIT-001` remains the next unit.
+
+## 2026-07-11T02:35:00.000Z - Atomic all-green frozen-state pass
+
+- After the concurrent owner-pack lanes (Activity, Beta-Operating, Calculation,
+  Estimate, Recovery) settled, an atomic single-process pass regenerated the
+  generation-6 receipt owner rows from live manifests, re-froze the scoped
+  baseline, refreshed all artifact/evidence/manifest hashes, and verified every
+  digest reproduces in the same process tick with no gap for concurrent drift.
+- Final generation-6 receipt SHA-256
+  `8a705a0ac0483baea87ad467d8bbda9db83aba5617b4576e7f07236c39b154f3`;
+  allocation-set SHA-256 `4b9f9fc739d8864cd9c3ea7fcc02cdd885dafd709ce3177ffc982c5cd42dbf10`;
+  scoped diff SHA-256 `857351202ffa282a83e05d313c44126d145e955df75055d21c4ebc5ff79df4ce`;
+  manifest SHA-256 recorded in `plan-pack.json`.
+- At proof time: Program validator passed; all five migration-lease owners
+  (Publisher, Activation, Estimate, Calculation, Activity) passed
+  `validate:plan-pack`; `validate:planning-prompts` passed (31 scenarios);
+  generation-6 receipt fully self-consistent and owner rows match live
+  manifests; documented `jq | tr | shasum` command reproduces the receipt;
+  exact-once registry = 20 IDs each count 1; nine-pack matrix = 9 rows;
+  5 unique UNCLAIMED allocations; `git diff --check` clean; no stale
+  `0053..0057` allocation references outside append-only history.
+- `baseline.scoped_diff_sha256` now reproduces on recompute (the prior residual
+  is resolved). Scope remained `PLAN_ONLY`; no migration was claimed or created.
+
+## 2026-07-11T02:43:22.000Z - Atomic all-green frozen-state proof token
+
+- Single-process atomic freeze+verify: receipt self-consistent, owner rows match
+  live, baseline (head+scoped_status+scoped_diff) reproduces, all artifact hashes
+  match, manifest_sha256 reproduces. All five migration-lease owners passed
+  validate:plan-pack. Receipt 70d610cbcd00f93d003666cecb20db0461491fe12711ef05cba6919fc73b0a1c; scoped_diff b40a86250168636bb819355cd86613509d739fa9bcdf1a4498f68efba1cb4d73.
+- This is the Phase 6 frozen-state evidence. The worktree is concurrently edited;
+  UNIT-001 re-validates every receipt at execution time.
+
+## 2026-07-11T02:50:53.000Z - Generation-7 collision reissue (tail 0054)
+
+- A concurrent collaboration lane created
+  `migrations/0054_collaboration_pending_invitation_uniqueness.sql` after
+  generation 6 had reserved `0054` for Publisher. The live tail therefore
+  collides with the generation-6 Publisher allocation and supersedes the
+  generation-6 `0054..0058` map. The collaboration uniqueness migration is
+  observed source, not a consumed plan allocation.
+- Generation 7 binds live tail `0054` and reissues five provisional
+  `UNCLAIMED` owner slots monotonically: Publisher `0055`, Activation
+  `0056`, Estimate `0057`, Calculation `0058`, and Activity `0059`.
+- All Program allocation references updated to `0055..0059`. Scope remained
+  `PLAN_ONLY`; no migration was claimed or created.
+
+## 2026-07-11T02:53:38.000Z - Generation-7 atomic all-green proof
+
+- Poll confirmed 2 consecutive identical owner-manifest snapshots, then atomic
+  single-process reissue verified the valid-control (owner rows match live) in
+  the same tick. Generation 7 receipt 6b297ab7bc5b2a5f3ff6e693c8c0871d14e7e313442b7170ecf6324854eb67a8; tail migrations/0054_collaboration_pending_invitation_uniqueness.sql;
+  allocations 0055..0059 UNCLAIMED. Adversarial migration fixtures 11/11 pass.
+  Scope PLAN_ONLY; no migration claimed or created.
+
+## 2026-07-11T03:02:21.000Z - Durable cross-process scoped_diff proof
+
+- The shared worktree settled: 5 consecutive cross-process scoped_diff reads
+  (6s apart, 30s window) all returned 4aff39590883087efe93827f...
+  The baseline was frozen in process A and recomputed in two additional separate
+  processes (B and C); all three reproduced the identical scoped_diff.
+- This satisfies Plan-Pack-Schema §2.1 ("any mismatch is source drift ... then
+  refresh the baseline") at a stable frozen state. The concurrent owner-pack
+  agents have stopped editing; the prior cross-process drift is resolved.
+- `bun run validate:plan-pack` passed as a separate process with the baseline
+  reproducing. Scope PLAN_ONLY; no migration claimed or created.

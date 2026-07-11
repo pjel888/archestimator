@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
-    "scoped_status_sha256": "3fc3e0fdf6d68605d17b9f6393005a2e19189eb01e1cd62d7f5da5450204c644",
-    "scoped_diff_sha256": "da5d4a76ec01a7bcc079879c25e257d684f83bde333c95ac61c12a6d8f49b858"
+    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+    "scoped_status_sha256": "c438e507c098b140e1c9ac849f3c07add2c68390288d463453468b842a610e01",
+    "scoped_diff_sha256": "35ccafad2a72c9007366a29c76212aad1ce6ac08af572b53027ddcd21d09d400"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -27,79 +27,79 @@
       "id": "ART-002",
       "role": "source-ledger",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "9688a5a33d3867d98974c3de1b00cbcc53931808f01dfe091540c085a0ff8a24"
+      "sha256": "6f04b6d96370450691f496e944d1a7c5ff79a4ac9c5cf82a92ecfdf6cd97f200"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "6de6438ff534e0a4947fa62e274cb916496e4845ca68d8c467a3f1ff036a8eb3"
+      "sha256": "6d93630239beaeaf1c73ec29c5c415e5a172bb9642fe65bd8e358cd53cd2aa97"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "79cf3f1c228579efa193829cdfe9d20d4f760d10128d70a09b6ab3540dd64454"
+      "sha256": "59c7252bb80e8b841599390dc5159d8be6859db30a2fc1b939531e9f88d7e7a9"
     },
     {
       "id": "ART-005",
       "role": "verification",
       "path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "c5a395d7c908b2903b17c21d9d3f205a5ed47d62a5e84add2694d9010446bdb7"
+      "sha256": "7864a8e418344ad4842f9a0240f749f77278b214fba61be02d67b4a6daa74cd9"
     },
     {
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "e73e5c4055b17f6c1bde9a92b140664fb59ce197670d8b45b2e06b6e14549a81"
+      "sha256": "1aec2146d18732c5fc49a11e2d06c1e58d98f347d30671254dbaddedf82b1b15"
     },
     {
       "id": "ART-007",
       "role": "provider-constraints",
       "path": "PROVIDER_CAPABILITY_AND_CONSTRAINTS.md",
-      "sha256": "19847477d97d427fb94954ad15760a73af9bdfe8e6fcc0349ff8f8927cf923c1"
+      "sha256": "183b4c60a07cf84b0ade7619365135d2f2d763598f25f3ffd948714806ccfe85"
     },
     {
       "id": "ART-008",
       "role": "data-integrity",
       "path": "RECOVERY_ARTIFACT_SCHEMA_AND_DATA_INTEGRITY.md",
-      "sha256": "7e3384b36c726f15da38981394548344feca52bac57ebceb75623856e923708e"
+      "sha256": "e0676647b62352635385c1f0897c9b03a8e0c5a063f9183669e9423a633080d8"
     },
     {
       "id": "ART-009",
       "role": "security-threat-model",
       "path": "RESTORE_ORCHESTRATION_AND_DISPOSABLE_INGRESS_THREAT_MODEL.md",
-      "sha256": "42f6e8f67958d890aac10e463ebb3b90d9350b199422b89b6d87e9623e0e081b"
+      "sha256": "5fdffbb0fbded2c97043615bcea271b9c04bac97e8226f81f6a04b5ab8cad5bb"
     },
     {
       "id": "ART-010",
       "role": "application-integrity",
       "path": "SESSION_AUTHZ_AND_APPLICATION_INTEGRITY_PROOF.md",
-      "sha256": "e3164f655331bc0fd0f4c42665bbd8aac4c323c98eee1de807560669a2ec1079"
+      "sha256": "32490b342df5578d37afee538c6abfa268e73eca8a7798be363990ca8d1bbb10"
     },
     {
       "id": "ART-011",
       "role": "performance-reliability",
       "path": "RTO_RPO_PERFORMANCE_AND_FAILURE_MODEL.md",
-      "sha256": "797bf6ab1cff64ccfbdc764d646fca860842600dc0863e210aea421afb8f187b"
+      "sha256": "4040869d99c99ac42f64ef3411cf403993205d08faa78d9be7c2de49cdd8cb0d"
     },
     {
       "id": "ART-012",
       "role": "adversarial-qa",
       "path": "PROVIDER_REHEARSAL_TEST_PLAN.md",
-      "sha256": "3faf6139bf5e2944649b5aed357cbb4f8f98db46dc01a2fdbcb8302a402ce3c2"
+      "sha256": "d532475c2420ba2b9ab734f1bcd4fa9c006b2d0b2dd7049276cdbc32a3f1d599"
     },
     {
       "id": "ART-013",
       "role": "rollout-operations",
       "path": "RUNBOOK_ROLLBACK_CLEANUP_AND_INCIDENT.md",
-      "sha256": "ebe636604bcafc3affa41599acec992fa0618739a98825a7e1a3922a72c9ac52"
+      "sha256": "867b6e49c4ade2536476b41f3966cb973f32b437808ea4e395ce7ecb7a319a60"
     },
     {
       "id": "ART-014",
       "role": "final-audit",
       "path": "AUTHORIZATION_PACKET_AND_FINAL_AUDIT.md",
-      "sha256": "bb1be1dc53850fe6e8b546e6259bf098e3cd6e3eb3a614135219e4cd4aa1bdd3"
+      "sha256": "e48256458daee6807daa0235d779b6ac8729b92935151fb0b9c63d3a28655209"
     }
   ],
   "sources": [
@@ -795,7 +795,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "9688a5a33d3867d98974c3de1b00cbcc53931808f01dfe091540c085a0ff8a24",
+      "sha256": "6f04b6d96370450691f496e944d1a7c5ff79a4ac9c5cf82a92ecfdf6cd97f200",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -811,14 +811,14 @@
         "UNIT-005",
         "UNIT-006"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "c5a395d7c908b2903b17c21d9d3f205a5ed47d62a5e84add2694d9010446bdb7",
+      "sha256": "7864a8e418344ad4842f9a0240f749f77278b214fba61be02d67b4a6daa74cd9",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -837,7 +837,7 @@
         "GATE-001",
         "GATE-002"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     }
   ],
@@ -850,6 +850,6 @@
     "recovery-artifact-expiry-or-failed-cleanup"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T18:58:56.000Z",
-  "manifest_sha256": "f5e1f32bb6cdbfa249543879cb5231adde5c9ceabaa4806e964bf39cf025fdf1"
+  "updated_at": "2026-07-11T00:00:00.000Z",
+  "manifest_sha256": "8dc663f189e295e488aec9deb2591cf7941b847956a832169bbba99b4f9ef3c5"
 }

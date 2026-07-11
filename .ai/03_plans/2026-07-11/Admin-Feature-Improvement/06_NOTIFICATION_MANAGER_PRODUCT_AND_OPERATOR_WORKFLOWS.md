@@ -1,0 +1,143 @@
+# Notification Manager: Product and Operator Workflows
+
+## Product Outcome
+
+The admin must know what has been authored, approved, scheduled, sent, cancelled, expired, failed, or retracted; who was intended and eligible; how publication progressed; and how users engaged. The current one-shot broadcast form becomes a campaign management system while the existing user inbox remains backward-compatible.
+
+## Campaign Lifecycle
+
+Primary transitions:
+
+`draft -> in_review -> approved -> scheduled -> publishing -> published`
+
+Terminal/alternate transitions:
+
+- `draft|in_review|approved|scheduled -> cancelled`;
+- `scheduled -> approved` when unscheduled;
+- `publishing -> paused|partially_published|failed|published` after a chunk boundary and exact progress write;
+- `paused -> publishing|cancelled` only after a fresh capability check, expected-version match, and durable resume command;
+- `partially_published -> publishing|failed|cancelled` through reconciliation or an operator-authorized retry that preserves the run and recipient snapshot;
+- `failed -> publishing|cancelled` only through a new idempotent retry attempt on the same logical run and frozen audience;
+- a due schedule that is discovered after its expiry becomes `expired` without publication; a late but still valid schedule records misfire/lag evidence before `publishing`;
+- `published -> expired` by time policy;
+- `published|expired -> retracted` through durable suppression;
+- any editable content/audience/schedule change after approval creates a new version and returns to `draft` or `in_review`.
+
+Campaign state describes operator intent; run state describes execution. Run states are `queued|claimed|running|paused|partial|retry_wait|reconciling|completed|failed|cancelled|expired`. No UI field edit may bypass transition validation. Every transition records actor, time, expected campaign/version/run identity, stable command idempotency key, reason, and audit/outbox state. Pause is cooperative at chunk boundaries, not an unsafe promise to interrupt an in-flight D1 transaction.
+
+## Content Model
+
+- typed kind, severity, surface, and channel;
+- title/body bounds identical across UI, server validation, DTO, and D1 CHECK;
+- safe internal action label/path;
+- release version, priority, expiry, mandatory-policy classification;
+- template origin and content version;
+- preview fixtures for center, modal, and any proven toast surface;
+- localization is deferred but schema must not make it impossible;
+- no HTML unless a separately sanitized, tested renderer is approved.
+
+## Authoring Workflow
+
+1. Create draft or duplicate an existing campaign.
+2. Compose content and select surface/channel policy.
+3. Define audience using typed rules.
+4. Preview eligible/excluded reach with freshness and exclusions.
+5. Set schedule, IANA time zone, expiry, future-user policy, quiet-hours policy.
+6. Preview exact UI and send to a bounded test audience.
+7. Review validation, immutable diff from prior version, and risk summary.
+8. Approve/publish according to capability policy.
+9. Observe durable run/job progress.
+10. Inspect sent history and engagement; cancel, retract, retry, reconcile, or supersede as allowed.
+
+For a single current operator, maker/checker may be a configurable policy rather than a mandatory second human, but the schema supports reviewer identity and the UI never self-labels an unreviewed draft as approved.
+
+## Audience Rules
+
+Supported v1 selectors:
+
+- all active canonical users with healthy profile projection;
+- explicit user IDs;
+- signup range;
+- last authenticated/product activity range;
+- onboarding/closed-beta stage;
+- platform role/account status;
+- corporate account and corporate role;
+- workspace membership/role;
+- project/estimate membership/role;
+- users with/without a prior campaign delivery or engagement;
+- user notification preferences and mandatory override policy.
+
+Rules are AND/OR only through a bounded, typed grammar; no raw SQL. Preview and publish share the exact evaluator revision. The campaign records intended rule, eligible/excluded counts, exclusion reasons, and whether recipients are snapshot or dynamic-at-run. Every logical run persists an authoritative recipient ledger, including excluded and failed-before-materialization recipients, so historical reach and reconciliation do not depend on reconstructing mutable source tables.
+
+## Future-User Policy
+
+Each campaign declares one:
+
+- `snapshot_only`: only recipients frozen at publish;
+- `eligible_until_expiry`: new users who become eligible before expiry may be materialized by reconciliation;
+- `on_signup_until_expiry`: explicitly intended onboarding/release notice for new signups.
+
+The default is `snapshot_only`. Retrying a failed run never silently expands a frozen audience.
+
+## Scheduling
+
+- v1 schedules exactly one logical occurrence per campaign; recurring campaigns are an explicit non-goal rather than an implied partial feature;
+- store UTC execution time, original IANA time zone, and entered local time;
+- validate past times, DST gaps/ambiguity, expiry-before-start, and approval freshness;
+- scheduler creates/claims an idempotent run; it does not perform unbounded fanout inline;
+- display `next_attempt_at`, scheduler freshness, and stalled state;
+- reschedule creates an auditable transition and invalidates stale approvals when policy requires it;
+- cancellation wins through version/claim checks and prevents new chunks while preserving completed materialization.
+
+## History and Search
+
+Lists for All, Drafts, In Review, Scheduled, Publishing, Published, Failed, Cancelled, Expired, Retracted. Search by title, campaign ID, release version, creator, audience summary, and date. Detail page includes content version, state timeline, audience, schedule, runs/chunks, metrics, audit, failures, and replacements.
+
+## Metrics Semantics
+
+Required counts:
+
+- intended;
+- eligible;
+- excluded by reason;
+- materialized to inbox;
+- pending;
+- failed;
+- retried;
+- seen;
+- read;
+- dismissed;
+- modal acknowledged;
+- action clicked only after a safe click event exists.
+
+Rates always state denominator. `materialized` is not called device delivery. `seen` requires a real display contract; current read/dismiss/ack writes do not prove passive display. Until instrumentation exists, show `read`, `dismissed`, and `acknowledged`, not invented impressions.
+
+## Preferences and Mandatory Notices
+
+Preferences may cover kind/channel, digest cadence, quiet hours/time zone, and non-mandatory opt-out. Security, legal, or critical operational notices can override preferences only through a documented policy with visible operator warning and user-facing classification. Transactional auth, invite, and publication emails remain outside campaigns unless a reviewed channel contract explicitly joins them.
+
+## Cancellation, Retraction, and Replacement
+
+- cancelling a draft/scheduled campaign stops future runs;
+- cancelling during publish stops unclaimed chunks and records partial completion;
+- retracting sets durable suppression/tombstone state for materialized deliveries; it never deletes campaign/audit evidence;
+- replacement creates a new campaign linked by `supersedes_campaign_id`;
+- incorrect content uses retract + corrected replacement, with recipient messaging policy;
+- reconciliation reports any recipient whose inbox state could not be updated.
+
+## Operator Runbooks
+
+1. Schedule a release notice.
+2. Send an urgent security notice with mandatory-policy review.
+3. Test a campaign to the operator only.
+4. Cancel a scheduled campaign.
+5. Pause a publishing campaign and reconcile partial fanout.
+6. Retract incorrect content and publish a correction.
+7. Investigate zero/low materialization.
+8. Investigate high dismiss/low read.
+9. Retry failed chunks without expanding the audience.
+10. Prove what was sent during an incident or support request.
+
+## Acceptance Summary
+
+The manager is complete only when an operator can recover the full campaign history, scheduling and audience intent, durable publish progress, recipient materialization, engagement, failures, retries, cancellations/retractions, and audit evidence without querying D1 manually.

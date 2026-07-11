@@ -1,6 +1,6 @@
 # Corporate Accounts — Plan Pack
 
-Status tuple: `package_status=NOT_READY`, `implementation_status=IN_PROGRESS`,
+Status tuple: `package_status=CONDITIONALLY_READY`, `implementation_status=IN_PROGRESS`,
 `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
 ## Mission

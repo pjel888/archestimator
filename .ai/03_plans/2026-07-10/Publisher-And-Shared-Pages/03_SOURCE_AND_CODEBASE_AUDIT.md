@@ -26,9 +26,9 @@ The fingerprint binds current publication/share/proposal source and the active
 migration tail, including matching untracked files. It remains planning
 provenance, not implementation, browser, provider, or release proof.
 
-<!-- Audit baseline: git HEAD e373bc865b978e237deb1d92011c96b0a3639fb4 on 2026-07-10. All file:line references
-are against this commit. This audit is read-only evidence; it does not modify
-source. -->
+<!-- Audit baseline: git HEAD 6069d87c271dc1509e97d1155da4d62c78d771cd on 2026-07-11. All file:line references
+were re-verified against this commit during the improve-stage repair. This audit
+is read-only evidence; it does not modify source. -->
 
 ## A. Feature Inventory (what exists today)
 

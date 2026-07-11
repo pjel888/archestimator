@@ -43,7 +43,7 @@ slice is dependency closure, not a parallel-write schedule.
 | `ProjectPublicationView` | Reuse presentation with explicit read-only preview mode |
 | UI primitives in `src/components/ui/` | Existing accessible dialog/drawer controls |
 | Clipboard and Web Share APIs | Progressive platform features; Copy fallback |
-| D1 schema from migrations 0014-0052 | Exact preflight source for migration 0053 |
+| D1 schema from migrations 0014-0065 | Exact preflight source for migration 0066 |
 
 ## File Ownership And Serialization
 
@@ -53,7 +53,7 @@ writer. Shared files are never assigned to concurrent implementation units.
 | Serialized lane | Units | Shared paths |
 |---|---|---|
 | Public route security | UNIT-001, UNIT-002, UNIT-003, UNIT-004, UNIT-006, UNIT-007 | `src/app/api/share/[token]/**`, publication security/repository modules |
-| Snapshot/data | UNIT-005, UNIT-008, UNIT-009 | snapshot module, migration 0053, roster repository |
+| Snapshot/data | UNIT-005, UNIT-008, UNIT-009 | snapshot module, migration 0066, roster repository |
 | Publisher manager UX | UNIT-010, UNIT-011, UNIT-012, UNIT-013, UNIT-014 | sidebar, dashboard, publisher roster/wizard, protected preview page |
 | Recipient share UX | UNIT-015, UNIT-016, UNIT-017, UNIT-018, UNIT-019, UNIT-020, UNIT-023 | `ProjectPublicationView`, share components, public share page |
 | Recipient inbox | UNIT-021 | recipient repository, proposal row/empty state, route-gate test |

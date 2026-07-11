@@ -314,3 +314,61 @@ Append timestamp, scope, baseline/status hashes, completed/next units, changed d
   `5137405948339fd8f213485f7375ebe8770fee763b8492dc527ad72988fd07fb`.
 - Corporate source remains a concurrent, unverified input. Readiness stays
   `CONDITIONALLY_READY/NOT_STARTED`.
+
+## 2026-07-11T02:00:00Z - Improve-stage scoped-baseline refresh
+
+- The frozen baseline HEAD had drifted from
+  `e373bc865b978e237deb1d92011c96b0a3639fb4` to
+  `6069d87c271dc1509e97d1155da4d62c78d771cd` after concurrent commits landed
+  admin/auth/corporate-account, estimate-performance, and planning-doc changes.
+  This invalidated the prior scoped status/diff fingerprints without changing
+  readiness.
+- Re-verified all `SRC-001..007` claims against current source: the global
+  analytics-injection defect, Admin Overview placeholder/chart mismatch,
+  `listAdminUsers` searched bind order bug, `setUserAccountStatus` missing
+  row check, `sendSupportReply` retry non-idempotency, corporate-role
+  non-authz, and Better Auth 1.6.23 sign-out/session revocation paths remain
+  CURRENT. `migrations/0053_corporate_account_owner_integrity.sql` is the new
+  migration tail and was added to `SRC-007`; it adds ownership database
+  invariants only, with no operating/authz/legal effect.
+- Three consecutive exact-scope reads matched at HEAD
+  `6069d87c271dc1509e97d1155da4d62c78d771cd`, scoped status SHA-256
+  `5895fa6927f75f9da9e75a7fea67dc2737e21ab665489b90e18d6713d3cec171`, and
+  scoped diff SHA-256
+  `ca7a952abea60fb5935f023353eada6846bf02053c508ae04a39092235c3c193`.
+  These supersede all prior Operating fingerprints. A later settled observation
+  (concurrent `scripts/` and `tests/vitest` additions) superseded that provisional
+  freeze: the final three-read settled scoped status SHA-256 is
+  `f88293a6c2ee394adab8fad0617dd01c69dbb79cd8b70e70900ca8af6f919dbd` and scoped
+  diff SHA-256 is
+  `75f966a844b766b917500bf47fa26fad8d076de5800922f6412e103fee488c09`; HEAD is
+  unchanged.
+- Updated the manifest baseline block, evidence `source_revision` references,
+  `SRC-007`, and the baseline/freshness prose. Scope remained `PLAN_ONLY`; no
+  application, test, migration, provider, auth, legal, support, incident, or
+  production state was changed. Artifact, evidence, and manifest self-hashes
+  remain stale until the final `validate:plan-pack --write` freeze.
+
+## 2026-07-11T02:30:00Z - Improve-stage adversarial review and semantic repair
+
+- Ran an independent read-only adversarial pass across receipt-composition
+  authority, auth enforcement, cross-pack activation contracts, recovery-receipt
+  code presence, test-path existence, and stale-trigger completeness.
+- Corrected a factual error in `SRC-003` and Current Reality #6: the audit
+  claimed session resolution "does not enforce `profiles.account_status`", but
+  `session.ts:80-86` enforces it for the current request (banned/suspended
+  redirect). The real remaining gaps — no session-row revocation on suspend/ban
+  and no edge-middleware account-status check — are now stated precisely.
+- Refined `UNIT-004` to distinguish the already-complete server-component
+  enforcement from the remaining edge-enforcement and atomic session-revocation
+  work.
+- Added two missing stale triggers: `better-auth-dependency-version-change` and
+  `account-status-or-corporate-account-migration-change`.
+- Reviewed receipt-composition (Dim 1), activation contracts (Dim 3),
+  `D1-RECOVERY-RECEIPT-v1` (Dim 4), and test-path "new" labels (Dim 5):
+  these are correctly framed as forward-looking REQ-007/AC-007 acceptance
+  boundaries at `FAIL`, as cross-pack planned contracts explicitly tagged
+  future-only, and as correctly new-labeled test paths. No repair needed.
+- Scope remained `PLAN_ONLY`; no application, test, migration, provider, auth,
+  legal, support, incident, or production state was changed. Artifact, evidence,
+  and manifest self-hashes remain stale until the final freeze.

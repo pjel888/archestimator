@@ -2,8 +2,8 @@
 
 **Package:** `PLAN-2026-07-11-teamwork-feature-audit-and-plan`
 **Profile:** `high-blast-radius`
-**Status tuple:** `CONDITIONALLY_READY / NOT_STARTED / BOUNDARY / ACTIVE / ACTIVE`
-**Action ceiling:** `EXTERNAL_ACTIONS`; this records the plan's hosted-proof reach and grants no authority. This run remains `PLAN_ONLY`, and release remains a separate evidence stage.
+**Status tuple:** `CONDITIONALLY_READY / IN_PROGRESS / BOUNDARY / ACTIVE / ACTIVE`
+**Action ceiling:** `EXTERNAL_ACTIONS`; this records the plan's hosted-proof reach and grants no authority. The current run is `IMPLEMENT_LOCAL`; release remains a separate evidence stage.
 
 This pack is the implementation entry point for private multi-user teamwork across projects and estimate sheets. It covers membership and role semantics, invitations, restricted-sheet access, presence, visible cursors, durable activity facts, the Publisher boundary, Cloudflare feasibility, rollout, and proof.
 
@@ -11,9 +11,9 @@ This pack is the implementation entry point for private multi-user teamwork acro
 
 1. Recompute the scoped baseline in `03_SOURCE_CODEBASE_ARCHIVE_AND_STALENESS_AUDIT.md`. Any mismatch requires re-auditing affected claims before work starts.
 2. Execute only from `IMPLEMENTATION_PLAN.md`; it is the sole canonical execution artifact.
-3. Start with `UNIT-001`. The advertised local slice contains `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013`; it is dependency-closed and ordered. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` are blocked on missing source-matched consumer receipts (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) against the now-valid overlap manifests.
+3. Start with `UNIT-001`. The advertised local slice contains `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013`; it is dependency-closed and ordered. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` are blocked until the Activity and Publisher owners refresh their currently stale manifests and then provide source-matched consumer receipts (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`).
 4. Keep source edits outside this plan folder until the baseline and known-red tests have been reconciled.
-5. Record each iteration in `LOOP_LEDGER.md` and update `plan-pack.json` last.
+5. Record each iteration in `LOOP_LEDGER.md` and update `plan-pack.json` last. Do not treat a targeted local repair as a completed product criterion.
 
 ## Outcome
 
@@ -56,11 +56,11 @@ The target product state is a coherent Team access surface where:
 ## Current Constraints
 
 - The shared worktree was dirty at planning time. Existing changes are source inputs, not ours to revert.
-- The overlap packs now pass their own validators (owners refreshed the previously-stale artifact hashes as of the 2026-07-11 improve pass). This does not unblock `UNIT-009`/`UNIT-014`: both packs remain `CONDITIONALLY_READY` / `NOT_STARTED`, and each integration still requires its own source-matched consumer receipt (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`) against the current manifest. Internal pack validity is necessary but not sufficient.
+- Fresh 2026-07-11 execution evidence supersedes the earlier improve-pass observation: Activity History Mapping currently fails its plan validator on `manifest_sha256`, and Publisher and Shared Pages currently fails on `07_DATA_DATABASE_API_NETWORK_PLAN.md`. This does not unblock `UNIT-009`/`UNIT-014`: each owner must refresh a valid manifest and then provide its source-matched consumer receipt (`TEAMWORK-ACTIVITY-CONTRACT-v1`, `TEAMWORK-PUBLISHER-ACCESS-v1`). Internal pack validity is necessary but not sufficient.
 - GitNexus was 53 commits stale. Its blast-radius counts are directional; current source and focused tests are authoritative.
 - Two focused collaboration tests are known red because of fixture/assertion drift. `UNIT-001` reconciles them before behavioral edits.
 - Cloudflare Workers for Platforms is intentionally deferred because the current product does not host customer code and the service adds a paid-plan dependency.
 
 ## Completion Boundary
 
-This planning package is complete when its validator, planning-prompt suite, and independent read-only review pass. `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013` form the locally executable slice. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` remain blocked until the source-matched Activity and Publisher consumer receipts are produced against the now-valid overlap manifests. Hosted units `UNIT-016` through `UNIT-019` also remain blocked by `AUTH-001`, which governs a source-matched Worker version/deployment and the nonzero Durable Object canary or cutover needed for current-code hosted proof. Product implementation is complete only after all units are `VERIFIED`, both hosted receipts exist, the final integration receipt passes, and release status is evaluated separately.
+This planning package is complete when its validator, planning-prompt suite, and independent read-only review pass. `UNIT-001` through `UNIT-008` and `UNIT-010` through `UNIT-013` form the locally executable slice. `UNIT-009`, `UNIT-014`, and downstream `UNIT-015` remain blocked until the Activity and Publisher owners refresh valid manifests and produce their source-matched consumer receipts. Hosted units `UNIT-016` through `UNIT-019` also remain blocked by `AUTH-001`, which governs a source-matched Worker version/deployment and the nonzero Durable Object canary or cutover needed for current-code hosted proof. Product implementation is complete only after all units are `VERIFIED`, both hosted receipts exist, the final integration receipt passes, and release status is evaluated separately.

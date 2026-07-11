@@ -31,7 +31,7 @@ number allocation, evidence receipts, and final status transitions.
 
 | Lease | Scope | Owner | Release condition |
 |---|---|---|---|
-| LEASE-EST-MIGRATION | Program allocation `0055_estimate_intelligence_inputs.sql` inside the current durable aggregate 0053..0057 generation receipt | UNIT-002 data executor | Receipt consumed, migration created, and next generation reissued by Program |
+| LEASE-EST-MIGRATION | Program allocation `0055_estimate_intelligence_inputs.sql` inside the current durable aggregate 0053..0057 generation receipt (generation 5+ required after the `0053` tail) | UNIT-002 data executor | Receipt consumed, migration created, and next generation reissued by Program |
 | LEASE-EST-DOMAIN | `src/lib/estimate-health/**` | UNIT-003 domain executor | Contract tests green |
 | LEASE-EST-PROJECT | project database types/actions/forms and project-data repository DTO | UNIT-002/004 shared integrator | Repository contract integrated |
 | LEASE-EST-ROUTE | project-data URL state and UI components | UNIT-005/007 UX executor | DOM tests green |
@@ -44,12 +44,16 @@ The Program maintains the durable
 0053..0057 allocation rows, allocation digest, and canonical receipt digest.
 Immediately before any migration edit, UNIT-002 verifies those fields and the
 unclaimed `0055` path, then appends the generation and receipt hash to this
-ledger. Any tail, owner-manifest, allocation, filename, or digest mismatch makes
-the receipt stale and prohibits the edit. An expected slot creation consumes
-that slot and makes the old generation stale for all remaining slots; Program
-must emit the next generation with consumed paths/hashes immutable and every
-unconsumed slot reissued. Unexpected collision or rename follows the same
-rescan/reissue rule. Never rename another owner's migration.
+ledger. The current live migration tail is
+`migrations/0053_corporate_account_owner_integrity.sql` (untracked); the Program
+receipt is generation 4 (tail `0052`), so UNIT-002 must consume a generation-5
+receipt covering the `0053` tail before writing. Any tail, owner-manifest,
+allocation, filename, or digest mismatch makes the receipt stale and prohibits
+the edit. An expected slot creation consumes that slot and makes the old
+generation stale for all remaining slots; Program must emit the next generation
+with consumed paths/hashes immutable and every unconsumed slot reissued.
+Unexpected collision or rename follows the same rescan/reissue rule. Never rename
+another owner's migration.
 
 ## DAG
 

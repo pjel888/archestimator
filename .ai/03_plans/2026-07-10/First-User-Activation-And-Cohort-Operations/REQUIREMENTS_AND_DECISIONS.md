@@ -139,12 +139,16 @@ consuming the contract.
 
 ### DEC-AUTO-006 - additive migration and fix-forward
 
-Use `0054_beta_activation_events.sql` only after the durable Program generation,
-migration-tail, owner-manifest, allocation, allocation-set, and receipt digests
-recheck. A missing, stale, consumed, or collided allocation stops the lane and
-requires a Program-led atomic reissue of every affected unconsumed Publisher,
-Activation, Estimate, Calculation, and Activity slot before source edits. D1
-rollback disables writers/readers and fixes forward; no destructive down script.
+Use `0067_beta_activation_events.sql` (Program generation 11, allocation
+`activation`) only after the durable Program generation, migration-tail,
+owner-manifest, allocation, allocation-set, and receipt digests recheck. The
+prior `0054` slot was consumed by `0054_collaboration_pending_invitation_uniqueness.sql`;
+the Program has already reissued Activation's allocation to `0067` and historical
+ledger entries recording `0051`/`0052`/`0053`/`0054` are superseded receipts. A
+missing, stale, consumed, or collided allocation stops the lane and requires a
+Program-led atomic reissue of every affected unconsumed Publisher, Activation,
+Estimate, Calculation, and Activity slot before source edits. D1 rollback
+disables writers/readers and fixes forward; no destructive down script.
 
 ### DEC-AUTO-007 - honest integration states
 
@@ -191,7 +195,7 @@ reviewer availability.
 | `RISK-003` | sample is mistaken for customer estimate | immutable sample version metadata and visible Demo label | label missing on any route/export |
 | `RISK-004` | cohort query exposes sensitive data | allowlisted row DTO, admin gate, denial tests, no raw metadata/content | schema/consumer change |
 | `RISK-005` | giant Projects client grows further | extract zero state/checklist islands; characterize existing empties | direct inline feature growth |
-| `RISK-006` | migration collides in concurrent worktree | stop before edit; program lead atomically reissues every affected later slot and affected packs revalidate all references | new `0054` appears |
+| `RISK-006` | migration collides in concurrent worktree | stop before edit; program lead atomically reissues every affected later slot and affected packs revalidate all references | new migration consumes Activation's allocated slot (already realized once: `0054` → `0067` reissue) |
 | `RISK-007` | cross-pack producer files conflict or internal acceptance blocks execution | publish immutable fixtures; program `UNIT-003` records reciprocal receipts after owner implementation; missing receipt stays unavailable | owner pack still active or manifest/contract hash drift |
 | `RISK-008` | abandonment thresholds are treated as telemetry policy | constants are query defaults; Beta Operations owns outreach policy, while Activation owns its table lifecycle | dashboard/outreach policy change |
 

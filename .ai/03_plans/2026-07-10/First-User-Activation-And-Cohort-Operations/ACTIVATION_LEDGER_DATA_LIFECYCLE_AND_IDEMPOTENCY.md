@@ -5,13 +5,16 @@ This supporting model expands `DATA-001`, `SEC-001`, `RISK-001/002/006`, and
 
 ## Migration Admission
 
-The planned migration is `migrations/0054_beta_activation_events.sql`. Before any
-edit, `UNIT-001` must validate the Program's durable
-`MIGRATION_LEASE_GENERATION.json`: schema and generation, current sorted migration
-tail, owner package and manifest digest, unclaimed `0054` allocation, allocation
-set digest, and receipt digest. Missing, stale, consumed, collided, or mismatched
-admission stops the lane before source edits and triggers Program-led atomic
-reissue of every affected unconsumed slot.
+The planned migration is `migrations/0067_beta_activation_events.sql` (Program
+generation 11, allocation `activation`). Before any edit, `UNIT-001` must validate
+the Program's durable `MIGRATION_LEASE_GENERATION.json`: schema and generation,
+current sorted migration tail, owner package and manifest digest, unclaimed `0067`
+allocation, allocation set digest, and receipt digest. Missing, stale, consumed,
+collided, or mismatched admission stops the lane before source edits and triggers
+Program-led atomic reissue of every affected unconsumed slot. The earlier
+`0054` slot was consumed by `0054_collaboration_pending_invitation_uniqueness.sql`;
+historical ledger entries recording `0051`/`0052`/`0053`/`0054` are superseded
+receipts, not the current allocation.
 
 ## Data Ownership
 

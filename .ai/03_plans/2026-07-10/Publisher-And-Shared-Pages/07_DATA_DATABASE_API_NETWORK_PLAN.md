@@ -2,15 +2,19 @@
 
 ## Boundaries
 
-- Local implementation may add `migrations/0053_publication_foreign_keys.sql`
+- Local implementation may add `migrations/0066_publication_foreign_keys.sql`
   and migration tests under the `IMPLEMENT_LOCAL` ceiling.
 - This pack's last observed run scope is `PLAN_ONLY`; it does not apply the
   migration locally or to hosted D1.
 - The bound Archestimator D1 resource is covered by standing repository
   authorization. A later execution/release run must still record fresh local
   proof before applying it. Production deploy remains outside this pack.
-- Migration 0014 is immutable history. Migration 0053 establishes the new
-  schema contract.
+- Migration 0014 is immutable history. Migration 0066 establishes the new
+  schema contract. The allocation is `0066` in the durable Program
+  `MIGRATION_LEASE_GENERATION.json` (generation 11, receipt SHA-256
+  `9897153d7347b2e54b9b8439ff5c3cd7cfd364d49f69828df20c0b98bb8344e8`);
+  `UNIT-008` must re-validate that generation immediately before writing
+  because concurrent writers can advance the tail.
 
 ## DATA-001 - Fail-Closed Table Rebuild
 
@@ -36,7 +40,14 @@ Every `INSERT INTO ... (columns) SELECT columns ...` names its columns exactly;
    - Columns: `id, publication_id, event_type, metadata_json, ip_hash,
      user_agent_hash, created_at`.
    - FK: `publication_id -> project_publications(id) ON DELETE CASCADE`.
-   - Current CHECK excludes the removed `download_attempt_blocked` value.
+   - Current CHECK **includes** `download_attempt_blocked`
+     (`event_type IN ('open', 'password_success', 'password_failure',
+     'download_attempt_blocked', 'password_attempt')`). The rebuild drops
+     that value from the CHECK. The preflight must scan for rows whose
+     `event_type = 'download_attempt_blocked'`; any such row is a data
+     finding, not an orphan. Do not delete, rewrite, or filter such rows.
+     If any exist, the fail-closed copy into the narrower CHECK aborts the
+     transaction and requires a data-migration decision before retry.
 3. `shared_link_recipients`
    - Columns: `id, publication_id, email, display_name, invited_by, invited_at,
      recipient_token_hash, delivery_status, last_opened_at,
@@ -80,7 +91,7 @@ rebuilds so every new child FK targets the final parent name.
 2. Assert the preflight has zero foreign-key/orphan findings. Do not delete them.
 3. Begin one transaction and enable deferred FK checking while leaving foreign
    key enforcement on.
-4. For each table in the order above: create `__0053` with the full contract,
+4. For each table in the order above: create `__0066` with the full contract,
    copy with explicit columns, compare source/copy row counts, drop the old
    table, rename the copy, and recreate every index.
 5. Recreate and compare all triggers. The expected current trigger inventory is
@@ -95,7 +106,7 @@ or an implicit-column copy.
 
 ### Failure injection and rollback proof
 
-`tests/vitest/publication-fk-migration.test.ts` runs 0053 against fresh local D1
+`tests/vitest/publication-fk-migration.test.ts` runs 0066 against fresh local D1
 fixtures and covers:
 
 - clean schema upgrade with identical counts and row digests;
@@ -115,6 +126,14 @@ restore or reverse migration execution belongs to the release run.
 
 `TEST-030` through `TEST-033` prove AC-048 and AC-049. `GATE-002` remains `FAIL`
 until the local migration and failure-injection suite passes.
+
+`UNIT-008` must read the durable Program generation receipt (currently
+generation 11, tail `0065_activity_history_lifecycle.sql`, allocation
+`0066_publication_foreign_keys.sql`, status `UNCLAIMED`) immediately before
+the first edit and refuse the write on any generation, tail, owner-manifest,
+allocation, or receipt mismatch. Concurrent workspace writers have already
+advanced the tail from `0053` through `0065`; the exact path and allocation
+must be re-proven, not assumed.
 
 ## DATA-002 - Roster Aggregation And Pagination
 

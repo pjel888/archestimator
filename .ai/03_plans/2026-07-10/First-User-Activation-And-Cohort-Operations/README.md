@@ -112,9 +112,12 @@ operating/release packs assemble hosted, policy, receipt, and cohort evidence.
 ## Resume packet
 
 Start at `IMPLEMENTATION_PLAN.md` `UNIT-001`. Validate the durable Program
-`MIGRATION_LEASE_GENERATION.json` generation, migration-tail, owner-manifest,
-`0054` allocation, allocation, and receipt digests; re-read all exact paths and
+`MIGRATION_LEASE_GENERATION.json` generation (currently 11), migration-tail
+(currently `0065_activity_history_lifecycle.sql`), owner-manifest,
+`0067` allocation, allocation, and receipt digests; re-read all exact paths and
 run the existing project creation tests before schema work. A stale, consumed,
 missing, or collided allocation blocks source edits. The Program preserves
 consumed facts and atomically reissues every affected unconsumed slot; each owner
-revalidates before any migration writer resumes.
+revalidates before any migration writer resumes. Historical ledger entries
+recorded earlier slots (`0051`/`0052`/`0053`/`0054`); those are superseded
+receipts — the current authoritative allocation is `0067`.

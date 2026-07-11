@@ -30,7 +30,7 @@ source size, provider/backend/plan, and any excluded wait time.
 | Export/import | Current authorized source plus measured export bytes | Provider timings and size readback | Approved window exceeded, size/limit uncertainty, non-Free fallback. |
 | Integrity | Full active migration/schema plus critical-table aggregates | Per-check duration and stable result label | Any skipped/timed-out required check or unexplained 2x prior duration. |
 | App/authz | Representative reads, denials, session and controlled write | End-to-end probe durations plus repository source marker | Timeout, target misbinding, denial failure, or persistent write. |
-| Proof ingress | At most 32 successes; five failed attempts/minute | Concurrent boundary fixtures and pre-dispatch counters | More than cap, replay race, body cap bypass, unbounded state. |
+| Proof ingress | At most 32 successes; five failed attempts/minute; per-request body-arrival deadline | Concurrent boundary fixtures, slow-body timeout fixture, and pre-dispatch counters | More than cap, replay race, body cap bypass, slow-loris window drain, unbounded state. |
 | Cleanup | Inventory of every run-created surface | Delete plus independent list/read/URL/file/key absence | Any residue or inability to query a surface. |
 | Scale reasoning | Current source plus 10x row-count dry-run fixture where local mechanics permit | Query/check complexity, output size, memory/temp usage | Unbounded row materialization, raw export in evidence, memory/disk risk. |
 

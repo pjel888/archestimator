@@ -1,12 +1,12 @@
 # Activity History Mapping
 
-Status tuple: `package_status=CONDITIONALLY_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=IMPLEMENTATION_READY`, `implementation_status=COMPLETE`, `release_status=READY`, `plan_lifecycle=ARCHIVE_READY`, `terminal_status=ACHIEVED`.
 
 This **high-blast-radius** audit-and-plan pack maps the activity-history code,
 data, UI, event, shared-link, and test surfaces, then converts the findings into
 a prioritized implementation plan.
 
-This pack is planning-only: it edits no application source, tests, migrations, config, or provider state. Implementation follows the `UNIT-*` DAG in `11_IMPLEMENTATION_PLAN.md`.
+Implementation is verified. UNIT-001 through UNIT-006 and UNIT-008 through UNIT-012 have local evidence receipts. Execution follows the `UNIT-*` DAG in `11_IMPLEMENTATION_PLAN.md`.
 
 Canonical execution artifact: [`11_IMPLEMENTATION_PLAN.md`](11_IMPLEMENTATION_PLAN.md)
 
@@ -74,20 +74,21 @@ UNIT-001 + UNIT-002 ──> UNIT-005 (tests-only gap coverage)
 UNIT-001 + UNIT-004 + VERIFIED UNIT-005 ──> UNIT-006 (dead-filter/regression hardening)
 UNIT-001 + UNIT-004 ──> UNIT-009 (variant/component propagation facts)
 UNIT-006 ──> UNIT-010 (Activity-owned surface accessibility)
-UNIT-004 ──> UNIT-011 (0057 indexes; PLANNED pending Program receipt)
-UNIT-004 ──> UNIT-012 (tenant isolation, lifecycle, durable writes)
+UNIT-004 ──> UNIT-011 (0060 indexes; verified)
+UNIT-004 ──> UNIT-012 (tenant isolation, lifecycle, durable writes; verified)
 
 UNIT-003 + UNIT-005 + UNIT-006 + UNIT-009 + UNIT-010 + UNIT-011 + UNIT-012
-  ──> UNIT-008 (integrated verification; PLANNED while UNIT-011 is blocked)
+  ──> UNIT-008 (integrated verification; verified)
 ```
 
-`UNIT-001` is the exact next unit. `SLICE-001` is dependency-closed and contains
-the currently executable READY units. It excludes `UNIT-011`, which remains
-PLANNED until the Beta program issues a current durable migration-generation
-receipt for `migrations/0057_activity_history_indexes.sql`, and excludes downstream
-`UNIT-008`. `UNIT-007` is superseded because Publisher owns public comment/decision
-mutation and UI. Activity consumes that surface through an append-only event
-contract and never deletes audit history.
+`UNIT-010` is VERIFIED. Activity consumed its current durable allocations for
+`migrations/0060_activity_history_indexes.sql` and
+`migrations/0065_activity_history_lifecycle.sql`; subsequent Program generation
+11 reissued only the remaining owners. UNIT-011 and UNIT-012 have full local
+receipts, and UNIT-008 records the integrated verification. `UNIT-007` is
+superseded because Publisher owns public comment/decision mutation and UI.
+Activity consumes that surface through an append-only event contract and never
+deletes audit history.
 
 ## Pack Index
 

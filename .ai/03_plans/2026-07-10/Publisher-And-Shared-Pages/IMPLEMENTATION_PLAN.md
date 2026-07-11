@@ -249,12 +249,12 @@ the durable Program migration-generation artifact validates.
 **Goal:** Add foreign keys to seven publication tables with a fail-closed,
 transactional, explicit-column SQLite rebuild.
 **Linked requirements:** DATA-001, AC-048, AC-049
-**Exact paths:** `migrations/0053_publication_foreign_keys.sql` (NEW).
+**Exact paths:** `migrations/0066_publication_foreign_keys.sql` (NEW).
 **Immediate precondition:** Immediately before the first migration edit, read
 `.ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json`
 and validate its canonical receipt hash, monotonic generation, current sorted
 migration-tail digest, Publisher owner package ID and manifest file/self hashes,
-and the `0053_publication_foreign_keys.sql` allocation's exact path, `unclaimed`
+and the `0066_publication_foreign_keys.sql` allocation's exact path, `unclaimed`
 status, allocation digest, allocation-set digest, and receipt digest. Any stale
 generation, tail/manifest drift, claimed slot, path mismatch, digest mismatch,
 or newly colliding migration blocks the edit; preserve consumed facts and have
@@ -521,9 +521,9 @@ arrow through rows, Enter to select).
 "show more".
 **Linked requirements:** UX-007, UX-008, UX-011, UX-014, SEC-007, AC-029, AC-030,
 AC-031, AC-036, AC-071, AC-072
-**Exact paths:** `SharePrintButton.tsx` (NEW), `CostDonutChart.tsx` (fix hardcoded
-symbol map at `:142`, not the `Intl.NumberFormat` at `:119`),
-`SharePageSummaryCard.tsx`, `print.css`, `SharePageTabs.tsx` (COLLATED_ROW_LIMIT area).
+**Exact paths:** `SharePrintButton.tsx` (NEW), `src/components/charts/CostDonutChart.tsx`
+(fix hardcoded symbol map at `:142`, not the `Intl.NumberFormat` at `:119`),
+`SharePageSummaryCard.tsx`, `print.css`, `SharePageTabs.tsx` (COLLATED_ROW_LIMIT at `:28`).
 **Approach:**
 1. `SharePrintButton`: visible "Print / Save as PDF" button that calls
    `window.print()`; it must not claim to download a server-generated artifact.

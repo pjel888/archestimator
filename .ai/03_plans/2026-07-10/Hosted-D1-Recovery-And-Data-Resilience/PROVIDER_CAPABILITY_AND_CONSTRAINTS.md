@@ -34,7 +34,10 @@ a paid plan as an automatic fallback.
 - Disposable names include a unique run digest and match the approved packet.
 - The proof Worker is `archestimator-recovery-<run-digest>`, uses
   `workers_dev=true`, `routes=[]`, no custom domains, and only the disposable D1
-  binding. It is absent during import and offline session invalidation.
+  binding. It is absent during import and offline session invalidation. Before
+  deploy, list existing Workers in the account and refuse if the name already
+  exists, so a repeated run ID or digest collision cannot silently overwrite
+  another Worker.
 - No provider command may default to `ARCH_DB`, another account, or another
   project. Redacted preflight prints the identities it will use before any
   mutation.
@@ -47,10 +50,12 @@ a paid plan as an automatic fallback.
 | --- | --- |
 | Identity lookup unavailable/ambiguous | Fail closed; no create/export/import/deploy call. |
 | Source/target collision | Reject before rendering executable mutation commands. |
+| Worker name collision in account | Refuse deploy before any mutation; no overwrite of an existing Worker. |
 | Non-Free plan or exhausted limit | Stop; do not enable paid capacity or continue optimistically. |
 | Export blocks source beyond window | Abort, open the Operating incident path, clean partial artifacts. |
 | Partial create/import/deploy | Enter cleanup trap and preserve only redacted failure labels/timings. |
 | Provider reports success but readback disagrees | Treat operation as failed; use readback state as authority. |
+| workers.dev edge lags delete | Immediate readback plus a delayed second URL-absence re-check; a still-serving URL keeps the receipt failed and cleanup open. |
 | Provider docs or limits change | Mark prior source/proof stale and replan before a new run. |
 
 ## Ownership, Evidence, And Handback

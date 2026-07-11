@@ -29,9 +29,9 @@ Critical path: `UNIT-001 -> UNIT-002 -> UNIT-003 -> UNIT-004 -> UNIT-005`.
 - The program never rewrites another pack. A delta is integrated only when the
   target receipt lists its delta ID and all content hashes recheck.
 - Re-read shared paths immediately before any integration edit.
-- The program maintains one durable aggregate generation receipt for Publisher `0053`,
-  Activation `0054`, Estimate Intelligence `0055`, and Calculation Parity
-  `0056`, plus Activity History `0057`. Every writer consumes the current generation/hash before its first
+- The program maintains one durable aggregate generation receipt for Publisher `0055`,
+  Activation `0056`, Estimate Intelligence `0057`, and Calculation Parity
+  `0058`, plus Activity History `0059`. Every writer consumes the current generation/hash before its first
   edit. Consumption, collision, or tail/manifest drift stales the generation;
   Program preserves consumed facts and reissues all unconsumed allocations.
 
@@ -52,7 +52,7 @@ Actions:
 4. Accept Publisher or Activity integration only when the scoped diff hash is
    identical before and after validation and every receipt hash rechecks.
 5. Validate and, after any consumption or drift, reissue the durable
-   `MIGRATION_LEASE_GENERATION.json` 0053..0057 receipt. Include monotonic
+   `MIGRATION_LEASE_GENERATION.json` 0055..0059 receipt. Include monotonic
    generation, sorted migration-tail hash, five owner package IDs and manifest
    file/self hashes, allocation rows/hash, and canonical receipt hash; omit the
    Program manifest digest so the artifact has no hash cycle.

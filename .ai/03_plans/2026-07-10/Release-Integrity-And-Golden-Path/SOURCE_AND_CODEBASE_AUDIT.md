@@ -2,7 +2,7 @@
 
 ## Evidence Rules
 
-Source inspection is authoritative for implementation reality; hosted controls and deployments require hosted evidence. The planning audit is a structured source, not execution proof. The original observations were collected on 2026-07-10 from commit `081a0757a` and rechecked during this improvement run in a dirty shared worktree. `plan-pack.json.baseline.head` is the immutable refresh point; any later HEAD or stale trigger requires another scoped check.
+Source inspection is authoritative for implementation reality; hosted controls and deployments require hosted evidence. The planning audit is a structured source, not execution proof. The original observations were collected on 2026-07-10 from commit `081a0757a` and rechecked during this improvement run on 2026-07-11 in a dirty shared worktree. `plan-pack.json.baseline.head` is the immutable refresh point; any later HEAD or stale trigger requires another scoped check.
 
 ## Source Ledger
 
@@ -11,11 +11,11 @@ Source inspection is authoritative for implementation reality; hosted controls a
 | `SRC-001` | `.ai/02_audits/archestimator_beta_readiness_audit_2026-07-10.md:190-269,681-710,750-759,1000-1042,1116-1196` | Current planning input | CI, golden-path, release-manifest findings and release gates. |
 | `SRC-002` | `.github/workflows-disabled/ci.yml`; `.github/workflows-disabled/codeql.yml`; `.github/workflows-disabled/dependabot.yml`; `.github/workflows-disabled/react-doctor.yml` | Current source observation | No active `.github/workflows/*.yml` enforcement exists. |
 | `SRC-003` | `README.md:384`; `next.config.ts:84`; `package.json:127` | Current source observation | README claims active CI, build ignores TypeScript errors, and local validation exists. |
-| `SRC-004` | `playwright.config.ts:63`; `e2e/shared-link-receiver.spec.ts:8`; `e2e/estimates-crud-latency.spec.ts:36`; `e2e/*.spec.ts` | Current source observation | Browser coverage is shallow and environment-gated; no deterministic 20-step golden path exists. |
+| `SRC-004` | `playwright.config.ts:63`; `e2e/shared-link-receiver.spec.ts:8`; `e2e/estimates-crud-latency.spec.ts:36`; `e2e/estimate-sheet-component-interop.spec.ts`; `e2e/estimate-sheet-performance.spec.ts`; `e2e/*.spec.ts` | Current source observation | Browser coverage is shallow and environment-gated; no deterministic 20-step golden path exists. |
 | `SRC-005` | `scripts/check-cloudflare-release-gates.ts`; `scripts/check-route-transition-readiness.ts`; `scripts/check-support-monitoring-readiness.ts`; `scripts/check-production-observability-proof.ts` | Current source observation | Release evidence collectors exist but do not form a single canonical manifest for the exact deploy SHA. |
 | `SRC-006` | `tests/vitest/ci-workflow-pinning.test.ts`; `tests/vitest/cloudflare-release-gates-script.test.ts`; `tests/vitest/route-transition-readiness-script.test.ts` | Current test observation | Useful contract tests exist and must be extended rather than bypassed. |
 | `SRC-007` | `AGENTS.md`; all nine `.ai/03_plans/2026-07-10/*/plan-pack.json` manifests | Current authority and dependency observation | Bound Cloudflare data-resource authority is distinct from GitHub, out-of-scope staging, and production-deploy authority; cross-pack integration uses validated receipts. |
-| `SRC-008` | `migrations/0052_corporate_accounts.sql`; `src/lib/admin/corporate-account-{actions,repository}.ts`; `.ai/03_plans/2026-07-11/Corporate-Accounts/` | Concurrent candidate-dependency observation | Corporate source is present but its separate plan folder has no manifest and contradictory role assumptions. It is outside the nine-pack registry and may enter a candidate only with a validated receipt; otherwise release truth records exact exclusion. |
+| `SRC-008` | `migrations/0052_corporate_accounts.sql` plus `0053_corporate_account_owner_integrity.sql`; `src/lib/admin/corporate-account-{actions,repository}.ts`; `.ai/03_plans/2026-07-11/Corporate-Accounts/plan-pack.json` | Concurrent candidate-dependency observation | Corporate source is present and its separate plan folder now has a manifest at `CONDITIONALLY_READY` / `IN_PROGRESS`. It remains outside the nine-pack registry and may enter a candidate only with a current validated receipt; otherwise release truth records exact exclusion. |
 
 ## Explicit Assumptions
 
@@ -45,9 +45,9 @@ Accessed 2026-07-10; these sources define vendor capabilities, not Archestimator
 
 1. `.github/workflows/` contains no active workflow files; four workflows are intentionally parked under `workflows-disabled`.
 2. `next.config.ts` permits build-time TypeScript errors. This is tolerable only when a separate typecheck cannot be bypassed.
-3. The Playwright inventory covers auth, latency, shell streaming, landing, route transitions, a fixture-gated shared link, library smoke, and route error boundaries. It does not prove access request through recipient decision and owner follow-up.
+3. The Playwright inventory covers auth, latency, shell streaming, landing, route transitions, a fixture-gated shared link, library smoke, route error boundaries, estimate-sheet component interop, and estimate-sheet performance. It does not prove access request through recipient decision and owner follow-up.
 4. The shared-link spec requires manually supplied publication and recipient secrets. That is not deterministic CI setup.
-5. Existing release scripts aggregate substantial local and hosted evidence, but README facts and migration counts drift independently. The current workspace migration tail is the concurrent untracked `migrations/0052_corporate_accounts.sql`; release truth must inventory the exact settled workspace rather than rely on older README counts or a superseded migration-generation receipt.
+5. Existing release scripts aggregate substantial local and hosted evidence, but README facts and migration counts drift independently. The current workspace migration tail is `migrations/0065_activity_history_lifecycle.sql` (57 tracked migration files, including the concurrent `0053_corporate_account_owner_integrity.sql`, `0054_collaboration_pending_invitation_uniqueness.sql`, `0055_collaboration_manager_floor_integrity.sql`, and `0060_activity_history_indexes.sql`); release truth must inventory the exact settled workspace rather than rely on older README counts or a superseded migration-generation receipt.
 6. Local `bun run validate` and pack validation can prove repository readiness only. They cannot prove a GitHub ruleset, deployment environment, hosted smoke, or artifact retention is active.
 7. Concurrent landing work adds a private no-store display hint for session-aware
    CTA copy while preserving protected-route authorization. This changes the

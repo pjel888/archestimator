@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
-    "scoped_status_sha256": "32ab186503e591ed55166e492d900487088e6370ea03ffbca75fa52660378f56",
-    "scoped_diff_sha256": "bd80a006b2a30dfba2880c0ec1e4881b399b100200a1849e3130e1ed26144edf"
+    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+    "scoped_status_sha256": "93069be535112d46180537289989c91f96d4924df7574de5f274840e4710aa24",
+    "scoped_diff_sha256": "9b92a1b71219cd6f501a29e5e5e2398282b34aa691f0a6d8487cc494cdc45da2"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -27,19 +27,19 @@
       "id": "ART-002",
       "role": "audit",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "8a81cac6632cdcc6844e13f19cf050a7e81c0227ee4698db16b3a0490eb7a598"
+      "sha256": "ecb115410cbdd80d6ad3d6982eadae6af7ff9dcd9da6c84d991a50a5c3bbe1a5"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "bc38f467b5cea665c4fa1f14c0b629bd9e9fa0b0b737080efc401d83fb369d5e"
+      "sha256": "85d588f3c5717c448fbcf6b95042b713c485eec2a0a873ed6e48579499c87d32"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "70102de163d447527a2bcb79039e76a722ba6f55845b5f65f1c540cdf382bdc6"
+      "sha256": "78e526e82714dae3401fcd02a47113c2dd45cc42a1c362abdb395dd96202efd3"
     },
     {
       "id": "ART-005",
@@ -51,7 +51,7 @@
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "58e536b10e2b6d96d59b4a0ca482d79312adf7e9ed52b7e5a088e08ff07ecd8a"
+      "sha256": "c3ab2376ae93d5b7b5811c132621dba28ff9b11fd768b39bcd586b5b189bbbb6"
     },
     {
       "id": "ART-007",
@@ -63,7 +63,7 @@
       "id": "ART-008",
       "role": "data-migration",
       "path": "PRICE_POLICY_DATA_AND_MIGRATION_PLAN.md",
-      "sha256": "725270a99a9610db757dc311c876d070d1a4aa21331d41d1e4973b1d4f42f2f7"
+      "sha256": "2e85a000a85805106a851661942d42f77cf92d29db1c4026339e3c20d1332111"
     },
     {
       "id": "ART-009",
@@ -145,7 +145,8 @@
         "REQ-001",
         "REQ-002",
         "UX-001",
-        "PERF-001"
+        "PERF-001",
+        "REQ-004"
       ]
     }
   ],
@@ -239,6 +240,7 @@
         "UNIT-004"
       ],
       "criterion_ids": [
+        "AC-007",
         "AC-009",
         "AC-010"
       ]
@@ -282,7 +284,8 @@
       "artifact_path": "REQUIREMENTS_AND_DECISIONS.md",
       "source_ids": [
         "SRC-001",
-        "SRC-003"
+        "SRC-003",
+        "SRC-004"
       ],
       "unit_ids": [
         "UNIT-006",
@@ -1091,7 +1094,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "8a81cac6632cdcc6844e13f19cf050a7e81c0227ee4698db16b3a0490eb7a598",
+      "sha256": "ecb115410cbdd80d6ad3d6982eadae6af7ff9dcd9da6c84d991a50a5c3bbe1a5",
       "claim_ids": [
         "SRC-001",
         "SRC-002",
@@ -1107,7 +1110,7 @@
         "REQ-004",
         "OPS-001"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     },
     {
@@ -1154,7 +1157,7 @@
         "GATE-004",
         "GATE-005"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     }
   ],
@@ -1168,6 +1171,6 @@
     "freshness-threshold-or-revision-policy-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T18:58:56.000Z",
-  "manifest_sha256": "5e871f1046e86fd588cf00c75c4973160db5164607e85f84d7385245f35cc963"
+  "updated_at": "2026-07-10T19:35:00.000Z",
+  "manifest_sha256": "371529523c3671b107695bda20bba45554851a445938fa11986d670294b8f0ab"
 }

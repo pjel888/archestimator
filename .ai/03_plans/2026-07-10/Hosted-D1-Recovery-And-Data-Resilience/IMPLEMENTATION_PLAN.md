@@ -84,9 +84,9 @@ default/test mode and every Free-limit failure stops before creation.
 and the hosted runner in
 `scripts/run-cloudflare-d1-hosted-recovery-rehearsal.ts`.
 
-**Steps:** compare migration ledger/head, table/index/trigger inventory, critical row counts, deterministic keyed checksums, FK violations, known orphan relationships, corporate account/member/workspace-link rows, profile-orphan policy, role/status sets, membership `CASCADE`, workspace-link `SET NULL`, enum/invariant queries, and large-integer sentinels; record only aggregates/digests; tie every result to export digest and target ID.
+**Steps:** compare migration ledger/head, table/index/trigger inventory (including the five migration 0053 corporate ownership triggers), critical row counts, deterministic keyed checksums, FK violations, known orphan relationships, corporate account/member/workspace-link rows, profile-orphan policy, role/status sets, the ownership-completeness invariant (every `corporate_accounts` row has at least one `owner` member and the creator is nonblank), the ownership-preserving constraints (last-owner delete/demote ABORT), membership `CASCADE`, workspace-link `SET NULL`, enum/invariant queries, and large-integer sentinels; record only aggregates/digests; tie every result to export digest and target ID.
 
-**Verification:** local/temp-D1 fixtures with missing migration, extra/missing schema object, row mutation, FK/orphan, corporate role/status/delete-semantic drift, checksum, and integer cases. Expected: each defect has one stable failed label and nonzero exit.
+**Verification:** local/temp-D1 fixtures with missing migration, extra/missing schema object (including a missing 0053 ownership trigger), row mutation, FK/orphan, ownerless corporate account (missing `owner` member after a simulated pre-0053 restore or failed backfill), corporate role/status/delete-semantic drift, last-owner protection violation, checksum, and integer cases. Expected: each defect has one stable failed label and nonzero exit.
 
 ### `UNIT-004` — Prove restored application, authz, and session behavior
 
@@ -124,7 +124,10 @@ keys, nonces, bodies, or restored row data. Run representative protected reads;
 confirm unauthenticated/foreign-workspace/public-share denials and prove that a
 corporate-only role or linked workspace cannot replace canonical workspace or
 platform-admin authorization; run one uniquely labeled controlled write then
-rollback/delete; prove repository paths use
+rollback/delete (a write to `corporate_accounts` triggers the 0053 AFTER INSERT
+owner upsert, so rollback must remove the account and the auto-inserted `owner`
+member and record the trigger-induced side effect, not assume a single written
+row); prove repository paths use
 restored data; verify pre-restore tokens fail and a fresh disposable
 authentication succeeds. Delete the disposable Worker (thereby removing its
 `workers.dev` ingress), nonce/attempt table, Worker secrets, overlay, operator key
@@ -133,9 +136,13 @@ longer serves the probe before declaring cleanup.
 
 **Verification:** local contract tests plus hosted matrix in Unit 006 cover wrong
 method/path/content type, missing/invalid/expired signature, reused nonce,
-body-over-limit with and without `Content-Length`, attempt/success caps, direct
-application-path bypass, request run ID differing from the configured expected run
-ID, redacted logs, and URL/route/Worker/secret/table/key-alias absence.
+body-over-limit with and without `Content-Length`, slow-body/arrival-deadline
+timeout, attempt/success caps, direct application-path bypass, request run ID
+differing from the configured expected run ID (verified under a constant-time
+comparison), redacted logs, URL/route/Worker/secret/table/key-alias absence, an
+independent query of the production source D1 confirming the run-labeled
+controlled-write row is absent there, and a delayed second URL-absence re-check
+covering workers.dev edge propagation.
 Expected: every denial occurs before application dispatch; isolation predicates
 match source behavior; no session or proof token appears in output.
 
@@ -193,8 +200,10 @@ Local tests use a mode-checked temp root/files, temp D1, fake per-run keys, and
 explicit `finally` cleanup. Hosted cleanup inventory includes D1,
 Worker/environment, routes, secrets/vars created for the run, plaintext and
 encrypted exports/R2 objects if explicitly approved, OS credential/key aliases,
-and disposable credentials. The verifier lists/reads every surface after delete;
-command success without absence readback is not proof. A failed deletion is an
-open P0. Resume at `UNIT-001` with the two failing false-positive tests; never
-resume directly at the hosted unit without revalidating the boundary packet and
-provider constraints.
+and disposable credentials. The verifier lists/reads every surface after delete
+and runs a delayed second workers.dev URL-absence re-check to catch edge
+propagation; it also queries the production source D1 and confirms the
+run-labeled controlled-write row is absent there. Command success without absence
+readback is not proof. A failed deletion is an open P0. Resume at `UNIT-001` with
+the two failing false-positive tests; never resume directly at the hosted unit
+without revalidating the boundary packet and provider constraints.

@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
-    "scoped_status_sha256": "cd33b5a39b7626f634891e0f9aca129f50564266eb65125d18def67d87dd3546",
-    "scoped_diff_sha256": "279e7f41663e13e15787989c92bda32339d83ba9c99b88ed4f0bafef8bad21d3"
+    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+    "scoped_status_sha256": "f23674305bcfba4a8fd7b406f20ee7479b19d06102a8bae5031078ebb3cd777c",
+    "scoped_diff_sha256": "60248a9586f3dfc53de37424b4d05dd8c0016d32cabf17a2b017f2d66e001773"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -27,7 +27,7 @@
       "id": "ART-002",
       "role": "source-ledger",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "7d4c0ab0c6ecf5c3d8b40bf9176116d4f96b15cefc4e034f41878090af425a31"
+      "sha256": "cdd4f54cc86ae7f283770643a6bb5abd51f248e9fd446d1e8fefb3b3b015ecff"
     },
     {
       "id": "ART-003",
@@ -39,7 +39,7 @@
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "aa442eb80a969420f15a70f3a4f338b32ffd5187c02b48fd52c70a504547072a"
+      "sha256": "26825f3269e00c1eba801b01128492a0c97d67a4d51e362d498445dcfdeca960"
     },
     {
       "id": "ART-005",
@@ -51,7 +51,7 @@
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "d6866b23c948daa53ca2e03491b772aea24db739c2f962727e95879728825c62"
+      "sha256": "5d566f16144a1879c249ac57f8f5e82ca8be09bd3d02d9bd11f0be1fee03810c"
     },
     {
       "id": "ART-007",
@@ -196,6 +196,14 @@
         "AUTH-002",
         "AUTH-003"
       ]
+    },
+    {
+      "id": "SRC-008",
+      "status": "CURRENT",
+      "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
+      "affected_ids": [
+        "REQ-008"
+      ]
     }
   ],
   "requirements": [
@@ -323,7 +331,8 @@
       "source_ids": [
         "SRC-001",
         "SRC-005",
-        "SRC-007"
+        "SRC-007",
+        "SRC-008"
       ],
       "unit_ids": [
         "UNIT-006",
@@ -1174,7 +1183,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "7d4c0ab0c6ecf5c3d8b40bf9176116d4f96b15cefc4e034f41878090af425a31",
+      "sha256": "cdd4f54cc86ae7f283770643a6bb5abd51f248e9fd446d1e8fefb3b3b015ecff",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -1198,7 +1207,7 @@
         "UNIT-009",
         "UNIT-010"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     },
     {
@@ -1234,7 +1243,7 @@
         "GATE-003",
         "GATE-004"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     }
   ],
@@ -1248,6 +1257,6 @@
     "production-deployment-marker-smoke-or-rollback-state-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T18:58:56.000Z",
+  "updated_at": "2026-07-11T04:10:00.000Z",
   "manifest_sha256": "2fb0e45e4af9f17e9d8c4a82663fde61235afd8037ffca676a8a14d959a71708"
 }

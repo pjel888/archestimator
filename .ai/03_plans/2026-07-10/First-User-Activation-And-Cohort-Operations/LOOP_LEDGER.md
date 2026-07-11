@@ -329,3 +329,47 @@ the current behavior and repair the unit packet; never revert their work.
   `c2af5971303d62018cf37fabf27fcc89792d3ec5dd87dfe25e5a948364690892`.
 - Corporate-role denial is a current plan requirement; readiness remains
   `IMPLEMENTATION_READY/NOT_STARTED`.
+
+## 2026-07-11T03:35:00.000Z - IMPROVE-PASS migration-slot and symbol-freshness repair
+
+- Supersedes the live `0054_beta_activation_events.sql` allocation: the Program
+  generation-11 lease (`MIGRATION_LEASE_GENERATION.json`) already reissued
+  Activation's allocation to `0067_beta_activation_events.sql` because `0054`
+  was consumed by `0054_collaboration_pending_invitation_uniqueness.sql`. The
+  current migration tail is `0065_activity_history_lifecycle.sql`.
+- All live references in `README.md`, `SOURCE_AND_CODEBASE_AUDIT.md`,
+  `REQUIREMENTS_AND_DECISIONS.md` (`DEC-AUTO-006`, `RISK-006`),
+  `IMPLEMENTATION_PLAN.md` (`UNIT-001`), and
+  `ACTIVATION_LEDGER_DATA_LIFECYCLE_AND_IDEMPOTENCY.md` now read `0067`.
+  Historical ledger entries recording `0051`/`0052`/`0053`/`0054` are unchanged
+  append-only receipts; a note marks them superseded.
+- Corrected stale symbol names against current source: the Admin boundary is
+  `requireAdminContext` (L12) plus `assertAdminApiAccess` (L19) /
+  `gateAdminApiMutation` (L78); the plain `requireAdmin` name does not exist
+  (`UNIT-006`, `COHORT_QUERY_ABANDONMENT_AND_SUPPORT_MODEL.md`,
+  `SOURCE_AND_CODEBASE_AUDIT.md`). The public draft-creation action at
+  `estimates/actions.ts:2338-2367` is `createEstimateSheetDraft`, not
+  `createEstimateWithDefaultTab` (which is a private helper at L1936)
+  (`UNIT-003`, `UNIT-005`, source audit). Template insertion at `:3145-3177` is
+  `insertEstimateTemplateIntoEstimate`. WorkshopSettings `supportSettings` is at
+  L74-102, not L65-93 (`UNIT-004`).
+- Refined the `UNIT-001` worker seam: `worker.ts:184` fans all crons into
+  `runCloudflareScheduledUploadJobs`; the `"30 3 * * *"` branch (L218) already
+  runs `runRetentionPassInD1` + `reconcileActivityOutbox` in parallel via
+  `ctx.waitUntil` (precedent for the activation reconciler). `wrangler.jsonc`
+  declares three crons (`0 3`, `15 3`, `30 3`).
+- Baseline HEAD rebound to `6069d87c271dc1509e97d1155da4d62c78d771cd`; scoped
+  status/diff SHA-256 recomputed against the recorded 18 pathspecs (see manifest
+  `baseline`). All verified source anchors (`projects-page-client.tsx:1947-1956`,
+  `:3264-3335`, `:3422`; `project-grid-layout.ts:40-53`; `NewProjectForm.tsx:263-338`;
+  `createProjectRecord` L781; `acceptInvitationInD1` L515;
+  `downloadProposalExport` L169) remain exact.
+- Re-verified all new-file claims: `src/lib/onboarding/**`, the cohort
+  repository, the Getting Started route, `src/app/api/activation/`, and all 12
+  vitest + 1 e2e test files do not yet exist (genuinely new). `retention-core.ts`
+  (315 lines, no activation hook), `privacy-request-repository.ts`, and
+  `worker.ts` exist and will be modified, not created.
+- Scope remains `PLAN_ONLY`; no product source, migration, test, fixture,
+  browser, provider, or external action occurred. Planning artifacts only
+  changed. Readiness remains `IMPLEMENTATION_READY/NOT_STARTED`. The lead
+  refreshes manifest hashes after this append as the final freeze step.

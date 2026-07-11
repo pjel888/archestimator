@@ -31,20 +31,25 @@ recovery or reinterpret a missing result as a warning.
 | Layer | Comparison/invariant | Defect labels |
 | --- | --- | --- |
 | Migration | Ordered applied migration ledger equals the active expected ledger/head | missing, extra, reordered, wrong checksum/head |
-| Schema | Required table/index/trigger/constraint inventory | missing/extra incompatible object, changed definition |
+| Schema | Required table/index/trigger/constraint inventory, including the migration 0053 ownership triggers (`trg_corporate_accounts_require_creator_on_insert`, `..._on_update`, `..._creator_is_owner`, `trg_corporate_account_members_preserve_owner_on_delete`, `..._on_role_change`) | missing/extra incompatible object, changed definition, missing ownership trigger |
 | Cardinality | Critical table and scoped row counts tied to export digest | count mismatch, unexpected empty, scope leak |
 | Content | Keyed deterministic aggregate/digest for non-secret stable fields | digest mismatch, nondeterministic input |
-| Referential | `foreign_key_check` and known repository orphan predicates, including corporate member/profile policy and workspace/corporate links | FK violation, orphan relationship, missing profile, broken corporate link |
-| Domain | Enum/status ranges, uniqueness, lifecycle and tenant invariants, including corporate account status/role sets and exact `CASCADE` membership / `SET NULL` workspace-delete behavior | invalid state, duplicate active identity, cross-workspace reference, corporate role/status drift, wrong delete effect |
+| Referential | `foreign_key_check` and known repository orphan predicates, including corporate member/profile policy, workspace/corporate links, and the migration 0053 ownership invariant (every `corporate_accounts` row has at least one `owner` in `corporate_account_members`) | FK violation, orphan relationship, missing profile, broken corporate link, ownerless corporate account |
+| Domain | Enum/status ranges, uniqueness, lifecycle and tenant invariants, including corporate account status/role sets and exact `CASCADE` membership / `SET NULL` workspace-delete behavior, and the migration 0053 ownership-preserving constraints (creator-required BEFORE INSERT/UPDATE ABORT; last-owner-protected BEFORE DELETE and BEFORE UPDATE OF role ABORT) | invalid state, duplicate active identity, cross-workspace reference, corporate role/status drift, wrong delete effect, ownership-invariant violation |
 | Precision | Large-integer and timestamp sentinels | truncation, coercion, timezone drift |
-| Mutation | One run-labeled controlled write is visible only where expected, then removed/rolled back | missing write, cross-scope effect, persistent residue |
+| Mutation | One run-labeled controlled write is visible only where expected, then removed/rolled back. A controlled write to `corporate_accounts` triggers the 0053 AFTER INSERT owner upsert, so rollback must remove both the account row and the auto-inserted `owner` member row, and the mutation layer must record the trigger-induced side effect rather than assume one written row. | missing write, cross-scope effect, persistent residue, untracked trigger side effect |
 
 Counts and digests are evidence only when the query/version, export digest,
 target identity, fixture scope, and source revision are recorded. Matching counts
 do not override schema, authz, application, session, or cleanup failures.
 Corporate membership and `workspaces.corporate_account_id` must round-trip as
 data without becoming a product-authorization predicate; restoration proof
-separately denies corporate-only access to workspace/project resources.
+separately denies corporate-only access to workspace/project resources. The
+migration 0053 ownership invariant is a data-integrity claim, not an authz grant:
+post-restore proof must confirm every `corporate_accounts` row has at least one
+`owner` member after the backfill, and that the ownership triggers survived the
+export/import round-trip; a restore to a pre-0053 point, or a failed backfill,
+that yields ownerless accounts is an integrity failure even when counts match.
 
 ## Data And Secret Lifecycle
 

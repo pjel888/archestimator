@@ -9,7 +9,7 @@ it has run.
 
 The Archestimator resources bound in `wrangler.jsonc`, including D1 `ARCH_DB`,
 have standing repository authorization. This `PLAN_ONLY` run performs no hosted
-mutation. Implementation may create local code, tests, and migration 0053. The
+mutation. Implementation may create local code, tests, and migration 0066. The
 release run separately evaluates hosted migration, provider proof, and production
 deployment; `wrangler deploy` is outside this pack.
 
@@ -21,11 +21,11 @@ deployment; `wrangler deploy` is outside this pack.
 2. Run each unit's focused test before moving to a dependent unit.
 3. Incorporate and validate Program `PUB-DELTA-01..04`; only then promote the
    affected units whose updated packets and dependencies validate.
-4. Immediately before editing migration 0053, validate the durable Program
+4. Immediately before editing migration 0066, validate the durable Program
    migration-generation receipt for generation, current tail, Publisher owner
    manifest, unclaimed exact allocation/path, allocation hashes, and receipt
    hash. Drift or collision blocks and requires Program reissue.
-5. For migration 0053, produce preflight/postflight count, row-digest, FK, index,
+5. For migration 0066, produce preflight/postflight count, row-digest, FK, index,
    trigger, and constraint reports on disposable/local D1 only.
 6. After all dependencies and delta/Activation/Activity preconditions verify,
    UNIT-022 runs the exact validation matrix, emits the cross-pack receipts, and
@@ -56,8 +56,8 @@ Any preflight mismatch is a stop condition. Do not delete orphaned rows, use
 | Manager preview | Any auth bypass, metadata leak, or public-route regression | Remove the protected preview route and entry links; no credential cleanup is needed |
 | Wizard/roster/share UX | Critical workflow or accessibility regression | Revert owning UI unit while retaining server hardening |
 | Recipient inbox | Partial metadata or integrity regression | Restore the known fail-closed repository path immediately |
-| Migration 0053 before release | Local parity or failure-injection mismatch | Do not apply; fix forward in migration/test plan |
-| Migration 0053 after hosted apply | Confirmed schema/data regression | Tested reverse table rebuild or approved D1 restore; never `DROP CONSTRAINT` |
+| Migration 0066 before release | Local parity or failure-injection mismatch | Do not apply; fix forward in migration/test plan |
+| Migration 0066 after hosted apply | Confirmed schema/data regression | Tested reverse table rebuild or approved D1 restore; never `DROP CONSTRAINT` |
 | Production release | Release gates or hosted smoke fail | Use the established Cloudflare version rollback process in the release run |
 
 ## Operational Proof Boundaries

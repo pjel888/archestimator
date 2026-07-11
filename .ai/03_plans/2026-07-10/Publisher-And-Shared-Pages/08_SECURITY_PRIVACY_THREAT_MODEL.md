@@ -86,13 +86,16 @@ Remove:
 - `src/app/api/share/[token]/events/route.ts`;
 - `download_attempt_blocked` from `ProjectPublicationEventType`;
 - `download_attempt_blocked` from `PublicationEventType`;
-- the value from the `shared_link_events.event_type` CHECK created by migration
-  0053;
+- `download_attempt_blocked` from the `project_publication_events.event_type`
+  CHECK in the rebuilt table created by migration 0066. The current
+  `project_publication_events` CHECK (migration 0014, lines 43-45) includes
+  this value; the rebuilt CHECK omits it. The `shared_link_events.event_type`
+  CHECK does not reference this value and is copied byte-for-byte.
 - `PublisherDisabledEmptyState` after a zero-consumer check.
 
 The print button calls `window.print()` and emits no client telemetry. `TEST-028`
 and `TEST-029` include static zero-consumer checks for AC-047. Historical migration
-0014 remains immutable; migration 0053 establishes the current CHECK contract.
+0014 remains immutable; migration 0066 establishes the current CHECK contract.
 
 ## SEC-008 - Manager Preview Authorization
 

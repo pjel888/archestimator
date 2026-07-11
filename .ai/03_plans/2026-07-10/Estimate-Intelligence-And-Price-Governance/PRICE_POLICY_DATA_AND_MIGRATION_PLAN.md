@@ -16,6 +16,12 @@ generation, migration-tail digest, all five owner manifest/self hashes, the
 0053..0057 allocation set, this exact path, allocation digest, and canonical
 receipt digest.
 
+As of the 2026-07-11 improve pass, the Program receipt is generation 4 with tail
+`0052_corporate_accounts.sql`, while the live migration tail has advanced to the
+untracked `migrations/0053_corporate_account_owner_integrity.sql`. UNIT-002 must
+consume a Program generation-5 receipt covering the `0053` tail before any
+migration edit. The `0055` allocation remains `UNCLAIMED` in the current receipt.
+
 Any tail, owner manifest, filename, status, allocation, or digest mismatch
 prohibits the edit and requires Program reissue. Consumption/collision stales the
 generation for every unconsumed owner. This pack never selects a replacement

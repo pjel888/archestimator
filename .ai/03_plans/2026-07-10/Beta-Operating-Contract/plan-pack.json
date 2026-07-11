@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
-    "scoped_status_sha256": "d306f1e64f3713a43c2b566bf447dac5167080491c6d945d67d30dc15de9be7a",
-    "scoped_diff_sha256": "5137405948339fd8f213485f7375ebe8770fee763b8492dc527ad72988fd07fb"
+    "head": "6069d87c271dc1509e97d1155da4d62c78d771cd",
+    "scoped_status_sha256": "f88293a6c2ee394adab8fad0617dd01c69dbb79cd8b70e70900ca8af6f919dbd",
+    "scoped_diff_sha256": "75f966a844b766b917500bf47fa26fad8d076de5800922f6412e103fee488c09"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -27,7 +27,7 @@
       "id": "ART-002",
       "role": "source-ledger",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "b6eef389b3aca681baffbd460a568330f59f73a84ebff895ab91659a0fb9fff0"
+      "sha256": "30fc0c7ee868a4818e161c697bf8fa7dca7e7d3323b026be6a19fd605ef444c9"
     },
     {
       "id": "ART-003",
@@ -39,7 +39,7 @@
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "138e015b1a4617a4e478ca0a7077af7fdee0c0ffd6af32efd7609d36230a0a8c"
+      "sha256": "1eb4a2f0fe054399495c835515aacb69b5f04d6a94eb9043c57a192768619efa"
     },
     {
       "id": "ART-005",
@@ -51,7 +51,7 @@
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "716cb37c3e79e3be7bcb545bb6894627268d16de887ec036ad3b382f43ef4a5d"
+      "sha256": "eafd6c44289d596b8b13b43456fd97c9533b101d9582826f270554302f5c46ea"
     },
     {
       "id": "ART-007",
@@ -1046,7 +1046,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "b6eef389b3aca681baffbd460a568330f59f73a84ebff895ab91659a0fb9fff0",
+      "sha256": "30fc0c7ee868a4818e161c697bf8fa7dca7e7d3323b026be6a19fd605ef444c9",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -1065,7 +1065,7 @@
         "UNIT-008",
         "UNIT-009"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     },
     {
@@ -1099,7 +1099,7 @@
         "GATE-003",
         "GATE-004"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
       "valid_until": null
     }
   ],
@@ -1109,10 +1109,12 @@
     "admin-repository-or-activation-contract-change",
     "incident-alert-support-owner-or-runbook-change",
     "better-auth-session-recovery-or-access-contract-change",
+    "better-auth-dependency-version-change",
+    "account-status-or-corporate-account-migration-change",
     "legal-document-cohort-or-approval-change",
     "release-id-environment-or-evidence-expiry"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T18:58:56.000Z",
-  "manifest_sha256": "ef97a1e6768c65c41252d4f45aa301a04bcd107c94ec5b97f23d85ce3c290cd3"
+  "updated_at": "2026-07-11T02:00:00.000Z",
+  "manifest_sha256": "be0a3228e21e36714555b732852b505d26d40709e1cde13fd84bb798f7d2d003"
 }

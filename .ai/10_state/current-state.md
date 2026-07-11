@@ -10,6 +10,10 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Activity History Mapping (2026-07-11): implemented, verified, and archived to
+  `.ai/09_archive/store/2026-07-11-Activity-History-Mapping-complete/`.
+  The archived manifest is `COMPLETE/READY/ARCHIVED/ACHIEVED`; UNIT-008's
+  integration evidence records `33 files / 402 tests / 0 failures`.
 - Estimate Sheet Tree (2026-07-10): implemented + archived to
   `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete/`.
   PH-0..PH-7 complete: reorder `target_project_id` hotfix, sortOrder merge,

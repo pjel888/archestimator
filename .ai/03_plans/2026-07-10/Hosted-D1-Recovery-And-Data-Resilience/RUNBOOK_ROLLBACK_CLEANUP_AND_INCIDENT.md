@@ -17,10 +17,10 @@ incident contact, and full cleanup inventory. Verify the authorization packet,
 free-tier posture, encrypted filesystem, `0700/0600` modes, unique target,
 source/target inequality, no canonical route, and all local/dry-run tests.
 
-No-go conditions include unknown identity/limit/plan, limit failure, source
-health risk, stale packet, concurrent resource lease, unsafe storage, migration
-or contract drift, missing verifier, undefined cleanup readback, or any command
-that can default to `ARCH_DB`.
+No-go conditions include unknown identity/limit/plan, limit failure, Worker-name
+collision in the account, source health risk, stale packet, concurrent resource
+lease, unsafe storage, migration or contract drift, missing verifier, undefined
+cleanup readback, or any command that can default to `ARCH_DB`.
 
 ## Run Phases And Checkpoints
 
@@ -31,7 +31,7 @@ that can default to `ARCH_DB`.
 | Export/import complete | Export digest/size/timing, encrypted lifecycle, target import result | No ingress; run integrity or clean. |
 | Offline validation complete | Migration/data/session checks all pass | Deploy ingress only from this checkpoint with current packet. |
 | App/authz proof complete | Probe/app/session/write results and target marker | Emit provisional failed/success results, then clean. |
-| Cleanup complete | Every D1/Worker/URL/route/binding/secret/table/file/object/key alias absence readback | Receipt can be successful only after distinct verification. |
+| Cleanup complete | Every D1/Worker/URL/route/binding/secret/table/file/object/key alias absence readback, plus a delayed second workers.dev URL-absence re-check and an independent production-source query confirming the run-labeled controlled-write row is absent | Receipt can be successful only after distinct verification. |
 
 The run journal stores redacted state required to resume cleanup after process
 failure. It never stores proof keys, raw provider tokens, exports, rows, cookies,

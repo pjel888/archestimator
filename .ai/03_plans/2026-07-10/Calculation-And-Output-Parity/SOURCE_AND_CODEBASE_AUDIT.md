@@ -28,14 +28,24 @@ browser, hosted, or migration-execution evidence.
 ## Audit Boundary
 
 Re-audited at git revision
-`e373bc865b978e237deb1d92011c96b0a3639fb4` plus current uncommitted planning
-changes on 2026-07-10. No calculation/publication/export source, test, migration,
-configuration, or cited Beta-audit input relevant to this pack changed from the
-original `081a0757a9d7f34e75342a18e353f3014403de1e` inspection through this HEAD;
-the later proposals-list extraction and project-card drag changes are outside
-this ledger. This provenance recheck is not implementation proof. Hosted
-behavior, third-party spreadsheet rendering, and production release are not
-inferred from local source.
+`6069d87c271dc1509e97d1155da4d62c78d771cd` (current `main` HEAD) plus current
+uncommitted/untracked worktree changes on 2026-07-11. Every cited formula owner
+(`estimate-row-total.ts`, `publication/snapshot.ts`, `publication/types.ts`,
+`share/reconstruct-share-tree.ts`, `proposal-export/build-proposal-export-model.ts`,
+`create-proposal-workbook.ts`, `settings.ts`, `types.ts`, `xlsx-workbook.ts`,
+`editable-row-model.ts`, `aggregate-project-charts.ts`,
+`workspace-repository.ts`, `project-data-repository.ts`,
+`project-charts-repository.ts`, and the unification oracle test/fixtures) is
+byte-identical between the prior frozen HEAD
+`e373bc865b978e237deb1d92011c96b0a3639fb4` and the current HEAD, confirmed by an
+empty `git diff e373bc86..HEAD -- <cited formula owners>` over all 16 files. The
+scoped-baseline drift since the last freeze is structural only: `main` advanced
+through estimate-sheet/performance/admin test churn, an untracked
+`migrations/0053_corporate_account_owner_integrity.sql`, and untracked
+estimate-sheet identity/fan-out/performance tests — none of which are the parity
+oracle or a cited calculation row-formula owner. This provenance recheck is not
+implementation proof. Hosted behavior, third-party spreadsheet rendering, and
+production release are not inferred from local source.
 
 ## Source Ledger
 

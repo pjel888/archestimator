@@ -36,31 +36,41 @@ later proof phase.
 ## Proof Ingress Contract
 
 The only route is `POST /__recovery/probe` with `application/json`. Stream-cap
-the body at 8 KiB before parsing, including requests without `Content-Length`.
-Each request carries run ID, timestamp within five minutes, unique random nonce,
-body digest, and HMAC over method/path/run/timestamp/nonce/body digest. The
-signed run ID must equal an independent Worker-secret value before reading or
-mutating nonce/cardinality state. Atomically store only nonce digests. Permit at
-most 32 successful probes and five failed attempts per minute per run.
+the body at 8 KiB before parsing, including requests without `Content-Length`,
+and bound body arrival by a per-request deadline so a slow-loris stream cannot
+hold a request open to consume the five-minute window. Each request carries run
+ID, timestamp within five minutes, unique random nonce, body digest, and HMAC
+over method/path/run/timestamp/nonce/body digest. The signed run ID must equal an
+independent Worker-secret value before reading or mutating nonce/cardinality
+state; that comparison and every other credential/secret comparison must be
+constant-time and produce timing indistinguishable from an HMAC failure so the
+five-failed-attempts/minute cap bounds any residual timing oracle. Atomically
+store only nonce digests. Permit at most 32 successful probes and five failed
+attempts per minute per run.
 
 ## Threat And Denial Matrix
 
 | Threat | Pre-dispatch denial/control | Required proof |
 | --- | --- | --- |
 | Canonical/preview/custom route exposure | Overlay hard-codes `routes=[]`, no custom domain, unique workers.dev URL | Config readback, route absence, canonical URL denial. |
-| Bound production D1 selected | Overlay contains only explicit disposable D1 ID; source/target collision check | Binding readback and target marker query. |
-| Request chooses expected run | Compare signed request run to Worker-secret expected run | Mismatch denied before nonce table access. |
+| Worker name collision in account | List existing Workers before deploy; refuse if `archestimator-recovery-<run-digest>` exists | Pre-deploy `wrangler`/list-workers uniqueness probe; collision aborts before deploy. |
+| Bound production D1 selected | Overlay contains only explicit disposable D1 ID; source/target collision check | Binding readback, target marker query, and an independent production-source query confirming the run-labeled controlled-write row is absent there. |
+| Request chooses expected run | Constant-time compare signed request run to Worker-secret expected run; HMAC-fail and run-mismatch timing indistinguishable | Mismatch denied before nonce table access; timing-attack fixture bounded by the failed-attempt cap. |
 | Replay/copied request | Five-minute window and atomic nonce-digest insert | Same request/nonce denied; concurrent duplicate has one success maximum. |
 | Signature or body mutation | HMAC binds method/path/run/time/nonce/body digest | One-field mutation matrix denied. |
 | Oversized/chunked abuse | Streaming byte cap before parse | With/without length cases denied before app dispatch. |
+| Slow-loris/arrival abuse | Per-request body-arrival deadline | Partial/slow body denied before the five-minute window drains; deadline enforced independent of byte count. |
 | Brute-force/amplification | Failed-attempt and successful-probe caps | Boundary/concurrent overflow cases denied. |
 | Log/evidence exfiltration | Stable labels/redacted run correlation only | Secret scan finds no header/key/nonce/body/row data. |
+| Stale workers.dev edge after delete | Immediate plus delayed URL-absence re-check | A second absence probe after a bounded delay proves the route no longer resolves. |
+| Controlled write leaks to production | Run-labeled write read back absent from every non-disposable (source/bound) D1 | Independent production-DB absence query for the run-labeled row. |
 | Crash after mutation | Phase journal plus `finally` cleanup inventory | Injected failure at every phase leaves no untracked resource. |
 
 Wrong method, path, content type, missing fields, expired timestamp, invalid
-signature, run mismatch, reused nonce, over-limit body, or usage/rate overflow
-must fail before application repository dispatch. Denials use one safe envelope
-without revealing which credential element was valid.
+signature, run mismatch, reused nonce, over-limit or slow body, or usage/rate
+overflow must fail before application repository dispatch. Denials use one safe
+envelope without revealing which credential element was valid, and every secret
+comparison runs constant-time to keep the envelope honest.
 
 ## Ownership, Evidence, And Handback
 

@@ -1,13 +1,13 @@
 {
-  "schema_version": "1.0.0",
-  "generation": 4,
+  "schema_version": "1.1.0",
+  "generation": 11,
   "generation_status": "ACTIVE",
-  "supersedes_generation": 3,
-  "observed_at": "2026-07-10T18:59:20.000Z",
-  "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+  "supersedes_generation": 10,
+  "observed_at": "2026-07-11T03:20:34.019Z",
+  "source_revision": "6069d87c271dc1509e97d1155da4d62c78d771cd",
   "canonicalization": "recursive-key-sort,array-order-preserved,json-no-whitespace,omit-current-digest-field",
   "migration_tail": {
-    "latest_path": "migrations/0052_corporate_accounts.sql",
+    "latest_path": "migrations/0065_activity_history_lifecycle.sql",
     "entries": [
       {
         "path": "migrations/0001_closed_beta_feedback.sql",
@@ -216,63 +216,77 @@
       {
         "path": "migrations/0052_corporate_accounts.sql",
         "sha256": "d8c619d280b74bbc4306b0c82608f3f723e84ceff8717880a8e54f4f9b415c3e"
+      },
+      {
+        "path": "migrations/0053_corporate_account_owner_integrity.sql",
+        "sha256": "2a2dd51a2ec6ba0f5f10e1accef7382db309a1d8c97156a690556e506cf4591a"
+      },
+      {
+        "path": "migrations/0054_collaboration_pending_invitation_uniqueness.sql",
+        "sha256": "1d11a3103ab7f7af360bdcf770e4713b0b9c88888855b7d8e07883487ddd3d35"
+      },
+      {
+        "path": "migrations/0055_collaboration_manager_floor_integrity.sql",
+        "sha256": "9156b00d7e8077a345d1a4885c5c64f3ad0394b8f6e7e115887468cad48f7611"
+      },
+      {
+        "path": "migrations/0060_activity_history_indexes.sql",
+        "sha256": "e247ae6587f2b73942fe2b9a2538a8b7d1ecb147954013d7ef84239efd8bdf0c"
+      },
+      {
+        "path": "migrations/0065_activity_history_lifecycle.sql",
+        "sha256": "a33aaa5d24052ea60d836416faf64678dab8e4c1d34a5f0e1b40f8dea7ec2f00"
       }
     ],
     "digest_algorithm": "sha256(canonical-json(sorted path/file-sha256 entries))",
-    "sha256": "515788533a5a047f9e5dd2bbc216a533e5355eb738e55258d21578902b66f919"
+    "sha256": "b32cd9e9958572f985b68341276af99c03fb2d9a1b16ee76bb43831fd49fe132"
   },
   "allocations": [
     {
-      "number": "0053",
+      "allocation_id": "publisher",
+      "number": "0066",
       "owner_package_id": "PLAN-2026-07-10-publisher-and-shared-pages",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/Publisher-And-Shared-Pages/plan-pack.json",
+      "planned_path": "migrations/0066_publication_foreign_keys.sql",
       "owner_manifest_file_sha256": "1ce4884395d606e5e130d972cffd9cc0a21a880a3a7b811d42ff5bf154975617",
       "owner_manifest_self_sha256": "e125172e82eea9d708d4ecf3272bf43d28acc8da198a7fbb822af1738e78c3d4",
-      "planned_path": "migrations/0053_publication_foreign_keys.sql",
       "status": "UNCLAIMED",
-      "allocation_sha256": "f4b93230edc04e86348fde628bbed0f62a930071f0e15128d200fbca03512ccd"
+      "allocation_sha256": "bf9078ea31884ffeebaeee6167c150e44e7872130845f24687a41e44594de017"
     },
     {
-      "number": "0054",
+      "allocation_id": "activation",
+      "number": "0067",
       "owner_package_id": "PLAN-2026-07-10-first-user-activation-and-cohort-operations",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/First-User-Activation-And-Cohort-Operations/plan-pack.json",
+      "planned_path": "migrations/0067_beta_activation_events.sql",
       "owner_manifest_file_sha256": "cb87d41c24954824c3f089500788cc4ecd475a625a3b31126667029f9993ea55",
       "owner_manifest_self_sha256": "296b7bc11343b57769889d03fb8c5dc28c318fb04151463d60d6cd3d1e226944",
-      "planned_path": "migrations/0054_beta_activation_events.sql",
       "status": "UNCLAIMED",
-      "allocation_sha256": "aa878b7ded9a2a1c424732360a36bdea831851ef9e5d42f34e11a5847dd939e4"
+      "allocation_sha256": "865427f45417a98c0ef8d21bfcd77c32b5d149b3412169283386258ad1dc589a"
     },
     {
-      "number": "0055",
+      "allocation_id": "estimate-intelligence",
+      "number": "0068",
       "owner_package_id": "PLAN-2026-07-10-estimate-intelligence-and-price-governance",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/Estimate-Intelligence-And-Price-Governance/plan-pack.json",
-      "owner_manifest_file_sha256": "d001998c09e67715006f24a662c53992ac55816121a6329d3abd541004357ad5",
-      "owner_manifest_self_sha256": "5e871f1046e86fd588cf00c75c4973160db5164607e85f84d7385245f35cc963",
-      "planned_path": "migrations/0055_estimate_intelligence_inputs.sql",
+      "planned_path": "migrations/0068_estimate_intelligence_inputs.sql",
+      "owner_manifest_file_sha256": "43df5c0cb5ce8b9cf4f0860f8797ae4572cbb7f8f02f89a9b543cff9bfddbd2c",
+      "owner_manifest_self_sha256": "371529523c3671b107695bda20bba45554851a445938fa11986d670294b8f0ab",
       "status": "UNCLAIMED",
-      "allocation_sha256": "395b8d63a989c5e5333842186b5cde6ee0dbcdfa3f166982aedc51f700d569a6"
+      "allocation_sha256": "2d1b0a87d1b583b22925812e8cf36a8ddf70b83bf83bc5971a01758eb9b67079"
     },
     {
-      "number": "0056",
+      "allocation_id": "calculation-parity",
+      "number": "0069",
       "owner_package_id": "PLAN-2026-07-10-calculation-and-output-parity",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/Calculation-And-Output-Parity/plan-pack.json",
-      "owner_manifest_file_sha256": "c3e15077e141cc103412dc186b3df7ddee5f845dedeaebb8909e07d61654297c",
-      "owner_manifest_self_sha256": "113704b82865ba2a8445be216a9f80cc399b3007644493504bd7e455046e382f",
-      "planned_path": "migrations/0056_estimate_calculation_input_constraints.sql",
+      "planned_path": "migrations/0069_estimate_calculation_input_constraints.sql",
+      "owner_manifest_file_sha256": "78e4e6de4f3d5654bbc524a916ed5c9124b8a6a7836f8376e19e14276b00a33d",
+      "owner_manifest_self_sha256": "f4b03897791037ad9e79214bf6f6844e97a1a3073334f31bb16cddc30c7b23fe",
       "status": "UNCLAIMED",
-      "allocation_sha256": "0dd582ce2c7543bc04b7d14d60e7e584b40d6743d91f1b6f35cf9d101e983066"
-    },
-    {
-      "number": "0057",
-      "owner_package_id": "PLAN-2026-07-10-activity-history-mapping",
-      "owner_manifest_path": ".ai/03_plans/2026-07-10/Activity-History-Mapping/plan-pack.json",
-      "owner_manifest_file_sha256": "4d8813d772afea34023794bcd85e13d41e8d870676502c78c367b09fae6d312f",
-      "owner_manifest_self_sha256": "f63ab0caa42c7377b172c34cb88eeb6ea1038ea8086d9e33d2153008f89df467",
-      "planned_path": "migrations/0057_activity_history_indexes.sql",
-      "status": "UNCLAIMED",
-      "allocation_sha256": "66e01d76c3ae219eb24fb00e3b2f9f42dc4fc5c872215fc856b6ed57cc7ed6be"
+      "allocation_sha256": "17f92867fafda24ded0bbab6b3aa97437af5e0ad8d0f1accad91f8407f5e1e9d"
     }
   ],
-  "allocation_set_sha256": "966f33b016140ebe08fb47cd8a09de0e72d14951444378faffd2ab18139a1ed7",
-  "receipt_sha256": "ab2a94a7bdc0de9f832ff09e1985b69a6c52f9988842a45868b3e90cce4e01ce"
+  "allocation_set_sha256": "52569c18109752221e56e8015e35a093061cf63f3fba44e0d94e436826f706d8",
+  "receipt_sha256": "9897153d7347b2e54b9b8439ff5c3cd7cfd364d49f69828df20c0b98bb8344e8"
 }

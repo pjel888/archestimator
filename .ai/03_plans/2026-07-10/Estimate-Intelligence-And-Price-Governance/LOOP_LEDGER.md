@@ -9,10 +9,10 @@ status transitions, lease records, evidence fingerprints, and manifest refresh.
 - Goal: Implementation-ready plan for BETA-P1-01/02/03/08 and a touched-capability receipt for the program-owned BETA-P1-10 gate.
 - Current run scope: `PLAN_ONLY`
 - Package action ceiling: `IMPLEMENT_LOCAL`
-- Baseline HEAD: `081a0757a9d7f34e75342a18e353f3014403de1e`
-- Baseline scoped status hash: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-- Baseline scoped diff hash: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-- Status tuple: `IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / ACTIVE / ACTIVE`
+- Baseline HEAD: `6069d87c271dc1509e97d1155da4d62c78d771cd`
+- Baseline scoped status hash: `93069be535112d46180537289989c91f96d4924df7574de5f274840e4710aa24`
+- Baseline scoped diff hash: `9b92a1b71219cd6f501a29e5e5e2398282b34aa691f0a6d8487cc494cdc45da2`
+- Status tuple: `CONDITIONALLY_READY / NOT_STARTED / NOT_EVALUATED / ACTIVE / ACTIVE`
 - Ready slice: `SLICE-001`
 - Exact next node: `UNIT-001`
 - Stop condition: validator and diff checks green for this pack; implementation remains unclaimed.
@@ -48,7 +48,7 @@ status transitions, lease records, evidence fingerprints, and manifest refresh.
 ## Active Leases
 
 No execution leases are active. Planning recorded the umbrella's provisional
-`0052` sequence slot but created no migration file, provider session, dev server,
+`0055` sequence slot but created no migration file, provider session, dev server,
 browser, temp database, fixture rows, queue messages, or external resources.
 
 ## Evidence Fingerprints
@@ -74,13 +74,15 @@ browser, temp database, fixture rows, queue messages, or external resources.
 2. Run `bun run supermemory:ensure` and query relevant current memory.
 3. Re-read README goal capsule, source audit red baseline, decisions, and UNIT-001.
 4. Validate the pack and record current manifest hash.
-5. Acquire test-fixture ownership; treat `0052` only as a provisional sequence
+5. Acquire test-fixture ownership; treat `0055` only as a provisional sequence
    slot until UNIT-002 re-scans the current tail and owner ledgers.
 6. Execute UNIT-001 exactly, producing red baseline receipts.
 
-Migration coordination is provisionally Publisher `0050`, Activation `0051`,
-and this pack `0052`. This pack owns no number until UNIT-002 re-scans the source
-tail and all three ledgers immediately before its first migration edit.
+Migration coordination is provisionally Publisher `0053`, Activation `0054`,
+and this pack `0055` under Program generation 5 (after the untracked
+`0053_corporate_account_owner_integrity.sql` tail). This pack owns no number
+until UNIT-002 re-scans the source tail and all owner ledgers immediately before
+its first migration edit.
 7. Update this ledger with actual command, exit status, fixture hash, changed
    files, conflicts, cleanup, and next ready nodes.
 
@@ -103,7 +105,8 @@ after all units are VERIFIED.
   hashes and rerun the validator after this append; any failure requires a later
   corrective entry.
 - No migration, source, D1 fixture, browser, or provider action occurred. The
-  pack remains `IMPLEMENTATION_READY`; resume at `UNIT-001`.
+  pack is `CONDITIONALLY_READY` (ready slice `UNIT-001`/`UNIT-003` only); resume
+  at `UNIT-001`.
 
 ## 2026-07-10T23:40:00+08:00 - AUDIT REPAIR RECEIPT
 
@@ -270,3 +273,98 @@ after all units are VERIFIED.
   `bd80a006b2a30dfba2880c0ec1e4881b399b100200a1849e3130e1ed26144edf`.
 - The observed migration tail invalidated only the old lease; readiness and
   implementation state remain unchanged.
+
+## 2026-07-11T03:10:00+08:00 - IMPROVE-PASS baseline refresh and generation-5 tail observation
+
+- Improve-stage audit observed current HEAD
+  `6069d87c271dc1509e97d1155da4d62c78d771cd`, supersedes the generation-4
+  baseline HEAD `e373bc865b978e237deb1d92011c96b0a3639fb4`.
+- The migration tail advanced to the untracked
+  `migrations/0053_corporate_account_owner_integrity.sql`. Program generation 4
+  (tail `0052`) is therefore stale; UNIT-002 must consume a Program generation-5
+  receipt covering the `0053` tail before any migration edit. This pack's
+  provisional allocation remains `0055_estimate_intelligence_inputs.sql`; it is
+  still `UNCLAIMED` in the current Program receipt.
+- Two consecutive exact-scope `PLAN-PACK-SCOPED-BASELINE-v1` reads matched at
+  HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd`, scoped status SHA-256
+  `92607cfb04084209a79ee4644f8f0d4e94db50e43e48f30e70bf464395cc83d2`,
+  and scoped diff SHA-256
+  `a53ecf46f880f76b22ae68cb959f0d20536bede88bf36309424d93c9d7f27b50`.
+- Verified all 31 cited source paths/symbols present against the current
+  worktree; `src/lib/estimate-health/` remains absent as expected. No planned
+  UNIT-001 test file exists yet. The concurrent estimate-sheet performance-mode
+  commits added files inside the scoped `src/lib/estimates` and `tests/vitest`
+  pathspecs but do not touch any cited estimate-intelligence symbol.
+- Scope remained `PLAN_ONLY`; no source, test, migration, provider, browser, or
+  application action occurred. This refresh supersedes all prior scoped baseline
+  hashes without changing requirements, decisions, units, risks, or readiness.
+
+## 2026-07-11T03:15:00+08:00 - IMPROVE-PASS re-proof receipt for changed artifacts
+
+- The improve pass changed four artifacts: `SOURCE_AND_CODEBASE_AUDIT.md`,
+  `IMPLEMENTATION_PLAN.md`, `PRICE_POLICY_DATA_AND_MIGRATION_PLAN.md`, and this
+  ledger. The validator's `--write` guard correctly blocked silent hash refresh
+  because SRC-001..004 are CURRENT and IMPLEMENTATION_PLAN.md carries
+  proof-bearing READY units.
+- Fresh proof for `SOURCE_AND_CODEBASE_AUDIT.md` (EVID-001): an independent
+  read-only lane verified all 31 cited source paths and symbols against the
+  current worktree at HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd`. Every
+  cited file exists; every cited symbol (`ProjectRow`,
+  `getProjectDataRouteSummary`, `ProjectDataRouteSummary`, `buildProjectChartSeries`,
+  `COMPONENT_FACET_STALE_DAYS=90`, `COMPONENT_FACET_VERY_STALE_DAYS=180`,
+  `getComponentPricingFreshness`, `normalizeComponentLibraryItem`,
+  `getSourceSnapshot`, `insertEstimateRowItemFromLibrary`, `duplicateEstimateSheet`,
+  `duplicateEstimateTab`, `restoreDeletedEstimateNodes`, `restoreDeletedEstimateRows`,
+  `insertRowItem`, `copyTemplateNodes`, `templateRowItemInsertStatement` (both
+  implementations), `copiedTemplateRowInsertValues`,
+  `copyProjectSourceSubtreeInD1`, all nine `apply.ts` symbols, `createProjectRecord`,
+  `estimate-history-proof-router.ts`, both scripts, all five characterization tests,
+  `workspace-repository.ts`, `editable-row-model.ts`) is present. The
+  `src/lib/estimate-health/` target directory is absent as expected. No cited
+  estimate-intelligence symbol was removed or renamed by the concurrent
+  performance-mode commits. EVID-001 remains COLLECTED with this fresh
+  verification as proof.
+- Fresh proof for `IMPLEMENTATION_PLAN.md` changes: the only edits are the
+  LEASE-EST-MIGRATION description (adding "generation 5+ required after the
+  `0053` tail") and the Program-receipt paragraph (adding the live tail
+  `0053_corporate_account_owner_integrity.sql` and generation-5 requirement).
+  These are planning-contract repairs; no unit status, dependency, requirement
+  linkage, test, gate, or risk changed. UNIT-001 and UNIT-003 remain READY with
+  their original proof-bearing contracts intact.
+- Fresh proof for `PRICE_POLICY_DATA_AND_MIGRATION_PLAN.md`: the only edit adds
+  the generation-5 requirement and current tail observation to the lease
+  contract; no schema, constraint, producer, or migration-proof matrix entry
+  changed.
+- `LOOP_LEDGER.md` changes: Run Header baseline HEAD/status tuple, Active Leases
+  `0052`→`0055`, Resume Packet coordination numbers, PLAN CLOSEOUT status label,
+  and this re-proof receipt. No readiness or work state changed.
+- The lead now refreshes all artifact hashes and the manifest hash from actual
+  file bytes, then reruns the validator.
+
+## 2026-07-11T03:25:00+08:00 - IMPROVE-PASS re-freeze after concurrent drift
+
+- The fresh final verifier found that 41 scoped files changed after the 03:10
+  freeze due to concurrent agent activity (new untracked tests in
+  `tests/vitest/`, new untracked `migrations/0054_collaboration_pending_invitation_uniqueness.sql`,
+  and modified scoped source files). The validator does not recompute scoped
+  baselines, so this drift was not caught by `validate:plan-pack`.
+- Re-audited the new untracked files: none collide with this pack's planned
+  UNIT-001 test file names, none touch `pricing_provenance_origin`,
+  `estimate_revision_facts`, or any cited estimate-intelligence symbol. The new
+  `0054` migration is collaboration-related, not estimate-intelligence.
+- The concurrent drift confirms the live migration tail is now effectively
+  `0054` (untracked); UNIT-002's generation-5 receipt must cover both `0053`
+  and `0054` before any migration edit.
+- Also fixed an AC-007↔DATA-002 reciprocity gap found by the fresh verifier:
+  AC-007 (migration replay proof) legitimately covers DATA-002's provenance-
+  origin columns; added AC-007 to DATA-002.criterion_ids in both
+  `plan-pack.json` and `REQUIREMENTS_AND_DECISIONS.md`.
+- Two consecutive exact-scope reads matched at HEAD
+  `6069d87c271dc1509e97d1155da4d62c78d771cd`, scoped status SHA-256
+  `c69e13923985e6d0740153983e8ee0c48bf799cbd9da48b0b2b190934835bbcf`,
+  and scoped diff SHA-256
+  `a6ad84065c1047f8402f4abb4b9751617f453e20e02d5d74177e109a6c0e96f7`.
+- Scope remained `PLAN_ONLY`; no source, test, migration, provider, browser, or
+  application action occurred. This re-freeze supersedes the 03:10 baseline
+  hashes. The lead now refreshes all artifact and manifest hashes from actual
+  file bytes and reruns the validator.
