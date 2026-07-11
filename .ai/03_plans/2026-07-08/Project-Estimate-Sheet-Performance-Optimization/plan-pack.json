@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "NOT_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
@@ -13,18 +13,18 @@
   "baseline": {
     "contract_version": "estimate-sheet-source-fingerprint.v2",
     "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
-    "head": "e35a6d9d033270f9216122c975831dfe2ddd5e90",
-    "path_count": 2021,
-    "path_list_sha256": "64db44d5872889a9389cc99c83e403ae3ee6263ac995362ea9a03e0990cb218c",
-    "scoped_status_sha256": "2c0d5c7834fd448d12eba4e566b0ace5fd28edee1c546c057d9e0c6b897e4ada",
-    "scoped_diff_sha256": "0fa7e28d33362368d8e1a77eb4df2fb8913b5541b9298a71c1f8cc012baa6e91",
+    "head": "f7421fe9b95477d673781c82aac9a0883af700de",
+    "path_count": 2022,
+    "path_list_sha256": "39f5fa9de2a8e43e83188f262f648bffcd8a9a7641108982deb366f57de68f1a",
+    "scoped_status_sha256": "a32dfb610fd8a04f837dd0b7514bc6e1b1d3c111eb428d41cb2b54964add1fe2",
+    "scoped_diff_sha256": "c5b196ef34dcfc70aa486776e31c1d5c7fd349819c0df1bd20a9083a2557e514",
     "application": {
       "contract_version": "estimate-sheet-application-fingerprint.v1",
       "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
       "package_projection_rule": "package-json-without-scripts.v1",
-      "path_count": 1194,
-      "path_list_sha256": "5cd62a81d3a9a38a50b68b550002126178c630f348d3165d4e6b0fbc5ea24b0d",
-      "content_sha256": "039e2eae14ca0862320951314efc3b79111d0ff535e5a7657b5078ee541d5735"
+      "path_count": 1195,
+      "path_list_sha256": "5b59de62c22bacf2c75ff46675226e43ac627ecc88ecce211a4536269c70425b",
+      "content_sha256": "d3641d8a74928ad9e9e0373289702708ab69fbd0600cb7581d5971bf157946f4"
     },
     "producer": {
       "contract_version": "estimate-sheet-producer-fingerprint.v1",
@@ -553,7 +553,7 @@
         "DATA-011",
         "SEC-001"
       ],
-      "status": "STALE"
+      "status": "CURRENT"
     },
     {
       "id": "SRC-002",
@@ -626,7 +626,7 @@
         "DATA-011",
         "SEC-001"
       ],
-      "status": "STALE"
+      "status": "CURRENT"
     },
     {
       "id": "SRC-003",
@@ -644,7 +644,7 @@
         "UNIT-010",
         "UNIT-011"
       ],
-      "status": "STALE"
+      "status": "CURRENT"
     },
     {
       "id": "SRC-004",
@@ -672,13 +672,13 @@
         "GATE-OPS-001",
         "GATE-CLEAN-001"
       ],
-      "status": "STALE"
+      "status": "CURRENT"
     }
   ],
   "requirements": [
     {
       "id": "REQ-001",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -700,7 +700,7 @@
     },
     {
       "id": "REQ-002",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -722,7 +722,7 @@
     },
     {
       "id": "REQ-003",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -745,7 +745,7 @@
     },
     {
       "id": "REQ-004",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -767,7 +767,7 @@
     },
     {
       "id": "REQ-005",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -788,7 +788,7 @@
     },
     {
       "id": "REQ-006",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -809,7 +809,7 @@
     },
     {
       "id": "REQ-007",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -832,7 +832,7 @@
     },
     {
       "id": "REQ-008",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -853,7 +853,7 @@
     },
     {
       "id": "REQ-009",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -874,7 +874,7 @@
     },
     {
       "id": "REQ-010",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -895,7 +895,7 @@
     },
     {
       "id": "REQ-011",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -917,7 +917,7 @@
     },
     {
       "id": "REQ-012",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -939,7 +939,7 @@
     },
     {
       "id": "REQ-013",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -959,7 +959,7 @@
     },
     {
       "id": "REQ-014",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -980,7 +980,7 @@
     },
     {
       "id": "REQ-015",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1001,7 +1001,7 @@
     },
     {
       "id": "REQ-016",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1022,7 +1022,7 @@
     },
     {
       "id": "REQ-017",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1042,7 +1042,7 @@
     },
     {
       "id": "REQ-018",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1065,7 +1065,7 @@
     },
     {
       "id": "REQ-019",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1091,7 +1091,7 @@
     },
     {
       "id": "REQ-020",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1115,7 +1115,7 @@
     },
     {
       "id": "REQ-021",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1137,7 +1137,7 @@
     },
     {
       "id": "REQ-022",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1158,7 +1158,7 @@
     },
     {
       "id": "REQ-023",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1179,7 +1179,7 @@
     },
     {
       "id": "REQ-024",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1200,7 +1200,7 @@
     },
     {
       "id": "REQ-025",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1222,7 +1222,7 @@
     },
     {
       "id": "REQ-026",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1245,7 +1245,7 @@
     },
     {
       "id": "REQ-027",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1267,7 +1267,7 @@
     },
     {
       "id": "REQ-028",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1288,7 +1288,7 @@
     },
     {
       "id": "REQ-029",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1309,7 +1309,7 @@
     },
     {
       "id": "REQ-030",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1332,7 +1332,7 @@
     },
     {
       "id": "REQ-031",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1355,7 +1355,7 @@
     },
     {
       "id": "REQ-032",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1378,7 +1378,7 @@
     },
     {
       "id": "REQ-033",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1400,7 +1400,7 @@
     },
     {
       "id": "REQ-034",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1423,7 +1423,7 @@
     },
     {
       "id": "REQ-035",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1446,7 +1446,7 @@
     },
     {
       "id": "REQ-036",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1469,7 +1469,7 @@
     },
     {
       "id": "PERF-001",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1491,7 +1491,7 @@
     },
     {
       "id": "PERF-002",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1515,7 +1515,7 @@
     },
     {
       "id": "PERF-003",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1537,7 +1537,7 @@
     },
     {
       "id": "PERF-004",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1559,7 +1559,7 @@
     },
     {
       "id": "PERF-005",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1582,7 +1582,7 @@
     },
     {
       "id": "PERF-006",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1604,7 +1604,7 @@
     },
     {
       "id": "PERF-007",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1626,7 +1626,7 @@
     },
     {
       "id": "PERF-008",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1649,7 +1649,7 @@
     },
     {
       "id": "PERF-009",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1672,7 +1672,7 @@
     },
     {
       "id": "PERF-010",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1695,7 +1695,7 @@
     },
     {
       "id": "OPS-001",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1718,7 +1718,7 @@
     },
     {
       "id": "OPS-002",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1740,7 +1740,7 @@
     },
     {
       "id": "OPS-003",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1763,7 +1763,7 @@
     },
     {
       "id": "OPS-004",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1784,7 +1784,7 @@
     },
     {
       "id": "OPS-005",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1812,7 +1812,7 @@
     },
     {
       "id": "OPS-006",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1843,7 +1843,7 @@
     },
     {
       "id": "OPS-007",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1874,7 +1874,7 @@
     },
     {
       "id": "OPS-008",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1905,7 +1905,7 @@
     },
     {
       "id": "DATA-001",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1927,7 +1927,7 @@
     },
     {
       "id": "DATA-002",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1948,7 +1948,7 @@
     },
     {
       "id": "DATA-003",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1969,7 +1969,7 @@
     },
     {
       "id": "DATA-004",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -1989,7 +1989,7 @@
     },
     {
       "id": "DATA-005",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2009,7 +2009,7 @@
     },
     {
       "id": "DATA-006",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2029,7 +2029,7 @@
     },
     {
       "id": "DATA-007",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2049,7 +2049,7 @@
     },
     {
       "id": "DATA-008",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2071,7 +2071,7 @@
     },
     {
       "id": "DATA-009",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2091,7 +2091,7 @@
     },
     {
       "id": "DATA-010",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2111,7 +2111,7 @@
     },
     {
       "id": "DATA-011",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2132,7 +2132,7 @@
     },
     {
       "id": "SEC-001",
-      "status": "PROPOSED",
+      "status": "ACCEPTED",
       "artifact_path": "04_REQUIREMENTS_SPECIFICATION.md",
       "source_ids": [
         "SRC-001",
@@ -2155,7 +2155,7 @@
   "assumptions": [
     {
       "id": "ASSUMP-001",
-      "status": "ACTIVE",
+      "status": "VALIDATED",
       "artifact_path": "28_INVENTORY_SOURCE_MAP.md",
       "affected_ids": [
         "DATA-001"
@@ -2163,7 +2163,7 @@
     },
     {
       "id": "ASSUMP-002",
-      "status": "ACTIVE",
+      "status": "VALIDATED",
       "artifact_path": "28_INVENTORY_SOURCE_MAP.md",
       "affected_ids": [
         "REQ-012"
@@ -2171,7 +2171,7 @@
     },
     {
       "id": "ASSUMP-003",
-      "status": "ACTIVE",
+      "status": "VALIDATED",
       "artifact_path": "28_INVENTORY_SOURCE_MAP.md",
       "affected_ids": [
         "REQ-002"
@@ -2179,7 +2179,7 @@
     },
     {
       "id": "ASSUMP-004",
-      "status": "ACTIVE",
+      "status": "VALIDATED",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "OPS-005"
@@ -2187,7 +2187,7 @@
     },
     {
       "id": "ASSUMP-005",
-      "status": "ACTIVE",
+      "status": "VALIDATED",
       "artifact_path": "28_INVENTORY_SOURCE_MAP.md",
       "affected_ids": [
         "OPS-008"
@@ -2357,7 +2357,7 @@
   "criteria": [
     {
       "id": "AC-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-001",
@@ -2439,7 +2439,7 @@
     },
     {
       "id": "AC-002",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "OPS-006",
@@ -2456,7 +2456,7 @@
     },
     {
       "id": "AC-003",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-013",
@@ -2482,7 +2482,7 @@
     },
     {
       "id": "AC-004",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-001",
@@ -2564,7 +2564,7 @@
     },
     {
       "id": "AC-005",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-004",
@@ -2593,7 +2593,7 @@
     },
     {
       "id": "AC-006",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-001",
@@ -2677,7 +2677,7 @@
     },
     {
       "id": "AC-007",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "PERF-001",
@@ -2710,7 +2710,7 @@
     },
     {
       "id": "AC-008",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "DATA-001",
@@ -2735,7 +2735,7 @@
     },
     {
       "id": "AC-009",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "OPS-005",
@@ -2755,7 +2755,7 @@
     },
     {
       "id": "AC-010",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-021",
@@ -2788,7 +2788,7 @@
     },
     {
       "id": "AC-011",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-001",
@@ -2873,7 +2873,7 @@
     },
     {
       "id": "AC-012",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-001",
@@ -2955,7 +2955,7 @@
   "tests": [
     {
       "id": "TEST-001",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-001",
@@ -3066,7 +3066,7 @@
     },
     {
       "id": "TEST-007",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-012"
@@ -3079,7 +3079,7 @@
   "gates": [
     {
       "id": "GATE-UX-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-004",
@@ -3093,7 +3093,7 @@
     },
     {
       "id": "GATE-NEXT-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-004",
@@ -3108,7 +3108,7 @@
     },
     {
       "id": "GATE-CONTRACT-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-001",
@@ -3122,7 +3122,7 @@
     },
     {
       "id": "GATE-DATA-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-004",
@@ -3136,7 +3136,7 @@
     },
     {
       "id": "GATE-SEC-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-004",
@@ -3150,7 +3150,7 @@
     },
     {
       "id": "GATE-VERIFY-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-001",
@@ -3166,7 +3166,7 @@
     },
     {
       "id": "GATE-PERF-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-004",
@@ -3180,7 +3180,7 @@
     },
     {
       "id": "GATE-OPS-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-006",
@@ -3194,7 +3194,7 @@
     },
     {
       "id": "GATE-CLEAN-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-002",
@@ -3212,7 +3212,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -3269,7 +3269,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -3320,7 +3320,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002"
@@ -3352,7 +3352,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-003"
@@ -3372,7 +3372,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -3406,7 +3406,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -3439,7 +3439,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006"
@@ -3469,7 +3469,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-007"
@@ -3501,7 +3501,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-008"
@@ -3557,7 +3557,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-009"
@@ -3602,7 +3602,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-010"
@@ -3632,7 +3632,7 @@
   "decisions": [
     {
       "id": "DEC-AUTO-001",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "UNIT-001"
@@ -3640,7 +3640,7 @@
     },
     {
       "id": "DEC-AUTO-002",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-004"
@@ -3648,7 +3648,7 @@
     },
     {
       "id": "DEC-AUTO-003",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-007"
@@ -3656,7 +3656,7 @@
     },
     {
       "id": "DEC-AUTO-004",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-002",
@@ -3665,7 +3665,7 @@
     },
     {
       "id": "DEC-AUTO-005",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-010"
@@ -3673,7 +3673,7 @@
     },
     {
       "id": "DEC-AUTO-006",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-032",
@@ -3683,7 +3683,7 @@
     },
     {
       "id": "DEC-AUTO-007",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-035",
@@ -3692,7 +3692,7 @@
     },
     {
       "id": "DEC-AUTO-008",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-005"
@@ -3700,7 +3700,7 @@
     },
     {
       "id": "DEC-AUTO-009",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "UNIT-006"
@@ -3708,7 +3708,7 @@
     },
     {
       "id": "DEC-AUTO-010",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "UNIT-006"
@@ -3716,7 +3716,7 @@
     },
     {
       "id": "DEC-AUTO-011",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "UNIT-001"
@@ -3724,7 +3724,7 @@
     },
     {
       "id": "DEC-AUTO-012",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "UNIT-005"
@@ -3732,7 +3732,7 @@
     },
     {
       "id": "DEC-AUTO-013",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "REQ-030"
@@ -3740,7 +3740,7 @@
     },
     {
       "id": "DEC-AUTO-014",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "OPS-005"
@@ -3748,7 +3748,7 @@
     },
     {
       "id": "DEC-AUTO-015",
-      "status": "SUPERSEDED",
+      "status": "ACTIVE",
       "artifact_path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
       "affected_ids": [
         "OPS-004"
@@ -3756,11 +3756,28 @@
     }
   ],
   "authorization_boundaries": [],
-  "ready_slices": [],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ]
+    }
+  ],
   "evidence_index": [
     {
       "id": "EVID-001",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "sha256": "21c63f347d248b8df6e1a63b9ad71ada5cf33b95460632ae7cd2d08dc033f248",
       "claim_ids": [
@@ -3865,7 +3882,7 @@
         "DEC-AUTO-014",
         "DEC-AUTO-015"
       ],
-      "source_revision": "e35a6d9d033270f9216122c975831dfe2ddd5e90+status-2c0d5c7834fd448d12eba4e566b0ace5f+app-039e2eae14ca0862320951314efc3b79+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
+      "source_revision": "f7421fe9b95477d673781c82aac9a0883af700de+status-a32dfb610fd8a04f837dd0b7514bc6e1+app-d3641d8a74928ad9e9e0373289702708+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
       "valid_until": null
     },
     {
@@ -4008,7 +4025,7 @@
     },
     {
       "id": "EVID-012",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "sha256": "21c63f347d248b8df6e1a63b9ad71ada5cf33b95460632ae7cd2d08dc033f248",
       "claim_ids": [
@@ -4017,7 +4034,7 @@
         "GATE-VERIFY-001",
         "GATE-CLEAN-001"
       ],
-      "source_revision": "review-binding:v1:fdb09d4db4b44747c64774c3451dc4ae9376095fc2b064bd27804a12469561c4",
+      "source_revision": "review-binding:v1:40137e860b4123036fb79fe5a72722673db7e808776fcf267763404faa07cbc8",
       "valid_until": null
     }
   ],
@@ -4028,7 +4045,7 @@
     "active-d1-migration-or-binding-change",
     "unit-owned-shared-worktree-diff-change"
   ],
-  "next_unit": null,
+  "next_unit": "UNIT-001",
   "updated_at": "2026-07-10T13:50:41.879Z",
-  "manifest_sha256": "67c4666ea4bbf46b5cf1d4a1d49ef349bad8bb58b2008755246fd63fac4a67fd"
+  "manifest_sha256": "4a9c9c4615f0bacc3aa7798ad2edbc2c08c1581eaad8da56ae497f9c047f93bd"
 }
