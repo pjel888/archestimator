@@ -2255,16 +2255,20 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
     `,
     [sourceEventId, estimateId, projectId, project.workspace_id],
   );
-  if (!sourceEvent || !["row_deleted", "rows_deleted"].includes(sourceEvent.event_type)) {
+  if (!sourceEvent || !["row_deleted", "rows_deleted", "rows_bulk_deleted"].includes(sourceEvent.event_type)) {
     throw new Error("Deleted row history snapshot was not found in the current estimate.");
   }
 
   const snapshot = readJsonRecord(sourceEvent.old_snapshot);
-  const snapshotRows = Array.isArray(snapshot.rows)
+  const snapshotRows = (Array.isArray(snapshot.rows)
     ? snapshot.rows.map(readJsonRecord)
     : typeof snapshot.id === "string"
       ? [snapshot]
-      : [];
+      : []).map((row) => ({
+    ...row,
+    estimate_id: row.estimate_id ?? row.estimateId,
+    node_id: row.node_id ?? row.nodeId,
+  }));
   if (snapshotRows.length === 0) throw new Error("Deleted row history snapshot does not contain restorable rows.");
   if (snapshotRows.length > MAX_RESTORABLE_ROW_BATCH_SIZE) {
     throw new Error(`Deleted row history snapshot exceeds the ${MAX_RESTORABLE_ROW_BATCH_SIZE}-row restore limit.`);
