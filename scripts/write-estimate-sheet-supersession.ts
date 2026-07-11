@@ -5,7 +5,6 @@ import { resolve } from "node:path";
 import {
   SUPERSESSION_SCHEMA,
   assertRegularFile,
-  assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
@@ -17,15 +16,15 @@ import {
   isSafeRelativePath,
   isSha256,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
   resolveManifestLogicalOutput,
   sha256File,
   sha256Json,
   validateFingerprintContent,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
   type EstimateUnit,
   type FingerprintContent,
-  type RunManifestV1,
   type SourceFingerprint,
 } from "./lib/estimate-sheet-performance-contract";
 import { computeEstimateSheetSourceFingerprint } from "./compute-estimate-sheet-source-fingerprint";
@@ -249,8 +248,8 @@ export function writeEstimateSheetSupersession(input: {
   const unit = input.unit as BottleneckUnit;
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  const manifest = readJsonFile<RunManifestV1>(resolve(input.runManifest));
-  assertRunManifest(manifest);
+  const runManifestPath = resolve(input.runManifest);
+  const manifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, unit);
   if (manifest.unit_id !== unit || manifest.cleanupRequirement !== "NOT_APPLICABLE"
     || manifest.previewProcesses.length || manifest.mutationJournal.length || Object.keys(manifest.namespaces).length) {
     throw new Error("supersession requires its prepared side-effect-free unit run");
@@ -304,10 +303,15 @@ export function writeEstimateSheetSupersession(input: {
   };
   const receipt: SupersessionReceiptV1 = { ...payload, payload_sha256: sha256Json(payload) };
   assertSupersessionReceipt(receipt);
-  const outputPath = input.output === undefined || input.output === "auto:supersession"
+  const immutableOutput = input.output === undefined || input.output === "auto:supersession";
+  const outputPath = immutableOutput
     ? resolveManifestLogicalOutput(manifest, "supersession")
     : ensureContainedRunPath(manifest.run_root, input.output);
-  writeJsonNoOverwrite(outputPath, receipt, 0o600);
+  const refreshedManifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, unit);
+  if (canonicalJson(refreshedManifest) !== canonicalJson(manifest)) {
+    throw new Error("supersession run manifest changed before publication");
+  }
+  writeRunJsonNoOverwrite(manifest, outputPath, receipt, 0o600);
   return { receipt, outputPath };
 }
 

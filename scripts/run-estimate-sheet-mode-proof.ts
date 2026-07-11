@@ -5,7 +5,6 @@ import { relative, resolve } from "node:path";
 
 import {
   MODE_PROOF_SCHEMA,
-  assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
@@ -14,11 +13,12 @@ import {
   isPlainObject,
   nowIso,
   parseStrictCli,
-  readJsonFile,
+  readAuthoritativeRunManifest,
+  requireUnit,
   resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
   type RunManifestV1,
 } from "./lib/estimate-sheet-performance-contract";
 import { computeEstimateSheetSourceFingerprint } from "./compute-estimate-sheet-source-fingerprint";
@@ -155,6 +155,7 @@ function resolveOutputPath(manifest: RuntimeModeManifest, output?: string): stri
 
 export async function runEstimateSheetModeProof(input: {
   runManifest: string;
+  unit: ModeUnit;
   repoRoot?: string;
   output?: string;
   target?: string;
@@ -167,8 +168,7 @@ export async function runEstimateSheetModeProof(input: {
 }): Promise<{ proof: ModeProofArtifact; outputPath: string }> {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const manifestPath = resolve(input.runManifest);
-  let manifest = readJsonFile<RuntimeModeManifest>(manifestPath);
-  assertRunManifest(manifest);
+  let manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit) as RuntimeModeManifest;
   if (!Object.prototype.hasOwnProperty.call(TARGET_BY_UNIT, manifest.unit_id) && manifest.unit_id !== "UNIT-010") {
     throw new Error("mode proof is restricted to activated UNIT-005..UNIT-010 runs");
   }
@@ -228,11 +228,12 @@ export async function runEstimateSheetModeProof(input: {
   try {
     for (const phase of EXACT_PHASES) {
       const requestedModes = phaseModes({ baseModes, phase, targetKey, activatedKeys: isMatrix ? activatedKeys : undefined });
-      const runtime = replaceRuntimeEnvironmentSnapshot(manifestPath, requestedModes);
+      const runtime = replaceRuntimeEnvironmentSnapshot(manifestPath, requestedModes, { repoRoot, expectedUnit: unit });
       requestedSnapshots.push({ phase, snapshot: runtime.snapshot });
       const descriptor = await startEstimateSheetBenchmarkServer({
         runManifest: manifestPath,
         repoRoot,
+        unit,
         role: "mode",
         phase,
         finalState: phase === "rollback" ? "off" : phase,
@@ -244,17 +245,18 @@ export async function runEstimateSheetModeProof(input: {
       buildHash ??= descriptor.build_hash;
       if (descriptor.build_hash !== buildHash) throw new Error("mode preview build hash changed between phases");
       serverSnapshots.push({ phase, snapshot: descriptor.server_snapshot });
-      const stopped = await stopPreviewProcess({ runManifest: manifestPath, pid: descriptor.pid });
+      const stopped = await stopPreviewProcess({ runManifest: manifestPath, pid: descriptor.pid, repoRoot, unit });
       currentPid = null;
       intermediatePreviews.push(stopped);
     }
 
     const finalModes = phaseModes({ baseModes, phase: "final", targetKey, activatedKeys: isMatrix ? activatedKeys : undefined });
-    const finalRuntime = replaceRuntimeEnvironmentSnapshot(manifestPath, finalModes);
+    const finalRuntime = replaceRuntimeEnvironmentSnapshot(manifestPath, finalModes, { repoRoot, expectedUnit: unit });
     requestedSnapshots.push({ phase: "final", snapshot: finalRuntime.snapshot });
     activePreview = await startEstimateSheetBenchmarkServer({
       runManifest: manifestPath,
       repoRoot,
+      unit,
       role: "mode",
       phase: "final",
       finalState: input.finalState,
@@ -269,14 +271,14 @@ export async function runEstimateSheetModeProof(input: {
   } catch (error) {
     failures.push(error instanceof Error ? error.message : String(error));
     if (currentPid !== null) {
-      try { await stopPreviewProcess({ runManifest: manifestPath, pid: currentPid }); }
+      try { await stopPreviewProcess({ runManifest: manifestPath, pid: currentPid, repoRoot, unit }); }
       catch (cleanupError) { failures.push(`preview cleanup failed: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`); }
       currentPid = null;
       activePreview = null;
     }
   }
 
-  manifest = readJsonFile<RuntimeModeManifest>(manifestPath);
+  manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, unit) as RuntimeModeManifest;
   const parity = requestedSnapshots.length === serverSnapshots.length
     && requestedSnapshots.every((requested, index) => requested.phase === serverSnapshots[index]?.phase
       && canonicalJson(requested.snapshot.modes) === canonicalJson(serverSnapshots[index]?.snapshot.modes));
@@ -288,9 +290,9 @@ export async function runEstimateSheetModeProof(input: {
   let journal = readPreviewProcessJournal(manifest);
   if (failures.length > 0 && activePreview) {
     try {
-      await stopPreviewProcess({ runManifest: manifestPath, pid: activePreview.pid });
+      await stopPreviewProcess({ runManifest: manifestPath, pid: activePreview.pid, repoRoot, unit });
       activePreview = null;
-      manifest = readJsonFile<RuntimeModeManifest>(manifestPath);
+      manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, unit) as RuntimeModeManifest;
       journal = readPreviewProcessJournal(manifest);
     } catch (error) {
       throw new Error(`invalid mode proof could not terminate its final preview: ${error instanceof Error ? error.message : String(error)}`);
@@ -345,7 +347,8 @@ export async function runEstimateSheetModeProof(input: {
       overall: "PASS",
     };
   }
-  writeJsonNoOverwrite(publishedPath, proof, 0o600);
+  manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, unit) as RuntimeModeManifest;
+  writeRunJsonNoOverwrite(manifest, publishedPath, proof, 0o600);
   if (proof.overall === "PASS") {
     const activePath = resolve(manifest.run_root, "preview/active-preview.json");
     if (!existsSync(activePath) || !isPlainObject(manifest.activePreview) || manifest.activePreview.sha256 !== sha256File(activePath)) {
@@ -361,10 +364,15 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log("Usage: bun run scripts/run-estimate-sheet-mode-proof.ts --unit=UNIT-005 --target=ESTIMATE_ROUTE_FAST_PATH_MODE --phases=off,shadow,on,rollback --final-state=on --fixture-role=mode --output=auto:mode-proof");
     return 0;
   }
-  const unit = cliString(values, "unit", true)!;
+  const parsedUnit = requireUnit(cliString(values, "unit", true));
+  if (!Object.prototype.hasOwnProperty.call(TARGET_BY_UNIT, parsedUnit) && parsedUnit !== "UNIT-010") {
+    throw new Error("mode proof is restricted to activated UNIT-005..UNIT-010 runs");
+  }
+  const unit = parsedUnit as ModeUnit;
   const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const result = await runEstimateSheetModeProof({
     runManifest,
+    unit,
     output: cliString(values, "output"),
     target: cliString(values, "target"),
     matrix: cliString(values, "matrix"),

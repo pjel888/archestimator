@@ -2,23 +2,28 @@
 
 import { existsSync, lstatSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
-import { basename, relative, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 
 import {
+  assertSymlinkFreeContainedPath,
   CLEANUP_RECEIPT_SCHEMA,
   HOSTED_RECOVERY_SCHEMA,
-  assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
+  ensureDirectoryDurably,
   fingerprintContentEqual,
   isPlainObject,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
+  requireUnit,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
+  type EstimateUnit,
   type RunManifestV1,
 } from "./lib/estimate-sheet-performance-contract";
 import { computeEstimateSheetSourceFingerprint } from "./compute-estimate-sheet-source-fingerprint";
@@ -144,24 +149,26 @@ function resolveCleanupClass(manifest: RuntimeCleanupManifest, requested?: Clean
   return expected;
 }
 
-function findSqliteFiles(root: string): string[] {
-  if (!existsSync(root)) return [];
+function findSqliteFiles(root: string, trustedRoot: string): string[] {
+  const safeRoot = assertSymlinkFreeContainedPath(trustedRoot, root, "Wrangler persistence root");
+  if (!existsSync(safeRoot)) return [];
   const files: string[] = [];
   const visit = (path: string) => {
-    const stat = lstatSync(path);
+    const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, "Wrangler persistence entry");
+    const stat = lstatSync(safePath);
     if (stat.isSymbolicLink()) throw new Error("Wrangler persistence root contains a symlink");
     if (stat.isDirectory()) {
-      for (const entry of readdirSync(path).sort()) visit(resolve(path, entry));
+      for (const entry of readdirSync(safePath).sort()) visit(resolve(safePath, entry));
       return;
     }
-    if (stat.isFile() && path.endsWith(".sqlite") && basename(path) !== "metadata.sqlite") files.push(path);
+    if (stat.isFile() && safePath.endsWith(".sqlite") && basename(safePath) !== "metadata.sqlite") files.push(safePath);
   };
-  visit(root);
+  visit(safeRoot);
   return files;
 }
 
 function resolveLocalDatabase(manifest: RuntimeCleanupManifest): string {
-  const files = findSqliteFiles(resolve(manifest.run_root, "wrangler-state"));
+  const files = findSqliteFiles(resolve(manifest.run_root, "wrangler-state"), manifest.run_root);
   if (files.length !== 1) throw new Error(`expected exactly one run-scoped D1 sqlite file, found ${files.length}`);
   return files[0]!;
 }
@@ -170,7 +177,12 @@ function validateNamespaceCleanupState(
   manifest: RuntimeCleanupManifest,
   role: string,
 ): { path: string; state: NamespaceCleanupState } {
-  const path = resolve(manifest.run_root, `cleanup/${role}-state.json`);
+  const path = assertSymlinkFreeContainedPath(
+    manifest.run_root,
+    resolve(manifest.run_root, `cleanup/${role}-state.json`),
+    `${role} cleanup state`,
+    { allowMissingLeaf: true },
+  );
   if (!existsSync(path)) throw new Error(`missing exact-ID cleanup state for ${role}`);
   const stat = lstatSync(path);
   if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0 || stat.nlink !== 1) {
@@ -224,6 +236,7 @@ function cleanupNamespace(
   databasePath: string,
   path: string,
   state: NamespaceCleanupState,
+  trustedRoot: string,
 ): NamespaceCleanupResult {
   const database = openCleanupDatabase(databasePath);
   const seeded: Record<string, number> = {};
@@ -271,7 +284,7 @@ function cleanupNamespace(
     remaining,
     cleaned_at: nowIso(),
   };
-  writeMutableJsonAtomically(path, completed, 0o600);
+  writeMutableJsonAtomically(path, completed, 0o600, trustedRoot);
   return { role: state.fixture_role, preexistingMismatch, seeded, deleted, remaining };
 }
 
@@ -299,11 +312,12 @@ function validateSource(manifest: RuntimeCleanupManifest, repoRoot: string): voi
 function receiptPath(manifest: RuntimeCleanupManifest, cleanupClass: CleanupClass, recovery: boolean): string {
   return cleanupClass === "hosted-d1" && recovery
     ? resolve(manifest.run_root, "hosted-cleanup-recovery.json")
-    : resolve(manifest.run_root, "cleanup-receipt.json");
+    : resolveManifestLogicalOutput(manifest, "cleanup");
 }
 
 export async function cleanupEstimateSheetPerformanceRun(input: {
   runManifest: string;
+  unit: EstimateUnit;
   repoRoot?: string;
   cleanupClass?: CleanupClass;
   recovery?: boolean;
@@ -311,8 +325,7 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
 }): Promise<CleanupResult> {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const manifestPath = resolve(input.runManifest);
-  let manifest = readJsonFile<RuntimeCleanupManifest>(manifestPath);
-  assertRunManifest(manifest);
+  let manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit) as RuntimeCleanupManifest;
   if (resolve(manifest.run_root, "run-manifest.json") !== manifestPath) throw new Error("cleanup must consume the prepared run-root manifest");
   const cleanupClass = resolveCleanupClass(manifest, input.cleanupClass);
   if (cleanupClass === "hosted-d1") {
@@ -320,7 +333,14 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
   }
   if (input.checkSource === false && process.env.NODE_ENV !== "test") throw new Error("source checks can be disabled only in focused tests");
   if (input.checkSource !== false) validateSource(manifest, repoRoot);
-  const targetReceipt = receiptPath(manifest, cleanupClass, Boolean(input.recovery));
+  const targetReceiptCandidate = receiptPath(manifest, cleanupClass, Boolean(input.recovery));
+  ensureDirectoryDurably(dirname(targetReceiptCandidate), 0o700, manifest.immutable_run_root);
+  const targetReceipt = assertSymlinkFreeContainedPath(
+    manifest.immutable_run_root,
+    targetReceiptCandidate,
+    "cleanup receipt",
+    { allowMissingLeaf: true },
+  );
   if (existsSync(targetReceipt)) throw new Error(`cleanup receipt already exists: ${targetReceipt}`);
   const checkpointPath = resolve(manifest.run_root, "cleanup/cleanup-state.json");
   writeMutableJsonAtomically(checkpointPath, {
@@ -330,7 +350,7 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
     cleanup_class: cleanupClass,
     state: "CLEANUP_PREPARED",
     started_at: nowIso(),
-  }, 0o600);
+  }, 0o600, manifest.run_root);
 
   const errors: string[] = [];
   let previewProcesses: PreviewProcessEntry[] | undefined;
@@ -341,9 +361,11 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
       const journal = readPreviewProcessJournal(manifest);
       if (journal.processes.length === 0) throw new Error("local-preview cleanup requires a nonempty process journal");
       for (const entry of journal.processes) {
-        if (entry.exit_code === null && entry.signal === null) await stopPreviewProcess({ runManifest: manifestPath, pid: entry.pid });
+        if (entry.exit_code === null && entry.signal === null) {
+          await stopPreviewProcess({ runManifest: manifestPath, pid: entry.pid, repoRoot, unit: input.unit });
+        }
       }
-      manifest = readJsonFile<RuntimeCleanupManifest>(manifestPath);
+      manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit) as RuntimeCleanupManifest;
       const completed = readPreviewProcessJournal(manifest).processes;
       for (const entry of completed) {
         const exclusiveOutcome = (entry.exit_code === null) !== (entry.signal === null);
@@ -366,17 +388,19 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
         state: "PREVIEWS_STOPPED",
         process_count: completed.length,
         updated_at: nowIso(),
-      }, 0o600);
+      }, 0o600, manifest.run_root);
     } else if (manifest.previewProcesses.length > 0 || manifest.activePreview !== undefined || manifest.runtimeEnv !== undefined || manifest.storageState !== undefined) {
       throw new Error("local-d1 cleanup manifest contains forbidden preview resources");
     }
 
+    manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit) as RuntimeCleanupManifest;
     const roles = Object.keys(manifest.namespaces).sort();
     if (roles.length === 0) throw new Error("required cleanup run declares no fixture namespaces");
     const states = roles.map((role) => validateNamespaceCleanupState(manifest, role));
     assertNamespaceIsolation(states);
     const databasePath = resolveLocalDatabase(manifest);
-    const namespaceResults = states.map(({ path, state }) => cleanupNamespace(databasePath, path, state));
+    const namespaceResults = states.map(({ path, state }) => cleanupNamespace(databasePath, path, state, manifest.run_root));
+    manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit) as RuntimeCleanupManifest;
     const preexistingMismatch = namespaceResults.some((result) => result.preexistingMismatch);
     const recovery = Boolean(input.recovery) || preexistingMismatch;
     const result: CleanupResult = {
@@ -399,19 +423,30 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
     if (Object.values(result.remaining).some((counts) => Object.values(counts).some((count) => count !== 0))) {
       throw new Error("cleanup receipt cannot be published with remaining fixture rows");
     }
-    writeJsonNoOverwrite(targetReceipt, result, 0o600);
+    writeRunJsonNoOverwrite(manifest, targetReceipt, result, 0o600);
+    const publishedReceipt = assertSymlinkFreeContainedPath(
+      manifest.immutable_run_root,
+      targetReceipt,
+      "cleanup receipt",
+      { requireRegularFile: true, requireSingleLink: true },
+    );
+    const publishedReceiptSha256 = sha256File(publishedReceipt);
     writeMutableJsonAtomically(checkpointPath, {
       schema_version: "estimate-sheet-cleanup-state.v1",
       unit_id: manifest.unit_id,
       run_id: manifest.run_id,
       cleanup_class: cleanupClass,
       state: result.invalidatedProducer ? "CLEANUP_RECOVERED" : "CLEANUP_VERIFIED",
-      receipt: relative(manifest.run_root, targetReceipt),
-      receipt_sha256: sha256File(targetReceipt),
+      receipt: relative(manifest.immutable_run_root, targetReceipt),
+      receipt_sha256: publishedReceiptSha256,
       invalidated_producer: result.invalidatedProducer,
       completed_at: result.generated_at,
-    }, 0o600);
-    updateRunManifest(manifestPath, (value) => ({ ...value, cleanupReceipt: targetReceipt, cleanupReceiptSha256: sha256File(targetReceipt) }));
+    }, 0o600, manifest.run_root);
+    updateRunManifest(
+      manifestPath,
+      (value) => ({ ...value, cleanupReceipt: targetReceipt, cleanupReceiptSha256: publishedReceiptSha256 }),
+      { repoRoot, expectedUnit: input.unit },
+    );
     return result;
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
@@ -432,7 +467,13 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
       generated_at: nowIso(),
       errors,
     };
-    writeMutableJsonAtomically(resolve(manifest.run_root, "cleanup/cleanup-attempt.json"), attempt, 0o600);
+    readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit);
+    writeMutableJsonAtomically(
+      resolve(manifest.run_root, "cleanup/cleanup-attempt.json"),
+      attempt,
+      0o600,
+      manifest.run_root,
+    );
     return attempt;
   }
 }
@@ -443,11 +484,12 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log("Usage: bun run scripts/cleanup-estimate-sheet-performance-run.ts --unit=UNIT-002 [--run-manifest=PATH] [--class=local-preview|local-d1] [--recovery]");
     return 0;
   }
-  const unit = cliString(values, "unit", true)!;
+  const unit = requireUnit(cliString(values, "unit", true));
   const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const cleanupClass = cliString(values, "class") as CleanupClass | undefined;
   const result = await cleanupEstimateSheetPerformanceRun({
     runManifest,
+    unit,
     cleanupClass,
     recovery: cliBoolean(values, "recovery"),
   });

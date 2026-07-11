@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import {
   existsSync,
   lstatSync,
-  mkdirSync,
   readFileSync,
   readdirSync,
 } from "node:fs";
@@ -22,25 +21,30 @@ import {
 import {
   assertPerformanceReport,
   assertRunManifest,
+  assertSymlinkFreeContainedPath,
   assertTestReceipt,
   canonicalJson,
   cliBoolean,
   cliString,
   ensureContainedRunPath,
+  ensureDirectoryDurably,
   fingerprintContentEqual,
   isPlainObject,
   isSha256,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
+  requireUnit,
   resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
-  writeJsonNoOverwrite,
-  writeNoOverwrite,
+  writeRunJsonNoOverwrite,
+  writeRunNoOverwrite,
   type PerformanceReportV1,
   type EstimateOutputRole,
+  type EstimateUnit,
   type RunManifestV1,
   type TestReceiptV1,
 } from "./lib/estimate-sheet-performance-contract";
@@ -442,7 +446,7 @@ function assertReportForRun(report: PerformanceReportV1, manifest: RunManifestV1
 
 export function publishLocalD1Report(path: string, report: PerformanceReportV1, manifest: RunManifestV1): void {
   assertReportForRun(report, manifest);
-  writeJsonNoOverwrite(path, report, 0o600);
+  writeRunJsonNoOverwrite(manifest, path, report, 0o600);
 }
 
 function assertRegularDirectory(path: string, label: string): void {
@@ -457,17 +461,27 @@ function resolveOutputPath(manifest: RunManifestV1, value: string): string {
   return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
 }
 
-function resolveTestReceipt(manifest: RunManifestV1, value: string): { path: string; receipt: TestReceiptV1 } {
+function resolveTestReceipt(manifest: RunManifestV1, value: string): { path: string; receipt: TestReceiptV1; sha256: string } {
+  const immutable = value.startsWith("auto:");
   const path = value.startsWith("auto:")
     ? resolveManifestLogicalOutput(manifest, value.slice("auto:".length) as EstimateOutputRole)
     : ensureContainedRunPath(manifest.run_root, value);
-  const receipt = readJsonFile<TestReceiptV1>(path);
+  const trustedRoot = immutable ? manifest.immutable_run_root : manifest.run_root;
+  const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, "D1 test receipt", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  const receipt = readJsonFile<TestReceiptV1>(safePath);
   assertTestReceipt(receipt);
   if (receipt.unit_id !== manifest.unit_id || receipt.run_id !== manifest.run_id) throw new Error("D1 test receipt run identity mismatch");
   if (!fingerprintContentEqual(receipt.application_fingerprint, manifest.applicationFingerprint) || !fingerprintContentEqual(receipt.producer_fingerprint, manifest.producerFingerprint)) throw new Error("D1 test receipt fingerprint mismatch");
   if (receipt.overall !== "PASS" || receipt.failed !== 0 || receipt.passed < 1) throw new Error("D1 test receipt must be a passing cohort");
   if (receipt.fixtureMutation && receipt.fixtureMutation.fixtureRole !== "d1") throw new Error("D1 test receipt fixture role mismatch");
-  return { path, receipt };
+  assertSymlinkFreeContainedPath(trustedRoot, safePath, "D1 test receipt", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  return { path: safePath, receipt, sha256: sha256File(safePath) };
 }
 
 function loadMigrations(
@@ -1013,7 +1027,7 @@ export async function measureEstimateSheetD1(input: {
   fixtureRole?: string;
   profile?: string;
   local?: boolean;
-  unit?: string;
+  unit: EstimateUnit;
   repoRoot?: string;
 }): Promise<D1MeasurementResult> {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
@@ -1021,10 +1035,10 @@ export async function measureEstimateSheetD1(input: {
   if (input.fixtureRole !== "d1") throw new Error("local D1 measurement requires --fixture-role=d1");
   if (input.profile !== "limit") throw new Error("local D1 measurement requires --profile=limit");
   const runManifestPath = resolve(repoRoot, input.runManifest);
-  const manifest = readJsonFile<RunManifestV1>(runManifestPath);
+  const manifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, input.unit);
   const manifestErrors = validateLocalD1RunManifest(manifest);
   if (manifestErrors.length) throw new Error(`invalid local D1 run:\n- ${manifestErrors.join("\n- ")}`);
-  if (input.unit && manifest.unit_id !== input.unit) throw new Error("local D1 CLI unit does not match the run manifest");
+  if (manifest.unit_id !== input.unit) throw new Error("local D1 CLI unit does not match the run manifest");
   if (resolve(manifest.run_root, "run-manifest.json") !== runManifestPath) throw new Error("local D1 run manifest must be the prepared manifest inside run_root");
   assertRegularDirectory(manifest.run_root, "prepared run root");
   const current = computeEstimateSheetSourceFingerprint({ repoRoot }).fingerprint;
@@ -1049,7 +1063,8 @@ export async function measureEstimateSheetD1(input: {
   const ids = makeFixtureIds(manifest.run_id, fixture);
   const cleanupPath = ensureContainedRunPath(manifest.run_root, "cleanup/d1-state.json");
   const cleanupPayload = cleanupState(manifest.run_id, namespace.idSha256, ids);
-  writeJsonNoOverwrite(cleanupPath, cleanupPayload, 0o600);
+  readAuthoritativeRunManifest(repoRoot, runManifestPath, input.unit);
+  writeRunJsonNoOverwrite(manifest, cleanupPath, cleanupPayload, 0o600);
 
   const schemaProof = await generateLocalBetterAuthD1SchemaSqlProof();
   const schemaErrors = validateBetterAuthD1SchemaProof(schemaProof);
@@ -1058,13 +1073,14 @@ export async function measureEstimateSheetD1(input: {
   const migrations = loadMigrations(repoRoot, wrangler.unstable_splitSqlQuery);
   const binding = localWranglerConfig(repoRoot, wrangler.unstable_readConfig);
   const resourceRoot = ensureContainedRunPath(manifest.run_root, "resources/d1");
-  mkdirSync(resourceRoot, { recursive: true, mode: 0o700 });
+  readAuthoritativeRunManifest(repoRoot, runManifestPath, input.unit);
+  ensureDirectoryDurably(resourceRoot, 0o700, manifest.run_root);
   const generatedSchemaPath = resolve(resourceRoot, "better-auth-schema.sql");
   const migrationManifestPath = resolve(resourceRoot, "migrations.json");
   const localConfigPath = resolve(resourceRoot, "wrangler-local.json");
-  writeNoOverwrite(generatedSchemaPath, `${schemaProof.sql.trim()}\n`, 0o600);
-  writeJsonNoOverwrite(migrationManifestPath, migrations.map((migration) => ({ name: migration.name, sha256: migration.sha256, statementCount: migration.statements.length })), 0o600);
-  writeJsonNoOverwrite(localConfigPath, {
+  writeRunNoOverwrite(manifest, generatedSchemaPath, `${schemaProof.sql.trim()}\n`, 0o600);
+  writeRunJsonNoOverwrite(manifest, migrationManifestPath, migrations.map((migration) => ({ name: migration.name, sha256: migration.sha256, statementCount: migration.statements.length })), 0o600);
+  writeRunJsonNoOverwrite(manifest, localConfigPath, {
     name: `estimate-performance-${manifest.run_id}`,
     compatibility_date: binding.compatibilityDate,
     d1_databases: [{ binding: D1_BINDING, database_name: binding.databaseName, database_id: binding.databaseId }],
@@ -1074,8 +1090,9 @@ export async function measureEstimateSheetD1(input: {
   if (existsSync(persistRoot)) {
     assertRegularDirectory(persistRoot, "Wrangler persistence root");
     if (readdirSync(persistRoot).length !== 0) throw new Error("Wrangler persistence root is not fresh");
-  } else mkdirSync(persistRoot, { recursive: true, mode: 0o700 });
+  } else ensureDirectoryDurably(persistRoot, 0o700, manifest.run_root);
 
+  readAuthoritativeRunManifest(repoRoot, runManifestPath, input.unit);
   const proxy = await wrangler.getPlatformProxy<{ ARCH_DB: D1Database }>({ configPath: localConfigPath, persist: { path: persistRoot }, remoteBindings: false, envFiles: [] });
   try {
     const db = proxy.env.ARCH_DB;
@@ -1151,12 +1168,13 @@ export async function measureEstimateSheetD1(input: {
       authFixtureHash: sha256Hex(canonicalJson({ userId: ids.user, sessionId: ids.session, allowlistId: ids.allowlist, legalId: ids.legal, profileId: ids.profile })),
       toolHashes: {
         producer: sha256File(resolve(repoRoot, "scripts/measure-estimate-sheet-d1.ts")),
-        testReceipt: sha256File(test.path),
+        testReceipt: test.sha256,
         generatedSchema: sha256File(generatedSchemaPath),
         migrations: sha256File(migrationManifestPath),
         wranglerConfig: sha256File(localConfigPath),
       },
     });
+    readAuthoritativeRunManifest(repoRoot, runManifestPath, input.unit);
     publishLocalD1Report(outputPath, report, manifest);
     return { report, reportPath: outputPath, providerBacked: true, complete: true, blockers: [] };
   } finally {
@@ -1170,7 +1188,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log("Usage: bun run scripts/measure-estimate-sheet-d1.ts --unit=UNIT-003 --local --profile=limit --fixture-role=d1 --tests=auto:dom-tests --output=auto:d1 [--run-manifest=PATH]");
     return 0;
   }
-  const unit = cliString(values, "unit", true)!;
+  const unit = requireUnit(cliString(values, "unit", true));
   const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const result = await measureEstimateSheetD1({
     runManifest,

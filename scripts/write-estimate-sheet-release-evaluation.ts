@@ -12,7 +12,6 @@ import {
   TEST_RECEIPT_SCHEMA,
   assertPerformanceReport,
   assertRegularFile,
-  assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
@@ -23,11 +22,12 @@ import {
   isPlainObject,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
   resolveManifestLogicalOutput,
   sha256File,
   sha256Json,
-  writeNoOverwrite,
+  writeRunNoOverwrite,
   type PerformanceReportV1,
   type EstimateOutputRole,
   type RunManifestV1,
@@ -602,8 +602,8 @@ export function writeEstimateSheetReleaseEvaluation(input: {
   }
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  const manifest = readJsonFile<RunManifestV1>(resolve(input.runManifest));
-  assertRunManifest(manifest);
+  const runManifestPath = resolve(input.runManifest);
+  const manifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, "UNIT-011");
   if (manifest.unit_id !== "UNIT-011") throw new Error("release evaluation requires a UNIT-011 run");
 
   const local = resolveLocalDependency(planRoot, input.local ?? `index:${LOCAL_EVIDENCE_ID}`, manifest);
@@ -649,12 +649,17 @@ export function writeEstimateSheetReleaseEvaluation(input: {
     created_at: createdAt,
   };
   const evaluation: ReleaseEvaluationV1 = { ...payload, payload_sha256: sha256Json(payload) };
-  const outputPath = input.output === undefined || input.output === "auto:release"
+  const immutableOutput = input.output === undefined || input.output === "auto:release";
+  const outputPath = immutableOutput
     ? resolveManifestLogicalOutput(manifest, "release")
     : ensureContainedRunPath(manifest.run_root, input.output);
   const markdown = renderReleaseEvaluation(evaluation);
   parseReleaseEvaluationMarkdown(markdown);
-  writeNoOverwrite(outputPath, markdown, 0o600);
+  const refreshedManifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, "UNIT-011");
+  if (canonicalJson(refreshedManifest) !== canonicalJson(manifest)) {
+    throw new Error("release run manifest changed before publication");
+  }
+  writeRunNoOverwrite(manifest, outputPath, markdown, 0o600);
   return { evaluation, outputPath };
 }
 

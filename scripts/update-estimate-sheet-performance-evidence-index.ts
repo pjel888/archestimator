@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { randomBytes } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -9,6 +10,7 @@ import {
   openSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmdirSync,
   rmSync,
 } from "node:fs";
@@ -20,16 +22,18 @@ import {
   type EstimateSheetPerformanceFixture,
 } from "../tests/fixtures/estimate-sheet-performance";
 import {
+  ESTIMATE_UNITS,
   INDEX_SCHEMA,
   assertPerformanceReport,
   assertRegularFile,
-  assertRunManifest,
+  assertSymlinkFreeContainedPath,
   canonicalJson,
   cliBoolean,
   cliString,
   defaultImmutableRunRoot,
   defaultPlanRoot,
   defaultRunRoot,
+  ensureDirectoryDurably,
   ensureContainedRunPath,
   fingerprintContentEqual,
   isContained,
@@ -37,6 +41,8 @@ import {
   isSha256,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
+  readRefreezeRebindRunManifestPair,
   readJsonFile,
   replaceFileAtomically,
   resolveManifestLogicalOutput,
@@ -47,6 +53,7 @@ import {
   writeJsonNoOverwrite,
   writeNoOverwrite,
   type PerformanceReportV1,
+  type EstimateUnit,
   type EstimateOutputRole,
   type RunManifestV1,
   type SourceFingerprint,
@@ -112,6 +119,7 @@ type DurableSource = {
 
 type PlannedDurableSource = Omit<DurableSource, "absolutePath"> & {
   absolutePath: string;
+  trustedRoot: string;
 };
 
 type IndexTransitionJournal = {
@@ -196,7 +204,8 @@ function createDurableDirectories(repoRoot: string, directories: readonly string
   }
 }
 
-function removeFileDurably(path: string): void {
+function removeFileDurably(path: string, trustedRoot: string): void {
+  assertSymlinkFreeContainedPath(trustedRoot, path, "durable file", { requireRegularFile: true, requireSingleLink: true });
   rmSync(path, { force: true });
   fsyncDirectory(dirname(path));
 }
@@ -206,20 +215,26 @@ function replaceProjection(input: {
   bytes: Buffer;
   expectedExists: boolean;
   expectedSha256: string | null;
+  trustedRoot: string;
 }): void {
   if (input.expectedExists) {
     if (!input.expectedSha256) throw new Error(`existing projection has no expected hash: ${input.path}`);
-    replaceFileAtomically(input.path, input.bytes, input.expectedSha256, 0o644);
+    replaceFileAtomically(input.path, input.bytes, input.expectedSha256, 0o644, input.trustedRoot);
     return;
   }
   if (existsSync(input.path)) throw new Error(`projection appeared after validation: ${input.path}`);
-  writeNoOverwrite(input.path, input.bytes, 0o644);
+  writeNoOverwrite(input.path, input.bytes, 0o644, input.trustedRoot);
 }
 
-function updateTransitionJournal(path: string, journal: IndexTransitionJournal, state: IndexTransitionJournal["state"]): IndexTransitionJournal {
+function updateTransitionJournal(
+  path: string,
+  journal: IndexTransitionJournal,
+  state: IndexTransitionJournal["state"],
+  trustedRoot: string,
+): IndexTransitionJournal {
   const currentSha256 = sha256File(path);
   const next = { ...journal, state };
-  replaceFileAtomically(path, `${canonicalJson(next)}\n`, currentSha256, 0o600);
+  replaceFileAtomically(path, `${canonicalJson(next)}\n`, currentSha256, 0o600, trustedRoot);
   return next;
 }
 
@@ -228,13 +243,20 @@ function readTransitionJournal(repoRoot: string): { path: string; journal: Index
   const journal = readJsonFile<IndexTransitionJournal>(path);
   if (journal.schema_version !== INDEX_TRANSITION_JOURNAL_SCHEMA
     || !["PREPARED", "PROJECTION_WRITTEN", "COMMITTED"].includes(journal.state)
+    || !(ESTIMATE_UNITS as readonly unknown[]).includes(journal.unit_id)
     || typeof journal.run_id !== "string"
     || !journal.run_id
+    || typeof journal.plan_path !== "string"
+    || !journal.plan_path
+    || typeof journal.old_plan_bytes_base64 !== "string"
+    || typeof journal.new_plan_bytes_base64 !== "string"
     || !Array.isArray(journal.immutable_files)
     || !Array.isArray(journal.projections)
     || !Array.isArray(journal.created_directories)
     || !isSha256(journal.old_plan_sha256)
-    || !isSha256(journal.new_plan_sha256)) {
+    || !isSha256(journal.new_plan_sha256)
+    || typeof journal.created_at !== "string"
+    || Number.isNaN(Date.parse(journal.created_at))) {
     throw new Error("index transition journal is invalid");
   }
   return { path, journal };
@@ -242,11 +264,17 @@ function readTransitionJournal(repoRoot: string): { path: string; journal: Index
 
 function asInsideRun(manifest: RunManifestV1, path: string, label: string): string {
   const resolved = isAbsolute(path) ? resolve(path) : ensureContainedRunPath(manifest.run_root, path);
-  if (!isContained(manifest.run_root, resolved) && !isContained(manifest.immutable_run_root, resolved)) {
+  const mutable = isContained(manifest.run_root, resolved);
+  const immutable = isContained(manifest.immutable_run_root, resolved);
+  if (mutable === immutable) {
     throw new Error(`${label} escapes the prepared mutable and immutable run roots`);
   }
-  assertRegularFile(resolved, label);
-  return resolved;
+  return assertSymlinkFreeContainedPath(
+    mutable ? manifest.run_root : manifest.immutable_run_root,
+    resolved,
+    label,
+    { requireRegularFile: true, requireSingleLink: true },
+  );
 }
 
 function resolveRunArtifact(manifest: RunManifestV1, value: string): string {
@@ -276,63 +304,185 @@ function relativeToPlan(planRoot: string, path: string): string {
   return relative(planRoot, path).split("\\").join("/");
 }
 
-function planDurableCopy(planRoot: string, source: string, destination: string): PlannedDurableSource {
-  assertRegularFile(source, "immutable evidence source");
-  const bytes = readFileSync(source);
+function planDurableCopy(
+  planRoot: string,
+  manifest: RunManifestV1,
+  source: string,
+  destination: string,
+): PlannedDurableSource {
+  const trustedSource = asInsideRun(manifest, source, "immutable evidence source");
+  const bytes = readFileSync(trustedSource);
   if (existsSync(destination)) throw new Error(`immutable evidence destination already exists: ${destination}`);
   return {
     absolutePath: destination,
     relativePath: relativeToPlan(planRoot, destination),
     bytes,
     sha256: sha256Hex(bytes),
+    trustedRoot: manifest.immutable_run_root,
   };
 }
 
-function bindExistingDurableSource(planRoot: string, source: string): PlannedDurableSource {
-  assertRegularFile(source, "existing immutable evidence source");
-  if (!isContained(planRoot, source)) throw new Error(`existing immutable evidence escapes plan root: ${source}`);
-  const bytes = readFileSync(source);
+function bindExistingDurableSource(planRoot: string, manifest: RunManifestV1, source: string): PlannedDurableSource {
+  const trustedSource = asInsideRun(manifest, source, "existing immutable evidence source");
+  if (!isContained(planRoot, trustedSource)) throw new Error(`existing immutable evidence escapes plan root: ${source}`);
+  const bytes = readFileSync(trustedSource);
   return {
-    absolutePath: source,
-    relativePath: relativeToPlan(planRoot, source),
+    absolutePath: trustedSource,
+    relativePath: relativeToPlan(planRoot, trustedSource),
     bytes,
     sha256: sha256Hex(bytes),
+    trustedRoot: manifest.immutable_run_root,
   };
 }
 
 function materializeDurableSource(source: PlannedDurableSource): DurableSource {
-  writeNoOverwrite(source.absolutePath, source.bytes, 0o600);
+  writeNoOverwrite(source.absolutePath, source.bytes, 0o600, source.trustedRoot);
   if (sha256File(source.absolutePath) !== source.sha256) throw new Error(`immutable evidence readback mismatch: ${source.absolutePath}`);
   return source;
 }
 
+type TransitionLockHandle = {
+  path: string;
+  ownerId: string;
+};
+
+type IndexLockOperation = "INDEX" | "INDEX_RECOVERY";
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return isPlainObject(error) && error.code === "EPERM";
+  }
+}
+
+function planTransitionLockPath(repoRoot: string): string {
+  return resolve(defaultRunRoot(repoRoot), "..", ".plan-transition.lock");
+}
+
+function readTransitionLockOwner(lockPath: string): Record<string, unknown> {
+  const stat = lstatSync(lockPath);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("plan transition lock is not a regular directory");
+  const ownerPath = resolve(lockPath, "owner.json");
+  assertRegularFile(ownerPath, "plan transition lock owner");
+  const owner = readJsonFile<Record<string, unknown>>(ownerPath);
+  const expected = ["acquired_at", "operation", "owner_id", "pid", "schema_version"].sort();
+  if (canonicalJson(Object.keys(owner).sort()) !== canonicalJson(expected)
+    || owner.schema_version !== "estimate-sheet-plan-transition-lock.v1"
+    || !Number.isInteger(owner.pid)
+    || Number(owner.pid) < 1
+    || typeof owner.owner_id !== "string"
+    || !/^[0-9a-f]{32}$/u.test(owner.owner_id)
+    || !["PREPARE", "PREPARE_RECOVERY", "INDEX", "INDEX_RECOVERY"].includes(String(owner.operation))
+    || typeof owner.acquired_at !== "string"
+    || Number.isNaN(Date.parse(owner.acquired_at))) {
+    throw new Error("plan transition lock owner is invalid");
+  }
+  return owner;
+}
+
+function abandonedTransitionLockId(lockPath: string): string {
+  const stat = lstatSync(lockPath);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("plan transition lock is not a regular directory");
+  if (Date.now() - stat.mtimeMs < 1_000) {
+    throw new Error("incomplete plan transition lock is too recent for safe recovery takeover");
+  }
+  const entries = readdirSync(lockPath, { withFileTypes: true });
+  if (entries.some((entry) => !entry.isFile()
+    || (entry.name !== "owner.json" && !entry.name.startsWith("owner.json.tmp-")))) {
+    throw new Error("incomplete plan transition lock contains an unowned entry");
+  }
+  return sha256Hex(canonicalJson({
+    mtime_ms: Math.trunc(stat.mtimeMs),
+    entries: entries.map((entry) => entry.name).sort(),
+  })).slice(0, 32);
+}
+
+function removeOwnedTransitionLock(handle: TransitionLockHandle): void {
+  if (!existsSync(handle.path)) return;
+  const owner = readTransitionLockOwner(handle.path);
+  if (owner.owner_id !== handle.ownerId || owner.pid !== process.pid) {
+    throw new Error("plan transition lock ownership changed before release");
+  }
+  rmSync(handle.path, { recursive: true, force: false });
+  fsyncDirectory(dirname(handle.path));
+}
+
+function acquireTransitionLock(
+  repoRoot: string,
+  operation: IndexLockOperation,
+  allowDeadOwnerTakeover: boolean,
+): TransitionLockHandle {
+  const lockPath = planTransitionLockPath(repoRoot);
+  const lockParent = dirname(lockPath);
+  mkdirSync(lockParent, { recursive: true, mode: 0o700 });
+  let stalePath: string | undefined;
+  try {
+    mkdirSync(lockPath, { mode: 0o700 });
+    fsyncDirectory(lockParent);
+  } catch (error) {
+    if (!isPlainObject(error) || error.code !== "EEXIST" || !allowDeadOwnerTakeover) throw error;
+    let staleId: string;
+    try {
+      const owner = readTransitionLockOwner(lockPath);
+      if (isProcessAlive(Number(owner.pid))) throw new Error(`plan transition lock is active: ${lockPath}`);
+      staleId = String(owner.owner_id);
+    } catch (ownerError) {
+      if (ownerError instanceof Error && ownerError.message.startsWith("plan transition lock is active:")) throw ownerError;
+      staleId = abandonedTransitionLockId(lockPath);
+    }
+    stalePath = resolve(lockParent, `.plan-transition.lock.stale-${staleId}`);
+    if (existsSync(stalePath)) throw new Error("stale plan transition lock quarantine already exists");
+    renameSync(lockPath, stalePath);
+    fsyncDirectory(lockParent);
+    mkdirSync(lockPath, { mode: 0o700 });
+    fsyncDirectory(lockParent);
+  }
+  const ownerId = randomBytes(16).toString("hex");
+  try {
+    writeJsonNoOverwrite(resolve(lockPath, "owner.json"), {
+      schema_version: "estimate-sheet-plan-transition-lock.v1",
+      pid: process.pid,
+      owner_id: ownerId,
+      operation,
+      acquired_at: nowIso(),
+    }, 0o600, lockPath);
+    if (stalePath) {
+      const expectedPrefix = resolve(lockParent, ".plan-transition.lock.stale-");
+      if (!stalePath.startsWith(expectedPrefix)) throw new Error("stale transition lock quarantine path is not canonical");
+      rmSync(stalePath, { recursive: true, force: false });
+      fsyncDirectory(lockParent);
+    }
+    return { path: lockPath, ownerId };
+  } catch (error) {
+    if (existsSync(lockPath) && !existsSync(resolve(lockPath, "owner.json"))) {
+      rmSync(lockPath, { recursive: true, force: false });
+      fsyncDirectory(lockParent);
+    }
+    throw error;
+  }
+}
+
 function withPlanTransitionLock<T>(
   repoRoot: string,
-  metadata: Record<string, unknown>,
+  operationName: IndexLockOperation,
   operation: () => T,
   options: { allowJournal?: boolean } = {},
 ): T {
-  const lockPath = resolve(defaultRunRoot(repoRoot), "..", ".plan-transition.lock");
-  mkdirSync(dirname(lockPath), { recursive: true, mode: 0o700 });
-  mkdirSync(lockPath, { mode: 0o700 });
+  const lock = acquireTransitionLock(repoRoot, operationName, operationName === "INDEX_RECOVERY");
   try {
     if (!options.allowJournal && existsSync(transitionJournalPath(repoRoot))) {
       throw new Error("an unfinished index transition journal blocks this transition; run perf:estimate:index -- --recover");
     }
-    writeJsonNoOverwrite(resolve(lockPath, "owner.json"), {
-      schema_version: "estimate-sheet-plan-transition-lock.v1",
-      pid: process.pid,
-      acquired_at: nowIso(),
-      ...metadata,
-    }, 0o600);
     return operation();
   } finally {
-    rmSync(lockPath, { recursive: true, force: true });
+    removeOwnedTransitionLock(lock);
   }
 }
 
-function withTransitionLock<T>(repoRoot: string, manifest: RunManifestV1, operation: () => T): T {
-  return withPlanTransitionLock(repoRoot, { unit_id: manifest.unit_id, run_id: manifest.run_id }, operation);
+function withTransitionLock<T>(repoRoot: string, _manifest: RunManifestV1, operation: () => T): T {
+  return withPlanTransitionLock(repoRoot, "INDEX", operation);
 }
 
 function decodeJournalBytes(value: string, expectedSha256: string, label: string): Buffer {
@@ -341,36 +491,35 @@ function decodeJournalBytes(value: string, expectedSha256: string, label: string
   return bytes;
 }
 
-function restoreProjectionBeforeCommit(repoRoot: string, entry: IndexTransitionJournal["projections"][number]): void {
-  const path = resolveJournalPath(repoRoot, entry.path, "projection");
+function restoreProjectionBeforeCommit(repoRoot: string, projection: ValidatedRecoveryProjection): void {
+  const { entry, path } = projection;
   const old = entry.old_projection;
   if (old.exists) {
     if (!old.sha256 || !old.bytes_base64) throw new Error(`projection ${entry.path} has an incomplete old snapshot`);
     const bytes = decodeJournalBytes(old.bytes_base64, old.sha256, `projection ${entry.path} old`);
     if (!existsSync(path)) {
-      writeNoOverwrite(path, bytes, 0o644);
+      writeNoOverwrite(path, bytes, 0o644, repoRoot);
       return;
     }
     assertRegularFile(path, `projection ${entry.path}`);
     const currentSha256 = sha256File(path);
     if (currentSha256 === old.sha256) return;
     if (currentSha256 !== entry.new_sha256) throw new Error(`projection ${entry.path} has unrecognized bytes during rollback`);
-    replaceFileAtomically(path, bytes, currentSha256, 0o644);
+    replaceFileAtomically(path, bytes, currentSha256, 0o644, repoRoot);
     return;
   }
   if (old.sha256 !== null || old.bytes_base64 !== null) throw new Error(`absent projection ${entry.path} has old bytes`);
   if (!existsSync(path)) return;
   assertRegularFile(path, `projection ${entry.path}`);
   if (sha256File(path) !== entry.new_sha256) throw new Error(`new projection ${entry.path} has unrecognized bytes during rollback`);
-  removeFileDurably(path);
+  removeFileDurably(path, repoRoot);
 }
 
-function removeCreatedDirectories(repoRoot: string, directories: readonly string[]): void {
-  for (const value of [...directories].sort((left, right) => right.split("/").length - left.split("/").length || right.localeCompare(left))) {
-    const path = resolveJournalPath(repoRoot, value, "created directory");
+function removeCreatedDirectories(directories: readonly string[]): void {
+  for (const path of [...directories].sort((left, right) => right.split("/").length - left.split("/").length || right.localeCompare(left))) {
     if (!existsSync(path)) continue;
     const stats = lstatSync(path);
-    if (!stats.isDirectory() || stats.isSymbolicLink()) throw new Error(`journal-created path is not a real directory: ${value}`);
+    if (!stats.isDirectory() || stats.isSymbolicLink()) throw new Error(`journal-created path is not a real directory: ${path}`);
     if (readdirSync(path).length !== 0) continue;
     const parent = dirname(path);
     rmdirSync(path);
@@ -378,15 +527,250 @@ function removeCreatedDirectories(repoRoot: string, directories: readonly string
   }
 }
 
+type RecoveryRuntimeRow = {
+  artifactId: string;
+  projectionPath: string;
+  immutablePath: string | null;
+  sha256: string;
+  unitId?: RunManifestV1["unit_id"];
+};
+
+type ValidatedRecoveryProjection = {
+  entry: IndexTransitionJournal["projections"][number];
+  path: string;
+  immutablePath: string;
+};
+
+type ValidatedIndexRecovery = {
+  planPath: string;
+  immutableFiles: Array<{ entry: IndexTransitionJournal["immutable_files"][number]; path: string }>;
+  projections: ValidatedRecoveryProjection[];
+  createdDirectories: string[];
+};
+
+function parseJournalPlan(value: string, expectedSha256: string, label: string): Record<string, unknown> {
+  const bytes = decodeJournalBytes(value, expectedSha256, label);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    throw new Error(`${label} bytes are not valid JSON`);
+  }
+  if (!isPlainObject(parsed)) throw new Error(`${label} must be an object`);
+  return parsed;
+}
+
+function recoveryRuntimeRows(plan: Record<string, unknown>, label: string): RecoveryRuntimeRow[] {
+  const runtime = plan.runtime_evidence;
+  if (!isPlainObject(runtime) || !Array.isArray(runtime.projections) || !isPlainObject(runtime.registry)) {
+    throw new Error(`${label} runtime evidence is invalid`);
+  }
+  const rows = ESTIMATE_SHEET_RUNTIME_PROJECTIONS.map((spec, index): RecoveryRuntimeRow => {
+    const row = runtime.projections[index];
+    if (!isPlainObject(row)
+      || row.artifact_id !== spec.artifact_id
+      || row.projection_path !== spec.projection_path
+      || (row.immutable_path !== null && typeof row.immutable_path !== "string")
+      || !isSha256(row.sha256)) {
+      throw new Error(`${label} runtime row ${spec.artifact_id} is invalid`);
+    }
+    return {
+      artifactId: spec.artifact_id,
+      projectionPath: spec.projection_path,
+      immutablePath: row.immutable_path as string | null,
+      sha256: String(row.sha256),
+      unitId: spec.unit_id,
+    };
+  });
+  const registry = runtime.registry;
+  if (registry.artifact_id !== ESTIMATE_SHEET_RUNTIME_REGISTRY.artifact_id
+    || registry.projection_path !== ESTIMATE_SHEET_RUNTIME_REGISTRY.projection_path
+    || (registry.immutable_path !== null && typeof registry.immutable_path !== "string")
+    || !isSha256(registry.sha256)) {
+    throw new Error(`${label} runtime registry row is invalid`);
+  }
+  rows.push({
+    artifactId: ESTIMATE_SHEET_RUNTIME_REGISTRY.artifact_id,
+    projectionPath: ESTIMATE_SHEET_RUNTIME_REGISTRY.projection_path,
+    immutablePath: registry.immutable_path as string | null,
+    sha256: String(registry.sha256),
+  });
+  return rows;
+}
+
+function escapedRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function validateIndexRecoveryOwnership(
+  repoRoot: string,
+  journal: IndexTransitionJournal,
+): ValidatedIndexRecovery {
+  if (!(ESTIMATE_UNITS as readonly unknown[]).includes(journal.unit_id)) throw new Error("index transition journal unit is invalid");
+  const planRoot = defaultPlanRoot(repoRoot);
+  const planPath = resolveJournalPath(repoRoot, journal.plan_path, "plan path");
+  if (planPath !== resolve(planRoot, "plan-pack.json")) {
+    throw new Error("index transition journal plan path is not canonical");
+  }
+
+  const oldPlan = parseJournalPlan(journal.old_plan_bytes_base64, journal.old_plan_sha256, "old plan");
+  const newPlan = parseJournalPlan(journal.new_plan_bytes_base64, journal.new_plan_sha256, "new plan");
+  const oldRows = recoveryRuntimeRows(oldPlan, "old plan");
+  const newRows = recoveryRuntimeRows(newPlan, "new plan");
+  const expectedProjections = new Map<string, {
+    immutablePath: string;
+    newSha256: string;
+    oldSha256: string;
+    unitId?: RunManifestV1["unit_id"];
+  }>();
+  for (const [index, newRow] of newRows.entries()) {
+    const oldRow = oldRows[index]!;
+    if (newRow.immutablePath === oldRow.immutablePath && newRow.sha256 === oldRow.sha256) continue;
+    if (!newRow.immutablePath) throw new Error(`changed runtime row ${newRow.artifactId} has no immutable path`);
+    if (newRow.unitId !== undefined && newRow.unitId !== journal.unit_id) {
+      throw new Error(`changed runtime row ${newRow.artifactId} is not owned by ${journal.unit_id}`);
+    }
+    const projectionPath = relativeToRepo(repoRoot, resolve(planRoot, newRow.projectionPath));
+    expectedProjections.set(projectionPath, {
+      immutablePath: relativeToRepo(repoRoot, resolve(planRoot, newRow.immutablePath)),
+      newSha256: newRow.sha256,
+      oldSha256: oldRow.sha256,
+      ...(newRow.unitId ? { unitId: newRow.unitId } : {}),
+    });
+  }
+  if (journal.projections.length !== expectedProjections.size) {
+    throw new Error("index transition journal projection set does not match the plan transition");
+  }
+
+  const projectionPaths = new Set<string>();
+  const projections = journal.projections.map((entry): ValidatedRecoveryProjection => {
+    if (!isPlainObject(entry)
+      || typeof entry.path !== "string"
+      || typeof entry.immutable_path !== "string"
+      || !isSha256(entry.new_sha256)
+      || !isPlainObject(entry.old_projection)
+      || typeof entry.old_projection.exists !== "boolean") {
+      throw new Error("index transition journal projection entry is invalid");
+    }
+    if (projectionPaths.has(entry.path)) throw new Error("index transition journal projection paths are duplicated");
+    projectionPaths.add(entry.path);
+    const expected = expectedProjections.get(entry.path);
+    if (!expected
+      || entry.immutable_path !== expected.immutablePath
+      || entry.new_sha256 !== expected.newSha256) {
+      throw new Error(`index transition journal projection is not plan-owned: ${entry.path}`);
+    }
+    const old = entry.old_projection;
+    if (old.exists) {
+      if (old.sha256 !== expected.oldSha256 || typeof old.bytes_base64 !== "string") {
+        throw new Error(`projection ${entry.path} old snapshot is not plan-owned`);
+      }
+      decodeJournalBytes(old.bytes_base64, old.sha256, `projection ${entry.path} old`);
+    } else if (old.sha256 !== null || old.bytes_base64 !== null) {
+      throw new Error(`absent projection ${entry.path} has old bytes`);
+    }
+    return {
+      entry,
+      path: resolveJournalPath(repoRoot, entry.path, "projection"),
+      immutablePath: resolveJournalPath(repoRoot, entry.immutable_path, "projection immutable source"),
+    };
+  });
+
+  const immutablePaths = new Set<string>();
+  const immutableFiles = journal.immutable_files.map((entry) => {
+    if (!isPlainObject(entry) || typeof entry.path !== "string" || !isSha256(entry.sha256)) {
+      throw new Error("index transition journal immutable entry is invalid");
+    }
+    if (immutablePaths.has(entry.path)) throw new Error("index transition journal immutable paths are duplicated");
+    immutablePaths.add(entry.path);
+    return { entry, path: resolveJournalPath(repoRoot, entry.path, "immutable evidence") };
+  });
+
+  const ownedArtifactPaths = [
+    ...projections.map((entry) => entry.immutablePath),
+    ...immutableFiles.map((entry) => entry.path),
+  ];
+  if (ownedArtifactPaths.length === 0) throw new Error("index transition journal has no owned immutable artifacts");
+  const immutableUnitRoot = resolve(defaultImmutableRunRoot(repoRoot), journal.unit_id);
+  let runKey: string | undefined;
+  for (const path of ownedArtifactPaths) {
+    const pathFromUnit = relative(immutableUnitRoot, path).split("\\").join("/");
+    const segments = pathFromUnit.split("/");
+    if (pathFromUnit.startsWith("../") || segments.length < 2 || !segments[0]) {
+      throw new Error(`index transition immutable path is outside ${journal.unit_id}: ${path}`);
+    }
+    if (runKey === undefined) runKey = segments[0];
+    else if (runKey !== segments[0]) throw new Error("index transition immutable paths span multiple runs");
+  }
+  const runKeyPattern = new RegExp(`^${escapedRegExp(journal.run_id)}-[0-9a-f]{12}-[0-9a-f]{12}$`, "u");
+  if (!runKey || !runKeyPattern.test(runKey)) throw new Error("index transition immutable run key does not match journal identity");
+  const immutableRunRoot = resolve(immutableUnitRoot, runKey);
+  for (const path of ownedArtifactPaths) {
+    if (!isContained(immutableRunRoot, path) || path === immutableRunRoot) {
+      throw new Error(`index transition immutable path escapes its owned run: ${path}`);
+    }
+  }
+
+  const relativeImmutableFiles = immutableFiles.map(({ path }) => relative(immutableRunRoot, path).split("\\").join("/"));
+  if (projections.length > 0) {
+    if (!relativeImmutableFiles.includes("evidence-index.json")) {
+      throw new Error("index transition journal does not own its evidence index");
+    }
+    for (const value of relativeImmutableFiles) {
+      if (value === "evidence-index.json"
+        || /^dependencies\/\d{2}-[A-Za-z0-9._-]+$/u.test(value)
+        || /^dependencies\/proof-children\/\d{2}-[A-Za-z0-9._-]+$/u.test(value)
+        || /^cleanup\/[A-Za-z0-9._-]+$/u.test(value)) continue;
+      throw new Error(`index transition journal immutable path is not an allowed index artifact: ${value}`);
+    }
+  } else {
+    const transitionFiles = relativeImmutableFiles.filter((value) => value.startsWith("transitions/"));
+    if (transitionFiles.length !== 1) throw new Error("plan-only transition must own exactly one transition record");
+    const match = /^transitions\/\d{4}-(refreeze_reopen|technical_block|release_reopen|final_closeout)\.json$/u.exec(transitionFiles[0]!);
+    if (!match) throw new Error("plan-only transition record path is invalid");
+    const outputByTransition: Record<string, string | null> = {
+      refreeze_reopen: null,
+      technical_block: "technical-block.json",
+      release_reopen: "release-reopen.json",
+      final_closeout: "final-closeout.json",
+    };
+    const expectedOutput = outputByTransition[match[1]!];
+    const expectedFiles = expectedOutput ? [transitionFiles[0]!, expectedOutput].sort() : [transitionFiles[0]!];
+    if (canonicalJson([...relativeImmutableFiles].sort()) !== canonicalJson(expectedFiles)) {
+      throw new Error("plan-only transition immutable artifact set is invalid");
+    }
+  }
+
+  const directoryPaths = new Set<string>();
+  const allowedDestinations = [
+    ...immutableFiles.map((entry) => entry.path),
+    ...projections.map((entry) => entry.path),
+  ];
+  const createdDirectories = journal.created_directories.map((value) => {
+    if (typeof value !== "string") throw new Error("index transition journal created directory is invalid");
+    if (directoryPaths.has(value)) throw new Error("index transition journal created directories are duplicated");
+    directoryPaths.add(value);
+    const path = resolveJournalPath(repoRoot, value, "created directory");
+    if (path === planRoot || !isContained(planRoot, path)
+      || !allowedDestinations.some((destination) => destination !== path && isContained(path, destination))) {
+      throw new Error(`index transition journal created directory is not owned: ${value}`);
+    }
+    return path;
+  });
+
+  return { planPath, immutableFiles, projections, createdDirectories };
+}
+
 export function recoverEstimateSheetIndexTransition(input: {
   repoRoot?: string;
 } = {}): { result: "NO_JOURNAL" | "ROLLED_BACK" | "COMMITTED"; unit_id?: string; run_id?: string } {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const journalPath = transitionJournalPath(repoRoot);
-  if (!existsSync(journalPath)) return { result: "NO_JOURNAL" };
-  return withPlanTransitionLock(repoRoot, { transition: "INDEX_RECOVERY" }, () => {
+  return withPlanTransitionLock(repoRoot, "INDEX_RECOVERY", () => {
+    if (!existsSync(journalPath)) return { result: "NO_JOURNAL" };
     const { journal } = readTransitionJournal(repoRoot);
-    const planPath = resolveJournalPath(repoRoot, journal.plan_path, "plan path");
+    const ownership = validateIndexRecoveryOwnership(repoRoot, journal);
+    const { planPath } = ownership;
     assertRegularFile(planPath, "plan manifest");
     const currentPlanSha256 = sha256File(planPath);
     const committed = currentPlanSha256 === journal.new_plan_sha256;
@@ -394,42 +778,51 @@ export function recoverEstimateSheetIndexTransition(input: {
     if (!committed && !preCommit) throw new Error("plan manifest matches neither side of the unfinished index transition");
 
     if (committed) {
-      for (const immutable of journal.immutable_files) {
-        const path = resolveJournalPath(repoRoot, immutable.path, "immutable evidence");
-        assertRegularFile(path, `immutable evidence ${immutable.path}`);
-        if (sha256File(path) !== immutable.sha256) throw new Error(`immutable evidence hash mismatch during recovery: ${immutable.path}`);
-      }
-      for (const projection of journal.projections) {
-        const path = resolveJournalPath(repoRoot, projection.path, "projection");
-        const immutablePath = resolveJournalPath(repoRoot, projection.immutable_path, "projection immutable source");
-        assertRegularFile(immutablePath, `projection immutable source ${projection.immutable_path}`);
-        if (sha256File(immutablePath) !== projection.new_sha256) throw new Error(`projection immutable source hash mismatch: ${projection.immutable_path}`);
-        const bytes = readFileSync(immutablePath);
-        if (!existsSync(path)) writeNoOverwrite(path, bytes, 0o644);
-        else {
-          assertRegularFile(path, `projection ${projection.path}`);
-          const currentSha256 = sha256File(path);
-          if (currentSha256 !== projection.new_sha256) replaceFileAtomically(path, bytes, currentSha256, 0o644);
+      for (const immutable of ownership.immutableFiles) {
+        assertRegularFile(immutable.path, `immutable evidence ${immutable.entry.path}`);
+        if (sha256File(immutable.path) !== immutable.entry.sha256) {
+          throw new Error(`immutable evidence hash mismatch during recovery: ${immutable.entry.path}`);
         }
-        if (sha256File(path) !== projection.new_sha256) throw new Error(`projection readback mismatch during recovery: ${projection.path}`);
       }
-      removeFileDurably(journalPath);
+      for (const projection of ownership.projections) {
+        assertRegularFile(projection.immutablePath, `projection immutable source ${projection.entry.immutable_path}`);
+        if (sha256File(projection.immutablePath) !== projection.entry.new_sha256) {
+          throw new Error(`projection immutable source hash mismatch: ${projection.entry.immutable_path}`);
+        }
+        if (existsSync(projection.path)) assertRegularFile(projection.path, `projection ${projection.entry.path}`);
+      }
+      for (const projection of ownership.projections) {
+        const bytes = readFileSync(projection.immutablePath);
+        if (!existsSync(projection.path)) writeNoOverwrite(projection.path, bytes, 0o644, repoRoot);
+        else {
+          const currentSha256 = sha256File(projection.path);
+          if (currentSha256 !== projection.entry.new_sha256) {
+            replaceFileAtomically(projection.path, bytes, currentSha256, 0o644, repoRoot);
+          }
+        }
+        if (sha256File(projection.path) !== projection.entry.new_sha256) {
+          throw new Error(`projection readback mismatch during recovery: ${projection.entry.path}`);
+        }
+      }
+      removeFileDurably(journalPath, repoRoot);
       return { result: "COMMITTED", unit_id: journal.unit_id, run_id: journal.run_id };
     }
 
     if (journal.state === "COMMITTED") throw new Error("committed journal cannot be rolled back against the old manifest");
-    decodeJournalBytes(journal.old_plan_bytes_base64, journal.old_plan_sha256, "old plan");
-    decodeJournalBytes(journal.new_plan_bytes_base64, journal.new_plan_sha256, "new plan");
-    for (const projection of [...journal.projections].reverse()) restoreProjectionBeforeCommit(repoRoot, projection);
-    for (const immutable of [...journal.immutable_files].reverse()) {
-      const path = resolveJournalPath(repoRoot, immutable.path, "immutable evidence");
-      if (!existsSync(path)) continue;
-      assertRegularFile(path, `immutable evidence ${immutable.path}`);
-      if (sha256File(path) !== immutable.sha256) throw new Error(`immutable evidence changed before rollback: ${immutable.path}`);
-      removeFileDurably(path);
+    for (const immutable of ownership.immutableFiles) {
+      if (!existsSync(immutable.path)) continue;
+      assertRegularFile(immutable.path, `immutable evidence ${immutable.entry.path}`);
+      if (sha256File(immutable.path) !== immutable.entry.sha256) {
+        throw new Error(`immutable evidence changed before rollback: ${immutable.entry.path}`);
+      }
     }
-    removeCreatedDirectories(repoRoot, journal.created_directories);
-    removeFileDurably(journalPath);
+    for (const projection of [...ownership.projections].reverse()) restoreProjectionBeforeCommit(repoRoot, projection);
+    for (const immutable of [...ownership.immutableFiles].reverse()) {
+      if (!existsSync(immutable.path)) continue;
+      removeFileDurably(immutable.path, repoRoot);
+    }
+    removeCreatedDirectories(ownership.createdDirectories);
+    removeFileDurably(journalPath, repoRoot);
     return { result: "ROLLED_BACK", unit_id: journal.unit_id, run_id: journal.run_id };
   }, { allowJournal: true });
 }
@@ -458,6 +851,8 @@ export function commitEstimateSheetPlanOnlyTransition(input: {
   if (!isContained(input.repoRoot, input.planPath) || !isContained(input.repoRoot, input.journalRoot)) {
     throw new Error("plan-only transition paths must stay inside the repository");
   }
+  ensureDirectoryDurably(input.journalRoot, 0o700, input.repoRoot);
+  assertSymlinkFreeContainedPath(input.repoRoot, input.journalRoot, "plan-only transition journal root");
   if (sha256Hex(input.previousPlanBytes) !== input.expectedPlanSha256) {
     throw new Error("plan-only transition previous bytes do not match the expected plan hash");
   }
@@ -482,18 +877,20 @@ export function commitEstimateSheetPlanOnlyTransition(input: {
       relativePath: relativeToRepo(input.repoRoot, entry.path),
       bytes: entry.bytes,
       sha256: sha256Hex(entry.bytes),
+      trustedRoot: input.journalRoot,
     })),
     {
       absolutePath: transitionPath,
       relativePath: relativeToRepo(input.repoRoot, transitionPath),
       bytes: Buffer.from(`${canonicalJson(transitionRecord)}\n`, "utf8"),
       sha256: sha256Hex(`${canonicalJson(transitionRecord)}\n`),
+      trustedRoot: input.journalRoot,
     },
   ];
   const uniquePaths = new Set(plannedSources.map((source) => source.absolutePath));
   if (uniquePaths.size !== plannedSources.length) throw new Error("plan-only transition durable paths must be unique");
   for (const source of plannedSources) {
-    if (!isContained(input.repoRoot, source.absolutePath)) throw new Error("plan-only transition durable path escapes the repository");
+    if (!isContained(input.journalRoot, source.absolutePath)) throw new Error("plan-only transition durable path escapes its immutable journal root");
     if (existsSync(source.absolutePath)) throw new Error(`immutable transition output already exists: ${source.absolutePath}`);
   }
 
@@ -514,37 +911,38 @@ export function commitEstimateSheetPlanOnlyTransition(input: {
     created_directories: createdDirectories,
     created_at: input.next.updated_at,
   };
-  writeJsonNoOverwrite(journalPath, journal, 0o600);
+  writeJsonNoOverwrite(journalPath, journal, 0o600, input.repoRoot);
   input.faultInjector?.("JOURNAL_PREPARED");
 
   createDurableDirectories(input.repoRoot, createdDirectories);
   for (const source of plannedSources) materializeDurableSource(source);
   input.faultInjector?.("IMMUTABLE_WRITTEN");
 
-  let currentJournal = updateTransitionJournal(journalPath, journal, "PROJECTION_WRITTEN");
+  let currentJournal = updateTransitionJournal(journalPath, journal, "PROJECTION_WRITTEN", input.repoRoot);
   input.faultInjector?.("PROJECTION_WRITTEN");
-  replaceFileAtomically(input.planPath, nextBytes, input.expectedPlanSha256, 0o644);
-  currentJournal = updateTransitionJournal(journalPath, currentJournal, "COMMITTED");
+  replaceFileAtomically(input.planPath, nextBytes, input.expectedPlanSha256, 0o644, dirname(input.planPath));
+  currentJournal = updateTransitionJournal(journalPath, currentJournal, "COMMITTED", input.repoRoot);
   input.faultInjector?.("MANIFEST_COMMITTED");
 
   if (sha256File(input.planPath) !== currentJournal.new_plan_sha256) throw new Error("plan-only transition plan readback mismatch");
   for (const source of plannedSources) {
     if (sha256File(source.absolutePath) !== source.sha256) throw new Error(`plan-only transition output readback mismatch: ${source.relativePath}`);
   }
-  removeFileDurably(journalPath);
+  removeFileDurably(journalPath, input.repoRoot);
 }
 
-function currentRunManifest(repoRoot: string, unitId: string, runId: string): RunManifestV1 {
+function currentRunManifest(repoRoot: string, unitId: EstimateUnit, runId: string): RunManifestV1 {
   const unitRoot = resolve(defaultRunRoot(repoRoot), unitId);
   if (!existsSync(unitRoot)) throw new Error(`run root is missing for ${unitId}/${runId}`);
   const matches = readdirSync(unitRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory()
+      && entry.name.startsWith(`${runId}-`)
+      && /^[0-9a-f]{12}-[0-9a-f]{12}$/u.test(entry.name.slice(runId.length + 1)))
     .map((entry) => resolve(unitRoot, entry.name, "run-manifest.json"))
     .filter((path) => existsSync(path))
-    .map((path) => readJsonFile<RunManifestV1>(path))
+    .map((path) => readAuthoritativeRunManifest(repoRoot, path, unitId))
     .filter((manifest) => manifest.unit_id === unitId && manifest.run_id === runId);
   if (matches.length !== 1) throw new Error(`run manifest identity is ambiguous for ${unitId}/${runId}`);
-  assertRunManifest(matches[0]);
   return matches[0]!;
 }
 
@@ -584,10 +982,8 @@ export function reopenEstimateSheetUnitOne(input: {
   if (!isPlainObject(focusedRun) || typeof focusedRun.run_root !== "string" || typeof focusedRun.run_id !== "string") {
     throw new Error("refreeze focused run binding is invalid");
   }
-  const journalRoot = resolve(repoRoot, focusedRun.run_root);
-  if (!isContained(repoRoot, journalRoot)) throw new Error("refreeze journal root escapes the repository");
 
-  return withPlanTransitionLock(repoRoot, { unit_id: "UNIT-001", refreeze_admission_sha256: sha256File(receiptPath) }, () => {
+  return withPlanTransitionLock(repoRoot, "INDEX", () => {
     const planPath = resolve(planRoot, "plan-pack.json");
     const planFileSha256 = sha256File(planPath);
     const previousPlanBytes = readFileSync(planPath);
@@ -600,6 +996,16 @@ export function reopenEstimateSheetUnitOne(input: {
       || predecessor.index_immutable_path !== plan.runtime_evidence.registry.immutable_path
       || predecessor.index_sha256 !== plan.runtime_evidence.registry.sha256) {
       throw new Error("refreeze predecessor no longer matches the current immutable UNIT-001 index");
+    }
+    const predecessorIndexPath = resolve(planRoot, predecessor.index_immutable_path);
+    const journalRoot = dirname(predecessorIndexPath);
+    const immutableUnitRoot = resolve(defaultImmutableRunRoot(repoRoot), "UNIT-001");
+    const runKey = relative(immutableUnitRoot, journalRoot).split("\\").join("/");
+    if (basename(predecessorIndexPath) !== "evidence-index.json"
+      || !isContained(immutableUnitRoot, predecessorIndexPath)
+      || runKey.includes("/")
+      || !new RegExp(`^${escapedRegExp(predecessor.run_id)}-[0-9a-f]{12}-[0-9a-f]{12}$`, "u").test(runKey)) {
+      throw new Error("refreeze predecessor immutable index path is not canonical");
     }
     const unitTwo = plan.units.find((unit) => unit.id === "UNIT-002");
     if (unitTwo?.status === "IN_PROGRESS") {
@@ -658,20 +1064,20 @@ function exactImmutableRunOutput(
   requested: string,
   basenameValue: string,
 ): string {
-  const expected = resolve(planRoot, "evidence/runtime/runs", manifest.unit_id, manifest.run_id, basenameValue);
+  const expected = resolve(manifest.immutable_run_root, basenameValue);
   const resolved = isAbsolute(requested)
     ? resolve(requested)
     : requested.startsWith("evidence/")
       ? resolve(planRoot, requested)
       : resolve(repoRoot, requested);
-  if (!isContained(planRoot, resolved) || resolved !== expected) {
+  if (!isContained(manifest.immutable_run_root, resolved) || resolved !== expected) {
     throw new Error(`transition output must be the current immutable run path ${relativeToPlan(planRoot, expected)}`);
   }
   return resolved;
 }
 
 function commandRecoveryAttempts(manifest: RunManifestV1): Array<Record<string, unknown>> {
-  const receiptsRoot = resolve(manifest.run_root, "receipts");
+  const receiptsRoot = resolve(manifest.immutable_run_root, "receipts");
   if (!existsSync(receiptsRoot)) return [];
   return readdirSync(receiptsRoot, { withFileTypes: true })
     .filter((entry) => entry.isFile() && /^command-[a-z0-9-]+\.json$/u.test(entry.name))
@@ -713,7 +1119,7 @@ export function writeEstimateSheetTechnicalBlock(input: {
   }
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  return withPlanTransitionLock(repoRoot, { unit_id: "UNIT-011", transition: "TECHNICAL_BLOCK" }, () => {
+  return withPlanTransitionLock(repoRoot, "INDEX", () => {
     const planPath = resolve(planRoot, "plan-pack.json");
     const expectedPlanSha256 = sha256File(planPath);
     const previousPlanBytes = readFileSync(planPath);
@@ -799,7 +1205,7 @@ export function writeEstimateSheetReleaseReopen(input: {
   if (input.supersedingReleaseEvidence !== "auto:release") throw new Error("release reopen requires auto:release evidence");
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  return withPlanTransitionLock(repoRoot, { unit_id: "UNIT-011", transition: "RELEASE_REOPEN" }, () => {
+  return withPlanTransitionLock(repoRoot, "INDEX", () => {
     const planPath = resolve(planRoot, "plan-pack.json");
     const expectedPlanSha256 = sha256File(planPath);
     const previousPlanBytes = readFileSync(planPath);
@@ -879,7 +1285,7 @@ export function writeEstimateSheetFinalCloseout(input: {
   if (input.releaseEvidence !== "auto:release") throw new Error("final closeout requires auto:release evidence");
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  return withPlanTransitionLock(repoRoot, { unit_id: "UNIT-011", transition: "FINAL_CLOSEOUT" }, () => {
+  return withPlanTransitionLock(repoRoot, "INDEX", () => {
     const planPath = resolve(planRoot, "plan-pack.json");
     const expectedPlanSha256 = sha256File(planPath);
     const previousPlanBytes = readFileSync(planPath);
@@ -1023,9 +1429,10 @@ function assertZeroCounts(value: unknown, label: string): void {
 }
 
 function resolveLocalCleanupReceipt(manifest: RunManifestV1, value: string): string {
-  const path = value === "auto:cleanup"
-    ? ensureContainedRunPath(manifest.run_root, "cleanup-receipt.json")
+  const candidate = value === "auto:cleanup"
+    ? resolveManifestLogicalOutput(manifest, "cleanup")
     : ensureContainedRunPath(manifest.run_root, value);
+  const path = asInsideRun(manifest, candidate, "local cleanup receipt");
   const receipt = readJsonFile<Record<string, unknown>>(path);
   if (receipt.schema_version !== "estimate-sheet-cleanup-receipt.v1"
     || receipt.unit_id !== manifest.unit_id
@@ -1065,7 +1472,11 @@ function resolveEmbeddedHostedCleanup(manifest: RunManifestV1, report: Performan
   if (!isPlainObject(wrapper.embedded_receipt) || typeof wrapper.immutable_path !== "string" || !isSha256(wrapper.sha256)) {
     throw new Error("hosted cleanup wrapper is invalid");
   }
-  const path = ensureContainedRunPath(manifest.run_root, wrapper.immutable_path);
+  const path = asInsideRun(
+    manifest,
+    ensureContainedRunPath(manifest.run_root, wrapper.immutable_path),
+    "hosted cleanup receipt",
+  );
   const receipt = readJsonFile<Record<string, unknown>>(path);
   if (sha256File(path) !== wrapper.sha256 || canonicalJson(receipt) !== canonicalJson(wrapper.embedded_receipt)) {
     throw new Error("hosted cleanup embedded/external receipt mismatch");
@@ -1152,10 +1563,11 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
   const immutableRunRoot = resolve(input.immutableRunRoot ?? defaultImmutableRunRoot(repoRoot));
-  const manifest = readJsonFile<RunManifestV1>(resolve(input.runManifest));
-  assertRunManifest(manifest);
+  const runManifestPath = resolve(input.runManifest);
+  const lockedManifest = readAuthoritativeRunManifest(repoRoot, runManifestPath);
 
-  return withTransitionLock(repoRoot, manifest, () => {
+  return withTransitionLock(repoRoot, lockedManifest, () => {
+    const manifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, lockedManifest.unit_id);
     const planPath = resolve(planRoot, "plan-pack.json");
     const planFileSha256 = sha256File(planPath);
     const plan = readJsonFile<EstimateSheetPlanManifest>(planPath);
@@ -1240,7 +1652,9 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
       ...(input.dependencies ?? []).map((path) => asInsideRun(manifest, resolveRunArtifact(manifest, path), "dependency source")),
       ...gatePaths,
     ];
-    const admissionPath = manifest.admissionPath ? asInsideRun(manifest, manifest.admissionPath, "admission dependency") : undefined;
+    const admissionPath = manifest.admissionPath
+      ? asInsideRun(manifest, resolve(manifest.immutable_run_root, manifest.admissionPath), "admission dependency")
+      : undefined;
     const admissionRequiredUnits = new Set(["UNIT-001", "UNIT-005", "UNIT-006", "UNIT-007", "UNIT-008", "UNIT-009", "UNIT-010", "UNIT-011"]);
     if (admissionRequiredUnits.has(manifest.unit_id) && !admissionPath) throw new Error(`${manifest.unit_id} index requires its immutable admission dependency`);
     if (admissionPath && sha256File(admissionPath) !== manifest.admissionSha256) throw new Error("admission dependency hash mismatch");
@@ -1275,8 +1689,8 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
     for (const entry of secondary) {
       if (!isContained(durableRoot, entry.evidencePath)) throw new Error(`secondary evidence ${entry.role} is not a canonical immutable run output`);
     }
-    const durablePrimary = bindExistingDurableSource(planRoot, evidencePath);
-    const durableSecondary = secondary.map((entry) => bindExistingDurableSource(planRoot, entry.evidencePath));
+    const durablePrimary = bindExistingDurableSource(planRoot, manifest, evidencePath);
+    const durableSecondary = secondary.map((entry) => bindExistingDurableSource(planRoot, manifest, entry.evidencePath));
     const durableProofChildren = proofChildren.map((child, index) => {
       if (!/^[a-z0-9][a-z0-9-]*$/u.test(child.role)) throw new Error(`proof child role is not path-safe: ${child.role}`);
       const destination = resolve(
@@ -1284,18 +1698,24 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
         "dependencies/proof-children",
         `${String(index + 1).padStart(2, "0")}-${child.role}${extname(child.absolutePath) || ".json"}`,
       );
-      const durable = planDurableCopy(planRoot, child.absolutePath, destination);
+      const durable = planDurableCopy(planRoot, manifest, child.absolutePath, destination);
       if (durable.sha256 !== child.sha256) throw new Error(`proof child ${child.role} changed before durable copy`);
       return durable;
     });
     const ordinaryDependencyPaths = [...dependencyPaths, ...(admissionPath ? [admissionPath] : [])];
     const durableOrdinaryDependencies = ordinaryDependencyPaths.map((path, index) => planDurableCopy(
       planRoot,
+      manifest,
       path,
       resolve(durableRoot, "dependencies", `${String(index + 1).padStart(2, "0")}-${basename(path)}`),
     ));
     const durableDependencies = [...durableProofChildren, ...durableOrdinaryDependencies];
-    const durableCleanup = cleanupPath ? planDurableCopy(planRoot, cleanupPath, resolve(durableRoot, "cleanup", basename(cleanupPath))) : undefined;
+    const cleanupAlreadyDurable = cleanupPath ? isContained(durableRoot, cleanupPath) : false;
+    const durableCleanup = cleanupPath
+      ? cleanupAlreadyDurable
+        ? bindExistingDurableSource(planRoot, manifest, cleanupPath)
+        : planDurableCopy(planRoot, manifest, cleanupPath, resolve(durableRoot, "cleanup", basename(cleanupPath)))
+      : undefined;
 
     const createdAt = nowIso();
     const payload = {
@@ -1389,10 +1809,14 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
         immutable,
       };
     });
-    const boundExistingSources = [durablePrimary, ...durableSecondary];
+    const boundExistingSources = [
+      durablePrimary,
+      ...durableSecondary,
+      ...(cleanupAlreadyDurable && durableCleanup ? [durableCleanup] : []),
+    ];
     const plannedDurableSources = [
       ...durableDependencies,
-      ...(durableCleanup ? [durableCleanup] : []),
+      ...(!cleanupAlreadyDurable && durableCleanup ? [durableCleanup] : []),
       durableIndex,
     ];
     const journalPath = transitionJournalPath(repoRoot);
@@ -1427,7 +1851,7 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
       created_directories: createdDirectories,
       created_at: createdAt,
     };
-    writeJsonNoOverwrite(journalPath, journal, 0o600);
+    writeJsonNoOverwrite(journalPath, journal, 0o600, repoRoot);
     input.faultInjector?.("JOURNAL_PREPARED");
 
     createDurableDirectories(repoRoot, createdDirectories);
@@ -1443,13 +1867,14 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
         bytes: replacement.newBytes,
         expectedExists: replacement.expectedExists,
         expectedSha256: replacement.expectedSha256,
+        trustedRoot: repoRoot,
       });
     }
-    let currentJournal = updateTransitionJournal(journalPath, journal, "PROJECTION_WRITTEN");
+    let currentJournal = updateTransitionJournal(journalPath, journal, "PROJECTION_WRITTEN", repoRoot);
     input.faultInjector?.("PROJECTION_WRITTEN");
 
-    replaceFileAtomically(planPath, newPlanBytes, planFileSha256, 0o644);
-    currentJournal = updateTransitionJournal(journalPath, currentJournal, "COMMITTED");
+    replaceFileAtomically(planPath, newPlanBytes, planFileSha256, 0o644, repoRoot);
+    currentJournal = updateTransitionJournal(journalPath, currentJournal, "COMMITTED", repoRoot);
     input.faultInjector?.("MANIFEST_COMMITTED");
 
     if (sha256File(planPath) !== currentJournal.new_plan_sha256) throw new Error("committed plan manifest readback mismatch");
@@ -1462,7 +1887,7 @@ export function updateEstimateSheetPerformanceEvidenceIndex(input: {
     for (const replacement of replacements) {
       if (sha256File(replacement.target) !== replacement.newSha256) throw new Error(`projection readback mismatch: ${relativeToPlan(planRoot, replacement.target)}`);
     }
-    removeFileDurably(journalPath);
+    removeFileDurably(journalPath, repoRoot);
     return { index, indexPath, projectionPath: primaryProjection };
   });
 }

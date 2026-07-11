@@ -4,7 +4,6 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   lstatSync,
-  mkdirSync,
   readdirSync,
   readFileSync,
   readlinkSync,
@@ -20,6 +19,7 @@ import {
   cliString,
   createRunId,
   defaultPlanRoot,
+  ensureDirectoryDurably,
   fingerprintContentEqual,
   isContained,
   isSafeRelativePath,
@@ -37,6 +37,7 @@ import {
   type SourceFingerprint,
   type TestReceiptV1,
 } from "./lib/estimate-sheet-performance-contract";
+import { readFocusedRefreezeBinding } from "./lib/estimate-sheet-performance-test-receipt";
 
 const CONTRACT_VERSION = "estimate-sheet-source-fingerprint.v2";
 const APPLICATION_CONTRACT_VERSION = "estimate-sheet-application-fingerprint.v1";
@@ -726,7 +727,7 @@ function recordPredecessorAdmission(input: {
     require_producer_equality: input.requireProducerEquality,
     created_at: new Date().toISOString(),
   });
-  writeJsonNoOverwrite(assertAdmissionOutputPath(input.repoRoot, input.output), receipt, 0o600);
+  writeJsonNoOverwrite(assertAdmissionOutputPath(input.repoRoot, input.output), receipt, 0o600, input.repoRoot);
   return receipt;
 }
 
@@ -755,8 +756,8 @@ function recordRefreezeAdmission(input: {
   const outputPath = assertAdmissionOutputPath(input.repoRoot, input.output);
   const focusedRunId = createRunId();
   const focusedRunRoot = `${outputPath.slice(0, -".json".length)}.run`;
-  mkdirSync(resolve(outputPath, ".."), { recursive: true, mode: 0o700 });
-  mkdirSync(focusedRunRoot, { recursive: false, mode: 0o700 });
+  ensureDirectoryDurably(resolve(outputPath, ".."), 0o700, input.repoRoot);
+  ensureDirectoryDurably(focusedRunRoot, 0o700, input.repoRoot);
   const createdAt = new Date().toISOString();
   const run: RunManifestV1 = {
     schema_version: "estimate-sheet-performance-run.v1",
@@ -776,7 +777,8 @@ function recordRefreezeAdmission(input: {
     mutationJournal: [],
     previewProcesses: [],
   };
-  writeJsonNoOverwrite(resolve(focusedRunRoot, "run-manifest.json"), run, 0o600);
+  const runManifestPath = resolve(focusedRunRoot, "run-manifest.json");
+  writeJsonNoOverwrite(runManifestPath, run, 0o600, focusedRunRoot);
   writeJsonNoOverwrite(run.pointer_path, {
     schema_version: "estimate-sheet-performance-run-pointer.v1",
     unit_id: run.unit_id,
@@ -785,7 +787,7 @@ function recordRefreezeAdmission(input: {
     run_manifest: "run-manifest.json",
     application_fingerprint: current.application.content_sha256,
     producer_fingerprint: current.producer.content_sha256,
-  }, 0o600);
+  }, 0o600, focusedRunRoot);
   const receipt = payloadWithHash({
     schema_version: "estimate-sheet-refreeze-admission.v1",
     status: "RECORDED",
@@ -801,12 +803,14 @@ function recordRefreezeAdmission(input: {
     focused_run: {
       run_id: focusedRunId,
       run_root: relative(input.repoRoot, focusedRunRoot).split(sep).join("/"),
+      unit_id: "UNIT-002",
       receipt_role: "refreeze-tests",
+      run_manifest_sha256: sha256File(runManifestPath),
     },
     created_at: createdAt,
   });
   try {
-    writeJsonNoOverwrite(outputPath, receipt, 0o600);
+    writeJsonNoOverwrite(outputPath, receipt, 0o600, input.repoRoot);
   } catch (error) {
     try { rmSync(focusedRunRoot, { recursive: true, force: true }); } catch { /* preserve primary error */ }
     throw error;
@@ -841,14 +845,11 @@ function finalizeRefreezeAdmission(input: {
     || admissionHash !== sha256Json(admissionPayload)) {
     throw new Error("refreeze admission is invalid");
   }
-  const focusedRun = admission.focused_run as Record<string, unknown>;
-  if (!focusedRun || focusedRun.receipt_role !== input.testsRole || typeof focusedRun.run_root !== "string" || typeof focusedRun.run_id !== "string") {
-    throw new Error("refreeze focused run binding is invalid");
-  }
-  const receiptPath = resolve(input.repoRoot, focusedRun.run_root, "receipts", `${input.testsRole}.json`);
+  const focusedBinding = readFocusedRefreezeBinding(input.repoRoot, admissionAbsolute, input.testsRole);
+  const receiptPath = focusedBinding.receiptPath;
   const testReceipt = readJsonFile<TestReceiptV1>(receiptPath);
   assertTestReceipt(testReceipt);
-  if (testReceipt.unit_id !== "UNIT-002" || testReceipt.run_id !== focusedRun.run_id || testReceipt.overall !== "PASS" || testReceipt.failed !== 0 || testReceipt.passed < 1) {
+  if (testReceipt.unit_id !== focusedBinding.unitId || testReceipt.run_id !== focusedBinding.runId || testReceipt.overall !== "PASS" || testReceipt.failed !== 0 || testReceipt.passed < 1) {
     throw new Error("refreeze focused test receipt is not a passing UNIT-002 receipt");
   }
   if (!testReceipt.files.some((path) => path.replaceAll("\\", "/").endsWith("tests/vitest/estimate-sheet-version-control-actions.test.ts"))) {
@@ -897,7 +898,8 @@ function finalizeRefreezeAdmission(input: {
     invalidated_ids: ["UNIT-001", "EVID-002", "UNIT-002", "UNIT-003", "UNIT-004"],
     finalized_at: new Date().toISOString(),
   });
-  writeJsonNoOverwrite(finalizedRefreezeReceiptPath(admissionAbsolute), payload, 0o600);
+  readFocusedRefreezeBinding(input.repoRoot, admissionAbsolute, input.testsRole);
+  writeJsonNoOverwrite(finalizedRefreezeReceiptPath(admissionAbsolute), payload, 0o600, input.repoRoot);
   return payload;
 }
 
@@ -1080,7 +1082,7 @@ export function main(argv = process.argv.slice(2)): number {
   const result = compareReference
     ? compareEstimateSheetSourceFingerprintReference({ repoRoot, referencePath: compareReference, verify })
     : computeEstimateSheetSourceFingerprint({ repoRoot, verify });
-  if (output) writeNoOverwrite(resolve(repoRoot, output), result.bytes, 0o600);
+  if (output) writeNoOverwrite(resolve(repoRoot, output), result.bytes, 0o600, repoRoot);
   else process.stdout.write(result.bytes);
   return 0;
 }

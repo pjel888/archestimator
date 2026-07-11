@@ -6,12 +6,10 @@ import { resolve } from "node:path";
 
 import {
   assertRegularFile,
-  assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
   defaultPlanRoot,
-  ensureContainedRunPath,
   fingerprintContentEqual,
   isContained,
   isPlainObject,
@@ -19,7 +17,9 @@ import {
   isSha256,
   normalizeArgv,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Json,
@@ -277,7 +277,7 @@ export function validateActivatedTestReporterReceipt(
   child: SpawnSyncReturns<string>,
   repoRoot: string,
 ): void {
-  const receipt = readTestReceipt(receiptPath);
+  const receipt = readTestReceipt(receiptPath, manifest.immutable_run_root ?? manifest.run_root);
   if (receipt.unit_id !== "UNIT-010" || receipt.run_id !== manifest.run_id
     || !fingerprintContentEqual(receipt.application_fingerprint, manifest.applicationFingerprint)
     || !fingerprintContentEqual(receipt.producer_fingerprint, manifest.producerFingerprint)) {
@@ -310,8 +310,8 @@ export function runEstimateSheetActivatedTests(input: {
 }): { files: string[]; command: string[]; exitCode: number; receiptPath: string } {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  const manifest = readJsonFile<RunManifestV1>(resolve(input.runManifest));
-  assertRunManifest(manifest);
+  const manifestPath = resolve(input.runManifest);
+  const manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, "UNIT-010");
   if (manifest.unit_id !== "UNIT-010") throw new Error("activated-test runner requires the prepared UNIT-010 run");
   const plan = readJsonFile<RuntimePlan>(resolve(planRoot, "plan-pack.json"));
   if (plan.runtime_evidence.latest_unit_id !== "UNIT-010" || plan.runtime_evidence.latest_run_id !== manifest.run_id) {
@@ -332,7 +332,7 @@ export function runEstimateSheetActivatedTests(input: {
 
   const files = resolveActivatedEstimateTests({ decision, repoRoot });
   const command = ["bun", "run", "test:dom", "--", ...files, "--maxWorkers=1"];
-  const receiptPath = ensureContainedRunPath(manifest.run_root, "receipts/dom-tests.json");
+  const receiptPath = resolveManifestLogicalOutput(manifest, "dom-tests");
   if (existsSync(receiptPath)) throw new Error("activated-test receipt already exists before the conditional reporter runs");
   const env = { ...process.env };
   delete env.ESTIMATE_PERF_FIXTURE_ROLE;
@@ -341,7 +341,8 @@ export function runEstimateSheetActivatedTests(input: {
   env.ESTIMATE_PERF_TEST_OUTPUT_ROLE = "dom-tests";
   env.ESTIMATE_PERF_RUN_ROOT = manifest.run_root;
   env.ESTIMATE_PERF_RUN_ID = manifest.run_id;
-  env.ESTIMATE_PERF_RUN_MANIFEST = resolve(input.runManifest);
+  env.ESTIMATE_PERF_RUN_MANIFEST = manifestPath;
+  readAuthoritativeRunManifest(repoRoot, manifestPath, "UNIT-010");
   const spawn = input.spawn ?? spawnSync;
   const child = spawn(command[0]!, command.slice(1), {
     cwd: repoRoot,
@@ -352,6 +353,7 @@ export function runEstimateSheetActivatedTests(input: {
   }) as SpawnSyncReturns<string>;
   if (child.error) throw child.error;
   if (child.status === null) throw new Error(`activated-test child terminated without an exit code${child.signal ? ` (${child.signal})` : ""}`);
+  readAuthoritativeRunManifest(repoRoot, manifestPath, "UNIT-010");
   if (!existsSync(receiptPath)) throw new Error("activated-test conditional reporter did not write its receipt");
   validateActivatedTestReporterReceipt(receiptPath, manifest, files, child, repoRoot);
   return { files, command, exitCode: child.status === 0 ? 0 : 1, receiptPath };

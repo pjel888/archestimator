@@ -12,7 +12,6 @@ import {
   PERFORMANCE_BUDGETS,
   assertPerformanceReport,
   assertRegularFile,
-  assertRunManifest,
   assertTestReceipt,
   canonicalJson,
   cliBoolean,
@@ -25,13 +24,14 @@ import {
   isSafeRelativePath,
   isSha256,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
   resolveManifestLogicalOutput,
   sha256File,
   sha256Hex,
   sha256Json,
   validateFingerprintContent,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
   type FingerprintContent,
   type PerformanceReportV1,
   type RunManifestV1,
@@ -586,8 +586,8 @@ export function writeEstimateSheetBottleneckDecision(input: {
 }): { decision: BottleneckDecisionV1; outputPath: string } {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const planRoot = resolve(input.planRoot ?? defaultPlanRoot(repoRoot));
-  const manifest = readJsonFile<RunManifestV1>(resolve(input.runManifest));
-  assertRunManifest(manifest);
+  const runManifestPath = resolve(input.runManifest);
+  const manifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, "UNIT-004");
   if (manifest.unit_id !== "UNIT-004" || manifest.cleanupRequirement !== "NOT_APPLICABLE"
     || manifest.previewProcesses.length || manifest.mutationJournal.length || Object.keys(manifest.namespaces).length) {
     throw new Error("decision requires the prepared side-effect-free UNIT-004 run");
@@ -672,10 +672,15 @@ export function writeEstimateSheetBottleneckDecision(input: {
   };
   const decision: BottleneckDecisionV1 = { ...payload, payload_sha256: sha256Json(payload) };
   assertBottleneckDecision(decision);
-  const outputPath = input.output === undefined || input.output === "auto:decision"
+  const immutableOutput = input.output === undefined || input.output === "auto:decision";
+  const outputPath = immutableOutput
     ? resolveManifestLogicalOutput(manifest, "decision")
     : ensureContainedRunPath(manifest.run_root, input.output);
-  writeJsonNoOverwrite(outputPath, decision, 0o600);
+  const refreshedManifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, "UNIT-004");
+  if (canonicalJson(refreshedManifest) !== canonicalJson(manifest)) {
+    throw new Error("decision run manifest changed before publication");
+  }
+  writeRunJsonNoOverwrite(manifest, outputPath, decision, 0o600);
   return { decision, outputPath };
 }
 

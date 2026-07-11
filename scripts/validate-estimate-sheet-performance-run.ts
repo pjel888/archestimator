@@ -6,7 +6,6 @@ import { basename, relative, resolve } from "node:path";
 import {
   CLEANUP_RECEIPT_SCHEMA,
   MODE_PROOF_SCHEMA,
-  assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
@@ -14,7 +13,10 @@ import {
   fingerprintContentEqual,
   isPlainObject,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
+  requireUnit,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
@@ -249,7 +251,7 @@ function validatePreviewDescriptor(
   let routePath = "";
   try { routePath = resolveBenchmarkRoutePath(manifest); }
   catch (error) { errors.push(`${prefix} route contract is invalid: ${error instanceof Error ? error.message : String(error)}`); }
-  const buildReceiptPath = resolve(manifest.run_root, "receipts/command-opennext-build.json");
+  const buildReceiptPath = resolveManifestLogicalOutput(manifest, "opennext-build");
   const descriptorErrors = [
     descriptor.schema_version !== "estimate-sheet-benchmark-server.v1" ? "schema" : null,
     descriptor.unit_id !== manifest.unit_id || descriptor.run_id !== manifest.run_id ? "run identity" : null,
@@ -258,7 +260,7 @@ function validatePreviewDescriptor(
     descriptor.base_url !== `http://127.0.0.1:${entry.port}` || descriptor.route_path !== routePath ? "route origin" : null,
     canonicalJson(descriptor.command) !== canonicalJson(exactCommand) || entry.command_sha256 !== sha256Hex(canonicalJson(exactCommand)) ? "exact command" : null,
     descriptor.launched !== true || descriptor.readiness !== "READY" || typeof descriptor.active !== "boolean" ? "launch/readiness" : null,
-    descriptor.build_receipt !== relative(manifest.run_root, buildReceiptPath)
+    descriptor.build_receipt !== manifest.logical_outputs["opennext-build"]
       || !existsSync(buildReceiptPath)
       || descriptor.build_receipt_sha256 !== sha256File(buildReceiptPath) ? "build receipt" : null,
     descriptor.build_hash !== entry.build_hash || !isSha256(descriptor.build_hash) ? "build hash" : null,
@@ -427,7 +429,7 @@ function validateCleanupReceipt(
   errors: string[],
   requireCleanup: boolean,
 ): boolean {
-  const path = resolve(manifest.run_root, "cleanup-receipt.json");
+  const path = resolveManifestLogicalOutput(manifest, "cleanup");
   if (!existsSync(path)) {
     if (requireCleanup) errors.push("cleanup receipt is required but absent");
     if (manifest.cleanupReceipt !== undefined || manifest.cleanupReceiptSha256 !== undefined) errors.push("manifest binds an absent cleanup receipt");
@@ -506,7 +508,7 @@ function validateCleanupReceipt(
 }
 
 function validateModeProof(manifest: RuntimeValidationManifest, artifacts: string[], errors: string[]): void {
-  const path = resolve(manifest.run_root, "mode-proof.json");
+  const path = resolveManifestLogicalOutput(manifest, "mode-proof");
   if (!existsSync(path)) return;
   if (!privateRegular(path, "mode proof", errors)) return;
   artifacts.push(path);
@@ -572,8 +574,8 @@ export async function validateEstimateSheetPerformanceRun(input: {
   let manifest: RuntimeValidationManifest;
   try {
     if (!privateRegular(manifestPath, "run manifest", errors)) throw new Error(errors.at(-1) ?? "run manifest unavailable");
-    manifest = readJsonFile<RuntimeValidationManifest>(manifestPath);
-    assertRunManifest(manifest);
+    const expectedUnit = input.unit ?? requireUnit(relative(defaultRunRoot(repoRoot), manifestPath).replaceAll("\\", "/").split("/")[0]);
+    manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, expectedUnit) as RuntimeValidationManifest;
     artifacts.push(manifestPath);
   } catch (error) {
     return {
@@ -645,7 +647,7 @@ export async function validateEstimateSheetPerformanceRun(input: {
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));
     }
-    const buildReceiptPath = resolve(manifest.run_root, "receipts/command-opennext-build.json");
+    const buildReceiptPath = resolveManifestLogicalOutput(manifest, "opennext-build");
     if (existsSync(buildReceiptPath) || input.requireBuild) {
       try {
         const build = validateOpenNextBuildReceipt(manifest, repoRoot);
@@ -675,8 +677,8 @@ export async function validateEstimateSheetPerformanceRun(input: {
   validateModeProof(manifest, artifacts, errors);
   const hasValidatedBuild = manifest.evidence_class === "local-browser"
     && buildValid
-    && existsSync(resolve(manifest.run_root, "receipts/command-opennext-build.json"));
-  const stage: ValidationStage = cleanupValid && existsSync(resolve(manifest.run_root, "cleanup-receipt.json"))
+    && existsSync(resolveManifestLogicalOutput(manifest, "opennext-build"));
+  const stage: ValidationStage = cleanupValid && existsSync(resolveManifestLogicalOutput(manifest, "cleanup"))
     ? "cleaned"
     : manifest.activePreview !== undefined
       ? "active"
@@ -709,8 +711,9 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log("Usage: bun run scripts/validate-estimate-sheet-performance-run.ts --unit=UNIT-002 [--run-manifest=PATH] [--require-build] [--require-active-preview] [--require-cleanup] [--no-source-check]");
     return 0;
   }
+  const unit = cliString(values, "unit");
   const result = await validateEstimateSheetPerformanceRun({
-    unit: cliString(values, "unit") as EstimateUnit | undefined,
+    unit: unit === undefined ? undefined : requireUnit(unit),
     runId: cliString(values, "run-id"),
     runManifest: cliString(values, "run-manifest"),
     runRoot: cliString(values, "run-root"),

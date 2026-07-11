@@ -25,7 +25,7 @@ import {
   PERFORMANCE_ATTEMPT_SCHEMA,
   assertPerformanceReport,
   assertRegularFile,
-  assertRunManifest,
+  assertSymlinkFreeContainedPath,
   assertTestReceipt,
   canonicalJson,
   cliBoolean,
@@ -36,6 +36,7 @@ import {
   isPlainObject,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
   replaceFileAtomically,
   resolveManifestLogicalOutput,
@@ -45,6 +46,7 @@ import {
   sha256Json,
   writeJsonNoOverwrite,
   writeNoOverwrite,
+  writeRunJsonNoOverwrite,
   type PerformanceReportV1,
   type EstimateOutputRole,
   type RunManifestV1,
@@ -580,7 +582,7 @@ function runSqlStage(input: {
   runner: HostedCommandRunner;
 }): { stage: StageRecord; envelopes: WranglerEnvelope[]; sqlPath: string } {
   const sqlPath = resolve(input.fixtureRoot, `${input.role}.sql`);
-  writeNoOverwrite(sqlPath, input.sql, 0o600);
+  writeNoOverwrite(sqlPath, input.sql, 0o600, input.fixtureRoot);
   const started = Date.now();
   const command = input.runner("bunx", ["wrangler", "d1", "execute", DATABASE_BINDING, "--remote", "--file", sqlPath, "--json"], {
     cwd: input.repoRoot,
@@ -802,19 +804,25 @@ function rawCleanupPayload(input: Omit<RawCleanupManifest, "payload_sha256">): R
   return sha256Record(payload as Omit<RawCleanupManifest, "payload_sha256">) as RawCleanupManifest;
 }
 
-function replaceCleanupManifest(path: string, input: Omit<RawCleanupManifest, "payload_sha256">): RawCleanupManifest {
+function replaceCleanupManifest(path: string, input: Omit<RawCleanupManifest, "payload_sha256">, trustedRoot: string): RawCleanupManifest {
   const value = rawCleanupPayload(input);
-  replaceFileAtomically(path, `${canonicalJson(value)}\n`, sha256File(path), 0o600);
+  replaceFileAtomically(path, `${canonicalJson(value)}\n`, sha256File(path), 0o600, trustedRoot);
   return value;
 }
 
 function resolveDependencyPath(manifest: RunManifestV1, value: string, kind: "tests" | "gate"): string {
-  if (value.startsWith("auto:")) {
+  const immutable = value.startsWith("auto:");
+  const path = immutable ? (() => {
     const role = value.slice("auto:".length);
     void kind;
     return resolveManifestLogicalOutput(manifest, role as EstimateOutputRole);
-  }
-  return ensureContainedRunPath(manifest.run_root, value);
+  })() : ensureContainedRunPath(manifest.run_root, value);
+  return assertSymlinkFreeContainedPath(
+    immutable ? manifest.immutable_run_root : manifest.run_root,
+    path,
+    `hosted ${kind} dependency`,
+    { requireRegularFile: true, requireSingleLink: true },
+  );
 }
 
 function validateTestDependency(manifest: RunManifestV1, value: string): { path: string; sha256: string } {
@@ -828,6 +836,10 @@ function validateTestDependency(manifest: RunManifestV1, value: string): { path:
     || !fingerprintContentEqual(receipt.producer_fingerprint, manifest.producerFingerprint)) {
     throw new Error("HOSTED_TEST_RECEIPT_FINGERPRINT_MISMATCH");
   }
+  assertSymlinkFreeContainedPath(value.startsWith("auto:") ? manifest.immutable_run_root : manifest.run_root, path, "hosted test dependency", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
   return { path, sha256: sha256File(path) };
 }
 
@@ -845,6 +857,10 @@ function validateGateDependency(manifest: RunManifestV1, value: string, expected
     || !fingerprintContentEqual(receipt.producer_fingerprint, manifest.producerFingerprint)) {
     throw new Error("HOSTED_GATE_FINGERPRINT_MISMATCH");
   }
+  assertSymlinkFreeContainedPath(value.startsWith("auto:") ? manifest.immutable_run_root : manifest.run_root, path, "hosted gate dependency", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
   return { path, sha256: sha256File(path) };
 }
 
@@ -868,7 +884,7 @@ function writeAttempt(manifest: RunManifestV1, result: "BLOCKED" | "FAIL", block
   };
   const attempt = sha256Record(payload) as HostedD1Attempt;
   const output = ensureContainedRunPath(manifest.run_root, "attempts/hosted-d1-attempt.json");
-  writeJsonNoOverwrite(output, attempt, 0o600);
+  writeRunJsonNoOverwrite(manifest, output, attempt, 0o600);
   return { attempt, output };
 }
 
@@ -1014,10 +1030,11 @@ function writeHostedReport(input: {
   if (serialized.includes("aeperf:") || /(?:authorization|cookie|secret|token|password)\s*[=:]/iu.test(serialized)) {
     throw new Error("HOSTED_REPORT_CONTAINS_SENSITIVE_MATERIAL");
   }
-  const output = input.output === undefined || input.output === "auto:hosted"
+  const immutableOutput = input.output === undefined || input.output === "auto:hosted";
+  const output = immutableOutput
     ? resolveManifestLogicalOutput(input.manifest, "hosted")
     : ensureContainedRunPath(input.manifest.run_root, input.output);
-  writeJsonNoOverwrite(output, report, 0o600);
+  writeRunJsonNoOverwrite(input.manifest, output, report, 0o600);
   return { report, output };
 }
 
@@ -1083,7 +1100,7 @@ export function recoverEstimateSheetHostedD1Cleanup(input: {
       remaining: observedBefore,
       prior_state: current.state,
       updated_at: nowIso(),
-    });
+    }, fixtureRoot);
     const cleaned = runRecoveryStage("recovery-cleanup", buildCleanupSql(current.ids));
     parseDeletedCounts(cleaned.envelopes);
     current = replaceCleanupManifest(cleanupPath, {
@@ -1091,7 +1108,7 @@ export function recoverEstimateSheetHostedD1Cleanup(input: {
       state: "DELETE_ACKED",
       prior_state: current.state,
       updated_at: nowIso(),
-    });
+    }, fixtureRoot);
   }
   const after = runRecoveryStage("recovery-reconciliation-after", buildReconciliationSql(current.ids));
   const remaining = parseCounts(after.envelopes);
@@ -1109,7 +1126,7 @@ export function recoverEstimateSheetHostedD1Cleanup(input: {
     remaining,
     prior_state: current.state,
     updated_at: nowIso(),
-  });
+  }, fixtureRoot);
   const payload = {
     schema_version: HOSTED_RECOVERY_SCHEMA,
     unit_id: "UNIT-011" as const,
@@ -1128,7 +1145,7 @@ export function recoverEstimateSheetHostedD1Cleanup(input: {
     generated_at: nowIso(),
   };
   const receipt = sha256Record(payload) as HostedCleanupRecoveryReceipt;
-  writeJsonNoOverwrite(receiptPath, receipt, 0o600);
+  writeJsonNoOverwrite(receiptPath, receipt, 0o600, fixtureRoot);
   unlinkSync(cleanupPath);
   fsyncDirectory(fixtureRoot);
   removeRawStageFiles(rawPaths);
@@ -1147,8 +1164,15 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
   commandRunner?: HostedCommandRunner;
 }): HostedExecutionResult {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
-  const manifest = readJsonFile<RunManifestV1>(resolve(input.runManifest));
-  assertRunManifest(manifest);
+  const runManifestPath = resolve(input.runManifest);
+  const manifest = readAuthoritativeRunManifest(repoRoot, runManifestPath, "UNIT-011");
+  const refreshManifest = (): RunManifestV1 => {
+    const refreshed = readAuthoritativeRunManifest(repoRoot, runManifestPath, "UNIT-011");
+    if (canonicalJson(refreshed) !== canonicalJson(manifest)) {
+      throw new Error("hosted D1 run manifest changed during proof execution");
+    }
+    return refreshed;
+  };
   if (manifest.unit_id !== "UNIT-011" || manifest.status !== "PREPARED" || manifest.cleanupRequirement !== "REQUIRED") {
     throw new Error("hosted D1 proof requires a PREPARED UNIT-011 run with REQUIRED cleanup");
   }
@@ -1217,6 +1241,7 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
   const cleanupPath = resolve(fixtureRoot, "cleanup.json");
 
   try {
+    refreshManifest();
     const preflight = runSqlStage({ repoRoot, fixtureRoot, role: "preflight", sql: "SELECT sqlite_version() AS sqlite_version;\n", runner });
     executed = true;
     stages.push(preflight.stage);
@@ -1240,8 +1265,8 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
       remaining: seededExpected,
       prior_state: null,
       updated_at: nowIso(),
-    });
-    writeJsonNoOverwrite(cleanupPath, cleanupManifest, 0o600);
+    }, fixtureRoot);
+    writeJsonNoOverwrite(cleanupPath, cleanupManifest, 0o600, fixtureRoot);
 
     const seed = runSqlStage({ repoRoot, fixtureRoot, role: "seed", sql: buildSeedSql(ids), runner });
     stages.push(seed.stage);
@@ -1257,7 +1282,7 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
       remaining: seededCounts,
       prior_state: cleanupManifest.state,
       updated_at: nowIso(),
-    });
+    }, fixtureRoot);
 
     for (const surface of QUERY_SURFACES) {
       const measured = runSqlStage({ repoRoot, fixtureRoot, role: `query-${surface}`, sql: buildQuerySql(surface, ids), runner });
@@ -1279,7 +1304,7 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
           state: "DELETE_DISPATCHED",
           prior_state: cleanupManifest.state,
           updated_at: nowIso(),
-        });
+        }, fixtureRoot);
         const cleaned = runSqlStage({ repoRoot, fixtureRoot, role: "cleanup", sql: buildCleanupSql(ids), runner });
         executed = true;
         stages.push(cleaned.stage);
@@ -1291,7 +1316,7 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
           deleted,
           prior_state: cleanupManifest.state,
           updated_at: nowIso(),
-        });
+        }, fixtureRoot);
         const reconciled = runSqlStage({ repoRoot, fixtureRoot, role: "cleanup-reconciliation", sql: buildReconciliationSql(ids), runner });
         stages.push(reconciled.stage);
         rawStagePaths.push(reconciled.sqlPath);
@@ -1305,10 +1330,10 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
           remaining,
           prior_state: cleanupManifest.state,
           updated_at: nowIso(),
-        });
+        }, fixtureRoot);
         cleanupReceiptValue = cleanupReceipt({ manifest, config, cleanupManifest, invalidatedProducer: executionFailure !== null });
         cleanupReceiptPath = ensureContainedRunPath(manifest.run_root, "cleanup/hosted-d1-cleanup.json");
-        writeJsonNoOverwrite(cleanupReceiptPath, cleanupReceiptValue, 0o600);
+        writeRunJsonNoOverwrite(manifest, cleanupReceiptPath, cleanupReceiptValue, 0o600);
         unlinkSync(cleanupPath);
         fsyncDirectory(fixtureRoot);
         removeRawStageFiles(rawStagePaths);
@@ -1319,6 +1344,7 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
   }
 
   if (executionFailure || cleanupFailure || !cleanupReceiptValue || !cleanupReceiptPath || queries.length !== QUERY_SURFACES.length) {
+    refreshManifest();
     return {
       kind: "attempt",
       ...writeAttempt(manifest, "FAIL", [executionFailure, cleanupFailure, !cleanupReceiptValue ? "CLEANUP_RECEIPT_MISSING" : null].filter((value): value is string => Boolean(value)), executed),
@@ -1327,6 +1353,7 @@ export function verifyEstimateSheetHostedD1PerformanceProof(input: {
 
   const fixtureHash = sha256Json({ profile: FIXTURE_PROFILE, counts: seededExpected, exactIdJournalSha256: cleanupReceiptValue.exact_id_journal_sha256 });
   try {
+    refreshManifest();
     const report = writeHostedReport({
       manifest,
       output: input.output,

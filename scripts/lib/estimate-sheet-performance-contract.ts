@@ -1,17 +1,21 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   chmodSync,
+  closeSync,
+  constants,
   existsSync,
+  fstatSync,
+  fsyncSync,
   lstatSync,
+  linkSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   unlinkSync,
   writeFileSync,
-  openSync,
-  fsyncSync,
-  closeSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
@@ -26,6 +30,13 @@ export const PERFORMANCE_REPORT_SCHEMA = "estimate-sheet-performance-report.v1" 
 export const TEST_RECEIPT_SCHEMA = "estimate-sheet-test-receipt.v1" as const;
 export const PERFORMANCE_ATTEMPT_SCHEMA = "estimate-sheet-performance-attempt.v1" as const;
 export const RUN_MANIFEST_SCHEMA = "estimate-sheet-performance-run.v1" as const;
+export const PREPARE_INPUT_SCHEMA = "estimate-sheet-performance-prepare-input.v1" as const;
+export const ESTIMATE_RUNTIME_FIXED_ENVIRONMENT_KEYS = [
+  "ARCHESTIMATOR_AUTH_PROVIDER",
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_URL",
+  "BETTER_AUTH_TRUSTED_ORIGINS",
+] as const;
 export const COMMAND_RECEIPT_SCHEMA = "estimate-sheet-command-receipt.v1" as const;
 export const MODE_PROOF_SCHEMA = "estimate-sheet-mode-proof.v1" as const;
 export const CLEANUP_RECEIPT_SCHEMA = "estimate-sheet-cleanup-receipt.v1" as const;
@@ -220,6 +231,45 @@ export type FingerprintPair = {
   producer: FingerprintContent;
 };
 
+export type PrepareDecisionBindingV1 = {
+  immutable_path: string;
+  sha256: string;
+};
+
+export type PreparePredecessorBindingV1 = {
+  unit_id: EstimateUnit;
+  run_id: string;
+  index_immutable_path: string;
+  index_sha256: string;
+  evidence_immutable_path: string;
+  evidence_sha256: string;
+  application_fingerprint: FingerprintContent;
+  producer_fingerprint: FingerprintContent;
+};
+
+export type PrepareAdmissionBindingV1 = {
+  kind: "planning" | "refreeze" | "predecessor";
+  sha256: string;
+  input_application_fingerprint: FingerprintContent;
+  input_producer_fingerprint: FingerprintContent;
+};
+
+export type PrepareInputV1 = {
+  schema_version: typeof PREPARE_INPUT_SCHEMA;
+  unit_id: EstimateUnit;
+  profile: FixtureProfile | "artifact-only";
+  application_fingerprint: FingerprintContent;
+  producer_fingerprint: FingerprintContent;
+  fixture: null | {
+    profile: FixtureProfile;
+    payload_sha256: string;
+    namespace_roles: string[];
+  };
+  decision: PrepareDecisionBindingV1 | null;
+  predecessor: PreparePredecessorBindingV1 | null;
+  admission: PrepareAdmissionBindingV1 | null;
+};
+
 export type TraceIds = {
   packageId: string;
   unitId: string;
@@ -295,6 +345,8 @@ export type RunManifestV1 = {
   immutable_run_root: string;
   pointer_path: string;
   logical_outputs: Record<EstimateOutputRole, string>;
+  prepareInput: PrepareInputV1;
+  prepareInputSha256: string;
   created_at: string;
   status: "PREPARED" | "MEASURING" | "FINALIZED" | "CLEANUP_VERIFIED" | "INVALIDATED";
   sourceFingerprint: SourceFingerprint;
@@ -315,6 +367,7 @@ export type RunManifestV1 = {
   previewProcesses: unknown[];
   runtimeEnv?: string;
   runtimeEnvSha256?: string;
+  runtimeEnvStableSha256?: string;
   storageState?: string;
   storageStateSha256?: string;
   storageStateExpiresAt?: string;
@@ -404,6 +457,14 @@ export function sha256Json(value: unknown): string {
   return sha256Hex(canonicalBytes(value));
 }
 
+export function runtimeEnvironmentStableSha256(values: Record<string, string>): string {
+  return sha256Json(Object.fromEntries(ESTIMATE_RUNTIME_FIXED_ENVIRONMENT_KEYS.map((key) => {
+    const value = values[key];
+    if (typeof value !== "string" || !value) throw new Error(`runtime environment is missing ${key}`);
+    return [key, value];
+  })));
+}
+
 export function sha256File(path: string): string {
   return sha256Hex(readFileSync(path));
 }
@@ -477,31 +538,221 @@ export function assertRegularFile(path: string, label = path): void {
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`${label} must be a regular file`);
 }
 
+function openRegularDirectory(path: string, label: string): number {
+  const pathStat = lstatSync(path);
+  if (!pathStat.isDirectory() || pathStat.isSymbolicLink()) {
+    throw new Error(`${label} must be a regular directory without symbolic-link traversal`);
+  }
+  const descriptor = openSync(path, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+  try {
+    if (!fstatSync(descriptor).isDirectory()) throw new Error(`${label} must be a regular directory`);
+    return descriptor;
+  } catch (error) {
+    closeSync(descriptor);
+    throw error;
+  }
+}
+
+function fsyncRegularDirectory(path: string, label: string): void {
+  const descriptor = openRegularDirectory(path, label);
+  try { fsyncSync(descriptor); } finally { closeSync(descriptor); }
+}
+
+/** Create every missing directory component durably without following symlinks. */
+export function ensureDirectoryDurably(path: string, mode = 0o700, trustedRoot?: string): string {
+  const absolute = resolve(path);
+  const missingComponents: string[] = [];
+  let trustedAncestor: string;
+  if (trustedRoot !== undefined) {
+    trustedAncestor = resolve(trustedRoot);
+    const suffix = relative(trustedAncestor, absolute);
+    if (suffix === ".." || suffix.startsWith(`..${sep}`) || isAbsolute(suffix)) {
+      throw new Error(`directory path escapes its trusted root: ${path}`);
+    }
+    missingComponents.push(...suffix.split(sep).filter(Boolean));
+  } else {
+    trustedAncestor = absolute;
+    while (!existsSync(trustedAncestor)) {
+      const parent = dirname(trustedAncestor);
+      if (parent === trustedAncestor) throw new Error(`directory root is unavailable: ${absolute}`);
+      missingComponents.unshift(basename(trustedAncestor));
+      trustedAncestor = parent;
+    }
+  }
+  const trustedDescriptor = openRegularDirectory(trustedAncestor, `trusted directory ancestor ${trustedAncestor}`);
+  closeSync(trustedDescriptor);
+  let cursor = realpathSync.native(trustedAncestor);
+  for (const name of missingComponents) {
+    const component = resolve(cursor, name);
+    if (existsSync(component)) {
+      const descriptor = openRegularDirectory(component, `directory component ${component}`);
+      closeSync(descriptor);
+      cursor = component;
+      continue;
+    }
+    try {
+      mkdirSync(component, { mode });
+    } catch (error) {
+      if (!isPlainObject(error) || error.code !== "EEXIST") throw error;
+    }
+    fsyncRegularDirectory(component, `created directory component ${component}`);
+    fsyncRegularDirectory(cursor, `parent of created directory component ${component}`);
+    cursor = component;
+  }
+  return cursor;
+}
+
 /** Write a file atomically and refuse replacement. */
-export function writeNoOverwrite(path: string, bytes: string | Uint8Array, mode = 0o600): void {
-  if (existsSync(path)) throw new Error(`refusing to overwrite existing file: ${path}`);
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+export function writeNoOverwrite(
+  path: string,
+  bytes: string | Uint8Array,
+  mode = 0o600,
+  trustedRoot?: string,
+): void {
+  const durableParent = ensureDirectoryDurably(dirname(path), 0o700, trustedRoot);
+  const destination = resolve(path);
+  if (trustedRoot !== undefined) {
+    assertSymlinkFreeContainedPath(trustedRoot, destination, "immutable file destination", { allowMissingLeaf: true });
+  }
+  if (existsSync(destination)) throw new Error(`refusing to overwrite existing file: ${path}`);
+  const temporary = `${destination}.tmp-${process.pid}-${randomUUID()}`;
   try {
     const fd = openSync(temporary, "wx", mode);
     try {
       writeFileSync(fd, bytes);
+      chmodSync(temporary, mode);
       fsyncSync(fd);
     } finally {
       closeSync(fd);
     }
-    chmodSync(temporary, mode);
-    renameSync(temporary, path);
-    const parentFd = openSync(dirname(path), "r");
+    try {
+      linkSync(temporary, destination);
+    } catch (error) {
+      if (isPlainObject(error) && error.code === "EEXIST") {
+        throw new Error(`refusing to overwrite existing file: ${path}`, { cause: error });
+      }
+      throw error;
+    }
+    const parentFd = openRegularDirectory(durableParent, "immutable file parent");
     try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
+    unlinkSync(temporary);
+    const cleanupParentFd = openRegularDirectory(durableParent, "immutable file parent");
+    try { fsyncSync(cleanupParentFd); } finally { closeSync(cleanupParentFd); }
   } catch (error) {
     try { unlinkSync(temporary); } catch { /* preserve the primary error */ }
     throw error;
   }
 }
 
-export function writeJsonNoOverwrite(path: string, value: unknown, mode = 0o600): void {
-  writeNoOverwrite(path, `${canonicalJson(value)}\n`, mode);
+export function writeJsonNoOverwrite(path: string, value: unknown, mode = 0o600, trustedRoot?: string): void {
+  writeNoOverwrite(path, `${canonicalJson(value)}\n`, mode, trustedRoot);
+}
+
+export type SymlinkFreeContainedPathOptions = Readonly<{
+  allowMissingLeaf?: boolean;
+  requireRegularFile?: boolean;
+  requireSingleLink?: boolean;
+}>;
+
+/** Resolve a path below a trusted root without accepting any controlled symlink component. */
+export function assertSymlinkFreeContainedPath(
+  trustedRoot: string,
+  path: string,
+  label: string,
+  options: SymlinkFreeContainedPathOptions = {},
+): string {
+  const root = resolve(trustedRoot);
+  const candidate = resolve(path);
+  const suffix = relative(root, candidate);
+  if (suffix === ".." || suffix.startsWith(`..${sep}`) || isAbsolute(suffix)) {
+    throw new Error(`${label} escapes its trusted root`);
+  }
+
+  const rootStat = lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+    throw new Error(`${label} trusted root permits symbolic-link traversal or symbolic-link aliasing`);
+  }
+  const realRoot = realpathSync.native(root);
+  const components = suffix ? suffix.split(sep).filter(Boolean) : [];
+  let cursor = root;
+  for (const [index, component] of components.entries()) {
+    cursor = resolve(cursor, component);
+    let stat: ReturnType<typeof lstatSync> | undefined;
+    try {
+      stat = lstatSync(cursor);
+    } catch (error) {
+      if (!isPlainObject(error) || error.code !== "ENOENT") throw error;
+    }
+    if (!stat) {
+      if (!options.allowMissingLeaf || index !== components.length - 1) {
+        throw new Error(`${label} is missing: ${cursor}`);
+      }
+      continue;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error(`${label} permits symbolic-link traversal or symbolic-link aliasing`);
+    }
+  }
+
+  let candidateStat: ReturnType<typeof lstatSync> | undefined;
+  try {
+    candidateStat = lstatSync(candidate);
+  } catch (error) {
+    if (!isPlainObject(error) || error.code !== "ENOENT") throw error;
+  }
+  const existingPath = candidateStat ? candidate : dirname(candidate);
+  const existingSuffix = relative(root, existingPath);
+  if (realpathSync.native(existingPath) !== resolve(realRoot, existingSuffix)) {
+    throw new Error(`${label} permits symbolic-link traversal or symbolic-link aliasing`);
+  }
+  if (candidateStat && (options.requireRegularFile || options.requireSingleLink)) {
+    if (options.requireRegularFile && (!candidateStat.isFile() || candidateStat.isSymbolicLink())) {
+      throw new Error(`${label} must be a regular file`);
+    }
+    if (options.requireSingleLink && candidateStat.nlink !== 1) {
+      throw new Error(`${label} must have exactly one filesystem link`);
+    }
+  }
+  return candidate;
+}
+
+function trustedRunRootForPath(
+  manifest: Pick<RunManifestV1, "run_root" | "immutable_run_root">,
+  path: string,
+): string {
+  const candidate = resolve(path);
+  const mutableRoot = resolve(manifest.run_root);
+  const immutableRoot = resolve(manifest.immutable_run_root);
+  const insideMutable = isContained(mutableRoot, candidate);
+  const insideImmutable = isContained(immutableRoot, candidate);
+  if (insideMutable === insideImmutable) {
+    throw new Error(`run output must belong to exactly one canonical mutable or immutable run root: ${path}`);
+  }
+  return insideMutable ? mutableRoot : immutableRoot;
+}
+
+/** Publish one run-owned file and prove its final inode remains a single-link regular file. */
+export function writeRunNoOverwrite(
+  manifest: Pick<RunManifestV1, "run_root" | "immutable_run_root">,
+  path: string,
+  bytes: string | Uint8Array,
+  mode = 0o600,
+): void {
+  const trustedRoot = trustedRunRootForPath(manifest, path);
+  writeNoOverwrite(path, bytes, mode, trustedRoot);
+  assertSymlinkFreeContainedPath(trustedRoot, path, "run output", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+}
+
+export function writeRunJsonNoOverwrite(
+  manifest: Pick<RunManifestV1, "run_root" | "immutable_run_root">,
+  path: string,
+  value: unknown,
+  mode = 0o600,
+): void {
+  writeRunNoOverwrite(manifest, path, `${canonicalJson(value)}\n`, mode);
 }
 
 /** Atomically replace a registered file only while its expected bytes remain current. */
@@ -510,12 +761,19 @@ export function replaceFileAtomically(
   bytes: string | Uint8Array,
   expectedCurrentSha256: string,
   mode = 0o644,
+  trustedRoot?: string,
 ): string {
   if (!isSha256(expectedCurrentSha256)) throw new Error("expected current hash must be a SHA-256 digest");
-  assertRegularFile(path, "atomic replacement target");
-  if (sha256File(path) !== expectedCurrentSha256) throw new Error(`current hash mismatch for ${path}`);
+  const destination = trustedRoot === undefined
+    ? resolve(path)
+    : assertSymlinkFreeContainedPath(trustedRoot, path, "atomic replacement target", {
+      requireRegularFile: true,
+      requireSingleLink: true,
+    });
+  assertRegularFile(destination, "atomic replacement target");
+  if (sha256File(destination) !== expectedCurrentSha256) throw new Error(`current hash mismatch for ${path}`);
 
-  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+  const temporary = `${destination}.tmp-${process.pid}-${randomUUID()}`;
   try {
     const fd = openSync(temporary, "wx", mode);
     try {
@@ -527,12 +785,17 @@ export function replaceFileAtomically(
     chmodSync(temporary, mode);
 
     // Recheck after the new bytes are durable so a concurrent writer cannot be hidden.
-    assertRegularFile(path, "atomic replacement target");
-    if (sha256File(path) !== expectedCurrentSha256) throw new Error(`current hash mismatch for ${path}`);
-    renameSync(temporary, path);
-    const parentFd = openSync(dirname(path), "r");
-    try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
-    return sha256File(path);
+    if (trustedRoot !== undefined) {
+      assertSymlinkFreeContainedPath(trustedRoot, destination, "atomic replacement target", {
+        requireRegularFile: true,
+        requireSingleLink: true,
+      });
+    }
+    assertRegularFile(destination, "atomic replacement target");
+    if (sha256File(destination) !== expectedCurrentSha256) throw new Error(`current hash mismatch for ${path}`);
+    renameSync(temporary, destination);
+    fsyncRegularDirectory(dirname(destination), "atomic replacement parent");
+    return sha256File(destination);
   } catch (error) {
     try { unlinkSync(temporary); } catch { /* preserve the primary error */ }
     throw error;
@@ -776,7 +1039,7 @@ const LOCAL_BROWSER_NAMESPACE_ROLES = {
 } as const satisfies Partial<Record<EstimateUnit, readonly string[]>>;
 const LOCAL_FIXTURE_MANIFEST_FIELDS = ["fixture", "fixture_hash", "auth_fixture_hash", "wranglerState", "resources"] as const;
 const LOCAL_BROWSER_MANIFEST_FIELDS = [
-  "leasedPort", "port", "runtimeEnv", "runtimeEnvSha256", "storageState", "storageStateSha256",
+  "leasedPort", "port", "runtimeEnv", "runtimeEnvSha256", "runtimeEnvStableSha256", "storageState", "storageStateSha256",
   "storageStateExpiresAt", "processJournal", "routePath", "route", "activatedModes", "activePreview",
   "buildReceipt", "build_hash",
 ] as const;
@@ -789,9 +1052,10 @@ const LOCAL_D1_RESOURCE_FIELDS = [
 ] as const;
 const RUN_MANIFEST_FIELDS = new Set([
   "schema_version", "package_id", "unit_id", "run_id", "profile", "evidence_class", "cleanupRequirement",
-  "run_root", "immutable_run_root", "pointer_path", "logical_outputs", "created_at", "status", "sourceFingerprint",
+  "run_root", "immutable_run_root", "pointer_path", "logical_outputs", "prepareInput", "prepareInputSha256",
+  "created_at", "status", "sourceFingerprint",
   "applicationFingerprint", "producerFingerprint", "fixture", "namespaces", "mutationJournal", "previewProcesses",
-  "runtimeEnv", "runtimeEnvSha256", "storageState", "storageStateSha256", "storageStateExpiresAt", "activePreview",
+  "runtimeEnv", "runtimeEnvSha256", "runtimeEnvStableSha256", "storageState", "storageStateSha256", "storageStateExpiresAt", "activePreview",
   "leasedPort", "port", "processJournal", "routePath", "route", "fixture_hash", "auth_fixture_hash",
   "activatedModes", "wranglerState", "resources", "buildReceipt", "build_hash", "cleanupReceipt",
   "cleanupReceiptSha256", "admissionKind", "admissionPath", "admissionSha256", "inputApplicationFingerprint",
@@ -861,9 +1125,11 @@ function validateImmutableRunRootBinding(value: Record<string, unknown>, errors:
   const runRoot = resolve(value.run_root);
   const immutableKey = basename(immutableRoot);
   const applicationShort = value.applicationFingerprint.content_sha256.slice(0, 12);
-  const expectedPrefix = `${value.run_id}-${applicationShort}-`;
-  const inputShort = immutableKey.slice(expectedPrefix.length);
-  if (!immutableKey.startsWith(expectedPrefix) || !/^[0-9a-f]{12}$/u.test(inputShort)) {
+  const inputShort = typeof value.prepareInputSha256 === "string" && isSha256(value.prepareInputSha256)
+    ? value.prepareInputSha256.slice(0, 12)
+    : null;
+  const expectedKey = inputShort === null ? null : `${value.run_id}-${applicationShort}-${inputShort}`;
+  if (immutableKey !== expectedKey) {
     errors.push("immutable_run_root run key must bind run_id, application fingerprint, and prepare input digest");
   }
   if (basename(runRoot) !== immutableKey) errors.push("run_root and immutable_run_root must use the same run key");
@@ -878,6 +1144,145 @@ function validateImmutableRunRootBinding(value: Record<string, unknown>, errors:
   if (immutableRoot === runRoot || isContained(runRoot, immutableRoot) || isContained(immutableRoot, runRoot)) {
     errors.push("immutable_run_root must be separate from mutable run_root");
   }
+}
+
+const PREPARE_INPUT_FIELDS = [
+  "schema_version", "unit_id", "profile", "application_fingerprint", "producer_fingerprint",
+  "fixture", "decision", "predecessor", "admission",
+] as const;
+const PREPARE_FIXTURE_FIELDS = ["profile", "payload_sha256", "namespace_roles"] as const;
+const PREPARE_DECISION_FIELDS = ["immutable_path", "sha256"] as const;
+const PREPARE_PREDECESSOR_FIELDS = [
+  "unit_id", "run_id", "index_immutable_path", "index_sha256", "evidence_immutable_path", "evidence_sha256",
+  "application_fingerprint", "producer_fingerprint",
+] as const;
+const PREPARE_ADMISSION_FIELDS = [
+  "kind", "sha256", "input_application_fingerprint", "input_producer_fingerprint",
+] as const;
+
+function validateExactObjectKeys(
+  value: Record<string, unknown>,
+  fields: readonly string[],
+  label: string,
+  errors: string[],
+): void {
+  if (canonicalJson(Object.keys(value).sort()) !== canonicalJson([...fields].sort())) {
+    errors.push(`${label} field set is not exact`);
+  }
+}
+
+function validateImmutableInputPath(value: unknown, label: string, errors: string[]): void {
+  if (typeof value !== "string" || !isSafeRelativePath(value) || !value.startsWith("evidence/runtime/runs/")) {
+    errors.push(`${label} must be a registered immutable run path`);
+  }
+}
+
+function validatePrepareInput(value: Record<string, unknown>, errors: string[]): void {
+  const prepareInput = value.prepareInput;
+  if (!isPlainObject(prepareInput)) {
+    errors.push("prepareInput must be an object");
+    return;
+  }
+  validateExactObjectKeys(prepareInput, PREPARE_INPUT_FIELDS, "prepareInput", errors);
+  if (prepareInput.schema_version !== PREPARE_INPUT_SCHEMA) errors.push("prepareInput.schema_version invalid");
+  if (prepareInput.unit_id !== value.unit_id) errors.push("prepareInput.unit_id must match unit_id");
+  if (prepareInput.profile !== value.profile) errors.push("prepareInput.profile must match profile");
+  errors.push(...validateFingerprintContent(prepareInput.application_fingerprint, "prepareInput.application_fingerprint"));
+  errors.push(...validateFingerprintContent(prepareInput.producer_fingerprint, "prepareInput.producer_fingerprint"));
+  if (!fingerprintContentEqual(prepareInput.application_fingerprint, value.applicationFingerprint)) {
+    errors.push("prepareInput application fingerprint must match manifest");
+  }
+  if (!fingerprintContentEqual(prepareInput.producer_fingerprint, value.producerFingerprint)) {
+    errors.push("prepareInput producer fingerprint must match manifest");
+  }
+
+  if (prepareInput.fixture === null) {
+    if (value.fixture_hash !== undefined || (isPlainObject(value.namespaces) && Object.keys(value.namespaces).length > 0)) {
+      errors.push("prepareInput.fixture must bind local fixture inputs");
+    }
+  } else if (!isPlainObject(prepareInput.fixture)) {
+    errors.push("prepareInput.fixture must be null or an object");
+  } else {
+    validateExactObjectKeys(prepareInput.fixture, PREPARE_FIXTURE_FIELDS, "prepareInput.fixture", errors);
+    if (prepareInput.fixture.profile !== value.profile || prepareInput.fixture.profile !== "limit") {
+      errors.push("prepareInput.fixture.profile must match the limit manifest profile");
+    }
+    if (!isSha256(prepareInput.fixture.payload_sha256)) errors.push("prepareInput.fixture.payload_sha256 invalid");
+    if (prepareInput.fixture.payload_sha256 !== value.fixture_hash) errors.push("prepareInput.fixture must match fixture_hash");
+    if (!Array.isArray(prepareInput.fixture.namespace_roles)
+      || prepareInput.fixture.namespace_roles.some((role) => typeof role !== "string" || !role)
+      || new Set(prepareInput.fixture.namespace_roles).size !== prepareInput.fixture.namespace_roles.length) {
+      errors.push("prepareInput.fixture.namespace_roles invalid");
+    } else if (!isPlainObject(value.namespaces)
+      || canonicalJson([...prepareInput.fixture.namespace_roles].sort()) !== canonicalJson(Object.keys(value.namespaces).sort())) {
+      errors.push("prepareInput.fixture.namespace_roles must match manifest namespaces");
+    }
+  }
+
+  const decision = prepareInput.decision;
+  if (decision !== null) {
+    if (!isPlainObject(decision)) errors.push("prepareInput.decision must be null or an object");
+    else {
+      validateExactObjectKeys(decision, PREPARE_DECISION_FIELDS, "prepareInput.decision", errors);
+      validateImmutableInputPath(decision.immutable_path, "prepareInput.decision.immutable_path", errors);
+      if (!isSha256(decision.sha256)) errors.push("prepareInput.decision.sha256 invalid");
+    }
+  }
+
+  const predecessor = prepareInput.predecessor;
+  if (predecessor !== null) {
+    if (!isPlainObject(predecessor)) errors.push("prepareInput.predecessor must be null or an object");
+    else {
+      validateExactObjectKeys(predecessor, PREPARE_PREDECESSOR_FIELDS, "prepareInput.predecessor", errors);
+      if (!(ESTIMATE_UNITS as readonly unknown[]).includes(predecessor.unit_id)) errors.push("prepareInput.predecessor.unit_id invalid");
+      if (typeof predecessor.run_id !== "string" || !predecessor.run_id) errors.push("prepareInput.predecessor.run_id invalid");
+      for (const pathKey of ["index_immutable_path", "evidence_immutable_path"] as const) {
+        validateImmutableInputPath(predecessor[pathKey], `prepareInput.predecessor.${pathKey}`, errors);
+      }
+      for (const hashKey of ["index_sha256", "evidence_sha256"] as const) {
+        if (!isSha256(predecessor[hashKey])) errors.push(`prepareInput.predecessor.${hashKey} invalid`);
+      }
+      errors.push(...validateFingerprintContent(predecessor.application_fingerprint, "prepareInput.predecessor.application_fingerprint"));
+      errors.push(...validateFingerprintContent(predecessor.producer_fingerprint, "prepareInput.predecessor.producer_fingerprint"));
+    }
+  }
+
+  const admission = prepareInput.admission;
+  if (admission !== null) {
+    if (!isPlainObject(admission)) errors.push("prepareInput.admission must be null or an object");
+    else {
+      validateExactObjectKeys(admission, PREPARE_ADMISSION_FIELDS, "prepareInput.admission", errors);
+      if (!["planning", "refreeze", "predecessor"].includes(String(admission.kind))) errors.push("prepareInput.admission.kind invalid");
+      if (!isSha256(admission.sha256)) errors.push("prepareInput.admission.sha256 invalid");
+      errors.push(...validateFingerprintContent(admission.input_application_fingerprint, "prepareInput.admission.input_application_fingerprint"));
+      errors.push(...validateFingerprintContent(admission.input_producer_fingerprint, "prepareInput.admission.input_producer_fingerprint"));
+      if (admission.kind !== value.admissionKind || admission.sha256 !== value.admissionSha256
+        || !fingerprintContentEqual(admission.input_application_fingerprint, value.inputApplicationFingerprint)
+        || !fingerprintContentEqual(admission.input_producer_fingerprint, value.inputProducerFingerprint)) {
+        errors.push("prepareInput.admission must match manifest admission lineage");
+      }
+      if (isPlainObject(predecessor)
+        && (!fingerprintContentEqual(predecessor.application_fingerprint, admission.input_application_fingerprint)
+          || !fingerprintContentEqual(predecessor.producer_fingerprint, admission.input_producer_fingerprint))) {
+        errors.push("prepareInput predecessor fingerprints must match admission inputs");
+      }
+    }
+  }
+  const admissionKind = typeof value.admissionKind === "string" ? value.admissionKind : null;
+  if ((admissionKind === null) !== (admission === null)) errors.push("prepareInput admission presence must match manifest lineage");
+  if ((admissionKind === "predecessor") !== (decision !== null)) errors.push("prepareInput decision presence must match predecessor admission");
+  const directPredecessorUnit = ["UNIT-002", "UNIT-003", "UNIT-004"].includes(String(value.unit_id));
+  if ((directPredecessorUnit || admissionKind === "refreeze" || admissionKind === "predecessor") !== (predecessor !== null)) {
+    errors.push("prepareInput predecessor presence must match allocation lineage");
+  }
+  if (directPredecessorUnit && isPlainObject(predecessor)
+    && (!fingerprintContentEqual(predecessor.application_fingerprint, value.applicationFingerprint)
+      || !fingerprintContentEqual(predecessor.producer_fingerprint, value.producerFingerprint))) {
+    errors.push("prepareInput direct predecessor fingerprints must match the prepared cohort");
+  }
+
+  if (!isSha256(value.prepareInputSha256)) errors.push("prepareInputSha256 invalid");
+  else if (value.prepareInputSha256 !== sha256Json(prepareInput)) errors.push("prepareInputSha256 does not match canonical prepareInput");
 }
 
 function validateNamespaceRoles(value: unknown, expectedRoles: readonly string[], errors: string[]): void {
@@ -1015,7 +1420,14 @@ function validateLifecyclePair(
   const hasPath = hasOwn(value, pathKey);
   const hasHash = hasOwn(value, hashKey);
   if (hasPath !== hasHash) errors.push(`${pathKey}/${hashKey} must be present together`);
-  if (hasPath) validateAbsoluteContainedPath(value[pathKey], value.run_root, pathKey, errors);
+  if (hasPath) {
+    validateAbsoluteContainedPath(value[pathKey], value.immutable_run_root, pathKey, errors);
+    const role = pathKey === "buildReceipt" ? "opennext-build" : "cleanup";
+    if (typeof value.immutable_run_root === "string" && isAbsolute(value.immutable_run_root)
+      && value[pathKey] !== resolve(value.immutable_run_root, ESTIMATE_LOGICAL_OUTPUTS[role])) {
+      errors.push(`${pathKey} must equal immutable logical output ${role}`);
+    }
+  }
   if (hasHash && !isSha256(value[hashKey])) errors.push(`${hashKey} invalid`);
 }
 
@@ -1026,6 +1438,7 @@ function validateLocalBrowserFields(value: Record<string, unknown>, expectedRole
     validateAbsoluteContainedPath(value[pathKey], value.run_root, pathKey, errors);
     if (!isSha256(value[hashKey])) errors.push(`${hashKey} invalid`);
   }
+  if (!isSha256(value.runtimeEnvStableSha256)) errors.push("runtimeEnvStableSha256 invalid");
   validateAbsoluteContainedPath(value.processJournal, value.run_root, "processJournal", errors);
   if (typeof value.storageStateExpiresAt !== "string" || Number.isNaN(Date.parse(value.storageStateExpiresAt))) errors.push("storageStateExpiresAt invalid");
   if (typeof value.routePath !== "string" || !value.routePath.startsWith("/") || value.routePath.startsWith("//")) errors.push("routePath invalid");
@@ -1063,6 +1476,7 @@ export function validateRunManifest(value: unknown): string[] {
     errors.push("pointer_path must be run_root/run-pointer.json");
   }
   validateLogicalOutputs(value.logical_outputs, value.immutable_run_root, errors);
+  validatePrepareInput(value, errors);
   validateImmutableRunRootBinding(value, errors);
   if (!["REQUIRED", "NOT_APPLICABLE"].includes(String(value.cleanupRequirement))) errors.push("cleanupRequirement invalid");
   if (!["PREPARED", "MEASURING", "FINALIZED", "CLEANUP_VERIFIED", "INVALIDATED"].includes(String(value.status))) errors.push("status invalid");
@@ -1090,7 +1504,21 @@ export function validateRunManifest(value: unknown): string[] {
   if ((value.inputApplicationFingerprint === undefined) !== (value.inputProducerFingerprint === undefined)) errors.push("input application/producer fingerprints must be present together");
   if ((value.admissionKind === undefined) !== (value.admissionPath === undefined)) errors.push("admission kind/path must be present together");
   if ((value.admissionKind === undefined) !== (value.inputApplicationFingerprint === undefined)) errors.push("admission/input fingerprints must be present together");
-  if (value.admissionPath !== undefined) validateRelativePath(value.admissionPath, value.run_root, "admissionPath", errors);
+  if (value.admissionPath !== undefined) {
+    validateRelativePath(value.admissionPath, value.immutable_run_root, "admissionPath", errors);
+    if (value.admissionPath !== "dependencies/admission.json") {
+      errors.push("admissionPath must be dependencies/admission.json under immutable_run_root");
+    } else if (typeof value.immutable_run_root === "string" && isAbsolute(value.immutable_run_root)) {
+      const admissionPath = resolve(value.immutable_run_root, value.admissionPath);
+      if (existsSync(admissionPath)) {
+        const stat = lstatSync(admissionPath);
+        if (!stat.isFile() || stat.isSymbolicLink()) errors.push("admissionPath must resolve to a regular immutable file");
+        else if (typeof value.admissionSha256 === "string" && sha256File(admissionPath) !== value.admissionSha256) {
+          errors.push("immutable admission dependency hash mismatch");
+        }
+      }
+    }
+  }
   if (value.admissionSha256 !== undefined && !isSha256(value.admissionSha256)) errors.push("admissionSha256 invalid");
   if (!Array.isArray(value.mutationJournal)) errors.push("mutationJournal must be an array");
   if (!Array.isArray(value.previewProcesses)) errors.push("previewProcesses must be an array");
@@ -1155,9 +1583,183 @@ export function assertRunManifest(value: unknown): asserts value is RunManifestV
   if (errors.length) throw new Error(`invalid run manifest:\n- ${errors.join("\n- ")}`);
 }
 
+function immutableNamespaceIdentity(namespaces: RunManifestV1["namespaces"]): Record<string, unknown> {
+  return Object.fromEntries(Object.keys(namespaces).sort().map((role) => {
+    const namespace = namespaces[role]!;
+    return [role, {
+      idSha256: namespace.idSha256,
+      preStateSha256: namespace.preStateSha256,
+    }];
+  }));
+}
+
+function immutableRunIdentity(manifest: RunManifestV1): Record<string, unknown> {
+  return {
+    schema_version: manifest.schema_version,
+    package_id: manifest.package_id,
+    unit_id: manifest.unit_id,
+    run_id: manifest.run_id,
+    profile: manifest.profile,
+    evidence_class: manifest.evidence_class,
+    cleanupRequirement: manifest.cleanupRequirement,
+    run_root: manifest.run_root,
+    immutable_run_root: manifest.immutable_run_root,
+    pointer_path: manifest.pointer_path,
+    logical_outputs: manifest.logical_outputs,
+    prepareInput: manifest.prepareInput,
+    prepareInputSha256: manifest.prepareInputSha256,
+    created_at: manifest.created_at,
+    status: manifest.status,
+    sourceFingerprint: manifest.sourceFingerprint,
+    applicationFingerprint: manifest.applicationFingerprint,
+    producerFingerprint: manifest.producerFingerprint,
+    fixture: manifest.fixture,
+    namespaces: immutableNamespaceIdentity(manifest.namespaces),
+    runtimeEnv: manifest.runtimeEnv,
+    runtimeEnvStableSha256: manifest.runtimeEnvStableSha256,
+    storageState: manifest.storageState,
+    storageStateSha256: manifest.storageStateSha256,
+    storageStateExpiresAt: manifest.storageStateExpiresAt,
+    leasedPort: manifest.leasedPort,
+    port: manifest.port,
+    processJournal: manifest.processJournal,
+    routePath: manifest.routePath,
+    route: manifest.route,
+    fixture_hash: manifest.fixture_hash,
+    auth_fixture_hash: manifest.auth_fixture_hash,
+    activatedModes: manifest.activatedModes,
+    wranglerState: manifest.wranglerState,
+    resources: manifest.resources,
+    admissionKind: manifest.admissionKind,
+    admissionPath: manifest.admissionPath,
+    admissionSha256: manifest.admissionSha256,
+    inputApplicationFingerprint: manifest.inputApplicationFingerprint,
+    inputProducerFingerprint: manifest.inputProducerFingerprint,
+  };
+}
+
+function readPreparedRunManifestPair(
+  repoRoot: string,
+  path: string,
+  expectedUnit?: EstimateUnit,
+): { mutable: RunManifestV1; immutable: RunManifestV1; immutablePath: string } {
+  const trustedRepoRoot = resolve(repoRoot);
+  const manifestPath = resolve(path);
+  assertSymlinkFreeContainedPath(trustedRepoRoot, manifestPath, "mutable run manifest", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  const mutableStat = lstatSync(manifestPath);
+  const mutable = readJsonFile<RunManifestV1>(manifestPath);
+  assertRunManifest(mutable);
+  if (mutable.status !== "PREPARED") {
+    throw new Error(`authoritative run manifest status must be PREPARED, got ${mutable.status}`);
+  }
+  if (expectedUnit !== undefined && mutable.unit_id !== expectedUnit) {
+    throw new Error(`run manifest unit ${mutable.unit_id} does not match expected unit ${expectedUnit}`);
+  }
+
+  const runKey = `${mutable.run_id}-${mutable.applicationFingerprint.content_sha256.slice(0, 12)}-${mutable.prepareInputSha256.slice(0, 12)}`;
+  const mutableRunRoot = resolve(defaultRunRoot(trustedRepoRoot), mutable.unit_id, runKey);
+  const expectedManifestPath = resolve(mutableRunRoot, "run-manifest.json");
+  if (manifestPath !== expectedManifestPath || resolve(mutable.run_root) !== mutableRunRoot) {
+    throw new Error("run manifest is not at its canonical mutable run path");
+  }
+
+  const immutableRunRoot = resolve(defaultImmutableRunRoot(trustedRepoRoot), mutable.unit_id, runKey);
+  if (resolve(mutable.immutable_run_root) !== immutableRunRoot) {
+    throw new Error("run manifest immutable root is not canonical for the trusted repository");
+  }
+  const immutablePath = resolve(immutableRunRoot, "run-manifest.json");
+  assertSymlinkFreeContainedPath(trustedRepoRoot, immutablePath, "immutable run manifest", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  const immutableStat = lstatSync(immutablePath);
+  if (mutableStat.dev === immutableStat.dev && mutableStat.ino === immutableStat.ino) {
+    throw new Error("mutable and immutable run manifests must not share one inode");
+  }
+  const immutable = readJsonFile<RunManifestV1>(immutablePath);
+  assertRunManifest(immutable);
+  if (immutable.status !== "PREPARED") {
+    throw new Error(`immutable authoritative run manifest status must be PREPARED, got ${immutable.status}`);
+  }
+  if (canonicalJson(immutableRunIdentity(mutable)) !== canonicalJson(immutableRunIdentity(immutable))) {
+    throw new Error("mutable run manifest identity differs from its immutable authority");
+  }
+  return { mutable, immutable, immutablePath };
+}
+
+function readCommittedRunBinding(repoRoot: string): {
+  latestUnitId: unknown;
+  latestRunId: unknown;
+  latestRunManifestSha256: unknown;
+} {
+  const planPath = resolve(defaultPlanRoot(repoRoot), "plan-pack.json");
+  assertSymlinkFreeContainedPath(repoRoot, planPath, "plan manifest", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  const plan = readJsonFile<{ runtime_evidence?: Record<string, unknown> }>(planPath);
+  return {
+    latestUnitId: plan.runtime_evidence?.latest_unit_id,
+    latestRunId: plan.runtime_evidence?.latest_run_id,
+    latestRunManifestSha256: plan.runtime_evidence?.latest_run_manifest_sha256,
+  };
+}
+
+/** Validate a newly materialized PREPARE pair before the plan commits it as current. */
+export function readPrecommitRunManifestPair(
+  repoRoot: string,
+  path: string,
+  expectedUnit: EstimateUnit,
+): RunManifestV1 {
+  const pair = readPreparedRunManifestPair(repoRoot, path, expectedUnit);
+  const binding = readCommittedRunBinding(repoRoot);
+  if (binding.latestUnitId === pair.mutable.unit_id && binding.latestRunId === pair.mutable.run_id) {
+    throw new Error("precommit run manifest is already the plan's committed current run");
+  }
+  return pair.mutable;
+}
+
+/** Validate the prior immutable UNIT-001 pair that a finalized refreeze receipt will rebind. */
+export function readRefreezeRebindRunManifestPair(
+  repoRoot: string,
+  path: string,
+): RunManifestV1 {
+  const pair = readPreparedRunManifestPair(repoRoot, path, "UNIT-001");
+  return pair.mutable;
+}
+
+export function readAuthoritativeRunManifest(
+  repoRoot: string,
+  path: string,
+  expectedUnit?: EstimateUnit,
+): RunManifestV1 {
+  const pair = readPreparedRunManifestPair(repoRoot, path, expectedUnit);
+  const binding = readCommittedRunBinding(repoRoot);
+  if (binding.latestUnitId !== pair.mutable.unit_id || binding.latestRunId !== pair.mutable.run_id) {
+    throw new Error("run manifest does not match the plan's committed latest unit/run tuple");
+  }
+  if (!isSha256(binding.latestRunManifestSha256)) {
+    throw new Error("committed run manifest anchor is missing or invalid");
+  }
+  if (sha256File(pair.immutablePath) !== binding.latestRunManifestSha256) {
+    throw new Error("committed run manifest anchor mismatch");
+  }
+  return pair.mutable;
+}
+
 export function validateTestReceipt(value: unknown): string[] {
   const errors: string[] = [];
   if (!isPlainObject(value)) return ["test receipt must be an object"];
+  const allowedFields = [
+    "schema_version", "test_class", "argv", "files", "unit_id", "run_id", "application_fingerprint",
+    "producer_fingerprint", "pre_application_fingerprint", "pre_producer_fingerprint", "fixture_hash",
+    "build_hash", "workers", "retries", "passed", "failed", "skipped", "duration_ms", "overall",
+    "failure_ids", "fixtureMutation",
+  ];
+  for (const key of Object.keys(value)) if (!allowedFields.includes(key)) errors.push(`unknown test receipt field: ${key}`);
   if (value.schema_version !== "estimate-sheet-test-receipt.v1") errors.push("schema_version invalid");
   if (!["vitest", "playwright"].includes(String(value.test_class))) errors.push("test_class invalid");
   for (const key of ["argv", "files", "failure_ids"]) if (!Array.isArray(value[key]) || value[key].some((item) => typeof item !== "string")) errors.push(`${key} invalid`);
@@ -1178,8 +1780,14 @@ export function validateTestReceipt(value: unknown): string[] {
   if (value.build_hash !== undefined && value.build_hash !== null && !isSha256(value.build_hash)) errors.push("build_hash invalid");
   if (value.fixtureMutation !== undefined) {
     if (!isPlainObject(value.fixtureMutation)) errors.push("fixtureMutation invalid");
-    else for (const key of ["fixtureRole", "namespaceIdSha256", "preStateSha256", "postStateSha256", "declaredMutationSha256", "commandId"]) {
-      if (typeof value.fixtureMutation[key] !== "string" || !value.fixtureMutation[key]) errors.push(`fixtureMutation.${key} missing`);
+    else {
+      const mutationFields = ["fixtureRole", "namespaceIdSha256", "preStateSha256", "postStateSha256", "declaredMutationSha256", "commandId"];
+      if (canonicalJson(Object.keys(value.fixtureMutation).sort()) !== canonicalJson([...mutationFields].sort())) {
+        errors.push("fixtureMutation field set is not exact");
+      }
+      for (const key of mutationFields) {
+        if (typeof value.fixtureMutation[key] !== "string" || !value.fixtureMutation[key]) errors.push(`fixtureMutation.${key} missing`);
+      }
     }
   }
   return errors;
@@ -1211,7 +1819,11 @@ export function defaultImmutableRunRoot(repoRoot = process.cwd()): string {
 }
 
 export function resolveRunManifestPath(repoRoot: string, unit: string, explicitPath?: string): string {
-  if (explicitPath) return resolve(repoRoot, explicitPath);
+  if (explicitPath) {
+    const path = resolve(repoRoot, explicitPath);
+    readAuthoritativeRunManifest(repoRoot, path, unit as EstimateUnit);
+    return path;
+  }
   const plan = readJsonFile<{
     runtime_evidence?: { latest_unit_id?: unknown; latest_run_id?: unknown };
   }>(resolve(defaultPlanRoot(repoRoot), "plan-pack.json"));
@@ -1223,10 +1835,12 @@ export function resolveRunManifestPath(repoRoot: string, unit: string, explicitP
   const unitRoot = resolve(defaultRunRoot(repoRoot), unit);
   if (!existsSync(unitRoot)) throw new Error(`no prepared run exists for ${unit}`);
   const candidates = readdirSync(unitRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory()
+      && entry.name.startsWith(`${latestRunId}-`)
+      && /^[0-9a-f]{12}-[0-9a-f]{12}$/u.test(entry.name.slice(latestRunId.length + 1)))
     .map((entry) => resolve(unitRoot, entry.name, "run-manifest.json"))
     .filter((path) => existsSync(path))
-    .map((path) => ({ path, manifest: readJsonFile<RunManifestV1>(path) }))
+    .map((path) => ({ path, manifest: readAuthoritativeRunManifest(repoRoot, path, unit as EstimateUnit) }))
     .filter(({ manifest }) => manifest.unit_id === unit && manifest.run_id === latestRunId && manifest.status === "PREPARED");
   if (!candidates.length) throw new Error(`no committed prepared run exists for ${unit}/${latestRunId}`);
   if (candidates.length !== 1) throw new Error(`committed prepared run is ambiguous for ${unit}/${latestRunId}`);

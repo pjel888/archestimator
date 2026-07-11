@@ -109,14 +109,20 @@ export function buildLocalD1PrepareEnvironment(
 
 export function executeLocalD1PrepareCommands(input: {
   repoRoot: string;
+  runRoot: string;
   commands: readonly LocalD1PrepareCommand[];
   runner?: LocalD1PrepareCommandRunner;
   parentEnvironment?: NodeJS.ProcessEnv;
 }): void {
   const repoRoot = requireAbsolutePath(input.repoRoot, "repository root");
-  const expectedRoles: LocalD1PrepareCommandRole[] = ["better-auth-schema", "application-migrations", "fixture-seed"];
-  if (input.commands.length !== expectedRoles.length
-    || input.commands.some((command, index) => command.role !== expectedRoles[index])) {
+  const runRoot = requireAbsolutePath(input.runRoot, "run root");
+  const expectedCommands = buildLocalD1PrepareCommands({
+    runRoot,
+    persistRoot: resolve(runRoot, "wrangler-state"),
+    schemaPath: resolve(runRoot, "better-auth-schema.sql"),
+    seedPath: resolve(runRoot, "seed.sql"),
+  });
+  if (JSON.stringify(input.commands) !== JSON.stringify(expectedCommands)) {
     throw new Error("local D1 preparation requires the exact schema, migrations, seed command sequence");
   }
   const environment = buildLocalD1PrepareEnvironment(input.parentEnvironment);
@@ -125,8 +131,7 @@ export function executeLocalD1PrepareCommands(input: {
     stdio: "ignore",
     shell: false,
   }));
-  for (const command of input.commands) {
-    if (command.argv[0] !== "bunx" || command.argv.length < 2) throw new Error(`${command.role} has an invalid command`);
+  for (const command of expectedCommands) {
     const result = runner(command.argv[0], command.argv.slice(1), { cwd: repoRoot, env: environment });
     if (result.error || result.status !== 0 || result.signal !== null) {
       throw new Error(`${command.role} failed with exit ${result.status ?? "none"} and signal ${result.signal ?? "none"}`);

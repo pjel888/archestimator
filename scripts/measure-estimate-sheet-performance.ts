@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFileSync } from "node:fs";
+import { closeSync, existsSync, fsyncSync, openSync, readFileSync, unlinkSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import {
   buildEstimatePerformanceFixture,
@@ -24,28 +24,35 @@ import {
   BROWSER_SCOPE_BY_UNIT,
   assertPerformanceReport,
   assertRegularFile,
-  assertRunManifest,
+  assertSymlinkFreeContainedPath,
   assertTestReceipt,
   canonicalJson,
   cliBoolean,
   cliString,
+  defaultRunRoot,
   ensureContainedRunPath,
   fingerprintContentEqual,
+  isContained,
   isPlainObject,
   isSha256,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
+  requireUnit,
   resolveManifestLogicalOutput,
   resolveRunManifestPath,
   sha256File,
   sha256Hex,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
+  writeRunNoOverwrite,
   type PerformanceReportV1,
   type BrowserScope,
   type EstimateOutputRole,
+  type EstimateUnit,
   type FingerprintContent,
   type RunManifestV1,
+  type SourceFingerprint,
   type TestReceiptV1,
 } from "./lib/estimate-sheet-performance-contract";
 import { computeEstimateSheetSourceFingerprint } from "./compute-estimate-sheet-source-fingerprint";
@@ -54,10 +61,21 @@ import { assertCompleteLocalD1Measurement } from "./measure-estimate-sheet-d1";
 const EVIDENCE_CLASSES = new Set(["jsdom", "local-browser", "local-d1", "hosted-d1"]);
 const BUDGET_POLICIES = new Set(["record-only", "enforce"]);
 
-function resolveManifest(path: string): RunManifestV1 {
-  const manifest = readJsonFile<RunManifestV1>(resolve(path));
-  assertRunManifest(manifest);
-  return manifest;
+function expectedUnitFromCanonicalManifestPath(repoRoot: string, path: string): EstimateUnit {
+  const relativePath = relative(defaultRunRoot(repoRoot), resolve(path)).replaceAll("\\", "/");
+  const segments = relativePath.split("/");
+  if (segments.length !== 3 || segments[2] !== "run-manifest.json") {
+    throw new Error("run manifest path does not identify one canonical prepared unit run");
+  }
+  return requireUnit(segments[0]);
+}
+
+function resolveManifest(repoRoot: string, path: string, expectedUnit?: EstimateUnit): RunManifestV1 {
+  return readAuthoritativeRunManifest(
+    repoRoot,
+    resolve(path),
+    expectedUnit ?? expectedUnitFromCanonicalManifestPath(repoRoot, path),
+  );
 }
 
 type CommandGateReceipt = {
@@ -239,24 +257,46 @@ function resolveArtifactPath(manifest: RunManifestV1, value: string, kind: "test
 }
 
 function assertTestReceiptForRun(path: string, manifest: RunManifestV1): TestReceiptV1 {
-  const receipt = readJsonFile(path);
+  const trustedRoot = isContained(manifest.immutable_run_root, path)
+    ? manifest.immutable_run_root
+    : manifest.run_root;
+  const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, "measurement test receipt", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  const receipt = readJsonFile(safePath);
   assertTestReceipt(receipt);
   if (receipt.unit_id !== manifest.unit_id || receipt.run_id !== manifest.run_id) throw new Error(`test receipt identity mismatch: ${path}`);
   if (!fingerprintContentEqual(receipt.application_fingerprint, manifest.applicationFingerprint) || !fingerprintContentEqual(receipt.producer_fingerprint, manifest.producerFingerprint)) {
     throw new Error(`test receipt fingerprint mismatch: ${path}`);
   }
   if (receipt.overall !== "PASS" || receipt.failed !== 0 || receipt.passed < 1) throw new Error(`test receipt is not a passing cohort: ${path}`);
+  assertSymlinkFreeContainedPath(trustedRoot, safePath, "measurement test receipt", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
   return receipt;
 }
 
 function assertGateReceiptForRun(path: string, manifest: RunManifestV1, expectedRole: string): void {
-  const receipt = readJsonFile<CommandGateReceipt>(path);
+  const trustedRoot = isContained(manifest.immutable_run_root, path)
+    ? manifest.immutable_run_root
+    : manifest.run_root;
+  const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, "measurement gate receipt", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  const receipt = readJsonFile<CommandGateReceipt>(safePath);
   if (receipt.schema_version !== "estimate-sheet-command-receipt.v1") throw new Error(`gate receipt schema mismatch: ${path}`);
   if (receipt.role !== expectedRole || receipt.unit_id !== manifest.unit_id || receipt.run_id !== manifest.run_id) throw new Error(`gate receipt identity mismatch: ${path}`);
   if (!fingerprintContentEqual(receipt.application_fingerprint, manifest.applicationFingerprint) || !fingerprintContentEqual(receipt.producer_fingerprint, manifest.producerFingerprint)) {
     throw new Error(`gate receipt fingerprint mismatch: ${path}`);
   }
   if (receipt.overall !== "PASS") throw new Error(`gate receipt is not passing: ${path}`);
+  assertSymlinkFreeContainedPath(trustedRoot, safePath, "measurement gate receipt", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
 }
 
 type ValidatedChild = {
@@ -801,8 +841,11 @@ export function assertEstimateSheetProofEnvelopeArtifact(input: {
   runManifest: string;
   envelopePath: string;
   requireActivePointer?: boolean;
+  repoRoot?: string;
+  unit?: EstimateUnit;
 }): ValidatedEstimateSheetProofEnvelopeArtifact {
-  const manifest = resolveManifest(input.runManifest);
+  const repoRoot = resolve(input.repoRoot ?? process.cwd());
+  const manifest = resolveManifest(repoRoot, input.runManifest, input.unit);
   const spec = PROOF_SPECS[manifest.unit_id];
   if (!spec) throw new Error("proof envelopes are restricted to UNIT-005 through UNIT-010");
   const expectedRole = spec.schema === INTEGRATION_SCHEMA ? "integration" : "unit-proof";
@@ -866,6 +909,7 @@ export function assertEstimateSheetProofEnvelopeArtifact(input: {
 export function createEstimateSheetProofEnvelope(input: {
   runManifest: string;
   unit: string;
+  repoRoot?: string;
   integrationScope?: string;
   proofScope?: string;
   allLocal?: boolean;
@@ -878,8 +922,11 @@ export function createEstimateSheetProofEnvelope(input: {
   requiredPhases?: string;
   sourceBuildMatch?: string;
   budgetPolicy?: "record-only" | "enforce";
+  sourceFingerprint?: SourceFingerprint;
 }): { envelope: EstimateSheetProofEnvelopeV1; envelopePath: string } {
-  const manifest = resolveManifest(input.runManifest);
+  const repoRoot = resolve(input.repoRoot ?? process.cwd());
+  const unit = requireUnit(input.unit);
+  const manifest = resolveManifest(repoRoot, input.runManifest, unit);
   if (manifest.unit_id !== input.unit) throw new Error("proof-envelope unit does not match the run manifest");
   const spec = PROOF_SPECS[manifest.unit_id];
   if (!spec) throw new Error("proof envelopes are restricted to UNIT-005 through UNIT-010");
@@ -908,7 +955,10 @@ export function createEstimateSheetProofEnvelope(input: {
   const expectedOutputRole = spec.schema === INTEGRATION_SCHEMA ? "integration" : "unit-proof";
   requireAutoRole(input.output, expectedOutputRole, "proof envelope output");
   const envelopePath = resolveManifestLogicalOutput(manifest, expectedOutputRole);
-  const current = computeEstimateSheetSourceFingerprint({ repoRoot: process.cwd() }).fingerprint;
+  if (input.sourceFingerprint && process.env.NODE_ENV !== "test") {
+    throw new Error("source fingerprint injection is available only in focused tests");
+  }
+  const current = input.sourceFingerprint ?? computeEstimateSheetSourceFingerprint({ repoRoot }).fingerprint;
   if (!fingerprintContentEqual(current.application, manifest.applicationFingerprint)
     || !fingerprintContentEqual(current.producer, manifest.producerFingerprint)) {
     throw new Error("run manifest fingerprint is stale for proof-envelope production");
@@ -934,7 +984,8 @@ export function createEstimateSheetProofEnvelope(input: {
     overall: "PASS",
     generated_at: nowIso(),
   };
-  writeJsonNoOverwrite(envelopePath, envelope, 0o600);
+  resolveManifest(repoRoot, input.runManifest, unit);
+  writeRunJsonNoOverwrite(manifest, envelopePath, envelope, 0o600);
   return { envelope, envelopePath };
 }
 
@@ -1186,6 +1237,8 @@ export function measureUnit001HardMetrics(
 
 export function createEstimateSheetPerformanceReport(input: {
   manifest: RunManifestV1;
+  repoRoot?: string;
+  sourceFingerprint?: SourceFingerprint;
   evidenceClass: PerformanceReportV1["evidenceClass"];
   fixtureHash?: string;
   buildHash?: string | null;
@@ -1200,7 +1253,11 @@ export function createEstimateSheetPerformanceReport(input: {
   if (input.manifest.unit_id !== "UNIT-001" || input.evidenceClass !== "jsdom") {
     throw new Error("generic measurement can create only the UNIT-001 jsdom report; use the dedicated browser or D1 producer");
   }
-  const fingerprint = computeEstimateSheetSourceFingerprint({ repoRoot: process.cwd() }).fingerprint;
+  if (input.sourceFingerprint && process.env.NODE_ENV !== "test") {
+    throw new Error("source fingerprint injection is available only in focused tests");
+  }
+  const fingerprint = input.sourceFingerprint
+    ?? computeEstimateSheetSourceFingerprint({ repoRoot: resolve(input.repoRoot ?? process.cwd()) }).fingerprint;
   const evaluated = evaluateEstimateSheetPerformanceResult({
     unitId: input.manifest.unit_id,
     evidenceClass: input.evidenceClass,
@@ -1237,8 +1294,91 @@ export function createEstimateSheetPerformanceReport(input: {
   return report;
 }
 
+type Unit001PublicationJournal = {
+  schema_version: "estimate-sheet-unit-001-publication.v1";
+  unit_id: "UNIT-001";
+  run_id: string;
+  fixture_path: string;
+  fixture_sha256: string;
+  fixture_bytes_base64: string;
+  report_path: string;
+  report_sha256: string;
+  report_bytes_base64: string;
+};
+
+function unit001PublicationJournalPath(manifest: RunManifestV1): string {
+  return ensureContainedRunPath(manifest.run_root, "measurements/unit-001-publication.json");
+}
+
+function assertUnit001PublicationJournal(value: unknown, manifest: RunManifestV1, fixturePath: string, reportPath: string): asserts value is Unit001PublicationJournal {
+  if (!isPlainObject(value)
+    || value.schema_version !== "estimate-sheet-unit-001-publication.v1"
+    || value.unit_id !== "UNIT-001"
+    || value.run_id !== manifest.run_id
+    || value.fixture_path !== fixturePath
+    || value.report_path !== reportPath
+    || !isSha256(value.fixture_sha256)
+    || !isSha256(value.report_sha256)
+    || typeof value.fixture_bytes_base64 !== "string"
+    || typeof value.report_bytes_base64 !== "string") {
+    throw new Error("UNIT-001 publication journal is invalid");
+  }
+  const fixtureBytes = Buffer.from(value.fixture_bytes_base64, "base64");
+  const reportBytes = Buffer.from(value.report_bytes_base64, "base64");
+  if (sha256Hex(fixtureBytes) !== value.fixture_sha256 || sha256Hex(reportBytes) !== value.report_sha256) {
+    throw new Error("UNIT-001 publication journal payload hash mismatch");
+  }
+}
+
+function materializeUnit001PublicationFile(
+  manifest: RunManifestV1,
+  path: string,
+  bytes: Buffer,
+  expectedSha256: string,
+  label: string,
+): void {
+  if (existsSync(path)) {
+    const safePath = assertSymlinkFreeContainedPath(manifest.immutable_run_root, path, label, {
+      requireRegularFile: true,
+      requireSingleLink: true,
+    });
+    if (sha256File(safePath) !== expectedSha256) throw new Error(`${label} exists with unexpected bytes`);
+    return;
+  }
+  writeRunNoOverwrite(manifest, path, bytes, 0o600);
+  if (sha256File(path) !== expectedSha256) throw new Error(`${label} publication hash mismatch`);
+}
+
+function completeUnit001Publication(
+  manifest: RunManifestV1,
+  fixturePath: string,
+  reportPath: string,
+  journal: Unit001PublicationJournal,
+  faultInjector?: (point: "UNIT001_FIXTURE_PUBLISHED" | "UNIT001_REPORT_PUBLISHED") => void,
+): PerformanceReportV1 {
+  const fixtureBytes = Buffer.from(journal.fixture_bytes_base64, "base64");
+  const reportBytes = Buffer.from(journal.report_bytes_base64, "base64");
+  materializeUnit001PublicationFile(manifest, fixturePath, fixtureBytes, journal.fixture_sha256, "UNIT-001 fixture");
+  faultInjector?.("UNIT001_FIXTURE_PUBLISHED");
+  materializeUnit001PublicationFile(manifest, reportPath, reportBytes, journal.report_sha256, "UNIT-001 report");
+  faultInjector?.("UNIT001_REPORT_PUBLISHED");
+  const journalPath = unit001PublicationJournalPath(manifest);
+  assertSymlinkFreeContainedPath(manifest.run_root, journalPath, "UNIT-001 publication journal", {
+    requireRegularFile: true,
+    requireSingleLink: true,
+  });
+  unlinkSync(journalPath);
+  const parentFd = openSync(resolve(manifest.run_root, "measurements"), "r");
+  try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
+  const report = JSON.parse(reportBytes.toString("utf8")) as PerformanceReportV1;
+  assertPerformanceReport(report, { strict: true });
+  return report;
+}
+
 export function measureEstimateSheetPerformance(input: {
   runManifest: string;
+  unit: EstimateUnit;
+  repoRoot?: string;
   evidenceClass: PerformanceReportV1["evidenceClass"];
   output?: string;
   fixtureOutput?: string;
@@ -1249,9 +1389,15 @@ export function measureEstimateSheetPerformance(input: {
   budgetPolicy?: "record-only" | "enforce";
   check?: boolean;
   browserScope?: BrowserScope;
+  sourceFingerprint?: SourceFingerprint;
+  faultInjector?: (point: "UNIT001_FIXTURE_PUBLISHED" | "UNIT001_REPORT_PUBLISHED") => void;
 }): { report: PerformanceReportV1; reportPath: string } {
-  const manifest = resolveManifest(input.runManifest);
-  const current = computeEstimateSheetSourceFingerprint({ repoRoot: process.cwd() }).fingerprint;
+  const repoRoot = resolve(input.repoRoot ?? process.cwd());
+  const manifest = resolveManifest(repoRoot, input.runManifest, input.unit);
+  if (input.sourceFingerprint && process.env.NODE_ENV !== "test") {
+    throw new Error("source fingerprint injection is available only in focused tests");
+  }
+  const current = input.sourceFingerprint ?? computeEstimateSheetSourceFingerprint({ repoRoot }).fingerprint;
   if (!fingerprintContentEqual(current.application, manifest.applicationFingerprint) || !fingerprintContentEqual(current.producer, manifest.producerFingerprint)) {
     throw new Error("run manifest fingerprint is stale for measurement");
   }
@@ -1282,6 +1428,17 @@ export function measureEstimateSheetPerformance(input: {
   }
   const profile = input.profile ?? (manifest.profile === "artifact-only" ? "limit" : manifest.profile);
   const fixturePath = resolveArtifactPath(manifest, input.fixtureOutput ?? "auto:fixture", "fixture");
+  const publicationJournalPath = unit001PublicationJournalPath(manifest);
+  if (existsSync(publicationJournalPath)) {
+    const safeJournalPath = assertSymlinkFreeContainedPath(manifest.run_root, publicationJournalPath, "UNIT-001 publication journal", {
+      requireRegularFile: true,
+      requireSingleLink: true,
+    });
+    const journal = readJsonFile<Unit001PublicationJournal>(safeJournalPath);
+    assertUnit001PublicationJournal(journal, manifest, fixturePath, outputPath);
+    const report = completeUnit001Publication(manifest, fixturePath, outputPath, journal, input.faultInjector);
+    return { report, reportPath: outputPath };
+  }
   const testPaths = (input.tests ?? ["auto:dom-tests"]).map((value) => resolveArtifactPath(manifest, value, "test"));
   const gateReferences = input.gates ?? [];
   const gatePaths = gateReferences.map((value) => resolveArtifactPath(manifest, value, "gate"));
@@ -1303,6 +1460,7 @@ export function measureEstimateSheetPerformance(input: {
   ]);
   const report = createEstimateSheetPerformanceReport({
     manifest,
+    repoRoot,
     evidenceClass: input.evidenceClass,
     fixtureHash: fixturePayloadHash,
     buildHash: null,
@@ -1321,9 +1479,23 @@ export function measureEstimateSheetPerformance(input: {
     },
   };
   assertPerformanceReport(report, { strict: true });
-  writeJsonNoOverwrite(fixturePath, linkedFixture, 0o600);
-  writeJsonNoOverwrite(outputPath, report, 0o600);
-  return { report, reportPath: outputPath };
+  resolveManifest(repoRoot, input.runManifest, input.unit);
+  const fixtureBytes = Buffer.from(`${canonicalJson(linkedFixture)}\n`, "utf8");
+  const reportBytes = Buffer.from(`${canonicalJson(report)}\n`, "utf8");
+  const journal: Unit001PublicationJournal = {
+    schema_version: "estimate-sheet-unit-001-publication.v1",
+    unit_id: "UNIT-001",
+    run_id: manifest.run_id,
+    fixture_path: fixturePath,
+    fixture_sha256: sha256Hex(fixtureBytes),
+    fixture_bytes_base64: fixtureBytes.toString("base64"),
+    report_path: outputPath,
+    report_sha256: sha256Hex(reportBytes),
+    report_bytes_base64: reportBytes.toString("base64"),
+  };
+  writeRunJsonNoOverwrite(manifest, publicationJournalPath, journal, 0o600);
+  const published = completeUnit001Publication(manifest, fixturePath, outputPath, journal, input.faultInjector);
+  return { report: published, reportPath: outputPath };
 }
 
 export function main(argv = process.argv.slice(2)): number {
@@ -1331,7 +1503,7 @@ export function main(argv = process.argv.slice(2)): number {
   if (cliBoolean(values, "help")) { console.log("Usage: bun run scripts/measure-estimate-sheet-performance.ts --unit=UNIT-001 --evidence-class=jsdom --run-manifest=PATH --output=auto:jsdom [--check] | --unit=UNIT-010 --all-local --mode=auto:mode-proof --browser=auto:browser-child --d1=auto:d1-child --tests=auto:dom-tests,auto:e2e-tests --gates=... --output=auto:integration --required-phases=off,shadow,on,rollback --source-build-match=required"); return 0; }
   const policy = (cliString(values, "budget-policy") ?? "enforce") as "record-only" | "enforce";
   if (!BUDGET_POLICIES.has(policy)) throw new Error(`invalid budget policy: ${policy}`);
-  const unit = cliString(values, "unit", true) as string;
+  const unit = requireUnit(cliString(values, "unit", true));
   const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const check = cliBoolean(values, "check");
   const integrationScope = cliString(values, "integration-scope");
@@ -1344,6 +1516,7 @@ export function main(argv = process.argv.slice(2)): number {
     const result = createEstimateSheetProofEnvelope({
       runManifest,
       unit,
+      repoRoot: process.cwd(),
       integrationScope,
       proofScope,
       allLocal,
@@ -1368,6 +1541,8 @@ export function main(argv = process.argv.slice(2)): number {
   const outputRole: string = output?.replace(/^auto:/u, "") ?? evidenceClass;
   const result = measureEstimateSheetPerformance({
     runManifest,
+    unit,
+    repoRoot: process.cwd(),
     evidenceClass: evidenceClass as PerformanceReportV1["evidenceClass"],
     output: output ?? `auto:${outputRole}`,
     fixtureOutput: cliString(values, "fixture-output"),

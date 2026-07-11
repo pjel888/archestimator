@@ -171,6 +171,7 @@ export type EstimateSheetRuntimeEvidenceState = {
   transition_sequence: number;
   latest_unit_id: EstimateUnit | null;
   latest_run_id: string | null;
+  latest_run_manifest_sha256?: string;
   registry: RuntimeRegistryRow;
   projections: RuntimeProjectionRow[];
 };
@@ -232,6 +233,7 @@ export type RuntimeFileSet = Readonly<Record<string, RuntimeFileSnapshot>>;
 export type PrepareTransitionInput = Readonly<{
   unitId: EstimateUnit;
   runId: string;
+  runManifestSha256: string;
   updatedAt: string;
 }>;
 
@@ -241,7 +243,7 @@ export type RuntimeMaterialization = Readonly<{
   bytes: string | Uint8Array;
 }>;
 
-export type VerifiedTransitionInput = PrepareTransitionInput & Readonly<{
+export type VerifiedTransitionInput = Omit<PrepareTransitionInput, "runManifestSha256"> & Readonly<{
   sourceRevision: string;
   materializations: readonly RuntimeMaterialization[];
   unitStatus?: "VERIFIED" | "SUPERSEDED";
@@ -249,6 +251,7 @@ export type VerifiedTransitionInput = PrepareTransitionInput & Readonly<{
 }>;
 
 export type RefreezeReopenTransitionInput = Readonly<{
+  runManifestSha256: string;
   updatedAt: string;
 }>;
 
@@ -298,6 +301,10 @@ const RUNTIME_STATE_KEYS = [
   "registry",
   "transition_sequence",
 ] as const;
+const ANCHORED_RUNTIME_STATE_KEYS = [
+  ...RUNTIME_STATE_KEYS,
+  "latest_run_manifest_sha256",
+].sort();
 const PROJECTION_ROW_KEYS = [
   "artifact_id",
   "evidence_id",
@@ -352,18 +359,18 @@ function isStrictIso(value: string): boolean {
   return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
 }
 
-function immutablePrefix(unitId: EstimateUnit, runId: string): string {
-  return `evidence/runtime/runs/${unitId}/${runId}/`;
-}
-
 function isSafeImmutablePath(path: string, unitId: EstimateUnit, runId?: string): boolean {
   if (path.includes("\\") || path.startsWith("/") || path.split("/").some((part) => !part || part === "." || part === "..")) {
     return false;
   }
-  const prefix = runId
-    ? immutablePrefix(unitId, runId)
-    : `evidence/runtime/runs/${unitId}/`;
-  return path.startsWith(prefix) && path.length > prefix.length;
+  const prefix = `evidence/runtime/runs/${unitId}/`;
+  if (!path.startsWith(prefix)) return false;
+  const [runKey, ...tail] = path.slice(prefix.length).split("/");
+  const match = runKey?.match(/^(.+)-([0-9a-f]{12})-([0-9a-f]{12})$/u);
+  return Boolean(match
+    && RUN_ID_PATTERN.test(match[1] ?? "")
+    && (!runId || match[1] === runId)
+    && tail.length > 0);
 }
 
 function cloneManifest(manifest: EstimateSheetPlanManifest): EstimateSheetPlanManifest {
@@ -399,6 +406,9 @@ function assertTransitionPreconditions(
     throw new Error(`prepare requires next_unit ${input.unitId}, got ${String(manifest.next_unit)}`);
   }
   if (!RUN_ID_PATTERN.test(input.runId)) throw new Error(`invalid run id: ${input.runId}`);
+  if (!SHA256_PATTERN.test(input.runManifestSha256)) {
+    throw new Error("prepare run manifest SHA-256 must be a lowercase digest");
+  }
   if (!isStrictIso(input.updatedAt)) throw new Error(`updatedAt must be strict ISO: ${input.updatedAt}`);
 
   const unit = recordById(manifest.units, input.unitId, "units");
@@ -459,9 +469,6 @@ export function validateEstimateSheetRuntimeState(
   const errors: string[] = [];
   const runtime = manifest.runtime_evidence;
   if (!runtime || !isPlainObject(runtime)) return ["runtime_evidence must be an object"];
-  if (!sameStringArray(sortedKeys(runtime), [...RUNTIME_STATE_KEYS])) {
-    errors.push("runtime_evidence has unknown, missing, or reordered shape fields");
-  }
   if (runtime.contract_version !== ESTIMATE_SHEET_RUNTIME_STATE_CONTRACT) {
     errors.push(`runtime_evidence.contract_version must be ${ESTIMATE_SHEET_RUNTIME_STATE_CONTRACT}`);
   }
@@ -470,7 +477,18 @@ export function validateEstimateSheetRuntimeState(
   }
   const latestNull = runtime.latest_unit_id === null && runtime.latest_run_id === null;
   const latestPresent = runtime.latest_unit_id !== null && runtime.latest_run_id !== null;
+  const hasManifestAnchor = Object.hasOwn(runtime, "latest_run_manifest_sha256");
+  const expectedRuntimeKeys = latestNull ? [...RUNTIME_STATE_KEYS] : ANCHORED_RUNTIME_STATE_KEYS;
+  if (!sameStringArray(sortedKeys(runtime), expectedRuntimeKeys)) {
+    errors.push("runtime_evidence has unknown, missing, or reordered shape fields");
+  }
   if (!latestNull && !latestPresent) errors.push("runtime_evidence latest unit and run must be jointly null or present");
+  if (latestPresent && (!hasManifestAnchor || !SHA256_PATTERN.test(runtime.latest_run_manifest_sha256 ?? ""))) {
+    errors.push("runtime_evidence latest run manifest SHA-256 is required with a latest run");
+  }
+  if (latestNull && hasManifestAnchor) {
+    errors.push("runtime_evidence latest run manifest SHA-256 must be absent without a latest run");
+  }
   if (runtime.transition_sequence === 0 && !latestNull) {
     errors.push("runtime_evidence sequence zero requires null latest unit and run");
   }
@@ -633,6 +651,27 @@ export function deriveEstimateSheetPrepareTransition(
   next.runtime_evidence.transition_sequence += 1;
   next.runtime_evidence.latest_unit_id = input.unitId;
   next.runtime_evidence.latest_run_id = input.runId;
+  next.runtime_evidence.latest_run_manifest_sha256 = input.runManifestSha256;
+  return finalizeManifest(next);
+}
+
+/** Repoint an unindexed in-progress unit to a fresh run without changing prior immutable history. */
+export function deriveEstimateSheetPrepareRetryTransition(
+  manifest: EstimateSheetPlanManifest,
+  input: PrepareTransitionInput,
+): EstimateSheetPlanManifest {
+  const errors = validateEstimateSheetRuntimeState(manifest);
+  if (errors.length > 0) throw new Error(`runtime manifest invalid: ${errors.join("; ")}`);
+  if (manifest.next_unit !== input.unitId) throw new Error(`prepare retry requires next_unit ${input.unitId}`);
+  if (recordById(manifest.units, input.unitId, "units").status !== "IN_PROGRESS") throw new Error("prepare retry requires an in-progress unit");
+  if (manifest.runtime_evidence.latest_unit_id !== input.unitId || !manifest.runtime_evidence.latest_run_id) throw new Error("prepare retry must replace the current unit run");
+  if (manifest.runtime_evidence.registry.immutable_path !== null) throw new Error("prepare retry is forbidden after evidence indexing");
+  if (!RUN_ID_PATTERN.test(input.runId) || !SHA256_PATTERN.test(input.runManifestSha256) || !isStrictIso(input.updatedAt)) throw new Error("prepare retry input is invalid");
+  const next = cloneManifest(manifest);
+  next.updated_at = input.updatedAt;
+  next.runtime_evidence.transition_sequence += 1;
+  next.runtime_evidence.latest_run_id = input.runId;
+  next.runtime_evidence.latest_run_manifest_sha256 = input.runManifestSha256;
   return finalizeManifest(next);
 }
 
@@ -759,7 +798,8 @@ function runIdFromImmutablePath(path: string | null, unitId: EstimateUnit): stri
   if (!path) throw new Error(`${unitId} has no immutable evidence to reopen`);
   const prefix = `evidence/runtime/runs/${unitId}/`;
   if (!path.startsWith(prefix)) throw new Error(`${unitId} immutable evidence path is invalid`);
-  const runId = path.slice(prefix.length).split("/")[0] ?? "";
+  const runKey = path.slice(prefix.length).split("/")[0] ?? "";
+  const runId = runKey.match(/^(.+)-[0-9a-f]{12}-[0-9a-f]{12}$/u)?.[1] ?? "";
   if (!RUN_ID_PATTERN.test(runId)) throw new Error(`${unitId} immutable evidence run id is invalid`);
   return runId;
 }
@@ -771,6 +811,9 @@ export function deriveEstimateSheetRefreezeReopenTransition(
   const errors = validateEstimateSheetRuntimeState(manifest);
   if (errors.length > 0) throw new Error(`runtime manifest invalid: ${errors.join("; ")}`);
   if (!isStrictIso(input.updatedAt)) throw new Error(`updatedAt must be strict ISO: ${input.updatedAt}`);
+  if (!SHA256_PATTERN.test(input.runManifestSha256)) {
+    throw new Error("refreeze run manifest SHA-256 must be a lowercase digest");
+  }
   if (manifest.package_status !== "IMPLEMENTATION_READY" || manifest.plan_lifecycle !== "ACTIVE" || manifest.terminal_status !== "ACTIVE") {
     throw new Error("refreeze reopen requires an active implementation-ready pack");
   }
@@ -797,6 +840,7 @@ export function deriveEstimateSheetRefreezeReopenTransition(
   next.runtime_evidence.transition_sequence += 1;
   next.runtime_evidence.latest_unit_id = "UNIT-001";
   next.runtime_evidence.latest_run_id = priorRunId;
+  next.runtime_evidence.latest_run_manifest_sha256 = input.runManifestSha256;
   return finalizeManifest(next);
 }
 

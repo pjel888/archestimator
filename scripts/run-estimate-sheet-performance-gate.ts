@@ -2,26 +2,27 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
   COMMAND_RECEIPT_SCHEMA,
-  assertRegularFile,
-  assertRunManifest,
+  assertSymlinkFreeContainedPath,
   cliBoolean,
   cliString,
+  ensureDirectoryDurably,
   fingerprintContentEqual,
   isPlainObject,
   normalizeArgv,
   parseStrictCli,
-  readJsonFile,
+  readAuthoritativeRunManifest,
+  requireUnit,
   resolveManifestLogicalOutput,
   resolveRunManifestPath,
-  sha256File,
   sha256Hex,
   sha256NextBuild,
   sha256OpenNextBuild,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
   type RunManifestV1,
+  type EstimateUnit,
   type SourceFingerprint,
 } from "./lib/estimate-sheet-performance-contract";
 import { computeEstimateSheetSourceFingerprint } from "./compute-estimate-sheet-source-fingerprint";
@@ -89,10 +90,9 @@ function splitCommand(argv: string[]): { options: string[]; command: string[] } 
   return { options: argv.slice(0, separator), command: argv.slice(separator + 1) };
 }
 
-function resolveManifest(repoRoot: string, unit: string, path?: string): RunManifestV1 {
-  const manifest = readJsonFile<RunManifestV1>(resolveRunManifestPath(repoRoot, unit, path));
-  assertRunManifest(manifest);
-  return manifest;
+function resolveManifest(repoRoot: string, unit: EstimateUnit, path?: string): RunManifestV1 {
+  const manifestPath = resolveRunManifestPath(repoRoot, unit, path);
+  return readAuthoritativeRunManifest(repoRoot, manifestPath, unit);
 }
 
 function sameArgv(actual: readonly string[], expected: readonly string[]): boolean {
@@ -194,17 +194,25 @@ function resolveChildOutputSpecs(manifest: RunManifestV1, role: string, specs: s
   });
 }
 
-function validateChildOutputs(outputs: Array<Omit<ChildOutputBinding, "sha256">>): ChildOutputBinding[] {
+function validateChildOutputs(outputs: Array<Omit<ChildOutputBinding, "sha256">>, immutableRunRoot: string): ChildOutputBinding[] {
   return outputs.map((output) => {
-    assertRegularFile(output.immutable_path, output.role);
-    const bytes = readFileSync(output.immutable_path, "utf8");
+    const path = assertSymlinkFreeContainedPath(immutableRunRoot, output.immutable_path, output.role, {
+      requireRegularFile: true,
+      requireSingleLink: true,
+    });
+    const bytes = readFileSync(path);
+    const text = bytes.toString("utf8");
     if (output.role === "release-gates-json") {
-      const parsed = JSON.parse(bytes) as unknown;
+      const parsed = JSON.parse(text) as unknown;
       if (!isPlainObject(parsed) || parsed.mode !== "cloudflare-release-gates") throw new Error("release-gates JSON child schema mismatch");
-    } else if (!bytes.startsWith("# Cloudflare Release Gates\n")) {
+    } else if (!text.startsWith("# Cloudflare Release Gates\n")) {
       throw new Error("release-gates Markdown child schema mismatch");
     }
-    return { ...output, sha256: sha256File(output.immutable_path) };
+    assertSymlinkFreeContainedPath(immutableRunRoot, path, output.role, {
+      requireRegularFile: true,
+      requireSingleLink: true,
+    });
+    return { ...output, sha256: sha256Hex(bytes) };
   });
 }
 
@@ -235,13 +243,18 @@ export function runEstimateSheetPerformanceGate(input: {
   command: string[];
   output?: string;
   childOutputSpecs?: string[];
+  spawn?: typeof spawnSync;
 }): { receipt: CommandReceiptV1; receiptPath: string; exitCode: number } {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
+  const unit = requireUnit(input.unit);
   validateEstimateSheetGateCommand(input.role, input.unit, input.command);
-  const manifest = resolveManifest(repoRoot, input.unit, input.runManifest);
+  const manifest = resolveManifest(repoRoot, unit, input.runManifest);
   if (manifest.unit_id !== input.unit) throw new Error("gate unit does not match run manifest");
   const receiptPath = resolveReceiptPath(manifest, input.role, input.output);
   const childOutputBindings = resolveChildOutputSpecs(manifest, input.role, input.childOutputSpecs ?? []);
+  for (const binding of childOutputBindings) {
+    ensureDirectoryDurably(dirname(binding.immutable_path), 0o700, manifest.immutable_run_root);
+  }
   const before = computeEstimateSheetSourceFingerprint({ repoRoot }).fingerprint;
   if (!fingerprintContentEqual(before.application, manifest.applicationFingerprint) || !fingerprintContentEqual(before.producer, manifest.producerFingerprint)) {
     throw new Error("gate source fingerprint does not match the prepared run");
@@ -249,7 +262,9 @@ export function runEstimateSheetPerformanceGate(input: {
   const started = Date.now();
   const childEnv = { ...process.env } as NodeJS.ProcessEnv;
   for (const binding of childOutputBindings) childEnv[binding.env_key] = binding.immutable_path;
-  const child = spawnSync(input.command[0], input.command.slice(1), { cwd: repoRoot, env: childEnv, shell: false, encoding: "utf8", timeout: 5 * 60_000, stdio: ["ignore", "pipe", "pipe"] });
+  const spawn = input.spawn ?? spawnSync;
+  readAuthoritativeRunManifest(repoRoot, resolveRunManifestPath(repoRoot, unit, input.runManifest), unit);
+  const child = spawn(input.command[0], input.command.slice(1), { cwd: repoRoot, env: childEnv, shell: false, encoding: "utf8", timeout: 5 * 60_000, stdio: ["ignore", "pipe", "pipe"] });
   const ended = Date.now();
   const stdout = String(child.stdout ?? "");
   const stderr = String(child.stderr ?? "");
@@ -259,7 +274,7 @@ export function runEstimateSheetPerformanceGate(input: {
   let childOutputs: ChildOutputBinding[] = [];
   let childOutputError: string | null = null;
   try {
-    childOutputs = validateChildOutputs(childOutputBindings);
+    childOutputs = validateChildOutputs(childOutputBindings, manifest.immutable_run_root);
   } catch (error) {
     childOutputError = error instanceof Error ? error.message : String(error);
   }
@@ -291,7 +306,8 @@ export function runEstimateSheetPerformanceGate(input: {
     build_hash: buildHash,
   };
   if (childOutputError) receipt.diagnostic_counts.failures += 1;
-  writeJsonNoOverwrite(receiptPath, receipt, 0o600);
+  readAuthoritativeRunManifest(repoRoot, resolveRunManifestPath(repoRoot, unit, input.runManifest), unit);
+  writeRunJsonNoOverwrite(manifest, receiptPath, receipt, 0o600);
   return { receipt, receiptPath, exitCode: status ? 0 : (typeof child.status === "number" ? child.status : 1) };
 }
 

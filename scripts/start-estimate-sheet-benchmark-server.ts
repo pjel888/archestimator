@@ -1,12 +1,11 @@
 #!/usr/bin/env bun
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import {
   closeSync,
   existsSync,
   fsyncSync,
   lstatSync,
-  mkdirSync,
   openSync,
   readFileSync,
   renameSync,
@@ -17,21 +16,29 @@ import { connect } from "node:net";
 import { basename, dirname, relative, resolve } from "node:path";
 
 import {
+  assertSymlinkFreeContainedPath,
   assertRunManifest,
   canonicalJson,
   cliBoolean,
   cliString,
+  defaultRunRoot,
+  ensureDirectoryDurably,
   fingerprintContentEqual,
   isPlainObject,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
   readJsonFile,
   replaceFileAtomically,
+  requireUnit,
+  resolveManifestLogicalOutput,
   resolveRunManifestPath,
+  runtimeEnvironmentStableSha256,
   sha256File,
   sha256Hex,
   sha256OpenNextBuild,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
+  type EstimateUnit,
   type RunManifestV1,
 } from "./lib/estimate-sheet-performance-contract";
 import { computeEstimateSheetSourceFingerprint } from "./compute-estimate-sheet-source-fingerprint";
@@ -64,6 +71,13 @@ const BENCHMARK_CHILD_OS_ENVIRONMENT_KEYS = [
 ] as const;
 const PHASES = new Set(["baseline-all-off", "off", "shadow", "on", "rollback", "final"]);
 const FINAL_STATES = new Set(["all-off", "off", "shadow", "on", "all-activated"]);
+const PREVIEW_LAUNCH_RELEASE_TOKEN = "ARCHESTIMATOR_PREVIEW_JOURNALED_V1";
+const PREVIEW_LAUNCH_SCRIPT = `
+IFS= read -r launch_token || exit 125
+[ "$launch_token" = "${PREVIEW_LAUNCH_RELEASE_TOKEN}" ] || exit 126
+exec </dev/null
+exec "$@"
+`;
 
 export type EstimateModeValue = "off" | "shadow" | "on";
 export type EstimateModeValues = Record<keyof typeof MODE_ENVIRONMENT_KEYS, EstimateModeValue>;
@@ -138,6 +152,7 @@ type RuntimeRunManifest = RunManifestV1 & {
   routePath?: unknown;
   route?: unknown;
   runtimeEnvSha256?: unknown;
+  runtimeEnvStableSha256?: unknown;
   storageStateSha256?: unknown;
   buildReceipt?: unknown;
   processJournal?: unknown;
@@ -161,6 +176,29 @@ type StorageState = {
   sha256: string;
   cookieHeader: string;
 };
+
+type ManifestAuthority = {
+  repoRoot?: string;
+  expectedUnit?: EstimateUnit;
+};
+
+function expectedUnitFromCanonicalManifestPath(repoRoot: string, manifestPath: string): EstimateUnit {
+  const relativePath = relative(defaultRunRoot(repoRoot), resolve(manifestPath)).replaceAll("\\", "/");
+  const segments = relativePath.split("/");
+  if (segments.length !== 3 || segments[2] !== "run-manifest.json") {
+    throw new Error("run manifest path does not identify one canonical prepared unit run");
+  }
+  return requireUnit(segments[0]);
+}
+
+function readRuntimeRunManifest(
+  manifestPath: string,
+  authority: ManifestAuthority = {},
+): RuntimeRunManifest {
+  const repoRoot = resolve(authority.repoRoot ?? process.cwd());
+  const expectedUnit = authority.expectedUnit ?? expectedUnitFromCanonicalManifestPath(repoRoot, manifestPath);
+  return readAuthoritativeRunManifest(repoRoot, manifestPath, expectedUnit) as RuntimeRunManifest;
+}
 
 export function buildBenchmarkChildEnvironment(
   runtimeValues: RuntimeEnvironment["values"],
@@ -187,25 +225,18 @@ function isSha256(value: unknown): value is string {
   return typeof value === "string" && /^[a-f0-9]{64}$/u.test(value);
 }
 
-function ensureContained(root: string, path: string, label: string): string {
-  const resolvedRoot = resolve(root);
-  const resolvedPath = resolve(path);
-  const child = relative(resolvedRoot, resolvedPath);
-  if (!child || child.startsWith("..") || child.includes(`..${process.platform === "win32" ? "\\" : "/"}`)) {
-    throw new Error(`${label} must be contained by the prepared run root`);
-  }
-  return resolvedPath;
-}
-
-function assertPrivateRegularFile(path: string, label: string): void {
-  const stat = lstatSync(path);
+function assertPrivateRegularFile(path: string, label: string, trustedRoot: string): string {
+  const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, label);
+  const stat = lstatSync(safePath);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`${label} must be a regular non-symlink file`);
   if ((stat.mode & 0o077) !== 0) throw new Error(`${label} must not be group/world accessible`);
   if (stat.nlink !== 1) throw new Error(`${label} must have exactly one hard link`);
+  return safePath;
 }
 
-function fsyncDirectory(path: string): void {
-  const fd = openSync(path, "r");
+function fsyncDirectory(path: string, trustedRoot: string): void {
+  const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, "mutable artifact parent");
+  const fd = openSync(safePath, "r");
   try { fsyncSync(fd); } finally { closeSync(fd); }
 }
 
@@ -213,39 +244,115 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
 }
 
-export function writeMutableJsonAtomically(path: string, value: unknown, mode = 0o600): string {
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = resolve(dirname(path), `.${basename(path)}.${process.pid}.${crypto.randomUUID()}.tmp`);
-  const bytes = `${JSON.stringify(value, null, 2)}\n`;
-  const fd = openSync(temporary, "wx", mode);
-  try {
-    writeFileSync(fd, bytes, "utf8");
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-  renameSync(temporary, path);
-  fsyncDirectory(dirname(path));
-  return sha256File(path);
+function releaseJournaledPreview(child: ChildProcess): Promise<void> {
+  const input = child.stdin;
+  if (!input || input.destroyed || !input.writable) throw new Error("preview launch handshake input is unavailable");
+  return new Promise((resolveRelease, rejectRelease) => {
+    const onError = (error: Error) => {
+      input.off("error", onError);
+      rejectRelease(error);
+    };
+    input.once("error", onError);
+    input.end(`${PREVIEW_LAUNCH_RELEASE_TOKEN}\n`, () => {
+      input.off("error", onError);
+      resolveRelease();
+    });
+  });
 }
 
-export function removeFileDurably(path: string): void {
-  if (!existsSync(path)) return;
-  rmSync(path);
-  fsyncDirectory(dirname(path));
+async function abortBlockedPreviewLaunch(child: ChildProcess, pid: number, timeoutMs = 2_000): Promise<void> {
+  const exited = new Promise<void>((resolveExit) => {
+    if (child.exitCode !== null || child.signalCode !== null) resolveExit();
+    else child.once("exit", () => resolveExit());
+  });
+  if (child.stdin && !child.stdin.destroyed) child.stdin.end();
+  await Promise.race([exited, sleep(250)]);
+  if (isProcessAlive(pid)) {
+    try {
+      if (process.platform === "win32") process.kill(pid, "SIGKILL");
+      else process.kill(-pid, "SIGKILL");
+    } catch (error) {
+      if (isProcessAlive(pid)) throw error;
+    }
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline && isProcessAlive(pid)) await sleep(25);
+  if (isProcessAlive(pid)) throw new Error(`blocked preview launcher ${pid} survived launch rollback`);
+}
+
+function writeMutableFileAtomically(
+  path: string,
+  bytes: string | Uint8Array,
+  mode: number,
+  trustedRoot: string,
+): string {
+  ensureDirectoryDurably(dirname(path), 0o700, trustedRoot);
+  const destination = assertSymlinkFreeContainedPath(
+    trustedRoot,
+    resolve(path),
+    "mutable artifact",
+    { allowMissingLeaf: true },
+  );
+  if (existsSync(destination)) {
+    const current = lstatSync(destination);
+    if (!current.isFile() || current.isSymbolicLink() || current.nlink !== 1) {
+      throw new Error("mutable artifact target must be a one-link regular file");
+    }
+  }
+  const temporary = assertSymlinkFreeContainedPath(
+    trustedRoot,
+    resolve(dirname(destination), `.${basename(path)}.${process.pid}.${crypto.randomUUID()}.tmp`),
+    "mutable artifact temporary file",
+    { allowMissingLeaf: true },
+  );
+  try {
+    const fd = openSync(temporary, "wx", mode);
+    try {
+      writeFileSync(fd, bytes);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    renameSync(temporary, destination);
+    fsyncDirectory(dirname(destination), trustedRoot);
+  } catch (error) {
+    try { rmSync(temporary); } catch { /* preserve the primary error */ }
+    throw error;
+  }
+  return sha256File(assertSymlinkFreeContainedPath(trustedRoot, destination, "written mutable artifact"));
+}
+
+export function writeMutableJsonAtomically(
+  path: string,
+  value: unknown,
+  mode = 0o600,
+  trustedRoot: string,
+): string {
+  return writeMutableFileAtomically(path, `${JSON.stringify(value, null, 2)}\n`, mode, trustedRoot);
+}
+
+export function removeFileDurably(path: string, trustedRoot: string): void {
+  const safePath = assertSymlinkFreeContainedPath(trustedRoot, path, "mutable artifact removal", { allowMissingLeaf: true });
+  if (!existsSync(safePath)) return;
+  const stat = lstatSync(safePath);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new Error("mutable artifact removal target must be a one-link regular file");
+  }
+  rmSync(safePath);
+  fsyncDirectory(dirname(safePath), trustedRoot);
 }
 
 export function updateRunManifest(
   manifestPath: string,
   mutate: (manifest: RuntimeRunManifest) => RuntimeRunManifest,
+  authority: ManifestAuthority = {},
 ): RuntimeRunManifest {
-  const current = readJsonFile<RuntimeRunManifest>(manifestPath);
-  assertRunManifest(current);
+  const current = readRuntimeRunManifest(manifestPath, authority);
   const expected = sha256File(manifestPath);
   const next = mutate(structuredClone(current));
   assertRunManifest(next);
-  replaceFileAtomically(manifestPath, `${JSON.stringify(next, null, 2)}\n`, expected, 0o600);
-  return next;
+  replaceFileAtomically(manifestPath, `${JSON.stringify(next, null, 2)}\n`, expected, 0o600, current.run_root);
+  return readRuntimeRunManifest(manifestPath, authority);
 }
 
 export function resolveBenchmarkPort(manifest: RuntimeRunManifest, override?: number | null): number {
@@ -334,14 +441,18 @@ function snapshotFromRuntimeValues(values: Record<string, string>): EstimateServ
 
 export function validateRuntimeEnvironment(manifest: RuntimeRunManifest, port: number): RuntimeEnvironment {
   if (typeof manifest.runtimeEnv !== "string") throw new Error("prepared browser run is missing runtimeEnv");
-  const path = ensureContained(manifest.run_root, manifest.runtimeEnv, "runtime.env");
+  const path = assertSymlinkFreeContainedPath(manifest.run_root, manifest.runtimeEnv, "runtime.env");
   if (path !== resolve(manifest.run_root, "runtime.env")) throw new Error("runtimeEnv must be <run>/runtime.env");
-  assertPrivateRegularFile(path, "runtime.env");
+  assertPrivateRegularFile(path, "runtime.env", manifest.run_root);
   const sha256 = sha256File(path);
   if (!isSha256(manifest.runtimeEnvSha256) || manifest.runtimeEnvSha256 !== sha256) {
     throw new Error("runtime.env hash is missing or stale in the run manifest");
   }
   const rawValues = parseRuntimeEnvironment(path);
+  const stableSha256 = runtimeEnvironmentStableSha256(rawValues);
+  if (!isSha256(manifest.runtimeEnvStableSha256) || manifest.runtimeEnvStableSha256 !== stableSha256) {
+    throw new Error("runtime.env stable identity hash is missing or stale in the run manifest");
+  }
   const values = rawValues as RuntimeEnvironment["values"];
   if (values.ARCHESTIMATOR_AUTH_PROVIDER !== "better-auth") throw new Error("runtime.env auth provider must be better-auth");
   if (Buffer.byteLength(values.BETTER_AUTH_SECRET, "utf8") < 32) throw new Error("runtime.env Better Auth secret is too short");
@@ -355,9 +466,9 @@ export function validateRuntimeEnvironment(manifest: RuntimeRunManifest, port: n
 export function replaceRuntimeEnvironmentSnapshot(
   manifestPath: string,
   requestedModes: EstimateModeValues,
+  authority: ManifestAuthority = {},
 ): RuntimeEnvironment {
-  let manifest = readJsonFile<RuntimeRunManifest>(manifestPath);
-  assertRunManifest(manifest);
+  let manifest = readRuntimeRunManifest(manifestPath, authority);
   const port = resolveBenchmarkPort(manifest);
   const current = validateRuntimeEnvironment(manifest, port);
   const values: Record<string, string> = { ...current.values };
@@ -367,18 +478,8 @@ export function replaceRuntimeEnvironmentSnapshot(
     values[envKey] = value;
   }
   const bytes = `${RUNTIME_ENVIRONMENT_KEYS.map((key) => `${key}=${values[key]}`).join("\n")}\n`;
-  const temporary = resolve(dirname(current.path), `.runtime.env.${process.pid}.${crypto.randomUUID()}.tmp`);
-  const fd = openSync(temporary, "wx", 0o600);
-  try {
-    writeFileSync(fd, bytes, "utf8");
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-  renameSync(temporary, current.path);
-  fsyncDirectory(dirname(current.path));
-  const nextHash = sha256File(current.path);
-  manifest = updateRunManifest(manifestPath, (value) => ({ ...value, runtimeEnvSha256: nextHash }));
+  const nextHash = writeMutableFileAtomically(current.path, bytes, 0o600, manifest.run_root);
+  manifest = updateRunManifest(manifestPath, (value) => ({ ...value, runtimeEnvSha256: nextHash }), authority);
   const validated = validateRuntimeEnvironment(manifest, port);
   if (canonicalJson(validated.snapshot.modes) !== canonicalJson(requestedModes)) {
     throw new Error("phase runtime.env did not preserve the requested mode snapshot");
@@ -388,9 +489,9 @@ export function replaceRuntimeEnvironmentSnapshot(
 
 export function validateStorageState(manifest: RuntimeRunManifest, port: number): StorageState {
   if (typeof manifest.storageState !== "string") throw new Error("prepared browser run is missing storageState");
-  const path = ensureContained(manifest.run_root, manifest.storageState, "browser storage state");
+  const path = assertSymlinkFreeContainedPath(manifest.run_root, manifest.storageState, "browser storage state");
   if (path !== resolve(manifest.run_root, "storage-state.json")) throw new Error("storageState must be <run>/storage-state.json");
-  assertPrivateRegularFile(path, "browser storage state");
+  assertPrivateRegularFile(path, "browser storage state", manifest.run_root);
   const sha256 = sha256File(path);
   if (!isSha256(manifest.storageStateSha256) || manifest.storageStateSha256 !== sha256) {
     throw new Error("browser storage-state hash is missing or stale in the run manifest");
@@ -421,17 +522,11 @@ export function validateOpenNextBuildReceipt(
   manifest: RuntimeRunManifest,
   repoRoot: string,
 ): BuildReceipt {
-  const path = ensureContained(
-    manifest.run_root,
-    typeof manifest.buildReceipt === "string"
-      ? manifest.buildReceipt
-      : resolve(manifest.run_root, "receipts/command-opennext-build.json"),
-    "OpenNext build receipt",
-  );
-  if (path !== resolve(manifest.run_root, "receipts/command-opennext-build.json")) {
-    throw new Error("OpenNext build receipt must use the fixed run-contained role path");
+  const path = resolveManifestLogicalOutput(manifest, "opennext-build");
+  if (manifest.buildReceipt !== undefined && manifest.buildReceipt !== path) {
+    throw new Error("OpenNext build receipt manifest binding differs from its logical output");
   }
-  assertPrivateRegularFile(path, "OpenNext build receipt");
+  assertPrivateRegularFile(path, "OpenNext build receipt", manifest.immutable_run_root);
   const receipt = readJsonFile<unknown>(path);
   if (!isPlainObject(receipt)
     || receipt.schema_version !== "estimate-sheet-command-receipt.v1"
@@ -520,12 +615,29 @@ export function isProcessAlive(pid: number): boolean {
 }
 
 export function readPreviewProcessJournal(manifest: RuntimeRunManifest): PreviewProcessJournal {
-  const path = ensureContained(
+  const declaredPath = typeof manifest.processJournal === "string"
+    ? manifest.processJournal
+    : resolve(manifest.run_root, "preview/process-journal.json");
+  const parent = assertSymlinkFreeContainedPath(
     manifest.run_root,
-    typeof manifest.processJournal === "string"
-      ? manifest.processJournal
-      : resolve(manifest.run_root, "preview/process-journal.json"),
+    dirname(declaredPath),
+    "preview process journal parent",
+    { allowMissingLeaf: true },
+  );
+  if (!existsSync(parent)) {
+    return {
+      schema_version: "estimate-sheet-preview-process-journal.v1",
+      unit_id: manifest.unit_id,
+      run_id: manifest.run_id,
+      processes: [],
+      updated_at: manifest.created_at,
+    };
+  }
+  const path = assertSymlinkFreeContainedPath(
+    manifest.run_root,
+    declaredPath,
     "preview process journal",
+    { allowMissingLeaf: true },
   );
   if (!existsSync(path)) {
     return {
@@ -536,7 +648,7 @@ export function readPreviewProcessJournal(manifest: RuntimeRunManifest): Preview
       updated_at: manifest.created_at,
     };
   }
-  assertPrivateRegularFile(path, "preview process journal");
+  assertPrivateRegularFile(path, "preview process journal", manifest.run_root);
   const journal = readJsonFile<PreviewProcessJournal>(path);
   if (journal.schema_version !== "estimate-sheet-preview-process-journal.v1"
     || journal.unit_id !== manifest.unit_id
@@ -547,17 +659,20 @@ export function readPreviewProcessJournal(manifest: RuntimeRunManifest): Preview
   return journal;
 }
 
-function persistPreviewJournal(manifestPath: string, journal: PreviewProcessJournal): RuntimeRunManifest {
-  const manifest = readJsonFile<RuntimeRunManifest>(manifestPath);
-  assertRunManifest(manifest);
+function persistPreviewJournal(
+  manifestPath: string,
+  journal: PreviewProcessJournal,
+  authority: ManifestAuthority,
+): RuntimeRunManifest {
+  const manifest = readRuntimeRunManifest(manifestPath, authority);
   const path = resolve(manifest.run_root, "preview/process-journal.json");
   journal.updated_at = nowIso();
-  writeMutableJsonAtomically(path, journal, 0o600);
+  writeMutableJsonAtomically(path, journal, 0o600, manifest.run_root);
   return updateRunManifest(manifestPath, (value) => ({
     ...value,
     processJournal: path,
     previewProcesses: journal.processes,
-  }));
+  }), authority);
 }
 
 function assertNoActivePreview(manifest: RuntimeRunManifest, journal: PreviewProcessJournal): void {
@@ -601,10 +716,12 @@ export async function stopPreviewProcess(input: {
   runManifest: string;
   pid: number;
   timeoutMs?: number;
+  repoRoot?: string;
+  unit?: EstimateUnit;
 }): Promise<PreviewProcessEntry> {
   const manifestPath = resolve(input.runManifest);
-  let manifest = readJsonFile<RuntimeRunManifest>(manifestPath);
-  assertRunManifest(manifest);
+  const authority = { repoRoot: input.repoRoot, expectedUnit: input.unit };
+  let manifest = readRuntimeRunManifest(manifestPath, authority);
   const journal = readPreviewProcessJournal(manifest);
   const index = journal.processes.findIndex((entry) => entry.pid === input.pid);
   if (index < 0) throw new Error(`preview PID ${input.pid} is not journaled by this run`);
@@ -648,15 +765,20 @@ export async function stopPreviewProcess(input: {
     stopped_at: nowIso(),
   };
   journal.processes[index] = stopped;
-  manifest = persistPreviewJournal(manifestPath, journal);
+  manifest = persistPreviewJournal(manifestPath, journal, authority);
   if (isPlainObject(manifest.activePreview) && manifest.activePreview.pid === entry.pid) {
-    const activePath = resolve(manifest.run_root, "preview/active-preview.json");
-    removeFileDurably(activePath);
+    const activePath = assertSymlinkFreeContainedPath(
+      manifest.run_root,
+      resolve(manifest.run_root, "preview/active-preview.json"),
+      "active preview descriptor",
+      { allowMissingLeaf: true },
+    );
+    removeFileDurably(activePath, manifest.run_root);
     updateRunManifest(manifestPath, (value) => {
       const rest = { ...value };
       delete rest.activePreview;
       return rest as RuntimeRunManifest;
-    });
+    }, authority);
   }
   return stopped;
 }
@@ -672,15 +794,18 @@ export async function startEstimateSheetBenchmarkServer(input: {
   timeoutMs?: number;
   commandOverride?: string[];
   checkSource?: boolean;
+  unit?: EstimateUnit;
+  onSpawnBeforeJournal?: (pid: number) => void;
 }): Promise<BenchmarkServerDescriptor> {
+  const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const manifestPath = resolve(input.runManifest);
-  let manifest = readJsonFile<RuntimeRunManifest>(manifestPath);
-  assertRunManifest(manifest);
+  const authority = { repoRoot, expectedUnit: input.unit };
+  let manifest = readRuntimeRunManifest(manifestPath, authority);
+  if (manifest.status !== "PREPARED") throw new Error("benchmark previews require an authoritative PREPARED run");
   if (manifest.evidence_class !== "local-browser" || manifest.cleanupRequirement !== "REQUIRED") {
     throw new Error("benchmark previews require a prepared local-browser run with required cleanup");
   }
   if (resolve(manifest.run_root, "run-manifest.json") !== manifestPath) throw new Error("run manifest is not the prepared run-root manifest");
-  const repoRoot = resolve(input.repoRoot ?? process.cwd());
   if (input.checkSource === false && process.env.NODE_ENV !== "test") throw new Error("source checks can be disabled only in focused tests");
   if (input.checkSource !== false) {
     const current = computeEstimateSheetSourceFingerprint({ repoRoot }).fingerprint;
@@ -698,30 +823,58 @@ export async function startEstimateSheetBenchmarkServer(input: {
   const runtime = validateRuntimeEnvironment(manifest, port);
   const storage = validateStorageState(manifest, port);
   const build = validateOpenNextBuildReceipt(manifest, repoRoot);
+  const wranglerState = assertSymlinkFreeContainedPath(
+    manifest.run_root,
+    resolve(manifest.run_root, "wrangler-state"),
+    "preview Wrangler persistence root",
+  );
+  const wranglerStateStat = lstatSync(wranglerState);
+  if (!wranglerStateStat.isDirectory() || wranglerStateStat.isSymbolicLink()) {
+    throw new Error("preview Wrangler persistence root must be a regular directory");
+  }
   const journal = readPreviewProcessJournal(manifest);
   assertNoActivePreview(manifest, journal);
 
   const exactCommand = resolveBenchmarkServerCommand(manifest, port, phase, finalState);
   if (input.commandOverride && process.env.NODE_ENV !== "test") throw new Error("benchmark command overrides are test-only");
+  if (input.onSpawnBeforeJournal && process.env.NODE_ENV !== "test") throw new Error("preview launch fault hooks are test-only");
+  if (process.platform === "win32") throw new Error("durable preview launch handshake requires a POSIX shell");
   const command = input.commandOverride ?? exactCommand;
   if (!command.length) throw new Error("benchmark command is empty");
   const ordinal = journal.processes.length + 1;
-  const stdoutLog = resolve(manifest.run_root, `preview/logs/${ordinal}-${phase}.stdout.log`);
-  const stderrLog = resolve(manifest.run_root, `preview/logs/${ordinal}-${phase}.stderr.log`);
-  mkdirSync(dirname(stdoutLog), { recursive: true, mode: 0o700 });
+  manifest = readRuntimeRunManifest(manifestPath, authority);
+  const stdoutLogPath = resolve(manifest.run_root, `preview/logs/${ordinal}-${phase}.stdout.log`);
+  const stderrLogPath = resolve(manifest.run_root, `preview/logs/${ordinal}-${phase}.stderr.log`);
+  ensureDirectoryDurably(dirname(stdoutLogPath), 0o700, manifest.run_root);
+  const stdoutLog = assertSymlinkFreeContainedPath(
+    manifest.run_root,
+    stdoutLogPath,
+    "preview stdout log",
+    { allowMissingLeaf: true },
+  );
+  const stderrLog = assertSymlinkFreeContainedPath(
+    manifest.run_root,
+    stderrLogPath,
+    "preview stderr log",
+    { allowMissingLeaf: true },
+  );
   const stdoutFd = openSync(stdoutLog, "wx", 0o600);
   const stderrFd = openSync(stderrLog, "wx", 0o600);
-  const child = spawn(command[0]!, command.slice(1), {
-    cwd: repoRoot,
-    env: buildBenchmarkChildEnvironment(runtime.values),
-    detached: true,
-    shell: false,
-    stdio: ["ignore", stdoutFd, stderrFd],
-  });
-  closeSync(stdoutFd);
-  closeSync(stderrFd);
-  if (!child.pid) throw new Error("preview process did not return a PID");
-  child.unref();
+  let child: ChildProcess;
+  try {
+    child = spawn("/bin/sh", ["-c", PREVIEW_LAUNCH_SCRIPT, "archestimator-preview-launch", ...command], {
+      cwd: repoRoot,
+      env: buildBenchmarkChildEnvironment(runtime.values),
+      detached: true,
+      shell: false,
+      stdio: ["pipe", stdoutFd, stderrFd],
+    });
+  } finally {
+    closeSync(stdoutFd);
+    closeSync(stderrFd);
+  }
+  if (!child.pid) throw new Error("preview launch handshake did not return a PID");
+  const childPid = child.pid;
 
   const startedAt = nowIso();
   const requestedSnapshot = runtime.snapshot;
@@ -729,7 +882,7 @@ export async function startEstimateSheetBenchmarkServer(input: {
     role,
     phase,
     ordinal,
-    pid: child.pid,
+    pid: childPid,
     port,
     command_sha256: sha256Hex(canonicalJson(exactCommand)),
     requested_snapshot: requestedSnapshot,
@@ -747,13 +900,31 @@ export async function startEstimateSheetBenchmarkServer(input: {
     stdout_log: relative(manifest.run_root, stdoutLog),
     stderr_log: relative(manifest.run_root, stderrLog),
   };
-  journal.processes.push(entry);
-  manifest = persistPreviewJournal(manifestPath, journal);
+  try {
+    input.onSpawnBeforeJournal?.(childPid);
+    journal.processes.push(entry);
+    manifest = persistPreviewJournal(manifestPath, journal, authority);
+  } catch (error) {
+    await abortBlockedPreviewLaunch(child, childPid);
+    removeFileDurably(stdoutLog, manifest.run_root);
+    removeFileDurably(stderrLog, manifest.run_root);
+    throw error;
+  }
+
+  try {
+    await releaseJournaledPreview(child);
+  } catch (error) {
+    journal.processes[ordinal - 1] = { ...entry, readiness: "FAILED" };
+    persistPreviewJournal(manifestPath, journal, authority);
+    try { await stopPreviewProcess({ runManifest: manifestPath, pid: childPid, repoRoot, unit: manifest.unit_id }); } catch { /* preserve launch failure */ }
+    throw new Error(`preview launch handshake failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  child.unref();
 
   let serverSnapshot: EstimateServerModeSnapshot;
   try {
     serverSnapshot = await waitForReady({
-      pid: child.pid,
+      pid: childPid,
       baseUrl: `http://127.0.0.1:${port}`,
       routePath,
       cookieHeader: storage.cookieHeader,
@@ -764,8 +935,8 @@ export async function startEstimateSheetBenchmarkServer(input: {
     }
   } catch (error) {
     journal.processes[ordinal - 1] = { ...entry, readiness: "FAILED" };
-    persistPreviewJournal(manifestPath, journal);
-    try { await stopPreviewProcess({ runManifest: manifestPath, pid: child.pid }); } catch { /* preserve readiness failure */ }
+    persistPreviewJournal(manifestPath, journal, authority);
+    try { await stopPreviewProcess({ runManifest: manifestPath, pid: childPid, repoRoot, unit: manifest.unit_id }); } catch { /* preserve readiness failure */ }
     throw error;
   }
 
@@ -778,7 +949,8 @@ export async function startEstimateSheetBenchmarkServer(input: {
     ready_at: readyAt,
   };
   journal.processes[ordinal - 1] = readyEntry;
-  manifest = persistPreviewJournal(manifestPath, journal);
+  manifest = persistPreviewJournal(manifestPath, journal, authority);
+  manifest = readRuntimeRunManifest(manifestPath, authority);
   const descriptorPath = resolve(manifest.run_root, `preview/descriptors/${String(ordinal).padStart(2, "0")}-${phase}.json`);
   const descriptor: BenchmarkServerDescriptor = {
     schema_version: "estimate-sheet-benchmark-server.v1",
@@ -793,8 +965,8 @@ export async function startEstimateSheetBenchmarkServer(input: {
     route_path: routePath,
     command: exactCommand,
     launched: true,
-    pid: child.pid,
-    build_receipt: relative(manifest.run_root, build.path),
+    pid: childPid,
+    build_receipt: manifest.logical_outputs["opennext-build"],
     build_receipt_sha256: build.sha256,
     build_hash: build.buildHash,
     runtime_env_sha256: runtime.sha256,
@@ -806,11 +978,22 @@ export async function startEstimateSheetBenchmarkServer(input: {
     process_journal: "preview/process-journal.json",
     generated_at: readyAt,
   };
-  writeJsonNoOverwrite(descriptorPath, descriptor, 0o600);
+  writeRunJsonNoOverwrite(manifest, descriptorPath, descriptor, 0o600);
   if (descriptor.active) {
-    const activePath = resolve(manifest.run_root, "preview/active-preview.json");
+    manifest = readRuntimeRunManifest(manifestPath, authority);
+    const activePath = assertSymlinkFreeContainedPath(
+      manifest.run_root,
+      resolve(manifest.run_root, "preview/active-preview.json"),
+      "active preview descriptor",
+      { allowMissingLeaf: true },
+    );
     if (existsSync(activePath)) throw new Error("active preview descriptor already exists");
-    writeJsonNoOverwrite(activePath, { ...descriptor, descriptor_path: relative(manifest.run_root, descriptorPath), descriptor_sha256: sha256File(descriptorPath) }, 0o600);
+    writeRunJsonNoOverwrite(manifest, activePath, {
+      ...descriptor,
+      descriptor_path: relative(manifest.run_root, descriptorPath),
+      descriptor_sha256: sha256File(assertSymlinkFreeContainedPath(manifest.run_root, descriptorPath, "preview descriptor")),
+    }, 0o600);
+    manifest = readRuntimeRunManifest(manifestPath, authority);
     updateRunManifest(manifestPath, (value) => ({
       ...value,
       port,
@@ -818,12 +1001,12 @@ export async function startEstimateSheetBenchmarkServer(input: {
       build_hash: build.buildHash,
       activePreview: {
         path: activePath,
-        sha256: sha256File(activePath),
+        sha256: sha256File(assertSymlinkFreeContainedPath(manifest.run_root, activePath, "active preview descriptor")),
         pid: descriptor.pid,
         port,
         snapshot: serverSnapshot,
       },
-    }));
+    }), authority);
   }
   return descriptor;
 }
@@ -834,7 +1017,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log("Usage: bun run scripts/start-estimate-sheet-benchmark-server.ts --unit=UNIT-002 --phase=baseline-all-off --final-state=all-off --fixture-role=browser --background [--run-manifest=PATH]");
     return 0;
   }
-  const unit = cliString(values, "unit", true)!;
+  const unit = requireUnit(cliString(values, "unit", true));
   if (unit !== "UNIT-002") throw new Error("the direct benchmark launcher is restricted to the UNIT-002 baseline");
   if (!cliBoolean(values, "background") || cliBoolean(values, "launch")) throw new Error("UNIT-002 baseline requires the exact --background launch mode");
   const phase = cliString(values, "phase", true);
@@ -846,6 +1029,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   const runManifest = resolveRunManifestPath(process.cwd(), unit, cliString(values, "run-manifest") ?? process.env.ESTIMATE_PERF_RUN_MANIFEST);
   const descriptor = await startEstimateSheetBenchmarkServer({
     runManifest,
+    unit,
     role: "browser",
     phase,
     finalState,

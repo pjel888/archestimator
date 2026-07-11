@@ -15,7 +15,7 @@ import {
   unlinkSync,
 } from "node:fs";
 import { createServer } from "node:net";
-import { basename, dirname, relative, resolve } from "node:path";
+import { basename, dirname, relative, resolve, sep } from "node:path";
 
 import { makeSignature } from "better-auth/crypto";
 import {
@@ -28,8 +28,10 @@ import {
 import { CURRENT_TERMS } from "../src/lib/legal/terms-content";
 import {
   ESTIMATE_LOGICAL_OUTPUTS,
+  PREPARE_INPUT_SCHEMA,
   assertRegularFile,
   assertRunManifest,
+  assertTestReceipt,
   canonicalJson,
   cliBoolean,
   cliString,
@@ -37,15 +39,19 @@ import {
   defaultImmutableRunRoot,
   defaultPlanRoot,
   defaultRunRoot,
+  ensureDirectoryDurably,
   fingerprintContentEqual,
   isContained,
   isPlainObject,
   isSafeRelativePath,
   nowIso,
   parseStrictCli,
+  readAuthoritativeRunManifest,
+  readPrecommitRunManifestPair,
   readJsonFile,
   replaceFileAtomically,
   requireUnit,
+  runtimeEnvironmentStableSha256,
   sha256File,
   sha256Hex,
   sha256Json,
@@ -55,11 +61,15 @@ import {
   type EstimateUnit,
   type FingerprintContent,
   type FixtureProfile,
+  type PrepareDecisionBindingV1,
+  type PrepareInputV1,
+  type PreparePredecessorBindingV1,
   type RunManifestV1,
   type SourceFingerprint,
 } from "./lib/estimate-sheet-performance-contract";
 import {
   deriveEstimateSheetPrepareTransition,
+  deriveEstimateSheetPrepareRetryTransition,
   type EstimateSheetPlanManifest,
 } from "./lib/estimate-sheet-performance-plan-state";
 import {
@@ -141,6 +151,7 @@ const PREPARE_CLI_OPTIONS = new Set([
   "cleanup-not-applicable",
   "cleanup-requirement",
   "planning-admission",
+  "retry-in-progress",
   "port",
   "recover",
 ]);
@@ -167,6 +178,7 @@ export type PrepareCliInput = {
   cleanupRequirement?: "REQUIRED";
   admissionPath?: string;
   port?: PortPolicy;
+  retryInProgress?: boolean;
 };
 
 export type PrepareCliOperation = PrepareCliInput | { recover: true };
@@ -174,6 +186,9 @@ export type PrepareCliOperation = PrepareCliInput | { recover: true };
 type FixtureIds = {
   user: string;
   session: string;
+  revokedUser: string;
+  revokedSession: string;
+  revokedProfile: string;
   allowlist: string;
   legal: string;
   profile: string;
@@ -191,12 +206,19 @@ type MigrationDescriptor = {
   statements: string[];
 };
 
+export type MigrationInventoryRecord = {
+  name: string;
+  sha256: string;
+  statement_count: number;
+};
+
 type PreparedResources = {
   leasedPort?: number;
   unitLeasePath: string;
   portLeasePath?: string;
   runtimeEnv?: string;
   runtimeEnvSha256?: string;
+  runtimeEnvStableSha256?: string;
   storageState?: string;
   storageStateSha256?: string;
   storageStateExpiresAt?: string;
@@ -216,6 +238,7 @@ type ExtendedRunManifest = RunManifestV1 & {
   leasedPort?: number;
   port?: number;
   runtimeEnvSha256?: string;
+  runtimeEnvStableSha256?: string;
   storageStateSha256?: string;
   storageStateExpiresAt?: string;
   processJournal?: string;
@@ -279,6 +302,7 @@ export function parsePrepareCli(argv: string[]): PrepareCliOperation | null {
     ...(cleanupRequirement ? { cleanupRequirement } : {}),
     ...(cliString(values, "planning-admission") ? { admissionPath: cliString(values, "planning-admission") } : {}),
     ...(portValue ? { port: portValue } : {}),
+    ...(cliBoolean(values, "retry-in-progress") ? { retryInProgress: true } : {}),
   };
 }
 
@@ -488,7 +512,8 @@ function assertPredecessorImmutableLineage(input: {
     predecessor.index_immutable_path,
     "predecessor evidence index",
   );
-  if (typeof predecessor.index_sha256 !== "string" || sha256File(indexPath) !== predecessor.index_sha256) {
+  const indexBytes = readFileSync(indexPath);
+  if (typeof predecessor.index_sha256 !== "string" || sha256Hex(indexBytes) !== predecessor.index_sha256) {
     throw new Error("predecessor evidence index hash mismatch");
   }
   const evidencePath = resolveImmutableAdmissionBinding(
@@ -496,10 +521,21 @@ function assertPredecessorImmutableLineage(input: {
     predecessor.evidence_immutable_path,
     "predecessor primary evidence",
   );
-  if (typeof predecessor.evidence_sha256 !== "string" || sha256File(evidencePath) !== predecessor.evidence_sha256) {
+  const evidenceBytes = readFileSync(evidencePath);
+  if (typeof predecessor.evidence_sha256 !== "string" || sha256Hex(evidenceBytes) !== predecessor.evidence_sha256) {
     throw new Error("predecessor primary evidence hash mismatch");
   }
-  const index = readJsonFile<Record<string, unknown>>(indexPath);
+  let index: Record<string, unknown>;
+  let output: Record<string, unknown>;
+  try {
+    const parsedIndex: unknown = JSON.parse(indexBytes.toString("utf8"));
+    const parsedOutput: unknown = JSON.parse(evidenceBytes.toString("utf8"));
+    if (!isPlainObject(parsedIndex) || !isPlainObject(parsedOutput)) throw new Error("not an object");
+    index = parsedIndex;
+    output = parsedOutput;
+  } catch {
+    throw new Error("predecessor immutable lineage contains invalid JSON");
+  }
   const indexPayload = structuredClone(index);
   const indexPayloadSha256 = indexPayload.payload_sha256;
   delete indexPayload.payload_sha256;
@@ -515,7 +551,6 @@ function assertPredecessorImmutableLineage(input: {
     || evidence[0].sha256 !== predecessor.evidence_sha256) {
     throw new Error("predecessor immutable index does not bind its primary evidence");
   }
-  const output = readJsonFile<Record<string, unknown>>(evidencePath);
   const outputApplication = output.applicationFingerprint ?? output.application_fingerprint;
   const outputProducer = output.producerFingerprint ?? output.producer_fingerprint;
   if (!fingerprintContentEqual(outputApplication, predecessor.application_fingerprint)
@@ -555,6 +590,160 @@ function assertClosedRefreezeDelta(admission: Record<string, unknown>): void {
   }
 }
 
+type AdmissionDependency = {
+  sha256: string;
+  bytes: Buffer;
+  kind: "planning" | "refreeze" | "predecessor";
+  inputApplicationFingerprint: FingerprintContent;
+  inputProducerFingerprint: FingerprintContent;
+  decision: PrepareDecisionBindingV1 | null;
+  predecessor: PreparePredecessorBindingV1 | null;
+};
+
+function normalizePrepareDecisionBinding(value: unknown): PrepareDecisionBindingV1 {
+  if (!isPlainObject(value)
+    || canonicalJson(Object.keys(value).sort()) !== canonicalJson(["immutable_path", "sha256"])
+    || !isSafeRelativePath(value.immutable_path)
+    || !value.immutable_path.startsWith("evidence/runtime/runs/")
+    || typeof value.sha256 !== "string"
+    || !/^[0-9a-f]{64}$/u.test(value.sha256)) {
+    throw new Error("prepare decision binding is invalid");
+  }
+  return { immutable_path: value.immutable_path, sha256: value.sha256 };
+}
+
+function normalizePreparePredecessorBinding(value: unknown): PreparePredecessorBindingV1 {
+  const expectedFields = [
+    "application_fingerprint", "evidence_immutable_path", "evidence_sha256", "index_immutable_path",
+    "index_sha256", "producer_fingerprint", "run_id", "unit_id",
+  ].sort();
+  if (!isPlainObject(value)
+    || canonicalJson(Object.keys(value).sort()) !== canonicalJson(expectedFields)
+    || !/^UNIT-\d{3}$/u.test(String(value.unit_id))
+    || typeof value.run_id !== "string"
+    || !value.run_id) {
+    throw new Error("prepare predecessor binding is invalid");
+  }
+  for (const pathKey of ["index_immutable_path", "evidence_immutable_path"] as const) {
+    if (!isSafeRelativePath(value[pathKey]) || !value[pathKey].startsWith("evidence/runtime/runs/")) {
+      throw new Error(`prepare predecessor ${pathKey} is invalid`);
+    }
+  }
+  for (const hashKey of ["index_sha256", "evidence_sha256"] as const) {
+    if (typeof value[hashKey] !== "string" || !/^[0-9a-f]{64}$/u.test(value[hashKey])) {
+      throw new Error(`prepare predecessor ${hashKey} is invalid`);
+    }
+  }
+  return {
+    unit_id: value.unit_id as EstimateUnit,
+    run_id: value.run_id,
+    index_immutable_path: value.index_immutable_path,
+    index_sha256: value.index_sha256,
+    evidence_immutable_path: value.evidence_immutable_path,
+    evidence_sha256: value.evidence_sha256,
+    application_fingerprint: requireFingerprintContent(value.application_fingerprint, "prepare predecessor application fingerprint"),
+    producer_fingerprint: requireFingerprintContent(value.producer_fingerprint, "prepare predecessor producer fingerprint"),
+  };
+}
+
+export function readKnownPlanPredecessor(
+  planRoot: string,
+  plan: EstimateSheetPlanManifest,
+  unit: EstimateUnit,
+): PreparePredecessorBindingV1 | null {
+  if (!["UNIT-002", "UNIT-003", "UNIT-004"].includes(unit)) return null;
+  const expectedUnit = `UNIT-${String(Number(unit.slice(-3)) - 1).padStart(3, "0")}` as EstimateUnit;
+  const registry = plan.runtime_evidence.registry;
+  if (plan.runtime_evidence.latest_unit_id !== expectedUnit
+    || typeof plan.runtime_evidence.latest_run_id !== "string"
+    || !plan.runtime_evidence.latest_run_id
+    || typeof registry.immutable_path !== "string"
+    || !registry.immutable_path
+    || typeof registry.sha256 !== "string") {
+    throw new Error(`${unit} allocation requires the current ${expectedUnit} immutable predecessor`);
+  }
+  const indexPath = resolveImmutableAdmissionBinding(planRoot, registry.immutable_path, "allocation predecessor index");
+  const indexBytes = readFileSync(indexPath);
+  if (sha256Hex(indexBytes) !== registry.sha256) throw new Error("allocation predecessor index hash mismatch");
+  let index: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(indexBytes.toString("utf8"));
+    if (!isPlainObject(parsed)) throw new Error("not an object");
+    index = parsed;
+  } catch {
+    throw new Error("allocation predecessor index is not valid JSON");
+  }
+  const evidence = Array.isArray(index.evidence) ? index.evidence : [];
+  const primary = evidence.length === 1 && isPlainObject(evidence[0]) ? evidence[0] : null;
+  if (index.schema_version !== "estimate-sheet-evidence-index.v1"
+    || index.unit_id !== expectedUnit
+    || index.run_id !== plan.runtime_evidence.latest_run_id
+    || !primary
+    || typeof primary.immutable_path !== "string"
+    || typeof primary.sha256 !== "string") {
+    throw new Error("allocation predecessor index does not expose one immutable primary output");
+  }
+  const evidencePath = resolveImmutableAdmissionBinding(planRoot, primary.immutable_path, "allocation predecessor evidence");
+  const evidenceBytes = readFileSync(evidencePath);
+  if (sha256Hex(evidenceBytes) !== primary.sha256) throw new Error("allocation predecessor evidence hash mismatch");
+  let output: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(evidenceBytes.toString("utf8"));
+    if (!isPlainObject(parsed)) throw new Error("not an object");
+    output = parsed;
+  } catch {
+    throw new Error("allocation predecessor evidence is not valid JSON");
+  }
+  const predecessor = normalizePreparePredecessorBinding({
+    unit_id: expectedUnit,
+    run_id: plan.runtime_evidence.latest_run_id,
+    index_immutable_path: registry.immutable_path,
+    index_sha256: registry.sha256,
+    evidence_immutable_path: primary.immutable_path,
+    evidence_sha256: primary.sha256,
+    application_fingerprint: output.applicationFingerprint ?? output.application_fingerprint,
+    producer_fingerprint: output.producerFingerprint ?? output.producer_fingerprint,
+  });
+  assertPredecessorImmutableLineage({ admission: { predecessor }, planRoot });
+  return predecessor;
+}
+
+function assertRefreezeFocusedTestReceipt(repoRoot: string, admission: Record<string, unknown>): void {
+  const binding = admission.focused_test_receipt;
+  if (!isPlainObject(binding)
+    || canonicalJson(Object.keys(binding).sort()) !== canonicalJson(["path", "run_id", "sha256"])
+    || !isSafeRelativePath(binding.path)
+    || typeof binding.sha256 !== "string"
+    || !/^[0-9a-f]{64}$/u.test(binding.sha256)
+    || typeof binding.run_id !== "string"
+    || !binding.run_id
+    || !binding.path.endsWith("/receipts/refreeze-tests.json")) {
+    throw new Error("refreeze focused test receipt binding is invalid");
+  }
+  const receiptPath = resolve(repoRoot, binding.path);
+  if (!isContained(repoRoot, receiptPath)) throw new Error("refreeze focused test receipt escapes the repository");
+  assertRegularFile(receiptPath, "refreeze focused test receipt");
+  const receiptBytes = readFileSync(receiptPath);
+  if (sha256Hex(receiptBytes) !== binding.sha256) throw new Error("refreeze focused test receipt hash mismatch");
+  let receipt: unknown;
+  try {
+    receipt = JSON.parse(receiptBytes.toString("utf8"));
+  } catch {
+    throw new Error("refreeze focused test receipt is not valid JSON");
+  }
+  assertTestReceipt(receipt);
+  if (receipt.test_class !== "vitest"
+    || receipt.unit_id !== "UNIT-002"
+    || receipt.run_id !== binding.run_id
+    || receipt.overall !== "PASS"
+    || receipt.failed !== 0
+    || receipt.passed < 1
+    || receipt.workers !== 1
+    || receipt.retries !== 0) {
+    throw new Error("refreeze focused test receipt is not the admitted passing UNIT-002 run");
+  }
+}
+
 function readAdmission(
   repoRoot: string,
   planRoot: string,
@@ -564,12 +753,21 @@ function readAdmission(
   planFileSha256: string,
   currentFingerprint: SourceFingerprint,
   kind: "planning" | "refreeze" | "predecessor" | undefined,
-): { sha256: string; bytes: Buffer; kind: "planning" | "refreeze" | "predecessor"; inputApplicationFingerprint: FingerprintContent; inputProducerFingerprint: FingerprintContent } | undefined {
+  allowPlanningRetry = false,
+): AdmissionDependency | undefined {
   if (!path) return undefined;
   const admissionPath = resolve(repoRoot, path);
   if (!isContained(repoRoot, admissionPath)) throw new Error("admission path escapes the repository");
   assertRegularFile(admissionPath, "admission");
-  const admission = readJsonFile<Record<string, unknown>>(admissionPath);
+  const bytes = readFileSync(admissionPath);
+  let admission: Record<string, unknown>;
+  try {
+    const value = JSON.parse(bytes.toString("utf8"));
+    if (!isPlainObject(value)) throw new Error("not an object");
+    admission = value;
+  } catch {
+    throw new Error("admission is not valid JSON");
+  }
   const withoutAdmissionHash = structuredClone(admission);
   const admissionPayloadSha256 = withoutAdmissionHash.payload_sha256;
   delete withoutAdmissionHash.payload_sha256;
@@ -577,12 +775,14 @@ function readAdmission(
 
   let inputApplicationFingerprint: FingerprintContent;
   let inputProducerFingerprint: FingerprintContent;
+  let decision: PrepareDecisionBindingV1 | null = null;
+  let predecessor: PreparePredecessorBindingV1 | null = null;
   if (kind === "planning") {
     if (admission.schema_version !== "estimate-sheet-planning-admission.v1") throw new Error("planning admission schema is invalid");
     if (admission.unit_id !== unit || unit !== "UNIT-001" || admission.package_status !== "IMPLEMENTATION_READY" || admission.next_unit !== unit) throw new Error("planning admission does not admit UNIT-001");
-    if (admission.package_id !== plan.package_id || admission.implementation_status !== plan.implementation_status) throw new Error("planning admission package tuple mismatch");
+    if (!allowPlanningRetry && (admission.package_id !== plan.package_id || admission.implementation_status !== plan.implementation_status)) throw new Error("planning admission package tuple mismatch");
     const planBinding = admission.plan_pack;
-    if (!isPlainObject(planBinding) || planBinding.file_sha256 !== planFileSha256 || planBinding.manifest_sha256 !== plan.manifest_sha256) {
+    if (!isPlainObject(planBinding) || (!allowPlanningRetry && (planBinding.file_sha256 !== planFileSha256 || planBinding.manifest_sha256 !== plan.manifest_sha256))) {
       throw new Error("planning admission plan binding mismatch");
     }
     const candidate = admission.review_candidate;
@@ -591,9 +791,9 @@ function readAdmission(
     delete withoutCandidateHash.candidate_sha256;
     if (candidate.candidate_sha256 !== sha256Json(withoutCandidateHash)) throw new Error("planning admission candidate hash mismatch");
     if (!isPlainObject(candidate.promotion_plan_pack)
-      || candidate.promotion_plan_pack.file_sha256 !== planFileSha256
-      || candidate.promotion_plan_pack.manifest_sha256 !== plan.manifest_sha256
-      || candidate.artifact_registry_sha256 !== sha256Json(plan.artifacts)) {
+      || (!allowPlanningRetry && (candidate.promotion_plan_pack.file_sha256 !== planFileSha256
+        || candidate.promotion_plan_pack.manifest_sha256 !== plan.manifest_sha256
+        || candidate.artifact_registry_sha256 !== sha256Json(plan.artifacts)))) {
       throw new Error("planning admission candidate does not bind the promoted manifest");
     }
     const keyArtifacts = candidate.key_artifacts;
@@ -665,38 +865,51 @@ function readAdmission(
       throw new Error("refreeze receipt output fingerprints are stale");
     }
     assertClosedRefreezeDelta(admission);
-    const predecessor = admission.predecessor;
-    if (!isPlainObject(predecessor)
-      || predecessor.unit_id !== "UNIT-001"
-      || predecessor.index_immutable_path !== plan.runtime_evidence.registry.immutable_path
-      || predecessor.index_sha256 !== plan.runtime_evidence.registry.sha256) {
+    const predecessorValue = admission.predecessor;
+    if (!isPlainObject(predecessorValue)
+      || predecessorValue.unit_id !== "UNIT-001"
+      || predecessorValue.index_immutable_path !== plan.runtime_evidence.registry.immutable_path
+      || predecessorValue.index_sha256 !== plan.runtime_evidence.registry.sha256) {
       throw new Error("refreeze receipt predecessor binding mismatch");
     }
-    inputApplicationFingerprint = admission.input_application_fingerprint as FingerprintContent;
-    inputProducerFingerprint = admission.input_producer_fingerprint as FingerprintContent;
+    predecessor = normalizePreparePredecessorBinding(predecessorValue);
+    assertPredecessorImmutableLineage({ admission, planRoot });
+    inputApplicationFingerprint = requireFingerprintContent(
+      admission.input_application_fingerprint,
+      "refreeze input application fingerprint",
+    );
+    inputProducerFingerprint = requireFingerprintContent(
+      admission.input_producer_fingerprint,
+      "refreeze input producer fingerprint",
+    );
+    if (!fingerprintContentEqual(inputApplicationFingerprint, predecessor.application_fingerprint)
+      || !fingerprintContentEqual(inputProducerFingerprint, predecessor.producer_fingerprint)) {
+      throw new Error("refreeze input fingerprints do not match immutable predecessor output");
+    }
+    assertRefreezeFocusedTestReceipt(repoRoot, admission);
   } else if (kind === "predecessor") {
     if (admission.schema_version !== "estimate-sheet-predecessor-admission.v1" || admission.unit_id !== unit) {
       throw new Error("predecessor admission does not admit the selected unit");
     }
-    const predecessor = admission.predecessor;
-    const decision = admission.decision;
+    const predecessorValue = admission.predecessor;
+    const decisionValue = admission.decision;
     const decisionRow = plan.runtime_evidence.projections.find((row) => row.artifact_id === "ART-043");
-    if (!isPlainObject(predecessor)
-      || predecessor.unit_id !== plan.runtime_evidence.latest_unit_id
-      || predecessor.run_id !== plan.runtime_evidence.latest_run_id
-      || predecessor.index_immutable_path !== plan.runtime_evidence.registry.immutable_path
-      || predecessor.index_sha256 !== plan.runtime_evidence.registry.sha256
-      || !isPlainObject(decision)
-      || decision.immutable_path !== decisionRow?.immutable_path
-      || decision.sha256 !== decisionRow?.sha256) {
+    if (!isPlainObject(predecessorValue)
+      || predecessorValue.unit_id !== plan.runtime_evidence.latest_unit_id
+      || predecessorValue.run_id !== plan.runtime_evidence.latest_run_id
+      || predecessorValue.index_immutable_path !== plan.runtime_evidence.registry.immutable_path
+      || predecessorValue.index_sha256 !== plan.runtime_evidence.registry.sha256
+      || !isPlainObject(decisionValue)
+      || decisionValue.immutable_path !== decisionRow?.immutable_path
+      || decisionValue.sha256 !== decisionRow?.sha256) {
       throw new Error("predecessor admission immutable bindings are stale");
     }
     assertPredecessorImmutableLineage({ admission, planRoot });
-    if (typeof decision.immutable_path !== "string" || typeof decision.sha256 !== "string") {
+    if (typeof decisionValue.immutable_path !== "string" || typeof decisionValue.sha256 !== "string") {
       throw new Error("predecessor admission decision binding is invalid");
     }
-    const decisionPath = resolveImmutableAdmissionBinding(planRoot, decision.immutable_path, "bottleneck decision");
-    if (sha256File(decisionPath) !== decision.sha256) throw new Error("bottleneck decision hash mismatch");
+    const decisionPath = resolveImmutableAdmissionBinding(planRoot, decisionValue.immutable_path, "bottleneck decision");
+    if (sha256File(decisionPath) !== decisionValue.sha256) throw new Error("bottleneck decision hash mismatch");
     const closed = assertClosedPredecessorAdmissionLineage({
       admission,
       currentFingerprint,
@@ -704,11 +917,20 @@ function readAdmission(
     });
     inputApplicationFingerprint = closed.inputApplicationFingerprint;
     inputProducerFingerprint = closed.inputProducerFingerprint;
+    predecessor = normalizePreparePredecessorBinding(admission.predecessor);
+    decision = normalizePrepareDecisionBinding(admission.decision);
   } else {
     throw new Error("admission kind is required when an admission path is provided");
   }
-  const bytes = readFileSync(admissionPath);
-  return { sha256: sha256File(admissionPath), bytes, kind, inputApplicationFingerprint, inputProducerFingerprint };
+  return {
+    sha256: sha256Hex(bytes),
+    bytes,
+    kind,
+    inputApplicationFingerprint,
+    inputProducerFingerprint,
+    decision,
+    predecessor,
+  };
 }
 
 function canonicalTransitionJournalPath(repoRoot: string): string {
@@ -722,21 +944,140 @@ function assertNoGlobalTransitionJournal(repoRoot: string): void {
   }
 }
 
-async function withTransitionLock<T>(repoRoot: string, operation: () => Promise<T>): Promise<T> {
-  assertNoGlobalTransitionJournal(repoRoot);
-  const lockPath = resolve(defaultRunRoot(repoRoot), "..", ".plan-transition.lock");
-  mkdirSync(dirname(lockPath), { recursive: true, mode: 0o700 });
-  mkdirSync(lockPath, { mode: 0o700 });
+type TransitionLockHandle = {
+  path: string;
+  ownerId: string;
+};
+
+function isProcessAlive(pid: number): boolean {
   try {
-    writeJsonNoOverwrite(lockPath + "/owner.json", {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return isPlainObject(error) && error.code === "EPERM";
+  }
+}
+
+function transitionLockPath(repoRoot: string): string {
+  return resolve(defaultRunRoot(repoRoot), "..", ".plan-transition.lock");
+}
+
+function readTransitionLockOwner(lockPath: string): Record<string, unknown> {
+  const stat = lstatSync(lockPath);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("plan transition lock is not a regular directory");
+  const ownerPath = resolve(lockPath, "owner.json");
+  assertRegularFile(ownerPath, "plan transition lock owner");
+  const owner = readJsonFile<Record<string, unknown>>(ownerPath);
+  const expected = ["acquired_at", "operation", "owner_id", "pid", "schema_version"].sort();
+  if (canonicalJson(Object.keys(owner).sort()) !== canonicalJson(expected)
+    || owner.schema_version !== "estimate-sheet-plan-transition-lock.v1"
+    || !Number.isInteger(owner.pid)
+    || Number(owner.pid) < 1
+    || typeof owner.owner_id !== "string"
+    || !/^[0-9a-f]{32}$/u.test(owner.owner_id)
+    || !["PREPARE", "PREPARE_RECOVERY", "INDEX", "INDEX_RECOVERY"].includes(String(owner.operation))
+    || typeof owner.acquired_at !== "string"
+    || Number.isNaN(Date.parse(owner.acquired_at))) {
+    throw new Error("plan transition lock owner is invalid");
+  }
+  return owner;
+}
+
+function abandonedTransitionLockId(lockPath: string): string {
+  const stat = lstatSync(lockPath);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("plan transition lock is not a regular directory");
+  if (Date.now() - stat.mtimeMs < 1_000) {
+    throw new Error("incomplete plan transition lock is too recent for safe recovery takeover");
+  }
+  const entries = readdirSync(lockPath, { withFileTypes: true });
+  if (entries.some((entry) => !entry.isFile()
+    || (entry.name !== "owner.json" && !entry.name.startsWith("owner.json.tmp-")))) {
+    throw new Error("incomplete plan transition lock contains an unowned entry");
+  }
+  return sha256Hex(canonicalJson({
+    mtime_ms: Math.trunc(stat.mtimeMs),
+    entries: entries.map((entry) => entry.name).sort(),
+  })).slice(0, 32);
+}
+
+function removeOwnedTransitionLock(handle: TransitionLockHandle): void {
+  if (!existsSync(handle.path)) return;
+  const owner = readTransitionLockOwner(handle.path);
+  if (owner.owner_id !== handle.ownerId || owner.pid !== process.pid) {
+    throw new Error("plan transition lock ownership changed before release");
+  }
+  rmSync(handle.path, { recursive: true, force: false });
+  const parentFd = openSync(dirname(handle.path), "r");
+  try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
+}
+
+function acquireTransitionLock(
+  repoRoot: string,
+  operation: "PREPARE" | "PREPARE_RECOVERY",
+  allowDeadOwnerTakeover: boolean,
+): TransitionLockHandle {
+  const lockPath = transitionLockPath(repoRoot);
+  const lockParent = dirname(lockPath);
+  ensureDirectoryDurably(lockParent, 0o700, repoRoot);
+  let stalePath: string | undefined;
+  try {
+    mkdirSync(lockPath, { mode: 0o700 });
+    const lockParentFd = openSync(lockParent, "r");
+    try { fsyncSync(lockParentFd); } finally { closeSync(lockParentFd); }
+  } catch (error) {
+    if (!isPlainObject(error) || error.code !== "EEXIST" || !allowDeadOwnerTakeover) throw error;
+    let staleId: string;
+    try {
+      const owner = readTransitionLockOwner(lockPath);
+      if (isProcessAlive(Number(owner.pid))) throw new Error(`plan transition lock is active: ${lockPath}`);
+      staleId = String(owner.owner_id);
+    } catch (ownerError) {
+      if (ownerError instanceof Error && ownerError.message.startsWith("plan transition lock is active:")) throw ownerError;
+      staleId = abandonedTransitionLockId(lockPath);
+    }
+    stalePath = resolve(lockParent, `.plan-transition.lock.stale-${staleId}`);
+    if (existsSync(stalePath)) throw new Error("stale plan transition lock quarantine already exists");
+    renameSync(lockPath, stalePath);
+    const parentFd = openSync(lockParent, "r");
+    try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
+    mkdirSync(lockPath, { mode: 0o700 });
+    const replacementParentFd = openSync(lockParent, "r");
+    try { fsyncSync(replacementParentFd); } finally { closeSync(replacementParentFd); }
+  }
+  const ownerId = randomBytes(16).toString("hex");
+  try {
+    writeJsonNoOverwrite(resolve(lockPath, "owner.json"), {
       schema_version: "estimate-sheet-plan-transition-lock.v1",
       pid: process.pid,
+      owner_id: ownerId,
+      operation,
       acquired_at: nowIso(),
-    }, 0o600);
+    }, 0o600, lockPath);
+    if (stalePath) {
+      const expectedPrefix = resolve(lockParent, ".plan-transition.lock.stale-");
+      if (!stalePath.startsWith(expectedPrefix)) throw new Error("stale transition lock quarantine path is not canonical");
+      rmSync(stalePath, { recursive: true, force: false });
+      const parentFd = openSync(lockParent, "r");
+      try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
+    }
+    return { path: lockPath, ownerId };
+  } catch (error) {
+    if (existsSync(lockPath)) {
+      const ownerPath = resolve(lockPath, "owner.json");
+      if (!existsSync(ownerPath)) rmSync(lockPath, { recursive: true, force: false });
+    }
+    throw error;
+  }
+}
+
+async function withTransitionLock<T>(repoRoot: string, operation: () => Promise<T>): Promise<T> {
+  assertNoGlobalTransitionJournal(repoRoot);
+  const lock = acquireTransitionLock(repoRoot, "PREPARE", false);
+  try {
     assertNoGlobalTransitionJournal(repoRoot);
     return await operation();
   } finally {
-    rmSync(lockPath, { recursive: true, force: true });
+    removeOwnedTransitionLock(lock);
   }
 }
 
@@ -836,6 +1177,16 @@ function readPrepareTransitionJournal(repoRoot: string): PrepareTransitionJourna
   }
   decodeJournalPlanBytes(journal.old_plan_bytes_base64, journal.old_plan_sha256, "old plan");
   decodeJournalPlanBytes(journal.new_plan_bytes_base64, journal.new_plan_sha256, "new plan");
+  const hasFinalPlan = journal.new_plan_sha256 !== journal.old_plan_sha256;
+  if (journal.state === "ALLOCATED") {
+    if (hasFinalPlan
+      || journal.new_plan_bytes_base64 !== journal.old_plan_bytes_base64
+      || journal.durable_files.length !== 0) {
+      throw new Error("allocated prepare journal cannot declare final plan bytes or durable files");
+    }
+  } else if (!hasFinalPlan || journal.durable_files.length === 0) {
+    throw new Error("prepared transition journal must bind distinct final plan bytes and durable files");
+  }
   return journal as PrepareTransitionJournal;
 }
 
@@ -869,20 +1220,68 @@ function prepareRecoveryCandidate(repoRoot: string, journal: PrepareTransitionJo
   const runPath = resolvePrepareJournalPath(repoRoot, journal.run_root, "prepare run root");
   const unitRoot = dirname(runPath);
   const runRootBase = dirname(unitRoot);
-  if (basename(unitRoot) !== journal.unit_id) throw new Error("prepare journal run root does not match its unit");
+  const runKey = basename(runPath);
+  const runSuffix = runKey.slice(journal.run_id.length + 1);
+  const immutableRunRoot = resolvePrepareJournalPath(repoRoot, journal.immutable_run_root, "prepare immutable run root");
+  const expectedRunPath = resolve(defaultRunRoot(repoRoot), journal.unit_id, runKey);
+  const expectedImmutableRunRoot = resolve(defaultImmutableRunRoot(repoRoot), journal.unit_id, runKey);
+  const expectedUnitLeasePath = resolve(defaultRunRoot(repoRoot), "..", "leases", "units", journal.unit_id);
+  const expectedUnitLeaseStagingPath = resolve(
+    dirname(expectedUnitLeasePath),
+    `.${journal.unit_id}-${journal.run_id}.staging`,
+  );
+  if (basename(unitRoot) !== journal.unit_id
+    || runPath !== expectedRunPath
+    || immutableRunRoot !== expectedImmutableRunRoot
+    || !runKey.startsWith(`${journal.run_id}-`)
+    || !/^[0-9a-f]{12}-[0-9a-f]{12}$/u.test(runSuffix)) {
+    throw new Error("prepare journal run roots are not canonical for their unit/run key");
+  }
+  const unitLeasePath = resolvePrepareJournalPath(repoRoot, journal.unit_lease_path, "prepare unit lease");
+  const unitLeaseStagingPath = resolvePrepareJournalPath(repoRoot, journal.unit_lease_staging_path, "prepare staged unit lease");
+  if (unitLeasePath !== expectedUnitLeasePath || unitLeaseStagingPath !== expectedUnitLeaseStagingPath) {
+    throw new Error("prepare journal lease paths are not canonical for their unit/run key");
+  }
   return {
     unit: journal.unit_id,
     runId: journal.run_id,
     runPath,
-    immutableRunRoot: resolvePrepareJournalPath(repoRoot, journal.immutable_run_root, "prepare immutable run root"),
+    immutableRunRoot,
     runRootBase,
-    unitLeasePath: resolvePrepareJournalPath(repoRoot, journal.unit_lease_path, "prepare unit lease"),
-    unitLeaseStagingPath: resolvePrepareJournalPath(repoRoot, journal.unit_lease_staging_path, "prepare staged unit lease"),
+    unitLeasePath,
+    unitLeaseStagingPath,
   };
+}
+
+function assertPrepareJournalOwnership(
+  repoRoot: string,
+  journal: PrepareTransitionJournal,
+  candidate: PrepareRecoveryCandidate,
+): void {
+  for (const entry of journal.durable_files) {
+    const path = resolvePrepareJournalPath(repoRoot, entry.path, "prepare durable file");
+    if (path === candidate.runPath || path === candidate.immutableRunRoot
+      || (!isContained(candidate.runPath, path) && !isContained(candidate.immutableRunRoot, path))) {
+      throw new Error(`prepare durable file is outside its owned run roots: ${entry.path}`);
+    }
+    if (path.endsWith(`${sep}dependencies${sep}admission.json`)
+      && path !== resolve(candidate.immutableRunRoot, "dependencies/admission.json")) {
+      throw new Error("prepare admission dependency is not owned by the immutable run root");
+    }
+  }
 }
 
 function releaseOwnedUnitLease(candidate: PrepareRecoveryCandidate): void {
   if (existsSync(candidate.unitLeaseStagingPath)) {
+    const stagingOwnerPath = resolve(candidate.unitLeaseStagingPath, "owner.json");
+    assertRegularFile(stagingOwnerPath, "staged prepare unit lease owner");
+    const stagingOwner = readJsonFile<Record<string, unknown>>(stagingOwnerPath);
+    if (stagingOwner.schema_version !== "estimate-sheet-unit-lease.v1"
+      || stagingOwner.unit_id !== candidate.unit
+      || stagingOwner.run_id !== candidate.runId
+      || stagingOwner.run_root !== candidate.runPath) {
+      throw new Error("staged prepare unit lease is not owned by the journaled run");
+    }
     removeOwnedDirectoryDurably(candidate.unitLeaseStagingPath, "staged prepare unit lease");
   }
   if (!existsSync(candidate.unitLeasePath)) return;
@@ -893,28 +1292,22 @@ function releaseOwnedUnitLease(candidate: PrepareRecoveryCandidate): void {
     || owner.run_id !== candidate.runId
     || typeof owner.run_root !== "string"
     || resolve(owner.run_root) !== candidate.runPath) {
-    return;
+    throw new Error("prepare unit lease is not owned by the journaled run");
   }
   removeOwnedDirectoryDurably(candidate.unitLeasePath, "prepare unit lease");
 }
 
 function recoverPrepareJournal(repoRoot: string): { result: "ROLLED_BACK" | "COMMITTED"; unit_id: string; run_id: string } {
-  const lockPath = resolve(defaultRunRoot(repoRoot), "..", ".plan-transition.lock");
-  mkdirSync(dirname(lockPath), { recursive: true, mode: 0o700 });
-  mkdirSync(lockPath, { mode: 0o700 });
+  const lock = acquireTransitionLock(repoRoot, "PREPARE_RECOVERY", true);
   try {
-    writeJsonNoOverwrite(resolve(lockPath, "owner.json"), {
-      schema_version: "estimate-sheet-plan-transition-lock.v1",
-      pid: process.pid,
-      operation: "PREPARE_RECOVERY",
-      acquired_at: nowIso(),
-    }, 0o600);
     const journal = readPrepareTransitionJournal(repoRoot);
     const candidate = prepareRecoveryCandidate(repoRoot, journal);
+    assertPrepareJournalOwnership(repoRoot, journal, candidate);
     const planPath = resolvePrepareJournalPath(repoRoot, journal.plan_path, "prepare plan path");
     assertRegularFile(planPath, "prepare plan manifest");
     const planSha256 = sha256File(planPath);
-    const committed = planSha256 === journal.new_plan_sha256;
+    const hasFinalPlan = journal.new_plan_sha256 !== journal.old_plan_sha256;
+    const committed = hasFinalPlan && planSha256 === journal.new_plan_sha256;
     const preCommit = planSha256 === journal.old_plan_sha256;
     if (!committed && !preCommit) throw new Error("plan manifest matches neither side of the unfinished prepare transition");
 
@@ -927,6 +1320,11 @@ function recoverPrepareJournal(repoRoot: string): { result: "ROLLED_BACK" | "COM
         assertRegularFile(path, "prepare durable file");
         if (sha256File(path) !== entry.sha256) throw new Error(`prepare durable file hash mismatch: ${entry.path}`);
       }
+      readAuthoritativeRunManifest(
+        repoRoot,
+        resolve(candidate.runPath, "run-manifest.json"),
+        candidate.unit,
+      );
       if (journal.state !== "COMMITTED") {
         replacePrepareTransitionJournal(repoRoot, journal, { ...journal, state: "COMMITTED" });
       }
@@ -945,11 +1343,11 @@ function recoverPrepareJournal(repoRoot: string): { result: "ROLLED_BACK" | "COM
     removeOwnedDirectoryDurably(candidate.runPath, "prepare run root");
     removeOwnedDirectoryDurably(candidate.immutableRunRoot, "prepare immutable run root");
     releaseOwnedUnitLease(candidate);
-    releaseRunPortLeases(candidate.runRootBase, candidate.runId);
+    releaseRunPortLeases(repoRoot, candidate.runRootBase, candidate.unit, candidate.runId, candidate.runPath);
     removeFileDurably(canonicalTransitionJournalPath(repoRoot));
     return { result: "ROLLED_BACK", unit_id: journal.unit_id, run_id: journal.run_id };
   } finally {
-    rmSync(lockPath, { recursive: true, force: true });
+    removeOwnedTransitionLock(lock);
   }
 }
 
@@ -958,7 +1356,11 @@ export function recoverEstimateSheetPrepareTransition(input: {
 } = {}): { result: "NO_JOURNAL" | "ROLLED_BACK" | "COMMITTED"; unit_id?: string; run_id?: string } {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
   const journalPath = canonicalTransitionJournalPath(repoRoot);
-  if (!existsSync(journalPath)) return { result: "NO_JOURNAL" };
+  if (!existsSync(journalPath)) {
+    const lock = acquireTransitionLock(repoRoot, "PREPARE_RECOVERY", true);
+    removeOwnedTransitionLock(lock);
+    return { result: "NO_JOURNAL" };
+  }
   const journal = readJsonFile<Record<string, unknown>>(journalPath);
   if (journal.schema_version === "estimate-sheet-prepare-transition-journal.v1") {
     return recoverPrepareJournal(repoRoot);
@@ -1007,9 +1409,13 @@ function deterministicUuid(seed: string, label: string): string {
 function makeFixtureIds(runId: string, role: FixtureRole, fixture: EstimateSheetPerformanceFixture): FixtureIds {
   const seed = `${runId}\0${role}`;
   const user = deterministicUuid(seed, "auth-user-profile");
+  const revokedIdentity = deterministicUuid(seed, "revoked-auth-user-profile");
   return {
     user,
     session: deterministicUuid(seed, "auth-session"),
+    revokedUser: revokedIdentity,
+    revokedSession: deterministicUuid(seed, "revoked-auth-session"),
+    revokedProfile: revokedIdentity,
     allowlist: deterministicUuid(seed, "allowlist"),
     legal: deterministicUuid(seed, "legal"),
     profile: user,
@@ -1040,9 +1446,9 @@ function exactIdsForRole(ids: FixtureIds): Record<string, string[]> {
     projects: [ids.project],
     workspace_members: [`${ids.workspace}:${ids.profile}`],
     workspaces: [ids.workspace],
-    profiles: [ids.profile],
-    session: [ids.session],
-    user: [ids.user],
+    profiles: [ids.profile, ids.revokedProfile],
+    session: [ids.session, ids.revokedSession],
+    user: [ids.user, ids.revokedUser],
     legal_terms_acceptances: [ids.legal],
     closed_beta_allowed_emails: [ids.allowlist],
   };
@@ -1079,8 +1485,11 @@ function renderCleanupSql(records: Array<{ role: FixtureRole; ids: FixtureIds }>
       `DELETE FROM workspace_members WHERE workspace_id = ${sqlValue(ids.workspace)} AND user_id = ${sqlValue(ids.profile)};`,
       `DELETE FROM workspaces WHERE id = ${sqlValue(ids.workspace)};`,
       `DELETE FROM profiles WHERE id = ${sqlValue(ids.profile)};`,
+      `DELETE FROM profiles WHERE id = ${sqlValue(ids.revokedProfile)};`,
       `DELETE FROM \"session\" WHERE id = ${sqlValue(ids.session)};`,
+      `DELETE FROM \"session\" WHERE id = ${sqlValue(ids.revokedSession)};`,
       `DELETE FROM \"user\" WHERE id = ${sqlValue(ids.user)};`,
+      `DELETE FROM \"user\" WHERE id = ${sqlValue(ids.revokedUser)};`,
       `DELETE FROM legal_terms_acceptances WHERE id = ${sqlValue(ids.legal)};`,
       `DELETE FROM closed_beta_allowed_emails WHERE id = ${sqlValue(ids.allowlist)};`,
     );
@@ -1110,22 +1519,30 @@ function claimUnitLease(
   runPath: string,
   resolvedPreviousRunId?: string,
 ): void {
-  mkdirSync(dirname(leasePath), { recursive: true, mode: 0o700 });
+  const runRootBase = dirname(dirname(runPath));
+  if (leasePath !== resolve(runRootBase, "..", "leases", "units", unit)
+    || stagingPath !== resolve(dirname(leasePath), `.${unit}-${runId}.staging`)) {
+    throw new Error("unit lease paths are not canonical for the prepared run");
+  }
+  ensureDirectoryDurably(dirname(leasePath), 0o700, dirname(runRootBase));
   if (existsSync(stagingPath)) throw new Error(`unresolved staged unit lease blocks prepare: ${stagingPath}`);
   if (existsSync(leasePath)) {
     let resolved = false;
     try {
       const owner = readJsonFile<Record<string, unknown>>(resolve(leasePath, "owner.json"));
       resolved = typeof resolvedPreviousRunId === "string"
+        && owner.schema_version === "estimate-sheet-unit-lease.v1"
         && owner.unit_id === unit
         && owner.run_id === resolvedPreviousRunId;
     } catch {
       // A malformed lease cannot be proven resolved.
     }
     if (!resolved) throw new Error(`unresolved unit lease blocks prepare: ${leasePath}`);
-    rmSync(leasePath, { recursive: true, force: true });
+    removeOwnedDirectoryDurably(leasePath, "resolved predecessor unit lease");
   }
   mkdirSync(stagingPath, { mode: 0o700 });
+  const stagingParentFd = openSync(dirname(stagingPath), "r");
+  try { fsyncSync(stagingParentFd); } finally { closeSync(stagingParentFd); }
   writeJsonNoOverwrite(resolve(stagingPath, "owner.json"), {
     schema_version: "estimate-sheet-unit-lease.v1",
     unit_id: unit,
@@ -1133,14 +1550,16 @@ function claimUnitLease(
     run_root: runPath,
     owner_pid: process.pid,
     acquired_at: nowIso(),
-  }, 0o600);
+  }, 0o600, stagingPath);
   if (existsSync(leasePath)) throw new Error(`unresolved unit lease blocks prepare: ${leasePath}`);
   renameSync(stagingPath, leasePath);
+  const leaseParentFd = openSync(dirname(leasePath), "r");
+  try { fsyncSync(leaseParentFd); } finally { closeSync(leaseParentFd); }
 }
 
 async function claimPortLease(runRootBase: string, unit: EstimateUnit, runId: string, runPath: string): Promise<{ port: number; path: string }> {
   const leaseRoot = resolve(runRootBase, "..", "leases", "ports");
-  mkdirSync(leaseRoot, { recursive: true, mode: 0o700 });
+  ensureDirectoryDurably(leaseRoot, 0o700, dirname(runRootBase));
   for (let port = 3101; port <= 3199; port += 1) {
     const path = resolve(leaseRoot, String(port));
     try {
@@ -1149,8 +1568,14 @@ async function claimPortLease(runRootBase: string, unit: EstimateUnit, runId: st
       if (isPlainObject(error) && error.code === "EEXIST") continue;
       throw error;
     }
+    const leaseRootFd = openSync(leaseRoot, "r");
+    try { fsyncSync(leaseRootFd); } finally { closeSync(leaseRootFd); }
     if (!await isFreeLoopbackPort(port)) {
-      rmSync(path, { recursive: true, force: true });
+      const entries = readdirSync(path);
+      if (entries.length) throw new Error("unowned port lease directory is not empty");
+      rmSync(path, { recursive: false, force: false });
+      const cleanupLeaseRootFd = openSync(leaseRoot, "r");
+      try { fsyncSync(cleanupLeaseRootFd); } finally { closeSync(cleanupLeaseRootFd); }
       continue;
     }
     writeJsonNoOverwrite(resolve(path, "owner.json"), {
@@ -1161,7 +1586,7 @@ async function claimPortLease(runRootBase: string, unit: EstimateUnit, runId: st
       port,
       owner_pid: process.pid,
       acquired_at: nowIso(),
-    }, 0o600);
+    }, 0o600, path);
     return { port, path };
   }
   throw new Error("no free loopback benchmark port is available in 3101..3199");
@@ -1196,6 +1621,23 @@ function loadMigrations(
   });
 }
 
+function migrationInventory(migrations: readonly MigrationDescriptor[]): MigrationInventoryRecord[] {
+  return migrations.map((migration) => ({
+    name: migration.name,
+    sha256: migration.sha256,
+    statement_count: migration.statements.length,
+  }));
+}
+
+export function assertMigrationInventoryStable(
+  before: readonly MigrationInventoryRecord[],
+  after: readonly MigrationInventoryRecord[],
+): void {
+  if (canonicalJson(before) !== canonicalJson(after)) {
+    throw new Error("active migration inventory changed during local D1 preparation");
+  }
+}
+
 function localWranglerBinding(
   repoRoot: string,
   readConfig: typeof import("wrangler")["unstable_readConfig"],
@@ -1225,22 +1667,26 @@ function fixtureSeedSql(input: {
   fixture: EstimateSheetPerformanceFixture;
   ids: FixtureIds;
   sessionToken: string;
+  revokedSessionToken: string;
   email: string;
   timestamp: string;
   expiresAt: string;
   role: FixtureRole;
 }): string[] {
-  const { fixture, ids, sessionToken, email, timestamp, expiresAt, role } = input;
+  const { fixture, ids, sessionToken, revokedSessionToken, email, timestamp, expiresAt, role } = input;
   const nodes = flattenEstimatePerformanceNodes(fixture);
   const nodeIdByFixtureId = new Map(nodes.map((node, index) => [node.id, ids.nodes[index]!]));
   const fixtureNodeIndexes = new Map(nodes.map((node, index) => [node.id, index]));
   const lines = [
     `-- fixture role: ${role}`,
     `INSERT INTO \"user\" (id, name, email, emailVerified, createdAt, updatedAt) VALUES (${sqlValue(ids.user)}, 'Estimate performance user', ${sqlValue(email)}, 1, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
+    `INSERT INTO \"user\" (id, name, email, emailVerified, createdAt, updatedAt) VALUES (${sqlValue(ids.revokedUser)}, 'Estimate performance revoked user', ${sqlValue(`revoked-${email}`)}, 1, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
     `INSERT INTO \"session\" (id, expiresAt, token, createdAt, updatedAt, userId) VALUES (${sqlValue(ids.session)}, ${sqlValue(expiresAt)}, ${sqlValue(sessionToken)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)}, ${sqlValue(ids.user)});`,
+    `INSERT INTO \"session\" (id, expiresAt, token, createdAt, updatedAt, userId) VALUES (${sqlValue(ids.revokedSession)}, ${sqlValue(expiresAt)}, ${sqlValue(revokedSessionToken)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)}, ${sqlValue(ids.revokedUser)});`,
     `INSERT INTO closed_beta_allowed_emails (id, normalized_email, status, invited_at, accepted_at, created_at, updated_at) VALUES (${sqlValue(ids.allowlist)}, ${sqlValue(email)}, 'active', ${sqlValue(timestamp)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
     `INSERT INTO legal_terms_acceptances (id, user_id, terms_key, terms_version, terms_effective_date, terms_content_hash, privacy_policy_version, acceptance_method, acceptance_context, accepted_at, created_at) VALUES (${sqlValue(ids.legal)}, ${sqlValue(ids.profile)}, ${sqlValue(CURRENT_TERMS.key)}, ${sqlValue(CURRENT_TERMS.version)}, ${sqlValue(CURRENT_TERMS.effectiveDate)}, ${sqlValue(CURRENT_TERMS.contentHash)}, ${sqlValue(CURRENT_TERMS.privacyPolicyVersion)}, 'authenticated_clickwrap', 'workshop_terms_gate', ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
     `INSERT INTO profiles (id, email, display_name, role, default_workspace_id, created_at, updated_at) VALUES (${sqlValue(ids.profile)}, ${sqlValue(email)}, 'Estimate performance profile', 'member', ${sqlValue(ids.workspace)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
+    `INSERT INTO profiles (id, email, display_name, role, default_workspace_id, created_at, updated_at) VALUES (${sqlValue(ids.revokedProfile)}, ${sqlValue(`revoked-${email}`)}, 'Estimate performance revoked profile', 'member', NULL, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
     `INSERT INTO workspaces (id, name, slug, created_by, created_at, updated_at) VALUES (${sqlValue(ids.workspace)}, 'Estimate performance workspace', ${sqlValue(`perf-${role}-${ids.workspace.slice(0, 8)}`)}, ${sqlValue(ids.profile)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
     `INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) VALUES (${sqlValue(ids.workspace)}, ${sqlValue(ids.profile)}, 'admin', ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
     `INSERT INTO projects (id, workspace_id, name, project_code, created_by, created_at, updated_at) VALUES (${sqlValue(ids.project)}, ${sqlValue(ids.workspace)}, 'Estimate performance project', ${sqlValue(`PERF-${role.toUpperCase()}`)}, ${sqlValue(ids.profile)}, ${sqlValue(timestamp)}, ${sqlValue(timestamp)});`,
@@ -1282,9 +1728,8 @@ function findPreparedD1DatabasePath(persistRoot: string): string {
 
 async function validatePreparedLocalD1(input: {
   persistRoot: string;
-  records: Array<{ ids: FixtureIds; sessionToken: string }>;
-  migrationHead: string;
-  migrationCount: number;
+  records: Array<{ ids: FixtureIds; sessionToken: string; revokedSessionToken: string }>;
+  migrationInventory: readonly MigrationInventoryRecord[];
 }): Promise<void> {
   const reader = await openLocalD1ReadOnlyReader(findPreparedD1DatabasePath(input.persistRoot));
   try {
@@ -1294,21 +1739,26 @@ async function validatePreparedLocalD1(input: {
     if (canonicalJson(schemaTables.map((row) => row.name)) !== canonicalJson([...EXPECTED_BETTER_AUTH_TABLES].sort())) {
       throw new Error("applied Better Auth D1 table set is incomplete");
     }
-    const ledger = reader.first<{ count: number }>("SELECT COUNT(*) AS count FROM d1_migrations");
-    if (Number(ledger?.count ?? -1) !== input.migrationCount) {
-      throw new Error("prepared D1 migration ledger is incomplete");
+    const ledger = reader.all<{ id: number; name: string }>(
+      "SELECT id, name FROM d1_migrations ORDER BY id ASC",
+    );
+    const expectedMigrationNames = input.migrationInventory.map((migration) => migration.name);
+    if (canonicalJson(ledger.map((entry) => entry.name)) !== canonicalJson(expectedMigrationNames)
+      || ledger.some((entry, index) => Number(entry.id) !== index + 1)) {
+      throw new Error("prepared D1 migration ledger does not exactly match the ordered active inventory");
     }
-    const migration = reader.first<{ name: string }>("SELECT name FROM d1_migrations ORDER BY name DESC LIMIT 1");
-    if (migration?.name !== input.migrationHead) throw new Error("prepared D1 migration head is stale");
 
     for (const record of input.records) {
-      const { ids, sessionToken } = record;
+      const { ids, sessionToken, revokedSessionToken } = record;
       const expectedCounts: Array<[string, number, string, Array<string | number>]> = [
         ["user", 1, 'SELECT COUNT(*) AS count FROM "user" WHERE id = ?', [ids.user]],
+        ["revoked user", 1, 'SELECT COUNT(*) AS count FROM "user" WHERE id = ?', [ids.revokedUser]],
         ["session", 1, 'SELECT COUNT(*) AS count FROM "session" WHERE id = ? AND token = ? AND userId = ?', [ids.session, sessionToken, ids.user]],
+        ["revoked session", 1, 'SELECT COUNT(*) AS count FROM "session" WHERE id = ? AND token = ? AND userId = ?', [ids.revokedSession, revokedSessionToken, ids.revokedUser]],
         ["allowlist", 1, "SELECT COUNT(*) AS count FROM closed_beta_allowed_emails WHERE id = ? AND status = 'active'", [ids.allowlist]],
         ["legal", 1, "SELECT COUNT(*) AS count FROM legal_terms_acceptances WHERE id = ? AND user_id = ? AND terms_version = ?", [ids.legal, ids.profile, CURRENT_TERMS.version]],
         ["profiles", 1, "SELECT COUNT(*) AS count FROM profiles WHERE id = ? AND default_workspace_id = ?", [ids.profile, ids.workspace]],
+        ["revoked profile", 1, "SELECT COUNT(*) AS count FROM profiles WHERE id = ? AND default_workspace_id IS NULL", [ids.revokedProfile]],
         ["workspaces", 1, "SELECT COUNT(*) AS count FROM workspaces WHERE id = ? AND created_by = ?", [ids.workspace, ids.profile]],
         ["workspace_members", 1, "SELECT COUNT(*) AS count FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role = 'admin'", [ids.workspace, ids.profile]],
         ["projects", 1, "SELECT COUNT(*) AS count FROM projects WHERE id = ? AND workspace_id = ?", [ids.project, ids.workspace]],
@@ -1349,9 +1799,19 @@ async function validatePreparedLocalD1(input: {
       const wrongTenant = reader.first<{ id: string }>(accessSql, [
         ids.profile, ids.profile, ids.profile, `auth-denial-wrong-tenant-${ids.workspace}`, ids.project, ids.estimate,
       ]);
-      const revokedUser = `auth-denial-revoked-membership-${ids.profile}`;
+      for (const [label, sql] of [
+        ["workspace", "SELECT COUNT(*) AS count FROM workspace_members WHERE workspace_id = ? AND user_id = ?"],
+        ["project", "SELECT COUNT(*) AS count FROM project_members WHERE project_id = ? AND user_id = ?"],
+        ["estimate", "SELECT COUNT(*) AS count FROM estimate_sheet_members WHERE estimate_id = ? AND user_id = ?"],
+      ] as const) {
+        const resourceId = label === "workspace" ? ids.workspace : label === "project" ? ids.project : ids.estimate;
+        const membership = reader.first<{ count: number }>(sql, [resourceId, ids.revokedProfile]);
+        if (Number(membership?.count ?? -1) !== 0) {
+          throw new Error(`prepared D1 revoked identity unexpectedly retains ${label} membership`);
+        }
+      }
       const revokedMembership = reader.first<{ id: string }>(accessSql, [
-        revokedUser, revokedUser, revokedUser, ids.workspace, ids.project, ids.estimate,
+        ids.revokedProfile, ids.revokedProfile, ids.revokedProfile, ids.workspace, ids.project, ids.estimate,
       ]);
       if (wrongTenant || revokedMembership) throw new Error("prepared D1 authorization denial probes failed closed");
     }
@@ -1376,8 +1836,8 @@ async function provisionLocalD1(input: {
 }> {
   const resourceRoot = resolve(input.runPath, "resources", "d1");
   const persistRoot = resolve(input.runPath, "wrangler-state");
-  mkdirSync(resourceRoot, { recursive: true, mode: 0o700 });
-  mkdirSync(persistRoot, { recursive: true, mode: 0o700 });
+  ensureDirectoryDurably(resourceRoot, 0o700, input.runPath);
+  ensureDirectoryDurably(persistRoot, 0o700, input.runPath);
   if (readdirSync(persistRoot).length !== 0) throw new Error("Wrangler persistence root is not fresh");
 
   const schemaProof = await generateLocalBetterAuthD1SchemaSqlProof();
@@ -1390,6 +1850,7 @@ async function provisionLocalD1(input: {
 
   const wrangler = await import("wrangler");
   const migrations = loadMigrations(input.repoRoot, wrangler.unstable_splitSqlQuery);
+  const preparedMigrationInventory = migrationInventory(migrations);
   const migrationHead = migrations.at(-1)?.name;
   if (!migrationHead) throw new Error("active migration head is unavailable");
   const binding = localWranglerBinding(input.repoRoot, wrangler.unstable_readConfig);
@@ -1398,22 +1859,18 @@ async function provisionLocalD1(input: {
   const localConfigPath = resolve(resourceRoot, "wrangler-local.json");
   const seedPath = resolve(input.runPath, "seed.sql");
   const cleanupSqlPath = resolve(resourceRoot, "cleanup.sql");
-  writeNoOverwrite(schemaPath, `${schemaProof.sql.trim()}\n`, 0o600);
+  writeNoOverwrite(schemaPath, `${schemaProof.sql.trim()}\n`, 0o600, input.runPath);
   writeJsonNoOverwrite(migrationsPath, {
     schema_version: "estimate-sheet-local-d1-migrations.v1",
     head: migrationHead,
     count: migrations.length,
-    migrations: migrations.map((migration) => ({
-      name: migration.name,
-      sha256: migration.sha256,
-      statement_count: migration.statements.length,
-    })),
-  }, 0o600);
+    migrations: preparedMigrationInventory,
+  }, 0o600, input.runPath);
   writeJsonNoOverwrite(localConfigPath, {
     name: `estimate-performance-${input.runId}`,
     compatibility_date: binding.compatibilityDate,
     d1_databases: [{ binding: "ARCH_DB", database_name: binding.databaseName, database_id: binding.databaseId }],
-  }, 0o600);
+  }, 0o600, input.runPath);
 
   const timestamp = input.createdAt;
   const expiresAt = new Date(Date.parse(input.createdAt) + 24 * 60 * 60 * 1_000).toISOString();
@@ -1421,6 +1878,7 @@ async function provisionLocalD1(input: {
     role,
     ids: makeFixtureIds(input.runId, role, input.fixture),
     sessionToken: sha256Hex(`${input.secret}\0${input.runId}\0${role}\0session-token`),
+    revokedSessionToken: sha256Hex(`${input.secret}\0${input.runId}\0${role}\0revoked-session-token`),
     expiresAt,
     email: `estimate-perf-${role}-${input.runId.slice(0, 8)}@example.invalid`,
   }));
@@ -1430,6 +1888,7 @@ async function provisionLocalD1(input: {
       fixture: input.fixture,
       ids: record.ids,
       sessionToken: record.sessionToken,
+      revokedSessionToken: record.revokedSessionToken,
       email: record.email,
       timestamp,
       expiresAt,
@@ -1438,15 +1897,15 @@ async function provisionLocalD1(input: {
     "COMMIT;",
     "",
   ].join("\n");
-  writeNoOverwrite(seedPath, seedSql, 0o600);
-  writeNoOverwrite(cleanupSqlPath, renderCleanupSql(records), 0o600);
+  writeNoOverwrite(seedPath, seedSql, 0o600, input.runPath);
+  writeNoOverwrite(cleanupSqlPath, renderCleanupSql(records), 0o600, input.runPath);
   for (const record of records) {
     const namespace = input.namespaces[record.role];
     if (!namespace) throw new Error(`missing prepared namespace for ${record.role}`);
     const statePath = resolve(input.runPath, "cleanup", `${record.role}-state.json`);
     const state = cleanupState(input.runId, record.role, namespace.idSha256, record.ids);
     // Cleanup treats exact_ids insertion order as part of the table-order contract.
-    writeNoOverwrite(statePath, `${JSON.stringify(state, null, 2)}\n`, 0o600);
+    writeNoOverwrite(statePath, `${JSON.stringify(state, null, 2)}\n`, 0o600, input.runPath);
   }
 
   const commands = buildLocalD1PrepareCommands({
@@ -1455,12 +1914,14 @@ async function provisionLocalD1(input: {
     schemaPath,
     seedPath,
   });
-  executeLocalD1PrepareCommands({ repoRoot: input.repoRoot, commands });
+  executeLocalD1PrepareCommands({ repoRoot: input.repoRoot, runRoot: input.runPath, commands });
+  const reconciledMigrations = loadMigrations(input.repoRoot, wrangler.unstable_splitSqlQuery);
+  const reconciledMigrationInventory = migrationInventory(reconciledMigrations);
+  assertMigrationInventoryStable(preparedMigrationInventory, reconciledMigrationInventory);
   await validatePreparedLocalD1({
     persistRoot,
     records,
-    migrationHead,
-    migrationCount: migrations.length,
+    migrationInventory: reconciledMigrationInventory,
   });
 
   const authFixtureHash = sha256Json({
@@ -1471,6 +1932,9 @@ async function provisionLocalD1(input: {
       user_id_sha256: sha256Hex(record.ids.user),
       session_id_sha256: sha256Hex(record.ids.session),
       session_token_sha256: sha256Hex(record.sessionToken),
+      revoked_user_id_sha256: sha256Hex(record.ids.revokedUser),
+      revoked_session_id_sha256: sha256Hex(record.ids.revokedSession),
+      revoked_session_token_sha256: sha256Hex(record.revokedSessionToken),
       expires_at: record.expiresAt,
     })),
   });
@@ -1562,7 +2026,7 @@ async function prepareResources(input: {
     "BETTER_AUTH_TRUSTED_ORIGINS",
     ...MODE_ENVIRONMENT_KEYS,
   ];
-  writeNoOverwrite(runtimeEnv, `${runtimeOrder.map((key) => `${key}=${runtimeValues[key]}`).join("\n")}\n`, 0o600);
+  writeNoOverwrite(runtimeEnv, `${runtimeOrder.map((key) => `${key}=${runtimeValues[key]}`).join("\n")}\n`, 0o600, input.runPath);
 
   const routeRole: FixtureRole = input.contract.namespaceRoles.includes("browser") ? "browser" : "mode";
   const routeRecord = d1.records.find((record) => record.role === routeRole);
@@ -1581,7 +2045,7 @@ async function prepareResources(input: {
       sameSite: "Lax",
     }],
     origins: [],
-  }, 0o600);
+  }, 0o600, input.runPath);
   const processJournal = resolve(input.runPath, "preview", "process-journal.json");
   writeJsonNoOverwrite(processJournal, {
     schema_version: "estimate-sheet-preview-process-journal.v1",
@@ -1589,12 +2053,13 @@ async function prepareResources(input: {
     run_id: input.runId,
     processes: [],
     updated_at: input.createdAt,
-  }, 0o600);
+  }, 0o600, input.runPath);
   const routePath = `/workshop/projects/${routeRecord.ids.project}/estimates/${routeRecord.ids.estimate}`;
   return {
     ...resources,
     runtimeEnv,
     runtimeEnvSha256: sha256File(runtimeEnv),
+    runtimeEnvStableSha256: runtimeEnvironmentStableSha256(runtimeValues),
     storageState,
     storageStateSha256: sha256File(storageState),
     storageStateExpiresAt: routeRecord.expiresAt,
@@ -1610,20 +2075,66 @@ async function prepareResources(input: {
   };
 }
 
-function releaseRunPortLeases(runRootBase: string, runId: string): void {
+function releaseRunPortLeases(
+  repoRoot: string,
+  runRootBase: string,
+  unit: EstimateUnit,
+  runId: string,
+  runPath: string,
+): void {
+  if (runRootBase !== defaultRunRoot(repoRoot)) throw new Error("port lease cleanup run root is not canonical");
   const root = resolve(runRootBase, "..", "leases", "ports");
+  if (root !== resolve(defaultRunRoot(repoRoot), "..", "leases", "ports")) {
+    throw new Error("port lease cleanup root is not canonical");
+  }
   if (!existsSync(root)) return;
   for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory() || !/^31\d{2}$/u.test(entry.name)) continue;
     const leasePath = resolve(root, entry.name);
     const ownerPath = resolve(leasePath, "owner.json");
     try {
       const owner = readJsonFile<Record<string, unknown>>(ownerPath);
-      if (owner.run_id === runId) rmSync(leasePath, { recursive: true, force: true });
+      if (owner.schema_version === "estimate-sheet-port-lease.v1"
+        && owner.unit_id === unit
+        && owner.run_id === runId
+        && owner.run_root === runPath
+        && owner.port === Number(entry.name)) {
+        removeOwnedDirectoryDurably(leasePath, "prepare port lease");
+      }
     } catch {
       // A malformed foreign lease is not ours to remove.
     }
   }
+}
+
+function cleanupUnjournaledPrepareAllocation(input: {
+  repoRoot: string;
+  unit: EstimateUnit;
+  runId: string;
+  runPath: string;
+  immutableRunRoot: string;
+  unitLeasePath: string;
+  runRootBase: string;
+}): void {
+  const runKey = basename(input.runPath);
+  if (input.runRootBase !== defaultRunRoot(input.repoRoot)
+    || input.runPath !== resolve(defaultRunRoot(input.repoRoot), input.unit, runKey)
+    || input.immutableRunRoot !== resolve(defaultImmutableRunRoot(input.repoRoot), input.unit, runKey)
+    || !runKey.startsWith(`${input.runId}-`)) {
+    throw new Error("unjournaled prepare cleanup roots are not canonical");
+  }
+  removeOwnedDirectoryDurably(input.runPath, "unjournaled prepare run root");
+  removeOwnedDirectoryDurably(input.immutableRunRoot, "unjournaled prepare immutable run root");
+  if (existsSync(input.unitLeasePath)) {
+    const ownerPath = resolve(input.unitLeasePath, "owner.json");
+    assertRegularFile(ownerPath, "unjournaled prepare unit lease owner");
+    const owner = readJsonFile<Record<string, unknown>>(ownerPath);
+    if (owner.unit_id !== input.unit || owner.run_id !== input.runId || owner.run_root !== input.runPath) {
+      throw new Error("unjournaled prepare unit lease is not owned by the failed allocation");
+    }
+    removeOwnedDirectoryDurably(input.unitLeasePath, "unjournaled prepare unit lease");
+  }
+  releaseRunPortLeases(input.repoRoot, input.runRootBase, input.unit, input.runId, input.runPath);
 }
 
 export async function prepareEstimateSheetPerformanceRun(input: {
@@ -1636,6 +2147,7 @@ export async function prepareEstimateSheetPerformanceRun(input: {
   cleanupNotApplicable?: boolean;
   cleanupRequirement?: "REQUIRED";
   admissionPath?: string;
+  retryInProgress?: boolean;
   port?: PortPolicy;
   sourceFingerprint?: SourceFingerprint;
   faultInjector?: (phase: PrepareTransitionFaultPhase) => void;
@@ -1650,7 +2162,14 @@ export async function prepareEstimateSheetPerformanceRun(input: {
     if (plan.package_status !== "IMPLEMENTATION_READY") throw new Error(`plan package is not implementation-ready: ${plan.package_status ?? "missing"}`);
     if (plan.next_unit !== input.unit) throw new Error(`plan next unit is ${plan.next_unit ?? "none"}, not ${input.unit}`);
     const selectedUnit = plan.units.find((unit) => unit.id === input.unit);
-    if (!selectedUnit || selectedUnit.status !== "READY") throw new Error(`${input.unit} must be READY before prepare, got ${selectedUnit?.status ?? "missing"}`);
+    const retrying = input.retryInProgress === true;
+    if (!selectedUnit || (selectedUnit.status !== "READY" && !(retrying && selectedUnit.status === "IN_PROGRESS"))) {
+      throw new Error(`${input.unit} must be READY before prepare, got ${selectedUnit?.status ?? "missing"}`);
+    }
+    if (retrying && (plan.runtime_evidence.latest_unit_id !== input.unit || !plan.runtime_evidence.latest_run_id
+      || plan.runtime_evidence.registry.immutable_path !== null)) {
+      throw new Error("prepare retry requires an unindexed current in-progress run");
+    }
 
     const decision = ["UNIT-005", "UNIT-006", "UNIT-007", "UNIT-008", "UNIT-009", "UNIT-010"].includes(input.unit)
       ? readBottleneckDecision(repoRoot, planRoot, plan)
@@ -1696,7 +2215,9 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       planFileSha256,
       fingerprint,
       admissionKind,
+      retrying,
     );
+    const allocationPredecessor = admission?.predecessor ?? readKnownPlanPredecessor(planRoot, plan, input.unit);
     const runId = createRunId();
     const createdAt = nowIso();
     const fixture = contract.namespaceRoles.length > 0
@@ -1715,14 +2236,29 @@ export async function prepareEstimateSheetPerformanceRun(input: {
     const namespaces = fixtureHash
       ? createPreparedNamespaces(runId, contract.namespaceRoles, fixtureHash)
       : {};
-    const applicationShort = fingerprint.application.content_sha256.slice(0, 12);
-    const inputShort = sha256Hex(canonicalJson({
-      unit: input.unit,
+    const prepareInput: PrepareInputV1 = {
+      schema_version: PREPARE_INPUT_SCHEMA,
+      unit_id: input.unit,
       profile: contract.profile,
-      evidenceClass: contract.evidenceClass,
-      portPolicy: contract.portPolicy,
-      namespaceRoles: contract.namespaceRoles,
-    })).slice(0, 12);
+      application_fingerprint: fingerprint.application,
+      producer_fingerprint: fingerprint.producer,
+      fixture: fixtureHash ? {
+        profile: "limit",
+        payload_sha256: fixtureHash,
+        namespace_roles: [...contract.namespaceRoles],
+      } : null,
+      decision: admission?.decision ?? null,
+      predecessor: allocationPredecessor,
+      admission: admission ? {
+        kind: admission.kind,
+        sha256: admission.sha256,
+        input_application_fingerprint: admission.inputApplicationFingerprint,
+        input_producer_fingerprint: admission.inputProducerFingerprint,
+      } : null,
+    };
+    const prepareInputSha256 = sha256Json(prepareInput);
+    const applicationShort = fingerprint.application.content_sha256.slice(0, 12);
+    const inputShort = prepareInputSha256.slice(0, 12);
     const runKey = `${runId}-${applicationShort}-${inputShort}`;
     const unitRoot = resolve(runRootBase, input.unit);
     const runPath = resolve(unitRoot, runKey);
@@ -1732,17 +2268,15 @@ export async function prepareEstimateSheetPerformanceRun(input: {
     const immutableRunRoot = resolve(immutableRunRootBase, input.unit, runKey);
     const pointerPath = resolve(runPath, "run-pointer.json");
     const runManifestPath = resolve(runPath, "run-manifest.json");
-    const immutableAdmissionPath = resolve(runPath, "dependencies/admission.json");
+    const immutableAdmissionPath = resolve(immutableRunRoot, "dependencies/admission.json");
     const prepareRecoveryPath = resolve(runPath, "prepare-recovery.json");
     const immutableRunManifestPath = resolve(immutableRunRoot, "run-manifest.json");
     const resolvedPreviousRunId = plan.runtime_evidence.latest_unit_id === input.unit
       && typeof plan.runtime_evidence.latest_run_id === "string"
       ? plan.runtime_evidence.latest_run_id
       : undefined;
-    const transitioned = deriveEstimateSheetPrepareTransition(plan, { unitId: input.unit, runId, updatedAt: createdAt });
     const oldPlanBytes = readFileSync(planPath);
     if (sha256Hex(oldPlanBytes) !== planFileSha256) throw new Error("plan manifest changed before prepare journal publication");
-    const newPlanBytes = Buffer.from(`${JSON.stringify(transitioned, null, 2)}\n`, "utf8");
     const unitLeasePath = resolve(runRootBase, "..", "leases", "units", input.unit);
     const unitLeaseStagingPath = resolve(dirname(unitLeasePath), `.${input.unit}-${runId}.staging`);
     const initialJournal: PrepareTransitionJournal = {
@@ -1757,12 +2291,12 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       unit_lease_staging_path: pathRelativeToRepo(repoRoot, unitLeaseStagingPath, "prepare staged unit lease"),
       old_plan_sha256: planFileSha256,
       old_plan_bytes_base64: oldPlanBytes.toString("base64"),
-      new_plan_sha256: sha256Hex(newPlanBytes),
-      new_plan_bytes_base64: newPlanBytes.toString("base64"),
+      new_plan_sha256: planFileSha256,
+      new_plan_bytes_base64: oldPlanBytes.toString("base64"),
       durable_files: [],
       created_at: createdAt,
     };
-    writeJsonNoOverwrite(canonicalTransitionJournalPath(repoRoot), initialJournal, 0o600);
+    writeJsonNoOverwrite(canonicalTransitionJournalPath(repoRoot), initialJournal, 0o600, repoRoot);
     input.faultInjector?.("ALLOCATION_JOURNALED");
     try {
       claimUnitLease(unitLeasePath, unitLeaseStagingPath, input.unit, runId, runPath, resolvedPreviousRunId);
@@ -1794,6 +2328,8 @@ export async function prepareEstimateSheetPerformanceRun(input: {
         immutable_run_root: immutableRunRoot,
         pointer_path: pointerPath,
         logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
+        prepareInput,
+        prepareInputSha256,
         created_at: createdAt,
         status: "PREPARED",
         sourceFingerprint: fingerprint,
@@ -1823,6 +2359,7 @@ export async function prepareEstimateSheetPerformanceRun(input: {
         ...(preparedResources.runtimeEnv ? {
           runtimeEnv: preparedResources.runtimeEnv,
           runtimeEnvSha256: preparedResources.runtimeEnvSha256,
+          runtimeEnvStableSha256: preparedResources.runtimeEnvStableSha256,
         } : {}),
         ...(preparedResources.storageState ? {
           storageState: preparedResources.storageState,
@@ -1849,6 +2386,7 @@ export async function prepareEstimateSheetPerformanceRun(input: {
         immutable_run_root: immutableRunRoot,
         run_manifest: "run-manifest.json",
         logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
+        prepareInputSha256,
         cleanupRequirement: contract.cleanupRequirement,
         application_fingerprint: fingerprint.application.content_sha256,
         producer_fingerprint: fingerprint.producer.content_sha256,
@@ -1864,6 +2402,16 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       };
 
       const runBytes = Buffer.from(`${JSON.stringify(run, null, 2)}\n`, "utf8");
+      const transitionInput = {
+        unitId: input.unit,
+        runId,
+        runManifestSha256: sha256Hex(runBytes),
+        updatedAt: createdAt,
+      };
+      const transitioned = retrying
+        ? deriveEstimateSheetPrepareRetryTransition(plan, transitionInput)
+        : deriveEstimateSheetPrepareTransition(plan, transitionInput);
+      const newPlanBytes = Buffer.from(`${JSON.stringify(transitioned, null, 2)}\n`, "utf8");
       const pointerBytes = Buffer.from(`${JSON.stringify(pointer, null, 2)}\n`, "utf8");
       const recoveryBytes = Buffer.from(`${JSON.stringify(recoveryDescriptor, null, 2)}\n`, "utf8");
       const sequence = transitioned.runtime_evidence.transition_sequence;
@@ -1900,6 +2448,8 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       let currentJournal: PrepareTransitionJournal = {
         ...initialJournal,
         state: "FILES_DECLARED",
+        new_plan_sha256: sha256Hex(newPlanBytes),
+        new_plan_bytes_base64: newPlanBytes.toString("base64"),
         durable_files: durableSources.map((source) => ({
           path: pathRelativeToRepo(repoRoot, source.path, "prepare durable file"),
           sha256: sha256Hex(source.bytes),
@@ -1908,12 +2458,16 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       replacePrepareTransitionJournal(repoRoot, initialJournal, currentJournal);
       input.faultInjector?.("JOURNAL_PREPARED");
 
+      ensureDirectoryDurably(runRootBase, 0o700, repoRoot);
+      ensureDirectoryDurably(immutableRunRootBase, 0o700, repoRoot);
       for (const source of durableSources) {
-        writeNoOverwrite(source.path, source.bytes, 0o600);
+        const trustedRoot = isContained(runPath, source.path) ? runRootBase : immutableRunRootBase;
+        writeNoOverwrite(source.path, source.bytes, 0o600, trustedRoot);
         if (sha256File(source.path) !== sha256Hex(source.bytes)) {
           throw new Error(`prepare durable file readback mismatch: ${source.path}`);
         }
       }
+      readPrecommitRunManifestPair(repoRoot, runManifestPath, input.unit);
       input.faultInjector?.("IMMUTABLE_WRITTEN");
 
       const filesWrittenJournal: PrepareTransitionJournal = { ...currentJournal, state: "FILES_WRITTEN" };
@@ -1921,13 +2475,14 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       currentJournal = filesWrittenJournal;
       input.faultInjector?.("PROJECTION_WRITTEN");
 
-      replaceFileAtomically(planPath, newPlanBytes, planFileSha256, 0o644);
+      replaceFileAtomically(planPath, newPlanBytes, planFileSha256, 0o644, planRoot);
       const committedJournal: PrepareTransitionJournal = { ...currentJournal, state: "COMMITTED" };
       replacePrepareTransitionJournal(repoRoot, currentJournal, committedJournal);
       currentJournal = committedJournal;
       input.faultInjector?.("MANIFEST_COMMITTED");
 
       if (sha256File(planPath) !== currentJournal.new_plan_sha256) throw new Error("prepare plan readback mismatch");
+      readAuthoritativeRunManifest(repoRoot, runManifestPath, input.unit);
       for (const source of durableSources) {
         if (sha256File(source.path) !== sha256Hex(source.bytes)) {
           throw new Error(`prepare durable file readback mismatch: ${source.path}`);
@@ -1937,9 +2492,19 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       return { run, runManifestPath, pointerPath };
     } catch (error) {
       if (!existsSync(canonicalTransitionJournalPath(repoRoot))) {
-        rmSync(runPath, { recursive: true, force: true });
-        rmSync(unitLeasePath, { recursive: true, force: true });
-        releaseRunPortLeases(runRootBase, runId);
+        try {
+          cleanupUnjournaledPrepareAllocation({
+            repoRoot,
+            unit: input.unit,
+            runId,
+            runPath,
+            immutableRunRoot,
+            unitLeasePath,
+            runRootBase,
+          });
+        } catch {
+          // Preserve the prepare failure; unowned paths are deliberately left intact.
+        }
       }
       throw error;
     }

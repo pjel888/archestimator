@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { createTestReceipt, readReceiptEnvironment, writeTestReceipt, type TestReceiptInput } from "./estimate-sheet-performance-test-receipt";
+import { createTestReceipt, loadRunFingerprints, readReceiptEnvironment, writeTestReceipt, type TestReceiptInput } from "./estimate-sheet-performance-test-receipt";
+import { fingerprintContentEqual, type FingerprintContent } from "./estimate-sheet-performance-contract";
 import { type TestReceiptV1 } from "./estimate-sheet-performance-contract";
 
 type UnknownRecord = Record<string, unknown>;
@@ -120,6 +120,13 @@ export function buildVitestReceipt(input: {
 export class EstimateSheetVitestReporter {
   private startedAt = 0;
   private readonly options: VitestReporterOptions;
+  private initialBinding?: {
+    runRoot: string;
+    runId: string;
+    unitId: NonNullable<TestReceiptInput["unitId"]>;
+    application: FingerprintContent;
+    producer: FingerprintContent;
+  };
 
   constructor(options: VitestReporterOptions = {}) {
     this.options = options;
@@ -127,6 +134,16 @@ export class EstimateSheetVitestReporter {
 
   onInit(): void {
     this.startedAt = Date.now();
+    const env = readReceiptEnvironment();
+    if (!env.enabled || !env.authoritativeManifestPath || !env.runRoot || !env.runId || !env.unitId) return;
+    const loaded = loadRunFingerprints(env.runRoot, env.unitId);
+    this.initialBinding = {
+      runRoot: env.runRoot,
+      runId: env.runId,
+      unitId: env.unitId,
+      application: loaded.application,
+      producer: loaded.producer,
+    };
   }
 
   async onFinished(files?: unknown): Promise<void> {
@@ -136,12 +153,28 @@ export class EstimateSheetVitestReporter {
     const unitId = this.options.unitId ?? env.unitId;
     const runId = this.options.runId ?? env.runId;
     if (!runRoot || !unitId || !runId) throw new Error("reporter environment has no run identity");
-    const fingerprints = this.options.applicationFingerprint && this.options.producerFingerprint
-      ? this.options
-      : (() => {
-        const loaded = requireRunFingerprints(runRoot);
-        return { ...this.options, applicationFingerprint: loaded.application, producerFingerprint: loaded.producer };
-      })();
+    const authoritative = env.authoritativeManifestPath ? loadRunFingerprints(runRoot, unitId) : undefined;
+    if (authoritative && (authoritative.run.run_id !== runId || authoritative.run.run_root !== runRoot)) {
+      throw new Error("reporter run identity differs from its authoritative manifest");
+    }
+    if (this.initialBinding && (
+      this.initialBinding.runRoot !== runRoot
+      || this.initialBinding.runId !== runId
+      || this.initialBinding.unitId !== unitId
+      || !fingerprintContentEqual(this.initialBinding.application, authoritative?.application)
+      || !fingerprintContentEqual(this.initialBinding.producer, authoritative?.producer)
+    )) throw new Error("run manifest binding changed during Vitest execution");
+    if (authoritative && this.options.applicationFingerprint && !fingerprintContentEqual(authoritative.application, this.options.applicationFingerprint)) {
+      throw new Error("explicit application fingerprint conflicts with the authoritative run manifest");
+    }
+    if (authoritative && this.options.producerFingerprint && !fingerprintContentEqual(authoritative.producer, this.options.producerFingerprint)) {
+      throw new Error("explicit producer fingerprint conflicts with the authoritative run manifest");
+    }
+    const fingerprints = {
+      ...this.options,
+      applicationFingerprint: authoritative?.application ?? this.options.applicationFingerprint,
+      producerFingerprint: authoritative?.producer ?? this.options.producerFingerprint,
+    };
     const receipt = buildVitestReceipt({
       results: files,
       options: {
@@ -155,8 +188,20 @@ export class EstimateSheetVitestReporter {
         argv: this.options.argv ?? process.argv.slice(1),
       },
     });
-    if (!env.receiptPath) throw new Error("receipt environment has no output path");
-    writeTestReceipt(env.receiptPath, receipt);
+    if (!env.receiptPath || !env.receiptRoot) throw new Error("receipt environment has no rooted output path");
+    if (env.authoritativeManifestPath) {
+      const refreshed = loadRunFingerprints(runRoot, unitId);
+      if (!fingerprintContentEqual(refreshed.application, fingerprints.applicationFingerprint)
+        || !fingerprintContentEqual(refreshed.producer, fingerprints.producerFingerprint)) {
+        throw new Error("run manifest fingerprints changed before Vitest receipt publication");
+      }
+    } else if (env.focusedAdmissionPath && env.role) {
+      const refreshed = readReceiptEnvironment();
+      if (refreshed.runRoot !== runRoot || refreshed.runId !== runId || refreshed.receiptPath !== env.receiptPath) {
+        throw new Error("focused refreeze binding changed before Vitest receipt publication");
+      }
+    }
+    writeTestReceipt(env.receiptPath, receipt, env.receiptRoot);
   }
 
   // Vitest 4 no longer calls the legacy onFinished reporter hook. Keep the
@@ -164,14 +209,6 @@ export class EstimateSheetVitestReporter {
   async onTestRunEnd(testModules: unknown[]): Promise<void> {
     await this.onFinished(normalizeVitestModules(testModules));
   }
-}
-
-function requireRunFingerprints(runRoot: string): { application: NonNullable<TestReceiptInput["applicationFingerprint"]>; producer: NonNullable<TestReceiptInput["producerFingerprint"]> } {
-  const manifestPath = `${runRoot.replace(/\/+$/u, "")}/run-manifest.json`;
-  if (!existsSync(manifestPath)) throw new Error(`run manifest missing: ${manifestPath}`);
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as UnknownRecord;
-  if (!manifest.applicationFingerprint || !manifest.producerFingerprint) throw new Error("run manifest fingerprints missing");
-  return { application: manifest.applicationFingerprint as NonNullable<TestReceiptInput["applicationFingerprint"]>, producer: manifest.producerFingerprint as NonNullable<TestReceiptInput["producerFingerprint"]> };
 }
 
 export function createEstimateSheetVitestReporter(options: VitestReporterOptions = {}): EstimateSheetVitestReporter {
