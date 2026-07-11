@@ -21,38 +21,53 @@ Use the lightest path that can satisfy the request:
 
 ## Verification And Test Gate
 
-Verification is always required; automated tests are conditional. Use one
+### User Test Authorization Gate (supreme)
+
+**Do not create, expand, repair, or run any automated test, test suite,
+build-as-test-gate, browser automation, or broad validation gate unless the
+user has explicitly requested testing for the current task.** This is the
+supreme rule and overrides every other consideration in this protocol and in
+any adapter/payload/prompt/sentinel that cites it. The owner (Philip Lewis) is
+the only authority who authorizes test execution. A critical risk, high blast
+radius, user-visible change, nearby test file, or the agent's own judgment that
+tests are warranted is never sufficient to run tests. When tests are not
+explicitly requested, use the cheapest decisive non-test evidence; if a
+critical risk seems to warrant tests, record a `TEST_PROPOSAL` (named risk +
+exact command) in your report and await explicit user authorization — do not
+run it. Completing all safe requested local work is never blocked by the
+absence of test authorization.
+
+### Test decisions
+
+Verification is always required; automated tests are user-gated. Use one
 explicit decision for each affected acceptance criterion:
 
 - `NOT_REQUIRED` - default. Do not create or run tests. Use the cheapest
   decisive source, diff, path/reference, type, lint, static, dry-run, or narrow
   runtime evidence needed for the claim.
-- `TARGETED` - run the smallest test that proves a named MVP-critical invariant,
-  or one existing focused test when it is demonstrably cheaper and more decisive
-  than the available non-test evidence. The latter trigger does not authorize
-  creating, expanding, or repairing test code.
-- `BROADER` - use a broader suite only when targeted evidence cannot cover an
-  integrated critical boundary.
-- `TEST_TASK` - testing, QA, coverage, reproduction, or regression proof is the
-  requested deliverable.
+- `TARGETED` - identifies a named critical invariant that would benefit from a
+  test, but **authorizes proposing it only, not running it**. Record a
+  `TEST_PROPOSAL` and continue with non-test evidence; wait for explicit user
+  authorization before any test runs.
+- `BROADER` - identifies an integrated critical boundary that would benefit from
+  a broader suite, but **authorizes proposing it only, not running it**. Record
+  a `TEST_PROPOSAL` for the narrowest relevant suite and await explicit user
+  authorization.
+- `TEST_TASK` - the user explicitly requested testing, QA, coverage,
+  reproduction, or regression for this task. This is the only decision that
+  authorizes creating, expanding, or running tests.
 
-Tests are justified only by an explicit testing request, a concrete
-MVP-critical risk that cheaper evidence cannot prove, or the narrow
-`CHEAPEST_DECISIVE_EXISTING_TEST` exception above. Critical risks include auth/authz, credentials,
-privacy or public access; D1 schema/data integrity; estimate, price, total,
-proposal, or export correctness; first-user release/rollback/observability;
-or concurrency/shared contracts whose failure could leak, corrupt, deny
-access, or materially misstate results. A source edit, multi-file change,
-user-visible change, nearby test, or high-blast label alone is not a test
-trigger. For the existing-test exception, record why that exact test is both
-cheaper and more decisive than non-test evidence. Browser automation, Storybook,
-builds, full `validate`, and broad
-regression suites require an explicit task or an integrated critical claim.
+The previous `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is
+withdrawn: even one existing focused test may not run without explicit user
+authorization. A source edit, multi-file change, user-visible change, nearby
+test, or high-blast label alone is never a test trigger. Browser automation,
+Storybook, builds, full `validate`, and broad regression suites likewise
+require explicit user authorization.
 
-Record the decision and trigger in a plan/ledger for non-trivial work. A
-justified `NOT_REQUIRED` is a completed verification choice, not a gap. Rerun
-only evidence invalidated by later edits; stop when the acceptance criteria have
-sufficient fresh evidence.
+Record the decision in a plan/ledger for non-trivial work. A justified
+`NOT_REQUIRED` is a completed verification choice, not a gap. Rerun only
+non-test evidence invalidated by later edits; stop when the acceptance criteria
+have sufficient fresh evidence.
 
 ## Karpathy-Inspired Guardrails
 

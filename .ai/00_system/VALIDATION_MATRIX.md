@@ -139,8 +139,9 @@ proof.
 
 For each loop iteration:
 
-1. name the criterion, `test_requirement`, and `test_trigger`;
-2. run the smallest evidence-producing check;
+1. name the criterion and `test_requirement`;
+2. run the smallest evidence-producing **non-test** check (unless the user
+   authorized `TEST_TASK` for this task);
 3. inspect its actual output;
 4. record result, freshness, and invalidation trigger;
 5. rerun only affected evidence after later edits.
@@ -151,9 +152,11 @@ check for the evidence actually relied on.
 
 Completion reporting names:
 
-- selected test decision and trigger;
-- commands/procedures run with key results;
-- tests intentionally not run under `NOT_REQUIRED`;
+- selected test decision;
+- non-test commands/procedures run with key results;
+- any `TEST_PROPOSAL` recorded for user approval (named risk + exact command) and
+  that it was not executed;
+- tests intentionally not run because the user did not authorize them;
 - exact provider/browser/manual proof boundary;
 - residual risk or unavailable evidence.
 

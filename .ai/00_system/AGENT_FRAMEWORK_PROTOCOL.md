@@ -176,16 +176,22 @@ surgical-change, and goal-proof requirements.
 ## Shared Test Decision
 
 All agents, roles, prompts, and adapters use the test gate in
-`AGENT_OPERATING_PROTOCOL.md`. Verification is required; tests default to
-`NOT_REQUIRED`. `TEST_TASK` maps to an explicit testing request; `TARGETED`
-maps to an MVP-critical invariant that cheaper evidence cannot prove, or to
-`CHEAPEST_DECISIVE_EXISTING_TEST` for one already-existing focused test that is
-cheaper and more decisive than non-test evidence; `BROADER` maps to an
-integrated critical boundary that targeted evidence cannot cover. The existing-
-test trigger permits no new or expanded test code. High blast radius changes
-planning and review depth but does not make tests automatic. Browser automation,
-builds, and full suites require the same explicit-task or integrated-critical
-justification.
+`AGENT_OPERATING_PROTOCOL.md`, which is governed by the **User Test
+Authorization Gate**: no agent may create, expand, repair, or run any automated
+test, test suite, build-as-test-gate, browser automation, or broad validation
+gate unless the user has explicitly requested testing for the current task.
+This is the supreme rule and overrides every other consideration.
+
+Verification is required; tests default to `NOT_REQUIRED` and use the cheapest
+decisive non-test evidence. `TEST_TASK` is the only decision that authorizes
+test execution, and it requires an explicit user request. `TARGETED` and
+`BROADER` identify a critical invariant that would benefit from a test but
+**authorize proposing it only, not running it** — record a `TEST_PROPOSAL`
+(named risk + exact command) and await explicit user authorization. The
+previous `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is
+withdrawn. High blast radius changes planning and review depth but does not
+make tests automatic. Browser automation, builds, and full suites require the
+same explicit user authorization.
 
 ## Durable Loop Artifacts And Loop Ledger
 
