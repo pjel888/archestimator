@@ -221,7 +221,7 @@ Append a new run with timestamp, scope, baseline/status hashes, completed units,
     additions 0053, 0054, 0055, 0060, 0065). Updated `SOURCE_AND_CODEBASE_AUDIT.md`
     current-state #5 and `SRC-008`.
   - `SRC-008` Corporate Accounts description was stale: the folder at
-    `.ai/03_plans/2026-07-11/Corporate-Accounts/` now has a manifest at
+    `.ai/09_archive/store/2026-07-11-Corporate-Accounts-complete/` now has a manifest at
     `CONDITIONALLY_READY` / `IN_PROGRESS` (previously "no manifest"). The candidate
     disposition logic (validated receipt when included, else exact exclusion) is
     unchanged and still correct.

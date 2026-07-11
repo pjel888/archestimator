@@ -53,7 +53,7 @@ authz-adjacent changes.
 ## Canonical Artifacts
 
 - **Execution:** [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
-- **Plan pack validation:** `bun run validate:plan-pack -- .ai/03_plans/2026-07-11/Corporate-Accounts`
+- **Plan pack validation:** `bun run validate:plan-pack -- .ai/09_archive/store/2026-07-11-Corporate-Accounts-complete`
 
 ## Pack Index
 

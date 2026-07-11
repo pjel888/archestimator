@@ -38,8 +38,10 @@ task-specific history. Do not linear-read the detailed history below.
   for a critical invariant or one existing focused test that is the cheapest
   decisive proof. Broad suites/build/browser proof remain explicitly or
   critically gated.
-- **Browser gate:** Codex App browser automation, screenshots, Storybook, and
-  visual QA are opt-in and require a named browser-only claim.
+- **Browser gate:** Philip grants standing authorization for repo-local browser
+  automation, screenshots, Storybook, and visual QA without per-run approval.
+  Name the claim each capture proves, keep credentials out of artifacts, and
+  store captures only in approved ignored scratch/evidence paths.
 - **Local debugging:** start with `bun run ops:agent-debug-snapshot`, then use
   `bun run logs:debug`, `bun run logs:tail -- --error --last 20`, or
   `bun run logs:explain <record_id>` as needed. Logs narrow hypotheses; source
@@ -56,6 +58,22 @@ task-specific history. Do not linear-read the detailed history below.
 Historical entries are preserved verbatim for retrieval and audit. They can
 conflict with current source and current policy; use them as evidence, not
 authority.
+
+### 2026-07-11 - Corporate Accounts And Teamwork Pack Closeout
+
+- The Corporate Accounts pack is fully implemented and archived at
+  `.ai/09_archive/store/2026-07-11-Corporate-Accounts-complete/`.
+- The Teamwork Feature Audit And Plan pack is fully implemented and archived at
+  `.ai/09_archive/store/2026-07-11-Teamwork-Feature-Audit-And-Plan-complete/`.
+- Both manifests validate with `package_status=IMPLEMENTATION_READY`,
+  `implementation_status=COMPLETE`, `release_status=NOT_EVALUATED`,
+  `plan_lifecycle=ARCHIVED`, and `terminal_status=ACHIEVED`; no next unit or
+  ready slice remains. Local focused tests, Corporate browser journeys,
+  bound-D1 migration `0066`, source-matched Worker `7f8d09b0-078b-4113-bf97-91f917894384`,
+  hosted invitation proof, and hosted UI/DO proof all passed.
+- Remote D1 readback shows only unrelated `0067_beta_activation_events.sql`
+  pending; it was intentionally left untouched. Production observability and
+  alert-delivery gates remain a separate unevaluated release surface.
 
 ### 2026-07-11 - Zero-Artificial-Blocker Correction
 

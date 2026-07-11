@@ -8,7 +8,7 @@
 
 | Pack | Validation command | Manifest SHA-256 | Baseline head |
 | --- | --- | --- | --- |
-| Teamwork Feature Audit And Plan | `bun run validate:plan-pack -- .ai/03_plans/2026-07-11/Teamwork-Feature-Audit-And-Plan` | re-frozen with this receipt | `e373bc865b978e237deb1d92011c96b0a3639fb4` |
+| Teamwork Feature Audit And Plan | `bun run validate:plan-pack -- .ai/09_archive/store/2026-07-11-Teamwork-Feature-Audit-And-Plan-complete` | archived final receipt | `e373bc865b978e237deb1d92011c96b0a3639fb4` |
 | Publisher And Shared Pages | `bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Publisher-And-Shared-Pages` | `3a6c664f496656360eeb2978abc0a713d997df258718d0c77c69a2c32c78af52` | owner manifest baseline |
 
 The Publisher owner pack validated on the record date. This receipt does not mutate that pack.

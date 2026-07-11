@@ -49,7 +49,7 @@
       "id": "ART-004",
       "role": "supporting",
       "path": "03_SOURCE_CODEBASE_AND_STALENESS_AUDIT.md",
-      "sha256": "edcd841785921f747154f232df30900b5caf9717090e273d324609d4b4164068"
+      "sha256": "bac9197ff5ef5549a115cd4290ab0a943e7ee780bfc2c5d323d9c2794e128f22"
     },
     {
       "id": "ART-005",
@@ -2706,49 +2706,76 @@
       "id": "DEC-AUTO-013",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-007", "REQ-008", "REQ-010", "DATA-004"]
+      "affected_ids": [
+        "REQ-007",
+        "REQ-008",
+        "REQ-010",
+        "DATA-004"
+      ]
     },
     {
       "id": "DEC-AUTO-014",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-015", "DATA-004"]
+      "affected_ids": [
+        "REQ-015",
+        "DATA-004"
+      ]
     },
     {
       "id": "DEC-AUTO-015",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-006", "SEC-003"]
+      "affected_ids": [
+        "REQ-006",
+        "SEC-003"
+      ]
     },
     {
       "id": "DEC-AUTO-016",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-001", "REQ-002"]
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002"
+      ]
     },
     {
       "id": "DEC-AUTO-017",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-021"]
+      "affected_ids": [
+        "REQ-021"
+      ]
     },
     {
       "id": "DEC-AUTO-018",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-011", "PERF-002", "PERF-003"]
+      "affected_ids": [
+        "REQ-011",
+        "PERF-002",
+        "PERF-003"
+      ]
     },
     {
       "id": "DEC-AUTO-019",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-007", "SEC-003"]
+      "affected_ids": [
+        "REQ-007",
+        "SEC-003"
+      ]
     },
     {
       "id": "DEC-AUTO-020",
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "affected_ids": ["REQ-006", "SEC-003", "OPS-002"]
+      "affected_ids": [
+        "REQ-006",
+        "SEC-003",
+        "OPS-002"
+      ]
     }
   ],
   "authorization_boundaries": [
@@ -3143,5 +3170,5 @@
     }
   ],
   "next_unit": "UNIT-001",
-  "manifest_sha256": "1abf84d5fe223992bdf4fd465caa6db2518e31b7ae7f6179025a9a5e0355b031"
+  "manifest_sha256": "da1b6d4b09a25534bb820c5382ecf245cc2659fbb79bcce034db829b80eb8a9c"
 }

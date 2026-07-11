@@ -27,7 +27,7 @@
       "id": "ART-002",
       "role": "source-ledger",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "cdd4f54cc86ae7f283770643a6bb5abd51f248e9fd446d1e8fefb3b3b015ecff"
+      "sha256": "b555f491d08eca48205747960561133f78d645be9128cbd8cbc14c88bd95a796"
     },
     {
       "id": "ART-003",
@@ -51,7 +51,7 @@
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "ebd7cbbec95fd2a3daad819de6c9d1bff4e5cc920df680d97b7f105a6f28a161"
+      "sha256": "d1edb0364854b48c108c057a320e8c8bade6920e19809a5d4eb50fde4a2413fc"
     },
     {
       "id": "ART-007",
@@ -1183,7 +1183,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "cdd4f54cc86ae7f283770643a6bb5abd51f248e9fd446d1e8fefb3b3b015ecff",
+      "sha256": "b555f491d08eca48205747960561133f78d645be9128cbd8cbc14c88bd95a796",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -1258,5 +1258,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T04:45:00.000Z",
-  "manifest_sha256": "2a35f1fcc398d188e4a5b72bafb1c3b9a71d86d9a6074e69034d95364fc0b090"
+  "manifest_sha256": "8df1db632b5b20dd2e198c939a63a9ff75b408d88d6d3fbba884eb8d413029eb"
 }

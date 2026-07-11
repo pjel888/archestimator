@@ -2,7 +2,7 @@
 
 Status: **PASSED**
 
-Generated: `2026-07-11T09:58:38.841Z`
+Generated: `2026-07-11T11:06:55.869Z`
 
 Base URL: `https://archestimator.com`
 
@@ -28,9 +28,9 @@ Seeds an exact synthetic Cloudflare D1 workspace/project/estimate with two Bette
 
 ## Sanitized Browser Proof
 
-- Project route: `/workshop/projects/27d69d35-5191-46d5-a975-45f6e3bd81f6`
-- Publisher access route: `/workshop/publisher?project=27d69d35-5191-46d5-a975-45f6e3bd81f6&drawer=27d69d35-5191-46d5-a975-45f6e3bd81f6&tab=access`
-- Estimate sheet route: `/workshop/projects/27d69d35-5191-46d5-a975-45f6e3bd81f6/estimates/36980d69-28e0-4180-af8c-28bdc9a5b8c7`
+- Project route: `/workshop/projects/2cc5d612-6006-4dde-8742-bca94cb93d6e`
+- Publisher access route: `/workshop/publisher?project=2cc5d612-6006-4dde-8742-bca94cb93d6e&drawer=2cc5d612-6006-4dde-8742-bca94cb93d6e&tab=access`
+- Estimate sheet route: `/workshop/projects/2cc5d612-6006-4dde-8742-bca94cb93d6e/estimates/10e335fb-b95f-4104-b5c2-b977d8e2d5c3`
 - Project route status: `200`
 - Publisher access route status: `200`
 - Estimate route statuses: `200 / 200`

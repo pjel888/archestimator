@@ -6,12 +6,10 @@ create table "account" ("id" text not null primary key, "accountId" text not nul
 
 create table "verification" ("id" text not null primary key, "identifier" text not null, "value" text not null, "expiresAt" date not null, "createdAt" date not null, "updatedAt" date not null);
 
+create table "rateLimit" ("id" text not null primary key, "key" text not null unique, "count" integer not null, "lastRequest" bigint not null);
+
 create index "session_userId_idx" on "session" ("userId");
 
 create index "account_userId_idx" on "account" ("userId");
 
 create index "verification_identifier_idx" on "verification" ("identifier");
-
-create table "rateLimit" ("id" text not null primary key, "key" text not null unique, "count" integer not null, "lastRequest" integer not null);
-
-create index "rateLimit_key_idx" on "rateLimit" ("key");

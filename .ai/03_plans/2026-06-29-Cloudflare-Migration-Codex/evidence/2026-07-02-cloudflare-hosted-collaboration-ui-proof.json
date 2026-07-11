@@ -1,29 +1,29 @@
 {
-  "generatedAt": "2026-07-11T09:58:38.841Z",
+  "generatedAt": "2026-07-11T11:06:55.869Z",
   "mode": "cloudflare-hosted-collaboration-ui-proof",
   "baseUrl": "https://archestimator.com",
   "d1Database": "archestimator-proof-db",
   "syntheticFixture": {
-    "workspaceId": "e43d8632-70aa-4c60-a917-fc9518d35a03",
-    "projectId": "27d69d35-5191-46d5-a975-45f6e3bd81f6",
-    "estimateId": "60c40225-0e98-4eec-95b3-78d41bc274a5",
-    "areaNodeId": "36980d69-28e0-4180-af8c-28bdc9a5b8c7",
-    "projectCode": "CF-COLLAB-20260711095838841",
+    "workspaceId": "3e5c480f-7c3e-4a11-a79f-92f716e60c9e",
+    "projectId": "2cc5d612-6006-4dde-8742-bca94cb93d6e",
+    "estimateId": "f19cb0c2-bba6-4ce8-a72c-2de1fc85d11e",
+    "areaNodeId": "10e335fb-b95f-4104-b5c2-b977d8e2d5c3",
+    "projectCode": "CF-COLLAB-20260711110655869",
     "users": [
       {
-        "id": "13daf531-16c9-4121-99e9-1f80440ce330",
-        "email": "codex-collab-ui-a-20260711095838841@example.invalid",
+        "id": "dd20e314-7d03-4e1b-9177-80fe7b0fc187",
+        "email": "codex-collab-ui-a-20260711110655869@example.invalid",
         "displayName": "Codex Collab Alice",
         "projectRole": "owner",
-        "sessionExpiresAt": "2026-07-11T10:58:38.841Z",
+        "sessionExpiresAt": "2026-07-11T12:06:55.869Z",
         "signedCookiesProvided": true
       },
       {
-        "id": "7724469b-c95a-4784-a8a0-c5ca478e13b3",
-        "email": "codex-collab-ui-b-20260711095838841@example.invalid",
+        "id": "1492018e-5ee5-45be-83b0-061cdf0d7859",
+        "email": "codex-collab-ui-b-20260711110655869@example.invalid",
         "displayName": "Codex Collab Bruno",
         "projectRole": "editor",
-        "sessionExpiresAt": "2026-07-11T10:58:38.841Z",
+        "sessionExpiresAt": "2026-07-11T12:06:55.869Z",
         "signedCookiesProvided": true
       }
     ]
@@ -95,7 +95,7 @@
       "cursorChannelB": "subscribed",
       "cursorSendStatusB": "ok",
       "remoteCursorVisibleOnA": true,
-      "remoteCursorUserIdOnA": "7724469b-c95a-4784-a8a0-c5ca478e13b3",
+      "remoteCursorUserIdOnA": "1492018e-5ee5-45be-83b0-061cdf0d7859",
       "remoteCursorLabelOnA": "Codex Collab Bruno",
       "consoleErrors": [],
       "pageErrors": [
@@ -103,9 +103,9 @@
       ]
     },
     "routes": {
-      "projectPath": "/workshop/projects/27d69d35-5191-46d5-a975-45f6e3bd81f6",
-      "publisherAccessPath": "/workshop/publisher?project=27d69d35-5191-46d5-a975-45f6e3bd81f6&drawer=27d69d35-5191-46d5-a975-45f6e3bd81f6&tab=access",
-      "estimateSheetPath": "/workshop/projects/27d69d35-5191-46d5-a975-45f6e3bd81f6/estimates/36980d69-28e0-4180-af8c-28bdc9a5b8c7"
+      "projectPath": "/workshop/projects/2cc5d612-6006-4dde-8742-bca94cb93d6e",
+      "publisherAccessPath": "/workshop/publisher?project=2cc5d612-6006-4dde-8742-bca94cb93d6e&drawer=2cc5d612-6006-4dde-8742-bca94cb93d6e&tab=access",
+      "estimateSheetPath": "/workshop/projects/2cc5d612-6006-4dde-8742-bca94cb93d6e/estimates/10e335fb-b95f-4104-b5c2-b977d8e2d5c3"
     },
     "browserDiagnostics": {
       "consoleErrors": [],

@@ -31,7 +31,11 @@ remains planned, ready, in progress, or blocked.
   `git diff --check` passed for the integrated source tree.
 - The bound Cloudflare D1 migration `0066_publication_foreign_keys.sql` was
   applied locally and remotely. The source-matched Worker deployment is
-  version `9d6dcdc2-27b6-49c4-9bb5-ffcd27af948c`.
+  version `7f8d09b0-078b-4113-bf97-91f917894384`.
+- The remote D1 readback has one unrelated pending migration,
+  `0067_beta_activation_events.sql`; it is outside this pack's declared
+  Corporate Accounts scope and was intentionally not applied as unrelated
+  work.
 
 ## Audit matrix
 

@@ -12,22 +12,39 @@ Layer 0 (no blockers):
   UNIT-001: Adopt WorkshopCollectionLayout for proposals inbox
   UNIT-002: Build ProposalCard component
   UNIT-009: Audit XLSX export pipeline edge cases
+  UNIT-014: Wire responded delivery_status (independent data fix)
 
 Layer 1 (depends on UNIT-001, UNIT-002):
   UNIT-003: Add status tabs, search, sort, view-mode controls
   UNIT-004: Add grouping (by workspace / status)
+  UNIT-011: Wrong-account recovery CTA (depends on UNIT-002)
 
 Layer 2 (depends on UNIT-003):
-  UNIT-005: Data layer — enrich RecipientProposalRow (client_name)
-  UNIT-006: Skeleton, empty states, error states parity
+  UNIT-005: Data layer — enrich RecipientProposalRow (clientName optional)
+  UNIT-006: Skeleton, empty states (incl. forked wrong-email), error states parity
 
-Layer 3 (depends on UNIT-006):
-  UNIT-007: Share/review surface audit findings
-  UNIT-008: Publisher flow audit findings
+Layer 3 (depends on UNIT-006, UNIT-009):
+  UNIT-007: Share/review surface audit
+  UNIT-016: Fix contractor-name leak (depends on UNIT-009)
+
+Layer 4 (depends on UNIT-007):
+  UNIT-008: Publisher flow audit
+  UNIT-012: Share page terminal states + "View all proposals" link
+  UNIT-015: Recipient-side staleness surface
+
+Layer 5 (depends on UNIT-008):
   UNIT-010: Stale-plan reconciliation + current-state.md update
 ```
 
-**Critical path:** UNIT-001 → UNIT-002 → UNIT-003 → UNIT-006 → UNIT-010
+**Critical path:** UNIT-001 → UNIT-002 → UNIT-003 → UNIT-006 → UNIT-007 → UNIT-012 → UNIT-010
+
+**Improve-stage changes:**
+- UNIT-005 test decision changed from TARGETED to NOT_REQUIRED (DEC-AUTO-007 — adding optional field doesn't require test; see `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` §10).
+- UNIT-006 now includes forked empty state (wrong-email secondary line) from IA-recovery FR-04.
+- 6 new units (UNIT-011 through UNIT-016) absorbed from 2026-07-07 plans.
+- UNIT-014 (responded status) is independent and can run in Layer 0.
+- See `10_ABSORBED_REQUIREMENTS_AND_UNITS.md` for new unit packets.
+- See `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` for exact code patterns.
 
 ---
 
@@ -211,21 +228,22 @@ Layer 3 (depends on UNIT-006):
 **Approach:**
 1. Add `project.client_name` to the SQL SELECT.
 2. Add `client_name: string | null` to `RecipientProposalD1Row`.
-3. Add `clientName: string | null` to `RecipientProposalRow`.
+3. Add `clientName?: string | null` (OPTIONAL — see DEC-AUTO-007) to `RecipientProposalRow`.
 4. Map `client_name` in `mapRecipientProposalRow`.
 5. Display `clientName` in the `ProposalCard` meta line (optional — only if it adds value beyond `projectName`).
 
 **Invariants:**
 - No sensitive columns added (no token hashes, no encrypted tokens, no password hashes).
-- The existing credential-free repository test must still pass.
+- `clientName` is made OPTIONAL (`clientName?: string | null`) to avoid breaking `tests/vitest/recipient-proposals-page.test.tsx:40-59` (the `proposal()` factory omits it).
+- The field name `clientName` does NOT match the credential-free test's regex assertions (`/token|hash|encrypted|password/i`) — verified safe.
 - `client_name` is the project's client name (from the `projects` table), not the recipient's name.
 
-**Test requirement:** TARGETED (test_trigger: MVP_CRITICAL_INVARIANT)
-**Test rationale:** The credential-free assertion is a named MVP-critical security invariant. If `client_name` is added to the query, the existing test must be re-run to prove no sensitive columns were inadvertently selected. Run the existing `recipient-proposals-repository.test.ts` (one existing focused test, no test creation).
+**Test requirement:** NOT_REQUIRED (test_trigger: NONE)
+**Test rationale:** Source inspection of the SELECT clause diff is the cheapest decisive proof that no sensitive columns were added. The existing credential-free test (`recipient-proposals-repository.test.ts`) uses strict `toEqual` (lines 91-112) which would need updating to mirror the new field — this requires a test edit, which the `CHEAPEST_DECISIVE_EXISTING_TEST` trigger forbids. Instead, source inspection of the diffed query is sufficient. The existing test's regex assertions (`not.toMatch(/\b(token_hash|recipient_token_hash|encrypted_token|password_hash)\b/i)` at line 117, `not.toMatch(/token|hash|encrypted|password/i` at line 119) remain valid evidence that the query doesn't select credentials — `clientName` does not match either pattern. See `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` §10.
 
-**Proof:** Run existing `recipient-proposals-repository.test.ts`; confirm it passes with the new column. Source inspection confirms only `client_name` was added.
+**Proof:** Source inspection of the diffed SELECT clause confirms only `project.client_name` was added. `tsc --noEmit` confirms the optional field type-checks against all consumers.
 
-**Failure response:** If the credential-free test fails, inspect the query diff for inadvertently selected columns and remove them.
+**Failure response:** If any consumer fails to type-check with the optional field, add the field to the consumer's type annotation or use a default value.
 
 **Checkpoint/resume:** After this unit, the row type includes `client_name`. Next: UNIT-006.
 
@@ -233,7 +251,7 @@ Layer 3 (depends on UNIT-006):
 
 ## UNIT-006: Skeleton, Empty States, Error States Parity
 
-**Goal:** Update loading, empty, and error states to match the projects page patterns.
+**Goal:** Update loading, empty, and error states to match the projects page patterns. Includes the forked empty state (wrong-email secondary line) absorbed from IA-recovery FR-04.
 
 **Linked requirements:** REQ-006, UX-005, UX-006
 **Depends on:** UNIT-003 (card grid exists for skeleton to mirror)

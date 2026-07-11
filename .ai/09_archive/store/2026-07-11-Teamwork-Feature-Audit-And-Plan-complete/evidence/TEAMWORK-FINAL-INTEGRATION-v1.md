@@ -32,14 +32,17 @@ invitation proof, and Durable Object/browser proof were executed successfully.
 
 ## Bound-resource hosted proof
 
-- The bound D1 migration `0066_publication_foreign_keys.sql` applied locally
-  and remotely without pending migration work.
-- Source-matched Worker deployment: `9d6dcdc2-27b6-49c4-9bb5-ffcd27af948c`.
-- Hosted invitation proof generated at `2026-07-11T09:59:27.278Z` returned HTTP
+- The pack-scoped D1 migration `0066_publication_foreign_keys.sql` applied
+  locally and remotely with no Corporate/Teamwork migration pending.
+- Remote D1 readback now shows only the unrelated `0067_beta_activation_events.sql`
+  migration pending; it is outside the Corporate/Teamwork pack scope and was
+  intentionally not applied as unrelated work.
+- Source-matched Worker deployment: `7f8d09b0-078b-4113-bf97-91f917894384`.
+- Hosted invitation proof generated at `2026-07-11T11:06:50.278Z` returned HTTP
   200 with no blockers. Active and revoked resolution, accept-by-token,
   replay, wrong-account denial, accept-by-id, audit counts, and exact cleanup
   all passed.
-- Hosted UI/DO proof generated at `2026-07-11T09:58:38.841Z` passed with no
+- Hosted UI/DO proof generated at `2026-07-11T11:06:55.869Z` passed with no
   blockers. Synthetic Better Auth sessions, project and publisher routes, two
   estimate routes, Durable Object subscriptions, cursor broadcast/render, and
   exact D1 cleanup all passed.

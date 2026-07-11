@@ -1,6 +1,6 @@
 # Cloudflare Better Auth D1 Route-Gate Proof
 
-Generated: 2026-07-01T06:27:24.839Z
+Generated: 2026-07-11T12:24:07.792Z
 
 Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, make Supabase removable, or prove OAuth provider credentials.
 
@@ -19,14 +19,14 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | Better Auth D1 schema SQL generated | yes |
 | Better Auth D1 schema SQL static review ready | yes |
 | Hosted Better Auth D1 schema proof ready | yes |
-| Better Auth provider secret/origin proof ready | yes |
+| Better Auth provider secret/origin proof ready | no |
 | Provider-backed session fixture ready | yes |
 | Provider-backed callback/session cutover proof ready | yes |
 | Better Auth provider proof ready | yes |
 | Route-gate parity matrix ready | yes |
 | Legacy Supabase auth gate retired | yes |
 | Local Better Auth route-gate proof ready | yes |
-| Production Better Auth ready | yes |
+| Production Better Auth ready | no |
 | Local-only proof | no |
 | Provider-backed proof | yes |
 
@@ -34,24 +34,24 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 | Item | Value |
 | --- | --- |
-| Better Auth version | 1.6.22 |
+| Better Auth version | 1.6.23 |
 | Wrangler D1 bindings | ARCH_DB |
 | Typed D1 bindings | ARCH_DB |
 | Actual /api/auth route mounted | yes |
 | Route-gate test files | tests/vitest/cloudflare-better-auth-route.test.ts, tests/vitest/cloudflare-better-auth-route-gate.test.ts |
 | Schema SQL artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-d1-schema.sql |
-| Schema SQL statements | 7 |
-| Schema SQL SHA-256 | a6e8f988bdc954a9d8c8e02824584921f2d52d92d7493ebd2dff2e5aa948f694 |
-| Schema SQL tables | account, session, user, verification |
+| Schema SQL statements | 8 |
+| Schema SQL SHA-256 | 55995dca64087f9b5a184d60c324be6a7793d4c2b0e169690473a707a0b61e80 |
+| Schema SQL tables | account, rateLimit, session, user, verification |
 | Schema SQL indexes | account_userId_idx, session_userId_idx, verification_identifier_idx |
 
 ## Hosted Provider Proof
 
 | Item | Value |
 | --- | --- |
-| Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-better-auth-provider-proof.json |
+| Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json |
 | Provider proof present | yes |
-| Provider proof generated | 2026-07-01T05:59:53.478Z |
+| Provider proof generated | 2026-06-30T13:46:31.076Z |
 | Provider proof base URL | https://archestimator-proof.philipjonlewis.workers.dev |
 | Provider proof endpoint | /__cloudflare/better-auth-proof |
 | Provider proof response status | 200 |
@@ -100,4 +100,5 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 ## Blockers
 
-- (none)
+- Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify Google OAuth credential proof, email-domain readiness, and live cutover evidence.
+- Hosted Better Auth proof has not confirmed Google OAuth provider credentials in Cloudflare Worker secrets.

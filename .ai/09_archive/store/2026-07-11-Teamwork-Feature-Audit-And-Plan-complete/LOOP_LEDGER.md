@@ -431,7 +431,7 @@ Append-only execution observations for `PLAN-2026-07-11-teamwork-feature-audit-a
 ## 2026-07-11 - Teamwork Final Closure
 
 - **Discover:** the remaining Teamwork blockers were stale status/evidence rows and the authorized hosted proof boundary. Source-local activity, invitation, privacy, publisher, realtime, cursor, and estimate ownership contracts were already implemented.
-- **Execute:** completed the Activity and Publisher consumer receipts, applied the bound migration, deployed Worker `9d6dcdc2-27b6-49c4-9bb5-ffcd27af948c`, and ran the D1 invitation and UI/DO browser proofs. Wrote `evidence/TEAMWORK-FINAL-INTEGRATION-v1.md` with sanitized proof details.
+- **Execute:** completed the Activity and Publisher consumer receipts, applied the bound migration, deployed Worker `7f8d09b0-078b-4113-bf97-91f917894384`, and ran the D1 invitation and UI/DO browser proofs. Wrote `evidence/TEAMWORK-FINAL-INTEGRATION-v1.md` with sanitized proof details.
 - **Verify:** hosted invitation proof returned HTTP 200 with no blockers; hosted UI/DO proof passed with no blockers; focused local suites, type-check, error-handling validation, and diff checks passed. AC-019 remains explicitly Estimates-owned.
 - **Record:** `AUTH-001` is RESOLVED; `AC-001`–`AC-020` are PASS, `TEST-001`–`TEST-020` are PASS, and `UNIT-001`–`UNIT-019` are VERIFIED. All core risks are CLOSED. Production observability remains a separate `NOT_EVALUATED` release surface.
 - **Decide:** mark the pack complete, refresh its hashes, and archive it only after the final validator and cross-pack path checks pass.

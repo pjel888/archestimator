@@ -1,3 +1,58 @@
+## 2026-07-11 publisher workspace remake QA
+
+source visual truth path:
+- Current user evidence for `http://localhost:3000/workshop/publisher`: the stacked status controls made the page unusable, and the first remake rendered out of scale beside the rest of Workshop.
+- Repo-native references: `DESIGN.md`, `PRODUCT.md`, the current Workshop shell, Projects collection density, shared controls, and the user's correction that Publisher must use the app's compact scale.
+- Current authenticated Chrome captures at desktop, tablet, and mobile widths are the rendered source of truth for the final comparison.
+
+implementation screenshot path:
+- `.ai/99_scratch/publisher-visual-qa/desktop-active.png`
+- `.ai/99_scratch/publisher-visual-qa/tablet-active-list.png`
+- `.ai/99_scratch/publisher-visual-qa/tablet-active-detail.png`
+- `.ai/99_scratch/publisher-visual-qa/mobile-active-list-final.png`
+- `.ai/99_scratch/publisher-visual-qa/mobile-active-detail.png`
+- `.ai/99_scratch/publisher-visual-qa/desktop-project-picker.png`
+- `.ai/99_scratch/publisher-visual-qa/desktop-edit-wizard.png`
+- `.ai/99_scratch/publisher-visual-qa/mobile-edit-wizard.png`
+
+viewport: `1440x900`, `768x900`, and `390x844` authenticated Chrome captures.
+
+state: `/workshop/publisher?status=active`, horizontal command bar, compact project roster, persistent detail pane, searchable create-link picker, link editor, loading/error/empty/success states, and mobile URL-backed detail navigation.
+
+full-view comparison evidence:
+- Publisher no longer mounts the collection tab wrapper that forced status filters into a vertical column. Search, status, project, and create actions share one horizontal command bar at desktop widths.
+- The final density pass follows the app contract: `12px` maximum titles, `11px` secondary headings, `10px` controls/body, `8-9px` metadata, 32px controls, 64px roster rows, and an `18-23rem` master pane.
+- The workspace uses one master-detail model instead of competing cards/table modes, with no dashboard card grid or oversized marketing treatment.
+- Desktop capture confirms the command bar stays horizontal and the roster/detail split fits inside the Workshop shell without overflow or oversized type.
+- Tablet and mobile captures confirm list-to-detail navigation, full-width detail states, and stable action placement. The final mobile pass places status and project filters side-by-side to reduce toolbar height without truncating their labels.
+
+focused region comparison evidence:
+- The create picker shows only manageable projects from the live roster result, includes client/link/estimate readiness, and routes estimate-empty projects to recovery instead of a dead end.
+- Mobile project selection writes a `drawer` URL entry, so browser Back returns to the roster; filtering no longer silently substitutes the first row.
+- The link editor confirms dirty dismissal and does not show completion until the saved link is successfully refetched and verified.
+- The estimate picker preserves code and name on separate lines and removes nested scrolling on narrow layouts.
+
+findings:
+- Source-level density review found no remaining Publisher typography above the app's `12px` maximum.
+- Rendered desktop, tablet, and mobile comparisons found no remaining P0/P1/P2 layout, scale, cropping, overflow, or hierarchy defects.
+- The bottom-left rendering indicator visible in some captures is Next.js development chrome, not Publisher UI.
+
+patches made:
+- Rebuilt Publisher as a compact master-detail client-link workspace with a single horizontal command bar.
+- Consolidated link creation and editing into one guarded task surface with explicit recovery states.
+- Added searchable project readiness, mobile wayfinding, dirty-state protection, verified post-save completion, and app-native density.
+- Removed repeated tiny eyebrow labels and side-stripe callouts from the Publisher surface.
+- Tightened the mobile command bar after rendered review by pairing the status and project filters on one row.
+
+verification:
+- Focused ESLint passed for the changed Publisher source with zero errors; one pre-existing unused local helper warning remains in `sheet-drawer.tsx`.
+- `bun run type-check` passed.
+- Scoped `git diff --check` passed.
+- Authenticated Chrome/Playwright visual captures passed at desktop, tablet, and mobile widths for roster, detail, project picker, and link editor states.
+- No test suite was run; the task is a UX/UI remake and the repo policy defaults tests to not required.
+
+final result: pass
+
 ## 2026-07-04 projects no-search-results empty state QA
 
 source visual truth path:

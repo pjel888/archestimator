@@ -177,13 +177,29 @@ reserve-then-confirm pattern.
 | Internal estimate breakdowns | No (client audience) | Stripped by `applyAudiencePolicy` |
 | Publication open_count | No (owner analytics) | Not in inbox query |
 | Recipient tokens of others | No | Never |
+| Workspace name in XLSX (client audience) | **YES (LEAK)** | `route.ts:241` sets `contractorName = workspace.name`; `applyAudiencePolicy` does NOT strip it. **UNIT-016 fixes this.** |
 
 ---
 
 ## 9. Security Audit Items for Implementation
 
-1. **Preserve the credential-free repository assertion.** If `client_name` is added to the query (DEC-AUTO-005), ensure it doesn't inadvertently select sensitive columns.
+1. **Preserve the credential-free repository assertion.** If `clientName` is added to the query (DEC-AUTO-005/DEC-AUTO-007), ensure it doesn't inadvertently select sensitive columns. Make `clientName` optional to avoid breaking test files.
 2. **Verify the `openRecipientProposalAction` redirect.** The raw token appears in the redirect URL — ensure it's not logged in any client-visible state, error message, or analytics event.
 3. **Verify rate limiters are still wired.** The Publisher-And-Shared-Pages redesign may have changed API route structure — verify all limiters are still applied.
 4. **Verify the `download_attempt_blocked` event type.** If any code references it, remove the reference (it was dropped in migration 0066).
 5. **No new credentials.** The inbox redesign must not introduce new token handling, new credentials, or new API endpoints that expose publication data.
+6. **Fix contractor-name leak (UNIT-016).** `route.ts:241` uses `workspace.name` as the contractor name in XLSX exports. For client-audience exports, this leaks the workspace name. `applyAudiencePolicy` must strip it or the fallback must use a neutral placeholder.
+7. **Cache isolation boundary (DEC-AUTO-008).** `revalidatePath("/workshop/proposals")` does not invalidate the TanStack Query client cache. This is accepted for beta — the 30s staleTime + window-focus refetch is sufficient. No security implication (no stale-data leak — the data is the recipient's own proposals).
+
+---
+
+## 10. Contractor-Name Leak Detail (Improve-Stage Finding)
+
+**The leak:** `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts:241` sets `contractorName = workspace.name` as a fallback when no contractor profile exists. This name is written into the XLSX workbook's title block as "Bidder / Contractor" (`create-proposal-workbook.ts:297`).
+
+**Why it's a problem:** For client-audience exports, the workspace name is internal data. The client should not see the estimator's workspace/company name unless explicitly configured. `applyAudiencePolicy` in `settings.ts` strips the Source Breakdown worksheet and supplier names for client audience, but does NOT strip the contractor name from the metadata.
+
+**Fix (UNIT-016):**
+1. Replace `contractorName = workspace.name` with a proper contractor profile lookup. If no profile exists, use a neutral placeholder (e.g., `"[Contractor Name]"` or omit the field).
+2. Extend `applyAudiencePolicy` to strip the workspace name from the export metadata for client audience.
+3. Add a server-side redaction verification check that scans the workbook output for the workspace name before sending.

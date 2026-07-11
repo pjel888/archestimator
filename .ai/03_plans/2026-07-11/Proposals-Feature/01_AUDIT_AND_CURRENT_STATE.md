@@ -278,6 +278,28 @@ ProjectsPageClient (3,478-line orchestrator, useReducer with ~25 state slices)
 2. Anti-enumeration: the `openRecipientProposalAction` redirects to `/share/[token]` — verify the token is never exposed in client-visible state.
 3. Snapshot version drift: the decision API returns 409 on version mismatch — verify the inbox reflects stale versions.
 
-### Stale plan reconciliation
-1. The `2026-07-07-recipient-proposals-inbox-ia-recovery` plan's open items (terminal states, wrong-account recovery, forked empty state) need to be checked against the Publisher-And-Shared-Pages implementation. If already implemented, mark superseded. If not, absorb into this pack.
-2. The `2026-07-07-client-ready-proposal-package-workflow` plan's open items (readiness/preflight, owner-composed recipient message, `responded` status) need the same check.
+### Stale plan reconciliation (COMPLETED — see `09_STALE_PLAN_RECONCILIATION.md`)
+1. The `2026-07-07-recipient-proposals-inbox-ia-recovery` plan's open items are NOT implemented (except FR-08 decision finality, which is SUPERSEDED). Wrong-account CTA (FR-06), forked empty state (FR-04), terminal states (FR-09/10), and "View all proposals" link (FR-02) are all ABSORBED into this pack.
+2. The `2026-07-07-client-ready-proposal-package-workflow` plan's open items are NOT implemented. Readiness/preflight (FR-01..04) and owner message (FR-05) are DEFERRED to publisher scope. `responded` status (FR-07) is ABSORBED — the UI handles it but the store never writes it (`d1-store.ts:717-823` has no `UPDATE ... SET delivery_status='responded'`).
+3. The `2026-07-07-proposal-export-and-immutable-deliverable-trust` plan: trust ledger (FR-2) and content-bound proof (FR-7) are DEFERRED (Enterprise MVP P1). Staleness surface (FR-3/4) is PARTIALLY done (manager-side exists; recipient-side missing) — ABSORBED. Redaction (FR-5) is NOT implemented — contractor=workspace-name leak still present at `route.ts:241` — ABSORBED.
+
+### Cache interaction gap (improve-stage finding)
+`revalidatePath("/workshop/proposals")` in `src/lib/publication/actions.ts:745` purges the RSC data cache but does NOT invalidate the TanStack Query client cache (`["recipient-proposals", userEmail]`). Publication mutations from the publisher page won't reflect in the inbox until the 30s staleTime expires or the user clicks Refresh. Decision: accept the gap for beta (DEC-AUTO-008). See `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` §7.
+
+### Test compatibility (improve-stage finding)
+Adding `clientName` to `RecipientProposalRow` will affect:
+- `tests/vitest/recipient-proposals-repository.test.ts:91-112` — strict `toEqual` matcher.
+- `tests/vitest/recipient-proposals-page.test.tsx:40-59` — `proposal()` factory.
+**Resolution (DEC-AUTO-007):** Make `clientName` optional (`clientName?: string | null`). This avoids breaking both test files. See `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` §10.
+
+### Migration number reality (improve-stage finding)
+The 2026-07-07 plans assumed latest migration `0036` → next `0037`. **Actual latest migration as of 2026-07-11: `0067`.** Any migration work must recompute by running `ls migrations/ | sort | tail -3`.
+
+### `responded` delivery_status gap (improve-stage finding)
+The `responded` enum value exists in the DB CHECK constraint (`0014:67`, `0066:167`) and the UI handles it (`RecipientEmailComposer.tsx:50,245,673-685`), but `submitClientResponse` (`d1-store.ts:717-823`) never writes it — only `SET delivery_status = 'opened'` at lines 377, 410. This is the smallest data-layer fix in the pack (UNIT-014).
+
+### Contractor-name leak (improve-stage finding)
+`src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts:241` sets `contractorName = workspace.name` — the workspace name is used as the contractor name in client-audience XLSX exports. `create-proposal-workbook.ts:297` writes it as "Bidder / Contractor" in the title block. `applyAudiencePolicy` in `settings.ts` does NOT strip the workspace name. This is a data leak for client-audience exports (UNIT-016).
+
+### No `error.tsx` under `src/app/share/` (improve-stage finding)
+There is no `error.tsx` anywhere under `src/app/share/` (confirmed via `find`). The IA recovery plan's FR-10b (share-level error boundary) is not started. ABSORBED as UNIT-012.

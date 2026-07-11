@@ -148,7 +148,7 @@ Design and implement an atomic workspace-move audit boundary, then close the rem
 ## 2026-07-11 - Corporate Final Closure
 
 - **Discover:** the remaining Corporate blockers were proof and stale plan-pack state, not missing source behavior. The expanded browser journey exposed and fixed the local Better Auth profile-ID validation mismatch.
-- **Execute:** completed the source-matched local D1 and browser proofs, applied the bound migration set, deployed the current Worker, and wrote `evidence/CORPORATE-FINAL-INTEGRATION-v1.md`.
+- **Execute:** completed the source-matched local D1 and browser proofs, applied the bound migration set, deployed Worker `7f8d09b0-078b-4113-bf97-91f917894384`, and wrote `evidence/CORPORATE-FINAL-INTEGRATION-v1.md`.
 - **Verify:** core and expanded Corporate Playwright journeys passed 1/1 each; the action suite passed 7/7; type-check, error-handling validation, and diff checks passed. Post-proof D1 cleanup left the fixed workspace unlinked and the owner guard restored.
 - **Record:** `AC-001`–`AC-023` are PASS, `TEST-001`–`TEST-023` are PASS, and `UNIT-001`–`UNIT-011` are VERIFIED. Production observability remains a separate `NOT_EVALUATED` release surface.
 - **Decide:** mark the pack complete, refresh its hashes, and archive it only after the final validator and cross-pack path checks pass.

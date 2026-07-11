@@ -77,23 +77,36 @@ the cached `rows` array is sufficient and avoids server round-trips.
 `listRecipientProposals()` returns all 50 rows; the client component filters
 and sorts them in memory.
 
-### 2.2 Optional: Enrich `RecipientProposalRow` (DEC-AUTO-005)
+### 2.2 Optional: Enrich `RecipientProposalRow` (DEC-AUTO-005 + DEC-AUTO-007)
 
 The current row type lacks some display fields that would enrich the card. The
-query already joins `projects`, so adding columns is low-risk:
+query already joins `projects`, so adding columns is low-risk.
 
-**Candidate additions (evaluate during implementation):**
-- `project.client_name` — useful for card display (the client is the recipient, but seeing the project's client name provides context).
-- `project.location` — useful for card display (with `location_visibility` consideration).
-- `publication.open_count` — useful for "viewed N times" indicator.
+**Decision:** Add `client_name` to the SELECT as an OPTIONAL field
+(`clientName?: string | null` per DEC-AUTO-007). Do NOT add `location`
+(governed by `location_visibility`). Do NOT add `open_count` (owner analytics).
 
-**Decision:** Add `client_name` to the SELECT and the row type (it's already in
-the joined `projects` table). Do NOT add `location` (governed by
-`location_visibility` — the snapshot sanitization handles this for the share
-page, but the inbox should not display location without the same sanitization).
-Do NOT add `open_count` (not recipient-relevant; it's owner analytics).
+**Test compatibility (improve-stage finding — DEC-AUTO-007):**
+Adding `clientName` affects these test files:
+- `tests/vitest/recipient-proposals-repository.test.ts:91-112` — strict `toEqual`. Making the field optional means the `toEqual` passes if both actual and expected omit it. The credential-free regex assertions (lines 117, 119) do NOT match `clientName` — safe.
+- `tests/vitest/recipient-proposals-page.test.tsx:40-59` — `proposal()` factory. An optional field doesn't break the factory's type-check.
+- `tests/vitest/recipient-proposals-action.test.ts` and `tests/vitest/recipient-proposals-route-gate.test.ts` — do not import `RecipientProposalRow` by name; agnostic to row fields.
 
-### 2.3 Pagination (Deferred)
+**Test decision reclassified:** UNIT-005 changes from `TARGETED` / `MVP_CRITICAL_INVARIANT` / `CHEAPEST_DECISIVE_EXISTING_TEST` to `NOT_REQUIRED` / `NONE`. Source inspection of the SELECT clause diff is the cheapest decisive proof. See `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` §10.
+
+### 2.3 `responded` Delivery Status Wiring (UNIT-014)
+
+The `responded` enum value exists in the DB CHECK constraint (`0014:67`, `0066:167`) and the UI handles it (`RecipientEmailComposer.tsx:50,245,673-685`), but `submitClientResponse` (`d1-store.ts:717-823`) never writes it — only `SET delivery_status = 'opened'` at lines 377, 410.
+
+**Fix (UNIT-014):** In `submitClientResponse`, after the successful `INSERT INTO shared_link_responses`, add `UPDATE shared_link_recipients SET delivery_status = 'responded' WHERE id = ?recipientId` in the same D1 batch. No schema migration needed — the enum value already exists.
+
+### 2.4 Cache Invalidation Strategy (DEC-AUTO-008)
+
+`revalidatePath("/workshop/proposals")` in `src/lib/publication/actions.ts:745` purges the RSC data cache but does NOT invalidate the TanStack Query client cache (`["recipient-proposals", userEmail]`).
+
+**Decision:** Accept the gap for beta. The 30s staleTime + `refetchOnWindowFocus: true` + manual Refresh button is sufficient. The inbox is not a real-time collaboration surface. See `11_IMPLEMENTATION_REFERENCE_PATTERNS.md` §7 and DEC-AUTO-008.
+
+### 2.5 Pagination (Deferred)
 
 The LIMIT 50 is sufficient for beta. If a recipient has >50 proposals (unlikely
 for beta), they are silently truncated. A "load more" or cursor-based pagination

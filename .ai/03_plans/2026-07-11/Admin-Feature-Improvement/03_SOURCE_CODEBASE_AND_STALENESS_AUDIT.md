@@ -31,8 +31,8 @@ The implementation lead must recompute `PLAN-PACK-SCOPED-BASELINE-v1` over this 
 21. `.ai/09_archive/store/2026-07-11-Activity-History-Mapping-complete`
 22. `.ai/03_plans/2026-07-10/Beta-Operating-Contract`
 23. `.ai/03_plans/2026-07-10/Beta-Readiness-Program`
-24. `.ai/03_plans/2026-07-11/Corporate-Accounts`
-25. `.ai/03_plans/2026-07-11/Teamwork-Feature-Audit-And-Plan`
+24. `.ai/09_archive/store/2026-07-11-Corporate-Accounts-complete`
+25. `.ai/09_archive/store/2026-07-11-Teamwork-Feature-Audit-And-Plan-complete`
 26. `.ai/10_state/current-state.md`
 
 The manifest baseline binds the current planning snapshot. It grants no implementation authority and must not be silently refreshed after source drift.

@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "42e6a0762aa84830312a2262a5c0a4bc5811fa8e09aab70d30032fbfcafb66ee"
+      "sha256": "f93a5523c8bf46b6c4acfd3f19c9ef27f74d7e8f050d471e9ec374cdb3ca8082"
     },
     {
       "id": "ART-002",
@@ -57,13 +57,13 @@
       "id": "ART-007",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "3e5627c2d9c6f08cf2f61991ccf6a3cf5d301a9ee6a81bba32857d156e83257e"
+      "sha256": "5ee5e6ec4dd7df7caeb1f2512e0afb9ee377191de895d41c96a078e986585909"
     },
     {
       "id": "ART-008",
       "role": "final-integration",
       "path": "evidence/CORPORATE-FINAL-INTEGRATION-v1.md",
-      "sha256": "c68cc0a33e873de6aaee616d0a27968c974143f02a23d97b8bf1de66508f9b61"
+      "sha256": "47d3bac66f039ca176380ffb10c54756ba1405da51e354a45d703e5645f5eb84"
     }
   ],
   "sources": [
@@ -1169,7 +1169,7 @@
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "evidence/CORPORATE-FINAL-INTEGRATION-v1.md",
-      "sha256": "c68cc0a33e873de6aaee616d0a27968c974143f02a23d97b8bf1de66508f9b61",
+      "sha256": "47d3bac66f039ca176380ffb10c54756ba1405da51e354a45d703e5645f5eb84",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -1229,7 +1229,7 @@
         "UNIT-010",
         "UNIT-011"
       ],
-      "source_revision": "2026-07-11-corporate-final-integration-worker-9d6dcdc2",
+      "source_revision": "2026-07-11-corporate-final-integration-worker-7f8d09b0",
       "valid_until": null
     }
   ],
@@ -1238,6 +1238,6 @@
     "focused-test-or-migration-result-change"
   ],
   "next_unit": null,
-  "updated_at": "2026-07-11T10:05:00.000Z",
-  "manifest_sha256": "c1c45c6be27b36ce1c2f8752ece9bdeefe306c5b4db6e193d4801a410d6ba5ab"
+  "updated_at": "2026-07-11T11:13:45.000Z",
+  "manifest_sha256": "1d6818126d5b53cce57635b441c372d45c46eb859ea33acbe2485c651ab46c4e"
 }

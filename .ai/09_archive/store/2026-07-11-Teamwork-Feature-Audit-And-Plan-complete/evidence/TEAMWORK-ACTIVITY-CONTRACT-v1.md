@@ -8,7 +8,7 @@
 
 | Pack | Validation command | Manifest SHA-256 | Baseline head |
 | --- | --- | --- | --- |
-| Teamwork Feature Audit And Plan | `bun run validate:plan-pack -- .ai/03_plans/2026-07-11/Teamwork-Feature-Audit-And-Plan` | re-frozen with this receipt | `e373bc865b978e237deb1d92011c96b0a3639fb4` |
+| Teamwork Feature Audit And Plan | `bun run validate:plan-pack -- .ai/09_archive/store/2026-07-11-Teamwork-Feature-Audit-And-Plan-complete` | archived final receipt | `e373bc865b978e237deb1d92011c96b0a3639fb4` |
 | Activity History Mapping (archived owner) | `bun run validate:plan-pack -- .ai/09_archive/store/2026-07-11-Activity-History-Mapping-complete` | `73ac9c522d6ee1ac7153a87c61eb15f4e841696b452d012268a9ee7b6809f9b8` | archived owner artifact |
 
 The archived Activity owner pack validated on the record date. Its archive is not modified by this Teamwork receipt.
@@ -62,4 +62,3 @@ The tests prove composer actions/titles, feed buckets, and payload redaction for
 The stored event names remain accepted legacy transport values. New readers consume the v1 semantic mapping above; no backfill or destructive migration is authorized by this receipt. A producer, composer, redaction, or owner-manifest change invalidates this receipt and requires a new source-matched record.
 
 **Verifier:** Teamwork integrator, source/test evidence recorded 2026-07-11.
-

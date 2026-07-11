@@ -129,7 +129,7 @@
       "id": "ART-019",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "7e09fea76a8fdaeec6fbc1536ee9122c6c4ae4abd68a78c6d5d21a8c21caf663"
+      "sha256": "958155c66c90383286aa031032fba756ceffea4dc7b155659b9ffa7a5293fb0f"
     },
     {
       "id": "ART-020",
@@ -141,7 +141,7 @@
       "id": "ART-021",
       "role": "final-integration",
       "path": "evidence/TEAMWORK-FINAL-INTEGRATION-v1.md",
-      "sha256": "279f1508a9084102b9635d6279bfe34dea2844c3a8e3471b750464a6cf1e8c89"
+      "sha256": "52d562dbaeb901f5598bdc0a82d3929f0cb1e48af401e2a515b0ac0c3b024b1e"
     }
   ],
   "sources": [
@@ -1667,7 +1667,7 @@
       "id": "EVID-004",
       "status": "PASS",
       "artifact_path": "evidence/TEAMWORK-FINAL-INTEGRATION-v1.md",
-      "sha256": "279f1508a9084102b9635d6279bfe34dea2844c3a8e3471b750464a6cf1e8c89",
+      "sha256": "52d562dbaeb901f5598bdc0a82d3929f0cb1e48af401e2a515b0ac0c3b024b1e",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -1731,7 +1731,7 @@
         "AUTH-001",
         "GATE-OPS-01"
       ],
-      "source_revision": "2026-07-11-teamwork-final-integration-worker-9d6dcdc2",
+      "source_revision": "2026-07-11-teamwork-final-integration-worker-7f8d09b0",
       "valid_until": null
     }
   ],
@@ -2300,6 +2300,6 @@
     "hosted-proof-or-release-gate-change",
     "cloudflare-worker-version-deployment-or-durable-object-routing-change"
   ],
-  "updated_at": "2026-07-11T10:05:00.000Z",
-  "manifest_sha256": "83e47259daa91d783960b13b6365936d145094761e200a608b4b02178526cb64"
+  "updated_at": "2026-07-11T11:13:45.000Z",
+  "manifest_sha256": "1ca4983661cdef5c7e0b11ebc81ab3b45ab2c91e818dea2084a4413b0fc47131"
 }
