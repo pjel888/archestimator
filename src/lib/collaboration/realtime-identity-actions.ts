@@ -15,12 +15,21 @@
  */
 
 import { getCurrentUserContext } from "@/lib/auth/session";
-import { isPlatformAdmin } from "@/lib/auth/roles";
-import { canAccessEstimateInD1, canAccessProjectInD1 } from "@/lib/authz/d1-access";
+import {
+  canEditProjectEstimateContentRole,
+  isPlatformAdmin,
+  type ProjectEstimateCollaborationRole,
+} from "@/lib/auth/roles";
+import { readCollaborationTopicAccessInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 import type { RealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity";
-import { issueRealtimeRoomToken, readRealtimeRoomTokenSecret } from "@/lib/collaboration/realtime-room-token";
+import {
+  issueRealtimeRoomToken,
+  readCollaborationRoomTokenSecret,
+  readRealtimeRoomTokenSecret,
+  type RealtimeRoomCapability,
+} from "@/lib/collaboration/realtime-room-token";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import { canAccessSupportConversationInD1 } from "@/lib/repositories/support-conversations-repository";
 
@@ -28,6 +37,14 @@ import { canAccessSupportConversationInD1 } from "@/lib/repositories/support-con
 const TOPIC_PATTERN = /^(project|estimate):([0-9a-f-]{36})$/;
 const GLOBAL_PRESENCE_TOPIC = "global-presence";
 const SUPPORT_CONVERSATION_TOPIC_PATTERN = /^[a-zA-Z0-9:_-]{3,200}$/;
+
+function capabilitiesForCollaborationRole(role: ProjectEstimateCollaborationRole): RealtimeRoomCapability[] {
+  const capabilities: RealtimeRoomCapability[] = ["presence:read", "presence:write"];
+  if (canEditProjectEstimateContentRole(role)) {
+    capabilities.push("broadcast:cursor", "broadcast:row-update");
+  }
+  return capabilities;
+}
 
 export type IssueRealtimeIdentityResult = {
   envelope: RealtimeIdentityEnvelope;
@@ -53,9 +70,8 @@ export type IssueRealtimeRoomTokenResult = {
  * The envelope `sub` is ALWAYS the authenticated user's id — the topic is the
  * only client-supplied input, and it is format-validated before use.
  *
- * Role lookup is intentionally minimal here ("member"): the security guarantee
- * is the `sub` + `topic` + expiry binding, not the role string. A richer
- * per-topic role can be layered on later without changing the wire format.
+ * The effective role is resolved from D1 through the canonical collaboration
+ * policy. An estimate-only member is never admitted to a project topic.
  */
 export async function issueRealtimeIdentity({
   topic,
@@ -76,29 +92,31 @@ export async function issueRealtimeIdentity({
   if (!database) return null;
 
   try {
-    const allowed = topicKind === "project"
-      ? await canAccessProjectInD1(database, objectId, user)
-      : await canAccessEstimateInD1(database, objectId, user);
-    if (!allowed) return null;
+    const access = await readCollaborationTopicAccessInD1(database, {
+      kind: topicKind as "project" | "estimate",
+      resourceId: objectId,
+    }, user);
+    if (!access?.role) return null;
+
+    const roomTokenSecret = readCollaborationRoomTokenSecret();
+    if (!roomTokenSecret) return null;
+
+    const { envelope, publicKey } = await issueRealtimeIdentityEnvelope({
+      sub: user.userId,
+      topic: normalizedTopic,
+      role: access.role,
+    });
+    const roomToken = await issueRealtimeRoomToken({
+      capabilities: capabilitiesForCollaborationRole(access.role),
+      secret: roomTokenSecret,
+      sub: user.userId,
+      topic: normalizedTopic,
+    });
+
+    return { envelope, publicKey, roomToken, userId: user.userId, displayName: user.displayName ?? null };
   } catch {
     return null;
   }
-
-  const roomTokenSecret = readRealtimeRoomTokenSecret();
-  if (!roomTokenSecret) return null;
-
-  const { envelope, publicKey } = await issueRealtimeIdentityEnvelope({
-    sub: user.userId,
-    topic: normalizedTopic,
-    role: "member",
-  });
-  const roomToken = await issueRealtimeRoomToken({
-    secret: roomTokenSecret,
-    sub: user.userId,
-    topic: normalizedTopic,
-  });
-
-  return { envelope, publicKey, roomToken, userId: user.userId, displayName: user.displayName ?? null };
 }
 
 async function issueRoomTokenForUser({

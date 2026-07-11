@@ -15,12 +15,30 @@ import { isRealtimeTransportEnabled } from "@/lib/collaboration/feature-flags";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 
 const presenceHook = readFileSync("src/hooks/use-project-presence.ts", "utf8");
-const cursorHook = readFileSync("src/hooks/use-estimate-cursor-broadcast.ts", "utf8");
-const rowUpdateHook = readFileSync("src/hooks/use-estimate-row-update-broadcast.ts", "utf8");
-const collaborationColors = readFileSync("src/lib/collaboration/colors.ts", "utf8");
-const estimateSheetContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
-const featureFlags = readFileSync("src/lib/collaboration/feature-flags.ts", "utf8");
-const realtimeIdentityServer = readFileSync("src/lib/collaboration/realtime-identity-server.ts", "utf8");
+const cursorHook = readFileSync(
+  "src/hooks/use-estimate-cursor-broadcast.ts",
+  "utf8",
+);
+const rowUpdateHook = readFileSync(
+  "src/hooks/use-estimate-row-update-broadcast.ts",
+  "utf8",
+);
+const collaborationColors = readFileSync(
+  "src/lib/collaboration/colors.ts",
+  "utf8",
+);
+const estimateSheetContent = readFileSync(
+  "src/components/workshop/EstimateSheetContent.tsx",
+  "utf8",
+);
+const featureFlags = readFileSync(
+  "src/lib/collaboration/feature-flags.ts",
+  "utf8",
+);
+const realtimeIdentityServer = readFileSync(
+  "src/lib/collaboration/realtime-identity-server.ts",
+  "utf8",
+);
 
 // --- Fake realtime transport (T0.3 seam) -----------------------------------
 type FakeChannel = PresenceChannelLike & {
@@ -28,6 +46,7 @@ type FakeChannel = PresenceChannelLike & {
   __tracked: ProjectPresencePayload[];
   __emit: (status: string) => void;
   __setPresence: (state: Record<string, ProjectPresencePayload[]>) => void;
+  __setAuthorize: (authorize: (token: string) => Promise<string>) => void;
 };
 
 type FakeClient = PresenceClientLike & {
@@ -76,6 +95,9 @@ function createFakeClient(): FakeClient {
           presence = state;
           syncHandler?.();
         },
+        __setAuthorize(nextAuthorize) {
+          channel.authorize = nextAuthorize;
+        },
       };
       channels.push(channel);
       return channel;
@@ -89,16 +111,27 @@ function createFakeClient(): FakeClient {
   return client;
 }
 
-async function createPresenceIdentity(userId: string, topic: string) {
-  const issued = await issueRealtimeIdentityEnvelope({ sub: userId, topic, role: "member" });
+async function createPresenceIdentity(
+  userId: string,
+  topic: string,
+  roomToken?: string,
+) {
+  const issued = await issueRealtimeIdentityEnvelope({
+    sub: userId,
+    topic,
+    role: "member",
+  });
   return {
     identityIssuer: async () => ({
       envelope: issued.envelope,
       publicKey: issued.publicKey,
       userId,
       displayName: userId,
+      roomToken,
     }),
-    payload(activeSurface: ProjectPresencePayload["activeSurface"] = "overview"): ProjectPresencePayload {
+    payload(
+      activeSurface: ProjectPresencePayload["activeSurface"] = "overview",
+    ): ProjectPresencePayload {
       return {
         purpose: PRESENCE_STATE_PURPOSE,
         userId,
@@ -146,9 +179,17 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     expect(payload?.userId).toBe("user-a");
     expect(payload?.activeSurface).toBe("estimates");
     // The exact key set is the security boundary — assert nothing else rides along.
-    expect(Object.keys(payload as object).sort()).toEqual(["activeSurface", "envelope", "onlineAt", "purpose", "userId"]);
+    expect(Object.keys(payload as object).sort()).toEqual([
+      "activeSurface",
+      "envelope",
+      "onlineAt",
+      "purpose",
+      "userId",
+    ]);
     const serialized = JSON.stringify(payload);
-    expect(serialized).not.toMatch(/activeRoute|activeEstimateId|activeTabId|focusedCell/);
+    expect(serialized).not.toMatch(
+      /activeRoute|activeEstimateId|activeTabId|focusedCell/,
+    );
     expect(serialized).not.toMatch(/\/workshop\//); // no raw pathname
     expect(result.current.status).toBe("subscribed");
   });
@@ -168,7 +209,9 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
 
   it("does not derive realtime signing keys from Supabase service-role secrets", () => {
     expect(realtimeIdentityServer).toContain("REALTIME_IDENTITY_SIGNING_KEY");
-    expect(realtimeIdentityServer).toContain("ARCHESTIMATOR_INVITE_TOKEN_PEPPER");
+    expect(realtimeIdentityServer).toContain(
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+    );
     expect(realtimeIdentityServer).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
@@ -198,9 +241,13 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
       });
     });
 
-    await waitFor(() => expect(result.current.onlineUserIds.has("user-b")).toBe(true));
+    await waitFor(() =>
+      expect(result.current.onlineUserIds.has("user-b")).toBe(true),
+    );
     expect(result.current.onlineUserIds.has("user-a")).toBe(true);
-    expect(result.current.entries.get("user-b")?.activeSurface).toBe("estimates");
+    expect(result.current.entries.get("user-b")?.activeSurface).toBe(
+      "estimates",
+    );
   });
 
   it("ignores an unknown/garbage activeSurface from the wire (coerces to 'other')", async () => {
@@ -222,10 +269,17 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     await waitFor(() => expect(client.__channels[0]?.__tracked.length).toBe(1));
     act(() => {
       client.__channels[0]?.__setPresence({
-        evil: [{ ...remote.payload(), activeSurface: "/workshop/projects/secret" as never }],
+        evil: [
+          {
+            ...remote.payload(),
+            activeSurface: "/workshop/projects/secret" as never,
+          },
+        ],
       });
     });
-    await waitFor(() => expect(result.current.entries.get("user-x")?.activeSurface).toBe("other"));
+    await waitFor(() =>
+      expect(result.current.entries.get("user-x")?.activeSurface).toBe("other"),
+    );
   });
 
   it("cleans up the room on unmount and holds only one live room (StrictMode guard)", async () => {
@@ -271,10 +325,85 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     expect(client.__removed).toContain(client.__channels[0]);
   });
 
+  it("closes and recovers once when identity issuance fails", async () => {
+    vi.useFakeTimers();
+    const client = createFakeClient();
+    const identityIssuer = vi.fn(async () => null);
+    const { result } = renderHook(() =>
+      useProjectPresence({
+        projectId: "11111111-1111-1111-1111-111111111111",
+        currentUser: { id: "user-a" },
+        clientFactory: () => client,
+        identityIssuer,
+      }),
+    );
+
+    await act(async () => {
+      client.__channels[0]?.__emit("CONNECTED");
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe("error");
+    expect(client.__removed).toEqual([client.__channels[0]]);
+
+    // A terminal-status echo from the closed room must not schedule a second
+    // retry or retain the failed room as active.
+    act(() => {
+      client.__channels[0]?.__emit("CLOSED");
+      client.__channels[0]?.__emit("CHANNEL_ERROR");
+      vi.advanceTimersByTime(1100);
+    });
+
+    expect(identityIssuer).toHaveBeenCalledTimes(1);
+    expect(client.__channels).toHaveLength(2);
+    expect(client.__removed).toEqual([client.__channels[0]]);
+  });
+
+  it("closes and recovers when room authorization is denied", async () => {
+    vi.useFakeTimers();
+    const client = createFakeClient();
+    const topic = "project:11111111-1111-1111-1111-111111111111";
+    const { identityIssuer } = await createPresenceIdentity(
+      "user-a",
+      topic,
+      "room-token",
+    );
+    const authorize = vi.fn(async () => "timed out");
+    const { result } = renderHook(() =>
+      useProjectPresence({
+        projectId: "11111111-1111-1111-1111-111111111111",
+        currentUser: { id: "user-a" },
+        clientFactory: () => client,
+        identityIssuer,
+      }),
+    );
+    client.__channels[0]?.__setAuthorize(authorize);
+
+    await act(async () => {
+      client.__channels[0]?.__emit("CONNECTED");
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(authorize).toHaveBeenCalledWith("room-token");
+    expect(result.current.status).toBe("error");
+    expect(client.__removed).toEqual([client.__channels[0]]);
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+    expect(client.__channels).toHaveLength(2);
+  });
+
   it("does not subscribe when disabled or missing identity", () => {
     const client = createFakeClient();
     renderHook(() =>
-      useProjectPresence({ projectId: null, currentUser: { id: "user-a" }, clientFactory: () => client }),
+      useProjectPresence({
+        projectId: null,
+        currentUser: { id: "user-a" },
+        clientFactory: () => client,
+      }),
     );
     expect(client.__channels.length).toBe(0);
   });
@@ -307,7 +436,9 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
   it("does not open default realtime sockets or emit realtime telemetry in plain development", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "");
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     const WebSocketStub = vi.fn(() => {
       throw new Error("unexpected websocket in plain next dev");
     });
@@ -358,8 +489,9 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     });
     expect(WebSocketStub).not.toHaveBeenCalled();
     expect(
-      consoleWarn.mock.calls.filter(([message]) =>
-        typeof message === "string" && message.startsWith("[realtime:"),
+      consoleWarn.mock.calls.filter(
+        ([message]) =>
+          typeof message === "string" && message.startsWith("[realtime:"),
       ),
     ).toEqual([]);
   });
@@ -367,11 +499,17 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
 
 describe("estimate cursor layer wiring (source contract)", () => {
   it("keeps the channel/transport contract for cursors", () => {
-    expect(cursorHook).toContain('export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:"');
-    expect(cursorHook).toContain('export const CURSOR_BROADCAST_EVENT = "cursor"');
+    expect(cursorHook).toContain(
+      'export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:"',
+    );
+    expect(cursorHook).toContain(
+      'export const CURSOR_BROADCAST_EVENT = "cursor"',
+    );
     expect(cursorHook).toContain("createCloudflareCollaborationRoomClient");
     expect(cursorHook).toContain("client.openRoom(topic)");
-    expect(cursorHook).toContain('.on("broadcast", { event: CURSOR_BROADCAST_EVENT }');
+    expect(cursorHook).toContain(
+      '.on("broadcast", { event: CURSOR_BROADCAST_EVENT }',
+    );
     expect(cursorHook).toContain('type: "broadcast"');
   });
 
@@ -381,7 +519,9 @@ describe("estimate cursor layer wiring (source contract)", () => {
     expect(estimateSheetContent).toContain("RemoteEstimateCursorsOverlay");
     expect(estimateSheetContent).toContain("data-estimate-cursor-layer");
     expect(estimateSheetContent).toContain("function EstimateSheetCursorLayer");
-    expect(estimateSheetContent).toContain('surface.addEventListener("pointermove"');
+    expect(estimateSheetContent).toContain(
+      'surface.addEventListener("pointermove"',
+    );
     expect(estimateSheetContent).toContain("<EstimateSheetCursorLayer");
   });
 });

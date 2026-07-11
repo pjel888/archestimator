@@ -1,7 +1,16 @@
 import "server-only";
 
-import { isPlatformAdminRole } from "@/lib/auth/roles";
+import {
+  isPlatformAdminRole,
+  isProjectEstimateCollaborationRole,
+  type ProjectEstimateCollaborationRole,
+} from "@/lib/auth/roles";
 import type { CurrentUserContext } from "@/lib/auth/session";
+import {
+  canPerformCollaborationAction,
+  resolveEffectiveCollaborationAccess,
+  type EffectiveCollaborationAccess,
+} from "@/lib/authz/collaboration-policy";
 import { type D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 type CurrentUserAccessContext = Pick<CurrentUserContext, "userId"> & Partial<Pick<CurrentUserContext, "role">>;
@@ -21,8 +30,121 @@ export type D1EstimateRowItemAccessRow = {
   estimate_id: string;
 };
 
+type CollaborationTopicAccessRow = {
+  workspace_role: string | null;
+  project_role: string | null;
+  estimate_role?: string | null;
+  inherit_project_access?: number | boolean | null;
+};
+
+export type CollaborationTopic = {
+  kind: "project" | "estimate";
+  resourceId: string;
+};
+
 function isPlatformAdmin(user: CurrentUserAccessContext) {
   return isPlatformAdminRole(user.role);
+}
+
+function toCollaborationRole(value: string | null | undefined): ProjectEstimateCollaborationRole | null {
+  return isProjectEstimateCollaborationRole(value) ? value : null;
+}
+
+function workspaceRoleToCollaborationRole(value: string | null | undefined): ProjectEstimateCollaborationRole | null {
+  if (value === "owner" || value === "admin" || value === "viewer") return value;
+  if (value === "member") return "editor";
+  return null;
+}
+
+function toD1Boolean(value: number | boolean | null | undefined, fallback: boolean) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  return fallback;
+}
+
+/**
+ * Resolves a collaboration-room topic through the canonical policy rather
+ * than treating any sheet grant as whole-project admission. This keeps a
+ * signed realtime identity scoped to exactly the resource it can access.
+ */
+export async function readCollaborationTopicAccessInD1(
+  db: D1DatabaseLike,
+  topic: CollaborationTopic,
+  user: CurrentUserAccessContext,
+): Promise<EffectiveCollaborationAccess | null> {
+  if (isPlatformAdmin(user)) {
+    return resolveEffectiveCollaborationAccess({
+      grants: [{ source: "platform", role: "owner" }],
+      ...(topic.kind === "estimate" ? { estimateId: topic.resourceId } : {}),
+    });
+  }
+
+  try {
+    const row = topic.kind === "project"
+      ? await db
+        .prepare<CollaborationTopicAccessRow>(
+          `SELECT workspace_member.role AS workspace_role, project_member.role AS project_role
+           FROM projects AS project
+           LEFT JOIN workspace_members AS workspace_member
+             ON workspace_member.workspace_id = project.workspace_id
+             AND workspace_member.user_id = ?
+           LEFT JOIN project_members AS project_member
+             ON project_member.project_id = project.id
+             AND project_member.user_id = ?
+           WHERE project.id = ?
+           LIMIT 1`,
+        )
+        .bind(user.userId, user.userId, topic.resourceId)
+        .first<CollaborationTopicAccessRow>()
+      : await db
+        .prepare<CollaborationTopicAccessRow>(
+          `SELECT
+             workspace_member.role AS workspace_role,
+             project_member.role AS project_role,
+             sheet_member.role AS estimate_role,
+             COALESCE(access.inherit_project_access, 1) AS inherit_project_access
+           FROM estimates AS estimate
+           JOIN projects AS project ON project.id = estimate.project_id
+           LEFT JOIN estimate_sheet_access_settings AS access ON access.estimate_id = estimate.id
+           LEFT JOIN workspace_members AS workspace_member
+             ON workspace_member.workspace_id = project.workspace_id
+             AND workspace_member.user_id = ?
+           LEFT JOIN project_members AS project_member
+             ON project_member.project_id = project.id
+             AND project_member.user_id = ?
+           LEFT JOIN estimate_sheet_members AS sheet_member
+             ON sheet_member.estimate_id = estimate.id
+             AND sheet_member.user_id = ?
+           WHERE estimate.id = ?
+           LIMIT 1`,
+        )
+        .bind(user.userId, user.userId, user.userId, topic.resourceId)
+        .first<CollaborationTopicAccessRow>();
+
+    if (!row) return null;
+
+    const grants = [
+      ...(workspaceRoleToCollaborationRole(row.workspace_role)
+        ? [{ source: "workspace" as const, role: workspaceRoleToCollaborationRole(row.workspace_role)! }]
+        : []),
+      ...(toCollaborationRole(row.project_role)
+        ? [{ source: "project" as const, role: toCollaborationRole(row.project_role)! }]
+        : []),
+      ...(topic.kind === "estimate" && toCollaborationRole(row.estimate_role)
+        ? [{ source: "estimate" as const, estimateId: topic.resourceId, role: toCollaborationRole(row.estimate_role)! }]
+        : []),
+    ];
+    const access = resolveEffectiveCollaborationAccess({
+      grants,
+      ...(topic.kind === "estimate"
+        ? { estimateId: topic.resourceId, inheritProjectAccess: toD1Boolean(row.inherit_project_access, true) }
+        : {}),
+    });
+    const action = topic.kind === "project" ? "subscribe_project_room" : "subscribe_estimate_room";
+    return canPerformCollaborationAction(access, action) ? access : null;
+  } catch {
+    return null;
+  }
 }
 
 function readAllowed(row: { allowed: number | boolean | null } | null) {

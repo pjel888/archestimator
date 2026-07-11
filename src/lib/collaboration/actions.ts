@@ -5,7 +5,12 @@ import { headers } from "next/headers";
 
 import { resolveAuthOrigin as resolveAllowedAuthOrigin } from "@/lib/auth/redirects";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import {
+  canAssignCollaborationRole,
+  canMutateCollaborationTarget,
+} from "@/lib/authz/collaboration-policy";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { revokeCollaborationRoomSubject } from "@/lib/cloudflare/collaboration-room-revocation";
 import {
   buildInviteEntryUrl,
   checkInviteCreateRateLimit,
@@ -20,8 +25,11 @@ import { isUuid } from "@/lib/ids";
 type CollaborationActionResult = {
   ok: boolean;
   message: string;
+  affectedEstimateNames?: string[];
   invitePath?: string;
 };
+
+export type ProjectCollaboratorRemovalMode = "retain_sheet_grants" | "remove_all_direct_grants";
 
 export type ProjectInviteDeliveryReadiness = {
   configured: boolean;
@@ -58,10 +66,6 @@ type RoleRow = {
   role: string | null;
 };
 
-type ProfileIdRow = {
-  id: string;
-};
-
 type ProfileContactRow = {
   display_name: string | null;
   email: string | null;
@@ -78,6 +82,10 @@ type InvitationManagementRow = {
   scope: string;
 };
 
+type InvitationCancellationRow = Pick<InvitationManagementRow, "estimate_id" | "lifecycle_state" | "project_id" | "revoked_at" | "scope"> & {
+  id: string;
+};
+
 type InviteTokenAuditRow = {
   estimate_id: string | null;
   project_id: string;
@@ -85,6 +93,12 @@ type InviteTokenAuditRow = {
 
 type AccessSettingRow = {
   inherit_project_access: boolean | number | string | null;
+};
+
+type DirectEstimateGrantRow = AccessSettingRow & {
+  estimate_id: string;
+  estimate_name: string;
+  role: string | null;
 };
 
 type MetadataValue = string | number | boolean | null;
@@ -105,6 +119,11 @@ function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
 }
 
+function assertProjectCollaboratorRemovalMode(value: string): asserts value is ProjectCollaboratorRemovalMode {
+  if (value === "retain_sheet_grants" || value === "remove_all_direct_grants") return;
+  throw new Error("Project removal mode is invalid.");
+}
+
 function collaborationRoleRank(role: CollaborationRole) {
   if (role === "owner") return 40;
   if (role === "admin") return managerRank;
@@ -112,9 +131,28 @@ function collaborationRoleRank(role: CollaborationRole) {
   return 10;
 }
 
+function collaborationRoleForRank(rank: number): CollaborationRole | null {
+  if (rank >= 40) return "owner";
+  if (rank >= managerRank) return "admin";
+  if (rank >= 20) return "editor";
+  if (rank >= 10) return "viewer";
+  return null;
+}
+
 function assertAssignableRole(actorRank: number, role: CollaborationRole) {
-  if (actorRank < managerRank) throw new Error("Only owners and admins can manage access.");
-  if (collaborationRoleRank(role) > actorRank) throw new Error("Cannot assign a role above your own access level.");
+  const decision = canAssignCollaborationRole(collaborationRoleForRank(actorRank), role);
+  if (decision.allowed) return;
+  if (decision.reason === "actor_not_manager") throw new Error("Only owners and admins can manage access.");
+  if (decision.reason === "owner_requires_transfer") throw new Error("Ownership transfer requires a dedicated flow.");
+  throw new Error("Cannot assign a role at or above your own access level.");
+}
+
+function assertTargetRoleCanBeMutated(actorRank: number, targetRole: CollaborationRole) {
+  const decision = canMutateCollaborationTarget(collaborationRoleForRank(actorRank), targetRole);
+  if (decision.allowed) return;
+  if (decision.reason === "actor_not_manager") throw new Error("Only owners and admins can manage access.");
+  if (decision.reason === "owner_requires_transfer") throw new Error("Ownership changes require a dedicated flow.");
+  throw new Error("Cannot modify a collaborator with equal or higher access.");
 }
 
 function rateLimitActionResult(result: { message: string }): CollaborationActionResult {
@@ -215,7 +253,7 @@ async function readProjectActorRank({
   );
 }
 
-async function assertProjectAccessManager(projectId: string, existingDb?: D1DatabaseLike): Promise<ProjectAccessContext> {
+async function readProjectAccessContext(projectId: string, existingDb?: D1DatabaseLike): Promise<ProjectAccessContext> {
   assertUuid(projectId, "Project");
 
   const currentUser = await requireCurrentUserContext();
@@ -241,14 +279,18 @@ async function assertProjectAccessManager(projectId: string, existingDb?: D1Data
     platformRole: toProfileRole(currentUser.role),
   });
 
-  if (actorRank < managerRank) throw new Error("Only project owners and admins can manage access.");
-
   return {
     actorRank,
     currentUserId: currentUser.userId,
     db,
     project,
   };
+}
+
+async function assertProjectAccessManager(projectId: string, existingDb?: D1DatabaseLike): Promise<ProjectAccessContext> {
+  const context = await readProjectAccessContext(projectId, existingDb);
+  if (context.actorRank < managerRank) throw new Error("Only project owners and admins can manage access.");
+  return context;
 }
 
 async function readEstimateActorRank(context: ProjectAccessContext, estimateId: string) {
@@ -291,7 +333,7 @@ async function assertEstimateAccessManager(
   existingDb?: D1DatabaseLike,
 ): Promise<EstimateAccessContext> {
   assertUuid(estimateId, "Estimate");
-  const projectContext = await assertProjectAccessManager(projectId, existingDb);
+  const projectContext = await readProjectAccessContext(projectId, existingDb);
   const estimate = await projectContext.db
     .prepare<EstimateRow>(
       `
@@ -315,6 +357,15 @@ async function assertEstimateAccessManager(
     estimate,
     estimateActorRank,
   };
+}
+
+async function assertInvitationAccessManager(
+  invitation: Pick<InvitationManagementRow, "estimate_id" | "project_id" | "scope">,
+  database: D1DatabaseLike,
+) {
+  return invitation.scope === "estimate" && invitation.estimate_id
+    ? assertEstimateAccessManager(invitation.project_id, invitation.estimate_id, database)
+    : assertProjectAccessManager(invitation.project_id, database);
 }
 
 async function hasOtherProjectManager(context: ProjectAccessContext, targetUserId: string) {
@@ -367,6 +418,66 @@ async function hasOtherEstimateSheetManager(context: EstimateAccessContext, targ
   return Boolean(row);
 }
 
+async function readDirectEstimateGrants(context: ProjectAccessContext, userId: string) {
+  const result = await context.db
+    .prepare<DirectEstimateGrantRow>(
+      `
+        SELECT
+          estimate_member.estimate_id,
+          estimate.name AS estimate_name,
+          estimate_member.role,
+          COALESCE(access.inherit_project_access, 1) AS inherit_project_access
+        FROM estimate_sheet_members estimate_member
+        JOIN estimates estimate ON estimate.id = estimate_member.estimate_id
+        LEFT JOIN estimate_sheet_access_settings access ON access.estimate_id = estimate_member.estimate_id
+        WHERE estimate_member.project_id = ?
+          AND estimate_member.user_id = ?
+        ORDER BY estimate.name COLLATE NOCASE ASC, estimate_member.estimate_id ASC
+      `,
+    )
+    .bind(context.project.id, userId)
+    .all<DirectEstimateGrantRow>();
+  return result.results ?? [];
+}
+
+async function assertProjectCascadeRemovalAllowed(
+  context: ProjectAccessContext,
+  userId: string,
+  directEstimateGrants: DirectEstimateGrantRow[],
+) {
+  for (const grant of directEstimateGrants) {
+    const isRestrictedSheetManager = !toD1Boolean(grant.inherit_project_access, true)
+      && collaborationRoleRank(toCollaborationRole(grant.role)) >= managerRank;
+    if (!isRestrictedSheetManager) continue;
+
+    const replacement = await context.db
+      .prepare<{ user_id: string }>(
+        `
+          SELECT user_id
+          FROM estimate_sheet_members
+          WHERE estimate_id = ?
+            AND user_id <> ?
+            AND role IN ('owner', 'admin')
+          LIMIT 1
+        `,
+      )
+      .bind(grant.estimate_id, userId)
+      .first<{ user_id: string }>();
+    if (!replacement) {
+      throw new Error(`Every restricted estimate needs at least one owner or admin. Keep access for ${grant.estimate_name}.`);
+    }
+  }
+}
+
+async function describeRemainingWorkspaceAccess(context: ProjectAccessContext, userId: string) {
+  const membership = await context.db
+    .prepare<RoleRow>(`SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ? LIMIT 1`)
+    .bind(context.project.workspace_id, userId)
+    .first<RoleRow>();
+  const workspaceRole = toCollaborationRole(membership?.role);
+  return workspaceRole ? `Workspace ${workspaceRole} access remains.` : null;
+}
+
 async function estimateInheritsProjectAccess(context: EstimateAccessContext) {
   const row = await context.db
     .prepare<AccessSettingRow>(
@@ -381,6 +492,55 @@ async function estimateInheritsProjectAccess(context: EstimateAccessContext) {
     .first<AccessSettingRow>();
 
   return toD1Boolean(row?.inherit_project_access, true);
+}
+
+async function describeRemainingInheritedEstimateAccess(context: EstimateAccessContext, userId: string) {
+  if (!(await estimateInheritsProjectAccess(context))) return null;
+
+  const [workspaceMembership, projectMembership] = await Promise.all([
+    context.db
+      .prepare<RoleRow>(`SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ? LIMIT 1`)
+      .bind(context.project.workspace_id, userId)
+      .first<RoleRow>(),
+    context.db
+      .prepare<RoleRow>(`SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1`)
+      .bind(context.project.id, userId)
+      .first<RoleRow>(),
+  ]);
+  const workspaceRole = toCollaborationRole(workspaceMembership?.role);
+  const projectRole = toCollaborationRole(projectMembership?.role);
+  if (!workspaceRole && !projectRole) return null;
+
+  if (workspaceRole && (!projectRole || collaborationRoleRank(workspaceRole) >= collaborationRoleRank(projectRole))) {
+    return `Workspace ${workspaceRole} access remains.`;
+  }
+  return `Project ${projectRole} access remains.`;
+}
+
+async function assertEstimateSheetRemovalAllowed(context: EstimateAccessContext, userId: string) {
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `
+        SELECT role
+        FROM estimate_sheet_members
+        WHERE estimate_id = ?
+          AND user_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(context.estimate.id, userId)
+    .first<RoleRow>();
+  if (!existingMember) return null;
+
+  assertTargetRoleCanBeMutated(context.estimateActorRank, toCollaborationRole(existingMember.role));
+
+  const isRemovingSheetManager = collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank;
+  if (isRemovingSheetManager && !(await estimateInheritsProjectAccess(context))) {
+    const hasOtherManager = await hasOtherEstimateSheetManager(context, userId);
+    if (!hasOtherManager) throw new Error("Every restricted estimate needs at least one owner or admin.");
+  }
+
+  return existingMember;
 }
 
 async function upsertInvitation({
@@ -398,52 +558,8 @@ async function upsertInvitation({
 }) {
   const expiresAt = new Date(Date.now() + INVITE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const timestamp = nowIso();
-  const existing = await context.db
-    .prepare<{ id: string }>(
-      `
-        SELECT id
-        FROM collaboration_invitations
-        WHERE project_id = ?
-          AND email = ?
-          AND scope = ?
-          AND lifecycle_state = 'pending'
-          AND revoked_at IS NULL
-          AND (
-            (? IS NULL AND estimate_id IS NULL)
-            OR estimate_id = ?
-          )
-        LIMIT 1
-      `,
-    )
-    .bind(context.project.id, email, scope, estimateId, estimateId)
-    .first<{ id: string }>();
-
-  if (existing) {
-    await context.db
-      .prepare(
-        `
-          UPDATE collaboration_invitations
-          SET role = ?,
-              invited_by = ?,
-              expires_at = ?,
-              lifecycle_state = 'pending',
-              accepted_at = NULL,
-              accepted_via = NULL,
-              invited_user_id = NULL,
-              direct_granted_at = NULL,
-              direct_granted_user_id = NULL,
-              updated_at = ?
-          WHERE id = ?
-        `,
-      )
-      .bind(role, context.currentUserId, expiresAt, timestamp, existing.id)
-      .run();
-    return { id: existing.id, expiresAt };
-  }
-
-  const id = createId();
-  await context.db
-    .prepare(
+  const invitation = await context.db
+    .prepare<{ id: string; expires_at: string }>(
       `
         INSERT INTO collaboration_invitations (
           id,
@@ -460,10 +576,18 @@ async function upsertInvitation({
           updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+        ON CONFLICT(project_id, email, scope, IFNULL(estimate_id, ''))
+          WHERE lifecycle_state = 'pending' AND revoked_at IS NULL
+        DO UPDATE SET
+          role = excluded.role,
+          invited_by = excluded.invited_by,
+          expires_at = excluded.expires_at,
+          updated_at = excluded.updated_at
+        RETURNING id, expires_at
       `,
     )
     .bind(
-      id,
+      createId(),
       context.project.workspace_id,
       context.project.id,
       estimateId,
@@ -475,9 +599,10 @@ async function upsertInvitation({
       timestamp,
       timestamp,
     )
-    .run();
+    .first<{ id: string; expires_at: string }>();
 
-  return { id, expiresAt };
+  if (!invitation) throw new Error("Invitation could not be created.");
+  return { id: invitation.id, expiresAt: invitation.expires_at };
 }
 
 async function resolveInviteOrigin() {
@@ -521,7 +646,7 @@ async function issueInviteEntryLink({
         SELECT project_id, estimate_id
         FROM collaboration_invitations
         WHERE id = ?
-          AND lifecycle_state IN ('pending', 'direct_granted_existing_user')
+          AND lifecycle_state = 'pending'
         LIMIT 1
       `,
     )
@@ -665,7 +790,7 @@ async function recordCollaborationInvitationDelivery({
         JOIN collaboration_invitation_tokens t ON t.invitation_id = i.id
         WHERE i.id = ?
           AND t.id = ?
-          AND i.lifecycle_state IN ('pending', 'direct_granted_existing_user')
+          AND i.lifecycle_state = 'pending'
           AND t.used_at IS NULL
           AND t.revoked_at IS NULL
           AND t.expires_at > ?
@@ -714,7 +839,7 @@ async function recordCollaborationAuditEvent({
 }: {
   context: ProjectAccessContext;
   estimateId?: string | null;
-  eventType: "invite_email_attempted" | "role_changed" | "member_removed";
+  eventType: "invite_email_attempted" | "member_added" | "role_changed" | "member_removed";
   invitationId?: string | null;
   metadata: Record<string, MetadataValue>;
 }) {
@@ -752,20 +877,6 @@ async function recordCollaborationAuditEvent({
       projectId: context.project.id,
     });
   }
-}
-
-async function readProfileIdByEmail(db: D1DatabaseLike, email: string) {
-  return db
-    .prepare<ProfileIdRow>(
-      `
-        SELECT id
-        FROM profiles
-        WHERE email = ?
-        LIMIT 1
-      `,
-    )
-    .bind(email)
-    .first<ProfileIdRow>();
 }
 
 async function readProfileContactById(db: D1DatabaseLike, userId: string) {
@@ -851,57 +962,6 @@ async function upsertEstimateSheetMemberInD1(
     .run();
 }
 
-async function markDirectGrantedInvitationInD1({
-  context,
-  directGrantedAt,
-  email,
-  estimateId,
-  scope,
-  userId,
-}: {
-  context: ProjectAccessContext;
-  directGrantedAt: string;
-  email: string;
-  estimateId: string | null;
-  scope: "project" | "estimate";
-  userId: string;
-}) {
-  await context.db
-    .prepare(
-      `
-        UPDATE collaboration_invitations
-        SET accepted_at = ?,
-            direct_granted_at = ?,
-            direct_granted_user_id = ?,
-            invited_user_id = ?,
-            accepted_via = 'manager_direct_grant',
-            lifecycle_state = 'direct_granted_existing_user',
-            updated_at = ?
-        WHERE project_id = ?
-          AND email = ?
-          AND scope = ?
-          AND lifecycle_state = 'pending'
-          AND (
-            (? IS NULL AND estimate_id IS NULL)
-            OR estimate_id = ?
-          )
-      `,
-    )
-    .bind(
-      directGrantedAt,
-      directGrantedAt,
-      userId,
-      userId,
-      directGrantedAt,
-      context.project.id,
-      email,
-      scope,
-      estimateId,
-      estimateId,
-    )
-    .run();
-}
-
 function revalidateCollaborationRoutes(projectId: string) {
   // T2.1 / F-P6: the project-layout collaboration summary is now a client
   // TanStack Query (["project-collaboration", projectId]) that the mutating
@@ -954,7 +1014,6 @@ export async function inviteProjectCollaborator({
   if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
   const inviteEntryEnabled = isProjectInviteEntryEnabled();
-  const profile = await readProfileIdByEmail(context.db, normalizedEmail);
 
   let invitation: Awaited<ReturnType<typeof upsertInvitation>> | null = null;
   let inviteLink: Awaited<ReturnType<typeof issueInviteEntryLink>> | null = null;
@@ -966,28 +1025,6 @@ export async function inviteProjectCollaborator({
       expiresAt: invitation.expiresAt,
       deliveryMethod: "email",
     });
-  }
-
-  if (profile) {
-    const directGrantedAt = nowIso();
-    await upsertProjectMemberInD1(context, profile.id, role, directGrantedAt);
-    await markDirectGrantedInvitationInD1({
-      context,
-      directGrantedAt,
-      email: normalizedEmail,
-      estimateId: null,
-      scope: "project",
-      userId: profile.id,
-    });
-
-    revalidateCollaborationRoutes(context.project.id);
-    return {
-      ok: true,
-      message: inviteLink
-        ? "Existing user added. Copy invite link to let them confirm access."
-        : "User added directly. They can access the project now.",
-      invitePath: inviteLink?.invitePath,
-    };
   }
 
   if (!inviteEntryEnabled || !invitation || !inviteLink) {
@@ -1075,7 +1112,6 @@ export async function inviteEstimateSheetCollaborator({
   if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
   const inviteEntryEnabled = isProjectInviteEntryEnabled();
-  const profile = await readProfileIdByEmail(context.db, normalizedEmail);
 
   let invitation: Awaited<ReturnType<typeof upsertInvitation>> | null = null;
   let inviteLink: Awaited<ReturnType<typeof issueInviteEntryLink>> | null = null;
@@ -1087,28 +1123,6 @@ export async function inviteEstimateSheetCollaborator({
       expiresAt: invitation.expiresAt,
       deliveryMethod: "email",
     });
-  }
-
-  if (profile) {
-    const directGrantedAt = nowIso();
-    await upsertEstimateSheetMemberInD1(context, profile.id, role, directGrantedAt);
-    await markDirectGrantedInvitationInD1({
-      context,
-      directGrantedAt,
-      email: normalizedEmail,
-      estimateId: context.estimate.id,
-      scope: "estimate",
-      userId: profile.id,
-    });
-
-    revalidateCollaborationRoutes(context.project.id);
-    return {
-      ok: true,
-      message: inviteLink
-        ? "Existing user added to this estimate. Copy invite link to let them confirm access."
-        : "User added directly. They can access this estimate now.",
-      invitePath: inviteLink?.invitePath,
-    };
   }
 
   if (!inviteEntryEnabled || !invitation || !inviteLink) {
@@ -1182,19 +1196,25 @@ export async function copyProjectInviteLink({
   assertUuid(invitationId, "Invitation");
   const db = await getRequiredCollaborationD1Database();
   const invitation = await db
-    .prepare<Pick<InvitationManagementRow, "project_id" | "expires_at">>(
+    .prepare<Pick<InvitationManagementRow, "project_id" | "estimate_id" | "scope" | "expires_at" | "lifecycle_state" | "revoked_at">>(
       `
-        SELECT project_id, expires_at
+        SELECT project_id, estimate_id, scope, expires_at, lifecycle_state, revoked_at
         FROM collaboration_invitations
         WHERE id = ?
         LIMIT 1
       `,
     )
     .bind(invitationId)
-    .first<Pick<InvitationManagementRow, "project_id" | "expires_at">>();
+    .first<Pick<InvitationManagementRow, "project_id" | "estimate_id" | "scope" | "expires_at" | "lifecycle_state" | "revoked_at">>();
   if (!invitation) throw new Error("Invitation was not found.");
+  if (invitation.revoked_at || invitation.lifecycle_state !== "pending") {
+    return { ok: false, message: "Only pending invitations can be copied." };
+  }
+  if (new Date(invitation.expires_at).getTime() <= Date.now()) {
+    return { ok: false, message: "This invitation has expired. Create a new invite." };
+  }
 
-  const context = await assertProjectAccessManager(invitation.project_id, db);
+  const context = await assertInvitationAccessManager(invitation, db);
   if (!isProjectInviteEntryEnabled()) {
     return { ok: false, message: "Invite links are disabled." };
   }
@@ -1248,7 +1268,7 @@ export async function resendProjectInviteEmail({
     return { ok: false, message: "This invitation has expired. Create a new invite." };
   }
 
-  const context = await assertProjectAccessManager(invitation.project_id, db);
+  const context = await assertInvitationAccessManager(invitation, db);
   if (!isProjectInviteEntryEnabled()) {
     return { ok: false, message: "Invite email resend requires invite links to be enabled." };
   }
@@ -1288,6 +1308,145 @@ export async function resendProjectInviteEmail({
   return { ok: true, message: "Invite email resent.", invitePath: inviteLink.invitePath };
 }
 
+export async function revokeCollaborationInvitation({
+  invitationId,
+}: {
+  invitationId: string;
+}): Promise<CollaborationActionResult> {
+  assertUuid(invitationId, "Invitation");
+  const db = await getRequiredCollaborationD1Database();
+  if (!db.batch) return { ok: false, message: "Invitation cancellation requires transactional D1 support." };
+
+  const invitation = await db
+    .prepare<InvitationCancellationRow>(
+      `SELECT id, project_id, estimate_id, scope, lifecycle_state, revoked_at
+       FROM collaboration_invitations
+       WHERE id = ?
+       LIMIT 1`,
+    )
+    .bind(invitationId)
+    .first<InvitationCancellationRow>();
+  if (!invitation) return { ok: false, message: "Invitation was not found." };
+  if (invitation.revoked_at || invitation.lifecycle_state !== "pending") {
+    return { ok: false, message: "Only pending invitations can be cancelled." };
+  }
+
+  const context = await assertInvitationAccessManager(invitation, db);
+  const timestamp = nowIso();
+  const batchResults = await db.batch([
+    db.prepare(
+      `UPDATE collaboration_invitations
+       SET lifecycle_state = 'revoked', revoked_at = ?, updated_at = ?
+       WHERE id = ? AND lifecycle_state = 'pending' AND revoked_at IS NULL`,
+    ).bind(timestamp, timestamp, invitation.id),
+    db.prepare(
+      `UPDATE collaboration_invitation_tokens
+       SET revoked_at = ?, revoked_by = ?
+       WHERE invitation_id = ?
+         AND used_at IS NULL
+         AND revoked_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM collaboration_invitations
+           WHERE id = ? AND lifecycle_state = 'revoked' AND revoked_at = ?
+         )`,
+    ).bind(timestamp, context.currentUserId, invitation.id, invitation.id, timestamp),
+    db.prepare(
+      `INSERT INTO collaboration_audit_events (
+         id, invitation_id, project_id, estimate_id, actor_user_id, event_type, metadata_json, created_at
+       )
+       SELECT ?, id, project_id, estimate_id, ?, 'collaboration_invite_revoked', ?, ?
+       FROM collaboration_invitations
+       WHERE id = ? AND lifecycle_state = 'revoked' AND revoked_at = ?`,
+    ).bind(
+      createId(),
+      context.currentUserId,
+      JSON.stringify({ scope: invitation.scope }),
+      timestamp,
+      invitation.id,
+      timestamp,
+    ),
+  ]);
+
+  if ((batchResults[0]?.meta?.changes ?? 0) !== 1) {
+    return { ok: false, message: "Invitation is no longer pending." };
+  }
+  revalidateCollaborationRoutes(context.project.id);
+  return { ok: true, message: "Invitation cancelled." };
+}
+
+export async function addProjectCollaborator({
+  projectId,
+  userId,
+  role,
+}: {
+  projectId: string;
+  userId: string;
+  role: CollaborationRole;
+}): Promise<CollaborationActionResult> {
+  assertUuid(userId, "User");
+  const context = await assertProjectAccessManager(projectId);
+  assertAssignableRole(context.actorRank, role);
+  if (userId === context.currentUserId) return { ok: false, message: "You cannot grant yourself direct project access." };
+  if (!(await readProfileContactById(context.db, userId))) {
+    return { ok: false, message: "The selected user is no longer available." };
+  }
+
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1`,
+    )
+    .bind(context.project.id, userId)
+    .first<RoleRow>();
+  if (existingMember) return { ok: false, message: "This user is already a project member. Use the role-change command." };
+
+  await upsertProjectMemberInD1(context, userId, role);
+  await recordCollaborationAuditEvent({
+    context,
+    eventType: "member_added",
+    metadata: { role, scope: "project", target_user_id: userId },
+  });
+  revalidateCollaborationRoutes(context.project.id);
+  return { ok: true, message: "Project member added." };
+}
+
+export async function addEstimateSheetCollaborator({
+  projectId,
+  estimateId,
+  userId,
+  role,
+}: {
+  projectId: string;
+  estimateId: string;
+  userId: string;
+  role: CollaborationRole;
+}): Promise<CollaborationActionResult> {
+  assertUuid(userId, "User");
+  const context = await assertEstimateAccessManager(projectId, estimateId);
+  assertAssignableRole(context.estimateActorRank, role);
+  if (userId === context.currentUserId) return { ok: false, message: "You cannot grant yourself direct estimate access." };
+  if (!(await readProfileContactById(context.db, userId))) {
+    return { ok: false, message: "The selected user is no longer available." };
+  }
+
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `SELECT role FROM estimate_sheet_members WHERE estimate_id = ? AND user_id = ? LIMIT 1`,
+    )
+    .bind(context.estimate.id, userId)
+    .first<RoleRow>();
+  if (existingMember) return { ok: false, message: "This user already has direct estimate access. Use the role-change command." };
+
+  await upsertEstimateSheetMemberInD1(context, userId, role);
+  await recordCollaborationAuditEvent({
+    context,
+    estimateId: context.estimate.id,
+    eventType: "member_added",
+    metadata: { role, scope: "estimate", target_user_id: userId },
+  });
+  revalidateCollaborationRoutes(context.project.id);
+  return { ok: true, message: "Estimate member added." };
+}
+
 export async function updateProjectCollaboratorRole({
   projectId,
   userId,
@@ -1314,8 +1473,10 @@ export async function updateProjectCollaboratorRole({
     .bind(context.project.id, userId)
     .first<RoleRow>();
 
+  if (!existingMember) return { ok: false, message: "This user is not a project member. Use the add-member command." };
+  assertTargetRoleCanBeMutated(context.actorRank, toCollaborationRole(existingMember.role));
+
   if (
-    existingMember &&
     collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank &&
     collaborationRoleRank(role) < managerRank
   ) {
@@ -1330,13 +1491,69 @@ export async function updateProjectCollaboratorRole({
     eventType: "role_changed",
     metadata: {
       next_role: role,
-      previous_role: existingMember?.role ?? null,
+      previous_role: existingMember.role,
       target_user_id: userId,
     },
   });
+  if (existingMember.role !== role) {
+    await revokeCollaborationRoomSubject({ topic: `project:${context.project.id}`, subject: userId });
+  }
 
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: "Role updated." };
+}
+
+export async function updateEstimateSheetCollaboratorRole({
+  projectId,
+  estimateId,
+  userId,
+  role,
+}: {
+  projectId: string;
+  estimateId: string;
+  userId: string;
+  role: CollaborationRole;
+}): Promise<CollaborationActionResult> {
+  assertUuid(userId, "User");
+  const context = await assertEstimateAccessManager(projectId, estimateId);
+  assertAssignableRole(context.estimateActorRank, role);
+
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `SELECT role FROM estimate_sheet_members WHERE estimate_id = ? AND user_id = ? LIMIT 1`,
+    )
+    .bind(context.estimate.id, userId)
+    .first<RoleRow>();
+  if (!existingMember) return { ok: false, message: "This user has no direct estimate access. Use the add-member command." };
+
+  const previousRole = toCollaborationRole(existingMember.role);
+  assertTargetRoleCanBeMutated(context.estimateActorRank, previousRole);
+  if (
+    collaborationRoleRank(previousRole) >= managerRank &&
+    collaborationRoleRank(role) < managerRank &&
+    !(await estimateInheritsProjectAccess(context)) &&
+    !(await hasOtherEstimateSheetManager(context, userId))
+  ) {
+    return { ok: false, message: "Every restricted estimate needs at least one owner or admin." };
+  }
+
+  await upsertEstimateSheetMemberInD1(context, userId, role);
+  await recordCollaborationAuditEvent({
+    context,
+    estimateId: context.estimate.id,
+    eventType: "role_changed",
+    metadata: {
+      next_role: role,
+      previous_role: existingMember.role,
+      scope: "estimate",
+      target_user_id: userId,
+    },
+  });
+  if (existingMember.role !== role) {
+    await revokeCollaborationRoomSubject({ topic: `estimate:${context.estimate.id}`, subject: userId });
+  }
+  revalidateCollaborationRoutes(context.project.id);
+  return { ok: true, message: "Estimate access role updated." };
 }
 
 async function sendCollaboratorRemovalNotification({
@@ -1375,13 +1592,16 @@ async function sendCollaboratorRemovalNotification({
 export async function removeProjectCollaborator({
   projectId,
   notify = false,
+  removalMode,
   userId,
 }: {
   projectId: string;
   notify?: boolean;
+  removalMode: ProjectCollaboratorRemovalMode;
   userId: string;
 }): Promise<CollaborationActionResult> {
   assertUuid(userId, "User");
+  assertProjectCollaboratorRemovalMode(removalMode);
   const context = await assertProjectAccessManager(projectId);
 
   const existingMember = await context.db
@@ -1398,32 +1618,48 @@ export async function removeProjectCollaborator({
     .first<RoleRow>();
   if (!existingMember) return { ok: true, message: "Project-specific access already removed." };
 
+  assertTargetRoleCanBeMutated(context.actorRank, toCollaborationRole(existingMember.role));
+
   if (collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank) {
     const hasOtherManager = await hasOtherProjectManager(context, userId);
     if (!hasOtherManager) throw new Error("Every project needs at least one owner or admin.");
   }
 
-  await context.db
-    .prepare(
+  const directEstimateGrants = await readDirectEstimateGrants(context, userId);
+  if (removalMode === "remove_all_direct_grants") {
+    await assertProjectCascadeRemovalAllowed(context, userId, directEstimateGrants);
+  }
+
+  if (!context.db.batch) throw new Error("Project removal requires transactional D1 support.");
+
+  const removalStatements = [
+    context.db.prepare(
       `
         DELETE FROM project_members
         WHERE project_id = ?
           AND user_id = ?
       `,
-    )
-    .bind(context.project.id, userId)
-    .run();
-
-  await context.db
-    .prepare(
+    ).bind(context.project.id, userId),
+    context.db.prepare(
       `
         DELETE FROM project_favorites
         WHERE project_id = ?
           AND user_id = ?
       `,
-    )
-    .bind(context.project.id, userId)
-    .run();
+    ).bind(context.project.id, userId),
+  ];
+  if (removalMode === "remove_all_direct_grants") {
+    removalStatements.push(
+      context.db.prepare(
+        `
+          DELETE FROM estimate_sheet_members
+          WHERE project_id = ?
+            AND user_id = ?
+        `,
+      ).bind(context.project.id, userId),
+    );
+  }
+  await context.db.batch(removalStatements);
 
   await recordCollaborationAuditEvent({
     context,
@@ -1431,23 +1667,76 @@ export async function removeProjectCollaborator({
     metadata: {
       notification_requested: notify,
       previous_role: existingMember.role,
+      removal_mode: removalMode,
+      removed_direct_estimate_grant_count: removalMode === "remove_all_direct_grants" ? directEstimateGrants.length : 0,
       target_user_id: userId,
     },
   });
+  if (removalMode === "remove_all_direct_grants") {
+    await Promise.all(directEstimateGrants.map((grant) => recordCollaborationAuditEvent({
+      context,
+      estimateId: grant.estimate_id,
+      eventType: "member_removed",
+      metadata: {
+        parent_scope: "project",
+        previous_role: grant.role,
+        scope: "estimate",
+        target_user_id: userId,
+      },
+    })));
+  }
+
+  await Promise.all([
+    revokeCollaborationRoomSubject({ topic: `project:${context.project.id}`, subject: userId }),
+    ...(removalMode === "remove_all_direct_grants"
+      ? directEstimateGrants.map((grant) => revokeCollaborationRoomSubject({ topic: `estimate:${grant.estimate_id}`, subject: userId }))
+      : []),
+  ]);
 
   const notificationStatus = notify
     ? await sendCollaboratorRemovalNotification({ context, userId })
     : "skipped";
 
   revalidateCollaborationRoutes(context.project.id);
-  if (notificationStatus === "sent") return { ok: true, message: "Project-specific access removed. Notification sent." };
+  const retainedWorkspaceAccess = await describeRemainingWorkspaceAccess(context, userId);
+  const removalSummary = removalMode === "remove_all_direct_grants"
+    ? `Project-specific access and ${directEstimateGrants.length} direct estimate grant${directEstimateGrants.length === 1 ? "" : "s"} removed.`
+    : `Project-specific access removed. ${directEstimateGrants.length} direct estimate grant${directEstimateGrants.length === 1 ? "" : "s"} retained.`;
+  const messageWithWorkspaceAccess = retainedWorkspaceAccess ? `${removalSummary} ${retainedWorkspaceAccess}` : removalSummary;
+  if (notificationStatus === "sent") return { ok: true, message: `${messageWithWorkspaceAccess} Notification sent.` };
   if (notificationStatus === "mocked") {
-    return { ok: true, message: "Project-specific access removed. Notification not sent because email delivery is not configured." };
+    return { ok: true, message: `${messageWithWorkspaceAccess} Notification not sent because email delivery is not configured.` };
   }
   if (notificationStatus === "failed") {
-    return { ok: true, message: "Project-specific access removed. Notification could not be sent." };
+    return { ok: true, message: `${messageWithWorkspaceAccess} Notification could not be sent.` };
   }
-  return { ok: true, message: "Project-specific access removed." };
+  return { ok: true, message: messageWithWorkspaceAccess };
+}
+
+export async function previewProjectCollaboratorRemoval({
+  projectId,
+  userId,
+}: {
+  projectId: string;
+  userId: string;
+}): Promise<CollaborationActionResult> {
+  assertUuid(userId, "User");
+  const context = await assertProjectAccessManager(projectId);
+  const existingMember = await context.db
+    .prepare<RoleRow>(`SELECT role FROM project_members WHERE project_id = ? AND user_id = ? LIMIT 1`)
+    .bind(context.project.id, userId)
+    .first<RoleRow>();
+  if (!existingMember) return { ok: false, message: "Project-specific access is already removed." };
+
+  assertTargetRoleCanBeMutated(context.actorRank, toCollaborationRole(existingMember.role));
+  const directEstimateGrants = await readDirectEstimateGrants(context, userId);
+  return {
+    ok: true,
+    message: directEstimateGrants.length
+      ? `This member has direct access to ${directEstimateGrants.length} estimate${directEstimateGrants.length === 1 ? "" : "s"}.`
+      : "This member has no direct estimate access to retain or remove.",
+    affectedEstimateNames: directEstimateGrants.map((grant) => grant.estimate_name),
+  };
 }
 
 export async function removeEstimateSheetCollaborator({
@@ -1461,26 +1750,8 @@ export async function removeEstimateSheetCollaborator({
 }): Promise<CollaborationActionResult> {
   assertUuid(userId, "User");
   const context = await assertEstimateAccessManager(projectId, estimateId);
-
-  const existingMember = await context.db
-    .prepare<RoleRow>(
-      `
-        SELECT role
-        FROM estimate_sheet_members
-        WHERE estimate_id = ?
-          AND user_id = ?
-        LIMIT 1
-      `,
-    )
-    .bind(context.estimate.id, userId)
-    .first<RoleRow>();
+  const existingMember = await assertEstimateSheetRemovalAllowed(context, userId);
   if (!existingMember) return { ok: true, message: "Estimate-specific access already removed." };
-
-  const isRemovingSheetManager = collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank;
-  if (isRemovingSheetManager && !(await estimateInheritsProjectAccess(context))) {
-    const hasOtherManager = await hasOtherEstimateSheetManager(context, userId);
-    if (!hasOtherManager) throw new Error("Every restricted estimate needs at least one owner or admin.");
-  }
 
   await context.db
     .prepare(
@@ -1504,8 +1775,39 @@ export async function removeEstimateSheetCollaborator({
     },
   });
 
+  await revokeCollaborationRoomSubject({ topic: `estimate:${context.estimate.id}`, subject: userId });
+
   revalidateCollaborationRoutes(context.project.id);
-  return { ok: true, message: "Estimate-specific access removed." };
+  const retainedAccess = await describeRemainingInheritedEstimateAccess(context, userId);
+  return {
+    ok: true,
+    message: retainedAccess
+      ? `Estimate-specific access removed. ${retainedAccess}`
+      : "Estimate-specific access removed. No inherited project access remains.",
+  };
+}
+
+export async function previewEstimateSheetCollaboratorRemoval({
+  projectId,
+  estimateId,
+  userId,
+}: {
+  projectId: string;
+  estimateId: string;
+  userId: string;
+}): Promise<CollaborationActionResult> {
+  assertUuid(userId, "User");
+  const context = await assertEstimateAccessManager(projectId, estimateId);
+  const existingMember = await assertEstimateSheetRemovalAllowed(context, userId);
+  if (!existingMember) return { ok: false, message: "Estimate-specific access is already removed." };
+
+  const retainedAccess = await describeRemainingInheritedEstimateAccess(context, userId);
+  return {
+    ok: true,
+    message: retainedAccess
+      ? `After removal, ${retainedAccess}`
+      : "Removing this direct sheet grant will leave no inherited project or workspace access.",
+  };
 }
 
 async function upsertSheetOwnerBeforeRestricting(context: EstimateAccessContext) {

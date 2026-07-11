@@ -8,7 +8,7 @@ const projectChrome = readFileSync("src/components/workshop/ProjectChromeAsync.t
 
 describe("project collaboration summary contract", () => {
   it("keeps project and estimate collaboration facts server-fed and realtime-ready", () => {
-    expect(collaborationTypes).toContain('export type CollaborationRole = "owner" | "admin" | "editor" | "viewer";');
+    expect(collaborationTypes).toContain("export type CollaborationRole = ProjectEstimateCollaborationRole;");
     expect(collaborationTypes).toContain("type ProjectCollaboratorSource");
     expect(collaborationTypes).toContain("ProjectCollaborationSummary");
     expect(collaborationTypes).toContain('projectChannel: `project:${string}`');
@@ -19,15 +19,14 @@ describe("project collaboration summary contract", () => {
     expect(workspaceRepository).toContain("readOptionalEstimateSheetMembers");
     expect(workspaceRepository).toContain('projectChannel: `project:${projectId}`');
     expect(workspaceRepository).toContain('estimateChannelPrefix: "estimate:"');
-    // P1-2 + Publisher Phase 4: project access now uses the Publisher Access
-    // drawer link from streamed chrome instead of the legacy Teamspace modal.
+    // Project access is owned by the project route rather than the Publisher
+    // drawer, while the streamed chrome remains the entry surface.
     expect(projectLayout).toContain("actions={");
     expect(projectLayout).toContain("<ProjectChromeAsync");
     expect(projectChrome).toContain("getProjectCollaborationSummary(projectId)");
-    expect(projectChrome).toContain('data-publisher-project-link="access"');
-    expect(projectChrome).toContain("publicationSummary?.canReadPublisherRoster");
+    expect(projectChrome).toContain('data-project-team-access-link="true"');
     expect(projectChrome).toContain('data-workshop-layout="project-teamspace-header"');
-    expect(projectChrome).toContain('getPublisherProjectHref(projectId, "access")');
+    expect(projectChrome).toContain("getProjectTeamAccessHref(projectId)");
     expect(projectChrome).not.toContain("<ProjectTeamspaceHeader");
   });
 });

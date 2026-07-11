@@ -100,6 +100,10 @@ class FakeD1Database {
   }
 
   all(sql: string, values: unknown[]) {
+    if (sql.includes("SELECT estimate.id") && sql.includes("WHERE estimate.id IN")) {
+      expect(values).toEqual([ACCESSIBLE_ESTIMATE_ID, BLOCKED_ESTIMATE_ID, USER_ID, USER_ID, USER_ID]);
+      return [{ id: ACCESSIBLE_ESTIMATE_ID }];
+    }
     if (sql.includes("FROM workspace_members") && sql.includes("WHERE workspace_id = ?")) {
       return [
         { workspace_id: PROJECT_WORKSPACE_ID, user_id: WORKSPACE_OWNER_ID, role: "owner" },
@@ -215,5 +219,7 @@ describe("project collaboration summary D1 authorization", () => {
     expect(summary?.estimateSheets[0]?.canManageAccess).toBe(true);
     expect(summary?.canManageAccess).toBe(false);
     expect(summary?.pendingInvitations.map((invitation) => invitation.id)).toEqual(["allowed-estimate-invite"]);
+    expect(summary?.collaborators.every((collaborator) => collaborator.online === false)).toBe(true);
+    expect(summary?.estimateSheets[0]?.members.every((member) => member.online === false)).toBe(true);
   });
 });

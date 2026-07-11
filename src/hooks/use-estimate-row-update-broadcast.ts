@@ -126,24 +126,27 @@ export function useEstimateRowUpdateBroadcast({
     channelRef.current = channel;
     subscribedRef.current = false;
     channel.subscribe((status) => {
-      if (status !== "SUBSCRIBED") {
+      if (status !== "CONNECTED" && status !== "SUBSCRIBED") {
         subscribedRef.current = false;
+        return;
+      }
+      if (status === "CONNECTED") {
+        if (typeof channel.authorize !== "function") return;
+        void identityIssuerRef.current({ topic })
+          .then(async (identity) => {
+            if (cancelled || !identity?.roomToken || channelRef.current !== channel) return;
+            await channel.authorize?.(identity.roomToken);
+          })
+          .catch(() => {
+            subscribedRef.current = false;
+          });
         return;
       }
       if (typeof channel.authorize !== "function") {
         subscribedRef.current = true;
         return;
       }
-      void identityIssuerRef.current({ topic })
-        .then(async (identity) => {
-          if (cancelled || !identity?.roomToken || channelRef.current !== channel) return;
-          const result = await channel.authorize?.(identity.roomToken);
-          if (cancelled || channelRef.current !== channel) return;
-          subscribedRef.current = result === "ok";
-        })
-        .catch(() => {
-          subscribedRef.current = false;
-        });
+      subscribedRef.current = true;
     });
 
     return () => {

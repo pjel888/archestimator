@@ -3,6 +3,7 @@ import {
   runCloudflareScheduledUploadJobs,
 } from "./src/lib/cloudflare/scheduled-upload-jobs";
 import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
+import { reconcileActivityOutbox } from "./src/lib/activity/activity-outbox";
 import { normalizePathForLog } from "./src/lib/observability/safe-path";
 import { redactMessage } from "./src/lib/observability/redact";
 import { recordCronRunEvent } from "./src/lib/admin/observability-repository";
@@ -216,8 +217,12 @@ export default {
     // Runs in parallel to the upload-jobs waitUntil; both are awaited by ctx.
     if (controller.cron === "30 3 * * *") {
       ctx.waitUntil(
-        runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }).then((results) => {
+        Promise.all([
+          runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }),
+          reconcileActivityOutbox(env.ARCH_DB),
+        ]).then(([results, outbox]) => {
           console.log("Retention pass completed", JSON.stringify(results));
+          console.log("Activity outbox reconciliation completed", JSON.stringify(outbox));
           recordCronRunEvent({
             cronName: `retention-pass:${cronName}`,
             startedAt,

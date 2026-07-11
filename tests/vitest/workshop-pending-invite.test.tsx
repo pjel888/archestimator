@@ -56,15 +56,21 @@ describe("workshop pending invite bridge", () => {
   const pendingInviteRoute = readFileSync("src/app/workshop/pending-invite/route.ts", "utf8");
   const projectDashboardPage = readFileSync("src/app/workshop/projects/[projectId]/page.tsx", "utf8");
 
-  it("successful auth still lands on workshop and consumes a pending invite cookie there", () => {
+  it("successful auth lands on a confirmation page that defers invite acceptance to POST", () => {
     const authSetup = readFileSync("src/lib/auth/account-setup.ts", "utf8");
 
     expect(authSetup).toContain('PENDING_INVITE_AUTH_DESTINATION = "/workshop/pending-invite"');
     expect(workshopPage).toContain('redirect("/workshop/pending-invite")');
-    expect(pendingInviteRoute).toContain("acceptPendingInviteBridge");
+    const getRoute = pendingInviteRoute.match(/export async function GET[\s\S]*?\n}\n\nexport async function POST/)?.[0];
+    const postRoute = pendingInviteRoute.match(/export async function POST[\s\S]*/)?.[0];
+
+    expect(getRoute).toContain("createPendingInviteConfirmationHtml");
+    expect(getRoute).not.toContain("acceptPendingInviteBridge");
+    expect(postRoute).toContain("acceptPendingInviteBridge");
+    expect(postRoute).toContain("isAllowedInviteOrigin");
+    expect(postRoute).toContain("checkInviteAcceptTokenHashRateLimit");
     expect(pendingInviteRoute).toContain("clearPendingInviteCookie(response)");
-    expect(pendingInviteRoute).toContain("createPendingInviteProgressHtml");
-    expect(pendingInviteRoute).toContain("window.location.replace");
+    expect(pendingInviteRoute).toContain('method="post"');
     expect(pendingInviteRoute).toContain('"Cache-Control": "no-store"');
     expect(workshopPage).toContain("archestimator_pending_invite");
     expect(workshopPage).toContain("<WorkshopHomebaseClient");
@@ -85,10 +91,12 @@ describe("workshop pending invite bridge", () => {
     expect(homebaseClient).not.toContain("profile gate");
   });
 
-  it("routes inaccessible project opens back to the workshop removed-access banner", () => {
+  it("routes inaccessible project opens back to the workshop removed-access banner after checking direct sheet access", () => {
     expect(workshopPage).toContain("readRemovedProjectBannerFromSearchParams");
     expect(workshopPage).toContain("removedProjectBanner={removedProjectBanner}");
     expect(projectDashboardPage).toContain('redirect(`/workshop?removedProject=${encodeURIComponent(projectId)}`)');
+    expect(projectDashboardPage).toContain("listRecentProjectEstimateSheets(projectId, 1)");
+    expect(projectDashboardPage).toContain("/workshop/projects/${projectId}/estimates/${directEstimateSheet.id}");
   });
 
   it("renders accepted invite banners with role and project context when provided", () => {

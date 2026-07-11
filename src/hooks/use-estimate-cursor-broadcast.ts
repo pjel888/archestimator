@@ -12,14 +12,15 @@ import {
   type RealtimeIdentityEnvelope,
 } from "@/lib/collaboration/realtime-identity";
 import { issueRealtimeIdentity } from "@/lib/collaboration/realtime-identity-actions";
+import { getRealtimeIdentityRefreshDelay } from "@/lib/collaboration/realtime-refresh";
 import { reportRealtimeEvent } from "@/lib/collaboration/realtime-telemetry";
-import {
-  createCloudflareCollaborationRoomClient,
-} from "@/lib/cloudflare/collaboration-room-client";
+import { createCloudflareCollaborationRoomClient } from "@/lib/cloudflare/collaboration-room-client";
 
 export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:";
 export const CURSOR_BROADCAST_EVENT = "cursor";
 export const CURSOR_BROADCAST_MIN_DISTANCE_PX = 6;
+export const MAX_CURSOR_COORDINATE_PX = 1_000_000;
+const MAX_CURSOR_RECONNECT_RETRIES = 3;
 
 export type EstimateCursorBroadcastPayload = {
   userId: string;
@@ -41,7 +42,8 @@ export type RemoteEstimateCursor = EstimateCursorBroadcastPayload & {
   receivedAt: number;
 };
 
-type EstimateCursorChannelStatus = "idle" | "subscribing" | "subscribed" | "error" | "closed";
+type EstimateCursorChannelStatus =
+  "idle" | "subscribing" | "subscribed" | "error" | "closed";
 type EstimateCursorSendStatus = "idle" | "ok" | "error" | "timed out";
 
 // --- Transport seam (T0.3) -------------------------------------------------
@@ -53,7 +55,11 @@ export type CursorChannelLike = {
     callback: (message: { payload: unknown }) => void,
   ) => CursorChannelLike;
   subscribe: (callback?: (status: string) => void) => CursorChannelLike;
-  send: (message: { type: "broadcast"; event: string; payload: EstimateCursorBroadcastPayload }) => Promise<string> | string;
+  send: (message: {
+    type: "broadcast";
+    event: string;
+    payload: EstimateCursorBroadcastPayload;
+  }) => Promise<string> | string;
 };
 
 export type CursorClientLike = {
@@ -71,7 +77,8 @@ export type RealtimeIdentityIssuer = (input: { topic: string }) => Promise<{
 } | null>;
 
 const defaultCursorClientFactory: CursorClientFactory = () => {
-  if (!isRealtimeTransportEnabled()) throw new Error("realtime_transport_disabled");
+  if (!isRealtimeTransportEnabled())
+    throw new Error("realtime_transport_disabled");
   return createCloudflareCollaborationRoomClient() as unknown as CursorClientLike;
 };
 
@@ -94,7 +101,10 @@ type UseEstimateCursorBroadcastInput = {
   identityIssuer?: RealtimeIdentityIssuer;
 };
 
-type CursorBroadcastPosition = Pick<EstimateCursorBroadcastPayload, "tabId" | "x" | "y" | "rowId" | "columnId">;
+type CursorBroadcastPosition = Pick<
+  EstimateCursorBroadcastPayload,
+  "tabId" | "x" | "y" | "rowId" | "columnId"
+>;
 
 export function shouldQueueCursorBroadcast(
   previous: CursorBroadcastPosition | null,
@@ -103,10 +113,24 @@ export function shouldQueueCursorBroadcast(
 ) {
   if (!previous) return true;
   if ((previous.tabId ?? null) !== (next.tabId ?? null)) return true;
-  if (previous.rowId !== next.rowId || previous.columnId !== next.columnId) return true;
+  if (previous.rowId !== next.rowId || previous.columnId !== next.columnId)
+    return true;
   const deltaX = next.x - previous.x;
   const deltaY = next.y - previous.y;
   return Math.hypot(deltaX, deltaY) >= minDistancePx;
+}
+
+function isValidCursorCoordinate(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    Math.abs(value) <= MAX_CURSOR_COORDINATE_PX
+  );
+}
+
+function normalizeCursorFraction(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.min(1, Math.max(0, value));
 }
 
 export function useEstimateCursorCollaboration({
@@ -131,7 +155,9 @@ export function useEstimateCursorCollaboration({
   const verifyKeyRef = useRef<CryptoKey | null>(null);
   const ownUserIdRef = useRef<string | null>(userId ?? null);
   const ownDisplayNameRef = useRef<string | null>(displayName ?? null);
-  const verifiedCacheRef = useRef<Map<string, { sig: string; exp: number }>>(null!);
+  const verifiedCacheRef = useRef<Map<string, { sig: string; exp: number }>>(
+    null!,
+  );
   if (verifiedCacheRef.current === null) verifiedCacheRef.current = new Map();
   // Test/override seams held in refs so an inline identity changes the deps used
   // for nothing — synced in an effect (not during render) per react-hooks rules.
@@ -146,14 +172,19 @@ export function useEstimateCursorCollaboration({
     ownDisplayNameRef.current = displayName ?? ownDisplayNameRef.current;
   }, [displayName, userId]);
 
-  const [remoteCursorMap, setRemoteCursorMap] = useState<Map<string, RemoteEstimateCursor>>(() => new Map());
-  const [channelStatus, setChannelStatus] = useState<EstimateCursorChannelStatus>("idle");
-  const [lastSendStatus, setLastSendStatus] = useState<EstimateCursorSendStatus>("idle");
+  const [remoteCursorMap, setRemoteCursorMap] = useState<
+    Map<string, RemoteEstimateCursor>
+  >(() => new Map());
+  const [channelStatus, setChannelStatus] =
+    useState<EstimateCursorChannelStatus>("idle");
+  const [lastSendStatus, setLastSendStatus] =
+    useState<EstimateCursorSendStatus>("idle");
 
   useEffect(() => {
     if (!enabled || !estimateId) return;
 
     let cancelled = false;
+    let identityRefreshTimer: number | null = null;
     let client: CursorClientLike;
 
     try {
@@ -162,27 +193,90 @@ export function useEstimateCursorCollaboration({
       return;
     }
 
-    const topic = channelTopic ?? `${ESTIMATE_COLLABORATION_CHANNEL_PREFIX}${estimateId}`;
+    const topic =
+      channelTopic ?? `${ESTIMATE_COLLABORATION_CHANNEL_PREFIX}${estimateId}`;
     envelopeRef.current = null;
     verifyKeyRef.current = null;
     verifiedCacheRef.current = new Map();
 
-    const channel = client.openRoom(topic);
-    channelRef.current = channel;
+    let reconnectAttempts = 0;
+    let reconnectTimer: number | null = null;
 
-    async function provisionIdentity() {
+    function scheduleIdentityRefresh(expiresAtSeconds: number) {
+      if (identityRefreshTimer !== null)
+        window.clearTimeout(identityRefreshTimer);
+      identityRefreshTimer = window.setTimeout(() => {
+        const channel = channelRef.current;
+        if (!cancelled && channel) void provisionIdentity(channel);
+      }, getRealtimeIdentityRefreshDelay(expiresAtSeconds));
+    }
+
+    function clearEphemeralConnectionState() {
+      if (identityRefreshTimer !== null)
+        window.clearTimeout(identityRefreshTimer);
+      identityRefreshTimer = null;
+      envelopeRef.current = null;
+      verifyKeyRef.current = null;
+      verifiedCacheRef.current = new Map();
+      pendingPayloadRef.current = null;
+      lastQueuedCursorRef.current = null;
+      setLastSendStatus("idle");
+      setRemoteCursorMap(new Map());
+    }
+
+    function scheduleReconnect() {
+      if (
+        cancelled ||
+        reconnectAttempts >= MAX_CURSOR_RECONNECT_RETRIES ||
+        reconnectTimer !== null
+      )
+        return;
+      reconnectAttempts += 1;
+      const delay = Math.min(1000 * reconnectAttempts, 5000);
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        if (!cancelled) openChannel();
+      }, delay);
+    }
+
+    function handleConnectionFailure(
+      channel: CursorChannelLike,
+      status: "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED",
+    ) {
+      if (channelRef.current !== channel) return;
+      channelRef.current = null;
+      clearEphemeralConnectionState();
+      setChannelStatus(status === "CLOSED" ? "closed" : "error");
+      reportRealtimeEvent({
+        type: status === "CLOSED" ? "closed" : "channel_error",
+        topic,
+        detail: status,
+      });
+      void client.closeRoom(channel);
+      scheduleReconnect();
+    }
+
+    async function provisionIdentity(channel: CursorChannelLike) {
       try {
         const identity = await identityIssuerRef.current({ topic });
-        if (cancelled || !identity) return;
+        if (cancelled || channelRef.current !== channel || !identity) return;
         ownUserIdRef.current = identity.userId ?? identity.envelope.sub;
         ownDisplayNameRef.current = identity.displayName ?? displayName ?? null;
         envelopeRef.current = identity.envelope;
         verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+        if (cancelled || channelRef.current !== channel) return;
         if (typeof channel.authorize === "function") {
-          if (!identity.roomToken) return;
+          if (!identity.roomToken) {
+            handleConnectionFailure(channel, "CHANNEL_ERROR");
+            return;
+          }
           const result = await channel.authorize(identity.roomToken);
-          if (result !== "ok") return;
+          if (result !== "ok") {
+            handleConnectionFailure(channel, "CHANNEL_ERROR");
+            return;
+          }
         }
+        scheduleIdentityRefresh(identity.envelope.exp);
         setRemoteCursorMap((current) => {
           const ownUserId = ownUserIdRef.current;
           if (!ownUserId || !current.has(ownUserId)) return current;
@@ -190,30 +284,45 @@ export function useEstimateCursorCollaboration({
           next.delete(ownUserId);
           return next;
         });
-      } catch (error) {
+      } catch {
         reportRealtimeEvent({
           type: "auth_refresh_failed",
           topic,
-          detail: error instanceof Error ? error.message : "identity issuance failed",
+          detail: "IDENTITY_ISSUANCE_FAILED",
         });
+        handleConnectionFailure(channel, "CHANNEL_ERROR");
       }
     }
 
     async function acceptCursor(raw: unknown) {
       const cursor = raw as Partial<EstimateCursorBroadcastPayload> | null;
-      if (!cursor?.userId || cursor.userId === ownUserIdRef.current) return;
-      if (typeof cursor.x !== "number" || typeof cursor.y !== "number") return;
+      if (
+        typeof cursor?.userId !== "string" ||
+        cursor.userId === ownUserIdRef.current
+      )
+        return;
+      if (
+        !isValidCursorCoordinate(cursor.x) ||
+        !isValidCursorCoordinate(cursor.y)
+      )
+        return;
       const envelope = cursor.envelope ?? null;
       if (!envelope || !verifyKeyRef.current) {
         // No identity proof, or we cannot verify yet → drop (secure default).
-        reportRealtimeEvent({ type: "identity_rejected", topic, detail: "missing envelope" });
+        reportRealtimeEvent({
+          type: "identity_rejected",
+          topic,
+          detail: "MISSING_ENVELOPE",
+        });
         return;
       }
 
       const remoteUserId = cursor.userId;
       const cached = verifiedCacheRef.current.get(remoteUserId);
       const nowMs = Date.now();
-      let trusted = Boolean(cached && cached.sig === envelope.sig && cached.exp * 1000 > nowMs);
+      let trusted = Boolean(
+        cached && cached.sig === envelope.sig && cached.exp * 1000 > nowMs,
+      );
       if (!trusted) {
         trusted = await verifyRealtimeIdentity({
           envelope,
@@ -223,63 +332,98 @@ export function useEstimateCursorCollaboration({
           nowMs,
         });
         if (trusted) {
-          verifiedCacheRef.current.set(remoteUserId, { sig: envelope.sig, exp: envelope.exp });
+          verifiedCacheRef.current.set(remoteUserId, {
+            sig: envelope.sig,
+            exp: envelope.exp,
+          });
         } else {
-          reportRealtimeEvent({ type: "identity_rejected", topic, detail: "envelope verification failed" });
+          reportRealtimeEvent({
+            type: "identity_rejected",
+            topic,
+            detail: "ENVELOPE_VERIFICATION_FAILED",
+          });
           return;
         }
       }
       if (cancelled) return;
 
-      const remoteX = cursor.x as number;
-      const remoteY = cursor.y as number;
+      const remoteX = cursor.x;
+      const remoteY = cursor.y;
       setRemoteCursorMap((current) => {
         const next = new Map(current);
         next.set(remoteUserId, {
           userId: remoteUserId,
           // Identity is verified by envelope; the name is the verified sender's
           // self-reported label, rendered as escaped React text (no injection).
-          displayName: typeof cursor.displayName === "string" ? cursor.displayName : null,
+          displayName:
+            typeof cursor.displayName === "string" ? cursor.displayName : null,
           tabId: typeof cursor.tabId === "string" ? cursor.tabId : null,
           x: remoteX,
           y: remoteY,
-          fracX: typeof cursor.fracX === "number" ? cursor.fracX : null,
-          fracY: typeof cursor.fracY === "number" ? cursor.fracY : null,
+          fracX: normalizeCursorFraction(cursor.fracX),
+          fracY: normalizeCursorFraction(cursor.fracY),
           rowId: typeof cursor.rowId === "string" ? cursor.rowId : null,
-          columnId: typeof cursor.columnId === "string" ? cursor.columnId : null,
-          sentAt: typeof cursor.sentAt === "string" ? cursor.sentAt : new Date().toISOString(),
+          columnId:
+            typeof cursor.columnId === "string" ? cursor.columnId : null,
+          sentAt:
+            typeof cursor.sentAt === "string"
+              ? cursor.sentAt
+              : new Date().toISOString(),
           receivedAt: Date.now(),
         });
         return next;
       });
     }
 
-    channel
-      .on("broadcast", { event: CURSOR_BROADCAST_EVENT }, ({ payload }) => {
-        void acceptCursor(payload);
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          setChannelStatus("subscribed");
-          reportRealtimeEvent({ type: "subscribed", topic });
-          void provisionIdentity();
-        }
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          setChannelStatus("error");
-          reportRealtimeEvent({ type: "channel_error", topic, detail: status });
-        }
-        if (status === "CLOSED") {
-          setChannelStatus("closed");
-          reportRealtimeEvent({ type: "closed", topic });
-        }
-      });
+    function openChannel() {
+      if (channelRef.current) {
+        const previous = channelRef.current;
+        channelRef.current = null;
+        void client.closeRoom(previous);
+      }
+      setChannelStatus("subscribing");
+      const channel = client.openRoom(topic);
+      channelRef.current = channel;
+      channel
+        .on("broadcast", { event: CURSOR_BROADCAST_EVENT }, ({ payload }) => {
+          void acceptCursor(payload);
+        })
+        .subscribe((status) => {
+          if (cancelled || channelRef.current !== channel) return;
+          if (status === "CONNECTED") {
+            void provisionIdentity(channel);
+            return;
+          }
+          if (status === "SUBSCRIBED") {
+            reconnectAttempts = 0;
+            setChannelStatus("subscribed");
+            reportRealtimeEvent({ type: "subscribed", topic });
+            if (!envelopeRef.current) void provisionIdentity(channel);
+            return;
+          }
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            handleConnectionFailure(channel, status);
+          }
+        });
+    }
+
+    openChannel();
 
     return () => {
       cancelled = true;
-      if (throttleTimerRef.current) window.clearTimeout(throttleTimerRef.current);
+      if (throttleTimerRef.current)
+        window.clearTimeout(throttleTimerRef.current);
+      if (identityRefreshTimer !== null)
+        window.clearTimeout(identityRefreshTimer);
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
       throttleTimerRef.current = null;
       pendingPayloadRef.current = null;
       lastQueuedCursorRef.current = null;
+      const channel = channelRef.current;
       channelRef.current = null;
       envelopeRef.current = null;
       verifyKeyRef.current = null;
@@ -289,7 +433,7 @@ export function useEstimateCursorCollaboration({
       setChannelStatus("idle");
       setLastSendStatus("idle");
       setRemoteCursorMap(new Map());
-      void client.closeRoom(channel);
+      if (channel) void client.closeRoom(channel);
     };
   }, [channelTopic, displayName, enabled, estimateId, userId]);
 
@@ -298,7 +442,11 @@ export function useEstimateCursorCollaboration({
     const intervalId = window.setInterval(() => {
       const staleBefore = Date.now() - 5000;
       setRemoteCursorMap((current) => {
-        const next = new Map(Array.from(current).filter(([, cursor]) => cursor.receivedAt >= staleBefore));
+        const next = new Map(
+          Array.from(current).filter(
+            ([, cursor]) => cursor.receivedAt >= staleBefore,
+          ),
+        );
         return next.size === current.size ? current : next;
       });
     }, 1000);
@@ -307,7 +455,12 @@ export function useEstimateCursorCollaboration({
   }, [enabled, remoteCursorMap.size]);
 
   const broadcastCursor = useCallback(
-    (cursor: Omit<EstimateCursorBroadcastPayload, "displayName" | "sentAt" | "userId" | "envelope">) => {
+    (
+      cursor: Omit<
+        EstimateCursorBroadcastPayload,
+        "displayName" | "sentAt" | "userId" | "envelope"
+      >,
+    ) => {
       const ownUserId = ownUserIdRef.current ?? userId ?? null;
       if (!enabled || !ownUserId || !channelRef.current) return;
       if (!isCursorBroadcastEnabled()) return; // kill-switch (T0.6)
@@ -315,7 +468,14 @@ export function useEstimateCursorCollaboration({
       // cursor anyway — so don't broadcast unauthenticated frames.
       if (!envelopeRef.current) return;
 
-      if (!shouldQueueCursorBroadcast(lastQueuedCursorRef.current, cursor, minDistancePx)) return;
+      if (
+        !shouldQueueCursorBroadcast(
+          lastQueuedCursorRef.current,
+          cursor,
+          minDistancePx,
+        )
+      )
+        return;
 
       lastQueuedCursorRef.current = cursor;
       pendingPayloadRef.current = {
@@ -342,7 +502,15 @@ export function useEstimateCursorCollaboration({
             payload,
           }),
         )
-          .then((status) => setLastSendStatus(status === "ok" ? "ok" : status === "timed out" ? "timed out" : "error"))
+          .then((status) =>
+            setLastSendStatus(
+              status === "ok"
+                ? "ok"
+                : status === "timed out"
+                  ? "timed out"
+                  : "error",
+            ),
+          )
           .catch(() => setLastSendStatus("error"));
       }, throttleMs);
     },
@@ -350,17 +518,27 @@ export function useEstimateCursorCollaboration({
   );
 
   const remoteCursors = useMemo(
-    () => Array.from(remoteCursorMap.values()).filter((cursor) => !tabId || cursor.tabId === tabId),
+    () =>
+      Array.from(remoteCursorMap.values()).filter(
+        (cursor) => !tabId || cursor.tabId === tabId,
+      ),
     [remoteCursorMap, tabId],
   );
 
   return { broadcastCursor, channelStatus, lastSendStatus, remoteCursors };
 }
 
-export function useEstimateCursorBroadcast(input: UseEstimateCursorBroadcastInput) {
+export function useEstimateCursorBroadcast(
+  input: UseEstimateCursorBroadcastInput,
+) {
   const { broadcastCursor } = useEstimateCursorCollaboration(input);
   return useCallback(
-    (cursor: Omit<EstimateCursorBroadcastPayload, "displayName" | "sentAt" | "userId" | "envelope">) => {
+    (
+      cursor: Omit<
+        EstimateCursorBroadcastPayload,
+        "displayName" | "sentAt" | "userId" | "envelope"
+      >,
+    ) => {
       broadcastCursor(cursor);
     },
     [broadcastCursor],

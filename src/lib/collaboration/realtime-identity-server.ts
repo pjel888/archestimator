@@ -40,19 +40,8 @@ import {
   type RealtimeIdentityEnvelope,
 } from "@/lib/collaboration/realtime-identity";
 
-/** Env var holding an explicit base64url PKCS8 Ed25519 private key (optional). */
+/** Env var holding an explicit base64url PKCS8 Ed25519 private key. */
 const SIGNING_KEY_ENV = "REALTIME_IDENTITY_SIGNING_KEY";
-
-/**
- * Existing server secrets used, in order, to deterministically derive a stable
- * Ed25519 seed when no explicit signing key is configured. The invite pepper
- * (ARCHESTIMATOR_INVITE_TOKEN_PEPPER) is the same secret used by
- * invite-entry.ts; COLLABORATION_INVITE_PEPPER is a documented fallback name.
- */
-const DERIVATION_SECRET_ENVS = [
-  "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
-  "COLLABORATION_INVITE_PEPPER",
-] as const;
 
 type SigningKeyBundle = {
   privateKey: KeyObject;
@@ -64,15 +53,6 @@ type SigningKeyBundle = {
 
 let cachedBundle: SigningKeyBundle | null = null;
 
-/** Read the first non-empty configured derivation secret. */
-function readDerivationSecret(env: NodeJS.ProcessEnv = process.env): string | null {
-  for (const name of DERIVATION_SECRET_ENVS) {
-    const value = env[name]?.trim();
-    if (value) return value;
-  }
-  return null;
-}
-
 /** The 32-byte raw Ed25519 public key (from JWK `x`) for a private KeyObject. */
 function rawPublicKeyFromPrivate(privateKey: KeyObject): Uint8Array {
   const jwk = createPublicKey(privateKey).export({ format: "jwk" }) as { x?: string };
@@ -81,28 +61,8 @@ function rawPublicKeyFromPrivate(privateKey: KeyObject): Uint8Array {
   return new Uint8Array(Buffer.from(jwk.x, "base64url"));
 }
 
-/**
- * Build an Ed25519 private KeyObject from a deterministic 32-byte seed.
- *
- * PKCS8 for Ed25519 wraps the 32-byte seed inside a fixed ASN.1 prefix; we
- * prepend that prefix and import as DER. This keeps key derivation pure-stdlib.
- */
-function privateKeyFromSeed(seed: Uint8Array): KeyObject {
-  if (seed.length !== 32) {
-    throw new Error(`Ed25519 seed must be 32 bytes, got ${seed.length}`);
-  }
-  // ASN.1 DER PKCS8 prefix for an Ed25519 private key carrying a 32-byte seed:
-  //   SEQUENCE { INTEGER 0, SEQUENCE { OID 1.3.101.112 }, OCTET STRING { OCTET STRING <32-byte seed> } }
-  const PKCS8_ED25519_PREFIX = Buffer.from(
-    "302e020100300506032b657004220420",
-    "hex",
-  );
-  const der = Buffer.concat([PKCS8_ED25519_PREFIX, Buffer.from(seed)]);
-  return createPrivateKey({ key: der, format: "der", type: "pkcs8" });
-}
-
-/** Derive the key bundle from process env per the documented source order. */
-function deriveBundle(env: NodeJS.ProcessEnv = process.env): SigningKeyBundle {
+/** Builds the identity signer; production requires a dedicated signing key. */
+export function deriveRealtimeSigningKey(env: NodeJS.ProcessEnv = process.env): SigningKeyBundle {
   let privateKey: KeyObject;
 
   const explicit = env[SIGNING_KEY_ENV]?.trim();
@@ -110,16 +70,12 @@ function deriveBundle(env: NodeJS.ProcessEnv = process.env): SigningKeyBundle {
     const der = Buffer.from(explicit, "base64url");
     privateKey = createPrivateKey({ key: der, format: "der", type: "pkcs8" });
   } else {
-    const secret = readDerivationSecret(env);
-    if (secret) {
-      const seed = new Uint8Array(createHash("sha256").update(secret, "utf8").digest());
-      privateKey = privateKeyFromSeed(seed);
-    } else {
-      // No explicit key and no derivation secret available (e.g. local/dev).
-      // Fall back to an ephemeral keypair so the feature is self-consistent
-      // within the process; envelopes still verify round-trip.
-      privateKey = generateKeyPairSync("ed25519").privateKey;
+    if (env.NODE_ENV === "production") {
+      throw new Error(`${SIGNING_KEY_ENV} is required in production.`);
     }
+    // Local/test processes use an ephemeral keypair only; invite credentials
+    // must never become a realtime identity signing key.
+    privateKey = generateKeyPairSync("ed25519").privateKey;
   }
 
   const rawPublic = rawPublicKeyFromPrivate(privateKey);
@@ -134,7 +90,7 @@ function deriveBundle(env: NodeJS.ProcessEnv = process.env): SigningKeyBundle {
  */
 export async function getRealtimeSigningKey(): Promise<SigningKeyBundle> {
   if (!cachedBundle) {
-    cachedBundle = deriveBundle();
+    cachedBundle = deriveRealtimeSigningKey();
   }
   return cachedBundle;
 }

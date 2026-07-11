@@ -3,7 +3,7 @@ import "server-only";
 import {
   type PendingInviteBridge,
 } from "@/lib/collaboration/pending-invite";
-import { getCurrentUserContext } from "@/lib/auth/session";
+import { getCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { acceptInvitationTokenForUser } from "@/lib/collaboration/invitation-acceptance";
 
 export type WorkshopInviteBannerState =
@@ -26,9 +26,14 @@ function mapUnavailableReason(state: string): WorkshopInviteBannerState {
   return { kind: "unavailable", reason: "invalid" };
 }
 
-export async function acceptPendingInviteBridge(bridge: PendingInviteBridge): Promise<WorkshopInviteBannerState> {
+export async function acceptPendingInviteBridge(
+  bridge: PendingInviteBridge,
+  currentUserOverride?: CurrentUserContext | null,
+): Promise<WorkshopInviteBannerState> {
   try {
-    const currentUser = await getCurrentUserContext();
+    const currentUser = currentUserOverride === undefined
+      ? await getCurrentUserContext()
+      : currentUserOverride;
     const { data, error } = await acceptInvitationTokenForUser({
       clientInfo: "archestimator-pending-invite-cookie-accept",
       invitationTokenHash: bridge.tokenHash,

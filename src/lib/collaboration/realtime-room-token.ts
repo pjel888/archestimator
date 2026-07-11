@@ -8,10 +8,23 @@ const TOKEN_SECRET_ENVS = [
   "COLLABORATION_INVITE_PEPPER",
 ] as const;
 
+export type RealtimeRoomCapability =
+  | "presence:read"
+  | "presence:write"
+  | "broadcast:cursor"
+  | "broadcast:row-update";
+
 export type RealtimeRoomTokenClaims = {
   v: 1;
   sub: string;
   topic: string;
+  iat: number;
+  exp: number;
+} | {
+  v: 2;
+  sub: string;
+  topic: string;
+  capabilities: RealtimeRoomCapability[];
   iat: number;
   exp: number;
 };
@@ -28,6 +41,15 @@ export function readRealtimeRoomTokenSecret(env: EnvLike = getDefaultEnv()) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
+}
+
+/**
+ * Collaboration rooms require an explicit v2 signing secret. Legacy room
+ * channels retain their compatibility fallback through readRealtimeRoomTokenSecret.
+ */
+export function readCollaborationRoomTokenSecret(env: EnvLike = getDefaultEnv()) {
+  const value = env.REALTIME_ROOM_TOKEN_SECRET;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function base64UrlEncode(input: Uint8Array) {
@@ -80,12 +102,15 @@ function decodeClaims(payload: string): RealtimeRoomTokenClaims | null {
     const parsed = JSON.parse(new TextDecoder().decode(base64UrlDecode(payload)));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     const claims = parsed as Partial<RealtimeRoomTokenClaims>;
-    if (claims.v !== 1) return null;
+    if (claims.v !== 1 && claims.v !== 2) return null;
     if (typeof claims.sub !== "string" || !claims.sub) return null;
     if (typeof claims.topic !== "string" || !claims.topic) return null;
     if (typeof claims.iat !== "number" || !Number.isFinite(claims.iat)) return null;
     if (typeof claims.exp !== "number" || !Number.isFinite(claims.exp)) return null;
     if (claims.iat >= claims.exp) return null;
+    if (claims.v === 2 && (!Array.isArray(claims.capabilities) || claims.capabilities.some((capability) => !isRealtimeRoomCapability(capability)))) {
+      return null;
+    }
     return claims as RealtimeRoomTokenClaims;
   } catch {
     return null;
@@ -93,12 +118,14 @@ function decodeClaims(payload: string): RealtimeRoomTokenClaims | null {
 }
 
 export async function issueRealtimeRoomToken({
+  capabilities,
   nowMs = Date.now(),
   secret,
   sub,
   topic,
   ttlSeconds = DEFAULT_ROOM_TOKEN_TTL_SECONDS,
 }: {
+  capabilities?: readonly RealtimeRoomCapability[];
   nowMs?: number;
   secret: string;
   sub: string;
@@ -107,9 +134,25 @@ export async function issueRealtimeRoomToken({
 }) {
   const iat = Math.floor(nowMs / 1000);
   const exp = iat + Math.max(1, Math.floor(ttlSeconds));
-  const payload = encodeClaims({ v: 1, sub, topic, iat, exp });
+  const payload = encodeClaims(capabilities
+    ? { v: 2, sub, topic, capabilities: [...new Set(capabilities)].sort() as RealtimeRoomCapability[], iat, exp }
+    : { v: 1, sub, topic, iat, exp });
   const signature = await hmacSha256(secret, payload);
   return `${payload}.${signature}`;
+}
+
+export function isRealtimeRoomCapability(value: unknown): value is RealtimeRoomCapability {
+  return value === "presence:read"
+    || value === "presence:write"
+    || value === "broadcast:cursor"
+    || value === "broadcast:row-update";
+}
+
+export function hasRealtimeRoomCapability(
+  claims: RealtimeRoomTokenClaims,
+  capability: RealtimeRoomCapability,
+) {
+  return claims.v === 2 && claims.capabilities.includes(capability);
 }
 
 export async function verifyRealtimeRoomToken({

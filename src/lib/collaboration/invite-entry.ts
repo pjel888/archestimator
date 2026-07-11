@@ -185,6 +185,24 @@ async function checkInviteRateLimit({
   if (!config.enabled) return { allowed: true };
 
   const tokenHash = hashInviteToken(rawToken, config.pepper);
+  return checkInviteTokenHashRateLimit({ headers, limit, scope, tokenHash, userId, windowSeconds });
+}
+
+async function checkInviteTokenHashRateLimit({
+  headers,
+  limit,
+  scope,
+  tokenHash,
+  userId,
+  windowSeconds = 60,
+}: {
+  headers: HeaderReader;
+  limit: number;
+  scope: InviteRateLimitScope;
+  tokenHash: string;
+  userId?: string | null;
+  windowSeconds?: number;
+}): Promise<InviteRateLimitResult> {
   const keyHash = hashRateLimitKey(scope, [hashIp(headers), userId ?? "anonymous", tokenHash]);
 
   await recordInviteRateLimitEvent({ scope, keyHash, windowSeconds });
@@ -286,6 +304,31 @@ export async function checkInviteAcceptRateLimit({
   return checkInviteRateLimit({
     headers: request.headers,
     rawToken,
+    scope: "collaboration_invite_accept",
+    limit: 5,
+    userId,
+  });
+}
+
+/**
+ * The post-auth bridge retains only the already-peppered token hash in its
+ * signed cookie, so it cannot re-derive the raw-token rate-limit key.
+ */
+export async function checkInviteAcceptTokenHashRateLimit({
+  invitationTokenHash,
+  request,
+  userId,
+}: {
+  invitationTokenHash: string;
+  request: Request;
+  userId?: string | null;
+}) {
+  const config = readInviteEntryConfig();
+  if (!config.enabled) return { allowed: true } as const;
+
+  return checkInviteTokenHashRateLimit({
+    headers: request.headers,
+    tokenHash: invitationTokenHash,
     scope: "collaboration_invite_accept",
     limit: 5,
     userId,

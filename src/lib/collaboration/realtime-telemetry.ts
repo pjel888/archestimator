@@ -16,14 +16,30 @@ export type RealtimeTelemetryType =
   | "rate_limited"
   | "identity_rejected";
 
+export type RealtimeTelemetryDetail =
+  | "CHANNEL_ERROR"
+  | "TIMED_OUT"
+  | "CLOSED"
+  | "IDENTITY_ISSUANCE_FAILED"
+  | "MISSING_ENVELOPE"
+  | "ENVELOPE_VERIFICATION_FAILED";
+
 export type RealtimeTelemetryEvent = {
   type: RealtimeTelemetryType;
-  /** Coarse channel topic (e.g. "project:…" / "estimate:…"). Never a raw path. */
+  /** Internal topic value; it is normalized before leaving this module. */
   topic?: string;
-  detail?: string;
+  detail?: RealtimeTelemetryDetail;
 };
 
-type RealtimeTelemetrySink = (event: RealtimeTelemetryEvent) => void;
+export type RealtimeTelemetryRecord = {
+  type: RealtimeTelemetryType;
+  /** Topic family only. Never contains a room, project, or estimate identifier. */
+  topic?: "project" | "estimate" | "unknown";
+  /** Fixed operational code only. Never contains exception or user input text. */
+  detail?: RealtimeTelemetryDetail;
+};
+
+type RealtimeTelemetrySink = (event: RealtimeTelemetryRecord) => void;
 
 let sink: RealtimeTelemetrySink | null = null;
 
@@ -31,10 +47,25 @@ export function setRealtimeTelemetrySink(next: RealtimeTelemetrySink | null) {
   sink = next;
 }
 
+export function sanitizeRealtimeTelemetryEvent(
+  event: RealtimeTelemetryEvent,
+): RealtimeTelemetryRecord {
+  const topic = event.topic?.split(":", 1)[0];
+  const topicFamily =
+    topic === "project" || topic === "estimate" ? topic : "unknown";
+
+  return {
+    type: event.type,
+    ...(event.topic ? { topic: topicFamily } : {}),
+    ...(event.detail ? { detail: event.detail } : {}),
+  };
+}
+
 export function reportRealtimeEvent(event: RealtimeTelemetryEvent) {
+  const record = sanitizeRealtimeTelemetryEvent(event);
   if (sink) {
     try {
-      sink(event);
+      sink(record);
     } catch {
       // a telemetry failure must never break the feature
     }
@@ -42,7 +73,7 @@ export function reportRealtimeEvent(event: RealtimeTelemetryEvent) {
   }
   if (process.env.NODE_ENV !== "production") {
     console.warn(
-      `[realtime:${event.type}]${event.topic ? ` ${event.topic}` : ""}${event.detail ? ` — ${event.detail}` : ""}`,
+      `[realtime:${record.type}]${record.topic ? ` ${record.topic}` : ""}${record.detail ? ` — ${record.detail}` : ""}`,
     );
   }
 }

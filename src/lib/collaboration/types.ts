@@ -11,7 +11,15 @@ export type ProjectCollaboratorSummary = {
   avatarUrl: string | null;
   role: CollaborationRole;
   source: ProjectCollaboratorSource;
+  /** Present only to project-roster readers; required for direct-grant mutation controls. */
+  directProjectRole?: CollaborationRole | null;
   online: boolean;
+};
+
+export type EligibleProjectMemberCandidate = {
+  id: string;
+  displayName: string;
+  email: string | null;
 };
 
 export type EstimateSheetMemberSummary = ProjectCollaboratorSummary & {
@@ -27,6 +35,9 @@ export type EstimateSheetAccessSummary = {
   accessMode: EstimateSheetAccessMode;
   overrideCount: number;
   canManageAccess: boolean;
+  currentUserRole?: CollaborationRole;
+  /** Present only when the manager is also authorized to read the project roster. */
+  eligibleMemberCandidates?: EligibleProjectMemberCandidate[];
   members: EstimateSheetMemberSummary[];
 };
 
@@ -39,6 +50,7 @@ export type CollaborationInvitationSummary = {
   expiresAt: string;
   invitePath?: string | null;
   tokenHint?: string | null;
+  canManage?: boolean;
 };
 
 export type ProjectCollaborationSummary = {
@@ -48,6 +60,8 @@ export type ProjectCollaborationSummary = {
   currentUserRole: CollaborationRole;
   canManageAccess: boolean;
   collaborators: ProjectCollaboratorSummary[];
+  /** Manager-only same-workspace profiles without a direct project grant. */
+  eligibleProjectMemberCandidates?: EligibleProjectMemberCandidate[];
   pendingInvitations: CollaborationInvitationSummary[];
   estimateSheets: EstimateSheetAccessSummary[];
   realtime: {

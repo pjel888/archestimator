@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   useEstimateCursorCollaboration,
@@ -18,36 +18,59 @@ type FakeCursorChannel = CursorChannelLike & {
 };
 
 function createFakeCursorClient() {
-  let broadcastHandler: ((message: { payload: unknown }) => void) | null = null;
-  let subscribeCallback: ((status: string) => void) | null = null;
-  const sentPayloads: EstimateCursorBroadcastPayload[] = [];
-  const channel: FakeCursorChannel = {
-    on(_type, _filter, callback) {
-      broadcastHandler = callback;
-      return channel;
-    },
-    subscribe(callback) {
-      subscribeCallback = callback ?? null;
-      return channel;
-    },
-    send(message) {
-      sentPayloads.push(message.payload);
-      return Promise.resolve("ok");
-    },
-    __emitStatus(status) {
-      subscribeCallback?.(status);
-    },
-    __emitBroadcast(payload) {
-      broadcastHandler?.({ payload });
-    },
+  const channels: FakeCursorChannel[] = [];
+  let opened = 0;
+  const createChannel = () => {
+    let broadcastHandler: ((message: { payload: unknown }) => void) | null =
+      null;
+    let subscribeCallback: ((status: string) => void) | null = null;
+    const sentPayloads: EstimateCursorBroadcastPayload[] = [];
+    const channel: FakeCursorChannel = {
+      on(_type, _filter, callback) {
+        broadcastHandler = callback;
+        return channel;
+      },
+      subscribe(callback) {
+        subscribeCallback = callback ?? null;
+        return channel;
+      },
+      send(message) {
+        sentPayloads.push(message.payload);
+        return Promise.resolve("ok");
+      },
+      __emitStatus(status) {
+        subscribeCallback?.(status);
+      },
+      __emitBroadcast(payload) {
+        broadcastHandler?.({ payload });
+      },
+    };
+    return { channel, sentPayloads };
   };
-  return { client: { openRoom: () => channel, closeRoom: () => undefined }, channel, sentPayloads };
+  const initial = createChannel();
+  channels.push(initial.channel);
+  return {
+    client: {
+      openRoom: () => {
+        if (opened++ === 0) return initial.channel;
+        const next = createChannel();
+        channels.push(next.channel);
+        return next.channel;
+      },
+      closeRoom: () => undefined,
+    },
+    channel: initial.channel,
+    channels,
+    sentPayloads: initial.sentPayloads,
+  };
 }
 
 const ESTIMATE_ID = "11111111-1111-1111-1111-111111111111";
 const TOPIC = `estimate:${ESTIMATE_ID}`;
 
-function basePayload(overrides: Partial<EstimateCursorBroadcastPayload>): EstimateCursorBroadcastPayload {
+function basePayload(
+  overrides: Partial<EstimateCursorBroadcastPayload>,
+): EstimateCursorBroadcastPayload {
   return {
     userId: "other",
     displayName: "Other",
@@ -63,9 +86,23 @@ function basePayload(overrides: Partial<EstimateCursorBroadcastPayload>): Estima
 }
 
 describe("estimate cursor identity gate", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders a cursor with a valid signed envelope, drops spoofed/unsigned ones", async () => {
-    const receiver = await issueRealtimeIdentityEnvelope({ sub: "me", topic: TOPIC, role: "member" });
-    const otherEnvelope = (await issueRealtimeIdentityEnvelope({ sub: "other", topic: TOPIC, role: "member" })).envelope;
+    const receiver = await issueRealtimeIdentityEnvelope({
+      sub: "me",
+      topic: TOPIC,
+      role: "member",
+    });
+    const otherEnvelope = (
+      await issueRealtimeIdentityEnvelope({
+        sub: "other",
+        topic: TOPIC,
+        role: "member",
+      })
+    ).envelope;
 
     const { client, channel } = createFakeCursorClient();
     const { result } = renderHook(() =>
@@ -74,7 +111,10 @@ describe("estimate cursor identity gate", () => {
         userId: "me",
         enabled: true,
         clientFactory: () => client,
-        identityIssuer: async () => ({ envelope: receiver.envelope, publicKey: receiver.publicKey }),
+        identityIssuer: async () => ({
+          envelope: receiver.envelope,
+          publicKey: receiver.publicKey,
+        }),
       }),
     );
 
@@ -82,22 +122,36 @@ describe("estimate cursor identity gate", () => {
     act(() => channel.__emitStatus("SUBSCRIBED"));
 
     // 1) Unsigned cursor → dropped.
-    act(() => channel.__emitBroadcast(basePayload({ userId: "other", envelope: null })));
+    act(() =>
+      channel.__emitBroadcast(basePayload({ userId: "other", envelope: null })),
+    );
     // 2) Spoofed: payload.userId = A but envelope.sub = other (mismatch) → dropped.
-    act(() => channel.__emitBroadcast(basePayload({ userId: "victim-A", envelope: otherEnvelope })));
+    act(() =>
+      channel.__emitBroadcast(
+        basePayload({ userId: "victim-A", envelope: otherEnvelope }),
+      ),
+    );
 
     // Give async verification a tick; neither bad cursor should appear.
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(result.current.remoteCursors).toHaveLength(0);
 
     // 3) Valid: payload.userId = other, envelope.sub = other → rendered.
-    act(() => channel.__emitBroadcast(basePayload({ userId: "other", envelope: otherEnvelope })));
+    act(() =>
+      channel.__emitBroadcast(
+        basePayload({ userId: "other", envelope: otherEnvelope }),
+      ),
+    );
     await waitFor(() => expect(result.current.remoteCursors).toHaveLength(1));
     expect(result.current.remoteCursors[0]?.userId).toBe("other");
   });
 
   it("uses the server-issued identity for outbound cursors when route props omit the user", async () => {
-    const receiver = await issueRealtimeIdentityEnvelope({ sub: "me", topic: TOPIC, role: "member" });
+    const receiver = await issueRealtimeIdentityEnvelope({
+      sub: "me",
+      topic: TOPIC,
+      role: "member",
+    });
 
     const { client, channel, sentPayloads } = createFakeCursorClient();
     const { result } = renderHook(() =>
@@ -119,7 +173,9 @@ describe("estimate cursor identity gate", () => {
 
     act(() => channel.__emitStatus("SUBSCRIBED"));
 
-    await waitFor(() => expect(result.current.channelStatus).toBe("subscribed"));
+    await waitFor(() =>
+      expect(result.current.channelStatus).toBe("subscribed"),
+    );
     act(() =>
       result.current.broadcastCursor({
         x: 10,
@@ -139,5 +195,110 @@ describe("estimate cursor identity gate", () => {
       columnId: "2",
     });
     expect(sentPayloads[0]?.envelope?.sub).toBe("me");
+  });
+
+  it("drops signed invalid coordinates and clamps signed anchor fractions before rendering", async () => {
+    const receiver = await issueRealtimeIdentityEnvelope({
+      sub: "me",
+      topic: TOPIC,
+      role: "member",
+    });
+    const otherEnvelope = (
+      await issueRealtimeIdentityEnvelope({
+        sub: "other",
+        topic: TOPIC,
+        role: "member",
+      })
+    ).envelope;
+    const { client, channel } = createFakeCursorClient();
+    const { result } = renderHook(() =>
+      useEstimateCursorCollaboration({
+        estimateId: ESTIMATE_ID,
+        userId: "me",
+        enabled: true,
+        clientFactory: () => client,
+        identityIssuer: async () => ({
+          envelope: receiver.envelope,
+          publicKey: receiver.publicKey,
+        }),
+      }),
+    );
+
+    act(() => channel.__emitStatus("SUBSCRIBED"));
+    act(() =>
+      channel.__emitBroadcast(
+        basePayload({
+          userId: "other",
+          x: Number.POSITIVE_INFINITY,
+          envelope: otherEnvelope,
+        }),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(result.current.remoteCursors).toHaveLength(0);
+
+    act(() =>
+      channel.__emitBroadcast(
+        basePayload({
+          userId: "other",
+          fracX: -0.5,
+          fracY: 1.5,
+          envelope: otherEnvelope,
+        }),
+      ),
+    );
+    await waitFor(() => expect(result.current.remoteCursors).toHaveLength(1));
+    expect(result.current.remoteCursors[0]).toMatchObject({
+      fracX: 0,
+      fracY: 1,
+    });
+  });
+
+  it("clears remote cursors and opens one bounded replacement room after a close", async () => {
+    const receiver = await issueRealtimeIdentityEnvelope({
+      sub: "me",
+      topic: TOPIC,
+      role: "member",
+    });
+    const otherEnvelope = (
+      await issueRealtimeIdentityEnvelope({
+        sub: "other",
+        topic: TOPIC,
+        role: "member",
+      })
+    ).envelope;
+    const { client, channel, channels } = createFakeCursorClient();
+    const { result } = renderHook(() =>
+      useEstimateCursorCollaboration({
+        estimateId: ESTIMATE_ID,
+        userId: "me",
+        enabled: true,
+        clientFactory: () => client,
+        identityIssuer: async () => ({
+          envelope: receiver.envelope,
+          publicKey: receiver.publicKey,
+        }),
+      }),
+    );
+
+    act(() => channel.__emitStatus("SUBSCRIBED"));
+    await waitFor(() =>
+      expect(result.current.channelStatus).toBe("subscribed"),
+    );
+    act(() =>
+      channel.__emitBroadcast(
+        basePayload({ userId: "other", envelope: otherEnvelope }),
+      ),
+    );
+    await waitFor(() => expect(result.current.remoteCursors).toHaveLength(1));
+
+    vi.useFakeTimers();
+    act(() => channel.__emitStatus("CLOSED"));
+    expect(result.current.channelStatus).toBe("closed");
+    expect(result.current.remoteCursors).toHaveLength(0);
+    expect(channels).toHaveLength(1);
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(channels).toHaveLength(2);
   });
 });

@@ -375,14 +375,33 @@ async function acceptProjectInvitation(
   row: InvitationLookupRow,
   actorUserId: string,
   now: string,
+  tokenId: string | null,
 ) {
-  if (!row.project_id) return false;
+  if (!row.project_id) return null;
   const alreadyHasAccess = await hasProjectMembership(db, row.project_id, actorUserId);
-  await db
+  const statement = db
     .prepare(
       `
         INSERT INTO project_members (project_id, workspace_id, user_id, role, added_by, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        SELECT ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM collaboration_invitations AS current_invitation
+          WHERE current_invitation.id = ?
+            AND current_invitation.lifecycle_state = 'pending'
+            AND current_invitation.accepted_at IS NULL
+            AND current_invitation.revoked_at IS NULL
+            AND current_invitation.expires_at > ?
+            AND EXISTS (
+              SELECT 1
+              FROM collaboration_invitation_tokens AS current_token
+              WHERE current_token.invitation_id = current_invitation.id
+                AND current_token.used_at IS NULL
+                AND current_token.revoked_at IS NULL
+                AND current_token.expires_at > ?
+                AND (? IS NULL OR current_token.id = ?)
+            )
+        )
         ON CONFLICT(project_id, user_id) DO UPDATE SET
           role = CASE
             WHEN
@@ -405,9 +424,21 @@ async function acceptProjectInvitation(
           updated_at = excluded.updated_at
       `,
     )
-    .bind(row.project_id, row.workspace_id, actorUserId, row.role, row.invited_by, now, now)
-    .run();
-  return alreadyHasAccess;
+    .bind(
+      row.project_id,
+      row.workspace_id,
+      actorUserId,
+      row.role,
+      row.invited_by,
+      now,
+      now,
+      row.invitation_id,
+      now,
+      now,
+      tokenId,
+      tokenId,
+    );
+  return { alreadyHasAccess, statement };
 }
 
 async function acceptEstimateInvitation(
@@ -415,14 +446,33 @@ async function acceptEstimateInvitation(
   row: InvitationLookupRow,
   actorUserId: string,
   now: string,
+  tokenId: string | null,
 ) {
-  if (!row.estimate_id || !row.project_id) return false;
+  if (!row.estimate_id || !row.project_id) return null;
   const alreadyHasAccess = await hasEstimateMembership(db, row.estimate_id, actorUserId);
-  await db
+  const statement = db
     .prepare(
       `
         INSERT INTO estimate_sheet_members (estimate_id, project_id, user_id, role, added_by, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        SELECT ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM collaboration_invitations AS current_invitation
+          WHERE current_invitation.id = ?
+            AND current_invitation.lifecycle_state = 'pending'
+            AND current_invitation.accepted_at IS NULL
+            AND current_invitation.revoked_at IS NULL
+            AND current_invitation.expires_at > ?
+            AND EXISTS (
+              SELECT 1
+              FROM collaboration_invitation_tokens AS current_token
+              WHERE current_token.invitation_id = current_invitation.id
+                AND current_token.used_at IS NULL
+                AND current_token.revoked_at IS NULL
+                AND current_token.expires_at > ?
+                AND (? IS NULL OR current_token.id = ?)
+            )
+        )
         ON CONFLICT(estimate_id, user_id) DO UPDATE SET
           role = CASE
             WHEN
@@ -445,9 +495,21 @@ async function acceptEstimateInvitation(
           updated_at = excluded.updated_at
       `,
     )
-    .bind(row.estimate_id, row.project_id, actorUserId, row.role, row.invited_by, now, now)
-    .run();
-  return alreadyHasAccess;
+    .bind(
+      row.estimate_id,
+      row.project_id,
+      actorUserId,
+      row.role,
+      row.invited_by,
+      now,
+      now,
+      row.invitation_id,
+      now,
+      now,
+      tokenId,
+      tokenId,
+    );
+  return { alreadyHasAccess, statement };
 }
 
 async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAcceptanceInput): Promise<InvitationAcceptanceResponse> {
@@ -500,17 +562,23 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
     return { data: { state: "wrong_account", invited_email: row.invited_email }, error: null };
   }
 
-  let alreadyHasAccess = false;
+  let membership: { alreadyHasAccess: boolean; statement: D1PreparedStatementLike } | null;
   if (row.scope === "project") {
     if (!row.project_id) return { data: { state: "invalid" }, error: null };
-    alreadyHasAccess = await acceptProjectInvitation(db, row, input.actorUserId, now);
+    membership = await acceptProjectInvitation(db, row, input.actorUserId, now, row.token_id);
   } else if (row.scope === "estimate" && row.estimate_id) {
-    alreadyHasAccess = await acceptEstimateInvitation(db, row, input.actorUserId, now);
+    membership = await acceptEstimateInvitation(db, row, input.actorUserId, now, row.token_id);
   } else {
     return { data: { state: "invalid" }, error: null };
   }
+  if (!membership) return { data: { state: "invalid" }, error: null };
 
-  await runStatements(db, [
+  if (!db.batch) {
+    return { data: null, error: new Error("Cloudflare D1 batch support is required to accept collaboration invitations.") };
+  }
+
+  const results = await db.batch([
+    membership.statement,
     input.invitationTokenHash && row.token_id
       ? db
         .prepare(
@@ -518,9 +586,21 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
             UPDATE collaboration_invitation_tokens
             SET used_at = COALESCE(used_at, ?)
             WHERE id = ?
+              AND used_at IS NULL
+              AND revoked_at IS NULL
+              AND expires_at > ?
+              AND EXISTS (
+                SELECT 1
+                FROM collaboration_invitations AS current_invitation
+                WHERE current_invitation.id = collaboration_invitation_tokens.invitation_id
+                  AND current_invitation.lifecycle_state = 'pending'
+                  AND current_invitation.accepted_at IS NULL
+                  AND current_invitation.revoked_at IS NULL
+                  AND current_invitation.expires_at > ?
+              )
           `,
         )
-        .bind(now, row.token_id)
+        .bind(now, row.token_id, now, now)
       : db
         .prepare(
           `
@@ -529,9 +609,19 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
             WHERE invitation_id = ?
               AND used_at IS NULL
               AND revoked_at IS NULL
+              AND expires_at > ?
+              AND EXISTS (
+                SELECT 1
+                FROM collaboration_invitations AS current_invitation
+                WHERE current_invitation.id = collaboration_invitation_tokens.invitation_id
+                  AND current_invitation.lifecycle_state = 'pending'
+                  AND current_invitation.accepted_at IS NULL
+                  AND current_invitation.revoked_at IS NULL
+                  AND current_invitation.expires_at > ?
+              )
           `,
         )
-        .bind(now, row.invitation_id),
+        .bind(now, row.invitation_id, now, now),
     db
       .prepare(
         `
@@ -539,11 +629,22 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
           SET accepted_at = COALESCE(accepted_at, ?),
               invited_user_id = COALESCE(invited_user_id, ?),
               accepted_via = COALESCE(accepted_via, ?),
-              lifecycle_state = 'accepted_by_recipient'
+              lifecycle_state = 'accepted_by_recipient',
+              updated_at = ?
           WHERE id = ?
-        `,
-      )
-      .bind(now, input.actorUserId, input.via, row.invitation_id),
+            AND lifecycle_state = 'pending'
+            AND accepted_at IS NULL
+            AND revoked_at IS NULL
+            AND expires_at > ?
+            AND EXISTS (
+              SELECT 1
+              FROM collaboration_invitation_tokens AS consumed_token
+              WHERE consumed_token.invitation_id = collaboration_invitations.id
+                AND consumed_token.used_at = ?
+            )
+          `,
+        )
+      .bind(now, input.actorUserId, input.via, now, row.invitation_id, now, now),
     db
       .prepare(
         `
@@ -557,7 +658,23 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
             metadata_json,
             created_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?
+          WHERE EXISTS (
+            SELECT 1
+            FROM collaboration_invitations AS accepted_invitation
+            WHERE accepted_invitation.id = ?
+              AND accepted_invitation.lifecycle_state = 'accepted_by_recipient'
+              AND accepted_invitation.invited_user_id = ?
+              AND accepted_invitation.accepted_at = ?
+          )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM collaboration_audit_events AS existing_event
+              WHERE existing_event.invitation_id = ?
+                AND existing_event.actor_user_id = ?
+                AND existing_event.event_type = ?
+                AND existing_event.created_at = ?
+            )
         `,
       )
       .bind(
@@ -566,15 +683,32 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
         row.project_id,
         row.estimate_id,
         input.actorUserId,
-        alreadyHasAccess ? "collaboration_invite_already_member_confirmed" : "collaboration_invite_accepted",
+        membership.alreadyHasAccess ? "collaboration_invite_already_member_confirmed" : "collaboration_invite_accepted",
         JSON.stringify({ via: input.via }),
+        now,
+        row.invitation_id,
+        input.actorUserId,
+        now,
+        row.invitation_id,
+        input.actorUserId,
+        membership.alreadyHasAccess ? "collaboration_invite_already_member_confirmed" : "collaboration_invite_accepted",
         now,
       ),
   ]);
 
+  if ((results[2]?.meta?.changes ?? 0) !== 1) {
+    const latest = await readInvitationById(db, row.invitation_id);
+    if (!latest) return { data: { state: "invalid" }, error: null };
+    if (latest.token_revoked_at || latest.invitation_revoked_at || latest.lifecycle_state === "revoked") {
+      return { data: { state: "revoked" }, error: null };
+    }
+    const latestTerminalState = acceptedState(latest, input.actorUserId);
+    return { data: { state: latestTerminalState ?? "invalid" }, error: null };
+  }
+
   return {
     data: {
-      state: alreadyHasAccess ? "already_member" : "accepted",
+      state: membership.alreadyHasAccess ? "already_member" : "accepted",
       project_id: row.project_id,
       estimate_id: row.estimate_id,
     },

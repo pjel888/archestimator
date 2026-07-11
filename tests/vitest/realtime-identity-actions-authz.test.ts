@@ -13,8 +13,7 @@ const d1Mocks = vi.hoisted(() => ({
 }));
 
 const authzMocks = vi.hoisted(() => ({
-  canAccessEstimateInD1: vi.fn(),
-  canAccessProjectInD1: vi.fn(),
+  readCollaborationTopicAccessInD1: vi.fn(),
 }));
 
 const supportConversationMocks = vi.hoisted(() => ({
@@ -66,12 +65,11 @@ const signedEnvelope = {
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
-  vi.stubEnv("ARCHESTIMATOR_INVITE_TOKEN_PEPPER", "test-room-token-secret");
+  vi.stubEnv("REALTIME_ROOM_TOKEN_SECRET", "test-room-token-secret");
   authMocks.getCurrentUserContext.mockResolvedValue(userContext);
   termsAcceptanceMocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({ requiresAcceptance: false });
   d1Mocks.getCloudflareD1Database.mockResolvedValue(fakeDatabase);
-  authzMocks.canAccessProjectInD1.mockResolvedValue(true);
-  authzMocks.canAccessEstimateInD1.mockResolvedValue(true);
+  authzMocks.readCollaborationTopicAccessInD1.mockResolvedValue({ role: "editor" });
   supportConversationMocks.canAccessSupportConversationInD1.mockResolvedValue(true);
   realtimeServerMocks.issueRealtimeIdentityEnvelope.mockResolvedValue({
     envelope: signedEnvelope,
@@ -99,23 +97,26 @@ describe("issueRealtimeIdentity object authorization", () => {
       displayName: userContext.displayName,
     });
     expect(result?.roomToken).toEqual(expect.any(String));
-    expect(authzMocks.canAccessProjectInD1).toHaveBeenCalledWith(
+    expect(authzMocks.readCollaborationTopicAccessInD1).toHaveBeenCalledWith(
       fakeDatabase,
-      "33333333-3333-4333-8333-333333333333",
+      { kind: "project", resourceId: "33333333-3333-4333-8333-333333333333" },
       userContext,
     );
+    expect(realtimeServerMocks.issueRealtimeIdentityEnvelope).toHaveBeenCalledWith(expect.objectContaining({ role: "editor" }));
     await expect(verifyRealtimeRoomToken({
       expectedTopic: "project:33333333-3333-4333-8333-333333333333",
       secret: "test-room-token-secret",
       token: result?.roomToken ?? "",
     })).resolves.toMatchObject({
+      v: 2,
       sub: userContext.userId,
       topic: "project:33333333-3333-4333-8333-333333333333",
+      capabilities: expect.arrayContaining(["presence:read", "presence:write", "broadcast:cursor"]),
     });
   });
 
   it("does not sign a project topic when the caller lacks project access", async () => {
-    authzMocks.canAccessProjectInD1.mockResolvedValueOnce(false);
+    authzMocks.readCollaborationTopicAccessInD1.mockResolvedValueOnce(null);
     const { issueRealtimeIdentity } = await import("@/lib/collaboration/realtime-identity-actions");
 
     const result = await issueRealtimeIdentity({
@@ -123,16 +124,16 @@ describe("issueRealtimeIdentity object authorization", () => {
     });
 
     expect(result).toBeNull();
-    expect(authzMocks.canAccessProjectInD1).toHaveBeenCalledWith(
+    expect(authzMocks.readCollaborationTopicAccessInD1).toHaveBeenCalledWith(
       fakeDatabase,
-      "33333333-3333-4333-8333-333333333333",
+      { kind: "project", resourceId: "33333333-3333-4333-8333-333333333333" },
       userContext,
     );
     expect(realtimeServerMocks.issueRealtimeIdentityEnvelope).not.toHaveBeenCalled();
   });
 
   it("does not sign an estimate topic when the caller lacks estimate access", async () => {
-    authzMocks.canAccessEstimateInD1.mockResolvedValueOnce(false);
+    authzMocks.readCollaborationTopicAccessInD1.mockResolvedValueOnce(null);
     const { issueRealtimeIdentity } = await import("@/lib/collaboration/realtime-identity-actions");
 
     const result = await issueRealtimeIdentity({
@@ -140,9 +141,9 @@ describe("issueRealtimeIdentity object authorization", () => {
     });
 
     expect(result).toBeNull();
-    expect(authzMocks.canAccessEstimateInD1).toHaveBeenCalledWith(
+    expect(authzMocks.readCollaborationTopicAccessInD1).toHaveBeenCalledWith(
       fakeDatabase,
-      "44444444-4444-4444-8444-444444444444",
+      { kind: "estimate", resourceId: "44444444-4444-4444-8444-444444444444" },
       userContext,
     );
     expect(realtimeServerMocks.issueRealtimeIdentityEnvelope).not.toHaveBeenCalled();
@@ -157,7 +158,7 @@ describe("issueRealtimeIdentity object authorization", () => {
     });
 
     expect(result).toBeNull();
-    expect(authzMocks.canAccessProjectInD1).not.toHaveBeenCalled();
+    expect(authzMocks.readCollaborationTopicAccessInD1).not.toHaveBeenCalled();
     expect(realtimeServerMocks.issueRealtimeIdentityEnvelope).not.toHaveBeenCalled();
   });
 

@@ -79,6 +79,7 @@ class FakeD1Statement {
 
   async run() {
     const normalizedSql = this.sql.toLowerCase();
+    let changes = 1;
     if (normalizedSql.includes("set lifecycle_state = 'expired'")) {
       const [now] = this.values.map(String);
       for (const invitation of this.database.invitations.values()) {
@@ -101,15 +102,21 @@ class FakeD1Statement {
       if (invitation) invitation.last_opened_at = now;
     } else if (normalizedSql.includes("insert into project_members")) {
       const [projectId, workspaceId, userId, role, addedBy, createdAt, updatedAt] = this.values.map((value) => value === null ? null : String(value));
-      this.database.projectMembers.set(`${projectId}:${userId}`, {
-        added_by: addedBy,
-        created_at: createdAt,
-        project_id: projectId,
-        role,
-        updated_at: updatedAt,
-        user_id: userId,
-        workspace_id: workspaceId,
-      });
+      const invitationId = normalizedSql.includes("current_invitation") ? String(this.values[7]) : null;
+      const invitation = invitationId ? this.database.invitations.get(invitationId) : null;
+      if (invitation && (invitation.lifecycle_state !== "pending" || invitation.revoked_at)) {
+        changes = 0;
+      } else {
+        this.database.projectMembers.set(`${projectId}:${userId}`, {
+          added_by: addedBy,
+          created_at: createdAt,
+          project_id: projectId,
+          role,
+          updated_at: updatedAt,
+          user_id: userId,
+          workspace_id: workspaceId,
+        });
+      }
     } else if (normalizedSql.includes("insert into estimate_sheet_members")) {
       const [estimateId, projectId, userId, role, addedBy, createdAt, updatedAt] = this.values.map((value) => value === null ? null : String(value));
       this.database.estimateMembers.set(`${estimateId}:${userId}`, {
@@ -130,13 +137,15 @@ class FakeD1Statement {
         if (matchesTarget && !token.used_at) token.used_at = now;
       }
     } else if (normalizedSql.includes("update collaboration_invitations") && normalizedSql.includes("set accepted_at")) {
-      const [now, userId, via, invitationId] = this.values.map(String);
+      const [now, userId, via, _updatedAt, invitationId] = this.values.map(String);
       const invitation = this.database.invitations.get(invitationId);
-      if (invitation) {
+      if (invitation && invitation.lifecycle_state === "pending" && !invitation.revoked_at) {
         invitation.accepted_at ??= now;
         invitation.invited_user_id ??= userId;
         invitation.accepted_via ??= via;
         invitation.lifecycle_state = "accepted_by_recipient";
+      } else {
+        changes = 0;
       }
     } else if (normalizedSql.includes("insert into collaboration_audit_events")) {
       const literalEventType = normalizedSql.includes("collaboration_invite_opened")
@@ -145,12 +154,13 @@ class FakeD1Statement {
       this.database.auditEvents.push(literalEventType ? [...this.values, literalEventType] : [...this.values]);
     }
 
-    return { success: true, meta: { changes: 1 } };
+    return { success: true, meta: { changes } };
   }
 }
 
 class FakeD1Database {
   auditEvents: unknown[][] = [];
+  beforeBatch: (() => void) | null = null;
   estimateMembers = new Map<string, Record<string, unknown>>();
   invitations = new Map<string, StoredInvitation>();
   profiles = new Map<string, { display_name: string | null; email: string }>();
@@ -161,6 +171,12 @@ class FakeD1Database {
 
   prepare(sql: string) {
     return new FakeD1Statement(this, sql);
+  }
+
+  async batch(statements: FakeD1Statement[]) {
+    this.beforeBatch?.();
+    this.beforeBatch = null;
+    return Promise.all(statements.map((statement) => statement.run()));
   }
 
   findTokenByHash(tokenHash: string) {
@@ -285,6 +301,15 @@ describe("Cloudflare D1 collaboration invitation store", () => {
     expect(database.auditEvents.some((event) => event.includes("collaboration_invite_accepted"))).toBe(true);
   });
 
+  it("batches membership, token consumption, invitation transition, and audit on acceptance", () => {
+    const source = readFileSync("src/lib/collaboration/invitation-d1-store.ts", "utf8");
+    const acceptance = source.match(/async function acceptInvitationInD1[\s\S]*?\n}\n\nexport function acceptCollaborationInvitationTokenInD1/)?.[0];
+
+    expect(acceptance).toContain("if (!db.batch)");
+    expect(acceptance).toContain("await db.batch([\n    membership.statement,");
+    expect(acceptance).toContain("collaboration_invite_accepted");
+  });
+
   it("denies wrong-account acceptance without creating membership", async () => {
     const database = createDatabase();
 
@@ -305,6 +330,31 @@ describe("Cloudflare D1 collaboration invitation store", () => {
 
     expect(database.projectMembers.has("project-alpha:other-user")).toBe(false);
     expect(database.auditEvents.some((event) => event.includes("collaboration_invite_wrong_account"))).toBe(true);
+  });
+
+  it("does not grant membership when a revoke wins after lookup but before the acceptance batch", async () => {
+    const database = createDatabase();
+    database.beforeBatch = () => {
+      const invitation = database.invitations.get("invitation-alpha");
+      if (invitation) {
+        invitation.lifecycle_state = "revoked";
+        invitation.revoked_at = NOW;
+      }
+      const token = database.tokens.get("token-alpha");
+      if (token) token.revoked_at = NOW;
+    };
+
+    await expect(
+      acceptCollaborationInvitationTokenInD1(database, {
+        actorEmail: "invitee@example.test",
+        actorUserId: "invitee-user",
+        invitationTokenHash: "hash-alpha",
+        now: NOW,
+      }),
+    ).resolves.toEqual({ data: { state: "revoked" }, error: null });
+
+    expect(database.projectMembers.has("project-alpha:invitee-user")).toBe(false);
+    expect(database.invitations.get("invitation-alpha")?.lifecycle_state).toBe("revoked");
   });
 
   it("keeps invite entry and acceptance runtime off Supabase", () => {

@@ -34,6 +34,7 @@ function createRoom(sockets: FakeSocket[], env: Record<string, unknown> = {}) {
   const ctx = {
     acceptWebSocket: vi.fn(),
     getWebSockets: vi.fn(() => sockets),
+    storage: { setAlarm: vi.fn().mockResolvedValue(undefined) },
   };
   return { room: new CollaborationRoom(ctx, env), ctx };
 }
@@ -47,13 +48,24 @@ describe("CollaborationRoom authorization", () => {
     const peer = createSocket();
     const { room } = createRoom([sender, peer]);
 
-    await room.webSocketMessage(sender, JSON.stringify({
-      type: "broadcast",
-      event: "cursor",
-      payload: { x: 1 },
-    }));
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "broadcast",
+        event: "cursor",
+        payload: {
+          userId: "user-a",
+          x: 1,
+          y: 2,
+          envelope: { sub: "user-a", topic: roomName, sig: "signature" },
+        },
+      }),
+    );
 
-    expect(sender.__sent).toContainEqual({ type: "error", code: "auth_required" });
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "auth_required",
+    });
     expect(peer.__sent).toEqual([]);
   });
 
@@ -62,64 +74,137 @@ describe("CollaborationRoom authorization", () => {
     const peer = createSocket();
     const { room } = createRoom([sender, peer]);
 
-    await room.webSocketMessage(sender, JSON.stringify({
-      type: "presence-track",
-      payload: { userId: "attacker" },
-    }));
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "presence-track",
+        payload: { userId: "attacker" },
+      }),
+    );
 
-    expect(sender.__sent).toContainEqual({ type: "error", code: "auth_required" });
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "auth_required",
+    });
     expect(peer.__sent).toEqual([]);
-    expect(sender.__attachment).toBeUndefined();
+    expect(sender.__attachment).not.toMatchObject({
+      presence: expect.anything(),
+    });
   });
 
   it("authorizes a socket with a valid room token before broadcasting", async () => {
     const sender = createSocket();
     const peer = createSocket();
     sender.__attachment = { roomName };
-    peer.__attachment = { roomName, authorized: { v: 1, sub: "peer", topic: roomName, iat: 1, exp: 9999999999 } };
-    const { room } = createRoom([sender, peer], { REALTIME_ROOM_TOKEN_SECRET: secret });
+    peer.__attachment = {
+      roomName,
+      authorized: {
+        v: 2,
+        sub: "peer",
+        topic: roomName,
+        capabilities: ["presence:read"],
+        iat: 1,
+        exp: 9999999999,
+      },
+    };
+    const { room } = createRoom([sender, peer], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
     const token = await issueRealtimeRoomToken({
       secret,
       sub: "user-a",
       topic: roomName,
+      capabilities: ["broadcast:cursor", "presence:read", "presence:write"],
     });
 
-    await room.webSocketMessage(sender, JSON.stringify({ type: "authorize", token }));
-    await room.webSocketMessage(sender, JSON.stringify({
-      type: "broadcast",
-      event: "cursor",
-      payload: { x: 1 },
-    }));
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "authorize", token }),
+    );
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "broadcast",
+        event: "cursor",
+        payload: {
+          userId: "user-a",
+          x: 1,
+          y: 2,
+          envelope: { sub: "user-a", topic: roomName, sig: "signature" },
+        },
+      }),
+    );
 
-    expect(sender.__sent).toContainEqual({ type: "authorized" });
-    expect(peer.__sent).toContainEqual({
-      type: "broadcast",
-      event: "cursor",
-      payload: { x: 1 },
-    });
+    expect(sender.__sent).toContainEqual(
+      expect.objectContaining({ type: "authorized", sub: "user-a" }),
+    );
+    expect(peer.__sent).toContainEqual(
+      expect.objectContaining({
+        type: "broadcast",
+        event: "cursor",
+        payload: expect.objectContaining({ userId: "user-a", x: 1, y: 2 }),
+      }),
+    );
   });
 
   it("rejects a room token bound to a different topic", async () => {
     const sender = createSocket();
     const peer = createSocket();
     sender.__attachment = { roomName };
-    const { room } = createRoom([sender, peer], { REALTIME_ROOM_TOKEN_SECRET: secret });
+    const { room } = createRoom([sender, peer], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
     const token = await issueRealtimeRoomToken({
       secret,
       sub: "user-a",
       topic: "project:55555555-5555-4555-8555-555555555555",
     });
 
-    await room.webSocketMessage(sender, JSON.stringify({ type: "authorize", token }));
-    await room.webSocketMessage(sender, JSON.stringify({
-      type: "broadcast",
-      event: "cursor",
-      payload: { x: 1 },
-    }));
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "authorize", token }),
+    );
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "broadcast",
+        event: "cursor",
+        payload: { x: 1 },
+      }),
+    );
 
-    expect(sender.__sent).toContainEqual({ type: "error", code: "auth_failed" });
-    expect(sender.__sent).toContainEqual({ type: "error", code: "auth_required" });
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "auth_failed",
+    });
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "auth_required",
+    });
     expect(peer.__sent).toEqual([]);
+  });
+
+  it("rejects a legacy v1 room token even when its topic is valid", async () => {
+    const sender = createSocket();
+    sender.__attachment = { roomName };
+    const { room } = createRoom([sender], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
+    const token = await issueRealtimeRoomToken({
+      secret,
+      sub: "legacy-user",
+      topic: roomName,
+    });
+
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "authorize", token }),
+    );
+
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "unsupported_token_version",
+    });
   });
 
   it("does not send presence snapshots to unauthorized connected sockets", async () => {
@@ -127,15 +212,27 @@ describe("CollaborationRoom authorization", () => {
     const unauthorizedPeer = createSocket();
     sender.__attachment = {
       roomName,
-      authorized: { v: 1, sub: "user-a", topic: roomName, iat: 1, exp: 9999999999 },
+      authorized: {
+        v: 2,
+        sub: "user-a",
+        topic: roomName,
+        capabilities: ["presence:read", "presence:write"],
+        iat: 1,
+        exp: 9999999999,
+      },
     };
     unauthorizedPeer.__attachment = { roomName };
-    const { room } = createRoom([sender, unauthorizedPeer], { REALTIME_ROOM_TOKEN_SECRET: secret });
+    const { room } = createRoom([sender, unauthorizedPeer], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
 
-    await room.webSocketMessage(sender, JSON.stringify({
-      type: "presence-track",
-      payload: { userId: "user-a" },
-    }));
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "presence-track",
+        payload: { userId: "user-a" },
+      }),
+    );
 
     expect(sender.__sent).toContainEqual({
       type: "presence-state",
@@ -144,5 +241,255 @@ describe("CollaborationRoom authorization", () => {
       },
     });
     expect(unauthorizedPeer.__sent).toEqual([]);
+  });
+
+  it("denies a viewer cursor broadcast even with a valid scoped token", async () => {
+    const sender = createSocket();
+    const peer = createSocket();
+    sender.__attachment = { roomName };
+    const { room } = createRoom([sender, peer], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
+    const token = await issueRealtimeRoomToken({
+      secret,
+      sub: "viewer",
+      topic: roomName,
+      capabilities: ["presence:read", "presence:write"],
+    });
+
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "authorize", token }),
+    );
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "broadcast",
+        event: "cursor",
+        payload: {
+          userId: "viewer",
+          x: 1,
+          y: 2,
+          envelope: { sub: "viewer", topic: roomName, sig: "signature" },
+        },
+      }),
+    );
+
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "capability_denied",
+    });
+    expect(peer.__sent).toEqual([]);
+  });
+
+  it("rejects cursor coordinates and anchor fractions outside the bounded wire contract", async () => {
+    const sender = createSocket();
+    const peer = createSocket();
+    sender.__attachment = { roomName };
+    peer.__attachment = {
+      roomName,
+      authorized: {
+        v: 2,
+        sub: "peer",
+        topic: roomName,
+        capabilities: ["presence:read"],
+        iat: 1,
+        exp: 9999999999,
+      },
+    };
+    const { room } = createRoom([sender, peer], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
+    const token = await issueRealtimeRoomToken({
+      secret,
+      sub: "editor",
+      topic: roomName,
+      capabilities: ["broadcast:cursor"],
+    });
+
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "authorize", token }),
+    );
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "broadcast",
+        event: "cursor",
+        payload: {
+          x: 1_000_001,
+          y: 2,
+          envelope: { sub: "editor", topic: roomName, sig: "signature" },
+        },
+      }),
+    );
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({
+        type: "broadcast",
+        event: "cursor",
+        payload: {
+          x: 1,
+          y: 2,
+          fracX: -0.1,
+          envelope: { sub: "editor", topic: roomName, sig: "signature" },
+        },
+      }),
+    );
+
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "invalid_event_payload",
+    });
+    expect(peer.__sent).toEqual([]);
+  });
+
+  it("rejects unregistered broadcast events after authorization", async () => {
+    const sender = createSocket();
+    sender.__attachment = { roomName };
+    const { room } = createRoom([sender], {
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    });
+    const token = await issueRealtimeRoomToken({
+      secret,
+      sub: "editor",
+      topic: roomName,
+      capabilities: ["broadcast:cursor"],
+    });
+
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "authorize", token }),
+    );
+    await room.webSocketMessage(
+      sender,
+      JSON.stringify({ type: "broadcast", event: "arbitrary", payload: {} }),
+    );
+
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "unsupported_event",
+    });
+  });
+
+  it("closes a socket that misses its authorization deadline", async () => {
+    const socket = createSocket();
+    socket.__attachment = { roomName, authorizationDeadlineAt: Date.now() - 1 };
+    const { room } = createRoom([socket]);
+
+    await room.alarm();
+
+    expect(socket.__sent).toContainEqual({
+      type: "error",
+      code: "auth_timeout",
+    });
+    expect(socket.__closed).toContainEqual({
+      code: 4401,
+      reason: "authorization_timeout",
+    });
+  });
+
+  it("closes every matching session through the protected revoke-subject control", async () => {
+    const matching = createSocket();
+    const other = createSocket();
+    matching.__attachment = {
+      roomName,
+      authorized: {
+        v: 2,
+        sub: "member-1",
+        topic: roomName,
+        capabilities: ["presence:read"],
+        iat: 1,
+        exp: 9999999999,
+      },
+    };
+    other.__attachment = {
+      roomName,
+      authorized: {
+        v: 2,
+        sub: "member-2",
+        topic: roomName,
+        capabilities: ["presence:read"],
+        iat: 1,
+        exp: 9999999999,
+      },
+    };
+    const { room } = createRoom([matching, other], {
+      COLLABORATION_ROOM_CONTROL_SECRET: "control-secret",
+    });
+
+    const response = await room.fetch(
+      new Request(
+        `https://example.test/__cloudflare/collaboration-room/${roomName}`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-collaboration-room-control-secret": "control-secret",
+          },
+          body: JSON.stringify({ type: "revoke-subject", sub: "member-1" }),
+        },
+      ),
+    );
+
+    await expect(response.json()).resolves.toEqual({ ok: true, closed: 1 });
+    expect(matching.__sent).toContainEqual({ type: "revoked" });
+    expect(matching.__closed).toContainEqual({
+      code: 4403,
+      reason: "subject_revoked",
+    });
+    expect(other.__closed).toEqual([]);
+  });
+
+  it("rejects a room connection when its bounded capacity is full", async () => {
+    const sockets = Array.from({ length: 100 }, createSocket);
+    const { room } = createRoom(sockets);
+
+    const response = await room.fetch(
+      new Request(
+        `https://example.test/__cloudflare/collaboration-room/${roomName}`,
+        {
+          headers: { upgrade: "websocket" },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: "room_capacity_exceeded",
+    });
+  });
+
+  it("closes an abusive socket after its per-second frame allowance is exhausted", async () => {
+    const sender = createSocket();
+    sender.__attachment = {
+      roomName,
+      authorized: {
+        v: 2,
+        sub: "user-a",
+        topic: roomName,
+        capabilities: ["presence:read", "presence:write"],
+        iat: 1,
+        exp: 9999999999,
+      },
+    };
+    const { room } = createRoom([sender]);
+
+    for (let index = 0; index <= 30; index += 1) {
+      await room.webSocketMessage(
+        sender,
+        JSON.stringify({ type: "presence-track", payload: { index } }),
+      );
+    }
+
+    expect(sender.__sent).toContainEqual({
+      type: "error",
+      code: "rate_limited",
+    });
+    expect(sender.__closed).toContainEqual({
+      code: 4408,
+      reason: "rate_limited",
+    });
   });
 });

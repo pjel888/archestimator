@@ -3,14 +3,29 @@
 const COLLABORATION_ROOM_PATH_PREFIX = "/__cloudflare/collaboration-room/";
 const SUBSCRIBE_TIMEOUT_MS = 10_000;
 
-export type CollaborationRoomStatus = "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED";
+export type CollaborationRoomStatus =
+  "CONNECTED" | "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED";
 
 export type CollaborationRoomLike = {
   authorize(token: string): Promise<"ok" | "timed out"> | "ok" | "timed out";
-  on(type: "presence", filter: { event: "sync" }, callback: () => void): CollaborationRoomLike;
-  on(type: "broadcast", filter: { event: string }, callback: (message: { payload: unknown }) => void): CollaborationRoomLike;
-  subscribe(callback?: (status: CollaborationRoomStatus) => void): CollaborationRoomLike;
-  send(message: { type: "broadcast"; event: string; payload: unknown }): Promise<"ok" | "timed out"> | "ok" | "timed out";
+  on(
+    type: "presence",
+    filter: { event: "sync" },
+    callback: () => void,
+  ): CollaborationRoomLike;
+  on(
+    type: "broadcast",
+    filter: { event: string },
+    callback: (message: { payload: unknown }) => void,
+  ): CollaborationRoomLike;
+  subscribe(
+    callback?: (status: CollaborationRoomStatus) => void,
+  ): CollaborationRoomLike;
+  send(message: {
+    type: "broadcast";
+    event: string;
+    payload: unknown;
+  }): Promise<"ok" | "timed out"> | "ok" | "timed out";
   track(payload: unknown): Promise<"ok" | "timed out"> | "ok" | "timed out";
   untrack(): Promise<"ok" | "timed out"> | "ok" | "timed out";
   presenceState(): Record<string, unknown[]>;
@@ -25,8 +40,12 @@ export type CollaborationRoomClientLike = {
 type BroadcastListener = (message: { payload: unknown }) => void;
 
 function buildCollaborationRoomUrl(roomName: string) {
-  const base = typeof window === "undefined" ? "http://localhost" : window.location.href;
-  const url = new URL(`${COLLABORATION_ROOM_PATH_PREFIX}${encodeURIComponent(roomName)}`, base);
+  const base =
+    typeof window === "undefined" ? "http://localhost" : window.location.href;
+  const url = new URL(
+    `${COLLABORATION_ROOM_PATH_PREFIX}${encodeURIComponent(roomName)}`,
+    base,
+  );
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   return url.toString();
 }
@@ -35,7 +54,7 @@ function parseRoomMessage(raw: string) {
   try {
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;
@@ -49,25 +68,48 @@ function isOpen(socket: WebSocket | null) {
 class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
   private readonly url: string;
   private socket: WebSocket | null = null;
+  private authorized = false;
   private subscribeTimer: number | null = null;
+  private subscribeCallback:
+    ((status: CollaborationRoomStatus) => void) | undefined;
+  private terminalStatusReported = false;
+  private authorizationResolver: ((status: "ok" | "timed out") => void) | null =
+    null;
   private readonly presenceSyncListeners = new Set<() => void>();
-  private readonly broadcastListeners = new Map<string, Set<BroadcastListener>>();
+  private readonly broadcastListeners = new Map<
+    string,
+    Set<BroadcastListener>
+  >();
   private currentPresenceState: Record<string, unknown[]> = {};
 
   constructor(roomName: string) {
     this.url = buildCollaborationRoomUrl(roomName);
   }
 
-  on(type: "presence", filter: { event: "sync" }, callback: () => void): CollaborationRoomLike;
-  on(type: "broadcast", filter: { event: string }, callback: BroadcastListener): CollaborationRoomLike;
-  on(type: "presence" | "broadcast", filter: { event: string }, callback: (() => void) | BroadcastListener) {
+  on(
+    type: "presence",
+    filter: { event: "sync" },
+    callback: () => void,
+  ): CollaborationRoomLike;
+  on(
+    type: "broadcast",
+    filter: { event: string },
+    callback: BroadcastListener,
+  ): CollaborationRoomLike;
+  on(
+    type: "presence" | "broadcast",
+    filter: { event: string },
+    callback: (() => void) | BroadcastListener,
+  ) {
     if (type === "presence" && filter.event === "sync") {
       this.presenceSyncListeners.add(callback as () => void);
       return this;
     }
 
     if (type === "broadcast") {
-      const listeners = this.broadcastListeners.get(filter.event) ?? new Set<BroadcastListener>();
+      const listeners =
+        this.broadcastListeners.get(filter.event) ??
+        new Set<BroadcastListener>();
       listeners.add(callback as BroadcastListener);
       this.broadcastListeners.set(filter.event, listeners);
     }
@@ -78,27 +120,27 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
   subscribe(callback?: (status: CollaborationRoomStatus) => void) {
     if (this.socket) return this;
 
+    this.subscribeCallback = callback;
+    this.terminalStatusReported = false;
     const socket = new WebSocket(this.url);
     this.socket = socket;
     this.subscribeTimer = window.setTimeout(() => {
-      callback?.("TIMED_OUT");
+      this.reportTerminalStatus("TIMED_OUT");
+      socket.close();
     }, SUBSCRIBE_TIMEOUT_MS);
 
     socket.addEventListener("open", () => {
-      this.clearSubscribeTimer();
-      callback?.("SUBSCRIBED");
+      this.subscribeCallback?.("CONNECTED");
     });
     socket.addEventListener("message", (event) => {
       if (typeof event.data !== "string") return;
       this.receive(event.data);
     });
     socket.addEventListener("error", () => {
-      this.clearSubscribeTimer();
-      callback?.("CHANNEL_ERROR");
+      this.reportTerminalStatus("CHANNEL_ERROR");
     });
     socket.addEventListener("close", () => {
-      this.clearSubscribeTimer();
-      callback?.("CLOSED");
+      this.reportTerminalStatus("CLOSED");
     });
 
     return this;
@@ -109,7 +151,13 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
   }
 
   authorize(token: string) {
-    return this.sendRaw({ type: "authorize", token });
+    if (!isOpen(this.socket) || this.authorizationResolver || !this.socket)
+      return "timed out" as const;
+    const socket = this.socket;
+    socket.send(JSON.stringify({ type: "authorize", token }));
+    return new Promise<"ok" | "timed out">((resolve) => {
+      this.authorizationResolver = resolve;
+    });
   }
 
   track(payload: unknown) {
@@ -131,13 +179,16 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
     }
     this.socket?.close();
     this.socket = null;
+    this.authorized = false;
+    this.resolveAuthorization("timed out");
+    this.subscribeCallback = undefined;
     this.presenceSyncListeners.clear();
     this.broadcastListeners.clear();
     this.currentPresenceState = {};
   }
 
   private sendRaw(message: Record<string, unknown>) {
-    if (!isOpen(this.socket)) return "timed out" as const;
+    if (!isOpen(this.socket) || !this.authorized) return "timed out" as const;
     this.socket?.send(JSON.stringify(message));
     return "ok" as const;
   }
@@ -156,10 +207,31 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
     }
 
     if (message.type === "authorized") {
+      this.clearSubscribeTimer();
+      this.authorized = true;
+      this.resolveAuthorization("ok");
+      this.subscribeCallback?.("SUBSCRIBED");
       return;
     }
 
-    if (message.type === "presence-state" && message.state && typeof message.state === "object" && !Array.isArray(message.state)) {
+    if (message.type === "error") {
+      this.reportTerminalStatus("CHANNEL_ERROR");
+      return;
+    }
+
+    if (message.type === "revoked") {
+      const socket = this.socket;
+      this.reportTerminalStatus("CLOSED");
+      socket?.close();
+      return;
+    }
+
+    if (
+      message.type === "presence-state" &&
+      message.state &&
+      typeof message.state === "object" &&
+      !Array.isArray(message.state)
+    ) {
       this.currentPresenceState = message.state as Record<string, unknown[]>;
       for (const listener of this.presenceSyncListeners) {
         listener();
@@ -171,6 +243,26 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
     if (!this.subscribeTimer) return;
     window.clearTimeout(this.subscribeTimer);
     this.subscribeTimer = null;
+  }
+
+  private resolveAuthorization(status: "ok" | "timed out") {
+    const resolve = this.authorizationResolver;
+    this.authorizationResolver = null;
+    resolve?.(status);
+  }
+
+  private reportTerminalStatus(
+    status: Extract<
+      CollaborationRoomStatus,
+      "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED"
+    >,
+  ) {
+    if (this.terminalStatusReported) return;
+    this.terminalStatusReported = true;
+    this.clearSubscribeTimer();
+    this.authorized = false;
+    this.resolveAuthorization("timed out");
+    this.subscribeCallback?.(status);
   }
 }
 
