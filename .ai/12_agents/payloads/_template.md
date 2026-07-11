@@ -80,13 +80,13 @@ work.
 
 ## Validation Rules
 
-Use `.ai/00_system/VALIDATION_MATRIX.md`. Verification is required;
-`test_requirement` defaults to `NOT_REQUIRED`. Map explicit testing/QA output to
-`TEST_TASK`. Map `TARGETED` only to an MVP mission-critical claim that cheaper
-evidence cannot prove, or one existing focused test that is demonstrably the
-cheapest decisive proof. The existing-test trigger permits no test edits. Broad
-suites, builds, and browser proof require an explicit test task or integrated
-critical claim.
+Use `.ai/00_system/VALIDATION_MATRIX.md`. Verification is required; **tests are
+user-gated under the User Test Authorization Gate**, not automatic.
+`test_requirement` defaults to `NOT_REQUIRED`. `TEST_TASK` is the only decision
+that authorizes test execution and requires an explicit user request. `TARGETED`
+identifies an MVP mission-critical claim that would benefit from a test but
+authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait. Broad
+suites, builds, and browser proof require an explicit user request.
 
 ## Design-System Guidance
 

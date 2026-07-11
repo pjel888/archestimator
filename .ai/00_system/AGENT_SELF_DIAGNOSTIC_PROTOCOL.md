@@ -51,8 +51,9 @@ Do this before further planning or coding:
    - current package scripts and major dependencies;
    - active `wrangler.jsonc` bindings and current `./migrations/` list when data
      or provider facts matter;
-   - current evidence surfaces, and test files only when the test gate resolves
-     to `TARGETED`, `BROADER`, or `TEST_TASK`.
+   - current evidence surfaces, and test files only when the user has explicitly
+     authorized a testing task (`TEST_TASK` under the User Test Authorization
+     Gate); `TARGETED`/`BROADER` do not authorize running tests.
 4. State the task frame internally before acting:
    - goal;
    - non-goals;

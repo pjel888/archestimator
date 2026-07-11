@@ -62,13 +62,13 @@ chooses isolation or the risk/parallelism justifies it. Keep file scope disjoint
 
 ## Validation Rules
 
-Apply the shared `NOT_REQUIRED`-by-default test gate. Ordinary UI edits use
-decisive source, semantic, type/LSP, or design-lint evidence without creating or
-running tests. Map explicit testing output to `TEST_TASK`. Map `TARGETED` only
-to an MVP mission-critical interaction claim that cheaper evidence cannot prove,
-or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no
-test edits. Browser or broad gates require an explicit test task or integrated
-critical claim.
+Apply the **User Test Authorization Gate**: tests are user-gated, not automatic.
+Ordinary UI edits use decisive source, semantic, type/LSP, or design-lint
+evidence without creating or running tests. `TEST_TASK` is the only decision
+that authorizes test execution and requires an explicit user request. `TARGETED`
+identifies an MVP mission-critical interaction claim that would benefit from a
+test but authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait.
+Browser or broad gates require an explicit user request.
 
 ## Design-System Guidance
 

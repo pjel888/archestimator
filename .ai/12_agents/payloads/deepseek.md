@@ -63,13 +63,13 @@ large, risky, or parallel and the lead chooses it.
 
 ## Validation Rules
 
-Reproduce first where feasible. Apply the shared `NOT_REQUIRED`-by-default test
-gate: ordinary fixes use decisive reproduction, source, diff, or static evidence.
-Map explicit testing/QA output to `TEST_TASK`. Map `TARGETED` only to an MVP
-mission-critical claim that cheaper evidence cannot prove, or one existing
-focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no test edits. Broad
-suites or browser gates require an explicit test task or integrated critical
-claim.
+Reproduce first where feasible. Apply the **User Test Authorization Gate**: tests
+are user-gated, not automatic. Ordinary fixes use decisive reproduction, source,
+diff, or static evidence. `TEST_TASK` is the only decision that authorizes test
+execution and requires an explicit user request. `TARGETED` identifies an MVP
+mission-critical claim that would benefit from a test but authorizes
+**proposing it only** — record a `TEST_PROPOSAL` and wait. Broad suites or
+browser gates require an explicit user request.
 
 ## Design-System Guidance
 

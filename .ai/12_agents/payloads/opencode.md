@@ -69,12 +69,13 @@ chooses isolation or the risk/parallelism justifies it.
 
 ## Validation Rules
 
-Apply the shared `NOT_REQUIRED`-by-default test gate: ordinary edits use decisive
-non-test evidence. Map explicit testing output to `TEST_TASK`. Map `TARGETED`
-only to an MVP mission-critical claim that cheaper evidence cannot prove, or one
-existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no test edits.
-Broad or browser gates require an explicit test task or integrated critical
-claim. Docs-only changes use path checks and `git diff --check`. Config changes require the
+Apply the **User Test Authorization Gate**: tests are user-gated, not automatic.
+Ordinary edits use decisive non-test evidence. `TEST_TASK` is the only decision
+that authorizes test execution and requires an explicit user request. `TARGETED`
+identifies an MVP mission-critical claim that would benefit from a test but
+authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait. Broad or
+browser gates require an explicit user request. Docs-only changes use path
+checks and `git diff --check`. Config changes require the
 official/installed validation command for that tool plus repo checks. For
 OpenCode config changes, use the documented repo-root `opencode.json` for
 project configuration. Reserve `.opencode/` for intentionally authored OpenCode

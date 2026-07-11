@@ -53,16 +53,23 @@ fully proven.
 
 ### Verification and test decision
 
-Verification is required; tests default to `NOT_REQUIRED`. Use `TARGETED` only
-for an explicit testing request or a named MVP-critical invariant that cheaper
-evidence cannot prove. Use `BROADER` only when the integrated critical boundary
-cannot be covered by targeted evidence. Use `TEST_TASK` when tests/QA/coverage/
-reproduction are the deliverable. Record the decision before editing.
+**Tests are user-gated under the User Test Authorization Gate, not automatic.**
+Do not create, expand, repair, or run any automated test, test suite,
+build-as-test-gate, browser automation, or broad validation gate unless the
+user has explicitly requested testing for the current task. This is the supreme
+rule and overrides every `TARGETED`, `MVP-critical`, blast-radius, or
+"nearby tests exist" consideration. Record the decision before editing.
+
+- `NOT_REQUIRED` (default): cheapest decisive non-test evidence.
+- `TARGETED` / `BROADER`: identify a critical invariant that would benefit from
+  a test, but **authorize proposing it only, not running it** — record a
+  `TEST_PROPOSAL` (named risk + exact command) and wait.
+- `TEST_TASK`: the only execution trigger; requires an explicit user request.
 
 Ordinary docs, config, source, refactors, and cosmetic UI use the cheapest
 decisive source/diff/path/static/type/lint evidence and do not create or run
 tests. Browser automation, builds, full suites, Storybook, and provider drills
-require an explicit task or the exact critical claim they prove. See
+require explicit user authorization. See
 `.ai/00_system/VALIDATION_MATRIX.md`.
 
 ## Loop Surface Routing

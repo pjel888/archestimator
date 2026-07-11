@@ -72,13 +72,13 @@ authorized and proven safe.
 
 ## Validation Rules
 
-Verification is required; `test_requirement` defaults to `NOT_REQUIRED`. Use
-`TEST_TASK` for explicit testing/QA. Use `TARGETED` only for an MVP mission-
-critical claim that cheaper evidence cannot prove, or one existing focused test
-that is demonstrably the cheapest decisive proof. That last trigger permits no
-test edits. Broad
-suites, builds, and browser/manual gates require an explicit or integrated
-critical claim.
+Verification is required; **tests are user-gated under the User Test
+Authorization Gate**, not automatic. `test_requirement` defaults to
+`NOT_REQUIRED`. `TEST_TASK` is the only decision that authorizes test execution
+and requires an explicit user request. `TARGETED` identifies an MVP
+mission-critical claim that would benefit from a test but authorizes
+**proposing it only** — record a `TEST_PROPOSAL` and wait. Broad suites,
+builds, and browser/manual gates require an explicit user request.
 For Codex/OpenCode adapter changes, run `bun run validate:agents`; for Codex
 role/config changes also run `codex debug prompt-input` and verify zero stderr.
 

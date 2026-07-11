@@ -63,13 +63,14 @@ Lead owns integration.
 
 ## Validation Rules
 
-Follow the shared `NOT_REQUIRED`-by-default test gate in
-`.ai/00_system/VALIDATION_MATRIX.md`. Ordinary edits use decisive non-test
-evidence. Map explicit testing output to `TEST_TASK`. Map `TARGETED` only to an
-MVP mission-critical claim that cheaper evidence cannot prove, or one existing
-focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` with no test edits. Broad
-or browser gates require an explicit test task or integrated critical claim.
-Report results and unresolved failures.
+Follow the **User Test Authorization Gate** in
+`.ai/00_system/VALIDATION_MATRIX.md`: tests are user-gated, not automatic.
+Ordinary edits use decisive non-test evidence. `TEST_TASK` is the only decision
+that authorizes test execution and requires an explicit user request. `TARGETED`
+identifies an MVP mission-critical claim that would benefit from a test but
+authorizes **proposing it only** — record a `TEST_PROPOSAL` and wait. Broad or
+browser gates require an explicit user request. Report results and unresolved
+failures.
 
 ## Design-System Guidance
 
