@@ -49,7 +49,9 @@ Brief: add a public invitation or share flow. Expected: credential taxonomy,
 actor/resource/action matrix, raw/hash distinction, denial/replay/expiry/
 cross-recipient tests, server-only defaults, no unsupported client exposure.
 The security criteria use `test_requirement=TARGETED` and
-`test_trigger=MVP_CRITICAL_INVARIANT`.
+`test_trigger=MVP_CRITICAL_INVARIANT`; under the User Test Authorization Gate
+these authorize a `TEST_PROPOSAL` only and the tests run only if the user
+explicitly authorizes testing for this task.
 
 ### EVAL-04 - D1 Migration And Backfill
 
@@ -247,11 +249,12 @@ last, avoid legacy-count parity or placeholders, and do not inflate readiness.
 A bounded ordinary source edit has nearby tests but no auth, data-integrity,
 financial, release, or critical shared-contract risk. Expected:
 compare the cheapest decisive evidence. Use `test_requirement=NOT_REQUIRED` and
-`test_trigger=NONE` when source/diff/static evidence is sufficient. Use
-`test_requirement=TARGETED` and
-`test_trigger=CHEAPEST_DECISIVE_EXISTING_TEST` only when one exact existing test
-is cheaper and more decisive; do not create, expand, or repair test code, and do
-not claim any unrun test passed.
+`test_trigger=NONE` when source/diff/static evidence is sufficient. Under the
+User Test Authorization Gate, even if one exact existing test is cheaper and
+more decisive, record `test_requirement=TARGETED` and
+`test_trigger=CHEAPEST_DECISIVE_EXISTING_TEST` as a `TEST_PROPOSAL` and do not
+run it without explicit user authorization; do not create, expand, or repair
+test code, and do not claim any unrun test passed.
 
 ### EVAL-33 - Explicit Testing Task
 
