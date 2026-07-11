@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { createCorporateAccountAction } from "@/lib/admin/corporate-account-actions";
 import { Button } from "@/components/ui/button";
 
 export function AdminCreateAccountForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -20,6 +22,7 @@ export function AdminCreateAccountForm() {
         setNotice(`Account "${name}" created.`);
         setName("");
         setDescription("");
+        router.refresh();
       } else {
         setNotice(result.error);
       }

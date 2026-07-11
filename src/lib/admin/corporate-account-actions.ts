@@ -140,13 +140,55 @@ export async function linkWorkspaceAction(input: {
   const result = await linkWorkspaceToCorporateAccount(input.workspaceId, input.accountId);
   if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
 
+  // If the workspace was moved from a different account, audit the unliking too.
+  const previousAccountId = result.data?.previousAccountId;
+  if (previousAccountId && previousAccountId !== input.accountId) {
+    await writeAdminAuditEvent({
+      actorUserId: admin.userId,
+      actorEmail: admin.email,
+      action: "corporate_account.workspace_unlinked",
+      targetType: "corporate_account",
+      targetId: previousAccountId,
+      summary: { workspaceId: input.workspaceId, reason: "moved_to_another_account" },
+    });
+  }
+
   await writeAdminAuditEvent({
     actorUserId: admin.userId,
     actorEmail: admin.email,
     action: "corporate_account.workspace_linked",
     targetType: "corporate_account",
     targetId: input.accountId,
-    summary: { workspaceId: input.workspaceId },
+    summary: { workspaceId: input.workspaceId, movedFrom: previousAccountId },
+  });
+
+  revalidatePath("/admin/accounts");
+  return { ok: true };
+}
+
+export async function updateCorporateAccountStatusAction(input: {
+  accountId: string;
+  status: string;
+}): Promise<CorporateActionResult> {
+  const admin = await requireAdminContext();
+  if (!UUID_PATTERN.test(input.accountId)) {
+    return { ok: false, error: "Invalid account ID." };
+  }
+  if (!["active", "suspended", "archived"].includes(input.status)) {
+    return { ok: false, error: "Invalid status." };
+  }
+
+  const { updateCorporateAccountStatus } = await import("@/lib/admin/corporate-account-repository");
+  const result = await updateCorporateAccountStatus(input.accountId, input.status);
+  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
+
+  await writeAdminAuditEvent({
+    actorUserId: admin.userId,
+    actorEmail: admin.email,
+    action: "corporate_account.status_updated",
+    targetType: "corporate_account",
+    targetId: input.accountId,
+    summary: { status: input.status },
   });
 
   revalidatePath("/admin/accounts");

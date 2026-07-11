@@ -1,14 +1,12 @@
 import Link from "next/link";
 
-import type { CorporateAccountRow } from "@/lib/admin/corporate-account-repository";
+import type { CorporateAccountWithCountRow } from "@/lib/admin/corporate-account-repository";
 import { Badge } from "@/components/ui/badge";
 
 export function AdminAccountsList({
   accounts,
-  memberCountMap,
 }: {
-  accounts: CorporateAccountRow[];
-  memberCountMap: Map<string, number>;
+  accounts: CorporateAccountWithCountRow[];
 }) {
   if (accounts.length === 0) {
     return (
@@ -26,6 +24,7 @@ export function AdminAccountsList({
             <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Name</th>
             <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Status</th>
             <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Members</th>
+            <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Workspaces</th>
             <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Created</th>
           </tr>
         </thead>
@@ -46,7 +45,10 @@ export function AdminAccountsList({
                 </Badge>
               </td>
               <td className="px-2 py-1 text-[10px] text-tertiary">
-                {memberCountMap.get(account.id) ?? 0}
+                {account.member_count}
+              </td>
+              <td className="px-2 py-1 text-[10px] text-tertiary">
+                {account.workspace_count}
               </td>
               <td className="px-2 py-1 text-[9px] leading-3 text-tertiary">
                 {new Date(account.created_at).toLocaleDateString()}

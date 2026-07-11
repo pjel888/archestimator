@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AdminAccountMembers } from "@/components/admin/AdminAccountMembers";
+import { AdminAccountStatusControls } from "@/components/admin/AdminAccountStatusControls";
 import { AdminAccountWorkspaces } from "@/components/admin/AdminAccountWorkspaces";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   getCorporateAccount,
@@ -51,10 +51,12 @@ export default async function AdminAccountDetailPage({
         {account.description && (
           <p className="text-[10px] leading-4 text-tertiary">{account.description}</p>
         )}
-        <div className="mt-1 flex gap-1">
-          <Badge tone={account.status === "active" ? "success" : "warning"} size="xs" className="min-w-0 px-1">
-            {account.status}
-          </Badge>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <AdminAccountStatusControls
+            accountId={account.id}
+            status={account.status}
+            accountName={account.name}
+          />
           <span className="text-[9px] leading-3 text-tertiary">
             Created {new Date(account.created_at).toLocaleDateString()}
           </span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import {
@@ -22,6 +23,7 @@ export function AdminAccountMembers({
   members: CorporateAccountMemberRow[];
   assignableUsers: { id: string; email: string; display_name: string | null; account_status: string }[];
 }) {
+  const router = useRouter();
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedRole, setSelectedRole] = useState("member");
   const [notice, setNotice] = useState<string | null>(null);
@@ -41,7 +43,10 @@ export function AdminAccountMembers({
         role: selectedRole,
       });
       setNotice(result.ok ? "Member added." : result.error);
-      if (result.ok) setSelectedUserId("");
+      if (result.ok) {
+        setSelectedUserId("");
+        router.refresh();
+      }
     });
   }
 
@@ -50,6 +55,7 @@ export function AdminAccountMembers({
     startTransition(async () => {
       const result = await updateMemberRoleAction({ accountId, userId, role });
       setNotice(result.ok ? "Role updated." : result.error);
+      if (result.ok) router.refresh();
     });
   }
 
@@ -58,6 +64,7 @@ export function AdminAccountMembers({
     startTransition(async () => {
       const result = await removeUserFromCorporateAccountAction({ accountId, userId });
       setNotice(result.ok ? "Member removed." : result.error);
+      if (result.ok) router.refresh();
     });
   }
 

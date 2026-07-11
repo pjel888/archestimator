@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import {
@@ -18,6 +19,7 @@ export function AdminAccountWorkspaces({
   workspaces: WorkspaceSummaryRow[];
   linkableWorkspaces: WorkspaceSummaryRow[];
 }) {
+  const router = useRouter();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -32,7 +34,10 @@ export function AdminAccountWorkspaces({
     startTransition(async () => {
       const result = await linkWorkspaceAction({ workspaceId: selectedWorkspaceId, accountId });
       setNotice(result.ok ? "Workspace linked." : result.error);
-      if (result.ok) setSelectedWorkspaceId("");
+      if (result.ok) {
+        setSelectedWorkspaceId("");
+        router.refresh();
+      }
     });
   }
 
@@ -41,6 +46,7 @@ export function AdminAccountWorkspaces({
     startTransition(async () => {
       const result = await unlinkWorkspaceAction({ workspaceId });
       setNotice(result.ok ? "Workspace unlinked." : result.error);
+      if (result.ok) router.refresh();
     });
   }
 
