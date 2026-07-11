@@ -107,7 +107,7 @@ export default async function AdminUserDetailPage({
 
       <Card className="p-2">
         <h2 className="text-[11px] font-medium leading-4 text-ink">
-          Corporate accounts
+          Corporate membership
           <span className="ml-2 text-[9px] font-normal text-tertiary">
             {(corporateResult.data ?? []).length} account{(corporateResult.data ?? []).length === 1 ? "" : "s"}
           </span>

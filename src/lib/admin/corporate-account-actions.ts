@@ -8,7 +8,7 @@ import {
   addCorporateAccountMember,
   createCorporateAccount,
   isValidRole,
-  linkWorkspaceToCorporateAccount,
+  linkWorkspaceToCorporateAccountWithAudit,
   removeCorporateAccountMember,
   unlinkWorkspaceFromCorporateAccount,
   updateCorporateAccountMemberRole,
@@ -137,30 +137,13 @@ export async function linkWorkspaceAction(input: {
     return { ok: false, error: "Invalid ID." };
   }
 
-  const result = await linkWorkspaceToCorporateAccount(input.workspaceId, input.accountId);
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
-
-  // If the workspace was moved from a different account, audit the unliking too.
-  const previousAccountId = result.data?.previousAccountId;
-  if (previousAccountId && previousAccountId !== input.accountId) {
-    await writeAdminAuditEvent({
-      actorUserId: admin.userId,
-      actorEmail: admin.email,
-      action: "corporate_account.workspace_unlinked",
-      targetType: "corporate_account",
-      targetId: previousAccountId,
-      summary: { workspaceId: input.workspaceId, reason: "moved_to_another_account" },
-    });
-  }
-
-  await writeAdminAuditEvent({
+  const result = await linkWorkspaceToCorporateAccountWithAudit({
+    workspaceId: input.workspaceId,
+    accountId: input.accountId,
     actorUserId: admin.userId,
     actorEmail: admin.email,
-    action: "corporate_account.workspace_linked",
-    targetType: "corporate_account",
-    targetId: input.accountId,
-    summary: { workspaceId: input.workspaceId, movedFrom: previousAccountId },
   });
+  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
 
   revalidatePath("/admin/accounts");
   return { ok: true };

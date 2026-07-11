@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { UserMinus } from "@phosphor-icons/react/dist/ssr";
 
 import {
   assignUserToCorporateAccountAction,
@@ -153,7 +154,7 @@ export function AdminAccountMembers({
                     aria-label={`Remove ${member.email}`}
                     title="Remove"
                   >
-                    ⊘
+                    <UserMinus aria-hidden size={13} />
                   </Button>
                 </td>
               </tr>

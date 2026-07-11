@@ -2,12 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { LinkBreak } from "@phosphor-icons/react/dist/ssr";
 
 import {
   linkWorkspaceAction,
   unlinkWorkspaceAction,
 } from "@/lib/admin/corporate-account-actions";
-import type { WorkspaceSummaryRow } from "@/lib/admin/corporate-account-repository";
+import type {
+  WorkspaceLinkCandidateRow,
+  WorkspaceSummaryRow,
+} from "@/lib/admin/corporate-account-repository";
 import { Button } from "@/components/ui/button";
 
 export function AdminAccountWorkspaces({
@@ -17,7 +21,7 @@ export function AdminAccountWorkspaces({
 }: {
   accountId: string;
   workspaces: WorkspaceSummaryRow[];
-  linkableWorkspaces: WorkspaceSummaryRow[];
+  linkableWorkspaces: WorkspaceLinkCandidateRow[];
 }) {
   const router = useRouter();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
@@ -64,7 +68,11 @@ export function AdminAccountWorkspaces({
             >
               <option value="">Select a workspace…</option>
               {available.map((ws) => (
-                <option key={ws.id} value={ws.id}>{ws.name}</option>
+                <option key={ws.id} value={ws.id}>
+                  {ws.name} - {ws.corporate_account_id
+                    ? `Move from ${ws.corporate_account_name ?? "another account"}`
+                    : "No corporate account"}
+                </option>
               ))}
             </select>
           </label>
@@ -106,7 +114,7 @@ export function AdminAccountWorkspaces({
                     aria-label={`Unlink ${ws.name}`}
                     title="Unlink"
                   >
-                    ✕
+                    <LinkBreak aria-hidden size={13} />
                   </Button>
                 </td>
               </tr>

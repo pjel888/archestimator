@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { emitLogRecord } from "@/lib/observability/logger";
 
 export type CorporateAccountRow = {
@@ -31,9 +31,21 @@ export type WorkspaceSummaryRow = {
   created_at: string;
 };
 
+export type WorkspaceLinkCandidateRow = WorkspaceSummaryRow & {
+  corporate_account_id: string | null;
+  corporate_account_name: string | null;
+};
+
 export type UserCorporateAccountRow = CorporateAccountRow & {
   role: string;
   job_title: string | null;
+};
+
+export type CorporateAccountReadOnlyView = {
+  account: CorporateAccountRow;
+  memberRole: "owner" | "team_leader";
+  members: CorporateAccountMemberRow[];
+  workspaces: WorkspaceSummaryRow[];
 };
 
 export type CorporateAccountResult<T> = {
@@ -75,17 +87,26 @@ export type CorporateAccountWithCountRow = CorporateAccountRow & {
   workspace_count: number;
 };
 
+export type ListCorporateAccountsWithCountsOptions = {
+  status?: "active" | "suspended" | "archived";
+};
+
 /**
  * Lists corporate accounts with member and workspace counts in a single
  * query (avoids N+1). Uses LEFT JOIN + GROUP BY for efficiency.
  */
-export async function listCorporateAccountsWithCounts(): Promise<
+export async function listCorporateAccountsWithCounts(
+  options: ListCorporateAccountsWithCountsOptions = {},
+): Promise<
   CorporateAccountResult<CorporateAccountWithCountRow[]>
 > {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
 
+    const statusClause = options.status === "archived"
+      ? "WHERE a.status = 'archived'"
+      : "WHERE a.status != 'archived'";
     const result = await db
       .prepare<CorporateAccountWithCountRow>(
         `SELECT a.id, a.name, a.description, a.status, a.created_by,
@@ -95,7 +116,7 @@ export async function listCorporateAccountsWithCounts(): Promise<
          FROM corporate_accounts a
          LEFT JOIN corporate_account_members m ON m.corporate_account_id = a.id
          LEFT JOIN workspaces w ON w.corporate_account_id = a.id
-         WHERE a.status != 'archived'
+         ${statusClause}
          GROUP BY a.id
          ORDER BY a.created_at DESC`,
       )
@@ -238,6 +259,128 @@ export async function listUserCorporateAccounts(
   }
 }
 
+type CorporateAccountReadOnlyAccountRow = CorporateAccountRow & {
+  member_role: "owner" | "team_leader";
+};
+
+type CorporateAccountMemberWithAccountIdRow = CorporateAccountMemberRow & {
+  corporate_account_id: string;
+};
+
+type WorkspaceWithCorporateAccountIdRow = WorkspaceSummaryRow & {
+  corporate_account_id: string;
+};
+
+/**
+ * Reads organization details only for account owners and team leaders. The
+ * eligibility predicate is repeated in each query so returned members and
+ * workspaces cannot be widened by a caller-supplied account id.
+ */
+export async function listCorporateAccountReadOnlyViewsForMember(
+  userId: string,
+): Promise<CorporateAccountResult<CorporateAccountReadOnlyView[]>> {
+  try {
+    const db = await getCloudflareD1Database();
+    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+
+    return await listCorporateAccountReadOnlyViewsInD1(db, userId);
+  } catch (error) {
+    logFailure(error, "corporate_account_read_only_views_failed");
+    return { data: [], error: "Organization accounts could not be read." };
+  }
+}
+
+export async function listCorporateAccountReadOnlyViewsInD1(
+  db: D1DatabaseLike,
+  userId: string,
+): Promise<CorporateAccountResult<CorporateAccountReadOnlyView[]>> {
+  const accountsResult = await db
+    .prepare<CorporateAccountReadOnlyAccountRow>(
+      `SELECT a.id, a.name, a.description, a.status, a.created_by,
+              a.created_at, a.updated_at, m.role AS member_role
+       FROM corporate_account_members m
+       JOIN corporate_accounts a ON a.id = m.corporate_account_id
+       WHERE m.user_id = ?
+         AND m.role IN ('owner', 'team_leader')
+         AND a.status != 'archived'
+       ORDER BY a.name ASC`,
+    )
+    .bind(userId)
+    .all<CorporateAccountReadOnlyAccountRow>();
+  const accounts = accountsResult.results ?? [];
+  if (accounts.length === 0) return { data: [], error: null };
+
+  const membersResult = await db
+    .prepare<CorporateAccountMemberWithAccountIdRow>(
+      `SELECT m.corporate_account_id, m.user_id, p.email, p.display_name,
+              p.avatar_url, m.role, m.job_title, m.created_at
+       FROM corporate_account_members m
+       LEFT JOIN profiles p ON p.id = m.user_id
+       WHERE EXISTS (
+         SELECT 1
+         FROM corporate_account_members eligible
+         JOIN corporate_accounts a ON a.id = eligible.corporate_account_id
+         WHERE eligible.corporate_account_id = m.corporate_account_id
+           AND eligible.user_id = ?
+           AND eligible.role IN ('owner', 'team_leader')
+           AND a.status != 'archived'
+       )
+       ORDER BY m.corporate_account_id,
+         CASE m.role
+           WHEN 'owner' THEN 0
+           WHEN 'team_leader' THEN 1
+           WHEN 'member' THEN 2
+           WHEN 'viewer' THEN 3
+           ELSE 4
+         END,
+         p.email ASC`,
+    )
+    .bind(userId)
+    .all<CorporateAccountMemberWithAccountIdRow>();
+
+  const workspacesResult = await db
+    .prepare<WorkspaceWithCorporateAccountIdRow>(
+      `SELECT w.corporate_account_id, w.id, w.name, w.slug, w.created_by, w.created_at
+       FROM workspaces w
+       WHERE EXISTS (
+         SELECT 1
+         FROM corporate_account_members eligible
+         JOIN corporate_accounts a ON a.id = eligible.corporate_account_id
+         WHERE eligible.corporate_account_id = w.corporate_account_id
+           AND eligible.user_id = ?
+           AND eligible.role IN ('owner', 'team_leader')
+           AND a.status != 'archived'
+       )
+       ORDER BY w.corporate_account_id, w.name ASC`,
+    )
+    .bind(userId)
+    .all<WorkspaceWithCorporateAccountIdRow>();
+
+  const membersByAccount = new Map<string, CorporateAccountMemberRow[]>();
+  for (const { corporate_account_id, ...member } of membersResult.results ?? []) {
+    const members = membersByAccount.get(corporate_account_id) ?? [];
+    members.push(member);
+    membersByAccount.set(corporate_account_id, members);
+  }
+
+  const workspacesByAccount = new Map<string, WorkspaceSummaryRow[]>();
+  for (const { corporate_account_id, ...workspace } of workspacesResult.results ?? []) {
+    const workspaces = workspacesByAccount.get(corporate_account_id) ?? [];
+    workspaces.push(workspace);
+    workspacesByAccount.set(corporate_account_id, workspaces);
+  }
+
+  return {
+    data: accounts.map(({ member_role, ...account }) => ({
+      account,
+      memberRole: member_role,
+      members: membersByAccount.get(account.id) ?? [],
+      workspaces: workspacesByAccount.get(account.id) ?? [],
+    })),
+    error: null,
+  };
+}
+
 // --- Mutations ---
 
 export async function createCorporateAccount(input: {
@@ -252,10 +395,14 @@ export async function createCorporateAccount(input: {
     const id = genId();
     const ts = now();
     const name = input.name.trim();
+    const createdBy = input.createdBy.trim();
     const description = input.description?.trim() || null;
 
     if (!name || name.length > 200) {
       return { data: null as never, error: "Account name is required (max 200 chars)." };
+    }
+    if (!createdBy) {
+      return { data: null as never, error: "Account creator is required." };
     }
 
     await db
@@ -263,7 +410,7 @@ export async function createCorporateAccount(input: {
         `INSERT INTO corporate_accounts (id, name, description, status, created_by, created_at, updated_at)
          VALUES (?, ?, ?, 'active', ?, ?, ?)`,
       )
-      .bind(id, name, description, input.createdBy, ts, ts)
+      .bind(id, name, description, createdBy, ts, ts)
       .run();
 
     return {
@@ -272,7 +419,7 @@ export async function createCorporateAccount(input: {
         name,
         description,
         status: "active",
-        created_by: input.createdBy,
+        created_by: createdBy,
         created_at: ts,
         updated_at: ts,
       },
@@ -298,14 +445,30 @@ export async function addCorporateAccountMember(input: {
     if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
     const ts = now();
-    await db
+    const result = await db
       .prepare(
         `INSERT INTO corporate_account_members (corporate_account_id, user_id, role, job_title, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT(corporate_account_id, user_id) DO UPDATE SET role = excluded.role, job_title = excluded.job_title, updated_at = excluded.updated_at`,
+         ON CONFLICT(corporate_account_id, user_id) DO UPDATE SET
+           role = excluded.role,
+           job_title = excluded.job_title,
+           updated_at = excluded.updated_at
+         WHERE corporate_account_members.role != 'owner'
+           OR excluded.role = 'owner'
+           OR EXISTS (
+             SELECT 1
+             FROM corporate_account_members AS other_owner
+             WHERE other_owner.corporate_account_id = corporate_account_members.corporate_account_id
+               AND other_owner.role = 'owner'
+               AND other_owner.user_id != corporate_account_members.user_id
+           )`,
       )
       .bind(input.accountId, input.userId, input.role, input.jobTitle?.trim() || null, ts, ts)
       .run();
+
+    if (!wasMutationApplied(result)) {
+      return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
+    }
 
     return { data: { ok: true }, error: null };
   } catch (error) {
@@ -319,7 +482,7 @@ export async function addCorporateAccountMember(input: {
  * Returns true if removing them would leave the account with zero owners.
  */
 async function isLastOwner(
-  db: import("@/lib/cloudflare/d1").D1DatabaseLike,
+  db: D1DatabaseLike,
   accountId: string,
   userId: string,
 ): Promise<boolean> {
@@ -345,6 +508,10 @@ async function isLastOwner(
   return false;
 }
 
+function wasMutationApplied(result: { meta?: { changes?: number } }) {
+  return (result.meta?.changes ?? 0) > 0;
+}
+
 export async function removeCorporateAccountMember(
   accountId: string,
   userId: string,
@@ -358,12 +525,28 @@ export async function removeCorporateAccountMember(
       return { data: { ok: false }, error: "Cannot remove the last owner of the account." };
     }
 
-    await db
+    const result = await db
       .prepare(
-        `DELETE FROM corporate_account_members WHERE corporate_account_id = ? AND user_id = ?`,
+        `DELETE FROM corporate_account_members
+         WHERE corporate_account_id = ?
+           AND user_id = ?
+           AND (
+             role != 'owner'
+             OR EXISTS (
+               SELECT 1
+               FROM corporate_account_members AS other_owner
+               WHERE other_owner.corporate_account_id = corporate_account_members.corporate_account_id
+                 AND other_owner.role = 'owner'
+                 AND other_owner.user_id != corporate_account_members.user_id
+             )
+           )`,
       )
       .bind(accountId, userId)
       .run();
+
+    if (!wasMutationApplied(result)) {
+      return { data: { ok: false }, error: "Cannot remove the last owner of the account." };
+    }
 
     return { data: { ok: true }, error: null };
   } catch (error) {
@@ -389,12 +572,30 @@ export async function updateCorporateAccountMemberRole(input: {
       return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
     }
 
-    await db
+    const result = await db
       .prepare(
-        `UPDATE corporate_account_members SET role = ?, updated_at = ? WHERE corporate_account_id = ? AND user_id = ?`,
+        `UPDATE corporate_account_members
+         SET role = ?, updated_at = ?
+         WHERE corporate_account_id = ?
+           AND user_id = ?
+           AND (
+             role != 'owner'
+             OR ? = 'owner'
+             OR EXISTS (
+               SELECT 1
+               FROM corporate_account_members AS other_owner
+               WHERE other_owner.corporate_account_id = corporate_account_members.corporate_account_id
+                 AND other_owner.role = 'owner'
+                 AND other_owner.user_id != corporate_account_members.user_id
+             )
+           )`,
       )
-      .bind(input.role, now(), input.accountId, input.userId)
+      .bind(input.role, now(), input.accountId, input.userId, input.role)
       .run();
+
+    if (!wasMutationApplied(result)) {
+      return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
+    }
 
     return { data: { ok: true }, error: null };
   } catch (error) {
@@ -406,6 +607,13 @@ export async function updateCorporateAccountMemberRole(input: {
 export type LinkWorkspaceResult = {
   ok: boolean;
   previousAccountId: string | null;
+};
+
+export type LinkWorkspaceWithAuditInput = {
+  workspaceId: string;
+  accountId: string;
+  actorUserId: string;
+  actorEmail: string;
 };
 
 /**
@@ -432,18 +640,142 @@ export async function linkWorkspaceToCorporateAccount(
 
     const previousAccountId = existing?.corporate_account_id ?? null;
 
-    await db
+    const result = await db
       .prepare(
         `UPDATE workspaces SET corporate_account_id = ?, updated_at = ? WHERE id = ?`,
       )
       .bind(accountId, now(), workspaceId)
       .run();
 
+    if (!wasMutationApplied(result)) {
+      return {
+        data: { ok: false, previousAccountId: null },
+        error: "Workspace was not found.",
+      };
+    }
+
     return { data: { ok: true, previousAccountId }, error: null };
   } catch (error) {
     logFailure(error, "workspace_link_failed");
     return { data: { ok: false, previousAccountId: null }, error: "Could not link workspace." };
   }
+}
+
+/**
+ * Moves a workspace and records its account audit trail in one D1 batch.
+ * The conditional update detects a competing move before the audit events can
+ * become detached from the persisted workspace assignment.
+ */
+export async function linkWorkspaceToCorporateAccountWithAudit(
+  input: LinkWorkspaceWithAuditInput,
+): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
+  try {
+    const db = await getCloudflareD1Database();
+    if (!db) return { data: { ok: false, previousAccountId: null }, error: "Cloudflare D1 is not available." };
+
+    return await linkWorkspaceToCorporateAccountWithAuditInD1(db, input);
+  } catch (error) {
+    logFailure(error, "workspace_link_with_audit_failed");
+    return { data: { ok: false, previousAccountId: null }, error: "Could not link workspace." };
+  }
+}
+
+export async function linkWorkspaceToCorporateAccountWithAuditInD1(
+  db: D1DatabaseLike,
+  input: LinkWorkspaceWithAuditInput,
+): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
+  const existing = await db
+    .prepare<{ corporate_account_id: string | null }>(
+      "SELECT corporate_account_id FROM workspaces WHERE id = ?",
+    )
+    .bind(input.workspaceId)
+    .first<{ corporate_account_id: string | null }>();
+
+  if (!existing) {
+    return { data: { ok: false, previousAccountId: null }, error: "Workspace was not found." };
+  }
+
+  const previousAccountId = existing.corporate_account_id;
+  if (previousAccountId === input.accountId) {
+    return { data: { ok: true, previousAccountId }, error: null };
+  }
+  if (!db.batch) {
+    return {
+      data: { ok: false, previousAccountId },
+      error: "Transactional D1 batch support is required to link a workspace.",
+    };
+  }
+
+  const updatedAt = now();
+  const statements = [
+    db
+      .prepare(
+        `UPDATE workspaces
+         SET corporate_account_id = ?, updated_at = ?
+         WHERE id = ? AND corporate_account_id IS ?`,
+      )
+      .bind(input.accountId, updatedAt, input.workspaceId, previousAccountId),
+  ];
+
+  if (previousAccountId) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO admin_audit_events (
+             id, actor_user_id, actor_email, action, target_type, target_id,
+             summary_json, request_id, created_at
+           )
+           SELECT ?, ?, ?, 'corporate_account.workspace_unlinked', 'corporate_account', ?, ?, NULL, ?
+           FROM workspaces
+           WHERE id = ? AND corporate_account_id = ? AND updated_at = ?`,
+        )
+        .bind(
+          genId(),
+          input.actorUserId,
+          input.actorEmail,
+          previousAccountId,
+          JSON.stringify({ workspaceId: input.workspaceId, reason: "moved_to_another_account" }),
+          updatedAt,
+          input.workspaceId,
+          input.accountId,
+          updatedAt,
+        ),
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO admin_audit_events (
+           id, actor_user_id, actor_email, action, target_type, target_id,
+           summary_json, request_id, created_at
+         )
+         SELECT ?, ?, ?, 'corporate_account.workspace_linked', 'corporate_account', ?, ?, NULL, ?
+         FROM workspaces
+         WHERE id = ? AND corporate_account_id = ? AND updated_at = ?`,
+      )
+      .bind(
+        genId(),
+        input.actorUserId,
+        input.actorEmail,
+        input.accountId,
+        JSON.stringify({ workspaceId: input.workspaceId, movedFrom: previousAccountId }),
+        updatedAt,
+        input.workspaceId,
+        input.accountId,
+        updatedAt,
+      ),
+  );
+
+  const results = await db.batch(statements);
+  if (!wasMutationApplied(results[0] ?? {})) {
+    return {
+      data: { ok: false, previousAccountId },
+      error: "Workspace link changed concurrently. Reload and retry.",
+    };
+  }
+
+  return { data: { ok: true, previousAccountId }, error: null };
 }
 
 /**
@@ -460,12 +792,16 @@ export async function updateCorporateAccountStatus(
     const db = await getCloudflareD1Database();
     if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
-    await db
+    const result = await db
       .prepare(
         `UPDATE corporate_accounts SET status = ?, updated_at = ? WHERE id = ?`,
       )
       .bind(status, now(), accountId)
       .run();
+
+    if (!wasMutationApplied(result)) {
+      return { data: { ok: false }, error: "Corporate account was not found." };
+    }
 
     return { data: { ok: true }, error: null };
   } catch (error) {
@@ -481,12 +817,16 @@ export async function unlinkWorkspaceFromCorporateAccount(
     const db = await getCloudflareD1Database();
     if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
-    await db
+    const result = await db
       .prepare(
         `UPDATE workspaces SET corporate_account_id = NULL, updated_at = ? WHERE id = ?`,
       )
       .bind(now(), workspaceId)
       .run();
+
+    if (!wasMutationApplied(result)) {
+      return { data: { ok: false }, error: "Workspace was not found." };
+    }
 
     return { data: { ok: true }, error: null };
   } catch (error) {
@@ -517,19 +857,21 @@ export async function listUnlinkedWorkspaces(): Promise<CorporateAccountResult<W
   }
 }
 
-export async function listAllWorkspacesForLinking(): Promise<CorporateAccountResult<WorkspaceSummaryRow[]>> {
+export async function listAllWorkspacesForLinking(): Promise<CorporateAccountResult<WorkspaceLinkCandidateRow[]>> {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
 
     const result = await db
-      .prepare<WorkspaceSummaryRow>(
-        `SELECT w.id, w.name, w.slug, w.created_by, w.created_at
-         FROM workspaces w
+      .prepare<WorkspaceLinkCandidateRow>(
+        `SELECT w.id, w.name, w.slug, w.created_by, w.created_at,
+                w.corporate_account_id, a.name AS corporate_account_name
+         FROM workspaces AS w
+         LEFT JOIN corporate_accounts AS a ON a.id = w.corporate_account_id
          ORDER BY w.name ASC
          LIMIT 200`,
       )
-      .all<WorkspaceSummaryRow>();
+      .all<WorkspaceLinkCandidateRow>();
 
     return { data: result.results ?? [], error: null };
   } catch (error) {

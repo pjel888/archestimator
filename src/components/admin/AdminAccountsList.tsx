@@ -5,13 +5,15 @@ import { Badge } from "@/components/ui/badge";
 
 export function AdminAccountsList({
   accounts,
+  archived = false,
 }: {
   accounts: CorporateAccountWithCountRow[];
+  archived?: boolean;
 }) {
   if (accounts.length === 0) {
     return (
       <p className="py-4 text-center text-[10px] text-tertiary">
-        No corporate accounts yet. Create one above.
+        {archived ? "No archived corporate accounts." : "No corporate accounts yet. Create one above."}
       </p>
     );
   }
