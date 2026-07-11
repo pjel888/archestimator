@@ -27,6 +27,12 @@ BETTER_AUTH_GOOGLE_CLIENT_SECRET=
 # cookie. Falls back to BETTER_AUTH_SECRET, then PUBLICATION_ACCESS_COOKIE_SECRET.
 ARCHESTIMATOR_TERMS_GATE_SECRET=
 
+# Collaboration-room protocol v2 requires separate Worker secrets.
+# Do not reuse invite or identity signing material.
+REALTIME_ROOM_TOKEN_SECRET=
+REALTIME_IDENTITY_SIGNING_KEY=
+COLLABORATION_ROOM_CONTROL_SECRET=
+
 # Cloudflare Email Service preview placeholders. EMAIL is a Wrangler binding;
 # these values control sender selection only.
 ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false

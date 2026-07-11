@@ -3,18 +3,10 @@
 -- These indexes support ORDER BY clauses on single columns where existing
 -- composite indexes have the sort column as a trailing (non-leading) key,
 -- forcing full table scans + sorts on unfiltered admin list queries.
--- All use CREATE INDEX IF NOT EXISTS so they are idempotent and safe on
--- tables that may not exist yet (e.g. the Better Auth "session" table).
-
--- session(expiresAt): admin users list counts active sessions via
--- "WHERE expiresAt > ? GROUP BY userId" — without this index, every
--- admin users page load full-scans the entire session table.
-CREATE INDEX IF NOT EXISTS "idx_session_expires"
-  ON "session"("expiresAt");
-
--- Composite (userId, expiresAt) for scoped per-page aggregation.
-CREATE INDEX IF NOT EXISTS "idx_session_user_expires"
-  ON "session"("userId", "expiresAt");
+-- Every indexed table below is created by an earlier repository migration.
+-- Better Auth owns its runtime-managed `session` table, which is not present
+-- during a clean D1 replay; SQLite cannot conditionally create an index on an
+-- absent table, so session indexes must be provisioned with that schema.
 
 -- profiles(created_at DESC): admin users list ORDER BY p.created_at DESC
 -- has no supporting index (0003 only indexes email/role/default_workspace).
