@@ -30,6 +30,7 @@ import {
 } from "../../scripts/lib/plan-pack-validator.mjs";
 
 const UPDATED_AT = "2026-07-11T08:00:00.000Z";
+const RUN_MANIFEST_SHA256 = "a".repeat(64);
 
 function placeholderBytes(artifactId: string, evidenceId?: string): string {
   return `${JSON.stringify({
@@ -44,6 +45,10 @@ function placeholderBytes(artifactId: string, evidenceId?: string): string {
 
 function digest(value: string | Uint8Array): string {
   return genericSha256(value);
+}
+
+function immutableRunKey(runId: string): string {
+  return `${runId}-0123456789ab-fedcba987654`;
 }
 
 function makeInitialState(): { manifest: EstimateSheetPlanManifest; files: RuntimeFileSet } {
@@ -150,18 +155,19 @@ function makeInitialState(): { manifest: EstimateSheetPlanManifest; files: Runti
 }
 
 function materializations(unitId: EstimateUnit, runId: string): RuntimeMaterialization[] {
+  const runKey = immutableRunKey(runId);
   const rows = ESTIMATE_SHEET_RUNTIME_PROJECTIONS
     .filter((spec) => spec.unit_id === unitId)
     .map((spec) => ({
       artifactId: spec.artifact_id,
-      immutablePath: `evidence/runtime/runs/${unitId}/${runId}/${spec.role}.json`,
+      immutablePath: `evidence/runtime/runs/${unitId}/${runKey}/${spec.role}.json`,
       bytes: `${JSON.stringify({ artifact: spec.artifact_id, unit: unitId, overall: "PASS" })}\n`,
     }));
   return [
     ...rows,
     {
       artifactId: ESTIMATE_SHEET_RUNTIME_REGISTRY.artifact_id,
-      immutablePath: `evidence/runtime/runs/${unitId}/${runId}/evidence-index.json`,
+      immutablePath: `evidence/runtime/runs/${unitId}/${runKey}/evidence-index.json`,
       bytes: `${JSON.stringify({
         schema_version: "estimate-sheet-evidence-index.v1",
         unit_id: unitId,
@@ -177,12 +183,14 @@ function stateReadyFor(unitId: EstimateUnit): EstimateSheetPlanManifest {
   const index = ESTIMATE_UNITS.indexOf(unitId);
   for (let priorIndex = 0; priorIndex < index; priorIndex += 1) {
     const priorUnit = ESTIMATE_UNITS[priorIndex]!;
+    const priorRunId = `prior-${priorIndex}`;
+    const priorRunKey = immutableRunKey(priorRunId);
     manifest.units[priorIndex]!.status = "VERIFIED";
     for (const spec of ESTIMATE_SHEET_RUNTIME_PROJECTIONS.filter((row) => row.unit_id === priorUnit)) {
       const row = manifest.runtime_evidence.projections.find(
         (candidate) => candidate.artifact_id === spec.artifact_id,
       )!;
-      row.immutable_path = `evidence/runtime/runs/${priorUnit}/prior-${priorIndex}/${spec.role}.json`;
+      row.immutable_path = `evidence/runtime/runs/${priorUnit}/${priorRunKey}/${spec.role}.json`;
     }
     const primary = ESTIMATE_SHEET_RUNTIME_PROJECTIONS.find(
       (spec) => spec.unit_id === priorUnit && spec.relationship === "PRIMARY",
@@ -191,11 +199,13 @@ function stateReadyFor(unitId: EstimateUnit): EstimateSheetPlanManifest {
   }
   if (index > 0) {
     const priorUnit = ESTIMATE_UNITS[index - 1]!;
+    const priorRunId = `prior-${index - 1}`;
+    const priorRunKey = immutableRunKey(priorRunId);
     manifest.runtime_evidence.transition_sequence = index * 2;
     manifest.runtime_evidence.latest_unit_id = priorUnit;
-    manifest.runtime_evidence.latest_run_id = `prior-${index - 1}`;
+    manifest.runtime_evidence.latest_run_id = priorRunId;
     manifest.runtime_evidence.registry.immutable_path =
-      `evidence/runtime/runs/${priorUnit}/prior-${index - 1}/evidence-index.json`;
+      `evidence/runtime/runs/${priorUnit}/${priorRunKey}/evidence-index.json`;
     manifest.implementation_status = "IN_PROGRESS";
     manifest.last_observed_run_scope = "IMPLEMENT_LOCAL";
   }
@@ -233,7 +243,12 @@ describe("estimate-sheet plan runtime state", () => {
   it("derives and validates a prepare transition without mutating evidence projections", () => {
     const { manifest } = makeInitialState();
     const original = structuredClone(manifest);
-    const input = { unitId: "UNIT-001", runId: "run-001", updatedAt: UPDATED_AT } as const;
+    const input = {
+      unitId: "UNIT-001",
+      runId: "run-001",
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: UPDATED_AT,
+    } as const;
     const prepared = deriveEstimateSheetPrepareTransition(manifest, input);
 
     expect(manifest).toEqual(original);
@@ -244,6 +259,7 @@ describe("estimate-sheet plan runtime state", () => {
       transition_sequence: 1,
       latest_unit_id: "UNIT-001",
       latest_run_id: "run-001",
+      latest_run_manifest_sha256: RUN_MANIFEST_SHA256,
     });
     expect(prepared.runtime_evidence.projections).toEqual(manifest.runtime_evidence.projections);
     expect(validateEstimateSheetPrepareTransition(manifest, prepared, input)).toEqual([]);
@@ -256,9 +272,39 @@ describe("estimate-sheet plan runtime state", () => {
     ]);
   });
 
+  it("requires the committed run-manifest anchor exactly when the latest run tuple is present", () => {
+    const { manifest } = makeInitialState();
+    expect(Object.hasOwn(manifest.runtime_evidence, "latest_run_manifest_sha256")).toBe(false);
+
+    const prepared = deriveEstimateSheetPrepareTransition(manifest, {
+      unitId: "UNIT-001",
+      runId: "run-001",
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: UPDATED_AT,
+    });
+    const missingAnchor = structuredClone(prepared);
+    delete missingAnchor.runtime_evidence.latest_run_manifest_sha256;
+    missingAnchor.manifest_sha256 = calculateEstimateSheetManifestSha256(missingAnchor);
+    expect(validateEstimateSheetRuntimeState(missingAnchor)).toEqual(expect.arrayContaining([
+      "runtime_evidence latest run manifest SHA-256 is required with a latest run",
+    ]));
+
+    const initialWithAnchor = structuredClone(manifest);
+    initialWithAnchor.runtime_evidence.latest_run_manifest_sha256 = RUN_MANIFEST_SHA256;
+    initialWithAnchor.manifest_sha256 = calculateEstimateSheetManifestSha256(initialWithAnchor);
+    expect(validateEstimateSheetRuntimeState(initialWithAnchor)).toEqual(expect.arrayContaining([
+      "runtime_evidence latest run manifest SHA-256 must be absent without a latest run",
+    ]));
+  });
+
   it("materializes immutable UNIT-001 evidence, projections, registry, and the next-unit tuple", () => {
     const { manifest, files } = makeInitialState();
-    const prepareInput = { unitId: "UNIT-001", runId: "run-001", updatedAt: UPDATED_AT } as const;
+    const prepareInput = {
+      unitId: "UNIT-001",
+      runId: "run-001",
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: UPDATED_AT,
+    } as const;
     const prepared = deriveEstimateSheetPrepareTransition(manifest, prepareInput);
     const transitionInput = {
       ...prepareInput,
@@ -315,6 +361,7 @@ describe("estimate-sheet plan runtime state", () => {
       const prepared = deriveEstimateSheetPrepareTransition(ready, {
         unitId,
         runId,
+        runManifestSha256: RUN_MANIFEST_SHA256,
         updatedAt: UPDATED_AT,
       });
       const result = deriveEstimateSheetVerifiedTransition(prepared, {
@@ -348,6 +395,7 @@ describe("estimate-sheet plan runtime state", () => {
     const prepared = deriveEstimateSheetPrepareTransition(makeInitialState().manifest, {
       unitId: "UNIT-001",
       runId: "run-001",
+      runManifestSha256: RUN_MANIFEST_SHA256,
       updatedAt: UPDATED_AT,
     });
     const escaped = materializations("UNIT-001", "run-001");
@@ -379,6 +427,7 @@ describe("estimate-sheet plan runtime state", () => {
     const prepared = deriveEstimateSheetPrepareTransition(ready, {
       unitId: "UNIT-006",
       runId: "run-unit-006-superseded",
+      runManifestSha256: RUN_MANIFEST_SHA256,
       updatedAt: UPDATED_AT,
     });
     const result = deriveEstimateSheetVerifiedTransition(prepared, {
@@ -404,6 +453,7 @@ describe("estimate-sheet plan runtime state", () => {
     const prepared = deriveEstimateSheetPrepareTransition(initial, {
       unitId: "UNIT-001",
       runId: "run-unit-001-original",
+      runManifestSha256: RUN_MANIFEST_SHA256,
       updatedAt: UPDATED_AT,
     });
     const verified = deriveEstimateSheetVerifiedTransition(prepared, {
@@ -413,7 +463,10 @@ describe("estimate-sheet plan runtime state", () => {
       sourceRevision: "run:unit-001:original",
       materializations: materializations("UNIT-001", "run-unit-001-original"),
     }).manifest;
-    const input = { updatedAt: "2026-07-11T08:02:00.000Z" } as const;
+    const input = {
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: "2026-07-11T08:02:00.000Z",
+    } as const;
     const reopened = deriveEstimateSheetRefreezeReopenTransition(verified, input);
     expect(reopened.units.find((unit) => unit.id === "UNIT-001")?.status).toBe("READY");
     expect(reopened.evidence_index.find((record) => record.id === "EVID-002")?.status).toBe("STALE");
@@ -423,6 +476,7 @@ describe("estimate-sheet plan runtime state", () => {
       transition_sequence: 3,
       latest_unit_id: "UNIT-001",
       latest_run_id: "run-unit-001-original",
+      latest_run_manifest_sha256: RUN_MANIFEST_SHA256,
     });
     expect(validateEstimateSheetRuntimeState(reopened)).toEqual([]);
     expect(validateEstimateSheetRefreezeReopenTransition(verified, reopened, input)).toEqual([]);
@@ -433,6 +487,7 @@ describe("estimate-sheet plan runtime state", () => {
     const prepared = deriveEstimateSheetPrepareTransition(ready, {
       unitId: "UNIT-011",
       runId: "run-unit-011-hosted",
+      runManifestSha256: RUN_MANIFEST_SHA256,
       updatedAt: UPDATED_AT,
     });
     const blockInput = {
@@ -471,6 +526,7 @@ describe("estimate-sheet plan runtime state", () => {
     const prepared = deriveEstimateSheetPrepareTransition(ready, {
       unitId: "UNIT-011",
       runId: "run-unit-011-ready",
+      runManifestSha256: RUN_MANIFEST_SHA256,
       updatedAt: UPDATED_AT,
     });
     const verified = deriveEstimateSheetVerifiedTransition(prepared, {

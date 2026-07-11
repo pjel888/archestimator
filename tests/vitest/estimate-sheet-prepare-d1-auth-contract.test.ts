@@ -8,6 +8,10 @@ import {
   executeLocalD1PrepareCommands,
   type LocalD1PrepareCommandRunner,
 } from "../../scripts/lib/estimate-sheet-local-d1-prepare";
+import {
+  assertMigrationInventoryStable,
+  type MigrationInventoryRecord,
+} from "../../scripts/prepare-estimate-sheet-performance-run";
 
 const PREPARE_SOURCE = readFileSync(
   resolve(process.cwd(), "scripts/prepare-estimate-sheet-performance-run.ts"),
@@ -65,7 +69,7 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
   });
 
   it("executes only the ordered command plan with a sanitized child environment and stops on failure", () => {
-    const { commands } = commandFixture();
+    const { commands, runRoot } = commandFixture();
     const calls: Array<{ executable: string; args: string[]; cwd: string; env: NodeJS.ProcessEnv }> = [];
     const runner: LocalD1PrepareCommandRunner = (executable, args, options) => {
       calls.push({ executable, args, cwd: options.cwd, env: options.env });
@@ -75,6 +79,7 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
 
     executeLocalD1PrepareCommands({
       repoRoot,
+      runRoot,
       commands,
       runner,
       parentEnvironment: {
@@ -98,6 +103,7 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
     let attempts = 0;
     expect(() => executeLocalD1PrepareCommands({
       repoRoot,
+      runRoot,
       commands,
       parentEnvironment: { PATH: "/usr/bin:/bin" },
       runner: () => {
@@ -106,6 +112,55 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
       },
     })).toThrow(/application-migrations failed/);
     expect(attempts).toBe(2);
+  });
+
+  it("rejects any command-path, flag, ordering, or persistence-root drift before execution", () => {
+    const { commands, runRoot } = commandFixture();
+    const repoRoot = resolve("/tmp/estimate-sheet-prepare-contract/repo");
+    const mutations = [
+      commands.map((command) => ({ ...command, argv: [...command.argv] })).reverse(),
+      commands.map((command, index) => ({
+        ...command,
+        argv: index === 0 ? [...command.argv, "--json"] : [...command.argv],
+      })),
+      commands.map((command, index) => ({
+        ...command,
+        argv: index === 1
+          ? command.argv.map((value) => value === "--local" ? "--remote" : value)
+          : [...command.argv],
+      })),
+      commands.map((command, index) => ({
+        ...command,
+        argv: index === 2
+          ? command.argv.map((value) => value === join(runRoot, "wrangler-state")
+            ? join(runRoot, "other-state")
+            : value)
+          : [...command.argv],
+      })),
+      commands.map((command, index) => ({
+        ...command,
+        argv: index === 0
+          ? command.argv.map((value) => value === join(runRoot, "better-auth-schema.sql")
+            ? resolve(runRoot, "..", "foreign-schema.sql")
+            : value)
+          : [...command.argv],
+      })),
+    ];
+
+    for (const mutatedCommands of mutations) {
+      let attempts = 0;
+      expect(() => executeLocalD1PrepareCommands({
+        repoRoot,
+        runRoot,
+        commands: mutatedCommands,
+        runner: () => {
+          attempts += 1;
+          return { status: 0, signal: null };
+        },
+        parentEnvironment: { PATH: "/usr/bin:/bin" },
+      })).toThrow(/exact schema, migrations, seed command sequence/);
+      expect(attempts).toBe(0);
+    }
   });
 
   it("routes prepare through the Wrangler executor with root-level hashed inputs and no direct D1 batch fallback", () => {
@@ -131,11 +186,35 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
     );
   });
 
-  it("requires explicit wrong-tenant and revoked-membership authorization denial probes", () => {
+  it("requires explicit wrong-tenant and seeded revoked-identity authorization denial probes", () => {
     expect(PREPARE_SOURCE).toContain("auth-denial-wrong-tenant");
-    expect(PREPARE_SOURCE).toContain("auth-denial-revoked-membership");
+    expect(PREPARE_SOURCE).toMatch(/INSERT INTO \\"user\\"[^\n]+ids\.revokedUser/u);
+    expect(PREPARE_SOURCE).toMatch(/INSERT INTO \\"session\\"[^\n]+ids\.revokedSession[^\n]+revokedSessionToken/u);
+    expect(PREPARE_SOURCE).toMatch(/INSERT INTO profiles[^\n]+ids\.revokedProfile[^\n]+NULL/u);
+    expect(PREPARE_SOURCE).toContain("prepared D1 revoked identity unexpectedly retains");
+    expect(PREPARE_SOURCE).toContain("SELECT COUNT(*) AS count FROM workspace_members WHERE workspace_id = ? AND user_id = ?");
+    expect(PREPARE_SOURCE).toContain("SELECT COUNT(*) AS count FROM project_members WHERE project_id = ? AND user_id = ?");
+    expect(PREPARE_SOURCE).toContain("SELECT COUNT(*) AS count FROM estimate_sheet_members WHERE estimate_id = ? AND user_id = ?");
     expect(PREPARE_SOURCE).toMatch(/wrongTenant[^;]+(?:first|all)\s*</su);
     expect(PREPARE_SOURCE).toMatch(/revokedMembership[^;]+(?:first|all)\s*</su);
+    expect(PREPARE_SOURCE).toMatch(/revokedMembership[\s\S]+ids\.revokedProfile/u);
     expect(PREPARE_SOURCE).toMatch(/if\s*\([^)]*(?:wrongTenant|revokedMembership)[^)]*\)\s*throw/u);
+  });
+
+  it("rejects migration content, statement-count, and ordering drift after Wrangler execution", () => {
+    const inventory: MigrationInventoryRecord[] = [
+      { name: "0001_alpha.sql", sha256: "a".repeat(64), statement_count: 1 },
+      { name: "0002_beta.sql", sha256: "b".repeat(64), statement_count: 2 },
+    ];
+    expect(() => assertMigrationInventoryStable(inventory, structuredClone(inventory))).not.toThrow();
+    for (const mutation of [
+      inventory.map((entry) => ({ ...entry })).reverse(),
+      inventory.map((entry, index) => index === 0 ? { ...entry, sha256: "c".repeat(64) } : { ...entry }),
+      inventory.map((entry, index) => index === 1 ? { ...entry, statement_count: 3 } : { ...entry }),
+    ]) {
+      expect(() => assertMigrationInventoryStable(inventory, mutation)).toThrow(/migration inventory changed/);
+    }
+    expect(PREPARE_SOURCE).toContain("SELECT id, name FROM d1_migrations ORDER BY id ASC");
+    expect(PREPARE_SOURCE).toContain("prepared D1 migration ledger does not exactly match the ordered active inventory");
   });
 });

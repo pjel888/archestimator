@@ -6,10 +6,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   ESTIMATE_LOGICAL_OUTPUTS,
+  PREPARE_INPUT_SCHEMA,
   assertPerformanceReport,
   canonicalJson,
+  sha256File,
   sha256Json,
   type FingerprintContent,
+  type PrepareInputV1,
   type RunManifestV1,
   type SourceFingerprint,
 } from "../../scripts/lib/estimate-sheet-performance-contract";
@@ -69,7 +72,36 @@ function setupRun(options: { databaseId?: string } = {}) {
   const repoRoot = mkdtempSync(join(tmpdir(), "estimate-hosted-d1-"));
   roots.push(repoRoot);
   const fingerprint = sourceFingerprint();
-  const runKey = `${RUN_ID}-${fingerprint.application.content_sha256.slice(0, 12)}-0123456789ab`;
+  const prepareInput: PrepareInputV1 = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: "UNIT-011",
+    profile: "artifact-only",
+    application_fingerprint: fingerprint.application,
+    producer_fingerprint: fingerprint.producer,
+    fixture: null,
+    decision: {
+      immutable_path: `evidence/runtime/runs/UNIT-004/${RUN_ID}/reports/decision.json`,
+      sha256: "e".repeat(64),
+    },
+    predecessor: {
+      unit_id: "UNIT-010",
+      run_id: RUN_ID,
+      index_immutable_path: `evidence/runtime/runs/UNIT-010/${RUN_ID}/evidence-index.json`,
+      index_sha256: "f".repeat(64),
+      evidence_immutable_path: `evidence/runtime/runs/UNIT-010/${RUN_ID}/reports/integration.json`,
+      evidence_sha256: "1".repeat(64),
+      application_fingerprint: fingerprint.application,
+      producer_fingerprint: fingerprint.producer,
+    },
+    admission: {
+      kind: "predecessor",
+      sha256: "d".repeat(64),
+      input_application_fingerprint: fingerprint.application,
+      input_producer_fingerprint: fingerprint.producer,
+    },
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${RUN_ID}-${fingerprint.application.content_sha256.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
   const runRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-011", runKey);
   const immutableRunRoot = join(
     repoRoot,
@@ -93,6 +125,8 @@ function setupRun(options: { databaseId?: string } = {}) {
     immutable_run_root: immutableRunRoot,
     pointer_path: join(runRoot, "run-pointer.json"),
     logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: fingerprint,
@@ -109,6 +143,14 @@ function setupRun(options: { databaseId?: string } = {}) {
   };
   const runManifest = join(runRoot, "run-manifest.json");
   writeJson(runManifest, manifest);
+  writeJson(join(immutableRunRoot, "run-manifest.json"), manifest);
+  writeJson(join(repoRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"), {
+    runtime_evidence: {
+      latest_unit_id: manifest.unit_id,
+      latest_run_id: manifest.run_id,
+      latest_run_manifest_sha256: sha256File(join(immutableRunRoot, "run-manifest.json")),
+    },
+  });
   writeJson(join(repoRoot, "node_modules/wrangler/package.json"), { version: "4.105.0" });
   writeJson(join(repoRoot, "wrangler.jsonc"), {
     compatibility_date: "2026-06-29",

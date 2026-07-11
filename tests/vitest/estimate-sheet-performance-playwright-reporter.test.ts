@@ -8,7 +8,6 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { FullConfig, FullResult, Suite, TestCase, TestResult } from "@playwright/test/reporter";
@@ -17,15 +16,21 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { EstimateSheetPerformanceReporter } from "../../e2e/helpers/estimate-sheet-performance-reporter";
 import { readTestReceipt } from "../../scripts/lib/estimate-sheet-performance-test-receipt";
 import {
+  ESTIMATE_LOGICAL_OUTPUTS,
+  PREPARE_INPUT_SCHEMA,
   assertPerformanceReport,
   canonicalJson,
+  defaultImmutableRunRoot,
+  defaultRunRoot,
   readJsonFile,
   sha256File,
   sha256Hex,
+  sha256Json,
   type PerformanceReportV1,
 } from "../../scripts/lib/estimate-sheet-performance-contract";
 
 const repoRoot = process.cwd();
+const originalCwd = process.cwd();
 const originalArgv = [...process.argv];
 const roots: string[] = [];
 const buildHash = sha256Hex("playwright-reporter-build");
@@ -77,17 +82,48 @@ function createRun(input: {
   manifestOverrides?: Record<string, unknown>;
   activeOverrides?: Record<string, unknown>;
 } = {}) {
-  const root = mkdtempSync(join(tmpdir(), "estimate-playwright-reporter-"));
+  const testRepoRoot = join(originalCwd, ".ai/99_scratch/estimate-sheet-performance/reporter-test-repos");
+  mkdirSync(testRepoRoot, { recursive: true, mode: 0o700 });
+  const root = mkdtempSync(join(testRepoRoot, "repo-"));
   roots.push(root);
-  const runRoot = join(root, "run");
-  mkdirSync(runRoot, { recursive: true, mode: 0o700 });
   const unitId = input.unitId ?? "UNIT-010";
   const runId = input.runId ?? "run-playwright-reporter-001";
+  const namespaceRoleNames = unitId === "UNIT-002" ? ["browser"] : ["mode", "browser", "d1"];
+  const prepareInput = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: unitId,
+    profile: "limit" as const,
+    application_fingerprint: fingerprint,
+    producer_fingerprint: fingerprint,
+    fixture: { profile: "limit" as const, payload_sha256: fixtureHash, namespace_roles: namespaceRoleNames },
+    decision: null,
+    predecessor: unitId === "UNIT-002" ? {
+      unit_id: "UNIT-001" as const,
+      run_id: "00000000-0000-4000-8000-000000000001",
+      index_immutable_path: "evidence/runtime/runs/UNIT-001/predecessor-run-aaaaaaaaaaaa-bbbbbbbbbbbb/evidence-index.json",
+      index_sha256: fixtureHash,
+      evidence_immutable_path: "evidence/runtime/runs/UNIT-001/predecessor-run-aaaaaaaaaaaa-bbbbbbbbbbbb/reports/jsdom-baseline.json",
+      evidence_sha256: fixtureHash,
+      application_fingerprint: fingerprint,
+      producer_fingerprint: fingerprint,
+    } : null,
+    admission: null,
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${runId}-${fingerprint.content_sha256.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
+  const runRoot = join(defaultRunRoot(root), unitId, runKey);
+  const immutableRunRoot = join(defaultImmutableRunRoot(root), unitId, runKey);
+  mkdirSync(runRoot, { recursive: true, mode: 0o700 });
+  mkdirSync(immutableRunRoot, { recursive: true, mode: 0o700 });
   const routePath = "/workshop/projects/project-redacted/estimates/node-redacted";
   const baseUrl = "http://127.0.0.1:3190";
   const storageStatePath = join(runRoot, "storage-state.json");
   writePrivateJson(storageStatePath, { cookies: [{ name: "session", value: "redacted", domain: "127.0.0.1", path: "/" }], origins: [] });
   const storageStateSha256 = sha256File(storageStatePath);
+  const runtimeEnv = join(runRoot, "runtime.env");
+  writeFileSync(runtimeEnv, "ESTIMATE_GRAPH_MODE=on\n", { mode: 0o600 });
+  const processJournal = join(runRoot, "preview/process-journal.json");
+  writePrivateJson(processJournal, { schema_version: "estimate-sheet-preview-process-journal.v1", unit_id: unitId, run_id: runId, processes: [] });
   const descriptorPath = join(runRoot, "preview/descriptors/01-final.json");
   const descriptor = {
     schema_version: "estimate-sheet-benchmark-server.v1",
@@ -123,6 +159,16 @@ function createRun(input: {
     descriptor_path: "preview/descriptors/01-final.json",
     descriptor_sha256: sha256File(descriptorPath),
   });
+  const primaryRole = unitId === "UNIT-002" ? "browser" : "mode";
+  const namespaces = unitId === "UNIT-002"
+    ? { browser: { idSha256: sha256Hex("browser-namespace"), preStateSha256: fixtureHash } }
+    : {
+        mode: { idSha256: sha256Hex("mode-namespace"), preStateSha256: fixtureHash },
+        browser: { idSha256: sha256Hex("browser-namespace"), preStateSha256: fixtureHash },
+        d1: { idSha256: sha256Hex("d1-namespace"), preStateSha256: fixtureHash },
+      };
+  const wranglerState = join(runRoot, "wrangler-state");
+  mkdirSync(wranglerState, { recursive: true, mode: 0o700 });
   const run = {
     schema_version: "estimate-sheet-performance-run.v1",
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
@@ -132,7 +178,11 @@ function createRun(input: {
     evidence_class: "local-browser",
     cleanupRequirement: "REQUIRED",
     run_root: runRoot,
-    pointer_path: join(root, "current.json"),
+    immutable_run_root: immutableRunRoot,
+    pointer_path: join(runRoot, "run-pointer.json"),
+    logical_outputs: ESTIMATE_LOGICAL_OUTPUTS,
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: {
@@ -145,21 +195,55 @@ function createRun(input: {
     },
     applicationFingerprint: fingerprint,
     producerFingerprint: fingerprint,
-    fixture: { profile: "limit", namespaceIdSha256: sha256Hex("mode-namespace"), preStateSha256: fixtureHash },
-    namespaces: { browser: { idSha256: sha256Hex("browser-namespace"), preStateSha256: fixtureHash } },
+    fixture: { profile: "limit", namespaceIdSha256: namespaces[primaryRole].idSha256, preStateSha256: fixtureHash },
+    fixture_hash: fixtureHash,
+    auth_fixture_hash: storageStateSha256,
+    namespaces,
     mutationJournal: [],
     previewProcesses: [],
-    storageState: "storage-state.json",
+    wranglerState,
+    resources: {
+      d1Binding: "ARCH_DB",
+      wranglerState,
+      localConfig: join(runRoot, "resources/d1/wrangler-local.json"),
+      localConfigSha256: sha256Hex("local-config"),
+      generatedSchema: join(runRoot, "better-auth-schema.sql"),
+      generatedSchemaSha256: sha256Hex("generated-schema"),
+      migrations: join(runRoot, "resources/d1/migrations.json"),
+      migrationsSha256: sha256Hex("migrations"),
+      migrationHead: "0040_operational_incidents.sql",
+      migrationCount: 40,
+      seedSql: join(runRoot, "seed.sql"),
+      seedSqlSha256: sha256Hex("seed-sql"),
+      cleanupSql: join(runRoot, "resources/d1/cleanup.sql"),
+      cleanupSqlSha256: sha256Hex("cleanup-sql"),
+      cleanupStateSha256ByRole: Object.fromEntries(Object.keys(namespaces).map((role) => [role, sha256Hex(`cleanup-${role}`)])),
+      unitLease: join(runRoot, "../../..", "leases/units", unitId),
+      portLease: join(runRoot, "../../..", "leases/ports/3190"),
+    },
+    leasedPort: 3190,
+    port: 3190,
+    runtimeEnv,
+    runtimeEnvSha256: sha256File(runtimeEnv),
+    runtimeEnvStableSha256: sha256Hex("playwright-reporter-stable-runtime-env"),
+    storageState: storageStatePath,
     storageStateSha256,
+    storageStateExpiresAt: "2099-01-01T00:00:00.000Z",
+    processJournal,
+    routePath,
+    route: { path: routePath, projectId: "project-redacted", nodeId: "node-redacted", fixtureRole: unitId === "UNIT-002" ? "browser" : "browser" },
     activePreview: { path: activePath, sha256: sha256File(activePath), pid: 1234, port: 3190, snapshot: descriptor.server_snapshot },
     ...input.manifestOverrides,
   };
   const manifestPath = join(runRoot, "run-manifest.json");
   writePrivateJson(manifestPath, run);
-  return { root, runRoot, runId, unitId, baseUrl, routePath, storageStatePath, storageStateSha256, activePath, descriptorPath, run };
+  writePrivateJson(join(immutableRunRoot, "run-manifest.json"), run);
+  return { root, runRoot, immutableRunRoot, runId, unitId, baseUrl, routePath, storageStatePath, storageStateSha256, activePath, descriptorPath, run };
 }
 
 function enableReporter(run: PreparedRun): { receiptPath: string; reportPath: string } {
+  process.chdir(run.root);
+  process.argv = ["bun", join(run.root, "node_modules/playwright/cli.js"), "test"];
   const outputRole = run.unitId === "UNIT-002" ? "browser" : "browser-child";
   vi.stubEnv("ESTIMATE_PERF_TEST_OUTPUT_ROLE", "e2e-tests");
   vi.stubEnv("ESTIMATE_PERF_OUTPUT_ROLE", outputRole);
@@ -171,8 +255,8 @@ function enableReporter(run: PreparedRun): { receiptPath: string; reportPath: st
   vi.stubEnv("ESTIMATE_PERF_FIXTURE_HASH", fixtureHash);
   vi.stubEnv("ESTIMATE_PERF_BUILD_HASH", buildHash);
   return {
-    receiptPath: join(run.runRoot, "receipts/e2e-tests.json"),
-    reportPath: join(run.runRoot, `reports/${outputRole}.json`),
+    receiptPath: join(run.immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["e2e-tests"]),
+    reportPath: join(run.immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS[outputRole]),
   };
 }
 
@@ -181,9 +265,10 @@ function fakeTest(id: string, title: string, file: string): TestCase {
 }
 
 function exactCohort(): TestCase[] {
+  const activeRepoRoot = process.cwd();
   return [
-    ...baselineTitles.map((title, index) => fakeTest(`baseline-${index + 1}`, title, join(repoRoot, "e2e/estimate-sheet-performance.spec.ts"))),
-    ...interopScenarios.map(([id, slug]) => fakeTest(`interop-${id}`, `${id} ${slug}`, join(repoRoot, "e2e/estimate-sheet-component-interop.spec.ts"))),
+    ...baselineTitles.map((title, index) => fakeTest(`baseline-${index + 1}`, title, join(activeRepoRoot, "e2e/estimate-sheet-performance.spec.ts"))),
+    ...interopScenarios.map(([id, slug]) => fakeTest(`interop-${id}`, `${id} ${slug}`, join(activeRepoRoot, "e2e/estimate-sheet-component-interop.spec.ts"))),
   ];
 }
 
@@ -253,6 +338,7 @@ function completeCohort(reporter: EstimateSheetPerformanceReporter, tests: TestC
 }
 
 afterEach(() => {
+  process.chdir(originalCwd);
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
   process.argv = [...originalArgv];
@@ -282,11 +368,11 @@ describe("estimate-sheet Playwright performance reporter", () => {
     vi.spyOn(process.stderr, "write").mockImplementation((() => true) as typeof process.stderr.write);
     process.argv = [
       "bun",
-      join(repoRoot, "node_modules/playwright/cli.js"),
+      join(process.cwd(), "node_modules/playwright/cli.js"),
       "test",
       "--config=playwright.estimate-performance.config.ts",
-      join(repoRoot, "e2e/estimate-sheet-performance.spec.ts"),
-      join(repoRoot, "e2e/estimate-sheet-component-interop.spec.ts"),
+      join(process.cwd(), "e2e/estimate-sheet-performance.spec.ts"),
+      join(process.cwd(), "e2e/estimate-sheet-component-interop.spec.ts"),
       "--workers=1",
       "--retries=0",
     ];
@@ -295,7 +381,7 @@ describe("estimate-sheet Playwright performance reporter", () => {
     completeCohort(reporter, tests);
 
     expect(reporter.onEnd(fakeFullResult("passed", 125))).toBeUndefined();
-    const receipt = readTestReceipt(receiptPath);
+    const receipt = readTestReceipt(receiptPath, run.immutableRunRoot);
     expect(receipt).toMatchObject({
       schema_version: "estimate-sheet-test-receipt.v1",
       unit_id: "UNIT-010",
@@ -351,7 +437,7 @@ describe("estimate-sheet Playwright performance reporter", () => {
     completeCohort(reporter, tests, new Map([[skippedTitle, "skipped"]]));
 
     expect(reporter.onEnd(fakeFullResult("passed"))).toEqual({ status: "failed" });
-    expect(readTestReceipt(receiptPath)).toMatchObject({ overall: "PASS", passed: 21, failed: 0, skipped: 1 });
+    expect(readTestReceipt(receiptPath, run.immutableRunRoot)).toMatchObject({ overall: "PASS", passed: 21, failed: 0, skipped: 1 });
     const report = readJsonFile<PerformanceReportV1>(reportPath);
     expect(report).toMatchObject({ browserScope: "baseline", overall: "FAIL", failures: ["playwright-test-skips", "interop-evidence-incomplete"] });
     expect(report.metrics.skippedTests).toMatchObject({ status: "FAIL", value: 1, budget: 0 });
@@ -385,5 +471,25 @@ describe("estimate-sheet Playwright performance reporter", () => {
       expect(existsSync(receiptPath), entry.name).toBe(false);
       expect(existsSync(reportPath), entry.name).toBe(false);
     }
+  });
+
+  it("denies mutable manifest tampering across the Playwright execution window", () => {
+    const run = createRun();
+    const { receiptPath, reportPath } = enableReporter(run);
+    const tests = exactCohort();
+    vi.spyOn(process.stdout, "write").mockImplementation((() => true) as typeof process.stdout.write);
+    vi.spyOn(process.stderr, "write").mockImplementation((() => true) as typeof process.stderr.write);
+    const reporter = new EstimateSheetPerformanceReporter();
+    reporter.onBegin(fakeConfig(run), fakeSuite(tests));
+    completeCohort(reporter, tests);
+
+    const manifestPath = join(run.runRoot, "run-manifest.json");
+    const tampered = JSON.parse(readFileSync(manifestPath, "utf8"));
+    tampered.created_at = "2026-07-12T00:00:00.000Z";
+    writePrivateJson(manifestPath, tampered);
+
+    expect(reporter.onEnd(fakeFullResult("passed"))).toEqual({ status: "failed" });
+    expect(existsSync(receiptPath)).toBe(false);
+    expect(existsSync(reportPath)).toBe(false);
   });
 });

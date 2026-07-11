@@ -1,4 +1,15 @@
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 
@@ -6,6 +17,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   RUN_MANIFEST_SCHEMA,
+  PREPARE_INPUT_SCHEMA,
   ESTIMATE_LOGICAL_OUTPUTS,
   defaultImmutableRunRoot,
   defaultPlanRoot,
@@ -22,8 +34,10 @@ import {
 import { readReceiptEnvironment } from "../../scripts/lib/estimate-sheet-performance-test-receipt";
 import {
   prepareEstimateSheetPerformanceRun,
+  readKnownPlanPredecessor,
   recoverEstimateSheetPrepareTransition,
 } from "../../scripts/prepare-estimate-sheet-performance-run";
+import type { EstimateSheetPlanManifest } from "../../scripts/lib/estimate-sheet-performance-plan-state";
 import {
   parseEstimateSheetGateOptions,
   validateEstimateSheetGateCommand,
@@ -39,7 +53,24 @@ const fingerprint = {
 
 function validManifest(root: string, overrides: Record<string, unknown> = {}) {
   const runId = "00000000-0000-4000-8000-000000000001";
-  const runKey = `${runId}-${digest.slice(0, 12)}-aaaaaaaaaaaa`;
+  const prepareInput = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: "UNIT-001",
+    profile: "artifact-only",
+    application_fingerprint: fingerprint,
+    producer_fingerprint: fingerprint,
+    fixture: null,
+    decision: null,
+    predecessor: null,
+    admission: {
+      kind: "planning",
+      sha256: digest,
+      input_application_fingerprint: fingerprint,
+      input_producer_fingerprint: fingerprint,
+    },
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${runId}-${digest.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
   const runRoot = join(root, "scratch", "runs", "UNIT-001", runKey);
   const immutableRunRoot = join(root, "plan", "evidence", "runtime", "runs", "UNIT-001", runKey);
   return {
@@ -54,6 +85,8 @@ function validManifest(root: string, overrides: Record<string, unknown> = {}) {
     immutable_run_root: immutableRunRoot,
     pointer_path: join(runRoot, "run-pointer.json"),
     logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: {
@@ -101,15 +134,73 @@ function createPrepareRepositoryFixture() {
     admissionRelative,
     ...admission.independent_reviews.map((review) => review.path),
   ]) copyFixtureFile(sourceRoot, repoRoot, path);
+  const planPath = join(planRoot, "plan-pack.json");
+  writeFileSync(planPath, execFileSync("git", ["show", "HEAD:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"], {
+    cwd: sourceRoot,
+  }));
   return {
     repoRoot,
     planRoot,
     runRoot: defaultRunRoot(repoRoot),
     admissionPath: join(repoRoot, admissionRelative),
-    planPath: join(planRoot, "plan-pack.json"),
+    planPath,
     journalPath: join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/plan-transition-journal.json"),
     unitLeasePath: join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/leases/units/UNIT-001"),
     cleanup: () => rmSync(repoRoot, { recursive: true, force: true }),
+  };
+}
+
+function createKnownPredecessorFixture(targetUnit: "UNIT-002" | "UNIT-003" | "UNIT-004") {
+  const planRoot = mkdtempSync(join(tmpdir(), "estimate-sheet-known-predecessor-"));
+  const predecessorNumber = Number(targetUnit.slice(-3)) - 1;
+  const predecessorUnit = `UNIT-${String(predecessorNumber).padStart(3, "0")}` as "UNIT-001" | "UNIT-002" | "UNIT-003";
+  const runId = `predecessor-${predecessorUnit}`;
+  const immutableRoot = `evidence/runtime/runs/${predecessorUnit}/${runId}-${digest.slice(0, 12)}-${digest.slice(0, 12)}`;
+  const evidenceRelative = `${immutableRoot}/reports/primary.json`;
+  const indexRelative = `${immutableRoot}/evidence-index.json`;
+  const evidencePath = join(planRoot, evidenceRelative);
+  const indexPath = join(planRoot, indexRelative);
+  const evidenceBytes = `${JSON.stringify({
+    applicationFingerprint: fingerprint,
+    producerFingerprint: fingerprint,
+  })}\n`;
+  mkdirSync(dirname(evidencePath), { recursive: true });
+  writeFileSync(evidencePath, evidenceBytes);
+  const primary = { immutable_path: evidenceRelative, sha256: sha256Hex(evidenceBytes) };
+  const writeIndex = (evidence: Array<{ immutable_path: string; sha256: string }>) => {
+    const payload = {
+      schema_version: "estimate-sheet-evidence-index.v1",
+      unit_id: predecessorUnit,
+      run_id: runId,
+      status: "VERIFIED",
+      evidence,
+    };
+    const bytes = `${JSON.stringify({ ...payload, payload_sha256: sha256Json(payload) })}\n`;
+    mkdirSync(dirname(indexPath), { recursive: true });
+    writeFileSync(indexPath, bytes);
+    return sha256Hex(bytes);
+  };
+  const plan = {
+    runtime_evidence: {
+      latest_unit_id: predecessorUnit,
+      latest_run_id: runId,
+      registry: {
+        immutable_path: indexRelative,
+        sha256: writeIndex([primary]),
+      },
+      projections: [],
+    },
+  } as unknown as EstimateSheetPlanManifest;
+  return {
+    planRoot,
+    plan,
+    predecessorUnit,
+    runId,
+    indexRelative,
+    evidenceRelative,
+    primary,
+    writeIndex,
+    cleanup: () => rmSync(planRoot, { recursive: true, force: true }),
   };
 }
 
@@ -136,7 +227,7 @@ describe("estimate-sheet performance run lifecycle contract", () => {
   it("requires complete immutable admission bindings in run manifests", () => {
     const root = join(tmpdir(), "estimate-sheet-lifecycle-admission");
     expect(validateRunManifest(validManifest(root, {
-      admissionKind: "refreeze",
+      admissionKind: "planning",
       admissionPath: "dependencies/admission.json",
       admissionSha256: undefined,
       inputApplicationFingerprint: undefined,
@@ -145,7 +236,7 @@ describe("estimate-sheet performance run lifecycle contract", () => {
       "admission path/hash must be present together",
     ]));
     expect(validateRunManifest(validManifest(root, {
-      admissionKind: "refreeze",
+      admissionKind: "planning",
       admissionPath: "dependencies/admission.json",
       admissionSha256: digest,
       inputApplicationFingerprint: fingerprint,
@@ -161,15 +252,58 @@ describe("estimate-sheet performance run lifecycle contract", () => {
     const runRoot = join(root, "focused.run");
     const admissionPath = join(root, "admission.json");
     try {
-      mkdirSync(runRoot, { recursive: true });
+      mkdirSync(runRoot, { recursive: true, mode: 0o700 });
+      const sourceFingerprint: SourceFingerprint = {
+        contract_version: "estimate-sheet-source-fingerprint.v2",
+        head: "abcdef1234567",
+        path_count: 1,
+        path_list_sha256: digest,
+        application: fingerprint,
+        producer: fingerprint,
+      };
+      const runManifest = {
+        schema_version: "estimate-sheet-performance-run.v1",
+        package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
+        unit_id: "UNIT-002",
+        run_id: "focused-refreeze-run",
+        profile: "artifact-only",
+        cleanupRequirement: "NOT_APPLICABLE",
+        run_root: runRoot,
+        pointer_path: join(runRoot, "run-pointer.json"),
+        created_at: "2026-07-11T00:00:00.000Z",
+        status: "PREPARED",
+        sourceFingerprint,
+        applicationFingerprint: fingerprint,
+        producerFingerprint: fingerprint,
+        namespaces: {},
+        mutationJournal: [],
+        previewProcesses: [],
+      };
+      const runManifestPath = join(runRoot, "run-manifest.json");
+      writeFileSync(runManifestPath, `${JSON.stringify(runManifest)}\n`, { mode: 0o600 });
+      const pointerPath = join(runRoot, "run-pointer.json");
+      const pointerBytes = `${JSON.stringify({
+        schema_version: "estimate-sheet-performance-run-pointer.v1",
+        unit_id: "UNIT-002",
+        run_id: "focused-refreeze-run",
+        run_root: runRoot,
+        run_manifest: "run-manifest.json",
+        application_fingerprint: digest,
+        producer_fingerprint: digest,
+      })}\n`;
+      writeFileSync(pointerPath, pointerBytes, { mode: 0o600 });
       const payload = {
         schema_version: "estimate-sheet-refreeze-admission.v1",
         status: "RECORDED",
         unit_id: "UNIT-002",
+        input_application_fingerprint: fingerprint,
+        input_producer_fingerprint: fingerprint,
         focused_run: {
           run_id: "focused-refreeze-run",
           run_root: relative(repoRoot, runRoot),
+          unit_id: "UNIT-002",
           receipt_role: "refreeze-tests",
+          run_manifest_sha256: sha256File(runManifestPath),
         },
       };
       writeFileSync(admissionPath, `${JSON.stringify({ ...payload, payload_sha256: sha256Json(payload) }, null, 2)}\n`, { mode: 0o600 });
@@ -190,7 +324,28 @@ describe("estimate-sheet performance run lifecycle contract", () => {
         ESTIMATE_PERF_UNIT: "UNIT-002",
         ESTIMATE_PERF_REFREEZE_ADMISSION: relative(repoRoot, admissionPath),
         ESTIMATE_PERF_TEST_OUTPUT_ROLE: "wrong-role",
-      } as NodeJS.ProcessEnv)).toThrow(/binding is invalid/);
+      } as NodeJS.ProcessEnv)).toThrow(/role must be refreeze-tests/);
+
+      const tamperedManifest = { ...runManifest, created_at: "2026-07-12T00:00:00.000Z" };
+      writeFileSync(runManifestPath, `${JSON.stringify(tamperedManifest)}\n`, { mode: 0o600 });
+      expect(() => readReceiptEnvironment({
+        ESTIMATE_PERF_UNIT: "UNIT-002",
+        ESTIMATE_PERF_REFREEZE_ADMISSION: relative(repoRoot, admissionPath),
+        ESTIMATE_PERF_TEST_OUTPUT_ROLE: "refreeze-tests",
+      } as NodeJS.ProcessEnv)).toThrow(/manifest hash mismatch/);
+      expect(existsSync(join(runRoot, "receipts/refreeze-tests.json"))).toBe(false);
+
+      writeFileSync(runManifestPath, `${JSON.stringify(runManifest)}\n`, { mode: 0o600 });
+      const outsidePointerPath = join(root, "outside-pointer.json");
+      writeFileSync(outsidePointerPath, pointerBytes, { mode: 0o600 });
+      rmSync(pointerPath);
+      symlinkSync(outsidePointerPath, pointerPath);
+      expect(() => readReceiptEnvironment({
+        ESTIMATE_PERF_UNIT: "UNIT-002",
+        ESTIMATE_PERF_REFREEZE_ADMISSION: relative(repoRoot, admissionPath),
+        ESTIMATE_PERF_TEST_OUTPUT_ROLE: "refreeze-tests",
+      } as NodeJS.ProcessEnv)).toThrow(/symbolic[- ]link/);
+      expect(existsSync(join(runRoot, "receipts/refreeze-tests.json"))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -206,6 +361,42 @@ describe("estimate-sheet performance run lifecycle contract", () => {
       expect(readFileSync(target, "utf8")).toBe("first\n");
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("durably creates every missing parent directory before publication", () => {
+    const root = mkdtempSync(join(tmpdir(), "estimate-sheet-durable-directories-"));
+    const target = join(root, "one", "two", "three", "receipt.json");
+    try {
+      writeNoOverwrite(target, "durable\n");
+      expect(readFileSync(target, "utf8")).toBe("durable\n");
+      expect(existsSync(join(root, "one", "two", "three"))).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects publication through a symbolic-link directory component", () => {
+    const root = mkdtempSync(join(tmpdir(), "estimate-sheet-symlink-root-"));
+    const external = mkdtempSync(join(tmpdir(), "estimate-sheet-symlink-external-"));
+    const linked = join(root, "linked");
+    const escapedTarget = join(linked, "nested", "receipt.json");
+    try {
+      symlinkSync(external, linked, "dir");
+      expect(() => writeNoOverwrite(escapedTarget, "must-not-escape\n", 0o600, root)).toThrow(/symbolic-link traversal/);
+      expect(existsSync(join(external, "nested", "receipt.json"))).toBe(false);
+
+      mkdirSync(join(external, "existing"));
+      expect(() => writeNoOverwrite(
+        join(linked, "existing", "receipt.json"),
+        "must-still-not-escape\n",
+        0o600,
+        root,
+      )).toThrow(/symbolic-link traversal/);
+      expect(existsSync(join(external, "existing", "receipt.json"))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(external, { recursive: true, force: true });
     }
   });
 
@@ -242,35 +433,161 @@ describe("estimate-sheet performance run lifecycle contract", () => {
   it("resolves the run committed by plan state instead of the newest orphan", () => {
     const repoRoot = mkdtempSync(join(tmpdir(), "estimate-sheet-resolve-"));
     const planRoot = join(repoRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization");
-    const unitRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-001");
-    const committedRoot = join(unitRoot, "committed");
-    const orphanRoot = join(unitRoot, "orphan");
+    const makeManifest = (runId: string, createdAt: string) => {
+      const base = validManifest(repoRoot);
+      const runKey = `${runId}-${fingerprint.content_sha256.slice(0, 12)}-${base.prepareInputSha256.slice(0, 12)}`;
+      const runRoot = join(defaultRunRoot(repoRoot), "UNIT-001", runKey);
+      const immutableRunRoot = join(defaultImmutableRunRoot(repoRoot), "UNIT-001", runKey);
+      return {
+        manifest: {
+          ...base,
+          run_id: runId,
+          run_root: runRoot,
+          immutable_run_root: immutableRunRoot,
+          pointer_path: join(runRoot, "run-pointer.json"),
+          created_at: createdAt,
+        },
+        runRoot,
+        immutableRunRoot,
+      };
+    };
+    const committed = makeManifest("committed-run", "2026-07-11T00:00:00.000Z");
+    const orphan = makeManifest("orphan-run", "2026-07-11T01:00:00.000Z");
     try {
       mkdirSync(planRoot, { recursive: true });
-      mkdirSync(committedRoot, { recursive: true });
-      mkdirSync(orphanRoot, { recursive: true });
+      mkdirSync(committed.runRoot, { recursive: true });
+      mkdirSync(committed.immutableRunRoot, { recursive: true });
+      mkdirSync(orphan.runRoot, { recursive: true });
+      mkdirSync(orphan.immutableRunRoot, { recursive: true });
+      const manifestBytes = new Map([committed, orphan].map((candidate) => [candidate, `${JSON.stringify(candidate.manifest)}\n`]));
       writeFileSync(join(planRoot, "plan-pack.json"), `${JSON.stringify({
         runtime_evidence: {
           latest_unit_id: "UNIT-001",
           latest_run_id: "committed-run",
+          latest_run_manifest_sha256: sha256Hex(manifestBytes.get(committed)!),
         },
       })}\n`);
-      writeFileSync(join(committedRoot, "run-manifest.json"), `${JSON.stringify({
-        unit_id: "UNIT-001",
-        run_id: "committed-run",
-        status: "PREPARED",
-        created_at: "2026-07-11T00:00:00.000Z",
-      })}\n`);
-      writeFileSync(join(orphanRoot, "run-manifest.json"), `${JSON.stringify({
-        unit_id: "UNIT-001",
-        run_id: "orphan-run",
-        status: "PREPARED",
-        created_at: "2026-07-11T01:00:00.000Z",
-      })}\n`);
+      for (const candidate of [committed, orphan]) {
+        const bytes = manifestBytes.get(candidate)!;
+        writeFileSync(join(candidate.runRoot, "run-manifest.json"), bytes);
+        writeFileSync(join(candidate.immutableRunRoot, "run-manifest.json"), bytes);
+      }
 
-      expect(resolveRunManifestPath(repoRoot, "UNIT-001")).toBe(join(committedRoot, "run-manifest.json"));
+      expect(resolveRunManifestPath(repoRoot, "UNIT-001")).toBe(join(committed.runRoot, "run-manifest.json"));
     } finally {
       rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("binds the exact current immutable predecessor for UNIT-002 through UNIT-004", () => {
+    for (const targetUnit of ["UNIT-002", "UNIT-003", "UNIT-004"] as const) {
+      const fixture = createKnownPredecessorFixture(targetUnit);
+      try {
+        expect(readKnownPlanPredecessor(fixture.planRoot, fixture.plan, targetUnit)).toEqual({
+          unit_id: fixture.predecessorUnit,
+          run_id: fixture.runId,
+          index_immutable_path: fixture.indexRelative,
+          index_sha256: fixture.plan.runtime_evidence.registry.sha256,
+          evidence_immutable_path: fixture.evidenceRelative,
+          evidence_sha256: fixture.primary.sha256,
+          application_fingerprint: fingerprint,
+          producer_fingerprint: fingerprint,
+        });
+      } finally {
+        fixture.cleanup();
+      }
+    }
+  });
+
+  it("rejects stale or ambiguous allocation predecessor bindings", () => {
+    const fixture = createKnownPredecessorFixture("UNIT-002");
+    try {
+      const wrongUnit = structuredClone(fixture.plan);
+      wrongUnit.runtime_evidence.latest_unit_id = "UNIT-004";
+      expect(() => readKnownPlanPredecessor(fixture.planRoot, wrongUnit, "UNIT-002"))
+        .toThrow(/requires the current UNIT-001 immutable predecessor/);
+
+      const wrongRun = structuredClone(fixture.plan);
+      wrongRun.runtime_evidence.latest_run_id = "wrong-run";
+      expect(() => readKnownPlanPredecessor(fixture.planRoot, wrongRun, "UNIT-002"))
+        .toThrow(/allocation predecessor index does not expose one immutable primary output/);
+
+      const wrongHash = structuredClone(fixture.plan);
+      wrongHash.runtime_evidence.registry.sha256 = sha256Hex("wrong-index");
+      expect(() => readKnownPlanPredecessor(fixture.planRoot, wrongHash, "UNIT-002"))
+        .toThrow(/allocation predecessor index hash mismatch/);
+
+      fixture.plan.runtime_evidence.registry.sha256 = fixture.writeIndex([fixture.primary, fixture.primary]);
+      expect(() => readKnownPlanPredecessor(fixture.planRoot, fixture.plan, "UNIT-002"))
+        .toThrow(/does not expose one immutable primary output/);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("recovers a dead pre-journal transition lock without inventing a journal", () => {
+    const fixture = createPrepareRepositoryFixture();
+    const transitionLockPath = join(dirname(fixture.runRoot), ".plan-transition.lock");
+    try {
+      mkdirSync(transitionLockPath, { mode: 0o700 });
+      writeFileSync(join(transitionLockPath, "owner.json"), `${JSON.stringify({
+        schema_version: "estimate-sheet-plan-transition-lock.v1",
+        pid: 2_147_483_647,
+        owner_id: "a".repeat(32),
+        operation: "PREPARE",
+        acquired_at: new Date(Date.now() - 5_000).toISOString(),
+      })}\n`, { mode: 0o600 });
+      expect(existsSync(fixture.journalPath)).toBe(false);
+      expect(recoverEstimateSheetPrepareTransition({ repoRoot: fixture.repoRoot })).toEqual({ result: "NO_JOURNAL" });
+      expect(existsSync(transitionLockPath)).toBe(false);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("recovers an aged ownerless lock but never steals a fresh partial lock", () => {
+    const aged = createPrepareRepositoryFixture();
+    const agedLockPath = join(dirname(aged.runRoot), ".plan-transition.lock");
+    try {
+      mkdirSync(agedLockPath, { mode: 0o700 });
+      const staleTime = new Date(Date.now() - 5_000);
+      utimesSync(agedLockPath, staleTime, staleTime);
+      expect(recoverEstimateSheetPrepareTransition({ repoRoot: aged.repoRoot })).toEqual({ result: "NO_JOURNAL" });
+      expect(existsSync(agedLockPath)).toBe(false);
+    } finally {
+      aged.cleanup();
+    }
+
+    const fresh = createPrepareRepositoryFixture();
+    const freshLockPath = join(dirname(fresh.runRoot), ".plan-transition.lock");
+    try {
+      mkdirSync(freshLockPath, { mode: 0o700 });
+      writeFileSync(join(freshLockPath, `owner.json.tmp-${process.pid}-partial`), "partial\n", { mode: 0o600 });
+      expect(() => recoverEstimateSheetPrepareTransition({ repoRoot: fresh.repoRoot }))
+        .toThrow(/too recent for safe recovery takeover/);
+      expect(existsSync(freshLockPath)).toBe(true);
+    } finally {
+      fresh.cleanup();
+    }
+  });
+
+  it("never takes over a live index transition lock", () => {
+    const fixture = createPrepareRepositoryFixture();
+    const transitionLockPath = join(dirname(fixture.runRoot), ".plan-transition.lock");
+    try {
+      mkdirSync(transitionLockPath, { mode: 0o700 });
+      writeFileSync(join(transitionLockPath, "owner.json"), `${JSON.stringify({
+        schema_version: "estimate-sheet-plan-transition-lock.v1",
+        pid: process.pid,
+        owner_id: "b".repeat(32),
+        operation: "INDEX",
+        acquired_at: new Date().toISOString(),
+      })}\n`, { mode: 0o600 });
+      expect(() => recoverEstimateSheetPrepareTransition({ repoRoot: fixture.repoRoot }))
+        .toThrow(/plan transition lock is active/);
+      expect(existsSync(transitionLockPath)).toBe(true);
+    } finally {
+      fixture.cleanup();
     }
   });
 
@@ -384,10 +701,15 @@ describe("estimate-sheet performance run lifecycle contract", () => {
       expect(existsSync(fixture.journalPath)).toBe(true);
       expect(existsSync(fixture.unitLeasePath)).toBe(false);
       expect(readFileSync(fixture.planPath)).toEqual(originalPlan);
+      const transitionLockPath = join(dirname(fixture.runRoot), ".plan-transition.lock");
+      mkdirSync(transitionLockPath, { mode: 0o700 });
+      const staleTime = new Date(Date.now() - 5_000);
+      utimesSync(transitionLockPath, staleTime, staleTime);
       expect(recoverEstimateSheetPrepareTransition({ repoRoot: fixture.repoRoot })).toMatchObject({
         result: "ROLLED_BACK",
         unit_id: "UNIT-001",
       });
+      expect(existsSync(transitionLockPath)).toBe(false);
       expect(existsSync(fixture.journalPath)).toBe(false);
       expect(existsSync(fixture.unitLeasePath)).toBe(false);
       expect(readFileSync(fixture.planPath)).toEqual(originalPlan);

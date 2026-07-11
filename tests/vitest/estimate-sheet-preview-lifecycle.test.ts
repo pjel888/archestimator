@@ -1,16 +1,18 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { cleanupEstimateSheetPerformanceRun } from "../../scripts/cleanup-estimate-sheet-performance-run";
-import { sha256File, sha256Hex, sha256OpenNextBuild } from "../../scripts/lib/estimate-sheet-performance-contract";
+import { ESTIMATE_LOGICAL_OUTPUTS, PREPARE_INPUT_SCHEMA, runtimeEnvironmentStableSha256, sha256File, sha256Hex, sha256Json, sha256OpenNextBuild } from "../../scripts/lib/estimate-sheet-performance-contract";
 import { runEstimateSheetModeProof } from "../../scripts/run-estimate-sheet-mode-proof";
 import {
   buildBenchmarkChildEnvironment,
+  isProcessAlive,
   isPortOpen,
   parseServerModeSnapshot,
   resolveBenchmarkServerCommand,
@@ -30,6 +32,18 @@ function privateFile(path: string, bytes: string): void {
 
 function privateJson(path: string, value: unknown): void {
   privateFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function syncCommittedRunAnchor(manifest: { unit_id: string; run_id: string; immutable_run_root: string }): void {
+  const immutableManifest = join(manifest.immutable_run_root, "run-manifest.json");
+  const planRoot = resolve(manifest.immutable_run_root, "../../../../..");
+  privateJson(join(planRoot, "plan-pack.json"), {
+    runtime_evidence: {
+      latest_unit_id: manifest.unit_id,
+      latest_run_id: manifest.run_id,
+      latest_run_manifest_sha256: sha256File(immutableManifest),
+    },
+  });
 }
 
 function openNextBuildHash(repoRoot: string): string {
@@ -74,14 +88,11 @@ server.listen(port, "127.0.0.1");
 }
 
 function makeRun(
-  repoRoot: string,
   port: number,
   unitId = "UNIT-002",
-): { manifestPath: string; runRoot: string; fakeServer: string; runtimeEnv: string } {
-  const root = mkdtempSync(join(tmpdir(), "estimate-preview-lifecycle-"));
-  roots.push(root);
-  const runRoot = join(root, `${RUN_ID}-application-input`);
-  mkdirSync(join(runRoot, "wrangler-state"), { recursive: true, mode: 0o700 });
+): { manifestPath: string; runRoot: string; immutableRunRoot: string; repoRoot: string; fakeServer: string; runtimeEnv: string } {
+  const repoRoot = mkdtempSync(join(tmpdir(), "estimate-preview-lifecycle-"));
+  roots.push(repoRoot);
   const fingerprintHash = sha256Hex("preview-test-fingerprint");
   const applicationFingerprint = {
     contract_version: "estimate-sheet-application-fingerprint.v1",
@@ -105,25 +116,55 @@ function makeRun(
     application: applicationFingerprint,
     producer: producerFingerprint,
   };
+  const preStateHash = sha256Hex("logical-pre-state");
+  const namespaceRoleNames = unitId === "UNIT-002" ? ["browser"] : ["mode", "browser", "d1"];
+  const prepareInput = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: unitId,
+    profile: "limit" as const,
+    application_fingerprint: applicationFingerprint,
+    producer_fingerprint: producerFingerprint,
+    fixture: { profile: "limit" as const, payload_sha256: preStateHash, namespace_roles: namespaceRoleNames },
+    decision: null,
+    predecessor: unitId === "UNIT-002" ? {
+      unit_id: "UNIT-001" as const,
+      run_id: "00000000-0000-4000-8000-000000000001",
+      index_immutable_path: "evidence/runtime/runs/UNIT-001/predecessor-run-aaaaaaaaaaaa-bbbbbbbbbbbb/evidence-index.json",
+      index_sha256: preStateHash,
+      evidence_immutable_path: "evidence/runtime/runs/UNIT-001/predecessor-run-aaaaaaaaaaaa-bbbbbbbbbbbb/reports/jsdom-baseline.json",
+      evidence_sha256: preStateHash,
+      application_fingerprint: applicationFingerprint,
+      producer_fingerprint: producerFingerprint,
+    } : null,
+    admission: null,
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${RUN_ID}-${applicationFingerprint.content_sha256.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
+  const runRoot = join(repoRoot, ".ai/99_scratch/estimate-sheet-performance/runs", unitId, runKey);
+  const immutableRunRoot = join(repoRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs", unitId, runKey);
+  mkdirSync(join(runRoot, "wrangler-state"), { recursive: true, mode: 0o700 });
+  mkdirSync(immutableRunRoot, { recursive: true, mode: 0o700 });
+  privateFile(join(repoRoot, ".open-next/worker.js"), "export default {};\n");
+  privateFile(join(repoRoot, ".open-next/assets/fixture.txt"), "fixture\n");
   const runtimeEnv = join(runRoot, "runtime.env");
-  privateFile(runtimeEnv, [
-    "ARCHESTIMATOR_AUTH_PROVIDER=better-auth",
-    `BETTER_AUTH_SECRET=${"s".repeat(64)}`,
-    `BETTER_AUTH_URL=http://127.0.0.1:${port}`,
-    `BETTER_AUTH_TRUSTED_ORIGINS=http://127.0.0.1:${port}`,
-    "ESTIMATE_ROUTE_FAST_PATH_MODE=off",
-    "ESTIMATE_GRAPH_MODE=off",
-    "ESTIMATE_INCREMENTAL_DERIVATION_MODE=off",
-    "ESTIMATE_RENDER_BOUNDARY_MODE=off",
-    "ESTIMATE_ENTITY_PATCH_MODE=off",
-    "",
-  ].join("\n"));
+  const runtimeValues = {
+    ARCHESTIMATOR_AUTH_PROVIDER: "better-auth",
+    BETTER_AUTH_SECRET: "s".repeat(64),
+    BETTER_AUTH_URL: `http://127.0.0.1:${port}`,
+    BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:${port}`,
+    ESTIMATE_ROUTE_FAST_PATH_MODE: "off",
+    ESTIMATE_GRAPH_MODE: "off",
+    ESTIMATE_INCREMENTAL_DERIVATION_MODE: "off",
+    ESTIMATE_RENDER_BOUNDARY_MODE: "off",
+    ESTIMATE_ENTITY_PATCH_MODE: "off",
+  };
+  privateFile(runtimeEnv, `${Object.entries(runtimeValues).map(([key, value]) => `${key}=${value}`).join("\n")}\n`);
   const storageState = join(runRoot, "storage-state.json");
   privateJson(storageState, {
     cookies: [{ name: "better-auth.session_token", value: "redacted-test-token", domain: "127.0.0.1", path: "/", httpOnly: true, secure: false, sameSite: "Lax" }],
     origins: [],
   });
-  const buildReceipt = join(runRoot, "receipts/command-opennext-build.json");
+  const buildReceipt = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["opennext-build"]);
   privateJson(buildReceipt, {
     schema_version: "estimate-sheet-command-receipt.v1",
     role: "opennext-build",
@@ -138,7 +179,6 @@ function makeRun(
   const pointerPath = join(runRoot, "run-pointer.json");
   const manifestPath = join(runRoot, "run-manifest.json");
   const namespaceHash = sha256Hex(unitId === "UNIT-002" ? "browser-namespace" : "mode-namespace");
-  const preStateHash = sha256Hex("logical-pre-state");
   const namespaces = unitId === "UNIT-002"
     ? { browser: { idSha256: namespaceHash, preStateSha256: preStateHash } }
     : {
@@ -146,7 +186,10 @@ function makeRun(
         browser: { idSha256: sha256Hex("activated-browser-namespace"), preStateSha256: preStateHash },
         d1: { idSha256: sha256Hex("activated-d1-namespace"), preStateSha256: preStateHash },
       };
-  privateJson(manifestPath, {
+  const processJournal = join(runRoot, "preview/process-journal.json");
+  const wranglerState = join(runRoot, "wrangler-state");
+  const routePath = "/workshop/projects/00000000-0000-4000-8000-000000000010/estimates/00000000-0000-4000-8000-000000000011";
+  const manifest = {
     schema_version: "estimate-sheet-performance-run.v1",
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
     unit_id: unitId,
@@ -155,27 +198,60 @@ function makeRun(
     evidence_class: "local-browser",
     cleanupRequirement: "REQUIRED",
     run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
     pointer_path: pointerPath,
+    logical_outputs: ESTIMATE_LOGICAL_OUTPUTS,
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: fingerprint,
     applicationFingerprint: fingerprint.application,
     producerFingerprint: fingerprint.producer,
     fixture: { profile: "limit", namespaceIdSha256: namespaceHash, preStateSha256: preStateHash },
-    fixture_hash: sha256Hex("fixture"),
+    fixture_hash: preStateHash,
     auth_fixture_hash: sha256Hex("auth-fixture"),
     namespaces,
     ...(unitId === "UNIT-002" ? {} : { activatedModes: ["ESTIMATE_ROUTE_FAST_PATH_MODE"] }),
     mutationJournal: [],
     previewProcesses: [],
+    wranglerState,
+    resources: {
+      d1Binding: "ARCH_DB",
+      wranglerState,
+      localConfig: join(runRoot, "resources/d1/wrangler-local.json"),
+      localConfigSha256: sha256Hex("local-config"),
+      generatedSchema: join(runRoot, "better-auth-schema.sql"),
+      generatedSchemaSha256: sha256Hex("generated-schema"),
+      migrations: join(runRoot, "resources/d1/migrations.json"),
+      migrationsSha256: sha256Hex("migrations"),
+      migrationHead: "0040_operational_incidents.sql",
+      migrationCount: 40,
+      seedSql: join(runRoot, "seed.sql"),
+      seedSqlSha256: sha256Hex("seed-sql"),
+      cleanupSql: join(runRoot, "resources/d1/cleanup.sql"),
+      cleanupSqlSha256: sha256Hex("cleanup-sql"),
+      cleanupStateSha256ByRole: Object.fromEntries(Object.keys(namespaces).map((role) => [role, sha256Hex(`cleanup-${role}`)])),
+      unitLease: join(runRoot, "../../..", "leases/units", unitId),
+      portLease: join(runRoot, "../../..", "leases/ports", String(port)),
+    },
+    leasedPort: port,
     port,
-    routePath: "/workshop/projects/00000000-0000-4000-8000-000000000010/estimates/00000000-0000-4000-8000-000000000011",
+    routePath,
+    route: { path: routePath, projectId: "00000000-0000-4000-8000-000000000010", nodeId: "00000000-0000-4000-8000-000000000011", fixtureRole: unitId === "UNIT-002" ? "browser" : "browser" },
     runtimeEnv,
     runtimeEnvSha256: sha256File(runtimeEnv),
+    runtimeEnvStableSha256: runtimeEnvironmentStableSha256(runtimeValues),
     storageState,
     storageStateSha256: sha256File(storageState),
+    storageStateExpiresAt: "2099-01-01T00:00:00.000Z",
+    processJournal,
     buildReceipt,
-  });
+    build_hash: openNextBuildHash(repoRoot),
+  };
+  privateJson(manifestPath, manifest);
+  privateJson(join(immutableRunRoot, "run-manifest.json"), manifest);
+  syncCommittedRunAnchor(manifest);
   privateJson(pointerPath, {
     schema_version: "estimate-sheet-performance-run-pointer.v1",
     unit_id: unitId,
@@ -185,9 +261,9 @@ function makeRun(
     application_fingerprint: fingerprint.application.content_sha256,
     producer_fingerprint: fingerprint.producer.content_sha256,
   });
-  const fakeServer = join(root, "fake-preview-server.mjs");
+  const fakeServer = join(repoRoot, "fake-preview-server.mjs");
   privateFile(fakeServer, fakeServerSource());
-  return { manifestPath, runRoot, fakeServer, runtimeEnv };
+  return { manifestPath, runRoot, immutableRunRoot, repoRoot, fakeServer, runtimeEnv };
 }
 
 function seedCleanupNamespace(
@@ -201,7 +277,8 @@ function seedCleanupNamespace(
   const insert = database.prepare("INSERT INTO profiles (id) VALUES (?)");
   for (const id of insertedIds) insert.run(id);
   database.close();
-  privateJson(join(runRoot, "cleanup/browser-state.json"), {
+  const cleanupStatePath = join(runRoot, "cleanup/browser-state.json");
+  privateJson(cleanupStatePath, {
     schema_version: "estimate-sheet-local-preview-cleanup-state.v1",
     state: "CLEANUP_PREPARED",
     run_id: RUN_ID,
@@ -209,11 +286,25 @@ function seedCleanupNamespace(
     namespace_id_sha256: sha256Hex("browser-namespace"),
     exact_ids: { profiles: declaredIds },
   });
+  const manifestPath = join(runRoot, "run-manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  manifest.resources.cleanupStateSha256ByRole.browser = sha256File(cleanupStatePath);
+  privateJson(manifestPath, manifest);
+  privateJson(join(manifest.immutable_run_root, "run-manifest.json"), manifest);
+  syncCommittedRunAnchor(manifest);
 }
 
 async function freePreviewPort(): Promise<number> {
   for (let port = 3199; port >= 3101; port -= 1) if (!await isPortOpen(port)) return port;
   throw new Error("no free estimate preview test port");
+}
+
+async function waitForProcessExit(pid: number, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline && isProcessAlive(pid)) {
+    await new Promise((resolveWait) => setTimeout(resolveWait, 25));
+  }
+  if (isProcessAlive(pid)) throw new Error(`process ${pid} did not exit`);
 }
 
 afterEach(() => {
@@ -283,14 +374,157 @@ describe("estimate-sheet preview lifecycle", () => {
     });
   });
 
-  it("journals before readiness, leaves one live preview, then terminates and reconciles it", async () => {
-    const repoRoot = process.cwd();
+  it("denies mutable manifest identity tampering before creating preview side effects", async () => {
     const port = await freePreviewPort();
-    const { manifestPath, runRoot, fakeServer } = makeRun(repoRoot, port);
+    const { manifestPath, runRoot, repoRoot } = makeRun(port);
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    manifest.created_at = "2026-07-11T00:00:01.000Z";
+    privateJson(manifestPath, manifest);
+
+    await expect(startEstimateSheetBenchmarkServer({
+      runManifest: manifestPath,
+      repoRoot,
+      unit: "UNIT-002",
+      role: "browser",
+      phase: "baseline-all-off",
+      finalState: "all-off",
+      activate: true,
+      checkSource: false,
+    })).rejects.toThrow(/immutable authority/);
+    expect(existsSync(join(runRoot, "preview/logs"))).toBe(false);
+  });
+
+  it("rejects a pre-planted preview ancestor symlink without mutating its target", async () => {
+    const port = await freePreviewPort();
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
+    const outside = join(repoRoot, "outside-preview-target");
+    const sentinel = join(outside, "sentinel.txt");
+    mkdirSync(outside, { mode: 0o700 });
+    privateFile(sentinel, "unchanged\n");
+    symlinkSync(outside, join(runRoot, "preview"), "dir");
+
+    await expect(startEstimateSheetBenchmarkServer({
+      runManifest: manifestPath,
+      repoRoot,
+      unit: "UNIT-002",
+      role: "browser",
+      phase: "baseline-all-off",
+      finalState: "all-off",
+      activate: true,
+      commandOverride: [process.execPath, fakeServer, String(port), "off", join(runRoot, "preview/process-journal.json")],
+      checkSource: false,
+    })).rejects.toThrow(/symbolic|symlink/u);
+
+    expect(await isPortOpen(port)).toBe(false);
+    expect(readFileSync(sentinel, "utf8")).toBe("unchanged\n");
+    expect(readdirSync(outside)).toEqual(["sentinel.txt"]);
+    expect(JSON.parse(readFileSync(manifestPath, "utf8")).previewProcesses).toEqual([]);
+  });
+
+  it("rejects a pre-planted cleanup ancestor symlink without mutating its target", async () => {
+    const port = await freePreviewPort();
+    const { manifestPath, runRoot, immutableRunRoot, repoRoot } = makeRun(port);
+    const outside = join(repoRoot, "outside-cleanup-target");
+    const sentinel = join(outside, "sentinel.txt");
+    mkdirSync(outside, { mode: 0o700 });
+    privateFile(sentinel, "unchanged\n");
+    symlinkSync(outside, join(runRoot, "cleanup"), "dir");
+
+    await expect(cleanupEstimateSheetPerformanceRun({
+      repoRoot,
+      runManifest: manifestPath,
+      unit: "UNIT-002",
+      cleanupClass: "local-preview",
+      checkSource: false,
+    })).rejects.toThrow(/symbolic|symlink/u);
+
+    expect(readFileSync(sentinel, "utf8")).toBe("unchanged\n");
+    expect(readdirSync(outside)).toEqual(["sentinel.txt"]);
+    expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.cleanup))).toBe(false);
+  });
+
+  it("reaps a blocked launcher when the spawn-to-journal window faults", async () => {
+    const port = await freePreviewPort();
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
+    let launcherPid = 0;
+
+    await expect(startEstimateSheetBenchmarkServer({
+      runManifest: manifestPath,
+      repoRoot,
+      unit: "UNIT-002",
+      role: "browser",
+      phase: "baseline-all-off",
+      finalState: "all-off",
+      activate: true,
+      commandOverride: [process.execPath, fakeServer, String(port), "off", join(runRoot, "preview/process-journal.json")],
+      checkSource: false,
+      onSpawnBeforeJournal(pid) {
+        launcherPid = pid;
+        throw new Error("injected spawn-to-journal fault");
+      },
+    })).rejects.toThrow(/injected spawn-to-journal fault/);
+
+    expect(launcherPid).toBeGreaterThan(0);
+    expect(isProcessAlive(launcherPid)).toBe(false);
+    expect(await isPortOpen(port)).toBe(false);
+    expect(existsSync(join(runRoot, "preview/process-journal.json"))).toBe(false);
+    expect(JSON.parse(readFileSync(manifestPath, "utf8")).previewProcesses).toEqual([]);
+    expect(existsSync(join(runRoot, "preview/logs/1-baseline-all-off.stdout.log"))).toBe(false);
+    expect(existsSync(join(runRoot, "preview/logs/1-baseline-all-off.stderr.log"))).toBe(false);
+  });
+
+  it("self-terminates the blocked launcher when its parent crashes before journaling", async () => {
+    const port = await freePreviewPort();
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
+    const launcherPidPath = join(repoRoot, "crash-window-launcher.pid");
+    const driverPath = join(repoRoot, "crash-window-driver.ts");
+    const launcherModule = pathToFileURL(resolve(process.cwd(), "scripts/start-estimate-sheet-benchmark-server.ts")).href;
+    privateFile(driverPath, `
+import { writeFileSync } from "node:fs";
+import { startEstimateSheetBenchmarkServer } from ${JSON.stringify(launcherModule)};
+
+await startEstimateSheetBenchmarkServer({
+  runManifest: ${JSON.stringify(manifestPath)},
+  repoRoot: ${JSON.stringify(repoRoot)},
+  unit: "UNIT-002",
+  role: "browser",
+  phase: "baseline-all-off",
+  finalState: "all-off",
+  activate: true,
+  commandOverride: ${JSON.stringify([process.execPath, fakeServer, String(port), "off", join(runRoot, "preview/process-journal.json")])},
+  checkSource: false,
+  onSpawnBeforeJournal(pid) {
+    writeFileSync(${JSON.stringify(launcherPidPath)}, String(pid), { mode: 0o600 });
+    process.kill(process.pid, "SIGKILL");
+  },
+});
+`);
+
+    const crashed = spawnSync("bun", [driverPath], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      timeout: 10_000,
+      env: { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR, NODE_ENV: "test" },
+    });
+    expect(crashed.status, crashed.stderr).toBeNull();
+    expect(crashed.signal).toBe("SIGKILL");
+    expect(existsSync(launcherPidPath)).toBe(true);
+    const launcherPid = Number(readFileSync(launcherPidPath, "utf8"));
+    expect(launcherPid).toBeGreaterThan(0);
+    await waitForProcessExit(launcherPid);
+    expect(await isPortOpen(port)).toBe(false);
+    expect(existsSync(join(runRoot, "preview/process-journal.json"))).toBe(false);
+    expect(JSON.parse(readFileSync(manifestPath, "utf8")).previewProcesses).toEqual([]);
+  }, 15_000);
+
+  it("journals before readiness, leaves one live preview, then terminates and reconciles it", async () => {
+    const port = await freePreviewPort();
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
     seedCleanupNamespace(runRoot);
     const descriptor = await startEstimateSheetBenchmarkServer({
       runManifest: manifestPath,
       repoRoot,
+      unit: "UNIT-002",
       role: "browser",
       phase: "baseline-all-off",
       finalState: "all-off",
@@ -315,6 +549,7 @@ describe("estimate-sheet preview lifecycle", () => {
     const cleanup = await cleanupEstimateSheetPerformanceRun({
       repoRoot,
       runManifest: manifestPath,
+      unit: "UNIT-002",
       cleanupClass: "local-preview",
       checkSource: false,
     });
@@ -340,14 +575,14 @@ describe("estimate-sheet preview lifecycle", () => {
   }, 30_000);
 
   it("runs every mode phase on a fresh preview and leaves only the verified final preview active", async () => {
-    const repoRoot = process.cwd();
     const port = await freePreviewPort();
-    const { manifestPath, runRoot, fakeServer, runtimeEnv } = makeRun(repoRoot, port, "UNIT-005");
+    const { manifestPath, runRoot, fakeServer, runtimeEnv, repoRoot } = makeRun(port, "UNIT-005");
     let finalPid: number | null = null;
     try {
       const { proof } = await runEstimateSheetModeProof({
         runManifest: manifestPath,
         repoRoot,
+        unit: "UNIT-005",
         target: "ESTIMATE_ROUTE_FAST_PATH_MODE",
         phases: "off,shadow,on,rollback",
         finalState: "on",
@@ -381,18 +616,18 @@ describe("estimate-sheet preview lifecycle", () => {
       });
       expect(validation.valid, validation.errors.join("\n")).toBe(true);
     } finally {
-      if (finalPid !== null) await stopPreviewProcess({ runManifest: manifestPath, pid: finalPid });
+      if (finalPid !== null) await stopPreviewProcess({ runManifest: manifestPath, pid: finalPid, repoRoot, unit: "UNIT-005" });
     }
     expect(await isPortOpen(port)).toBe(false);
   }, 30_000);
 
   it("rejects a server snapshot mismatch instead of copying the requested snapshot", async () => {
-    const repoRoot = process.cwd();
     const port = await freePreviewPort();
-    const { manifestPath, runRoot, fakeServer } = makeRun(repoRoot, port);
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
     await expect(startEstimateSheetBenchmarkServer({
       runManifest: manifestPath,
       repoRoot,
+      unit: "UNIT-002",
       role: "browser",
       phase: "baseline-all-off",
       finalState: "all-off",
@@ -408,13 +643,13 @@ describe("estimate-sheet preview lifecycle", () => {
   }, 30_000);
 
   it("invalidates cleanup when a declared fixture row was already absent", async () => {
-    const repoRoot = process.cwd();
     const port = await freePreviewPort();
-    const { manifestPath, runRoot, fakeServer } = makeRun(repoRoot, port);
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
     seedCleanupNamespace(runRoot, ["fixture-profile", "missing-profile"], ["fixture-profile"]);
     await startEstimateSheetBenchmarkServer({
       runManifest: manifestPath,
       repoRoot,
+      unit: "UNIT-002",
       role: "browser",
       phase: "baseline-all-off",
       finalState: "all-off",
@@ -427,6 +662,7 @@ describe("estimate-sheet preview lifecycle", () => {
     const cleanup = await cleanupEstimateSheetPerformanceRun({
       repoRoot,
       runManifest: manifestPath,
+      unit: "UNIT-002",
       cleanupClass: "local-preview",
       checkSource: false,
     });

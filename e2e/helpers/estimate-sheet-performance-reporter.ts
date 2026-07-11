@@ -30,9 +30,10 @@ import {
   isSha256,
   nowIso,
   readJsonFile,
+  resolveManifestLogicalOutput,
   sha256File,
   sha256Hex,
-  writeJsonNoOverwrite,
+  writeRunJsonNoOverwrite,
   type BrowserScope,
   type PerformanceReportV1,
   type RunManifestV1,
@@ -140,11 +141,12 @@ function normalizedRepoPath(path: string): string {
 
 function assertRunBinding(environment: ReceiptEnvironment, run: RunManifestV1): void {
   assertRunManifest(run);
-  if (!environment.runRoot || !environment.runId || !environment.unitId || !environment.receiptPath) {
+  if (!environment.runRoot || !environment.runId || !environment.unitId || !environment.receiptPath || !environment.receiptRoot) {
     throw new Error("receipt environment has no committed run binding");
   }
   if (run.status !== "PREPARED") throw new Error(`test receipt requires a PREPARED run, received ${run.status}`);
   if (resolve(run.run_root) !== resolve(environment.runRoot)) throw new Error("run root does not match receipt environment");
+  if (resolve(run.immutable_run_root) !== resolve(environment.receiptRoot)) throw new Error("receipt root does not match the immutable run root");
   if (run.run_id !== environment.runId) throw new Error("run id does not match receipt environment");
   if (run.unit_id !== environment.unitId) throw new Error("unit id does not match receipt environment");
 }
@@ -313,7 +315,7 @@ function browserBinding(config: FullConfig, environment: ReceiptEnvironment, run
   return {
     scope,
     outputRole: expectedOutputRole,
-    reportPath: ensureContainedRunPath(run.run_root, `reports/${expectedOutputRole}.json`),
+    reportPath: resolveManifestLogicalOutput(run, expectedOutputRole),
     buildHash,
     authFixtureHash,
     fixtureHash,
@@ -389,7 +391,7 @@ export class EstimateSheetPerformanceReporter implements Reporter {
       if (config.workers !== 1) throw new Error("performance Playwright evidence requires one worker");
       const environment = readReceiptEnvironment();
       if (!environment.enabled || environment.role !== "e2e-tests") throw new Error("invalid Playwright receipt role");
-      const loaded = loadRunFingerprints(requireString(environment.runRoot, "run root"));
+      const loaded = loadRunFingerprints(requireString(environment.runRoot, "run root"), environment.unitId);
       assertRunBinding(environment, loaded.run);
       const tests = suite.allTests();
       validateExpectedCohort(tests);
@@ -481,7 +483,7 @@ export class EstimateSheetPerformanceReporter implements Reporter {
       if (!environment || !binding || !this.applicationFingerprint || !this.producerFingerprint) {
         throw new Error("Playwright reporter has no initial run binding");
       }
-      const loaded = loadRunFingerprints(requireString(environment.runRoot, "run root"));
+      const loaded = loadRunFingerprints(requireString(environment.runRoot, "run root"), environment.unitId);
       assertRunBinding(environment, loaded.run);
       if (!fingerprintContentEqual(loaded.application, this.applicationFingerprint)
         || !fingerprintContentEqual(loaded.producer, this.producerFingerprint)) {
@@ -526,7 +528,7 @@ export class EstimateSheetPerformanceReporter implements Reporter {
         failureIds: summary.failureIds,
         fixtureMutation,
       });
-      writeTestReceipt(environment.receiptPath!, receipt);
+      writeTestReceipt(environment.receiptPath!, receipt, environment.receiptRoot!);
 
       const scenarioRecords = Object.fromEntries(INTEROP_SCENARIOS.map(([scenarioId, slug]) => {
         const recorded = [...this.results.values()].find((entry) => entry.title === `${scenarioId} ${slug}`);
@@ -550,7 +552,7 @@ export class EstimateSheetPerformanceReporter implements Reporter {
         ...(summary.skipped ? ["playwright-test-skips"] : []),
         ...(interopEvidenceCount !== INTEROP_SCENARIOS.length ? ["interop-evidence-incomplete"] : []),
       ];
-      const receiptSha256 = sha256File(environment.receiptPath!);
+      const receiptSha256 = sha256Hex(`${canonicalJson(receipt)}\n`);
       const metrics = {
         exactTestCohort: { status: this.results.size === 22 ? "PASS" : "FAIL", value: this.results.size, budget: 22 },
         interopScenarioCohort: { status: interopEvidenceCount === 19 ? "PASS" : "FAIL", value: interopEvidenceCount, budget: 19 },
@@ -624,7 +626,7 @@ export class EstimateSheetPerformanceReporter implements Reporter {
         || report.toolHashes?.testReceipt !== receiptSha256) {
         throw new Error("browser report/test receipt binding mismatch");
       }
-      writeJsonNoOverwrite(binding.reportPath, report, 0o600);
+      writeRunJsonNoOverwrite(loaded.run, binding.reportPath, report, 0o600);
       const persisted = readJsonFile<PerformanceReportV1>(binding.reportPath);
       assertPerformanceReport(persisted, { strict: true });
       if (canonicalJson(persisted) !== canonicalJson(report)) throw new Error("persisted browser report changed after publication");

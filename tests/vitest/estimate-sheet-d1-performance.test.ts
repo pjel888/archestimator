@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -19,8 +19,10 @@ import {
 } from "../../scripts/measure-estimate-sheet-d1";
 import {
   ESTIMATE_LOGICAL_OUTPUTS,
+  PREPARE_INPUT_SCHEMA,
   RUN_MANIFEST_SCHEMA,
   sha256Hex,
+  sha256Json,
   type FingerprintContent,
   type RunManifestV1,
 } from "../../scripts/lib/estimate-sheet-performance-contract";
@@ -36,7 +38,28 @@ const fingerprint: FingerprintContent = {
 
 function makeManifest(runRoot: string): RunManifestV1 {
   const runId = "00000000-0000-4000-8000-000000000003";
-  const runKey = `${runId}-${digest.slice(0, 12)}-0123456789ab`;
+  const prepareInput = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: "UNIT-003" as const,
+    profile: "limit" as const,
+    application_fingerprint: fingerprint,
+    producer_fingerprint: fingerprint,
+    fixture: { profile: "limit" as const, payload_sha256: digest, namespace_roles: ["d1"] },
+    decision: null,
+    predecessor: {
+      unit_id: "UNIT-002" as const,
+      run_id: "00000000-0000-4000-8000-000000000002",
+      index_immutable_path: "evidence/runtime/runs/UNIT-002/predecessor-run-aaaaaaaaaaaa-bbbbbbbbbbbb/evidence-index.json",
+      index_sha256: digest,
+      evidence_immutable_path: "evidence/runtime/runs/UNIT-002/predecessor-run-aaaaaaaaaaaa-bbbbbbbbbbbb/reports/browser-baseline.json",
+      evidence_sha256: digest,
+      application_fingerprint: fingerprint,
+      producer_fingerprint: fingerprint,
+    },
+    admission: null,
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${runId}-${digest.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
   const mutableRunRoot = join(runRoot, ".ai/99_scratch/estimate-sheet-performance/runs/UNIT-003", runKey);
   const immutableRunRoot = join(runRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs/UNIT-003", runKey);
   const namespace = {
@@ -55,6 +78,8 @@ function makeManifest(runRoot: string): RunManifestV1 {
     immutable_run_root: immutableRunRoot,
     pointer_path: join(mutableRunRoot, "run-pointer.json"),
     logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: {
@@ -267,13 +292,13 @@ describe("estimate-sheet local D1 performance contract", () => {
 
     const missingNamespace = structuredClone(manifest);
     delete missingNamespace.namespaces.d1;
-    expect(validateLocalD1RunManifest(missingNamespace)).toContain(
-      "local D1 run requires an isolated d1 namespace",
+    expect(validateLocalD1RunManifest(missingNamespace).join("\n")).toMatch(
+      /namespace roles must be exactly d1/,
     );
 
     const browserContaminated = { ...manifest, runtimeEnv: "/tmp/runtime.env" };
-    expect(validateLocalD1RunManifest(browserContaminated)).toContain(
-      "pure local D1 runs cannot contain browser or preview resources",
+    expect(validateLocalD1RunManifest(browserContaminated).join("\n")).toMatch(
+      /local-d1 manifest cannot contain runtimeEnv|pure local D1 runs cannot contain browser or preview resources/u,
     );
   });
 
@@ -295,8 +320,9 @@ describe("estimate-sheet local D1 performance contract", () => {
 
   it("binds reports to the run and fingerprints and refuses artifact overwrite", () => {
     const root = mkdtempSync(join(tmpdir(), "estimate-sheet-local-d1-"));
-    const output = join(root, "reports", "d1.json");
     const manifest = makeManifest(root);
+    const output = join(manifest.immutable_run_root!, "reports", "d1.json");
+    mkdirSync(manifest.immutable_run_root!, { recursive: true });
     try {
       const report = createLocalD1PerformanceReport({
         manifest,

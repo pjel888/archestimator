@@ -360,12 +360,12 @@ describe("estimate-sheet supersession and activated-test contracts", () => {
       skipped: 0,
       durationMs: 5,
     });
-    writeTestReceipt(receiptPath, receipt);
+    writeTestReceipt(receiptPath, receipt, runRoot);
     const child = { status: 0, signal: null, error: undefined } as SpawnSyncReturns<string>;
     expect(() => validateActivatedTestReporterReceipt(receiptPath, manifest, files, child, repoRoot)).not.toThrow();
 
     const wrongArgvPath = resolve(runRoot, "receipts/wrong-argv.json");
-    writeTestReceipt(wrongArgvPath, { ...receipt, argv: ["node_modules/vitest/vitest.mjs", "run", "tests/vitest/other.test.ts", "--maxWorkers=1"] });
+    writeTestReceipt(wrongArgvPath, { ...receipt, argv: ["node_modules/vitest/vitest.mjs", "run", "tests/vitest/other.test.ts", "--maxWorkers=1"] }, runRoot);
     expect(() => validateActivatedTestReporterReceipt(wrongArgvPath, manifest, files, child, repoRoot)).toThrow(/argv mismatch/i);
 
     const fixtureMutationPath = resolve(runRoot, "receipts/fixture-mutation.json");
@@ -379,7 +379,7 @@ describe("estimate-sheet supersession and activated-test contracts", () => {
         declaredMutationSha256: hash("mutation"),
         commandId: "command-1",
       },
-    });
+    }, runRoot);
     expect(() => validateActivatedTestReporterReceipt(fixtureMutationPath, manifest, files, child, repoRoot)).toThrow(/fixture state/i);
   });
 });

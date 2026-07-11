@@ -8,15 +8,20 @@ import { describe, expect, it } from "vitest";
 import {
   UNIT_001_HARD_METRICS,
   assertEstimateSheetProofEnvelopeArtifact,
+  createEstimateSheetProofEnvelope,
   evaluateEstimateSheetPerformanceResult,
+  measureEstimateSheetPerformance,
 } from "../../scripts/measure-estimate-sheet-performance";
 import {
+  ESTIMATE_LOGICAL_OUTPUTS,
   INTEGRATION_SCHEMA,
   PERFORMANCE_REPORT_SCHEMA,
+  PREPARE_INPUT_SCHEMA,
   UNIT_PROOF_SCHEMA,
   canonicalJson,
   sha256File,
   sha256Hex,
+  sha256Json,
 } from "../../scripts/lib/estimate-sheet-performance-contract";
 import { createTestReceipt } from "../../scripts/lib/estimate-sheet-performance-test-receipt";
 import {
@@ -31,20 +36,49 @@ function writeRun(root: string, options: {
   receiptFingerprint?: "current" | "different";
   unitId?: "UNIT-001" | "UNIT-002";
 } = {}) {
-  const runRoot = join(root, "run");
   const source = readCurrentSourceFingerprint();
   const applicationFingerprint = source.application;
   const producerFingerprint = source.producer;
-  mkdirSync(join(runRoot, "receipts"), { recursive: true });
+  const unitId = options.unitId ?? "UNIT-001";
+  const runId = "measurement-test-run";
+  const admission = { schema_version: "estimate-sheet-test-admission.v1", unit_id: unitId, run_id: runId };
+  const admissionSha256 = sha256Hex(`${JSON.stringify(admission)}\n`);
+  const prepareInput = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: unitId,
+    profile: "artifact-only" as const,
+    application_fingerprint: applicationFingerprint,
+    producer_fingerprint: producerFingerprint,
+    fixture: null,
+    decision: null,
+    predecessor: null,
+    admission: unitId === "UNIT-001" ? {
+      kind: "planning" as const,
+      sha256: admissionSha256,
+      input_application_fingerprint: applicationFingerprint,
+      input_producer_fingerprint: producerFingerprint,
+    } : null,
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${runId}-${applicationFingerprint.content_sha256.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
+  const runRoot = join(root, ".ai/99_scratch/estimate-sheet-performance/runs", unitId, runKey);
+  const immutableRunRoot = join(root, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs", unitId, runKey);
+  mkdirSync(join(immutableRunRoot, "receipts"), { recursive: true });
+  writeJson(join(runRoot, "dependencies/admission.json"), admission);
   const manifest = {
     schema_version: "estimate-sheet-performance-run.v1",
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
-    unit_id: options.unitId ?? "UNIT-001",
-    run_id: "measurement-test-run",
+    unit_id: unitId,
+    run_id: runId,
     profile: "artifact-only",
+    evidence_class: "jsdom",
     cleanupRequirement: "NOT_APPLICABLE",
     run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
     pointer_path: join(runRoot, "run-pointer.json"),
+    logical_outputs: ESTIMATE_LOGICAL_OUTPUTS,
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: source,
@@ -53,8 +87,20 @@ function writeRun(root: string, options: {
     namespaces: {},
     mutationJournal: [],
     previewProcesses: [],
+    ...(unitId === "UNIT-001" ? {
+      admissionKind: "planning",
+      admissionPath: "dependencies/admission.json",
+      admissionSha256,
+      inputApplicationFingerprint: applicationFingerprint,
+      inputProducerFingerprint: producerFingerprint,
+    } : {}),
   };
-  writeFileSync(join(runRoot, "run-manifest.json"), `${JSON.stringify(manifest)}\n`, { mode: 0o600 });
+  const manifestBytes = `${JSON.stringify(manifest)}\n`;
+  mkdirSync(runRoot, { recursive: true });
+  mkdirSync(immutableRunRoot, { recursive: true });
+  writeFileSync(join(runRoot, "run-manifest.json"), manifestBytes, { mode: 0o600 });
+  writeFileSync(join(immutableRunRoot, "run-manifest.json"), manifestBytes, { mode: 0o600 });
+  writeCommittedRunAnchor(root, manifest, manifestBytes);
   const receiptFingerprint = options.receiptFingerprint === "different"
     ? { ...applicationFingerprint, content_sha256: sha256Hex("different") }
     : applicationFingerprint;
@@ -79,9 +125,9 @@ function writeRun(root: string, options: {
     skipped: 0,
     durationMs: 1,
   });
-  writeFileSync(join(runRoot, "receipts", "dom-tests.json"), `${JSON.stringify(receipt)}\n`, { mode: 0o600 });
+  writeFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["dom-tests"]), `${JSON.stringify(receipt)}\n`, { mode: 0o600 });
   for (const role of ["fingerprint-reference", "typecheck", "error-handling"]) {
-    writeFileSync(join(runRoot, "receipts", `command-${role}.json`), `${JSON.stringify({
+    writeFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS[role as "fingerprint-reference" | "typecheck" | "error-handling"]), `${JSON.stringify({
       schema_version: "estimate-sheet-command-receipt.v1",
       role,
       unit_id: manifest.unit_id,
@@ -91,7 +137,7 @@ function writeRun(root: string, options: {
       producer_fingerprint: producerFingerprint,
     })}\n`, { mode: 0o600 });
   }
-  return { manifestPath: join(runRoot, "run-manifest.json"), runRoot };
+  return { manifestPath: join(runRoot, "run-manifest.json"), runRoot, immutableRunRoot };
 }
 
 function sanitizedEnvironment() {
@@ -112,22 +158,29 @@ function readCurrentSourceFingerprint() {
   return readCurrentSourceFingerprintUncached();
 }
 
-function runMeasure(manifestPath: string) {
-  return spawnSync("bun", ["run", "scripts/measure-estimate-sheet-performance.ts", "--",
-    `--run-manifest=${manifestPath}`,
-    "--unit=UNIT-001",
-    "--profile=limit",
-    "--evidence-class=jsdom",
-    "--budget-policy=record-only",
-    "--tests=auto:dom-tests",
-    "--gates=auto:fingerprint-reference,auto:typecheck,auto:error-handling",
-    "--fixture-output=auto:fixture",
-    "--output=auto:jsdom",
-  ], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    env: sanitizedEnvironment(),
-  });
+function captureCall(callback: () => unknown): { status: number; stderr: string } {
+  try {
+    callback();
+    return { status: 0, stderr: "" };
+  } catch (error) {
+    return { status: 1, stderr: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+function runMeasure(repoRoot: string, manifestPath: string, unit: "UNIT-001" | "UNIT-002" = "UNIT-001") {
+  return captureCall(() => measureEstimateSheetPerformance({
+    repoRoot,
+    runManifest: manifestPath,
+    unit,
+    profile: "limit",
+    evidenceClass: unit === "UNIT-001" ? "jsdom" : "local-browser",
+    budgetPolicy: "record-only",
+    tests: unit === "UNIT-001" ? ["auto:dom-tests"] : undefined,
+    gates: unit === "UNIT-001" ? ["auto:fingerprint-reference", "auto:typecheck", "auto:error-handling"] : undefined,
+    fixtureOutput: unit === "UNIT-001" ? "auto:fixture" : undefined,
+    output: unit === "UNIT-001" ? "auto:jsdom" : "auto:browser",
+    sourceFingerprint: readCurrentSourceFingerprint(),
+  }));
 }
 
 const PROOF_MODE_KEYS = ["routeFastPath", "graph", "incrementalDerivation", "renderBoundary", "entityPatch"] as const;
@@ -142,6 +195,17 @@ const PROOF_MODE_TARGETS = [
 function writeJson(path: string, value: unknown): void {
   mkdirSync(join(path, ".."), { recursive: true });
   writeFileSync(path, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+}
+
+function writeCommittedRunAnchor(root: string, manifest: { unit_id: string; run_id: string }, manifestBytes: string): void {
+  const planPath = join(root, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json");
+  writeJson(planPath, {
+    runtime_evidence: {
+      latest_unit_id: manifest.unit_id,
+      latest_run_id: manifest.run_id,
+      latest_run_manifest_sha256: sha256Hex(manifestBytes),
+    },
+  });
 }
 
 function allActivatedSnapshot(value: "off" | "shadow" | "on") {
@@ -256,14 +320,31 @@ function completeD1Measurement(fixtureHash: string): LocalD1Measurement {
   };
 }
 
-function writeUnit010ProofRun(root: string) {
+function writeUnit010ProofRun(root: string, unitId: "UNIT-006" | "UNIT-010" = "UNIT-010") {
   const source = readCurrentSourceFingerprint();
-  const runRoot = join(root, "run");
-  const runId = "00000000-0000-4000-8000-000000000010";
-  const fixtureHash = sha256Hex("unit-010-fixture");
+  const runId = unitId === "UNIT-006"
+    ? "00000000-0000-4000-8000-000000000006"
+    : "00000000-0000-4000-8000-000000000010";
   const authFixtureHash = sha256Hex("unit-010-auth-fixture");
   const buildHash = sha256Hex("unit-010-opennext-build");
   const preStateSha256 = sha256Hex("unit-010-canonical-pre-state");
+  const fixtureHash = preStateSha256;
+  const namespaceRoleNames = unitId === "UNIT-006" ? ["mode"] : ["mode", "browser", "d1"];
+  const prepareInput = {
+    schema_version: PREPARE_INPUT_SCHEMA,
+    unit_id: unitId,
+    profile: "limit" as const,
+    application_fingerprint: source.application,
+    producer_fingerprint: source.producer,
+    fixture: { profile: "limit" as const, payload_sha256: fixtureHash, namespace_roles: namespaceRoleNames },
+    decision: null,
+    predecessor: null,
+    admission: null,
+  };
+  const prepareInputSha256 = sha256Json(prepareInput);
+  const runKey = `${runId}-${source.application.content_sha256.slice(0, 12)}-${prepareInputSha256.slice(0, 12)}`;
+  const runRoot = join(root, ".ai/99_scratch/estimate-sheet-performance/runs", unitId, runKey);
+  const immutableRunRoot = join(root, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs", unitId, runKey);
   const browserMutation = {
     fixtureRole: "browser",
     namespaceIdSha256: sha256Hex("unit-010-browser-namespace"),
@@ -284,7 +365,7 @@ function writeUnit010ProofRun(root: string) {
   const snapshots = Object.fromEntries(phases.map((phase) => [phase, allActivatedSnapshot(phase === "shadow" ? "shadow" : phase === "on" || phase === "final" ? "on" : "off")])) as Record<(typeof phases)[number], ReturnType<typeof allActivatedSnapshot>>;
   const activeDescriptor = {
     schema_version: "estimate-sheet-benchmark-server.v1",
-    unit_id: "UNIT-010",
+    unit_id: unitId,
     run_id: runId,
     role: "mode",
     phase: "final",
@@ -331,39 +412,91 @@ function writeUnit010ProofRun(root: string) {
     closed_port: true,
     stopped_at: `2026-07-11T00:00:0${index + 1}.000Z`,
   }));
+  const runtimeEnv = join(runRoot, "runtime.env");
+  const storageState = join(runRoot, "storage-state.json");
+  const processJournal = join(runRoot, "preview/process-journal.json");
+  writeFileSync(runtimeEnv, "ESTIMATE_GRAPH_MODE=on\n", { mode: 0o600 });
+  writeJson(storageState, { cookies: [{ name: "session", value: "redacted", domain: "127.0.0.1", path: "/" }], origins: [] });
+  writeJson(processJournal, { schema_version: "estimate-sheet-preview-process-journal.v1", unit_id: unitId, run_id: runId, processes: [] });
+  const namespaceRoles = unitId === "UNIT-006"
+    ? { mode: { idSha256: sha256Hex("unit-010-mode-namespace"), preStateSha256 } }
+    : {
+        mode: { idSha256: sha256Hex("unit-010-mode-namespace"), preStateSha256 },
+        browser: { idSha256: browserMutation.namespaceIdSha256, preStateSha256, postStateSha256: browserMutation.postStateSha256, commandId: browserMutation.commandId },
+        d1: { idSha256: d1Mutation.namespaceIdSha256, preStateSha256, postStateSha256: d1Mutation.postStateSha256, commandId: d1Mutation.commandId },
+      };
+  const wranglerState = join(runRoot, "wrangler-state");
+  mkdirSync(wranglerState, { recursive: true });
   const manifest = {
     schema_version: "estimate-sheet-performance-run.v1",
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
-    unit_id: "UNIT-010",
+    unit_id: unitId,
     run_id: runId,
     profile: "limit",
     evidence_class: "local-browser",
     cleanupRequirement: "REQUIRED",
     run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
     pointer_path: join(runRoot, "run-pointer.json"),
+    logical_outputs: ESTIMATE_LOGICAL_OUTPUTS,
+    prepareInput,
+    prepareInputSha256,
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
     sourceFingerprint: source,
     applicationFingerprint: source.application,
     producerFingerprint: source.producer,
     fixture: { profile: "limit", namespaceIdSha256: sha256Hex("unit-010-mode-namespace"), preStateSha256 },
-    namespaces: {
-      mode: { idSha256: sha256Hex("unit-010-mode-namespace"), preStateSha256 },
-      browser: { idSha256: browserMutation.namespaceIdSha256, preStateSha256, postStateSha256: browserMutation.postStateSha256, commandId: browserMutation.commandId },
-      d1: { idSha256: d1Mutation.namespaceIdSha256, preStateSha256, postStateSha256: d1Mutation.postStateSha256, commandId: d1Mutation.commandId },
-    },
-    mutationJournal: [browserMutation, d1Mutation],
+    namespaces: namespaceRoles,
+    mutationJournal: unitId === "UNIT-006" ? [] : [browserMutation, d1Mutation],
     previewProcesses: [...intermediatePreviews, { ...intermediatePreviews[0], phase: "final", ordinal: 5, pid: activeDescriptor.pid, exit_code: null, signal: null, closed_port: false, stopped_at: null }],
     activePreview: { path: activePath, sha256: sha256File(activePath), pid: activeDescriptor.pid, port: activeDescriptor.port, snapshot: snapshots.final },
-    activatedModes: [...PROOF_MODE_TARGETS],
+    activatedModes: unitId === "UNIT-006" ? ["ESTIMATE_GRAPH_MODE"] : [...PROOF_MODE_TARGETS],
     fixture_hash: fixtureHash,
     auth_fixture_hash: authFixtureHash,
+    wranglerState,
+    resources: {
+      d1Binding: "ARCH_DB",
+      wranglerState,
+      localConfig: join(runRoot, "resources/d1/wrangler-local.json"),
+      localConfigSha256: sha256Hex("local-config"),
+      generatedSchema: join(runRoot, "better-auth-schema.sql"),
+      generatedSchemaSha256: sha256Hex("generated-schema"),
+      migrations: join(runRoot, "resources/d1/migrations.json"),
+      migrationsSha256: sha256Hex("migrations"),
+      migrationHead: "0040_operational_incidents.sql",
+      migrationCount: 40,
+      seedSql: join(runRoot, "seed.sql"),
+      seedSqlSha256: sha256Hex("seed-sql"),
+      cleanupSql: join(runRoot, "resources/d1/cleanup.sql"),
+      cleanupSqlSha256: sha256Hex("cleanup-sql"),
+      cleanupStateSha256ByRole: Object.fromEntries(Object.keys(namespaceRoles).map((role) => [role, sha256Hex(`cleanup-${role}`)])),
+      unitLease: join(runRoot, "../../..", "leases/units", unitId),
+      portLease: join(runRoot, "../../..", "leases/ports/3110"),
+    },
+    leasedPort: 3110,
+    port: 3110,
+    runtimeEnv,
+    runtimeEnvSha256: sha256File(runtimeEnv),
+    runtimeEnvStableSha256: sha256Hex("unit-proof-stable-runtime-environment"),
+    storageState,
+    storageStateSha256: sha256File(storageState),
+    storageStateExpiresAt: "2099-01-01T00:00:00.000Z",
+    processJournal,
+    routePath: activeDescriptor.route_path,
+    route: { path: activeDescriptor.route_path, projectId: "project-id", nodeId: "estimate-id", fixtureRole: unitId === "UNIT-006" ? "mode" : "browser" },
+    buildReceipt: join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["opennext-build"]),
     build_hash: buildHash,
   };
-  writeJson(join(runRoot, "run-manifest.json"), manifest);
-  writeJson(join(runRoot, "mode-proof.json"), {
+  const manifestBytes = `${JSON.stringify(manifest)}\n`;
+  mkdirSync(runRoot, { recursive: true });
+  mkdirSync(immutableRunRoot, { recursive: true });
+  writeFileSync(join(runRoot, "run-manifest.json"), manifestBytes, { mode: 0o600 });
+  writeFileSync(join(immutableRunRoot, "run-manifest.json"), manifestBytes, { mode: 0o600 });
+  writeCommittedRunAnchor(root, manifest, manifestBytes);
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["mode-proof"]), {
     schema_version: "estimate-sheet-mode-proof.v1",
-    unit_id: "UNIT-010",
+    unit_id: unitId,
     run_id: runId,
     application_fingerprint: source.application,
     producer_fingerprint: source.producer,
@@ -384,10 +517,10 @@ function writeUnit010ProofRun(root: string) {
     created_at: "2026-07-11T00:00:05.000Z",
   });
   const browserMetrics = { "M-INTEGRATION-LOCAL": { value: 1, threshold: 1, comparison: "exact", unit: "count", status: "PASS" } };
-  writeJson(join(runRoot, "reports/browser-child.json"), {
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["browser-child"]), {
     schema_version: PERFORMANCE_REPORT_SCHEMA,
     evidenceClass: "local-browser",
-    trace: { packageId: manifest.package_id, unitId: "UNIT-010", evidenceId: "browser-child" },
+    trace: { packageId: manifest.package_id, unitId, evidenceId: "browser-child" },
     head: source.head,
     applicationFingerprint: source.application,
     producerFingerprint: source.producer,
@@ -410,10 +543,10 @@ function writeUnit010ProofRun(root: string) {
     buildMode: "opennext-preview",
   });
   const d1 = completeD1Measurement(fixtureHash);
-  writeJson(join(runRoot, "reports/d1-child.json"), {
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["d1-child"]), {
     schema_version: PERFORMANCE_REPORT_SCHEMA,
     evidenceClass: "local-d1",
-    trace: { packageId: manifest.package_id, unitId: "UNIT-010", evidenceId: "d1-child" },
+    trace: { packageId: manifest.package_id, unitId, evidenceId: "d1-child" },
     head: source.head,
     applicationFingerprint: source.application,
     producerFingerprint: source.producer,
@@ -434,7 +567,7 @@ function writeUnit010ProofRun(root: string) {
     testClass: "vitest",
     argv: ["bun", "run", "perf:estimate:activated-tests"],
     files: ["tests/vitest/estimate-sheet-performance-fixtures.test.ts"],
-    unitId: "UNIT-010",
+    unitId,
     runId,
     applicationFingerprint: source.application,
     producerFingerprint: source.producer,
@@ -444,7 +577,7 @@ function writeUnit010ProofRun(root: string) {
     testClass: "playwright",
     argv: ["bun", "run", "test:e2e"],
     files: ["e2e/estimate-sheet-performance.spec.ts"],
-    unitId: "UNIT-010",
+    unitId,
     runId,
     applicationFingerprint: source.application,
     producerFingerprint: source.producer,
@@ -453,8 +586,8 @@ function writeUnit010ProofRun(root: string) {
     passed: 1,
     fixtureMutation: browserMutation,
   });
-  writeJson(join(runRoot, "receipts/dom-tests.json"), domReceipt);
-  writeJson(join(runRoot, "receipts/e2e-tests.json"), e2eReceipt);
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["dom-tests"]), domReceipt);
+  writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["e2e-tests"]), e2eReceipt);
   const gateCommands: Record<string, string[]> = {
     "next-build": ["bun", "run", "build"],
     "opennext-build": ["bun", "run", "cf:build"],
@@ -462,11 +595,11 @@ function writeUnit010ProofRun(root: string) {
     "react-doctor": ["bun", "run", "doctor"],
     typecheck: ["bun", "run", "type-check"],
   };
-  for (const [role, argv] of Object.entries(gateCommands)) writeJson(join(runRoot, `receipts/command-${role}.json`), {
+  for (const [role, argv] of Object.entries(gateCommands)) writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS[role as keyof typeof ESTIMATE_LOGICAL_OUTPUTS]), {
     schema_version: "estimate-sheet-command-receipt.v1",
     role,
     argv,
-    unit_id: "UNIT-010",
+    unit_id: unitId,
     run_id: runId,
     start_at: "2026-07-11T00:00:08.000Z",
     end_at: "2026-07-11T00:00:09.000Z",
@@ -485,33 +618,33 @@ function writeUnit010ProofRun(root: string) {
     child_outputs: [],
     build_hash: role === "opennext-build" ? buildHash : role === "next-build" ? sha256Hex("unit-010-next-build") : null,
   });
-  return { manifestPath: join(runRoot, "run-manifest.json"), runRoot };
+  return { manifestPath: join(runRoot, "run-manifest.json"), runRoot, immutableRunRoot };
 }
 
-function runUnit010Envelope(manifestPath: string) {
-  return spawnSync("bun", ["run", "perf:estimate:check", "--",
-    "--unit=UNIT-010",
-    "--all-local",
-    "--mode=auto:mode-proof",
-    "--browser=auto:browser-child",
-    "--d1=auto:d1-child",
-    "--tests=auto:dom-tests,auto:e2e-tests",
-    "--gates=auto:next-build,auto:opennext-build,auto:error-handling,auto:react-doctor,auto:typecheck",
-    "--output=auto:integration",
-    "--required-phases=off,shadow,on,rollback",
-    "--source-build-match=required",
-  ], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    env: { ...sanitizedEnvironment(), ESTIMATE_PERF_RUN_MANIFEST: manifestPath },
-  });
+function runUnit010Envelope(repoRoot: string, manifestPath: string) {
+  return captureCall(() => createEstimateSheetProofEnvelope({
+    repoRoot,
+    runManifest: manifestPath,
+    unit: "UNIT-010",
+    allLocal: true,
+    mode: "auto:mode-proof",
+    browser: "auto:browser-child",
+    d1: "auto:d1-child",
+    tests: ["auto:dom-tests", "auto:e2e-tests"],
+    gates: ["auto:next-build", "auto:opennext-build", "auto:error-handling", "auto:react-doctor", "auto:typecheck"],
+    output: "auto:integration",
+    requiredPhases: "off,shadow,on,rollback",
+    sourceBuildMatch: "required",
+    budgetPolicy: "enforce",
+    sourceFingerprint: readCurrentSourceFingerprint(),
+  }));
 }
 
 function writeUnit006ProofRun(root: string) {
-  const created = writeUnit010ProofRun(root);
-  const { manifestPath, runRoot } = created;
+  const created = writeUnit010ProofRun(root, "UNIT-006");
+  const { manifestPath, runRoot, immutableRunRoot } = created;
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  const runId = "00000000-0000-4000-8000-000000000006";
+  const runId = manifest.run_id;
   const phases = ["off", "shadow", "on", "rollback", "final"] as const;
   const snapshots = Object.fromEntries(phases.map((phase) => {
     const snapshot = allActivatedSnapshot("off");
@@ -534,11 +667,6 @@ function writeUnit006ProofRun(root: string) {
     descriptor_path: "preview/descriptors/05-final.json",
     descriptor_sha256: sha256File(descriptorPath),
   })}\n`, { mode: 0o600 });
-  manifest.unit_id = "UNIT-006";
-  manifest.run_id = runId;
-  manifest.namespaces = { mode: manifest.namespaces.mode };
-  manifest.mutationJournal = [];
-  manifest.activatedModes = ["ESTIMATE_GRAPH_MODE"];
   manifest.activePreview = { path: activePath, sha256: sha256File(activePath), pid: activeDescriptor.pid, port: activeDescriptor.port, snapshot: snapshots.final };
   manifest.previewProcesses = [];
   writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`, { mode: 0o600 });
@@ -558,7 +686,7 @@ function writeUnit006ProofRun(root: string) {
     closed_port: true,
     stopped_at: `2026-07-11T00:00:1${index}.000Z`,
   }));
-  writeFileSync(join(runRoot, "mode-proof.json"), `${JSON.stringify({
+  writeFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["mode-proof"]), `${JSON.stringify({
     schema_version: "estimate-sheet-mode-proof.v1",
     unit_id: "UNIT-006",
     run_id: runId,
@@ -580,7 +708,7 @@ function writeUnit006ProofRun(root: string) {
     failures: [],
     created_at: "2026-07-11T00:00:15.000Z",
   })}\n`, { mode: 0o600 });
-  for (const role of ["dom-graph", "dom-performance"] as const) writeJson(join(runRoot, `receipts/${role}.json`), createTestReceipt({
+  for (const role of ["dom-graph", "dom-performance"] as const) writeJson(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS[role]), createTestReceipt({
     testClass: "vitest",
     argv: ["bun", "run", "test:dom"],
     files: [`tests/vitest/${role}.test.ts`],
@@ -591,7 +719,7 @@ function writeUnit006ProofRun(root: string) {
     passed: 1,
   }));
   for (const role of ["opennext-build", "react-doctor", "typecheck"] as const) {
-    const path = join(runRoot, `receipts/command-${role}.json`);
+    const path = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS[role]);
     const receipt = JSON.parse(readFileSync(path, "utf8"));
     receipt.unit_id = "UNIT-006";
     receipt.run_id = runId;
@@ -600,33 +728,33 @@ function writeUnit006ProofRun(root: string) {
   return created;
 }
 
-function runUnit006Envelope(manifestPath: string, includeBrowser = false) {
-  return spawnSync("bun", ["run", "perf:estimate:check", "--",
-    "--unit=UNIT-006",
-    "--proof-scope=graph",
-    "--mode=auto:mode-proof",
-    ...(includeBrowser ? ["--browser=auto:browser-child"] : []),
-    "--tests=auto:dom-graph,auto:dom-performance",
-    "--gates=auto:opennext-build,auto:react-doctor,auto:typecheck",
-    "--output=auto:unit-proof",
-    "--required-phases=off,shadow,on,rollback",
-    "--source-build-match=required",
-  ], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    env: { ...sanitizedEnvironment(), ESTIMATE_PERF_RUN_MANIFEST: manifestPath },
-  });
+function runUnit006Envelope(repoRoot: string, manifestPath: string, includeBrowser = false) {
+  return captureCall(() => createEstimateSheetProofEnvelope({
+    repoRoot,
+    runManifest: manifestPath,
+    unit: "UNIT-006",
+    proofScope: "graph",
+    mode: "auto:mode-proof",
+    ...(includeBrowser ? { browser: "auto:browser-child" } : {}),
+    tests: ["auto:dom-graph", "auto:dom-performance"],
+    gates: ["auto:opennext-build", "auto:react-doctor", "auto:typecheck"],
+    output: "auto:unit-proof",
+    requiredPhases: "off,shadow,on,rollback",
+    sourceBuildMatch: "required",
+    budgetPolicy: "enforce",
+    sourceFingerprint: readCurrentSourceFingerprint(),
+  }));
 }
 
 describe("estimate-sheet measurement producer", () => {
   it("writes a reciprocal fixture/report pair only after validating receipt and gate lineage", () => {
     const root = mkdtempSync(join(tmpdir(), "estimate-measurement-"));
     try {
-      const { manifestPath, runRoot } = writeRun(root);
-      const result = runMeasure(manifestPath);
+      const { manifestPath, immutableRunRoot } = writeRun(root);
+      const result = runMeasure(root, manifestPath);
       expect(result.status, result.stderr).toBe(0);
-      const report = JSON.parse(readFileSync(join(runRoot, "reports", "jsdom.json"), "utf8"));
-      const fixture = JSON.parse(readFileSync(join(runRoot, "fixtures", "fixture.json"), "utf8"));
+      const report = JSON.parse(readFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom), "utf8"));
+      const fixture = JSON.parse(readFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture), "utf8"));
       expect(report.overall).toBe("FAIL");
       expect(report.failures).toContain("hard-metric-failed:M-MUTATE-CLIENT-FANOUT-NONMATCH-INSPECTIONS");
       expect(report.fixtureHash).toBe(sha256Hex(stableStringify(fixturePayloadWithoutLinkage(fixture))));
@@ -645,6 +773,46 @@ describe("estimate-sheet measurement producer", () => {
         rowCount: 5_000,
       });
       expect(report.metrics["M-MUTATE-DUPLICATE-SAVE-PATCH-COUNT"]).toMatchObject({ status: "PASS", value: 1 });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("resumes the exact linked fixture/report pair after a crash between publications", () => {
+    const root = mkdtempSync(join(tmpdir(), "estimate-measurement-resume-"));
+    try {
+      const { manifestPath, runRoot, immutableRunRoot } = writeRun(root);
+      const input = {
+        repoRoot: root,
+        runManifest: manifestPath,
+        unit: "UNIT-001" as const,
+        profile: "limit" as const,
+        evidenceClass: "jsdom" as const,
+        budgetPolicy: "record-only" as const,
+        tests: ["auto:dom-tests"],
+        gates: ["auto:fingerprint-reference", "auto:typecheck", "auto:error-handling"],
+        fixtureOutput: "auto:fixture",
+        output: "auto:jsdom",
+        sourceFingerprint: readCurrentSourceFingerprint(),
+      };
+      expect(() => measureEstimateSheetPerformance({
+        ...input,
+        faultInjector: (point) => {
+          if (point === "UNIT001_FIXTURE_PUBLISHED") throw new Error("injected fixture/report interruption");
+        },
+      })).toThrow(/injected fixture\/report interruption/u);
+
+      const journalPath = join(runRoot, "measurements/unit-001-publication.json");
+      expect(existsSync(journalPath)).toBe(true);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture))).toBe(true);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom))).toBe(false);
+
+      const resumed = measureEstimateSheetPerformance(input);
+      expect(resumed.reportPath).toBe(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom));
+      expect(existsSync(journalPath)).toBe(false);
+      const report = JSON.parse(readFileSync(resumed.reportPath, "utf8"));
+      const fixture = JSON.parse(readFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture), "utf8"));
+      expect(fixture.linkage.counterpartPayloadSha256).toBe(sha256Hex(canonicalJson(report)));
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -694,12 +862,12 @@ describe("estimate-sheet measurement producer", () => {
   it("rejects a mismatched test receipt before publishing either artifact", () => {
     const root = mkdtempSync(join(tmpdir(), "estimate-measurement-invalid-"));
     try {
-      const { manifestPath, runRoot } = writeRun(root, { receiptFingerprint: "different" });
-      const result = runMeasure(manifestPath);
+      const { manifestPath, immutableRunRoot } = writeRun(root, { receiptFingerprint: "different" });
+      const result = runMeasure(root, manifestPath);
       expect(result.status).not.toBe(0);
       expect(result.stderr).toMatch(/test receipt fingerprint mismatch/);
-      expect(existsSync(join(runRoot, "fixtures", "fixture.json"))).toBe(false);
-      expect(existsSync(join(runRoot, "reports", "jsdom.json"))).toBe(false);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.fixture))).toBe(false);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.jsdom))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -708,22 +876,11 @@ describe("estimate-sheet measurement producer", () => {
   it("never synthesizes a future-unit PASS report under record-only policy", () => {
     const root = mkdtempSync(join(tmpdir(), "estimate-measurement-future-unit-"));
     try {
-      const { manifestPath, runRoot } = writeRun(root, { unitId: "UNIT-002" });
-      const result = spawnSync("bun", ["run", "scripts/measure-estimate-sheet-performance.ts", "--",
-        `--run-manifest=${manifestPath}`,
-        "--unit=UNIT-002",
-        "--profile=limit",
-        "--evidence-class=local-browser",
-        "--budget-policy=record-only",
-        "--output=auto:browser",
-      ], {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        env: sanitizedEnvironment(),
-      });
+      const { manifestPath, immutableRunRoot } = writeRun(root, { unitId: "UNIT-002" });
+      const result = runMeasure(root, manifestPath, "UNIT-002");
       expect(result.status).not.toBe(0);
-      expect(result.stderr).toMatch(/cannot synthesize future-unit evidence/);
-      expect(existsSync(join(runRoot, "reports", "browser.json"))).toBe(false);
+      expect(result.stderr).toMatch(/NOT_APPLICABLE manifest unit is not allowed/);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.browser))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -732,10 +889,10 @@ describe("estimate-sheet measurement producer", () => {
   it("publishes graph unit proof from its exact children and rejects a browser substitution", () => {
     const root = mkdtempSync(join(tmpdir(), "estimate-measurement-unit-006-"));
     try {
-      const { manifestPath, runRoot } = writeUnit006ProofRun(root);
-      const result = runUnit006Envelope(manifestPath);
+      const { manifestPath, immutableRunRoot } = writeUnit006ProofRun(root);
+      const result = runUnit006Envelope(root, manifestPath);
       expect(result.status, result.stderr).toBe(0);
-      const proof = JSON.parse(readFileSync(join(runRoot, "reports/unit-proof.json"), "utf8"));
+      const proof = JSON.parse(readFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["unit-proof"]), "utf8"));
       expect(proof).toMatchObject({ schema_version: UNIT_PROOF_SCHEMA, unit_id: "UNIT-006", proofScope: "graph", overall: "PASS" });
       expect(proof.children.map((child: { role: string }) => child.role)).toEqual([
         "mode-proof",
@@ -745,11 +902,11 @@ describe("estimate-sheet measurement producer", () => {
         "react-doctor",
         "typecheck",
       ]);
-      unlinkSync(join(runRoot, "reports/unit-proof.json"));
-      const substituted = runUnit006Envelope(manifestPath, true);
+      unlinkSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["unit-proof"]));
+      const substituted = runUnit006Envelope(root, manifestPath, true);
       expect(substituted.status).not.toBe(0);
       expect(substituted.stderr).toMatch(/forbids a browser child/i);
-      expect(existsSync(join(runRoot, "reports/unit-proof.json"))).toBe(false);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["unit-proof"]))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -758,10 +915,11 @@ describe("estimate-sheet measurement producer", () => {
   it("executes the exact UNIT-010 all-local command and publishes only recursively bound PASS children", () => {
     const root = mkdtempSync(join(tmpdir(), "estimate-measurement-unit-010-"));
     try {
-      const { manifestPath, runRoot } = writeUnit010ProofRun(root);
-      const result = runUnit010Envelope(manifestPath);
+      const { manifestPath, runRoot, immutableRunRoot } = writeUnit010ProofRun(root);
+      const result = runUnit010Envelope(root, manifestPath);
       expect(result.status, result.stderr).toBe(0);
-      const envelope = JSON.parse(readFileSync(join(runRoot, "reports/integration.json"), "utf8"));
+      const envelopePath = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.integration);
+      const envelope = JSON.parse(readFileSync(envelopePath, "utf8"));
       expect(envelope).toMatchObject({
         schema_version: INTEGRATION_SCHEMA,
         unit_id: "UNIT-010",
@@ -783,13 +941,15 @@ describe("estimate-sheet measurement producer", () => {
         "typecheck",
       ]);
       for (const child of envelope.children as Array<{ immutablePath: string; sha256: string }>) {
-        expect(child.sha256).toBe(sha256File(join(runRoot, child.immutablePath)));
+        expect(child.sha256).toBe(sha256File(join(immutableRunRoot, child.immutablePath)));
         expect(Object.keys(child).sort()).toEqual(["immutablePath", "role", "schemaId", "sha256"].sort());
       }
       const activeValidation = assertEstimateSheetProofEnvelopeArtifact({
         runManifest: manifestPath,
-        envelopePath: join(runRoot, "reports/integration.json"),
+        envelopePath,
         requireActivePointer: true,
+        repoRoot: root,
+        unit: "UNIT-010",
       });
       expect(activeValidation.children.map((child) => child.role)).toEqual(envelope.children.map((child: { role: string }) => child.role));
       unlinkSync(join(runRoot, "preview/active-preview.json"));
@@ -798,9 +958,11 @@ describe("estimate-sheet measurement producer", () => {
       writeFileSync(manifestPath, `${JSON.stringify(cleanedManifest)}\n`, { mode: 0o600 });
       const postCleanupValidation = assertEstimateSheetProofEnvelopeArtifact({
         runManifest: manifestPath,
-        envelopePath: join(runRoot, "reports/integration.json"),
+        envelopePath,
+        repoRoot: root,
+        unit: "UNIT-010",
       });
-      expect(postCleanupValidation.envelopeSha256).toBe(sha256File(join(runRoot, "reports/integration.json")));
+      expect(postCleanupValidation.envelopeSha256).toBe(sha256File(envelopePath));
       expect(envelope).not.toHaveProperty("cleanup");
       expect(envelope).not.toHaveProperty("browserReport");
       expect(envelope).not.toHaveProperty("d1Report");
@@ -812,18 +974,18 @@ describe("estimate-sheet measurement producer", () => {
   it.each([
     {
       name: "missing child",
-      mutate(runRoot: string) { unlinkSync(join(runRoot, "reports/d1-child.json")); },
+      mutate(_runRoot: string, immutableRunRoot: string) { unlinkSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["d1-child"])); },
       error: /d1-child|no such file/i,
     },
     {
       name: "malformed child",
-      mutate(runRoot: string) { writeFileSync(join(runRoot, "receipts/command-typecheck.json"), "{not-json\n", { mode: 0o600 }); },
+      mutate(_runRoot: string, immutableRunRoot: string) { writeFileSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.typecheck), "{not-json\n", { mode: 0o600 }); },
       error: /not valid JSON/i,
     },
     {
       name: "stale cross-run child",
-      mutate(runRoot: string) {
-        const path = join(runRoot, "reports/browser-child.json");
+      mutate(_runRoot: string, immutableRunRoot: string) {
+        const path = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["browser-child"]);
         const report = JSON.parse(readFileSync(path, "utf8"));
         report.runId = "different-run";
         writeFileSync(path, `${JSON.stringify(report)}\n`, { mode: 0o600 });
@@ -832,8 +994,8 @@ describe("estimate-sheet measurement producer", () => {
     },
     {
       name: "wrong final snapshot",
-      mutate(runRoot: string) {
-        const path = join(runRoot, "reports/browser-child.json");
+      mutate(_runRoot: string, immutableRunRoot: string) {
+        const path = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["browser-child"]);
         const report = JSON.parse(readFileSync(path, "utf8"));
         report.finalSnapshot.modes.graph = "off";
         writeFileSync(path, `${JSON.stringify(report)}\n`, { mode: 0o600 });
@@ -842,8 +1004,8 @@ describe("estimate-sheet measurement producer", () => {
     },
     {
       name: "missing test mutation binding",
-      mutate(runRoot: string) {
-        const path = join(runRoot, "receipts/e2e-tests.json");
+      mutate(_runRoot: string, immutableRunRoot: string) {
+        const path = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["e2e-tests"]);
         const receipt = JSON.parse(readFileSync(path, "utf8"));
         delete receipt.fixtureMutation;
         writeFileSync(path, `${JSON.stringify(receipt)}\n`, { mode: 0o600 });
@@ -852,8 +1014,8 @@ describe("estimate-sheet measurement producer", () => {
     },
     {
       name: "failed command child",
-      mutate(runRoot: string) {
-        const path = join(runRoot, "receipts/command-react-doctor.json");
+      mutate(_runRoot: string, immutableRunRoot: string) {
+        const path = join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS["react-doctor"]);
         const receipt = JSON.parse(readFileSync(path, "utf8"));
         receipt.overall = "FAIL";
         receipt.exit_code = 1;
@@ -864,24 +1026,25 @@ describe("estimate-sheet measurement producer", () => {
     },
     {
       name: "reused fixture namespace",
-      mutate(runRoot: string) {
+      mutate(runRoot: string, immutableRunRoot: string) {
+        void immutableRunRoot;
         const path = join(runRoot, "run-manifest.json");
         const manifest = JSON.parse(readFileSync(path, "utf8"));
         manifest.namespaces.d1.idSha256 = manifest.namespaces.browser.idSha256;
         manifest.mutationJournal.find((entry: { fixtureRole: string }) => entry.fixtureRole === "d1").namespaceIdSha256 = manifest.namespaces.browser.idSha256;
         writeFileSync(path, `${JSON.stringify(manifest)}\n`, { mode: 0o600 });
       },
-      error: /namespace identity was reused/i,
+      error: /(?:immutable authority|namespace identifiers must be distinct)/i,
     },
   ])("fails closed on $name without publishing an envelope", ({ mutate, error }) => {
     const root = mkdtempSync(join(tmpdir(), "estimate-measurement-unit-010-invalid-"));
     try {
-      const { manifestPath, runRoot } = writeUnit010ProofRun(root);
-      mutate(runRoot);
-      const result = runUnit010Envelope(manifestPath);
+      const { manifestPath, runRoot, immutableRunRoot } = writeUnit010ProofRun(root);
+      mutate(runRoot, immutableRunRoot);
+      const result = runUnit010Envelope(root, manifestPath);
       expect(result.status).not.toBe(0);
       expect(result.stderr).toMatch(error);
-      expect(existsSync(join(runRoot, "reports/integration.json"))).toBe(false);
+      expect(existsSync(join(immutableRunRoot, ESTIMATE_LOGICAL_OUTPUTS.integration))).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
