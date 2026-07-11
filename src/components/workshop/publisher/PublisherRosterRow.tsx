@@ -25,14 +25,14 @@ const statusCopy = {
   unpublished: { label: "Draft", badge: "draft" },
 } satisfies Record<ProjectPublicationRosterRowData["status"], { label: string; badge: StatusBadgeStatus }>;
 
-function readStatusCopy(row: ProjectPublicationRosterRowData) {
+export function readPublisherStatusCopy(row: ProjectPublicationRosterRowData) {
   if (row.status === "published" && row.staleSnapshotWarning) {
     return { label: "Stale", badge: "review" as const };
   }
   return statusCopy[row.status];
 }
 
-function formatDate(value: string | null) {
+export function formatPublisherDate(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -43,14 +43,14 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
-function formatSheetScope(row: ProjectPublicationRosterRowData) {
+export function formatPublisherSheetScope(row: ProjectPublicationRosterRowData) {
   if (row.status === "unpublished") return "Not selected";
   if (row.selectedEstimateCount === 0) return "All sheets";
   if (row.selectedEstimateCount === 1) return "1 sheet";
   return `${row.selectedEstimateCount} sheets`;
 }
 
-function formatRecipientCount(row: ProjectPublicationRosterRowData) {
+export function formatPublisherRecipientCount(row: ProjectPublicationRosterRowData) {
   if (row.status === "unpublished") return "None";
   if (row.recipientCount === 0) return "Anyone";
   if (row.recipientCount === 1) return "1 recipient";
@@ -64,9 +64,9 @@ export function PublisherRosterRow({
   onManagePublication,
   onSharePublication,
 }: PublisherRosterRowProps) {
-  const status = readStatusCopy(row);
-  const publishedDate = formatDate(row.publishedAt);
-  const expiresDate = formatDate(row.expiresAt);
+  const status = readPublisherStatusCopy(row);
+  const publishedDate = formatPublisherDate(row.publishedAt);
+  const expiresDate = formatPublisherDate(row.expiresAt);
   const copyLabel = row.linkUnavailableReason
     ? "Link unavailable"
     : copyState === "copied"
@@ -118,7 +118,7 @@ export function PublisherRosterRow({
         </div>
       </td>
       <td className="hidden min-w-[120px] px-3 py-2 align-middle text-[10px] leading-4 lg:table-cell">
-        <p className="text-ink">{formatRecipientCount(row)}</p>
+        <p className="text-ink">{formatPublisherRecipientCount(row)}</p>
         {row.openCount > 0 ? <p className="text-[9px] leading-3 text-tertiary">{row.openCount} opens</p> : null}
       </td>
       <td className="min-w-[132px] px-3 py-2 align-middle">
@@ -128,7 +128,7 @@ export function PublisherRosterRow({
         ) : null}
       </td>
       <td className="hidden min-w-[120px] px-3 py-2 align-middle lg:table-cell">
-        <p className="text-[10px] leading-4 text-ink">{formatSheetScope(row)}</p>
+        <p className="text-[10px] leading-4 text-ink">{formatPublisherSheetScope(row)}</p>
         {publishedDate ? <p className="text-[9px] leading-3 text-tertiary">Published {publishedDate}</p> : null}
       </td>
       <td className="min-w-[104px] px-3 py-2 align-middle">

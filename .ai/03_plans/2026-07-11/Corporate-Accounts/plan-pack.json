@@ -3,13 +3,13 @@
   "suite_version": "2026-07-10",
   "package_id": "PLAN-2026-07-11-corporate-accounts",
   "profile": "high-blast-radius",
-  "package_action_ceiling": "IMPLEMENT_LOCAL",
-  "last_observed_run_scope": "IMPLEMENT_LOCAL",
-  "package_status": "CONDITIONALLY_READY",
-  "implementation_status": "IN_PROGRESS",
+  "package_action_ceiling": "EXTERNAL_ACTIONS",
+  "last_observed_run_scope": "EXTERNAL_ACTIONS",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
   "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
   "baseline": {
     "head": null,
     "scoped_status_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -21,13 +21,13 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "ad3d17860e28a66c43029845c09914ea3c9740548a4f44b88fd7309c051f0fb6"
+      "sha256": "42e6a0762aa84830312a2262a5c0a4bc5811fa8e09aab70d30032fbfcafb66ee"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "4c2f542a4f7807d411296f4c9ba5b8f7b143c0a3239b3bebd3322379efb34ed6"
+      "sha256": "2f03e32baeeea55774d2618b0d0c1cfdc040b612dd97daa5311fea47ac96c685"
     },
     {
       "id": "ART-003",
@@ -57,7 +57,13 @@
       "id": "ART-007",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "c7148eeac4da479650e03057163b0959983e8d107d795c87da3cb5034aab3977"
+      "sha256": "3e5627c2d9c6f08cf2f61991ccf6a3cf5d301a9ee6a81bba32857d156e83257e"
+    },
+    {
+      "id": "ART-008",
+      "role": "final-integration",
+      "path": "evidence/CORPORATE-FINAL-INTEGRATION-v1.md",
+      "sha256": "c68cc0a33e873de6aaee616d0a27968c974143f02a23d97b8bf1de66508f9b61"
     }
   ],
   "sources": [
@@ -286,7 +292,7 @@
   "criteria": [
     {
       "id": "AC-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-001"
@@ -301,7 +307,7 @@
     },
     {
       "id": "AC-002",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-001"
@@ -316,7 +322,7 @@
     },
     {
       "id": "AC-003",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-002"
@@ -331,7 +337,7 @@
     },
     {
       "id": "AC-004",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-002"
@@ -346,7 +352,7 @@
     },
     {
       "id": "AC-005",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-002"
@@ -361,7 +367,7 @@
     },
     {
       "id": "AC-006",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-006"
@@ -376,7 +382,7 @@
     },
     {
       "id": "AC-007",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-003"
@@ -391,7 +397,7 @@
     },
     {
       "id": "AC-008",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-003"
@@ -406,7 +412,7 @@
     },
     {
       "id": "AC-009",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-004"
@@ -421,7 +427,7 @@
     },
     {
       "id": "AC-010",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-004"
@@ -436,7 +442,7 @@
     },
     {
       "id": "AC-011",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-004"
@@ -451,7 +457,7 @@
     },
     {
       "id": "AC-012",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-005"
@@ -466,7 +472,7 @@
     },
     {
       "id": "AC-013",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-007"
@@ -481,7 +487,7 @@
     },
     {
       "id": "AC-014",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-008"
@@ -496,7 +502,7 @@
     },
     {
       "id": "AC-015",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-008"
@@ -511,7 +517,7 @@
     },
     {
       "id": "AC-016",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-008"
@@ -526,7 +532,7 @@
     },
     {
       "id": "AC-017",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-009"
@@ -541,7 +547,7 @@
     },
     {
       "id": "AC-018",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-009"
@@ -556,7 +562,7 @@
     },
     {
       "id": "AC-019",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-010"
@@ -571,7 +577,7 @@
     },
     {
       "id": "AC-020",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-011"
@@ -586,7 +592,7 @@
     },
     {
       "id": "AC-021",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-011"
@@ -601,7 +607,7 @@
     },
     {
       "id": "AC-022",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-011"
@@ -616,7 +622,7 @@
     },
     {
       "id": "AC-023",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "02_REQUIREMENTS.md",
       "requirement_ids": [
         "REQ-012"
@@ -633,7 +639,7 @@
   "tests": [
     {
       "id": "TEST-001",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-001"
@@ -644,7 +650,7 @@
     },
     {
       "id": "TEST-002",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-002"
@@ -655,7 +661,7 @@
     },
     {
       "id": "TEST-003",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-003"
@@ -666,7 +672,7 @@
     },
     {
       "id": "TEST-004",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-004"
@@ -677,7 +683,7 @@
     },
     {
       "id": "TEST-005",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-005"
@@ -688,7 +694,7 @@
     },
     {
       "id": "TEST-006",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-006"
@@ -699,7 +705,7 @@
     },
     {
       "id": "TEST-007",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-007"
@@ -710,7 +716,7 @@
     },
     {
       "id": "TEST-008",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-008"
@@ -721,7 +727,7 @@
     },
     {
       "id": "TEST-009",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-009"
@@ -732,7 +738,7 @@
     },
     {
       "id": "TEST-010",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-010"
@@ -743,7 +749,7 @@
     },
     {
       "id": "TEST-011",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-011"
@@ -754,7 +760,7 @@
     },
     {
       "id": "TEST-012",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-012"
@@ -765,7 +771,7 @@
     },
     {
       "id": "TEST-013",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-013"
@@ -776,7 +782,7 @@
     },
     {
       "id": "TEST-014",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-014"
@@ -787,7 +793,7 @@
     },
     {
       "id": "TEST-015",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-015"
@@ -798,7 +804,7 @@
     },
     {
       "id": "TEST-016",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-016"
@@ -809,7 +815,7 @@
     },
     {
       "id": "TEST-017",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-017"
@@ -820,7 +826,7 @@
     },
     {
       "id": "TEST-018",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-018"
@@ -831,7 +837,7 @@
     },
     {
       "id": "TEST-019",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-019"
@@ -842,7 +848,7 @@
     },
     {
       "id": "TEST-020",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-020"
@@ -853,7 +859,7 @@
     },
     {
       "id": "TEST-021",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-021"
@@ -864,7 +870,7 @@
     },
     {
       "id": "TEST-022",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-022"
@@ -875,7 +881,7 @@
     },
     {
       "id": "TEST-023",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-023"
@@ -889,7 +895,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -905,7 +911,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -926,7 +932,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001",
@@ -946,7 +952,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -964,7 +970,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -984,7 +990,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004",
@@ -1001,7 +1007,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -1017,7 +1023,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004",
@@ -1033,7 +1039,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -1050,7 +1056,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -1066,7 +1072,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001",
@@ -1157,21 +1163,13 @@
     }
   ],
   "authorization_boundaries": [],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
-      "status": "PLANNED",
-      "artifact_path": "01_AUDIT.md",
-      "sha256": "3389642251f802596e9031b0ca191e15ee0c7854f7c105db44875ff8f41461c9",
+      "status": "PASS",
+      "artifact_path": "evidence/CORPORATE-FINAL-INTEGRATION-v1.md",
+      "sha256": "c68cc0a33e873de6aaee616d0a27968c974143f02a23d97b8bf1de66508f9b61",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -1231,7 +1229,7 @@
         "UNIT-010",
         "UNIT-011"
       ],
-      "source_revision": "2026-07-11-implementation-audit",
+      "source_revision": "2026-07-11-corporate-final-integration-worker-9d6dcdc2",
       "valid_until": null
     }
   ],
@@ -1239,7 +1237,7 @@
     "source-or-config-hash-change",
     "focused-test-or-migration-result-change"
   ],
-  "next_unit": "UNIT-001",
-  "updated_at": "2026-07-11T02:15:00.000Z",
-  "manifest_sha256": "77c37d373070dbba0b0b49c1e6c600478963210ba17ee5be32cd216dedfa4541"
+  "next_unit": null,
+  "updated_at": "2026-07-11T10:05:00.000Z",
+  "manifest_sha256": "c1c45c6be27b36ce1c2f8752ece9bdeefe306c5b4db6e193d4801a410d6ba5ab"
 }

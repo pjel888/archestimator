@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  ProjectMembersAccessPanel,
-  type ProjectMembersAccessPanelProps,
+export {
+  ProjectMembersAccessPanel as PublisherProjectMembersPanel,
 } from "@/components/workshop/teamwork/ProjectMembersAccessPanel";
-
-export type PublisherProjectMembersPanelProps = ProjectMembersAccessPanelProps;
-
-export function PublisherProjectMembersPanel(props: PublisherProjectMembersPanelProps) {
-  return <ProjectMembersAccessPanel {...props} />;
-}
+export type {
+  ProjectMembersAccessPanelProps as PublisherProjectMembersPanelProps,
+} from "@/components/workshop/teamwork/ProjectMembersAccessPanel";

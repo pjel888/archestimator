@@ -908,7 +908,7 @@ export function ProjectMembersAccessPanel({
         description={pendingRemoval?.previewMessage ?? "Remaining access is being checked."}
         confirmLabel="Remove"
         tone="danger"
-        busy={isPending}
+        busy={isPending && pendingRemoval === null}
         onConfirm={confirmRemoveSheetMember}
       />
 
@@ -936,7 +936,7 @@ export function ProjectMembersAccessPanel({
           : "This member has no direct estimate grants in this project."}
         confirmLabel="Remove access"
         tone="danger"
-        busy={isPending}
+        busy={isPending && pendingProjectRemoval === null}
         onConfirm={confirmRemoveProjectMember}
       >
         {pendingProjectRemoval ? (

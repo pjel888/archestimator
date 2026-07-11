@@ -1,12 +1,15 @@
+import Link from "next/link";
 import { FileX, Monitor } from "@phosphor-icons/react/dist/ssr";
+import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 
 type PublisherNoRowsEmptyStateProps = {
+  action?: ReactNode;
   variant?: "filtered" | "no-publications" | "mobile";
 };
 
-export function PublisherNoRowsEmptyState({ variant = "no-publications" }: PublisherNoRowsEmptyStateProps) {
+export function PublisherNoRowsEmptyState({ action, variant = "no-publications" }: PublisherNoRowsEmptyStateProps) {
   const copy = {
     filtered: {
       icon: <FileX size={16} weight="regular" aria-hidden="true" />,
@@ -30,6 +33,11 @@ export function PublisherNoRowsEmptyState({ variant = "no-publications" }: Publi
       icon={copy.icon}
       title={copy.title}
       description={copy.description}
+      action={action ?? (variant === "no-publications" ? (
+        <Link href="/workshop/projects" className="inline-flex min-h-9 items-center justify-center rounded-xs border border-divider bg-surface px-3 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+          View projects
+        </Link>
+      ) : null)}
       className="h-full min-h-56 w-full rounded-xs"
     />
   );

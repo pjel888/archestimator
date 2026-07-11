@@ -50,7 +50,7 @@ const DRAWER_TABS = [
   { id: "overview", label: "Overview" },
   { id: "recipients", label: "Recipients" },
   { id: "sheets", label: "Sheets" },
-  { id: "access", label: "Access" },
+  { id: "access", label: "Team access" },
   { id: "settings", label: "Settings" },
   { id: "activity", label: "Activity" },
 ] satisfies Array<{ id: PublisherDrawerTabId; label: string }>;

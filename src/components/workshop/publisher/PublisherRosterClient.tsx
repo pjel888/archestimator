@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { WorkshopCollectionLayout } from "@/components/workshop/WorkshopCollectionLayout";
 import { PublisherNoRowsEmptyState } from "@/components/workshop/publisher/PublisherEmptyState";
@@ -107,6 +111,13 @@ function readWizardIntent(params: URLSearchParams, rows: ProjectPublicationRoste
   return row ? { row, step: Number.isFinite(step) ? step : 1 } : null;
 }
 
+function readCopyLabel(row: ProjectPublicationRosterRowData, copyState: PublisherRosterCopyState) {
+  if (row.linkUnavailableReason) return "Link unavailable";
+  if (copyState === "copied") return "Copied";
+  if (copyState === "failed") return "Retry copy";
+  return "Copy link";
+}
+
 export function PublisherRosterClient({ filters, roster }: PublisherRosterClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -129,6 +140,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
   const [dismissedDrawerIntentKey, setDismissedDrawerIntentKey] = useState<string | null>(null);
   const [manualWizardRow, setManualWizardRow] = useState<ProjectPublicationRosterRowData | null>(null);
   const manualDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const manualWizardTriggerRef = useRef<HTMLButtonElement | null>(null);
   const activeDrawerIntent = drawerIntent?.key === dismissedDrawerIntentKey ? null : drawerIntent;
   const drawerRow = manualDrawerRow ?? activeDrawerIntent?.row ?? null;
   const drawerInitialTab = manualDrawerRow ? manualDrawerInitialTab : activeDrawerIntent?.tab ?? "overview";
@@ -166,12 +178,44 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
   }
 
   function closeWizard() {
+    const trigger = manualWizardTriggerRef.current;
+    manualWizardTriggerRef.current = null;
     setManualWizardRow(null);
     const params = new URLSearchParams(searchParams.toString());
+    const hadWizardQuery = params.has("wizard") || params.has("step");
     params.delete("wizard");
     params.delete("step");
+    if (hadWizardQuery) {
+      const query = params.toString();
+      startTransition(() => router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false }));
+    }
+    if (trigger?.isConnected) {
+      window.requestAnimationFrame(() => trigger.focus({ preventScroll: true }));
+    }
+  }
+
+  function openProjectWizard(projectId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("project", projectId);
+    params.set("wizard", projectId);
+    params.delete("drawer");
+    params.delete("page");
+    params.delete("q");
+    params.delete("status");
+    params.delete("step");
+    params.delete("tab");
     const query = params.toString();
-    startTransition(() => router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false }));
+    startTransition(() => router.replace(`${pathname}?${query}`, { scroll: false }));
+  }
+
+  function openManualWizard(row: ProjectPublicationRosterRowData, trigger: HTMLButtonElement) {
+    manualWizardTriggerRef.current = trigger;
+    setManualWizardRow(row);
+  }
+
+  function clearFilters() {
+    setSearchValue("");
+    replaceQuery({ projectId: null, search: "", status: "all" });
   }
 
   function handleSearchChange(nextValue: string) {
@@ -207,6 +251,13 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
   const startRow = roster.totalRows === 0 ? 0 : (roster.page - 1) * roster.pageSize + 1;
   const endRow = startRow === 0 ? 0 : startRow + roster.rows.length - 1;
   const hasRows = roster.rows.length > 0;
+  const hasFilters = hasActiveFilters(filters);
+  const emptyState = (
+    <PublisherNoRowsEmptyState
+      variant={hasFilters ? "filtered" : "no-publications"}
+      action={hasFilters ? <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined}
+    />
+  );
 
   return (
     <section
@@ -222,6 +273,34 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
         onSearchChange={handleSearchChange}
         toolbarLabel="Shared link roster tools"
         toolbarPrefix="shared link roster"
+        addActions={[
+          {
+            id: "share-project",
+            label: "Share a project",
+            element: (
+              <DropdownMenu
+                align="end"
+                className="min-w-56"
+                trigger={
+                  <Button type="button" variant="primary" size="sm" className="min-h-7 min-w-0 px-2" disabled={roster.projectOptions.length === 0}>
+                    <ShareNetwork size={13} aria-hidden="true" /> Share a project
+                  </Button>
+                }
+              >
+                <DropdownMenu.Group id="share-projects" label="Choose a project">
+                  {roster.projectOptions.map((project) => (
+                    <DropdownMenu.Item
+                      key={project.id}
+                      id={project.id}
+                      label={project.projectCode ? `${project.name} (${project.projectCode})` : project.name}
+                      onClick={() => openProjectWizard(project.id)}
+                    />
+                  ))}
+                </DropdownMenu.Group>
+              </DropdownMenu>
+            ),
+          },
+        ]}
         filterSlot={
           <DropdownSelect
             aria-label="Filter by project"
@@ -246,54 +325,61 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
         contentScroll={false}
       >
         <div className="flex h-full min-h-0 flex-col gap-2">
-          <div className="flex min-h-6 items-center justify-between gap-2 text-[9px] leading-3 text-tertiary">
+          <div className="flex shrink-0 flex-col gap-2 text-[10px] leading-4 text-tertiary sm:flex-row sm:items-center sm:justify-between">
             <p aria-live="polite">
               Showing {startRow}-{endRow} of {roster.totalRows}
               {roster.truncated ? " (capped)" : ""}
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               <PublisherPagination hasNextPage={roster.hasNextPage} page={roster.page} onPageChange={(page) => replaceQuery({ page }, false)} />
-              <div className="hidden gap-2 min-[768px]:flex" role="group" aria-label="Roster view">
-                <button type="button" aria-pressed={view === "cards"} onClick={() => setView("cards")}>Cards</button>
-                <button type="button" aria-pressed={view === "table"} onClick={() => setView("table")}>Table</button>
-              </div>
+              <SegmentedControl
+                ariaLabel="Roster view"
+                className="hidden min-[768px]:inline-grid"
+                options={[{ value: "cards", label: "Cards" }, { value: "table", label: "Table" }]}
+                value={view}
+                onValueChange={setView}
+              />
             </div>
           </div>
 
-          <div className="grid gap-2 min-[768px]:hidden">
+          <div className="min-h-0 flex-1 overflow-auto pb-1 min-[768px]:hidden">
+            <div className="grid gap-2">
             {hasRows ? roster.rows.map((row) => (
               <PublisherRosterCard
                 key={row.publicationId ?? `draft:${row.projectId}`}
                 row={row}
-                copyLabel={row.publicationId && copyStateByPublicationId[row.publicationId] === "copied" ? "Copied" : "Copy link"}
+                copyLabel={readCopyLabel(row, row.publicationId ? copyStateByPublicationId[row.publicationId] ?? "idle" : "idle")}
                 onCopyLink={handleCopyLink}
-                onSharePublication={(nextRow) => setManualWizardRow(nextRow)}
+                onSharePublication={openManualWizard}
                 onManagePublication={(nextRow, trigger) => {
                   manualDrawerTriggerRef.current = trigger;
                   setManualDrawerInitialTab("overview");
                   setManualDrawerRow(nextRow);
                 }}
               />
-            )) : <PublisherNoRowsEmptyState variant={hasActiveFilters(filters) ? "filtered" : "no-publications"} />}
+            )) : emptyState}
+            </div>
           </div>
 
           <div className={view === "cards"
-            ? "hidden grid-cols-2 gap-3 min-[768px]:grid xl:grid-cols-3"
-            : "hidden grid-cols-2 gap-3 min-[768px]:hidden xl:grid-cols-3"}>
-            {hasRows ? roster.rows.map((row) => (
-              <PublisherRosterCard
-                key={row.publicationId ?? `draft:${row.projectId}`}
-                row={row}
-                copyLabel={row.publicationId && copyStateByPublicationId[row.publicationId] === "copied" ? "Copied" : "Copy link"}
-                onCopyLink={handleCopyLink}
-                onSharePublication={(nextRow) => setManualWizardRow(nextRow)}
-                onManagePublication={(nextRow, trigger) => {
-                  manualDrawerTriggerRef.current = trigger;
-                  setManualDrawerInitialTab("overview");
-                  setManualDrawerRow(nextRow);
-                }}
-              />
-            )) : <PublisherNoRowsEmptyState variant={hasActiveFilters(filters) ? "filtered" : "no-publications"} />}
+            ? "hidden min-h-0 flex-1 overflow-auto pb-1 min-[768px]:block"
+            : "hidden min-h-0 flex-1 overflow-auto pb-1 min-[768px]:hidden"}>
+            <div className="grid min-h-full grid-cols-2 gap-3 xl:grid-cols-2">
+              {hasRows ? roster.rows.map((row) => (
+                <PublisherRosterCard
+                  key={row.publicationId ?? `draft:${row.projectId}`}
+                  row={row}
+                  copyLabel={readCopyLabel(row, row.publicationId ? copyStateByPublicationId[row.publicationId] ?? "idle" : "idle")}
+                  onCopyLink={handleCopyLink}
+                  onSharePublication={openManualWizard}
+                  onManagePublication={(nextRow, trigger) => {
+                    manualDrawerTriggerRef.current = trigger;
+                    setManualDrawerInitialTab("overview");
+                    setManualDrawerRow(nextRow);
+                  }}
+                />
+              )) : emptyState}
+            </div>
           </div>
 
           <div className={view === "table"
@@ -325,7 +411,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
                           setManualDrawerInitialTab("overview");
                           setManualDrawerRow(nextRow);
                         }}
-                        onSharePublication={(nextRow) => setManualWizardRow(nextRow)}
+                        onSharePublication={openManualWizard}
                       />
                     ))}
                   </tbody>
@@ -333,7 +419,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
               </div>
             ) : (
               <div className="flex h-full w-full p-2">
-                <PublisherNoRowsEmptyState variant={hasActiveFilters(filters) ? "filtered" : "no-publications"} />
+                {emptyState}
               </div>
             )}
           </div>

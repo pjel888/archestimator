@@ -16,7 +16,19 @@ type PublisherPageProps = {
 
 async function PublisherData({ searchParams }: PublisherPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
-  const filters = parseRosterFilters(resolvedSearchParams);
+  const wizardProjectId = Array.isArray(resolvedSearchParams.wizard)
+    ? resolvedSearchParams.wizard[0]
+    : resolvedSearchParams.wizard;
+  const filterSearchParams = wizardProjectId
+    ? {
+        ...resolvedSearchParams,
+        page: undefined,
+        project: wizardProjectId,
+        q: undefined,
+        status: undefined,
+      }
+    : resolvedSearchParams;
+  const filters = parseRosterFilters(filterSearchParams);
   const roster = await withPerfTraceRequest("workshop.publisher.data", async () => {
     const [currentUser, { workspace }] = await Promise.all([
       traced("publisher.route.current-user", () => requireCurrentUserContext()),
@@ -41,13 +53,16 @@ export default function PublisherPage({ searchParams }: PublisherPageProps) {
       eyebrow="Workspace"
       showEyebrow={false}
       breadcrumbs={["Share"]}
-      contentClassName=""
+      description="Create, review, and manage the client links for every project."
+      contentClassName="relative flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-2"
     >
       <WorkshopCanvasWash className="publisher-canvas-wash" />
 
-      <Suspense fallback={<PublisherRosterSkeleton />}>
-        <PublisherData searchParams={searchParams} />
-      </Suspense>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <Suspense fallback={<PublisherRosterSkeleton />}>
+          <PublisherData searchParams={searchParams} />
+        </Suspense>
+      </div>
     </WorkshopRouteHeader>
   );
 }
