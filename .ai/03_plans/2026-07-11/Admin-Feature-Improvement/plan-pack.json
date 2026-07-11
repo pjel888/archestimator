@@ -11,11 +11,11 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "c522cc5569e3278d355d778589eecf373b2c797a",
-    "scoped_status_sha256": "3cd071578da9b1defea10138bb46365882f2a0c6be71ceb531b016634d4ebde1",
-    "scoped_diff_sha256": "53aa6ef6e6c7984e39a69196abd74030e100b929c7e431d12d9ea2b6e3f0d21f"
+    "head": "4bf5d3af81689293746a66e5018b6f1850c3b1c5",
+    "scoped_status_sha256": "04a70938292c48ea8be8f0d57b2c7ae9437d1f05ddec51c3faabacbbd7a4550e",
+    "scoped_diff_sha256": "802003ff57493f6c1b4810dc36e00c6e896ea9dad83af5de5710b7448a2a4014"
   },
-  "updated_at": "2026-07-11T05:00:53.000Z",
+  "updated_at": "2026-07-11T05:06:29.000Z",
   "stale_triggers": [
     "scoped-source-baseline-drift",
     "migration-or-lease-generation-change",
@@ -3134,5 +3134,5 @@
     }
   ],
   "next_unit": "UNIT-001",
-  "manifest_sha256": "46747cd16cbcf035bad5a75ceedae38000855138816725d7bcf3298309884470"
+  "manifest_sha256": "cb3621a9dc9070633e42107430411e22fe1f4d750458075d358b5ec416f69698"
 }
