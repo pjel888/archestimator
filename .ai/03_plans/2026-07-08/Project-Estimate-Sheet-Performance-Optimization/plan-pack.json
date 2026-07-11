@@ -269,13 +269,13 @@
       "id": "ART-039",
       "role": "runtime-evidence-projection",
       "path": "evidence/runtime/fixture-manifest.json",
-      "sha256": "ccef5127c03145ed86e505e0a8778832b359be440bec038ae3d4f93a83d50970"
+      "sha256": "d9236eab7e1d8674587d274c4625b1adc0600ee88ca2b1aa4f4e7b7e483f56dd"
     },
     {
       "id": "ART-040",
       "role": "runtime-evidence-projection",
       "path": "evidence/runtime/jsdom-baseline.json",
-      "sha256": "199cba2405471b098f208ad425ab9946bc67030b1b82b60b89dfab502faaa294"
+      "sha256": "9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77"
     },
     {
       "id": "ART-041",
@@ -347,19 +347,19 @@
       "id": "ART-052",
       "role": "runtime-evidence-registry",
       "path": "evidence/runtime/evidence-index.json",
-      "sha256": "5fd229e14ea050e5576e7558bd05391cc9fba95e7d3ec1e4170092d4523475bc"
+      "sha256": "c45d14be47f161ce6084537fd0c86f6053764bec4f73d96fddcc1b8af9bbba7e"
     }
   ],
   "runtime_evidence": {
     "contract_version": "estimate-sheet-runtime-manifest-state.v1",
-    "transition_sequence": 4,
+    "transition_sequence": 5,
     "latest_unit_id": "UNIT-001",
     "latest_run_id": "c017a99a-dff0-4896-8997-d60774c2193f",
     "registry": {
       "artifact_id": "ART-052",
       "projection_path": "evidence/runtime/evidence-index.json",
-      "immutable_path": null,
-      "sha256": "5fd229e14ea050e5576e7558bd05391cc9fba95e7d3ec1e4170092d4523475bc"
+      "immutable_path": "evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/evidence-index.json",
+      "sha256": "c45d14be47f161ce6084537fd0c86f6053764bec4f73d96fddcc1b8af9bbba7e"
     },
     "projections": [
       {
@@ -368,8 +368,8 @@
         "relationship": "SECONDARY",
         "role": "fixture",
         "projection_path": "evidence/runtime/fixture-manifest.json",
-        "immutable_path": null,
-        "sha256": "ccef5127c03145ed86e505e0a8778832b359be440bec038ae3d4f93a83d50970"
+        "immutable_path": "evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/fixtures/fixture.json",
+        "sha256": "d9236eab7e1d8674587d274c4625b1adc0600ee88ca2b1aa4f4e7b7e483f56dd"
       },
       {
         "artifact_id": "ART-040",
@@ -377,8 +377,8 @@
         "relationship": "PRIMARY",
         "role": "jsdom",
         "projection_path": "evidence/runtime/jsdom-baseline.json",
-        "immutable_path": null,
-        "sha256": "199cba2405471b098f208ad425ab9946bc67030b1b82b60b89dfab502faaa294"
+        "immutable_path": "evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/reports/jsdom.json",
+        "sha256": "9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77"
       },
       {
         "artifact_id": "ART-041",
@@ -3213,7 +3213,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -3888,14 +3888,14 @@
     },
     {
       "id": "EVID-002",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "evidence/runtime/jsdom-baseline.json",
-      "sha256": "199cba2405471b098f208ad425ab9946bc67030b1b82b60b89dfab502faaa294",
+      "sha256": "9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77",
       "claim_ids": [
         "UNIT-001",
         "TEST-002"
       ],
-      "source_revision": "planned:UNIT-001",
+      "source_revision": "run:c017a99a-dff0-4896-8997-d60774c2193f:797f84ffbdd9753287e62d77ddf4df1b108ba98fa39cfe24804cfaeb711ca669:4cb1978d8a534b17012b48ea870d7000e6c4aef341fe4071fc23b4a13beccd38",
       "valid_until": null
     },
     {
@@ -4046,7 +4046,7 @@
     "active-d1-migration-or-binding-change",
     "unit-owned-shared-worktree-diff-change"
   ],
-  "next_unit": "UNIT-001",
-  "updated_at": "2026-07-11T19:32:29.435Z",
-  "manifest_sha256": "1bd2f9f7ce1f51d696c5b9c4431ad90768e3e6b98d9964b30635fd2ff3e16aa5"
+  "next_unit": "UNIT-002",
+  "updated_at": "2026-07-11T19:34:35.557Z",
+  "manifest_sha256": "55d698651c4d7ae95d3f1731a0cbc57ebf094733ce852c8ce17d3530b0fa7661"
 }
