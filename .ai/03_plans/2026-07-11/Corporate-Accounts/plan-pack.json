@@ -57,7 +57,7 @@
       "id": "ART-007",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "30ba26372b5e7f405824cbd035e2f95c443ff5edf36d8f5be9fe65d8e9f17ca9"
+      "sha256": "cbf6ed2077e14bba7546ad9fcb5560d80c6fb0d1594d7cee3ca9114cf65ede16"
     }
   ],
   "sources": [
@@ -1241,5 +1241,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T02:15:00.000Z",
-  "manifest_sha256": "fa1812457657ed242e0c8c468ae4393d7aef26ae6da685f9bf34088eefb43997"
+  "manifest_sha256": "7511830b08535af7d0b2c578619cea50ea22048d6e78172c837dfb6b0429bf65"
 }

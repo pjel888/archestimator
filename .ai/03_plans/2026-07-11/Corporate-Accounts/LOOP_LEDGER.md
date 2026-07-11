@@ -128,3 +128,11 @@ Design and implement an atomic workspace-move audit boundary, then close the rem
 - **Verify:** `bun run ops:check-dev-auth-bypass` reported `ready`; the fixture-gated Corporate and Teamwork Playwright specs skipped without explicit fixture IDs. `bunx wrangler d1 migrations list ARCH_DB --remote` reported pending migrations `0041` through `0065`, including Corporate `0052`/`0053`. Focused Corporate/Teamwork source tests, `bun run type-check`, and `bun run validate:error-handling` remain green in this audit loop.
 - **Record:** the remote provider state prevents any claim that the Corporate schema or owner-integrity trigger is bound-D1 ready. Local browser and component/action proof remain valid only at their stated local scope. Corporate remains `CONDITIONALLY_READY / IN_PROGRESS / NOT_EVALUATED / ACTIVE / ACTIVE`.
 - **Decide:** do not archive and do not apply the broad remote migration backlog as an incidental audit step. Resume provider proof only through a scoped migration and deployment decision with current shared-workspace coordination.
+
+## 2026-07-11 - Bound D1 Migration Application Verification
+
+- **Discover:** the preceding provider recheck identified the active bound D1 migration backlog, including Corporate owner-integrity migrations `0052` and `0053` and Teamwork integrity migrations `0054` and `0055`.
+- **Execute:** after authenticated account and bound-resource readback, applied the additive pending migration set to the D1 database bound as `ARCH_DB` in `wrangler.jsonc` under the standing resource authorization.
+- **Verify:** `bunx wrangler d1 migrations list ARCH_DB --remote` now reports no migrations to apply. Independent remote catalog checks found required Corporate trigger/table coverage, and integrity checks found no duplicate pending invitation scope or restricted estimate without a manager.
+- **Record:** the remote schema migration blocker is cleared. This is schema/integrity evidence only; it does not prove deployed app behavior, authenticated hosted routes, provider rollout, or Corporate release readiness. Corporate remains `CONDITIONALLY_READY / IN_PROGRESS / NOT_EVALUATED / ACTIVE / ACTIVE`.
+- **Decide:** do not archive. Preserve hosted route, rollout, and release proof as separate required evidence classes.
