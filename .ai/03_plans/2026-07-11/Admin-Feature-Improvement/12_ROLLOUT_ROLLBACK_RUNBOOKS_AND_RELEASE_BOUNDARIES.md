@@ -114,3 +114,5 @@ Local code, migrations, queue adapters, tests, and a proposed binding remain ach
 ## Release Gate
 
 Production release requires fresh source/baseline/manifest receipts, complete local evidence, applicable hosted proof, free-tier/cost review, migration/rollback rehearsal, support/incident runbooks, observability readiness, no critical unresolved risk, and a requirement-by-requirement verifier audit. Implementation complete alone does not mean release ready.
+
+`GATE-COST-001` applies to UNIT-009 local fanout/quota enforcement and UNIT-017 hosted queue enablement, not optional delivery-provider work. The gate remains a boundary until both receipts prove the 10,000-recipient scenarios, the 50% normal and 70% peak free-tier headroom rules, bounded concurrency/backpressure, and an explicit no-paid-add-on result under AUTH-001. Optional email/provider proof remains separately governed by `GATE-PROVIDER-001` and AUTH-002.

@@ -53,3 +53,10 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 - Repairs: docs 02-17 and unit-specific PLANNED receipts; only `UNIT-001` remains eligible as the dependency-closed ready slice after final refreeze and review.
 - Invalidation history: Activity completed/archived then source drifted; Corporate and Teamwork remained in progress and changed during review; the current combined test classification has three known failures.
 - Resume packet: re-read `17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md`, recompute the exact doc-03 baseline, refresh manifest hashes with the validator, run planning-suite and whitespace/path checks, then obtain maker-separated final verification. Any concurrent drift repeats this bounded refresh rather than promoting downstream units.
+
+## 2026-07-11 — PLAN-008 — MAKER-SEPARATED SEMANTIC VERIFICATION
+
+- Independent final verifier verdict: `READY`; no remaining P0, P1, or material P2 semantic blocker.
+- Verified product scope: immutable sent history, versioned templates, one-time and recurring schedules, future-user audience reconciliation, preferences, quiet hours, digests, durable dispatch, retries, metrics, cancellation, retraction, replacement, and recovery.
+- Verified execution scope: deterministic reviewer policy, fresh-auth and intervention-notice decisions, cost/provider boundary separation, DAG ordering, unit receipts, overlap blocks, and status honesty.
+- Mechanical stop condition remains: two identical exact scoped-baseline snapshots, refreshed artifact/evidence/manifest hashes, current plan-pack and planning-suite validators, and whitespace/path checks.

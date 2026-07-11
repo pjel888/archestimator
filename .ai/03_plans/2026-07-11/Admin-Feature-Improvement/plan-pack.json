@@ -11,11 +11,11 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "4bf5d3af81689293746a66e5018b6f1850c3b1c5",
-    "scoped_status_sha256": "04a70938292c48ea8be8f0d57b2c7ae9437d1f05ddec51c3faabacbbd7a4550e",
-    "scoped_diff_sha256": "802003ff57493f6c1b4810dc36e00c6e896ea9dad83af5de5710b7448a2a4014"
+    "head": "d73d2bcb979d6d2a88f31ae0db64fb8047dbf965",
+    "scoped_status_sha256": "65d9450f7d19f768ff9a5bb00c42622b19fa9290ce746b7136740360d9416383",
+    "scoped_diff_sha256": "c123bd495e1ac32a0e6f6dead5b768c58d5fac493584379c057f9803c0883cd9"
   },
-  "updated_at": "2026-07-11T05:06:29.000Z",
+  "updated_at": "2026-07-11T05:18:35.000Z",
   "stale_triggers": [
     "scoped-source-baseline-drift",
     "migration-or-lease-generation-change",
@@ -2044,10 +2044,12 @@
       "status": "BOUNDARY",
       "artifact_path": "12_ROLLOUT_ROLLBACK_RUNBOOKS_AND_RELEASE_BOUNDARIES.md",
       "criterion_ids": [
-        "AC-018"
+        "AC-009",
+        "AC-017"
       ],
       "evidence_ids": [
-        "EVID-019"
+        "EVID-010",
+        "EVID-018"
       ],
       "authorization_boundary_id": "AUTH-001"
     },
@@ -2741,6 +2743,12 @@
       "status": "ACTIVE",
       "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
       "affected_ids": ["REQ-007", "SEC-003"]
+    },
+    {
+      "id": "DEC-AUTO-020",
+      "status": "ACTIVE",
+      "artifact_path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
+      "affected_ids": ["REQ-006", "SEC-003", "OPS-002"]
     }
   ],
   "authorization_boundaries": [
@@ -2982,7 +2990,8 @@
       "claim_ids": [
         "UNIT-009",
         "AC-009",
-        "TEST-009"
+        "TEST-009",
+        "GATE-COST-001"
       ],
       "source_revision": "unit-009-planned-receipt",
       "valid_until": null
@@ -3090,7 +3099,8 @@
         "AC-017",
         "TEST-017",
         "GATE-HOSTED-001",
-        "GATE-QUEUE-001"
+        "GATE-QUEUE-001",
+        "GATE-COST-001"
       ],
       "source_revision": "unit-017-planned-receipt",
       "valid_until": null
@@ -3104,7 +3114,6 @@
         "UNIT-018",
         "AC-018",
         "TEST-018",
-        "GATE-COST-001",
         "GATE-PROVIDER-001"
       ],
       "source_revision": "unit-018-planned-receipt",

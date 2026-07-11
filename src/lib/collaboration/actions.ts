@@ -9,7 +9,11 @@ import {
   canAssignCollaborationRole,
   canMutateCollaborationTarget,
 } from "@/lib/authz/collaboration-policy";
-import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import {
+  getCloudflareD1Database,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+} from "@/lib/cloudflare/d1";
 import { revokeCollaborationRoomSubject } from "@/lib/cloudflare/collaboration-room-revocation";
 import {
   buildInviteEntryUrl,
@@ -21,6 +25,7 @@ import {
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/transactional-email-client";
 import { isUuid } from "@/lib/ids";
+import { emitLogRecord } from "@/lib/observability/logger";
 
 type CollaborationActionResult = {
   ok: boolean;
@@ -830,53 +835,59 @@ async function recordCollaborationInvitationDelivery({
     .run();
 }
 
-async function recordCollaborationAuditEvent({
+type CollaborationAuditEventType =
+  | "invite_email_attempted"
+  | "member_added"
+  | "role_changed"
+  | "member_removed"
+  | "estimate_access_inherited"
+  | "estimate_access_restricted";
+
+function prepareCollaborationAuditEvent({
   context,
   estimateId = null,
   eventType,
   invitationId = null,
   metadata,
+  timestamp = nowIso(),
 }: {
   context: ProjectAccessContext;
   estimateId?: string | null;
-  eventType: "invite_email_attempted" | "member_added" | "role_changed" | "member_removed";
+  eventType: CollaborationAuditEventType;
   invitationId?: string | null;
   metadata: Record<string, MetadataValue>;
+  timestamp?: string;
 }) {
-  try {
-    await context.db
-      .prepare(
-        `
-          INSERT INTO collaboration_audit_events (
-            id,
-            invitation_id,
-            project_id,
-            estimate_id,
-            actor_user_id,
-            event_type,
-            metadata_json,
-            created_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-      )
-      .bind(
-        createId(),
-        invitationId,
-        context.project.id,
-        estimateId,
-        context.currentUserId,
-        eventType,
-        JSON.stringify(metadata),
-        nowIso(),
-      )
-      .run();
-  } catch {
-    console.warn("[collaboration] audit event skipped", {
+  return context.db
+    .prepare(
+      `
+        INSERT INTO collaboration_audit_events (
+          id,
+          invitation_id,
+          project_id,
+          estimate_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      createId(),
+      invitationId,
+      context.project.id,
+      estimateId,
+      context.currentUserId,
       eventType,
-      projectId: context.project.id,
-    });
-  }
+      JSON.stringify(metadata),
+      timestamp,
+    );
+}
+
+async function recordCollaborationAuditEvent(args: Parameters<typeof prepareCollaborationAuditEvent>[0]) {
+  await prepareCollaborationAuditEvent(args).run();
 }
 
 async function readProfileContactById(db: D1DatabaseLike, userId: string) {
@@ -893,8 +904,13 @@ async function readProfileContactById(db: D1DatabaseLike, userId: string) {
     .first<ProfileContactRow>();
 }
 
-async function upsertProjectMemberInD1(context: ProjectAccessContext, userId: string, role: CollaborationRole, timestamp = nowIso()) {
-  await context.db
+function prepareProjectMemberUpsert(
+  context: ProjectAccessContext,
+  userId: string,
+  role: CollaborationRole,
+  timestamp = nowIso(),
+) {
+  return context.db
     .prepare(
       `
         INSERT INTO project_members (
@@ -922,16 +938,15 @@ async function upsertProjectMemberInD1(context: ProjectAccessContext, userId: st
       timestamp,
       timestamp,
     )
-    .run();
 }
 
-async function upsertEstimateSheetMemberInD1(
+function prepareEstimateSheetMemberUpsert(
   context: EstimateAccessContext,
   userId: string,
   role: CollaborationRole,
   timestamp = nowIso(),
 ) {
-  await context.db
+  return context.db
     .prepare(
       `
         INSERT INTO estimate_sheet_members (
@@ -959,7 +974,19 @@ async function upsertEstimateSheetMemberInD1(
       timestamp,
       timestamp,
     )
-    .run();
+}
+
+async function persistAccessMutationWithAudit({
+  audit,
+  context,
+  mutation,
+}: {
+  audit: D1PreparedStatementLike;
+  context: ProjectAccessContext;
+  mutation: D1PreparedStatementLike;
+}) {
+  if (!context.db.batch) throw new Error("Collaboration access changes require transactional D1 support.");
+  await context.db.batch([mutation, audit]);
 }
 
 function revalidateCollaborationRoutes(projectId: string) {
@@ -1048,7 +1075,6 @@ export async function inviteProjectCollaborator({
     eventType: "invite_email_attempted",
     invitationId: invitation.id,
     metadata: {
-      email: normalizedEmail,
       invite_entry_enabled: Boolean(inviteLink),
       role,
       scope: "project",
@@ -1065,10 +1091,15 @@ export async function inviteProjectCollaborator({
       scope: "project",
     });
   } catch (error) {
-    console.warn("[collaboration] invite email delivery failed", {
-      projectId: context.project.id,
-      scope: "project",
-      error: error instanceof Error ? error.message : "unknown",
+    emitLogRecord({
+      level: "warn",
+      event: "collaboration_invite_email_delivery_failed",
+      message: "Collaboration invite email could not be delivered.",
+      context: {
+        error_name: error instanceof Error ? error.name : "unknown",
+        project_id: context.project.id,
+        scope: "project",
+      },
     });
     revalidateCollaborationRoutes(context.project.id);
     return {
@@ -1147,7 +1178,6 @@ export async function inviteEstimateSheetCollaborator({
     eventType: "invite_email_attempted",
     invitationId: invitation.id,
     metadata: {
-      email: normalizedEmail,
       invite_entry_enabled: Boolean(inviteLink),
       role,
       scope: "estimate",
@@ -1164,10 +1194,16 @@ export async function inviteEstimateSheetCollaborator({
       scope: "estimate",
     });
   } catch (error) {
-    console.warn("[collaboration] invite email delivery failed", {
-      projectId: context.project.id,
-      scope: "estimate",
-      error: error instanceof Error ? error.message : "unknown",
+    emitLogRecord({
+      level: "warn",
+      event: "collaboration_invite_email_delivery_failed",
+      message: "Collaboration invite email could not be delivered.",
+      context: {
+        error_name: error instanceof Error ? error.name : "unknown",
+        estimate_id: context.estimate.id,
+        project_id: context.project.id,
+        scope: "estimate",
+      },
     });
     revalidateCollaborationRoutes(context.project.id);
     return {
@@ -1399,11 +1435,16 @@ export async function addProjectCollaborator({
     .first<RoleRow>();
   if (existingMember) return { ok: false, message: "This user is already a project member. Use the role-change command." };
 
-  await upsertProjectMemberInD1(context, userId, role);
-  await recordCollaborationAuditEvent({
+  const timestamp = nowIso();
+  await persistAccessMutationWithAudit({
     context,
-    eventType: "member_added",
-    metadata: { role, scope: "project", target_user_id: userId },
+    mutation: prepareProjectMemberUpsert(context, userId, role, timestamp),
+    audit: prepareCollaborationAuditEvent({
+      context,
+      eventType: "member_added",
+      metadata: { role, scope: "project", target_user_id: userId },
+      timestamp,
+    }),
   });
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: "Project member added." };
@@ -1436,12 +1477,17 @@ export async function addEstimateSheetCollaborator({
     .first<RoleRow>();
   if (existingMember) return { ok: false, message: "This user already has direct estimate access. Use the role-change command." };
 
-  await upsertEstimateSheetMemberInD1(context, userId, role);
-  await recordCollaborationAuditEvent({
+  const timestamp = nowIso();
+  await persistAccessMutationWithAudit({
     context,
-    estimateId: context.estimate.id,
-    eventType: "member_added",
-    metadata: { role, scope: "estimate", target_user_id: userId },
+    mutation: prepareEstimateSheetMemberUpsert(context, userId, role, timestamp),
+    audit: prepareCollaborationAuditEvent({
+      context,
+      estimateId: context.estimate.id,
+      eventType: "member_added",
+      metadata: { role, scope: "estimate", target_user_id: userId },
+      timestamp,
+    }),
   });
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: "Estimate member added." };
@@ -1484,16 +1530,20 @@ export async function updateProjectCollaboratorRole({
     if (!hasOtherManager) throw new Error("Every project needs at least one owner or admin.");
   }
 
-  await upsertProjectMemberInD1(context, userId, role);
-
-  await recordCollaborationAuditEvent({
+  const timestamp = nowIso();
+  await persistAccessMutationWithAudit({
     context,
-    eventType: "role_changed",
-    metadata: {
-      next_role: role,
-      previous_role: existingMember.role,
-      target_user_id: userId,
-    },
+    mutation: prepareProjectMemberUpsert(context, userId, role, timestamp),
+    audit: prepareCollaborationAuditEvent({
+      context,
+      eventType: "role_changed",
+      metadata: {
+        next_role: role,
+        previous_role: existingMember.role,
+        target_user_id: userId,
+      },
+      timestamp,
+    }),
   });
   if (existingMember.role !== role) {
     await revokeCollaborationRoomSubject({ topic: `project:${context.project.id}`, subject: userId });
@@ -1537,17 +1587,22 @@ export async function updateEstimateSheetCollaboratorRole({
     return { ok: false, message: "Every restricted estimate needs at least one owner or admin." };
   }
 
-  await upsertEstimateSheetMemberInD1(context, userId, role);
-  await recordCollaborationAuditEvent({
+  const timestamp = nowIso();
+  await persistAccessMutationWithAudit({
     context,
-    estimateId: context.estimate.id,
-    eventType: "role_changed",
-    metadata: {
-      next_role: role,
-      previous_role: existingMember.role,
-      scope: "estimate",
-      target_user_id: userId,
-    },
+    mutation: prepareEstimateSheetMemberUpsert(context, userId, role, timestamp),
+    audit: prepareCollaborationAuditEvent({
+      context,
+      estimateId: context.estimate.id,
+      eventType: "role_changed",
+      metadata: {
+        next_role: role,
+        previous_role: existingMember.role,
+        scope: "estimate",
+        target_user_id: userId,
+      },
+      timestamp,
+    }),
   });
   if (existingMember.role !== role) {
     await revokeCollaborationRoomSubject({ topic: `estimate:${context.estimate.id}`, subject: userId });
@@ -1566,10 +1621,15 @@ async function sendCollaboratorRemovalNotification({
   let profile: ProfileContactRow | null = null;
   try {
     profile = await readProfileContactById(context.db, userId);
-  } catch {
-    console.warn("[collaboration] removal notification skipped after profile lookup failure", {
-      projectId: context.project.id,
-      userId,
+  } catch (error) {
+    emitLogRecord({
+      level: "warn",
+      event: "collaboration_removal_notification_profile_lookup_failed",
+      message: "Collaboration removal notification profile lookup failed.",
+      context: {
+        error_name: error instanceof Error ? error.name : "unknown",
+        project_id: context.project.id,
+      },
     });
     return "failed";
   }
@@ -1632,6 +1692,7 @@ export async function removeProjectCollaborator({
 
   if (!context.db.batch) throw new Error("Project removal requires transactional D1 support.");
 
+  const timestamp = nowIso();
   const removalStatements = [
     context.db.prepare(
       `
@@ -1647,6 +1708,18 @@ export async function removeProjectCollaborator({
           AND user_id = ?
       `,
     ).bind(context.project.id, userId),
+    prepareCollaborationAuditEvent({
+      context,
+      eventType: "member_removed",
+      metadata: {
+        notification_requested: notify,
+        previous_role: existingMember.role,
+        removal_mode: removalMode,
+        removed_direct_estimate_grant_count: removalMode === "remove_all_direct_grants" ? directEstimateGrants.length : 0,
+        target_user_id: userId,
+      },
+      timestamp,
+    }),
   ];
   if (removalMode === "remove_all_direct_grants") {
     removalStatements.push(
@@ -1657,34 +1730,21 @@ export async function removeProjectCollaborator({
             AND user_id = ?
         `,
       ).bind(context.project.id, userId),
+      ...directEstimateGrants.map((grant) => prepareCollaborationAuditEvent({
+        context,
+        estimateId: grant.estimate_id,
+        eventType: "member_removed",
+        metadata: {
+          parent_scope: "project",
+          previous_role: grant.role,
+          scope: "estimate",
+          target_user_id: userId,
+        },
+        timestamp,
+      })),
     );
   }
   await context.db.batch(removalStatements);
-
-  await recordCollaborationAuditEvent({
-    context,
-    eventType: "member_removed",
-    metadata: {
-      notification_requested: notify,
-      previous_role: existingMember.role,
-      removal_mode: removalMode,
-      removed_direct_estimate_grant_count: removalMode === "remove_all_direct_grants" ? directEstimateGrants.length : 0,
-      target_user_id: userId,
-    },
-  });
-  if (removalMode === "remove_all_direct_grants") {
-    await Promise.all(directEstimateGrants.map((grant) => recordCollaborationAuditEvent({
-      context,
-      estimateId: grant.estimate_id,
-      eventType: "member_removed",
-      metadata: {
-        parent_scope: "project",
-        previous_role: grant.role,
-        scope: "estimate",
-        target_user_id: userId,
-      },
-    })));
-  }
 
   await Promise.all([
     revokeCollaborationRoomSubject({ topic: `project:${context.project.id}`, subject: userId }),
@@ -1753,26 +1813,27 @@ export async function removeEstimateSheetCollaborator({
   const existingMember = await assertEstimateSheetRemovalAllowed(context, userId);
   if (!existingMember) return { ok: true, message: "Estimate-specific access already removed." };
 
-  await context.db
-    .prepare(
+  const timestamp = nowIso();
+  await persistAccessMutationWithAudit({
+    context,
+    mutation: context.db.prepare(
       `
         DELETE FROM estimate_sheet_members
         WHERE estimate_id = ?
           AND user_id = ?
       `,
-    )
-    .bind(context.estimate.id, userId)
-    .run();
-
-  await recordCollaborationAuditEvent({
-    context,
-    estimateId: context.estimate.id,
-    eventType: "member_removed",
-    metadata: {
-      previous_role: existingMember.role,
-      scope: "estimate",
-      target_user_id: userId,
-    },
+    ).bind(context.estimate.id, userId),
+    audit: prepareCollaborationAuditEvent({
+      context,
+      estimateId: context.estimate.id,
+      eventType: "member_removed",
+      metadata: {
+        previous_role: existingMember.role,
+        scope: "estimate",
+        target_user_id: userId,
+      },
+      timestamp,
+    }),
   });
 
   await revokeCollaborationRoomSubject({ topic: `estimate:${context.estimate.id}`, subject: userId });
@@ -1810,10 +1871,6 @@ export async function previewEstimateSheetCollaboratorRemoval({
   };
 }
 
-async function upsertSheetOwnerBeforeRestricting(context: EstimateAccessContext) {
-  await upsertEstimateSheetMemberInD1(context, context.currentUserId, "owner");
-}
-
 export async function setEstimateSheetAccessMode({
   projectId,
   estimateId,
@@ -1824,11 +1881,10 @@ export async function setEstimateSheetAccessMode({
   inheritProjectAccess: boolean;
 }): Promise<CollaborationActionResult> {
   const context = await assertEstimateAccessManager(projectId, estimateId);
-  if (!inheritProjectAccess) await upsertSheetOwnerBeforeRestricting(context);
-
   const timestamp = nowIso();
-  await context.db
-    .prepare(
+  if (!context.db.batch) throw new Error("Estimate access changes require transactional D1 support.");
+  const statements = [
+    context.db.prepare(
       `
         INSERT INTO estimate_sheet_access_settings (
           estimate_id,
@@ -1844,16 +1900,27 @@ export async function setEstimateSheetAccessMode({
           updated_by = excluded.updated_by,
           updated_at = excluded.updated_at
       `,
-    )
-    .bind(
+    ).bind(
       context.estimate.id,
       context.project.id,
       inheritProjectAccess ? 1 : 0,
       context.currentUserId,
       timestamp,
       timestamp,
-    )
-    .run();
+    ),
+    prepareCollaborationAuditEvent({
+      context,
+      estimateId: context.estimate.id,
+      eventType: inheritProjectAccess ? "estimate_access_inherited" : "estimate_access_restricted",
+      metadata: { scope: "estimate" },
+      timestamp,
+    }),
+  ];
+  if (!inheritProjectAccess) {
+    const directManagerRole = collaborationRoleForRank(context.estimateActorRank) ?? "admin";
+    statements.unshift(prepareEstimateSheetMemberUpsert(context, context.currentUserId, directManagerRole, timestamp));
+  }
+  await context.db.batch(statements);
 
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: inheritProjectAccess ? "Estimate now inherits project access." : "Estimate access is now restricted." };
