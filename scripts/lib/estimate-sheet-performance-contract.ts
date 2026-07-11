@@ -13,7 +13,7 @@ import {
   fsyncSync,
   closeSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /**
  * Shared, dependency-free contracts for the estimate-sheet performance
@@ -292,9 +292,9 @@ export type RunManifestV1 = {
   evidence_class?: PerformanceReportV1["evidenceClass"];
   cleanupRequirement: "REQUIRED" | "NOT_APPLICABLE";
   run_root: string;
-  immutable_run_root?: string;
+  immutable_run_root: string;
   pointer_path: string;
-  logical_outputs?: Record<EstimateOutputRole, string>;
+  logical_outputs: Record<EstimateOutputRole, string>;
   created_at: string;
   status: "PREPARED" | "MEASURING" | "FINALIZED" | "CLEANUP_VERIFIED" | "INVALIDATED";
   sourceFingerprint: SourceFingerprint;
@@ -781,6 +781,12 @@ const LOCAL_BROWSER_MANIFEST_FIELDS = [
   "buildReceipt", "build_hash",
 ] as const;
 const CLEANUP_MANIFEST_FIELDS = ["cleanupReceipt", "cleanupReceiptSha256"] as const;
+const LOCAL_D1_RESOURCE_FIELDS = [
+  "d1Binding", "wranglerState", "localConfig", "localConfigSha256", "generatedSchema",
+  "generatedSchemaSha256", "migrations", "migrationsSha256", "migrationHead", "migrationCount",
+  "seedSql", "seedSqlSha256", "cleanupSql", "cleanupSqlSha256", "cleanupStateSha256ByRole",
+  "unitLease",
+] as const;
 const RUN_MANIFEST_FIELDS = new Set([
   "schema_version", "package_id", "unit_id", "run_id", "profile", "evidence_class", "cleanupRequirement",
   "run_root", "immutable_run_root", "pointer_path", "logical_outputs", "created_at", "status", "sourceFingerprint",
@@ -844,6 +850,36 @@ function validateLogicalOutputs(value: unknown, immutableRunRoot: unknown, error
   }
 }
 
+function validateImmutableRunRootBinding(value: Record<string, unknown>, errors: string[]): void {
+  if (typeof value.immutable_run_root !== "string" || !isAbsolute(value.immutable_run_root)) return;
+  if (typeof value.run_root !== "string" || !isAbsolute(value.run_root)
+    || typeof value.unit_id !== "string" || typeof value.run_id !== "string"
+    || !isPlainObject(value.applicationFingerprint)
+    || !isSha256(value.applicationFingerprint.content_sha256)) return;
+
+  const immutableRoot = resolve(value.immutable_run_root);
+  const runRoot = resolve(value.run_root);
+  const immutableKey = basename(immutableRoot);
+  const applicationShort = value.applicationFingerprint.content_sha256.slice(0, 12);
+  const expectedPrefix = `${value.run_id}-${applicationShort}-`;
+  const inputShort = immutableKey.slice(expectedPrefix.length);
+  if (!immutableKey.startsWith(expectedPrefix) || !/^[0-9a-f]{12}$/u.test(inputShort)) {
+    errors.push("immutable_run_root run key must bind run_id, application fingerprint, and prepare input digest");
+  }
+  if (basename(runRoot) !== immutableKey) errors.push("run_root and immutable_run_root must use the same run key");
+  if (basename(dirname(immutableRoot)) !== value.unit_id) errors.push("immutable_run_root unit segment must match unit_id");
+  if (basename(dirname(runRoot)) !== value.unit_id) errors.push("run_root unit segment must match unit_id");
+
+  const immutableSegments = immutableRoot.split(sep).filter(Boolean);
+  const chainTail = immutableSegments.slice(-5);
+  if (canonicalJson(chainTail.slice(0, 4)) !== canonicalJson(["evidence", "runtime", "runs", value.unit_id])) {
+    errors.push("immutable_run_root must be a chain-durable evidence/runtime/runs unit path");
+  }
+  if (immutableRoot === runRoot || isContained(runRoot, immutableRoot) || isContained(immutableRoot, runRoot)) {
+    errors.push("immutable_run_root must be separate from mutable run_root");
+  }
+}
+
 function validateNamespaceRoles(value: unknown, expectedRoles: readonly string[], errors: string[]): void {
   if (!isPlainObject(value)) {
     errors.push("namespaces must be an object");
@@ -892,7 +928,82 @@ function validateLocalFixtureFields(value: Record<string, unknown>, expectedRole
   if (!isSha256(value.auth_fixture_hash)) errors.push("auth_fixture_hash invalid");
   if (isPlainObject(value.fixture) && value.fixture.preStateSha256 !== value.fixture_hash) errors.push("fixture_hash differs from fixture pre-state");
   validateAbsoluteContainedPath(value.wranglerState, value.run_root, "wranglerState", errors);
-  if (!isPlainObject(value.resources) || Object.keys(value.resources).length === 0) errors.push("local manifest resources must be a non-empty object");
+  validateLocalResources(value, expectedRoles, errors);
+}
+
+function validateLocalResources(value: Record<string, unknown>, expectedRoles: readonly string[], errors: string[]): void {
+  if (!isPlainObject(value.resources)) {
+    errors.push("local manifest resources must be an object");
+    return;
+  }
+  const resources = value.resources;
+  const browserRun = value.evidence_class === "local-browser";
+  const expectedKeys = browserRun ? [...LOCAL_D1_RESOURCE_FIELDS, "portLease"] : [...LOCAL_D1_RESOURCE_FIELDS];
+  for (const key of Object.keys(resources)) {
+    if (!expectedKeys.includes(key as (typeof expectedKeys)[number])) errors.push(`unknown local resource field: ${key}`);
+  }
+  for (const key of expectedKeys) {
+    if (!hasOwn(resources, key)) errors.push(`local resources.${key} is required`);
+  }
+  if (resources.d1Binding !== "ARCH_DB") errors.push("local resources.d1Binding must be ARCH_DB");
+
+  const runRoot = value.run_root;
+  const exactRunPaths = {
+    wranglerState: "wrangler-state",
+    localConfig: "resources/d1/wrangler-local.json",
+    generatedSchema: "better-auth-schema.sql",
+    migrations: "resources/d1/migrations.json",
+    seedSql: "seed.sql",
+    cleanupSql: "resources/d1/cleanup.sql",
+  } as const;
+  for (const [key, relativePath] of Object.entries(exactRunPaths)) {
+    const resourcePath = resources[key];
+    validateAbsoluteContainedPath(resourcePath, runRoot, `resources.${key}`, errors);
+    if (typeof runRoot === "string" && isAbsolute(runRoot) && resourcePath !== resolve(runRoot, relativePath)) {
+      errors.push(`resources.${key} must be run_root/${relativePath}`);
+    }
+  }
+  if (resources.wranglerState !== value.wranglerState) errors.push("resources.wranglerState must match manifest wranglerState");
+
+  for (const key of [
+    "localConfigSha256", "generatedSchemaSha256", "migrationsSha256", "seedSqlSha256", "cleanupSqlSha256",
+  ] as const) {
+    if (!isSha256(resources[key])) errors.push(`resources.${key} invalid`);
+  }
+  if (typeof resources.migrationHead !== "string" || !/^\d{4}_[a-z0-9_]+\.sql$/u.test(resources.migrationHead)) {
+    errors.push("resources.migrationHead invalid");
+  }
+  if (!Number.isInteger(resources.migrationCount) || Number(resources.migrationCount) < 1) {
+    errors.push("resources.migrationCount invalid");
+  }
+
+  if (!isPlainObject(resources.cleanupStateSha256ByRole)) {
+    errors.push("resources.cleanupStateSha256ByRole must be an object");
+  } else {
+    const cleanupRoles = Object.keys(resources.cleanupStateSha256ByRole).sort();
+    if (canonicalJson(cleanupRoles) !== canonicalJson([...expectedRoles].sort())) {
+      errors.push(`resources.cleanupStateSha256ByRole roles must be exactly ${expectedRoles.join(",")}`);
+    }
+    for (const key of Object.keys(resources.cleanupStateSha256ByRole)) {
+      if (!expectedRoles.includes(key)) errors.push(`unknown resources.cleanupStateSha256ByRole field: ${key}`);
+      if (!isSha256(resources.cleanupStateSha256ByRole[key])) errors.push(`resources.cleanupStateSha256ByRole.${key} invalid`);
+    }
+  }
+
+  if (typeof resources.unitLease !== "string" || !isAbsolute(resources.unitLease)) {
+    errors.push("resources.unitLease must be absolute");
+  } else if (typeof runRoot === "string" && isAbsolute(runRoot)
+    && resources.unitLease !== resolve(runRoot, "../../..", "leases/units", String(value.unit_id))) {
+    errors.push("resources.unitLease does not match the unit lease");
+  }
+  if (browserRun) {
+    if (typeof resources.portLease !== "string" || !isAbsolute(resources.portLease)) {
+      errors.push("resources.portLease must be absolute");
+    } else if (Number.isInteger(value.port)
+      && resources.portLease !== resolve(String(runRoot), "../../..", "leases/ports", String(value.port))) {
+      errors.push("resources.portLease does not match the leased port");
+    }
+  }
 }
 
 function validateLifecyclePair(
@@ -909,7 +1020,7 @@ function validateLifecyclePair(
 }
 
 function validateLocalBrowserFields(value: Record<string, unknown>, expectedRoles: readonly string[], errors: string[]): void {
-  if (!Number.isInteger(value.port) || Number(value.port) < 1_024 || Number(value.port) > 65_535) errors.push("local-browser port invalid");
+  if (!Number.isInteger(value.port) || Number(value.port) < 3_101 || Number(value.port) > 3_199) errors.push("local-browser port invalid");
   if (value.leasedPort !== value.port) errors.push("local-browser leasedPort must equal port");
   for (const [pathKey, hashKey] of [["runtimeEnv", "runtimeEnvSha256"], ["storageState", "storageStateSha256"]] as const) {
     validateAbsoluteContainedPath(value[pathKey], value.run_root, pathKey, errors);
@@ -952,6 +1063,7 @@ export function validateRunManifest(value: unknown): string[] {
     errors.push("pointer_path must be run_root/run-pointer.json");
   }
   validateLogicalOutputs(value.logical_outputs, value.immutable_run_root, errors);
+  validateImmutableRunRootBinding(value, errors);
   if (!["REQUIRED", "NOT_APPLICABLE"].includes(String(value.cleanupRequirement))) errors.push("cleanupRequirement invalid");
   if (!["PREPARED", "MEASURING", "FINALIZED", "CLEANUP_VERIFIED", "INVALIDATED"].includes(String(value.status))) errors.push("status invalid");
   if (typeof value.created_at !== "string" || Number.isNaN(Date.parse(value.created_at))) errors.push("created_at invalid");
@@ -991,6 +1103,21 @@ export function validateRunManifest(value: unknown): string[] {
     if (Array.isArray(value.previewProcesses) && value.previewProcesses.length) errors.push("NOT_APPLICABLE manifest cannot launch preview processes");
     if (Array.isArray(value.mutationJournal) && value.mutationJournal.length) errors.push("NOT_APPLICABLE manifest cannot contain mutations");
     forbidManifestFields(value, [...LOCAL_FIXTURE_MANIFEST_FIELDS, ...LOCAL_BROWSER_MANIFEST_FIELDS, ...CLEANUP_MANIFEST_FIELDS], "NOT_APPLICABLE", errors);
+    if (value.unit_id === "UNIT-001") {
+      if (!["planning", "refreeze"].includes(String(value.admissionKind))) {
+        errors.push("UNIT-001 NOT_APPLICABLE manifest requires planning or refreeze admission lineage");
+      }
+    } else if (value.unit_id === "UNIT-004") {
+      if (value.admissionKind !== undefined) errors.push("UNIT-004 NOT_APPLICABLE manifest cannot contain admission lineage");
+    } else if (["UNIT-005", "UNIT-006", "UNIT-007", "UNIT-008", "UNIT-009"].includes(String(value.unit_id))) {
+      if (value.admissionKind !== "predecessor") {
+        errors.push("supersession NOT_APPLICABLE manifest requires predecessor admission lineage");
+      }
+      if (!fingerprintContentEqual(value.inputApplicationFingerprint, value.applicationFingerprint)
+        || !fingerprintContentEqual(value.inputProducerFingerprint, value.producerFingerprint)) {
+        errors.push("supersession NOT_APPLICABLE manifest requires unchanged input/output fingerprints");
+      }
+    }
   } else if (value.cleanupRequirement === "REQUIRED") {
     if (value.evidence_class === "local-browser") {
       const expectedRoles = LOCAL_BROWSER_NAMESPACE_ROLES[value.unit_id as keyof typeof LOCAL_BROWSER_NAMESPACE_ROLES];
@@ -1110,6 +1237,22 @@ export function ensureContainedRunPath(runRoot: string, path: string): string {
   const resolved = isAbsolute(path) ? resolve(path) : resolveContained(runRoot, path);
   if (!isContained(runRoot, resolved)) throw new Error(`run path escapes run root: ${path}`);
   return resolved;
+}
+
+export function resolveManifestLogicalOutput(
+  manifest: Pick<RunManifestV1, "immutable_run_root" | "logical_outputs">,
+  role: EstimateOutputRole,
+): string {
+  if (!(ESTIMATE_OUTPUT_ROLES as readonly string[]).includes(role)) {
+    throw new Error(`unknown estimate-sheet logical output role: ${role}`);
+  }
+  const errors: string[] = [];
+  if (typeof manifest.immutable_run_root !== "string" || !isAbsolute(manifest.immutable_run_root)) {
+    errors.push("immutable_run_root must be absolute");
+  }
+  validateLogicalOutputs(manifest.logical_outputs, manifest.immutable_run_root, errors);
+  if (errors.length) throw new Error(`invalid manifest logical output map:\n- ${errors.join("\n- ")}`);
+  return resolveContained(manifest.immutable_run_root, manifest.logical_outputs[role]);
 }
 
 export function assertNoSensitiveValue(value: unknown, label = "value"): void {

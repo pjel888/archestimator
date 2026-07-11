@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -38,17 +38,21 @@ const fingerprint = {
 };
 
 function validManifest(root: string, overrides: Record<string, unknown> = {}) {
+  const runId = "00000000-0000-4000-8000-000000000001";
+  const runKey = `${runId}-${digest.slice(0, 12)}-aaaaaaaaaaaa`;
+  const runRoot = join(root, "scratch", "runs", "UNIT-001", runKey);
+  const immutableRunRoot = join(root, "plan", "evidence", "runtime", "runs", "UNIT-001", runKey);
   return {
     schema_version: RUN_MANIFEST_SCHEMA,
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
     unit_id: "UNIT-001",
-    run_id: "00000000-0000-4000-8000-000000000001",
+    run_id: runId,
     profile: "artifact-only",
     evidence_class: "jsdom",
     cleanupRequirement: "NOT_APPLICABLE",
-    run_root: root,
-    immutable_run_root: join(root, "immutable"),
-    pointer_path: join(root, "run-pointer.json"),
+    run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
+    pointer_path: join(runRoot, "run-pointer.json"),
     logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
     created_at: "2026-07-11T00:00:00.000Z",
     status: "PREPARED",
@@ -62,6 +66,11 @@ function validManifest(root: string, overrides: Record<string, unknown> = {}) {
     },
     applicationFingerprint: fingerprint,
     producerFingerprint: fingerprint,
+    admissionKind: "planning",
+    admissionPath: "dependencies/admission.json",
+    admissionSha256: digest,
+    inputApplicationFingerprint: fingerprint,
+    inputProducerFingerprint: fingerprint,
     namespaces: {},
     mutationJournal: [],
     previewProcesses: [],
@@ -129,6 +138,9 @@ describe("estimate-sheet performance run lifecycle contract", () => {
     expect(validateRunManifest(validManifest(root, {
       admissionKind: "refreeze",
       admissionPath: "dependencies/admission.json",
+      admissionSha256: undefined,
+      inputApplicationFingerprint: undefined,
+      inputProducerFingerprint: undefined,
     }))).toEqual(expect.arrayContaining([
       "admission path/hash must be present together",
     ]));
@@ -286,7 +298,11 @@ describe("estimate-sheet performance run lifecycle contract", () => {
         latest_unit_id: "UNIT-001",
         latest_run_id: prepared.run.run_id,
       });
-      expect(prepared.run.immutable_run_root).toBe(join(defaultImmutableRunRoot(fixture.repoRoot), "UNIT-001", prepared.run.run_id));
+      expect(prepared.run.immutable_run_root).toBe(join(
+        defaultImmutableRunRoot(fixture.repoRoot),
+        "UNIT-001",
+        basename(prepared.run.run_root),
+      ));
       expect(prepared.run.logical_outputs).toEqual(ESTIMATE_LOGICAL_OUTPUTS);
       expect(JSON.parse(readFileSync(prepared.pointerPath, "utf8"))).toMatchObject({
         immutable_run_root: prepared.run.immutable_run_root,
@@ -341,6 +357,39 @@ describe("estimate-sheet performance run lifecycle contract", () => {
       expect(existsSync(fixture.journalPath)).toBe(false);
       expect(existsSync(fixture.unitLeasePath)).toBe(false);
       expect(existsSync(owner.run_root)).toBe(false);
+      expect(readFileSync(fixture.planPath)).toEqual(originalPlan);
+    } finally {
+      fixture.cleanup();
+    }
+  }, 30_000);
+
+  it("journals prepare before lease allocation and recovers without an unresolved lease", async () => {
+    const fixture = createPrepareRepositoryFixture();
+    const sourceFingerprint = validManifest(fixture.repoRoot).sourceFingerprint as SourceFingerprint;
+    const originalPlan = readFileSync(fixture.planPath);
+    try {
+      await expect(prepareEstimateSheetPerformanceRun({
+        repoRoot: fixture.repoRoot,
+        unit: "UNIT-001",
+        profile: "limit",
+        artifactOnly: true,
+        cleanupNotApplicable: true,
+        admissionPath: fixture.admissionPath,
+        sourceFingerprint,
+        faultInjector: (phase) => {
+          if (phase === "ALLOCATION_JOURNALED") throw new Error("fault-before-lease-allocation");
+        },
+      })).rejects.toThrow("fault-before-lease-allocation");
+
+      expect(existsSync(fixture.journalPath)).toBe(true);
+      expect(existsSync(fixture.unitLeasePath)).toBe(false);
+      expect(readFileSync(fixture.planPath)).toEqual(originalPlan);
+      expect(recoverEstimateSheetPrepareTransition({ repoRoot: fixture.repoRoot })).toMatchObject({
+        result: "ROLLED_BACK",
+        unit_id: "UNIT-001",
+      });
+      expect(existsSync(fixture.journalPath)).toBe(false);
+      expect(existsSync(fixture.unitLeasePath)).toBe(false);
       expect(readFileSync(fixture.planPath)).toEqual(originalPlan);
     } finally {
       fixture.cleanup();

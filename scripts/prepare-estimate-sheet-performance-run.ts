@@ -914,7 +914,7 @@ function recoverPrepareJournal(repoRoot: string): { result: "ROLLED_BACK" | "COM
     if (!committed && !preCommit) throw new Error("plan manifest matches neither side of the unfinished prepare transition");
 
     if (committed) {
-      if (!['FILES_WRITTEN', 'COMMITTED'].includes(journal.state)) {
+      if (!["FILES_WRITTEN", "COMMITTED"].includes(journal.state)) {
         throw new Error("prepare plan committed before durable outputs were recorded");
       }
       for (const entry of journal.durable_files) {
@@ -1098,14 +1098,15 @@ async function isFreeLoopbackPort(port: number): Promise<boolean> {
 }
 
 function claimUnitLease(
-  runRootBase: string,
+  leasePath: string,
+  stagingPath: string,
   unit: EstimateUnit,
   runId: string,
   runPath: string,
   resolvedPreviousRunId?: string,
-): string {
-  const leasePath = resolve(runRootBase, "..", "leases", "units", unit);
+): void {
   mkdirSync(dirname(leasePath), { recursive: true, mode: 0o700 });
+  if (existsSync(stagingPath)) throw new Error(`unresolved staged unit lease blocks prepare: ${stagingPath}`);
   if (existsSync(leasePath)) {
     let resolved = false;
     try {
@@ -1119,28 +1120,17 @@ function claimUnitLease(
     if (!resolved) throw new Error(`unresolved unit lease blocks prepare: ${leasePath}`);
     rmSync(leasePath, { recursive: true, force: true });
   }
-  try {
-    mkdirSync(leasePath, { mode: 0o700 });
-  } catch (error) {
-    if (isPlainObject(error) && error.code === "EEXIST") {
-      throw new Error(`unresolved unit lease blocks prepare: ${leasePath}`);
-    }
-    throw error;
-  }
-  try {
-    writeJsonNoOverwrite(resolve(leasePath, "owner.json"), {
-      schema_version: "estimate-sheet-unit-lease.v1",
-      unit_id: unit,
-      run_id: runId,
-      run_root: runPath,
-      owner_pid: process.pid,
-      acquired_at: nowIso(),
-    }, 0o600);
-  } catch (error) {
-    rmSync(leasePath, { recursive: true, force: true });
-    throw error;
-  }
-  return leasePath;
+  mkdirSync(stagingPath, { mode: 0o700 });
+  writeJsonNoOverwrite(resolve(stagingPath, "owner.json"), {
+    schema_version: "estimate-sheet-unit-lease.v1",
+    unit_id: unit,
+    run_id: runId,
+    run_root: runPath,
+    owner_pid: process.pid,
+    acquired_at: nowIso(),
+  }, 0o600);
+  if (existsSync(leasePath)) throw new Error(`unresolved unit lease blocks prepare: ${leasePath}`);
+  renameSync(stagingPath, leasePath);
 }
 
 async function claimPortLease(runRootBase: string, unit: EstimateUnit, runId: string, runPath: string): Promise<{ port: number; path: string }> {
@@ -1732,12 +1722,13 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       portPolicy: contract.portPolicy,
       namespaceRoles: contract.namespaceRoles,
     })).slice(0, 12);
+    const runKey = `${runId}-${applicationShort}-${inputShort}`;
     const unitRoot = resolve(runRootBase, input.unit);
-    const runPath = resolve(unitRoot, `${runId}-${applicationShort}-${inputShort}`);
+    const runPath = resolve(unitRoot, runKey);
     const immutableRunRootBase = input.planRoot
       ? resolve(planRoot, "evidence/runtime/runs")
       : defaultImmutableRunRoot(repoRoot);
-    const immutableRunRoot = resolve(immutableRunRootBase, input.unit, runId);
+    const immutableRunRoot = resolve(immutableRunRootBase, input.unit, runKey);
     const pointerPath = resolve(runPath, "run-pointer.json");
     const runManifestPath = resolve(runPath, "run-manifest.json");
     const immutableAdmissionPath = resolve(runPath, "dependencies/admission.json");
@@ -1747,8 +1738,33 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       && typeof plan.runtime_evidence.latest_run_id === "string"
       ? plan.runtime_evidence.latest_run_id
       : undefined;
-    const unitLeasePath = claimUnitLease(runRootBase, input.unit, runId, runPath, resolvedPreviousRunId);
+    const transitioned = deriveEstimateSheetPrepareTransition(plan, { unitId: input.unit, runId, updatedAt: createdAt });
+    const oldPlanBytes = readFileSync(planPath);
+    if (sha256Hex(oldPlanBytes) !== planFileSha256) throw new Error("plan manifest changed before prepare journal publication");
+    const newPlanBytes = Buffer.from(`${JSON.stringify(transitioned, null, 2)}\n`, "utf8");
+    const unitLeasePath = resolve(runRootBase, "..", "leases", "units", input.unit);
+    const unitLeaseStagingPath = resolve(dirname(unitLeasePath), `.${input.unit}-${runId}.staging`);
+    const initialJournal: PrepareTransitionJournal = {
+      schema_version: "estimate-sheet-prepare-transition-journal.v1",
+      state: "ALLOCATED",
+      unit_id: input.unit,
+      run_id: runId,
+      plan_path: pathRelativeToRepo(repoRoot, planPath, "prepare plan path"),
+      run_root: pathRelativeToRepo(repoRoot, runPath, "prepare run root"),
+      immutable_run_root: pathRelativeToRepo(repoRoot, immutableRunRoot, "prepare immutable run root"),
+      unit_lease_path: pathRelativeToRepo(repoRoot, unitLeasePath, "prepare unit lease"),
+      unit_lease_staging_path: pathRelativeToRepo(repoRoot, unitLeaseStagingPath, "prepare staged unit lease"),
+      old_plan_sha256: planFileSha256,
+      old_plan_bytes_base64: oldPlanBytes.toString("base64"),
+      new_plan_sha256: sha256Hex(newPlanBytes),
+      new_plan_bytes_base64: newPlanBytes.toString("base64"),
+      durable_files: [],
+      created_at: createdAt,
+    };
+    writeJsonNoOverwrite(canonicalTransitionJournalPath(repoRoot), initialJournal, 0o600);
+    input.faultInjector?.("ALLOCATION_JOURNALED");
     try {
+      claimUnitLease(unitLeasePath, unitLeaseStagingPath, input.unit, runId, runPath, resolvedPreviousRunId);
       const preparedResources = await prepareResources({
         repoRoot,
         runRootBase,
@@ -1846,30 +1862,77 @@ export async function prepareEstimateSheetPerformanceRun(input: {
         created_at: createdAt,
       };
 
-      const transitioned = deriveEstimateSheetPrepareTransition(plan, { unitId: input.unit, runId, updatedAt: createdAt });
-      const oldPlanBytes = readFileSync(planPath);
       const runBytes = Buffer.from(`${JSON.stringify(run, null, 2)}\n`, "utf8");
       const pointerBytes = Buffer.from(`${JSON.stringify(pointer, null, 2)}\n`, "utf8");
       const recoveryBytes = Buffer.from(`${JSON.stringify(recoveryDescriptor, null, 2)}\n`, "utf8");
-      commitEstimateSheetPlanOnlyTransition({
-        repoRoot,
-        planPath,
-        expectedPlanSha256: planFileSha256,
-        previousPlanBytes: oldPlanBytes,
-        next: transitioned,
-        journalRoot: runPath,
+      const sequence = transitioned.runtime_evidence.transition_sequence;
+      const transitionRecord = {
+        schema_version: "estimate-sheet-plan-transition-journal.v1",
         transition: "PREPARE",
-        unitId: input.unit,
-        runId,
-        durableFiles: [
-          ...(admission ? [{ path: immutableAdmissionPath, bytes: admission.bytes }] : []),
-          { path: runManifestPath, bytes: runBytes },
-          { path: pointerPath, bytes: pointerBytes },
-          { path: prepareRecoveryPath, bytes: recoveryBytes },
-          { path: immutableRunManifestPath, bytes: runBytes },
-        ],
-        faultInjector: input.faultInjector,
-      });
+        unit_id: input.unit,
+        run_id: runId,
+        sequence,
+        old_manifest_sha256: planFileSha256,
+        new_manifest_sha256: sha256Hex(newPlanBytes),
+        old_manifest_bytes_base64: oldPlanBytes.toString("base64"),
+        new_manifest_bytes_base64: newPlanBytes.toString("base64"),
+        created_at: createdAt,
+      };
+      const transitionBytes = Buffer.from(`${canonicalJson(transitionRecord)}\n`, "utf8");
+      const transitionPath = resolve(runPath, "transitions", `${String(sequence).padStart(4, "0")}-prepare.json`);
+      const durableSources = [
+        ...(admission ? [{ path: immutableAdmissionPath, bytes: admission.bytes }] : []),
+        { path: runManifestPath, bytes: runBytes },
+        { path: pointerPath, bytes: pointerBytes },
+        { path: prepareRecoveryPath, bytes: recoveryBytes },
+        { path: immutableRunManifestPath, bytes: runBytes },
+        { path: transitionPath, bytes: transitionBytes },
+      ];
+      if (new Set(durableSources.map((source) => source.path)).size !== durableSources.length) {
+        throw new Error("prepare durable paths must be unique");
+      }
+      for (const source of durableSources) {
+        pathRelativeToRepo(repoRoot, source.path, "prepare durable file");
+        if (existsSync(source.path)) throw new Error(`immutable prepare output already exists: ${source.path}`);
+      }
+
+      let currentJournal: PrepareTransitionJournal = {
+        ...initialJournal,
+        state: "FILES_DECLARED",
+        durable_files: durableSources.map((source) => ({
+          path: pathRelativeToRepo(repoRoot, source.path, "prepare durable file"),
+          sha256: sha256Hex(source.bytes),
+        })),
+      };
+      replacePrepareTransitionJournal(repoRoot, initialJournal, currentJournal);
+      input.faultInjector?.("JOURNAL_PREPARED");
+
+      for (const source of durableSources) {
+        writeNoOverwrite(source.path, source.bytes, 0o600);
+        if (sha256File(source.path) !== sha256Hex(source.bytes)) {
+          throw new Error(`prepare durable file readback mismatch: ${source.path}`);
+        }
+      }
+      input.faultInjector?.("IMMUTABLE_WRITTEN");
+
+      const filesWrittenJournal: PrepareTransitionJournal = { ...currentJournal, state: "FILES_WRITTEN" };
+      replacePrepareTransitionJournal(repoRoot, currentJournal, filesWrittenJournal);
+      currentJournal = filesWrittenJournal;
+      input.faultInjector?.("PROJECTION_WRITTEN");
+
+      replaceFileAtomically(planPath, newPlanBytes, planFileSha256, 0o644);
+      const committedJournal: PrepareTransitionJournal = { ...currentJournal, state: "COMMITTED" };
+      replacePrepareTransitionJournal(repoRoot, currentJournal, committedJournal);
+      currentJournal = committedJournal;
+      input.faultInjector?.("MANIFEST_COMMITTED");
+
+      if (sha256File(planPath) !== currentJournal.new_plan_sha256) throw new Error("prepare plan readback mismatch");
+      for (const source of durableSources) {
+        if (sha256File(source.path) !== sha256Hex(source.bytes)) {
+          throw new Error(`prepare durable file readback mismatch: ${source.path}`);
+        }
+      }
+      removeFileDurably(canonicalTransitionJournalPath(repoRoot));
       return { run, runManifestPath, pointerPath };
     } catch (error) {
       if (!existsSync(canonicalTransitionJournalPath(repoRoot))) {

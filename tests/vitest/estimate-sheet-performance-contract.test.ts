@@ -6,6 +6,7 @@ import {
   FIXTURE_PROFILES,
   RUN_MANIFEST_SCHEMA,
   canonicalJson,
+  resolveManifestLogicalOutput,
   sha256Hex,
   validatePerformanceReport,
   validateRunManifest,
@@ -13,6 +14,7 @@ import {
 import { createTestReceipt } from "../../scripts/lib/estimate-sheet-performance-test-receipt";
 
 const digest = sha256Hex("estimate-sheet-contract-fixture");
+const inputShort = "0123456789ab";
 const fingerprint = {
   contract_version: "estimate-sheet-application-fingerprint.v1",
   path_count: 1,
@@ -56,18 +58,58 @@ function manifestFingerprint() {
   };
 }
 
+function runPaths(unitId: string, runId: string) {
+  const runKey = `${runId}-${digest.slice(0, 12)}-${inputShort}`;
+  const repoRoot = "/tmp/estimate-sheet-contract-repo";
+  return {
+    runRoot: `${repoRoot}/.ai/99_scratch/estimate-sheet-performance/runs/${unitId}/${runKey}`,
+    immutableRunRoot: `${repoRoot}/.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs/${unitId}/${runKey}`,
+    leaseRoot: `${repoRoot}/.ai/99_scratch/estimate-sheet-performance/leases`,
+  };
+}
+
+function localResources(
+  runRoot: string,
+  unitId: string,
+  roles: readonly string[],
+  port?: number,
+) {
+  return {
+    d1Binding: "ARCH_DB",
+    wranglerState: `${runRoot}/wrangler-state`,
+    localConfig: `${runRoot}/resources/d1/wrangler-local.json`,
+    localConfigSha256: digest,
+    generatedSchema: `${runRoot}/better-auth-schema.sql`,
+    generatedSchemaSha256: digest,
+    migrations: `${runRoot}/resources/d1/migrations.json`,
+    migrationsSha256: digest,
+    migrationHead: "0040_operational_incidents.sql",
+    migrationCount: 40,
+    seedSql: `${runRoot}/seed.sql`,
+    seedSqlSha256: digest,
+    cleanupSql: `${runRoot}/resources/d1/cleanup.sql`,
+    cleanupSqlSha256: digest,
+    cleanupStateSha256ByRole: Object.fromEntries(roles.map((role) => [role, digest])),
+    unitLease: `${runPaths(unitId, "unused").leaseRoot}/units/${unitId}`,
+    ...(port === undefined ? {} : {
+      portLease: `${runPaths(unitId, "unused").leaseRoot}/ports/${port}`,
+    }),
+  };
+}
+
 function validArtifactManifest(overrides: Record<string, unknown> = {}) {
-  const runRoot = "/tmp/estimate-sheet-runs/UNIT-001/run-contract-001";
+  const runId = "00000000-0000-4000-8000-000000000001";
+  const { runRoot, immutableRunRoot } = runPaths("UNIT-001", runId);
   return {
     schema_version: RUN_MANIFEST_SCHEMA,
     package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
     unit_id: "UNIT-001",
-    run_id: "run-contract-001",
+    run_id: runId,
     profile: "artifact-only",
     evidence_class: "jsdom",
     cleanupRequirement: "NOT_APPLICABLE",
     run_root: runRoot,
-    immutable_run_root: "/tmp/estimate-sheet-evidence/UNIT-001/run-contract-001",
+    immutable_run_root: immutableRunRoot,
     pointer_path: `${runRoot}/run-pointer.json`,
     logical_outputs: { ...ESTIMATE_LOGICAL_OUTPUTS },
     created_at: "2026-07-11T00:00:00.000Z",
@@ -75,6 +117,11 @@ function validArtifactManifest(overrides: Record<string, unknown> = {}) {
     sourceFingerprint: manifestFingerprint(),
     applicationFingerprint: fingerprint,
     producerFingerprint: fingerprint,
+    admissionKind: "planning",
+    admissionPath: "dependencies/admission.json",
+    admissionSha256: digest,
+    inputApplicationFingerprint: fingerprint,
+    inputProducerFingerprint: fingerprint,
     namespaces: {},
     mutationJournal: [],
     previewProcesses: [],
@@ -90,25 +137,26 @@ function namespace(role: string) {
 }
 
 function validLocalBrowserManifest(overrides: Record<string, unknown> = {}) {
-  const runRoot = "/tmp/estimate-sheet-runs/UNIT-005/run-contract-005";
+  const runId = "00000000-0000-4000-8000-000000000005";
+  const { runRoot, immutableRunRoot } = runPaths("UNIT-005", runId);
   const namespaces = { mode: namespace("mode"), browser: namespace("browser"), d1: namespace("d1") };
   return validArtifactManifest({
     unit_id: "UNIT-005",
-    run_id: "run-contract-005",
+    run_id: runId,
     profile: "limit",
     evidence_class: "local-browser",
     cleanupRequirement: "REQUIRED",
     run_root: runRoot,
-    immutable_run_root: "/tmp/estimate-sheet-evidence/UNIT-005/run-contract-005",
+    immutable_run_root: immutableRunRoot,
     pointer_path: `${runRoot}/run-pointer.json`,
     fixture: { profile: "limit", namespaceIdSha256: namespaces.mode.idSha256, preStateSha256: digest },
     namespaces,
     fixture_hash: digest,
     auth_fixture_hash: digest,
     wranglerState: `${runRoot}/wrangler-state`,
-    resources: { unitLease: "/tmp/estimate-sheet-leases/UNIT-005" },
-    leasedPort: 31_005,
-    port: 31_005,
+    resources: localResources(runRoot, "UNIT-005", Object.keys(namespaces), 3_105),
+    leasedPort: 3_105,
+    port: 3_105,
     runtimeEnv: `${runRoot}/runtime.env`,
     runtimeEnvSha256: digest,
     storageState: `${runRoot}/storage-state.json`,
@@ -127,47 +175,88 @@ function validLocalBrowserManifest(overrides: Record<string, unknown> = {}) {
     build_hash: digest,
     cleanupReceipt: `${runRoot}/cleanup-receipt.json`,
     cleanupReceiptSha256: digest,
+    admissionKind: "predecessor",
     ...overrides,
   });
 }
 
 function validLocalD1Manifest(overrides: Record<string, unknown> = {}) {
-  const runRoot = "/tmp/estimate-sheet-runs/UNIT-003/run-contract-003";
+  const runId = "00000000-0000-4000-8000-000000000003";
+  const { runRoot, immutableRunRoot } = runPaths("UNIT-003", runId);
   const d1 = namespace("d1");
   return validArtifactManifest({
     unit_id: "UNIT-003",
-    run_id: "run-contract-003",
+    run_id: runId,
     profile: "limit",
     evidence_class: "local-d1",
     cleanupRequirement: "REQUIRED",
     run_root: runRoot,
-    immutable_run_root: "/tmp/estimate-sheet-evidence/UNIT-003/run-contract-003",
+    immutable_run_root: immutableRunRoot,
     pointer_path: `${runRoot}/run-pointer.json`,
     fixture: { profile: "limit", namespaceIdSha256: d1.idSha256, preStateSha256: digest },
     namespaces: { d1 },
     fixture_hash: digest,
     auth_fixture_hash: digest,
     wranglerState: `${runRoot}/wrangler-state`,
-    resources: { unitLease: "/tmp/estimate-sheet-leases/UNIT-003" },
+    resources: localResources(runRoot, "UNIT-003", ["d1"]),
     cleanupReceipt: `${runRoot}/cleanup-receipt.json`,
     cleanupReceiptSha256: digest,
+    admissionKind: undefined,
+    admissionPath: undefined,
+    admissionSha256: undefined,
+    inputApplicationFingerprint: undefined,
+    inputProducerFingerprint: undefined,
     ...overrides,
   });
 }
 
 function validHostedManifest(overrides: Record<string, unknown> = {}) {
-  const runRoot = "/tmp/estimate-sheet-runs/UNIT-011/run-contract-011";
+  const runId = "00000000-0000-4000-8000-000000000011";
+  const { runRoot, immutableRunRoot } = runPaths("UNIT-011", runId);
   return validArtifactManifest({
     unit_id: "UNIT-011",
-    run_id: "run-contract-011",
+    run_id: runId,
     profile: "artifact-only",
     evidence_class: "hosted-d1",
     cleanupRequirement: "REQUIRED",
     run_root: runRoot,
-    immutable_run_root: "/tmp/estimate-sheet-evidence/UNIT-011/run-contract-011",
+    immutable_run_root: immutableRunRoot,
     pointer_path: `${runRoot}/run-pointer.json`,
     cleanupReceipt: `${runRoot}/cleanup-receipt.json`,
     cleanupReceiptSha256: digest,
+    admissionKind: "predecessor",
+    ...overrides,
+  });
+}
+
+function validUnit004Manifest(overrides: Record<string, unknown> = {}) {
+  const runId = "00000000-0000-4000-8000-000000000004";
+  const { runRoot, immutableRunRoot } = runPaths("UNIT-004", runId);
+  return validArtifactManifest({
+    unit_id: "UNIT-004",
+    run_id: runId,
+    run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
+    pointer_path: `${runRoot}/run-pointer.json`,
+    admissionKind: undefined,
+    admissionPath: undefined,
+    admissionSha256: undefined,
+    inputApplicationFingerprint: undefined,
+    inputProducerFingerprint: undefined,
+    ...overrides,
+  });
+}
+
+function validSupersessionManifest(overrides: Record<string, unknown> = {}) {
+  const runId = "00000000-0000-4000-8000-000000000006";
+  const { runRoot, immutableRunRoot } = runPaths("UNIT-006", runId);
+  return validArtifactManifest({
+    unit_id: "UNIT-006",
+    run_id: runId,
+    run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
+    pointer_path: `${runRoot}/run-pointer.json`,
+    admissionKind: "predecessor",
     ...overrides,
   });
 }
@@ -309,6 +398,40 @@ describe("estimate-sheet performance report contract", () => {
 describe("estimate-sheet run manifest contract", () => {
   it("accepts a closed artifact-only NOT_APPLICABLE manifest", () => {
     expect(validateRunManifest(validArtifactManifest())).toEqual([]);
+    expect(validateRunManifest(validUnit004Manifest())).toEqual([]);
+    expect(validateRunManifest(validSupersessionManifest())).toEqual([]);
+  });
+
+  it("requires unit-specific admission lineage for NOT_APPLICABLE runs", () => {
+    const missingSupersession = validateRunManifest(validSupersessionManifest({
+      admissionKind: undefined,
+      admissionPath: undefined,
+      admissionSha256: undefined,
+      inputApplicationFingerprint: undefined,
+      inputProducerFingerprint: undefined,
+    }));
+    expect(missingSupersession).toEqual(expect.arrayContaining([
+      "supersession NOT_APPLICABLE manifest requires predecessor admission lineage",
+      "supersession NOT_APPLICABLE manifest requires unchanged input/output fingerprints",
+    ]));
+
+    const changedSupersession = validateRunManifest(validSupersessionManifest({
+      inputProducerFingerprint: { ...fingerprint, content_sha256: sha256Hex("changed-producer") },
+    }));
+    expect(changedSupersession).toContain(
+      "supersession NOT_APPLICABLE manifest requires unchanged input/output fingerprints",
+    );
+
+    expect(validateRunManifest(validArtifactManifest({ admissionKind: "predecessor" }))).toContain(
+      "UNIT-001 NOT_APPLICABLE manifest requires planning or refreeze admission lineage",
+    );
+    expect(validateRunManifest(validUnit004Manifest({
+      admissionKind: "predecessor",
+      admissionPath: "dependencies/admission.json",
+      admissionSha256: digest,
+      inputApplicationFingerprint: fingerprint,
+      inputProducerFingerprint: fingerprint,
+    }))).toContain("UNIT-004 NOT_APPLICABLE manifest cannot contain admission lineage");
   });
 
   it("rejects NOT_APPLICABLE profile, unit, side-effect, and unknown-field drift", () => {
@@ -355,8 +478,90 @@ describe("estimate-sheet run manifest contract", () => {
     ]));
   });
 
+  it("binds mutable and immutable roots to one unit/run/application/input key", () => {
+    const manifest = validArtifactManifest() as Record<string, unknown>;
+    const immutableRoot = String(manifest.immutable_run_root);
+    const wrongUnit = validateRunManifest({
+      ...manifest,
+      immutable_run_root: immutableRoot.replace("/UNIT-001/", "/UNIT-004/"),
+    });
+    expect(wrongUnit).toContain("immutable_run_root unit segment must match unit_id");
+
+    const wrongApplication = validateRunManifest({
+      ...manifest,
+      immutable_run_root: immutableRoot.replace(digest.slice(0, 12), "aaaaaaaaaaaa"),
+    });
+    expect(wrongApplication).toContain(
+      "immutable_run_root run key must bind run_id, application fingerprint, and prepare input digest",
+    );
+
+    const scratchImmutable = validateRunManifest({
+      ...manifest,
+      immutable_run_root: String(manifest.run_root),
+    });
+    expect(scratchImmutable).toEqual(expect.arrayContaining([
+      "immutable_run_root must be a chain-durable evidence/runtime/runs unit path",
+      "immutable_run_root must be separate from mutable run_root",
+    ]));
+  });
+
+  it("resolves canonical logical outputs from the immutable manifest root", () => {
+    const manifest = validArtifactManifest();
+    expect(resolveManifestLogicalOutput(manifest, "jsdom")).toBe(
+      `${manifest.immutable_run_root}/${ESTIMATE_LOGICAL_OUTPUTS.jsdom}`,
+    );
+    expect(() => resolveManifestLogicalOutput(
+      { ...manifest, logical_outputs: { ...manifest.logical_outputs, jsdom: "../mutable.json" } },
+      "jsdom",
+    )).toThrow(/logical_outputs\.jsdom/u);
+    expect(() => resolveManifestLogicalOutput(manifest, "unknown" as never)).toThrow(/unknown.*role/iu);
+  });
+
   it("accepts exact local-browser namespaces plus build and cleanup lifecycle bindings", () => {
     expect(validateRunManifest(validLocalBrowserManifest())).toEqual([]);
+  });
+
+  it("rejects missing, unknown, cross-role, or malformed local resource fields", () => {
+    const browser = validLocalBrowserManifest();
+    const browserResources = structuredClone(browser.resources) as Record<string, unknown>;
+    delete browserResources.generatedSchemaSha256;
+    browserResources.unknownNested = true;
+    browserResources.cleanupStateSha256ByRole = {
+      ...(browserResources.cleanupStateSha256ByRole as Record<string, string>),
+      undeclared: digest,
+    };
+    browserResources.portLease = "/tmp/wrong-port-lease";
+    const browserErrors = validateRunManifest({ ...browser, resources: browserResources });
+    expect(browserErrors).toEqual(expect.arrayContaining([
+      "local resources.generatedSchemaSha256 is required",
+      "resources.generatedSchemaSha256 invalid",
+      "unknown local resource field: unknownNested",
+      "resources.cleanupStateSha256ByRole roles must be exactly mode,browser,d1",
+      "unknown resources.cleanupStateSha256ByRole field: undeclared",
+      "resources.portLease does not match the leased port",
+    ]));
+
+    const d1 = validLocalD1Manifest();
+    const d1Errors = validateRunManifest({
+      ...d1,
+      resources: {
+        ...d1.resources,
+        d1Binding: "OTHER_DB",
+        generatedSchema: `${d1.run_root}/resources/d1/better-auth-schema.sql`,
+        seedSql: `${d1.run_root}/resources/d1/seed.sql`,
+        migrationHead: "latest",
+        migrationCount: 0,
+        portLease: `${runPaths("UNIT-003", "unused").leaseRoot}/ports/3103`,
+      },
+    });
+    expect(d1Errors).toEqual(expect.arrayContaining([
+      "unknown local resource field: portLease",
+      "local resources.d1Binding must be ARCH_DB",
+      "resources.generatedSchema must be run_root/better-auth-schema.sql",
+      "resources.seedSql must be run_root/seed.sql",
+      "resources.migrationHead invalid",
+      "resources.migrationCount invalid",
+    ]));
   });
 
   it("rejects local-browser unit/profile namespace drift and incomplete lifecycle pairs", () => {
