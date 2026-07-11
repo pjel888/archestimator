@@ -32,7 +32,20 @@ import {
 import type { EditableRowValue } from "./rows/editable-row-model";
 
 const ACTIVITY_HISTORY_RELOAD_DEBOUNCE_MS = 200;
+export const MAX_ACCUMULATED_SHEET_ACTIVITY_EVENTS = 200;
 const EMPTY_ACTIVITY_SCOPE_ITEMS: ActivityScopeTreeItem[] = [];
+
+export function appendBoundedActivityHistory(
+  currentEvents: EstimateSheetVersionControlData["events"],
+  pageEvents: EstimateSheetVersionControlData["events"],
+  nextCursor: EstimateSheetVersionControlData["nextCursor"],
+) {
+  const events = [...currentEvents, ...pageEvents].slice(0, MAX_ACCUMULATED_SHEET_ACTIVITY_EVENTS);
+  return {
+    events,
+    nextCursor: events.length >= MAX_ACCUMULATED_SHEET_ACTIVITY_EVENTS ? null : nextCursor,
+  };
+}
 
 type UseEstimateHistoryPanelInput = {
   projectId?: string;
@@ -261,25 +274,28 @@ export function useEstimateHistoryPanel({
         setHistoryData((current) => {
           if (!current) return data;
           if (isRowHistory) {
+            const next = appendBoundedActivityHistory(current.rowEvents, data.rowEvents, data.rowNextCursor);
             return {
               ...current,
-              rowEvents: [...current.rowEvents, ...data.rowEvents],
-              rowNextCursor: data.rowNextCursor,
+              rowEvents: next.events,
+              rowNextCursor: next.nextCursor,
             };
           }
 
           if (isNodeHistory) {
+            const next = appendBoundedActivityHistory(current.nodeEvents ?? [], data.nodeEvents, data.nodeNextCursor);
             return {
               ...current,
-              nodeEvents: [...(current.nodeEvents ?? []), ...data.nodeEvents],
-              nodeNextCursor: data.nodeNextCursor,
+              nodeEvents: next.events,
+              nodeNextCursor: next.nextCursor,
             };
           }
 
+          const next = appendBoundedActivityHistory(current.events, data.events, data.nextCursor);
           return {
             ...current,
-            events: [...current.events, ...data.events],
-            nextCursor: data.nextCursor,
+            events: next.events,
+            nextCursor: next.nextCursor,
           };
         });
       })

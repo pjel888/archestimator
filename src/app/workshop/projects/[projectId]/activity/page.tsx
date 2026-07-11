@@ -110,7 +110,7 @@ async function ProjectActivityContent({ params, searchParams }: ProjectActivityP
                   recipientId: pageState.client,
                 },
                 limit: 20,
-                includeCounts: true,
+                includeCounts: false,
               }),
             ),
             traced("project-activity.estimates", () => listProjectEstimatesForDropdown(project.id)),

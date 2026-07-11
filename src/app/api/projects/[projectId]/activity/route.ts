@@ -64,7 +64,7 @@ export async function GET(request: NextRequest, context: ProjectActivityRouteCon
     },
     cursor,
     limit,
-    includeCounts: true,
+    includeCounts: request.nextUrl.searchParams.get("includeCounts") === "true",
   });
 
   return jsonResponse(page);

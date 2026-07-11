@@ -158,7 +158,7 @@ describe("project activity repository behavior", () => {
           selected_estimate_ids: [],
         }),
       ],
-    });
+    }, { project_publications: 1 });
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const page = await readProjectActivityFeed({
@@ -213,8 +213,8 @@ describe("project activity repository behavior", () => {
     const sourceRead = eventRecords.find((record) => record.sql.includes("SELECT id, created_at") && record.sql.includes("event_type IN"));
     const filteredCount = eventRecords.find((record) => record.sql.includes("COUNT(*) AS count") && record.sql.includes("event_type IN"));
 
-    expect(sourceRead?.values).toEqual(["pub-project", "open", "password_attempt", 21]);
-    expect(filteredCount?.values).toEqual(["pub-project", "open", "password_attempt"]);
+    expect(sourceRead?.values).toEqual([PROJECT_ID, WORKSPACE_ID, "open", "password_attempt", 21]);
+    expect(filteredCount?.values).toEqual([PROJECT_ID, WORKSPACE_ID, "open", "password_attempt"]);
   });
 
   it("resolves Better Auth actor names without requiring legacy profile rows or UUID ids", async () => {

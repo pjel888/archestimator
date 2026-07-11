@@ -283,11 +283,12 @@ export const listProjectActivityPage = cache(async function listProjectActivityP
        LEFT JOIN estimates estimate
          ON estimate.id = event.estimate_id
         AND estimate.project_id = event.project_id
-       WHERE event.project_id = ?
+       WHERE event.workspace_id = ?
+         AND event.project_id = ?
          AND event.event_type NOT IN (?, ?)${cursorClause.sql}
        ORDER BY event.created_at DESC, event.id DESC
        LIMIT ?`,
-      [project.id, ...DORMANT_NAMED_VERSION_EVENT_TYPES, ...cursorClause.values, safeLimit + 1],
+      [project.workspace_id, project.id, ...DORMANT_NAMED_VERSION_EVENT_TYPES, ...cursorClause.values, safeLimit + 1],
     );
   } catch (error) {
     if (isProjectActivitySchemaUnavailable(error)) {

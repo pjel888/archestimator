@@ -5,6 +5,9 @@ export const ESTIMATE_EVENT_ACTIONS: Record<string, ActivityAction> = {
   row_added: "added",
   row_blank_added: "added",
   row_deleted: "removed",
+  rows_bulk_deleted: "removed",
+  rows_moved: "changed",
+  row_component_moved: "changed",
   row_replaced: "replaced",
   row_unlinked: "changed",
   template_inserted: "inserted_template",
@@ -16,6 +19,7 @@ export const ESTIMATE_EVENT_ACTIONS: Record<string, ActivityAction> = {
   node_created: "created",
   node_renamed: "renamed",
   node_deleted_with_children: "deleted",
+  nodes_restored: "created",
   nodes_reordered: "reorganized",
   tree_reordered: "reorganized",
   tab_created: "created",
@@ -25,6 +29,9 @@ export const ESTIMATE_EVENT_ACTIONS: Record<string, ActivityAction> = {
   tab_duplicated: "created",
   tab_archived: "removed",
   tab_deleted: "deleted",
+  sheet_adjustment_updated: "changed",
+  project_estimate_package_applied: "created",
+  row_promoted_to_library: "created",
 };
 
 export const DECISION_ACTIONS: Record<string, ActivityAction> = {

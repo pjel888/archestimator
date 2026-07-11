@@ -278,28 +278,28 @@ function SharedLinkActivityFeedInner({
   if (error) {
     return (
       <div data-testid="activity-error" role="alert" className="rounded-xs p-2 text-[10px] text-warning">
-        {error} <Button variant="ghost" size="sm" onClick={() => load()} className="h-5 px-1 py-0 text-[9px] underline">Retry</Button>
+        {error} <Button variant="ghost" size="sm" onClick={() => load()} className="h-5 px-1 py-0 text-[10px] underline">Retry</Button>
       </div>
     );
   }
 
   return (
     <section data-testid="activity-feed" className="rounded-xs text-[10px] text-ink" aria-label={feedLabel}>
-      <div className="mb-2 flex items-center justify-between text-[9px] text-secondary">
+      <div className="mb-2 flex items-center justify-between text-[10px] text-secondary">
         <span>Activity</span>
-        <Button type="button" variant="ghost" size="sm" onClick={() => { dispatchFeed({ type: "notice:clear" }); void activityQuery.refetch(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => { dispatchFeed({ type: "notice:clear" }); void activityQuery.refetch(); }} className="h-6 px-1.5 py-0 text-[10px]">Refresh</Button>
       </div>
       <div aria-live="polite" className="sr-only">
         {newActivityNotice ? "New shared link activity loaded." : ""}
         {loadingMore ? "Loading older shared link activity." : ""}
       </div>
       {newActivityNotice ? (
-        <div className="mb-2 rounded-xs border border-accent/25 bg-accent-soft px-2 py-1 text-[9px] font-medium text-accent-dark">
+        <div className="mb-2 rounded-xs border border-accent/25 bg-accent-soft px-2 py-1 text-[10px] font-medium text-accent-dark">
           New activity loaded.
         </div>
       ) : null}
       {partial ? (
-        <div className="mb-2 rounded-xs border border-warningSoft bg-warningSoft px-2 py-1 text-[9px] font-medium text-warning">
+        <div role="status" className="mb-2 rounded-xs border border-warningSoft bg-warningSoft px-2 py-1 text-[10px] font-medium text-warning">
           Partial activity{unavailableSources.length ? `: ${unavailableSources.join(", ")} unavailable.` : "."}
         </div>
       ) : null}
@@ -318,15 +318,15 @@ function SharedLinkActivityFeedInner({
               className="rounded-xs border border-hairline bg-surface p-2 text-[10px]"
             >
               <div className="font-medium text-secondary">{a.title}</div>
-              <div className="text-[9px] text-secondary">{new Date(a.occurredAt).toLocaleString()}</div>
+              <div className="text-[10px] text-secondary">{new Date(a.occurredAt).toLocaleString()}</div>
               {a.summary && <div className="mt-0.5 text-secondary">{a.summary}</div>}
               {a.body && <div className="mt-0.5 whitespace-pre-wrap text-ink">{a.body}</div>}
               {a.badges?.map((badge) => (
-                <span key={badge} className="mt-1 inline-flex rounded-xs border border-hairline px-1 text-[8px] text-warning">{badge}</span>
+                <span key={badge} className="mt-1 inline-flex rounded-xs border border-hairline px-1 text-[10px] text-warning">{badge}</span>
               ))}
-              {a.visibility === "internal" && isOwner && !a.badges?.includes("Internal") && <span className="text-[8px] text-warning">Internal</span>}
+              {a.visibility === "internal" && isOwner && !a.badges?.includes("Internal") && <span className="text-[10px] text-warning">Internal</span>}
               {a.facts?.length ? (
-                <details className="mt-2 rounded-xs border border-hairline bg-white px-2 py-1 text-[9px] text-secondary">
+                <details className="mt-2 rounded-xs border border-hairline bg-white px-2 py-1 text-[10px] text-secondary">
                   <summary className="cursor-pointer font-medium text-secondary">Activity details</summary>
                   <dl className="mt-2 grid gap-1">
                     {a.facts.map((fact) => (
@@ -343,11 +343,11 @@ function SharedLinkActivityFeedInner({
         </div>
       )}
       {hasMore && nextCursor ? (
-        <Button type="button" variant="ghost" size="sm" onClick={() => load(nextCursor)} disabled={loadingMore} className="mt-2 h-6 px-1.5 py-0 text-[9px]">
+        <Button type="button" variant="ghost" size="sm" onClick={() => load(nextCursor)} disabled={loadingMore} className="mt-2 h-6 px-1.5 py-0 text-[10px]">
           {loadingMore ? "Loading…" : "Load older activity"}
         </Button>
       ) : null}
-      <p className="mt-2 text-[9px] text-secondary">{footerLabel}</p>
+      <p className="mt-2 text-[10px] text-secondary">{footerLabel}</p>
     </section>
   );
 }

@@ -104,8 +104,10 @@ describe("project activity repository", () => {
     expect(database.prepared).toHaveLength(1);
     expect(database.prepared[0]?.sql).toContain("FROM estimate_sheet_events event");
     expect(database.prepared[0]?.sql).toContain("LEFT JOIN estimates estimate");
+    expect(database.prepared[0]?.sql).toContain("WHERE event.workspace_id = ?");
     expect(database.prepared[0]?.sql).toContain("event.event_type NOT IN (?, ?)");
     expect(database.prepared[0]?.values).toEqual([
+      "workspace-1",
       "project-1",
       "sheet_version_created",
       "sheet_restored_as_copy",
@@ -171,6 +173,7 @@ describe("project activity repository", () => {
     });
 
     expect(database.prepared[0]?.values).toEqual([
+      "workspace-1",
       "project-1",
       "sheet_version_created",
       "sheet_restored_as_copy",
@@ -239,6 +242,19 @@ describe("project activity repository", () => {
     expect(firstPage.nextCursor).toEqual({ createdAt: second.created_at, id: second.id });
     expect(secondPage.items.map((item) => item.id)).toEqual([third.id, fourth.id]);
     expect(new Set([...firstPage.items, ...secondPage.items].map((item) => item.id)).size).toBe(4);
+  });
+
+  it("renders a deleted or anonymized actor with a non-PII fallback label", async () => {
+    const database = new FakeD1Database();
+    database.eventResults = [[makeEvent({ actor_user_id: "anonymized-activity-actor" })]];
+    database.profileRows = [];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
+    const result = await listProjectActivityPage({ projectId: "project-1" });
+
+    expect(result.items[0]?.actorLabel).toBe("Unknown user");
+    expect(JSON.stringify(result.items)).not.toContain("anonymized-activity-actor");
   });
 
   it("rejects invalid cursors before querying event rows", async () => {

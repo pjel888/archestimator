@@ -187,6 +187,32 @@ describe("activity history destructive recovery", () => {
     }));
   });
 
+  it("offers one restore action for a normalized bulk row deletion", async () => {
+    const onRestoreDeletedRows = vi.fn().mockResolvedValue(undefined);
+    const deletedRows = makeEstimateEvent("rows_bulk_deleted", {
+      id: "delete-rows-event-1",
+      payload: { deletedRowIds: [rowId, "55555555-5555-4555-8555-555555555559"] },
+    });
+    renderModal({
+      historyData: {
+        events: [deletedRows],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      },
+      onRestoreDeletedRows,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore deleted row" }));
+
+    await waitFor(() => expect(onRestoreDeletedRows).toHaveBeenCalledWith({
+      sourceEventId: "delete-rows-event-1",
+      rowIds: [rowId, "55555555-5555-4555-8555-555555555559"],
+    }));
+  });
+
   it("offers a persistent restore action for deleted Area events", async () => {
     const onRestoreDeletedNodes = vi.fn().mockResolvedValue(undefined);
     const deletedNode = makeEstimateEvent("node_deleted_with_children", {
@@ -235,6 +261,39 @@ describe("activity history destructive recovery", () => {
     });
 
     expect(screen.queryByRole("button", { name: "Restore deleted row" })).not.toBeInTheDocument();
+  });
+});
+
+describe("activity history component propagation", () => {
+  it("shows the propagated-row count without exposing row identifiers", () => {
+    const propagatedRowIds = [
+      "55555555-5555-4555-8555-555555555561",
+      "55555555-5555-4555-8555-555555555562",
+    ];
+    renderModal({
+      historyData: {
+        events: [makeEstimateEvent("row_updated", {
+          id: "component-fan-out-event",
+          changedFields: ["unit_cost", "variant_changed"],
+          oldSnapshot: { material: "Cabinet", unit_cost: 100, source_snapshot_json: { priceOptionId: "oak", priceOptionLabel: "Oak" } },
+          newSnapshot: { material: "Cabinet", unit_cost: 125, source_snapshot_json: { priceOptionId: "walnut", priceOptionLabel: "Walnut" } },
+          payload: {
+            propagatedRowIds,
+            propagatedRowCount: propagatedRowIds.length,
+            propagatedRowFacts: [{ rowId: propagatedRowIds[0], before: {}, after: {} }],
+          },
+        })],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      },
+    });
+
+    expect(document.body.textContent).toContain("Propagated to 2 other rows.");
+    expect(screen.getByText("Updated 2 other rows")).toBeInTheDocument();
+    expect(screen.queryByText(propagatedRowIds[0])).not.toBeInTheDocument();
   });
 });
 

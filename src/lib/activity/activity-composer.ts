@@ -274,6 +274,12 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
       return `${actor} added an empty row slot.`;
     case "row_deleted":
       return `${actor} removed ${material} from the estimate.`;
+    case "rows_bulk_deleted":
+      return `${actor} removed multiple rows from the estimate.`;
+    case "rows_moved":
+      return `${actor} moved estimate rows.`;
+    case "row_component_moved":
+      return `${actor} moved ${material} within the estimate.`;
     case "row_replaced":
       return `${actor} replaced ${readString(oldData.material, oldData.name, "the previous item")} with ${readString(newData.material, newData.name, material)}.`;
     case "row_unlinked":
@@ -282,10 +288,16 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
       return `${actor} inserted ${readString(event.payload?.templateName, event.payload?.name, newData.name, "template rows")}.`;
     case "project_source_inserted":
       return `${actor} inserted project source content.`;
+    case "project_estimate_package_applied":
+      return `${actor} applied an estimate package.`;
+    case "row_promoted_to_library":
+      return `${actor} promoted ${material} to the cost library.`;
     case "sheet_code_updated":
       return `${actor} changed estimate code from ${formatActivityValue("sheetCode", oldData.sheetCode)} to ${formatActivityValue("sheetCode", newData.sheetCode)}.`;
     case "sheet_metadata_updated":
       return `${actor} updated estimate details.`;
+    case "sheet_adjustment_updated":
+      return `${actor} updated the estimate adjustment.`;
     case "sheet_version_created":
       return `${actor} created a version snapshot.`;
     case "sheet_restored_as_copy":
@@ -296,6 +308,8 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
       return `${actor} renamed ${readString(oldData.name, "the area")} to ${readString(newData.name, target.label)}.`;
     case "node_deleted_with_children":
       return `${actor} deleted ${target.label} and its contents.`;
+    case "nodes_restored":
+      return `${actor} restored estimate tree content.`;
     case "nodes_reordered":
     case "tree_reordered":
       return `${actor} reorganized the estimate tree.`;

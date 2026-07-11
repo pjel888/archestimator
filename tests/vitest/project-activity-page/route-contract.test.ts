@@ -132,7 +132,7 @@ describe("project activity route contracts", () => {
     expect(routeMocks.canEditProjectInD1).toHaveBeenCalledWith(db, PROJECT_ID, currentUser);
     expect(routeMocks.readProjectActivityFeed).toHaveBeenCalledWith(expect.objectContaining({
       cursor: "cursor-1",
-      includeCounts: true,
+      includeCounts: false,
       limit: 7,
       projectId: PROJECT_ID,
     }));

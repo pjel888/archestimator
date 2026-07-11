@@ -54,6 +54,7 @@ type ActivityDetailSlot = {
 };
 
 const EMPTY_SLOT = "—";
+const MAX_ACCUMULATED_ACTIVITY_ITEMS = 200;
 
 const actionLabels: Record<ProjectActivityConcreteActionBucket, string> = {
   created: "Created",
@@ -232,14 +233,14 @@ function ActivitySurfaceMessage({
 function ActivityLedgerColumnHeader() {
   return (
     <div
-      aria-hidden="true"
-      className="hidden h-8 grid-cols-[5.25rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(10rem,1fr)_5.75rem] items-center border-b border-hairline bg-white/85 px-2 text-[9px] font-medium uppercase leading-3 text-tertiary md:grid md:gap-3"
+      role="row"
+      className="hidden h-8 grid-cols-[5.25rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(10rem,1fr)_5.75rem] items-center border-b border-hairline bg-white/85 px-2 text-[10px] font-medium uppercase leading-3 text-tertiary md:grid md:gap-3"
     >
-      <span>Time & Source</span>
-      <span>Actor</span>
-      <span>Event</span>
-      <span>Details</span>
-      <span className="text-right">Status</span>
+      <span role="columnheader">Time & Source</span>
+      <span role="columnheader">Actor</span>
+      <span role="columnheader">Event</span>
+      <span role="columnheader">Details</span>
+      <span role="columnheader" className="text-right">Status</span>
     </div>
   );
 }
@@ -261,12 +262,14 @@ function ActivityRow({
   return (
     <li className="border-t border-hairline first:border-t-0">
       <article
+        role="row"
         data-testid="activity-row"
         aria-posinset={index + 1}
         aria-setsize={total}
         className="grid min-h-[92px] grid-cols-[5.25rem_minmax(0,1fr)] gap-x-2 gap-y-1 px-2 py-2 md:grid-cols-[5.25rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(10rem,1fr)_5.75rem] md:items-center md:gap-3"
       >
         <div
+          role="cell"
           className="row-span-4 grid min-h-12 grid-rows-[1rem_1.25rem] content-start gap-1 md:row-span-1"
           data-testid="activity-time-source"
         >
@@ -275,24 +278,24 @@ function ActivityRow({
           </time>
           <span
             aria-label={`Source: ${source}`}
-            className="inline-flex h-5 w-[4.75rem] items-center justify-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 text-[9px] font-medium leading-none text-secondary"
+            className="inline-flex h-5 w-[4.75rem] items-center justify-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 text-[10px] font-medium leading-none text-secondary"
             data-testid={`activity-source-${activity.id}`}
           >
             <span className="truncate">{source}</span>
           </span>
         </div>
 
-        <div className="min-w-0" data-testid="activity-actor-action">
+        <div role="cell" className="min-w-0" data-testid="activity-actor-action">
           <p className="truncate text-[10px] font-medium leading-4 text-ink">{actionLabels[bucket]}</p>
           <p className="truncate text-[10px] leading-4 text-tertiary">{slotText(activity.actor.displayName)}</p>
         </div>
 
-        <div className="min-w-0" data-testid="activity-event-slot">
+        <div role="cell" className="min-w-0" data-testid="activity-event-slot">
           <p className="truncate text-[12px] font-medium leading-4 text-ink">{displayTitle(activity)}</p>
           <p className="truncate text-[10px] leading-4 text-secondary">{activityTarget(activity)}</p>
         </div>
 
-        <div className="min-w-0" data-testid="activity-detail-column">
+        <div role="cell" className="min-w-0" data-testid="activity-detail-column">
           <dl className="grid grid-rows-[1rem_1rem] gap-1">
             {details.map((detail, detailIndex) => (
               <div
@@ -307,7 +310,7 @@ function ActivityRow({
           </dl>
         </div>
 
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_5.75rem] gap-1 text-[9px] leading-3 md:block md:justify-self-end md:text-right" data-testid="activity-status-column">
+        <div role="cell" className="grid min-w-0 grid-cols-[minmax(0,1fr)_5.75rem] gap-1 text-[10px] leading-3 md:block md:justify-self-end md:text-right" data-testid="activity-status-column">
           <p className="truncate font-medium text-tertiary" data-testid="activity-status-slot">{visibilityLabel(activity.visibility)}</p>
           <p className="truncate text-secondary md:mt-1" data-testid="activity-status-slot">{badge}</p>
         </div>
@@ -410,27 +413,33 @@ export function ProjectActivityClient({
   }
 
   async function loadMore() {
-    if (!nextCursor || loadingMore) return;
+    if (!nextCursor || loadingMore || items.length >= MAX_ACCUMULATED_ACTIVITY_ITEMS) return;
     setLoadingMore(true);
     setErrorState(null);
     try {
       const params = serializeActivityPageState(initialState);
       params.set("cursor", nextCursor);
       params.set("limit", "20");
+      params.set("includeCounts", "true");
       const response = await fetch(`/api/projects/${projectId}/activity?${params.toString()}`, {
         method: "GET",
         headers: { Accept: "application/json" },
       });
       if (!response.ok) throw new Error("Activity could not be loaded.");
       const page = await response.json() as ProjectActivityFeedPage;
-      setAppendState((current) => ({
-        key: initialKey,
-        appendedItems: [...(current?.key === initialKey ? current.appendedItems : []), ...page.items],
-        nextCursor: page.nextCursor,
+      setAppendState((current) => {
+        const currentItems = current?.key === initialKey ? current.appendedItems : [];
+        const remainingCapacity = Math.max(0, MAX_ACCUMULATED_ACTIVITY_ITEMS - initialData.items.length - currentItems.length);
+        const appendedItems = [...currentItems, ...page.items.slice(0, remainingCapacity)];
+        return {
+          key: initialKey,
+          appendedItems,
+          nextCursor: initialData.items.length + appendedItems.length >= MAX_ACCUMULATED_ACTIVITY_ITEMS ? null : page.nextCursor,
         counts: page.counts,
         partial: page.partial,
         unavailableSources: page.unavailableSources,
-      }));
+        };
+      });
     } catch (loadError) {
       setErrorState({
         key: initialKey,
@@ -554,7 +563,7 @@ export function ProjectActivityClient({
               </Button>
             </div>
             <div className="mt-2">
-              <p className="mb-1 text-[9px] font-medium leading-3 text-tertiary">Activity types</p>
+              <p className="mb-1 text-[10px] font-medium leading-3 text-tertiary">Activity types</p>
               <div className="flex flex-wrap gap-1.5" aria-label="Action filters">
                 {PROJECT_ACTIVITY_ACTION_BUCKETS.filter((bucket): bucket is ProjectActivityConcreteActionBucket => bucket !== "all").map((action) => (
                   <Chip key={action} className="min-h-6 px-2" active={initialState.actions.includes(action)} onClick={() => toggleAction(action)}>
@@ -583,7 +592,7 @@ export function ProjectActivityClient({
                 <section key={group.key} aria-label={group.label}>
                   <div className="sticky top-0 z-[1] flex h-8 items-center justify-between border-b border-hairline bg-white/95 px-2">
                     <h3 className="text-[10px] font-medium leading-4 text-ink">{group.label}</h3>
-                    <p className="text-[9px] leading-3 text-tertiary">{group.items.length} {group.items.length === 1 ? "event" : "events"}</p>
+                    <p className="text-[10px] leading-3 text-tertiary">{group.items.length} {group.items.length === 1 ? "event" : "events"}</p>
                   </div>
                   <ol>
                     {group.items.map((activity, groupIndex) => (

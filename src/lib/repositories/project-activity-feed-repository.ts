@@ -6,6 +6,7 @@ import {
   composeSharedLinkActivity,
   type ActivityViewModel,
 } from "@/lib/activity";
+import { normalizeEventType, storedEventTypesForCanonicalEventType } from "@/lib/activity/event-type-normalization";
 import { isUuid } from "@/lib/ids";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import {
@@ -513,22 +514,49 @@ function sharedMetadataContainsEstimate(row: ProjectPublicationRow, estimateId: 
 
 async function readProjectPublications(
   database: D1DatabaseLike,
-  projectId: string,
-  workspaceId: string,
+  args: {
+    projectId: string;
+    workspaceId: string;
+    scope: ProjectActivityFeedScope;
+    cursor: DecodedCursor;
+    limit: number;
+  },
 ) {
+  const where = ["project_id = ?", "workspace_id = ?"];
+  const values: unknown[] = [args.projectId, args.workspaceId];
+  if (args.scope.kind === "estimate") {
+    where.push(`(
+      EXISTS (SELECT 1 FROM json_each(COALESCE(selected_estimate_ids, '[]')) WHERE value = ?)
+      OR json_extract(activity_target_labels_json, ?) IS NOT NULL
+    )`);
+    values.push(args.scope.estimateId, `$.estimateLabels.${args.scope.estimateId}`);
+  }
+  const marker = args.cursor.project_publications;
+  if (marker) {
+    where.push("(COALESCE(revoked_at, published_at) < ? OR (COALESCE(revoked_at, published_at) = ? AND id < ?))");
+    values.push(marker.createdAt, marker.createdAt, marker.id);
+  }
   return all<ProjectPublicationRow>(
     database,
     `SELECT id, project_id, published_at, published_by, revoked_at, status, snapshot_version, selected_estimate_ids, activity_target_labels_json
      FROM project_publications
-     WHERE project_id = ? AND workspace_id = ?
-     ORDER BY published_at DESC, id DESC`,
-    [projectId, workspaceId],
+     WHERE ${where.join(" AND ")}
+     ORDER BY COALESCE(revoked_at, published_at) DESC, id DESC
+     LIMIT ?`,
+    [...values, args.limit],
   );
 }
 
 function filterPublicationRowsForScope(rows: ProjectPublicationRow[], scope: ProjectActivityFeedScope) {
   if (scope.kind !== "estimate") return rows;
   return rows.filter((row) => sharedMetadataContainsEstimate(row, scope.estimateId));
+}
+
+function appendProjectPublicationScope(where: string[], values: unknown[], projectId: string, workspaceId: string) {
+  where.push(
+    "publication_id IN (SELECT id FROM project_publications WHERE project_id = ? AND workspace_id = ?)",
+  );
+  values.push(projectId, workspaceId);
 }
 
 function createPublicationEntries(
@@ -582,7 +610,8 @@ async function runCountQuery(
 
 function estimateEventTypesForActions(actions: readonly ProjectActivityConcreteActionBucket[]) {
   if (!actions.length) return null;
-  const eventTypes = actions.flatMap((action) => estimateBucketEventTypes[action] ?? []);
+  const eventTypes = actions.flatMap((action) => (estimateBucketEventTypes[action] ?? [])
+    .flatMap((eventType) => storedEventTypesForCanonicalEventType(eventType)));
   return eventTypes.length ? Array.from(new Set(eventTypes)) : [];
 }
 
@@ -636,19 +665,21 @@ async function readEstimateRows(
 async function readSharedCommentRows(
   database: D1DatabaseLike,
   args: {
-    publicationIds: string[];
+    projectId: string;
+    workspaceId: string;
     scope: ProjectActivityFeedScope;
     filters: NormalizedFilters;
     cursor: DecodedCursor;
     limit: number;
   },
 ) {
-  if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_comments", args.filters.actions)) {
+  if (args.filters.actorUserId || !sourceMatchesActions("shared_link_comments", args.filters.actions)) {
     return { rows: [] as SharedCommentRow[], unavailableSource: null };
   }
 
-  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
-  const values: unknown[] = [...args.publicationIds];
+  const where: string[] = [];
+  const values: unknown[] = [];
+  appendProjectPublicationScope(where, values, args.projectId, args.workspaceId);
   appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
   if (args.filters.recipientId) {
     where.push("recipient_id = ?");
@@ -667,19 +698,21 @@ async function readSharedCommentRows(
 async function readSharedResponseRows(
   database: D1DatabaseLike,
   args: {
-    publicationIds: string[];
+    projectId: string;
+    workspaceId: string;
     scope: ProjectActivityFeedScope;
     filters: NormalizedFilters;
     cursor: DecodedCursor;
     limit: number;
   },
 ) {
-  if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_responses", args.filters.actions)) {
+  if (args.filters.actorUserId || !sourceMatchesActions("shared_link_responses", args.filters.actions)) {
     return { rows: [] as SharedResponseRow[], unavailableSource: null };
   }
 
-  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
-  const values: unknown[] = [...args.publicationIds];
+  const where: string[] = [];
+  const values: unknown[] = [];
+  appendProjectPublicationScope(where, values, args.projectId, args.workspaceId);
   appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
   if (args.filters.recipientId) {
     where.push("recipient_id = ?");
@@ -698,18 +731,20 @@ async function readSharedResponseRows(
 async function readSharedEventRows(
   database: D1DatabaseLike,
   args: {
-    publicationIds: string[];
+    projectId: string;
+    workspaceId: string;
     filters: NormalizedFilters;
     cursor: DecodedCursor;
     limit: number;
   },
 ) {
-  if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_events", args.filters.actions)) {
+  if (args.filters.actorUserId || !sourceMatchesActions("shared_link_events", args.filters.actions)) {
     return { rows: [] as SharedEventRow[], unavailableSource: null };
   }
 
-  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
-  const values: unknown[] = [...args.publicationIds];
+  const where: string[] = [];
+  const values: unknown[] = [];
+  appendProjectPublicationScope(where, values, args.projectId, args.workspaceId);
   if (args.filters.recipientId) {
     where.push("recipient_id = ?");
     values.push(args.filters.recipientId);
@@ -771,7 +806,7 @@ function createEstimateEntries(rows: EstimateEventRow[], actorLabels: Map<string
     .map((row) => ({
       activity: composeEstimateActivity({
         id: row.id,
-        eventType: row.event_type,
+        eventType: normalizeEventType(row.event_type, { changedFields: asStringArray(row.changed_fields) }),
         eventSource: row.event_source ?? undefined,
         createdAt: row.created_at,
         actorUserId: row.actor_user_id,
@@ -877,7 +912,7 @@ function buildNextCursor(previousCursor: DecodedCursor, page: ActivityEntry[], h
 }
 
 async function countProjectPublicationRows(
-  _database: D1DatabaseLike,
+  database: D1DatabaseLike,
   args: {
     projectId: string;
     workspaceId: string;
@@ -887,8 +922,20 @@ async function countProjectPublicationRows(
   },
 ) {
   if (wantsOnlyRecipient(args.filters) || !sourceMatchesActions("project_publications", args.filters.actions)) return zeroCount();
-  const count = args.publicationRows.filter((row) => !args.filters.actorUserId || row.published_by === args.filters.actorUserId).length;
-  return { count, unavailableSource: null };
+  const where = ["project_id = ?", "workspace_id = ?"];
+  const values: unknown[] = [args.projectId, args.workspaceId];
+  if (args.scope.kind === "estimate") {
+    where.push(`(
+      EXISTS (SELECT 1 FROM json_each(COALESCE(selected_estimate_ids, '[]')) WHERE value = ?)
+      OR json_extract(activity_target_labels_json, ?) IS NOT NULL
+    )`);
+    values.push(args.scope.estimateId, `$.estimateLabels.${args.scope.estimateId}`);
+  }
+  if (args.filters.actorUserId) {
+    where.push("published_by = ?");
+    values.push(args.filters.actorUserId);
+  }
+  return runCountQuery("project_publications", count(database, `SELECT COUNT(*) AS count FROM project_publications WHERE ${where.join(" AND ")}`, values));
 }
 
 async function countEstimateRows(
@@ -925,15 +972,17 @@ async function countEstimateRows(
 async function countSharedCommentRows(
   database: D1DatabaseLike,
   args: {
-    publicationIds: string[];
+    projectId: string;
+    workspaceId: string;
     scope: ProjectActivityFeedScope;
     filters: NormalizedFilters;
   },
 ) {
-  if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_comments", args.filters.actions)) return zeroCount();
+  if (args.filters.actorUserId || !sourceMatchesActions("shared_link_comments", args.filters.actions)) return zeroCount();
 
-  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
-  const values: unknown[] = [...args.publicationIds];
+  const where: string[] = [];
+  const values: unknown[] = [];
+  appendProjectPublicationScope(where, values, args.projectId, args.workspaceId);
   appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
   if (args.filters.recipientId) {
     where.push("recipient_id = ?");
@@ -946,15 +995,17 @@ async function countSharedCommentRows(
 async function countSharedResponseRows(
   database: D1DatabaseLike,
   args: {
-    publicationIds: string[];
+    projectId: string;
+    workspaceId: string;
     scope: ProjectActivityFeedScope;
     filters: NormalizedFilters;
   },
 ) {
-  if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_responses", args.filters.actions)) return zeroCount();
+  if (args.filters.actorUserId || !sourceMatchesActions("shared_link_responses", args.filters.actions)) return zeroCount();
 
-  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
-  const values: unknown[] = [...args.publicationIds];
+  const where: string[] = [];
+  const values: unknown[] = [];
+  appendProjectPublicationScope(where, values, args.projectId, args.workspaceId);
   appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
   if (args.filters.recipientId) {
     where.push("recipient_id = ?");
@@ -967,14 +1018,16 @@ async function countSharedResponseRows(
 async function countSharedEventRows(
   database: D1DatabaseLike,
   args: {
-    publicationIds: string[];
+    projectId: string;
+    workspaceId: string;
     filters: NormalizedFilters;
   },
 ) {
-  if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_events", args.filters.actions)) return zeroCount();
+  if (args.filters.actorUserId || !sourceMatchesActions("shared_link_events", args.filters.actions)) return zeroCount();
 
-  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
-  const values: unknown[] = [...args.publicationIds];
+  const where: string[] = [];
+  const values: unknown[] = [];
+  appendProjectPublicationScope(where, values, args.projectId, args.workspaceId);
   if (args.filters.recipientId) {
     where.push("recipient_id = ?");
     values.push(args.filters.recipientId);
@@ -1026,7 +1079,6 @@ async function readExactCounts(
   args: {
     projectId: string;
     workspaceId: string;
-    publicationIds: string[];
     publicationRows: ProjectPublicationRow[];
     scope: ProjectActivityFeedScope;
     filters: NormalizedFilters;
@@ -1036,9 +1088,9 @@ async function readExactCounts(
   const [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeCollaboration] = await Promise.all([
     countProjectPublicationRows(database, { ...args, filters: scopeFilters }),
     countEstimateRows(database, { ...args, filters: scopeFilters }),
-    countSharedCommentRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: scopeFilters }),
-    countSharedResponseRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: scopeFilters }),
-    countSharedEventRows(database, { publicationIds: args.publicationIds, filters: scopeFilters }),
+    countSharedCommentRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: scopeFilters }),
+    countSharedResponseRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: scopeFilters }),
+    countSharedEventRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, filters: scopeFilters }),
     countCollaborationRows(database, { projectId: args.projectId, scope: args.scope, filters: scopeFilters }),
   ]);
 
@@ -1046,9 +1098,9 @@ async function readExactCounts(
     ? await Promise.all([
         countProjectPublicationRows(database, args),
         countEstimateRows(database, args),
-        countSharedCommentRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: args.filters }),
-        countSharedResponseRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: args.filters }),
-        countSharedEventRows(database, { publicationIds: args.publicationIds, filters: args.filters }),
+        countSharedCommentRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: args.filters }),
+        countSharedResponseRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: args.filters }),
+        countSharedEventRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, filters: args.filters }),
         countCollaborationRows(database, { projectId: args.projectId, scope: args.scope, filters: args.filters }),
       ])
     : [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeCollaboration];
@@ -1114,15 +1166,19 @@ export async function readProjectActivityFeed({
 
   const database = await requireProjectActivityFeedD1Database();
   const publicationRows = filterPublicationRowsForScope(
-    await readProjectPublications(database, project.id, project.workspace_id),
+    await readProjectPublications(database, {
+      projectId: project.id,
+      workspaceId: project.workspace_id,
+      scope,
+      cursor,
+      limit: sourceLimit,
+    }),
     scope,
   );
-  const publicationIds = publicationRows.map((publication) => publication.id);
   const exactCountsPromise = includeCounts
     ? readExactCounts(database, {
         projectId: project.id,
         workspaceId: project.workspace_id,
-        publicationIds,
         publicationRows,
         scope,
         filters: normalizedFilters,
@@ -1139,21 +1195,24 @@ export async function readProjectActivityFeed({
       limit: sourceLimit,
     }),
     readSharedCommentRows(database, {
-      publicationIds,
+      projectId: project.id,
+      workspaceId: project.workspace_id,
       scope,
       filters: normalizedFilters,
       cursor,
       limit: sourceLimit,
     }),
     readSharedResponseRows(database, {
-      publicationIds,
+      projectId: project.id,
+      workspaceId: project.workspace_id,
       scope,
       filters: normalizedFilters,
       cursor,
       limit: sourceLimit,
     }),
     readSharedEventRows(database, {
-      publicationIds,
+      projectId: project.id,
+      workspaceId: project.workspace_id,
       filters: normalizedFilters,
       cursor,
       limit: sourceLimit,

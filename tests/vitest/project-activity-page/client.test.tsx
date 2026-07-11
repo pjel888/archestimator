@@ -134,7 +134,7 @@ describe("ProjectActivityClient", () => {
 
     await screen.findByText("Maria Santos viewed the proposal.");
     expect(fetchMock).toHaveBeenCalledWith(
-      `/api/projects/${PROJECT_ID}/activity?cursor=cursor-1&limit=20`,
+      `/api/projects/${PROJECT_ID}/activity?cursor=cursor-1&limit=20&includeCounts=true`,
       expect.objectContaining({ method: "GET" }),
     );
     expect(navigationMocks.replace).not.toHaveBeenCalledWith(expect.stringContaining("cursor"), expect.anything());

@@ -37,20 +37,25 @@ import {
   type RowDetailTab,
 } from "./activity-history-model";
 
-const ACTIVITY_FILTER_EVENT_TYPES = [
+export const ACTIVITY_FILTER_EVENT_TYPES = [
   { value: "", label: "All events" },
   { value: "row_updated", label: "Row updates" },
   { value: "row_replaced", label: "Replacements" },
   { value: "row_added", label: "Added rows" },
   { value: "row_blank_added", label: "Added blank rows" },
   { value: "row_deleted", label: "Deleted rows" },
+  { value: "rows_bulk_deleted", label: "Bulk deleted rows" },
+  { value: "rows_moved", label: "Moved rows" },
+  { value: "row_component_moved", label: "Moved components" },
   { value: "template_inserted", label: "Templates" },
   { value: "node_created", label: "Node created" },
   { value: "node_renamed", label: "Node renamed" },
   { value: "tree_reordered", label: "Tree reordered" },
   { value: "node_deleted_with_children", label: "Node deleted" },
+  { value: "nodes_restored", label: "Nodes restored" },
   { value: "sheet_code_updated", label: "Estimate code" },
   { value: "sheet_metadata_updated", label: "Estimate metadata" },
+  { value: "sheet_adjustment_updated", label: "Estimate adjustment" },
   { value: "tab_created", label: "Tab created" },
   { value: "tab_renamed", label: "Tab renamed" },
   { value: "tabs_reordered", label: "Tabs reordered" },
@@ -361,6 +366,25 @@ function getAuditChangeDetails(event: EstimateSheetHistoryEvent): AuditChangeDet
     ];
   }
 
+  if (event.eventType === "row_updated") {
+    const propagatedRowCount = readOptionalNumber(payload.propagatedRowCount)
+      ?? readStringArrayValue(payload.propagatedRowIds).length;
+    if (propagatedRowCount > 0) {
+      return [
+        { kind: "note", label: "Propagation", value: `Updated ${formatAuditNumber(propagatedRowCount)} other ${propagatedRowCount === 1 ? "row" : "rows"}` },
+        ...filterMap(getOrderedAuditFields(event), (field) => {
+          const detail = {
+            kind: "diff" as const,
+            label: humanizeAuditField(field),
+            oldValue: formatAuditFieldValue(field, oldSnapshot[field], oldSnapshot),
+            newValue: formatAuditFieldValue(field, newSnapshot[field], newSnapshot),
+          };
+          return detail.oldValue !== detail.newValue ? detail : null;
+        }),
+      ];
+    }
+  }
+
   return filterMap(getOrderedAuditFields(event), (field) => {
     const detail = {
       kind: "diff" as const,
@@ -477,8 +501,16 @@ function getAuditEventDescription(event: EstimateSheetHistoryEvent) {
 }
 
 function getAuditSupportingSummary(event: EstimateSheetHistoryEvent, summary: string, description: string) {
+  if (event.eventType === "row_updated") {
+    const propagatedRowCount = readOptionalNumber(event.payload.propagatedRowCount)
+      ?? readStringArrayValue(event.payload.propagatedRowIds).length;
+    const propagationSummary = propagatedRowCount > 0
+      ? `Propagated to ${formatAuditNumber(propagatedRowCount)} other ${propagatedRowCount === 1 ? "row" : "rows"}.`
+      : "";
+    const fieldSummary = summary && summary !== description ? `Affected fields: ${summary}` : "";
+    return [propagationSummary, fieldSummary].filter(Boolean).join(" ");
+  }
   if (!summary || summary === description) return "";
-  if (event.eventType === "row_updated") return `Affected fields: ${summary}`;
   return summary;
 }
 
@@ -647,18 +679,18 @@ function AuditComponentSnapshotCard({ snapshot }: { snapshot: AuditComponentSnap
         {hasImage ? null : (
           <span className="grid gap-1 px-1 text-center">
             <Cube size={15} weight="regular" aria-hidden="true" className="mx-auto" />
-            <span className="text-[8px] font-medium leading-3">No image in snapshot</span>
+            <span className="text-[10px] font-medium leading-3">No image in snapshot</span>
           </span>
         )}
       </div>
       <figcaption className="min-w-0">
-        <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">{snapshot.label}</p>
+        <p className="text-[10px] font-medium uppercase leading-4 text-tertiary">{snapshot.label}</p>
         <p className="mt-1 break-words text-[10px] font-medium leading-4 text-ink">{snapshot.item.material}</p>
-        <p className="mt-0.5 break-words text-[9px] leading-4 text-secondary">{snapshot.item.supplier}</p>
+        <p className="mt-0.5 break-words text-[10px] leading-4 text-secondary">{snapshot.item.supplier}</p>
         {snapshot.item.description ? (
-          <p className="mt-2 line-clamp-2 text-[9px] leading-4 text-tertiary">{snapshot.item.description}</p>
+          <p className="mt-2 line-clamp-2 text-[10px] leading-4 text-tertiary">{snapshot.item.description}</p>
         ) : null}
-        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[9px] leading-4">
+        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] leading-4">
           <div className="min-w-0">
             <dt className="font-medium uppercase text-tertiary">Source</dt>
             <dd className="truncate text-secondary" title={snapshot.sourceLabel}>{snapshot.sourceLabel}</dd>
@@ -735,14 +767,14 @@ function AuditEventCard({
       <div className="border-b border-hairline bg-white px-4 py-4">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
           <div className="min-w-0">
-            <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-medium uppercase leading-4 text-tertiary">
+            <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-medium uppercase leading-4 text-tertiary">
               <span>{formatShortDateTime(event.createdAt)}</span>
               <span aria-hidden="true">·</span>
               <span>{actorLabel}</span>
             </p>
             <p className="mt-2 text-[10px] font-medium leading-5 text-ink">{title}</p>
           </div>
-          <p className={cn("shrink-0 rounded-xs border px-2 py-1 text-right font-sans text-[9px] font-medium tabular-nums", deltaClass)}>
+          <p className={cn("shrink-0 rounded-xs border px-2 py-1 text-right font-sans text-[10px] font-medium tabular-nums", deltaClass)}>
             {formatSignedPeso(event.totalDelta)}
           </p>
         </div>
@@ -770,27 +802,27 @@ function AuditEventCard({
       </div>
       {details.length ? (
         <section className="border-b border-hairline bg-white px-4 py-4" data-audit-event-details>
-          <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">Audit facts</p>
+          <p className="text-[10px] font-medium uppercase leading-4 text-tertiary">Audit facts</p>
           <dl className="mt-3 grid gap-3">
             {details.map((detail) => (
             <div key={`${detail.label}-${detail.kind}`} className="rounded-xs border border-hairline bg-surfaceMuted/20 p-3">
-              <dt className="text-[8px] font-medium uppercase leading-4 text-tertiary">{detail.label}</dt>
+              <dt className="text-[10px] font-medium uppercase leading-4 text-tertiary">{detail.label}</dt>
               {detail.kind === "diff" ? (
                 <dd className="mt-2 min-w-0" aria-label={getAuditDetailSentence(detail)}>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3 text-[10px] leading-5 max-sm:grid-cols-1">
                     <div className="min-w-0 rounded-xs bg-white p-2">
-                      <p className="mb-0.5 text-[8px] font-medium uppercase text-tertiary">Previous</p>
+                      <p className="mb-0.5 text-[10px] font-medium uppercase text-tertiary">Previous</p>
                       <p className="min-w-0 break-words text-secondary">{detail.oldValue}</p>
                     </div>
-                    <span className="pt-5 text-[9px] font-medium text-tertiary max-sm:hidden" aria-hidden="true">-&gt;</span>
+                    <span className="pt-5 text-[10px] font-medium text-tertiary max-sm:hidden" aria-hidden="true">-&gt;</span>
                     <div className="min-w-0 rounded-xs border border-accent/30 bg-white p-2">
-                      <p className="mb-0.5 text-[8px] font-medium uppercase text-tertiary">Current</p>
+                      <p className="mb-0.5 text-[10px] font-medium uppercase text-tertiary">Current</p>
                       <p className="min-w-0 break-words font-medium text-ink">{detail.newValue}</p>
                     </div>
                   </div>
                 </dd>
               ) : (
-                <dd className="mt-1 break-words text-[9px] font-medium leading-5 text-ink">{detail.value}</dd>
+                <dd className="mt-1 break-words text-[10px] font-medium leading-5 text-ink">{detail.value}</dd>
               )}
             </div>
             ))}
@@ -799,7 +831,7 @@ function AuditEventCard({
       ) : null}
       {snapshots.length ? (
         <section className="bg-surfaceMuted/25 px-4 py-4" data-audit-component-snapshots>
-          <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">Component snapshot evidence</p>
+          <p className="text-[10px] font-medium uppercase leading-4 text-tertiary">Component snapshot evidence</p>
           <div className={cn("mt-3 grid gap-3", snapshots.length > 1 ? "lg:grid-cols-2" : "")}>
             {snapshots.map((snapshot) => (
               <AuditComponentSnapshotCard key={snapshot.key} snapshot={snapshot} />
@@ -820,17 +852,22 @@ type ActivityTimelineDayGroup = {
   items: GroupedActivityEventItem[];
 };
 
-function groupActivityEvents(events: EstimateSheetHistoryEvent[]): GroupedActivityEventItem[] {
-  const countsByCorrelationId = new Map<string, number>();
+export function groupActivityEvents(events: EstimateSheetHistoryEvent[]): GroupedActivityEventItem[] {
+  const eventsByCorrelationId = new Map<string, EstimateSheetHistoryEvent[]>();
   for (const event of events) {
-    countsByCorrelationId.set(event.correlationId, (countsByCorrelationId.get(event.correlationId) ?? 0) + 1);
+    const groupedEvents = eventsByCorrelationId.get(event.correlationId);
+    if (groupedEvents) {
+      groupedEvents.push(event);
+    } else {
+      eventsByCorrelationId.set(event.correlationId, [event]);
+    }
   }
 
   const groupedCorrelationIds = new Set<string>();
   const groupedItems: GroupedActivityEventItem[] = [];
   for (const event of events) {
-    const eventCount = countsByCorrelationId.get(event.correlationId) ?? 0;
-    if (eventCount <= 1) {
+    const groupedEvents = eventsByCorrelationId.get(event.correlationId) ?? [];
+    if (groupedEvents.length <= 1) {
       groupedItems.push({ kind: "event", event });
       continue;
     }
@@ -840,7 +877,7 @@ function groupActivityEvents(events: EstimateSheetHistoryEvent[]): GroupedActivi
     groupedItems.push({
       kind: "group",
       correlationId: event.correlationId,
-      events: events.filter((candidate) => candidate.correlationId === event.correlationId),
+      events: groupedEvents,
     });
   }
 
@@ -893,11 +930,11 @@ function AuditEventGroup({
     <details className="overflow-hidden rounded-xs border border-hairline bg-white text-[10px] shadow-[0_8px_18px_rgba(17,17,17,0.035)]" data-audit-event-group>
       <summary className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-hairline bg-white px-4 py-3">
         <span className="min-w-0">
-          <span className="block text-[9px] font-medium uppercase leading-4 text-tertiary">
+          <span className="block text-[10px] font-medium uppercase leading-4 text-tertiary">
             {firstEvent ? `${formatShortDateTime(firstEvent.createdAt)} · ${getActorLabel(firstEvent)}` : "Activity group"}
           </span>
-          <span className="mt-1.5 block text-[9px] font-medium leading-5 text-ink">{events.length} related activity events</span>
-          <span className="mt-1 block break-words text-[9px] leading-5 text-tertiary">{eventTypes}</span>
+          <span className="mt-1.5 block text-[10px] font-medium leading-5 text-ink">{events.length} related activity events</span>
+          <span className="mt-1 block break-words text-[10px] leading-5 text-tertiary">{eventTypes}</span>
         </span>
         <span className={cn("shrink-0 rounded-xs border px-2 py-1 text-right font-sans text-[10px] font-medium tabular-nums", getAuditDeltaClassName(eventTotal))}>
           {formatSignedPeso(eventTotal)}
@@ -984,7 +1021,7 @@ function EventList({
       {groupActivityTimelineByDay(events).map((dayGroup) => (
         <section key={dayGroup.day} aria-label={`${dayGroup.day} activity`} className="space-y-3">
           <div className="px-1 pb-1 pt-2">
-            <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">{dayGroup.day}</p>
+            <p className="text-[10px] font-medium uppercase leading-4 text-tertiary">{dayGroup.day}</p>
           </div>
           <ol className="relative space-y-4 before:absolute before:bottom-5 before:left-[9.5px] before:top-5 before:w-px before:bg-hairline">
             {dayGroup.items.map((item) => {
@@ -1094,7 +1131,7 @@ function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, i
 function RowDetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
     <div className="min-w-0 border-b border-hairline py-2">
-      <p className="text-[8px] font-medium uppercase text-tertiary">{label}</p>
+      <p className="text-[10px] font-medium uppercase text-tertiary">{label}</p>
       <p className="mt-0.5 truncate text-[10px] font-medium text-ink" title={value === null || value === undefined ? undefined : String(value)}>
         {value === null || value === undefined || value === "" ? "—" : value}
       </p>
@@ -1104,34 +1141,54 @@ function RowDetailField({ label, value }: { label: string; value: string | numbe
 
 function useNativeModalDialog(onClose: () => void) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  onCloseRef.current = onClose;
 
   const handleDialogMouseDown = useCallback(
     (event: MouseEvent) => {
       if (event.defaultPrevented) return;
-      if (event.target === dialogRef.current) onClose();
+      if (event.target === dialogRef.current) onCloseRef.current();
     },
-    [onClose],
+    [],
   );
 
   return useCallback(
     (node: HTMLDialogElement | null) => {
-      dialogRef.current?.removeEventListener("mousedown", handleDialogMouseDown);
+      const previousDialog = dialogRef.current;
+      if (previousDialog === node) return;
+
+      previousDialog?.removeEventListener("mousedown", handleDialogMouseDown);
       dialogRef.current = node;
-      if (!node) return;
-
-      node.addEventListener("mousedown", handleDialogMouseDown);
-      if (node.open) return;
-
-      if (typeof node.showModal === "function") {
-        try {
-          node.showModal();
-        } catch {
-          node.setAttribute("open", "");
-        }
+      if (!node) {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        queueMicrotask(() => {
+          if (opener?.isConnected) opener.focus();
+        });
         return;
       }
 
-      node.setAttribute("open", "");
+      node.addEventListener("mousedown", handleDialogMouseDown);
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      if (!node.open) {
+        if (typeof node.showModal === "function") {
+          try {
+            node.showModal();
+          } catch {
+            node.setAttribute("open", "");
+          }
+        } else {
+          node.setAttribute("open", "");
+        }
+      }
+
+      queueMicrotask(() => {
+        if (!node.isConnected || dialogRef.current !== node) return;
+        const initialFocusTarget = node.querySelector<HTMLElement>("[data-dialog-initial-focus]");
+        (initialFocusTarget ?? node).focus();
+      });
     },
     [handleDialogMouseDown],
   );
@@ -1290,10 +1347,10 @@ export function RowDetailsModal({
     >
         <div className="flex h-10 shrink-0 items-center justify-between border-b border-hairline bg-white px-3">
           <div className="min-w-0">
-            <p className="text-[9px] font-medium text-ink">Row Item</p>
-            <p className="truncate text-[8px] font-medium uppercase text-tertiary">{row?.nodePath.join(" / ") ?? "Current estimate row"}</p>
+            <p className="text-[10px] font-medium text-ink">Row Item</p>
+            <p className="truncate text-[10px] font-medium uppercase text-tertiary">{row?.nodePath.join(" / ") ?? "Current estimate row"}</p>
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close row details" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close row details" data-dialog-initial-focus onClick={onClose}>
             <X size={13} weight="regular" aria-hidden="true" />
           </Button>
         </div>
@@ -1321,7 +1378,7 @@ export function RowDetailsModal({
               )}
               <div className="mt-2 min-w-0">
                 <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Project Component" : "Row not found")}</p>
-                <p className="truncate text-[9px] font-medium text-tertiary">{item?.supplier ?? "No supplier"}</p>
+                <p className="truncate text-[10px] font-medium text-tertiary">{item?.supplier ?? "No supplier"}</p>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-x-3 border-t border-hairline">
                 <RowDetailField label="Qty" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
@@ -1335,12 +1392,12 @@ export function RowDetailsModal({
             <div className="border-b border-hairline bg-white p-3">
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="min-w-0">
-                  <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{componentStatus.label}</p>
+                  <p className="font-sans text-[10px] font-medium uppercase text-tertiary">{componentStatus.label}</p>
                   <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Project Component" : "Row item")}</p>
-                  <p className="mt-0.5 truncate text-[9px] text-tertiary">{row?.nodePath.join(" › ") ?? "Current estimate row"}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-tertiary">{row?.nodePath.join(" › ") ?? "Current estimate row"}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[8px] font-medium uppercase text-tertiary">Total</p>
+                  <p className="text-[10px] font-medium uppercase text-tertiary">Total</p>
                   <p className="mt-0.5 font-sans text-[12px] font-medium tabular-nums text-ink">{formatPeso(lineTotal)}</p>
                 </div>
               </div>
@@ -1558,11 +1615,22 @@ function ActivityScopeTree({
                   aria-expanded={hasChildren ? expanded : undefined}
                   aria-label={`${item.label}, ${item.eyebrow}`}
                   data-activity-scope-item={item.id}
+                  tabIndex={selected ? 0 : -1}
                   depth={item.depth}
                   selected={selected}
                   className="justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2"
                   onClick={() => onSelect(item.scope)}
                   onKeyDown={(event) => {
+                    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                      event.preventDefault();
+                      const treeItems = Array.from(
+                        event.currentTarget.closest('[role="tree"]')?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [],
+                      );
+                      const currentIndex = treeItems.indexOf(event.currentTarget);
+                      const offset = event.key === "ArrowUp" ? -1 : 1;
+                      treeItems.at((currentIndex + offset + treeItems.length) % treeItems.length)?.focus();
+                      return;
+                    }
                     if (!hasChildren || normalizedSearch) return;
                     if (event.key === "ArrowRight" && !expanded) {
                       event.preventDefault();
@@ -1679,9 +1747,9 @@ export function ActivityHistoryModal({
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-hairline bg-white px-4">
           <div className="min-w-0">
             <p className="text-[11px] font-medium text-ink">Activity History</p>
-            <p className="truncate text-[8px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate"}</p>
+            <p className="truncate text-[10px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate"}</p>
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Activity History" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Activity History" data-dialog-initial-focus onClick={onClose}>
             <X size={13} weight="regular" aria-hidden="true" />
           </Button>
         </div>
@@ -1693,10 +1761,10 @@ export function ActivityHistoryModal({
             <div className="border-b border-hairline bg-white">
               <section aria-label="Selected activity scope" className="min-w-0 p-4">
                 <div className="min-w-0">
-                  <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{selectedEyebrow}</p>
+                  <p className="font-sans text-[10px] font-medium uppercase text-tertiary">{selectedEyebrow}</p>
                   <p className="truncate text-[10px] font-medium text-ink">{selectedLabel}</p>
                   {selectedDescription ? (
-                    <p className="mt-0.5 truncate text-[9px] text-tertiary">{selectedDescription}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-tertiary">{selectedDescription}</p>
                   ) : null}
                 </div>
               </section>
