@@ -1,9 +1,9 @@
 # Admin Feature Improvement Plan Pack
 
-**Package:** `PLAN-2026-07-11-admin-feature-improvement`  
-**Profile:** `high-blast-radius`  
-**Current run scope:** `PLAN_ONLY`  
-**Planning status:** `CONDITIONALLY_READY`; `UNIT-001` is the dependency-closed executable slice, downstream local units are planned behind fresh producer/lease receipts, and hosted/provider proof remains a later release boundary.  
+**Package:** `PLAN-2026-07-11-admin-feature-improvement`
+**Profile:** `high-blast-radius`
+**Current run scope:** `PLAN_ONLY`
+**Planning status:** `CONDITIONALLY_READY`; `UNIT-001` is the dependency-closed executable slice, downstream local units are planned behind fresh producer/lease receipts, and hosted/provider proof remains a later release boundary.
 **Canonical execution artifact:** [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
 
 ## Mission

@@ -18,8 +18,8 @@ Before every unit:
 
 ### UNIT-001: Reconcile Current Truth and Lock Regressions
 
-**Depends on:** none  
-**Owned surface:** current admin tests, source audit, overlap receipts, no product expansion.  
+**Depends on:** none
+**Owned surface:** current admin tests, source audit, overlap receipts, no product expansion.
 **Work:**
 
 - reproduce and lock the searched-user placeholder-order defect;
@@ -34,7 +34,7 @@ Before every unit:
 
 ### UNIT-002: Repair Existing Admin Correctness Baseline
 
-**Depends on:** UNIT-001  
+**Depends on:** UNIT-001
 **Work:**
 
 - bind searched user SQL parameters in exact placeholder order and prove filtered/unfiltered pagination;
@@ -50,14 +50,14 @@ Before every unit:
 
 ### UNIT-003: Canonical Admin Capability and Sensitive-Action Policy
 
-**Depends on:** UNIT-002  
+**Depends on:** UNIT-002
 **Work:** define capabilities separate from platform product roles; require server-side checks per read/action; protect last privileged operator; produce a version-matched Better Auth reauthentication receipt and implement the one-time actor/session/action-bound freshness contract before enabling dependent actions; require reason/case reference; prohibit unsafe self/peer changes; rate-limit interventions; audit sensitive reads and all mutations; use no-store/private responses.
 
 **Pass:** denial matrix covers anonymous, member, limited operator, full operator, protected peer, self, and stale/fresh session paths.
 
 ### UNIT-004: Identity Reconciliation and Lifecycle Instrumentation
 
-**Depends on:** UNIT-002, UNIT-003  
+**Depends on:** UNIT-002, UNIT-003
 **Work:**
 
 - treat Better Auth `user` as canonical identity and `profiles` as an app projection;
@@ -72,103 +72,103 @@ Before every unit:
 
 ### UNIT-005: User 360 Read Model and Admin Experience
 
-**Depends on:** UNIT-004 and source-matched Activity/Corporate/Teamwork receipts  
+**Depends on:** UNIT-004 and source-matched Activity/Corporate/Teamwork receipts
 **Work:** implement Summary, Access, Activity, Sessions/Security, Projects/Estimates, Support/Feedback, Notifications, and Interventions views; normalized cursor-paginated activity adapters; filters and source labels; identity mismatch states; membership footprint; user-specific notification engagement; export only through approved redacted contracts.
 
 **Pass:** cross-tenant denial tests, source provenance, empty/error/stale states, and query budgets pass at seeded scale.
 
 ### UNIT-006: Safe Account and Session Operations
 
-**Depends on:** UNIT-003, UNIT-004  
+**Depends on:** UNIT-003, UNIT-004
 **Work:** suspend/ban/reactivate with reason, optional expiry, case reference, affected-row proof, relevant Better Auth session revocation, protected-admin floor, user notification policy, idempotency, atomic audit, and visible intervention history. Add single-session and revoke-all controls without exposing tokens. Create a transactional security-notice outbox with explicit timing, provider-disabled result, retry/audit state, and no false claim that an inaccessible inbox informed a banned user.
 
 **Pass:** status and session state agree after every success/failure/crash boundary; nonexistent targets and protected operators cannot produce false-success audit rows.
 
 ### UNIT-007: Notification Campaign Domain and Authoring UX
 
-**Depends on:** UNIT-002, UNIT-003, UNIT-012  
+**Depends on:** UNIT-002, UNIT-003, UNIT-012
 **Work:** introduce campaign and run lifecycles with immutable content versions; versioned/archivable templates that copy into campaigns; drafts, preview, test audience/test send, review/approval, optimistic locking, content validation, safe action links, one-time and recurring schedule revisions/occurrences with DST and series edit/cancel semantics, expiry/misfire, duplication, pause/resume/retry/reconcile transitions, and complete history filters.
 
 **Pass:** lifecycle transition matrix and concurrent-editor tests pass; no draft or unapproved content is user-visible.
 
 ### UNIT-008: Audience Builder, Reach Preview, and Preferences
 
-**Depends on:** UNIT-004, UNIT-007 and Corporate/Teamwork consumer receipts  
+**Depends on:** UNIT-004, UNIT-007 and Corporate/Teamwork consumer receipts
 **Work:** typed audience rules for all active users, explicit users, signup/use cohorts, beta stage, corporate account/role, workspace/project membership/role, account status, and notification preference policy. Enforce the reconciliation-state eligibility matrix and canonical-to-inbox key adapter for every selector. Implement `/settings/notifications` typed current-user preference reads/actions, defaults, channel/surface semantics, mandatory override, quiet hours, time zones, digest cadence, and deferred reason/deadline state. Show eligible/excluded counts with reasons and freshness. Freeze rule revision/audience semantics at approval/publish.
 
 **Pass:** invalid/cross-tenant targets are denied; preview and publish use the same rule revision; suspended/banned/erased users and preference exclusions are deterministic.
 
 ### UNIT-009: Durable Scheduling, Fanout, Retry, and Reconciliation
 
-**Depends on:** UNIT-007, UNIT-008, UNIT-012  
+**Depends on:** UNIT-007, UNIT-008, UNIT-012
 **Work:** transactional publish command and outbox; mandatory per-occurrence recipient ledger; dedicated notification queue/DLQ adapter, consumer, local emulation, and proposed binding as the v1 default; bounded-horizon one-time/recurrence/future-enrollment scheduler with immutable occurrences and high-water marks; digest bucket/jobs; bounded recipient chunks; stable idempotency; partial acknowledgement; retry/backoff; DLQ/failed-recipient state; pause/resume/cancel concurrency; schedule-misfire handling; crash recovery; reconciliation; numeric free-tier formulas, limits, and headroom stop thresholds. A generalized queue requires a recorded replacement decision and the typed isolation/migration proof in doc 07. Do not create or bind the hosted Queue/DLQ in this local unit.
 
 **Pass:** fault injection after every state transition cannot duplicate recipients or lose the campaign; scheduled execution is at-most-one logical publish with recoverable at-least-once processing.
 
 ### UNIT-010: Notification History, Metrics, Cancellation, and Retraction
 
-**Depends on:** UNIT-009  
+**Depends on:** UNIT-009
 **Work:** scheduled/sent/failed/cancelled/expired/retracted lists; campaign, schedule-revision, occurrence, run, and recipient timelines; intended/eligible/excluded/materialized/deferred/digested/pending/failed/retried metrics with per-occurrence and campaign-total denominators; read/dismiss/modal-ack rates; action-click tracking only through a safe internal event/redirect; cancel one occurrence or remaining series; retract scoped materialized inbox items with tombstones; replacement/supersession flow; export of aggregate evidence only.
 
 **Pass:** every metric names denominator/as-of/semantics; cancellation races and retraction visibility are proven; evidence is preserved.
 
 ### UNIT-011: Support Operations Improvement
 
-**Depends on:** UNIT-003, UNIT-005  
+**Depends on:** UNIT-003, UNIT-005
 **Work:** assignment, priority, status/SLA, tags, internal notes, canned replies, attachment policy, escalation, unread lifecycle, realtime consistency, and email-to-ticket as a separately hosted-proofed channel.
 
 **Pass:** support access, send failure, duplication, attachment, escalation, and retention paths pass; email ingestion remains gated until hosted proof exists.
 
 ### UNIT-012: Feature Configuration and Maintenance Enforcement
 
-**Depends on:** UNIT-003  
+**Depends on:** UNIT-003
 **Work:** typed flag registry, environment override precedence, before/after audit, rollout metadata, notification subsystem kill switches, and actual maintenance enforcement across workshop mutation boundaries with break-glass operator access.
 
 **Pass:** every visible toggle has a proven consumer; stale/reserved flags are labeled or removed; maintenance denial coverage spans all mutation classes.
 
 ### UNIT-013: Audit, Security, Privacy, Retention, and DSAR
 
-**Depends on:** UNIT-003 through UNIT-011  
+**Depends on:** UNIT-003 through UNIT-011
 **Work:** immutable/tombstoned admin actors instead of cascade loss; privileged-read audit; redacted summaries; retention classes for admin, notification, support, usage, client error, and security facts; legal holds; DSAR export/erase/anonymize policy; notification orphan cleanup; audit tamper/access monitoring.
 
 **Pass:** retention/hold/DSAR tests cover every User 360 and campaign source; raw credentials/tokens/IP/UA never appear in DTOs, logs, exports, or audit summaries.
 
 ### UNIT-014: Operations, Incidents, Observability, and Product Analytics
 
-**Depends on:** UNIT-005, UNIT-009, UNIT-013  
+**Depends on:** UNIT-005, UNIT-009, UNIT-013
 **Work:** truthful health probes, incident workflow, cron/queue/DLQ/job state, client error/vital trends, hosted proof readiness, product activation/retention/collaboration/publication/estimate/AI funnels, and notification effectiveness. Consolidate or link existing workshop operator tools without duplicating ownership.
 
 **Pass:** every tile has source/as-of/failure semantics; hosted provider facts are not claimed from local D1 rows or links.
 
 ### UNIT-015: Performance, Accessibility, and Integration Hardening
 
-**Depends on:** UNIT-005 through UNIT-014  
+**Depends on:** UNIT-005 through UNIT-014
 **Work:** query plans/indexes/rollups, bounded concurrency, bundle isolation, streaming and independent failure states, keyboard/focus/table/dialog/live-region behavior, responsive dense layouts, and degraded-mode testing.
 
 **Pass:** budgets in doc 10 and proof matrix in doc 11 pass at seeded cardinalities; no page-wide failure from one provider or domain reader.
 
 ### UNIT-016: Local Release Candidate Audit
 
-**Depends on:** UNIT-001 through UNIT-015  
+**Depends on:** UNIT-001 through UNIT-015
 **Work:** targeted and broad validation proportional to changed blast radius; D1 replay; migration/rollback rehearsal; error-handling gate; static secret/PII scan; admin route/auth smoke; notification crash/retry suite; support/retention checks; final source/manifest/receipt reconciliation.
 
 **Pass:** local evidence is complete, no known error is unclassified, and hosted-only claims remain explicitly boundary-marked.
 
 ### UNIT-017: Hosted Queue, Scheduler, D1, and Worker Proof
 
-**Depends on:** UNIT-016  
-**Boundary:** requires source-matched deployment and mutation of bound Cloudflare resources; standing project authority applies, but deploy/release remains separately requested.  
+**Depends on:** UNIT-016
+**Boundary:** requires source-matched deployment and mutation of bound Cloudflare resources; standing project authority applies, but deploy/release remains separately requested.
 **Work:** after `AUTH-005` is resolved, provision/bind the new notification Queue/DLQ and prove scheduled campaign execution, queue retry/DLQ, D1 materialization/reconciliation, cancellation, retraction, account actions/session revocation, operational dashboards, incident/alert/support monitoring, named ownership, and escalation against the source-matched deployed resources.
 
 ### UNIT-018: Optional Provider Applicability and Hosted Proof
 
-**Depends on:** UNIT-016  
-**Boundary:** credentials/configuration for optional providers and external delivery may be absent.  
+**Depends on:** UNIT-016
+**Boundary:** credentials/configuration for optional providers and external delivery may be absent.
 **Work:** decide each optional provider independently as `enabled_and_required`, `disabled_not_applicable`, or `blocked_required`; prove every enabled slice for Cloudflare Email channel, email-to-ticket, CF Access, CF analytics, GA4, and Clarity; prove disabled slices are not exposed or claimed. A verifier may mark disabled slices `N/A` with an applicability receipt, so unavailable optional credentials do not block core in-app release. Production incident/alert/support ownership remains required in UNIT-017/019.
 
 ### UNIT-019: Production Cutover and Final Completion Audit
 
-**Depends on:** UNIT-017 and UNIT-018's complete per-provider applicability/proof matrix  
+**Depends on:** UNIT-017 and UNIT-018's complete per-provider applicability/proof matrix
 **Work:** canary, evidence freshness, operator runbooks, rollback drill, support/incident monitoring, release decision, final requirement-by-requirement audit, and plan archival.
 
 ## Dependency-Closed Ready Slice

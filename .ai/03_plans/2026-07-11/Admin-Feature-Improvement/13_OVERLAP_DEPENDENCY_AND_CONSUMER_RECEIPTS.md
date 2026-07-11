@@ -6,64 +6,64 @@ This pack may consume current domain contracts but may not duplicate or redefine
 
 ## Activity History Mapping
 
-**Producer owns:** durable domain-event vocabulary, Activity UI/read models, event producer receipts, retention/outbox/legal-hold behavior.  
-**Admin owns:** person-level investigation composition, privileged access, source/retention labels, admin-intervention audit.  
-**Required receipt:** normalized actor/source/category/occurred-at/redaction/retention contract for the current Activity generation.  
+**Producer owns:** durable domain-event vocabulary, Activity UI/read models, event producer receipts, retention/outbox/legal-hold behavior.
+**Admin owns:** person-level investigation composition, privileged access, source/retention labels, admin-intervention audit.
+**Required receipt:** normalized actor/source/category/occurred-at/redaction/retention contract for the current Activity generation.
 **Forbidden:** copying raw Activity payloads into an admin-owned generic event table without producer contract; changing Activity event labels/types from this pack.
 
 ## Beta Operating Contract
 
-**Producer owns:** truthful operator aggregation requirements, source/as-of/availability semantics, current searched-user query repair and session aggregation baseline, operating evidence.  
-**Admin owns:** the broader User 360 and manager UX built on that truth.  
-**Required receipt:** current query/test revision and confirmation that this pack is not racing the same repair files.  
+**Producer owns:** truthful operator aggregation requirements, source/as-of/availability semantics, current searched-user query repair and session aggregation baseline, operating evidence.
+**Admin owns:** the broader User 360 and manager UX built on that truth.
+**Required receipt:** current query/test revision and confirmation that this pack is not racing the same repair files.
 **Known overlap:** `src/lib/admin/users-repository.ts`, admin user tests, overview metrics.
 
 ## Beta Readiness Program
 
-**Producer owns:** migration lease/generation, cross-pack assignment, release/beta readiness.  
-**Admin owns:** its own units and receipts.  
-**Required receipt:** lease generation, allocated migration numbers, final integration receipt.  
+**Producer owns:** migration lease/generation, cross-pack assignment, release/beta readiness.
+**Admin owns:** its own units and receipts.
+**Required receipt:** lease generation, allocated migration numbers, final integration receipt.
 **Forbidden:** hardcoded next migration in this plan.
 
 ## Corporate Accounts
 
-**Producer owns:** corporate entity/member/workspace hierarchy, roles, status, owner floor, audited mutations, `/admin/accounts`.  
-**Admin owns:** navigation/composition and notification targeting consumption.  
-**Required receipt:** versioned read contract for corporate account/status/role membership and recipient eligibility.  
+**Producer owns:** corporate entity/member/workspace hierarchy, roles, status, owner floor, audited mutations, `/admin/accounts`.
+**Admin owns:** navigation/composition and notification targeting consumption.
+**Required receipt:** versioned read contract for corporate account/status/role membership and recipient eligibility.
 **Forbidden:** redefining roles or duplicating CRUD in notification tables.
 
 ## Teamwork Feature
 
-**Producer owns:** workspace/project/estimate access, invitations, member roles, realtime capability, membership mutations, durable Teamwork facts.  
-**Admin owns:** User 360 consumption and audience targeting through authorized read predicates.  
-**Required receipt:** membership/invitation role read contract and Activity producer receipt.  
+**Producer owns:** workspace/project/estimate access, invitations, member roles, realtime capability, membership mutations, durable Teamwork facts.
+**Admin owns:** User 360 consumption and audience targeting through authorized read predicates.
+**Required receipt:** membership/invitation role read contract and Activity producer receipt.
 **Forbidden:** using notification targeting queries that bypass Teamwork access semantics; absorbing transactional invitation delivery into campaigns.
 
 ## Observability and Support Monitoring
 
-**Producer owns:** structured logs, incident records, alert scenarios, hosted proof artifacts, production support/monitoring readiness.  
-**Admin owns:** rendering and operator navigation.  
-**Required receipt:** artifact schema/version/freshness and no-secret DTO.  
+**Producer owns:** structured logs, incident records, alert scenarios, hosted proof artifacts, production support/monitoring readiness.
+**Admin owns:** rendering and operator navigation.
+**Required receipt:** artifact schema/version/freshness and no-secret DTO.
 **Forbidden:** treating product campaign notification as alert sink proof or local rows as hosted evidence.
 
 ## Better Auth
 
-**External/current dependency owns:** user/session/account schema and session/auth semantics.  
-**Admin owns:** read-only safe projections and supported admin/session commands.  
-**Required receipt:** installed-version local docs/source plus official Better Auth admin/session docs at implementation time.  
+**External/current dependency owns:** user/session/account schema and session/auth semantics.
+**Admin owns:** read-only safe projections and supported admin/session commands.
+**Required receipt:** installed-version local docs/source plus official Better Auth admin/session docs at implementation time.
 **Decision:** do not add the Better Auth admin plugin in this plan. First use the installed version's supported session/auth APIs through a narrow adapter while keeping Archestimator capability/account-status ownership local. Reverse only if version-matched official docs/source prove a required ban/session/reauth operation cannot be implemented safely through the installed APIs and a dependency review proves plugin compatibility with D1, existing roles, migrations, and denial tests.
 
 ## Notification Inbox
 
-**Producer owns:** current-user feed, unread count, release modal, mark read/dismiss/ack, action link validation.  
-**Admin manager owns:** campaign control plane, audience, scheduling, fanout, history, metrics, cancellation/retraction.  
-**Required receipt:** definition/delivery schema + repository behavior revision; integration tests that admin-produced rows work with all user actions.  
+**Producer owns:** current-user feed, unread count, release modal, mark read/dismiss/ack, action link validation.
+**Admin manager owns:** campaign control plane, audience, scheduling, fanout, history, metrics, cancellation/retraction.
+**Required receipt:** definition/delivery schema + repository behavior revision; integration tests that admin-produced rows work with all user actions.
 **Forbidden:** a parallel inbox table or client-only campaign state.
 
 ## Support
 
-**Producer owns:** conversation/message persistence, transactional reply/email, SupportInbox realtime.  
-**Admin enhancement owns:** assignment/SLA/tags/notes/escalation UI and safe schema additions.  
+**Producer owns:** conversation/message persistence, transactional reply/email, SupportInbox realtime.
+**Admin enhancement owns:** assignment/SLA/tags/notes/escalation UI and safe schema additions.
 **Forbidden:** mixing support messages with notification campaign content or audience facts.
 
 ## Consumer Receipt Template
