@@ -23,15 +23,17 @@ before claiming completion. Adapter-specific skills, prompt files, or rules may
 reference these guardrails, but they must point back to `.ai/00_system` rather
 than fork a second behavioral contract.
 
-All agents also inherit one test gate: verification is mandatory, while
-`test_requirement` defaults to `NOT_REQUIRED`. Map explicit testing/QA output to
-`TEST_TASK`. Map `TARGETED` only to an MVP mission-critical auth/security, D1
-schema/data-integrity, estimate/proposal financial-math, public-share/
-authorization, release/rollback/observability, or concurrency/shared-contract
-claim that cheaper evidence cannot prove, or to one existing focused test that
-is demonstrably the cheapest decisive proof. The existing-test trigger permits
-no test edits. Broad suites, builds, and browser proof require an explicit test
-task or integrated critical claim.
+All agents also inherit one test gate — the **User Test Authorization Gate**:
+verification is mandatory, but **tests are user-gated, not automatic.** Do not
+create, expand, repair, or run any automated test, test suite, build-as-test-
+gate, browser automation, or broad validation gate unless the user has
+explicitly requested testing for the current task. `test_requirement` defaults
+to `NOT_REQUIRED`. `TEST_TASK` is the only decision that authorizes test
+execution and requires an explicit user request. `TARGETED`/`BROADER` identify
+an MVP mission-critical auth/security, D1, estimate/proposal, release, or
+concurrency claim that would benefit from a test, but they authorize
+**proposing it only** — record a `TEST_PROPOSAL` and wait. The previous
+`CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
 
 <!-- supermemory-bootstrap: required -->
 All agents and harnesses also inherit the shared Supermemory workflow from

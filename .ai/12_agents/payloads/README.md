@@ -27,15 +27,18 @@ OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Gemini only if explicitly
 reapproved, and future payloads must map their local capabilities back to that
 shared loop.
 
-The shared validation contract keeps verification mandatory and defaults
-`test_requirement` to `NOT_REQUIRED`. Map explicit testing/QA output to
-`TEST_TASK`. Map `TARGETED` only to MVP mission-critical claims that cheaper
-evidence cannot prove, or one existing focused test that is demonstrably the
-cheapest decisive proof. The existing-test trigger permits no test edits. Use
-broad suites, builds, or browser proof only for an explicit test task or
-integrated critical claim. Payloads
-reference this contract; they must not invent always-on TDD, coverage, or broad
-regression gates.
+The shared validation contract keeps verification mandatory and makes **tests
+user-gated, not automatic** (the **User Test Authorization Gate**): do not
+create, expand, repair, or run any automated test, test suite, build-as-test-
+gate, browser automation, or broad validation gate unless the user has
+explicitly requested testing for the current task. `test_requirement` defaults
+to `NOT_REQUIRED`. `TEST_TASK` is the only decision that authorizes test
+execution and requires an explicit user request. `TARGETED`/`BROADER` identify
+an MVP mission-critical claim that would benefit from a test but authorize
+**proposing it only** — record a `TEST_PROPOSAL` and wait. The previous
+`CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
+Payloads reference this contract; they must not invent always-on TDD, coverage,
+or broad regression gates.
 
 <!-- supermemory-bootstrap: required -->
 All payloads inherit the Supermemory local memory contract from

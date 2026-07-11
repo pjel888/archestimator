@@ -34,8 +34,14 @@ Operating boundaries (these bind every sentinel and taste file here):
   Better Auth. Historical Supabase resources are read-only archaeology. No
   sentinel is the final gatekeeper for merge or release; the lead orchestrator
   owns integration, validation, and the final claim.
-- Verification is always required, but tests default to `NOT_REQUIRED`. Tests run
-  only for explicit testing/QA work or an MVP mission-critical risk that cheaper
-  evidence cannot prove. Broad suites, builds, and browser proof require an
-  explicit request or an integrated critical claim; ordinary edits use the
-  cheapest decisive non-test evidence.
+- Verification is always required, but **tests are user-gated, not automatic.**
+  The **User Test Authorization Gate** is the supreme rule: do not create,
+  expand, repair, or run any automated test, test suite, build-as-test-gate,
+  browser automation, or broad validation gate unless Philip has explicitly
+  requested testing for the current task. Critical risk, high blast radius, a
+  user-visible change, a nearby test, or a sentinel's own judgment never
+  authorizes running tests — when they seem warranted, record a `TEST_PROPOSAL`
+  (named risk + exact command) and wait. `TEST_TASK` is the only execution
+  trigger and requires an explicit user request. `TARGETED`/`BROADER` authorize
+  proposing, not running. Ordinary edits use the cheapest decisive non-test
+  evidence.

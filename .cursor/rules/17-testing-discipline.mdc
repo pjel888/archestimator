@@ -1,5 +1,5 @@
 ---
-description: "Task-scoped testing discipline for Bun, Vitest, and Playwright after the shared test gate authorizes test work."
+description: "Task-scoped testing discipline for Bun, Vitest, and Playwright. Activates ONLY when the user has explicitly authorized testing for the current task."
 globs:
   - "tests/**"
   - "e2e/**"
@@ -11,9 +11,29 @@ globs:
 
 # Testing Discipline (Archestimator)
 
-This rule applies after the task has been classified as `TARGETED`, `BROADER`, or `TEST_TASK` under `AGENTS.md`, `00-archestimator-project-brain.mdc`, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. If the task is `NOT_REQUIRED`, do not add or run tests merely because a nearby test file exists.
+## Activation Gate (read first)
 
-## Test Surfaces
+**This rule activates ONLY when Philip has explicitly requested testing/QA for
+the current task** (i.e. the `test_requirement` is `TEST_TASK` under the User
+Test Authorization Gate in `AGENTS.md`, `00-archestimator-project-brain.mdc`,
+and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`).
+
+If the user has NOT explicitly authorized tests, this rule does not apply. Do
+not add, edit, or run tests merely because a nearby test file exists or the
+change touches a critical surface. Instead:
+
+- Use the cheapest decisive **non-test** evidence (source, diff, type-check,
+  lint, static, dry-run, narrow runtime check).
+- If tests seem warranted, record a **`TEST_PROPOSAL`** (named risk + exact
+  command you would run) in your report and wait for explicit authorization.
+
+The earlier `TARGETED`/`BROADER`/`CHEAPEST_DECISIVE_EXISTING_TEST` triggers no
+longer authorize running tests on an agent's own judgment — they authorize a
+`TEST_PROPOSAL` only. They still appear in the taxonomy to identify a risk that
+would benefit from a test, but execution always requires `TEST_TASK` with an
+explicit user request.
+
+## Test Surfaces (authorized tasks only)
 
 | Surface | Runner | Location | Use for |
 |---|---|---|---|
@@ -22,22 +42,20 @@ This rule applies after the task has been classified as `TARGETED`, `BROADER`, o
 | E2E | Playwright | `e2e/` | Browser-only critical flows that cheaper evidence cannot prove |
 
 ```bash
-bun run test           # Bun unit tests
-bun run test:dom       # Vitest DOM/integration tests
-bun run test:e2e       # Playwright E2E
-bun run validate       # Broad local gate; only for BROADER or explicit requests
+bun run test           # Bun unit tests — authorized tasks only
+bun run test:dom       # Vitest DOM/integration tests — authorized tasks only
+bun run test:e2e       # Playwright E2E — authorized tasks only
+bun run validate       # Broad local gate — authorized tasks only
 ```
 
-Run the narrowest test command or file filter that proves the named invariant. Expand to `bun run validate`, `bun run build`, or E2E only for an explicit request or an integrated mission-critical claim that narrower evidence cannot prove.
-
-For `CHEAPEST_DECISIVE_EXISTING_TEST`, run exactly one named existing focused
-test and stop. Do not create, edit, expand, repair, delete, or skip test code,
-and do not enter the TDD workflow below.
+Run the narrowest test command or file filter that proves the named invariant.
+Expand to `bun run validate`, `bun run build`, or E2E only under explicit user
+authorization for an integrated claim that narrower evidence cannot prove.
 
 ## Test-Creation Workflow
 
-Use this workflow only for `TEST_TASK` or `MVP_CRITICAL_INVARIANT`, never for
-`CHEAPEST_DECISIVE_EXISTING_TEST`.
+Use this workflow **only when the user has explicitly authorized a testing task
+(`TEST_TASK`)**.
 
 1. Name the behavior or invariant under test.
 2. Read the nearest existing tests and reuse their runner, fixtures, and naming.
@@ -45,7 +63,8 @@ Use this workflow only for `TEST_TASK` or `MVP_CRITICAL_INVARIANT`, never for
 4. Run that test and read the assertion and exit status.
 5. Broaden only when cross-boundary evidence is required.
 
-Use RED -> GREEN when the user explicitly requests TDD or when a mission-critical regression needs pre-change characterization. Otherwise, test-first is optional; proof quality matters more than ceremony.
+Use RED -> GREEN only when the user explicitly requests TDD. Otherwise,
+test-first is optional; proof quality matters more than ceremony.
 
 ## Test Quality
 
