@@ -24,13 +24,13 @@ Before every unit:
 
 - reproduce and lock the searched-user placeholder-order defect;
 - reconcile the stale admin flag test with the current before/after audit contract;
-- repair the Activity ownership test's stale live-plan path after the producer pack was archived;
+- classify the Activity ownership test's stale live-plan path after the producer pack was archived;
 - add characterization tests for fake audit data, account affected-row behavior, admin notification UUID/readability, schema-bound validation, and non-atomic publish residue;
 - inventory Better Auth users missing profiles and profiles missing Better Auth users without mutating data;
 - verify active Corporate, Teamwork, Activity, Beta Operating, and observability manifests and record consumer revisions;
 - reserve migration numbers through the shared lease only after the active migration list is fresh.
 
-**Pass:** the current combined suite has exactly the three classified reds before repair and no unclassified failure; all three are green after repair; archived Activity plus source-drift, Corporate/Teamwork in-progress, Beta, and migration-generation receipts are current enough to state their exact downstream blocks. This unit does not promote cross-pack/D1 dependents or claim an Admin migration allocation.
+**Pass:** the exact combined characterization suite has exactly the three classified reds and no fourth/unclassified failure; archived Activity plus source-drift, Corporate/Teamwork in-progress, Beta, and migration-generation receipts are current enough to state their exact downstream blocks. Known-red classification is the intended evidence for this characterization unit; UNIT-002 owns making all three green. This unit does not promote cross-pack/D1 dependents or claim an Admin migration allocation.
 
 ### UNIT-002: Repair Existing Admin Correctness Baseline
 
@@ -38,6 +38,8 @@ Before every unit:
 **Work:**
 
 - bind searched user SQL parameters in exact placeholder order and prove filtered/unfiltered pagination;
+- update the stale flag-audit expectation to the current actor/target/before-after contract;
+- update the Activity ownership test to the archived completed pack path without weakening its ownership assertions;
 - return `not_found` when status mutation affects zero rows;
 - wire `/admin/audit` to the real repository with server pagination/filtering;
 - repair placeholder admin API routes or remove them when no consumer requires them;
@@ -181,8 +183,8 @@ Each row is a runnable bounded-context packet. Requirements/risks are the recipr
 
 | Unit | Exact paths/current symbols | Role, owned scope, non-goals | Command/procedure and expected signal | Evidence path / failure trigger |
 | --- | --- | --- | --- | --- |
-| UNIT-001 | `src/lib/admin/users-repository.ts` (`listAdminUsers`/status mutation), `src/lib/admin/notification-actions.ts`, `src/lib/notifications/**`, active producer manifests, migration lease | verifier; characterization/receipts only; no product fix | `bun x vitest run tests/vitest/admin-users-repository.test.ts tests/vitest/admin-feature-flags.test.ts tests/vitest/notifications-actions.test.ts tests/vitest/notification-schema.test.ts`; every failure classified and producer hashes current | `evidence/UNIT-001-receipt.md`; unknown failure, stale receipt, or lease collision replans |
-| UNIT-002 | prior paths plus `src/app/admin/audit/**`, `src/lib/admin/audit-repository.ts`, `src/features/notifications/**` | executor; correctness baseline only; no new campaign UX | same focused suite plus `tests/vitest/admin-audit.test.ts tests/vitest/notification-center.test.tsx`; all baseline defects green | `evidence/UNIT-002-receipt.md`; changed inbox contract or unowned collision replans |
+| UNIT-001 | `src/lib/admin/users-repository.ts` (`listAdminUsers`/status mutation), `src/lib/admin/notification-actions.ts`, `src/lib/notifications/**`, active producer manifests, migration lease | verifier; characterization/receipts only; no product fix | `bun x vitest run tests/vitest/admin-users-repository.test.ts tests/vitest/admin-feature-flags.test.ts tests/vitest/admin-flag-actions.test.ts tests/vitest/activity-plan-ownership.test.ts tests/vitest/notifications-actions.test.ts tests/vitest/notification-schema.test.ts --maxWorkers=1`; exactly the three named failures, no fourth, and current producer/migration observations | `evidence/UNIT-001-receipt.md`; unknown failure, stale receipt, or lease collision replans |
+| UNIT-002 | prior paths plus `tests/vitest/activity-plan-ownership.test.ts`, `src/app/admin/audit/**`, `src/lib/admin/audit-repository.ts`, `src/features/notifications/**` | executor; correctness baseline only; no new campaign UX | rerun the exact UNIT-001 suite plus `tests/vitest/admin-audit.test.ts tests/vitest/notification-center.test.tsx`; all three classified reds and remaining baseline defects green | `evidence/UNIT-002-receipt.md`; changed inbox contract or unowned collision replans |
 | UNIT-003 | `src/lib/admin/roles.ts`, admin layout/actions/API guards, Better Auth session helpers | security executor; exact capabilities/denials; no product-role redesign | `bun x vitest run tests/vitest/admin-roles.test.ts tests/vitest/beta-admin-action-boundaries.test.ts tests/vitest/admin-shell.test.tsx`; denial matrix green | `evidence/UNIT-003-receipt.md`; any anonymous/limited/protected-user allow is stop-fail |
 | UNIT-004 | Better Auth `user`/`session`, `profiles`, `src/lib/auth/**`, `worker.ts` `GlobalPresence`, planned lifecycle repository/migration | executor; identity reconciliation and facts; no raw token/IP/route payload | `bun x vitest run tests/vitest/auth-session-closed-beta.test.ts tests/vitest/cloudflare-global-presence-router.test.ts tests/vitest/admin-user-lifecycle.test.ts`; milestone/presence matrix green | `evidence/UNIT-004-receipt.md`; write budget, privacy, or producer mismatch replans |
 | UNIT-005 | `src/app/admin/users/**`, `src/lib/admin/users-repository.ts`, Activity/Corporate/Teamwork read contracts | executor; User 360 composition; no producer taxonomy/role mutation | `bun x vitest run tests/vitest/admin-users-repository.test.ts tests/vitest/activity-tenant-isolation.test.ts tests/vitest/admin-user-360.test.tsx`; cross-tenant denials and partial states green | `evidence/UNIT-005-receipt.md`; missing execution-time producer receipt blocks start |

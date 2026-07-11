@@ -18,6 +18,8 @@ Names are conceptual; final migration names/numbers follow the migration lease.
 - latest run id, supersedes/superseded_by campaign id;
 - created_at, updated_at.
 
+Campaign schedule columns are derived current-summary/pointer fields for list/query efficiency, updated only by the schedule-revision command. `notification_schedule_revisions` and `notification_occurrences` are the immutable timing authority; no independent campaign-field edit may create or change a schedule.
+
 ### `notification_campaign_versions`
 
 - campaign id + version composite key;
@@ -63,7 +65,7 @@ Immutable redacted lifecycle/audit facts. Keep operator audit and campaign state
 
 ### `notification_preferences`
 
-User, kind/channel, enabled, quiet-hours/time zone, digest cadence, updated source/time. Mandatory override policy is not represented by silently rewriting preferences.
+User, kind/channel, enabled, quiet-hours/time zone, digest cadence, interruptive-surface policy (`center`, `toast`, `modal` where the surface is proven), updated source/time. Center visibility derives from kind/channel enablement; toast/modal deferral derives from the explicit interruptive policy plus quiet hours. Mandatory override policy is not represented by silently rewriting preferences.
 
 ### `notification_digest_buckets`
 
