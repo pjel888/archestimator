@@ -104,12 +104,15 @@ describe("corporate account repository ownership guards", () => {
     const database = new FakeDatabase(0);
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    const { addCorporateAccountMember } = await import("@/lib/admin/corporate-account-repository");
-    await expect(addCorporateAccountMember({
-      accountId: "account-1",
-      userId: "owner-1",
-      role: "viewer",
-    })).resolves.toEqual({
+    const { addCorporateAccountMember } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      addCorporateAccountMember({
+        accountId: "account-1",
+        userId: "owner-1",
+        role: "viewer",
+      }),
+    ).resolves.toEqual({
       data: { ok: false },
       error: "Cannot demote the last owner of the account.",
     });
@@ -130,11 +133,14 @@ describe("corporate account repository ownership guards", () => {
     const database = new FakeDatabase(1);
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    const { createCorporateAccount } = await import("@/lib/admin/corporate-account-repository");
-    await expect(createCorporateAccount({
-      name: "Account",
-      createdBy: "  ",
-    })).resolves.toEqual({
+    const { createCorporateAccount } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      createCorporateAccount({
+        name: "Account",
+        createdBy: "  ",
+      }),
+    ).resolves.toEqual({
       data: null,
       error: "Account creator is required.",
     });
@@ -148,35 +154,47 @@ describe("corporate account workspace move audit", () => {
     const database = new FakeWorkspaceMoveDatabase("account-old");
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    const { linkWorkspaceToCorporateAccountWithAudit } = await import("@/lib/admin/corporate-account-repository");
-    await expect(linkWorkspaceToCorporateAccountWithAudit({
-      workspaceId: "workspace-1",
-      accountId: "account-new",
-      actorUserId: "admin-1",
-      actorEmail: "admin@example.test",
-    })).resolves.toEqual({
+    const { linkWorkspaceToCorporateAccountWithAudit } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      linkWorkspaceToCorporateAccountWithAudit({
+        workspaceId: "workspace-1",
+        accountId: "account-new",
+        actorUserId: "admin-1",
+        actorEmail: "admin@example.test",
+      }),
+    ).resolves.toEqual({
       data: { ok: true, previousAccountId: "account-old" },
       error: null,
     });
 
     expect(database.batches).toHaveLength(1);
     expect(database.batches[0]).toHaveLength(3);
-    expect(database.batches[0]?.[0]?.sql).toContain("corporate_account_id IS ?");
-    expect(database.batches[0]?.[1]?.sql).toContain("corporate_account.workspace_unlinked");
-    expect(database.batches[0]?.[2]?.sql).toContain("corporate_account.workspace_linked");
+    expect(database.batches[0]?.[0]?.sql).toContain(
+      "corporate_account_id IS ?",
+    );
+    expect(database.batches[0]?.[1]?.sql).toContain(
+      "corporate_account.workspace_unlinked",
+    );
+    expect(database.batches[0]?.[2]?.sql).toContain(
+      "corporate_account.workspace_linked",
+    );
   });
 
   it("does not report success when the conditional move loses a race", async () => {
     const database = new FakeWorkspaceMoveDatabase("account-old", 0);
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    const { linkWorkspaceToCorporateAccountWithAudit } = await import("@/lib/admin/corporate-account-repository");
-    await expect(linkWorkspaceToCorporateAccountWithAudit({
-      workspaceId: "workspace-1",
-      accountId: "account-new",
-      actorUserId: "admin-1",
-      actorEmail: "admin@example.test",
-    })).resolves.toEqual({
+    const { linkWorkspaceToCorporateAccountWithAudit } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      linkWorkspaceToCorporateAccountWithAudit({
+        workspaceId: "workspace-1",
+        accountId: "account-new",
+        actorUserId: "admin-1",
+        actorEmail: "admin@example.test",
+      }),
+    ).resolves.toEqual({
       data: { ok: false, previousAccountId: "account-old" },
       error: "Workspace link changed concurrently. Reload and retry.",
     });
@@ -187,17 +205,68 @@ describe("corporate account workspace move audit", () => {
     Object.assign(database, { batch: undefined });
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    const { linkWorkspaceToCorporateAccountWithAudit } = await import("@/lib/admin/corporate-account-repository");
-    await expect(linkWorkspaceToCorporateAccountWithAudit({
-      workspaceId: "workspace-1",
-      accountId: "account-new",
-      actorUserId: "admin-1",
-      actorEmail: "admin@example.test",
-    })).resolves.toEqual({
+    const { linkWorkspaceToCorporateAccountWithAudit } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      linkWorkspaceToCorporateAccountWithAudit({
+        workspaceId: "workspace-1",
+        accountId: "account-new",
+        actorUserId: "admin-1",
+        actorEmail: "admin@example.test",
+      }),
+    ).resolves.toEqual({
       data: { ok: false, previousAccountId: "account-old" },
       error: "Transactional D1 batch support is required to link a workspace.",
     });
 
     expect(database.batches).toHaveLength(0);
+  });
+
+  it("commits the conditional unlink and its audit record in one batch", async () => {
+    const database = new FakeWorkspaceMoveDatabase("account-old");
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { unlinkWorkspaceFromCorporateAccountWithAudit } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      unlinkWorkspaceFromCorporateAccountWithAudit({
+        workspaceId: "workspace-1",
+        actorUserId: "admin-1",
+        actorEmail: "admin@example.test",
+      }),
+    ).resolves.toEqual({
+      data: { ok: true, previousAccountId: "account-old" },
+      error: null,
+    });
+
+    expect(database.batches).toHaveLength(1);
+    expect(database.batches[0]).toHaveLength(2);
+    expect(database.batches[0]?.[0]?.sql).toContain(
+      "corporate_account_id IS ?",
+    );
+    expect(database.batches[0]?.[1]?.sql).toContain(
+      "corporate_account.workspace_unlinked",
+    );
+    expect(database.batches[0]?.[1]?.sql).toContain(
+      "corporate_account_id IS NULL",
+    );
+  });
+
+  it("does not report unlink success when its conditional update loses a race", async () => {
+    const database = new FakeWorkspaceMoveDatabase("account-old", 0);
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { unlinkWorkspaceFromCorporateAccountWithAudit } =
+      await import("@/lib/admin/corporate-account-repository");
+    await expect(
+      unlinkWorkspaceFromCorporateAccountWithAudit({
+        workspaceId: "workspace-1",
+        actorUserId: "admin-1",
+        actorEmail: "admin@example.test",
+      }),
+    ).resolves.toEqual({
+      data: { ok: false, previousAccountId: "account-old" },
+      error: "Workspace link changed concurrently. Reload and retry.",
+    });
   });
 });

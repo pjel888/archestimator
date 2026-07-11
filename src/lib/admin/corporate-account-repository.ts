@@ -1,6 +1,9 @@
 import "server-only";
 
-import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import {
+  getCloudflareD1Database,
+  type D1DatabaseLike,
+} from "@/lib/cloudflare/d1";
 import { emitLogRecord } from "@/lib/observability/logger";
 
 export type CorporateAccountRow = {
@@ -53,7 +56,8 @@ export type CorporateAccountResult<T> = {
   error: string | null;
 };
 
-export type CorporateAccountRole = "owner" | "team_leader" | "member" | "viewer";
+export type CorporateAccountRole =
+  "owner" | "team_leader" | "member" | "viewer";
 
 const VALID_ROLES = new Set(["owner", "team_leader", "member", "viewer"]);
 
@@ -97,16 +101,15 @@ export type ListCorporateAccountsWithCountsOptions = {
  */
 export async function listCorporateAccountsWithCounts(
   options: ListCorporateAccountsWithCountsOptions = {},
-): Promise<
-  CorporateAccountResult<CorporateAccountWithCountRow[]>
-> {
+): Promise<CorporateAccountResult<CorporateAccountWithCountRow[]>> {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
 
-    const statusClause = options.status === "archived"
-      ? "WHERE a.status = 'archived'"
-      : "WHERE a.status != 'archived'";
+    const statusClause =
+      options.status === "archived"
+        ? "WHERE a.status = 'archived'"
+        : "WHERE a.status != 'archived'";
     const result = await db
       .prepare<CorporateAccountWithCountRow>(
         `SELECT a.id, a.name, a.description, a.status, a.created_by,
@@ -129,7 +132,9 @@ export async function listCorporateAccountsWithCounts(
   }
 }
 
-export async function listCorporateAccounts(): Promise<CorporateAccountResult<CorporateAccountRow[]>> {
+export async function listCorporateAccounts(): Promise<
+  CorporateAccountResult<CorporateAccountRow[]>
+> {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
@@ -357,14 +362,18 @@ export async function listCorporateAccountReadOnlyViewsInD1(
     .all<WorkspaceWithCorporateAccountIdRow>();
 
   const membersByAccount = new Map<string, CorporateAccountMemberRow[]>();
-  for (const { corporate_account_id, ...member } of membersResult.results ?? []) {
+  for (const { corporate_account_id, ...member } of membersResult.results ??
+    []) {
     const members = membersByAccount.get(corporate_account_id) ?? [];
     members.push(member);
     membersByAccount.set(corporate_account_id, members);
   }
 
   const workspacesByAccount = new Map<string, WorkspaceSummaryRow[]>();
-  for (const { corporate_account_id, ...workspace } of workspacesResult.results ?? []) {
+  for (const {
+    corporate_account_id,
+    ...workspace
+  } of workspacesResult.results ?? []) {
     const workspaces = workspacesByAccount.get(corporate_account_id) ?? [];
     workspaces.push(workspace);
     workspacesByAccount.set(corporate_account_id, workspaces);
@@ -390,7 +399,8 @@ export async function createCorporateAccount(input: {
 }): Promise<CorporateAccountResult<CorporateAccountRow>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: null as never, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return { data: null as never, error: "Cloudflare D1 is not available." };
 
     const id = genId();
     const ts = now();
@@ -399,7 +409,10 @@ export async function createCorporateAccount(input: {
     const description = input.description?.trim() || null;
 
     if (!name || name.length > 200) {
-      return { data: null as never, error: "Account name is required (max 200 chars)." };
+      return {
+        data: null as never,
+        error: "Account name is required (max 200 chars).",
+      };
     }
     if (!createdBy) {
       return { data: null as never, error: "Account creator is required." };
@@ -427,7 +440,10 @@ export async function createCorporateAccount(input: {
     };
   } catch (error) {
     logFailure(error, "corporate_account_create_failed");
-    return { data: null as never, error: "Corporate account could not be created." };
+    return {
+      data: null as never,
+      error: "Corporate account could not be created.",
+    };
   }
 }
 
@@ -442,7 +458,8 @@ export async function addCorporateAccountMember(input: {
   }
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
     const ts = now();
     const result = await db
@@ -463,11 +480,21 @@ export async function addCorporateAccountMember(input: {
                AND other_owner.user_id != corporate_account_members.user_id
            )`,
       )
-      .bind(input.accountId, input.userId, input.role, input.jobTitle?.trim() || null, ts, ts)
+      .bind(
+        input.accountId,
+        input.userId,
+        input.role,
+        input.jobTitle?.trim() || null,
+        ts,
+        ts,
+      )
       .run();
 
     if (!wasMutationApplied(result)) {
-      return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
+      return {
+        data: { ok: false },
+        error: "Cannot demote the last owner of the account.",
+      };
     }
 
     return { data: { ok: true }, error: null };
@@ -518,11 +545,15 @@ export async function removeCorporateAccountMember(
 ): Promise<CorporateAccountResult<{ ok: boolean }>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
     // Last-owner guard: cannot remove the last owner.
     if (await isLastOwner(db, accountId, userId)) {
-      return { data: { ok: false }, error: "Cannot remove the last owner of the account." };
+      return {
+        data: { ok: false },
+        error: "Cannot remove the last owner of the account.",
+      };
     }
 
     const result = await db
@@ -545,7 +576,10 @@ export async function removeCorporateAccountMember(
       .run();
 
     if (!wasMutationApplied(result)) {
-      return { data: { ok: false }, error: "Cannot remove the last owner of the account." };
+      return {
+        data: { ok: false },
+        error: "Cannot remove the last owner of the account.",
+      };
     }
 
     return { data: { ok: true }, error: null };
@@ -565,11 +599,18 @@ export async function updateCorporateAccountMemberRole(input: {
   }
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
     // Last-owner guard: cannot demote the last owner to a non-owner role.
-    if (input.role !== "owner" && (await isLastOwner(db, input.accountId, input.userId))) {
-      return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
+    if (
+      input.role !== "owner" &&
+      (await isLastOwner(db, input.accountId, input.userId))
+    ) {
+      return {
+        data: { ok: false },
+        error: "Cannot demote the last owner of the account.",
+      };
     }
 
     const result = await db
@@ -594,7 +635,10 @@ export async function updateCorporateAccountMemberRole(input: {
       .run();
 
     if (!wasMutationApplied(result)) {
-      return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
+      return {
+        data: { ok: false },
+        error: "Cannot demote the last owner of the account.",
+      };
     }
 
     return { data: { ok: true }, error: null };
@@ -616,6 +660,12 @@ export type LinkWorkspaceWithAuditInput = {
   actorEmail: string;
 };
 
+export type UnlinkWorkspaceWithAuditInput = {
+  workspaceId: string;
+  actorUserId: string;
+  actorEmail: string;
+};
+
 /**
  * Links a workspace to a corporate account. If the workspace was already linked
  * to a DIFFERENT account, this is treated as a move — the previous account ID
@@ -628,7 +678,11 @@ export async function linkWorkspaceToCorporateAccount(
 ): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false, previousAccountId: null }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return {
+        data: { ok: false, previousAccountId: null },
+        error: "Cloudflare D1 is not available.",
+      };
 
     // Check if the workspace is already linked to a different account.
     const existing = await db
@@ -657,7 +711,10 @@ export async function linkWorkspaceToCorporateAccount(
     return { data: { ok: true, previousAccountId }, error: null };
   } catch (error) {
     logFailure(error, "workspace_link_failed");
-    return { data: { ok: false, previousAccountId: null }, error: "Could not link workspace." };
+    return {
+      data: { ok: false, previousAccountId: null },
+      error: "Could not link workspace.",
+    };
   }
 }
 
@@ -671,12 +728,19 @@ export async function linkWorkspaceToCorporateAccountWithAudit(
 ): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false, previousAccountId: null }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return {
+        data: { ok: false, previousAccountId: null },
+        error: "Cloudflare D1 is not available.",
+      };
 
     return await linkWorkspaceToCorporateAccountWithAuditInD1(db, input);
   } catch (error) {
     logFailure(error, "workspace_link_with_audit_failed");
-    return { data: { ok: false, previousAccountId: null }, error: "Could not link workspace." };
+    return {
+      data: { ok: false, previousAccountId: null },
+      error: "Could not link workspace.",
+    };
   }
 }
 
@@ -692,7 +756,10 @@ export async function linkWorkspaceToCorporateAccountWithAuditInD1(
     .first<{ corporate_account_id: string | null }>();
 
   if (!existing) {
-    return { data: { ok: false, previousAccountId: null }, error: "Workspace was not found." };
+    return {
+      data: { ok: false, previousAccountId: null },
+      error: "Workspace was not found.",
+    };
   }
 
   const previousAccountId = existing.corporate_account_id;
@@ -734,7 +801,10 @@ export async function linkWorkspaceToCorporateAccountWithAuditInD1(
           input.actorUserId,
           input.actorEmail,
           previousAccountId,
-          JSON.stringify({ workspaceId: input.workspaceId, reason: "moved_to_another_account" }),
+          JSON.stringify({
+            workspaceId: input.workspaceId,
+            reason: "moved_to_another_account",
+          }),
           updatedAt,
           input.workspaceId,
           input.accountId,
@@ -759,7 +829,10 @@ export async function linkWorkspaceToCorporateAccountWithAuditInD1(
         input.actorUserId,
         input.actorEmail,
         input.accountId,
-        JSON.stringify({ workspaceId: input.workspaceId, movedFrom: previousAccountId }),
+        JSON.stringify({
+          workspaceId: input.workspaceId,
+          movedFrom: previousAccountId,
+        }),
         updatedAt,
         input.workspaceId,
         input.accountId,
@@ -790,7 +863,8 @@ export async function updateCorporateAccountStatus(
   }
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
     const result = await db
       .prepare(
@@ -815,7 +889,8 @@ export async function unlinkWorkspaceFromCorporateAccount(
 ): Promise<CorporateAccountResult<{ ok: boolean }>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db)
+      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
 
     const result = await db
       .prepare(
@@ -835,7 +910,106 @@ export async function unlinkWorkspaceFromCorporateAccount(
   }
 }
 
-export async function listUnlinkedWorkspaces(): Promise<CorporateAccountResult<WorkspaceSummaryRow[]>> {
+/**
+ * Unlinks a workspace and records its account audit trail in one D1 batch.
+ * The observed assignment is part of the update predicate so a concurrent
+ * move cannot create an audit record for an unlink that did not persist.
+ */
+export async function unlinkWorkspaceFromCorporateAccountWithAudit(
+  input: UnlinkWorkspaceWithAuditInput,
+): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
+  try {
+    const db = await getCloudflareD1Database();
+    if (!db)
+      return {
+        data: { ok: false, previousAccountId: null },
+        error: "Cloudflare D1 is not available.",
+      };
+
+    return await unlinkWorkspaceFromCorporateAccountWithAuditInD1(db, input);
+  } catch (error) {
+    logFailure(error, "workspace_unlink_with_audit_failed");
+    return {
+      data: { ok: false, previousAccountId: null },
+      error: "Could not unlink workspace.",
+    };
+  }
+}
+
+export async function unlinkWorkspaceFromCorporateAccountWithAuditInD1(
+  db: D1DatabaseLike,
+  input: UnlinkWorkspaceWithAuditInput,
+): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
+  const existing = await db
+    .prepare<{ corporate_account_id: string | null }>(
+      "SELECT corporate_account_id FROM workspaces WHERE id = ?",
+    )
+    .bind(input.workspaceId)
+    .first<{ corporate_account_id: string | null }>();
+
+  if (!existing) {
+    return {
+      data: { ok: false, previousAccountId: null },
+      error: "Workspace was not found.",
+    };
+  }
+
+  const previousAccountId = existing.corporate_account_id;
+  if (!previousAccountId) {
+    return { data: { ok: true, previousAccountId: null }, error: null };
+  }
+  if (!db.batch) {
+    return {
+      data: { ok: false, previousAccountId },
+      error:
+        "Transactional D1 batch support is required to unlink a workspace.",
+    };
+  }
+
+  const updatedAt = now();
+  const results = await db.batch([
+    db
+      .prepare(
+        `UPDATE workspaces
+         SET corporate_account_id = NULL, updated_at = ?
+         WHERE id = ? AND corporate_account_id IS ?`,
+      )
+      .bind(updatedAt, input.workspaceId, previousAccountId),
+    db
+      .prepare(
+        `INSERT INTO admin_audit_events (
+           id, actor_user_id, actor_email, action, target_type, target_id,
+           summary_json, request_id, created_at
+         )
+         SELECT ?, ?, ?, 'corporate_account.workspace_unlinked', 'corporate_account', ?, ?, NULL, ?
+         FROM workspaces
+         WHERE id = ? AND corporate_account_id IS NULL AND updated_at = ?`,
+      )
+      .bind(
+        genId(),
+        input.actorUserId,
+        input.actorEmail,
+        previousAccountId,
+        JSON.stringify({ workspaceId: input.workspaceId, reason: "unlinked" }),
+        updatedAt,
+        input.workspaceId,
+        updatedAt,
+      ),
+  ]);
+
+  if (!wasMutationApplied(results[0] ?? {})) {
+    return {
+      data: { ok: false, previousAccountId },
+      error: "Workspace link changed concurrently. Reload and retry.",
+    };
+  }
+
+  return { data: { ok: true, previousAccountId }, error: null };
+}
+
+export async function listUnlinkedWorkspaces(): Promise<
+  CorporateAccountResult<WorkspaceSummaryRow[]>
+> {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
@@ -857,7 +1031,9 @@ export async function listUnlinkedWorkspaces(): Promise<CorporateAccountResult<W
   }
 }
 
-export async function listAllWorkspacesForLinking(): Promise<CorporateAccountResult<WorkspaceLinkCandidateRow[]>> {
+export async function listAllWorkspacesForLinking(): Promise<
+  CorporateAccountResult<WorkspaceLinkCandidateRow[]>
+> {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
@@ -881,21 +1057,38 @@ export async function listAllWorkspacesForLinking(): Promise<CorporateAccountRes
 }
 
 export async function listAllUsersForAssignment(): Promise<
-  CorporateAccountResult<{ id: string; email: string; display_name: string | null; account_status: string }[]>
+  CorporateAccountResult<
+    {
+      id: string;
+      email: string;
+      display_name: string | null;
+      account_status: string;
+    }[]
+  >
 > {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
 
     const result = await db
-      .prepare<{ id: string; email: string; display_name: string | null; account_status: string }>(
+      .prepare<{
+        id: string;
+        email: string;
+        display_name: string | null;
+        account_status: string;
+      }>(
         `SELECT id, email, display_name, account_status
          FROM profiles
          WHERE account_status = 'active' OR account_status IS NULL
          ORDER BY email ASC
          LIMIT 500`,
       )
-      .all<{ id: string; email: string; display_name: string | null; account_status: string }>();
+      .all<{
+        id: string;
+        email: string;
+        display_name: string | null;
+        account_status: string;
+      }>();
 
     return { data: result.results ?? [], error: null };
   } catch (error) {

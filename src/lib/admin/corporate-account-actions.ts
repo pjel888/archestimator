@@ -10,15 +10,15 @@ import {
   isValidRole,
   linkWorkspaceToCorporateAccountWithAudit,
   removeCorporateAccountMember,
-  unlinkWorkspaceFromCorporateAccount,
+  unlinkWorkspaceFromCorporateAccountWithAudit,
   updateCorporateAccountMemberRole,
 } from "@/lib/admin/corporate-account-repository";
 
 export type CorporateActionResult =
-  | { ok: true; accountId?: string }
-  | { ok: false; error: string };
+  { ok: true; accountId?: string } | { ok: false; error: string };
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 export async function createCorporateAccountAction(input: {
   name: string;
@@ -26,14 +26,16 @@ export async function createCorporateAccountAction(input: {
 }): Promise<CorporateActionResult> {
   const admin = await requireAdminContext();
   const name = input.name.trim();
-  if (!name || name.length > 200) return { ok: false, error: "Name is required (max 200 chars)." };
+  if (!name || name.length > 200)
+    return { ok: false, error: "Name is required (max 200 chars)." };
 
   const result = await createCorporateAccount({
     name,
     description: input.description,
     createdBy: admin.userId,
   });
-  if (result.error || !result.data) return { ok: false, error: result.error ?? "Failed." };
+  if (result.error || !result.data)
+    return { ok: false, error: result.error ?? "Failed." };
 
   await writeAdminAuditEvent({
     actorUserId: admin.userId,
@@ -61,7 +63,8 @@ export async function assignUserToCorporateAccountAction(input: {
   if (!isValidRole(input.role)) return { ok: false, error: "Invalid role." };
 
   const result = await addCorporateAccountMember(input);
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
+  if (result.error || !result.data?.ok)
+    return { ok: false, error: result.error ?? "Failed." };
 
   await writeAdminAuditEvent({
     actorUserId: admin.userId,
@@ -85,8 +88,12 @@ export async function removeUserFromCorporateAccountAction(input: {
     return { ok: false, error: "Invalid ID." };
   }
 
-  const result = await removeCorporateAccountMember(input.accountId, input.userId);
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
+  const result = await removeCorporateAccountMember(
+    input.accountId,
+    input.userId,
+  );
+  if (result.error || !result.data?.ok)
+    return { ok: false, error: result.error ?? "Failed." };
 
   await writeAdminAuditEvent({
     actorUserId: admin.userId,
@@ -113,7 +120,8 @@ export async function updateMemberRoleAction(input: {
   if (!isValidRole(input.role)) return { ok: false, error: "Invalid role." };
 
   const result = await updateCorporateAccountMemberRole(input);
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
+  if (result.error || !result.data?.ok)
+    return { ok: false, error: result.error ?? "Failed." };
 
   await writeAdminAuditEvent({
     actorUserId: admin.userId,
@@ -133,7 +141,10 @@ export async function linkWorkspaceAction(input: {
   accountId: string;
 }): Promise<CorporateActionResult> {
   const admin = await requireAdminContext();
-  if (!UUID_PATTERN.test(input.workspaceId) || !UUID_PATTERN.test(input.accountId)) {
+  if (
+    !UUID_PATTERN.test(input.workspaceId) ||
+    !UUID_PATTERN.test(input.accountId)
+  ) {
     return { ok: false, error: "Invalid ID." };
   }
 
@@ -143,7 +154,8 @@ export async function linkWorkspaceAction(input: {
     actorUserId: admin.userId,
     actorEmail: admin.email,
   });
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
+  if (result.error || !result.data?.ok)
+    return { ok: false, error: result.error ?? "Failed." };
 
   revalidatePath("/admin/accounts");
   return { ok: true };
@@ -161,9 +173,14 @@ export async function updateCorporateAccountStatusAction(input: {
     return { ok: false, error: "Invalid status." };
   }
 
-  const { updateCorporateAccountStatus } = await import("@/lib/admin/corporate-account-repository");
-  const result = await updateCorporateAccountStatus(input.accountId, input.status);
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
+  const { updateCorporateAccountStatus } =
+    await import("@/lib/admin/corporate-account-repository");
+  const result = await updateCorporateAccountStatus(
+    input.accountId,
+    input.status,
+  );
+  if (result.error || !result.data?.ok)
+    return { ok: false, error: result.error ?? "Failed." };
 
   await writeAdminAuditEvent({
     actorUserId: admin.userId,
@@ -186,17 +203,13 @@ export async function unlinkWorkspaceAction(input: {
     return { ok: false, error: "Invalid workspace ID." };
   }
 
-  const result = await unlinkWorkspaceFromCorporateAccount(input.workspaceId);
-  if (result.error || !result.data?.ok) return { ok: false, error: result.error ?? "Failed." };
-
-  await writeAdminAuditEvent({
+  const result = await unlinkWorkspaceFromCorporateAccountWithAudit({
+    workspaceId: input.workspaceId,
     actorUserId: admin.userId,
     actorEmail: admin.email,
-    action: "corporate_account.workspace_unlinked",
-    targetType: "workspace",
-    targetId: input.workspaceId,
-    summary: {},
   });
+  if (result.error || !result.data?.ok)
+    return { ok: false, error: result.error ?? "Failed." };
 
   revalidatePath("/admin/accounts");
   return { ok: true };
