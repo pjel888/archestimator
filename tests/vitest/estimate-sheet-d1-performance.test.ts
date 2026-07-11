@@ -1,34 +1,311 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { FIXTURE_PROFILES } from "../../scripts/lib/estimate-sheet-performance-contract";
+import {
+  LOCAL_D1_CLEANUP_TABLE_ORDER,
+  REQUIRED_LOCAL_D1_SURFACES,
+  createLocalD1PerformanceReport,
+  normalizeD1Sql,
+  publishLocalD1Report,
+  validateBetterAuthD1SchemaProof,
+  validateCompleteLocalD1Measurement,
+  validateLimitD1Fixture,
+  validateLocalD1RunManifest,
+  type LocalD1Measurement,
+  type LocalD1StatementRecord,
+} from "../../scripts/measure-estimate-sheet-d1";
+import {
+  RUN_MANIFEST_SCHEMA,
+  sha256Hex,
+  type FingerprintContent,
+  type RunManifestV1,
+} from "../../scripts/lib/estimate-sheet-performance-contract";
 import { buildEstimatePerformanceFixture } from "../fixtures/estimate-sheet-performance";
 
-const scriptPath = resolve(process.cwd(), "scripts/measure-estimate-sheet-d1.ts");
-const describeD1 = describe.skipIf(!existsSync(scriptPath));
+const digest = sha256Hex("estimate-sheet-local-d1-contract");
+const fingerprint: FingerprintContent = {
+  contract_version: "estimate-sheet-application-fingerprint.v1",
+  path_count: 1,
+  path_list_sha256: digest,
+  content_sha256: digest,
+};
 
-describeD1("estimate-sheet local D1 performance contract", () => {
-  it("declares the local-d1 evidence class and the 1,500-node row-load shape", () => {
-    const source = readFileSync(scriptPath, "utf8");
-    expect(source).toMatch(/local-d1/);
-    expect(source).toMatch(/measureEstimateSheetPerformance|FIXTURE_PROFILES|limit/);
-    expect(source).toMatch(/bind/i);
-    expect(source).toMatch(/query|statement/i);
-    expect(source).toMatch(/plan|cleanup/i);
-  });
+function makeManifest(runRoot: string): RunManifestV1 {
+  return {
+    schema_version: RUN_MANIFEST_SCHEMA,
+    package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
+    unit_id: "UNIT-003",
+    run_id: "00000000-0000-4000-8000-000000000003",
+    profile: "limit",
+    evidence_class: "local-d1",
+    cleanupRequirement: "REQUIRED",
+    run_root: runRoot,
+    pointer_path: join(runRoot, "current.json"),
+    created_at: "2026-07-11T00:00:00.000Z",
+    status: "PREPARED",
+    sourceFingerprint: {
+      contract_version: "estimate-sheet-source-fingerprint.v2",
+      head: "abcdef1234567",
+      path_count: 1,
+      path_list_sha256: digest,
+      application: fingerprint,
+      producer: fingerprint,
+    },
+    applicationFingerprint: fingerprint,
+    producerFingerprint: fingerprint,
+    namespaces: {
+      d1: {
+        idSha256: sha256Hex("isolated-d1-namespace"),
+        preStateSha256: sha256Hex("empty-d1-pre-state"),
+      },
+    },
+    mutationJournal: [],
+    previewProcesses: [],
+  };
+}
 
-  it("provides enough nodes and rows for the declared D1 stress shape", () => {
+function statementForSurface(
+  surface: (typeof REQUIRED_LOCAL_D1_SURFACES)[number],
+  index: number,
+): LocalD1StatementRecord {
+  const expectedBindFailure = surface === "limit-tree-row-load";
+  return {
+    surface,
+    statementName: `${surface}-${index}`,
+    normalizedSqlHash: sha256Hex(`SELECT ${index} FROM fixture WHERE id = ?`),
+    bindCount: expectedBindFailure ? 1_501 : 1,
+    bindCeilingOutcome: expectedBindFailure ? "EXCEEDS_LIMIT" : "WITHIN_LIMIT",
+    statementCount: 1,
+    queryCount: 1,
+    batchSize: 1,
+    durationMs: expectedBindFailure ? null : index + 0.5,
+    rowsRead: expectedBindFailure ? null : index + 1,
+    rowsWritten: surface === "row-update" ? 1 : 0,
+    resultRowCount: expectedBindFailure ? 0 : 1,
+    queryPlan: ["SEARCH fixture USING INDEX fixture_idx (id=?)"],
+    queryPlanBasisBindCount: expectedBindFailure ? 100 : 1,
+    selectedIndex: "fixture_idx",
+    seededCount: 6_508,
+    cleanedCount: 0,
+    evidenceClass: "local-d1",
+    outcome: expectedBindFailure ? "FAIL" : "PASS",
+    ...(expectedBindFailure ? { failureId: "D1_TOO_MANY_SQL_VARIABLES" as const } : {}),
+  };
+}
+
+function makeTableCounts(kind: "seeded" | "zero"): Record<string, number> {
+  return Object.fromEntries(LOCAL_D1_CLEANUP_TABLE_ORDER.map((table) => {
+    if (kind === "zero") return [table, 0];
+    if (table === "estimate_nodes") return [table, 1_500];
+    if (table === "estimate_row_items") return [table, 5_000];
+    return [table, 1];
+  }));
+}
+
+function makeCompleteMeasurement(): LocalD1Measurement {
+  const statements = REQUIRED_LOCAL_D1_SURFACES.map(statementForSurface);
+  const seeded = makeTableCounts("seeded");
+  return {
+    schemaVersion: "estimate-sheet-local-d1-measurement.v1",
+    provider: "cloudflare-d1-local",
+    providerBacked: true,
+    binding: "ARCH_DB",
+    databaseIdSha256: sha256Hex("database-id"),
+    persistenceRoot: "wrangler-state",
+    persistenceRootIdSha256: sha256Hex("wrangler-state-id"),
+    wranglerVersion: "4.105.0",
+    betterAuthVersion: "1.6.23",
+    schemaHash: sha256Hex("schema"),
+    generatedSchemaHash: sha256Hex("generated-schema"),
+    generatedSchemaStatementCount: 8,
+    generatedSchemaTables: ["account", "rateLimit", "session", "user", "verification"],
+    migrationSetHash: sha256Hex("migration-set"),
+    migrationHead: "0067_beta_activation_events.sql",
+    migrationCount: 2,
+    migrationStatementCount: 4,
+    migrationIdempotency: {
+      firstPassApplied: 2,
+      secondPassApplied: 0,
+      ledgerCount: 2,
+    },
+    fixture: {
+      profile: "limit",
+      nodeCount: 1_500,
+      rowCount: 5_000,
+      componentMatchCount: 1_000,
+      fixtureHash: sha256Hex("fixture"),
+    },
+    bindCeiling: {
+      installed: 100,
+      provider: 100,
+      effective: 100,
+      successAtCeiling: true,
+      failureAboveCeiling: true,
+      rowLoadBindCount: 1_501,
+      rowLoadOutcome: "FAIL",
+    },
+    statements,
+    queryCount: statements.length,
+    bindCounts: statements.map((statement) => statement.bindCount),
+    rowsRead: 120,
+    rowsWritten: 1,
+    queryPlans: statements.map((statement) => ({
+      statementName: statement.statementName,
+      details: statement.queryPlan,
+      selectedIndex: statement.selectedIndex,
+    })),
+    cleanup: {
+      statePath: "cleanup/d1-state.json",
+      stateSha256: sha256Hex("cleanup-state"),
+      exactTableOrder: [...LOCAL_D1_CLEANUP_TABLE_ORDER],
+      auxiliaryAuthTableOrder: ["session", "user", "legal_terms_acceptances", "closed_beta_allowed_emails"],
+      seeded,
+      deleted: makeTableCounts("zero"),
+      remaining: { ...seeded },
+    },
+    costProjection: {
+      trafficModel: "10-users-500-actions-50-route-opens",
+      projectedRowsReadPerDay: 120_000,
+      projectedRowsWrittenPerDay: 5_000,
+      planningBaselineReadAllowance: 5_000_000,
+      planningBaselineWriteAllowance: 100_000,
+      maximumPercent: 5,
+      thresholdPercent: 50,
+      status: "PASS",
+    },
+    metrics: {
+      "M-D1-ROUTE-CONTEXT-STATEMENTS": { value: 4, threshold: 4, comparison: "maximum", unit: "count", status: "PASS", source: "route-context" },
+      "M-D1-TAB-TREE-STATEMENTS": { value: 3, threshold: 3, comparison: "maximum", unit: "count", status: "PASS", source: "selected-tab-tree" },
+      "M-D1-ROW-UPDATE-STATEMENTS": { value: 3, threshold: 3, comparison: "maximum", unit: "count", status: "PASS", source: "row-update" },
+      "M-D1-SUBTREE-DEPTH-SHAPE": { value: 3, threshold: 3, comparison: "exact", unit: "count", status: "PASS", source: "lazy-subtree" },
+      "M-D1-BIND-CEILING": { value: 1_501, threshold: 100, comparison: "maximum", unit: "count", status: "FAIL", source: "limit-tree-row-load" },
+      "M-D1-COST-PROJECTION-PCT": { value: 5, threshold: 50, comparison: "maximum", unit: "percent", status: "PASS", source: "cost-projection" },
+      "M-MUTATE-SERVER-FANOUT-BUDGET": { value: 1_000, threshold: 1_000, comparison: "maximum", unit: "count", status: "PASS", source: "project-component-fanout" },
+    },
+    functionalScenarios: {
+      "auth-denial-wrong-tenant": "PASS",
+      "auth-denial-wrong-estimate": "PASS",
+      "auth-denial-wrong-tab": "PASS",
+      "auth-denial-wrong-node": "PASS",
+    },
+  };
+}
+
+describe("estimate-sheet local D1 performance contract", () => {
+  it("normalizes SQL deterministically and validates the exact limit fixture", () => {
+    const normalized = normalizeD1Sql(" SELECT\n  *   FROM rows\tWHERE id = ? ");
+    expect(normalized).toBe("SELECT * FROM rows WHERE id=?");
+    expect(normalizeD1Sql("SELECT * FROM rows WHERE id=?")).toBe(normalized);
     const fixture = buildEstimatePerformanceFixture("limit");
-    expect(fixture.expectedTotals.nodeCount).toBe(1_500);
-    expect(fixture.expectedTotals.rowCount).toBe(FIXTURE_PROFILES.limit);
-    expect(fixture.nodes.length).toBeGreaterThan(0);
+    expect(validateLimitD1Fixture(fixture)).toEqual([]);
+    expect(fixture.expectedTotals).toMatchObject({
+      nodeCount: 1_500,
+      rowCount: 5_000,
+      componentMatchCount: 1_000,
+    });
   });
 
-  it("keeps local D1 measurement free of browser-only resource declarations", () => {
-    const source = readFileSync(scriptPath, "utf8");
-    expect(source).not.toMatch(/PLAYWRIGHT_STORAGE_STATE/);
-    expect(source).not.toMatch(/baseURL\s*:/);
+  it("fails closed on invalid generated schema and fixture inputs", () => {
+    expect(validateBetterAuthD1SchemaProof({
+      generated: true,
+      staticReviewReady: true,
+      statementCount: 7,
+      sha256: "not-a-hash",
+      sql: "",
+      tableNames: ["user"],
+    })).toEqual(expect.arrayContaining([
+      "Better Auth schema must contain exactly 8 statements",
+      "Better Auth schema hash is invalid",
+      "Better Auth schema SQL is missing",
+    ]));
+
+    const fixture = structuredClone(buildEstimatePerformanceFixture("limit"));
+    fixture.expectedTotals.nodeCount = 1_499;
+    fixture.rows.pop();
+    expect(validateLimitD1Fixture(fixture)).toEqual(expect.arrayContaining([
+      "D1 fixture must contain exactly 1,500 nodes",
+      "D1 fixture row array is incomplete",
+    ]));
+  });
+
+  it("requires a prepared isolated local-D1 run and rejects browser resources", () => {
+    const manifest = makeManifest(join(tmpdir(), "estimate-sheet-d1-manifest"));
+    expect(validateLocalD1RunManifest(manifest)).toEqual([]);
+
+    const missingNamespace = structuredClone(manifest);
+    delete missingNamespace.namespaces.d1;
+    expect(validateLocalD1RunManifest(missingNamespace)).toContain(
+      "local D1 run requires an isolated d1 namespace",
+    );
+
+    const browserContaminated = { ...manifest, runtimeEnv: "/tmp/runtime.env" };
+    expect(validateLocalD1RunManifest(browserContaminated)).toContain(
+      "pure local D1 runs cannot contain browser or preview resources",
+    );
+  });
+
+  it("accepts complete records and detects incomplete statement, plan, and cleanup evidence", () => {
+    const complete = makeCompleteMeasurement();
+    expect(validateCompleteLocalD1Measurement(complete)).toEqual([]);
+
+    const incomplete = structuredClone(complete);
+    incomplete.statements = incomplete.statements.filter((record) => record.surface !== "node-move");
+    incomplete.bindCounts.pop();
+    incomplete.queryPlans[0]!.details = [];
+    incomplete.cleanup.remaining.estimate_nodes = 1_499;
+    expect(validateCompleteLocalD1Measurement(incomplete)).toEqual(expect.arrayContaining([
+      "missing D1 surface: node-move",
+      "pre-cleanup remaining counts must equal seeded counts",
+    ]));
+    expect(validateCompleteLocalD1Measurement(incomplete)).toContain("aggregate queryCount does not match statement records");
+  });
+
+  it("binds reports to the run and fingerprints and refuses artifact overwrite", () => {
+    const root = mkdtempSync(join(tmpdir(), "estimate-sheet-local-d1-"));
+    const output = join(root, "reports", "d1.json");
+    const manifest = makeManifest(root);
+    try {
+      const report = createLocalD1PerformanceReport({
+        manifest,
+        measurement: makeCompleteMeasurement(),
+        head: "abcdef1234567",
+        generatedAt: "2026-07-11T00:01:00.000Z",
+        fixtureHash: sha256Hex("fixture"),
+        authFixtureHash: sha256Hex("auth-fixture"),
+        toolHashes: { producer: sha256Hex("producer") },
+      });
+      expect(report).toMatchObject({
+        evidenceClass: "local-d1",
+        runId: manifest.run_id,
+        buildHash: null,
+        overall: "FAIL",
+        failures: ["hard-metric-failed:M-D1-BIND-CEILING"],
+      });
+
+      publishLocalD1Report(output, report, manifest);
+      expect(JSON.parse(readFileSync(output, "utf8"))).toMatchObject({
+        runId: manifest.run_id,
+        evidenceClass: "local-d1",
+      });
+      expect(() => publishLocalD1Report(output, report, manifest)).toThrow(/refusing to overwrite/);
+      expect(() => publishLocalD1Report(
+        join(root, "reports", "wrong-run.json"),
+        { ...report, runId: "wrong-run" },
+        manifest,
+      )).toThrow(/run identity mismatch/);
+      expect(() => publishLocalD1Report(
+        join(root, "reports", "wrong-fingerprint.json"),
+        {
+          ...report,
+          applicationFingerprint: { ...report.applicationFingerprint, content_sha256: sha256Hex("stale") },
+        },
+        manifest,
+      )).toThrow(/fingerprint mismatch/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

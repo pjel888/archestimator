@@ -311,6 +311,18 @@ describe("PublisherRosterClient", () => {
     expect(screen.getByRole("option", { name: "Outside Page (OP-004)" })).toBeInTheDocument();
   });
 
+  it("opens the share flow for projects outside the current page", () => {
+    renderPublisherRosterClient();
+
+    fireEvent.click(screen.getByRole("button", { name: "Share a project" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Outside Page (OP-004)" }));
+
+    expect(navigationMocks.replace).toHaveBeenCalledWith(
+      "/workshop/publisher?project=project-outside-page&wizard=project-outside-page",
+      { scroll: false },
+    );
+  });
+
   it("copies the share URL without navigating the manager route", async () => {
     renderPublisherRosterClient();
 
@@ -323,6 +335,16 @@ describe("PublisherRosterClient", () => {
     });
     expect(navigationMocks.replace).not.toHaveBeenCalled();
     expect(await screen.findByText("pub-active: copied")).toBeInTheDocument();
+  });
+
+  it("routes manager previews without recording client opens", () => {
+    renderPublisherRosterClient();
+
+    const table = screen.getByRole("table", { name: "Shared link manager roster" });
+    expect(within(table).getByRole("link", { name: "Preview shared page for Lewis Residence" })).toHaveAttribute(
+      "href",
+      "/workshop/publisher/preview/project-active",
+    );
   });
 
   it("persists status filters through the route query", () => {

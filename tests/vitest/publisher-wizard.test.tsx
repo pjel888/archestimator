@@ -158,7 +158,7 @@ describe("ShareWizard", () => {
       estimateSheets: [{ id: "estimate-1", name: "Base", sheetCode: "E-1" }],
       summary: createPublisherSummary({ passwordRequired: true }),
     });
-    renderWizard({ initialStep: 3, row: { ...row, passwordRequired: true } });
+    renderWizard({ initialStep: 3, row: { ...row, passwordRequired: false } });
 
     const shareButton = await screen.findByRole("button", { name: "Share" });
     await waitFor(() => expect(shareButton).not.toBeDisabled());
@@ -166,6 +166,29 @@ describe("ShareWizard", () => {
 
     await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
       clearPassword: false,
+      password: undefined,
+      projectId: "project-1",
+      selectedEstimateIds: ["estimate-1"],
+    }));
+  });
+
+  it("clears an existing password only after the user removes it", async () => {
+    drawerActionMocks.readPublisherPublicationDrawerData.mockResolvedValueOnce({
+      collaborationSummary: null,
+      currentUserEmail: "owner@example.test",
+      estimateSheets: [{ id: "estimate-1", name: "Base", sheetCode: "E-1" }],
+      summary: createPublisherSummary({ passwordRequired: true }),
+    });
+    renderWizard({ initialStep: 2, row: { ...row, passwordRequired: false } });
+
+    const passwordToggle = await screen.findByRole("checkbox", { name: /require a password/i });
+    await waitFor(() => expect(passwordToggle).toBeChecked());
+    fireEvent.click(passwordToggle);
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+
+    await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
+      clearPassword: true,
       password: undefined,
       projectId: "project-1",
       selectedEstimateIds: ["estimate-1"],

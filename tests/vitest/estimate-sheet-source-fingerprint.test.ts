@@ -1,8 +1,11 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
+
+import type { SourceFingerprint } from "../../scripts/lib/estimate-sheet-performance-contract";
 
 const repoRoot = resolve(process.cwd());
 const reference = resolve(repoRoot, ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/source-fingerprint-v1.mjs");
@@ -21,7 +24,21 @@ function runReference(extraEnv: Record<string, string> = {}) {
     },
   });
   expect(result.status, result.stderr).toBe(0);
-  return JSON.parse(result.stdout) as Record<string, any>;
+  return JSON.parse(result.stdout) as SourceFingerprint;
+}
+
+function runTyped(extraArgs: string[] = []) {
+  return spawnSync("bun", ["run", typedHelper, "--", ...extraArgs], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH ?? "/opt/homebrew/bin:/usr/bin:/bin",
+      HOME: "/tmp/archestimator-fingerprint-home",
+      LC_ALL: "C",
+      LANG: "C",
+      TZ: "UTC",
+    },
+  });
 }
 
 describe("estimate-sheet source fingerprint contract", () => {
@@ -48,19 +65,45 @@ describe("estimate-sheet source fingerprint contract", () => {
   });
 
   it("byte-compares the typed helper output with a fresh immutable reference invocation", () => {
-    const result = spawnSync("bun", ["run", typedHelper, "--", `--compare-reference=${reference}`], {
+    const referenceResult = spawnSync(process.execPath, [reference], {
       cwd: repoRoot,
       encoding: "utf8",
       env: {
-        PATH: process.env.PATH ?? "/opt/homebrew/bin:/usr/bin:/bin",
+        PATH: "/usr/bin:/bin",
         HOME: "/tmp/archestimator-fingerprint-home",
         LC_ALL: "C",
         LANG: "C",
         TZ: "UTC",
       },
     });
+    expect(referenceResult.status, referenceResult.stderr).toBe(0);
+
+    const result = runTyped([`--compare-reference=${reference}`]);
     expect(result.status, result.stderr).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ contract_version: "estimate-sheet-source-fingerprint.v2" });
+    expect(result.stdout).toBe(referenceResult.stdout);
+  });
+
+  it("rejects a valid-looking sabotaged reference instead of delegating computation to it", () => {
+    const sandbox = mkdtempSync(resolve(tmpdir(), "estimate-fingerprint-sabotage-"));
+    try {
+      const sabotagedReference = resolve(sandbox, "source-fingerprint-v1.mjs");
+      const sabotagedFingerprint = {
+        ...runReference(),
+        path_count: 0,
+      };
+      writeFileSync(
+        sabotagedReference,
+        `process.stdout.write(${JSON.stringify(`${JSON.stringify(sabotagedFingerprint, null, 2)}\n`)});\n`,
+        { mode: 0o600 },
+      );
+
+      const result = runTyped([`--compare-reference=${sabotagedReference}`]);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("typed fingerprint output differs from reference output");
+      expect(result.stdout).toBe("");
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
   });
 
   it("does not treat the three generated .impeccable metadata files as source scope", () => {
