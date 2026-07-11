@@ -735,58 +735,216 @@ async function withTransitionLock<T>(repoRoot: string, operation: () => Promise<
   }
 }
 
+type PrepareJournalState = "ALLOCATED" | "FILES_DECLARED" | "FILES_WRITTEN" | "COMMITTED";
+
+type PrepareTransitionJournal = {
+  schema_version: "estimate-sheet-prepare-transition-journal.v1";
+  state: PrepareJournalState;
+  unit_id: EstimateUnit;
+  run_id: string;
+  plan_path: string;
+  run_root: string;
+  immutable_run_root: string;
+  unit_lease_path: string;
+  unit_lease_staging_path: string;
+  old_plan_sha256: string;
+  old_plan_bytes_base64: string;
+  new_plan_sha256: string;
+  new_plan_bytes_base64: string;
+  durable_files: Array<{ path: string; sha256: string }>;
+  created_at: string;
+};
+
 type PrepareRecoveryCandidate = {
   unit: EstimateUnit;
   runId: string;
   runPath: string;
+  immutableRunRoot: string;
   runRootBase: string;
+  unitLeasePath: string;
+  unitLeaseStagingPath: string;
 };
 
-function readPrepareRecoveryCandidate(repoRoot: string): PrepareRecoveryCandidate | undefined {
-  const journalPath = canonicalTransitionJournalPath(repoRoot);
-  if (!existsSync(journalPath)) return undefined;
-  const journal = readJsonFile<Record<string, unknown>>(journalPath);
-  if (journal.schema_version !== "estimate-sheet-index-transition-journal.v1"
-    || !Array.isArray(journal.immutable_files)
+function pathRelativeToRepo(repoRoot: string, path: string, label: string): string {
+  if (!isContained(repoRoot, path)) throw new Error(`${label} escapes the repository`);
+  const value = relative(repoRoot, path).split("\\").join("/");
+  if (!isSafeRelativePath(value)) throw new Error(`${label} is not repository-relative`);
+  return value;
+}
+
+function resolvePrepareJournalPath(repoRoot: string, path: string, label: string): string {
+  if (!isSafeRelativePath(path)) throw new Error(`${label} is not a safe repository-relative path`);
+  const absolute = resolve(repoRoot, path);
+  if (!isContained(repoRoot, absolute)) throw new Error(`${label} escapes the repository`);
+  return absolute;
+}
+
+function decodeJournalPlanBytes(value: string, expectedSha256: string, label: string): Buffer {
+  const bytes = Buffer.from(value, "base64");
+  if (sha256Hex(bytes) !== expectedSha256) throw new Error(`${label} bytes do not match their journal hash`);
+  return bytes;
+}
+
+function readPrepareTransitionJournal(repoRoot: string): PrepareTransitionJournal {
+  const path = canonicalTransitionJournalPath(repoRoot);
+  assertRegularFile(path, "prepare transition journal");
+  const journal = readJsonFile<Record<string, unknown>>(path);
+  const expectedKeys = [
+    "created_at", "durable_files", "immutable_run_root", "new_plan_bytes_base64", "new_plan_sha256",
+    "old_plan_bytes_base64", "old_plan_sha256", "plan_path", "run_id", "run_root", "schema_version",
+    "state", "unit_id", "unit_lease_path", "unit_lease_staging_path",
+  ].sort();
+  if (journal.schema_version !== "estimate-sheet-prepare-transition-journal.v1"
+    || canonicalJson(Object.keys(journal).sort()) !== canonicalJson(expectedKeys)
+    || !["ALLOCATED", "FILES_DECLARED", "FILES_WRITTEN", "COMMITTED"].includes(String(journal.state))
     || typeof journal.unit_id !== "string"
-    || typeof journal.run_id !== "string") {
-    return undefined;
+    || !/^UNIT-\d{3}$/u.test(journal.unit_id)
+    || typeof journal.run_id !== "string"
+    || !journal.run_id
+    || typeof journal.old_plan_sha256 !== "string"
+    || !/^[0-9a-f]{64}$/u.test(journal.old_plan_sha256)
+    || typeof journal.new_plan_sha256 !== "string"
+    || !/^[0-9a-f]{64}$/u.test(journal.new_plan_sha256)
+    || typeof journal.old_plan_bytes_base64 !== "string"
+    || typeof journal.new_plan_bytes_base64 !== "string"
+    || typeof journal.created_at !== "string"
+    || Number.isNaN(Date.parse(journal.created_at))
+    || !Array.isArray(journal.durable_files)) {
+    throw new Error("prepare transition journal is invalid");
   }
-  const matches = journal.immutable_files.filter((entry) => isPlainObject(entry)
-    && typeof entry.path === "string"
-    && entry.path.endsWith("/prepare-recovery.json"));
-  if (matches.length !== 1) return undefined;
-  const relativePath = (matches[0] as Record<string, unknown>).path;
-  if (typeof relativePath !== "string" || !isSafeRelativePath(relativePath)) return undefined;
-  const recoveryPath = resolve(repoRoot, relativePath);
-  if (!isContained(repoRoot, recoveryPath)) return undefined;
-  const runPath = dirname(recoveryPath);
+  for (const key of ["plan_path", "run_root", "immutable_run_root", "unit_lease_path", "unit_lease_staging_path"] as const) {
+    if (typeof journal[key] !== "string") throw new Error(`prepare transition journal ${key} is invalid`);
+    resolvePrepareJournalPath(repoRoot, journal[key], `prepare transition journal ${key}`);
+  }
+  const durablePaths = new Set<string>();
+  for (const entry of journal.durable_files) {
+    if (!isPlainObject(entry)
+      || canonicalJson(Object.keys(entry).sort()) !== canonicalJson(["path", "sha256"])
+      || typeof entry.path !== "string"
+      || typeof entry.sha256 !== "string"
+      || !/^[0-9a-f]{64}$/u.test(entry.sha256)) {
+      throw new Error("prepare transition journal durable file is invalid");
+    }
+    resolvePrepareJournalPath(repoRoot, entry.path, "prepare durable file");
+    if (durablePaths.has(entry.path)) throw new Error("prepare transition journal contains duplicate durable files");
+    durablePaths.add(entry.path);
+  }
+  decodeJournalPlanBytes(journal.old_plan_bytes_base64, journal.old_plan_sha256, "old plan");
+  decodeJournalPlanBytes(journal.new_plan_bytes_base64, journal.new_plan_sha256, "new plan");
+  return journal as PrepareTransitionJournal;
+}
+
+function replacePrepareTransitionJournal(repoRoot: string, current: PrepareTransitionJournal, next: PrepareTransitionJournal): void {
+  const path = canonicalTransitionJournalPath(repoRoot);
+  const expectedSha256 = sha256File(path);
+  if (canonicalJson(readJsonFile<PrepareTransitionJournal>(path)) !== canonicalJson(current)) {
+    throw new Error("prepare transition journal changed concurrently");
+  }
+  replaceFileAtomically(path, `${canonicalJson(next)}\n`, expectedSha256, 0o600);
+}
+
+function removeFileDurably(path: string): void {
+  if (!existsSync(path)) return;
+  assertRegularFile(path, "durable removal target");
+  unlinkSync(path);
+  const descriptor = openSync(dirname(path), "r");
+  try { fsyncSync(descriptor); } finally { closeSync(descriptor); }
+}
+
+function removeOwnedDirectoryDurably(path: string, label: string): void {
+  if (!existsSync(path)) return;
+  const stat = lstatSync(path);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error(`${label} is not a regular directory`);
+  rmSync(path, { recursive: true, force: true });
+  const descriptor = openSync(dirname(path), "r");
+  try { fsyncSync(descriptor); } finally { closeSync(descriptor); }
+}
+
+function prepareRecoveryCandidate(repoRoot: string, journal: PrepareTransitionJournal): PrepareRecoveryCandidate {
+  const runPath = resolvePrepareJournalPath(repoRoot, journal.run_root, "prepare run root");
   const unitRoot = dirname(runPath);
   const runRootBase = dirname(unitRoot);
-  const unit = basename(unitRoot);
-  if (unit !== journal.unit_id || !/^UNIT-\d{3}$/u.test(unit)) return undefined;
+  if (basename(unitRoot) !== journal.unit_id) throw new Error("prepare journal run root does not match its unit");
   return {
-    unit: unit as EstimateUnit,
+    unit: journal.unit_id,
     runId: journal.run_id,
     runPath,
+    immutableRunRoot: resolvePrepareJournalPath(repoRoot, journal.immutable_run_root, "prepare immutable run root"),
     runRootBase,
+    unitLeasePath: resolvePrepareJournalPath(repoRoot, journal.unit_lease_path, "prepare unit lease"),
+    unitLeaseStagingPath: resolvePrepareJournalPath(repoRoot, journal.unit_lease_staging_path, "prepare staged unit lease"),
   };
 }
 
 function releaseOwnedUnitLease(candidate: PrepareRecoveryCandidate): void {
-  const leasePath = resolve(candidate.runRootBase, "..", "leases", "units", candidate.unit);
-  const ownerPath = resolve(leasePath, "owner.json");
-  if (!existsSync(ownerPath)) return;
+  if (existsSync(candidate.unitLeaseStagingPath)) {
+    removeOwnedDirectoryDurably(candidate.unitLeaseStagingPath, "staged prepare unit lease");
+  }
+  if (!existsSync(candidate.unitLeasePath)) return;
+  const ownerPath = resolve(candidate.unitLeasePath, "owner.json");
+  if (!existsSync(ownerPath)) throw new Error("prepare unit lease ownership is unresolved");
+  const owner = readJsonFile<Record<string, unknown>>(ownerPath);
+  if (owner.unit_id !== candidate.unit
+    || owner.run_id !== candidate.runId
+    || typeof owner.run_root !== "string"
+    || resolve(owner.run_root) !== candidate.runPath) {
+    return;
+  }
+  removeOwnedDirectoryDurably(candidate.unitLeasePath, "prepare unit lease");
+}
+
+function recoverPrepareJournal(repoRoot: string): { result: "ROLLED_BACK" | "COMMITTED"; unit_id: string; run_id: string } {
+  const lockPath = resolve(defaultRunRoot(repoRoot), "..", ".plan-transition.lock");
+  mkdirSync(dirname(lockPath), { recursive: true, mode: 0o700 });
+  mkdirSync(lockPath, { mode: 0o700 });
   try {
-    const owner = readJsonFile<Record<string, unknown>>(ownerPath);
-    if (owner.unit_id === candidate.unit
-      && owner.run_id === candidate.runId
-      && typeof owner.run_root === "string"
-      && resolve(owner.run_root) === candidate.runPath) {
-      rmSync(leasePath, { recursive: true, force: true });
+    writeJsonNoOverwrite(resolve(lockPath, "owner.json"), {
+      schema_version: "estimate-sheet-plan-transition-lock.v1",
+      pid: process.pid,
+      operation: "PREPARE_RECOVERY",
+      acquired_at: nowIso(),
+    }, 0o600);
+    const journal = readPrepareTransitionJournal(repoRoot);
+    const candidate = prepareRecoveryCandidate(repoRoot, journal);
+    const planPath = resolvePrepareJournalPath(repoRoot, journal.plan_path, "prepare plan path");
+    assertRegularFile(planPath, "prepare plan manifest");
+    const planSha256 = sha256File(planPath);
+    const committed = planSha256 === journal.new_plan_sha256;
+    const preCommit = planSha256 === journal.old_plan_sha256;
+    if (!committed && !preCommit) throw new Error("plan manifest matches neither side of the unfinished prepare transition");
+
+    if (committed) {
+      if (!['FILES_WRITTEN', 'COMMITTED'].includes(journal.state)) {
+        throw new Error("prepare plan committed before durable outputs were recorded");
+      }
+      for (const entry of journal.durable_files) {
+        const path = resolvePrepareJournalPath(repoRoot, entry.path, "prepare durable file");
+        assertRegularFile(path, "prepare durable file");
+        if (sha256File(path) !== entry.sha256) throw new Error(`prepare durable file hash mismatch: ${entry.path}`);
+      }
+      if (journal.state !== "COMMITTED") {
+        replacePrepareTransitionJournal(repoRoot, journal, { ...journal, state: "COMMITTED" });
+      }
+      removeFileDurably(canonicalTransitionJournalPath(repoRoot));
+      return { result: "COMMITTED", unit_id: journal.unit_id, run_id: journal.run_id };
     }
-  } catch {
-    // A malformed or changed lease is unresolved ownership and must be retained.
+
+    if (journal.state === "COMMITTED") throw new Error("committed prepare journal cannot be rolled back against the old manifest");
+    for (const entry of [...journal.durable_files].reverse()) {
+      const path = resolvePrepareJournalPath(repoRoot, entry.path, "prepare durable file");
+      if (!existsSync(path)) continue;
+      assertRegularFile(path, "prepare durable file");
+      if (sha256File(path) !== entry.sha256) throw new Error(`prepare durable file changed before rollback: ${entry.path}`);
+      removeFileDurably(path);
+    }
+    removeOwnedDirectoryDurably(candidate.runPath, "prepare run root");
+    removeOwnedDirectoryDurably(candidate.immutableRunRoot, "prepare immutable run root");
+    releaseOwnedUnitLease(candidate);
+    releaseRunPortLeases(candidate.runRootBase, candidate.runId);
+    removeFileDurably(canonicalTransitionJournalPath(repoRoot));
+    return { result: "ROLLED_BACK", unit_id: journal.unit_id, run_id: journal.run_id };
+  } finally {
+    rmSync(lockPath, { recursive: true, force: true });
   }
 }
 
@@ -794,19 +952,13 @@ export function recoverEstimateSheetPrepareTransition(input: {
   repoRoot?: string;
 } = {}): { result: "NO_JOURNAL" | "ROLLED_BACK" | "COMMITTED"; unit_id?: string; run_id?: string } {
   const repoRoot = resolve(input.repoRoot ?? process.cwd());
-  const candidate = readPrepareRecoveryCandidate(repoRoot);
-  const result = recoverEstimateSheetIndexTransition({ repoRoot });
-  if (result.result !== "ROLLED_BACK" || !candidate) return result;
-  if (existsSync(candidate.runPath)) {
-    const stat = lstatSync(candidate.runPath);
-    if (!stat.isDirectory() || stat.isSymbolicLink()) {
-      throw new Error("rolled-back prepare run root is not a regular directory");
-    }
-    rmSync(candidate.runPath, { recursive: true, force: true });
+  const journalPath = canonicalTransitionJournalPath(repoRoot);
+  if (!existsSync(journalPath)) return { result: "NO_JOURNAL" };
+  const journal = readJsonFile<Record<string, unknown>>(journalPath);
+  if (journal.schema_version === "estimate-sheet-prepare-transition-journal.v1") {
+    return recoverPrepareJournal(repoRoot);
   }
-  releaseOwnedUnitLease(candidate);
-  releaseRunPortLeases(candidate.runRootBase, candidate.runId);
-  return result;
+  return recoverEstimateSheetIndexTransition({ repoRoot });
 }
 
 function readBottleneckDecision(
