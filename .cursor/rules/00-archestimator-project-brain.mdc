@@ -59,12 +59,12 @@ Use parallel lanes only for genuinely independent work. Do not invoke agents, wo
 
 ## Evidence And Stop Condition
 
-Verification is required; tests are conditional. Classify `test_requirement` under `AGENTS.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` before running tests.
+Verification is required; **tests are user-gated, not automatic.** The **User Test Authorization Gate** is the supreme rule, defined in `AGENTS.md`, `.ai/00_system/VALIDATION_MATRIX.md`, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: do not create, expand, repair, or run any automated test, test suite, build-as-test-gate, browser automation, or broad validation gate unless Philip has explicitly requested testing for the current task.
 
 - Default to `NOT_REQUIRED` and the cheapest decisive source, diff, reference, type/LSP, lint, dry-run, or narrow runtime evidence.
-- Map explicit testing/QA output to `TEST_TASK`. Map `TARGETED` only to a named critical invariant that cheaper evidence cannot prove, or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; that existing-test trigger permits no test edits.
-- Broaden to builds, full suites, or integration proof only when narrower evidence cannot prove the named boundary.
-- Browser, Playwright, screenshots, Storybook, and visual QA are opt-in. State the browser-only claim first; use them only when cheaper evidence cannot prove it or the user asks for them.
+- `TEST_TASK` is the only decision that authorizes test execution and requires an explicit user request.
+- `TARGETED` / `BROADER` identify a critical invariant that would benefit from a test but authorize **proposing it only, not running it** — record a `TEST_PROPOSAL` (named risk + exact command) and wait. The previous `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
+- Browser, Playwright, screenshots, Storybook, builds, full suites, and visual QA are opt-in and require explicit user authorization. When tests seem warranted, propose them and wait.
 - Local evidence cannot prove hosted, provider, production, manual, GitHub, Notion, or Vercel state.
 
 Stop when the requested result is implemented, each claim has fresh sufficient evidence, no in-scope work remains, and any unproved boundary is reported precisely. Continue while another safe in-scope action materially improves correctness.

@@ -19,12 +19,16 @@ law** (see its status banner): the visual language is still being developed, so
 encourage exploration and defer to Philip on design decisions rather than
 enforcing design rules.
 
-Verification is always required, but tests default to `NOT_REQUIRED`. Use
-`TARGETED` for an MVP mission-critical risk that cheaper evidence cannot prove,
-or one existing focused test that is demonstrably the cheapest decisive proof;
-the existing-test trigger permits no test edits. Use `TEST_TASK` when testing/QA
-is the requested output. Broad suites, builds, and browser proof require an
-explicit test task or integrated critical claim.
+Verification is always required, but **tests are user-gated, not automatic.**
+The **User Test Authorization Gate** is the supreme rule: do not create, expand,
+repair, or run any automated test, test suite, build-as-test-gate, browser
+automation, or broad validation gate unless the user has explicitly requested
+testing for the current task. Critical risk, high blast radius, a user-visible
+change, a nearby test, or your own judgment never authorizes running tests —
+when they seem warranted, record a `TEST_PROPOSAL` (named risk + exact command)
+and wait. `TEST_TASK` is the only execution trigger and requires an explicit
+user request. `TARGETED`/`BROADER` authorize proposing, not running. Use the
+cheapest decisive non-test evidence otherwise.
 
 Read for speed — pull, don't preload (see `AGENTS.md` "Read for speed"). Minimum read:
 `AGENTS.md` + the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper

@@ -32,20 +32,35 @@ Multiple agents + humans share this worktree. NEVER auto-create/switch/delete br
 
 Re-read files immediately before editing. Preserve unfamiliar changes - they may be another agent's in-progress work. Roll back only your own edits.
 
-## Validation (No 'Done' Without Proof)
+## Validation (No 'Done' Without Proof) — User Test Authorization Gate
+
+**Tests are user-gated, not automatic.** Do not create, expand, repair, or run
+any automated test, test suite, build-as-test-gate, browser automation, or
+broad validation gate unless Philip has explicitly requested testing for the
+current task. This is the supreme rule and overrides every `TARGETED`,
+`MVP-critical`, blast-radius, or "nearby tests exist" consideration. When tests
+seem warranted (e.g. a critical risk cheaper evidence cannot prove), record a
+`TEST_PROPOSAL` (named risk + exact command) and wait — do not run them.
+`TEST_TASK` is the only execution trigger and requires an explicit user request.
+
+Default non-test verification (encouraged without authorization):
 
 ```bash
 bun run type-check         # tsc --noEmit
 bun run lint               # ESLint
+bun run ops:agent-debug-snapshot   # read-only debugging readiness
+bun run logs:debug                  # latest dev error
+git diff --check                   # whitespace/conflict audit
+```
+
+User-authorized test/build surfaces (run ONLY when Philip explicitly asks):
+
+```bash
 bun run test               # Bun unit
 bun run test:dom           # Vitest DOM
 bun run validate           # broad gate: type + lint + error-handling + design + unit + dom
 bun run build              # Next.js production build
-bun run ops:agent-debug-snapshot   # read-only debugging readiness
-bun run logs:debug                  # latest dev error
 ```
-
-For auth/db/security/release/route-wide changes: `bun run validate && bun run build` + targeted tests + browser/curl proof where relevant.
 
 Evidence classes (strongest that proves the claim): local static -> local automated -> browser/manual -> provider-backed -> hosted/production. Inferred reasoning is not proof.
 
@@ -57,7 +72,9 @@ Evidence classes (strongest that proves the claim): local static -> local automa
 - Deleting failing tests to make build green
 - Type assertions to satisfy broken types - fix the types
 - Drive-by refactors / formatting churn unrelated to the task
-- Writing production code before its failing test (TDD: RED -> GREEN -> SURFACE)
+- Creating or running tests without explicit user authorization, even for
+  auth/db/security/release/route-wide changes (propose via `TEST_PROPOSAL` and
+  wait instead)
 
 ## Stack Discipline
 
