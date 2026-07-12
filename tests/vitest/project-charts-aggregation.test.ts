@@ -84,6 +84,14 @@ describe("project chart aggregation", () => {
     ).toBe(120);
   });
 
+  it("uses canonical minor-unit rounding for chart row totals", () => {
+    expect(
+      calculateProjectChartRowTotal(
+        row("estimate-a", "rounded-row", "group-1", "subcategory-1", null, 1, 10.005, 0),
+      ),
+    ).toBe(10.01);
+  });
+
   it("groups rows by their OWN owning node, top category, and supplier label precedence", () => {
     const rows: ProjectChartRowFact[] = [
       row("estimate-a", "row-a", "group-1", "subcategory-1", "supplier-1", 2, 100, 25),

@@ -1,4 +1,5 @@
 import { OTHER_BUCKET_ID, colorForBucket } from "./bucket-color";
+import { computeEstimateRowCostParts } from "@/lib/estimates/estimate-row-total";
 import type {
   ProjectChartBucket,
   ProjectChartCostComposition,
@@ -132,17 +133,32 @@ export function buildProjectChartCostComposition(
 }
 
 function calculateProjectChartRowCostParts(row: ProjectChartRowFact): ProjectChartCostComposition {
-  const subTotal = toFiniteNumber(row.quantity) * toFiniteNumber(row.unitCost);
-  const miscTotal = toFiniteNumber(row.miscCost);
+  const quantity = toFiniteNumber(row.quantity);
+  const unitCost = toFiniteNumber(row.unitCost);
+  const miscCost = toFiniteNumber(row.miscCost);
   const legacyAdjustmentPercentage = row.quantityBase === null || row.quantityBase === undefined
     ? toFiniteNumber(row.contingencyPercentage ?? 0)
     : 0;
-  const adjustmentTotal = (subTotal * toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage)) / 100;
+  const costParts = computeEstimateRowCostParts({
+    quantity,
+    quantity_base: row.quantityBase,
+    quantity_contingency_amount: row.quantityContingencyAmount,
+    unit_cost: unitCost,
+    labor_rate: toFiniteNumber(row.laborRate ?? 0),
+    adjustment_percentage: toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage),
+    misc_cost: miscCost,
+    currency_code: "PHP",
+  });
+
+  if (!costParts.ok) {
+    return { baseTotal: 0, miscTotal: 0, adjustmentTotal: 0, grandTotal: 0 };
+  }
+
   return {
-    baseTotal: subTotal,
-    miscTotal,
-    adjustmentTotal,
-    grandTotal: subTotal + miscTotal + adjustmentTotal,
+    baseTotal: costParts.value.materialMinorUnits / 100,
+    miscTotal: costParts.value.miscMinorUnits / 100,
+    adjustmentTotal: costParts.value.adjustmentMinorUnits / 100,
+    grandTotal: costParts.value.total,
   };
 }
 

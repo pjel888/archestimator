@@ -32,6 +32,7 @@ export type ProjectActivityFeedSourceName =
   | "shared_link_comments"
   | "shared_link_responses"
   | "shared_link_events"
+  | "client_portal_audit_events"
   | "collaboration_audit_events";
 
 export type ProjectActivityDropdownOption = {
@@ -143,6 +144,13 @@ type CollaborationAuditRpcRow = {
   project_id: string | null;
   source_total_count: number;
 };
+type ClientPortalAuditRow = {
+  actor_id: string | null;
+  actor_type: "internal_user" | "recipient" | "system";
+  event_type: string;
+  id: string;
+  occurred_at: string;
+};
 type ProfileRow = { display_name: string | null; email?: string | null; id: string };
 type AuthUserRow = { email: string | null; id: string; name: string | null };
 type RecipientRow = { display_name: string | null; id: string; publication_id: string };
@@ -156,6 +164,15 @@ const MAX_ACTIVITY_FEED_LIMIT = 50;
 const MAX_ACTOR_USER_ID_LENGTH = 191;
 const CURSOR_VERSION = "project-activity-cursor-v1";
 const SHARED_LINK_VIEW_EVENT_TYPES = ["open", "password_attempt"] as const;
+const CLIENT_PORTAL_PROJECT_ACTIVITY_EVENT_TYPES = [
+  "issue_issued",
+  "issue_superseded",
+  "thread_created",
+  "message_created",
+  "thread_resolved",
+  "thread_reopened",
+  "decision_submitted",
+] as const;
 
 const estimateBucketEventTypes: Partial<Record<ProjectActivityConcreteActionBucket, readonly string[]>> = {
   created: ["node_created", "row_added", "row_added_from_template", "row_inserted_from_template", "sheet_created", "tab_created", "template_inserted"],
@@ -299,6 +316,7 @@ function isProjectActivityFeedSourceName(value: string): value is ProjectActivit
     "shared_link_comments",
     "shared_link_responses",
     "shared_link_events",
+    "client_portal_audit_events",
     "collaboration_audit_events",
   ].includes(value);
 }
@@ -319,6 +337,7 @@ function sourceMatchesActions(sourceName: ProjectActivityFeedSourceName, actions
   if (sourceName === "shared_link_comments") return actions.includes("commented");
   if (sourceName === "shared_link_responses") return actions.includes("decided");
   if (sourceName === "shared_link_events") return actions.includes("viewed");
+  if (sourceName === "client_portal_audit_events") return actions.includes("system");
   return actions.includes("invited") || actions.includes("edited") || actions.includes("system");
 }
 
@@ -775,6 +794,46 @@ async function readSharedEventRows(
   return runSourceQuery<SharedEventRow>("shared_link_events", all<SharedEventRow>(database, sql, [...values, ...cursor.values, args.limit]));
 }
 
+async function readClientPortalAuditRows(
+  database: D1DatabaseLike,
+  args: {
+    projectId: string;
+    workspaceId: string;
+    scope: ProjectActivityFeedScope;
+    filters: NormalizedFilters;
+    cursor: DecodedCursor;
+    limit: number;
+  },
+) {
+  if (args.scope.kind === "estimate" || wantsOnlyRecipient(args.filters) || !sourceMatchesActions("client_portal_audit_events", args.filters.actions)) {
+    return { rows: [] as ClientPortalAuditRow[], unavailableSource: null };
+  }
+
+  const where = [
+    "event.workspace_id = ?",
+    "portal.workspace_id = ?",
+    "portal.project_id = ?",
+    "event.visibility = 'client_safe'",
+  ];
+  const values: unknown[] = [args.workspaceId, args.workspaceId, args.projectId];
+  appendInFilter(where, values, "event.event_type", [...CLIENT_PORTAL_PROJECT_ACTIVITY_EVENT_TYPES]);
+  if (args.filters.actorUserId) {
+    where.push("event.actor_type = 'internal_user'", "event.actor_id = ?");
+    values.push(args.filters.actorUserId);
+  }
+  const cursor = cursorWhere(args.cursor.client_portal_audit_events);
+  const sql = `SELECT event.id, event.actor_type,
+      CASE WHEN event.actor_type = 'internal_user' THEN event.actor_id ELSE NULL END AS actor_id,
+      event.event_type, event.occurred_at
+     FROM client_portal_audit_events event
+     INNER JOIN client_portals portal ON portal.id = event.portal_id
+     WHERE ${where.join(" AND ")}${cursor.sql}
+     ORDER BY event.occurred_at DESC, event.id DESC
+     LIMIT ?`;
+
+  return runSourceQuery<ClientPortalAuditRow>("client_portal_audit_events", all<ClientPortalAuditRow>(database, sql, [...values, ...cursor.values, args.limit]));
+}
+
 async function readCollaborationRows(
   database: D1DatabaseLike,
   args: {
@@ -894,6 +953,40 @@ function createSharedEventEntries(rows: SharedEventRow[], recipientLabels: Map<s
       sourceName: "shared_link_events" as const,
       sortKey: { createdAt: row.created_at, id: row.id },
     }))
+    .filter((entry) => matchesActionFilter(entry.activity, filters.actions));
+}
+
+function createClientPortalAuditEntries(rows: ClientPortalAuditRow[], actorLabels: Map<string, string>, filters: NormalizedFilters): ActivityEntry[] {
+  return rows
+    .map((row) => {
+      const actor = row.actor_type === "internal_user"
+        ? {
+            id: row.actor_id ?? undefined,
+            kind: "user" as const,
+            displayName: row.actor_id ? actorLabels.get(row.actor_id) ?? "Unknown user" : "Unknown user",
+            isSafeForClient: false,
+          }
+        : row.actor_type === "recipient"
+          ? { kind: "recipient" as const, displayName: "Client", isSafeForClient: false }
+          : { kind: "system" as const, displayName: "System", isSafeForClient: false };
+      const activity: ActivityViewModel = {
+        id: row.id,
+        source: "system",
+        audience: "owner",
+        visibility: "owner",
+        action: "recorded",
+        occurredAt: row.occurred_at,
+        actor,
+        target: { kind: "system", label: "Client portal" },
+        title: "Client portal activity recorded.",
+        raw: { id: row.id, eventType: row.event_type },
+      };
+      return {
+        activity,
+        sourceName: "client_portal_audit_events" as const,
+        sortKey: { createdAt: row.occurred_at, id: row.id },
+      };
+    })
     .filter((entry) => matchesActionFilter(entry.activity, filters.actions));
 }
 
@@ -1052,6 +1145,41 @@ async function countSharedEventRows(
   return runCountQuery("shared_link_events", count(database, `SELECT COUNT(*) AS count FROM shared_link_events WHERE ${where.join(" AND ")}`, values));
 }
 
+async function countClientPortalAuditRows(
+  database: D1DatabaseLike,
+  args: {
+    projectId: string;
+    workspaceId: string;
+    scope: ProjectActivityFeedScope;
+    filters: NormalizedFilters;
+  },
+) {
+  if (args.scope.kind === "estimate" || wantsOnlyRecipient(args.filters) || !sourceMatchesActions("client_portal_audit_events", args.filters.actions)) {
+    return zeroCount();
+  }
+
+  const where = [
+    "event.workspace_id = ?",
+    "portal.workspace_id = ?",
+    "portal.project_id = ?",
+    "event.visibility = 'client_safe'",
+  ];
+  const values: unknown[] = [args.workspaceId, args.workspaceId, args.projectId];
+  appendInFilter(where, values, "event.event_type", [...CLIENT_PORTAL_PROJECT_ACTIVITY_EVENT_TYPES]);
+  if (args.filters.actorUserId) {
+    where.push("event.actor_type = 'internal_user'", "event.actor_id = ?");
+    values.push(args.filters.actorUserId);
+  }
+
+  return runCountQuery(
+    "client_portal_audit_events",
+    count(database, `SELECT COUNT(*) AS count
+      FROM client_portal_audit_events event
+      INNER JOIN client_portals portal ON portal.id = event.portal_id
+      WHERE ${where.join(" AND ")}`, values),
+  );
+}
+
 async function countCollaborationRows(
   database: D1DatabaseLike,
   args: {
@@ -1100,12 +1228,13 @@ async function readExactCounts(
   },
 ) {
   const scopeFilters: NormalizedFilters = { actions: [], actorUserId: null, recipientId: null };
-  const [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeCollaboration] = await Promise.all([
+  const [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeClientPortalAudit, scopeCollaboration] = await Promise.all([
     countProjectPublicationRows(database, { ...args, filters: scopeFilters }),
     countEstimateRows(database, { ...args, filters: scopeFilters }),
     countSharedCommentRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: scopeFilters }),
     countSharedResponseRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: scopeFilters }),
     countSharedEventRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, filters: scopeFilters }),
+    countClientPortalAuditRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: scopeFilters }),
     countCollaborationRows(database, { projectId: args.projectId, scope: args.scope, filters: scopeFilters }),
   ]);
 
@@ -1116,10 +1245,11 @@ async function readExactCounts(
         countSharedCommentRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: args.filters }),
         countSharedResponseRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: args.filters }),
         countSharedEventRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, filters: args.filters }),
+        countClientPortalAuditRows(database, { projectId: args.projectId, workspaceId: args.workspaceId, scope: args.scope, filters: args.filters }),
         countCollaborationRows(database, { projectId: args.projectId, scope: args.scope, filters: args.filters }),
       ])
-    : [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeCollaboration];
-  const [filteredPublications, filteredEstimates, filteredComments, filteredResponses, filteredEvents, filteredCollaboration] = filteredCounts;
+    : [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeClientPortalAudit, scopeCollaboration];
+  const [filteredPublications, filteredEstimates, filteredComments, filteredResponses, filteredEvents, filteredClientPortalAudit, filteredCollaboration] = filteredCounts;
 
   return {
     counts: {
@@ -1129,6 +1259,7 @@ async function readExactCounts(
         filteredComments.count +
         filteredResponses.count +
         filteredEvents.count +
+        filteredClientPortalAudit.count +
         filteredCollaboration.count,
       scopeTotalCount:
         scopePublications.count +
@@ -1136,6 +1267,7 @@ async function readExactCounts(
         scopeComments.count +
         scopeResponses.count +
         scopeEvents.count +
+        scopeClientPortalAudit.count +
         scopeCollaboration.count,
     },
     unavailableSources: uniqueSources([
@@ -1144,12 +1276,14 @@ async function readExactCounts(
       scopeComments.unavailableSource,
       scopeResponses.unavailableSource,
       scopeEvents.unavailableSource,
+      scopeClientPortalAudit.unavailableSource,
       scopeCollaboration.unavailableSource,
       filteredPublications.unavailableSource,
       filteredEstimates.unavailableSource,
       filteredComments.unavailableSource,
       filteredResponses.unavailableSource,
       filteredEvents.unavailableSource,
+      filteredClientPortalAudit.unavailableSource,
       filteredCollaboration.unavailableSource,
     ]),
   };
@@ -1200,7 +1334,7 @@ export async function readProjectActivityFeed({
       })
     : Promise.resolve(null);
 
-  const [estimateResult, commentResult, responseResult, eventResult, collaborationResult] = await Promise.all([
+  const [estimateResult, commentResult, responseResult, eventResult, clientPortalAuditResult, collaborationResult] = await Promise.all([
     readEstimateRows(database, {
       projectId: project.id,
       workspaceId: project.workspace_id,
@@ -1232,6 +1366,14 @@ export async function readProjectActivityFeed({
       cursor,
       limit: sourceLimit,
     }),
+    readClientPortalAuditRows(database, {
+      projectId: project.id,
+      workspaceId: project.workspace_id,
+      scope,
+      filters: normalizedFilters,
+      cursor,
+      limit: sourceLimit,
+    }),
     readCollaborationRows(database, {
       projectId: project.id,
       scope,
@@ -1246,6 +1388,7 @@ export async function readProjectActivityFeed({
     commentResult.unavailableSource,
     responseResult.unavailableSource,
     eventResult.unavailableSource,
+    clientPortalAuditResult.unavailableSource,
     collaborationResult.unavailableSource,
   ].filter((source): source is ProjectActivityFeedSourceName => Boolean(source));
 
@@ -1253,6 +1396,7 @@ export async function readProjectActivityFeed({
     readActorLabels(database, [
       ...publicationRows.map((row) => row.published_by).filter((id): id is string => Boolean(id)),
       ...estimateResult.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
+      ...clientPortalAuditResult.rows.map((row) => row.actor_id).filter((id): id is string => Boolean(id)),
       ...collaborationResult.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
     ]),
     readRecipientDisplayNames(database, [
@@ -1268,6 +1412,7 @@ export async function readProjectActivityFeed({
     ...createSharedCommentEntries(commentResult.rows, recipientLabels, normalizedFilters),
     ...createSharedResponseEntries(responseResult.rows, recipientLabels, normalizedFilters),
     ...createSharedEventEntries(eventResult.rows, recipientLabels, normalizedFilters),
+    ...createClientPortalAuditEntries(clientPortalAuditResult.rows, actorLabels, normalizedFilters),
     ...createCollaborationEntries(collaborationResult.rows, actorLabels, normalizedFilters),
   ].sort(sortEntries);
 

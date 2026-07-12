@@ -14,6 +14,7 @@ import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 }
 import type { ComponentPriceOption, EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
+import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
@@ -68,6 +69,7 @@ type ProfileRow = {
 };
 
 type ProjectRow = {
+  budget_basis_date?: string | null;
   id: string;
   workspace_id: string;
   created_by: string | null;
@@ -76,7 +78,14 @@ type ProjectRow = {
   location: string | null;
   project_code: string | null;
   currency_code: string;
+  floor_area_unit?: "sqm" | "sqft" | null;
+  gross_floor_area?: number | null;
+  market_region?: string | null;
+  procurement_status?: string | null;
+  project_phase?: string | null;
+  project_type?: string | null;
   status: ProjectStatus;
+  target_budget?: number | null;
   metadata: Json;
   created_at: string;
   updated_at: string;
@@ -133,6 +142,7 @@ type EstimateRowItemRow = {
   source_library_item_id: string | null;
   link_state: EstimateRowLinkState;
   source_snapshot: Json | null;
+  pricing_provenance_origin?: "recorded" | "inherited_snapshot" | "synthesized_fallback" | "missing" | null;
   metadata: Json;
   created_at: string;
   updated_at: string;
@@ -1749,6 +1759,7 @@ async function listCurrentWorkspaceProjectsAppPath() {
 
   return {
     workspace,
+    workspaceRole: workspaceMembership?.role ?? (workspace.created_by === profile.id ? "owner" : null),
     projects: [
       ...projectItems.map((item) => ({
         ...item,
@@ -3124,28 +3135,18 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
     };
   }
 
-  const [summaryRows, nodeRows] = await Promise.all([
+  const [summaryRows, nodeRows, rowCostRows] = await Promise.all([
     traced("listProjectEstimates.summaries", () =>
       all<{
         estimate_id: string;
         node_count: number | string | null;
         row_count: number | string | null;
-        total_cost: number | string | null;
       }>(
         database,
         `SELECT
            estimate.id AS estimate_id,
            (SELECT COUNT(*) FROM estimate_nodes node WHERE node.estimate_id = estimate.id) AS node_count,
-           (SELECT COUNT(*) FROM estimate_row_items row_item WHERE row_item.estimate_id = estimate.id) AS row_count,
-           (
-             SELECT COALESCE(SUM(
-               (COALESCE(row_item.quantity, 0) * COALESCE(row_item.unit_cost, 0))
-               + COALESCE(row_item.misc_cost, 0)
-               + ((COALESCE(row_item.quantity, 0) * COALESCE(row_item.unit_cost, 0)) * COALESCE(row_item.adjustment_percentage, 0) / 100.0)
-             ), 0)
-             FROM estimate_row_items row_item
-             WHERE row_item.estimate_id = estimate.id
-           ) AS total_cost
+           (SELECT COUNT(*) FROM estimate_row_items row_item WHERE row_item.estimate_id = estimate.id) AS row_count
          FROM estimates estimate
          WHERE estimate.id IN (${placeholders(estimateIds)})`,
         estimateIds,
@@ -3161,6 +3162,15 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
         estimateIds,
       ),
     ),
+    traced("listProjectEstimates.rowCosts", () =>
+      all<Pick<EstimateRowItemRow, "estimate_id" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "adjustment_percentage" | "misc_cost">>(
+        database,
+        `SELECT estimate_id, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost
+         FROM estimate_row_items
+         WHERE estimate_id IN (${placeholders(estimateIds)})`,
+        estimateIds,
+      ),
+    ),
   ]);
 
   const firstNodeByEstimateId = selectFirstEstimateNodeIds(nodeRows);
@@ -3170,7 +3180,10 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   for (const summary of summaryRows) {
     nodeCountByEstimateId.set(summary.estimate_id, Number(summary.node_count ?? 0));
     rowCountByEstimateId.set(summary.estimate_id, Number(summary.row_count ?? 0));
-    totalCostByEstimateId.set(summary.estimate_id, Number(summary.total_cost ?? 0));
+    totalCostByEstimateId.set(summary.estimate_id, 0);
+  }
+  for (const row of rowCostRows) {
+    totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + computeEstimateRowLineTotal(row));
   }
 
   return { workspace, project, estimates: normalizedEstimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartBar, ChartBarHorizontal, ClipboardText, ClockCounterClockwise } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, ChartBarHorizontal, ClipboardText, ClockCounterClockwise, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 type ProjectMiniSidebarProps = {
@@ -43,6 +43,12 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       href: `/workshop/projects/${projectId}/activity`,
       label: "Activity",
       icon: ClockCounterClockwise,
+      exact: false,
+    },
+    {
+      href: `/workshop/projects/${projectId}/client-portals`,
+      label: "Portals",
+      icon: ShareNetwork,
       exact: false,
     },
   ];

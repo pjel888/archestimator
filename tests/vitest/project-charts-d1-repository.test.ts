@@ -105,6 +105,7 @@ describe("project charts D1 repository", () => {
           supplierId: "supplier-1",
           supplier: "Acme Supply",
         }),
+        metadata_json: JSON.stringify({ laborUnitCost: 20 }),
         quantity: 2,
         quantity_base: null,
         quantity_contingency_amount: null,
@@ -156,10 +157,10 @@ describe("project charts D1 repository", () => {
         currencyCode: "PHP",
         updatedAt: "2026-06-20T10:00:00.000Z",
         rowCount: 1,
-        totalCost: 25,
+        totalCost: 65,
       },
     ]);
-    expect(result?.seriesByEstimateId["estimate-1"]?.space.total).toBe(25);
+    expect(result?.seriesByEstimateId["estimate-1"]?.space.total).toBe(65);
     expect(result?.seriesByEstimateId["estimate-1"]?.category.allBuckets[0]?.label).toBe("Finishes");
     expect(result?.seriesByEstimateId["estimate-1"]?.supplier.allBuckets[0]?.label).toBe("Acme Supply");
   });

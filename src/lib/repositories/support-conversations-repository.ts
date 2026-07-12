@@ -385,7 +385,7 @@ export async function markSupportMessageSendStatusInD1(
   db: D1DatabaseLike,
   input: { messageId: string; sendStatus: SupportMessageSendStatus; emailMessageId?: string | null },
 ): Promise<SupportMessageRow | null> {
-  await db
+  const result = await db
     .prepare(
       `
         UPDATE support_messages
@@ -395,6 +395,8 @@ export async function markSupportMessageSendStatusInD1(
     )
     .bind(input.sendStatus, input.emailMessageId ?? null, input.messageId)
     .run();
+
+  if ((result.meta?.changes ?? 0) !== 1) return null;
 
   return db
     .prepare<SupportMessageRow>(
@@ -407,6 +409,37 @@ export async function markSupportMessageSendStatusInD1(
       `,
     )
     .bind(input.messageId)
+    .first<SupportMessageRow>();
+}
+
+export async function claimFailedSupportMessageRetryInD1(
+  db: D1DatabaseLike,
+  messageId: string,
+): Promise<SupportMessageRow | null> {
+  const result = await db
+    .prepare(
+      `
+        UPDATE support_messages
+        SET send_status = 'pending'
+        WHERE id = ? AND send_status = 'send_failed'
+      `,
+    )
+    .bind(messageId)
+    .run();
+
+  if ((result.meta?.changes ?? 0) !== 1) return null;
+
+  return db
+    .prepare<SupportMessageRow>(
+      `
+        SELECT id, conversation_id, sender_role, author_user_id, body_text, body_html,
+               email_message_id, client_message_id, send_status, created_at
+        FROM support_messages
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(messageId)
     .first<SupportMessageRow>();
 }
 

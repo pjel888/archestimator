@@ -17,7 +17,7 @@ async function ProjectsData() {
     // Source the favorites scope identically to WorkshopShell (D2): the server +
     // client must build the same sidebar query key. Both helpers are React-cached, so
     // calling them here does not duplicate the work the shell already performed.
-    const [{ projects, favoriteProjectIds, projectGroups }, currentUser, { workspace }] = await Promise.all([
+    const [{ projects, favoriteProjectIds, projectGroups, workspaceRole }, currentUser, { workspace }] = await Promise.all([
       traced("projects.route.list", () => listCurrentWorkspaceProjects()),
       requireCurrentUserContext(),
       ensureDefaultWorkspace(),
@@ -33,6 +33,7 @@ async function ProjectsData() {
         favoriteProjectIds={favoriteProjectIds}
         favoritesScope={favoritesScope}
         projectGroups={projectGroups}
+        workspaceRole={workspaceRole}
         googleMapsApiKey={googleMapsApiKey}
         googleMapsMapId={googleMapsMapId}
       />

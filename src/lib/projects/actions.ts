@@ -33,6 +33,7 @@ import {
   type ProjectStatus,
 } from "@/lib/projects/status";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
+import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
 import type { Json } from "@/lib/types/json";
 import { isUuid } from "@/lib/ids";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
@@ -58,6 +59,7 @@ export type ExecuteBulkDeleteProjectsInput = BulkDeleteProjectsInput & {
 };
 
 type ProjectD1Row = {
+  budget_basis_date?: string | null;
   id: string;
   workspace_id: string;
   name: string;
@@ -65,7 +67,14 @@ type ProjectD1Row = {
   location: string | null;
   project_code: string | null;
   currency_code: string | null;
+  floor_area_unit?: "sqm" | "sqft" | null;
+  gross_floor_area?: number | null;
+  market_region?: string | null;
+  procurement_status?: string | null;
+  project_phase?: string | null;
+  project_type?: string | null;
   status?: ProjectStatus | string | null;
+  target_budget?: number | null;
   metadata: string | Record<string, Json> | null;
   created_by: string | null;
   created_at: string;
@@ -791,8 +800,7 @@ export async function createProjectRecord(formData: FormData) {
   const now = new Date().toISOString();
   const projectId = randomUUID();
 
-  await run(
-    database,
+  const projectInsert = database.prepare(
     `
       INSERT INTO projects (
         id,
@@ -809,7 +817,7 @@ export async function createProjectRecord(formData: FormData) {
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-    [
+    ).bind(
       projectId,
       workspace.id,
       profile.id,
@@ -821,8 +829,34 @@ export async function createProjectRecord(formData: FormData) {
       "{}",
       now,
       now,
-    ],
-  );
+    );
+  const activationOccurredAt = now;
+  const activationStatements = [
+    prepareActivationOutboxIntent(database, {
+      domainMutationId: projectId,
+      userId: profile.id,
+      workspaceId: workspace.id,
+      projectId,
+      milestone: "project_created",
+      source: "project",
+      occurredAt: activationOccurredAt,
+      dedupeKey: `${workspace.id}:${projectId}:project_created`,
+    }),
+    prepareActivationOutboxIntent(database, {
+      domainMutationId: projectId,
+      userId: profile.id,
+      workspaceId: workspace.id,
+      milestone: "workspace_ready",
+      source: "project",
+      occurredAt: activationOccurredAt,
+      dedupeKey: `${workspace.id}:${projectId}:workspace_ready`,
+    }),
+  ];
+  if (!database.batch) throw new Error("Project creation requires D1 batch support.");
+  const results = await database.batch([projectInsert, ...activationStatements]);
+  if (results.some((result) => result.success === false)) {
+    throw new Error("Could not create project and activation intents.");
+  }
   const project = await first<ProjectD1Row>(
     database,
     "SELECT * FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",

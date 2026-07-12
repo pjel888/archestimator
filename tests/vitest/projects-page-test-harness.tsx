@@ -28,7 +28,11 @@ export function ProjectsPageClient(props: HarnessProps) {
   );
   return (
     <QueryClientProvider client={client}>
-      <BaseProjectsPageClient favoritesScope={DEFAULT_FAVORITES_SCOPE} {...props} />
+      <BaseProjectsPageClient
+        favoritesScope={DEFAULT_FAVORITES_SCOPE}
+        workspaceRole="member"
+        {...props}
+      />
     </QueryClientProvider>
   );
 }

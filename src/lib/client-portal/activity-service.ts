@@ -121,7 +121,7 @@ export async function listClientPortalRecipientNextActions({ actor, database, po
     LEFT JOIN client_portal_threads t ON t.portal_id = r.portal_id AND t.created_by_actor_type = 'recipient' AND t.created_by_actor_id = r.id
     LEFT JOIN client_portal_decisions d ON d.portal_id = r.portal_id AND d.recipient_id = r.id AND d.issue_id IS ?
     LEFT JOIN client_portal_notification_outbox o ON o.portal_id = r.portal_id AND o.recipient_id = r.id
-    LEFT JOIN client_portal_audit_events ae ON ae.portal_id = r.portal_id AND ae.metadata_json LIKE '%"recipientId":"' || r.id || '"%'
+    LEFT JOIN client_portal_audit_events ae ON ae.portal_id = r.portal_id AND instr(ae.metadata_json, '"recipientId":"' || r.id || '"') > 0
     WHERE r.portal_id = ?
     GROUP BY r.id, r.display_name, r.role_template, r.status, r.verification_state, r.is_required_approver
     ORDER BY r.created_at ASC, r.id ASC`, [portal.current_issue_id, portal.id]);
@@ -153,7 +153,7 @@ export async function enqueueClientPortalReminder({ actor, database, idempotency
     FROM client_portal_recipients r
     LEFT JOIN client_portal_notification_outbox o ON o.recipient_id = r.id AND o.portal_id = r.portal_id
     LEFT JOIN client_portal_decisions d ON d.recipient_id = r.id AND d.portal_id = r.portal_id AND d.issue_id IS ?
-    LEFT JOIN client_portal_audit_events ae ON ae.portal_id = r.portal_id AND ae.metadata_json LIKE '%"recipientId":"' || r.id || '"%'
+    LEFT JOIN client_portal_audit_events ae ON ae.portal_id = r.portal_id AND instr(ae.metadata_json, '"recipientId":"' || r.id || '"') > 0
     WHERE r.id = ? AND r.portal_id = ?
     GROUP BY r.id, r.status`, [portal.current_issue_id, recipientId, portal.id]);
   if (!recipient || recipient.status !== "active") throw new ClientPortalActivityError("client_portal_activity_not_found", "Recipient cannot receive a reminder.");

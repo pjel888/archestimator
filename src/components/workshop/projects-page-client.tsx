@@ -78,6 +78,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
+import { startGuidedSample } from "@/lib/onboarding/activation-actions";
 import {
   DEFAULT_GROUP_ACCENT,
   GROUP_ACCENT_SWATCHES,
@@ -127,6 +128,7 @@ import {
   type ProjectGroupDropPosition,
 } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
+import { FirstProjectZeroState } from "./FirstProjectZeroState";
 
 type ProjectsPageClientProps = {
   projects: Array<ProjectRow | ProjectListItem>;
@@ -137,6 +139,7 @@ type ProjectsPageClientProps = {
   // Part 7c (Project Groups): ordered per-user group definitions for the projects page.
   // Consumed by Part 7d (group-mode rendering); wired here with a safe default.
   projectGroups?: ProjectGroupSummary[];
+  workspaceRole?: "owner" | "admin" | "member" | "viewer" | null;
 };
 
 export type ProjectListItem = {
@@ -1419,6 +1422,7 @@ export function ProjectsPageClient({
   googleMapsApiKey = "",
   googleMapsMapId = null,
   projectGroups = EMPTY_PROJECT_GROUPS,
+  workspaceRole = null,
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
   const { toast } = useToast();
@@ -1616,6 +1620,11 @@ export function ProjectsPageClient({
     () => projectItems.filter((item) => item.accessKind === "owned"),
     [projectItems],
   );
+  const canCreateProjects =
+    workspaceRole === "owner" ||
+    workspaceRole === "admin" ||
+    workspaceRole === "member";
+  const [isGuidedSamplePending, startGuidedSampleTransition] = useTransition();
   useEffect(() => {
     if (Object.keys(optimisticProjectStatusOverrides).length === 0) return;
     const serverStatusById = new Map(
@@ -1802,6 +1811,11 @@ export function ProjectsPageClient({
   // full re-filter + re-sort of every card; the input stays bound to `searchQuery`.
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const normalizedSearchQuery = searchQuery.trim();
+  const hasAuthoritativeZeroProjects =
+    serverProjectItems.length === 0 &&
+    Object.keys(optimisticProjectCreates).length === 0 &&
+    activeStatusTab === "all" &&
+    normalizedSearchQuery.length === 0;
   const normalizedDeferredSearchQuery = deferredSearchQuery.trim();
   const projectStatusTabs = useMemo<TabItem[]>(
     () =>
@@ -3232,7 +3246,7 @@ export function ProjectsPageClient({
         id={getProjectStatusPanelId(activeStatusTab)}
         aria-labelledby={getProjectStatusTabId(activeStatusTab)}
         className={cn(
-          hasProjectEmptyState
+          hasProjectEmptyState || hasAuthoritativeZeroProjects
             ? "flex h-full min-h-0 flex-col gap-2"
             : "space-y-2",
           selectedVisibleProjectIds.length ? "pb-20" : null,
@@ -3254,14 +3268,34 @@ export function ProjectsPageClient({
           aria-label="Live projects"
           data-project-view-mode={projectViewMode}
           className={
-            hasProjectEmptyState
+            hasProjectEmptyState || hasAuthoritativeZeroProjects
               ? "min-h-0 flex-1"
               : shouldGroupProjects || isUserGroupOrganize
               ? "space-y-4"
               : projectLayoutClassName
           }
         >
-          {hasNoSearchResults ? (
+          {hasAuthoritativeZeroProjects ? (
+            <FirstProjectZeroState
+              canCreateProjects={canCreateProjects}
+              onCreateBlank={() => dispatchPageState({ type: "setIsModalOpen", value: true })}
+              onBrowseTemplates={() => router.push("/workshop/library/templates")}
+              onGuidedSample={() =>
+                startGuidedSampleTransition(async () => {
+                  try {
+                    const sample = await startGuidedSample();
+                    router.push(`/workshop/projects/${sample.projectId}/estimates/${sample.areaId}`);
+                  } catch {
+                    toast({
+                      tone: "error",
+                      message: "Could not create the guided sample. You can retry or start a blank project.",
+                    });
+                  }
+                })
+              }
+              isGuidedSamplePending={isGuidedSamplePending}
+            />
+          ) : hasNoSearchResults ? (
             <div
               className="grid h-full min-h-[420px] place-items-center px-4 py-10"
             >

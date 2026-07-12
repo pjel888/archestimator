@@ -3,6 +3,7 @@ import type {
   ProjectChartGroupingMode,
 } from "@/lib/project-charts/types";
 import { getProjectChartsData } from "@/lib/repositories/project-charts-repository";
+import { getProjectEstimateHealthData, type ProjectEstimateHealthData } from "@/lib/repositories/estimate-health-repository";
 import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
 import type { EstimateRow, ProjectRow } from "@/lib/types/database";
 
@@ -32,6 +33,7 @@ export type ProjectDataRouteSummary = {
   costAcrossSheetsMode: "stacked" | "totals-only";
   didTruncate: boolean;
   rowLimit: number;
+  estimateHealth: ProjectEstimateHealthData | null;
 };
 
 export type GetProjectDataRouteSummaryOptions = {
@@ -69,6 +71,9 @@ export async function getProjectDataRouteSummary(
   const chartsData = await getProjectChartsData(project.id, {
     selectedEstimateIds: chartEstimateIds,
   });
+  const estimateHealth = await getProjectEstimateHealthData(project.id, {
+    selectedEstimateIds: chartEstimateIds,
+  });
 
   return {
     projectId: project.id,
@@ -82,6 +87,7 @@ export async function getProjectDataRouteSummary(
     costAcrossSheetsMode: estimateSheets.length > 20 ? "totals-only" : "stacked",
     didTruncate: Boolean(chartsData?.didTruncate),
     rowLimit: chartsData?.rowLimit ?? 5000,
+    estimateHealth,
   };
 }
 
