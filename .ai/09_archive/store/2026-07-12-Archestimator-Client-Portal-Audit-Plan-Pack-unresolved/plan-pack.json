@@ -6,10 +6,10 @@
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "IMPLEMENT_LOCAL",
   "package_status": "IMPLEMENTATION_READY",
-  "implementation_status": "IN_PROGRESS",
-  "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "implementation_status": "INCOMPLETE",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
   "baseline": {
     "head": "6b59648a70c485cd54bad8f3659b3ec454621530",
     "scoped_status_sha256": "f665b8d852b99bbd3276b32472bdf4be3a2d6e8e1743caf39a9eef0267b8e915",
@@ -4253,7 +4253,7 @@
       "valid_until": null
     }
   ],
-  "next_unit": "UNIT-018",
+  "next_unit": null,
   "manifest_sha256": "a95cef148e50f1471cba89b6da03ea2394a4fcd65f51892c525bd36acf415d3d",
   "updated_at": "2026-07-12T10:24:23.000Z"
 }

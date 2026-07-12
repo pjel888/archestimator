@@ -110,7 +110,7 @@ The localhost page itself was not reachable from this tool environment. Its beha
 
 - `.ai/03_plans/2026-07-10/Publisher-And-Shared-Pages/*` — historical plan; white-label was explicitly out of scope then
 - `.ai/03_plans/2026-07-10/Activity-History-Mapping/*`
-- `.ai/03_plans/2026-07-12/Publisher-Page-Audit/*`
+- `.ai/09_archive/store/2026-07-12-Publisher-Page-Audit-complete/*`
 - `.ai/03_plans/2026-07-12/Proposals-Page-Audit/*`
 - `.ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/*` — source-reviewed predecessor; retained findings and exclusions are recorded in `21-SHARED-ESTIMATE-PAGE-AUDIT-DELTA.md`
 

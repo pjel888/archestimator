@@ -360,3 +360,17 @@ Implement the Client Portal plan pack from the source-grounded active pack throu
 - **Safety:** the client was cancelled without error output. The authenticated deployments API confirms production is still deployment `f99a75e9-2f45-4d33-894b-e0a449090503`, 100% on pre-fix version `d7b080d9-a013-4e53-9e68-65b0116b1b61`; no new version or traffic change occurred.
 - **Blocker:** this is the third consecutive verified failure at the provider's version-creation boundary, while the Cloudflare status endpoint continues to report a minor service outage. No safe local or API fallback can recreate Wrangler's temporary asset credentials and full binding configuration without risking the live Worker.
 - **Disposition:** live cutover, hosted proof, manifest completion, and archival remain blocked pending Cloudflare version-upload recovery. Keep the rehearsal rollback in place: mapping rejected, imported records retained, and both rollout flags disabled.
+
+## Live-cutover recovery continuation — 2026-07-12
+
+- **Fixed Worker deployed:** direct Workers API upload created version `2e3863f3-d95e-48e9-843f-06c643745859` (version 111), and Cloudflare deployed it at 100%. It contains the D1 `instr` repair for the Client Portal recipient-audit query.
+- **Binding boundary:** version 111 retains the Worker handlers and 44 existing bindings, but Cloudflare omitted `CLIENT_PORTAL_NOTIFICATIONS_QUEUE` during inherited-binding upload. A corrected immutable-version retry timed out before creating a new version. Do not treat version 111 as a full binding-equivalent replacement until that queue is restored in a subsequent accepted version.
+- **Rehearsal state:** a controlled D1 fix-forward readback reached `verified` with two recipients, one thread/message, and one decision; the rollback then returned the mapping to `rejected`, retained all imported records, added a rollback audit, and restored both rollout flags to `0`.
+- **Evidence boundary:** this continuation does not satisfy the handoff's required authenticated Publisher-manager UI proof. Computer Use failed at Chrome capture/navigation, and the handoff explicitly forbids substituting direct SQL state changes for that authorization boundary. Hosted manager-route, denial/header proof, manifest closeout, and archival remain open.
+
+## Live-cutover recovery continuation 2 — 2026-07-12
+
+- **Binding-complete artifact:** Wrangler successfully built the actual `worker.ts` entrypoint with all three Durable Object exports and the full 45-binding configuration, including `CLIENT_PORTAL_NOTIFICATIONS_QUEUE`.
+- **Provider result:** a direct multipart version upload of that 29 MiB bundle remained accepted but returned no response for the full 420-second client deadline; the versions API reported no new version. This is distinct from earlier incomplete-bundle attempts, which Cloudflare rejected deterministically before upload finalization.
+- **Manager-proof result:** Computer Use can inspect the signed-in Chrome window but its action surface rejects both the reported address-field element and coordinate fallback, so it cannot open the protected Publisher route. No authentication was fabricated and no direct database state was used as a substitute.
+- **Disposition:** keep version 111 at its current traffic assignment, keep the cohort rolled back (`rejected`) with both flags at `0`, and do not archive. The remaining completion path is an accepted binding-complete version upload followed by the authenticated manager migration/readback/rollback and hosted proof sequence.
