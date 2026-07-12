@@ -131,10 +131,17 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(report.succeeded).toBe(true);
     expect(report.providerBacked).toBe(true);
     expect(report.cleanupVerified).toBe(true);
+    expect(report.exportDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(commands.slice(0, 2).map((args) => args.slice(0, 2).join(" "))).toEqual([
       "d1 create", "d1 execute",
     ]);
     expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 export").length).toBeGreaterThan(0);
+    for (const args of commands.filter((command) => command.slice(0, 2).join(" ") === "d1 export")) {
+      expect(args).toContain("--table");
+      expect(args).toContain("--no-schema");
+      expect(args).not.toContain("account");
+      expect(args).not.toContain("session");
+    }
     expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 execute").length).toBeGreaterThan(0);
     expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual([
       "d1 delete", "d1 list",
@@ -157,14 +164,12 @@ describe("Cloudflare D1 hosted recovery executor", () => {
         commands.push(args);
         if (args[1] === "export") {
           const output = args[args.indexOf("--output") + 1]!;
-          writeFileSync(output, [
-            'INSERT INTO "workspaces" ("id") VALUES ("workspace-1");',
-            'INSERT INTO "account" ("accessToken") VALUES ("secret");',
-          ].join("\n"));
+          const table = args[args.indexOf("--table") + 1]!;
+          writeFileSync(output, `INSERT INTO "${table}" ("id") VALUES ("fixture-${table}");`);
         }
         if (args[1] === "execute") {
           const input = args[args.indexOf("--file") + 1]!;
-          if (input.includes("approved-application-data")) importedArtifacts.push(readFileSync(input, "utf8"));
+          if (input.includes(".approved.sql")) importedArtifacts.push(readFileSync(input, "utf8"));
         }
         return { status: 0, stdout: args[1] === "list" ? "[]" : "{}", stderr: "" };
       },
@@ -172,10 +177,9 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
 
     expect(report.succeeded).toBe(true);
-    expect(importedArtifacts).toHaveLength(1);
-    expect(importedArtifacts[0]).toContain('INSERT INTO "workspaces"');
-    expect(importedArtifacts[0]).not.toContain("accessToken");
-    expect(importedArtifacts[0]).not.toContain('INSERT INTO "account"');
+    expect(importedArtifacts.length).toBeGreaterThan(0);
+    expect(importedArtifacts.every((artifact) => !artifact.includes("accessToken"))).toBe(true);
+    expect(importedArtifacts.every((artifact) => !artifact.includes('INSERT INTO "account"'))).toBe(true);
     expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual(["d1 delete", "d1 list"]);
   });
 });
