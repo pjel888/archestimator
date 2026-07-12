@@ -353,3 +353,10 @@ Implement the Client Portal plan pack from the source-grounded active pack throu
 - **Readback:** the authenticated deployments API still reports deployment `f99a75e9-2f45-4d33-894b-e0a449090503` at 100% on pre-fix version `d7b080d9-a013-4e53-9e68-65b0116b1b61`; no new version or deployment was created.
 - **Provider boundary:** Cloudflare's status endpoint concurrently reports a minor service outage. This is supporting context only; the repeatable blocker is the unresponsive version-creation request after successful asset handling.
 - **Archive gate:** remain fail-closed with the controlled cohort rolled back and both rollout flags disabled. Do not archive the Client Portal or related Publisher pack until a fixed Worker version is deployed and the remaining manager-route and hosted-proof gates pass.
+
+## Live-cutover deployment retry 2 — 2026-07-12
+
+- **Attempt:** a third bounded Wrangler deployment from the clean fixed-source snapshot again read all 320 assets, reused the unchanged asset set, and reached `Total Upload: 29260.83 KiB / gzip: 6246.86 KiB` before Worker version creation stopped responding for 90 seconds.
+- **Safety:** the client was cancelled without error output. The authenticated deployments API confirms production is still deployment `f99a75e9-2f45-4d33-894b-e0a449090503`, 100% on pre-fix version `d7b080d9-a013-4e53-9e68-65b0116b1b61`; no new version or traffic change occurred.
+- **Blocker:** this is the third consecutive verified failure at the provider's version-creation boundary, while the Cloudflare status endpoint continues to report a minor service outage. No safe local or API fallback can recreate Wrangler's temporary asset credentials and full binding configuration without risking the live Worker.
+- **Disposition:** live cutover, hosted proof, manifest completion, and archival remain blocked pending Cloudflare version-upload recovery. Keep the rehearsal rollback in place: mapping rejected, imported records retained, and both rollout flags disabled.
