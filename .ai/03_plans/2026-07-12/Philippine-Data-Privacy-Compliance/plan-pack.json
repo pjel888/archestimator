@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
@@ -373,7 +373,7 @@
     }
   ],
   "stale_triggers": ["source-or-config-hash-change", "legal-or-regulatory-change", "processor-or-binding-change"],
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "updated_at": "2026-07-12T00:00:00.000Z",
   "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
 }
