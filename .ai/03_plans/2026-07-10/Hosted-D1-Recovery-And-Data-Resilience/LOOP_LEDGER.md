@@ -245,3 +245,11 @@ Append timestamp, run scope, current provider constraints, baseline hashes, comp
   migration, browser, application, auth, or release action occurred. Planning
   artifacts only changed. Readiness remains
   `CONDITIONALLY_READY/NOT_STARTED/BOUNDARY/ACTIVE`.
+
+## 2026-07-12 - Provider-backed recovery execution evidence
+
+- Confirmed bound production D1 read access and created only disposable D1 targets.
+- The exported source failed import because `workspaces` references `corporate_accounts` before that table is created. The export also contains Better Auth credential/session material; no import or release receipt was issued.
+- Every disposable recovery and staging D1 was deleted with provider inventory readback. Local plaintext/ciphertext export artifacts were removed.
+- The hosted executor now rejects credential-bearing exports before import and preserves cleanup on failure. Focused recovery/staging suites passed (21 tests), typecheck and diff check passed.
+- Next action: replace raw export/import with an ordered, secret-safe recovery artifact and prove it on a new disposable D1 before any archive transition.
