@@ -346,3 +346,10 @@ Implement the Client Portal plan pack from the source-grounded active pack throu
 - **Defect and fix:** the manager Client Portal route then failed because D1 rejected the dynamic audit-event `LIKE` pattern as too complex. `activity-service.ts` now uses an exact `instr` JSON-fragment check at both recipient-audit lookups; targeted ESLint and the equivalent remote D1 query pass.
 - **Safe rollback:** the post-fix Worker-version upload did not complete (Cloudflare version creation remained pending with no new deployment record), so the rehearsal was rolled back before leaving the cohort frozen. Remote D1 now reports mapping status `rejected`, one `legacy_migration_rolled_back` audit event, retained imported records (two recipients, one thread, one decision), and both rollout flags disabled.
 - **Release boundary:** the code fix is local and the live migration/rollback path was exercised, but no new Worker version exists with the fix. The manager Client Portal route and final hosted header/denial proof remain open; both Client Portal and Publisher packs remain active and are not archive-eligible.
+
+## Live-cutover deployment retry — 2026-07-12
+
+- **Attempt:** rebuilt-source deployment retry reused all 320 static assets and reached the Worker version-upload boundary (`Total Upload: 29260.83 KiB / gzip: 6246.86 KiB`), then received no provider response for 90 seconds and was cancelled safely.
+- **Readback:** the authenticated deployments API still reports deployment `f99a75e9-2f45-4d33-894b-e0a449090503` at 100% on pre-fix version `d7b080d9-a013-4e53-9e68-65b0116b1b61`; no new version or deployment was created.
+- **Provider boundary:** Cloudflare's status endpoint concurrently reports a minor service outage. This is supporting context only; the repeatable blocker is the unresponsive version-creation request after successful asset handling.
+- **Archive gate:** remain fail-closed with the controlled cohort rolled back and both rollout flags disabled. Do not archive the Client Portal or related Publisher pack until a fixed Worker version is deployed and the remaining manager-route and hosted-proof gates pass.

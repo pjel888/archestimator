@@ -10,6 +10,11 @@
 
 This plan pack defines the legal, product, engineering, security, operational, and evidentiary work required to make Archestimator demonstrably compliant with Philippine data privacy requirements.
 
+This is a **planning pack**, not an implemented system. It is grounded in source inspection of
+the live repository (HEAD `0365c8b6`, 2026-07-12); every technical claim cites real files,
+tables, and symbols. The canonical execution artifact is `IMPLEMENTATION_PLAN.md`. The
+source-level data inventory is `25_D1_DATA_SYSTEM_INVENTORY.md` (85 personal-data stores).
+
 This is not merely a privacy-policy exercise. Compliance must be proven through:
 
 1. lawful and transparent processing;
@@ -48,6 +53,8 @@ This is not merely a privacy-policy exercise. Compliance must be proven through:
 | 22 | Risk Register and Decision Log | Open risks, decisions, assumptions |
 | 23 | Evidence and Audit Readiness Index | Final compliance evidence structure |
 | 24 | Sources and Legal Validation Notes | Primary references and counsel review list |
+| 25 | D1 Data-System Inventory | Source-level table inventory (85 stores) grounding the ROPA |
+| — | IMPLEMENTATION_PLAN.md | Canonical execution artifact: unit DAG, traceability, resume point |
 
 ## Readiness Classification
 
