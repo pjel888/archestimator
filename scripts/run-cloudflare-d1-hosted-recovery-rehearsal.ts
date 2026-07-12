@@ -365,13 +365,20 @@ function activeApplicationTables() {
 function buildApprovedDataArtifacts(exportBytes: Buffer, approvedTables: Set<string>) {
   const statements = splitSqlStatements(exportBytes.toString("utf8"));
   const statementsByTable = new Map<string, string[]>();
+  const deferredClientPortalUpdates: string[] = [];
   for (const statement of statements) {
     const table = insertedTable(statement);
     if (!table || !approvedTables.has(table) || EXCLUDED_TABLES.has(table)) continue;
     const entries = statementsByTable.get(table) ?? [];
-    entries.push(UPSERT_TABLES.has(table)
-      ? statement.replace(/^\s*INSERT\s+INTO\b/i, "INSERT OR REPLACE INTO")
-      : statement);
+    if (table === "client_portals") {
+      const transformed = redactClientPortalInsert(statement);
+      entries.push(transformed.insert);
+      if (transformed.deferredUpdate) deferredClientPortalUpdates.push(transformed.deferredUpdate);
+    } else {
+      entries.push(UPSERT_TABLES.has(table)
+        ? statement.replace(/^\s*INSERT\s+INTO\b/i, "INSERT OR REPLACE INTO")
+        : statement);
+    }
     statementsByTable.set(table, entries);
   }
   const orderedTables = orderApplicationTables(approvedTables);
@@ -379,11 +386,66 @@ function buildApprovedDataArtifacts(exportBytes: Buffer, approvedTables: Set<str
   if (approved.length === 0 && statements.some((statement) => insertedTable(statement) !== null)) {
     throw new Error("approved-data-artifact-empty");
   }
-  return orderedTables.flatMap((table) => {
+  const artifacts = orderedTables.flatMap((table) => {
     const tableStatements = statementsByTable.get(table) ?? [];
     if (tableStatements.length === 0) return [];
     return [{ table, source: Buffer.from(["PRAGMA foreign_keys = ON;", ...tableStatements].join("\n"), "utf8") }];
   });
+  if (deferredClientPortalUpdates.length > 0) {
+    artifacts.push({
+      table: "client_portals-current-issues",
+      source: Buffer.from(["PRAGMA foreign_keys = ON;", ...deferredClientPortalUpdates].join("\n"), "utf8"),
+    });
+  }
+  return artifacts;
+}
+
+function redactClientPortalInsert(statement: string) {
+  const match = statement.match(/^\s*INSERT\s+INTO\s+"client_portals"\s*\(([^)]+)\)\s*VALUES\s*\((.*)\);\s*$/is);
+  if (!match) throw new Error("client-portal-insert-shape");
+  const columns = [...match[1]!.matchAll(/"([A-Za-z_][A-Za-z0-9_]*)"/g)].map((item) => item[1]!);
+  const values = splitSqlValues(match[2]!);
+  if (columns.length !== values.length) throw new Error("client-portal-insert-values");
+  const valueByColumn = new Map(columns.map((column, index) => [column, values[index]! ]));
+  const id = valueByColumn.get("id");
+  if (!id) throw new Error("client-portal-insert-id");
+  const invalidatedCredential = createHash("sha256").update(`recovery-invalidated\n${id}`).digest("hex");
+  valueByColumn.set("stable_token_hash", `'${invalidatedCredential}'`);
+  valueByColumn.set("encrypted_stable_token", `'recovery-invalidated-${invalidatedCredential}'`);
+  valueByColumn.set("password_hash", "NULL");
+  const currentIssueId = valueByColumn.get("current_issue_id");
+  valueByColumn.set("current_issue_id", "NULL");
+  const insert = `INSERT INTO "client_portals" (${columns.map((column) => `"${column}"`).join(",")}) VALUES (${columns.map((column) => valueByColumn.get(column)!).join(",")});`;
+  const deferredUpdate = currentIssueId && !/^NULL$/i.test(currentIssueId)
+    ? `UPDATE "client_portals" SET "current_issue_id" = ${currentIssueId} WHERE "id" = ${id};`
+    : null;
+  return { insert, deferredUpdate };
+}
+
+function splitSqlValues(source: string) {
+  const values: string[] = [];
+  let start = 0;
+  let quote: "'" | '"' | null = null;
+  let depth = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index]!;
+    if (quote) {
+      if (character === quote) {
+        if (source[index + 1] === quote) index += 1;
+        else quote = null;
+      }
+      continue;
+    }
+    if (character === "'" || character === '"') quote = character;
+    else if (character === "(") depth += 1;
+    else if (character === ")") depth -= 1;
+    else if (character === "," && depth === 0) {
+      values.push(source.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  values.push(source.slice(start).trim());
+  return values;
 }
 
 function orderApplicationTables(tables: Set<string>) {
