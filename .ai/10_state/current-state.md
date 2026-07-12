@@ -13,6 +13,11 @@ task-specific history. Do not linear-read the detailed history below.
 - **Stage:** preparing for first users. Prioritize auth, estimating workflows,
   cost library, proposal packages, collaboration/publication proof, provider
   evidence, support readiness, and fast iteration.
+- **Pre-release posture:** Archestimator is alpha-stage, not released, and not
+  beta. Ordinary local edits are not production change events. Prefer direct
+  replacement and fix-forward iteration; do not invent compatibility, flags,
+  rollout/rollback, hosted proof, or approval gates without a proven current
+  user/data/integration obligation or actual external side effect.
 - **Runtime:** Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 on
   Cloudflare Workers/OpenNext. `wrangler.jsonc` is the executable source for
   active D1, R2, Durable Object, Queue, Images, Email, and cron configuration.

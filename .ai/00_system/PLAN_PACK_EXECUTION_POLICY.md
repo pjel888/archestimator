@@ -41,6 +41,23 @@ not use `BLOCKED`, `CONDITIONALLY_READY`, `NOT_READY`, an open decision, or a
 missing non-test proof as a terminal implementation state when a repository
 action can still move the outcome forward.
 
+## Pre-Release Bias To Action
+
+Archestimator is alpha-stage, not released, and not beta. Plan packs must not
+model ordinary local implementation as production change control. Do not add
+compatibility layers, dual-write/dual-read paths, feature flags, phased rollout,
+release approvals, hosted proof, rollback bureaucracy, or preservation work
+unless a current user, accepted persisted-data contract, active integration, or
+explicit requirement makes it real. A hypothetical future production risk is
+not a blocker and is not sufficient reason to enlarge the implementation.
+
+For repository-controlled work, prefer the direct target design and fix forward
+through local breakage in the same run. Security, auth, data, and migration work
+still require deep blast-radius analysis, but analysis must produce decisive
+implementation rather than paralysis. Only real external deployment, secrets,
+paid resources, out-of-scope systems, or irreversible data loss remain strict
+authorization boundaries.
+
 ## Narrow Boundary Rule
 
 Only a true `AUTH-*` boundary may remain after all safe in-scope work is done:

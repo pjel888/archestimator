@@ -82,6 +82,19 @@ when the task is genuinely non-trivial, ambiguous, or high-risk.
 
 Archestimator is preparing for first users. Prioritize auth, estimating workflows, cost library, proposal package, collaboration/publication proof, provider evidence, and fast iteration.
 
+**Pre-release execution posture:** Archestimator is alpha-stage, not released,
+and not beta. Ordinary repository edits are development work, not production
+change events. Agents should expect to break incomplete local behavior while
+iterating, repair it immediately, and fix forward until the requested outcome is
+coherent. Do not add rollout ceremony, compatibility layers, feature flags,
+migration bridges, approval pauses, release evidence, or speculative safeguards
+merely to protect an unreleased implementation. Preserve compatibility only
+when a current user, accepted persisted-data contract, active external
+integration, or explicit requirement proves it matters. Caution remains strict
+for secrets, irreversible data loss, paid services, out-of-scope provider
+resources, and actual external deployment; it must not become a pretext for
+slowing safe local product development.
+
 ## Lean Agent Workflow
 
 The agentic development goal is fast, lean, effective, and BUG-free work. Hold

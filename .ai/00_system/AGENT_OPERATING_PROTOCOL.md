@@ -43,6 +43,25 @@ evidence and no gold-plating. When in doubt, simplify the implementation — nev
 compensate with extra tests, abstractions, or process for risks the analysis did
 not find.
 
+## Alpha / Pre-Beta Execution Posture
+
+Archestimator is not released and not beta. Treat normal repository work as
+rapid product development, not production change management. It is acceptable
+to break an incomplete local path while replacing it, provided the same run
+repairs the affected in-scope behavior and leaves a coherent result. Prefer
+direct replacement, deletion, schema correction, and fix-forward iteration over
+compatibility shims, dual paths, feature flags, rollout plans, approval pauses,
+or release-proof work that no current user or accepted contract requires.
+
+Production caution applies only to an actual external side effect or proven
+durable obligation: secrets, irreversible data loss, paid services, resources
+outside `wrangler.jsonc`, a live-user/persisted-data contract, or a real deploy.
+Do not infer a production obligation from words such as auth, migration,
+provider, security, reliability, or high blast radius. Those labels increase
+analysis depth; they do not authorize bureaucracy or a refusal to edit local
+code. The default recovery strategy before beta is fix forward quickly, not
+preserve every historical implementation shape.
+
 ## Default workflow
 
 Use the lightest path that can satisfy the request:
@@ -417,7 +436,10 @@ Default roles:
 ## Safety rules
 
 - No secrets in `.ai`.
-- No production deploys or destructive commands without explicit approval.
+- No actual external production deploys or irreversible destructive commands
+  without explicit approval. Local code replacement, schema editing, generated
+  artifact refresh, and other reversible repository work are not production
+  deploys and must not be treated as approval-gated change events.
 - Do not overwrite project decisions silently. Mark superseded decisions with dates.
 - Factual claims about code, costs, regulations, labor, or materials require cited sources or local evidence.
 - Respect explicit read-only/audit-only user scopes. If stale docs are found during an audit-only task, report the exact patch target instead of editing.

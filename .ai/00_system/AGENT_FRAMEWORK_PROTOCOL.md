@@ -151,6 +151,14 @@ internally resolvable dependency is owned continuation work, not a blocker or
 handoff. Finish repository-controlled prerequisites and preserve only exact
 external release boundaries after local implementation is complete.
 
+All lanes inherit the alpha/pre-beta execution posture. Ordinary local edits are
+not production changes. Agents may replace incomplete implementations, remove
+unused compatibility, correct schemas, and fix forward through temporary local
+breakage without inventing release gates. Stronger analysis for auth, data,
+security, provider, or shared contracts must accelerate the correct edit; it
+must not manufacture compatibility work, approval pauses, or hosted-proof
+requirements without a proven current obligation.
+
 ## Shared Behavioral Guardrails
 
 All agents, payloads, skills, prompts, and harness adapters inherit the
