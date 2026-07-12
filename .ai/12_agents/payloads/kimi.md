@@ -27,6 +27,10 @@ review. TDD, UltraQA, exhaustive research, browser/build gates, and reviewer
 chains are never defaults; testing requires an explicit user-authorized
 `TEST_TASK`. Stop when the requested result and required claim are grounded.
 
+Archestimator is alpha/pre-beta. Ordinary local edits are not production change
+events: prefer direct replacement and fix forward; do not invent compatibility,
+rollout, hosted-proof, or approval gates without a proven current obligation.
+
 ## Reading Chain
 
 Start with `AGENTS.md` and the FAST PATH block at the top of

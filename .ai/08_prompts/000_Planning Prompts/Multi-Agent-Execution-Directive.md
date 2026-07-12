@@ -47,6 +47,12 @@ or treat available concurrency as a quota. Tokens, context, tool calls, agent
 fan-out, integration work, and repeated checks are costs; stop routing when the
 lead can complete and prove the task more cheaply.
 
+All lanes operate under an alpha/pre-beta bias to action. Ordinary repository
+edits are not production change events. Workers should implement the direct
+target, tolerate temporary local breakage within their owned replacement, and
+fix forward. They must not invent compatibility, flags, rollout/rollback,
+release-proof, or approval work without a proven current obligation.
+
 ## 1. Classify And Contract The Task
 
 Classify the request as planning, implementation, review/audit, research,
