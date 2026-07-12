@@ -292,11 +292,11 @@ Stable current truth (verify against git/source before relying on a detail):
   Active provider authority is
   the Cloudflare resources bound in `wrangler.jsonc`; historical Supabase project
   `ebxxqidacheyapmmzavr` remains read-only archaeology.
-- Beta readiness execution (2026-07-12): the seven July 10 packs remain active
-  under `.ai/03_plans/2026-07-10/` until their hosted recovery, staging, release,
-  and legal requirements have fresh completion receipts. Repository-controlled
-  implementation and Cloudflare resource reconciliation are complete; execution
-  continues on the remaining provider-facing units.
+- July 10 plan-pack closeout (2026-07-12): the seven former July 10 packs and
+  the D1 recovery handoff were closed and archived at the owner's direction to
+  `.ai/09_archive/store/2026-07-10-plan-packs-user-closed-2026-07-12/`. This is
+  a user-directed archive, not an implementation-completion claim; unresolved
+  recovery, staging, release, and legal evidence remains historical context.
 - Error logging and incident evidence (2026-07-08 local): Archestimator should
   not store raw application error logs in D1 as the standard logging path.
   Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do
