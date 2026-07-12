@@ -111,6 +111,7 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     const original = process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE;
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = "1";
     const commands: string[][] = [];
+    let deleted = false;
     const report = executeCloudflareD1HostedRecoveryRehearsal({
       ...validInputs,
       mode: "hosted",
@@ -119,12 +120,18 @@ describe("Cloudflare D1 hosted recovery executor", () => {
       boundSourceDatabaseId: "bound-source",
       run: ({ args }) => {
         commands.push(args);
+        if (args[0] === "d1" && args[1] === "delete") deleted = true;
         if (args[1] === "export") {
           const output = args[args.indexOf("--output") + 1]!;
           writeFileSync(output, "CREATE TABLE recovery_probe (id TEXT);");
         }
-        return { status: 0, stdout: args[1] === "list" ? "[]" : "{}", stderr: "" };
+        return { status: 0, stdout: args[0] === "deploy"
+          ? "https://archestimator-recovery-test.workers.dev"
+          : args[1] === "list"
+          ? (deleted ? "[]" : JSON.stringify([{ name: validInputs.identity!.targetDatabaseName, uuid: "disposable-id" }]))
+          : "{}", stderr: "" };
       },
+      probe: () => true,
     });
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
 
@@ -132,8 +139,8 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(report.providerBacked).toBe(true);
     expect(report.cleanupVerified).toBe(true);
     expect(report.exportDigest).toMatch(/^[a-f0-9]{64}$/);
-    expect(commands.slice(0, 2).map((args) => args.slice(0, 2).join(" "))).toEqual([
-      "d1 create", "d1 execute",
+    expect(commands.slice(0, 3).map((args) => args.slice(0, 2).join(" "))).toEqual([
+      "d1 create", "d1 list", "d1 execute",
     ]);
     expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 export").length).toBeGreaterThan(0);
     for (const args of commands.filter((command) => command.slice(0, 2).join(" ") === "d1 export")) {
@@ -143,9 +150,11 @@ describe("Cloudflare D1 hosted recovery executor", () => {
       expect(args).not.toContain("session");
     }
     expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 execute").length).toBeGreaterThan(0);
-    expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual([
-      "d1 delete", "d1 list",
+    expect(commands.slice(-3).map((args) => args.slice(0, 2).join(" "))).toEqual([
+      "delete --name", "d1 delete", "d1 list",
     ]);
+    expect(commands.some((args) => args.slice(0, 3).join(" ") === "secret put RECOVERY_EXPECTED_RUN_ID")).toBe(true);
+    expect(commands.some((args) => args.slice(0, 2).join(" ") === "deploy --config")).toBe(true);
     expect(JSON.stringify(report)).not.toContain("bound-source");
   });
 
@@ -154,6 +163,7 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = "1";
     const commands: string[][] = [];
     const importedArtifacts: string[] = [];
+    let deleted = false;
     const report = executeCloudflareD1HostedRecoveryRehearsal({
       ...validInputs,
       mode: "hosted",
@@ -162,6 +172,7 @@ describe("Cloudflare D1 hosted recovery executor", () => {
       boundSourceDatabaseId: "bound-source",
       run: ({ args }) => {
         commands.push(args);
+        if (args[0] === "d1" && args[1] === "delete") deleted = true;
         if (args[1] === "export") {
           const output = args[args.indexOf("--output") + 1]!;
           const table = args[args.indexOf("--table") + 1]!;
@@ -171,8 +182,13 @@ describe("Cloudflare D1 hosted recovery executor", () => {
           const input = args[args.indexOf("--file") + 1]!;
           if (input.includes(".approved.sql")) importedArtifacts.push(readFileSync(input, "utf8"));
         }
-        return { status: 0, stdout: args[1] === "list" ? "[]" : "{}", stderr: "" };
+        return { status: 0, stdout: args[0] === "deploy"
+          ? "https://archestimator-recovery-test.workers.dev"
+          : args[1] === "list"
+          ? (deleted ? "[]" : JSON.stringify([{ name: validInputs.identity!.targetDatabaseName, uuid: "disposable-id" }]))
+          : "{}", stderr: "" };
       },
+      probe: () => true,
     });
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
 
@@ -180,6 +196,6 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(importedArtifacts.length).toBeGreaterThan(0);
     expect(importedArtifacts.every((artifact) => !artifact.includes("accessToken"))).toBe(true);
     expect(importedArtifacts.every((artifact) => !artifact.includes('INSERT INTO "account"'))).toBe(true);
-    expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual(["d1 delete", "d1 list"]);
+    expect(commands.slice(-3).map((args) => args.slice(0, 2).join(" "))).toEqual(["delete --name", "d1 delete", "d1 list"]);
   });
 });
