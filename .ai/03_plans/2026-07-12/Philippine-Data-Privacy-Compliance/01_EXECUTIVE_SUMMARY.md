@@ -2,9 +2,17 @@
 
 ## Core Finding
 
-Archestimator already contains stronger privacy engineering than a typical early-stage SaaS product, including privacy-request types, hashed security metadata, export and erasure helpers, retention rules, legal-hold handling, and privacy-related repository tests. However, technical features alone do not establish compliance.
+Archestimator already contains stronger privacy engineering than a typical early-stage SaaS
+product: a privacy-request register (`privacy_requests`), HMAC-hashed security metadata,
+retention engine with legal-hold awareness, AES-256-GCM/HMAC publication tokens, default-denied
+analytics consent, and an admin audit trail (see `04_REPOSITORY_AND_CURRENT_STATE_AUDIT.md`
+for exact source evidence). However, technical features alone do not establish compliance.
 
-The critical remaining work is to connect those controls to an approved legal basis, complete processing inventory, documented governance, accurate notices, processor contracts, registration decisions, operational procedures, and evidence.
+The critical remaining work is to connect those controls to an approved legal basis, complete
+the processing inventory to cover all **85 personal-data stores** (81 D1 tables + 4 Better Auth
+runtime tables inventoried in `25_D1_DATA_SYSTEM_INVENTORY.md`), document governance, publish
+accurate notices, sign processor contracts, make registration decisions, build the missing
+data-subject-rights orchestrator, and produce evidence.
 
 ## Primary Compliance Risks
 
@@ -14,13 +22,22 @@ Archestimator is a Personal Information Controller for account, authentication, 
 
 The platform may become an independent or joint controller when it determines new purposes for customer data, including platform-wide analytics, AI training, benchmarking, fraud intelligence, or long-term retention.
 
-### 2. Fragmented data-subject fulfillment
+### 2. Missing data-subject-rights orchestrator (largest functional gap)
 
-The current repository supports selected privacy exports and erasure operations, but there is no proven single workflow spanning every store, provider, log, email system, upload, analytics system, AI record, backup, and customer-controlled record.
+The repository has a privacy-request register and per-system export/erase helpers for support,
+activity, and activation data (`src/lib/compliance/privacy-request-repository.ts:224-285`), but
+**none are called by any route or admin action**. There is no triage endpoint, no orchestrator,
+and no admin UI. Coverage is missing for Better Auth core tables, `profiles`, share/portal
+recipients, corporate accounts, AI records, and audit tables. See
+`09_DATA_SUBJECT_RIGHTS_OPERATIONS.md`.
 
-### 3. Unapproved retention schedule
+### 3. Unapproved and partially-unenforced retention schedule
 
-Retention periods exist in code, but code comments acknowledge pending counsel validation. Retention must be purpose-based, documented, and consistent with privacy notices, customer contracts, legal-claim requirements, and actual deletion behavior.
+Retention periods exist in code, but the schedule is a counsel DRAFT (OPEN-DEC-004) and the
+engine enforces only 10 of 17 documented classes. Five D1 classes are declared but have no
+enforcement rule: `ai_action_runs`, `ai_tool_calls`, `ai_data_access_events`,
+`operational_incidents`, `operational_incident_events`. See
+`10_RETENTION_DELETION_AND_LEGAL_HOLDS.md`.
 
 ### 4. Incomplete operational accountability
 
