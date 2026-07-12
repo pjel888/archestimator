@@ -8,13 +8,13 @@ The predecessor is archived only after this receipt and its unit mapping exist.
 
 ## Ordered slices
 
-0. **Slice 0 — email deliverability (P0, owner DNS action):** the proposals
-   feature sends invitations via Cloudflare Email, but `archestimator.com`
-   SPF/MX authenticate against Namecheap → outbound mail SPF-softfails → spam.
-   Fix SPF to include Cloudflare, set up DKIM, tighten DMARC, verify with a real
-   send to Gmail/Outlook. **Ships before everything else — no email = no
-   proposals feature.** See `02` P0-1 and `05` A0. Requires owner DNS access +
-   `TEST_TASK` for the real-send verification.
+0. **Slice 0 — email verification (P2, downgraded from P0 round 11):** live
+   checks show the email substrate is already wired (nameservers on Cloudflare,
+   Email Sending enabled, all 5 `cf-bounce` DNS records published). Two small
+   actions remain: (a) tighten DMARC `p=none`→`p=quarantine` (owner dashboard,
+   optional for beta), (b) real-send verification to Gmail/Outlook (`TEST_TASK`).
+   **No longer blocking — the feature can ship while these complete.** See
+   `20-EMAIL-DNS-FIX-PLAYBOOK.md`.
 1. **Slice 1 — row resilience and decision typing:** execute A1+A2 together in
    `recipient-proposals-repository.ts`. Drop and log unmappable rows, preserve
    the result contract, and use the `"unknown"` decision sentinel.
