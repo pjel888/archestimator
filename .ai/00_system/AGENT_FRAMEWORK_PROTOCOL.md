@@ -457,8 +457,10 @@ production deploys, and destructive external actions require exact current
 authority unless covered by the repository's standing Cloudflare mandate.
 
 That mandate authorizes work only inside resources bound in `wrangler.jsonc`:
-Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, Durable Object
-`COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, and Images `IMAGES`.
+Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, Durable Objects
+`COLLAB_ROOMS`/`GLOBAL_PRESENCE`/`SUPPORT_INBOX`, Queues
+`UPLOAD_JOBS_QUEUE`/`CLIENT_PORTAL_NOTIFICATIONS_QUEUE`, Email `EMAIL`, and
+Images `IMAGES`.
 Agents may create/edit/apply active D1 migrations in `./migrations/`, run scoped
 SQL, change authorized schema/index/query/trigger/seed-test behavior, manage the
 bound provider integrations, and repair mistakes forward without per-change

@@ -216,12 +216,17 @@ Hard fail: “optimize” or “scalable” lacks a falsifiable evaluator.
 background processing, observability/support contracts, or launch/release
 readiness claims.
 
+This gate does not trigger merely because ordinary alpha/pre-beta repository
+work could eventually reach production. Require production ceremony only for an
+actual operations/release claim or proven current external obligation.
+
 Require:
 
 - Structured redacted logs, metric/event/trace/audit signals, correlation, alert
   threshold or justified `N/A`, dashboard/query/runbook, and support ownership.
 - Rollout stages/flag/default, compatibility window, go/no-go, post-release
-  proof, rollback/fix-forward, data repair, incident path, and cleanup.
+  proof, rollback/fix-forward, data repair, incident path, and cleanup when the
+  requested operations/release claim actually requires them.
 - Local, hosted, provider, production, operator, and external-authority proof
   explicitly separated.
 - `AUTH-*` packet for any forbidden external side effect; all local prerequisites

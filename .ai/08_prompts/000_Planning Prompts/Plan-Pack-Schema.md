@@ -15,13 +15,20 @@ Do not duplicate requirement/test/evidence matrices, invent hypothetical
 surfaces, or add tests/review/QA records merely because fields exist. Empty or
 `N/A` is correct when a field is inapplicable.
 
+Archestimator is alpha/pre-beta. The schema must not turn ordinary local edits
+into production change-control work. Compatibility, flags, rollout, rollback,
+hosted proof, and approval records are `N/A` unless a proven current user,
+persisted-data contract, active integration, irreversible external effect, or
+explicit requirement makes them necessary. Prefer direct replacement and
+fix-forward local iteration.
+
 ## 1. Depth Profile
 
 | Profile | Use | Required shape |
 |---|---|---|
 | `focused` | Narrow, reversible, bounded work | Compact pack; all logical fields may share a few files |
 | `standard` | Multi-file or multi-domain work | Separate high-density artifacts only where execution, decisions, required tests, or evidence have distinct owners/lifecycles |
-| `high-blast-radius` | Auth, security, data, provider, migration, release, architecture, agent framework, or codebase-wide work | Durable research as needed, bounded threat/data/failure models, rollback proof, live ledger, authorized QA only, final audit |
+| `high-blast-radius` | Auth, security, data, provider, migration, release, architecture, agent framework, or codebase-wide work | Durable research as needed, bounded threat/data/failure models, applicable recovery/fix-forward proof, live ledger, authorized QA only, final audit |
 
 Choose the lightest profile that covers the risk. Do not omit a logical field
 because the pack is compact, and do not create empty files to satisfy a count.

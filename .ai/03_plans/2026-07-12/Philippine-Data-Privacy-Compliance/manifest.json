@@ -1,8 +1,10 @@
 {
   "name": "Archestimator Philippine Data Privacy Compliance Plan Pack",
   "date": "2026-07-12",
-  "status": "READY_FOR_LEGAL_VALIDATION_AND_IMPLEMENTATION",
-  "document_count": 26,
+  "status": "NOT_READY_AWAITING_AUTH_AND_IMPLEMENTATION",
+  "canonical_manifest": "plan-pack.json",
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "document_count": 28,
   "files": [
     "00_INDEX.md",
     "01_EXECUTIVE_SUMMARY.md",
@@ -29,6 +31,8 @@
     "22_RISK_REGISTER_AND_DECISION_LOG.md",
     "23_EVIDENCE_AND_AUDIT_READINESS_INDEX.md",
     "24_SOURCES_AND_LEGAL_VALIDATION_NOTES.md",
+    "25_D1_DATA_SYSTEM_INVENTORY.md",
+    "IMPLEMENTATION_PLAN.md",
     "README.md"
   ],
   "recommended_repo_path": ".ai/03_plans/2026-07-12/Philippine-Data-Privacy-Compliance/"

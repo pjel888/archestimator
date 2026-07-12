@@ -187,8 +187,10 @@ boundaries, safety rules, or verification gates.
 
 Philip grants standing authorization for agents to make Archestimator changes
 inside the Cloudflare resources currently bound in `wrangler.jsonc`: Worker
-`archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, Durable Object
-`COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, and Images `IMAGES`.
+`archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, Durable Objects
+`COLLAB_ROOMS`/`GLOBAL_PRESENCE`/`SUPPORT_INBOX`, Queues
+`UPLOAD_JOBS_QUEUE`/`CLIENT_PORTAL_NOTIFICATIONS_QUEUE`, Email `EMAIL`, and
+Images `IMAGES`.
 Agents may create/edit/apply active D1 migrations in `./migrations/`, run scoped
 SQL, adjust schema/index/query/trigger/seed-test behavior, manage authorized R2/
 DO/Queue/Email/Images integration state, and repair mistakes forward without

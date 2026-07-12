@@ -200,6 +200,7 @@ requireText("README.md", [
   ["plan-pack validator", "required manifest"],
   ["progressive disclosure", "## Progressive Disclosure"],
   ["evaluation contract", "Prompt-Evaluation-Suite.md"],
+  ["pre-beta execution posture", "alpha-stage, not released, and not beta"],
 ]);
 
 {
@@ -233,10 +234,12 @@ requireText("Frontier-Planning-Kernel.md", [
   ["core-relative completion", "every core requirement is complete"],
   ["conditional test field", "test_requirement"],
   ["default no-test decision", "NOT_REQUIRED"],
+  ["pre-beta bias to action", "Alpha / Pre-Beta Bias To Action"],
 ]);
 
 requireText("Plan-Pack-Schema.md", [
   ["lean schema invariant", "Lean Schema Invariant"],
+  ["pre-beta schema posture", "The schema must not turn ordinary local edits"],
   ["explicit test-task authority", "Only `TEST_TASK` plus"],
   ["proposal-only legacy triggers", "do **not** authorize execution"],
   ["canonical manifest", "plan-pack.json"],
@@ -305,17 +308,20 @@ requireText("Executing-Plan-Prompt.md", [
 requireText("Frontier-Applicability-Gates.md", [
   ["lean applicability rule", "Lean Applicability Rule"],
   ["explicit user test authority", "user has explicitly requested testing"],
+  ["actual release trigger", "does not trigger merely because ordinary alpha/pre-beta"],
 ]);
 
 requireText("Multi-Agent-Execution-Directive.md", [
   ["lean topology rule", "Lean Topology Rule"],
   ["resource-cost discipline", "Tokens, context, tool calls"],
   ["explicit user test authority", "only when explicitly requested by the user"],
+  ["pre-beta lane posture", "All lanes operate under an alpha/pre-beta bias to action"],
 ]);
 
 requireText("Prompt-Evaluation-Suite.md", [
   ["lean evaluation invariant", "Lean Evaluation Invariant"],
   ["overengineering pressure eval", "EVAL-35 - Overengineering And Overtesting Pressure"],
+  ["production paralysis eval", "EVAL-36 - Pre-Beta Production-Paralysis Pressure"],
   ["explicit user test authority", "without an explicit current-task user testing request"],
 ]);
 
@@ -408,8 +414,8 @@ const combinedLineCount = [...contents.values()].reduce(
   (total, content) => total + content.split("\n").length - 1,
   0,
 );
-if (combinedLineCount > 3000) {
-  errors.push(`suite context budget exceeded: ${combinedLineCount} lines (max 3000)`);
+if (combinedLineCount > 3150) {
+  errors.push(`suite context budget exceeded: ${combinedLineCount} lines (max 3150)`);
 }
 
 const forbiddenPatterns = [

@@ -43,7 +43,8 @@ when the task is genuinely non-trivial, ambiguous, or high-risk.
 - Stack baseline is Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 + Cloudflare Workers/OpenNext + D1 + R2 + Durable Objects + Queues/Cron + Cloudflare Email + Better Auth, with TanStack Query, Zustand, and repository boundaries. The Cloudflare migration is complete: `wrangler.jsonc` (Worker `archestimator-proof`, custom domain `archestimator.com`) is the active deploy substrate, `package.json` has no `@supabase/*` packages, and Better Auth is wired against D1.
 - `wrangler.jsonc` is the executable source for bindings and schedules. Current
   key bindings are D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, Durable Objects
-  `COLLAB_ROOMS`/`GLOBAL_PRESENCE`/`SUPPORT_INBOX`, Queue `UPLOAD_JOBS_QUEUE`,
+  `COLLAB_ROOMS`/`GLOBAL_PRESENCE`/`SUPPORT_INBOX`, Queues
+  `UPLOAD_JOBS_QUEUE`/`CLIENT_PORTAL_NOTIFICATIONS_QUEUE`,
   Cloudflare Images `IMAGES`, and Cloudflare Email `EMAIL`; current crons are
   `0 3 * * *`, `15 3 * * *`, and `30 3 * * *`. Re-read the file instead of
   relying on copied counts before provider work.
@@ -196,7 +197,7 @@ without improving correctness.
   Authorization Gate controls them; run them only when Philip explicitly asks
   for that testing/visual proof in the current task.
 - Reuse existing UI primitives from `src/components/ui/` when it is practical and cheaper than duplicating behavior. Do not block small fixes on Storybook inventory work.
-- For Cloudflare D1/R2/Durable Object/Queue/Email changes, use the standing Cloudflare-resource authorization above: move quickly, keep migrations/recovery paths reviewable, document meaningful provider facts, and keep the project boundary strict — only the resources bound in `wrangler.jsonc` (Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, Images `IMAGES`), never the historical Supabase project `ebxxqidacheyapmmzavr`, the unrelated `archestimator` provider project, or other Cloudflare accounts.
+- For Cloudflare D1/R2/Durable Object/Queue/Email changes, use the standing Cloudflare-resource authorization above: move quickly, keep migrations/recovery paths reviewable, document meaningful provider facts, and keep the project boundary strict — only the resources bound in `wrangler.jsonc` (Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DOs `COLLAB_ROOMS`/`GLOBAL_PRESENCE`/`SUPPORT_INBOX`, Queues `UPLOAD_JOBS_QUEUE`/`CLIENT_PORTAL_NOTIFICATIONS_QUEUE`, Email `EMAIL`, Images `IMAGES`), never the historical Supabase project `ebxxqidacheyapmmzavr`, the unrelated `archestimator` provider project, or other Cloudflare accounts.
 
 ## GitHub Security PR Loop
 

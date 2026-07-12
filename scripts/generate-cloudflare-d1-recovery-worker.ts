@@ -117,6 +117,15 @@ async function claimNonceAndSuccess(database, nonceDigest, now) {
   return "success-cap";
 }
 
+async function targetIsReady(database) {
+  try {
+    const result = await database.prepare("SELECT 1 AS ready").first();
+    return result?.ready === 1;
+  } catch {
+    return false;
+  }
+}
+
 function deny(label, status) {
   return new Response(label, { status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
 }
@@ -160,10 +169,11 @@ export default {
       }
       const nonceResult = await claimNonceAndSuccess(env.ARCH_DB, hex(await sha256(payload.nonce)), Date.now());
       if (nonceResult) return deny(nonceResult, nonceResult === "success-cap" ? 429 : 409);
+      if (!await targetIsReady(env.ARCH_DB)) return deny("target-unavailable", 503);
     } catch {
       return deny("body-invalid", 400);
     }
-    return deny("app-dispatch-disabled", 503);
+    return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
   },
 };
 `;
