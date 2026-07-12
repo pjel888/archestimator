@@ -5,16 +5,24 @@ import type { ProjectStatus } from "@/lib/projects/status";
 export type { AppPlatformRole };
 
 export type ProjectRow = {
+  budget_basis_date?: string | null;
   client_name: string | null;
   created_at: string;
   created_by: string | null;
   currency_code: string;
+  floor_area_unit?: "sqm" | "sqft" | null;
+  gross_floor_area?: number | null;
   id: string;
   location: string | null;
+  market_region?: string | null;
   metadata: Json;
   name: string;
+  procurement_status?: string | null;
   project_code: string | null;
+  project_phase?: string | null;
+  project_type?: string | null;
   status: ProjectStatus;
+  target_budget?: number | null;
   updated_at: string;
   workspace_id: string;
 };

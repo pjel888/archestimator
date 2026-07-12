@@ -8,6 +8,7 @@ import {
   type FlattenedEstimateRow,
 } from "../activity-history-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
+import { computeEstimateRowCostParts } from "@/lib/estimates/estimate-row-total";
 import { formatQuantityExpression, parseQuantityExpression } from "@/lib/estimates/parse-quantity-expression";
 import {
   reportEstimateNodeTotalCompute,
@@ -304,14 +305,26 @@ export function getEditableRowAmounts(item: EstimateRowItem, editableRow: Editab
   const quantity = isQuantityContingency
     ? resolvedQuantityBase + resolvedQuantityContingencyAmount
     : parseNonNegativeEditableNumber(editableRow.quantity);
-  const subTotal = itemCost * quantity;
   const contingencyPercentage = isQuantityContingency
     ? calculateQuantityContingencyPercentage(resolvedQuantityBase, resolvedQuantityContingencyAmount)
     : 0;
   const contingencyValue = 0;
   const adjustmentPercentage = parseEditableAdjustmentPercentage(editableRow.adjustmentPercentage);
-  const adjustmentValue = calculateContingencyValue(subTotal, adjustmentPercentage);
   const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
+  const canonicalCostParts = computeEstimateRowCostParts({
+    quantity,
+    quantity_base: quantityBase,
+    quantity_contingency_amount: quantityContingencyAmount,
+    unit_cost: itemCost,
+    adjustment_percentage: adjustmentPercentage,
+    misc_cost: miscCost,
+    currency_code: "PHP",
+  });
+
+  const subTotal = canonicalCostParts.ok ? canonicalCostParts.value.materialMinorUnits / 100 : 0;
+  const adjustmentValue = canonicalCostParts.ok ? canonicalCostParts.value.adjustmentMinorUnits / 100 : 0;
+  const canonicalMiscCost = canonicalCostParts.ok ? canonicalCostParts.value.miscMinorUnits / 100 : 0;
+  const totalItemCosts = canonicalCostParts.ok ? canonicalCostParts.value.total : 0;
 
   return {
     quantity,
@@ -322,9 +335,9 @@ export function getEditableRowAmounts(item: EstimateRowItem, editableRow: Editab
     contingencyValue,
     adjustmentPercentage,
     adjustmentValue,
-    miscCost,
+    miscCost: canonicalMiscCost,
     subTotal,
-    totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
+    totalItemCosts,
     isQuantityContingency,
   };
 }

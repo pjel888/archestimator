@@ -193,12 +193,18 @@ export function useEstimateProposalPreview({
       const blob = await response.blob();
       const filename = readContentDispositionFilename(response.headers.get("content-disposition")) ?? "proposal.xlsx";
       triggerBlobDownload(blob, filename);
+      await fetch("/api/activation/proposal-export-completed", {
+        body: JSON.stringify({ projectId, estimateId }),
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }).catch(() => undefined);
     } catch {
       setProposalDownloadError("We couldn't reach the export service. Check your connection and try again.");
     } finally {
       setIsDownloadingProposal(false);
     }
-  }, [proposalDownloadHref, setIsDownloadingProposal, setProposalDownloadError]);
+  }, [estimateId, projectId, proposalDownloadHref, setIsDownloadingProposal, setProposalDownloadError]);
 
   const proposalPreviewScopeControls = hasMultiplePersistedTabs
     ? {
@@ -216,15 +222,20 @@ export function useEstimateProposalPreview({
     (proposalPreviewModel?.proposalRows.length ?? 0) === 0 &&
     !(hasMultiplePersistedTabs && proposalPreviewScope === "all-tabs");
   const proposalPreviewUnsavedEditCount = useMemo(
-    () => countUnsavedEditableRows(estimateTree, editableRows),
-    [editableRows, estimateTree],
+    () => countUnsavedEditableRows(estimateTree, getEditableRows()),
+    [estimateTree, getEditableRows],
   );
+  const isProposalExportDownloadEligible =
+    Boolean(proposalDownloadHref) &&
+    !isProposalExportEmpty &&
+    !isProposalPreviewStale &&
+    proposalPreviewUnsavedEditCount === 0;
   const proposalPreviewStatus = useMemo(
     () => ({
       freshness: isProposalPreviewStale ? ("stale" as const) : ("current" as const),
       download: isDownloadingProposal
         ? ({ kind: "preparing" as const })
-        : Boolean(proposalDownloadHref) && !isProposalExportEmpty
+        : isProposalExportDownloadEligible
           ? ({ kind: "ready" as const })
           : ({ kind: "disabled" as const }),
       downloadError: proposalDownloadError,
@@ -232,10 +243,9 @@ export function useEstimateProposalPreview({
     }),
     [
       isDownloadingProposal,
-      isProposalExportEmpty,
+      isProposalExportDownloadEligible,
       isProposalPreviewStale,
       proposalDownloadError,
-      proposalDownloadHref,
       proposalPreviewUnsavedEditCount,
     ],
   );

@@ -166,19 +166,20 @@ export function EstimateWorkspaceClient({
   const resolvedLibraryUseStoredPreferences = libraryUseStoredPreferences ?? !disableRouteSync;
   const resolvedLibraryEnableReusableProjectSources = libraryEnableReusableProjectSources ?? !disableRouteSync;
   return (
-    <ProjectEstimateMetadataPublisher
-      metadata={{
-        projectId,
-        estimateId,
-        projectName,
-        estimateName: estimateName ?? projectName,
-        estimateSheetCode: estimateSheetCode ?? "",
-        projectBudget: projectBudget ?? null,
-        canEditEstimate: resolvedCanEditEstimate,
-      }}
-    />
-    <EstimateSurfaceVariantProvider variant={surfaceVariant}>
-    <div
+    <>
+      <ProjectEstimateMetadataPublisher
+        metadata={{
+          projectId,
+          estimateId,
+          projectName,
+          estimateName: estimateName ?? projectName,
+          estimateSheetCode: estimateSheetCode ?? "",
+          projectBudget: projectBudget ?? null,
+          canEditEstimate: resolvedCanEditEstimate,
+        }}
+      />
+      <EstimateSurfaceVariantProvider variant={surfaceVariant}>
+      <div
       role="note"
       aria-label="Desktop workspace notice"
       className="shrink-0 border-b border-hairline bg-surface px-3 py-2 text-[10px] leading-4 text-secondary lg:hidden"
@@ -245,6 +246,7 @@ export function EstimateWorkspaceClient({
         libraryEnableReusableProjectSources={resolvedLibraryEnableReusableProjectSources}
       />
     </section>
-    </EstimateSurfaceVariantProvider>
+      </EstimateSurfaceVariantProvider>
+    </>
   );
 }

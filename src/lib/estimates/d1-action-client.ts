@@ -4,10 +4,12 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { canEditEstimateInD1, canEditProjectInD1 } from "@/lib/authz/d1-access";
-import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1PreparedStatementLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
 import { getProjectComponentIdentity } from "@/lib/estimates/express-components";
+import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
+import { validateActivationProducerIntent } from "@/lib/onboarding/activation-producer-contract";
 import type { Json } from "@/lib/types/json";
 
 type QueryResult<T> = {
@@ -109,6 +111,7 @@ type EstimateRowItemRow = {
   adjustment_percentage?: number | string | null;
   source_snapshot?: Json | string | null;
   source_snapshot_json?: string | null;
+  pricing_provenance_origin?: "recorded" | "inherited_snapshot" | "synthesized_fallback" | "missing" | null;
   sort_order: number | string | null;
   row_revision?: number | string | null;
   category_node_id?: string | null;
@@ -209,6 +212,7 @@ type TemplateRowItemRow = {
   sort_order: number | string | null;
   source_library_item_id: string | null;
   source_snapshot: string | null;
+  pricing_provenance_origin?: "recorded" | "inherited_snapshot" | "synthesized_fallback" | "missing" | null;
   category_node_id: string | null;
   supplier_id: string | null;
   material: string | null;
@@ -405,6 +409,30 @@ async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: strin
   for (const statement of statements) await run(database, statement.sql, statement.values ?? []);
 }
 
+async function runBatchWithPreparedStatements(
+  database: D1DatabaseLike,
+  statements: Array<{ sql: string; values?: unknown[] }>,
+  preparedStatements: D1PreparedStatementLike[],
+) {
+  if (preparedStatements.length === 0) {
+    await runBatch(database, statements);
+    return;
+  }
+  if (database.batch) {
+    const results = await database.batch([
+      ...statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []).map(normalizeD1Value))),
+      ...preparedStatements,
+    ]);
+    if (results.some((result) => result.success === false)) throw new Error("Cloudflare D1 estimate action batch failed.");
+    return;
+  }
+  await runBatch(database, statements);
+  for (const statement of preparedStatements) {
+    const result = await statement.run();
+    if (result.success === false) throw new Error("Cloudflare D1 estimate action write failed.");
+  }
+}
+
 async function readProjectContext(database: D1DatabaseLike, projectId: string) {
   return first<ProjectContextRow>(
     database,
@@ -532,12 +560,13 @@ export async function runMutationWithHistory(
   database: D1DatabaseLike,
   mutationStatements: Array<{ sql: string; values?: unknown[] }>,
   historyInput: HistoryEventInput,
+  preparedStatements: D1PreparedStatementLike[] = [],
 ) {
   const prepared = await prepareHistoryEventInsert(database, historyInput);
   const statements = prepared.statement
     ? [...mutationStatements, prepared.statement, prepared.outboxStatement]
     : mutationStatements;
-  await runBatch(database, statements);
+  await runBatchWithPreparedStatements(database, statements, preparedStatements);
   return prepared.eventId;
 }
 
@@ -1382,16 +1411,45 @@ async function createEstimateNode(database: D1DatabaseLike, args: Record<string,
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const nodeId = randomUUID();
+  const nodeKind = String(args.node_kind ?? "group");
   const insert = buildInsertRecordStatement("estimate_nodes", {
     id: nodeId,
     estimate_id: estimateId,
     estimate_tab_id: args.target_tab_id ?? null,
     parent_id: args.parent_node_id ?? null,
-    kind: args.node_kind ?? "group",
+    kind: nodeKind,
     name: args.node_name ?? "Untitled",
     sort_order: readNumber(args.initial_sort_order),
     metadata_json: {},
   });
+  const activationStatements: D1PreparedStatementLike[] = [];
+  if (nodeKind === "area") {
+    const project = await readProjectContext(database, projectId);
+    const workspaceId = project?.workspace_id ?? "";
+    const occurredAt = nowIso();
+    const intent = validateActivationProducerIntent({
+      domainMutationId: nodeId,
+      estimateId,
+      milestone: "first_area_created",
+      occurredAt,
+      projectId,
+      source: "estimate",
+      userId: String(args.acting_user_id ?? ""),
+      workspaceId,
+    });
+    if (intent.status !== "accepted") throw new Error("Activation area intent is invalid.");
+    activationStatements.push(prepareActivationOutboxIntent(database, {
+      domainMutationId: nodeId,
+      dedupeKey: intent.dedupeKey,
+      estimateId,
+      milestone: "first_area_created",
+      occurredAt,
+      projectId,
+      source: "estimate",
+      userId: String(args.acting_user_id ?? ""),
+      workspaceId,
+    }));
+  }
   const eventId = await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
     projectId,
     estimateId,
@@ -1400,8 +1458,8 @@ async function createEstimateNode(database: D1DatabaseLike, args: Record<string,
     eventType: "estimate_node_created",
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
-    payload: { nodeId, name: args.node_name, kind: args.node_kind, parentNodeId: args.parent_node_id ?? null },
-  });
+    payload: { nodeId, name: args.node_name, kind: nodeKind, parentNodeId: args.parent_node_id ?? null },
+  }, activationStatements);
   return { nodeId, eventId, payload: { nodeId } };
 }
 
@@ -1724,6 +1782,57 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     sort_order: readNumber(sort?.max_sort_order, -1000) + 1000,
   });
   const insertedRow = insert.record as unknown as EstimateRowItemRow;
+  const project = await readProjectContext(database, projectId);
+  const workspaceId = project?.workspace_id ?? "";
+  const userId = String(args.acting_user_id ?? "");
+  const occurredAt = nowIso();
+  const activationStatements: D1PreparedStatementLike[] = [];
+  const rowIntent = validateActivationProducerIntent({
+    domainMutationId: rowId,
+    estimateId,
+    milestone: "first_row_priced",
+    occurredAt,
+    projectId,
+    source: "estimate",
+    userId,
+    workspaceId,
+  });
+  if (rowIntent.status !== "accepted") throw new Error("Activation priced row intent is invalid.");
+  activationStatements.push(prepareActivationOutboxIntent(database, {
+    domainMutationId: rowId,
+    dedupeKey: rowIntent.dedupeKey,
+    estimateId,
+    milestone: "first_row_priced",
+    occurredAt,
+    projectId,
+    source: "estimate",
+    userId,
+    workspaceId,
+  }));
+  if (computeEstimateRowLineTotal(insertedRow) > 0) {
+    const totalIntent = validateActivationProducerIntent({
+      domainMutationId: rowId,
+      estimateId,
+      milestone: "first_valid_total",
+      occurredAt,
+      projectId,
+      source: "estimate",
+      userId,
+      workspaceId,
+    });
+    if (totalIntent.status !== "accepted") throw new Error("Activation valid total intent is invalid.");
+    activationStatements.push(prepareActivationOutboxIntent(database, {
+      domainMutationId: rowId,
+      dedupeKey: totalIntent.dedupeKey,
+      estimateId,
+      milestone: "first_valid_total",
+      occurredAt,
+      projectId,
+      source: "estimate",
+      userId,
+      workspaceId,
+    }));
+  }
   const eventId = await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
     projectId,
     estimateId,
@@ -1736,7 +1845,7 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     rowContext: { material: insertedRow.material, supplier: insertedRow.supplier },
     payload: { rowId },
     totalDelta: computeEstimateRowLineTotal(insertedRow),
-  });
+  }, activationStatements);
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item was not created.");
   return rowItemHistoryResult(row, eventId);

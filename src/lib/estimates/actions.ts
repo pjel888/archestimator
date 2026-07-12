@@ -24,7 +24,7 @@ import {
   isEstimateRowRevisionConflict,
 } from "@/lib/estimates/row-revision-conflict";
 import { recordEstimateMutationEvent } from "@/lib/estimates/estimate-mutation-telemetry";
-import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
+import { applySheetAdjustment, sumEstimateRowLineTotals, validateEstimateCalculationInput } from "@/lib/estimates/estimate-row-total";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
 import { ESTIMATE_TREE_SORT_ORDER_STEP, validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
@@ -828,12 +828,30 @@ function normalizeEstimateSheetAdjustmentMode(value: EstimateSheetAdjustmentMode
   throw new Error("Estimate adjustment mode is invalid.");
 }
 
-function normalizeEstimateSheetAdjustmentPercentage(value: number) {
+function normalizeEstimateSheetAdjustmentPercentage(value: number, mode: EstimateSheetAdjustmentMode) {
   const percentage = Number(value);
-  if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
-    throw new Error("Estimate adjustment percentage must be between 0 and 100.");
+  const maximum = mode === "discount" ? 100 : 1_000;
+  if (!Number.isFinite(percentage) || percentage < 0 || percentage > maximum) {
+    throw new Error(`Estimate adjustment percentage must be between 0 and ${maximum}.`);
   }
   return percentage;
+}
+
+function throwInvalidEstimateCalculationInput(code: string, field: string): never {
+  const error = new Error(`Estimate calculation input is invalid: ${field}.`);
+  Object.assign(error, { code, field });
+  throw error;
+}
+
+function assertValidEstimateRowCalculationInput(input: Parameters<typeof validateEstimateCalculationInput>[0]) {
+  const result = validateEstimateCalculationInput(input);
+  if (!result.ok) throwInvalidEstimateCalculationInput(result.code, result.field);
+  return result.value;
+}
+
+function assertValidEstimateSheetAdjustment(mode: EstimateSheetAdjustmentMode, percentage: number) {
+  const result = applySheetAdjustment(0, mode === "discount" ? -percentage : percentage);
+  if (!result.ok) throwInvalidEstimateCalculationInput(result.code, result.field);
 }
 
 function readEstimateSheetAdjustmentRpcResult(value: unknown): EstimateSheetAdjustment {
@@ -1233,7 +1251,7 @@ async function getValidatedEstimateRow(projectId: string, estimateId: string, ro
   if (options?.requireEdit) await assertCanEditEstimate(dataStore, estimateId);
   const { data: row, error } = await dataStore
     .from("estimate_row_items")
-    .select("id, node_id, estimate_id, source_library_item_id, source_snapshot, metadata, link_state, row_revision, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
+    .select("id, node_id, estimate_id, source_library_item_id, source_snapshot, metadata, link_state, row_revision, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
     .eq("id", rowId)
     .eq("estimate_id", estimateId)
     .eq("estimate_nodes.estimates.project_id", project.id)
@@ -1665,7 +1683,7 @@ function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
 }
 
 function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
-  const quantity = libraryItem.quantity || 1;
+  const quantity = libraryItem.quantity ?? 1;
   const quantityBase = libraryItem.quantityBase ?? null;
   const quantityContingencyAmount = quantityBase === null ? null : libraryItem.quantityContingencyAmount ?? 0;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
@@ -3313,9 +3331,19 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
 
   await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
 
-  const quantity = libraryItem.quantity || 1;
+  const quantity = libraryItem.quantity ?? 1;
   const quantityBase = libraryItem.quantityBase ?? null;
   const quantityContingencyAmount = quantityBase === null ? null : libraryItem.quantityContingencyAmount ?? 0;
+  assertValidEstimateRowCalculationInput({
+    quantity,
+    quantity_base: quantityBase,
+    quantity_contingency_amount: quantityContingencyAmount,
+    unit_cost: libraryItem.itemCost,
+    contingency_percentage: libraryItem.contingencyPercentage ?? 0,
+    adjustment_percentage: libraryItem.adjustmentPercentage ?? 0,
+    misc_cost: libraryItem.miscCost,
+    currency_code: project.currency_code,
+  });
   const sourceSnapshot = getSourceSnapshot(libraryItem);
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
@@ -3369,7 +3397,8 @@ export async function updateEstimateSheetAdjustment({
   await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
   const normalizedMode = normalizeEstimateSheetAdjustmentMode(mode);
-  const normalizedPercentage = normalizeEstimateSheetAdjustmentPercentage(percentage);
+  const normalizedPercentage = normalizeEstimateSheetAdjustmentPercentage(percentage, normalizedMode);
+  assertValidEstimateSheetAdjustment(normalizedMode, normalizedPercentage);
 
   const { data: adjustmentResult, error } = await dataStore.call("update_estimate_sheet_adjustment_with_history", {
     target_project_id: project.id,
@@ -3415,6 +3444,16 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     }
     sourceSnapshotPatch = sanitizeEstimateRowSourceSnapshotForPersistence(mergedSourceSnapshot);
   }
+  assertValidEstimateRowCalculationInput({
+    quantity: quantity ?? row.quantity,
+    quantity_base: quantityBase !== undefined ? quantityBase : row.quantity_base,
+    quantity_contingency_amount: quantityContingencyAmount !== undefined ? quantityContingencyAmount : row.quantity_contingency_amount,
+    unit_cost: unitCost ?? row.unit_cost,
+    contingency_percentage: contingencyPercentage ?? row.contingency_percentage,
+    adjustment_percentage: adjustmentPercentage ?? row.adjustment_percentage,
+    misc_cost: miscCost ?? row.misc_cost,
+    currency_code: project.currency_code,
+  });
   const rowPatch = {
     ...(material !== undefined ? { material } : {}),
     ...(description !== undefined ? { description } : {}),
@@ -3453,12 +3492,23 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
+  const replacementPayload = buildEstimateRowReplacementPayload(libraryItem);
+  assertValidEstimateRowCalculationInput({
+    quantity: replacementPayload.quantity,
+    quantity_base: replacementPayload.quantityBase,
+    quantity_contingency_amount: replacementPayload.quantityContingencyAmount,
+    unit_cost: replacementPayload.unitCost,
+    contingency_percentage: replacementPayload.contingencyPercentage,
+    adjustment_percentage: replacementPayload.adjustmentPercentage,
+    misc_cost: replacementPayload.miscCost,
+    currency_code: project.currency_code,
+  });
   const { data, error } = await dataStore.call("replace_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
     expected_row_revision: expectedRowRevision ?? row.row_revision,
-    replacement_payload: buildEstimateRowReplacementPayload(libraryItem),
+    replacement_payload: replacementPayload,
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
