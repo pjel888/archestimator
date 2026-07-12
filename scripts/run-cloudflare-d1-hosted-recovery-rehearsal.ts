@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
+import { generateCloudflareD1RecoveryWorker, type CloudflareD1RecoveryWorkerOutput } from "./generate-cloudflare-d1-recovery-worker";
 
 const FREE_DATABASE_LIMIT_BYTES = 500 * 1024 * 1024;
 const FREE_ACCOUNT_STORAGE_LIMIT_BYTES = 5 * 1024 * 1024 * 1024;
@@ -71,12 +73,13 @@ export type HostedRecoveryRehearsalReport = {
   note: string;
 };
 
-export type HostedRecoveryCommand = { command: string; args: string[] };
+export type HostedRecoveryCommand = { command: string; args: string[]; stdin?: string };
 export type HostedRecoveryCommandResult = { status: number; stdout: string; stderr: string };
 export type HostedRecoveryRuntime = {
   run?: (command: HostedRecoveryCommand) => HostedRecoveryCommandResult;
   tempRoot?: string;
   boundSourceDatabaseId?: string;
+  probe?: (url: string, body: string, signature: string) => boolean;
 };
 export type HostedRecoveryExecutionReport = {
   mode: "hosted";
@@ -244,16 +247,17 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   const commandDigests: string[] = [];
   let exportKey: Buffer | null = null;
   let targetCreated = false;
+  let recoveryWorker: CloudflareD1RecoveryWorkerOutput | null = null;
   let cleanupVerified = false;
   let failure: string | null = null;
   let currentOperation = "preflight";
   const startedAt = new Date().toISOString();
   const exportedPaths = new Set<string>();
   const exportDigest = createHash("sha256");
-  const command = (args: string[], operation?: string) => {
+  const command = (args: string[], operation?: string, stdin?: string) => {
     currentOperation = operation ?? args.slice(0, 3).join("-");
     commandDigests.push(createHash("sha256").update(`wrangler\n${args.join("\n")}`).digest("hex"));
-    const result = run({ command: "wrangler", args });
+    const result = run({ command: "wrangler", args, stdin });
     if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}-${classifyProviderFailure(`${result.stdout}\n${result.stderr}`)}`);
     return result.stdout;
   };
@@ -261,6 +265,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   try {
     command(["d1", "create", identity.targetDatabaseName]);
     targetCreated = true;
+    const targetDatabaseId = findDatabaseId(command(["d1", "list", "--json"], "d1-discover-target"), identity.targetDatabaseName);
     writeFileSync(schemaPath, activeMigrationPaths().map((migrationPath) => readFileSync(migrationPath, "utf8")).join("\n"), { mode: 0o600 });
     chmodSync(schemaPath, 0o600);
     command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", schemaPath, "--yes"]);
@@ -305,6 +310,21 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
       command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", deferredUpdatePath, "--yes"], "d1-import-client-portals-current-issues");
       unlinkSync(deferredUpdatePath);
     }
+    recoveryWorker = generateCloudflareD1RecoveryWorker({
+      runId: identity.runId,
+      disposableDatabaseName: identity.targetDatabaseName,
+      disposableDatabaseId: targetDatabaseId,
+    });
+    const probeKey = randomBytes(32).toString("base64url");
+    command(["secret", "put", "RECOVERY_EXPECTED_RUN_ID", "--config", recoveryWorker.wranglerFile], "worker-secret-run-id", identity.runId);
+    command(["secret", "put", "RECOVERY_PROBE_HMAC_KEY", "--config", recoveryWorker.wranglerFile], "worker-secret-hmac", probeKey);
+    const deployOutput = command(["deploy", "--config", recoveryWorker.wranglerFile], "worker-deploy");
+    const probeBody = JSON.stringify({ runId: identity.runId, timestamp: Date.now(), nonce: randomBytes(24).toString("base64url") });
+    const probeUrl = workersDevUrl(deployOutput);
+    const probeSignature = recoveryProbeSignature(identity.runId, probeBody, probeKey);
+    const probeSucceeded = runtime.probe?.(probeUrl, probeBody, probeSignature)
+      ?? runRecoveryProbe(probeUrl, probeBody, probeSignature, tempDirectory);
+    if (!probeSucceeded) throw new Error("worker-probe-failed");
   } catch (error) {
     failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
@@ -312,6 +332,10 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
       if (existsSync(schemaPath)) unlinkSync(schemaPath);
       for (const path of exportedPaths) {
         if (existsSync(path)) unlinkSync(path);
+      }
+      if (recoveryWorker) {
+        command(["delete", "--name", recoveryWorker.workerName], "worker-delete");
+        rmSync(recoveryWorker.outputDirectory, { recursive: true, force: true });
       }
       if (targetCreated) {
         command(["d1", "delete", identity.targetDatabaseName, "-y"]);
@@ -337,8 +361,50 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
 }
 
 function runWrangler(command: HostedRecoveryCommand): HostedRecoveryCommandResult {
-  const result = spawnSync("bunx", [command.command, ...command.args], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+  const result = spawnSync("bunx", [command.command, ...command.args], { encoding: "utf8", input: command.stdin, maxBuffer: 1024 * 1024 });
   return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+}
+
+function findDatabaseId(listOutput: string, name: string) {
+  const databases = JSON.parse(listOutput) as Array<{ name?: string; uuid?: string; id?: string }>;
+  const database = databases.find((item) => item.name === name);
+  const id = database?.uuid ?? database?.id;
+  if (!id) throw new Error("disposable-target-id-missing");
+  return id;
+}
+
+function workersDevUrl(output: string) {
+  const url = output.match(/https:\/\/[^\s]+\.workers\.dev\/?/i)?.[0];
+  if (!url) throw new Error("worker-url-missing");
+  return url;
+}
+
+function recoveryProbeSignature(runId: string, body: string, signingKey: string) {
+  const payload = ["POST", "/__recovery/probe", runId, JSON.parse(body).timestamp, JSON.parse(body).nonce, createHash("sha256").update(body).digest("hex")].join("\n");
+  return createHmac("sha256", signingKey).update(payload).digest("base64url");
+}
+
+function runRecoveryProbe(url: string, body: string, signature: string, tempDirectory: string) {
+  const bodyPath = join(tempDirectory, "recovery-probe-body.json");
+  const configPath = join(tempDirectory, "recovery-probe-curl.conf");
+  try {
+    writeFileSync(bodyPath, body, { mode: 0o600 });
+    writeFileSync(configPath, [
+      `url = "${url}/__recovery/probe"`,
+      'request = "POST"',
+      'header = "content-type: application/json"',
+      `header = "x-recovery-signature: ${signature}"`,
+      `data-binary = "@${bodyPath}"`,
+      "fail-with-body",
+      "silent",
+      "show-error",
+      'output = "/dev/null"',
+    ].join("\n"), { mode: 0o600 });
+    return spawnSync("curl", ["--config", configPath], { encoding: "utf8" }).status === 0;
+  } finally {
+    if (existsSync(bodyPath)) unlinkSync(bodyPath);
+    if (existsSync(configPath)) unlinkSync(configPath);
+  }
 }
 
 function readBoundSourceDatabaseId() {
