@@ -271,12 +271,10 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     const restoredBytes = decryptExport(ciphertextPath, exportKey);
     const dataArtifacts = buildApprovedDataArtifacts(restoredBytes, new Set(activeApplicationTables()));
     restoredBytes.fill(0);
-    for (const dataArtifact of dataArtifacts) {
-      writeFileSync(dataArtifactPath, dataArtifact.source, { mode: 0o600 });
-      chmodSync(dataArtifactPath, 0o600);
-      command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], `d1-import-${dataArtifact.table}`);
-      unlinkSync(dataArtifactPath);
-    }
+    writeFileSync(dataArtifactPath, Buffer.concat(dataArtifacts.map((artifact) => artifact.source)), { mode: 0o600 });
+    chmodSync(dataArtifactPath, 0o600);
+    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], "d1-import-application-data");
+    unlinkSync(dataArtifactPath);
   } catch (error) {
     failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
@@ -344,7 +342,7 @@ function activeMigrationPaths() {
     .map((entry) => join(directory, entry));
 }
 
-function activeApplicationTables() {
+export function activeApplicationTables() {
   const tables = new Set<string>();
   for (const migrationPath of activeMigrationPaths()) {
     const source = readFileSync(migrationPath, "utf8");
@@ -362,7 +360,7 @@ function activeApplicationTables() {
   return [...tables].filter((table) => !EXCLUDED_TABLES.has(table)).sort();
 }
 
-function buildApprovedDataArtifacts(exportBytes: Buffer, approvedTables: Set<string>) {
+export function buildApprovedDataArtifacts(exportBytes: Buffer, approvedTables: Set<string>) {
   const statements = splitSqlStatements(exportBytes.toString("utf8"));
   const statementsByTable = new Map<string, string[]>();
   const deferredClientPortalUpdates: string[] = [];
@@ -450,13 +448,30 @@ function splitSqlValues(source: string) {
 
 function orderApplicationTables(tables: Set<string>) {
   const dependencies = new Map<string, Set<string>>([...tables].map((table) => [table, new Set()]));
+  const renameTargets = new Map<string, string>();
+  for (const migrationPath of activeMigrationPaths()) {
+    const source = readFileSync(migrationPath, "utf8");
+    for (const match of source.matchAll(/ALTER TABLE\s+"?([A-Za-z_][A-Za-z0-9_]*)"?\s+RENAME TO\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)) {
+      renameTargets.set(match[1]!, match[2]!);
+    }
+  }
+  const canonicalTable = (table: string) => {
+    const seen = new Set<string>();
+    let current = table;
+    while (renameTargets.has(current) && !seen.has(current)) {
+      seen.add(current);
+      current = renameTargets.get(current)!;
+    }
+    return current;
+  };
   for (const migrationPath of activeMigrationPaths()) {
     const source = readFileSync(migrationPath, "utf8");
     for (const statement of splitSqlStatements(source)) {
-      const owner = statement.match(/(?:CREATE TABLE(?: IF NOT EXISTS)?|ALTER TABLE)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/i)?.[1];
+      const rawOwner = statement.match(/(?:CREATE TABLE(?: IF NOT EXISTS)?|ALTER TABLE)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/i)?.[1];
+      const owner = rawOwner ? canonicalTable(rawOwner) : undefined;
       if (!owner || !tables.has(owner)) continue;
       for (const reference of statement.matchAll(/REFERENCES\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)) {
-        const parent = reference[1]!;
+        const parent = canonicalTable(reference[1]!);
         if (tables.has(parent) && parent !== owner) dependencies.get(owner)!.add(parent);
       }
     }
