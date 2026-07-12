@@ -555,7 +555,7 @@ describe("component library Cloudflare D1 app-path contract", () => {
 });
 
 describe("component library browse and template D1 contract", () => {
-  it("loads a slim component browse seed through D1 while preserving current price fields", async () => {
+  it("loads a slim component browse seed through D1 while preserving selectable price options", async () => {
     const database = new FakeComponentLibraryD1Database();
     testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
@@ -583,7 +583,15 @@ describe("component library browse and template D1 contract", () => {
       priceOptionId: PRICE_OPTION_ID,
       priceOptionLabel: "Current option",
     });
-    expect(item).not.toHaveProperty("priceOptions");
+    expect(item.priceOptions).toEqual([
+      expect.objectContaining({
+        id: PRICE_OPTION_ID,
+        label: "Current option",
+        unitCost: 321,
+        isActive: true,
+        isDefault: true,
+      }),
+    ]);
     expect(item).not.toHaveProperty("history");
     expect(item).not.toHaveProperty("notes");
     expect(item).not.toHaveProperty("sourceUrl");

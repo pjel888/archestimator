@@ -8,6 +8,7 @@ import {
   calculateEstimateSheetManifestSha256,
   canonicalEstimateSheetManifestBytes,
   deriveEstimateSheetFinalCloseoutTransition,
+  deriveEstimateSheetPrepareRetryTransition,
   deriveEstimateSheetPrepareTransition,
   deriveEstimateSheetRefreezeReopenTransition,
   deriveEstimateSheetReleaseReopenTransition,
@@ -204,6 +205,7 @@ function stateReadyFor(unitId: EstimateUnit): EstimateSheetPlanManifest {
     manifest.runtime_evidence.transition_sequence = index * 2;
     manifest.runtime_evidence.latest_unit_id = priorUnit;
     manifest.runtime_evidence.latest_run_id = priorRunId;
+    manifest.runtime_evidence.latest_run_manifest_sha256 = RUN_MANIFEST_SHA256;
     manifest.runtime_evidence.registry.immutable_path =
       `evidence/runtime/runs/${priorUnit}/${priorRunKey}/evidence-index.json`;
     manifest.implementation_status = "IN_PROGRESS";
@@ -480,6 +482,44 @@ describe("estimate-sheet plan runtime state", () => {
     });
     expect(validateEstimateSheetRuntimeState(reopened)).toEqual([]);
     expect(validateEstimateSheetRefreezeReopenTransition(verified, reopened, input)).toEqual([]);
+  });
+
+  it("stales replacement-run evidence before UNIT-001 can be re-indexed", () => {
+    const initial = makeInitialState().manifest;
+    const prepared = deriveEstimateSheetPrepareTransition(initial, {
+      unitId: "UNIT-001",
+      runId: "run-unit-001-original",
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: UPDATED_AT,
+    });
+    const verified = deriveEstimateSheetVerifiedTransition(prepared, {
+      unitId: "UNIT-001",
+      runId: "run-unit-001-original",
+      updatedAt: "2026-07-11T08:01:00.000Z",
+      sourceRevision: "run:unit-001:original",
+      materializations: materializations("UNIT-001", "run-unit-001-original"),
+    }).manifest;
+    const reopened = deriveEstimateSheetRefreezeReopenTransition(verified, {
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: "2026-07-11T08:02:00.000Z",
+    });
+    const replacement = deriveEstimateSheetPrepareTransition(reopened, {
+      unitId: "UNIT-001",
+      runId: "run-unit-001-replacement",
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: "2026-07-11T08:03:00.000Z",
+    });
+
+    const retried = deriveEstimateSheetPrepareRetryTransition(replacement, {
+      unitId: "UNIT-001",
+      runId: "run-unit-001-retry",
+      runManifestSha256: RUN_MANIFEST_SHA256,
+      updatedAt: "2026-07-11T08:04:00.000Z",
+    });
+
+    expect(retried.evidence_index.find((record) => record.id === "EVID-002")?.status).toBe("STALE");
+    expect(retried.runtime_evidence.latest_run_id).toBe("run-unit-001-retry");
+    expect(validateEstimateSheetRuntimeState(retried)).toEqual([]);
   });
 
   it("supports the distinct UNIT-011 technical-block and release-reopen paths", () => {

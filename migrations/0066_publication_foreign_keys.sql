@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE __0066_assertion (
   value INTEGER NOT NULL
 );
@@ -381,5 +379,3 @@ WHERE EXISTS (SELECT 1 FROM pragma_foreign_key_check);
 
 DROP TRIGGER __0066_assertion_fail;
 DROP TABLE __0066_assertion;
-
-COMMIT;

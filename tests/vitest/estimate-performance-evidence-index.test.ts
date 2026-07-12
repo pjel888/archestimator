@@ -1,5 +1,4 @@
 import {
-  copyFileSync,
   existsSync,
   mkdtempSync,
   mkdirSync,
@@ -46,10 +45,10 @@ import {
 
 const scriptPath = resolve(process.cwd(), "scripts/update-estimate-sheet-performance-evidence-index.ts");
 const describeIndex = describe.skipIf(!existsSync(scriptPath));
+const FIXTURE_PLAN_REVISION = "5c0418e65";
 
 function createIndexFixture() {
   const root = mkdtempSync(join(tmpdir(), "estimate-index-"));
-  const livePlanRoot = resolve(process.cwd(), ".ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization");
   const planRoot = defaultPlanRoot(root);
   const immutableRunRoot = defaultImmutableRunRoot(root);
   const projection = join(planRoot, "evidence/runtime/jsdom-baseline.json");
@@ -95,12 +94,15 @@ function createIndexFixture() {
 
   mkdirSync(join(planRoot, "evidence/runtime"), { recursive: true });
   mkdirSync(runRoot, { recursive: true });
-  const livePlan = JSON.parse(execFileSync("git", ["show", "5c0418e65:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json"], {
+  const livePlan = JSON.parse(execFileSync("git", ["show", `${FIXTURE_PLAN_REVISION}:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json`], {
     cwd: process.cwd(),
     encoding: "utf8",
   })) as EstimateSheetPlanManifest;
   for (const name of ["fixture-manifest.json", "jsdom-baseline.json", "evidence-index.json"]) {
-    copyFileSync(join(livePlanRoot, "evidence/runtime", name), join(planRoot, "evidence/runtime", name));
+    writeFileSync(
+      join(planRoot, "evidence/runtime", name),
+      execFileSync("git", ["show", `${FIXTURE_PLAN_REVISION}:.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/${name}`]),
+    );
   }
 
   const baseFixture = buildEstimatePerformanceFixture("small", {

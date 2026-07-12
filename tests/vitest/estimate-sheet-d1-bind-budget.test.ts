@@ -16,14 +16,17 @@ function sourceForPrivateFunction(name: string) {
 }
 
 describe("estimate sheet D1 row-load bind budget", () => {
-  it("characterizes the current 1,500-node row load as one bind per node in one statement", () => {
+  it("splits the 1,500-node row load into D1-safe node-id batches before restoring global order", () => {
     const source = sourceForPrivateFunction("readEstimateRows");
     const nodeIds = Array.from({ length: 1_500 }, (_, index) => `node-${index}`);
 
     expect(nodeIds).toHaveLength(1_500);
-    expect(source).toContain("node_id IN (${placeholders(options.nodeIds)})");
-    expect(source).toContain("values.push(...options.nodeIds)");
+    expect(repositorySource).toContain("const ESTIMATE_TREE_ROW_NODE_BATCH_SIZE = 64;");
+    expect(source).toContain("options.nodeIds!.slice(index * ESTIMATE_TREE_ROW_NODE_BATCH_SIZE");
+    expect(source).toContain("node_id IN (${placeholders(nodeIds)})");
+    expect(source).toContain("values.push(...nodeIds)");
     expect(source).toContain("FROM estimate_row_items");
-    expect(source).not.toMatch(/chunk|slice\(|for\s*\(/i);
+    expect(source).toContain(".sort((left, right) => left.sort_order - right.sort_order || left.id.localeCompare(right.id))");
+    expect(source).toContain("rows.slice(0, options.limit)");
   });
 });

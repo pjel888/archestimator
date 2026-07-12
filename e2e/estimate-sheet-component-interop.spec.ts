@@ -65,11 +65,38 @@ function rowForSource(page: Page, source: ComponentSource): Locator {
   return estimateRows(page).filter({ has: page.locator(`[data-component-source="${source}"]`) }).first();
 }
 
-function rowWithVariant(page: Page, source: Exclude<ComponentSource, "express">): Locator {
+function rowsWithVariant(page: Page, source: Exclude<ComponentSource, "express">): Locator {
   return estimateRows(page)
     .filter({ has: page.locator(`[data-component-source="${source}"]`) })
-    .filter({ has: page.getByRole("button", { name: /^Change variant for /u }) })
-    .first();
+    .filter({ has: page.getByRole("button", { name: /^Change variant for /u }) });
+}
+
+function visibleVariantMenu(page: Page): Locator {
+  return page.locator('[role="menu"]:visible').last();
+}
+
+async function openVariantMenu(page: Page, trigger: Locator): Promise<Locator> {
+  await trigger.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await trigger.click();
+  const menu = visibleVariantMenu(page);
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+async function rowWithSelectableVariant(page: Page, source: Exclude<ComponentSource, "express">): Promise<Locator> {
+  const candidates = rowsWithVariant(page, source);
+  for (let index = 0; index < await candidates.count(); index += 1) {
+    const row = candidates.nth(index);
+    const trigger = row.getByRole("button", { name: /^Change variant for /u });
+    const menu = await openVariantMenu(page, trigger);
+    if (await menu.getByRole("menuitem").count() > 1) {
+      await page.keyboard.press("Escape");
+      return row;
+    }
+    await page.keyboard.press("Escape");
+  }
+  throw new Error(`No ${source} row has a selectable alternate variant.`);
 }
 
 async function requireRowId(row: Locator): Promise<string> {
@@ -105,6 +132,21 @@ async function waitForNewVisibleRow(page: Page, previousIds: ReadonlySet<string>
   return page.locator(`tr[data-estimate-row-id="${rowId}"]`);
 }
 
+async function insertLibraryRowFromCommandPalette(page: Page, componentName: string): Promise<Locator> {
+  const beforeIds = new Set(await visibleRowIds(page));
+  await page.keyboard.press("/");
+  const palette = page.getByRole("dialog", { name: "Command palette" });
+  await expect(palette).toBeVisible();
+  await palette.getByRole("textbox", { name: "Command palette search" }).fill(componentName);
+  await palette.getByRole("button", { name: new RegExp(componentName, "u") }).first().click();
+  await expect(palette).toBeHidden();
+  const trustReview = page.getByRole("dialog", { name: "Review source before inserting row" });
+  await expect(trustReview).toBeVisible();
+  await trustReview.getByRole("button", { name: "Continue with insert" }).click();
+  await expect(trustReview).toBeHidden();
+  return waitForNewVisibleRow(page, beforeIds);
+}
+
 async function openComponentEditor(page: Page, row: Locator): Promise<Locator> {
   await row.getByRole("button", { name: /^Edit component /u }).click();
   const dialog = page.getByRole("dialog", { name: "Edit Component" });
@@ -123,79 +165,72 @@ async function chooseDifferentVariant(page: Page, row: Locator): Promise<{ befor
   const trigger = row.getByRole("button", { name: /^Change variant for /u });
   await expect(trigger).toBeVisible();
   const before = (await trigger.getAttribute("title")) ?? (await trigger.textContent()) ?? "";
-  await trigger.click();
-  const options = page.getByRole("menuitem").filter({ visible: true });
-  await expect(options.first()).toBeVisible();
-  const optionCount = await options.count();
-  expect(optionCount).toBeGreaterThan(1);
-  let selected = false;
-  for (let index = 0; index < optionCount; index += 1) {
-    const option = options.nth(index);
-    if ((await option.getAttribute("aria-checked")) !== "true" && !(await option.isDisabled())) {
-      await option.click();
-      selected = true;
-      break;
-    }
+  const menu = await openVariantMenu(page, trigger);
+  const options = menu.getByRole("menuitem");
+  await expect(options).toHaveCount(2);
+  const alternate = options.filter({ hasNot: page.locator('[data-action-menu-item-check="true"]') });
+  await expect(alternate).toHaveCount(1);
+  await expect(alternate).toBeEnabled();
+  await alternate.click();
+  const trustReview = page.getByRole("dialog", { name: "Review source before replacing row" });
+  if (await trustReview.isVisible()) {
+    await trustReview.getByRole("button", { name: "Continue with replace" }).click();
+    await expect(trustReview).toBeHidden();
   }
-  expect(selected).toBe(true);
   await expect.poll(async () => (await trigger.getAttribute("title")) ?? (await trigger.textContent()) ?? "").not.toBe(before);
   return { before, after: (await trigger.getAttribute("title")) ?? (await trigger.textContent()) ?? "" };
 }
 
 async function runCiQa01DuplicateNameCreate(page: Page): Promise<InteropEvidence> {
   const snapshot = await openScenarioSheet(page);
-  const libraryRow = rowForSource(page, "library");
-  await requireComponentLabel(libraryRow);
-  const editDialog = await openComponentEditor(page, libraryRow);
-  const existingName = await editDialog.getByLabel("Name", { exact: true }).inputValue();
-  const existingCategory = await editDialog.getByLabel("Category", { exact: true }).inputValue();
-  const existingSupplier = await editDialog.getByLabel("Supplier", { exact: true }).inputValue();
-  const existingBrand = await editDialog.getByLabel("Brand", { exact: true }).inputValue();
-  expect(existingName).toBeTruthy();
-  expect(existingCategory).toBeTruthy();
-  expect(existingSupplier || existingBrand).toBeTruthy();
-  await editDialog.getByRole("button", { name: "Discard" }).click();
   await page.goto("/workshop/library/components?add=component", { waitUntil: "domcontentloaded" });
   const dialog = page.getByRole("dialog", { name: "Add Component" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Name", { exact: true }).fill(existingName);
-  await dialog.getByLabel("Category", { exact: true }).fill(existingCategory);
-  await dialog.getByLabel("Category", { exact: true }).press("Enter");
-  if (existingSupplier) {
-    await dialog.getByLabel("Supplier", { exact: true }).fill(existingSupplier);
-    await dialog.getByLabel("Supplier", { exact: true }).press("Enter");
-  } else {
-    await dialog.getByLabel("Brand", { exact: true }).fill(existingBrand);
-    await dialog.getByLabel("Brand", { exact: true }).press("Enter");
-  }
+  const componentName = "Performance duplicate component";
+  const category = "Performance fixtures";
+  const supplier = "Performance fixture supplier";
+  await dialog.getByLabel("Name", { exact: true }).fill(componentName);
+  await dialog.getByLabel("Unit cost", { exact: true }).fill("1");
+  await dialog.getByLabel("Category", { exact: true }).fill(category);
+  await page.getByRole("option", { name: `Add category \"${category}\"` }).click();
+  await dialog.getByLabel("Supplier", { exact: true }).fill(supplier);
+  await page.getByRole("option", { name: `Add supplier \"${supplier}\"` }).click();
+  await dialog.getByRole("button", { name: "Open variants panel" }).click();
+  const addVariant = dialog.getByRole("button", { name: "Add variant", exact: true }).last();
+  await addVariant.scrollIntoViewIfNeeded();
+  await addVariant.click();
+  await dialog.getByLabel("Variant Name").last().fill("Performance alternate variant");
+  await dialog.getByLabel("Variant unit cost").last().fill("2");
+  await dialog.getByRole("button", { name: "Add Component", exact: true }).click();
+  // Reload to obtain the persisted library item before exercising duplicate detection.
+  await page.goto("/workshop/library/components?add=component", { waitUntil: "domcontentloaded" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Name", { exact: true }).fill(componentName);
+  await dialog.getByLabel("Category", { exact: true }).fill(category);
+  await dialog.getByLabel("Supplier", { exact: true }).fill(supplier);
   await dialog.getByLabel("Name", { exact: true }).blur();
   const duplicateWarning = dialog.getByText(/A component named .* already exists\./u);
   await expect(duplicateWarning).toBeVisible();
   await dialog.getByRole("button", { name: "Create anyway" }).click();
   await expect(duplicateWarning).toBeHidden();
   return scenarioEvidence("CI-QA-01", "01-duplicate-name-create", snapshot, {
-    setup: ["authenticated estimate sheet", "existing library-linked component", "library create surface"],
-    actions: ["copied an existing component name into create mode", "acknowledged duplicate warning"],
-    assertions: ["create mode displayed a duplicate warning", "Create anyway removed the duplicate gate"],
+    setup: ["authenticated estimate sheet", "empty performance fixture library", "library create surface"],
+    actions: ["created a library component", "re-entered its exact identity in create mode", "acknowledged duplicate warning"],
+    assertions: ["create mode displayed a duplicate warning for a persisted component", "Create anyway removed the duplicate gate"],
     measurements: { duplicateAcknowledged: true },
   });
 }
 
 async function runCiQa02InsertLibraryRow(page: Page): Promise<InteropEvidence> {
   await openScenarioSheet(page);
-  const beforeIds = new Set(await visibleRowIds(page));
-  await page.keyboard.press("/");
-  const palette = page.getByRole("dialog", { name: "Command palette" });
-  await expect(palette).toBeVisible();
-  await palette.locator('button[data-selected="true"]:not([disabled])').click();
-  await expect(palette).toBeHidden();
-  const inserted = await waitForNewVisibleRow(page, beforeIds);
+  const visibleRowsBefore = (await visibleRowIds(page)).length;
+  const inserted = await insertLibraryRowFromCommandPalette(page, "Performance duplicate component");
   await expect(inserted.locator('[data-component-source="library"]')).toBeVisible();
   return scenarioEvidence("CI-QA-02", "02-insert-library-row", await collectEstimateBrowserSnapshot(page), {
     setup: ["authenticated estimate sheet", "selected estimate Area", "command palette library results"],
     actions: ["opened command palette", "inserted selected library result"],
     assertions: ["a new row identity appeared", "inserted row exposes library source identity"],
-    measurements: { visibleRowsBefore: beforeIds.size, visibleRowsAfter: (await visibleRowIds(page)).length },
+    measurements: { visibleRowsBefore, visibleRowsAfter: (await visibleRowIds(page)).length },
   });
 }
 
@@ -219,7 +254,7 @@ async function runCiQa03EditLibraryRowLinkstate(page: Page): Promise<InteropEvid
 
 async function runCiQa04InlineVariantPillLibrary(page: Page): Promise<InteropEvidence> {
   const snapshot = await openScenarioSheet(page);
-  const row = rowWithVariant(page, "library");
+  const row = await insertLibraryRowFromCommandPalette(page, "Performance duplicate component");
   const rowId = await requireRowId(row);
   const variant = await chooseDifferentVariant(page, row);
   const settled = await waitForRowIdle(page, rowId);
@@ -357,7 +392,9 @@ async function runCiQa09VariantPersistenceProject(page: Page): Promise<InteropEv
   const rowId = await requireRowId(row);
   const dialog = await openComponentEditor(page, row);
   await dialog.getByRole("button", { name: "Open variants panel" }).click();
-  await dialog.getByRole("button", { name: "Add variant" }).click();
+  const addVariant = dialog.getByRole("button", { name: "Add variant", exact: true }).last();
+  await addVariant.scrollIntoViewIfNeeded();
+  await addVariant.click();
   const variantName = `Interop V${Date.now()}`;
   await dialog.getByLabel("Variant Name").last().fill(variantName);
   await dialog.getByLabel("Variant unit cost").last().fill("123.45");
@@ -374,7 +411,7 @@ async function runCiQa09VariantPersistenceProject(page: Page): Promise<InteropEv
 
 async function runCiQa10InlineVariantPillProject(page: Page): Promise<InteropEvidence> {
   const snapshot = await openScenarioSheet(page);
-  const row = rowWithVariant(page, "project");
+  const row = await rowWithSelectableVariant(page, "project");
   const rowId = await requireRowId(row);
   const variant = await chooseDifferentVariant(page, row);
   const settled = await waitForRowIdle(page, rowId);

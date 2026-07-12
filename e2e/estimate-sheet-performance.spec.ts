@@ -5,6 +5,7 @@ import {
   collectEstimateBrowserSnapshot,
   getEstimatePerformanceRouteConfig,
   openEstimateSheet,
+  waitForEstimateSheetReady,
 } from "./helpers/estimate-sheet-performance";
 
 const routeConfig = getEstimatePerformanceRouteConfig();
@@ -25,6 +26,7 @@ test.describe("estimate-sheet performance baseline", () => {
   test("captures a warm route baseline without arbitrary sleeps", async ({ page }, testInfo) => {
     await openEstimateSheet(page, routeConfig!);
     await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForEstimateSheetReady(page);
     const snapshot = await collectEstimateBrowserSnapshot(page);
     await attachEstimateSnapshot(testInfo, "estimate-sheet-warm-baseline.json", snapshot);
     expect(snapshot.sheetVisible).toBe(true);
@@ -38,4 +40,3 @@ test.describe("estimate-sheet performance baseline", () => {
     expect(snapshot.mountedBranches).toBeGreaterThanOrEqual(0);
   });
 });
-

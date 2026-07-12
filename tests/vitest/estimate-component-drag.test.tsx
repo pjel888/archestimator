@@ -180,7 +180,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const { container, item } = renderCell();
 
     const slot = getMaterialUnitSlot(container);
-    expect(slot).toHaveClass("absolute", "right-0", "top-[calc(50%+22px)]", "w-[112px]", "justify-end", "text-right", "!text-[10px]");
+    expect(slot).toHaveClass("pointer-events-none", "absolute", "right-0", "top-[calc(50%+22px)]", "w-[112px]", "justify-end", "text-right", "!text-[10px]");
     expect(slot).toHaveTextContent(`/${item.unit}`);
 
     const label = slot.querySelector("[data-estimate-material-unit-label='true']");

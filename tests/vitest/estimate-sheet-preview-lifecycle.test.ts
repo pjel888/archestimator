@@ -159,6 +159,7 @@ function makeRun(
     ESTIMATE_ENTITY_PATCH_MODE: "off",
   };
   privateFile(runtimeEnv, `${Object.entries(runtimeValues).map(([key, value]) => `${key}=${value}`).join("\n")}\n`);
+  privateFile(join(runRoot, "resources/d1/.dev.vars"), `${Object.entries(runtimeValues).map(([key, value]) => `${key}=${value}`).join("\n")}\n`);
   const storageState = join(runRoot, "storage-state.json");
   privateJson(storageState, {
     cookies: [{ name: "better-auth.session_token", value: "redacted-test-token", domain: "127.0.0.1", path: "/", httpOnly: true, secure: false, sameSite: "Lax" }],
@@ -257,7 +258,11 @@ function makeRun(
     unit_id: unitId,
     run_id: RUN_ID,
     run_root: runRoot,
+    immutable_run_root: immutableRunRoot,
     run_manifest: "run-manifest.json",
+    logical_outputs: ESTIMATE_LOGICAL_OUTPUTS,
+    prepareInputSha256,
+    cleanupRequirement: "REQUIRED",
     application_fingerprint: fingerprint.application.content_sha256,
     producer_fingerprint: fingerprint.producer.content_sha256,
   });
@@ -361,8 +366,9 @@ describe("estimate-sheet preview lifecycle", () => {
       run_root: "/tmp/run",
     } as never;
     expect(resolveBenchmarkServerCommand(manifest, 3101, "baseline-all-off", "all-off")).toEqual([
-      "bunx", "opennextjs-cloudflare", "preview", "--", "--ip", "127.0.0.1", "--port", "3101",
-      "--persist-to", "/tmp/run/wrangler-state", "--env-file", "/tmp/run/runtime.env",
+      "bunx", "opennextjs-cloudflare", "preview", "--config", "/tmp/run/resources/d1/wrangler-local.json",
+      "--", "--ip", "127.0.0.1", "--port", "3101",
+      "--persist-to", "/tmp/run/wrangler-state",
       "--show-interactive-dev-session=false",
     ]);
     expect(parseServerModeSnapshot('<main data-estimate-performance-mode-schema="estimate-performance-mode-snapshot.v1" data-estimate-performance-mode-source="cloudflare" data-estimate-performance-mode-route-fast-path="off" data-estimate-performance-mode-graph="shadow" data-estimate-performance-mode-incremental-derivation="on" data-estimate-performance-mode-render-boundary="off" data-estimate-performance-mode-entity-patch="on"></main>').modes).toEqual({
@@ -642,6 +648,44 @@ await startEstimateSheetBenchmarkServer({
     expect(manifest.previewProcesses[0]).toMatchObject({ readiness: "FAILED", closed_port: true });
   }, 30_000);
 
+  it("records an already-exited failed preview as a terminal recovery outcome before cleanup", async () => {
+    const port = await freePreviewPort();
+    const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
+    seedCleanupNamespace(runRoot);
+    await expect(startEstimateSheetBenchmarkServer({
+      runManifest: manifestPath,
+      repoRoot,
+      unit: "UNIT-002",
+      role: "browser",
+      phase: "baseline-all-off",
+      finalState: "all-off",
+      activate: true,
+      timeoutMs: 10_000,
+      commandOverride: [process.execPath, fakeServer, String(port), "on", join(runRoot, "preview/process-journal.json")],
+      checkSource: false,
+    })).rejects.toThrow(/server-returned mode snapshot/);
+    const journalPath = join(runRoot, "preview/process-journal.json");
+    const journal = JSON.parse(readFileSync(journalPath, "utf8"));
+    journal.processes[0].exit_code = null;
+    journal.processes[0].signal = null;
+    journal.processes[0].closed_port = false;
+    journal.processes[0].stopped_at = null;
+    privateJson(journalPath, journal);
+
+    const cleanup = await cleanupEstimateSheetPerformanceRun({
+      repoRoot,
+      runManifest: manifestPath,
+      unit: "UNIT-002",
+      cleanupClass: "local-preview",
+      checkSource: false,
+    });
+    expect(cleanup).toMatchObject({ result: "CLEANUP_VERIFIED", closedPort: true });
+    expect(cleanup.previewProcesses?.[0]).toMatchObject({
+      signal: "EXITED_BEFORE_RECOVERY",
+      closed_port: true,
+    });
+  }, 30_000);
+
   it("invalidates cleanup when a declared fixture row was already absent", async () => {
     const port = await freePreviewPort();
     const { manifestPath, runRoot, fakeServer, repoRoot } = makeRun(port);
@@ -674,6 +718,7 @@ await startEstimateSheetBenchmarkServer({
       remaining: { browser: { profiles: 0 } },
       closedPort: true,
     });
+    expect(JSON.parse(readFileSync(manifestPath, "utf8")).status).toBe("INVALIDATED");
     const validation = await validateEstimateSheetPerformanceRun({
       repoRoot,
       runManifest: manifestPath,

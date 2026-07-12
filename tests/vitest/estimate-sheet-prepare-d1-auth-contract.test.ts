@@ -10,6 +10,7 @@ import {
 } from "../../scripts/lib/estimate-sheet-local-d1-prepare";
 import {
   assertMigrationInventoryStable,
+  buildLocalPreviewWranglerConfig,
   type MigrationInventoryRecord,
 } from "../../scripts/prepare-estimate-sheet-performance-run";
 
@@ -21,41 +22,69 @@ const PREPARE_SOURCE = readFileSync(
 function commandFixture() {
   const runRoot = resolve("/tmp/estimate-sheet-prepare-contract/run");
   const persistRoot = join(runRoot, "wrangler-state");
+  const configPath = join(runRoot, "resources/d1/wrangler-local.json");
   const schemaPath = join(runRoot, "better-auth-schema.sql");
   const seedPath = join(runRoot, "seed.sql");
   return {
     runRoot,
     persistRoot,
+    configPath,
     schemaPath,
     seedPath,
-    commands: buildLocalD1PrepareCommands({ runRoot, persistRoot, schemaPath, seedPath }),
+    commands: buildLocalD1PrepareCommands({ runRoot, persistRoot, configPath, schemaPath, seedPath }),
   };
 }
 
 describe("estimate-sheet prepare D1 and auth contract", () => {
+  it("generates a preview config that uses the seeded local ARCH_DB without inheriting production bindings", () => {
+    const repoRoot = resolve("/tmp/estimate-sheet-prepare-contract/repo");
+    expect(buildLocalPreviewWranglerConfig({
+      repoRoot,
+      runId: "00000000-0000-4000-8000-000000000002",
+      binding: {
+        databaseName: "archestimator-proof-db",
+        databaseId: "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+        compatibilityDate: "2026-06-29",
+      },
+    })).toEqual({
+      name: "estimate-performance-00000000-0000-4000-8000-000000000002",
+      main: join(repoRoot, "worker.ts"),
+      compatibility_date: "2026-06-29",
+      compatibility_flags: ["nodejs_compat"],
+      alias: { "server-only": join(repoRoot, "node_modules/server-only/empty.js") },
+      assets: { directory: join(repoRoot, ".open-next/assets"), binding: "ASSETS" },
+      d1_databases: [{
+        binding: "ARCH_DB",
+        database_name: "archestimator-proof-db",
+        database_id: "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+        migrations_dir: join(repoRoot, "migrations"),
+      }],
+    });
+  });
+
   it("builds the exact run-scoped Wrangler schema, migration, and hashed-seed command sequence", () => {
-    const { runRoot, persistRoot, schemaPath, seedPath, commands } = commandFixture();
+    const { runRoot, persistRoot, configPath, schemaPath, seedPath, commands } = commandFixture();
 
     expect(commands).toEqual([
       {
         role: "better-auth-schema",
         argv: [
-          "bunx", "wrangler", "d1", "execute", "ARCH_DB", "--local",
-          "--persist-to", persistRoot, "--file", schemaPath,
+          "bunx", "wrangler", "d1", "execute", "ARCH_DB",
+          "--config", configPath, "--local", "--persist-to", persistRoot, "--file", schemaPath,
         ],
       },
       {
         role: "application-migrations",
         argv: [
-          "bunx", "wrangler", "d1", "migrations", "apply", "ARCH_DB", "--local",
+          "bunx", "wrangler", "d1", "migrations", "apply", "ARCH_DB", "--config", configPath, "--local",
           "--persist-to", persistRoot,
         ],
       },
       {
         role: "fixture-seed",
         argv: [
-          "bunx", "wrangler", "d1", "execute", "ARCH_DB", "--local",
-          "--persist-to", persistRoot, "--file", seedPath,
+          "bunx", "wrangler", "d1", "execute", "ARCH_DB",
+          "--config", configPath, "--local", "--persist-to", persistRoot, "--file", seedPath,
         ],
       },
     ]);
@@ -63,6 +92,7 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
     expect(() => buildLocalD1PrepareCommands({
       runRoot,
       persistRoot,
+      configPath,
       schemaPath,
       seedPath: resolve(runRoot, "..", "foreign-seed.sql"),
     })).toThrow(/fixture seed path must be contained by the run root/);
@@ -168,6 +198,7 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
     expect(PREPARE_SOURCE).toContain("executeLocalD1PrepareCommands");
     expect(PREPARE_SOURCE).toContain('const schemaPath = resolve(input.runPath, "better-auth-schema.sql")');
     expect(PREPARE_SOURCE).toContain('const seedPath = resolve(input.runPath, "seed.sql")');
+    expect(PREPARE_SOURCE).toContain("process.exitCode = await main()");
     expect(PREPARE_SOURCE).toMatch(/generatedSchemaSha256:\s*sha256File\(schemaPath\)/u);
     expect(PREPARE_SOURCE).toMatch(/seedSqlSha256:\s*sha256File\(seedPath\)/u);
     expect(PREPARE_SOURCE).not.toContain("getPlatformProxy");
@@ -181,6 +212,7 @@ describe("estimate-sheet prepare D1 and auth contract", () => {
     expect(PREPARE_SOURCE).toMatch(/INSERT INTO \\"session\\"[^\n]+token/u);
     expect(PREPARE_SOURCE).toContain("const signature = await makeSignature(routeRecord.sessionToken, secret)");
     expect(PREPARE_SOURCE).toContain('name: "better-auth.session_token"');
+    expect(PREPARE_SOURCE).toContain('"resources", "d1", ".dev.vars"');
     expect(PREPARE_SOURCE).toContain(
       'SELECT COUNT(*) AS count FROM "session" WHERE id = ? AND token = ? AND userId = ?',
     );

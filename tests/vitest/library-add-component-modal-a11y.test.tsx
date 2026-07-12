@@ -603,6 +603,24 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
   });
 
+  it("keeps a duplicate acknowledgement when a catalogue input reports its current value", async () => {
+    renderAddModal({ libraryItems: duplicateRows });
+    const dialog = await getAddDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+
+    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
+    fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
+    const name = within(form).getByLabelText("Name");
+    fireEvent.change(name, { target: { value: "Door Hinge" } });
+    fireEvent.blur(name);
+
+    await screen.findByText('A component named "Door Hinge" already exists.');
+    fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
+    fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
+
+    expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
+  });
+
   it("does not show add-mode duplicate warnings while editing a component", async () => {
     renderAddModal({
       editingItem: makeEditingItem(),

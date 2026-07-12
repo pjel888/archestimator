@@ -32,10 +32,8 @@ export function getEstimatePerformanceRouteConfig(env: NodeJS.ProcessEnv = proce
 }
 
 export async function waitForEstimateSheetReady(page: Page, timeout = 30_000): Promise<void> {
-  const readyMarker = page.locator('[data-estimate-sheet-ready="true"], [data-estimate-sheet], [data-testid="estimate-sheet"]').first();
+  const readyMarker = page.getByRole("tree").first();
   await readyMarker.waitFor({ state: "visible", timeout });
-  const treeMarker = page.locator('[data-estimate-tree-ready="true"], [data-testid="estimate-tree"]').first();
-  await treeMarker.waitFor({ state: "attached", timeout });
 }
 
 export async function collectEstimateBrowserSnapshot(page: Page): Promise<EstimateBrowserSnapshot> {
@@ -44,8 +42,9 @@ export async function collectEstimateBrowserSnapshot(page: Page): Promise<Estima
     const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
     const rows = document.querySelectorAll('[data-estimate-row], [data-row-id], [role="row"][data-estimate-row]').length;
     const branches = document.querySelectorAll('[data-estimate-branch], [data-node-id][data-node-kind="branch"]').length;
-    const sheet = Boolean(document.querySelector('[data-estimate-sheet], [data-testid="estimate-sheet"]'));
-    const tree = Boolean(document.querySelector('[data-estimate-tree-ready="true"], [data-testid="estimate-tree"]'));
+    const treeElement = document.querySelector('[role="tree"]');
+    const sheet = Boolean(treeElement?.closest('section[aria-label]'));
+    const tree = Boolean(treeElement);
     return {
       route: window.location.pathname,
       navigationMs: navigation ? Math.max(navigation.duration, navigation.domContentLoadedEventEnd) : null,
@@ -76,4 +75,3 @@ export async function openEstimateSheet(page: Page, config: EstimatePerformanceR
   await waitForEstimateSheetReady(page);
   return collectEstimateBrowserSnapshot(page);
 }
-

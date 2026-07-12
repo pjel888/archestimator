@@ -95,7 +95,7 @@ describe("workspace repository estimate tree projection", () => {
           misc_cost: 0,
           sort_order: 0,
           link_state: "detached",
-          source_library_item_id: null,
+          source_library_item_id: "former-library-item",
         }),
       ],
     );
@@ -104,8 +104,38 @@ describe("workspace repository estimate tree projection", () => {
       id: "row-1",
       source: "project",
       linkState: "detached",
-      sourceLibraryItemId: null,
+      sourceLibraryItemId: "former-library-item",
     });
+  });
+
+  it("hydrates persisted library price options for inline estimate-row variant selection", () => {
+    const tree = buildEstimateTree(
+      [node({ id: "kitchen", parent_id: null, kind: "area", name: "Kitchen", sort_order: 0 })],
+      [row({
+        id: "library-row",
+        node_id: "kitchen",
+        material: "Cabinet",
+        quantity: 1,
+        unit_cost: 100,
+        misc_cost: 0,
+        sort_order: 0,
+        source_library_item_id: "library-item",
+        source_snapshot: {
+          category: "Cabinetry",
+          priceOptionId: "standard",
+          priceOptionLabel: "Standard",
+          priceOptions: [
+            { id: "standard", label: "Standard", unit: "lm", unitCost: 100, miscCost: 0, currency: "PHP", isActive: true, isDefault: true },
+            { id: "premium", label: "Premium", unit: "lm", unitCost: 175, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+          ],
+        },
+      })],
+    );
+
+    expect(tree[0]?.estimateRowItems?.[0]?.priceOptions).toEqual([
+      expect.objectContaining({ id: "standard", isDefault: true }),
+      expect.objectContaining({ id: "premium", isDefault: false }),
+    ]);
   });
 
   it("preserves express component metadata through estimate tree reloads", () => {

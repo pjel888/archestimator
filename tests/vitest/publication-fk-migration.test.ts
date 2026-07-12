@@ -144,7 +144,7 @@ function assertNoRebuildArtifacts(database: LocalSqliteDatabase) {
 function assertMigrationRollsBack(database: LocalSqliteDatabase) {
   const beforeCounts = rowCounts(database);
   const beforeDigests = tableDigests(database);
-  expect(() => database.exec(foreignKeyMigration)).toThrow("publication_foreign_key_preflight_failed");
+  expect(() => database.exec(`BEGIN;\n${foreignKeyMigration}\nCOMMIT;`)).toThrow("publication_foreign_key_preflight_failed");
   expect(rowCounts(database)).toEqual(beforeCounts);
   expect(tableDigests(database)).toEqual(beforeDigests);
   assertNoRebuildArtifacts(database);
@@ -194,7 +194,7 @@ describe("publication foreign-key migration", () => {
       const beforeDigests = tableDigests(database);
       const beforeIndexes = indexDefinitions(database);
 
-      database.exec(foreignKeyMigration);
+      database.exec(`BEGIN;\n${foreignKeyMigration}\nCOMMIT;`);
 
       expect(rowCounts(database)).toEqual(beforeCounts);
       expect(tableDigests(database)).toEqual(beforeDigests);
@@ -246,7 +246,7 @@ describe("publication foreign-key migration", () => {
       );
       const beforeDigests = tableDigests(database);
 
-      expect(() => database.exec(failureInjectedMigration)).toThrow("publication_foreign_key_preflight_failed");
+      expect(() => database.exec(`BEGIN;\n${failureInjectedMigration}\nCOMMIT;`)).toThrow("publication_foreign_key_preflight_failed");
       expect(tableDigests(database)).toEqual(beforeDigests);
       assertNoRebuildArtifacts(database);
     } finally {
@@ -258,7 +258,7 @@ describe("publication foreign-key migration", () => {
     const database = createDatabase();
     try {
       seedPublicationGraph(database);
-      database.exec(foreignKeyMigration);
+      database.exec(`BEGIN;\n${foreignKeyMigration}\nCOMMIT;`);
 
       database.prepare("DELETE FROM shared_link_recipients WHERE id = ?").run("recipient-1");
       expect(database.prepare("SELECT recipient_id FROM shared_link_comments WHERE id = 'comment-1'").get()).toEqual({ recipient_id: null });
@@ -276,7 +276,7 @@ describe("publication foreign-key migration", () => {
     const database = createDatabase();
     try {
       seedPublicationGraph(database);
-      database.exec(foreignKeyMigration);
+      database.exec(`BEGIN;\n${foreignKeyMigration}\nCOMMIT;`);
       const beforeDigests = tableDigests(database);
 
       reverseForeignKeyRebuild(database);
