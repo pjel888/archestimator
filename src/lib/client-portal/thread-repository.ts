@@ -179,3 +179,20 @@ export async function replyToClientPortalThread({ actor, body: rawBody, database
   ]);
   return { id: thread.id, replayed: false };
 }
+
+export async function setClientPortalRecipientThreadStatus({ actor, database, portalId, status, threadId }: { actor: ClientPortalRecipientActor; database: D1DatabaseLike; portalId: string; status: "open" | "resolved"; threadId: string }) {
+  const thread = await first<ThreadRow>(database, "SELECT id, issue_id, section_key, target_kind, target_public_id, target_label, target_secondary_label, subject, status, waiting_state, created_at, updated_at FROM client_portal_threads WHERE id = ? AND portal_id = ? AND audience = 'client' LIMIT 1", [threadId, portalId]);
+  if (!thread?.issue_id) throw new ClientPortalThreadError("client_portal_thread_not_found", "Client Portal thread was not found.");
+  if (thread.status !== "open" && thread.status !== "resolved") throw new ClientPortalThreadError("client_portal_thread_stale", "Client Portal thread cannot be updated.");
+  const current = await context(database, actor, portalId, thread.issue_id, thread.section_key);
+  authorize(actor, status === "resolved" ? "thread:resolve" : "thread:reopen", current.policyPortal, current.issue, current.section, { portalId, issueId: thread.issue_id, status: thread.status, creatorActorId: actor.recipientId });
+  const timestamp = new Date().toISOString();
+  await runBatch(database, [
+    statement(
+      database,
+      "UPDATE client_portal_threads SET status = ?, waiting_state = 'no_response_required', resolved_at = ?, resolved_by_actor_id = ?, updated_at = ? WHERE id = ?",
+      [status, status === "resolved" ? timestamp : null, status === "resolved" ? actor.recipientId : null, timestamp, thread.id],
+    ),
+  ]);
+  return { id: thread.id, status };
+}
