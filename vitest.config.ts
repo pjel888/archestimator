@@ -1,8 +1,6 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-const performanceReporterEnabled = Boolean(process.env.ESTIMATE_PERF_TEST_OUTPUT_ROLE);
-
 export default defineConfig({
   test: {
     environment: "jsdom",
@@ -11,9 +9,6 @@ export default defineConfig({
     include: ["tests/vitest/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next", "e2e"],
     fileParallelism: false,
-    reporters: performanceReporterEnabled
-      ? ["default", "./scripts/lib/estimate-sheet-vitest-reporter.ts"]
-      : ["default"],
     // The heavy jsdom component suites (e.g. component-library-ui, 60 tests) run
     // serially (fileParallelism:false is load-bearing) and individual tests can
     // exceed 15s late in a ~525s full run under GC pressure — they pass in

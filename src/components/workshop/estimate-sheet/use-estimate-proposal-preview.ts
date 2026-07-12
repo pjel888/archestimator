@@ -30,6 +30,7 @@ type UseEstimateProposalPreviewInput = {
   estimateTabs: EstimateTabSummary[];
   estimateTree: EstimateTreeNode[];
   editableRows: Record<string, EditableRowValue>;
+  getEditableRows?: () => Record<string, EditableRowValue>;
   sheetAdjustment?: EstimateSheetAdjustment | null;
   resolvedProposalExportMetadata: ProposalExportMetadata | null;
   isProposalPreviewOpen: boolean;
@@ -56,6 +57,7 @@ export function useEstimateProposalPreview({
   estimateTabs,
   estimateTree,
   editableRows,
+  getEditableRows = () => editableRows,
   sheetAdjustment,
   resolvedProposalExportMetadata,
   isProposalPreviewOpen,
@@ -90,14 +92,17 @@ export function useEstimateProposalPreview({
     [persistedTabs],
   );
   const getProposalPreviewSignature = useCallback(
-    (scope: ProposalExportPreviewScope) => [
-      createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata, sheetAdjustment),
-      dataTabId ?? "legacy",
-      tabScopeSignature,
-      scope,
-      JSON.stringify(proposalPreviewModelSettings(proposalExportSettings, sheetAdjustment)),
-    ].join("::"),
-    [dataTabId, editableRows, estimateTree, proposalExportSettings, resolvedProposalExportMetadata, sheetAdjustment, tabScopeSignature],
+    (scope: ProposalExportPreviewScope) => {
+      const currentEditableRows = getEditableRows();
+      return [
+        createProposalPreviewSignature(estimateTree, currentEditableRows, resolvedProposalExportMetadata, sheetAdjustment),
+        dataTabId ?? "legacy",
+        tabScopeSignature,
+        scope,
+        JSON.stringify(proposalPreviewModelSettings(proposalExportSettings, sheetAdjustment)),
+      ].join("::");
+    },
+    [dataTabId, estimateTree, getEditableRows, proposalExportSettings, resolvedProposalExportMetadata, sheetAdjustment, tabScopeSignature],
   );
   const currentProposalPreviewSignature = useMemo(
     () => (proposalPreviewModel ? getProposalPreviewSignature(proposalPreviewScope) : ""),
@@ -115,19 +120,20 @@ export function useEstimateProposalPreview({
 
   const buildProposalPreview = useCallback((scope: ProposalExportPreviewScope = proposalPreviewScope) => {
     if (!resolvedProposalExportMetadata) return null;
+    const currentEditableRows = getEditableRows();
 
     // The preview reflects the user's rate/formula choices so its grand total
     // matches the file; audience stays client-safe in the preview (the real
     // audience is server-resolved on download).
     const model = buildProposalExportModel({
       metadata: resolvedProposalExportMetadata,
-      nodes: materializeEditableEstimateTree(estimateTree, editableRows),
+      nodes: materializeEditableEstimateTree(estimateTree, currentEditableRows),
       settings: proposalPreviewModelSettings(proposalExportSettings, sheetAdjustment),
     });
     setProposalPreviewModel(model);
     setProposalPreviewSignature(getProposalPreviewSignature(scope));
     return model;
-  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata, setProposalPreviewModel, setProposalPreviewSignature, sheetAdjustment]);
+  }, [estimateTree, getEditableRows, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata, setProposalPreviewModel, setProposalPreviewSignature, sheetAdjustment]);
 
   const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
     setProposalPreviewScope(scope);

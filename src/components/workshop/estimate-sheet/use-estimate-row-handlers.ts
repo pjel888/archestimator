@@ -90,6 +90,7 @@ type UseEstimateRowHandlersInput = {
   activeTabId?: string | null;
   estimateTree: EstimateTreeNode[];
   editableRows: Record<string, EditableRowValue>;
+  getEditableRows?: () => Record<string, EditableRowValue>;
   saveState: EstimateSaveState;
   rowMutationStatuses: EstimateRowMutationStatusMap;
   insertTargetNodeId: string;
@@ -400,6 +401,7 @@ export function useEstimateRowHandlers({
   activeTabId,
   estimateTree,
   editableRows,
+  getEditableRows = () => editableRows,
   saveState,
   rowMutationStatuses,
   insertTargetNodeId,
@@ -519,7 +521,7 @@ export function useEstimateRowHandlers({
     const previousRows = collectEditableRows(estimateTree);
     const rollbackRevision = getEstimateTreeRevision();
     const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
-    const currentEditableRow = editableRows[rowItemId] ?? previousRows[rowItemId];
+    const currentEditableRow = getEditableRows()[rowItemId] ?? previousRows[rowItemId];
     const nextEditableRow: EditableRowValue = {
       name: values.name ?? currentEditableRow?.name ?? "",
       description: values.description ?? currentEditableRow?.description ?? "",
@@ -774,7 +776,7 @@ export function useEstimateRowHandlers({
     if (!targetNode) return false;
 
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const newItem = cloneLibraryItemForEstimate(libraryItem);
     const isExpressInsert = isExpressComponentRow(newItem);
     const mutationId = isExpressInsert ? createEstimateRowItemId() : undefined;
@@ -861,7 +863,7 @@ export function useEstimateRowHandlers({
 
   const commitReplaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const editableReplacement = previousRows[rowItemId];
     const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
     const replacementItem = replaceRowItemWithLibraryItem(rowItemId, replacementLibraryItem);
@@ -906,7 +908,7 @@ export function useEstimateRowHandlers({
     }
     if (!shouldGateLibraryCommit(libraryItem)) return commitReplaceRowItem(rowItemId, libraryItem);
     const existingRow = findEstimateRowItem(estimateTree, rowItemId);
-    const editableReplacement = editableRows[rowItemId];
+    const editableReplacement = getEditableRows()[rowItemId];
     const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
     const gate = getLibraryCommitTrustGate(replacementLibraryItem, {
       action: "replace",
@@ -983,7 +985,7 @@ export function useEstimateRowHandlers({
     }
 
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const editableReplacement = previousRows[rowItemId];
     const blankLibraryItem = applyEditableValuesToLibraryItem(createBlankEstimateRowTemplate(), editableReplacement);
     const replacementItem = replaceRowItemWithLibraryItem(rowItemId, blankLibraryItem);
@@ -1047,7 +1049,7 @@ export function useEstimateRowHandlers({
     }
 
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const rollbackRevision = getEstimateTreeRevision();
     setPromotingRowId(rowItemId);
     promoteRow({
@@ -1099,7 +1101,7 @@ export function useEstimateRowHandlers({
 
     const rowItemId = projectSpecificRowItem.id;
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const rollbackRevision = getEstimateTreeRevision();
     detachRow({
       projectId,
@@ -1125,10 +1127,11 @@ export function useEstimateRowHandlers({
     if (!sourceLocation || !targetLocation) return;
 
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const rollbackRevision = getEstimateTreeRevision();
-    const previousSourceEditableRow = editableRows[sourceRowItemId] ?? getInitialEditableRow(sourceLocation.item);
-    const previousTargetEditableRow = editableRows[targetRowItemId] ?? getInitialEditableRow(targetLocation.item);
+    const currentEditableRows = getEditableRows();
+    const previousSourceEditableRow = currentEditableRows[sourceRowItemId] ?? getInitialEditableRow(sourceLocation.item);
+    const previousTargetEditableRow = currentEditableRows[targetRowItemId] ?? getInitialEditableRow(targetLocation.item);
     const targetLibraryItem = applyEditableValuesToLibraryItem(movedItem, previousTargetEditableRow);
     const sourceBlankLibraryItem = applyEditableValuesToLibraryItem(createBlankEstimateRowTemplate(), previousSourceEditableRow);
     const targetReplacementItem = replaceRowItemWithLibraryItem(targetRowItemId, targetLibraryItem);
@@ -1222,7 +1225,7 @@ export function useEstimateRowHandlers({
     }
 
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const rollbackRevision = getEstimateTreeRevision();
     let nextRevision = rollbackRevision;
     flushSync(() => {
@@ -1270,7 +1273,7 @@ export function useEstimateRowHandlers({
 
   const deleteRowItem = useStableCallback((rowItemId: string) => {
     const previousRowLocation = findEstimateRowItemLocation(estimateTree, rowItemId);
-    const previousEditableRow = editableRows[rowItemId];
+    const previousEditableRow = getEditableRows()[rowItemId];
     setEstimateTree((current) => removeEstimateRowItem(current, rowItemId));
     setEditableRows((current) => {
       const remainingRows = { ...current };
@@ -1331,7 +1334,7 @@ export function useEstimateRowHandlers({
     if (selectedRowIds.length === 0) return;
 
     const previousTree = estimateTree;
-    const previousRows = editableRows;
+    const previousRows = getEditableRows();
     const previousLocations = selectedRowIds
       .map((rowId) => findEstimateRowItemLocation(estimateTree, rowId))
       .filter((location): location is EstimateRowItemLocation => Boolean(location));

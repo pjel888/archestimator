@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-import { getEstimatePerformanceRouteConfig } from "./helpers/estimate-sheet-performance";
+import { getEstimateSheetRouteConfig } from "./helpers/estimate-sheet-route";
 
-const routeConfig = getEstimatePerformanceRouteConfig();
+const routeConfig = getEstimateSheetRouteConfig();
 const hasAuth = Boolean(process.env.PLAYWRIGHT_STORAGE_STATE) || process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1";
 const enabled = hasAuth && routeConfig !== null;
 

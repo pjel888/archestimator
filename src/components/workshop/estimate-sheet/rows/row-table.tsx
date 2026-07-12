@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useStore } from "zustand";
 import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,9 @@ import {
   parseNonNegativeEditableNumber,
   toEditableAdjustmentPercentage,
   toEditableContingencyPercentage,
-  updateEditableRowValue,
   type EditableRowValue,
 } from "./editable-row-model";
+import { useEditableRowStore } from "./editable-row-store";
 
 const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";
 const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
@@ -73,8 +74,6 @@ function getVariantImageUrl(option: MaterialVariantOption, fallbackImageUrl?: st
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
   items: EstimateRowItem[];
-  editableRows: Record<string, EditableRowValue>;
-  setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
@@ -132,7 +131,6 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
     prev.targetNodeId !== next.targetNodeId ||
-    prev.setEditableRows !== next.setEditableRows ||
     prev.brandOptions !== next.brandOptions ||
     prev.supplierOptions !== next.supplierOptions ||
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
@@ -162,7 +160,6 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     return false;
   }
   for (const item of next.items) {
-    if (prev.editableRows[item.id] !== next.editableRows[item.id]) return false;
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return false;
     if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return false;
   }
@@ -260,7 +257,6 @@ function getEstimateRowDropEdge(event: DragEvent<HTMLTableRowElement>) {
 type EstimateRowItemTableRowProps = {
   canEditEstimate: boolean;
   item: EstimateRowItem;
-  editableRow: EditableRowValue | undefined;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
@@ -269,7 +265,6 @@ type EstimateRowItemTableRowProps = {
   selected: boolean;
   activeCellIndex: number | null;
   isReplaceTarget: boolean;
-  setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   setFocusedCell: Dispatch<SetStateAction<FocusedEstimateCell | null>>;
   setReplaceTargetRowId: Dispatch<SetStateAction<string>>;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
@@ -302,7 +297,6 @@ type EstimateRowItemTableRowProps = {
 const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   canEditEstimate,
   item,
-  editableRow,
   brandOptions,
   supplierOptions,
   projectId,
@@ -311,7 +305,6 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   selected,
   activeCellIndex,
   isReplaceTarget,
-  setEditableRows,
   setFocusedCell,
   setReplaceTargetRowId,
   onReplaceRowItem,
@@ -341,9 +334,11 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   style,
 }: EstimateRowItemTableRowProps) {
   reportEstimateRowItemRender(item.id);
+  const editableRowStore = useEditableRowStore();
+  const storedEditableRow = useStore(editableRowStore, (state) => state.rows[item.id]);
   const isInlineEditableComponentRow = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
   const computedItem = useMemo(() => {
-    const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
+    const resolvedEditableRow = storedEditableRow ?? getInitialEditableRow(item);
     const amountEditableRow = isInlineEditableComponentRow ? resolvedEditableRow : { ...resolvedEditableRow, unitCost: String(item.itemCost) };
     const amounts = getEditableRowAmounts(item, amountEditableRow);
     return {
@@ -387,8 +382,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       totalItemCosts: amounts.totalItemCosts,
       isQuantityContingency: amounts.isQuantityContingency,
     };
-  }, [editableRow, isInlineEditableComponentRow, item]);
-  const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
+  }, [isInlineEditableComponentRow, item, storedEditableRow]);
+  const resolvedEditableRow = storedEditableRow ?? getInitialEditableRow(item);
   const computedItemLabel = isInlineEditableComponentRow
     ? computedItem.editableName || "Project Component"
     : computedItem.material || "component";
@@ -461,7 +456,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
 
   function updateExpressEditableRow(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
-    setEditableRows((current) => updateEditableRowValue(current, item, values));
+    editableRowStore.getState().updateRow(item, values);
     onMarkRowDirty(item.id);
   }
 
@@ -483,7 +478,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
 
   function updateQuantityFields(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
-    setEditableRows((current) => updateEditableRowValue(current, computedItem, values));
+    editableRowStore.getState().updateRow(computedItem, values);
     onMarkRowDirty(computedItem.id);
   }
 
@@ -524,27 +519,27 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   function updateContingencyPercentageDraft(value: string) {
     if (!canEditEstimate) return;
     const draft = readSignedPercentageDraft(value);
-    setEditableRows((current) => updateEditableRowValue(current, computedItem, {
+    editableRowStore.getState().updateRow(computedItem, {
       contingencyMode: draft.mode,
       contingencyPercentage: draft.percentage,
-    }));
+    });
     onMarkRowDirty(computedItem.id);
   }
 
   function updateAdjustmentPercentageDraft(value: string) {
     if (!canEditEstimate) return;
-    setEditableRows((current) => updateEditableRowValue(current, computedItem, {
+    editableRowStore.getState().updateRow(computedItem, {
       adjustmentPercentage: normalizeSignedPercentageDraft(value),
-    }));
+    });
     onMarkRowDirty(computedItem.id);
   }
 
   function commitRowAdjustmentPercentage(sourceValue: string) {
     if (!canEditEstimate) return;
     const nextAdjustmentPercentage = toEditableAdjustmentPercentage(parseEditableAdjustmentPercentage(normalizeSignedPercentageDraft(sourceValue)));
-    setEditableRows((current) => updateEditableRowValue(current, computedItem, {
+    editableRowStore.getState().updateRow(computedItem, {
       adjustmentPercentage: nextAdjustmentPercentage,
-    }));
+    });
     if (parseEditableAdjustmentPercentage(nextAdjustmentPercentage) === computedItem.storedAdjustmentPercentage) return;
     onUpdateRowItem(computedItem.id, {
       adjustmentPercentage: nextAdjustmentPercentage,
@@ -554,15 +549,15 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   function commitContingencyPercentage(sourceValue: string) {
     if (!canEditEstimate) return;
     if (!computedItem.isQuantityContingency && parseEditableAdjustmentPercentage(sourceValue) === 0) {
-      setEditableRows((current) => updateEditableRowValue(current, computedItem, {
+      editableRowStore.getState().updateRow(computedItem, {
         contingencyMode: "contingency",
         contingencyPercentage: "0",
-      }));
+      });
       return;
     }
     const baseQuantityValue = computedItem.editableQuantityBase || computedItem.editableQuantity;
     const patch = buildEditableQuantityContingencyPercentagePatch(baseQuantityValue, sourceValue);
-    setEditableRows((current) => updateEditableRowValue(current, computedItem, patch));
+    editableRowStore.getState().updateRow(computedItem, patch);
     commitQuantityFields(patch);
   }
 
@@ -693,7 +688,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onExpressFieldCommit={commitExpressFields}
           onExpressFieldRevert={(field) => {
             const initialRow = getInitialEditableRow(item);
-            setEditableRows((current) => updateEditableRowValue(current, item, { [field]: initialRow[field] }));
+            editableRowStore.getState().updateRow(item, { [field]: initialRow[field] });
             onExpressEditorActiveChange(computedItem.id, false);
           }}
           onReplaceDragOver={() => setReplaceTargetRowId(computedItem.id)}
@@ -923,7 +918,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           disabled={!canEditEstimate}
           align="center"
           onChange={(value) => {
-            setEditableRows((current) => updateEditableRowValue(current, computedItem, { miscCost: value }));
+            editableRowStore.getState().updateRow(computedItem, { miscCost: value });
             onMarkRowDirty(computedItem.id);
           }}
           ariaLabel={`${computedItemLabel} misc cost`}
@@ -1001,8 +996,6 @@ function handleTableDragOver(event: DragEvent) {
 export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   canEditEstimate = true,
   items,
-  editableRows,
-  setEditableRows,
   brandOptions,
   supplierOptions,
   projectId,
@@ -1269,7 +1262,6 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 key={item.id}
                 canEditEstimate={canEditEstimate}
                 item={item}
-                editableRow={editableRows[item.id]}
                 brandOptions={brandOptions}
                 supplierOptions={supplierOptions}
                 projectId={projectId}
@@ -1278,7 +1270,6 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 selected={canEditEstimate && selectedRowIds.has(item.id)}
                 activeCellIndex={focusedCell?.rowId === item.id ? focusedCell.cellIndex : null}
                 isReplaceTarget={canEditEstimate && replaceTargetRowId === item.id}
-                setEditableRows={setEditableRows}
                 setFocusedCell={setFocusedCell}
                 setReplaceTargetRowId={setReplaceTargetRowId}
                 onExpressEditorActiveChange={handleExpressEditorActiveChange}

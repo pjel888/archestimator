@@ -58,28 +58,35 @@ export function updateEditableRowValue(
   item: EstimateRowItem,
   patchValue: Partial<EditableRowValue>,
 ) {
-  const currentRow = current[item.id];
   return {
     ...current,
-    [item.id]: {
-      quantity: currentRow?.quantity ?? toEditableNumber(item.quantity),
-      quantityExpression: currentRow?.quantityExpression ?? getEditableQuantityExpression(item),
-      quantityBase: currentRow?.quantityBase ?? toEditableQuantityBase(item),
-      quantityContingencyAmount: currentRow?.quantityContingencyAmount ?? toEditableQuantityContingencyAmount(item),
-      contingencyMode: currentRow?.contingencyMode ?? (isQuantityContingencyRow(item) ? "contingency" : toEditableContingencyMode(item.contingencyPercentage ?? 0)),
-      contingencyPercentage: currentRow?.contingencyPercentage ?? toEditableContingencyPercentage(getEditableContingencyPercentage(item)),
-      adjustmentPercentage: currentRow?.adjustmentPercentage ?? toEditableAdjustmentPercentage(getEditableAdjustmentPercentage(item)),
-      miscCost: currentRow?.miscCost ?? toEditableNumber(item.miscCost),
-      name: currentRow?.name ?? item.material,
-      description: currentRow?.description ?? item.description,
-      brand: currentRow?.brand ?? item.brand ?? "",
-      supplier: currentRow?.supplier ?? item.supplier,
-      unit: currentRow?.unit ?? item.unit,
-      unitCost: currentRow?.unitCost ?? toEditableNumber(item.itemCost),
-      imageUrl: currentRow?.imageUrl ?? item.imageUrl ?? "",
-      sourceUrl: currentRow?.sourceUrl ?? item.sourceUrl ?? "",
-      ...patchValue,
-    },
+    [item.id]: buildEditableRowValue(item, current[item.id], patchValue),
+  };
+}
+
+export function buildEditableRowValue(
+  item: EstimateRowItem,
+  currentRow: EditableRowValue | undefined,
+  patchValue: Partial<EditableRowValue>,
+): EditableRowValue {
+  return {
+    quantity: currentRow?.quantity ?? toEditableNumber(item.quantity),
+    quantityExpression: currentRow?.quantityExpression ?? getEditableQuantityExpression(item),
+    quantityBase: currentRow?.quantityBase ?? toEditableQuantityBase(item),
+    quantityContingencyAmount: currentRow?.quantityContingencyAmount ?? toEditableQuantityContingencyAmount(item),
+    contingencyMode: currentRow?.contingencyMode ?? (isQuantityContingencyRow(item) ? "contingency" : toEditableContingencyMode(item.contingencyPercentage ?? 0)),
+    contingencyPercentage: currentRow?.contingencyPercentage ?? toEditableContingencyPercentage(getEditableContingencyPercentage(item)),
+    adjustmentPercentage: currentRow?.adjustmentPercentage ?? toEditableAdjustmentPercentage(getEditableAdjustmentPercentage(item)),
+    miscCost: currentRow?.miscCost ?? toEditableNumber(item.miscCost),
+    name: currentRow?.name ?? item.material,
+    description: currentRow?.description ?? item.description,
+    brand: currentRow?.brand ?? item.brand ?? "",
+    supplier: currentRow?.supplier ?? item.supplier,
+    unit: currentRow?.unit ?? item.unit,
+    unitCost: currentRow?.unitCost ?? toEditableNumber(item.itemCost),
+    imageUrl: currentRow?.imageUrl ?? item.imageUrl ?? "",
+    sourceUrl: currentRow?.sourceUrl ?? item.sourceUrl ?? "",
+    ...patchValue,
   };
 }
 

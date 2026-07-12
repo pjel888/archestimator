@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useMemo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { memo, useMemo, useRef, useState, type DragEvent } from "react";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
+import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
 import type { EstimateRowMutationStatusMap } from "@/hooks/use-estimate-row-mutations";
@@ -15,7 +16,7 @@ import {
 import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
-import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
+import type { EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
 import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals-utils";
 import { estimateSurfaceClass } from "../../estimate-surface-class";
@@ -26,6 +27,7 @@ import type { ExpressInsertDraftState } from "./cells";
 import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
+import { useEditableRowStore } from "./editable-row-store";
 
 export type BreadcrumbNode = { id: string; name: string };
 const EMPTY_BREADCRUMB_PATH: BreadcrumbNode[] = [];
@@ -35,8 +37,6 @@ export type EstimateSheetBranchProps = {
   nodeCode: string;
   ancestorPath: BreadcrumbNode[];
   canEditEstimate?: boolean;
-  editableRows: Record<string, EditableRowValue>;
-  setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
@@ -114,12 +114,11 @@ function areAncestorPathsEqual(prev: readonly BreadcrumbNode[], next: readonly B
 
 function branchRowStateChanged(
   node: EstimateTreeNode,
-  prev: Pick<EstimateSheetBranchProps, "editableRows" | "selectedRowIds" | "rowMutationStatuses">,
-  next: Pick<EstimateSheetBranchProps, "editableRows" | "selectedRowIds" | "rowMutationStatuses">,
+  prev: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses">,
+  next: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses">,
   includeDescendants: boolean,
 ): boolean {
   for (const item of node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS) {
-    if (prev.editableRows[item.id] !== next.editableRows[item.id]) return true;
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return true;
     if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return true;
   }
@@ -140,7 +139,6 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.depth !== next.depth ||
     prev.siblingIndex !== next.siblingIndex ||
     prev.renderChildBranches !== next.renderChildBranches ||
-    prev.setEditableRows !== next.setEditableRows ||
     prev.brandOptions !== next.brandOptions ||
     prev.supplierOptions !== next.supplierOptions ||
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
@@ -179,7 +177,6 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
   if (!Object.is(prevTotal, nextTotal)) return false;
 
   const needsRowStateCheck =
-    prev.editableRows !== next.editableRows ||
     prev.selectedRowIds !== next.selectedRowIds ||
     prev.rowMutationStatuses !== next.rowMutationStatuses ||
     !prev.nodeTotals ||
@@ -190,8 +187,10 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, editableRows, setEditableRows, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
+  const editableRowStore = useEditableRowStore();
+  const storedNodeTotal = useStore(editableRowStore, (state) => state.nodeTotals.get(node.id));
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
   // resolves the scroll container from its own DOM node.
@@ -211,7 +210,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
   const hasCollapsibleBody = true;
   const leftIndent = Math.min(depth * 16, 96);
   const headerTextOffset = leftIndent + 51;
-  const total = nodeTotals?.get(node.id) ?? computeNodeTotal(node, editableRows);
+  const total = storedNodeTotal ?? nodeTotals?.get(node.id) ?? 0;
   const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
   // Sticky model: ONLY the displayed (depth-0) node header is sticky, pinned at
   // the top of the scroll container. Nested node headers and every table <thead>
@@ -425,8 +424,6 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
             <EstimateRowItemsTable
               canEditEstimate={canEditEstimate}
               items={estimateRowItems}
-              editableRows={editableRows}
-              setEditableRows={setEditableRows}
               brandOptions={brandOptions}
               supplierOptions={supplierOptions}
               projectId={projectId}
@@ -483,8 +480,6 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 nodeCode={childCode}
                 ancestorPath={childAncestorPath}
                 canEditEstimate={canEditEstimate}
-                editableRows={editableRows}
-                setEditableRows={setEditableRows}
                 brandOptions={brandOptions}
                 supplierOptions={supplierOptions}
                 projectId={projectId}
