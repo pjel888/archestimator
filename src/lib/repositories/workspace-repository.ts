@@ -11,7 +11,7 @@ import {
   type AppPlatformRole,
 } from "@/lib/auth/roles";
 import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
-import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
+import type { ComponentPriceOption, EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
@@ -366,6 +366,8 @@ const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
 const MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT =
   MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT * MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT * 4;
+// D1 rejects wide IN clauses well before the estimate tree's 1,500-node load cap.
+const ESTIMATE_TREE_ROW_NODE_BATCH_SIZE = 64;
 const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
   "assembly",
   "lot",
@@ -3390,23 +3392,30 @@ async function readEstimateRows(
   estimateId: string,
   options: { nodeIds?: string[]; limit?: number | null } = {},
 ): Promise<EstimateTreeRowItemQueryRow[]> {
-  const filters: string[] = ["estimate_id = ?", "node_id IS NOT NULL"];
-  const values: unknown[] = [estimateId];
-  if (options.nodeIds?.length) {
-    filters.push(`node_id IN (${placeholders(options.nodeIds)})`);
-    values.push(...options.nodeIds);
-  }
-  const limitSql = options.limit ? " LIMIT ?" : "";
-  if (options.limit) values.push(options.limit);
-  const rows = await all<EstimateTreeRowItemQueryRow>(
-    database,
-    `SELECT ${ESTIMATE_TREE_ROW_ITEM_COLUMNS}
-     FROM estimate_row_items
-     WHERE ${filters.join(" AND ")}
-     ORDER BY sort_order ASC, id ASC${limitSql}`,
-    values,
-  );
-  return rows.map(normalizeEstimateTreeRowItem);
+  const nodeIdBatches = options.nodeIds?.length
+    ? Array.from({ length: Math.ceil(options.nodeIds.length / ESTIMATE_TREE_ROW_NODE_BATCH_SIZE) }, (_, index) =>
+        options.nodeIds!.slice(index * ESTIMATE_TREE_ROW_NODE_BATCH_SIZE, (index + 1) * ESTIMATE_TREE_ROW_NODE_BATCH_SIZE),
+      )
+    : [undefined];
+  const batches = await Promise.all(nodeIdBatches.map(async (nodeIds) => {
+    const filters: string[] = ["estimate_id = ?", "node_id IS NOT NULL"];
+    const values: unknown[] = [estimateId];
+    if (nodeIds) {
+      filters.push(`node_id IN (${placeholders(nodeIds)})`);
+      values.push(...nodeIds);
+    }
+    return await all<EstimateTreeRowItemQueryRow>(
+      database,
+      `SELECT ${ESTIMATE_TREE_ROW_ITEM_COLUMNS}
+       FROM estimate_row_items
+       WHERE ${filters.join(" AND ")}
+       ORDER BY sort_order ASC, id ASC`,
+      values,
+    );
+  }));
+  const rows = batches.flat()
+    .sort((left, right) => left.sort_order - right.sort_order || left.id.localeCompare(right.id));
+  return (options.limit ? rows.slice(0, options.limit) : rows).map(normalizeEstimateTreeRowItem);
 }
 
 async function readEstimateTabsForEstimateRows(
@@ -3497,6 +3506,41 @@ async function readOptionalEstimateSheetAdjustment(
   }
 }
 
+function readSnapshotPriceOptions(value: unknown): ComponentPriceOption[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const options = value.flatMap((candidate): ComponentPriceOption[] => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return [];
+    const option = candidate as Record<string, unknown>;
+    const id = typeof option.id === "string" ? option.id : "";
+    const label = typeof option.label === "string" ? option.label : "";
+    const unit = typeof option.unit === "string" ? option.unit : "";
+    const unitCost = typeof option.unitCost === "number" && Number.isFinite(option.unitCost) ? option.unitCost : Number.NaN;
+    const miscCost = typeof option.miscCost === "number" && Number.isFinite(option.miscCost) ? option.miscCost : Number.NaN;
+    const currency = typeof option.currency === "string" ? option.currency : "";
+    if (!id || !label || !unit || !currency || !Number.isFinite(unitCost) || !Number.isFinite(miscCost)) return [];
+
+    return [{
+      id,
+      label,
+      unit,
+      unitCost,
+      miscCost,
+      currency,
+      isActive: option.isActive === true,
+      isDefault: option.isDefault === true,
+      ...(typeof option.sku === "string" ? { sku: option.sku } : {}),
+      ...(typeof option.variantDescription === "string" ? { variantDescription: option.variantDescription } : {}),
+      ...(typeof option.pricingSource === "string" ? { pricingSource: option.pricingSource } : {}),
+      ...(typeof option.pricingDate === "string" ? { pricingDate: option.pricingDate } : {}),
+      ...(typeof option.confidence === "string" ? { confidence: option.confidence } : {}),
+      ...(typeof option.thumbnailPath === "string" ? { thumbnailPath: option.thumbnailPath } : {}),
+    }];
+  });
+
+  return options.length > 0 ? options : undefined;
+}
+
 function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const quantity = Number(row.quantity);
   const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
@@ -3512,6 +3556,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
   const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const sourceSnapshot = readJsonRecord(row.source_snapshot);
+  const priceOptions = readSnapshotPriceOptions(sourceSnapshot.priceOptions);
   const metadata = readJsonRecord(row.metadata);
   const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
     ? sourceSnapshot.category
@@ -3534,7 +3579,9 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     description: row.description,
     supplier: row.supplier || "No supplier",
     supplierId: supplierId ?? undefined,
-    source: row.source_library_item_id ? "library" : "project",
+    // Detach retains the historical library ID for provenance, while link_state
+    // determines whether the row is still a live library projection.
+    source: row.source_library_item_id && row.link_state !== "detached" && row.link_state !== "unlinked" ? "library" : "project",
     unit: row.unit,
     itemCost,
     quantity,
@@ -3564,6 +3611,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     componentVersionNumber,
     priceOptionId: typeof sourceSnapshot.priceOptionId === "string" ? sourceSnapshot.priceOptionId : undefined,
     priceOptionLabel: typeof sourceSnapshot.priceOptionLabel === "string" ? sourceSnapshot.priceOptionLabel : undefined,
+    priceOptions,
     lifecycleState: typeof sourceSnapshot.lifecycleState === "string" ? sourceSnapshot.lifecycleState as EstimateRowItem["lifecycleState"] : undefined,
     pricingSource: typeof sourceSnapshot.pricingSource === "string" ? sourceSnapshot.pricingSource : "Estimate row snapshot",
     pricingDate: typeof sourceSnapshot.pricingDate === "string" ? sourceSnapshot.pricingDate : row.created_at.slice(0, 10),

@@ -899,13 +899,16 @@ function buildComponentRowsLibraryDataset({
       history,
       versionsByItemId.get(row.id)?.[0],
     );
+    // Price options are part of the bounded, cost-determining payload used by
+    // the estimate sheet. `includeDetailGraph` controls only the unbounded
+    // audit and attachment graph below, not whether an inserted row can switch
+    // between its already-loaded variants.
     if (includeVariantDetails) return item;
 
     const browseItem: EstimateRowItem = { ...item };
     delete browseItem.componentVersionId;
     delete browseItem.history;
     delete browseItem.notes;
-    delete browseItem.priceOptions;
     delete browseItem.sourceUrl;
     return browseItem;
   });

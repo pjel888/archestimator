@@ -1304,6 +1304,9 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
     lifecycleState: libraryItem.lifecycleState ?? null,
     priceOptionId: libraryItem.priceOptionId ?? null,
     priceOptionLabel: libraryItem.priceOptionLabel ?? null,
+    // The estimate-row projection renders the inline variant control from the
+    // snapshot, so retain the bounded list captured at insert time.
+    priceOptions: libraryItem.priceOptions ?? [],
     pricingDate: libraryItem.pricingDate,
     pricingSource: libraryItem.pricingSource,
     sourceUrl: libraryItem.sourceUrl ?? null,

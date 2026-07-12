@@ -912,9 +912,29 @@ function OpenAddComponentModal({
   }
 
   function updateQuickAddIdentity(update: Partial<ComponentDraft>) {
-    setDuplicateCheckReady(false);
-    setDuplicateAcknowledged(false);
+    const current = draftRef.current;
+    const duplicateIdentityChanged = (
+      (update.name !== undefined && update.name !== current.name)
+      || (update.category !== undefined && update.category !== current.category)
+      || (update.supplierId !== undefined && update.supplierId !== current.supplierId)
+      || (update.supplierName !== undefined && update.supplierName !== current.supplierName)
+      || (update.brandId !== undefined && update.brandId !== current.brandId)
+      || (update.brand !== undefined && update.brand !== current.brand)
+    );
+    if (duplicateIdentityChanged) {
+      setDuplicateCheckReady(false);
+      setDuplicateAcknowledged(false);
+    }
     updateDraft(update);
+  }
+
+  function acknowledgeDuplicate() {
+    if (duplicateCheckTimerRef.current !== null) {
+      window.clearTimeout(duplicateCheckTimerRef.current);
+      duplicateCheckTimerRef.current = null;
+    }
+    setDuplicateCheckReady(false);
+    setDuplicateAcknowledged(true);
   }
 
   function getBaseCatalogueOptions(kind: CatalogueOptionKind): CreatableComboboxOption[] {
@@ -1554,7 +1574,7 @@ function OpenAddComponentModal({
           "[&_[data-archestimator-modal-location-footer]]:hidden",
         )}
       >
-        <div className="relative isolate flex h-[min(940px,calc(100dvh-16px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
+        <div className="relative isolate flex h-[min(896px,calc(100dvh-60px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
           <div className="relative z-20 flex h-8 shrink-0 items-stretch gap-2 border-b border-[#e7e9ec] px-2" role="tablist" aria-label={isEditing ? "Edit component sections" : "Add component sections"}>
             {ADD_COMPONENT_MODAL_TABS.map((tab) => (
               <button
@@ -1806,7 +1826,17 @@ function OpenAddComponentModal({
                         <span className="min-w-0 truncate">
                           A component named &quot;{possibleDuplicate.name ?? possibleDuplicate.material}&quot; already exists.
                         </span>
-                        <Button type="button" variant="warning" size="xs" onClick={() => setDuplicateAcknowledged(true)} className="min-w-0 shrink-0 px-2">
+                        <Button
+                          type="button"
+                          variant="warning"
+                          size="xs"
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            acknowledgeDuplicate();
+                          }}
+                          onClick={acknowledgeDuplicate}
+                          className="min-w-0 shrink-0 px-2"
+                        >
                           Create anyway
                         </Button>
                       </output>

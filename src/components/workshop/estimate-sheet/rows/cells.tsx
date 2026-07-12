@@ -45,7 +45,7 @@ export type ExpressInsertDraftState = "creating" | "failed";
 type ComponentSourceTone = "library" | "express" | "project" | "manual";
 
 const MATERIAL_UNIT_SLOT_CLASS =
-  "absolute right-0 top-[calc(50%+22px)] flex w-[112px] justify-end whitespace-nowrap text-right !text-[10px] font-medium leading-3 text-tertiary";
+  "pointer-events-none absolute right-0 top-[calc(50%+22px)] flex w-[112px] justify-end whitespace-nowrap text-right !text-[10px] font-medium leading-3 text-tertiary";
 const MATERIAL_COST_SLOT_CLASS = "w-[112px] shrink-0";
 const MATERIAL_TEXT_RESERVE_CLASS = "min-w-0 pr-16";
 const MATERIAL_PRICE_RAIL_CLASS =

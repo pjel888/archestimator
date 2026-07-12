@@ -2264,7 +2264,7 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
     ? snapshot.rows.map(readJsonRecord)
     : typeof snapshot.id === "string"
       ? [snapshot]
-      : []).map((row) => ({
+      : []).map((row): Record<string, unknown> => ({
     ...row,
     estimate_id: row.estimate_id ?? row.estimateId,
     node_id: row.node_id ?? row.nodeId,
