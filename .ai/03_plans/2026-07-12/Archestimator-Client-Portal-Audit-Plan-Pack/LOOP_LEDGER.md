@@ -339,3 +339,10 @@ Implement the Client Portal plan pack from the source-grounded active pack throu
   rollback or fix-forward rehearsal for that single cohort, followed by final
   hosted token/header and release-truth capture. The release remains fail
   closed until that protected operator action is available.
+
+## Live-cutover recovery update — 2026-07-12
+
+- **Cohort rehearsal:** the authenticated Publisher manager migrated the named legacy publication and D1 readback verified the deterministic portal and issue, two recipients, one discussion, and migration import/verification audit events.
+- **Defect and fix:** the manager Client Portal route then failed because D1 rejected the dynamic audit-event `LIKE` pattern as too complex. `activity-service.ts` now uses an exact `instr` JSON-fragment check at both recipient-audit lookups; targeted ESLint and the equivalent remote D1 query pass.
+- **Safe rollback:** the post-fix Worker-version upload did not complete (Cloudflare version creation remained pending with no new deployment record), so the rehearsal was rolled back before leaving the cohort frozen. Remote D1 now reports mapping status `rejected`, one `legacy_migration_rolled_back` audit event, retained imported records (two recipients, one thread, one decision), and both rollout flags disabled.
+- **Release boundary:** the code fix is local and the live migration/rollback path was exercised, but no new Worker version exists with the fix. The manager Client Portal route and final hosted header/denial proof remain open; both Client Portal and Publisher packs remain active and are not archive-eligible.
