@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
+import { computeEstimateRowCostParts, ESTIMATE_CALCULATION_VERSION } from "@/lib/estimates/estimate-row-total";
 import type {
   ProjectPublicationLocationVisibility,
   ProjectPublicationSnapshot,
@@ -37,6 +38,8 @@ type SnapshotRowInput = {
   miscCost: number;
   contingencyPercentage: number;
   adjustmentPercentage?: number;
+  laborRate?: number;
+  scopeStatus?: "included" | "excluded" | "by_owner";
   // P9: source_snapshot.imageUrl extracted at publish (additive)
   imageUrl?: string | null;
   // Link to the estimate node that owns this row in the workshop tree
@@ -200,18 +203,25 @@ function toFiniteNumber(value: number) {
   return Number.isFinite(value) ? value : 0;
 }
 
-function calculateRowTotal(row: SnapshotRowInput) {
-  const quantity = toFiniteNumber(row.quantity);
-  const unitCost = toFiniteNumber(row.unitCost);
-  const miscCost = toFiniteNumber(row.miscCost);
+function calculateRowCostParts(row: SnapshotRowInput, currencyCode: string) {
   const contingencyPercentage = toFiniteNumber(row.contingencyPercentage);
   const legacyAdjustmentPercentage = row.quantityBase === null || row.quantityBase === undefined ? contingencyPercentage : 0;
-  const adjustmentPercentage = toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage);
-  const subtotal = quantity * unitCost;
-  return subtotal + miscCost + (subtotal * adjustmentPercentage) / 100;
+  return computeEstimateRowCostParts({
+    quantity: toFiniteNumber(row.quantity),
+    quantity_base: row.quantityBase,
+    quantity_contingency_amount: row.quantityContingencyAmount,
+    unit_cost: toFiniteNumber(row.unitCost),
+    labor_rate: toFiniteNumber(row.laborRate ?? 0),
+    misc_cost: toFiniteNumber(row.miscCost),
+    adjustment_percentage: toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage),
+    currency_code: currencyCode,
+  });
 }
 
-function buildSnapshotRow(row: SnapshotRowInput, tabId?: string | null): PublicationSnapshotRow {
+function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, tabId?: string | null): PublicationSnapshotRow {
+  const costParts = calculateRowCostParts(row, currencyCode);
+  if (!costParts.ok) throw new Error("Cannot publish an estimate row with invalid calculation input.");
+
   const snapshotRow: PublicationSnapshotRow = {
     id: row.id,
     description: row.description,
@@ -220,7 +230,12 @@ function buildSnapshotRow(row: SnapshotRowInput, tabId?: string | null): Publica
     material: row.material,
     quantity: toFiniteNumber(row.quantity),
     unit: row.unit,
-    rowTotal: calculateRowTotal(row),
+    rowTotal: costParts.value.total,
+    rowTotalMinorUnits: costParts.value.totalMinorUnits,
+    calculationVersion: ESTIMATE_CALCULATION_VERSION,
+    calculationBasis: "proposal_included_direct",
+    currencyCode: costParts.value.currencyCode,
+    scopeStatus: row.scopeStatus ?? "included",
     // P9 additive (undefined/null if absent in source_snapshot at publish)
     imageUrl: normalizePublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
@@ -257,6 +272,11 @@ function sanitizeSnapshotRow(
     nodeId: row.nodeId ? mapPublicSnapshotId(idMaps, "node", row.nodeId) : null,
   };
   if (row.tabId) snapshotRow.tabId = mapPublicSnapshotId(idMaps, "tab", row.tabId);
+  if (Number.isSafeInteger(row.rowTotalMinorUnits)) snapshotRow.rowTotalMinorUnits = row.rowTotalMinorUnits;
+  if (row.calculationVersion === ESTIMATE_CALCULATION_VERSION) snapshotRow.calculationVersion = row.calculationVersion;
+  if (row.calculationBasis === "proposal_included_direct") snapshotRow.calculationBasis = row.calculationBasis;
+  if (typeof row.currencyCode === "string" && /^[A-Z]{3}$/.test(row.currencyCode)) snapshotRow.currencyCode = row.currencyCode;
+  if (row.scopeStatus === "included" || row.scopeStatus === "excluded" || row.scopeStatus === "by_owner") snapshotRow.scopeStatus = row.scopeStatus;
   return snapshotRow;
 }
 
@@ -413,7 +433,7 @@ function buildSnapshotEstimateTab({
   };
 }
 
-function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnapshotEstimate {
+function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: string): PublicationSnapshotEstimate {
   const sortedTabs = sortSnapshotTabs(estimate.tabs ?? []);
   const defaultTabId = findDefaultTabId(sortedTabs);
   const sourceNodes = estimate.nodes ?? [];
@@ -422,11 +442,12 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnap
   const nodes = hasActiveTabs ? sourceNodes.filter((node) => isNodeInActiveTab(node, activeTabIds)) : sourceNodes;
   const nodeTabMap = buildNodeTabMap(nodes);
   const rows = estimate.rows.flatMap((row) => {
-    if (!hasActiveTabs) return [buildSnapshotRow(row, row.nodeId ? nodeTabMap.get(row.nodeId) : null)];
-    if (!row.nodeId) return defaultTabId ? [buildSnapshotRow(row, defaultTabId)] : [];
+    if (row.scopeStatus && row.scopeStatus !== "included") return [];
+    if (!hasActiveTabs) return [buildSnapshotRow(row, currencyCode, row.nodeId ? nodeTabMap.get(row.nodeId) : null)];
+    if (!row.nodeId) return defaultTabId ? [buildSnapshotRow(row, currencyCode, defaultTabId)] : [];
     if (!nodeTabMap.has(row.nodeId)) return [];
     const tabId = nodeTabMap.get(row.nodeId) ?? defaultTabId;
-    return tabId ? [buildSnapshotRow(row, tabId)] : [];
+    return tabId ? [buildSnapshotRow(row, currencyCode, tabId)] : [];
   });
   const tabRows = new Map<string, PublicationSnapshotRow[]>();
   const tabNodes = new Map<string, SnapshotNodeInput[]>();
@@ -483,7 +504,7 @@ export function buildProjectPublicationSnapshot({
   project: SnapshotProjectInput;
   estimates: SnapshotEstimateInput[];
 }): ProjectPublicationSnapshot {
-  const snapshotEstimates = estimates.map(buildSnapshotEstimate);
+  const snapshotEstimates = estimates.map((estimate) => buildSnapshotEstimate(estimate, project.currencyCode));
   const locationVisibility = normalizeProjectPublicationLocationVisibility(project.locationVisibility);
   const senderName = project.senderName?.trim();
   const snapshotProject =
@@ -501,7 +522,7 @@ export function buildProjectPublicationSnapshot({
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
         };
-  const schemaVersion = estimates.some((estimate) => (estimate.tabs?.length ?? 0) > 0) ? 1.3 : 1;
+  const schemaVersion = 1.4;
 
   return {
     _privateIdNamespace: randomBytes(16).toString("base64url"),

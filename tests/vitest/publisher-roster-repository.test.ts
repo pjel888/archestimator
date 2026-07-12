@@ -299,6 +299,22 @@ describe("Publisher roster repository composer", () => {
     expect(editorRow?.tokenCopyAvailable).toBe(false);
     expect(editorRow?.linkUnavailableReason).toBeNull();
   });
+
+  it("links managers to only verified migrated Client Portals", () => {
+    const result = composePublisherRosterResult({
+      filters: defaultFilters,
+      migratedClientPortalIdByPublicationId: new Map([
+        ["pub-active", "portal-verified"],
+        ["pub-stale", "portal-editor-hidden"],
+      ]),
+      projects: [projects[0]!, projects[1]!],
+      publications: [publications[0]!, publications[1]!],
+    });
+
+    expect(result.rows.find((row) => row.publicationId === "pub-active")?.clientPortalPath)
+      .toBe("/workshop/projects/project-active/client-portals/portal-verified");
+    expect(result.rows.find((row) => row.publicationId === "pub-stale")?.clientPortalPath).toBeNull();
+  });
 });
 
 describe("Publisher roster server repository contract", () => {

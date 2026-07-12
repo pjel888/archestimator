@@ -55,7 +55,6 @@ const durableMocks = vi.hoisted(() => {
     recordProjectPublicationPasswordFailure: vi.fn(async ({ token, request }: { request: Request; token: string }) => {
       prune();
       failureRows.push({ at: Date.now(), ip: clientIp(request), token });
-      return { delayMs: 0 };
     }),
     verifyProjectPublicationPasswordByToken: vi.fn(async (_token: string, password: string) => {
       if (password !== "client-secret") return false;
@@ -109,9 +108,7 @@ async function importPasswordRouteAfterModuleReset() {
 }
 
 async function postPassword(POST: typeof import("@/app/api/share/[token]/password/route").POST, password: string) {
-  const responsePromise = POST(passwordRequest(password), params());
-  await vi.advanceTimersByTimeAsync(30_000);
-  return responsePromise;
+  return POST(passwordRequest(password), params());
 }
 
 describe("publication password route durable lockout", () => {

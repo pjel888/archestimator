@@ -77,14 +77,20 @@ type ProposalExportPreviewDialogProps = {
   onClose: () => void;
 };
 
-const previewPesoFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
+const previewNumberFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
-function formatMoney(value: number) {
-  return previewPesoFormatter.format(value).replace("₱", "₱ ");
+function normalizeCurrencyCode(value: string) {
+  const currencyCode = value.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(currencyCode) ? currencyCode : "PHP";
+}
+
+function formatMoney(value: number, currencyCode: string) {
+  const normalizedCurrencyCode = normalizeCurrencyCode(currencyCode);
+  const formattedValue = previewNumberFormatter.format(value);
+  return normalizedCurrencyCode === "PHP" ? `₱ ${formattedValue}` : `${normalizedCurrencyCode} ${formattedValue}`;
 }
 
 const settingsCheckboxLabelClass = "flex items-center gap-1.5 text-[10px] text-secondary";
@@ -227,9 +233,9 @@ export function ProposalExportPreviewDialog({
   const downloadStatus = status.download.kind;
   const showDownloadButton = Boolean(onDownload && downloadStatus !== "hidden");
   const downloadInProgress = downloadStatus === "preparing";
-  const downloadDisabled = downloadStatus !== "ready";
   const downloadError = status.downloadError ?? null;
   const unsavedEdits = status.unsavedEdits ?? 0;
+  const downloadDisabled = downloadStatus !== "ready" || isPreviewStale || unsavedEdits > 0;
 
   const dialog = (
     <dialog
@@ -256,7 +262,7 @@ export function ProposalExportPreviewDialog({
           <div className="flex shrink-0 items-center gap-1">
             {isPreviewStale ? (
               <span className={cn(previewStatusBadgeClass, "bg-amber-50 text-amber-700")}>
-                Preview is stale. Refresh to rebuild from current sheet rows.
+                Preview is stale. Refresh it before exporting.
               </span>
             ) : (
               <span className={cn(previewStatusBadgeClass, "bg-emerald-50 text-emerald-700")}>Preview current</span>
@@ -322,8 +328,8 @@ export function ProposalExportPreviewDialog({
             data-testid="proposal-unsaved-edits-warning"
             className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800"
           >
-            Preview includes {unsavedEdits} unsaved row {unsavedEdits === 1 ? "edit" : "edits"}. Save the sheet
-            before exporting if the workbook should contain saved data only.
+            Preview includes {unsavedEdits} unsaved row {unsavedEdits === 1 ? "edit" : "edits"}. Save the sheet, then
+            refresh the preview before exporting so the workbook matches these totals.
           </div>
         ) : null}
 
@@ -456,7 +462,7 @@ export function ProposalExportPreviewDialog({
                     All {scopeControls?.tabCount} tabs, total is in the downloaded Summary sheet
                   </p>
                 ) : (
-                  <p className="mt-0.5 text-[12px] font-medium tabular-nums text-ink">{formatMoney(model.totals.grandTotalWithTaxes)}</p>
+                  <p className="mt-0.5 text-[12px] font-medium tabular-nums text-ink">{formatMoney(model.totals.grandTotalWithTaxes, model.metadata.currency)}</p>
                 )}
               </div>
             </div>

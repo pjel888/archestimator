@@ -34,6 +34,7 @@ export type ProposalWorkbookColumn = {
   header: string;
   width: number;
   style?: Partial<Style>;
+  currency?: boolean;
 };
 
 // P3-T4 (F-34, 09 §5): the 4-part accounting peso mask (positive · negative · zero-as-dash ·
@@ -50,6 +51,27 @@ const TEXT_FORMAT = "@";
 const DETAIL_HEADER_ROW = 17;
 const SUMMARY_HEADER_ROW = 14;
 
+function normalizeCurrencyCode(value: string) {
+  const currencyCode = value.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(currencyCode) ? currencyCode : "PHP";
+}
+
+function currencyAccountingFormat(currencyCode: string) {
+  const normalizedCurrencyCode = normalizeCurrencyCode(currencyCode);
+  if (normalizedCurrencyCode === "PHP") return PHP_FORMAT;
+
+  return `_- "${normalizedCurrencyCode}"* #,##0.00_-;-"${normalizedCurrencyCode}"* #,##0.00_-;_- "${normalizedCurrencyCode}"* "-"??_-;_-@_-`;
+}
+
+function withCurrencyNumberFormats(columns: readonly ProposalWorkbookColumn[], currencyCode: string) {
+  const currencyFormat = currencyAccountingFormat(currencyCode);
+  return columns.map((column) =>
+    column.currency
+      ? { ...column, style: { ...column.style, numFmt: currencyFormat } }
+      : column,
+  );
+}
+
 // F-01 (P1-T9): until real labor data lands (P3-T1/D1), labor is exported as 0. A visible
 // in-file caveat keeps a LABOR=0 column from silently implying labor is priced at zero.
 const LABOR_DISCLAIMER_NOTE =
@@ -60,10 +82,10 @@ export const BID_FORM_COLUMNS = [
   { key: "particulars", header: "PARTICULARS", width: 42, style: { numFmt: TEXT_FORMAT } },
   { key: "unit", header: "UNIT", width: 10, style: { numFmt: TEXT_FORMAT } },
   { key: "quantity", header: "QTY", width: 12, style: { numFmt: QUANTITY_FORMAT } },
-  { key: "material", header: "MATERIAL", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "labor", header: "LABOR", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "costTotal", header: "COST TOTAL", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "lineTotal", header: "LINE TOTAL", width: 16, style: { numFmt: PHP_FORMAT } },
+  { key: "material", header: "MATERIAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "labor", header: "LABOR", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "costTotal", header: "COST TOTAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "lineTotal", header: "LINE TOTAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "scope", header: "SCOPE", width: 16, style: { numFmt: TEXT_FORMAT } },
   { key: "remarks", header: "NOTES / REMARKS", width: 42, style: { numFmt: TEXT_FORMAT } },
 ] as const satisfies ProposalWorkbookColumn[];
@@ -78,7 +100,7 @@ export const BID_FORM_COLUMN_LETTERS = Object.fromEntries(
 const SUMMARY_COLUMNS = [
   { key: "sectionLabel", header: "SECTION", width: 34, style: { numFmt: TEXT_FORMAT } },
   { key: "rowCount", header: "ROWS", width: 10 },
-  { key: "amount", header: "AMOUNT", width: 18, style: { numFmt: PHP_FORMAT } },
+  { key: "amount", header: "AMOUNT", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
 ] as const satisfies ProposalWorkbookColumn[];
 
 const BREAKDOWN_COLUMNS = [
@@ -89,13 +111,13 @@ const BREAKDOWN_COLUMNS = [
   { key: "particulars", header: "PARTICULARS", width: 48, style: { numFmt: TEXT_FORMAT } },
   { key: "quantity", header: "QTY", width: 12, style: { numFmt: QUANTITY_FORMAT } },
   { key: "unit", header: "UNIT", width: 10, style: { numFmt: TEXT_FORMAT } },
-  { key: "materialUnitCost", header: "MATERIAL UNIT COST", width: 18, style: { numFmt: PHP_FORMAT } },
-  { key: "laborUnitCost", header: "LABOR UNIT COST", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "materialSubtotal", header: "MATERIAL SUBTOTAL", width: 18, style: { numFmt: PHP_FORMAT } },
-  { key: "laborSubtotal", header: "LABOR SUBTOTAL", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "contingencySubtotal", header: "CONTINGENCY / DISCOUNT", width: 20, style: { numFmt: PHP_FORMAT } },
-  { key: "miscSubtotal", header: "MISC / OTHER", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "costAmount", header: "COST AMOUNT", width: 18, style: { numFmt: PHP_FORMAT } },
+  { key: "materialUnitCost", header: "MATERIAL UNIT COST", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "laborUnitCost", header: "LABOR UNIT COST", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "materialSubtotal", header: "MATERIAL SUBTOTAL", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "laborSubtotal", header: "LABOR SUBTOTAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "contingencySubtotal", header: "CONTINGENCY / DISCOUNT", width: 20, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "miscSubtotal", header: "MISC / OTHER", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
+  { key: "costAmount", header: "COST AMOUNT", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
 ] as const satisfies ProposalWorkbookColumn[];
 
 const BREAKDOWN_COLUMNS_WITH_TAB = [
@@ -153,8 +175,13 @@ function styleTotalRow(row: Row) {
   };
 }
 
-function formatPeso(value: number) {
-  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatCurrency(value: number, currencyCode: string) {
+  const normalizedCurrencyCode = normalizeCurrencyCode(currencyCode);
+  if (normalizedCurrencyCode === "PHP") {
+    return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  return `${normalizedCurrencyCode} ${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // P3-T4 (F-28): Grand Total amount in words — a required line on a formal bid document.
@@ -192,11 +219,13 @@ function integerToWords(value: number) {
   return words.join(" ");
 }
 
-function pesoInWords(amount: number) {
+function amountInWords(amount: number, currencyCode: string) {
   const rounded = roundMoney(amount);
-  const pesos = Math.floor(rounded);
-  const centavos = Math.round((rounded - pesos) * 100);
-  return `${integerToWords(pesos)} Peso${pesos === 1 ? "" : "s"} and ${String(centavos).padStart(2, "0")}/100`;
+  const wholeAmount = Math.floor(rounded);
+  const fractionalAmount = Math.round((rounded - wholeAmount) * 100);
+  const normalizedCurrencyCode = normalizeCurrencyCode(currencyCode);
+  const currencyName = normalizedCurrencyCode === "PHP" ? `Peso${wholeAmount === 1 ? "" : "s"}` : normalizedCurrencyCode;
+  return `${integerToWords(wholeAmount)} ${currencyName} and ${String(fractionalAmount).padStart(2, "0")}/100`;
 }
 
 function formulaAmountSuffix(value: number) {
@@ -287,8 +316,9 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
   });
   const laborCompatibilityMode = model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode");
   const includeFormulas = model.settings.includeFormulas;
-  applyColumnDefinitions(worksheet, BID_FORM_COLUMNS);
-  addTitleRow(worksheet, "BID FORM / BILL OF QUANTITIES", BID_FORM_COLUMNS.length);
+  const columns = withCurrencyNumberFormats(BID_FORM_COLUMNS, model.metadata.currency);
+  applyColumnDefinitions(worksheet, columns);
+  addTitleRow(worksheet, "BID FORM / BILL OF QUANTITIES", columns.length);
   addHeaderField(worksheet, "Project", model.metadata.projectName);
   addHeaderField(worksheet, "Location", model.metadata.projectAddress);
   // P2-T4: Owner/Client is DB-free (projects.client_name); Bidder is the D4 interim
@@ -302,7 +332,7 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
   addGeneralNotes(worksheet, { includeLaborDisclaimer: laborCompatibilityMode });
 
   while (worksheet.rowCount < DETAIL_HEADER_ROW - 1) worksheet.addRow([]);
-  const headerRow = worksheet.addRow(BID_FORM_COLUMNS.map((column) => column.header));
+  const headerRow = worksheet.addRow(columns.map((column) => column.header));
   styleHeaderRow(headerRow);
   if (laborCompatibilityMode) {
     headerRow.getCell(6).note = LABOR_DISCLAIMER_NOTE; // LABOR column (F)
@@ -316,7 +346,7 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
     const sectionRow = worksheet.addRow([`${divisionLetter(sectionIndex)}  ${summaryRow.sectionLabel}`]);
     sectionRow.font = { bold: true, size: 10, color: { argb: "FF111827" } };
     sectionRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
-    worksheet.mergeCells(sectionRow.number, 1, sectionRow.number, BID_FORM_COLUMNS.length);
+    worksheet.mergeCells(sectionRow.number, 1, sectionRow.number, columns.length);
 
     const firstDetailRow = sectionRow.number + 1;
     const col = BID_FORM_COLUMN_LETTERS;
@@ -337,8 +367,8 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
       const lineCostFormula = `ROUND(${col.quantity}${rowNumber}*${col.material}${rowNumber},2)+ROUND(${col.quantity}${rowNumber}*${col.labor}${rowNumber},2)${directCostAdjustments}`;
       const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE"),0,${lineCostFormula})`;
       const remarks = [
-        proposalRow.contingencySubtotal ? `Contingency: ${formatPeso(proposalRow.contingencySubtotal)}` : null,
-        proposalRow.miscSubtotal ? `Misc / other: ${formatPeso(proposalRow.miscSubtotal)}` : null,
+        proposalRow.contingencySubtotal ? `Contingency: ${formatCurrency(proposalRow.contingencySubtotal, model.metadata.currency)}` : null,
+        proposalRow.miscSubtotal ? `Misc / other: ${formatCurrency(proposalRow.miscSubtotal, model.metadata.currency)}` : null,
         proposalRow.remarks,
       ]
         .filter(Boolean)
@@ -387,7 +417,7 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
     const exclusionsHeader = worksheet.addRow(["EXCLUSIONS — items not included in the bid total"]);
     exclusionsHeader.font = { bold: true, size: 10, color: { argb: "FFB45309" } };
     exclusionsHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
-    worksheet.mergeCells(exclusionsHeader.number, 1, exclusionsHeader.number, BID_FORM_COLUMNS.length);
+    worksheet.mergeCells(exclusionsHeader.number, 1, exclusionsHeader.number, columns.length);
     excludedRows.forEach((proposalRow, index) => {
       const row = worksheet.addRow([
         String(index + 1),
@@ -421,6 +451,7 @@ function writeSummaryTotalsBlock(
   totals: Pick<ProposalExportTotals, "grandTotal" | "sheetAdjustmentAmount" | "adjustedDirectCost" | "projectContingencyAmount" | "vatAmount" | "grandTotalWithTaxes">,
   settings: ProposalExportSettings,
   grossFloorArea: number | null,
+  currencyCode: string,
 ) {
   const includeFormulas = settings.includeFormulas;
   const hasSheetAdjustment = totals.sheetAdjustmentAmount !== 0;
@@ -472,16 +503,16 @@ function writeSummaryTotalsBlock(
 
   // P2-T6 (F-10/D3): Cost per SQM = Grand Total / GFA, referencing the GFA cell so it
   // recalcs if the floor area is edited; "N/A" until a GFA is captured in metadata.
-  const costPerSqmRow = totalsStartRow + 4;
+  const costPerSqmRow = grandTotalRow + 1;
   const hasGfa = typeof grossFloorArea === "number" && Number.isFinite(grossFloorArea) && grossFloorArea > 0;
-  const gfaRow = hasGfa ? totalsStartRow + 5 : null;
-  const durationRow = hasGfa ? totalsStartRow + 6 : totalsStartRow + 5;
+  const gfaRow = hasGfa ? costPerSqmRow + 1 : null;
+  const durationRow = hasGfa ? costPerSqmRow + 2 : costPerSqmRow + 1;
 
   worksheet.getCell(`A${costPerSqmRow}`).value = "Cost per sqm";
   if (hasGfa && gfaRow) {
     const costPerSqmCell = worksheet.getCell(`B${costPerSqmRow}`);
     costPerSqmCell.value = formulaCell(includeFormulas, `B${grandTotalRow}/B${gfaRow}`, roundMoney(totals.grandTotalWithTaxes / grossFloorArea));
-    costPerSqmCell.numFmt = PHP_FORMAT;
+    costPerSqmCell.numFmt = currencyAccountingFormat(currencyCode);
     worksheet.getCell(`A${gfaRow}`).value = "Total Gross Floor Area";
     const gfaCell = worksheet.getCell(`B${gfaRow}`);
     gfaCell.value = grossFloorArea;
@@ -496,7 +527,7 @@ function writeSummaryTotalsBlock(
   const amountInWordsRow = durationRow + 1;
   worksheet.getCell(`A${amountInWordsRow}`).value = "Amount in words";
   const wordsCell = worksheet.getCell(`B${amountInWordsRow}`);
-  wordsCell.value = pesoInWords(totals.grandTotalWithTaxes);
+  wordsCell.value = amountInWords(totals.grandTotalWithTaxes, currencyCode);
   wordsCell.numFmt = TEXT_FORMAT;
   wordsCell.font = { italic: true, size: 10, color: { argb: "FF4B5563" } };
 
@@ -504,7 +535,7 @@ function writeSummaryTotalsBlock(
     if (!rowNumber) return;
     const row = worksheet.getRow(rowNumber);
     row.getCell(1).font = { bold: rowNumber === grandTotalRow, size: 10, color: { argb: "FF111827" } };
-    row.getCell(2).numFmt = PHP_FORMAT;
+    row.getCell(2).numFmt = currencyAccountingFormat(currencyCode);
     row.getCell(2).font = { bold: rowNumber === grandTotalRow, size: rowNumber === grandTotalRow ? 12 : 10, color: { argb: "FF111827" } };
   });
   styleTotalRow(worksheet.getRow(grandTotalRow));
@@ -514,15 +545,16 @@ function createSummaryWorksheet(workbook: Workbook, model: ProposalExportModel, 
   const worksheet = workbook.addWorksheet("Summary", {
     views: [{ state: "frozen", ySplit: SUMMARY_HEADER_ROW }],
   });
-  applyColumnDefinitions(worksheet, SUMMARY_COLUMNS);
-  addTitleRow(worksheet, "SUMMARY OF BID", SUMMARY_COLUMNS.length);
+  const columns = withCurrencyNumberFormats(SUMMARY_COLUMNS, model.metadata.currency);
+  applyColumnDefinitions(worksheet, columns);
+  addTitleRow(worksheet, "SUMMARY OF BID", columns.length);
   addHeaderField(worksheet, "Project", model.metadata.projectName);
   addHeaderField(worksheet, "Location", model.metadata.projectAddress);
   addHeaderField(worksheet, "Estimate / Revision", `${model.metadata.estimateName} (${model.metadata.versionLabel})`);
   addHeaderField(worksheet, "Generated", model.generatedAt);
 
   while (worksheet.rowCount < SUMMARY_HEADER_ROW - 1) worksheet.addRow([]);
-  const headerRow = worksheet.addRow(SUMMARY_COLUMNS.map((column) => column.header));
+  const headerRow = worksheet.addRow(columns.map((column) => column.header));
   styleHeaderRow(headerRow);
 
   const amountRows: number[] = [];
@@ -541,7 +573,7 @@ function createSummaryWorksheet(workbook: Workbook, model: ProposalExportModel, 
   // tab carries more than ~11 sections (the old fixed A27–B32 block corrupted past that).
   const totalsStartRow = worksheet.rowCount + 2;
   const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
-  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, model.totals, model.settings, model.metadata.grossFloorArea ?? null);
+  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, model.totals, model.settings, model.metadata.grossFloorArea ?? null, model.metadata.currency);
   setPrintLayout(worksheet);
   return worksheet;
 }
@@ -578,15 +610,16 @@ function createCommercialTermsWorksheet(workbook: Workbook) {
 }
 
 function populateTabbedSummaryWorksheet(worksheet: Worksheet, input: ProposalTabbedWorkbookModel, tabRanges: Array<{ tab: ProposalExportWorkbookTab; sectionRanges: BidSectionRange[] }>) {
-  applyColumnDefinitions(worksheet, SUMMARY_COLUMNS);
-  addTitleRow(worksheet, "SUMMARY OF BID", SUMMARY_COLUMNS.length);
+  const columns = withCurrencyNumberFormats(SUMMARY_COLUMNS, input.metadata.currency);
+  applyColumnDefinitions(worksheet, columns);
+  addTitleRow(worksheet, "SUMMARY OF BID", columns.length);
   addHeaderField(worksheet, "Project", input.metadata.projectName);
   addHeaderField(worksheet, "Location", input.metadata.projectAddress);
   addHeaderField(worksheet, "Estimate / Revision", `${input.metadata.estimateName} (${input.metadata.versionLabel})`);
   addHeaderField(worksheet, "Generated", input.generatedAt);
 
   while (worksheet.rowCount < SUMMARY_HEADER_ROW - 1) worksheet.addRow([]);
-  const headerRow = worksheet.addRow(SUMMARY_COLUMNS.map((column) => column.header));
+  const headerRow = worksheet.addRow(columns.map((column) => column.header));
   styleHeaderRow(headerRow);
 
   const amountRows: number[] = [];
@@ -594,7 +627,7 @@ function populateTabbedSummaryWorksheet(worksheet: Worksheet, input: ProposalTab
     const tabHeaderRow = worksheet.addRow([tab.tabName]);
     tabHeaderRow.font = { bold: true, size: 10, color: { argb: "FF111827" } };
     tabHeaderRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
-    worksheet.mergeCells(tabHeaderRow.number, 1, tabHeaderRow.number, SUMMARY_COLUMNS.length);
+    worksheet.mergeCells(tabHeaderRow.number, 1, tabHeaderRow.number, columns.length);
 
     if (sectionRanges.length === 0) {
       const emptyRow = worksheet.addRow(["No exportable rows", 0, { formula: "0", result: 0 }]);
@@ -625,7 +658,7 @@ function populateTabbedSummaryWorksheet(worksheet: Worksheet, input: ProposalTab
     adjustedDirectCost,
     ...resolveProjectCharges(adjustedDirectCost, input.settings),
   };
-  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings, input.metadata.grossFloorArea ?? null);
+  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings, input.metadata.grossFloorArea ?? null, input.metadata.currency);
   setPrintLayout(worksheet);
   return worksheet;
 }
@@ -659,7 +692,7 @@ function createSourceBreakdownWorksheet(
   groups: Array<{ tabName?: string; rows: ProposalSourceBreakdownRow[] }>,
   withTab: boolean,
 ) {
-  const columns = withTab ? BREAKDOWN_COLUMNS_WITH_TAB : BREAKDOWN_COLUMNS;
+  const columns = withCurrencyNumberFormats(withTab ? BREAKDOWN_COLUMNS_WITH_TAB : BREAKDOWN_COLUMNS, metadata.currency);
   const worksheet = workbook.addWorksheet("Source Breakdown", {
     views: [{ state: "frozen", ySplit: 6 }],
   });

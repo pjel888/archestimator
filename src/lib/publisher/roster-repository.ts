@@ -33,6 +33,7 @@ export type ProjectPublicationRosterRow = {
   status: ProjectPublicationStatus;
   publicationId: string | null;
   clientLinkPath: string | null;
+  clientPortalPath?: string | null;
   linkUnavailableReason: ProjectPublicationRosterLinkUnavailableReason | null;
   tokenCopyAvailable: boolean;
   publishedAt: string | null;
@@ -237,6 +238,18 @@ function getCountValue(map: ReadonlyMap<string, number> | undefined, key: string
   return map?.get(key) ?? 0;
 }
 
+function readVerifiedClientPortalPath(
+  project: PublisherRosterProjectInput,
+  publicationId: string,
+  migratedClientPortalIdByPublicationId: ReadonlyMap<string, string> | undefined,
+) {
+  if (!project.canManagePublication) return null;
+  const portalId = migratedClientPortalIdByPublicationId?.get(publicationId);
+  return portalId
+    ? `/workshop/projects/${encodeURIComponent(project.id)}/client-portals/${encodeURIComponent(portalId)}`
+    : null;
+}
+
 function rowMatchesStatus(row: ProjectPublicationRosterRow, status: PublisherRosterFilters["status"]) {
   switch (status) {
     case "active":
@@ -322,6 +335,7 @@ export function composePublisherRosterResult({
   filters,
   latestCommentAtByPublicationId,
   latestResponseAtByPublicationId,
+  migratedClientPortalIdByPublicationId,
   now = new Date(),
   projects,
   publications,
@@ -332,6 +346,7 @@ export function composePublisherRosterResult({
   filters: PublisherRosterFilters;
   latestCommentAtByPublicationId?: ReadonlyMap<string, string | null>;
   latestResponseAtByPublicationId?: ReadonlyMap<string, string | null>;
+  migratedClientPortalIdByPublicationId?: ReadonlyMap<string, string>;
   now?: Date;
   projects: PublisherRosterProjectInput[];
   publications: PublisherRosterPublicationInput[];
@@ -368,6 +383,7 @@ export function composePublisherRosterResult({
     rows.push({
       canManagePublication: project.canManagePublication,
       clientLinkPath: linkResult.clientLinkPath,
+      clientPortalPath: readVerifiedClientPortalPath(project, publication.id, migratedClientPortalIdByPublicationId),
       clientName: project.clientName,
       currentUserRole: project.currentUserRole,
       expiresAt: publication.expiresAt,
@@ -400,6 +416,7 @@ export function composePublisherRosterResult({
       rows.push({
         canManagePublication: project.canManagePublication,
         clientLinkPath: null,
+        clientPortalPath: null,
         clientName: project.clientName,
         currentUserRole: project.currentUserRole,
         expiresAt: null,
@@ -556,6 +573,30 @@ async function readLatestResponseAtByPublicationId(
   return new Map(rows.map((row) => [row.publication_id, row.latest_created_at]));
 }
 
+type LegacyMigrationPortalRow = { legacy_publication_id: string; portal_id: string };
+
+async function readVerifiedClientPortalIdsByLegacyPublicationId(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  publicationIds: string[],
+) {
+  if (publicationIds.length === 0) return new Map<string, string>();
+  const rows = await all<LegacyMigrationPortalRow>(
+    database,
+    `SELECT mapping.legacy_publication_id, mapping.portal_id
+     FROM client_portal_legacy_mappings AS mapping
+     JOIN client_portals AS portal ON portal.id = mapping.portal_id
+     JOIN project_publications AS publication ON publication.id = mapping.legacy_publication_id
+     WHERE mapping.legacy_publication_id IN (${placeholders(publicationIds)})
+       AND mapping.migration_status IN ('verified', 'cutover_complete')
+       AND portal.workspace_id = ?
+       AND publication.workspace_id = ?
+       AND portal.project_id = publication.project_id`,
+    [...publicationIds, workspaceId, workspaceId],
+  );
+  return new Map(rows.map((row) => [row.legacy_publication_id, row.portal_id]));
+}
+
 async function readEstimateUpdatedAtRows(
   database: D1DatabaseLike,
   projectIds: string[],
@@ -665,11 +706,12 @@ export async function readWorkspacePublicationsRoster(
     readLatestPublicationStatusByProjectId(database, workspace.id, manageableProjectIds, Date.now()),
   ]);
   const publicationIds = publicationRows.map((publication) => publication.id);
-  const [recipientCountByPublicationId, latestCommentAtByPublicationId, latestResponseAtByPublicationId] =
+  const [recipientCountByPublicationId, latestCommentAtByPublicationId, latestResponseAtByPublicationId, migratedClientPortalIdByPublicationId] =
     await Promise.all([
       readRecipientCountsByPublicationId(database, publicationIds),
       readLatestCommentAtByPublicationId(database, publicationIds),
       readLatestResponseAtByPublicationId(database, publicationIds),
+      readVerifiedClientPortalIdsByLegacyPublicationId(database, workspace.id, publicationIds),
     ]);
 
   return {
@@ -678,6 +720,7 @@ export async function readWorkspacePublicationsRoster(
     filters,
     latestCommentAtByPublicationId,
     latestResponseAtByPublicationId,
+    migratedClientPortalIdByPublicationId,
     projects: allRosterProjects,
     publications: publicationRows.map(toRosterPublicationInput),
     recipientCountByPublicationId,

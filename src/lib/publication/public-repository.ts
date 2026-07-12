@@ -1,6 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { cache } from "react";
 
+import { isClientPortalLegacyWriteFreezeEnabled } from "@/lib/client-portal/rollout";
 import { deriveCredentialVersion, getClientIp, hashPublicationToken, isPublicationTokenShape, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
 import {
   createSharedLinkTargetLabelMapFromLabelsJson,
@@ -55,6 +56,13 @@ export type ResolvedSharedLinkRecipientIdentity = {
   recipientEmail: string;
   recipientDisplayName: string | null;
 };
+
+export class LegacyPublicationWriteFrozenError extends Error {
+  constructor() {
+    super("Legacy publication writes are temporarily frozen while this Client Portal migration is in progress.");
+    this.name = "LegacyPublicationWriteFrozenError";
+  }
+}
 
 export type SharedLinkPublicComment = {
   id: string;
@@ -143,6 +151,16 @@ async function resolvePublicationContextByTokenHash(
   tokenHash: string,
 ): Promise<PublicationWriteContextRow | null> {
   return store.getPublicationWriteContextByTokenHash(tokenHash);
+}
+
+async function assertLegacyPublicationWriteAllowed(store: PublicationD1Store, publicationId: string) {
+  const [globalFreezeEnabled, migrationStatus] = await Promise.all([
+    isClientPortalLegacyWriteFreezeEnabled(),
+    store.getLegacyMigrationStatus(publicationId),
+  ]);
+  if (globalFreezeEnabled || migrationStatus === "imported" || migrationStatus === "verified" || migrationStatus === "cutover_complete") {
+    throw new LegacyPublicationWriteFrozenError();
+  }
 }
 
 async function loadPublicationSnapshotForPublicIds(publicationId: string): Promise<ProjectPublicationSnapshot | null> {
@@ -270,6 +288,13 @@ type RateLimitWindow = {
 };
 
 type RateLimitScope =
+  | "client_portal_decision"
+  | "client_portal_decision_read"
+  | "client_portal_password"
+  | "client_portal_public_read"
+  | "client_portal_session_start"
+  | "client_portal_thread"
+  | "client_portal_thread_read"
   | "project_publication_activity"
   | "project_publication_event"
   | "project_publication_password"
@@ -295,6 +320,8 @@ function genericRateLimitMessage(retryAfter: number) {
 
 const PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS = 60 * 60;
 const PROJECT_PUBLICATION_PASSWORD_FAILURE_LIMIT = 5;
+const CLIENT_PORTAL_PASSWORD_FAILURE_WINDOW_SECONDS = 60 * 60;
+const CLIENT_PORTAL_PASSWORD_FAILURE_LIMIT = 5;
 
 function commentRateLimitMessage(retryAfter: number) {
   return `Too many comments. Please wait ${retryAfter} seconds.`;
@@ -527,7 +554,7 @@ export async function recordProjectPublicationPasswordFailure({
 }: {
   token: string;
   request: Request;
-}): Promise<{ delayMs: number }> {
+}) {
   const keyParts = publicationRequestRateLimitKey(token, request);
   const now = Date.now();
   const keyHash = hashRateLimitKey("project_publication_password", keyParts);
@@ -540,14 +567,6 @@ export async function recordProjectPublicationPasswordFailure({
     ttlSeconds: PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS,
   });
 
-  const since = new Date(now - PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS * 1000).toISOString();
-  const failureCount = await countRateLimitEvents({
-    scope: "project_publication_password",
-    keyHash,
-    since,
-  });
-  const delays = [1000, 2000, 4000, 8000, 16000, 30000];
-  return { delayMs: delays[Math.min(Math.max(failureCount - 1, 0), delays.length - 1)] ?? 0 };
 }
 
 export async function clearProjectPublicationPasswordFailures({
@@ -559,6 +578,179 @@ export async function clearProjectPublicationPasswordFailures({
 }) {
   const keyHash = hashRateLimitKey("project_publication_password", publicationRequestRateLimitKey(token, request));
   await deleteRateLimitEvents("project_publication_password", keyHash);
+}
+
+export async function checkClientPortalPublicReadRateLimit({
+  token,
+  request,
+  route,
+}: {
+  token: string;
+  request: Request;
+  route: "asset" | "manifest" | "section";
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "client_portal_public_read",
+    keyParts: publicationRequestRateLimitKey(token, request),
+    metadata: { route: `client_portal_${route}` },
+    windows: [{ seconds: 60, limit: 60, message: genericRateLimitMessage }],
+  });
+}
+
+export async function checkClientPortalPasswordRateLimit({
+  token,
+  request,
+}: {
+  token: string;
+  request: Request;
+}): Promise<DurableRateLimitResult> {
+  return checkExistingRateLimit({
+    scope: "client_portal_password",
+    keyParts: publicationRequestRateLimitKey(token, request),
+    window: {
+      seconds: CLIENT_PORTAL_PASSWORD_FAILURE_WINDOW_SECONDS,
+      limit: CLIENT_PORTAL_PASSWORD_FAILURE_LIMIT,
+      message: genericRateLimitMessage,
+    },
+  });
+}
+
+export async function recordClientPortalPasswordFailure({
+  token,
+  request,
+}: {
+  token: string;
+  request: Request;
+}) {
+  const keyParts = publicationRequestRateLimitKey(token, request);
+  const now = Date.now();
+  const keyHash = hashRateLimitKey("client_portal_password", keyParts);
+
+  await cleanupExpiredRateLimitEventsIfDue(now);
+  await recordRateLimitEvent({
+    scope: "client_portal_password",
+    keyHash,
+    metadata: { route: "client_portal_password", success: false },
+    ttlSeconds: CLIENT_PORTAL_PASSWORD_FAILURE_WINDOW_SECONDS,
+  });
+
+}
+
+export async function clearClientPortalPasswordFailures({
+  token,
+  request,
+}: {
+  token: string;
+  request: Request;
+}) {
+  const keyHash = hashRateLimitKey("client_portal_password", publicationRequestRateLimitKey(token, request));
+  await deleteRateLimitEvents("client_portal_password", keyHash);
+}
+
+export async function checkClientPortalSessionStartRateLimit({
+  token,
+  request,
+}: {
+  token: string;
+  request: Request;
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "client_portal_session_start",
+    keyParts: publicationRequestRateLimitKey(token, request),
+    metadata: { route: "client_portal_recipient_session" },
+    windows: [
+      { seconds: 60, limit: 10, message: genericRateLimitMessage },
+      { seconds: 60 * 60, limit: 50, message: genericRateLimitMessage },
+    ],
+  });
+}
+
+async function checkClientPortalRecipientRateLimit({
+  portalId,
+  recipientId,
+  scope,
+  route,
+  windows,
+}: {
+  portalId: string;
+  recipientId: string;
+  scope: "client_portal_decision" | "client_portal_decision_read" | "client_portal_thread" | "client_portal_thread_read";
+  route: string;
+  windows: RateLimitWindow[];
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope,
+    keyParts: [portalId, recipientId],
+    metadata: { route },
+    windows,
+  });
+}
+
+export async function checkClientPortalThreadRateLimit({
+  portalId,
+  recipientId,
+}: {
+  portalId: string;
+  recipientId: string;
+}): Promise<DurableRateLimitResult> {
+  return checkClientPortalRecipientRateLimit({
+    scope: "client_portal_thread",
+    portalId,
+    recipientId,
+    route: "client_portal_thread",
+    windows: [
+      { seconds: 60, limit: 5, message: commentRateLimitMessage },
+      { seconds: 60 * 60, limit: 20, message: commentRateLimitMessage },
+    ],
+  });
+}
+
+export async function checkClientPortalThreadReadRateLimit({
+  portalId,
+  recipientId,
+}: {
+  portalId: string;
+  recipientId: string;
+}): Promise<DurableRateLimitResult> {
+  return checkClientPortalRecipientRateLimit({
+    scope: "client_portal_thread_read",
+    portalId,
+    recipientId,
+    route: "client_portal_thread_read",
+    windows: [{ seconds: 60, limit: 60, message: genericRateLimitMessage }],
+  });
+}
+
+export async function checkClientPortalDecisionRateLimit({
+  portalId,
+  recipientId,
+}: {
+  portalId: string;
+  recipientId: string;
+}): Promise<DurableRateLimitResult> {
+  return checkClientPortalRecipientRateLimit({
+    scope: "client_portal_decision",
+    portalId,
+    recipientId,
+    route: "client_portal_decision",
+    windows: [{ seconds: 60, limit: 5, message: genericRateLimitMessage }],
+  });
+}
+
+export async function checkClientPortalDecisionReadRateLimit({
+  portalId,
+  recipientId,
+}: {
+  portalId: string;
+  recipientId: string;
+}): Promise<DurableRateLimitResult> {
+  return checkClientPortalRecipientRateLimit({
+    scope: "client_portal_decision_read",
+    portalId,
+    recipientId,
+    route: "client_portal_decision_read",
+    windows: [{ seconds: 60, limit: 60, message: genericRateLimitMessage }],
+  });
 }
 
 export async function checkSharedLinkCommentRateLimit({
@@ -993,6 +1185,7 @@ export async function insertSharedLinkComment(params: {
     throw new Error("Publication not found for comment.");
   }
   const publicationId = publicationContext.id;
+  await assertLegacyPublicationWriteAllowed(store, publicationId);
 
   const recipientTokenHash = await store.getRecipientTokenHash(publicationId, params.recipientId);
   if (!recipientTokenHash) {
@@ -1079,6 +1272,7 @@ export async function submitSharedLinkDecision(params: {
     throw new Error("Publication not found for decision.");
   }
   const publicationId = publicationContext.id;
+  await assertLegacyPublicationWriteAllowed(store, publicationId);
 
   const recipientTokenHash = await store.getRecipientTokenHash(publicationId, params.recipientId);
   if (!recipientTokenHash) {

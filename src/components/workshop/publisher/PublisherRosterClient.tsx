@@ -127,15 +127,19 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
     () => readWizardIntent(new URLSearchParams(searchParamString), roster.rows),
     [roster.rows, searchParamString],
   );
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+  const [selectedProjectIdPreference, setSelectedProjectIdPreference] = useState<string | null>(
     () => drawerIntent?.row.projectId ?? roster.rows[0]?.projectId ?? null,
   );
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [manualWizardRow, setManualWizardRow] = useState<ProjectPublicationRosterRowData | null>(null);
   const manualWizardTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileDetailOpen = Boolean(drawerIntent);
+  const selectedProjectId = drawerIntent?.row.projectId
+    ?? (roster.rows.some((row) => row.projectId === selectedProjectIdPreference)
+      ? selectedProjectIdPreference
+      : roster.rows[0]?.projectId ?? null);
   const selectedRow = roster.rows.find(
-    (row) => row.projectId === (drawerIntent?.row.projectId ?? selectedProjectId),
+    (row) => row.projectId === selectedProjectId,
   ) ?? null;
   const detailInitialTab = drawerIntent && drawerIntent.row.projectId === selectedRow?.projectId
     ? drawerIntent.tab
@@ -186,12 +190,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
   }, [pathname, router, searchParamString]);
 
   function selectRow(row: ProjectPublicationRosterRowData) {
-    setSelectedProjectId(row.projectId);
-    const compactViewport = window.matchMedia?.("(max-width: 1023px)").matches ?? window.innerWidth < 1024;
-    if (!compactViewport) {
-      if (drawerProjectId) clearDrawerQuery();
-      return;
-    }
+    setSelectedProjectIdPreference(row.projectId);
     if (drawerProjectId === row.projectId) return;
     const params = new URLSearchParams(searchParamString);
     params.set("drawer", row.projectId);
@@ -213,6 +212,8 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
     params.delete("wizard");
     params.delete("step");
     if (hadWizardQuery) {
+      params.delete("project");
+      params.delete("page");
       const query = params.toString();
       startTransition(() => router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false }));
     }

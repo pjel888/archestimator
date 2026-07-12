@@ -258,6 +258,19 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       return normalizeWriteContextRow(row);
     },
 
+    async getLegacyMigrationStatus(publicationId: string): Promise<string | null> {
+      const db = await getDb();
+      const row = await first<{ migration_status: string }>(
+        db,
+        `SELECT migration_status
+         FROM client_portal_legacy_mappings
+         WHERE legacy_publication_id = ?
+         LIMIT 1`,
+        [publicationId],
+      );
+      return row?.migration_status ?? null;
+    },
+
     async getPublicationActivityContextByTokenHash(tokenHash: string): Promise<PublicationActivityContextRow | null> {
       const db = await getDb();
       const row = await first<RawActivityContextRow>(
@@ -787,38 +800,48 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
         workspaceId: input.workspaceId,
       });
       if (activationIntent.status !== "accepted") throw new Error("Activation recipient event is invalid.");
-      await db.batch([
-        db.prepare(`INSERT INTO shared_link_responses
-          (id, publication_id, recipient_id, decision, note, snapshot_version_at_decision,
-           estimate_id, row_id, signer_name, signature_intent_hash, target_kind,
-           target_label, target_secondary_label, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
-          id,
-          publication.id,
-          recipient.id,
-          input.decision,
-          input.note?.slice(0, 2000) ?? null,
-          input.expectedSnapshotVersion,
-          input.estimateId,
-          input.rowId,
-          signerName,
-          signatureIntentHash,
-          input.targetKind,
-          input.targetLabel,
-          input.targetSecondaryLabel,
-          submittedAt,
-        ),
-        prepareActivationOutboxIntent(db, {
-          domainMutationId: id,
-          dedupeKey: activationIntent.dedupeKey,
-          milestone: "recipient_decided",
-          occurredAt: submittedAt,
-          projectId: input.projectId,
-          source: "recipient",
-          userId: input.publishedBy,
-          workspaceId: input.workspaceId,
-        }),
-      ]);
+      try {
+        await db.batch([
+          db.prepare(`INSERT INTO shared_link_responses
+            (id, publication_id, recipient_id, decision, note, snapshot_version_at_decision,
+             estimate_id, row_id, signer_name, signature_intent_hash, target_kind,
+             target_label, target_secondary_label, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+            id,
+            publication.id,
+            recipient.id,
+            input.decision,
+            input.note?.slice(0, 2000) ?? null,
+            input.expectedSnapshotVersion,
+            input.estimateId,
+            input.rowId,
+            signerName,
+            signatureIntentHash,
+            input.targetKind,
+            input.targetLabel,
+            input.targetSecondaryLabel,
+            submittedAt,
+          ),
+          prepareActivationOutboxIntent(db, {
+            domainMutationId: id,
+            dedupeKey: activationIntent.dedupeKey,
+            milestone: "recipient_decided",
+            occurredAt: submittedAt,
+            projectId: input.projectId,
+            source: "recipient",
+            userId: input.publishedBy,
+            workspaceId: input.workspaceId,
+          }),
+        ]);
+      } catch (error) {
+        const concurrentResponse = await first<{ id: string }>(
+          db,
+          "SELECT id FROM shared_link_responses WHERE publication_id = ? AND recipient_id = ? LIMIT 1",
+          [publication.id, recipient.id],
+        );
+        if (concurrentResponse) return null;
+        throw error;
+      }
       return id;
     },
   };

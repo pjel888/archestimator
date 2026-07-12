@@ -16,11 +16,13 @@ import {
   canManagePublisherRosterProject,
   canReadPublisherRosterProject,
 } from "@/lib/publisher/permissions";
+import { isClientPortalLegacyMigrationEnabled } from "@/lib/client-portal/rollout";
 
 export type PublisherPublicationDrawerData = {
   collaborationSummary: ProjectCollaborationSummary | null;
   currentUserEmail: string | null;
   estimateSheets: ProjectEstimateSheet[];
+  legacyMigrationEnabled: boolean;
   summary: ProjectPublicationSummary | null;
 };
 
@@ -50,10 +52,11 @@ export async function readPublisherPublicationDrawerData(
   }
   const canManagePublication = canManagePublisherRosterProject(project.currentUserRole);
 
-  const [summary, estimateSheets, collaborationSummary] = await Promise.all([
+  const [summary, estimateSheets, collaborationSummary, legacyMigrationEnabled] = await Promise.all([
     getProjectPublicationSummary(projectId),
     listProjectEstimateSheets(projectId),
     getProjectCollaborationSummary(projectId),
+    isClientPortalLegacyMigrationEnabled(),
   ]);
 
   return {
@@ -64,6 +67,7 @@ export async function readPublisherPublicationDrawerData(
       name: estimate.name,
       sheetCode: estimate.sheetCode,
     })),
+    legacyMigrationEnabled,
     summary: redactPublisherClientLinkForReadOnly(summary, canManagePublication),
   };
 }

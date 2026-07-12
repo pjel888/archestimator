@@ -90,7 +90,7 @@ describe("ProposalExportPreviewDialog", () => {
     const onDownload = vi.fn();
     const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
 
-    render(
+    const { rerender } = render(
       <ProposalExportPreviewDialog
         open
         model={model}
@@ -134,7 +134,7 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.queryByRole("columnheader", { name: "PARTICULARS" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Main tab/i })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByText("Preview is stale. Refresh to rebuild from current sheet rows.")).toBeInTheDocument();
+    expect(screen.getByText("Preview is stale. Refresh it before exporting.")).toBeInTheDocument();
 
     // F-05 (P1-T1): the download is now a button (fetch-then-blob), not a bare <a href>
     // that would save the route's JSON error body under the .xlsx name.
@@ -145,8 +145,9 @@ describe("ProposalExportPreviewDialog", () => {
     const refreshButton = screen.getByRole("button", { name: "Refresh preview" });
     expect(refreshButton).toHaveClass("h-7", "gap-1", "bg-accentSoft", "text-primary");
 
+    expect(downloadButton).toBeDisabled();
     await user.click(downloadButton);
-    expect(onDownload).toHaveBeenCalledTimes(1);
+    expect(onDownload).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: /Main tab/i }));
     expect(onScopeChange).toHaveBeenCalledWith("active-tab");
@@ -154,8 +155,40 @@ describe("ProposalExportPreviewDialog", () => {
     await user.click(refreshButton);
     expect(onRefresh).toHaveBeenCalledTimes(1);
 
+    rerender(
+      <ProposalExportPreviewDialog
+        open
+        model={model}
+        status={{ freshness: "current", download: { kind: "ready" } }}
+        onDownload={onDownload}
+        scopeControls={{
+          selectedScope: "all-tabs",
+          activeTabName: "Main",
+          tabCount: 2,
+          onScopeChange,
+        }}
+        onRefresh={onRefresh}
+        onClose={onClose}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
+    expect(onDownload).toHaveBeenCalledTimes(1);
+
     await user.click(screen.getByRole("button", { name: "Close preview" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the canonical export model currency in the preview total", () => {
+    const model = buildProposalExportModel({
+      metadata: { ...metadata, currency: "USD" },
+      nodes,
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    render(<ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={vi.fn()} />);
+
+    expect(screen.getByText("USD 26,734.40")).toBeInTheDocument();
   });
 
   it("disables the download button and surfaces the route error inline when a download fails", async () => {
@@ -194,7 +227,7 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeEnabled();
   });
 
-  it("warns when the preview includes unsaved row edits", () => {
+  it("disables export and explains the save-and-refresh path for unsaved previews", () => {
     const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     render(
@@ -208,7 +241,10 @@ describe("ProposalExportPreviewDialog", () => {
       />,
     );
 
-    expect(screen.getByTestId("proposal-unsaved-edits-warning")).toHaveTextContent("Preview includes 2 unsaved row edits");
+    expect(screen.getByTestId("proposal-unsaved-edits-warning")).toHaveTextContent(
+      "Preview includes 2 unsaved row edits. Save the sheet, then refresh the preview before exporting so the workbook matches these totals.",
+    );
+    expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeDisabled();
   });
 
   it("surfaces export validation notes in the contents summary (P1-T2, F-20)", () => {
@@ -353,6 +389,44 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByText("Preview current")).toBeInTheDocument();
   });
 
+  it("re-enables download when a materialized row returns to its saved value", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId="main-house"
+          nodes={nodes}
+          projectId="project-1"
+          estimateId="estimate-1"
+          proposalExportMetadata={metadata}
+          canEditEstimate
+          renderSidebar={false}
+        />
+        <EstimateHeaderActions />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
+    const downloadButton = screen.getByRole("button", { name: "Download editable XLSX" });
+    expect(downloadButton).toBeEnabled();
+
+    const quantityInput = within(container).getAllByLabelText("Porcelain Tile quantity")[0] as HTMLInputElement;
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "13");
+
+    await waitFor(() => expect(screen.getByText("Preview is stale. Refresh it before exporting.")).toBeInTheDocument());
+    expect(downloadButton).toBeDisabled();
+    expect(screen.getByTestId("proposal-unsaved-edits-warning")).toHaveTextContent("Save the sheet, then refresh the preview");
+
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "12");
+
+    await waitFor(() => expect(screen.getByText("Preview current")).toBeInTheDocument());
+    expect(downloadButton).toBeEnabled();
+  });
+
   it("defaults multi-tab preview downloads to all-tabs export and lets users switch to the active-tab route", async () => {
     const user = userEvent.setup();
 
@@ -404,10 +478,10 @@ describe("ProposalExportPreviewDialog", () => {
     try {
       await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
       await waitFor(() =>
-        expect(fetchMock).toHaveBeenLastCalledWith(
+        expect(fetchMock.mock.calls).toContainEqual([
           "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx",
           { credentials: "same-origin" },
-        ),
+        ]),
       );
 
       await user.click(screen.getByRole("button", { name: /Main tab/i }));
@@ -415,10 +489,10 @@ describe("ProposalExportPreviewDialog", () => {
 
       await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
       await waitFor(() =>
-        expect(fetchMock).toHaveBeenLastCalledWith(
+        expect(fetchMock.mock.calls).toContainEqual([
           "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=tab-main",
           { credentials: "same-origin" },
-        ),
+        ]),
       );
     } finally {
       fetchMock.mockRestore();
@@ -454,6 +528,7 @@ describe("ProposalExportPreviewDialog", () => {
     const vatInput = screen.getByRole("textbox", { name: "VAT rate percent" });
     fireEvent.change(vatInput, { target: { value: "8" } });
     await user.click(screen.getByRole("checkbox", { name: /Include internal Source Breakdown/i }));
+    await user.click(screen.getByRole("button", { name: "Refresh preview" }));
 
     // RV-3: the contents summary must reflect the requested internal breakdown — once the box
     // is checked the file WILL contain Source Breakdown, so it flips from "Not in this export"
@@ -481,7 +556,9 @@ describe("ProposalExportPreviewDialog", () => {
     try {
       await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
       await waitFor(() => {
-        const url = String(fetchMock.mock.calls.at(-1)?.[0] ?? "");
+        const url = String(
+          fetchMock.mock.calls.find(([requestUrl]) => String(requestUrl).includes("/export/proposal.xlsx"))?.[0] ?? "",
+        );
         expect(url).toContain("vatRate=8");
         expect(url).toContain("audience=internal");
       });

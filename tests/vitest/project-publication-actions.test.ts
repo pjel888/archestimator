@@ -622,12 +622,11 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(publisherDrawerHook).toContain("republishMutation");
     expect(publisherDrawerHook).toContain("rotateMutation");
     expect(publisherDrawerHook).toContain("revokeMutation");
-    // P13 final terminology consistency pass for "Shared link" (P0-P1 complete; all publication tests updated)
-    expect(publisherDrawer).toContain("Generate shared link");
-    expect(publisherDrawer).toContain("Update shared page");
-    expect(publisherDrawer).toContain("New link");
+    expect(publisherDrawer).toContain("Create client link");
+    expect(publisherDrawer).toContain("Edit client link");
+    expect(publisherDrawer).toContain("Replace link");
     expect(publisherDrawer).toContain("Turn off link");
-    expect(publisherDrawer).toContain("Require password");
+    expect(publisherDrawer).toContain("Password protected");
   });
 
   // RED TEST (P0): Sheet selection filter support already exists in action; test will pass for backend but UI wiring is red until P1

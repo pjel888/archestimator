@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Copy, Eye, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,12 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
   const absoluteLink = /^https?:\/\//i.test(clientLinkPath) || !browserOrigin
     ? clientLinkPath
     : new URL(clientLinkPath, browserOrigin).toString();
+
+  useEffect(() => {
+    if (!message) return;
+    const timeout = window.setTimeout(() => setMessage(null), 3_000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   async function copyLink() {
     try {

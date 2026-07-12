@@ -19,8 +19,8 @@ describe("Publisher page contract", () => {
 
     expect(source).toContain("navigator.clipboard.writeText");
     expect(source).toContain("router.replace");
-    expect(source).not.toContain("router.push");
-    expect(source).toContain("Shared link manager roster");
+    expect(source).toContain("router.push");
+    expect(source).toContain("Client links");
     expect(source).toContain("PublisherDrawer");
   });
 
@@ -31,9 +31,9 @@ describe("Publisher page contract", () => {
 
     expect(drawerSource).toContain("Drawer");
     expect(drawerSource).toContain("RecipientEmailComposer");
-    expect(drawerSource).toContain("SheetPickerList");
+    expect(drawerSource).toContain("onEditLink");
     expect(drawerSource).toContain("PublisherActivityFeed");
-    expect(drawerSource).toContain("PublisherProjectMembersPanel");
+    expect(drawerSource).toContain("Team access");
     expect(drawerSource).toContain("ConfirmDialog");
     expect(readFileSync("src/components/workshop/publisher/PublisherActivityFeed.tsx", "utf8")).toContain("SharedLinkActivityFeed");
     expect(querySource).toContain("republishProjectPublication");

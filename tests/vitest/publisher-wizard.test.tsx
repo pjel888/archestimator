@@ -115,19 +115,17 @@ describe("ShareWizard", () => {
     publicationActionMocks.readSharedLinkEmailDeliveryReadiness.mockResolvedValue({ configured: false, message: "Email is not configured." });
   });
 
-  it("starts at the requested URL step and announces progress", async () => {
+  it("renders the direct client-link editor regardless of an old URL step", async () => {
     renderWizard({ initialStep: 2 });
 
     expect(await screen.findByText("Require a password")).toBeInTheDocument();
-    expect(screen.getAllByText("Step 2 of 4: Access settings")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 
   it("generates an update through the existing publication action", async () => {
     renderWizard();
-    await waitFor(() => expect(screen.getByRole("button", { name: /next/i })).not.toBeDisabled());
-    fireEvent.click(await screen.findByRole("button", { name: /next/i }));
-    fireEvent.click(screen.getByRole("button", { name: /next/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
       clearPassword: true,
@@ -138,7 +136,7 @@ describe("ShareWizard", () => {
     expect(await screen.findByDisplayValue(new URL("/share/token", window.location.origin).toString())).toBeInTheDocument();
   });
 
-  it("disables progression when the project has no estimates", async () => {
+  it("disables saving when the project has no estimates", async () => {
     drawerActionMocks.readPublisherPublicationDrawerData.mockResolvedValueOnce({
       collaborationSummary: null,
       currentUserEmail: "owner@example.test",
@@ -147,8 +145,8 @@ describe("ShareWizard", () => {
     });
     renderWizard({ row: { ...row, publicationId: null, status: "unpublished" } });
 
-    expect(await screen.findByText("Add an estimate before sharing this project.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+    expect(await screen.findByText("This project has no estimates yet. Add an estimate before creating a client link.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create client link" })).toBeDisabled();
   });
 
   it("keeps an existing password unless the user removes it", async () => {
@@ -160,7 +158,7 @@ describe("ShareWizard", () => {
     });
     renderWizard({ initialStep: 3, row: { ...row, passwordRequired: false } });
 
-    const shareButton = await screen.findByRole("button", { name: "Share" });
+    const shareButton = await screen.findByRole("button", { name: "Save changes" });
     await waitFor(() => expect(shareButton).not.toBeDisabled());
     fireEvent.click(shareButton);
 
@@ -184,8 +182,7 @@ describe("ShareWizard", () => {
     const passwordToggle = await screen.findByRole("checkbox", { name: /require a password/i });
     await waitFor(() => expect(passwordToggle).toBeChecked());
     fireEvent.click(passwordToggle);
-    fireEvent.click(screen.getByRole("button", { name: /next/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
       clearPassword: true,
@@ -207,8 +204,8 @@ describe("ShareWizard", () => {
     });
     renderWizard({ initialStep: 3 });
 
-    expect(await screen.findByText("2 of 2")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    expect(await screen.findByText("2 / 2 selected")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(publicationActionMocks.republishProjectPublication).toHaveBeenCalledWith({
       clearPassword: true,

@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
   resolveProjectPublicationAccessByToken: vi.fn(),
   submitSharedLinkDecision: vi.fn(),
   checkSharedLinkDecisionRateLimit: vi.fn(),
+  isClientPortalToken: vi.fn(),
+  clientPortalDecisionSummaryResponse: vi.fn(),
+  submitClientPortalDecisionResponse: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/security", () => ({
@@ -42,11 +45,21 @@ vi.mock("@/lib/publication/public-repository", async () => {
   };
 });
 
+vi.mock("@/lib/client-portal/public-repository", () => ({
+  isClientPortalToken: mocks.isClientPortalToken,
+}));
+
+vi.mock("@/lib/client-portal/public-decision-handlers", () => ({
+  clientPortalDecisionSummaryResponse: mocks.clientPortalDecisionSummaryResponse,
+  submitClientPortalDecisionResponse: mocks.submitClientPortalDecisionResponse,
+}));
+
 // Modules under test (will fail to import or execute until P7 impl — intentionally red first)
 import { POST } from "@/app/api/share/[token]/decision/route";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
 import { composeSharedLinkActivity } from "@/lib/activity";
+import { LegacyPublicationWriteFrozenError } from "@/lib/publication/public-repository";
 
 function params(token = "client-pub-token-123") {
   return { params: Promise.resolve({ token }) };
@@ -93,6 +106,9 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     });
     mocks.submitSharedLinkDecision.mockResolvedValue({ id: "decision-123" });
     mocks.checkSharedLinkDecisionRateLimit.mockResolvedValue({ allowed: true });
+    mocks.isClientPortalToken.mockResolvedValue(false);
+    mocks.clientPortalDecisionSummaryResponse.mockResolvedValue(Response.json({ decision: null }));
+    mocks.submitClientPortalDecisionResponse.mockResolvedValue(Response.json({ id: "client-portal-decision" }, { status: 201 }));
     // @ts-expect-error test env
     global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ decision: null }) });
   });
@@ -103,6 +119,17 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
   });
 
   describe("POST /api/share/[token]/decision route (CSRF + session + snapshot lock via P3 RPC + 409 duplicate)", () => {
+    it("routes Client Portal tokens to the Client Portal decision handler", async () => {
+      mocks.isClientPortalToken.mockResolvedValue(true);
+
+      const response = await POST(makeRequest({ decision: "approved" }), params("client-portal-token"));
+
+      expect(response.status).toBe(201);
+      expect(mocks.submitClientPortalDecisionResponse).toHaveBeenCalledWith(expect.any(Request), "client-portal-token");
+      expect(mocks.assertSameOriginPublicPost).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
+    });
+
     it("rejects missing or invalid CSRF (reuses assertSameOriginPublicPost from P5/P6)", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: false, status: 403, message: "Publication request verification failed." });
       const res = await POST(makeRequest({ decision: "accepted" }), params());
@@ -483,6 +510,25 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       const res = await POST(req, params());
       expect(res.status).toBe(403);
       await expect(res.json()).resolves.toEqual({ error: "Decision could not be submitted for this recipient." });
+    });
+
+    it("returns a no-store 423 when a legacy migration freezes decision writes", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.submitSharedLinkDecision.mockRejectedValue(new LegacyPublicationWriteFrozenError());
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const res = await POST(
+        makeRequest(
+          { decision: "accepted", signerName: "Client Receiver" },
+          { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+        ),
+        params(),
+      );
+
+      expect(res.status).toBe(423);
+      expect(res.headers.get("cache-control")).toContain("no-store");
+      await expect(res.json()).resolves.toEqual({ error: "This shared link is being migrated. Please use the Client Portal link from your project contact." });
     });
 
     it("does not classify raw recipient-table failures as public recipient errors", async () => {

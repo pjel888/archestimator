@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
@@ -358,6 +358,7 @@ export async function POST(request: Request) {
         );
       }
       const { optimized, thumbnail } = processedImage.image;
+      const contentSha256 = createHash("sha256").update(optimized.data).digest("hex");
 
       const storageProvider = await createRuntimeUploadStorageProvider();
       const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
@@ -420,6 +421,7 @@ export async function POST(request: Request) {
           originalBytes: file.size,
           optimizedBytes: optimized.data.byteLength,
           contentType: "image/webp",
+          contentSha256,
         });
       } catch {
         if (uploadedPaths.length > 0) {

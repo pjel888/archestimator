@@ -71,6 +71,7 @@ function createMockPublicationStore(overrides: Record<string, unknown> = {}) {
     getPublicationSnapshotById: vi.fn().mockResolvedValue(null),
     getPublicationSnapshotByTokenHash: vi.fn().mockResolvedValue({ ...publicationAccessRow, snapshot_json: {} }),
     getPublicationWriteContextByTokenHash: vi.fn().mockResolvedValue(publicationWriteContext()),
+    getLegacyMigrationStatus: vi.fn().mockResolvedValue(null),
     getRecipientByTokenHash: vi.fn().mockResolvedValue(null),
     getRecipientIdentity: vi.fn().mockResolvedValue(null),
     getRecipientTokenHash: vi.fn().mockResolvedValue("recipient-token-hash"),
@@ -89,7 +90,10 @@ function createMockPublicationStore(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function importRepositoryWithStore(store = createMockPublicationStore()) {
+async function importRepositoryWithStore(
+  store = createMockPublicationStore(),
+  { legacyWriteFreezeEnabled = false }: { legacyWriteFreezeEnabled?: boolean } = {},
+) {
   vi.resetModules();
   vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
   vi.stubEnv("PUBLICATION_TOKEN_ENCRYPTION_SECRET", "publication-token-encryption-secret");
@@ -97,6 +101,9 @@ async function importRepositoryWithStore(store = createMockPublicationStore()) {
   const createPublicationD1Store = vi.fn(() => store);
   vi.doMock("@/lib/publication/d1-store", () => ({
     createPublicationD1Store,
+  }));
+  vi.doMock("@/lib/client-portal/rollout", () => ({
+    isClientPortalLegacyWriteFreezeEnabled: vi.fn(async () => legacyWriteFreezeEnabled),
   }));
 
   return {
@@ -109,6 +116,7 @@ async function importRepositoryWithStore(store = createMockPublicationStore()) {
 describe("project publication public repository (Cloudflare D1 context)", () => {
   afterEach(() => {
     vi.doUnmock("@/lib/publication/d1-store");
+    vi.doUnmock("@/lib/client-portal/rollout");
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
     vi.resetModules();
@@ -297,31 +305,19 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     expect(store.insertRateLimitEvent).not.toHaveBeenCalled();
   });
 
-  it("records publication password failures as durable D1 rows and returns progressive delays", async () => {
+  it("records publication password failures as durable D1 rows without holding the request open", async () => {
     const now = 1_717_000_000_000;
     vi.spyOn(Date, "now").mockReturnValue(now);
-    const store = createMockPublicationStore({
-      countRateLimitEvents: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(3)
-        .mockResolvedValueOnce(4)
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(6),
-    });
+    const store = createMockPublicationStore();
     const { repository } = await importRepositoryWithStore(store);
     const request = new Request("https://archestimator.test/share/client-token", {
       headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
-    const delays = [];
     for (let attempt = 0; attempt < 6; attempt += 1) {
-      const result = await repository.recordProjectPublicationPasswordFailure({ token: "client-token", request });
-      delays.push(result.delayMs);
+      await repository.recordProjectPublicationPasswordFailure({ token: "client-token", request });
     }
 
-    expect(delays).toEqual([1000, 2000, 4000, 8000, 16000, 30000]);
     expect(store.insertRateLimitEvent).toHaveBeenCalledTimes(6);
     expect(store.insertRateLimitEvent).toHaveBeenCalledWith({
       keyHash: expect.any(String),
@@ -329,11 +325,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
       scope: "project_publication_password",
       ttlSeconds: 60 * 60,
     });
-    expect(store.countRateLimitEvents).toHaveBeenCalledWith({
-      keyHash: expect.any(String),
-      scope: "project_publication_password",
-      since: new Date(now - 60 * 60 * 1000).toISOString(),
-    });
+    expect(store.countRateLimitEvents).not.toHaveBeenCalled();
   });
 
   it("clears durable publication password failure rows after successful unlock", async () => {
@@ -412,6 +404,42 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
       }),
     );
     expect(store.getComment).toHaveBeenCalledWith("publication-1", "comment-id");
+  });
+
+  it("freezes legacy comments once a Client Portal mapping has started", async () => {
+    const store = createMockPublicationStore({
+      getLegacyMigrationStatus: vi.fn().mockResolvedValue("imported"),
+    });
+    const { repository } = await importRepositoryWithStore(store);
+
+    await expect(
+      repository.insertSharedLinkComment({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        body: "Can we confirm this line item?",
+      }),
+    ).rejects.toThrow("Legacy publication writes are temporarily frozen");
+
+    expect(store.getRecipientTokenHash).not.toHaveBeenCalled();
+    expect(store.insertClientComment).not.toHaveBeenCalled();
+  });
+
+  it("honors the operator pre-backfill write-freeze flag for legacy decisions", async () => {
+    const store = createMockPublicationStore();
+    const { repository } = await importRepositoryWithStore(store, { legacyWriteFreezeEnabled: true });
+
+    await expect(
+      repository.submitSharedLinkDecision({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        decision: "accepted",
+      }),
+    ).rejects.toThrow("Legacy publication writes are temporarily frozen");
+
+    expect(store.getRecipientTokenHash).not.toHaveBeenCalled();
+    expect(store.submitClientResponse).not.toHaveBeenCalled();
   });
 
   it("rejects comment review targets absent from the publication target map before D1 write", async () => {

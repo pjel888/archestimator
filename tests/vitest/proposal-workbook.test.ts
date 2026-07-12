@@ -84,6 +84,38 @@ function modelTree(): EstimateTreeNode[] {
   ];
 }
 
+function readZipUint16(buffer: Uint8Array, offset: number) {
+  return buffer[offset] | (buffer[offset + 1] << 8);
+}
+
+function readZipUint32(buffer: Uint8Array, offset: number) {
+  return (buffer[offset] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16) | (buffer[offset + 3] << 24)) >>> 0;
+}
+
+function readStoredZipEntry(buffer: Uint8Array, targetName: string) {
+  const decoder = new TextDecoder();
+  let offset = 0;
+
+  while (readZipUint32(buffer, offset) === 0x04034b50) {
+    const compressionMethod = readZipUint16(buffer, offset + 8);
+    const compressedSize = readZipUint32(buffer, offset + 18);
+    const nameLength = readZipUint16(buffer, offset + 26);
+    const extraLength = readZipUint16(buffer, offset + 28);
+    const nameOffset = offset + 30;
+    const contentOffset = nameOffset + nameLength + extraLength;
+    const entryName = decoder.decode(buffer.slice(nameOffset, nameOffset + nameLength));
+
+    if (entryName === targetName) {
+      if (compressionMethod !== 0) throw new Error(`Expected stored ZIP entry for ${targetName}.`);
+      return decoder.decode(buffer.slice(contentOffset, contentOffset + compressedSize));
+    }
+
+    offset = contentOffset + compressedSize;
+  }
+
+  throw new Error(`Missing ZIP entry: ${targetName}`);
+}
+
 describe("proposal workbook generation", () => {
   it("creates a professional bid workbook with bid form, summary, commercial terms, and source sheets", () => {
     // audience=internal exercises the full workbook incl. the internal Source Breakdown sheet
@@ -281,6 +313,45 @@ describe("proposal workbook generation", () => {
     expect(loadedWorkbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual({
       formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+800)',
       result: 21_700,
+    });
+  });
+
+  it("emits deterministic XLSX XML with cached proposal values readable by a native parser", async () => {
+    const model = buildProposalExportModel({
+      metadata: { ...metadata, currency: "USD" },
+      nodes: [
+        {
+          id: "artifact-area",
+          name: "Artifact Area",
+          kind: "area",
+          total: "0",
+          estimateRowItems: [row({ quantity: 1, itemCost: 100, contingencyPercentage: 10, miscCost: 5 })],
+        },
+      ],
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    const firstBuffer = await createProposalWorkbookBuffer(model);
+    const secondBuffer = await createProposalWorkbookBuffer(model);
+    expect(firstBuffer).toEqual(secondBuffer);
+    expect(readZipUint32(firstBuffer, 0)).toBe(0x04034b50);
+
+    const workbookXml = readStoredZipEntry(firstBuffer, "xl/workbook.xml");
+    const stylesXml = readStoredZipEntry(firstBuffer, "xl/styles.xml");
+    const bidFormXml = readStoredZipEntry(firstBuffer, "xl/worksheets/sheet1.xml");
+
+    expect(workbookXml).toContain('<sheet name="Bid Form" sheetId="1" state="visible" r:id="rId1"/>');
+    expect(workbookXml).toContain('<calcPr calcId="191029" fullCalcOnLoad="1"/>');
+    expect(stylesXml).toContain('formatCode="_- &quot;USD&quot;* #,##0.00_-;-&quot;USD&quot;* #,##0.00_-;_- &quot;USD&quot;* &quot;-&quot;??_-;_-@_-"');
+    expect(bidFormXml).toMatch(/<c r="H19" s="\d+"><f>IF\(OR\(I19="EXCLUDED".*\+10\+5\)<\/f><v>115<\/v><\/c>/);
+
+    const loadedWorkbook = new ExcelJS.Workbook();
+    await loadedWorkbook.xlsx.load(firstBuffer);
+    const bidForm = loadedWorkbook.getWorksheet("Bid Form");
+    expect(bidForm?.getCell("E19").value).toBe(100);
+    expect(bidForm?.getCell("H19").value).toEqual({
+      formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+10+5)',
+      result: 115,
     });
   });
 
@@ -586,6 +657,34 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("B23").value).toBe("Twenty-Six Thousand Seven Hundred Thirty-Four Pesos and 40/100");
     // Money cells use the accounting peso mask ([$₱-3409] locale token).
     expect(bidForm?.getCell("E19").numFmt).toContain("[$₱-3409]");
+  });
+
+  it("derives workbook currency displays from export metadata without changing PHP compatibility", () => {
+    const model = buildProposalExportModel({
+      metadata: { ...metadata, currency: "USD" },
+      nodes: [
+        {
+          id: "area",
+          name: "Area",
+          kind: "area",
+          total: "0",
+          estimateRowItems: [row({ quantity: 1, itemCost: 100, contingencyPercentage: 10, miscCost: 5 })],
+        },
+      ],
+      settings: { audience: "internal" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    const workbook = createProposalWorkbook(model);
+    const bidForm = workbook.getWorksheet("Bid Form");
+    const summary = workbook.getWorksheet("Summary");
+    const breakdown = workbook.getWorksheet("Source Breakdown");
+
+    expect(bidForm?.getCell("E19").numFmt).toContain('"USD"');
+    expect(bidForm?.getCell("J19").value).toContain("USD 10.00");
+    expect(summary?.getCell("C15").numFmt).toContain('"USD"');
+    expect(summary?.getCell("B23").value).toContain("USD");
+    expect(breakdown?.getCell("H7").numFmt).toContain('"USD"');
   });
 
   it("renders an EXCLUSIONS block for excluded-scope rows (P3-T2, F-29)", () => {

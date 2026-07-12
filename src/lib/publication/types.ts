@@ -73,6 +73,11 @@ export type PublicationSnapshotRow = {
   quantity: number;
   unit: string;
   rowTotal: number;
+  rowTotalMinorUnits?: number;
+  calculationVersion?: number;
+  calculationBasis?: "proposal_included_direct";
+  currencyCode?: string;
+  scopeStatus?: "included" | "excluded" | "by_owner";
   // P9: optional thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; old snapshots omit)
   imageUrl?: string | null;
   // Tree node link so the receiver can render the actual workshop hierarchy
@@ -112,7 +117,7 @@ export type PublicationSnapshotEstimate = {
 };
 
 export type ProjectPublicationSnapshot = {
-  schemaVersion: 1 | 1.2 | 1.3;
+  schemaVersion: 1 | 1.2 | 1.3 | 1.4;
   generatedAt: string;
   /**
    * Immutable issuance identity written by the publication transaction. Older

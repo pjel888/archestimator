@@ -1,4 +1,5 @@
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import { computeEstimateRowCostParts } from "@/lib/estimates/estimate-row-total";
 import type {
   ProposalExportMetadata,
   ProposalExportModel,
@@ -90,21 +91,41 @@ function normalizeScope(value: string | null | undefined): ProposalScopeStatus {
   return SCOPE_VOCABULARY.has(key as ProposalScopeStatus) ? (key as ProposalScopeStatus) : "included";
 }
 
-function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, settings: ProposalExportSettings): ProposalNormalizedSourceRow {
+function normalizeSourceRow(
+  flatRow: ProposalFlatSourceRow<EstimateRowItem>,
+  settings: ProposalExportSettings,
+  currencyCode: string,
+): ProposalNormalizedSourceRow {
   const sourceRow = flatRow.sourceRow;
-  const quantity = roundQuantity(sourceRow.quantity);
   const quantityBase = sourceRow.quantityBase ?? null;
   const quantityContingencyAmount = quantityBase === null ? null : sourceRow.quantityContingencyAmount ?? 0;
+  const legacyAdjustmentPercentage = quantityBase === null ? sourceRow.contingencyPercentage ?? 0 : 0;
+  const adjustmentPercentage = sourceRow.adjustmentPercentage ?? legacyAdjustmentPercentage;
+  const calculation = computeEstimateRowCostParts({
+    quantity: sourceRow.quantity,
+    quantity_base: quantityBase,
+    quantity_contingency_amount: quantityContingencyAmount,
+    unit_cost: sourceRow.itemCost,
+    labor_rate: sourceRow.laborUnitCost ?? 0,
+    adjustment_percentage: adjustmentPercentage,
+    misc_cost: sourceRow.miscCost,
+    currency_code: currencyCode,
+  });
+
+  if (!calculation.ok) {
+    throw new Error(`Cannot build proposal export model: invalid ${calculation.field}.`);
+  }
+
+  const { value: costParts } = calculation;
+  const quantity = costParts.quantity;
   const materialUnitCost = roundMoney(sourceRow.itemCost);
   // P3-T1: interim labor rate from row metadata (else 0, with a visible disclaimer).
   const laborUnitCost = roundMoney(sourceRow.laborUnitCost ?? 0);
-  const materialSubtotal = roundMoney(materialUnitCost * quantity);
-  const laborSubtotal = roundMoney(laborUnitCost * quantity);
-  const legacyAdjustmentPercentage = quantityBase === null ? sourceRow.contingencyPercentage ?? 0 : 0;
-  const adjustmentPercentage = sourceRow.adjustmentPercentage ?? legacyAdjustmentPercentage;
-  const contingencySubtotal = roundMoney((materialSubtotal * adjustmentPercentage) / 100);
-  const miscSubtotal = roundMoney(sourceRow.miscCost);
-  const costAmount = roundMoney(materialSubtotal + laborSubtotal + contingencySubtotal + miscSubtotal);
+  const materialSubtotal = costParts.materialMinorUnits / 100;
+  const laborSubtotal = costParts.laborMinorUnits / 100;
+  const contingencySubtotal = costParts.adjustmentMinorUnits / 100;
+  const miscSubtotal = costParts.miscMinorUnits / 100;
+  const costAmount = costParts.total;
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
   // P3-T2: per-row scope from row metadata (else included).
   const scopeStatus: ProposalScopeStatus = normalizeScope(sourceRow.scopeStatus);
@@ -367,12 +388,13 @@ export function flattenEstimateTree(nodes: EstimateTreeNode[]): ProposalFlatSour
 export function consolidateProposalRows(
   flatRows: ProposalFlatSourceRow<EstimateRowItem>[],
   settings: ProposalExportSettings = defaultProposalExportSettings,
+  currencyCode = "PHP",
 ): ProposalExportRow[] {
   const groupedRows = new Map<string, ProposalExportRow>();
   const sourceAreaPathsByGroup = new Map<string, Set<string>>();
 
   for (const flatRow of flatRows) {
-    const normalizedRow = normalizeSourceRow(flatRow, settings);
+    const normalizedRow = normalizeSourceRow(flatRow, settings, currencyCode);
     if (!settings.includeZeroRows && normalizedRow.quantity === 0 && normalizedRow.costAmount === 0) continue;
     if (!settings.includeExcludedRows && !normalizedRow.includedInTotal) continue;
 
@@ -441,7 +463,7 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
   const flatRows = flattenEstimateTree(input.nodes);
   // P3-T3: reorder sections canonically, then renumber so line numbers/division letters follow
   // the canonical order rather than data-encounter order.
-  const proposalRows = renumberProposalRows(applyCanonicalDivisionOrder(consolidateProposalRows(flatRows, settings)));
+  const proposalRows = renumberProposalRows(applyCanonicalDivisionOrder(consolidateProposalRows(flatRows, settings, input.metadata.currency)));
   // Unification: rows on any node are now exported (flattenEstimateTree above), so the
   // "non_area_rows_skipped" warning is obsolete and would fire falsely. The collector is
   // removed in the P7 dead-code pass; here we simply stop emitting the stale warning.

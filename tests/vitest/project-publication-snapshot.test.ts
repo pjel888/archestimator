@@ -43,7 +43,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       ],
     });
 
-    expect(snapshot.schemaVersion).toBe(1);
+    expect(snapshot.schemaVersion).toBe(1.4);
     expect(snapshot.project).toEqual({
       id: "project-1",
       name: "Valencia Residence",
@@ -62,6 +62,11 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       quantity: 2,
       unit: "cu.m",
       rowTotal: 2300,
+      rowTotalMinorUnits: 230000,
+      calculationVersion: 1,
+      calculationBasis: "proposal_included_direct",
+      currencyCode: "PHP",
+      scopeStatus: "included",
       imageUrl: null,
       nodeId: null,
     });
@@ -133,6 +138,35 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(JSON.stringify(sanitized)).not.toContain("unitCost");
     expect(JSON.stringify(sanitized)).not.toContain("miscCost");
     expect(JSON.stringify(sanitized)).not.toContain("contingencyPercentage");
+  });
+
+  it("uses the included proposal basis and retains only safe canonical calculation provenance", () => {
+    const snapshot = buildProjectPublicationSnapshot({
+      generatedAt: "2026-07-12T00:00:00.000Z",
+      project: { id: "project-1", name: "Parity", projectCode: null, clientName: null, location: null, currencyCode: "PHP" },
+      estimates: [{
+        id: "estimate-1",
+        name: "Parity",
+        sheetCode: "PAR-001",
+        updatedAt: null,
+        rows: [
+          { id: "included", description: "", designation: "", discipline: "", material: "", quantity: 1, unit: "ea", unitCost: 100, laborRate: 50, miscCost: 0, contingencyPercentage: 10, scopeStatus: "included" },
+          { id: "excluded", description: "", designation: "", discipline: "", material: "", quantity: 1, unit: "ea", unitCost: 999, miscCost: 0, contingencyPercentage: 0, scopeStatus: "excluded" },
+        ],
+      }],
+    });
+
+    expect(snapshot.totalCost).toBe(165);
+    expect(snapshot.estimates[0]?.rows).toEqual([expect.objectContaining({
+      id: "included",
+      rowTotal: 165,
+      rowTotalMinorUnits: 16_500,
+      calculationVersion: 1,
+      calculationBasis: "proposal_included_direct",
+      currencyCode: "PHP",
+      scopeStatus: "included",
+    })]);
+    expect(JSON.stringify(snapshot)).not.toContain("laborRate");
   });
 
   it("carries safe express component image URLs into publication snapshot rows", () => {
@@ -219,7 +253,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(hidden.project.locationVisibility).toBe("hidden");
   });
 
-  it("builds compact v1.3 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
+  it("builds compact v1.4 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-06-13T00:00:00.000Z",
       project: {
@@ -278,7 +312,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
 
     const estimate = snapshot.estimates[0];
 
-    expect(snapshot.schemaVersion).toBe(1.3);
+    expect(snapshot.schemaVersion).toBe(1.4);
     expect(estimate?.rowCount).toBe(2);
     expect(estimate?.rows.map((row) => row.id)).toEqual(["row-base", "row-alt"]);
     expect(estimate?.rows.map((row) => row.tabId)).toEqual(["tab-base", "tab-alt"]);

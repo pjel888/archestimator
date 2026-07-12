@@ -104,6 +104,7 @@ type EstimateRowSource = {
   estimate_id: string;
   id: string;
   material: string;
+  metadata_json: Json | null;
   misc_cost: number | string | null;
   node_id: string | null;
   quantity: number | string | null;
@@ -633,7 +634,7 @@ async function buildSnapshotForProject(
     const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
       context.admin
         .from<EstimateRowSource>("estimate_row_items")
-        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, imageUrl:source_snapshot->>imageUrl")
+        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, metadata_json, imageUrl:source_snapshot->>imageUrl")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
       context.admin
@@ -710,6 +711,8 @@ async function buildSnapshotForProject(
           miscCost: Number(row.misc_cost),
           contingencyPercentage: Number(row.contingency_percentage ?? 0),
           adjustmentPercentage: Number(row.adjustment_percentage ?? 0),
+          laborRate: readFiniteMetadataNumber(row.metadata_json, "laborUnitCost"),
+          scopeStatus: readSnapshotScopeStatus(row.metadata_json),
           // P9: extract only the source_snapshot image path instead of transferring full row JSON.
           imageUrl: typeof row.imageUrl === "string" && row.imageUrl.trim() ? row.imageUrl : undefined,
         };
@@ -752,6 +755,18 @@ function readStringMetadataValue(metadata: Json | null | undefined, key: string)
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
   const value = metadata[key];
   return typeof value === "string" ? value : null;
+}
+
+function readFiniteMetadataNumber(metadata: Json | null | undefined, key: string) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
+  const value = metadata[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function readSnapshotScopeStatus(metadata: Json | null | undefined): "included" | "excluded" | "by_owner" | undefined {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
+  const value = metadata.scopeStatus;
+  return value === "included" || value === "excluded" || value === "by_owner" ? value : undefined;
 }
 
 function readClientLinkPath(publication: Pick<LatestPublication, "encrypted_token">) {

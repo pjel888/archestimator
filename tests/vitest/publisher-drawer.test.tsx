@@ -102,7 +102,7 @@ describe("PublisherDrawer", () => {
 
   it("rejects duplicate publication mutations with a synchronous drawer latch", async () => {
     let resolveRepublish: (value: { clientLinkPath: string; message: string; ok: true }) => void = () => undefined;
-    drawerHookMocks.republishMutation.mutateAsync.mockImplementation(
+    drawerHookMocks.rotateMutation.mutateAsync.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveRepublish = resolve;
@@ -111,21 +111,16 @@ describe("PublisherDrawer", () => {
 
     render(<PublisherDrawer open row={row} onOpenChange={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Sheets" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /Upgrade/ }));
-    const updateButton = screen.getByRole("button", { name: "Update shared page" });
+    fireEvent.click(screen.getByRole("button", { name: "Replace link" }));
+    const updateButton = screen.getAllByRole("button", { name: "Replace link" })[1]!;
 
     fireEvent.click(updateButton);
     fireEvent.click(updateButton);
 
-    expect(drawerHookMocks.republishMutation.mutateAsync).toHaveBeenCalledTimes(1);
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Finish the current publication action before starting another.",
-    );
-
+    expect(drawerHookMocks.rotateMutation.mutateAsync).toHaveBeenCalledTimes(1);
     resolveRepublish({
       clientLinkPath: "/share/active-token",
-      message: "Shared page updated.",
+      message: "New client link ready.",
       ok: true,
     });
     await waitFor(() => {

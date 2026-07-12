@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ControlField, ControlInput, CONTROL_INPUT_SURFACE_CLASS } from "@/components/ui/control-input";
 import { UnsavedChangesDialog } from "@/components/ui/overlays/confirm-dialog";
 import { Drawer } from "@/components/ui/overlays/sheet-drawer";
@@ -123,13 +124,13 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
   async function retryProjectDetails() {
     try {
       const verification = await drawer.query.refetch();
-      if (!verificationPending) return;
       const verifiedSummary = verification.data?.summary;
-      if (!verification.isError && verifiedSummary?.publicationId && verifiedSummary.clientLinkPath) {
+      if (verificationPending && !verification.isError && verifiedSummary?.publicationId && verifiedSummary.clientLinkPath) {
         setVerificationPending(false);
         setComplete(true);
         return;
       }
+      if (!verificationPending && !verification.isError) return;
     } catch {
       reportVerificationFailure("The saved link still could not be verified. Nothing else needs to be saved; retry the refresh when the connection recovers.");
       return;
@@ -149,13 +150,14 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
       });
       setFeedback({ text: result.message, tone: result.ok ? "success" : "error" });
       if (!result.ok) return;
-      setPassword("");
-      setPasswordRequiredOverride(null);
-      setSelectedEstimateIdsOverride(null);
-      await verifySavedLink();
-    } catch (error) {
+      if (await verifySavedLink()) {
+        setPassword("");
+        setPasswordRequiredOverride(null);
+        setSelectedEstimateIdsOverride(null);
+      }
+    } catch {
       setFeedback({
-        text: error instanceof Error ? error.message : "The client link could not be saved.",
+        text: "The client link could not be saved. Please try again.",
         tone: "error",
       });
     }
@@ -276,6 +278,20 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
             >
               <ArrowClockwise size={14} aria-hidden="true" /> {retrying ? "Retrying…" : "Retry"}
             </Button>
+            {verificationPending ? (
+              <Button
+                type="button"
+                variant="plain"
+                size="sm"
+                className="mt-2 min-h-8 min-w-0 px-2.5 !text-[10px]"
+                onClick={() => {
+                  setVerificationPending(false);
+                  void drawer.query.refetch();
+                }}
+              >
+                Return to editor
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -305,19 +321,16 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
           <aside className="space-y-3 p-3">
             <section>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Access</h3>
-              <label className="mt-2 flex min-h-9 items-center gap-2 border-y border-hairline py-1.5 text-[10px] text-ink">
-                <input
-                  type="checkbox"
-                  className="size-3.5 accent-ink"
-                  checked={passwordRequired}
-                  onChange={(event) => {
+              <Checkbox
+                label={<><LockSimple size={13} aria-hidden="true" /> Require a password</>}
+                className="mt-2 min-h-9 border-y border-hairline py-1.5 text-[10px] text-ink"
+                checked={passwordRequired}
+                onChange={(event) => {
                     setPasswordRequiredOverride(event.currentTarget.checked);
                     if (!event.currentTarget.checked) setPassword("");
-                  }}
-                  disabled={!canManage || drawer.isMutating}
-                />
-                <LockSimple size={13} aria-hidden="true" /> Require a password
-              </label>
+                }}
+                disabled={!canManage || drawer.isMutating}
+              />
               {passwordRequired ? (
                 <ControlField label="Password" className="mt-3 [&>label]:!text-[9px]">
                   <ControlInput

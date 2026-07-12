@@ -77,6 +77,11 @@ describe("share snapshot redaction", () => {
       quantity: 1,
       unit: "lot",
       rowTotal: 28_000,
+      rowTotalMinorUnits: 2_800_000,
+      calculationVersion: 1,
+      calculationBasis: "proposal_included_direct",
+      currencyCode: "PHP",
+      scopeStatus: "included",
       imageUrl: null,
       nodeId: null,
     });

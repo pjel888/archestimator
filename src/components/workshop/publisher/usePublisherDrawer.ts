@@ -11,6 +11,10 @@ import {
   revokeProjectPublication,
   rotateProjectPublicationLink,
 } from "@/lib/publication/actions";
+import {
+  migrateLegacyPublicationToClientPortalAction,
+  rollbackLegacyPublicationClientPortalMigrationAction,
+} from "@/lib/client-portal/legacy-migration-actions";
 import { publisherRosterQueryKeys } from "./publisher-queries";
 
 export function usePublisherDrawer(projectId: string | null, open: boolean) {
@@ -57,11 +61,41 @@ export function usePublisherDrawer(projectId: string | null, open: boolean) {
     onSuccess: refreshPublisherSurface,
   });
 
+  const migrateLegacyMutation = useMutation({
+    mutationFn: async (input: { legacyPublicationId: string; projectId: string }) => {
+      const report = await migrateLegacyPublicationToClientPortalAction({
+        apply: true,
+        legacyPublicationId: input.legacyPublicationId,
+        projectId: input.projectId,
+      });
+      return {
+        message: report.status === "already_migrated"
+          ? "This legacy link is already mapped to a Client Portal."
+          : `Legacy link migrated to a Client Portal. Verified ${report.recipients.imported} recipients, ${report.comments.imported} discussions, and ${report.decisions.imported} decisions; existing client URLs remain available.`,
+        ok: true,
+      };
+    },
+    onSuccess: refreshPublisherSurface,
+  });
+
+  const rollbackLegacyMigrationMutation = useMutation({
+    mutationFn: async (input: { legacyPublicationId: string; projectId: string }) => {
+      await rollbackLegacyPublicationClientPortalMigrationAction(input);
+      return {
+        message: "Client Portal routing was rolled back. Existing legacy client URLs are active again; imported Client Portal history remains preserved for fix-forward.",
+        ok: true,
+      };
+    },
+    onSuccess: refreshPublisherSurface,
+  });
+
   return {
     data: query.data,
-    isMutating: republishMutation.isPending || rotateMutation.isPending || revokeMutation.isPending,
+    isMutating: republishMutation.isPending || rotateMutation.isPending || revokeMutation.isPending || migrateLegacyMutation.isPending || rollbackLegacyMigrationMutation.isPending,
+    migrateLegacyMutation,
     query,
     republishMutation,
+    rollbackLegacyMigrationMutation,
     revokeMutation,
     rotateMutation,
   };

@@ -15,14 +15,14 @@ type PublisherPageProps = {
 
 async function PublisherData({ searchParams }: PublisherPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
-  const wizardProjectId = Array.isArray(resolvedSearchParams.wizard)
-    ? resolvedSearchParams.wizard[0]
-    : resolvedSearchParams.wizard;
-  const filterSearchParams = wizardProjectId
+  const focusedProjectId = [resolvedSearchParams.wizard, resolvedSearchParams.drawer]
+    .flat()
+    .find((value): value is string => typeof value === "string" && value.length > 0);
+  const filterSearchParams = focusedProjectId
     ? {
         ...resolvedSearchParams,
         page: undefined,
-        project: wizardProjectId,
+        project: focusedProjectId,
         q: undefined,
         status: undefined,
       }
@@ -40,7 +40,11 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
 
   return (
     <Suspense fallback={<PublisherRosterSkeleton />}>
-      <PublisherRosterClient roster={roster} filters={filters} />
+      <PublisherRosterClient
+        key={`${filters.status}:${filters.projectId ?? ""}:${filters.search}:${filters.page}`}
+        roster={roster}
+        filters={filters}
+      />
     </Suspense>
   );
 }

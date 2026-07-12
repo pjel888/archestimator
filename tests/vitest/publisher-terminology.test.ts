@@ -9,7 +9,7 @@ describe("shared link terminology", () => {
 
     expect(sidebar).toContain('label: "Share", icon: ShareNetwork');
     expect(sidebar).not.toContain('label: "Publisher"');
-    expect(publisherPage).toContain('title="Share"');
+    expect(publisherPage).toContain('title="Client links"');
     expect(tabs).toContain('mode === "tree" ? "Summary" : "Details"');
     expect(tabs).not.toContain('"Scope outline"');
     expect(tabs).not.toContain('"Line item table"');

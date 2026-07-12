@@ -38,6 +38,7 @@ function buildMockPublicationStore(overrides: Record<string, unknown> = {}) {
       snapshot_json: {},
       snapshot_version: 1,
     }),
+    getLegacyMigrationStatus: vi.fn().mockResolvedValue(null),
     getRecipientTokenHash: vi.fn().mockResolvedValue("recipient-hash"),
     insertClientComment: vi.fn().mockResolvedValue("row-id"),
     insertPublicationEvent: vi.fn().mockResolvedValue(undefined),

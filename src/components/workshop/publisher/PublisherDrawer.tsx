@@ -37,7 +37,7 @@ type PublisherDrawerProps = {
 };
 
 export type PublisherDrawerTabId = "overview" | "recipients" | "activity";
-type ConfirmedPublisherAction = "rotate" | "revoke";
+type ConfirmedPublisherAction = "migrate" | "rollback_migration" | "rotate" | "revoke";
 type DrawerFeedback = { text: string; tone: "success" | "error" };
 
 const DRAWER_TABS = [
@@ -117,6 +117,16 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
   const canManagePublication = Boolean(summary?.canManagePublication);
   const effectiveStatus = summary?.status ?? "unpublished";
   const hasLiveLink = effectiveStatus === "published" && Boolean(summary?.clientLinkPath);
+  const canMigrateLegacyPublication = canManagePublication
+    && effectiveStatus === "published"
+    && drawer.data?.legacyMigrationEnabled === true
+    && Boolean(row?.publicationId)
+    && !row?.clientPortalPath;
+  const canRollbackLegacyMigration = canManagePublication
+    && effectiveStatus === "published"
+    && drawer.data?.legacyMigrationEnabled === true
+    && Boolean(row?.publicationId)
+    && Boolean(row?.clientPortalPath);
   const status = effectiveStatus === "published" && summary?.staleSnapshotWarning
     ? { label: "Needs update", badge: "review" as const }
     : statusCopy[effectiveStatus];
@@ -155,9 +165,9 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
       const result = await action();
       setFeedback({ text: result.message, tone: result.ok ? "success" : "error" });
       if (result.ok) await drawer.query.refetch();
-    } catch (error) {
+    } catch {
       setFeedback({
-        text: error instanceof Error ? error.message : "Shared link update failed.",
+        text: "Shared link update failed. Please try again.",
         tone: "error",
       });
     } finally {
@@ -169,6 +179,18 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
 
   function runConfirmedAction(action: ConfirmedPublisherAction) {
     if (!summary?.projectId) return;
+    if (action === "migrate") {
+      const legacyPublicationId = row?.publicationId;
+      if (!legacyPublicationId) return;
+      void runPublicationUpdate(() => drawer.migrateLegacyMutation.mutateAsync({ legacyPublicationId, projectId: summary.projectId }));
+      return;
+    }
+    if (action === "rollback_migration") {
+      const legacyPublicationId = row?.publicationId;
+      if (!legacyPublicationId) return;
+      void runPublicationUpdate(() => drawer.rollbackLegacyMigrationMutation.mutateAsync({ legacyPublicationId, projectId: summary.projectId }));
+      return;
+    }
     if (action === "rotate") {
       void runPublicationUpdate(() => drawer.rotateMutation.mutateAsync({ projectId: summary.projectId }));
       return;
@@ -243,6 +265,15 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
               >
                 <ArrowSquareOut size={13} aria-hidden="true" />
                 Preview
+              </Link>
+            ) : null}
+            {row.clientPortalPath ? (
+              <Link
+                href={row.clientPortalPath}
+                className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-brand/30 bg-brandSoft px-2 text-[10px] font-medium text-brand transition hover:bg-brandSoft/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
+              >
+                <ArrowSquareOut size={13} aria-hidden="true" />
+                Open Client Portal
               </Link>
             ) : null}
           </div>
@@ -332,6 +363,40 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
+                {row.clientPortalPath ? (
+                  <Link
+                    href={row.clientPortalPath}
+                    className="inline-flex min-h-8 items-center justify-center rounded-xs border border-brand/30 bg-brandSoft px-2 text-[10px] font-medium text-brand transition hover:bg-brandSoft/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  >
+                    Open Client Portal
+                  </Link>
+                ) : null}
+                {canMigrateLegacyPublication ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="min-h-8 min-w-0 px-2 !text-[10px]"
+                    disabled={!canRunManagerAction}
+                    onClick={() => setConfirmAction("migrate")}
+                  >
+                    <ArrowSquareOut size={13} aria-hidden="true" />
+                    Migrate to Client Portal
+                  </Button>
+                ) : null}
+                {canRollbackLegacyMigration ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    className="min-h-8 min-w-0 px-2 !text-[10px]"
+                    disabled={!canRunManagerAction}
+                    onClick={() => setConfirmAction("rollback_migration")}
+                  >
+                    <Prohibit size={13} aria-hidden="true" />
+                    Roll back Portal migration
+                  </Button>
+                ) : null}
                 <Link
                   href={`/workshop/projects/${encodeURIComponent(row.projectId)}/team`}
                   className="inline-flex min-h-8 items-center justify-center rounded-xs border border-divider bg-white px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -426,14 +491,18 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
         onOpenChange={(next) => {
           if (!next) setConfirmAction(null);
         }}
-        title={confirmAction === "rotate" ? "Replace this client link?" : "Turn off this client link?"}
+        title={confirmAction === "migrate" ? "Migrate this legacy client link?" : confirmAction === "rollback_migration" ? "Roll back Client Portal routing?" : confirmAction === "rotate" ? "Replace this client link?" : "Turn off this client link?"}
         description={
-          confirmAction === "rotate"
+          confirmAction === "migrate"
+            ? "This imports the published legacy record into a Client Portal and verifies the mapping before the Publisher exposes it. Existing client URLs remain available."
+            : confirmAction === "rollback_migration"
+            ? "This restores existing client URLs to the legacy publication. Imported Client Portal history is preserved and can be re-verified later with the migration action."
+            : confirmAction === "rotate"
             ? "The current URL will stop working immediately. Existing recipients will need the replacement link."
             : "The current URL and every recipient link will stop working immediately."
         }
-        confirmLabel={confirmAction === "rotate" ? "Replace link" : "Turn off link"}
-        tone={confirmAction === "revoke" ? "danger" : "warning"}
+        confirmLabel={confirmAction === "migrate" ? "Migrate link" : confirmAction === "rollback_migration" ? "Roll back routing" : confirmAction === "rotate" ? "Replace link" : "Turn off link"}
+        tone={confirmAction === "revoke" || confirmAction === "rollback_migration" ? "danger" : "warning"}
         busy={publicationBusy}
         onConfirm={() => {
           if (confirmAction) runConfirmedAction(confirmAction);

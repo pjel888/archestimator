@@ -97,6 +97,9 @@ class FakeD1Database {
     if (sql.includes("FROM estimates")) {
       return [{ id: "estimate-1", project_id: "project-1", updated_at: "2026-06-24T00:00:00.000Z" }];
     }
+    if (sql.includes("FROM client_portal_legacy_mappings")) {
+      return [];
+    }
     throw new Error(`Unexpected D1 query: ${sql}`);
   }
 }
@@ -160,7 +163,7 @@ describe("Publisher roster D1 repository", () => {
       snapshotGeneratedAt: "2026-06-19T00:00:00.000Z",
     });
 
-    expect(database.prepared).toHaveLength(5);
+    expect(database.prepared).toHaveLength(8);
     expect(database.prepared[0]?.sql).toContain("FROM project_publications");
     expect(database.prepared[0]?.sql).toContain("WHERE workspace_id = ? AND project_id IN (?)");
     expect(database.prepared[0]?.values).toEqual(["workspace-1", "project-1", 100]);
@@ -177,6 +180,8 @@ describe("Publisher roster D1 repository", () => {
     expect(responseStatement?.sql).toContain("MAX(created_at) AS latest_created_at");
     expect(responseStatement?.sql).toContain("GROUP BY publication_id");
     expect(responseStatement?.values).toEqual(["publication-1"]);
+    const portalMappingStatement = database.prepared.find((statement) => statement.sql.includes("client_portal_legacy_mappings"));
+    expect(portalMappingStatement?.values).toEqual(["publication-1", "workspace-1", "workspace-1"]);
     expect(database.prepared.map((statement) => statement.sql).join("\n")).not.toContain("supabase");
   });
 });

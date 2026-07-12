@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { SHARED_LINK_UNAVAILABLE_COPY } from "@/lib/publication/share-copy";
+import { CLIENT_PORTAL_NO_STORE_HEADERS } from "@/lib/client-portal/public-repository";
 
 const shareApiRoutes = [
   "src/app/api/share/[token]/route.ts",
@@ -18,10 +19,17 @@ describe("share/publication no-store invariants", () => {
     const source = readFileSync(routePath, "utf8");
 
     expect(source).toContain('export const dynamic = "force-dynamic"');
-    expect(source).toContain('"Cache-Control": "no-store"');
+    expect(source.includes('"Cache-Control": "no-store"') || source.includes("CLIENT_PORTAL_NO_STORE_HEADERS")).toBe(true);
     expect(source).not.toMatch(/revalidate\s*=\s*\d+/);
     expect(source).not.toContain('Cache-Control": "public');
     expect(source).not.toContain('Cache-Control": "s-maxage');
+  });
+
+  it("keeps the Client Portal shared header contract private and no-store", () => {
+    expect(CLIENT_PORTAL_NO_STORE_HEADERS["Cache-Control"]).toContain("no-store");
+    expect(CLIENT_PORTAL_NO_STORE_HEADERS["Cache-Control"]).not.toContain("public");
+    expect(CLIENT_PORTAL_NO_STORE_HEADERS["Referrer-Policy"]).toBe("no-referrer");
+    expect(CLIENT_PORTAL_NO_STORE_HEADERS["X-Frame-Options"]).toBe("DENY");
   });
 
   it("keeps the tokenized share page dynamic", () => {
