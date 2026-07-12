@@ -105,7 +105,7 @@ BOUNDARY on AUTH-001 (the non-static tracks in `13`). `IMPLEMENTATION_PLAN.md`,
 
 | Field | Value | Notes |
 |---|---|---|
-| Audit status | **P0 FOUND in round 6** — email deliverability (SPF/MX Namecheap/Cloudflare mismatch) defeats the proposals feature | Static audit converged (4 rounds, 0 new findings in round 4); `validate:plan-pack` passes; **but** round-6 domain check found P0-1: SPF/MX point at Namecheap while app sends via Cloudflare → invitations SPF-softfail → spam. This is the highest-severity finding in the pack. Owner DNS action + `TEST_TASK` real-send verification required (Slice 0). |
+| Audit status | **P0-1 DOWNGRADED to P2 (round 11)** — email substrate IS wired; live check overturns stale docs | Round 11 `wrangler email sending list` + `dig` show: nameservers on Cloudflare, Email Sending enabled (since 2026-07-01), all 5 `cf-bounce` DNS records published. Outbound mail should pass SPF+DKIM+DMARC. Only DMARC tightening (`p=none`→`p=quarantine`) + real-send verification remain — **not blocking**. The original P0 was correct on June-30 evidence but stale by July-12. |
 | Bugs found | **27** | **7 P1**, 14 P2, 6 P3 — see `02` + `09`. P2-7 downgraded to P3 (statically resolved); P2-15 closed by DEC-AUTO-114. |
 | Highest-severity open bugs | **Decision race** (P1-7, D1 has no unique constraint), **enumeration oracle** (P1-6, `openRecipientProposalAction` distinct errors + no rate limit), **recipient PII survives removal** (P1-4), **audit log no TTL** (P1-5) | Plus round-1 P1s (`responded` P1-1, one-bad-row-fails-all P1-2) |
 | Page vs. owner directive | **MISMATCH** | Page is a flat bordered table; directive wants projects-page card grid. Active pack exists to close this. |
