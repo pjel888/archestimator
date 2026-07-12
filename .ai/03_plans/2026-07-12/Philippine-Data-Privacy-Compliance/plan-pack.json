@@ -189,11 +189,11 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "ROPA completeness is a documentation/governance deliverable gated on AUTH-001 (controller identity); not yet implementable. Source inspection of 25_D1_DATA_SYSTEM_INVENTORY.md grounds the scope.",
+      "test_rationale": "ROPA completeness is a documentation deliverable not yet started; source inspection of 25_D1_DATA_SYSTEM_INVENTORY.md grounds the 85-store scope but the activity itself is pending UNIT-001.",
       "requirement_ids": ["REQ-001"],
       "test_ids": [],
-      "evidence_ids": ["EVID-001"],
-      "authorization_boundary_id": "AUTH-001"
+      "evidence_ids": [],
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-002",
@@ -201,7 +201,7 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "SEC-11 raw session token remediation is implementation work not yet started; bounded by AUTH-001 governance. Current-state evidence in 14_SECURITY_SAFEGUARDS_AND_PRIVACY_ENGINEERING.md.",
+      "test_rationale": "SEC-11 raw session token remediation is implementation work bounded by AUTH-001 governance; current-state evidence in 14_SECURITY_SAFEGUARDS_AND_PRIVACY_ENGINEERING.md.",
       "requirement_ids": ["SEC-001"],
       "test_ids": [],
       "evidence_ids": ["EVID-002"],
@@ -213,7 +213,7 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "Retention enforcement of 5 unenforced classes is implementation work; final TTLs bounded by AUTH-005 (OPEN-DEC-004 counsel sign-off). Current gap documented in 10_RETENTION_DELETION_AND_LEGAL_HOLDS.md.",
+      "test_rationale": "Retention enforcement of 5 unenforced classes is implementation work; final TTLs bounded by AUTH-005 counsel sign-off. Current gap in 10_RETENTION_DELETION_AND_LEGAL_HOLDS.md.",
       "requirement_ids": ["REQ-006"],
       "test_ids": [],
       "evidence_ids": ["EVID-003"],
@@ -238,8 +238,8 @@
       "id": "GATE-VERIFY-001",
       "status": "BOUNDARY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": ["AC-001", "AC-002", "AC-003", "AC-004"],
-      "evidence_ids": ["EVID-001", "EVID-002", "EVID-003", "EVID-004"],
+      "criterion_ids": ["AC-002", "AC-003", "AC-004"],
+      "evidence_ids": ["EVID-002", "EVID-003", "EVID-004"],
       "authorization_boundary_id": "AUTH-001"
     }
   ],
@@ -294,53 +294,47 @@
       "id": "AUTH-001",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": ["AC-001", "AC-002", "AC-004"],
-      "gate_ids": ["GATE-VERIFY-001"]
+      "affected_ids": ["AC-002", "AC-004", "GATE-VERIFY-001"]
     },
     {
       "id": "AUTH-002",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": [],
-      "gate_ids": ["GATE-VERIFY-001"]
+      "affected_ids": ["AC-002"]
     },
     {
       "id": "AUTH-003",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": [],
-      "gate_ids": ["GATE-VERIFY-001"]
+      "affected_ids": ["AC-002"]
     },
     {
       "id": "AUTH-004",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": [],
-      "gate_ids": ["GATE-VERIFY-001"]
+      "affected_ids": ["AC-004"]
     },
     {
       "id": "AUTH-005",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": ["AC-003"],
-      "gate_ids": ["GATE-VERIFY-001"]
+      "affected_ids": ["AC-003"]
     },
     {
       "id": "AUTH-006",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "criterion_ids": [],
-      "gate_ids": ["GATE-VERIFY-001"]
+      "affected_ids": ["AC-004"]
     }
   ],
   "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "25_D1_DATA_SYSTEM_INVENTORY.md",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "claim_ids": ["REQ-001", "UNIT-001", "AC-001"],
+      "claim_ids": ["REQ-001", "UNIT-001"],
       "source_revision": "b06d8cc4a437efd22b2a03553651a1cc6a87db9f",
       "valid_until": null
     },
