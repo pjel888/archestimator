@@ -260,13 +260,16 @@ function containsRuntimeRegistrySelfEntry(value) {
 async function validateEstimateRuntimeExtension({ manifest, root, artifacts, evidence, units, errors }) {
   const runtime = manifest.runtime_evidence;
   if (!isPlainObject(runtime) || runtime.contract_version !== ESTIMATE_RUNTIME_CONTRACT) return;
-  if (!exactObjectKeys(runtime, ["contract_version", "transition_sequence", "latest_unit_id", "latest_run_id", "registry", "projections"])) {
+  const latestNull = runtime.latest_unit_id === null && runtime.latest_run_id === null;
+  const runtimeKeys = latestNull
+    ? ["contract_version", "transition_sequence", "latest_unit_id", "latest_run_id", "registry", "projections"]
+    : ["contract_version", "transition_sequence", "latest_unit_id", "latest_run_id", "latest_run_manifest_sha256", "registry", "projections"];
+  if (!exactObjectKeys(runtime, runtimeKeys)) {
     errors.push("runtime_evidence: invalid closed shape");
   }
   if (!Number.isSafeInteger(runtime.transition_sequence) || runtime.transition_sequence < 0) {
     errors.push("runtime_evidence: transition_sequence must be a non-negative safe integer");
   }
-  const latestNull = runtime.latest_unit_id === null && runtime.latest_run_id === null;
   const latestPresent = /^UNIT-\d+$/u.test(runtime.latest_unit_id ?? "")
     && typeof runtime.latest_run_id === "string"
     && /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(runtime.latest_run_id);
@@ -275,6 +278,9 @@ async function validateEstimateRuntimeExtension({ manifest, root, artifacts, evi
   }
   if (runtime.transition_sequence > 0 && !latestPresent && manifest.terminal_status !== "ACHIEVED") {
     errors.push("runtime_evidence: nonzero transition sequence requires latest unit/run");
+  }
+  if (latestPresent && !SHA256_PATTERN.test(runtime.latest_run_manifest_sha256 ?? "")) {
+    errors.push("runtime_evidence: latest run manifest SHA-256 is required with a latest run");
   }
   if (!exactObjectKeys(runtime.registry, ["artifact_id", "projection_path", "immutable_path", "sha256"])
     || runtime.registry.artifact_id !== ESTIMATE_RUNTIME_REGISTRY.artifact_id

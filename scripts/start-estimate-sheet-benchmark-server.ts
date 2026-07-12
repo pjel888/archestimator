@@ -346,12 +346,14 @@ export function updateRunManifest(
   manifestPath: string,
   mutate: (manifest: RuntimeRunManifest) => RuntimeRunManifest,
   authority: ManifestAuthority = {},
+  options: { allowTerminalStatus?: boolean } = {},
 ): RuntimeRunManifest {
   const current = readRuntimeRunManifest(manifestPath, authority);
   const expected = sha256File(manifestPath);
   const next = mutate(structuredClone(current));
   assertRunManifest(next);
   replaceFileAtomically(manifestPath, `${JSON.stringify(next, null, 2)}\n`, expected, 0o600, current.run_root);
+  if (options.allowTerminalStatus) return next;
   return readRuntimeRunManifest(manifestPath, authority);
 }
 
@@ -389,10 +391,10 @@ export function resolveBenchmarkServerCommand(
   if (!FINAL_STATES.has(finalState)) throw new Error(`unsupported final state: ${finalState}`);
   if (!Number.isInteger(port) || port < 3101 || port > 3199) throw new Error("benchmark port must be between 3101 and 3199");
   if (!manifest.runtimeEnv) throw new Error("local-browser benchmark requires run-scoped runtime.env");
+  const localConfig = resolve(manifest.run_root, "resources", "d1", "wrangler-local.json");
   return [
-    "bunx",
-    "opennextjs-cloudflare",
-    "preview",
+    "bunx", "opennextjs-cloudflare", "preview",
+    "--config", localConfig,
     "--",
     "--ip",
     "127.0.0.1",
@@ -400,8 +402,6 @@ export function resolveBenchmarkServerCommand(
     String(port),
     "--persist-to",
     resolve(manifest.run_root, "wrangler-state"),
-    "--env-file",
-    resolve(manifest.runtimeEnv),
     "--show-interactive-dev-session=false",
   ];
 }
@@ -449,6 +449,11 @@ export function validateRuntimeEnvironment(manifest: RuntimeRunManifest, port: n
     throw new Error("runtime.env hash is missing or stale in the run manifest");
   }
   const rawValues = parseRuntimeEnvironment(path);
+  const devVarsPath = resolve(manifest.run_root, "resources", "d1", ".dev.vars");
+  assertPrivateRegularFile(devVarsPath, "Wrangler .dev.vars", manifest.run_root);
+  if (readFileSync(devVarsPath, "utf8") !== readFileSync(path, "utf8")) {
+    throw new Error("Wrangler .dev.vars must exactly mirror runtime.env");
+  }
   const stableSha256 = runtimeEnvironmentStableSha256(rawValues);
   if (!isSha256(manifest.runtimeEnvStableSha256) || manifest.runtimeEnvStableSha256 !== stableSha256) {
     throw new Error("runtime.env stable identity hash is missing or stale in the run manifest");
@@ -479,6 +484,8 @@ export function replaceRuntimeEnvironmentSnapshot(
   }
   const bytes = `${RUNTIME_ENVIRONMENT_KEYS.map((key) => `${key}=${values[key]}`).join("\n")}\n`;
   const nextHash = writeMutableFileAtomically(current.path, bytes, 0o600, manifest.run_root);
+  const devVarsPath = resolve(manifest.run_root, "resources", "d1", ".dev.vars");
+  writeMutableFileAtomically(devVarsPath, bytes, 0o600, manifest.run_root);
   manifest = updateRunManifest(manifestPath, (value) => ({ ...value, runtimeEnvSha256: nextHash }), authority);
   const validated = validateRuntimeEnvironment(manifest, port);
   if (canonicalJson(validated.snapshot.modes) !== canonicalJson(requestedModes)) {
@@ -694,7 +701,11 @@ async function waitForReady(input: {
   while (Date.now() < deadline) {
     if (!isProcessAlive(input.pid)) throw new Error("preview exited before readiness");
     try {
-      return await fetchServerModeSnapshot(input.baseUrl, input.routePath, input.cookieHeader, 2_000);
+      // A cold authenticated Worker route can take slightly longer than two
+      // seconds before its first D1-backed render. Keep this bounded while
+      // allowing the enclosing readiness deadline to distinguish startup from
+      // a genuinely unavailable preview.
+      return await fetchServerModeSnapshot(input.baseUrl, input.routePath, input.cookieHeader, 5_000);
     } catch (error) {
       lastError = error;
       await sleep(100);
@@ -733,7 +744,33 @@ export async function stopPreviewProcess(input: {
     if (!entry.closed_port || await isPortOpen(entry.port)) throw new Error("completed preview process still owns its port");
     return entry;
   }
-  if (!isProcessAlive(entry.pid)) throw new Error("preview process disappeared without an exit outcome");
+  if (!isProcessAlive(entry.pid)) {
+    const closed = await waitForClosedPort(entry.port, input.timeoutMs ?? 10_000);
+    if (!closed) throw new Error(`preview port ${entry.port} remained open after its process exited`);
+    const stopped: PreviewProcessEntry = {
+      ...entry,
+      signal: "EXITED_BEFORE_RECOVERY",
+      closed_port: true,
+      stopped_at: nowIso(),
+    };
+    journal.processes[index] = stopped;
+    persistPreviewJournal(manifestPath, journal, authority);
+    if (isPlainObject(manifest.activePreview) && manifest.activePreview.pid === entry.pid) {
+      const activePath = assertSymlinkFreeContainedPath(
+        manifest.run_root,
+        resolve(manifest.run_root, "preview/active-preview.json"),
+        "active preview descriptor",
+        { allowMissingLeaf: true },
+      );
+      removeFileDurably(activePath, manifest.run_root);
+      updateRunManifest(manifestPath, (value) => {
+        const rest = { ...value };
+        delete rest.activePreview;
+        return rest as RuntimeRunManifest;
+      }, authority);
+    }
+    return stopped;
+  }
   let terminationSignal: "SIGTERM" | "SIGKILL" = "SIGTERM";
   try {
     if (process.platform === "win32") process.kill(entry.pid, "SIGTERM");

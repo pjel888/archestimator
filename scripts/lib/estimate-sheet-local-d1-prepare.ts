@@ -43,7 +43,8 @@ export async function openLocalD1ReadOnlyReader(databasePath: string): Promise<L
       return database.query<T, SQLQueryBindings[]>(sql).all(...binds);
     },
     close(): void {
-      database.close(true);
+      // Validation caches many prepared read queries; close without treating those cached statements as a lock failure.
+      database.close(false);
     },
   };
 }
@@ -65,26 +66,28 @@ function requireRunContainedPath(runRoot: string, path: string, label: string): 
 export function buildLocalD1PrepareCommands(input: {
   runRoot: string;
   persistRoot: string;
+  configPath: string;
   schemaPath: string;
   seedPath: string;
 }): LocalD1PrepareCommand[] {
   const runRoot = requireAbsolutePath(input.runRoot, "run root");
   const persistRoot = requireRunContainedPath(runRoot, input.persistRoot, "Wrangler persistence root");
+  const configPath = requireRunContainedPath(runRoot, input.configPath, "run-scoped Wrangler config");
   const schemaPath = requireRunContainedPath(runRoot, input.schemaPath, "Better Auth schema path");
   const seedPath = requireRunContainedPath(runRoot, input.seedPath, "fixture seed path");
   const base = ["wrangler", "d1"];
   return [
     {
       role: "better-auth-schema",
-      argv: ["bunx", ...base, "execute", "ARCH_DB", "--local", "--persist-to", persistRoot, "--file", schemaPath],
+      argv: ["bunx", ...base, "execute", "ARCH_DB", "--config", configPath, "--local", "--persist-to", persistRoot, "--file", schemaPath],
     },
     {
       role: "application-migrations",
-      argv: ["bunx", ...base, "migrations", "apply", "ARCH_DB", "--local", "--persist-to", persistRoot],
+      argv: ["bunx", ...base, "migrations", "apply", "ARCH_DB", "--config", configPath, "--local", "--persist-to", persistRoot],
     },
     {
       role: "fixture-seed",
-      argv: ["bunx", ...base, "execute", "ARCH_DB", "--local", "--persist-to", persistRoot, "--file", seedPath],
+      argv: ["bunx", ...base, "execute", "ARCH_DB", "--config", configPath, "--local", "--persist-to", persistRoot, "--file", seedPath],
     },
   ];
 }
@@ -119,6 +122,7 @@ export function executeLocalD1PrepareCommands(input: {
   const expectedCommands = buildLocalD1PrepareCommands({
     runRoot,
     persistRoot: resolve(runRoot, "wrangler-state"),
+    configPath: resolve(runRoot, "resources", "d1", "wrangler-local.json"),
     schemaPath: resolve(runRoot, "better-auth-schema.sql"),
     seedPath: resolve(runRoot, "seed.sql"),
   });

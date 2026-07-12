@@ -49,6 +49,7 @@ import {
   readAuthoritativeRunManifest,
   readPrecommitRunManifestPair,
   readJsonFile,
+  resolveRunManifestPath,
   replaceFileAtomically,
   requireUnit,
   runtimeEnvironmentStableSha256,
@@ -708,6 +709,27 @@ export function readKnownPlanPredecessor(
   return predecessor;
 }
 
+function readRetryPredecessor(
+  repoRoot: string,
+  planRoot: string,
+  plan: EstimateSheetPlanManifest,
+  unit: EstimateUnit,
+): PreparePredecessorBindingV1 | null {
+  if (!["UNIT-002", "UNIT-003", "UNIT-004"].includes(unit)) return null;
+  if (plan.runtime_evidence.latest_unit_id !== unit || !plan.runtime_evidence.latest_run_id) {
+    throw new Error("prepare retry requires the current in-progress run");
+  }
+
+  const manifest = readAuthoritativeRunManifest(
+    repoRoot,
+    resolveRunManifestPath(repoRoot, unit),
+    unit,
+  ) as ExtendedRunManifest;
+  const predecessor = normalizePreparePredecessorBinding(manifest.prepareInput.predecessor);
+  assertPredecessorImmutableLineage({ admission: { predecessor }, planRoot });
+  return predecessor;
+}
+
 function assertRefreezeFocusedTestReceipt(repoRoot: string, admission: Record<string, unknown>): void {
   const binding = admission.focused_test_receipt;
   if (!isPlainObject(binding)
@@ -1292,6 +1314,7 @@ function releaseOwnedUnitLease(candidate: PrepareRecoveryCandidate): void {
     || owner.run_id !== candidate.runId
     || typeof owner.run_root !== "string"
     || resolve(owner.run_root) !== candidate.runPath) {
+    if (!existsSync(candidate.runPath) && !existsSync(candidate.immutableRunRoot)) return;
     throw new Error("prepare unit lease is not owned by the journaled run");
   }
   removeOwnedDirectoryDurably(candidate.unitLeasePath, "prepare unit lease");
@@ -1303,6 +1326,14 @@ function recoverPrepareJournal(repoRoot: string): { result: "ROLLED_BACK" | "COM
     const journal = readPrepareTransitionJournal(repoRoot);
     const candidate = prepareRecoveryCandidate(repoRoot, journal);
     assertPrepareJournalOwnership(repoRoot, journal, candidate);
+    if (journal.state === "ALLOCATED"
+      && journal.old_plan_sha256 === journal.new_plan_sha256
+      && !existsSync(candidate.runPath)
+      && !existsSync(candidate.immutableRunRoot)) {
+      releaseOwnedUnitLease(candidate);
+      removeFileDurably(canonicalTransitionJournalPath(repoRoot));
+      return { result: "ROLLED_BACK", unit_id: journal.unit_id, run_id: journal.run_id };
+    }
     const planPath = resolvePrepareJournalPath(repoRoot, journal.plan_path, "prepare plan path");
     assertRegularFile(planPath, "prepare plan manifest");
     const planSha256 = sha256File(planPath);
@@ -1530,10 +1561,19 @@ function claimUnitLease(
     let resolved = false;
     try {
       const owner = readJsonFile<Record<string, unknown>>(resolve(leasePath, "owner.json"));
-      resolved = typeof resolvedPreviousRunId === "string"
+      const ownedRunManifest = typeof owner.run_root === "string"
+        ? resolve(owner.run_root, "run-manifest.json")
+        : null;
+      const terminalInvalidation = ownedRunManifest !== null
+        && existsSync(ownedRunManifest)
+        && readJsonFile<Record<string, unknown>>(ownedRunManifest).status === "INVALIDATED";
+      resolved = (typeof resolvedPreviousRunId === "string"
         && owner.schema_version === "estimate-sheet-unit-lease.v1"
         && owner.unit_id === unit
-        && owner.run_id === resolvedPreviousRunId;
+        && owner.run_id === resolvedPreviousRunId)
+        || (owner.schema_version === "estimate-sheet-unit-lease.v1"
+          && owner.unit_id === unit
+          && terminalInvalidation);
     } catch {
       // A malformed lease cannot be proven resolved.
     }
@@ -1663,6 +1703,34 @@ function localWranglerBinding(
   };
 }
 
+export function buildLocalPreviewWranglerConfig(input: {
+  repoRoot: string;
+  runId: string;
+  binding: { databaseName: string; databaseId: string; compatibilityDate: string };
+}): Record<string, unknown> {
+  const repoRoot = resolve(input.repoRoot);
+  return {
+    name: `estimate-performance-${input.runId}`,
+    main: resolve(repoRoot, "worker.ts"),
+    compatibility_date: input.binding.compatibilityDate,
+    compatibility_flags: ["nodejs_compat"],
+    alias: {
+      "server-only": resolve(repoRoot, "node_modules", "server-only", "empty.js"),
+    },
+    assets: {
+      directory: resolve(repoRoot, ".open-next", "assets"),
+      binding: "ASSETS",
+    },
+    d1_databases: [{
+      binding: "ARCH_DB",
+      database_name: input.binding.databaseName,
+      database_id: input.binding.databaseId,
+      // The run-local config owns D1 identity, but migrations remain the active repository inventory.
+      migrations_dir: resolve(repoRoot, "migrations"),
+    }],
+  };
+}
+
 function fixtureSeedSql(input: {
   fixture: EstimateSheetPerformanceFixture;
   ids: FixtureIds;
@@ -1714,7 +1782,7 @@ function findPreparedD1DatabasePath(persistRoot: string): string {
       if (stat.isSymbolicLink()) throw new Error(`Wrangler persistence tree contains a symbolic link: ${path}`);
       if (stat.isDirectory()) {
         visit(path);
-      } else if (stat.isFile() && entry.name.endsWith(".sqlite")) {
+      } else if (stat.isFile() && entry.name.endsWith(".sqlite") && entry.name !== "metadata.sqlite") {
         candidates.push(path);
       }
     }
@@ -1866,11 +1934,11 @@ async function provisionLocalD1(input: {
     count: migrations.length,
     migrations: preparedMigrationInventory,
   }, 0o600, input.runPath);
-  writeJsonNoOverwrite(localConfigPath, {
-    name: `estimate-performance-${input.runId}`,
-    compatibility_date: binding.compatibilityDate,
-    d1_databases: [{ binding: "ARCH_DB", database_name: binding.databaseName, database_id: binding.databaseId }],
-  }, 0o600, input.runPath);
+  writeJsonNoOverwrite(localConfigPath, buildLocalPreviewWranglerConfig({
+    repoRoot: input.repoRoot,
+    runId: input.runId,
+    binding,
+  }), 0o600, input.runPath);
 
   const timestamp = input.createdAt;
   const expiresAt = new Date(Date.parse(input.createdAt) + 24 * 60 * 60 * 1_000).toISOString();
@@ -1883,7 +1951,6 @@ async function provisionLocalD1(input: {
     email: `estimate-perf-${role}-${input.runId.slice(0, 8)}@example.invalid`,
   }));
   const seedSql = [
-    "BEGIN IMMEDIATE;",
     ...records.flatMap((record) => fixtureSeedSql({
       fixture: input.fixture,
       ids: record.ids,
@@ -1894,7 +1961,6 @@ async function provisionLocalD1(input: {
       expiresAt,
       role: record.role,
     })),
-    "COMMIT;",
     "",
   ].join("\n");
   writeNoOverwrite(seedPath, seedSql, 0o600, input.runPath);
@@ -1911,6 +1977,7 @@ async function provisionLocalD1(input: {
   const commands = buildLocalD1PrepareCommands({
     runRoot: input.runPath,
     persistRoot,
+    configPath: localConfigPath,
     schemaPath,
     seedPath,
   });
@@ -2026,7 +2093,11 @@ async function prepareResources(input: {
     "BETTER_AUTH_TRUSTED_ORIGINS",
     ...MODE_ENVIRONMENT_KEYS,
   ];
-  writeNoOverwrite(runtimeEnv, `${runtimeOrder.map((key) => `${key}=${runtimeValues[key]}`).join("\n")}\n`, 0o600, input.runPath);
+  const runtimeEnvironmentBytes = `${runtimeOrder.map((key) => `${key}=${runtimeValues[key]}`).join("\n")}\n`;
+  writeNoOverwrite(runtimeEnv, runtimeEnvironmentBytes, 0o600, input.runPath);
+  // OpenNext consumes the generated Wrangler config but drops Wrangler passthrough flags.
+  // Keep the Worker bindings in its config-local .dev.vars file instead.
+  writeNoOverwrite(resolve(input.runPath, "resources", "d1", ".dev.vars"), runtimeEnvironmentBytes, 0o600, input.runPath);
 
   const routeRole: FixtureRole = input.contract.namespaceRoles.includes("browser") ? "browser" : "mode";
   const routeRecord = d1.records.find((record) => record.role === routeRole);
@@ -2167,7 +2238,8 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       throw new Error(`${input.unit} must be READY before prepare, got ${selectedUnit?.status ?? "missing"}`);
     }
     if (retrying && (plan.runtime_evidence.latest_unit_id !== input.unit || !plan.runtime_evidence.latest_run_id
-      || plan.runtime_evidence.registry.immutable_path !== null)) {
+      || (plan.runtime_evidence.registry.immutable_path !== null
+        && plan.runtime_evidence.registry.immutable_path.includes(`/${plan.runtime_evidence.latest_run_id}-`)))) {
       throw new Error("prepare retry requires an unindexed current in-progress run");
     }
 
@@ -2217,7 +2289,10 @@ export async function prepareEstimateSheetPerformanceRun(input: {
       admissionKind,
       retrying,
     );
-    const allocationPredecessor = admission?.predecessor ?? readKnownPlanPredecessor(planRoot, plan, input.unit);
+    const allocationPredecessor = admission?.predecessor
+      ?? (retrying
+        ? readRetryPredecessor(repoRoot, planRoot, plan, input.unit)
+        : readKnownPlanPredecessor(planRoot, plan, input.unit));
     const runId = createRunId();
     const createdAt = nowIso();
     const fixture = contract.namespaceRoles.length > 0
@@ -2300,6 +2375,9 @@ export async function prepareEstimateSheetPerformanceRun(input: {
     input.faultInjector?.("ALLOCATION_JOURNALED");
     try {
       claimUnitLease(unitLeasePath, unitLeaseStagingPath, input.unit, runId, runPath, resolvedPreviousRunId);
+      ensureDirectoryDurably(runRootBase, 0o700, repoRoot);
+      ensureDirectoryDurably(immutableRunRootBase, 0o700, repoRoot);
+      ensureDirectoryDurably(runPath, 0o700, runRootBase);
       const preparedResources = await prepareResources({
         repoRoot,
         runRootBase,
@@ -2527,7 +2605,10 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 }
 
 if (import.meta.main) {
-  main()
-    .then((code) => { process.exitCode = code; })
-    .catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
+  try {
+    process.exitCode = await main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }

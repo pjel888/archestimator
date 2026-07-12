@@ -332,7 +332,15 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
     throw new Error("hosted D1 cleanup is owned by the hosted proof producer; this local cleanup command refuses it");
   }
   if (input.checkSource === false && process.env.NODE_ENV !== "test") throw new Error("source checks can be disabled only in focused tests");
-  if (input.checkSource !== false) validateSource(manifest, repoRoot);
+  let sourceInvalidated = false;
+  if (input.checkSource !== false) {
+    try {
+      validateSource(manifest, repoRoot);
+    } catch (error) {
+      if (!input.recovery || !(error instanceof Error) || error.message !== "cleanup run fingerprint differs from the prepared source") throw error;
+      sourceInvalidated = true;
+    }
+  }
   const targetReceiptCandidate = receiptPath(manifest, cleanupClass, Boolean(input.recovery));
   ensureDirectoryDurably(dirname(targetReceiptCandidate), 0o700, manifest.immutable_run_root);
   const targetReceipt = assertSymlinkFreeContainedPath(
@@ -359,7 +367,9 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
   try {
     if (cleanupClass === "local-preview") {
       const journal = readPreviewProcessJournal(manifest);
-      if (journal.processes.length === 0) throw new Error("local-preview cleanup requires a nonempty process journal");
+      if (journal.processes.length === 0 && !input.recovery) {
+        throw new Error("local-preview cleanup requires a nonempty process journal outside recovery");
+      }
       for (const entry of journal.processes) {
         if (entry.exit_code === null && entry.signal === null) {
           await stopPreviewProcess({ runManifest: manifestPath, pid: entry.pid, repoRoot, unit: input.unit });
@@ -402,7 +412,7 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
     const namespaceResults = states.map(({ path, state }) => cleanupNamespace(databasePath, path, state, manifest.run_root));
     manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit) as RuntimeCleanupManifest;
     const preexistingMismatch = namespaceResults.some((result) => result.preexistingMismatch);
-    const recovery = Boolean(input.recovery) || preexistingMismatch;
+    const recovery = Boolean(input.recovery) || sourceInvalidated || preexistingMismatch;
     const result: CleanupResult = {
       schema_version: CLEANUP_RECEIPT_SCHEMA,
       unit_id: manifest.unit_id,
@@ -444,12 +454,30 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
     }, 0o600, manifest.run_root);
     updateRunManifest(
       manifestPath,
-      (value) => ({ ...value, cleanupReceipt: targetReceipt, cleanupReceiptSha256: publishedReceiptSha256 }),
+      (value) => ({
+        ...value,
+        cleanupReceipt: targetReceipt,
+        cleanupReceiptSha256: publishedReceiptSha256,
+        status: result.invalidatedProducer ? "INVALIDATED" : "CLEANUP_VERIFIED",
+      }),
       { repoRoot, expectedUnit: input.unit },
+      { allowTerminalStatus: true },
     );
     return result;
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
+    if (input.recovery && sourceInvalidated) {
+      try {
+        updateRunManifest(
+          manifestPath,
+          (value) => ({ ...value, status: "INVALIDATED" }),
+          { repoRoot, expectedUnit: input.unit },
+          { allowTerminalStatus: true },
+        );
+      } catch (statusError) {
+        errors.push(`unable to mark invalidated run: ${statusError instanceof Error ? statusError.message : String(statusError)}`);
+      }
+    }
     const attempt: CleanupResult = {
       schema_version: "estimate-sheet-cleanup-attempt.v1",
       unit_id: manifest.unit_id,
@@ -467,7 +495,6 @@ export async function cleanupEstimateSheetPerformanceRun(input: {
       generated_at: nowIso(),
       errors,
     };
-    readAuthoritativeRunManifest(repoRoot, manifestPath, input.unit);
     writeMutableJsonAtomically(
       resolve(manifest.run_root, "cleanup/cleanup-attempt.json"),
       attempt,

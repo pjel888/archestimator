@@ -665,13 +665,20 @@ export function deriveEstimateSheetPrepareRetryTransition(
   if (manifest.next_unit !== input.unitId) throw new Error(`prepare retry requires next_unit ${input.unitId}`);
   if (recordById(manifest.units, input.unitId, "units").status !== "IN_PROGRESS") throw new Error("prepare retry requires an in-progress unit");
   if (manifest.runtime_evidence.latest_unit_id !== input.unitId || !manifest.runtime_evidence.latest_run_id) throw new Error("prepare retry must replace the current unit run");
-  if (manifest.runtime_evidence.registry.immutable_path !== null) throw new Error("prepare retry is forbidden after evidence indexing");
+  if (manifest.runtime_evidence.registry.immutable_path?.includes(`/${manifest.runtime_evidence.latest_run_id}-`)) {
+    throw new Error("prepare retry is forbidden after evidence indexing");
+  }
   if (!RUN_ID_PATTERN.test(input.runId) || !SHA256_PATTERN.test(input.runManifestSha256) || !isStrictIso(input.updatedAt)) throw new Error("prepare retry input is invalid");
   const next = cloneManifest(manifest);
   next.updated_at = input.updatedAt;
   next.runtime_evidence.transition_sequence += 1;
   next.runtime_evidence.latest_run_id = input.runId;
   next.runtime_evidence.latest_run_manifest_sha256 = input.runManifestSha256;
+  // A replacement run invalidates the current unit's terminal projection until it is re-indexed.
+  const evidenceId = ESTIMATE_SHEET_RUNTIME_PROJECTIONS.find((spec) => spec.unit_id === input.unitId)?.evidence_id;
+  if (evidenceId) {
+    recordById(next.evidence_index, evidenceId, "evidence_index").status = "STALE";
+  }
   return finalizeManifest(next);
 }
 

@@ -1609,7 +1609,6 @@ function immutableRunIdentity(manifest: RunManifestV1): Record<string, unknown> 
     prepareInput: manifest.prepareInput,
     prepareInputSha256: manifest.prepareInputSha256,
     created_at: manifest.created_at,
-    status: manifest.status,
     sourceFingerprint: manifest.sourceFingerprint,
     applicationFingerprint: manifest.applicationFingerprint,
     producerFingerprint: manifest.producerFingerprint,
@@ -1642,6 +1641,7 @@ function readPreparedRunManifestPair(
   repoRoot: string,
   path: string,
   expectedUnit?: EstimateUnit,
+  allowMutableTerminalStatus = false,
 ): { mutable: RunManifestV1; immutable: RunManifestV1; immutablePath: string } {
   const trustedRepoRoot = resolve(repoRoot);
   const manifestPath = resolve(path);
@@ -1652,7 +1652,7 @@ function readPreparedRunManifestPair(
   const mutableStat = lstatSync(manifestPath);
   const mutable = readJsonFile<RunManifestV1>(manifestPath);
   assertRunManifest(mutable);
-  if (mutable.status !== "PREPARED") {
+  if (!allowMutableTerminalStatus && mutable.status !== "PREPARED") {
     throw new Error(`authoritative run manifest status must be PREPARED, got ${mutable.status}`);
   }
   if (expectedUnit !== undefined && mutable.unit_id !== expectedUnit) {
@@ -1737,6 +1737,26 @@ export function readAuthoritativeRunManifest(
   expectedUnit?: EstimateUnit,
 ): RunManifestV1 {
   const pair = readPreparedRunManifestPair(repoRoot, path, expectedUnit);
+  const binding = readCommittedRunBinding(repoRoot);
+  if (binding.latestUnitId !== pair.mutable.unit_id || binding.latestRunId !== pair.mutable.run_id) {
+    throw new Error("run manifest does not match the plan's committed latest unit/run tuple");
+  }
+  if (!isSha256(binding.latestRunManifestSha256)) {
+    throw new Error("committed run manifest anchor is missing or invalid");
+  }
+  if (sha256File(pair.immutablePath) !== binding.latestRunManifestSha256) {
+    throw new Error("committed run manifest anchor mismatch");
+  }
+  return pair.mutable;
+}
+
+/** Validate a committed run after its mutable lifecycle state has advanced. */
+export function readLifecycleRunManifest(
+  repoRoot: string,
+  path: string,
+  expectedUnit?: EstimateUnit,
+): RunManifestV1 {
+  const pair = readPreparedRunManifestPair(repoRoot, path, expectedUnit, true);
   const binding = readCommittedRunBinding(repoRoot);
   if (binding.latestUnitId !== pair.mutable.unit_id || binding.latestRunId !== pair.mutable.run_id) {
     throw new Error("run manifest does not match the plan's committed latest unit/run tuple");

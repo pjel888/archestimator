@@ -13,7 +13,7 @@ import {
   fingerprintContentEqual,
   isPlainObject,
   parseStrictCli,
-  readAuthoritativeRunManifest,
+  readLifecycleRunManifest,
   readJsonFile,
   requireUnit,
   resolveManifestLogicalOutput,
@@ -138,7 +138,11 @@ function validatePointer(manifest: RuntimeValidationManifest, artifacts: string[
     const pointer = readJsonFile<unknown>(expectedPath);
     const expectedKeys = [
       "application_fingerprint",
+      "cleanupRequirement",
+      "immutable_run_root",
+      "logical_outputs",
       "producer_fingerprint",
+      "prepareInputSha256",
       "run_id",
       "run_manifest",
       "run_root",
@@ -151,7 +155,11 @@ function validatePointer(manifest: RuntimeValidationManifest, artifacts: string[
       || pointer.unit_id !== manifest.unit_id
       || pointer.run_id !== manifest.run_id
       || resolve(String(pointer.run_root)) !== resolve(manifest.run_root)
+      || resolve(String(pointer.immutable_run_root)) !== resolve(manifest.immutable_run_root)
       || pointer.run_manifest !== "run-manifest.json"
+      || pointer.prepareInputSha256 !== manifest.prepareInputSha256
+      || pointer.cleanupRequirement !== manifest.cleanupRequirement
+      || canonicalJson(pointer.logical_outputs) !== canonicalJson(manifest.logical_outputs)
       || pointer.application_fingerprint !== manifest.applicationFingerprint.content_sha256
       || pointer.producer_fingerprint !== manifest.producerFingerprint.content_sha256) {
       errors.push("run pointer schema or manifest binding is invalid");
@@ -575,7 +583,7 @@ export async function validateEstimateSheetPerformanceRun(input: {
   try {
     if (!privateRegular(manifestPath, "run manifest", errors)) throw new Error(errors.at(-1) ?? "run manifest unavailable");
     const expectedUnit = input.unit ?? requireUnit(relative(defaultRunRoot(repoRoot), manifestPath).replaceAll("\\", "/").split("/")[0]);
-    manifest = readAuthoritativeRunManifest(repoRoot, manifestPath, expectedUnit) as RuntimeValidationManifest;
+    manifest = readLifecycleRunManifest(repoRoot, manifestPath, expectedUnit) as RuntimeValidationManifest;
     artifacts.push(manifestPath);
   } catch (error) {
     return {
@@ -600,7 +608,9 @@ export async function validateEstimateSheetPerformanceRun(input: {
   if (resolve(manifest.run_root, "run-manifest.json") !== manifestPath) errors.push("run_root does not contain run-manifest.json");
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(manifest.run_id)) errors.push("run_id is not a v4 UUID");
   if (!basename(manifest.run_root).startsWith(`${manifest.run_id}-`)) errors.push("run root name does not begin with the run UUID");
-  if (manifest.status !== "PREPARED") errors.push("run manifest status must remain PREPARED until indexing");
+  if (!(["PREPARED", "CLEANUP_VERIFIED", "INVALIDATED"] as const).includes(manifest.status)) {
+    errors.push("run manifest status is not valid for runtime validation");
+  }
   const pointerValid = validatePointer(manifest, artifacts, errors);
   validateNamespaces(manifest, errors);
 

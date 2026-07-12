@@ -42,6 +42,7 @@ import {
   nowIso,
   parseStrictCli,
   readAuthoritativeRunManifest,
+  readLifecycleRunManifest,
   readRefreezeRebindRunManifestPair,
   readJsonFile,
   replaceFileAtomically,
@@ -940,7 +941,7 @@ function currentRunManifest(repoRoot: string, unitId: EstimateUnit, runId: strin
       && /^[0-9a-f]{12}-[0-9a-f]{12}$/u.test(entry.name.slice(runId.length + 1)))
     .map((entry) => resolve(unitRoot, entry.name, "run-manifest.json"))
     .filter((path) => existsSync(path))
-    .map((path) => readAuthoritativeRunManifest(repoRoot, path, unitId))
+    .map((path) => readLifecycleRunManifest(repoRoot, path, unitId))
     .filter((manifest) => manifest.unit_id === unitId && manifest.run_id === runId);
   if (matches.length !== 1) throw new Error(`run manifest identity is ambiguous for ${unitId}/${runId}`);
   return matches[0]!;
@@ -1018,7 +1019,10 @@ export function reopenEstimateSheetUnitOne(input: {
       }
     }
     const updatedAt = nowIso();
-    const next = deriveEstimateSheetRefreezeReopenTransition(plan, { updatedAt });
+    const next = deriveEstimateSheetRefreezeReopenTransition(plan, {
+      updatedAt,
+      runManifestSha256: sha256File(resolve(journalRoot, "run-manifest.json")),
+    });
     commitEstimateSheetPlanOnlyTransition({
       repoRoot,
       planPath,

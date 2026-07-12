@@ -1,4 +1,4 @@
-import { createTestReceipt, loadRunFingerprints, readReceiptEnvironment, writeTestReceipt, type TestReceiptInput } from "./estimate-sheet-performance-test-receipt";
+import { createTestReceipt, loadRunFingerprints, readFocusedRefreezeBinding, readReceiptEnvironment, writeTestReceipt, type TestReceiptInput } from "./estimate-sheet-performance-test-receipt";
 import { fingerprintContentEqual, type FingerprintContent } from "./estimate-sheet-performance-contract";
 import { type TestReceiptV1 } from "./estimate-sheet-performance-contract";
 
@@ -154,6 +154,9 @@ export class EstimateSheetVitestReporter {
     const runId = this.options.runId ?? env.runId;
     if (!runRoot || !unitId || !runId) throw new Error("reporter environment has no run identity");
     const authoritative = env.authoritativeManifestPath ? loadRunFingerprints(runRoot, unitId) : undefined;
+    const refreeze = env.focusedAdmissionPath && env.role
+      ? readFocusedRefreezeBinding(process.cwd(), env.focusedAdmissionPath, env.role)
+      : undefined;
     if (authoritative && (authoritative.run.run_id !== runId || authoritative.run.run_root !== runRoot)) {
       throw new Error("reporter run identity differs from its authoritative manifest");
     }
@@ -172,8 +175,8 @@ export class EstimateSheetVitestReporter {
     }
     const fingerprints = {
       ...this.options,
-      applicationFingerprint: authoritative?.application ?? this.options.applicationFingerprint,
-      producerFingerprint: authoritative?.producer ?? this.options.producerFingerprint,
+      applicationFingerprint: authoritative?.application ?? refreeze?.run.applicationFingerprint ?? this.options.applicationFingerprint,
+      producerFingerprint: authoritative?.producer ?? refreeze?.run.producerFingerprint ?? this.options.producerFingerprint,
     };
     const receipt = buildVitestReceipt({
       results: files,

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   COMMAND_RECEIPT_SCHEMA,
@@ -235,6 +235,28 @@ function buildArtifactHash(repoRoot: string, role: string): string | null {
   return null;
 }
 
+type GeneratedNextEnvSnapshot = {
+  path: string;
+  bytes: Buffer | null;
+};
+
+function snapshotGeneratedNextEnv(repoRoot: string, role: string): GeneratedNextEnvSnapshot | null {
+  if (role !== "opennext-build") return null;
+  const path = resolve(repoRoot, "next-env.d.ts");
+  return { path, bytes: existsSync(path) ? readFileSync(path) : null };
+}
+
+function restoreGeneratedNextEnv(snapshot: GeneratedNextEnvSnapshot | null): void {
+  if (!snapshot) return;
+  if (snapshot.bytes === null) {
+    if (existsSync(snapshot.path)) unlinkSync(snapshot.path);
+    return;
+  }
+  if (!existsSync(snapshot.path) || !readFileSync(snapshot.path).equals(snapshot.bytes)) {
+    writeFileSync(snapshot.path, snapshot.bytes, { mode: 0o644 });
+  }
+}
+
 export function runEstimateSheetPerformanceGate(input: {
   repoRoot?: string;
   runManifest?: string;
@@ -264,7 +286,14 @@ export function runEstimateSheetPerformanceGate(input: {
   for (const binding of childOutputBindings) childEnv[binding.env_key] = binding.immutable_path;
   const spawn = input.spawn ?? spawnSync;
   readAuthoritativeRunManifest(repoRoot, resolveRunManifestPath(repoRoot, unit, input.runManifest), unit);
-  const child = spawn(input.command[0], input.command.slice(1), { cwd: repoRoot, env: childEnv, shell: false, encoding: "utf8", timeout: 5 * 60_000, stdio: ["ignore", "pipe", "pipe"] });
+  const nextEnvSnapshot = snapshotGeneratedNextEnv(repoRoot, input.role);
+  const child = (() => {
+    try {
+      return spawn(input.command[0], input.command.slice(1), { cwd: repoRoot, env: childEnv, shell: false, encoding: "utf8", timeout: 5 * 60_000, stdio: ["ignore", "pipe", "pipe"] });
+    } finally {
+      restoreGeneratedNextEnv(nextEnvSnapshot);
+    }
+  })();
   const ended = Date.now();
   const stdout = String(child.stdout ?? "");
   const stderr = String(child.stderr ?? "");

@@ -636,7 +636,11 @@ function fingerprintPairFromEvidence(value: Record<string, unknown>): {
   return pair;
 }
 
-function resolvePredecessorBinding(repoRoot: string, predecessorUnit: EstimateUnit): PredecessorBinding {
+function resolvePredecessorBinding(
+  repoRoot: string,
+  predecessorUnit: EstimateUnit,
+  options: { allowSuccessorInProgress?: boolean } = {},
+): PredecessorBinding {
   const planRoot = defaultPlanRoot(repoRoot);
   const plan = readJsonFile<RuntimePlan>(resolve(planRoot, "plan-pack.json"));
   const successor = SUCCESSOR_BY_UNIT[predecessorUnit];
@@ -647,7 +651,10 @@ function resolvePredecessorBinding(repoRoot: string, predecessorUnit: EstimateUn
   if (!predecessor || !["VERIFIED", "SUPERSEDED"].includes(predecessor.status)) {
     throw new Error(`${predecessorUnit} is not terminal`);
   }
-  if (plan.runtime_evidence.latest_unit_id !== predecessorUnit || !plan.runtime_evidence.latest_run_id) {
+  const successorInProgress = options.allowSuccessorInProgress === true
+    && plan.runtime_evidence.latest_unit_id === successor
+    && plan.units.find((unit) => unit.id === successor)?.status === "IN_PROGRESS";
+  if ((plan.runtime_evidence.latest_unit_id !== predecessorUnit && !successorInProgress) || !plan.runtime_evidence.latest_run_id) {
     throw new Error("plan runtime latest identity does not match the predecessor");
   }
   const registry = plan.runtime_evidence.registry;
@@ -657,7 +664,7 @@ function resolvePredecessorBinding(repoRoot: string, predecessorUnit: EstimateUn
   const index = readJsonFile<EvidenceIndex>(indexPath);
   if (index.schema_version !== "estimate-sheet-evidence-index.v1"
     || index.unit_id !== predecessorUnit
-    || index.run_id !== plan.runtime_evidence.latest_run_id
+    || (!successorInProgress && index.run_id !== plan.runtime_evidence.latest_run_id)
     || !["VERIFIED", "SUPERSEDED"].includes(index.status)
     || index.evidence.length !== 1) {
     throw new Error("predecessor evidence index identity is invalid");
@@ -815,6 +822,84 @@ function recordRefreezeAdmission(input: {
     try { rmSync(focusedRunRoot, { recursive: true, force: true }); } catch { /* preserve primary error */ }
     throw error;
   }
+  return receipt;
+}
+
+function recordRefreezeContinuation(input: {
+  repoRoot: string;
+  priorAdmissionPath: string;
+  output: string;
+  repairReason: string;
+  allowedApplicationPaths: string[];
+  allowedProducerPaths: string[];
+}): Record<string, unknown> {
+  const priorPath = assertAdmissionOutputPath(input.repoRoot, input.priorAdmissionPath);
+  const prior = readJsonFile<Record<string, unknown>>(priorPath);
+  const priorPayload = structuredClone(prior);
+  const priorHash = priorPayload.payload_sha256;
+  delete priorPayload.payload_sha256;
+  if (prior.schema_version !== "estimate-sheet-refreeze-admission.v1" || prior.status !== "RECORDED" || priorHash !== sha256Json(priorPayload)) {
+    throw new Error("prior refreeze admission is invalid");
+  }
+  const priorReceiptPath = finalizedRefreezeReceiptPath(priorPath);
+  const priorReceipt = readJsonFile<Record<string, unknown>>(priorReceiptPath);
+  const receiptPayload = structuredClone(priorReceipt);
+  const receiptHash = receiptPayload.payload_sha256;
+  delete receiptPayload.payload_sha256;
+  if (priorReceipt.schema_version !== "estimate-sheet-refreeze-receipt.v1" || receiptHash !== sha256Json(receiptPayload)) {
+    throw new Error("prior refreeze receipt is invalid");
+  }
+  const current = computeEstimateSheetSourceFingerprint({ repoRoot: input.repoRoot }).fingerprint;
+  const priorPredecessor = prior.predecessor;
+  const predecessor = resolvePredecessorBinding(input.repoRoot, "UNIT-001", { allowSuccessorInProgress: true });
+  const scopeRecords = prior.input_scope_records;
+  const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
+  if (!isRecord(priorPredecessor) || !isRecord(scopeRecords)
+    || !Array.isArray(scopeRecords.application) || !Array.isArray(scopeRecords.producer)) {
+    throw new Error("prior refreeze admission lineage is invalid");
+  }
+  const validatePaths = (paths: string[], label: string): string[] => {
+    const unique = [...new Set(paths)].sort(bytewisePathSort);
+    if (!unique.length || unique.some((path) => !isSafeRelativePath(path))) throw new Error(`invalid ${label} continuation allowlist`);
+    return unique;
+  };
+  const outputPath = assertAdmissionOutputPath(input.repoRoot, input.output);
+  const inputApplication = predecessor.application_fingerprint;
+  const inputProducer = predecessor.producer_fingerprint;
+  if (!fingerprintContentEqual(inputApplication, predecessor.application_fingerprint)
+    || !fingerprintContentEqual(inputProducer, predecessor.producer_fingerprint)) {
+    throw new Error("prior refreeze admission input fingerprints are invalid");
+  }
+  const focusedRunId = createRunId();
+  const focusedRunRoot = `${outputPath.slice(0, -".json".length)}.run`;
+  ensureDirectoryDurably(resolve(outputPath, ".."), 0o700, input.repoRoot);
+  ensureDirectoryDurably(focusedRunRoot, 0o700, input.repoRoot);
+  const createdAt = new Date().toISOString();
+  const run: RunManifestV1 = {
+    schema_version: "estimate-sheet-performance-run.v1", package_id: "PLAN-2026-07-08-project-estimate-sheet-performance",
+    unit_id: "UNIT-002", run_id: focusedRunId, profile: "artifact-only", cleanupRequirement: "NOT_APPLICABLE",
+    run_root: focusedRunRoot, pointer_path: resolve(focusedRunRoot, "run-pointer.json"), created_at: createdAt, status: "PREPARED",
+    sourceFingerprint: { ...current, application: inputApplication, producer: inputProducer }, applicationFingerprint: inputApplication, producerFingerprint: inputProducer,
+    namespaces: {}, mutationJournal: [], previewProcesses: [],
+  };
+  const runManifestPath = resolve(focusedRunRoot, "run-manifest.json");
+  writeJsonNoOverwrite(runManifestPath, run, 0o600, focusedRunRoot);
+  writeJsonNoOverwrite(run.pointer_path, { schema_version: "estimate-sheet-performance-run-pointer.v1", unit_id: run.unit_id, run_id: run.run_id, run_root: run.run_root, run_manifest: "run-manifest.json", application_fingerprint: inputApplication.content_sha256, producer_fingerprint: inputProducer.content_sha256 }, 0o600, focusedRunRoot);
+  const receipt = payloadWithHash({
+    schema_version: "estimate-sheet-refreeze-admission.v1", status: "RECORDED", unit_id: "UNIT-002", replacement_unit_id: "UNIT-001",
+    predecessor, repair_reason: input.repairReason, allowed_application_paths: validatePaths(input.allowedApplicationPaths, "application"), allowed_producer_paths: validatePaths(input.allowedProducerPaths, "producer"),
+    input_application_fingerprint: inputApplication, input_producer_fingerprint: inputProducer,
+    input_scope_records: scopeRecords,
+    continuation_of: {
+      admission_path: relative(input.repoRoot, priorPath).split(sep).join("/"),
+      admission_sha256: sha256File(priorPath),
+      receipt_path: relative(input.repoRoot, priorReceiptPath).split(sep).join("/"),
+      receipt_sha256: sha256File(priorReceiptPath),
+    },
+    focused_run: { run_id: focusedRunId, run_root: relative(input.repoRoot, focusedRunRoot).split(sep).join("/"), unit_id: "UNIT-002", receipt_role: "refreeze-tests", run_manifest_sha256: sha256File(runManifestPath) },
+    created_at: createdAt,
+  });
+  writeJsonNoOverwrite(outputPath, receipt, 0o600, input.repoRoot);
   return receipt;
 }
 
@@ -988,6 +1073,8 @@ export function main(argv = process.argv.slice(2)): number {
     "verify-predecessor-unit",
     "record-admission",
     "record-refreeze-admission",
+    "record-refreeze-continuation",
+    "prior-refreeze-admission",
     "repair-reason",
     "finalize-refreeze-admission",
     "tests",
@@ -998,6 +1085,7 @@ export function main(argv = process.argv.slice(2)): number {
       "Usage: bun run scripts/compute-estimate-sheet-source-fingerprint.ts [--output=PATH] [--compare-reference=PATH] [--verify]",
       "       bun run scripts/compute-estimate-sheet-source-fingerprint.ts --verify-predecessor-unit=UNIT-004 --record-admission=PATH",
       "       bun run scripts/compute-estimate-sheet-source-fingerprint.ts --verify-predecessor-unit=UNIT-001 --record-refreeze-admission=PATH --repair-reason=REASON --allow-application-path=PATH --allow-producer-path=PATH",
+      "       bun run scripts/compute-estimate-sheet-source-fingerprint.ts --record-refreeze-continuation=PATH --prior-refreeze-admission=PATH --repair-reason=REASON --allow-application-path=PATH --allow-producer-path=PATH",
       "       bun run scripts/compute-estimate-sheet-source-fingerprint.ts --finalize-refreeze-admission=PATH --tests=auto:refreeze-tests",
     ].join("\n"));
     return 0;
@@ -1009,8 +1097,10 @@ export function main(argv = process.argv.slice(2)): number {
   }
   const recordAdmissionPath = cliString(values, "record-admission");
   const recordRefreezePath = cliString(values, "record-refreeze-admission");
+  const recordRefreezeContinuationPath = cliString(values, "record-refreeze-continuation");
+  const priorRefreezeAdmissionPath = cliString(values, "prior-refreeze-admission");
   const finalizeRefreezePath = cliString(values, "finalize-refreeze-admission");
-  const operationCount = [recordAdmissionPath, recordRefreezePath, finalizeRefreezePath].filter(Boolean).length;
+  const operationCount = [recordAdmissionPath, recordRefreezePath, recordRefreezeContinuationPath, finalizeRefreezePath].filter(Boolean).length;
   if (operationCount > 1) throw new Error("fingerprint admission operations are mutually exclusive");
   const requireProducerEquality = cliBoolean(values, "require-producer-equality");
 
@@ -1044,6 +1134,22 @@ export function main(argv = process.argv.slice(2)): number {
     return 0;
   }
 
+  if (recordRefreezeContinuationPath) {
+    if (requireProducerEquality || predecessorUnit || !priorRefreezeAdmissionPath) {
+      throw new Error("refreeze continuation requires only its prior admission, repair reason, and allowlists");
+    }
+    const receipt = recordRefreezeContinuation({
+      repoRoot,
+      priorAdmissionPath: priorRefreezeAdmissionPath,
+      output: recordRefreezeContinuationPath,
+      repairReason: cliString(values, "repair-reason", true) as string,
+      allowedApplicationPaths: repeated["allow-application-path"]!,
+      allowedProducerPaths: repeated["allow-producer-path"]!,
+    });
+    process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+    return 0;
+  }
+
   if (finalizeRefreezePath) {
     if (requireProducerEquality) throw new Error("refreeze finalization does not accept --require-producer-equality");
     if (predecessorUnit || repeated["allow-application-path"]!.length || repeated["allow-producer-path"]!.length) {
@@ -1056,6 +1162,7 @@ export function main(argv = process.argv.slice(2)): number {
     return 0;
   }
 
+  if (priorRefreezeAdmissionPath) throw new Error("--prior-refreeze-admission requires --record-refreeze-continuation");
   if (predecessorUnit) throw new Error("--verify-predecessor-unit requires an admission recording operation");
   if (requireProducerEquality) throw new Error("--require-producer-equality requires --record-admission");
   if (repeated["allow-application-path"]!.length || repeated["allow-producer-path"]!.length) {
