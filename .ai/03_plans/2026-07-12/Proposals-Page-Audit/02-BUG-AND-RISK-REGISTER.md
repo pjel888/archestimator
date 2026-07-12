@@ -21,13 +21,21 @@ the full evidence on `DEEP` entries.
 
 ## P0 — blocks the proposals feature entirely
 
-### P0-1 · Email deliverability: Cloudflare Email Sending never onboarded (nameservers on Namecheap) (`DOMAIN`, rounds 6-10)
+### P0-1 · Email deliverability — **MOSTLY RESOLVED; 1 record + verification remain** (`DOMAIN`, rounds 6-11, live-verified 2026-07-12)
 
-- **Root cause (sharpened round 10 via `.ai/10_state/current-state.md`):** public nameservers for `archestimator.com` are at **Namecheap**, not Cloudflare. Cloudflare Email Sending (`send_email` binding) requires an **active Cloudflare zone** (DNS hosted on Cloudflare). The project's own evidence records: *"`wrangler email sending list` still reports no Email Sending domains/subdomains. A direct `wrangler email sending enable archestimator.com` attempt failed with Cloudflare API error `Active zone required [code: 2009]`."* So this is not merely an SPF mismatch — **the email substrate the proposals feature depends on is not production-wired.**
-- **Secondary evidence (DNS 2026-07-12):** SPF → `include:spf.efwd.registrar-servers.com ~all` (Namecheap); MX → five `eforward*.registrar-servers.com` (Namecheap); DMARC → `p=none`; no DKIM. `wrangler.jsonc:28-32` declares the `EMAIL` binding but it has no backing sending domain.
-- **Impact:** the proposals feature routes invitations through `sendCloudflareEmail` when `ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email`. Under that provider, **invitations cannot be sent at all** (sending domain not onboarded). Under the Resend fallback, SPF/DKIM need to be (re)verified against the current DNS. Either way, a recipient who never receives the invitation never opens the proposal, never sees the inbox. **The code can be perfect; the mail never arrives.** Defeats the entire feature for first users.
-- **Fix (copy-paste-ready playbook in `20-EMAIL-DNS-FIX-PLAYBOOK.md`):** owner picks Option A (migrate DNS to Cloudflare → onboard Email Sending) or Option B (stay on Namecheap → re-enable Resend path). Exact DNS records, CLI commands, and verification steps are in `20`. No application code changes — provider is already a flag (`ARCHESTIMATOR_EMAIL_PROVIDER`).
-- **Test decision:** final verification is `TEST_TASK`-gated (real send to Gmail + Outlook external inboxes).
+> **MAJOR UPDATE (round 11, live verification):** the round-7 finding was based on **stale state docs** (`2026-06-30-cloudflare-email-readiness`). On 2026-07-12 the live state is dramatically better:
+> - **Nameservers ARE on Cloudflare** now (`carl.ns.cloudflare.com`, `ziggy.ns.cloudflare.com`) — not Namecheap.
+> - **Email Sending IS enabled** (`enabled: yes`, tag `894a8c44…`, since 2026-07-01).
+> - **All 5 required DNS records for the `cf-bounce` return-path are PUBLISHED and correct**: MX (3 Cloudflare routes), SPF (`_spf.mx.cloudflare.net`), DKIM (RSA key).
+> - DMARC alignment is **relaxed-aligned** (cf-bounce subdomain → archestimator.com organizational domain) — outbound Cloudflare mail should **pass SPF + DKIM + DMARC**.
+
+- **The original "P0" severity was correct based on the June 30 evidence, but is now largely resolved.** The email substrate IS production-wired. The remaining gap is narrow:
+- **Remaining gap (1 record):** `_dmarc.archestimator.com` is still `p=none` (monitoring only). Cloudflare recommends `p=reject`, but `p=none` does not *block* delivery — it only means non-compliant mail isn't enforced. **This is no longer P0** — mail will deliver with `p=none`.
+- **Downgrade: P0 → P2** (DMARC tightening + real-send verification). The feature-blocking substrate problem is resolved; what's left is hardening + proof.
+- **Remaining actions:**
+  1. **DMARC tighten** (`p=none` → `p=quarantine`, monitor 1 week, then `p=reject`). Owner dashboard action on Cloudflare DNS. Safe per alignment analysis (cf-bounce is relaxed-aligned to archestimator.com).
+  2. **Real-send verification** (`TEST_TASK`): send a proposal invitation to a real Gmail + Outlook test inbox; confirm SPF/DKIM/DMARC pass in the received headers.
+- **No code changes needed** — `ARCHESTIMATOR_EMAIL_PROVIDER`, `CLOUDFLARE_EMAIL_FROM`, `CLOUDFLARE_EMAIL_REPLY_TO`, `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` are all configured as deployed Worker secrets.
 
 ---
 

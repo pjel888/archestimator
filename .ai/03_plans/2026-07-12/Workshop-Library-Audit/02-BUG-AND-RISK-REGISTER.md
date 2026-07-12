@@ -695,7 +695,121 @@
   load; configure `[limits] cpu_ms` if longer budget is needed; return a
   degraded "workspace too large, refine your filter" response instead of a 500.
 
-### BUG-SEC-07 [P2] — images GET skips the editor gate (asymmetry vs POST/DELETE + attachments)
+### BUG-OPS-14 [P1] — orphan-reaping design is structurally incapable of catching the orphans the pack identified
+
+- **Location:** `src/lib/uploads/cleanup-job.ts:466-488` (reaper selects only
+  `upload_assets WHERE status='deleted'` + `upload_sessions WHERE status IN
+  ('reserved','failed','expired','deleted')`); `src/lib/uploads/cleanup.ts:108-167`
+  (`cleanupReasonFor` returns `null` → `not_cleanup_eligible` for anything else,
+  incl. `finalized`). No generic unreferenced-object sweep (grep
+  `orphan|unreferenced|dangling|reap|gc` in cleanup paths = empty).
+- **What:** the reaper is **100% status-column-driven**. It can only reap objects
+  whose `upload_assets.status='deleted'` or whose session has expired. But the
+  orphan classes the pack identified are:
+  - **BUG-P1-02** (`finalized`-session-no-asset) — `finalized` is not in either
+    SELECT's status filter → permanent orphan.
+  - **BUG-VA-01** (variant attachments never persisted) — object sits in R2 +
+    `upload_assets(finalized)`, no `cost_library_item_variant_attachments` link →
+    never becomes `deleted` → permanent orphan, unreachable from the UI.
+  - Archived components' images/attachments — archive never sets `deleted` →
+    permanent.
+- **Impact:** R2 orphans from the known buggy write paths accumulate **forever**.
+  No R2 lifecycle/expiration policy is configured either (`wrangler.jsonc:33-39`
+  has no rules; R2 lifecycle must be set via dashboard/API — none referenced in
+  code/docs). This is a slow cost leak that compounds with every failed upload
+  + every archived component.
+- **Recommended surface:** add either (a) a generic unreferenced-object
+  reconciliation (`LEFT JOIN ... WHERE pk IS NULL` or periodic `r2.list()` sweep),
+  or (b) a broader status filter + a transition path that marks the BUG-P1-02/
+  VA-01/archive orphans `deleted`. Configure an R2 lifecycle rule as defense-in-
+  depth.
+- **Proof class:** source inspection (grep confirms status-filter + no generic
+  sweep + no lifecycle policy).
+
+### BUG-OPS-15 [P2] — reaper never updates `upload_assets.status` after reaping; backlog never drains
+
+- **Location:** `src/lib/uploads/cleanup-job.ts:279-385` — writes `upload_events`
+  (audit) but **never** `UPDATE upload_assets`/`SET status` (grep
+  `UPDATE upload_assets|SET status` in cleanup-job.ts = empty).
+- **What:** after reaping (R2 `removeObjects`), the `upload_assets` rows stay at
+  `status='deleted'`. The next cron tick re-selects the same rows and re-attempts
+  R2 delete (a no-op on missing keys — effectively idempotent at the storage
+  layer) and re-emits audit events. The candidates **never leave the backlog**.
+  Once ≥250 `deleted` rows accumulate, the `cleanup_backlog` alert
+  (`cleanup.ts:254-266`) fires **permanently**.
+- **Impact:** operational noise + a backlog that can only grow; alert fatigue.
+- **Recommended surface:** after successful reaping, hard-delete or mark the
+  `upload_assets`/`upload_sessions` rows reaped (e.g. `status='reaped'` or
+  `DELETE`) so the backlog drains.
+
+### BUG-OPS-16 [P2] — images/attachments DELETE routes delete R2 but never reconcile DB rows
+
+- **Location:** `src/app/api/component-library/images/route.ts:312-329` (DELETE
+  → `removeObjects` only; no `upload_assets` update/delete);
+  `src/app/api/component-library/attachments/route.ts:533-572` (DELETE →
+  `removeObjects` only; no `cost_library_item_variant_attachments` or
+  `upload_assets` update/delete).
+- **What:** the DELETE routes remove the R2 object but leave the DB rows at
+  `status='finalized'` (images) / unchanged (attachments). Result: dangling DB
+  rows — GET-by-path would 404 while DB says live; the reaper never learns the
+  object was deleted (it only reaps `status='deleted'`, which neither route
+  sets). The correct pattern for this design is DB-soft-delete (`status='deleted'`)
+  FIRST, then reaper deletes R2 — which is exactly what the reaper exists for but
+  neither route uses.
+- **Impact:** DB/R2 inconsistency; orphan-reaper can't observe these deletes;
+  archived components' objects are never cleaned (no path marks them `deleted`).
+- **Recommended surface:** DELETE routes should `UPDATE upload_assets SET
+  status='deleted'` (let the reaper handle R2), mirroring the designed pattern.
+
+### BUG-OPS-17 [P2] — upload-jobs DLQ has no consumer/alert; provider-proof receipt skipped for real messages
+
+- **Location:** `wrangler.jsonc:98` (DLQ `archestimator-upload-jobs-dlq`
+  configured); `src/lib/cloudflare/upload-job-queue.ts:234` (provider-proof
+  receipt early-returns when `providerProof.id` absent — and real cron messages
+  built at `:124-141` never set it); `alert-scenarios.ts:134-161` (S-04 DLQ alert
+  is generic synthetic probe, not an upload-jobs-DLQ-specific depth poller);
+  `worker.ts:268-282` (no DLQ consumer).
+- **What:** the DLQ exists and the runtime routes exhausted messages to it, but
+  (a) nothing consumes `archestimator-upload-jobs-dlq`, (b) no app code polls its
+  depth, (c) for real production messages the R2 proof-receipt is **never
+  written** (skipped at `:234`), so the only trace is a `console.log` batch
+  summary. A persistently-failing cleanup/scan job silently accumulates in the
+  DLQ until someone manually inspects the Cloudflare dashboard.
+- **Impact:** silent failure accumulation in the DLQ; no alerting on the library
+  upload-pipeline's dead letters.
+- **Recommended surface:** add a DLQ consumer or a depth-poll alert specific to
+  `archestimator-upload-jobs-dlq`; write the proof-receipt for real messages too
+  (or replace it with structured logging).
+
+### BUG-OPS-18 [P3] — IMAGES binding failure collapses to misleading `decode-error` (no sharp fallback)
+
+- **Location:** `src/lib/uploads/server-image-processing.ts:171-173` (`catch` →
+  `decode-error`); `src/app/api/component-library/images/route.ts:238-240`
+  (maps `decode-error` → 400 "Could not decode image safely").
+- **What:** when provider is `cloudflare-images` and the binding hiccups (auth,
+  rate-limit, transient 5xx), the catch collapses ALL failures to `decode-error`,
+  the route returns a misleading client-side "bad image" 400, and there's **no
+  fallback to `sharp`** (the function returns immediately without trying Node).
+  By contrast, when provider is NOT `cloudflare-images`, `loadSharp()` is tried.
+  The asymmetry means a Cloudflare Images outage fails uploads hard with a
+  confusing error rather than degrading. (No cost leak — IMAGES is used
+  transcode-and-return-bytes only, no stored copies: `server-image-processing.ts:
+  125-174`, `.input().transform().output()`.)
+- **Recommended surface:** on IMAGES binding failure, fall back to `sharp`;
+  distinguish binding errors from genuine decode errors in the status.
+
+### Defenses confirmed (positive record)
+
+- **DLQ IS configured** for the upload-jobs queue (`wrangler.jsonc:98`) — corrects
+  any assumption there's no DLQ. Poison messages are contained to 3 attempts then
+  DLQ'd and do NOT block their batch (`upload-job-queue.ts:341,373,389`).
+- **IMAGES binding stores no copies** — used only for on-the-fly
+  `input/transform/output` transcoding (`server-image-processing.ts:125-174`,
+  `provider-proof-router.ts:146-150`); the durable store is R2 only. No Cloudflare
+  Images per-image-storage cost leak.
+- **R2 delete of missing keys is a no-op** — so the never-draining backlog
+  (BUG-OPS-15) is *effectively* idempotent at the storage layer (no double-free
+  crash), even though the backlog + audit events accumulate.
 
 - **Location:** `src/app/api/component-library/images/route.ts` — GET handler
   (`:174-193`) requires session + workspace match (`parsedPath.workspaceId !==
