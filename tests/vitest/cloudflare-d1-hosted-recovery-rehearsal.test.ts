@@ -123,7 +123,7 @@ describe("Cloudflare D1 hosted recovery executor", () => {
         if (args[0] === "d1" && args[1] === "delete") deleted = true;
         if (args[1] === "export") {
           const output = args[args.indexOf("--output") + 1]!;
-          writeFileSync(output, "CREATE TABLE recovery_probe (id TEXT);");
+          writeFileSync(output, 'INSERT INTO "feature_flags" ("id") VALUES ("fixture-feature-flag");');
         }
         return { status: 0, stdout: args[0] === "deploy"
           ? "https://archestimator-recovery-test.workers.dev"
@@ -142,13 +142,10 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(commands.slice(0, 3).map((args) => args.slice(0, 2).join(" "))).toEqual([
       "d1 create", "d1 list", "d1 execute",
     ]);
-    expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 export").length).toBeGreaterThan(0);
-    for (const args of commands.filter((command) => command.slice(0, 2).join(" ") === "d1 export")) {
-      expect(args).toContain("--table");
-      expect(args).toContain("--no-schema");
-      expect(args).not.toContain("account");
-      expect(args).not.toContain("session");
-    }
+    const exports = commands.filter((args) => args.slice(0, 2).join(" ") === "d1 export");
+    expect(exports).toHaveLength(1);
+    expect(exports[0]).toContain("--no-schema");
+    expect(exports[0]).not.toContain("--table");
     expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 execute").length).toBeGreaterThan(0);
     expect(commands.slice(-3).map((args) => args.slice(0, 2).join(" "))).toEqual([
       "delete --name", "d1 delete", "d1 list",
@@ -175,12 +172,14 @@ describe("Cloudflare D1 hosted recovery executor", () => {
         if (args[0] === "d1" && args[1] === "delete") deleted = true;
         if (args[1] === "export") {
           const output = args[args.indexOf("--output") + 1]!;
-          const table = args[args.indexOf("--table") + 1]!;
-          writeFileSync(output, `INSERT INTO "${table}" ("id") VALUES ("fixture-${table}");`);
+          writeFileSync(output, [
+            'INSERT INTO "feature_flags" ("id") VALUES ("fixture-feature-flag");',
+            'INSERT INTO "account" ("id", "accessToken") VALUES ("credential-id", "credential-value");',
+          ].join("\n"));
         }
         if (args[1] === "execute") {
           const input = args[args.indexOf("--file") + 1]!;
-          if (input.includes(".approved.sql")) importedArtifacts.push(readFileSync(input, "utf8"));
+          if (input.includes("approved-data.sql")) importedArtifacts.push(readFileSync(input, "utf8"));
         }
         return { status: 0, stdout: args[0] === "deploy"
           ? "https://archestimator-recovery-test.workers.dev"

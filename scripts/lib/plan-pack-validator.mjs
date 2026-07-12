@@ -63,9 +63,10 @@ const RECORD_STATES = {
   boundary: new Set(["ACTIVE", "RESOLVED", "SUPERSEDED"]),
 };
 
-const SUPPORTED_SUITE_VERSIONS = new Set(["2026-07-10", "2026-07-11"]);
+const SUPPORTED_SUITE_VERSIONS = new Set(["2026-07-10", "2026-07-11", "2026-07-12"]);
 const TEST_REQUIREMENTS = new Set([
   "NOT_REQUIRED",
+  "TEST_PROPOSAL",
   "TARGETED",
   "BROADER",
   "TEST_TASK",
@@ -1058,7 +1059,7 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     expectReferences(criterionIds, criteria, `risks: ${risk.id}`, errors);
   }
 
-  const usesConditionalTestGate = manifest.suite_version === "2026-07-11";
+  const usesConditionalTestGate = manifest.suite_version !== "2026-07-10";
   const cheapestExistingTestIds = new Set();
   const cheapestExistingTestPaths = new Set();
   let cheapestExistingTestCriteria = 0;
@@ -1071,7 +1072,7 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
       ? expectNonEmptyString(criterion, "test_rationale", `criteria: ${criterion.id}`, errors)
       : null;
     if (usesConditionalTestGate && !TEST_REQUIREMENTS.has(testRequirement)) {
-      errors.push(`criteria: ${criterion.id}.test_requirement expected NOT_REQUIRED, TARGETED, BROADER, or TEST_TASK`);
+      errors.push(`criteria: ${criterion.id}.test_requirement expected NOT_REQUIRED, TEST_PROPOSAL, TEST_TASK, or a legacy TARGETED/BROADER value`);
     }
     if (usesConditionalTestGate && !TEST_TRIGGERS.has(testTrigger)) {
       errors.push(`criteria: ${criterion.id}.test_trigger expected NONE, EXPLICIT_TEST_TASK, MVP_CRITICAL_INVARIANT, or CHEAPEST_DECISIVE_EXISTING_TEST`);
@@ -1093,6 +1094,14 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     }
     if (
       usesConditionalTestGate &&
+      testRequirement === "TEST_PROPOSAL" &&
+      testTrigger !== "MVP_CRITICAL_INVARIANT" &&
+      testTrigger !== "CHEAPEST_DECISIVE_EXISTING_TEST"
+    ) {
+      errors.push(`criteria: ${criterion.id} TEST_PROPOSAL requires test_trigger MVP_CRITICAL_INVARIANT or CHEAPEST_DECISIVE_EXISTING_TEST`);
+    }
+    if (
+      usesConditionalTestGate &&
       testRequirement === "TARGETED" &&
       testTrigger !== "MVP_CRITICAL_INVARIANT" &&
       testTrigger !== "CHEAPEST_DECISIVE_EXISTING_TEST"
@@ -1105,9 +1114,10 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     if (
       usesConditionalTestGate &&
       testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" &&
-      testRequirement !== "TARGETED"
+      testRequirement !== "TARGETED" &&
+      testRequirement !== "TEST_PROPOSAL"
     ) {
-      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST requires test_requirement TARGETED`);
+      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST requires test_requirement TEST_PROPOSAL or legacy TARGETED`);
     }
     if (
       usesConditionalTestGate &&

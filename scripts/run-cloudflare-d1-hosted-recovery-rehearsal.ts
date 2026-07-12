@@ -271,45 +271,28 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", schemaPath, "--yes"]);
     unlinkSync(schemaPath);
     exportKey = randomBytes(32);
-    const deferredClientPortalUpdates: Buffer[] = [];
-    for (const table of orderApplicationTables(new Set(activeApplicationTables()))) {
-      const plaintextPath = join(tempDirectory, `${table}.sql`);
-      const ciphertextPath = join(tempDirectory, `${table}.sql.enc`);
-      const dataArtifactPath = join(tempDirectory, `${table}.approved.sql`);
-      exportedPaths.add(plaintextPath);
-      exportedPaths.add(ciphertextPath);
-      exportedPaths.add(dataArtifactPath);
-      command(["d1", "export", identity.sourceDatabaseId, "--remote", "--table", table, "--no-schema", "--output", plaintextPath], `d1-export-${table}`);
-      chmodSync(plaintextPath, 0o600);
-      const exportedBytes = readFileSync(plaintextPath);
-      if (exportedBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
-      exportDigest.update(table).update("\n").update(exportedBytes).update("\n");
-      encryptExport(exportedBytes, ciphertextPath, exportKey);
-      exportedBytes.fill(0);
-      unlinkSync(plaintextPath);
-      const restoredBytes = decryptExport(ciphertextPath, exportKey);
-      const dataArtifacts = buildApprovedDataArtifacts(restoredBytes, new Set([table]));
-      restoredBytes.fill(0);
-      for (const artifact of dataArtifacts) {
-        if (artifact.table === "client_portals-current-issues") {
-          deferredClientPortalUpdates.push(artifact.source);
-          continue;
-        }
-        writeFileSync(dataArtifactPath, artifact.source, { mode: 0o600 });
-        chmodSync(dataArtifactPath, 0o600);
-        command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], `d1-import-${artifact.table}`);
-        unlinkSync(dataArtifactPath);
-      }
-      unlinkSync(ciphertextPath);
-    }
-    if (deferredClientPortalUpdates.length > 0) {
-      const deferredUpdatePath = join(tempDirectory, "client-portals-current-issues.approved.sql");
-      exportedPaths.add(deferredUpdatePath);
-      writeFileSync(deferredUpdatePath, Buffer.concat(deferredClientPortalUpdates.map((source) => Buffer.concat([source, Buffer.from("\n")]))), { mode: 0o600 });
-      chmodSync(deferredUpdatePath, 0o600);
-      command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", deferredUpdatePath, "--yes"], "d1-import-client-portals-current-issues");
-      unlinkSync(deferredUpdatePath);
-    }
+    const plaintextPath = join(tempDirectory, "source.sql");
+    const ciphertextPath = join(tempDirectory, "source.sql.enc");
+    const dataArtifactPath = join(tempDirectory, "approved-data.sql");
+    exportedPaths.add(plaintextPath);
+    exportedPaths.add(ciphertextPath);
+    exportedPaths.add(dataArtifactPath);
+    command(["d1", "export", identity.sourceDatabaseId, "--remote", "--no-schema", "--output", plaintextPath], "d1-export-approved-source");
+    chmodSync(plaintextPath, 0o600);
+    const exportedBytes = readFileSync(plaintextPath);
+    if (exportedBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
+    exportDigest.update(exportedBytes);
+    encryptExport(exportedBytes, ciphertextPath, exportKey);
+    exportedBytes.fill(0);
+    unlinkSync(plaintextPath);
+    const restoredBytes = decryptExport(ciphertextPath, exportKey);
+    const dataArtifacts = buildApprovedDataArtifacts(restoredBytes, new Set(activeApplicationTables()));
+    restoredBytes.fill(0);
+    writeFileSync(dataArtifactPath, Buffer.concat(dataArtifacts.map((artifact) => Buffer.concat([artifact.source, Buffer.from("\n")]))) , { mode: 0o600 });
+    chmodSync(dataArtifactPath, 0o600);
+    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], "d1-import-approved-data");
+    unlinkSync(dataArtifactPath);
+    unlinkSync(ciphertextPath);
     recoveryWorker = generateCloudflareD1RecoveryWorker({
       runId: identity.runId,
       disposableDatabaseName: identity.targetDatabaseName,
@@ -322,9 +305,11 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     const probeBody = JSON.stringify({ runId: identity.runId, timestamp: Date.now(), nonce: randomBytes(24).toString("base64url") });
     const probeUrl = workersDevUrl(deployOutput);
     const probeSignature = recoveryProbeSignature(identity.runId, probeBody, probeKey);
-    const probeSucceeded = runtime.probe?.(probeUrl, probeBody, probeSignature)
-      ?? runRecoveryProbe(probeUrl, probeBody, probeSignature, tempDirectory);
-    if (!probeSucceeded) throw new Error("worker-probe-failed");
+    const injectedProbeSucceeded = runtime.probe?.(probeUrl, probeBody, probeSignature);
+    const probeResult = injectedProbeSucceeded === undefined
+      ? runRecoveryProbe(probeUrl, probeBody, probeSignature, tempDirectory)
+      : { succeeded: injectedProbeSucceeded, status: "injected" };
+    if (!probeResult.succeeded) throw new Error(`worker-probe-failed-${probeResult.status}`);
   } catch (error) {
     failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
@@ -376,7 +361,7 @@ function findDatabaseId(listOutput: string, name: string) {
 function workersDevUrl(output: string) {
   const url = output.match(/https:\/\/[^\s]+\.workers\.dev\/?/i)?.[0];
   if (!url) throw new Error("worker-url-missing");
-  return url;
+  return url.replace(/\/+$/, "");
 }
 
 function recoveryProbeSignature(runId: string, body: string, signingKey: string) {
@@ -398,9 +383,15 @@ function runRecoveryProbe(url: string, body: string, signature: string, tempDire
       "fail-with-body",
       "silent",
       "show-error",
+      "retry = 5",
+      "retry-all-errors",
+      "retry-delay = 2",
+      'write-out = "%{http_code}"',
       'output = "/dev/null"',
     ].join("\n"), { mode: 0o600 });
-    return spawnSync("curl", ["--config", configPath], { encoding: "utf8" }).status === 0;
+    const result = spawnSync("curl", ["--config", configPath], { encoding: "utf8" });
+    const status = result.stdout.trim().match(/^\d{3}$/)?.[0] ?? "transport";
+    return { succeeded: result.status === 0 && status === "204", status };
   } finally {
     if (existsSync(bodyPath)) unlinkSync(bodyPath);
     if (existsSync(configPath)) unlinkSync(configPath);
