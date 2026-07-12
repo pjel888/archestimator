@@ -28,6 +28,7 @@ import {
   type UpdateEstimateRowItemResult,
 } from "@/lib/estimates/actions";
 import { reconcileEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
+import { createEstimateTreeIndex } from "@/lib/estimates/estimate-tree-index";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import {
   applyEstimateRowItemPatch,
@@ -1207,14 +1208,15 @@ export function useEstimateRowMutations(
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
       const optimisticPatch = toOptimisticRowPatch(input);
+      const previousTreeIndex = previousTree ? createEstimateTreeIndex(previousTree) : undefined;
       const previousPatches = previousTree
-        ? collectProjectComponentRollbackPatches(previousTree, input.rowId, optimisticPatch)
+        ? collectProjectComponentRollbackPatches(previousTree, input.rowId, optimisticPatch, previousTreeIndex)
         : undefined;
       const previousPatch = previousPatches?.[input.rowId];
       if (previousTree) {
         queryClient.setQueryData<EstimateTreeNode[]>(
           queryKey,
-          patchProjectComponentInstanceRowsInTree(previousTree, input.rowId, optimisticPatch),
+          patchProjectComponentInstanceRowsInTree(previousTree, input.rowId, optimisticPatch, previousTreeIndex),
         );
       }
       patchProjectComponentProjectionCaches(input.rowId, optimisticPatch, input.projectId);
