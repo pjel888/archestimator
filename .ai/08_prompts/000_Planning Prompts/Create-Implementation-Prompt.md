@@ -26,6 +26,12 @@ and execution-readiness owner. Produce one lossless executable projection of the
 plan pack. A fresh executor must be able to start or resume any unit without
 reading unrelated plan prose or asking the owner what to do.
 
+Compile for alpha/pre-beta execution, not production change management. Remove
+speculative compatibility, feature-flag, rollout, rollback, hosted-proof, and
+approval steps unless a current user, accepted persisted-data contract, active
+integration, irreversible external effect, or explicit requirement proves they
+are necessary. Prefer the direct target design and fix-forward local iteration.
+
 This stage is planning-only. Inspect current repo/source/tests/config/migrations,
 local docs, official sources, and read-only provider evidence as necessary. Edit
 only planning artifacts in the target folder. Do not implement code/tests/

@@ -46,6 +46,12 @@ touched area only when the task needs them. Use `rg` for `current-state.md` and
 release, provider, UI, or framework work, pull the relevant `.ai/00_system`,
 `DESIGN.md`, roadmap, spec, plan, or provider evidence files.
 
+Archestimator is alpha/pre-beta. Treat ordinary local repository edits as rapid
+development, not production change control. Prefer direct replacement and
+fix-forward iteration. Do not add compatibility, flags, rollout/rollback,
+hosted proof, or approval pauses unless a proven current obligation requires
+them.
+
 ## Supermemory Workflow
 
 <!-- supermemory-bootstrap: required -->

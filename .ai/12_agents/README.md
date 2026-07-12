@@ -2,6 +2,12 @@
 
 This folder is the canonical Archestimator agent-role contract surface.
 
+Every approved payload inherits the alpha/pre-beta execution posture from
+`AGENTS.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: ordinary local
+repository edits are not production change events. Prefer direct replacement
+and fix-forward iteration; do not invent compatibility, rollout, hosted-proof,
+or approval gates for hypothetical future users.
+
 Shared framework rules live in `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 Payloads in `payloads/` are thin role-specific adapters and must not fork
 project policy.

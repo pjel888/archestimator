@@ -65,6 +65,13 @@ matrices, new abstractions, extra artifacts, or agent fan-out. Treat tokens,
 context, tool calls, elapsed time, lanes, and repeated checks as costs; stop when
 the requested outcome and required claim are grounded.
 
+Archestimator is alpha/pre-beta. Ordinary repository edits are not production
+change events. Replace incomplete implementations directly and fix forward
+through temporary local breakage in the same run. Do not preserve old shapes,
+add compatibility paths, flags, rollout/rollback machinery, release evidence,
+or approval pauses unless current evidence proves an actual durable or external
+obligation. High-risk labels increase analysis depth, not procedural drag.
+
 ## Phase 1: Restore Or Establish Durable State
 
 1. Inspect the active native goal. Reuse it when compatible. If none exists,
