@@ -13,6 +13,8 @@ import {
 import { logAppError } from "@/lib/observability/logger";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { after } from "next/server";
+import { clientPortalPasswordResponse } from "@/lib/client-portal/public-password-handler";
+import { isClientPortalToken } from "@/lib/client-portal/public-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const { token: routeToken } = await params;
   const token = routeToken.trim();
+  if (await isClientPortalToken(token)) return clientPortalPasswordResponse(request, token);
   const parsedBody = await readBoundedJsonBody<{ password?: string }>(request, 256);
   if (!parsedBody.ok) {
     return Response.json({ error: parsedBody.error }, { status: parsedBody.status, headers: noStoreHeaders });

@@ -1,0 +1,181 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+
+import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import { CLIENT_PORTAL_DISCUSSION_TARGET_KINDS, type ClientPortalDiscussionTargetKind } from "@/lib/client-portal/contracts";
+import { evaluateClientPortalPolicy, type ClientPortalPolicyPortal, type ClientPortalPolicySection, type ClientPortalRecipientActor } from "@/lib/client-portal/policy";
+import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
+
+type PortalRow = { id: string; workspace_id: string; project_id: string; status: "draft" | "ready" | "live" | "access_off" | "archived"; current_issue_id: string | null };
+type IssueRow = { id: string; status: "issued" | "under_review" | "changes_requested" | "accepted" | "declined" | "superseded" | "withdrawn" | "archived" };
+type SectionRow = { id: string; policy_snapshot_json: string };
+type ThreadRow = { id: string; issue_id: string | null; section_key: string | null; target_kind: ClientPortalDiscussionTargetKind; target_public_id: string | null; target_label: string; target_secondary_label: string | null; subject: string; status: "open" | "resolved" | "archived" | "closed_by_supersession" | "requires_revalidation"; waiting_state: "waiting_on_owner" | "waiting_on_client" | "no_response_required"; created_at: string; updated_at: string };
+type ExistingMessage = { body: string; thread_id: string };
+
+export type ClientPortalThreadTarget = {
+  kind: ClientPortalDiscussionTargetKind;
+  publicId?: string | null;
+  label: string;
+  secondaryLabel?: string | null;
+};
+
+export type ClientPortalRecipientThreadInput = {
+  actor: ClientPortalRecipientActor;
+  body: string;
+  database: D1DatabaseLike;
+  idempotencyKey: string;
+  issueId: string;
+  portalId: string;
+  sectionId?: string | null;
+  subject: string;
+  target: ClientPortalThreadTarget;
+};
+
+export class ClientPortalThreadError extends Error {
+  constructor(
+    readonly code: "client_portal_batch_required" | "client_portal_invalid_input" | "client_portal_thread_denied" | "client_portal_thread_not_found" | "client_portal_thread_stale" | "client_portal_thread_write_failed",
+    message: string,
+  ) { super(message); }
+}
+
+function statement(database: D1DatabaseLike, sql: string, values: D1Value[]): D1PreparedStatementLike {
+  return database.prepare(sql).bind(...values);
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]): Promise<T | null> {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+function record(value: string) {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch { return {}; }
+}
+
+function strings(value: unknown) {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+}
+
+function policySection(row: SectionRow): ClientPortalPolicySection {
+  const policy = record(row.policy_snapshot_json);
+  const recipientIds = strings(policy.allowedRecipientIds);
+  const organizations = strings(policy.allowedOrganizations);
+  return {
+    id: row.id,
+    enabled: policy.enabled === true,
+    minimumCapability: typeof policy.minimumCapability === "string" ? policy.minimumCapability as ClientPortalPolicySection["minimumCapability"] : undefined,
+    allowedRecipientIds: recipientIds.length ? recipientIds : undefined,
+    allowedOrganizations: organizations.length ? organizations : undefined,
+    commentable: policy.commentable === true,
+    downloadable: policy.downloadable === true,
+    visibleFields: strings(policy.visibleFields),
+  };
+}
+
+function requireText(value: string, label: string, maxLength: number) {
+  const sanitized = sanitizeSharedLinkRecipientText(value, maxLength);
+  if (!sanitized) throw new ClientPortalThreadError("client_portal_invalid_input", `${label} is required.`);
+  return sanitized;
+}
+
+function requireIdempotencyKey(value: string) {
+  const key = value.trim();
+  if (!key || key.length > 120) throw new ClientPortalThreadError("client_portal_invalid_input", "A valid idempotency key is required.");
+  return key;
+}
+
+async function context(database: D1DatabaseLike, actor: ClientPortalRecipientActor, portalId: string, issueId: string, sectionId?: string | null) {
+  const portal = await first<PortalRow>(database, "SELECT id, workspace_id, project_id, status, current_issue_id FROM client_portals WHERE id = ? LIMIT 1", [portalId]);
+  const issue = await first<IssueRow>(database, "SELECT id, status FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1", [issueId, portalId]);
+  if (!portal || !issue || portal.current_issue_id !== issue.id || issue.status === "withdrawn" || issue.status === "archived") {
+    throw new ClientPortalThreadError("client_portal_thread_stale", "Client Portal issue is unavailable.");
+  }
+  const policyPortal: ClientPortalPolicyPortal = { id: portal.id, workspaceId: portal.workspace_id, projectId: portal.project_id, status: portal.status, allowAnonymousView: false };
+  const section = sectionId
+    ? await first<SectionRow>(database, "SELECT id, policy_snapshot_json FROM client_portal_issue_sections WHERE id = ? AND issue_id = ? LIMIT 1", [sectionId, issue.id])
+    : null;
+  if (sectionId && !section) throw new ClientPortalThreadError("client_portal_invalid_input", "Discussion section is unavailable.");
+  return { issue, policyPortal, section: section ? policySection(section) : null };
+}
+
+function authorize(actor: ClientPortalRecipientActor, action: "thread:create" | "thread:reply" | "thread:resolve" | "thread:reopen", policyPortal: ClientPortalPolicyPortal, issue: IssueRow, section: ClientPortalPolicySection | null, thread?: { portalId: string; issueId: string | null; status: ThreadRow["status"]; creatorActorId: string }) {
+  const decision = evaluateClientPortalPolicy({
+    actor,
+    action,
+    portal: policyPortal,
+    issue: { id: issue.id, status: issue.status, isCurrent: true },
+    section,
+    thread: thread ? { portalId: thread.portalId, issueId: thread.issueId, audience: "client", status: thread.status, creatorActorId: thread.creatorActorId } : undefined,
+  });
+  if (!decision.allowed) throw new ClientPortalThreadError("client_portal_thread_denied", "Recipient cannot perform this discussion action.");
+}
+
+async function runBatch(database: D1DatabaseLike, statements: D1PreparedStatementLike[]) {
+  if (!database.batch) throw new ClientPortalThreadError("client_portal_batch_required", "Client Portal thread writes require D1 batch support.");
+  const result = await database.batch(statements);
+  if (result.some((entry) => entry.success === false)) throw new ClientPortalThreadError("client_portal_thread_write_failed", "Client Portal thread write failed.");
+}
+
+function authorSnapshot(actor: ClientPortalRecipientActor) {
+  return JSON.stringify({ displayName: actor.displayName ?? null, role: actor.role, side: "client" });
+}
+
+async function replayMessage(database: D1DatabaseLike, actor: ClientPortalRecipientActor, idempotencyKey: string) {
+  return first<ExistingMessage>(database, "SELECT body, thread_id FROM client_portal_messages WHERE actor_type = 'recipient' AND actor_id = ? AND idempotency_key = ? LIMIT 1", [actor.recipientId, idempotencyKey]);
+}
+
+export async function createClientPortalRecipientThread(input: ClientPortalRecipientThreadInput): Promise<ThreadRow> {
+  const body = requireText(input.body, "Message", 4_000);
+  const subject = requireText(input.subject, "Thread subject", 180);
+  const idempotencyKey = requireIdempotencyKey(input.idempotencyKey);
+  if (!CLIENT_PORTAL_DISCUSSION_TARGET_KINDS.includes(input.target.kind)) throw new ClientPortalThreadError("client_portal_invalid_input", "Discussion target is invalid.");
+  if (input.target.kind !== "portal" && !input.target.publicId?.trim()) throw new ClientPortalThreadError("client_portal_invalid_input", "Discussion target is required.");
+
+  const replay = await replayMessage(input.database, input.actor, idempotencyKey);
+  if (replay) {
+    if (replay.body !== body) throw new ClientPortalThreadError("client_portal_invalid_input", "Idempotency key already belongs to a different message.");
+    const thread = await first<ThreadRow>(input.database, "SELECT id, issue_id, section_key, target_kind, target_public_id, target_label, target_secondary_label, subject, status, waiting_state, created_at, updated_at FROM client_portal_threads WHERE id = ? AND audience = 'client' LIMIT 1", [replay.thread_id]);
+    if (thread) return thread;
+  }
+
+  const current = await context(input.database, input.actor, input.portalId, input.issueId, input.sectionId);
+  authorize(input.actor, "thread:create", current.policyPortal, current.issue, current.section);
+  const timestamp = new Date().toISOString();
+  const thread: ThreadRow = {
+    id: `thread_${randomUUID()}`, issue_id: input.issueId, section_key: input.sectionId ?? null, target_kind: input.target.kind,
+    target_public_id: input.target.kind === "portal" ? null : input.target.publicId!.trim(), target_label: requireText(input.target.label, "Target label", 240),
+    target_secondary_label: input.target.secondaryLabel ? sanitizeSharedLinkRecipientText(input.target.secondaryLabel, 240) || null : null,
+    subject, status: "open", waiting_state: "waiting_on_owner", created_at: timestamp, updated_at: timestamp,
+  };
+  const messageId = `message_${randomUUID()}`;
+  await runBatch(input.database, [
+    statement(input.database, `INSERT INTO client_portal_threads (id, portal_id, issue_id, section_key, target_kind, target_public_id, target_label, target_secondary_label, subject, audience, status, waiting_state, assignee_user_id, created_by_actor_type, created_by_actor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'client', 'open', 'waiting_on_owner', NULL, 'recipient', ?, ?, ?)`, [thread.id, input.portalId, thread.issue_id, thread.section_key, thread.target_kind, thread.target_public_id, thread.target_label, thread.target_secondary_label, thread.subject, input.actor.recipientId, timestamp, timestamp]),
+    statement(input.database, `INSERT INTO client_portal_messages (id, thread_id, actor_type, actor_id, author_snapshot_json, body, reply_to_message_id, idempotency_key, created_at) VALUES (?, ?, 'recipient', ?, ?, ?, NULL, ?, ?)`, [messageId, thread.id, input.actor.recipientId, authorSnapshot(input.actor), body, idempotencyKey, timestamp]),
+    statement(input.database, "INSERT INTO client_portal_thread_subscriptions (thread_id, actor_type, actor_id, subscribed_at, unsubscribed_at) VALUES (?, 'recipient', ?, ?, NULL)", [thread.id, input.actor.recipientId, timestamp]),
+    statement(input.database, "INSERT INTO client_portal_thread_reads (thread_id, actor_type, actor_id, last_read_message_id, read_at) VALUES (?, 'recipient', ?, ?, ?)", [thread.id, input.actor.recipientId, messageId, timestamp]),
+  ]);
+  return thread;
+}
+
+export async function replyToClientPortalThread({ actor, body: rawBody, database, idempotencyKey: rawIdempotencyKey, portalId, threadId }: { actor: ClientPortalRecipientActor; body: string; database: D1DatabaseLike; idempotencyKey: string; portalId: string; threadId: string }) {
+  const body = requireText(rawBody, "Message", 4_000);
+  const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+  const replay = await replayMessage(database, actor, idempotencyKey);
+  if (replay) {
+    if (replay.body !== body || replay.thread_id !== threadId) throw new ClientPortalThreadError("client_portal_invalid_input", "Idempotency key already belongs to a different message.");
+    return { id: threadId, replayed: true };
+  }
+  const thread = await first<ThreadRow>(database, "SELECT id, issue_id, section_key, target_kind, target_public_id, target_label, target_secondary_label, subject, status, waiting_state, created_at, updated_at FROM client_portal_threads WHERE id = ? AND portal_id = ? AND audience = 'client' LIMIT 1", [threadId, portalId]);
+  if (!thread?.issue_id) throw new ClientPortalThreadError("client_portal_thread_not_found", "Client Portal thread was not found.");
+  const current = await context(database, actor, portalId, thread.issue_id, thread.section_key);
+  authorize(actor, "thread:reply", current.policyPortal, current.issue, current.section, { portalId, issueId: thread.issue_id, status: thread.status, creatorActorId: actor.recipientId });
+  const timestamp = new Date().toISOString(); const messageId = `message_${randomUUID()}`;
+  await runBatch(database, [
+    statement(database, "INSERT INTO client_portal_messages (id, thread_id, actor_type, actor_id, author_snapshot_json, body, reply_to_message_id, idempotency_key, created_at) VALUES (?, ?, 'recipient', ?, ?, ?, NULL, ?, ?)", [messageId, thread.id, actor.recipientId, authorSnapshot(actor), body, idempotencyKey, timestamp]),
+    statement(database, "UPDATE client_portal_threads SET status = 'open', waiting_state = 'waiting_on_owner', updated_at = ? WHERE id = ?", [timestamp, thread.id]),
+    statement(database, "INSERT INTO client_portal_thread_reads (thread_id, actor_type, actor_id, last_read_message_id, read_at) VALUES (?, 'recipient', ?, ?, ?) ON CONFLICT(thread_id, actor_type, actor_id) DO UPDATE SET last_read_message_id = excluded.last_read_message_id, read_at = excluded.read_at", [thread.id, actor.recipientId, messageId, timestamp]),
+  ]);
+  return { id: thread.id, replayed: false };
+}

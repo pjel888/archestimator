@@ -9,6 +9,7 @@ import { SharePageProposalHeader } from "@/components/share/SharePageProposalHea
 import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
 import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
+import { ClientPortalShell } from "@/components/client-portal/ClientPortalShell";
 
 import {
   checkProjectPublicationEventRateLimit,
@@ -26,6 +27,7 @@ import {
   verifyPublicationAccessCookieValue,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
+import { isClientPortalToken } from "@/lib/client-portal/public-repository";
 import { logAppError } from "@/lib/observability/logger";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 import "../print.css";
@@ -189,6 +191,10 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   const legacyRecipientToken = typeof searchParamsData.rt === "string" ? searchParamsData.rt.trim() : "";
   const recipientToken = canonicalRecipientToken || legacyRecipientToken || undefined;
   const recipientSessionStatus = searchParamsData.recipientSession === "invalid" ? "invalid" : undefined;
+
+  if (await isClientPortalToken(token)) {
+    return <ClientPortalShell token={token} recipientToken={recipientToken} />;
+  }
 
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
   if (!publicationAccess) notFound();
