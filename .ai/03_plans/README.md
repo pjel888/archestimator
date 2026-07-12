@@ -1,3 +1,5 @@
+- `.ai/03_plans/2026-07-12/Archestimator-Client-Portal-Audit-Plan-Pack/` — canonical active Client Portal implementation-ready plan. Start at `README.md`, execute from `15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md` `UNIT-001`, and use `plan-pack.json` plus `LOOP_LEDGER.md` for status/resume.
+- `.ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/` — archived predecessor audit after all relevant current findings were reconciled into the canonical Client Portal pack's `21-SHARED-ESTIMATE-PAGE-AUDIT-DELTA.md`. Historical audit completion does not claim its remediation backlog was implemented.
 - `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete/` — implemented estimate tree reorder hotfix, Move dialog parity, handle-only drag, D1 atomic restore/reorder history, and hook extraction. Local Vitest 192 + type-check green; hosted D1/authenticated browser remain release boundaries.
 # Plans
 
@@ -21,10 +23,7 @@ Current filesystem inventory, refreshed 2026-06-19:
 | Path | Current status | Notes |
 |---|---|---|
 | `.ai/03_plans/000-Follow Ups/` | Backlog / deferred follow-ups | Parent efforts have shipped in pieces, but these items remain follow-up work unless a future dated plan selects one for execution. Do not silently promote backlog items. |
-| `.ai/03_plans/2026-06-01-security-owasp-compliance-audit/` | Audit / remediation roadmap | Some security remediations landed elsewhere. This pack is not compliance proof and does not authorize provider/security setting changes without current gates. |
-| `.ai/03_plans/2026-06-03-react-joyride-onboarding-implementation-plan/` | Planning only | No `react-joyride` dependency, production runtime, onboarding table/RLS, or feature flag exists in current source. |
 | `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/` | Partially implemented | Component-library and Storybook layer implemented; production app migration remains explicitly deferred. See `00_STATUS.md`. |
-| `.ai/03_plans/2026-06-07-archives-feature/` | Refined / not implemented | Adjacent archive concepts exist, but the multi-entity archives feature is not implemented. Do not mutate provider/database from this pack without its migration/proof gates. |
 | `.ai/03_plans/2026-06-14-Codebase-Cleanup-Plan/` | Audit / deletion-readiness only | Planning only. Do not delete code, deps, files, or DB objects from this pack without fresh proof and the owner gates it names. |
 | `.ai/03_plans/2026-06-14-Overall-Site-Performance-And-Optimization/` | Audit / readiness only | Planning only. Do not mutate provider, database, Vercel, CI, or production from this pack without missing measurement gates. |
 | `.ai/03_plans/2026-06-16-Project-Groups-Implementation/` | Implemented in repo; proof-bounded | Source, tests, generated types, and migrations exist in current repo. Provider/browser/manual proof must be checked separately for release claims. |
@@ -83,6 +82,21 @@ These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/` on 202
 - `.ai/09_archive/ai-chatbot-agent-readiness/` — chatbot planning and context pack for local /api/ai/ask and /api/ai/package-builder routes.
 - `.ai/09_archive/mvp-launch-readiness-2026-06-01/` — MVP launch-readiness planning pack.
 - `.ai/09_archive/share-and-collaboration-implementation/` — combined share/collaboration implementation-readiness pack. **Analysis complete, implementation not started from this folder.** Consolidates the former collaboration/share audit and share-page UX maximization plan into one folder with a canonical implementation flow, source/conflict map, and validation handoff. Collaboration Invites remain config-blocked / non-functional until Supabase Auth email and invite env vars are proven; Shared Link is functional but needs production hardening; `/share/[token]` receiver UX is planning-ready for no-API layout slices. Do NOT treat this plan as evidence of implementation.
+
+Archived 2026-07-12 (plans-folder cleanup):
+
+These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/` on 2026-07-12 to declutter the active plans folder. Descriptions are preserved for history; paths now point at the archive.
+
+- `.ai/09_archive/2026-06-01-security-owasp-compliance-audit/` — Security / OWASP / compliance audit and remediation roadmap pack.
+- `.ai/09_archive/2026-06-03-react-joyride-onboarding-implementation-plan/` — Planning-only pack for a React Joyride onboarding flow; no runtime dependency or table exists in current source.
+- `.ai/09_archive/2026-06-07-archives-feature/` — Refined / not implemented multi-entity archives feature plan.
+- `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/` — Library page UX/UI improvement planning and audit pack; newer phase-0a evidence merged into the existing archive folder.
+- `.ai/09_archive/2026-06-21-Ponytail-Pass-Plan/` — Ponytail Pass plan pack.
+- `.ai/09_archive/2026-06-23-Full-App-User-Story-UX-Audit/` — Full-app user-story UX audit plan pack.
+- `.ai/09_archive/2026-06-28-add-component-opendesign-field-contract/` — Component OpenDesign field contract plan pack.
+- `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/` — Cloudflare migration planning package.
+- `.ai/09_archive/2026-07-02-Karpathy-Skills-Workflow-Contract/` — Karpathy skills workflow contract plan pack.
+- `.ai/09_archive/2026-07-05-Brand-And-Landing-Page/` — Brand and landing page planning package.
 
 Archived closeout / superseded plans:
 
