@@ -5,10 +5,10 @@
 **Implementation status:** `INCOMPLETE` — this archive makes no implementation
 claim.
 
-The active successor is
-`.ai/03_plans/2026-07-12/Proposals-Page-Audit/`. It merges every predecessor
-unit in `11-ABSORBED-2026-07-11-REQUIREMENTS.md`, preserves the current audit,
-and is the sole execution authority for `/workshop/proposals`.
+The successor audit is archived unresolved at
+`.ai/09_archive/store/2026-07-12-Proposals-Page-Audit-unresolved/`. It merges
+every predecessor unit in `11-ABSORBED-2026-07-11-REQUIREMENTS.md` and
+preserves the current audit; it is not an active execution authority.
 
 This plan was archived at the owner's direction because its requirements were
 carried forward, not because its implementation was complete. The original
