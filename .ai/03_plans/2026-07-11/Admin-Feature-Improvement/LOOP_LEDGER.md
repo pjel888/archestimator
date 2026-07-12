@@ -107,3 +107,12 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 
 - The Teamwork receipt files are now committed, but the Teamwork canonical execution artifact and ledger still describe them as missing and its manifest does not register them. Admin therefore treats the files as candidate producer evidence, not accepted execution-time receipts; the existing producer gate remains closed until Teamwork reconciles and validates its canonical pack.
 - The shared worktree settled clean. Final exact baseline: HEAD `8b25baec08732b14a4a5b4a90069627bd6b2acf9`; scoped status `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; scoped diff `3391e312d3d0b9367179a6a8574669640a19d61ad442d649e472a890a5812178`.
+
+## 2026-07-12 — PLAN-017 — LEAN POLICY ALIGNMENT COMPLETE
+
+- Reviewed the current `2026-07-11` planning prompt suite, `AGENTS.md`, Agent Operating Protocol, Validation Matrix, and plan-pack schema as the governing source boundary.
+- Preserved the full admin/User 360/notification/support/operations objective and implementation DAG while removing test/reviewer/team ceremony from the machine-readable completion contract.
+- Added `18_LEAN_EXECUTION_AND_VALIDATION_POLICY.md`; historical automated-test commands are dormant proposal examples, not authorization to execute.
+- Migrated `plan-pack.json` to suite `2026-07-11`: all 19 criteria now declare `test_requirement: NOT_REQUIRED`, `test_trigger: NONE`, substantive non-test rationale, and empty `test_ids`; the test index is empty.
+- Fresh static evidence: `validate:plan-pack` passed, `validate:planning-prompts` passed with 10 documents, 10 gates, 35 scenarios, 2,932 lines, semantic fixture valid, and target-folder `git diff --check` passed.
+- No application source, automated test, migration, provider resource, deployment, browser, or hosted state changed.

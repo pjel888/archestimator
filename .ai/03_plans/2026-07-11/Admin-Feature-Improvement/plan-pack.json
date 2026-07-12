@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "suite_version": "2026-07-10",
+  "suite_version": "2026-07-11",
   "package_id": "PLAN-2026-07-11-admin-feature-improvement",
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
@@ -31,7 +31,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "4640f50ef35956f4ede745cf1cdde960ecb53dc445f4e2eba556d767a5132392"
+      "sha256": "73e1ea894f28f07e5d2442bc052fa733d9155afd6cae053d64b6034ebbe28f54"
     },
     {
       "id": "ART-002",
@@ -97,7 +97,7 @@
       "id": "ART-012",
       "role": "supporting",
       "path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "sha256": "4fac56e78f24817e14fc82909ebbaeb50fbc7f7ee000958bab7e01d276458643"
+      "sha256": "b061e51fbf7efab3321db8b801571c114dcefc0ce2b8f4a1e913c15234f6677c"
     },
     {
       "id": "ART-013",
@@ -139,7 +139,7 @@
       "id": "ART-019",
       "role": "supporting",
       "path": "LOOP_LEDGER.md",
-      "sha256": "d04f3b5a2b7715109ba20d1927fec6c1d7ee9daf6fb7e01dacd029f4d36d3b74"
+      "sha256": "bf8e3fd97dc2d020ebe82e40c72eda8e6130faf1fcf1ef29cab315bfa0d67dda"
     },
     {
       "id": "ART-020",
@@ -265,7 +265,13 @@
       "id": "ART-040",
       "role": "supporting",
       "path": "17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md",
-      "sha256": "236b9d36d7de4fd567cccdf45729c8c1b1fdfff87fff07849212ddcc79e73ff5"
+      "sha256": "59699a54286d4d6ee52dd4ae332bea58eaa9b75bb057b152efcc6b8fc6b6d43a"
+    },
+    {
+      "id": "ART-041",
+      "role": "supporting",
+      "path": "18_LEAN_EXECUTION_AND_VALIDATION_POLICY.md",
+      "sha256": "3e82f406656e78f305226ea3af0f1c4433c7f2a596348b7dd8979a971d050b1e"
     }
   ],
   "sources": [
@@ -1444,13 +1450,14 @@
         "REQ-001",
         "DATA-006"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-002"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-002",
@@ -1461,13 +1468,14 @@
         "REQ-018",
         "DATA-005"
       ],
-      "test_ids": [
-        "TEST-002"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-003"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-003",
@@ -1481,13 +1489,14 @@
         "SEC-001",
         "SEC-003"
       ],
-      "test_ids": [
-        "TEST-003"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-004"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-004",
@@ -1501,13 +1510,14 @@
         "DATA-001",
         "DATA-002"
       ],
-      "test_ids": [
-        "TEST-004"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-005"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-005",
@@ -1525,13 +1535,14 @@
         "DATA-003",
         "PERF-001"
       ],
-      "test_ids": [
-        "TEST-005"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-006"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-006",
@@ -1543,13 +1554,14 @@
         "SEC-002",
         "SEC-003"
       ],
-      "test_ids": [
-        "TEST-006"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-007"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-007",
@@ -1569,13 +1581,14 @@
         "DATA-004",
         "DATA-005"
       ],
-      "test_ids": [
-        "TEST-007"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-008"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-008",
@@ -1588,13 +1601,14 @@
         "SEC-005",
         "DATA-004"
       ],
-      "test_ids": [
-        "TEST-008"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-009"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-009",
@@ -1611,13 +1625,14 @@
         "PERF-002",
         "PERF-003"
       ],
-      "test_ids": [
-        "TEST-009"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-010"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-010",
@@ -1637,13 +1652,14 @@
         "SEC-003",
         "DATA-005"
       ],
-      "test_ids": [
-        "TEST-010"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-011"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-011",
@@ -1652,13 +1668,14 @@
       "requirement_ids": [
         "REQ-016"
       ],
-      "test_ids": [
-        "TEST-011"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-012"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-012",
@@ -1668,13 +1685,14 @@
         "REQ-017",
         "OPS-001"
       ],
-      "test_ids": [
-        "TEST-012"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-013"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-013",
@@ -1685,13 +1703,14 @@
         "SEC-002",
         "SEC-006"
       ],
-      "test_ids": [
-        "TEST-013"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-014"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-014",
@@ -1705,13 +1724,14 @@
         "UX-005",
         "PERF-001"
       ],
-      "test_ids": [
-        "TEST-014"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-015"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-015",
@@ -1726,13 +1746,14 @@
         "PERF-002",
         "PERF-004"
       ],
-      "test_ids": [
-        "TEST-015"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-016"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-016",
@@ -1745,13 +1766,14 @@
         "OPS-001",
         "OPS-002"
       ],
-      "test_ids": [
-        "TEST-016"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-017"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": null,
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-017",
@@ -1761,13 +1783,14 @@
         "PERF-003",
         "OPS-003"
       ],
-      "test_ids": [
-        "TEST-017"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-018"
       ],
-      "authorization_boundary_id": "AUTH-003"
+      "authorization_boundary_id": "AUTH-003",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-018",
@@ -1776,13 +1799,14 @@
       "requirement_ids": [
         "OPS-004"
       ],
-      "test_ids": [
-        "TEST-018"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-019"
       ],
-      "authorization_boundary_id": "AUTH-002"
+      "authorization_boundary_id": "AUTH-002",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     },
     {
       "id": "AC-019",
@@ -1791,226 +1815,17 @@
       "requirement_ids": [
         "OPS-005"
       ],
-      "test_ids": [
-        "TEST-019"
-      ],
+      "test_ids": [],
       "evidence_ids": [
         "EVID-020"
       ],
-      "authorization_boundary_id": "AUTH-003"
+      "authorization_boundary_id": "AUTH-003",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Cheapest decisive source, diff, schema, query, runtime, hosted, or operator evidence is selected by the unit; automated testing is not authorized for this planning task."
     }
   ],
-  "tests": [
-    {
-      "id": "TEST-001",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-001"
-      ],
-      "evidence_ids": [
-        "EVID-002"
-      ]
-    },
-    {
-      "id": "TEST-002",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-002"
-      ],
-      "evidence_ids": [
-        "EVID-003"
-      ]
-    },
-    {
-      "id": "TEST-003",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-003"
-      ],
-      "evidence_ids": [
-        "EVID-004"
-      ]
-    },
-    {
-      "id": "TEST-004",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-004"
-      ],
-      "evidence_ids": [
-        "EVID-005"
-      ]
-    },
-    {
-      "id": "TEST-005",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-005"
-      ],
-      "evidence_ids": [
-        "EVID-006"
-      ]
-    },
-    {
-      "id": "TEST-006",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-006"
-      ],
-      "evidence_ids": [
-        "EVID-007"
-      ]
-    },
-    {
-      "id": "TEST-007",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-007"
-      ],
-      "evidence_ids": [
-        "EVID-008"
-      ]
-    },
-    {
-      "id": "TEST-008",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-008"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ]
-    },
-    {
-      "id": "TEST-009",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-009"
-      ],
-      "evidence_ids": [
-        "EVID-010"
-      ]
-    },
-    {
-      "id": "TEST-010",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-010"
-      ],
-      "evidence_ids": [
-        "EVID-011"
-      ]
-    },
-    {
-      "id": "TEST-011",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-011"
-      ],
-      "evidence_ids": [
-        "EVID-012"
-      ]
-    },
-    {
-      "id": "TEST-012",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-012"
-      ],
-      "evidence_ids": [
-        "EVID-013"
-      ]
-    },
-    {
-      "id": "TEST-013",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-013"
-      ],
-      "evidence_ids": [
-        "EVID-014"
-      ]
-    },
-    {
-      "id": "TEST-014",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-014"
-      ],
-      "evidence_ids": [
-        "EVID-015"
-      ]
-    },
-    {
-      "id": "TEST-015",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-015"
-      ],
-      "evidence_ids": [
-        "EVID-016"
-      ]
-    },
-    {
-      "id": "TEST-016",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-016"
-      ],
-      "evidence_ids": [
-        "EVID-017"
-      ]
-    },
-    {
-      "id": "TEST-017",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-017"
-      ],
-      "evidence_ids": [
-        "EVID-018"
-      ]
-    },
-    {
-      "id": "TEST-018",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-018"
-      ],
-      "evidence_ids": [
-        "EVID-019"
-      ]
-    },
-    {
-      "id": "TEST-019",
-      "status": "PLANNED",
-      "artifact_path": "11_TEST_ADVERSARIAL_QA_AND_EVIDENCE_PLAN.md",
-      "criterion_ids": [
-        "AC-019"
-      ],
-      "evidence_ids": [
-        "EVID-020"
-      ]
-    }
-  ],
+  "tests": [],
   "gates": [
     {
       "id": "GATE-LOCAL-001",
@@ -2912,7 +2727,6 @@
       "claim_ids": [
         "UNIT-001",
         "AC-001",
-        "TEST-001",
         "GATE-OVERLAP-001"
       ],
       "source_revision": "unit-001-planned-receipt",
@@ -2925,8 +2739,7 @@
       "sha256": "a2f047be27b59feacef9209f08488337340715143a2b74a2d2e3e706c8b5a935",
       "claim_ids": [
         "UNIT-002",
-        "AC-002",
-        "TEST-002"
+        "AC-002"
       ],
       "source_revision": "unit-002-planned-receipt",
       "valid_until": null
@@ -2938,8 +2751,7 @@
       "sha256": "21851a18e12fea5166b5820e01172f9f801b969de9dc368a52d25a0833bda36e",
       "claim_ids": [
         "UNIT-003",
-        "AC-003",
-        "TEST-003"
+        "AC-003"
       ],
       "source_revision": "unit-003-planned-receipt",
       "valid_until": null
@@ -2951,8 +2763,7 @@
       "sha256": "6da17db0aa014fb92ca9137acd7a7f2367cb75ff7876811b794d8c7f93d5c6b7",
       "claim_ids": [
         "UNIT-004",
-        "AC-004",
-        "TEST-004"
+        "AC-004"
       ],
       "source_revision": "unit-004-planned-receipt",
       "valid_until": null
@@ -2964,8 +2775,7 @@
       "sha256": "7905f3044ea241bbc7bd421d85f937e8989aef2e80309c98114f63ea47ab471a",
       "claim_ids": [
         "UNIT-005",
-        "AC-005",
-        "TEST-005"
+        "AC-005"
       ],
       "source_revision": "unit-005-planned-receipt",
       "valid_until": null
@@ -2977,8 +2787,7 @@
       "sha256": "ba9701985e64a0c0722e932967e20f2f5834b85e0683c33b6fba5db823503433",
       "claim_ids": [
         "UNIT-006",
-        "AC-006",
-        "TEST-006"
+        "AC-006"
       ],
       "source_revision": "unit-006-planned-receipt",
       "valid_until": null
@@ -2990,8 +2799,7 @@
       "sha256": "a22546ebf695720b407bf548b3d5d4d76b96043f01a59113207ddd8aba0e28b3",
       "claim_ids": [
         "UNIT-007",
-        "AC-007",
-        "TEST-007"
+        "AC-007"
       ],
       "source_revision": "unit-007-planned-receipt",
       "valid_until": null
@@ -3003,8 +2811,7 @@
       "sha256": "dad54bebeb9d063125b3c131f3cfdabdcfeb7f0c1add585ac24cf40fcf7c4c7b",
       "claim_ids": [
         "UNIT-008",
-        "AC-008",
-        "TEST-008"
+        "AC-008"
       ],
       "source_revision": "unit-008-planned-receipt",
       "valid_until": null
@@ -3017,7 +2824,6 @@
       "claim_ids": [
         "UNIT-009",
         "AC-009",
-        "TEST-009",
         "GATE-COST-001"
       ],
       "source_revision": "unit-009-planned-receipt",
@@ -3030,8 +2836,7 @@
       "sha256": "70800931a7a1c24490e863ff8f89568e2d4c5dd6612c73347e481fd60b178cab",
       "claim_ids": [
         "UNIT-010",
-        "AC-010",
-        "TEST-010"
+        "AC-010"
       ],
       "source_revision": "unit-010-planned-receipt",
       "valid_until": null
@@ -3043,8 +2848,7 @@
       "sha256": "d50b7e8a7137b46d3c3f5e51594687cf411915ed93587368d17ca105cf78b9da",
       "claim_ids": [
         "UNIT-011",
-        "AC-011",
-        "TEST-011"
+        "AC-011"
       ],
       "source_revision": "unit-011-planned-receipt",
       "valid_until": null
@@ -3056,8 +2860,7 @@
       "sha256": "ff9f8b00c04fd07afb753677c521c2230d38c9c5439d8dcaf6469cae4d2aa95a",
       "claim_ids": [
         "UNIT-012",
-        "AC-012",
-        "TEST-012"
+        "AC-012"
       ],
       "source_revision": "unit-012-planned-receipt",
       "valid_until": null
@@ -3070,7 +2873,6 @@
       "claim_ids": [
         "UNIT-013",
         "AC-013",
-        "TEST-013",
         "GATE-LEGAL-001"
       ],
       "source_revision": "unit-013-planned-receipt",
@@ -3083,8 +2885,7 @@
       "sha256": "ecb222fb921a656392d80a29c1405d5f0ad674ff7fd61298fa609e580c4ea4a4",
       "claim_ids": [
         "UNIT-014",
-        "AC-014",
-        "TEST-014"
+        "AC-014"
       ],
       "source_revision": "unit-014-planned-receipt",
       "valid_until": null
@@ -3096,8 +2897,7 @@
       "sha256": "259c3a4ac448c2b86dcd0a62f97698869802c9119b316d1471343ce7d7eddfe7",
       "claim_ids": [
         "UNIT-015",
-        "AC-015",
-        "TEST-015"
+        "AC-015"
       ],
       "source_revision": "unit-015-planned-receipt",
       "valid_until": null
@@ -3110,7 +2910,6 @@
       "claim_ids": [
         "UNIT-016",
         "AC-016",
-        "TEST-016",
         "GATE-LOCAL-001"
       ],
       "source_revision": "unit-016-planned-receipt",
@@ -3124,7 +2923,6 @@
       "claim_ids": [
         "UNIT-017",
         "AC-017",
-        "TEST-017",
         "GATE-HOSTED-001",
         "GATE-QUEUE-001",
         "GATE-COST-001"
@@ -3140,7 +2938,6 @@
       "claim_ids": [
         "UNIT-018",
         "AC-018",
-        "TEST-018",
         "GATE-PROVIDER-001"
       ],
       "source_revision": "unit-018-planned-receipt",
@@ -3154,7 +2951,6 @@
       "claim_ids": [
         "UNIT-019",
         "AC-019",
-        "TEST-019",
         "GATE-HOSTED-001"
       ],
       "source_revision": "unit-019-planned-receipt",
@@ -3170,5 +2966,5 @@
     }
   ],
   "next_unit": "UNIT-001",
-  "manifest_sha256": "da1b6d4b09a25534bb820c5382ecf245cc2659fbb79bcce034db829b80eb8a9c"
+  "manifest_sha256": "d91979f2624e87f6dbfb3441d5abb2560a15c202d213e78b3ce8f0cefce79bca"
 }

@@ -9,6 +9,15 @@
 - browser proof: intentionally not run because this is planning-only and no browser-only claim is being promoted;
 - write ownership: lead only for this plan folder; child lanes were read-only; no source/migration/provider lease was acquired.
 
+## 2026-07-12 Lean Policy Alignment
+
+- migrated the materially refreshed pack to planning suite `2026-07-11`;
+- made `NOT_REQUIRED`/`NONE`/empty `test_ids` explicit for every criterion;
+- removed the ceremonial test index and subordinated historical test commands to the User Test Authorization Gate;
+- replaced mandatory team/reviewer/test-engineer ceremony with risk-justified optional routing;
+- preserved the full admin and notification product objective, implementation DAG, security/data/provider boundaries, and hosted-proof separation;
+- added `18_LEAN_EXECUTION_AND_VALIDATION_POLICY.md` as the compact supersession authority rather than rewriting every historical evidence receipt.
+
 ## Before-State Invalidation
 
 The incoming manifest claimed `CONDITIONALLY_READY`, `NOT_STARTED`, `BOUNDARY`, `ACTIVE`, next `UNIT-001`, with HEAD `6069d87c271dc1509e97d1155da4d62c78d771cd`. Its scoped status/diff hashes and Activity/Corporate/Teamwork receipts no longer matched the live worktree. Structural validation still passed, demonstrating that stored hashes alone were insufficient semantic freshness evidence. Improve-stage work therefore treated the incoming ready claim and planning evidence as invalid until this audit, repairs, independent reviews, and final refreeze completed.

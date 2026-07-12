@@ -1,5 +1,7 @@
 # Test, Adversarial QA, and Evidence Plan
 
+> **Current policy:** this is a risk/evidence catalogue, not authorization to create or run tests. `18_LEAN_EXECUTION_AND_VALIDATION_POLICY.md` governs. Default to non-test evidence; convert a named risk into a `TEST_PROPOSAL` only when cheaper evidence cannot prove it, and execute tests only under an explicit user-authorized `TEST_TASK`.
+
 ## Evidence Classes
 
 1. Static/source contract.
@@ -148,17 +150,15 @@ After recovery, prove exact intended/eligible/materialized/failed counts, no dup
 
 ## Validation Sequence
 
-1. targeted red/green tests per unit;
-2. touched-file type/LSP/lint/static checks;
-3. D1 migration/repository tests;
-4. focused admin/notifications/auth/support/activity suites;
-5. `bun run validate:error-handling` for server/ops changes;
-6. `bun run type-check` and broader `bun run validate` when shared/auth/data blast radius warrants it;
-7. local route/auth smoke;
-8. targeted browser proof only for browser-only claims;
-9. hosted queue/cron/D1/Worker proof;
-10. optional provider/email/access/analytics proof;
-11. independent verifier completion audit.
+1. focused source, reference, diff, schema, query-plan, and configuration evidence;
+2. narrow type/LSP/static inspection where it is not being used as a build/test gate;
+3. safe scoped D1 read-only/dry-run evidence where applicable;
+4. local runtime observation only when needed and not equivalent to automated testing;
+5. hosted queue/cron/D1/Worker proof only for hosted claims and with the required authority;
+6. optional provider/email/access/analytics proof only for enabled claims;
+7. a deterministic requirement-by-requirement completion audit.
+
+Automated suites, builds-as-gates, browser proof, and independent review are added only when explicitly user-authorized or materially justified under the lean policy; they are never automatic because this pack is high blast radius.
 
 ## No-False-Green Rule
 

@@ -1,19 +1,15 @@
 # Proposals Page Audit (2026-07-12)
 
-> **Audit / readiness digest. Not an implementation plan.**
-> Profile: `high-blast-radius` (cross-cutting audit: UI/UX, data, server, authz,
-> performance, Cloudflare/Workers). This is a **read-only audit** of
-> `/workshop/proposals` and everything it touches. No code, migrations, config,
-> or provider state was changed to produce this pack.
+> **Implementation-ready successor.** Profile: `high-blast-radius`
+> (UI/UX, data, server, authz, performance, Cloudflare/Workers). This pack
+> merges the current-source audit with the still-unimplemented 2026-07-11
+> `Proposals-Feature` scope. It is now the **only active execution authority**
+> for `/workshop/proposals`.
 >
-> Scope authority: this pack describes and classifies what exists today. The
-> separate, **active** implementation pack is
-> `.ai/03_plans/2026-07-11/Proposals-Feature/` (`CONDITIONALLY_READY /
-> NOT_STARTED / NOT_EVALUATED / ACTIVE / ACTIVE`). This audit is intentionally
-> **complementary**: it re-verifies the codebase against current source on
-> 2026-07-12, records concrete bugs with file:line evidence, and feeds
-> readiness findings into that implementation pack rather than duplicating its
-> execution DAG.
+> The predecessor is preserved at
+> `.ai/09_archive/store/2026-07-11-Proposals-Feature-superseded/`. Its
+> requirements are dispositioned in `11-ABSORBED-2026-07-11-REQUIREMENTS.md`;
+> no implementation has been claimed or discarded.
 
 ## Outcome (what this pack delivers)
 
@@ -41,23 +37,25 @@ cross-reference.
 
 | Artifact | Role | Purpose |
 |---|---|---|
-| `README.md` (this file) | entrypoint | Outcome, scope, map, status, resume pointer |
+| `README.md` (this file) | entrypoint | Outcome, scope, status, and resume pointer |
 | `01-CURRENT-STATE-MAP.md` | audit | Full component/data/server/authz/perf/cloudflare map with file:line refs |
 | `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found (**25: 7×P1, 11×P2, 7×P3** after deep audit), severity, evidence, recommended surface |
 | `03-READINESS-AND-RECOMMENDATIONS.md` | audit | Beta readiness verdict, prioritized recommendations, relationship to the active pack |
 | `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md` | design | Feature-by-feature projects-vs-proposals gap; exact primitives/patterns to reuse |
-| `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` | design | Two-track implementation DAG (data hardening + redesign), units grounded in real paths |
-| `06-DECISION-LOG.md` | decisions | 10 `DEC-AUTO-*` closures + 3 `AUTH-*` owner boundaries; re-confirms active-pack decisions |
+| `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` | execution DAG | Canonical dependency-ordered units (data hardening + redesign) |
+| `06-DECISION-LOG.md` | decisions | Current decisions governing implementation |
 | `07-BASELINE-CRITERION-MATRIX.md` | audit | PASS/FAIL/BOUNDARY/N/A snapshot across all Improve-prompt dimensions |
 | `08-DOMAIN-AND-INDUSTRY-REQUIREMENTS.md` | research | Construction/RFP/e-sign industry norms (RICS NRM, ESIGN/UETA/eIDAS, RA 8792) vs current code |
 | `09-PRIVACY-AND-COMPLIANCE-AUDIT.md` | audit | PII inventory, right-to-be-forgotten, retention, residency, log-leak paths |
 | `10-TECHNICAL-DEEP-AUDIT.md` | audit | Bundle, prod monitoring, analytics, mobile, abuse/enumeration, cross-surface, variants |
+| `11-ABSORBED-2026-07-11-REQUIREMENTS.md` | merge receipt | Full predecessor-unit disposition and V1 deferrals |
+| `IMPLEMENTATION_PLAN.md` | execution contract | Ordered implementation slices, proof boundaries, and stop condition |
+| `LOOP_LEDGER.md` | execution state | Initial NOT_STARTED ledger and merge evidence |
 
-No `plan-pack.json` manifest is emitted because this is an **audit-only** pack
-(no implementation units, gates, or status tuple to enforce). Emitting a
-manifest would imply an executable plan, which this is not. If the owner wants
-these findings turned into an executable plan, the 2026-07-11 `Proposals-Feature`
-pack is the canonical home (see `03` §"Relationship to the active pack").
+This remains a lean, human-readable plan pack rather than the schema-managed
+`plan-pack.json` format. `IMPLEMENTATION_PLAN.md`, `05`, and the ledger are the
+execution control surfaces; their status is `IMPLEMENTATION_READY / NOT_STARTED
+/ NOT_EVALUATED / ACTIVE`.
 
 ## Scope
 
@@ -82,7 +80,7 @@ pack is the canonical home (see `03` §"Relationship to the active pack").
 
 ### Non-goals
 
-- Implementing any fix. This is audit-only.
+- Implementing any fix in this planning merge.
 - Re-planning the owner-side publisher or `/share/[token]` redesign (already
   ACHIEVED in `.ai/09_archive/store/2026-07-11-Publisher-And-Shared-Pages-complete/`).
 - Designing immutable snapshots or PDF (Enterprise MVP P1, `BLOCKED-EXTERNAL`).
@@ -94,10 +92,10 @@ pack is the canonical home (see `03` §"Relationship to the active pack").
 
 | Field | Value | Notes |
 |---|---|---|
-| Audit status | COMPLETE | Full surface mapped; every claim has file:line evidence |
+| Planning status | IMPLEMENTATION_READY | Audit complete; predecessor scope merged and dispositioned |
 | Bugs found | 14 | 3 P1, 7 P2, 4 P3 — see `02-BUG-AND-RISK-REGISTER.md` |
 | Highest-severity open bug | **`responded` delivery status never written** (`d1-store.ts:377,410`) + **single bad row fails the whole inbox** (`recipient-proposals-repository.ts:65,157`) | Both P1 |
-| Page vs. owner directive | **MISMATCH** | Page is a flat bordered table; directive wants projects-page card grid. Active pack exists to close this. |
+| Page vs. owner directive | **MISMATCH** | Page is a flat bordered table; this active pack closes the gap. |
 | Beta readiness | **CONDITIONAL** | Inbox is functional and secure for the common path, but has data-truncation, error-swallowing, and UX gaps that will bite at >50 proposals or on any single corrupt row. |
 
 ## One-line architecture (detail in `01-CURRENT-STATE-MAP.md`)
@@ -126,7 +124,8 @@ pack is the canonical home (see `03` §"Relationship to the active pack").
 - **Start here for the implementation plan:** `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` (Track A = data fixes, Track B = redesign).
 - **Start here for closed decisions:** `06-DECISION-LOG.md`.
 - **Start here for the readiness snapshot:** `07-BASELINE-CRITERION-MATRIX.md`.
-- **To execute fixes:** either (a) ship Track A from `05` as a standalone slice, or (b) fold Track A's 3 new bugs into the active `.ai/03_plans/2026-07-11/Proposals-Feature/` pack and continue from its `UNIT-001`.
+- **To execute:** begin with `IMPLEMENTATION_PLAN.md` Slice 1 (`A1+A2`), then
+  continue through the dependency order in `05`.
 
 ## Provenance
 

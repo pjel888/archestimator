@@ -2,9 +2,8 @@
 
 > This document converts the audit findings + parity gap + target UX design into
 > a **concrete, dependency-ordered implementation DAG** grounded in real file
-> paths and patterns. It is designed to feed the active
-> `.ai/03_plans/2026-07-11/Proposals-Feature/` pack's execution units, or to
-> stand alone as a fix-forward plan.
+> paths and patterns. It is the canonical execution DAG for this merged pack;
+> see `11-ABSORBED-2026-07-11-REQUIREMENTS.md` for predecessor-unit mapping.
 >
 > Per the **User Test Authorization Gate**, every unit below defaults to
 > `test_requirement: NOT_REQUIRED`. Where a named invariant warrants a test, the
@@ -20,7 +19,7 @@ Track A — Data-layer hardening (bug fixes, no UI change)
   A1 repository row-resilience + logging
   A2 normalizeDecision type fix
   A3 responded delivery status write
-  A4 truncation signal (COUNT + truncated flag)   ← optional, can move to B
+  A4 truncation signal (`LIMIT 51` + boolean)     ← optional, can move to B
 
 Track B — UX redesign ("looks like the projects page")
   B1 WorkshopCollectionLayout adoption + useReducer state
@@ -63,12 +62,15 @@ shell + reducer) but are otherwise parallelizable in small batches.
 - **Approach:** in the same transaction that inserts the `shared_link_responses` row, set `delivery_status = 'responded'` (and keep `last_opened_at`). Confirm the CHECK constraint allows it (it does: `0014:67`, `0066:167`).
 - **Invariants:** `delivery_status` transitions `opened → responded` only on decision submit; never regresses.
 - **Test decision:** `NOT_REQUIRED`. `TEST_PROPOSAL`: create `tests/vitest/publication-d1-store.test.ts` — await `TEST_TASK`.
-- **Note:** maps to active pack `UNIT-014`.
+- **Note:** this is A3 / Slice 2 in `IMPLEMENTATION_PLAN.md`.
 
 ### A4 · Truncation signal (optional, can move to Track B)
 - **Goal:** recipient knows when they have >50 proposals.
 - **Exact paths:** `src/lib/repositories/recipient-proposals-repository.ts:150-159` (the `LIMIT 50` and result mapping), the `RecipientProposalsResult` type (`:28-30`), and the client render (`proposals-page-client.tsx:111,149-153`).
-- **Approach:** add a second `SELECT COUNT(*)` (or `LIMIT 51` + `rows.length > 50` heuristic) and surface `{ ok:true; rows; truncated: boolean; totalCount?: number }`. Client renders a "Showing 50 of N" affordance above the list.
+- **Approach:** use `LIMIT 51`, set `truncated: true` when a 51st row is returned,
+  then remove that row before returning. Surface `{ ok:true; rows; truncated: boolean }`
+  and render a bounded "More proposals are available" affordance. Do not add a
+  second `COUNT(*)` query in V1.
 - **Dependency:** if done in Track A, touches the result type (a contract the client consumes). Coordinate with B1 if B1 is in flight on the same files. Safe to do first in Track A if B hasn't started.
 
 ## 3. Track B — UX redesign
@@ -174,8 +176,8 @@ B6 (card) ── B7 (list row refactor)   [B6/B7 share proposal-state.ts extract
 
 ## 6. Resume state
 
-This is a planning artifact. No code has been changed. The first executable
-unit is **A1+A2** (or, if the owner wants the redesign first, **B1**). Before
-execution, re-read the target files immediately (`recipient-proposals-repository.ts`,
-`proposals-page-client.tsx`, `WorkshopCollectionLayout.tsx`) and confirm `git
-status` is clean on the scoped paths.
+No code has been changed. The first executable unit is **A1+A2**. B1 is not an
+alternative first step: Track A must land before the redesign. Before execution,
+re-read the target files immediately (`recipient-proposals-repository.ts`,
+`proposals-page-client.tsx`, `WorkshopCollectionLayout.tsx`) and confirm the
+scoped paths are still free of concurrent edits.

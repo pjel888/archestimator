@@ -8,7 +8,7 @@
   "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "COMPLETE",
   "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "N/A",
+  "plan_lifecycle": "ARCHIVED",
   "terminal_status": "ACHIEVED",
   "baseline": {
     "head": "2dab33405d72de6c345b42b00b7887ba67db7a24",
@@ -442,5 +442,5 @@
   ],
   "next_unit": null,
   "updated_at": "2026-07-12T00:00:00.000Z",
-  "manifest_sha256": "77c072458733e4af4a23443118877f198561d26a78b5b3a4cc944ce8e5958cf5"
+  "manifest_sha256": "7375676492bbf3f9bb64e86de38f30560858cf2f203d3c6f2570529c8927f662"
 }

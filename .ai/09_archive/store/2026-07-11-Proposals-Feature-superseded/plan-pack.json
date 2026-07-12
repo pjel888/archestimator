@@ -6,10 +6,10 @@
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
   "package_status": "CONDITIONALLY_READY",
-  "implementation_status": "NOT_STARTED",
+  "implementation_status": "INCOMPLETE",
   "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "CANCELLED",
   "baseline": {
     "head": "f83d4504d5e8425aa078d286d55e4d19d9cc0612",
     "scoped_diff_sha256": "e588a480e6b27d549f69c5dfc8e49e07f69667aa3169b55654a938e2143ab7a7",

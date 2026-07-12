@@ -2,10 +2,9 @@
 
 > Per the Improve-Plan-Prompt, no internally resolvable decision should remain
 > open as "TBD" or "owner decision." This log closes every material choice this
-> audit introduces or re-confirms, using the `DEC-AUTO-*` shape from
-> `Plan-Pack-Schema.md` §5. Decisions introduced by the **active** 2026-07-11
-> pack (its DEC-AUTO-001…009) are **re-confirmed** here against 2026-07-12
-> source, not re-decided.
+> audit introduces or carries forward, using the `DEC-AUTO-*` shape from
+> `Plan-Pack-Schema.md` §5. The archived 2026-07-11 decisions are retained only
+> where this newer source audit re-confirms them.
 
 ## DEC-AUDO-101 · Track A (data hardening) ships before Track B (redesign)
 - **Question:** Should the P1 data-layer bugs be fixed before or during the UX redesign?
@@ -32,7 +31,7 @@
 - **Responsible role:** Lead.
 
 ## DEC-AUTO-103 · Keep TanStack Query (do not go RSC-only)
-- **Re-confirms:** active pack DEC-AUTO-002.
+- **Carries forward:** predecessor DEC-AUTO-002.
 - **Question:** Should the redesign keep client-side TanStack Query or move to RSC-only revalidation?
 - **Evidence:** `proposals-page-client.tsx:53-61` (`staleTime 30s`, `refetchOnWindowFocus`, `retry:false`). The projects page uses RSC because its mutations are owner-initiated and revalidated via `router.refresh()`; proposals mutations happen **out-of-band** (a publisher in another workspace publishes/revokes), so the recipient needs background refetch.
 - **Decision:** **Keep TanStack Query.** Window-focus refetch + 30s staleTime is the right model for a recipient inbox that changes out-of-band.
@@ -41,7 +40,7 @@
 - **Confidence:** High.
 
 ## DEC-AUTO-104 · Client-side filtering/sorting for V1 (≤50 rows)
-- **Re-confirms:** active pack DEC-AUTO-003.
+- **Carries forward:** predecessor DEC-AUTO-003.
 - **Question:** Server-side or client-side filter/sort?
 - **Decision:** **Client-side for V1.** The repo already returns ≤50 rows in one round trip; client-side filter/sort/search is instant and reuses the projects-page `useReducer` + `useDeferredValue` pattern. Server-side pagination is deferred until >50 rows is a real problem (A4 adds the signal first).
 - **Confidence:** High.
@@ -91,9 +90,9 @@
 
 ---
 
-## Re-confirmed active-pack decisions (no change)
+## Carried-forward predecessor decisions
 
-| Active pack DEC | Re-confirmed against 2026-07-12 source? |
+| Predecessor DEC | Disposition in this active pack |
 |---|---|
 | DEC-AUTO-001 Adopt `WorkshopCollectionLayout` + card grid | ✓ `WorkshopCollectionLayout` exists, single consumer, fits proposals |
 | DEC-AUTO-002 Keep TanStack Query | ✓ (this log DEC-AUTO-103) |
@@ -103,14 +102,13 @@
 | DEC-AUTO-006 XLSX pipeline stays as-is architecturally | ✓ out of scope for the inbox redesign |
 | DEC-AUTO-007 Make `clientName` optional (test compat) | ⚠ re-check the two test files before any type change |
 | DEC-AUTO-008 Accept TanStack cache isolation gap (≤30s) | ✓ (this audit P2 cross-cache gap, accepted) |
-| DEC-AUTO-009 Absorb open items from the four 2026-07-07 packs | ✓ the active pack's `10_ABSORBED_REQUIREMENTS_AND_UNITS.md` is the authority |
+| DEC-AUTO-009 Absorb open items from the four 2026-07-07 packs | ✓ retained through the archived predecessor's reconciliation artifacts |
 
 ## True owner-decision boundaries (AUTH-*)
 
 These are **not** closed by this audit — they require the owner:
 
-- **AUTH-1 · Grouping in V1?** (DEC-AUTO-105 is a lead default; owner may want it now.) → open question OQ-3.
-- **AUTH-2 · Should the 3 NEW bugs (P1-2/P1-3/P2-2) be added as units to the active pack, or shipped as a standalone Track A slice first?** (DEC-AUTO-101 recommends the slice, but the owner controls the active pack's unit inventory.)
-- **AUTH-3 · `clientName` on the inbox row?** (DEC-AUTO-005/007 in the active pack; this audit did not verify the join is wanted for V1.)
+- **AUTH-1 · Grouping in V1?** (DEC-AUTO-105 defers it; the owner may override.)
+- **AUTH-2 · `clientName` on the inbox row?** (deferred unless a current implementation need proves it useful.)
 
 No other open internal decisions remain. Every other choice in this audit is closed.

@@ -56,8 +56,18 @@ task-specific history. Do not linear-read the detailed history below.
   Preserve the supported Node preflight and current memory protections.
 - **Planning:** ordinary non-trivial work uses an in-session loop. A dated plan
   pack is required only for high-blast-radius or explicitly exhaustive work.
+- **Proposals authority:** `.ai/03_plans/2026-07-12/Proposals-Page-Audit/` is
+  the active, implementation-ready `/workshop/proposals` plan. It absorbs the
+  unimplemented 2026-07-11 `Proposals-Feature` pack, preserved under
+  `.ai/09_archive/store/2026-07-11-Proposals-Feature-superseded/`.
 
 <!-- FAST PATH:END -->
+
+### 2026-07-12 - Lean Estimate Sheet Performance Refactor
+
+- The lean estimate-sheet performance refactor is archived at `.ai/09_archive/store/2026-07-12-Archestimator-Estimate-Sheet-Lean-Performance-Refactor-Plan-Pack-complete/` after completing its local implementation path: indexed shared-component patching, per-row draft subscriptions, O(depth) ancestor total deltas, gated closed derivations, indexed selected-node presentation, and retirement of the prior mode/evidence framework.
+- UNIT-005 and UNIT-006 remain `NOT_ACTIVATED`: no owner-authorized measurement established a route/server or mount/virtualization bottleneck after the direct production fixes.
+- Static evidence: targeted source/reference searches, `git diff --check`, and `package.json` parse pass. Automated tests, typecheck, build, and browser proof remain unrun under the User Test Authorization Gate; the focused UNIT-002 test proposal is recorded in the active pack ledger.
 
 ### 2026-07-12 - Estimate Sheet Performance Pack Cancelled
 
@@ -10323,3 +10333,12 @@ Open:
 - Fresh local evidence: new read-context contracts failed red before implementation, then `bun x vitest run tests/vitest/ai-ask-read-context.test.ts --maxWorkers=1` passed (1 file / 9 tests), and the adjacent AI/package-builder regression command passed (7 files / 118 tests); focused ESLint, `bun run type-check`, and `git diff --check` passed.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r11-3-ai-tab-context-run.md`.
 - Boundary: no live AI provider request, linked Supabase audit-table insert, hosted browser proof, Vercel deploy, production deploy, or provider dashboard proof was performed.
+
+## Client Portal Plans Consolidated And Shared Estimate Audit Archived (2026-07-12)
+
+- Canonical active plan: `.ai/03_plans/2026-07-12/Archestimator-Client-Portal-Audit-Plan-Pack/`.
+- Canonical execution authority: `15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md`; exact start/resume unit is `UNIT-001`.
+- Status tuple: `IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / ACTIVE / ACTIVE`; this is planning readiness, not implementation or release proof.
+- The former `.ai/03_plans/2026-07-12/Shared-Estimate-Page/` audit was source-reviewed and consolidated through `21-SHARED-ESTIMATE-PAGE-AUDIT-DELTA.md`, then moved without a stub to `.ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/`.
+- Retained predecessor findings include node/row contextual discussion, all-row reachability, large-tree bounds, activity/unread synchronization, mobile decision access, thread lifecycle, hosted no-store proof, and runtime snapshot validation. The obsolete issuance-metadata gap and estimate-variant scope were explicitly retired.
+- Evidence boundary: planning/source/static validation only. No automated tests, builds, browser automation, screenshots, hosted checks, provider mutations, or deployments were run.

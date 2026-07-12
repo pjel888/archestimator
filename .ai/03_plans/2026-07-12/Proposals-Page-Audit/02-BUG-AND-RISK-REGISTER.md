@@ -9,8 +9,8 @@ and, where a test would help, records a `TEST_PROPOSAL` (named risk + exact
 command) and **waits for explicit owner authorization** per the User Test
 Authorization Gate.
 
-Legend: `KNOWN` = already recorded in `.ai/03_plans/2026-07-11/Proposals-Feature/`
-or `.ai/10_state/known-issues.md`. `NEW` = surfaced/confirmed by this 2026-07-12 audit.
+Legend: `KNOWN` = recorded by the archived 2026-07-11 predecessor or
+`.ai/10_state/known-issues.md`. `NEW` = surfaced/confirmed by this 2026-07-12 audit.
 `DEEP` = surfaced by the round-2 deep audit (`09` privacy / `10` technical).
 
 **Register expanded from 14 → 25 bugs** after the deep audit (privacy,
@@ -36,7 +36,7 @@ the full evidence on `DEEP` entries.
   decision correctly (it reads `shared_link_responses`, not `delivery_status`).
 - **Recommended surface:** `src/lib/publication/d1-store.ts` — set
   `delivery_status='responded'` in the same transaction that inserts the
-  response. Maps to `UNIT-014` in the active pack.
+  response. Maps to A3 / Slice 2 in `IMPLEMENTATION_PLAN.md`.
 - **TEST_PROPOSAL (await owner authorization):** named risk = "recipient
   decision does not flip roster delivery_status to responded". Command:
   `bun run test tests/vitest/publication-d1-store.test.ts` (suite does not exist
@@ -119,7 +119,7 @@ the full evidence on `DEEP` entries.
   `last_activity_at` with no indication anything is missing. For a proposals
   inbox this is a silent data-availability bug.
 - **Recommended surface:** either (a) add a `truncated` flag + "Showing 50 of N"
-  UI, or (b) cursor pagination. DEC-AUTO-003 in the active pack chose
+  UI, or (b) cursor pagination. DEC-AUTO-104 in this pack chooses
   client-side filtering for V1 assuming ≤50 rows — that assumption is
   undocumented in the repo and unguarded.
 
@@ -163,7 +163,7 @@ the full evidence on `DEEP` entries.
   surface family.
 - **Recommended surface:** confirm no writer emits it (`rg
   download_attempt_blocked src/`); if clean, leave the migration as-is; if any
-  writer remains, fix forward. Maps to `UNIT-008` in the active pack.
+  writer remains, fix forward. Maps to Slice 6 in `IMPLEMENTATION_PLAN.md`.
 
 ### P2-5 · Email-reuse / plus-addressing authz edge (`KNOWN`, accepted design)
 
@@ -251,9 +251,9 @@ the full evidence on `DEEP` entries.
   bordered table. Projects page uses `WorkshopCollectionLayout` + card grid
   (`src/components/workshop/projects-page-client.tsx`).
 - **Impact:** The primary UX gap. This is the reason the active
-  `2026-07-11/Proposals-Feature` pack exists. Not a "bug" in the defect sense,
+  merged implementation plan exists. Not a "bug" in the defect sense,
   but the dominant readiness gap.
-- **Recommended surface:** the active pack (`UNIT-001…016`).
+- **Recommended surface:** Slices 4–5 in `IMPLEMENTATION_PLAN.md`.
 
 ### P3-2 · Empty state is dashed-border, directive wants glass-card (`KNOWN`)
 

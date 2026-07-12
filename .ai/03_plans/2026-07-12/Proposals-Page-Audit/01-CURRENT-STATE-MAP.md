@@ -231,7 +231,7 @@ OpenNext: `open-next.config.ts` default `defineCloudflareConfig()`; `next.config
 
 | Dimension | Intent (spec/roadmap/directive) | Current code |
 |---|---|---|
-| Layout | "look like the projects page" — card grid, status tabs, search, sort, view modes, grouping (`2026-07-11/Proposals-Feature/README.md:20-24`) | Flat bordered table, no tabs/search/sort/view-mode/grouping |
+| Layout | "look like the projects page" — card grid, status tabs, search, sort, view modes; grouping is deferred from V1 | Flat bordered table, no tabs/search/sort/view-mode/grouping |
 | Delivery status | `responded` is a valid enum (`0014:67`) and UI handles it (`RecipientEmailComposer.tsx:50,245,673-685`) | `submitClientResponse` only writes `opened` (`d1-store.ts:377,410`) — `responded` never set |
 | Email normalization | Recipient matching by `lower(email)` | Consistent trim+lower at invite and read, but **no plus-address folding** (`a+tag@x` ≠ `a@x`) |
 | Pagination | Implied "all my proposals" | Hard `LIMIT 50`, no "load more" — silent truncation |

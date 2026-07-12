@@ -62,6 +62,7 @@ The current admin surface is useful but not a safe production control plane:
 | `15_REQUIREMENTS_TRACEABILITY_AND_FINAL_AUDIT.md` | Requirement-to-unit-to-test traceability and planning completion audit |
 | `16_RESEARCH_AND_SPECIALIST_EVIDENCE.md` | Official primary-source research and independent read-only audit synthesis |
 | `17_IMPROVE_STAGE_AUDIT_AND_SEMANTIC_DIFF.md` | Before-state invalidation, semantic repairs, readiness matrix, orchestration provenance |
+| `18_LEAN_EXECUTION_AND_VALIDATION_POLICY.md` | Current no-overengineering/no-overtesting execution contract and supersession map |
 | `evidence/2026-07-11-planning-audit-evidence.md` | Fresh commands, tests, source observations, and proof boundary |
 | `LOOP_LEDGER.md` | Append-only planning and future execution coordination ledger |
 | `plan-pack.json` | Versioned manifest, exact hashes, stable IDs, unit DAG, ready slice |
@@ -75,7 +76,9 @@ This planning task is complete only when:
 - the pack contains an honest dependency-closed ready slice, exact downstream execution packets, and separate hosted proof units;
 - `bun run validate:plan-pack -- .ai/03_plans/2026-07-11/Admin-Feature-Improvement` passes against frozen hashes;
 - `bun run validate:planning-prompts` passes;
-- an independent architect/critic or verifier review approves the pack after authoring;
+- a fresh deterministic criterion audit finds no unresolved P0/P1 readiness defect; use an independent reviewer only when a named material risk justifies the extra pass;
 - `git diff --check` passes for the pack files.
+
+Automated tests, builds used as gates, browser automation, screenshots, and broad QA are not part of this planning task and are not standing execution requirements. Every criterion defaults to `test_requirement: NOT_REQUIRED`; an executor may record a precise `TEST_PROPOSAL` for a named critical invariant, but may run or create tests only after an explicit current-task user request changes that criterion to `TEST_TASK`.
 
 The product is not complete when this planning package passes. Product completion requires every implementation unit and matching local/hosted evidence receipt to be verified.

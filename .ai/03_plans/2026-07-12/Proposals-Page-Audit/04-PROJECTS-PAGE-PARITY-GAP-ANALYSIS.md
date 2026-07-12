@@ -1,11 +1,12 @@
 # 04 — Projects-Page Parity Gap Analysis
 
-> The owner directive (recorded in `.ai/03_plans/2026-07-11/Proposals-Feature/README.md:20-24`)
+> The owner directive (preserved in the archived 2026-07-11 predecessor and
+> carried by this pack)
 > is: **"the proposals page should look like the projects page."** This document
 > is the concrete feature-by-feature gap between `/workshop/projects` (gold
 > standard) and `/workshop/proposals` (current), grounded in current source.
 >
-> It complements the active pack's `03_TARGET_UX_UI_DESIGN.md` by naming the
+> It complements this pack's target design and DAG by naming the
 > **exact** primitives, files, and patterns to reuse — so an executor doesn't
 > reinvent or guess.
 
@@ -97,7 +98,7 @@ owner authority over these proposals).
 
 ## 5. Scope decision: grouping in V1?
 
-The target design marks grouping as **Optional** (§4.6). The active pack's
+The target design marks grouping as **Optional** (§4.6). This pack's
 DEC-AUTO-003 chose client-side filtering/sorting for V1 assuming ≤50 rows. With
 ≤50 rows, grouping adds UI complexity for limited value.
 

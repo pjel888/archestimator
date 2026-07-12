@@ -76,9 +76,8 @@ none is authorized by this audit.
 7. **Redesign the inbox to match the projects page** per the owner directive
    (P3-1, P3-2): `WorkshopCollectionLayout`, card grid, status tabs
    (All/New/Opened/Decision submitted/Expired/Revoked), instant search, sort,
-   list/card view toggle, glass-card empty state. **This is the active
-   `2026-07-11/Proposals-Feature` pack's entire job** — do not start a parallel
-   redesign here.
+   list/card view toggle, glass-card empty state. This merged pack is the sole
+   active execution authority; use `IMPLEMENTATION_PLAN.md` Slices 4–5.
 
 ### Tier 4 — polish
 
@@ -88,44 +87,19 @@ none is authorized by this audit.
 10. Fix the stale `e2e/shared-link-receiver.spec.ts` selector and remove dead
     `ShareFloatingTreeNav` (P3-4) when the share surface is next touched.
 
-## 3. Relationship to the active pack
+## 3. Relationship to the superseded predecessor
 
-There is already an active, comprehensive implementation pack at
-`.ai/03_plans/2026-07-11/Proposals-Feature/` with status
-`CONDITIONALLY_READY / NOT_STARTED / NOT_EVALUATED / ACTIVE / ACTIVE`. It
-contains:
+The 2026-07-11 `Proposals-Feature` pack is preserved at
+`.ai/09_archive/store/2026-07-11-Proposals-Feature-superseded/`. It was
+`NOT_STARTED`; this merge does not claim any of its work complete.
 
-- `01_AUDIT_AND_CURRENT_STATE.md` — an audit that largely agrees with this one.
-- `03_TARGET_UX_UI_DESIGN.md` — the target card-grid design.
-- `06_IMPLEMENTATION_PLAN.md` — 16 execution units (`UNIT-001…016`).
-- `07_DECISIONS_RISKS_AND_AUTH_BOUNDARIES.md` — 9 `DEC-AUTO-*` decisions.
-- `10_ABSORBED_REQUIREMENTS_AND_UNITS.md` — items pulled in from the four stale
-  2026-07-07 packs.
-- `09_STALE_PLAN_RECONCILIATION.md` — supersedes the 2026-07-07 proposals packs.
+`11-ABSORBED-2026-07-11-REQUIREMENTS.md` maps all 16 predecessor units. The
+current audit adds P1 row resilience, decision typing, and logging as A1+A2;
+the pre-existing response-status gap is A3. Current execution begins with
+Slice 1 in `IMPLEMENTATION_PLAN.md`, not with a stale baseline refresh.
 
-**This 2026-07-12 audit does not supersede, replace, or fork that pack.** Its
-job is to:
-
-1. **Re-verify** the codebase against current source on 2026-07-12 (the active
-   pack's baseline was set earlier — confirm `baseline.head`
-   `f83d4504d5e8425aa078d286d55e4d19d9cc0612` is still fresh before executing).
-2. **Register three NEW bugs** not called out as defects in the active pack:
-   P1-2 (one-bad-row-fails-all), P1-3 (`normalizeDecision` union lie), P2-2
-   (swallowed errors with no logging). These should be folded into the active
-   pack's risk inventory as additional units or folded into existing units.
-3. **Confirm** the active pack's key decisions still hold against today's code
-   (they do: flat table confirmed, `LIMIT 50` confirmed, TanStack key/config
-   confirmed, `responded` unwritten confirmed).
-
-**Recommended next action for the owner:** before executing the active pack,
-refresh its `baseline` (recompute the scoped status/diff hash against current
-HEAD), add P1-2/P1-3/P2-2 as units (or fold into `UNIT-014` and a new
-repository-hardening unit), then begin at `UNIT-001` of `06_IMPLEMENTATION_PLAN.md`.
-
-If instead the owner wants to **only** fix the P1 data-layer bugs now and defer
-the full UX redesign, that is a safe smaller slice: Tier 1 above
-(`recipient-proposals-repository.ts` + `d1-store.ts`) is a coherent standalone
-change that does not depend on the redesign.
+The data layer can still land before the UX redesign, but it is now an ordered
+slice of this pack rather than a parallel or competing plan.
 
 ## 4. Verification & test decisions (per the User Test Authorization Gate)
 
@@ -143,8 +117,8 @@ and waits for explicit owner authorization (`TEST_TASK`). Specifically:
 Existing tests in the area (context, not run): `tests/vitest/recipient-proposals-action.test.ts`,
 `tests/vitest/recipient-proposals-page.test.tsx`,
 `tests/vitest/recipient-proposals-repository.test.ts`,
-`tests/vitest/recipient-proposals-route-gate.test.ts`. Per
-DEC-AUTO-007 in the active pack, two of these assert strict `toEqual` shapes
+`tests/vitest/recipient-proposals-route-gate.test.ts`. The archived predecessor
+identified that two of these assert strict `toEqual` shapes
 that would break if `clientName` (or any field) is added — re-confirm before
 schema/type changes.
 
@@ -160,5 +134,5 @@ These do not block Tier 1 fixes but would sharpen the next planning round:
 3. **Is the ≤50-proposals-per-recipient assumption true for beta?** Determines
    whether P2-1 is a now-fix or a post-beta-fix.
 4. **Who owns the data-error UX — route `error.tsx` or in-page?** (P2-3.)
-5. **Should this audit's three NEW bugs be added as units to the active pack,
-   or shipped as a standalone Tier-1 slice first?**
+5. **Is any scope beyond the ordered Slice 1 data hardening needed before the
+   redesign begins?**
