@@ -39,7 +39,7 @@ cross-reference.
 |---|---|---|
 | `README.md` (this file) | entrypoint | Outcome, scope, status, and resume pointer |
 | `01-CURRENT-STATE-MAP.md` | audit | Full component/data/server/authz/perf/cloudflare map with file:line refs |
-| `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found (**31: 1×P0, 7×P1, 16×P2, 7×P3** across 10 rounds), severity, evidence, recommended surface |
+| `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found (**31: 0×P0 [P0-1 downgraded to P2 round 11], 7×P1, 17×P2, 7×P3**), severity, evidence, recommended surface |
 | `03-READINESS-AND-RECOMMENDATIONS.md` | audit | Beta readiness verdict, prioritized recommendations, relationship to the active pack |
 | `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md` | design | Feature-by-feature projects-vs-proposals gap; exact primitives/patterns to reuse |
 | `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` | execution DAG | Canonical dependency-ordered units (data hardening + redesign) |
