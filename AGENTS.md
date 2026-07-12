@@ -84,6 +84,19 @@ Archestimator is preparing for first users. Prioritize auth, estimating workflow
 
 ## Lean Agent Workflow
 
+The agentic development goal is fast, lean, effective, and BUG-free work. Hold
+three commitments together: **go deep on analysis** (problem, blast radius,
+affected surfaces, edge cases — this is where bugs are prevented), **lean on
+implementation** (smallest coherent change; over-engineering is a bug, not
+thoroughness), and **lean on testing** (tests are user-gated, never a default to
+feel thorough). Be token- and time-efficient: pull context on demand, use the
+fewest capable lanes, keep artifacts concise, and stop exploration when the
+evidence-supported direct/transitive blast radius is known. Proportional
+everything: planning depth, loop surface, agent count, evidence, and ceremony
+scale with real risk, not with agent confidence.
+Canonical statement: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Lean
+Engineering Ethos").
+
 Default to the shortest path that can safely satisfy the request, with
 orchestration as the normal shape whenever work can split cleanly:
 
@@ -128,7 +141,9 @@ and `.ai/08_prompts/templates/codebase-ai-loop-task.md` for the reusable prompt.
 - Use loop engineering for repeatable or multi-step delivery: define the goal, run the loop, observe evidence, persist state, decide the next action, and stop only on a real pass/blocker condition.
 - Select one primary loop surface by task shape. Add `ultrawork`, `ultragoal`, `team`, `autopilot`, research, QA, or browser helpers only when their extra token/tool cost materially improves elapsed time or required evidence.
 - Loops must carry durable memory in repo/state artifacts (`.ai`, `.omx`, issue trackers, or other approved state), not just chat context.
-- Maker/checker separation is expected for non-trivial work: the agent or lane that verifies should be distinct from the one that made the change when practical.
+- Maker/checker separation is used only when independent judgment materially
+  reduces risk; deterministic self-checks are sufficient for routine bounded
+  work. Do not add reviewers as ceremony.
 - Token cost is an engineering constraint. Do not spawn agents just to look busy; spawn them when the expected time, quality, or coverage gain is worth the extra context and review cost.
 
 The mandate is agent-neutral. Claude, Codex, OpenCode, CommandCode,
@@ -157,8 +172,16 @@ without improving correctness.
   override it. Re-index only through `bun run graph:reindex`; do not run raw
   GitNexus registry-install commands.
 - Use Compound Engineering, Superpowers, OMX, or other workflow plugins as optional accelerators, not mandatory gates.
-- Use Impeccable and visual QA tooling for high-risk UI polish, design audits, or explicit visual-review tasks. Routine UI fixes can lean on `DESIGN.md` and existing component patterns without loading a full design workflow or browser automation. Note: `DESIGN.md` is an **alpha-stage guide, not law** (see its status banner) — defer to Philip on design decisions and don't block or revert work on design-system grounds while the visual language is still being developed.
-- Philip grants standing authorization to all coding agents to capture local screenshots and use Chrome, Playwright, browser automation, or equivalent visual tooling for repo-local UX/UI inspection and validation without asking again. Keep captures in ignored scratch/evidence paths, keep credentials out of output and artifacts, and state exactly what each capture proves.
+- Use Impeccable and visual QA tooling only for an explicit user-authorized
+  visual/testing task. Routine UI fixes use `DESIGN.md`, existing component
+  patterns, and static evidence without browser automation. Note: `DESIGN.md` is
+  an **alpha-stage guide, not law** (see its status banner) — defer to Philip on
+  design decisions and don't block or revert work on design-system grounds while
+  the visual language is still being developed.
+- Browser automation, screenshots, Playwright, Chrome, Storybook, and equivalent
+  visual validation are not standing automatic evidence surfaces. The User Test
+  Authorization Gate controls them; run them only when Philip explicitly asks
+  for that testing/visual proof in the current task.
 - Reuse existing UI primitives from `src/components/ui/` when it is practical and cheaper than duplicating behavior. Do not block small fixes on Storybook inventory work.
 - For Cloudflare D1/R2/Durable Object/Queue/Email changes, use the standing Cloudflare-resource authorization above: move quickly, keep migrations/recovery paths reviewable, document meaningful provider facts, and keep the project boundary strict — only the resources bound in `wrangler.jsonc` (Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, Images `IMAGES`), never the historical Supabase project `ebxxqidacheyapmmzavr`, the unrelated `archestimator` provider project, or other Cloudflare accounts.
 
@@ -172,7 +195,7 @@ For GitHub security PRs, review comments, CodeQL/GitGuardian/Dependabot/secret-s
 - After PR branch consolidation, resolve comments against the current default branch, not deleted PR branch refs. Do not recreate deleted branches just to answer old review threads.
 - Do not resolve a review thread, close a PR, or claim a security finding fixed until the fix is present on the current worktree or deliberately classified stale with concrete evidence. Replies should cite the verification command or stale/superseded reason.
 - Redact security evidence. Never paste raw secrets, bearer values, OAuth state, Better Auth cookies, invite/share/password-reset tokens, private object keys, or full sensitive URLs into GitHub, `.ai`, logs, screenshots, or final reports. Use hashes, prefixes/suffixes, counts, and file/line references instead.
-- For Better Auth, public share, invite, password, publication, session, or token findings, write the credential-material taxonomy before fixing: raw/hash/encrypted/derived/public marker, storage, server/client visibility, cookie/URL/session use, rotation/revocation, and denial-test proof.
+- For Better Auth, public share, invite, password, publication, session, or token findings, write the credential-material taxonomy before fixing: raw/hash/encrypted/derived/public marker, storage, server/client visibility, cookie/URL/session use, rotation/revocation, and denial-path proof. Run denial tests only when the user explicitly authorizes testing.
 - For body-size and rate-limit findings, prove the failure mode under no-length/streamed requests and concurrent submissions. Multi-scope limiters should either reserve atomically or roll back earlier scope reservations when a later scope denies the request.
 - For favorite, recent, sidebar, or cleanup-list findings, keep raw stored references separate from authorized metadata IDs: raw IDs may drive cleanup UX, but metadata, node, publication, or estimate reads must pass the current D1 access predicate first.
 - Hosted GitHub controls require hosted evidence: branch protection or rulesets, required CI, CodeQL, Dependabot alerts, secret scanning, environments, and `SECURITY.md` cannot be proven by local tests. Local checks may support code readiness only.
