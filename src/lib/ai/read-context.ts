@@ -443,6 +443,7 @@ type AiAskChartRowItemRow = {
   node_id: string | null;
   supplier: string | null;
   source_snapshot: unknown;
+  metadata_json: unknown;
   quantity: number;
   quantity_base: number | null;
   quantity_contingency_amount: number | null;
@@ -1160,7 +1161,7 @@ async function readAskProjectChartSummary({
     all<AiAskChartRowItemRow>(
       database,
       `
-        SELECT id, estimate_id, node_id, supplier, source_snapshot_json AS source_snapshot,
+        SELECT id, estimate_id, node_id, supplier, source_snapshot_json AS source_snapshot, metadata_json,
                quantity, quantity_base, quantity_contingency_amount, unit_cost,
                contingency_percentage, adjustment_percentage, misc_cost
         FROM estimate_row_items
@@ -1202,6 +1203,7 @@ async function readAskProjectChartSummary({
 
   const rowFacts: ProjectChartRowFact[] = rows.map((row) => {
     const sourceSnapshot = readJsonRecord(row.source_snapshot);
+    const metadata = readJsonRecord(row.metadata_json);
     const supplierId = readString(sourceSnapshot.supplierId);
     return {
       id: row.id,
@@ -1216,6 +1218,7 @@ async function readAskProjectChartSummary({
       quantityBase: row.quantity_base === null ? null : finiteNumber(Number(row.quantity_base)),
       quantityContingencyAmount: row.quantity_base === null ? null : finiteNumber(Number(row.quantity_contingency_amount ?? 0)),
       unitCost: finiteNumber(Number(row.unit_cost)),
+      laborRate: finiteNumber(Number(metadata.laborUnitCost ?? 0)),
       contingencyPercentage: finiteNumber(Number(row.contingency_percentage ?? 0)),
       adjustmentPercentage: finiteNumber(readEstimateRowAdjustmentPercentage(row)),
       miscCost: finiteNumber(Number(row.misc_cost)),

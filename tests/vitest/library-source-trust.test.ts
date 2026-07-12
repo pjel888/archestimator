@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 import {
+  COMPONENT_FACET_STALE_DAYS,
+  COMPONENT_FACET_VERY_STALE_DAYS,
   componentMatchesPricingFreshness,
   getLibraryCommitTrustGate,
   getComponentPricingFreshness,
   getComponentSourceTrustChips,
   getTemplateSourceTrustChips,
 } from "@/components/workshop/library/source-trust-model";
+import { DEFAULT_PRICE_FRESHNESS_POLICY, getPriceFreshness } from "@/lib/estimate-health";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 
 const NOW = Date.parse("2026-06-22T00:00:00.000Z");
@@ -50,6 +53,18 @@ describe("library source trust model", () => {
     expect(componentMatchesPricingFreshness({ pricingDate: "2025-12-01" }, "stale", NOW)).toBe(true);
     expect(componentMatchesPricingFreshness({ pricingDate: "2025-12-01" }, "very-stale", NOW)).toBe(true);
     expect(componentMatchesPricingFreshness({ pricingDate: "" }, "stale", NOW)).toBe(false);
+  });
+
+  it("uses the canonical default price policy without changing the public 90/180 thresholds", () => {
+    expect(COMPONENT_FACET_STALE_DAYS).toBe(DEFAULT_PRICE_FRESHNESS_POLICY.staleDays);
+    expect(COMPONENT_FACET_VERY_STALE_DAYS).toBe(DEFAULT_PRICE_FRESHNESS_POLICY.veryStaleDays);
+    expect(getComponentPricingFreshness({ pricingDate: "2026-02-01" }, NOW)).toBe(
+      getPriceFreshness({
+        timestamp: Date.parse("2026-02-01"),
+        now: NOW,
+        policy: DEFAULT_PRICE_FRESHNESS_POLICY,
+      }),
+    );
   });
 
   it("renders component confidence as copy-deck labels and flags missing source fields", () => {

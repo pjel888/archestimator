@@ -171,7 +171,7 @@ function buildConfirmationCheck(inputs: HostedRecoveryRehearsalInputs) {
 function commandPlan() {
   return [
     "wrangler d1 create <disposable-target>",
-    "wrangler d1 migrations apply <disposable-target> --remote",
+    "wrangler d1 execute <disposable-target> --remote --file=<ordered-migration>",
     "wrangler d1 export <authorized-source> --remote --table=<approved-table> --no-schema --output=<restricted-export>",
     "wrangler d1 execute <disposable-target> --remote --file=<sanitized-data-artifact>",
     "wrangler delete <disposable-worker>",
@@ -256,7 +256,9 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   try {
     command(["d1", "create", identity.targetDatabaseName]);
     targetCreated = true;
-    command(["d1", "migrations", "apply", identity.targetDatabaseName, "--remote"]);
+    for (const migrationPath of activeMigrationPaths()) {
+      command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", migrationPath, "--yes"]);
+    }
     const tableExports: Array<{ table: string; source: string }> = [];
     for (const table of activeApplicationTables()) {
       command([

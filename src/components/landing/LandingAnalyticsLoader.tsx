@@ -1,14 +1,19 @@
 "use client";
 
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { isBetaTelemetryProductionEnabled } from "@/lib/landing/beta-telemetry-registry";
 import { useLandingCookieConsent } from "@/lib/landing/useLandingCookieConsent";
 import { CloudflareWebAnalytics } from "./CloudflareWebAnalytics";
 import { ClarityScript } from "./ClarityScript";
 
 export function LandingAnalyticsLoader() {
   const { consent } = useLandingCookieConsent();
+  const telemetryEnabled = isBetaTelemetryProductionEnabled({
+    nodeEnv: process.env.NODE_ENV,
+    enabled: process.env.NEXT_PUBLIC_BETA_TELEMETRY_ENABLED,
+  });
 
-  if (!consent.analytics) {
+  if (!consent.analytics || !telemetryEnabled) {
     return null;
   }
 

@@ -13,7 +13,9 @@ describe("Cloudflare Web Analytics integration", () => {
   it("loads Cloudflare Web Analytics only through the consent-gated public-page loader", () => {
     expect(loader).toContain('import { CloudflareWebAnalytics } from "./CloudflareWebAnalytics";');
     expect(loader).toContain("useLandingCookieConsent()");
-    expect(loader).toContain("if (!consent.analytics)");
+    expect(loader).toContain("isBetaTelemetryProductionEnabled");
+    expect(loader).toContain("process.env.NEXT_PUBLIC_BETA_TELEMETRY_ENABLED");
+    expect(loader).toContain("if (!consent.analytics || !telemetryEnabled)");
     expect(loader).toContain("process.env.NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN");
     expect(loader).toContain("<CloudflareWebAnalytics token={cloudflareWebAnalyticsToken} />");
     expect(publicPageShell).toContain("<LandingAnalyticsLoader />");

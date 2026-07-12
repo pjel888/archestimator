@@ -8,7 +8,6 @@ import { NavigationListener } from "@/components/navigation-listener";
 import { PerformanceMonitor } from "@/components/performance-monitor";
 import { RealtimeAuthBridge } from "@/components/realtime-auth-bridge";
 import { RouteLoadingOverlay } from "@/components/ui/route-loading-overlay";
-import { CloudflareWebAnalytics } from "@/components/landing/CloudflareWebAnalytics";
 import { ToastProvider } from "@/components/ui/toast";
 import { WebVitalsCollector } from "@/components/web-vitals-collector";
 import { NotificationProvider } from "@/features/notifications/components/NotificationProvider";
@@ -43,7 +42,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <WebVitalsCollector />
           {children}
           <RouteLoadingOverlay />
-          <CloudflareWebAnalytics token={process.env.NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN ?? ""} />
         </NotificationProvider>
       </ToastProvider>
     </QueryClientProvider>

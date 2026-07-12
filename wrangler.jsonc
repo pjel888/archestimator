@@ -83,6 +83,10 @@
       {
         "binding": "UPLOAD_JOBS_QUEUE",
         "queue": "archestimator-upload-jobs"
+      },
+      {
+        "binding": "CLIENT_PORTAL_NOTIFICATIONS_QUEUE",
+        "queue": "archestimator-client-portal-notifications"
       }
     ],
     "consumers": [
@@ -92,6 +96,13 @@
         "max_batch_timeout": 30,
         "max_retries": 3,
         "dead_letter_queue": "archestimator-upload-jobs-dlq"
+      },
+      {
+        "queue": "archestimator-client-portal-notifications",
+        "max_batch_size": 20,
+        "max_batch_timeout": 30,
+        "max_retries": 10,
+        "dead_letter_queue": "archestimator-client-portal-notifications-dlq"
       }
     ]
   },

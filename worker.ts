@@ -5,6 +5,8 @@ import {
 import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
 import { reconcileActivityOutbox } from "./src/lib/activity/activity-outbox";
 import { reconcileActivationOutbox } from "./src/lib/onboarding/activation-outbox";
+import { enqueuePendingClientPortalNotifications, runClientPortalNotificationQueueBatch, type ClientPortalNotificationQueueEnv, CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME } from "./src/lib/cloudflare/client-portal-notification-queue";
+import { purgeExpiredActivationData } from "./src/lib/onboarding/activation-retention";
 import { normalizePathForLog } from "./src/lib/observability/safe-path";
 import { redactMessage } from "./src/lib/observability/redact";
 import { recordCronRunEvent } from "./src/lib/admin/observability-repository";
@@ -63,6 +65,7 @@ type CloudflareWorkerEnv = Record<string, unknown>
   & CloudflareGlobalPresenceEnv
   & CloudflareSupportInboxEnv
   & CloudflareProtectedProofEnv
+  & ClientPortalNotificationQueueEnv
   & {
     ARCH_DB?: RetentionD1DatabaseLike;
   };
@@ -231,10 +234,14 @@ export default {
           runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }),
           reconcileActivityOutbox(env.ARCH_DB),
           reconcileActivationOutbox(env.ARCH_DB),
-        ]).then(([results, outbox, activationOutbox]) => {
+          enqueuePendingClientPortalNotifications(env),
+          purgeExpiredActivationData(env.ARCH_DB),
+        ]).then(([results, outbox, activationOutbox, notificationOutbox, activationRetention]) => {
           console.log("Retention pass completed", JSON.stringify(results));
           console.log("Activity outbox reconciliation completed", JSON.stringify(outbox));
           console.log("Activation outbox reconciliation completed", JSON.stringify(activationOutbox));
+          console.log("Client Portal notification outbox enqueue completed", JSON.stringify(notificationOutbox));
+          console.log("Activation retention purge completed", JSON.stringify(activationRetention));
           recordCronRunEvent({
             cronName: `retention-pass:${cronName}`,
             startedAt,
@@ -259,6 +266,10 @@ export default {
   },
 
   queue(batch: CloudflareUploadJobQueueBatchLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
+    if (batch.queue === CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME) {
+      ctx.waitUntil(runClientPortalNotificationQueueBatch({ batch, env }).then((summary) => console.log("Client Portal notification queue batch completed", JSON.stringify(summary))));
+      return;
+    }
     ctx.waitUntil(
       runCloudflareUploadJobQueueBatch({
         batch,

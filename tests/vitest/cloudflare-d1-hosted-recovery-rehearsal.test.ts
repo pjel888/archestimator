@@ -132,10 +132,10 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(report.providerBacked).toBe(true);
     expect(report.cleanupVerified).toBe(true);
     expect(commands.slice(0, 2).map((args) => args.slice(0, 2).join(" "))).toEqual([
-      "d1 create", "d1 migrations",
+      "d1 create", "d1 execute",
     ]);
     expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 export").length).toBeGreaterThan(0);
-    expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 execute")).toHaveLength(1);
+    expect(commands.filter((args) => args.slice(0, 2).join(" ") === "d1 execute").length).toBeGreaterThan(1);
     expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual([
       "d1 delete", "d1 list",
     ]);

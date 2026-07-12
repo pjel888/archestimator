@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const envExample = readFileSync(".env.example", "utf8");
-const cloudflarePlanDir = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex";
+const cloudflarePlanDir = ".ai/09_archive/2026-06-29-Cloudflare-Migration-Codex";
 const postCutoverLedger = readFileSync(`${cloudflarePlanDir}/33_POST_CUTOVER_FULL_APP_QA_LEDGER.md`, "utf8");
 const providerExitRunbook = readFileSync(`${cloudflarePlanDir}/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md`, "utf8");
 const handoff = readFileSync(`${cloudflarePlanDir}/37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md`, "utf8");
@@ -61,6 +61,7 @@ const optionalEnvVars = [
   "GOOGLE_MAPS_MAP_ID",
   "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
   "NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID",
+  "NEXT_PUBLIC_BETA_TELEMETRY_ENABLED",
 ] as const;
 
 describe("closed beta env manifest", () => {

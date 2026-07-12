@@ -1,4 +1,5 @@
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { DEFAULT_PRICE_FRESHNESS_POLICY, getPriceFreshness } from "@/lib/estimate-health";
 import type { ComponentLifecycleState, EstimateRowItem, EstimateRowLinkState } from "@/lib/estimates/types";
 
 export const COMPONENT_FACET_STALE_DAYS = 90;
@@ -138,9 +139,11 @@ export function getComponentPricingFreshness(
   if (!raw) return "missing";
   const parsed = Date.parse(raw);
   if (Number.isNaN(parsed)) return "missing";
-  const ageDays = (now - parsed) / (1000 * 60 * 60 * 24);
-  if (ageDays > COMPONENT_FACET_VERY_STALE_DAYS) return "very-stale";
-  return ageDays > COMPONENT_FACET_STALE_DAYS ? "stale" : "fresh";
+  return getPriceFreshness({
+    timestamp: parsed,
+    now,
+    policy: DEFAULT_PRICE_FRESHNESS_POLICY,
+  });
 }
 
 export function componentMatchesPricingFreshness(
