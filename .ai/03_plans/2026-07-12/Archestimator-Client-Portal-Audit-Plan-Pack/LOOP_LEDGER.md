@@ -312,3 +312,30 @@ Implement the Client Portal plan pack from the source-grounded active pack throu
 - **Boundary:** this regression sweep proves local contracts only. The named
   cohort, hosted header/denial capture, real-data migration and rollback
   rehearsal, support ownership, and release-truth reconciliation remain open.
+
+## Release execution update — 2026-07-12
+
+- **Delivered:** remote D1 migrations `0067` through `0073` are applied with
+  no pending migrations. The final Client Portal Worker version
+  `d7b080d9-a013-4e53-9e68-65b0116b1b61` is deployed at 100%. The deployment
+  initially exposed a client/server module-boundary failure in the composer;
+  shared contracts now live in a client-safe module and the Cloudflare build,
+  targeted lint, workspace type-check, focused Publisher suite (22 tests),
+  and diff check pass.
+- **Publisher integration:** the legacy Publisher control center now uses
+  stable drawer navigation, restores full roster state after an editor close,
+  keeps client-facing mutation errors generic, clears transient copy feedback,
+  and loads focused drawer/wizard projects outside the current page. The
+  Publisher regression suite was updated from removed table/four-step controls
+  to the released client-link control-center contract.
+- **Live-cohort result:** the remote database has one active legacy
+  publication and no existing migration mapping. Both rollout flags were
+  enabled only for the attempted controlled window and were restored to `0`.
+  The deployed Publisher route redirects an unauthenticated browser profile to
+  sign-in, so the manager-gated migration/rollback action could not be run
+  without fabricating an authenticated session or bypassing its authorization.
+- **Archive gate:** do not archive either pack yet. The remaining required
+  evidence is one authenticated publication-manager dry-run/apply/readback and
+  rollback or fix-forward rehearsal for that single cohort, followed by final
+  hosted token/header and release-truth capture. The release remains fail
+  closed until that protected operator action is available.

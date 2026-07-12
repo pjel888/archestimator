@@ -160,7 +160,7 @@
       "id": "ART-023",
       "role": "supporting",
       "path": "LOOP_LEDGER.md",
-      "sha256": "b4274d06cd3cd1eaddb0d639cdaee28164e19b5301a678e738a31276e8f32cac"
+      "sha256": "ab4a2d7b69ef55ca427f84b821c50e0dbfb3a8414c8d3e7c4ff1e97a463dc9e7"
     },
     {
       "id": "ART-024",
@@ -4254,6 +4254,6 @@
     }
   ],
   "next_unit": "UNIT-018",
-  "manifest_sha256": "7237ac809bcc78dde592cbda0286951d7b830151e3d2665a5d8d5cbdba10d3ea",
+  "manifest_sha256": "a95cef148e50f1471cba89b6da03ea2394a4fcd65f51892c525bd36acf415d3d",
   "updated_at": "2026-07-12T10:24:23.000Z"
 }
