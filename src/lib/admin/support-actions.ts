@@ -9,6 +9,7 @@ import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d
 import { sendEmail } from "@/lib/email/transactional-email-client";
 import {
   createSupportConversation,
+  claimFailedSupportMessageRetryInD1,
   getSupportConversationInD1,
   insertSupportMessageIfNewInD1,
   markSupportMessageSendStatusInD1,
@@ -23,7 +24,7 @@ export type SupportActionResult<T> =
   | { ok: true; data: T }
   | {
       ok: false;
-      error: "unauthorized" | "validation" | "d1_unavailable" | "not_found" | "email_send_failed" | "failed";
+      error: "unauthorized" | "validation" | "d1_unavailable" | "not_found" | "email_send_failed" | "delivery_pending" | "delivery_uncertain" | "failed";
       message?: SupportMessageRow;
     };
 
@@ -64,7 +65,12 @@ async function retrySupportReplyEmail(input: {
   db: D1DatabaseLike;
 }): Promise<SupportActionResult<{ message: SupportMessageRow; conversation: SupportConversationRow }>> {
   const { admin, conversation, existingMessage, db } = input;
-  let finalMessage = existingMessage;
+  const claimedMessage = await claimFailedSupportMessageRetryInD1(db, existingMessage.id);
+  if (!claimedMessage) {
+    return { ok: false, error: "delivery_pending", message: existingMessage };
+  }
+
+  let finalMessage: SupportMessageRow | null = claimedMessage;
 
   if (conversation.requester_email) {
     const result = await sendEmail({
@@ -78,22 +84,29 @@ async function retrySupportReplyEmail(input: {
         actorEmail: admin.email ?? "unknown",
         action: "support.reply_send_failed",
         targetId: conversation.id,
-        summary: { messageId: finalMessage.id, code: result.code ?? "unknown", retry: true },
+        summary: { messageId: claimedMessage.id, code: result.code ?? "unknown", retry: true },
       });
       revalidatePath("/admin/support");
-      return { ok: false, error: "email_send_failed", message: finalMessage };
+      const failedMessage = await markSupportMessageSendStatusInD1(db, {
+        messageId: claimedMessage.id,
+        sendStatus: "send_failed",
+      });
+      if (!failedMessage) return { ok: false, error: "delivery_uncertain", message: claimedMessage };
+      return { ok: false, error: "email_send_failed", message: failedMessage };
     }
     finalMessage = (await markSupportMessageSendStatusInD1(db, {
-      messageId: existingMessage.id,
+      messageId: claimedMessage.id,
       sendStatus: "sent",
       emailMessageId: result.messageId ?? null,
-    })) ?? existingMessage;
+    }));
   } else {
-    finalMessage = (await markSupportMessageSendStatusInD1(db, {
-      messageId: existingMessage.id,
+    finalMessage = await markSupportMessageSendStatusInD1(db, {
+      messageId: claimedMessage.id,
       sendStatus: "sent",
-    })) ?? existingMessage;
+    });
   }
+
+  if (!finalMessage) return { ok: false, error: "delivery_uncertain", message: claimedMessage };
 
   await writeSupportAudit({
     actorUserId: admin.userId,
@@ -137,10 +150,13 @@ export async function sendSupportReply(input: {
     if (inserted.message.send_status === "send_failed") {
       return retrySupportReplyEmail({ admin, conversation, existingMessage: inserted.message, db });
     }
+    if (inserted.message.send_status === "pending") {
+      return { ok: false, error: "delivery_pending", message: inserted.message };
+    }
     return { ok: true, data: { message: inserted.message, conversation } };
   }
 
-  let finalMessage = inserted.message;
+  let finalMessage: SupportMessageRow | null = inserted.message;
   if (conversation.requester_email) {
     const result = await sendEmail({
       to: conversation.requester_email,
@@ -148,10 +164,11 @@ export async function sendSupportReply(input: {
       text: body,
     });
     if (!result.ok) {
-      finalMessage = (await markSupportMessageSendStatusInD1(db, {
+      finalMessage = await markSupportMessageSendStatusInD1(db, {
         messageId: inserted.message.id,
         sendStatus: "send_failed",
-      })) ?? inserted.message;
+      });
+      if (!finalMessage) return { ok: false, error: "delivery_uncertain", message: inserted.message };
       await writeSupportAudit({
         actorUserId: admin.userId,
         actorEmail: admin.email,
@@ -162,17 +179,19 @@ export async function sendSupportReply(input: {
       revalidatePath("/admin/support");
       return { ok: false, error: "email_send_failed", message: finalMessage };
     }
-    finalMessage = (await markSupportMessageSendStatusInD1(db, {
+    finalMessage = await markSupportMessageSendStatusInD1(db, {
       messageId: inserted.message.id,
       sendStatus: "sent",
       emailMessageId: result.messageId ?? null,
-    })) ?? inserted.message;
+    });
   } else {
-    finalMessage = (await markSupportMessageSendStatusInD1(db, {
+    finalMessage = await markSupportMessageSendStatusInD1(db, {
       messageId: inserted.message.id,
       sendStatus: "sent",
-    })) ?? inserted.message;
+    });
   }
+
+  if (!finalMessage) return { ok: false, error: "delivery_uncertain", message: inserted.message };
 
   await writeSupportAudit({
     actorUserId: admin.userId,

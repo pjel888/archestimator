@@ -68,12 +68,21 @@ export function AdminSupportInbox({ conversations, initialMessages }: AdminSuppo
         clientMessageId,
       });
       if (!result.ok) {
-        setNotice(result.error === "email_send_failed" ? "Reply saved, but email delivery failed." : "Reply could not be sent.");
+        const notice = result.error === "email_send_failed"
+          ? "Reply saved, but email delivery failed."
+          : result.error === "delivery_pending"
+            ? "Reply delivery is being reconciled and will not be resent automatically."
+            : result.error === "delivery_uncertain"
+              ? "Email delivery is uncertain. Reconcile it before retrying."
+              : "Reply could not be sent.";
+        setNotice(notice);
         if (result.message) {
-          const failedMessage = result.message;
+          const returnedMessage = result.message;
           setMessagesByConversation((current) => ({
             ...current,
-            [selected.id]: [...(current[selected.id] ?? []), failedMessage],
+            [selected.id]: (current[selected.id] ?? []).some((message) => message.id === returnedMessage.id)
+              ? (current[selected.id] ?? []).map((message) => message.id === returnedMessage.id ? returnedMessage : message)
+              : [...(current[selected.id] ?? []), returnedMessage],
           }));
         }
         return;

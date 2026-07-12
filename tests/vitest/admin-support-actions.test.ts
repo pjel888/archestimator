@@ -47,16 +47,16 @@ class SupportStatement implements D1PreparedStatementLike {
     if (this.sql.includes("FROM support_conversations c")) {
       return this.database.conversation as R;
     }
+    if (this.sql.includes("FROM support_messages") && this.sql.includes("WHERE id = ?")) {
+      const [messageId] = this.values;
+      const row = this.database.messages.find((message) => message.id === messageId);
+      return (row ?? null) as R | null;
+    }
     if (this.sql.includes("FROM support_messages") && this.sql.includes("client_message_id")) {
       const [conversationId, clientMessageId] = this.values;
       const row = this.database.messages.find(
         (message) => message.conversation_id === conversationId && message.client_message_id === clientMessageId,
       );
-      return (row ?? null) as R | null;
-    }
-    if (this.sql.includes("FROM support_messages") && this.sql.includes("WHERE id = ?")) {
-      const [messageId] = this.values;
-      const row = this.database.messages.find((message) => message.id === messageId);
       return (row ?? null) as R | null;
     }
     return null;
@@ -89,8 +89,18 @@ class SupportStatement implements D1PreparedStatementLike {
       return { success: true, meta: { changes: exists ? 0 : 1 } };
     }
     if (this.sql.includes("UPDATE support_messages")) {
+      if (this.values.length === 1) {
+        const [messageId] = this.values;
+        const row = this.database.messages.find((message) => message.id === messageId && message.send_status === "send_failed");
+        if (row) row.send_status = "pending";
+        return { success: true, meta: { changes: row ? 1 : 0 } };
+      }
       const [sendStatus, emailMessageId, messageId] = this.values;
       const row = this.database.messages.find((message) => message.id === messageId);
+      if (this.database.failNextStatusWrite) {
+        this.database.failNextStatusWrite = false;
+        return { success: true, meta: { changes: 0 } };
+      }
       if (row) {
         row.send_status = sendStatus === "send_failed" ? "send_failed" : "sent";
         row.email_message_id = typeof emailMessageId === "string" ? emailMessageId : null;
@@ -117,6 +127,7 @@ class SupportDatabase implements D1DatabaseLike {
     updated_at: "2026-07-10T05:00:00.000Z",
   };
   readonly messages: SupportMessageRow[] = [];
+  failNextStatusWrite = false;
 
   prepare(sql: string) {
     return new SupportStatement(this, sql);
@@ -174,5 +185,45 @@ describe("admin support actions", () => {
     expect(auditMocks.writeAdminAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
       action: "support.reply_send_failed",
     }));
+  });
+
+  it("claims a failed reply once so concurrent retries do not send duplicate email", async () => {
+    const database = new SupportDatabase();
+    database.messages.push({
+      id: "message-failed",
+      conversation_id: "conv-1",
+      sender_role: "admin",
+      author_user_id: "admin-1",
+      body_text: "Retry me",
+      body_html: null,
+      email_message_id: null,
+      client_message_id: "retry-1",
+      send_status: "send_failed",
+      created_at: "2026-07-12T00:00:00.000Z",
+    });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const { sendSupportReply } = await import("@/lib/admin/support-actions");
+
+    const [first, second] = await Promise.all([
+      sendSupportReply({ conversationId: "conv-1", body: "Retry me", clientMessageId: "retry-1" }),
+      sendSupportReply({ conversationId: "conv-1", body: "Retry me", clientMessageId: "retry-1" }),
+    ]);
+
+    expect([first, second].filter((result) => result.ok)).toHaveLength(1);
+    expect([first, second].find((result) => !result.ok)).toMatchObject({ error: "delivery_pending" });
+    expect(emailMocks.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns an explicit uncertainty when post-send persistence does not claim a row", async () => {
+    const database = new SupportDatabase();
+    database.failNextStatusWrite = true;
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const { sendSupportReply } = await import("@/lib/admin/support-actions");
+
+    await expect(sendSupportReply({ conversationId: "conv-1", body: "Hello", clientMessageId: "uncertain-1" }))
+      .resolves.toMatchObject({ ok: false, error: "delivery_uncertain" });
+
+    expect(emailMocks.sendEmail).toHaveBeenCalledTimes(1);
+    expect(database.messages[0]?.send_status).toBe("pending");
   });
 });

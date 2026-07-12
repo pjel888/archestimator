@@ -3,8 +3,14 @@ import Link from "next/link";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
 import { listOpenIncidents } from "@/lib/admin/incidents-repository";
+import { getActivationCohortAggregateForPlatformAdmin } from "@/lib/admin/activation-cohort-repository";
+import { buildBetaOperatingOverview } from "@/lib/admin/beta-operating-overview";
+import { getFeedbackAggregateForPlatformAdmin } from "@/lib/admin/feedback-aggregate";
 import { runAdminHealthProbes } from "@/lib/admin/health-probes";
+import { getSupportAggregateForPlatformAdmin } from "@/lib/admin/support-aggregate";
 import { countSignups } from "@/lib/admin/users-repository";
+import { getCurrentUserContext } from "@/lib/auth/session";
+import { BetaOperatingOverviewCards } from "@/components/admin/BetaOperatingOverview";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
@@ -20,15 +26,58 @@ const analyticsLinks = [
 
 export default async function AdminOverviewPage() {
   // Fetch all independent data in parallel.
-  const [healthProbes, incidentsResult, signupsResult] = await Promise.all([
+  const [healthProbes, incidentsResult, signupsResult, currentUser] = await Promise.all([
     runAdminHealthProbes(),
     listOpenIncidents(),
     countSignups(30),
+    getCurrentUserContext(),
+  ]);
+  const [activationAggregate, feedbackAggregate, supportAggregate] = await Promise.all([
+    getActivationCohortAggregateForPlatformAdmin(currentUser).catch(() => null),
+    getFeedbackAggregateForPlatformAdmin(currentUser).catch(() => null),
+    getSupportAggregateForPlatformAdmin(currentUser).catch(() => null),
   ]);
 
   const openIncidents = incidentsResult.data ?? [];
   const signupCount = signupsResult.data ?? 0;
   const signupError = signupsResult.error;
+  const operatorOverview = buildBetaOperatingOverview({
+    actor: { platformRole: currentUser?.role ?? "member" },
+    sources: {
+      activation: activationAggregate
+        ? {
+            availability: activationAggregate.status === "available" ? "available" : "unavailable",
+            asOf: activationAggregate.status === "available"
+              ? activationAggregate.fields.invited.asOf
+              : null,
+            errorCategory: activationAggregate.status === "available" ? null : "source_unavailable",
+            aggregates: {},
+            fields: activationAggregate.fields,
+          }
+        : { availability: "unavailable", asOf: null, errorCategory: "source_unavailable", aggregates: {} },
+      feedback: feedbackAggregate
+        ? {
+            availability: feedbackAggregate.status === "available" ? "available" : "unavailable",
+            asOf: feedbackAggregate.fields.open.asOf,
+            errorCategory: feedbackAggregate.fields.open.errorCategory,
+            aggregates: {},
+            fields: feedbackAggregate.fields,
+          }
+        : { availability: "unavailable", asOf: null, errorCategory: "source_unavailable", aggregates: {} },
+      support: supportAggregate
+        ? {
+            availability: supportAggregate.status === "available" ? "available" : "unavailable",
+            asOf: supportAggregate.fields.open.asOf,
+            errorCategory: supportAggregate.fields.open.errorCategory,
+            aggregates: {},
+            fields: supportAggregate.fields,
+          }
+        : { availability: "unavailable", asOf: null, errorCategory: "source_unavailable", aggregates: {} },
+      incidents: incidentsResult.error
+        ? { availability: "error", asOf: null, errorCategory: "source_failed", aggregates: {} }
+        : { availability: "available", asOf: new Date().toISOString(), errorCategory: null, aggregates: { open: openIncidents.length } },
+    },
+  });
 
   // Build health badges from probe results.
   const d1Probe = healthProbes.find((p) => p.name === "d1");
@@ -117,6 +166,14 @@ export default async function AdminOverviewPage() {
             )}
           </Card>
         </div>
+      </section>
+
+      <section aria-label="Beta operator status">
+        <div className="mb-2">
+          <h2 className="text-[11px] font-medium leading-4 text-ink">Beta operator status</h2>
+          <p className="text-[9px] leading-3 text-tertiary">Aggregate-only facts. Missing source data remains unavailable.</p>
+        </div>
+        <BetaOperatingOverviewCards overview={operatorOverview} />
       </section>
 
       <section className="grid gap-2 md:grid-cols-3" aria-label="Analytics link-out tiles">
