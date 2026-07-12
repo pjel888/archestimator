@@ -86,6 +86,9 @@ export type HostedRecoveryExecutionReport = {
   succeeded: boolean;
   cleanupVerified: boolean;
   identityDigest: string;
+  exportDigest?: string;
+  startedAt?: string;
+  completedAt?: string;
   commandDigests: string[];
   blockers: string[];
   note: string;
@@ -237,16 +240,16 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   const run = runtime.run ?? runWrangler;
   const tempDirectory = mkdtempSync(join(runtime.tempRoot ?? tmpdir(), "archestimator-recovery-"));
   chmodSync(tempDirectory, 0o700);
-  const plaintextPath = join(tempDirectory, "table-export.sql");
-  const ciphertextPath = join(tempDirectory, "table-export.sql.enc");
   const schemaPath = join(tempDirectory, "ordered-schema.sql");
-  const dataArtifactPath = join(tempDirectory, "approved-application-data.sql");
   const commandDigests: string[] = [];
   let exportKey: Buffer | null = null;
   let targetCreated = false;
   let cleanupVerified = false;
   let failure: string | null = null;
   let currentOperation = "preflight";
+  const startedAt = new Date().toISOString();
+  const exportedPaths = new Set<string>();
+  const exportDigest = createHash("sha256");
   const command = (args: string[], operation?: string) => {
     currentOperation = operation ?? args.slice(0, 3).join("-");
     commandDigests.push(createHash("sha256").update(`wrangler\n${args.join("\n")}`).digest("hex"));
@@ -262,27 +265,54 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     chmodSync(schemaPath, 0o600);
     command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", schemaPath, "--yes"]);
     unlinkSync(schemaPath);
-    command(["d1", "export", identity.sourceDatabaseId, "--remote", "--output", plaintextPath]);
-    chmodSync(plaintextPath, 0o600);
-    const exportBytes = readFileSync(plaintextPath);
-    if (exportBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
-    exportKey = encryptExport(exportBytes, ciphertextPath);
-    unlinkSync(plaintextPath);
-    const restoredBytes = decryptExport(ciphertextPath, exportKey);
-    const dataArtifacts = buildApprovedDataArtifacts(restoredBytes, new Set(activeApplicationTables()));
-    restoredBytes.fill(0);
-    writeFileSync(dataArtifactPath, Buffer.concat(dataArtifacts.map((artifact) => artifact.source)), { mode: 0o600 });
-    chmodSync(dataArtifactPath, 0o600);
-    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], "d1-import-application-data");
-    unlinkSync(dataArtifactPath);
+    exportKey = randomBytes(32);
+    const deferredClientPortalUpdates: Buffer[] = [];
+    for (const table of orderApplicationTables(new Set(activeApplicationTables()))) {
+      const plaintextPath = join(tempDirectory, `${table}.sql`);
+      const ciphertextPath = join(tempDirectory, `${table}.sql.enc`);
+      const dataArtifactPath = join(tempDirectory, `${table}.approved.sql`);
+      exportedPaths.add(plaintextPath);
+      exportedPaths.add(ciphertextPath);
+      exportedPaths.add(dataArtifactPath);
+      command(["d1", "export", identity.sourceDatabaseId, "--remote", "--table", table, "--no-schema", "--output", plaintextPath], `d1-export-${table}`);
+      chmodSync(plaintextPath, 0o600);
+      const exportedBytes = readFileSync(plaintextPath);
+      if (exportedBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
+      exportDigest.update(table).update("\n").update(exportedBytes).update("\n");
+      encryptExport(exportedBytes, ciphertextPath, exportKey);
+      exportedBytes.fill(0);
+      unlinkSync(plaintextPath);
+      const restoredBytes = decryptExport(ciphertextPath, exportKey);
+      const dataArtifacts = buildApprovedDataArtifacts(restoredBytes, new Set([table]));
+      restoredBytes.fill(0);
+      for (const artifact of dataArtifacts) {
+        if (artifact.table === "client_portals-current-issues") {
+          deferredClientPortalUpdates.push(artifact.source);
+          continue;
+        }
+        writeFileSync(dataArtifactPath, artifact.source, { mode: 0o600 });
+        chmodSync(dataArtifactPath, 0o600);
+        command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], `d1-import-${artifact.table}`);
+        unlinkSync(dataArtifactPath);
+      }
+      unlinkSync(ciphertextPath);
+    }
+    if (deferredClientPortalUpdates.length > 0) {
+      const deferredUpdatePath = join(tempDirectory, "client-portals-current-issues.approved.sql");
+      exportedPaths.add(deferredUpdatePath);
+      writeFileSync(deferredUpdatePath, Buffer.concat(deferredClientPortalUpdates.map((source) => Buffer.concat([source, Buffer.from("\n")]))), { mode: 0o600 });
+      chmodSync(deferredUpdatePath, 0o600);
+      command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", deferredUpdatePath, "--yes"], "d1-import-client-portals-current-issues");
+      unlinkSync(deferredUpdatePath);
+    }
   } catch (error) {
     failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
     try {
-      if (existsSync(plaintextPath)) unlinkSync(plaintextPath);
-      if (existsSync(ciphertextPath)) unlinkSync(ciphertextPath);
       if (existsSync(schemaPath)) unlinkSync(schemaPath);
-      if (existsSync(dataArtifactPath)) unlinkSync(dataArtifactPath);
+      for (const path of exportedPaths) {
+        if (existsSync(path)) unlinkSync(path);
+      }
       if (targetCreated) {
         command(["d1", "delete", identity.targetDatabaseName, "-y"]);
         const listOutput = command(["d1", "list", "--json"]);
@@ -290,7 +320,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
         if (!cleanupVerified) failure ??= "cleanup-readback-failed";
       }
     } catch {
-      cleanupVerified = false;
+    cleanupVerified = false;
       failure ??= "cleanup-command-failed";
     } finally {
       exportKey?.fill(0);
@@ -300,7 +330,8 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   return {
     mode: "hosted", providerActionAttempted: true, providerBacked: !failure && cleanupVerified,
     dryRun: false, succeeded: !failure && cleanupVerified, cleanupVerified,
-    identityDigest: digestIdentity(identity), commandDigests, blockers: failure ? [failure] : [],
+    identityDigest: digestIdentity(identity), exportDigest: exportDigest.digest("hex"), startedAt, completedAt: new Date().toISOString(),
+    commandDigests, blockers: failure ? [failure] : [],
     note: "Provider command output, raw identities, export paths, and encryption keys are deliberately omitted.",
   };
 }
@@ -317,13 +348,11 @@ function readBoundSourceDatabaseId() {
   return source;
 }
 
-function encryptExport(plaintext: Buffer, ciphertextPath: string) {
-  const key = randomBytes(32);
+function encryptExport(plaintext: Buffer, ciphertextPath: string, key: Buffer) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   writeFileSync(ciphertextPath, Buffer.concat([iv, cipher.getAuthTag(), ciphertext]), { mode: 0o600 });
-  return key;
 }
 
 function decryptExport(ciphertextPath: string, key: Buffer) {
