@@ -105,4 +105,50 @@ describe("ACTIVATION-PRODUCER-CONTRACT-v1", () => {
       "recipient",
     ]));
   });
+
+  it("treats a concurrent response insert as the existing duplicate result", async () => {
+    let responseLookupCount = 0;
+    const database = {
+      batch: vi.fn().mockRejectedValue(new Error("UNIQUE constraint failed: shared_link_responses.publication_id, shared_link_responses.recipient_id")),
+      prepare(sql: string) {
+        const statement = {
+          all: vi.fn(),
+          bind: vi.fn(() => statement),
+          first: vi.fn(async () => {
+            if (sql.includes("FROM project_publications")) return { id: "publication-a", snapshot_version: 1 };
+            if (sql.includes("FROM shared_link_recipients")) return { id: "recipient-a" };
+            if (sql.includes("FROM shared_link_responses")) {
+              responseLookupCount += 1;
+              return responseLookupCount === 1 ? null : { id: "response-from-concurrent-request" };
+            }
+            return null;
+          }),
+          run: vi.fn(),
+        };
+        return statement;
+      },
+    };
+    const store = createPublicationD1Store(Promise.resolve(database as never));
+
+    await expect(store.submitClientResponse({
+      decision: "accepted",
+      estimateId: null,
+      expectedSnapshotVersion: 1,
+      note: null,
+      publicationId: "publication-a",
+      projectId: "project-a",
+      publishedBy: "owner-a",
+      recipientTokenHash: "recipient-token-hash",
+      rowId: null,
+      signerName: "Jane Client",
+      targetKind: "proposal",
+      targetLabel: "the proposal",
+      targetSecondaryLabel: null,
+      tokenHash: "publication-token-hash",
+      workspaceId: "workspace-a",
+    })).resolves.toBeNull();
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    expect(responseLookupCount).toBe(2);
+  });
 });
