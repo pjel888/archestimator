@@ -101,11 +101,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       passwordSuccess: false,
       request,
     });
-    const durableFailure = await recordProjectPublicationPasswordFailure({ token, request });
-    const delayMs = durableFailure.delayMs;
-    if (delayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
+    await recordProjectPublicationPasswordFailure({ token, request });
     return Response.json({ error: "Publication password is invalid." }, { status: 401, headers: noStoreHeaders });
   }
 

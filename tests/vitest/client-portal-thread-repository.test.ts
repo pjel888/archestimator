@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
-import { createClientPortalRecipientThread, replyToClientPortalThread, setClientPortalRecipientThreadStatus } from "@/lib/client-portal/thread-repository";
+import { createClientPortalRecipientThread, editClientPortalRecipientMessage, replyToClientPortalThread, setClientPortalRecipientThreadStatus, tombstoneClientPortalRecipientMessage } from "@/lib/client-portal/thread-repository";
 
 type CapturedStatement = { sql: string; values: D1Value[] };
 
-function createDatabase(options: { replay?: { body: string; thread_id: string } } = {}) {
+function createDatabase(options: { activeMentionIds?: string[]; recipientMessage?: { created_at: string; id: string; thread_id: string; tombstoned_at: string | null }; replay?: { body: string; thread_id: string } } = {}) {
   const statements: CapturedStatement[] = [];
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -14,13 +14,17 @@ function createDatabase(options: { replay?: { body: string; thread_id: string } 
         bind(...nextValues) { values = nextValues; statements.push({ sql, values }); return prepared; },
         async first<T>() {
           if (sql.includes("FROM client_portal_messages WHERE actor_type")) return (options.replay ?? null) as T | null;
+          if (sql.includes("FROM client_portal_messages m")) return (options.recipientMessage ?? { id: "message_1", thread_id: "thread_1", created_at: new Date().toISOString(), tombstoned_at: null }) as T;
           if (sql.includes("FROM client_portals")) return { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "live", current_issue_id: "issue_1" } as T;
           if (sql.includes("FROM client_portal_issues")) return { id: "issue_1", status: "issued" } as T;
           if (sql.includes("FROM client_portal_issue_sections")) return { id: "section_1", policy_snapshot_json: JSON.stringify({ enabled: true, commentable: true }) } as T;
           if (sql.includes("FROM client_portal_threads")) return { id: "thread_1", issue_id: "issue_1", section_key: "section_1", target_kind: "row", target_public_id: "row_1", target_label: "Floor finish", target_secondary_label: null, subject: "Confirm basis", status: "open", waiting_state: "waiting_on_owner", created_at: "2026-07-12T00:00:00.000Z", updated_at: "2026-07-12T00:00:00.000Z" } as T;
           return null;
         },
-        async all<T>() { return { success: true, results: [] } as D1Result<T>; },
+        async all<T>() {
+          if (sql.includes("FROM client_portal_recipients")) return { success: true, results: (options.activeMentionIds ?? []).map((id) => ({ id })) } as D1Result<T>;
+          return { success: true, results: [] } as D1Result<T>;
+        },
         async run<T>() { return { success: true } as D1Result<T>; },
       };
       return prepared;
@@ -75,5 +79,29 @@ describe("client portal thread repository", () => {
     expect(serialized).toContain("waiting_on_owner");
     expect(serialized).toContain("resolved_at");
     expect(serialized).not.toContain("audience = 'internal'");
+  });
+
+  it("only updates a recent recipient message through edit or tombstone writes", async () => {
+    const { database, statements } = createDatabase();
+    await editClientPortalRecipientMessage({ actor, database, portalId: "portal_1", messageId: "message_1", body: "Revised clarification." });
+    await tombstoneClientPortalRecipientMessage({ actor, database, portalId: "portal_1", messageId: "message_1" });
+    const serialized = JSON.stringify(statements);
+    expect(serialized).toContain("edited_at");
+    expect(serialized).toContain("tombstoned_at");
+    expect(serialized).toContain("Message removed by its author.");
+    expect(serialized).toContain("t.audience = 'client'");
+  });
+
+  it("persists mentions only for active recipients in the same portal", async () => {
+    const { database, statements } = createDatabase({ activeMentionIds: ["recipient_2"] });
+    await createClientPortalRecipientThread({
+      actor, database, portalId: "portal_1", issueId: "issue_1", idempotencyKey: "mention_1", mentionedRecipientIds: ["recipient_1", "recipient_2", "recipient_2"],
+      subject: "Confirm basis", body: "Please confirm the floor finish basis.", target: { kind: "row", publicId: "row_1", label: "Floor finish" },
+    });
+    const serialized = JSON.stringify(statements);
+    expect(serialized).toContain("client_portal_message_mentions");
+    const mentionInserts = statements.filter((statement) => statement.sql.includes("client_portal_message_mentions"));
+    expect(mentionInserts).toHaveLength(1);
+    expect(mentionInserts[0]?.values).toContain("recipient_2");
   });
 });

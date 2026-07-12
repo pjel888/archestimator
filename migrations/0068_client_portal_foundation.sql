@@ -274,14 +274,12 @@ CREATE TABLE IF NOT EXISTS client_portal_messages (
   author_snapshot_json TEXT NOT NULL CHECK (json_valid(author_snapshot_json) AND json_type(author_snapshot_json) = 'object'),
   body TEXT NOT NULL CHECK (length(trim(body)) > 0),
   reply_to_message_id TEXT,
-  idempotency_key TEXT NOT NULL CHECK (length(trim(idempotency_key)) > 0),
   created_at TEXT NOT NULL,
   edited_at TEXT,
   tombstoned_at TEXT,
   tombstoned_by_actor_id TEXT,
   FOREIGN KEY (thread_id) REFERENCES client_portal_threads(id) ON DELETE RESTRICT,
-  FOREIGN KEY (reply_to_message_id) REFERENCES client_portal_messages(id) ON DELETE RESTRICT,
-  UNIQUE (thread_id, actor_type, actor_id, idempotency_key)
+  FOREIGN KEY (reply_to_message_id) REFERENCES client_portal_messages(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_client_portal_messages_thread_created

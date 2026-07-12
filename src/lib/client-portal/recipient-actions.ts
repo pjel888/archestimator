@@ -1,6 +1,7 @@
 "use server";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { revalidatePath } from "next/cache";
 import type { ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
 import type { ClientPortalInternalActor } from "@/lib/client-portal/policy";
 import {
@@ -30,6 +31,10 @@ async function requireClientPortalDatabase() {
   return database;
 }
 
+function detailPath(projectId: string, portalId: string) {
+  return `/workshop/projects/${encodeURIComponent(projectId)}/client-portals/${encodeURIComponent(portalId)}`;
+}
+
 export async function inviteClientPortalRecipientAction({
   portalId,
   projectId,
@@ -40,7 +45,9 @@ export async function inviteClientPortalRecipientAction({
   recipient: ClientPortalRecipientInput;
 }) {
   const [actor, database] = await Promise.all([managerActor(projectId), requireClientPortalDatabase()]);
-  return inviteClientPortalRecipient({ actor, database, portalId, recipient });
+  const result = await inviteClientPortalRecipient({ actor, database, portalId, recipient });
+  revalidatePath(detailPath(projectId, portalId));
+  return result;
 }
 
 export async function resendClientPortalRecipientInvitationAction({
@@ -53,7 +60,9 @@ export async function resendClientPortalRecipientInvitationAction({
   recipientId: string;
 }) {
   const [actor, database] = await Promise.all([managerActor(projectId), requireClientPortalDatabase()]);
-  return resendClientPortalRecipientInvitation({ actor, database, portalId, recipientId });
+  const result = await resendClientPortalRecipientInvitation({ actor, database, portalId, recipientId });
+  revalidatePath(detailPath(projectId, portalId));
+  return result;
 }
 
 export async function revokeClientPortalRecipientAction({
@@ -66,7 +75,9 @@ export async function revokeClientPortalRecipientAction({
   recipientId: string;
 }) {
   const [actor, database] = await Promise.all([managerActor(projectId), requireClientPortalDatabase()]);
-  return revokeClientPortalRecipient({ actor, database, portalId, recipientId });
+  const result = await revokeClientPortalRecipient({ actor, database, portalId, recipientId });
+  revalidatePath(detailPath(projectId, portalId));
+  return result;
 }
 
 export async function updateClientPortalRecipientRoleAction({
@@ -83,5 +94,7 @@ export async function updateClientPortalRecipientRoleAction({
   roleTemplate: ClientPortalRecipientRoleTemplate;
 }) {
   const [actor, database] = await Promise.all([managerActor(projectId), requireClientPortalDatabase()]);
-  return updateClientPortalRecipientRole({ actor, database, portalId, recipientId, roleTemplate, isRequiredApprover });
+  const result = await updateClientPortalRecipientRole({ actor, database, portalId, recipientId, roleTemplate, isRequiredApprover });
+  revalidatePath(detailPath(projectId, portalId));
+  return result;
 }

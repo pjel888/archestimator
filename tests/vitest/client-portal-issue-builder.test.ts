@@ -74,7 +74,6 @@ const source = {
   currencyCode: "USD",
   projectSnapshot: { name: "Kitchen Remodel", code: "AE-100" },
   selectedEstimateIds: ["estimate_1"],
-  brandSnapshot: { name: "Acme" },
   decisionPolicySnapshot: { requiredApprovals: 1 },
   assumptions: ["Permit allowance excluded"],
   exclusions: ["Sales tax"],

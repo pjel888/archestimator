@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import { Button } from "@/components/ui/button";
+import { ClientPortalDecisionSection } from "@/components/client-portal/ClientPortalDecisionSection";
 import { EstimateBrowserSection } from "@/components/client-portal/EstimateBrowserSection";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
@@ -58,6 +60,12 @@ function formattedDate(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? null : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+function issuedBrandAssetId(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const asset = value as Record<string, unknown>;
+  return typeof asset.id === "string" && asset.id.startsWith("asset_") && typeof asset.width === "number" && asset.width > 0 && typeof asset.height === "number" && asset.height > 0 ? { height: asset.height, id: asset.id, width: asset.width } : null;
 }
 
 function ClientPortalPayload({ payload }: { payload: unknown }) {
@@ -135,8 +143,11 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   useEffect(() => {
     if (!selectedSectionId || access !== "ready") return;
     let active = true;
-    setSectionState("loading");
-    void fetch(routePath(token, `/sections/${encodeURIComponent(selectedSectionId)}`), { cache: "no-store" })
+    void Promise.resolve()
+      .then(() => {
+        if (active) setSectionState("loading");
+        return fetch(routePath(token, `/sections/${encodeURIComponent(selectedSectionId)}`), { cache: "no-store" });
+      })
       .then(async (response) => response.ok ? response.json() as Promise<ClientPortalSection> : null)
       .then((nextSection) => {
         if (!active) return;
@@ -178,14 +189,31 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   }
 
   const validThrough = formattedDate(manifest.issue.validThrough);
+  const brandTheme = manifest.brand.theme && typeof manifest.brand.theme === "object" && !Array.isArray(manifest.brand.theme) ? manifest.brand.theme as Record<string, unknown> : null;
+  const accentColor = typeof brandTheme?.accentColor === "string" ? brandTheme.accentColor : "#1E40AF";
+  const backgroundColor = typeof brandTheme?.backgroundColor === "string" ? brandTheme.backgroundColor : "#FFFFFF";
+  const textColor = typeof brandTheme?.textColor === "string" ? brandTheme.textColor : "#111827";
+  const owner = manifest.brand.owner && typeof manifest.brand.owner === "object" && !Array.isArray(manifest.brand.owner) ? manifest.brand.owner as Record<string, unknown> : null;
+  const client = manifest.brand.client && typeof manifest.brand.client === "object" && !Array.isArray(manifest.brand.client) ? manifest.brand.client as Record<string, unknown> : null;
+  const ownerLogoId = issuedBrandAssetId(owner?.logo);
+  const clientLogoId = issuedBrandAssetId(client?.logo);
+  const coBrandingMode = manifest.brand.coBrandingMode === "client_only" || manifest.brand.coBrandingMode === "co_branded" || manifest.brand.coBrandingMode === "owner_only" || manifest.brand.coBrandingMode === "prepared_by_for" ? manifest.brand.coBrandingMode : "prepared_by_for";
+  const logos = coBrandingMode === "client_only" ? [{ asset: clientLogoId, label: "Client logo" }, { asset: ownerLogoId, label: "Prepared by logo" }] : [{ asset: ownerLogoId, label: "Owner logo" }, { asset: clientLogoId, label: "Client logo" }];
 
   return (
-    <main aria-label="Client Portal" className="min-h-dvh bg-canvas text-ink">
-      <header className="sticky top-0 z-20 border-b border-hairline bg-white/95 backdrop-blur">
+    <main aria-label="Client Portal" className="min-h-dvh bg-canvas text-ink" style={{ backgroundColor, color: textColor }}>
+      <header className="sticky top-0 z-20 border-b border-hairline bg-white/95 backdrop-blur" style={{ borderTopColor: accentColor, borderTopWidth: 3 }}>
         <div className="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-3">
+            {logos.filter((logo): logo is { asset: { height: number; id: string; width: number }; label: string } => Boolean(logo.asset)).map((logo, index) => (
+              <div key={logo.asset.id} className={`flex items-center gap-3 ${coBrandingMode === "co_branded" && index > 0 ? "border-l border-hairline pl-3" : ""}`}>
+                <Image unoptimized src={routePath(token, `/assets/${encodeURIComponent(logo.asset.id)}`)} alt={logo.label} width={logo.asset.width} height={logo.asset.height} className="h-8 w-auto max-w-28 object-contain" />
+              </div>
+            ))}
+            <div className="min-w-0">
             <p className="truncate text-[10px] font-medium uppercase tracking-wide text-tertiary">{manifest.portal.name}</p>
             <h1 className="truncate text-[16px] font-medium tracking-tight">{manifest.project.name}</h1>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 text-right">
             <div className="hidden text-[11px] leading-4 text-secondary sm:block">
@@ -225,7 +253,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
             </div>
             {sectionState === "loading" ? <p aria-live="polite" className="text-[13px] text-secondary">Loading issued section…</p> : null}
             {sectionState === "unavailable" ? <p role="alert" className="text-[13px] text-secondary">This issued section is unavailable.</p> : null}
-            {sectionState === "ready" && section ? section.section.kind === "estimate_browser" ? <EstimateBrowserSection payload={section.section.payload} /> : <ClientPortalPayload payload={section.section.payload} /> : null}
+            {sectionState === "ready" && section ? section.section.kind === "estimate_browser" ? <EstimateBrowserSection payload={section.section.payload} /> : section.section.kind === "decision" ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} /> : <ClientPortalPayload payload={section.section.payload} /> : null}
           </div>
         </section>
 

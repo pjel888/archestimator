@@ -3,6 +3,8 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import { createIssuedClientPortalBrandSnapshot } from "@/lib/client-portal/brand";
+import { buildClientPortalIssuedBrandSnapshot } from "@/lib/client-portal/brand-service";
 import { type ClientPortalInternalActor, evaluateClientPortalPolicy } from "@/lib/client-portal/policy";
 import {
   CLIENT_PORTAL_SECTION_REGISTRY,
@@ -50,7 +52,6 @@ type DraftSectionRow = {
 type JsonRecord = Record<string, unknown>;
 
 export type ClientPortalIssueSource = {
-  brandSnapshot: JsonRecord;
   currencyCode: string;
   decisionPolicySnapshot: JsonRecord;
   exclusions: readonly string[];
@@ -238,6 +239,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     [input.portalId],
   );
   if (!portal) throw new ClientPortalIssueBuildError("client_portal_not_found", "Client Portal was not found.");
+  const brandSnapshot = createIssuedClientPortalBrandSnapshot(await buildClientPortalIssuedBrandSnapshot({ database: input.database, portalId: portal.id }));
 
   const authorization = evaluateClientPortalPolicy({
     actor: input.actor,
@@ -315,6 +317,11 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     "SELECT id, issue_number, version_label, content_hash, status FROM client_portal_issues WHERE portal_id = ? ORDER BY issue_number DESC LIMIT 1",
     [portal.id],
   );
+  const activeRecipients = await all<{ id: string }>(
+    input.database,
+    "SELECT id FROM client_portal_recipients WHERE portal_id = ? AND status = 'active' ORDER BY id ASC",
+    [portal.id],
+  );
   const issueNumber = (latestIssue?.issue_number ?? 0) + 1;
   const issueId = `issue_${randomUUID()}`;
   const issuedAt = new Date().toISOString();
@@ -352,7 +359,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       [
         issueId, portal.id, issueNumber, versionLabel, issuedAt, input.actor.userId, input.idempotencyKey, input.validThrough ?? null, latestIssue?.id ?? null,
         canonicalJson(manifest), contentHash, input.source.totalCost, input.source.currencyCode, JSON.stringify(input.source.selectedEstimateIds),
-        canonicalJson(input.source.brandSnapshot), canonicalJson(input.source.decisionPolicySnapshot), JSON.stringify(input.source.assumptions),
+        canonicalJson(brandSnapshot), canonicalJson(input.source.decisionPolicySnapshot), JSON.stringify(input.source.assumptions),
         JSON.stringify(input.source.exclusions), issuedAt,
       ],
     ),
@@ -400,17 +407,21 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       input.database,
       `INSERT INTO client_portal_audit_events
         (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at)
-       VALUES (?, ?, ?, ?, 'internal_user', ?, 'issue_issued', 'owner', ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'internal_user', ?, 'issue_issued', 'client_safe', ?, ?, ?)`,
       [randomUUID(), portal.workspace_id, portal.id, issueId, input.actor.userId, JSON.stringify({ contentHash, issueNumber }), issuedAt, issuedAt],
     ),
-    statement(
-      input.database,
-      `INSERT INTO client_portal_notification_outbox
-        (id, portal_id, issue_id, recipient_id, event_type, idempotency_key, payload_json, state, attempt_count, next_attempt_at, created_at, updated_at)
-       VALUES (?, ?, ?, NULL, 'issue_issued', ?, ?, 'pending', 0, ?, ?, ?)`,
-      [randomUUID(), portal.id, issueId, `issue:${contentHash}:issued`, JSON.stringify({ issueId, issueNumber }), issuedAt, issuedAt, issuedAt],
-    ),
   );
+  for (const recipient of activeRecipients) {
+    statements.push(
+      statement(
+        input.database,
+        `INSERT INTO client_portal_notification_outbox
+          (id, portal_id, issue_id, recipient_id, event_type, idempotency_key, payload_json, state, attempt_count, next_attempt_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'issue_issued', ?, ?, 'pending', 0, ?, ?, ?)`,
+        [randomUUID(), portal.id, issueId, recipient.id, `issue:${contentHash}:issued:${recipient.id}`, JSON.stringify({ issueId, issueNumber, recipientId: recipient.id }), issuedAt, issuedAt, issuedAt],
+      ),
+    );
+  }
 
   try {
     const result = await input.database.batch(statements);

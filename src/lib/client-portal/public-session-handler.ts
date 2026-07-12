@@ -7,10 +7,19 @@ import {
   resolveClientPortalRecipientActor,
 } from "@/lib/client-portal/public-repository";
 import { assertSameOriginPublicPost, createSharedLinkSessionCookie } from "@/lib/publication/security";
+import { checkClientPortalSessionStartRateLimit } from "@/lib/publication/public-repository";
 
 export async function clientPortalRecipientVerificationResponse(request: Request, token: string) {
   const origin = assertSameOriginPublicPost(request);
   if (!origin.ok) return Response.json({ error: origin.message }, { status: origin.status, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+
+  const rateLimit = await checkClientPortalSessionStartRateLimit({ token, request });
+  if (!rateLimit.allowed) {
+    return Response.json(
+      { error: rateLimit.message },
+      { status: 429, headers: { ...CLIENT_PORTAL_NO_STORE_HEADERS, "Retry-After": String(rateLimit.retryAfter) } },
+    );
+  }
 
   const body = await readBoundedJsonBody<{ recipientToken?: unknown; verificationToken?: unknown }>(request, 256);
   if (!body.ok) return Response.json({ error: body.error }, { status: body.status, headers: CLIENT_PORTAL_NO_STORE_HEADERS });

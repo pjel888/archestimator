@@ -12,6 +12,7 @@ import {
   checkSharedLinkCommentReadRateLimit,
   checkSharedLinkCommentRateLimit,
   insertSharedLinkComment,
+  LegacyPublicationWriteFrozenError,
   loadSharedLinkPublicComments,
   resolveProjectPublicationAccessByToken,
   hashPublicTelemetryValue,
@@ -403,6 +404,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ id, comment, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     const msg = readErrorMessage(error, "Failed to post comment.");
+    if (error instanceof LegacyPublicationWriteFrozenError) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/comment", "LEGACY_WRITE_FROZEN", ipHash, { status: 423 });
+      return Response.json({ error: "This shared link is being migrated. Please use the Client Portal link from your project contact." }, { status: 423, headers: { "Cache-Control": "no-store" } });
+    }
     if (/snapshot|stale|changed/i.test(msg)) {
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/comment", "SNAPSHOT_VERSION_CHANGED", ipHash);

@@ -1,5 +1,8 @@
 import { after } from "next/server";
 
+import { clientPortalDecisionSummaryResponse, submitClientPortalDecisionResponse } from "@/lib/client-portal/public-decision-handlers";
+import { isClientPortalToken } from "@/lib/client-portal/public-repository";
+
 import {
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
@@ -15,6 +18,7 @@ import {
   resolveProjectPublicationAccessByToken,
   submitSharedLinkDecision,
   hashPublicTelemetryValue,
+  LegacyPublicationWriteFrozenError,
 } from "@/lib/publication/public-repository";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";
@@ -131,7 +135,7 @@ function readOptionalReviewTargetId(value: unknown, label: string): { ok: true; 
   return { ok: true, value: CANONICAL_UUID_PATTERN.test(trimmed) ? trimmed.toLowerCase() : trimmed };
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
+async function legacyDecisionGet(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token: routeToken } = await params;
   const token = routeToken.trim();
   const access = await resolveProjectPublicationAccessByToken(token);
@@ -187,7 +191,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   return Response.json({ decision }, { headers: noStoreHeaders });
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
+async function legacyDecisionPost(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const sameOrigin = assertSameOriginPublicPost(request);
   if (!sameOrigin.ok) {
     return Response.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: { "Cache-Control": "no-store" } });
@@ -343,6 +347,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ id, decision, signerName, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     const msg = readErrorMessage(error, "Failed to submit decision.");
+    if (error instanceof LegacyPublicationWriteFrozenError) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/decision", "LEGACY_WRITE_FROZEN", ipHash, { status: 423 });
+      return Response.json({ error: "This shared link is being migrated. Please use the Client Portal link from your project contact." }, { status: 423, headers: noStoreHeaders });
+    }
     if (msg === "Decision already submitted.") {
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/decision", "DECISION_ALREADY_SUBMITTED", ipHash);
@@ -389,4 +398,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       : "Something went wrong. Please try again.";
     return Response.json({ error: clientError }, { status, headers: { "Cache-Control": "no-store" } });
   }
+}
+
+
+export async function GET(request: Request, context: { params: Promise<{ token: string }> }) {
+  const { token } = await context.params;
+  if (await isClientPortalToken(token)) return clientPortalDecisionSummaryResponse(request, token);
+  return legacyDecisionGet(request, { params: Promise.resolve({ token }) });
+}
+
+export async function POST(request: Request, context: { params: Promise<{ token: string }> }) {
+  const { token } = await context.params;
+  if (await isClientPortalToken(token)) return submitClientPortalDecisionResponse(request, token);
+  return legacyDecisionPost(request, { params: Promise.resolve({ token }) });
 }
