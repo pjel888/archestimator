@@ -250,7 +250,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     currentOperation = args.slice(0, 3).join("-");
     commandDigests.push(createHash("sha256").update(`wrangler\n${args.join("\n")}`).digest("hex"));
     const result = run({ command: "wrangler", args });
-    if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}`);
+    if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}-${classifyProviderFailure(result.stderr)}`);
     return result.stdout;
   };
 
@@ -403,6 +403,15 @@ function splitSqlStatements(source: string) {
     }
   }
   return statements;
+}
+
+function classifyProviderFailure(stderr: string) {
+  if (/no such table/i.test(stderr)) return "missing-table";
+  if (/foreign key constraint failed/i.test(stderr)) return "foreign-key";
+  if (/unique constraint failed/i.test(stderr)) return "uniqueness";
+  if (/syntax error|near .*syntax/i.test(stderr)) return "sql-syntax";
+  if (/statement.*too large|request.*too large/i.test(stderr)) return "statement-size";
+  return "unknown";
 }
 
 if (import.meta.main) {
