@@ -14,6 +14,13 @@ Canonical rules live in:
 If a skill here conflicts with `.ai/00_system` or `.ai/12_agents`, the `.ai`
 source wins. Do not store secrets or durable project decisions in this folder.
 
+Every local or installed skill/plugin, including Ultragoal, UltraQA, Ultrawork,
+Autopilot, Autoresearch, Autoresearch Goal, and Compound Engineering, is
+subordinate to the Lean Engineering Ethos. Map the evidence-supported blast
+radius, prefer the smallest coherent change and fewest useful lanes/artifacts,
+minimize token/time/tool cost, and never auto-run tests/builds/browser QA without
+an explicit user-authorized `TEST_TASK`.
+
 <!-- supermemory-bootstrap: required -->
 Skills and compatibility adapters inherit the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: run `bun run supermemory:ensure`

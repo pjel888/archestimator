@@ -15,13 +15,20 @@ task must make up front: (1) plan pack vs in-session loop, and (2) the named
 loop shape. It does NOT replace `ce-plan`/`plan`/`writing-plans` — it tells the
 agent which to use when and where the durable artifact lives.
 
+### Lean engineering contract
+
+- Budget tokens, context, tools, lanes, artifacts, handoffs, review passes, and proof surfaces before expanding the plan.
+- Analyze the direct and evidence-backed transitive blast radius deeply enough to prevent regressions, then stop; exclude hypothetical systems and future features from required scope.
+- Prefer the minimum durable artifacts that preserve execution truth. Do not create duplicate matrices, research digests, reviews, or plan documents for ceremony.
+- Default `test_requirement=NOT_REQUIRED`. Tests, builds used as gates, browser automation, screenshots, and broad QA require an explicit current-task user testing request; risk labels and workflow names authorize only a `TEST_PROPOSAL`.
+
 ### 1. Decide: plan pack or in-session loop?
 
 Default to the **lightest path**. A dated `.ai/03_plans/<YYYY-MM-DD>-<slug>/`
 plan pack + `LOOP_LEDGER.md` is **required only for HIGH-BLAST-RADIUS** work,
 where a wrong move is expensive or hard to reverse:
 
-- Database / Supabase / RLS / RPC / migration / generated-types changes.
+- Database / D1 / application-authorization / migration / generated-types changes.
 - Auth, invites, publication, or shared-link flows.
 - Security, data integrity, or launch / release readiness.
 - Cross-cutting or codebase-wide refactors / audits / architecture changes.
@@ -82,14 +89,14 @@ chat. Reusable prompt: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 - `ultrawork` — in-session parallel lanes with lightweight evidence.
 - `ultragoal` — durable goal state, checkpoints, resume across stories.
 - `omo:ulw-loop` — criterion-by-criterion real-surface evidence + receipts.
-- `autopilot` — full clarify -> plan -> execute -> review -> QA lifecycle.
-- `omo:ultraresearch` / `ultraqa` / `vercel:agent-browser` — when the claim
-  depends on exhaustive cited research / adversarial QA / real web behavior.
+- `autopilot` — adaptive router that selects only justified phases; it is not a mandatory clarify -> plan -> review -> QA chain.
+- `omo:ultraresearch` — only for a bounded research deliverable whose uncertainty and stop condition are explicit.
+- `ultraqa` / `vercel:agent-browser` — only when the user explicitly authorizes the corresponding QA, test, build, browser, or screenshot surface for the current task.
 
 ### 5. Proportionality reminder
 
 A loop/plan increases speed, quality, and memory — it is NOT ceremony.
 Verification stays proportional to risk (`VALIDATION_MATRIX.md`).
-Maker/checker separation is expected for non-trivial work when practical.
+Maker/checker separation is optional and should be used only for a named material risk that merits the extra lane and handoff cost.
 Never stop on a worker self-report, a plan doc, or one green check unless the
 whole requested outcome is proven by matching real-surface evidence.

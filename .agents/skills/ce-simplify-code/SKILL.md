@@ -6,7 +6,7 @@ argument-hint: "[blank to simplify current branch changes, or describe what to s
 
 You are an engineer that is an expert at simplifying code with a specific focus on enhancing code clarity, consistency, and maintainability while preserving exact functionality. Your expertise lies in applying project-specific best practices to simplify and improve code without altering its behavior. You prioritize readable, explicit code over overly compact solutions.
 
-Review the changed code for reuse, quality, and efficiency. Fix any issues found. Then verify behavior is preserved by running the project's test suite.
+Review the changed code for reuse, quality, and efficiency. Fix only concrete issues worth the churn. Verify behavior with the cheapest decisive evidence; automated tests, builds used as gates, and browser work require an explicit current-task user request.
 
 ## Step 1: Identify scope
 
@@ -18,9 +18,9 @@ Resolve the simplification scope in this order:
 
 If none of the above produces a non-empty scope, stop and ask the user what to simplify rather than guessing.
 
-## Step 2: Launch 3 review agents in parallel
+## Step 2: Select a proportionate review path
 
-Spawn the three reviewer agents below in a single message via the platform's subagent dispatch primitive — `Agent`/`Task` in Claude Code, `spawn_agent` in Codex, `subagent` in Pi via the `pi-subagents` extension. Pass each agent the full diff (or the resolved file set) so it has the complete context.
+For a small bounded diff, use one fresh self-review. Spawn one relevant reviewer only when a named reuse, quality, or efficiency risk materially benefits from independent judgment. Use two or three reviewers only when the diff contains genuinely distinct risks that cannot be covered cheaply in one pass. Treat the three reviewer definitions below as a menu, not a quota.
 
 **Model selection.** Use the platform's configured mid-tier route for these reviewers: `model: "sonnet"` in Claude Code, the current repository role-matrix route in Codex via `spawn_agent`, and the configured equivalent in Pi via `subagent` from the `pi-subagents` extension. Do not hardcode a dated Codex model alias. When the model-override parameter is unavailable, the role matrix is unavailable, or the model name is unrecognized, omit the override so the pass inherits the working session model.
 
@@ -64,7 +64,7 @@ Review the same changes for efficiency:
 
 ## Step 3: Fix issues
 
-Wait for all three agents to complete. Aggregate their findings and fix each issue directly. If a finding is a false positive or not worth addressing, note it and move on. Do not argue with the finding or raise questions to the user, just skip it.
+Wait for any selected reviewers to complete. Aggregate their findings and fix only issues supported by the diff and current contracts. If a finding is a false positive or not worth the churn, note it and move on.
 
 Before applying each fix, confirm it preserves behavior: same output for every input, same error behavior, and same side effects and ordering. If a fix can't clear that test, skip it — automated checks in Step 4 don't cover every behavior.
 
@@ -72,16 +72,13 @@ Before applying each fix, confirm it preserves behavior: same output for every i
 
 The premise of this skill is that simplification preserves exact functionality. After applying fixes:
 
-**Run typecheck and lint over the full project.** They are usually fast and catch the most common simplification regressions — broken imports, unused exports, dropped type narrowings, dead code other modules still reference.
+Run the narrowest relevant source, diff, type/LSP, or lint check that can catch simplification regressions. Do not broaden to the full project by ritual.
 
-**Run tests:**
-- Run tests scoped to the changed paths. CI runs the full suite on PR — this local check is a fast signal, not the final guarantee. Match scope to blast radius; a 3-line simplification doesn't warrant a 20-minute test run.
-- Broaden scope when the change has obvious wide reach — e.g., a heavily-imported utility was rewritten, or Agent 2's consolidation/dedup fixes modified shared code. This is a judgment call about ripple risk, not a mechanical rule.
-- If the test runner has no scoping mechanism, run the full suite.
+**Tests are opt-in:** run or edit tests only when the current user explicitly authorized testing for this task. Use the narrowest authorized test; lack of a scoping mechanism is a reason to propose a command; do not auto-run the full suite.
 
 Surface any failure clearly with the failing check name and the relevant output. Do not relax assertions, weaken type signatures, or skip tests to make checks pass — that defeats the "preserves functionality" guarantee. Either fix the underlying break introduced by simplification, or revert the specific change that caused the regression.
 
-If no test suite, lint, or typecheck is configured, state that explicitly in the summary; do not silently skip verification.
+If no relevant non-test check is configured, state the source/diff evidence used and the remaining proof boundary. Unrequested tests are not a blocker.
 
 ## Step 5: Summarize
 

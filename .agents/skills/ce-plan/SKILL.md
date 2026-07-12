@@ -6,6 +6,8 @@ argument-hint: "[optional: feature description, requirements doc path, plan path
 
 # Create Technical Plan
 
+**Archestimator lean override:** plans capture the smallest implementation-ready decision set. Analyze the evidence-supported direct/transitive blast radius, but do not invent hypothetical systems, documents, agents, diagrams, or test inventories. Default to non-test verification; tests, builds-as-gates, browser automation, screenshots, and broad QA appear only under an explicit current-task user request. Otherwise record at most a precise `TEST_PROPOSAL`.
+
 **Note: The current year is 2026.** Use this when dating plans and searching for recent documentation.
 
 `ce-brainstorm` defines **WHAT** to build. `ce-plan` defines **HOW** to build it. `ce-work` executes the plan. A prior brainstorm is useful context but never required — `ce-plan` works from any input: a requirements doc, a bug report, a feature idea, or a rough description.
@@ -33,7 +35,7 @@ If the input is present but unclear or underspecified, do not abandon — ask on
 ## Core Principles
 
 1. **Use requirements as the source of truth** - If `ce-brainstorm` produced a requirements document, planning should build from it rather than re-inventing behavior.
-2. **Decisions, not code** - Capture approach, boundaries, files, dependencies, risks, and test scenarios. Do not pre-write implementation code or shell command choreography. Pseudo-code sketches or DSL grammars that communicate high-level technical design are welcome when they help a reviewer validate direction — but they must be explicitly framed as directional guidance, not implementation specification.
+2. **Decisions, not code** - Capture approach, boundaries, files, dependencies, risks, and the cheapest decisive proof strategy. Add test scenarios only for an explicit `TEST_TASK`; otherwise use non-test evidence or a `TEST_PROPOSAL`.
 3. **Research before structuring** - Explore the codebase, institutional learnings, and external guidance when warranted before finalizing the plan.
 4. **Right-size the artifact** - Small work gets a compact plan. Large work gets more structure. The philosophy stays the same at every depth.
 5. **Separate planning from execution discovery** - Resolve planning-time questions here. Explicitly defer execution-time unknowns to implementation.
@@ -47,10 +49,10 @@ Every plan should contain:
 - A clear problem frame and scope boundary
 - Concrete requirements traceability back to the request or origin document
 - Repo-relative file paths for the work being proposed (never absolute paths — see Planning Rules)
-- Explicit test file paths for feature-bearing implementation units
+- Test file paths only when the current user explicitly requested a `TEST_TASK`
 - Decisions with rationale, not just tasks
 - Existing patterns or code references to follow
-- Enumerated test scenarios for each feature-bearing unit, specific enough that an implementer knows exactly what to test without inventing coverage themselves
+- A right-sized verification strategy for each feature-bearing unit; test scenarios only when explicitly user-authorized
 - Clear dependencies and sequencing
 
 A plan is ready when an implementer can start confidently without needing the plan to write the code for them.
@@ -280,19 +282,17 @@ Then continue to Phase 1 without a blocking question.
 
 ### Phase 1: Gather Context
 
-#### 1.1 Local Research (Always Runs)
+#### 1.1 Bounded Local Research
 
-Prepare a concise planning context summary (a paragraph or two) to pass as input to the research agents:
+Prepare a concise planning context summary only from sources material to the task:
 - If an origin document exists, summarize the problem frame, requirements, and key decisions from that document
 - Otherwise use the feature description directly
 - If `STRATEGY.md` exists, read it and include the relevant pieces (target problem, approach, active tracks) in the summary so downstream research and planning decisions are anchored to product strategy
 - If `CONCEPTS.md` exists at repo root, read it — its definitions are the canonical names for domain entities, named processes, and status concepts. Plan with those terms rather than synonyms.
 
-Run these agents in parallel:
-
-- Task ce-repo-research-analyst(Scope: technology, architecture, patterns. {planning context summary})
-- Task ce-learnings-researcher(planning context summary)
-Collect:
+Inspect directly by default. Delegate one bounded lookup only when independent
+research materially reduces elapsed time or uncertainty; do not run a fixed
+research-agent pair. Collect only what the plan needs:
 - Technology stack and versions (used in section 1.2 to make sharper external research decisions)
 - Architectural patterns and conventions to follow
 - Implementation patterns, relevant files, modules, and tests
@@ -508,14 +508,14 @@ For each unit, include:
 - **Execution note** - optional, only when the unit benefits from a non-default execution posture such as test-first or characterization-first
 - **Technical design** - optional pseudo-code or diagram when the unit's approach is non-obvious and prose alone would leave it ambiguous. Frame explicitly as directional guidance, not implementation specification
 - **Patterns to follow** - existing code or conventions to mirror
-- **Test scenarios** - enumerate the specific test cases the implementer should write, right-sized to the unit's complexity and risk. Consider each category below and include scenarios from every category that applies to this unit. A simple config change may need one scenario; a payment flow may need a dozen. The quality signal is specificity — each scenario should name the input, action, and expected outcome so the implementer doesn't have to invent coverage. For units with no behavioral change (pure config, scaffolding, styling), use `Test expectation: none -- [reason]` instead of leaving the field blank. **AE-link convention:** when a test scenario directly enforces an origin Acceptance Example, prefix it with `Covers AE<N>.` (or `Covers F<N> / AE<N>.`). This is sparse-by-design — most test scenarios are finer-grained than AEs and do not link. Do not force AE links onto tests that only cover lower-level implementation details.
+- **Verification strategy** - name the cheapest decisive evidence for the unit. Prefer source/diff/reference/type/LSP/lint/dry-run/provider-readback evidence. Add concrete test scenarios only when the current user explicitly authorized `TEST_TASK`; otherwise, if a test would materially reduce a critical residual risk, record one `TEST_PROPOSAL` with the exact command and expected signal.
   - **Happy path behaviors** - core functionality with expected inputs and outputs
   - **Edge cases** (when the unit has meaningful boundaries) - boundary values, empty inputs, nil/null states, concurrent access
   - **Error and failure paths** (when the unit has failure modes) - invalid input, downstream service failures, timeout behavior, permission denials
   - **Integration scenarios** (when the unit crosses layers) - behaviors that mocks alone will not prove, e.g., "creating X triggers callback Y which persists Z". Include these for any unit touching callbacks, middleware, or multi-layer interactions
 - **Verification** - how an implementer should know the unit is complete, expressed as outcomes rather than shell command scripts
 
-Every feature-bearing unit should include the test file path in `**Files:**`.
+Include test file paths in `**Files:**` only for an explicit user-authorized testing task.
 
 Use `Execution note` sparingly. Good uses include:
 - `Execution note: Start with a failing integration test for the request/response contract.`
@@ -613,11 +613,11 @@ Before finalizing, check:
 - Every major decision is grounded in the origin document or research
 - Each implementation unit is concrete, dependency-ordered, and implementation-ready
 - If test-first or characterization-first posture was explicit or strongly implied, the relevant units carry it forward with a lightweight `Execution note`
-- Each feature-bearing unit has test scenarios from every applicable category (happy path, edge cases, error paths, integration) — right-sized to the unit's complexity, not padded or skimped
-- Test scenarios name specific inputs, actions, and expected outcomes without becoming test code
-- Feature-bearing units with blank or missing test scenarios are flagged as incomplete — feature-bearing units must have actual test scenarios, not just an annotation. The `Test expectation: none -- [reason]` annotation is only valid for non-feature-bearing units (pure config, scaffolding, styling)
+- Each feature-bearing unit has a decisive verification strategy; test scenarios are required only for an explicit user-authorized `TEST_TASK`
+- Any test proposal names the risk, exact command, and expected signal without becoming executable authority
+- Missing tests never make an unapproved plan incomplete; default to `NOT_REQUIRED` and non-test evidence
 - Deferred items are explicit and not hidden as fake certainty
-- **High-Level Technical Design presence audit (load-bearing).** For each architecture trigger in Phase 3.4 that the plan content satisfies (3+ components with directed relationships, 3+ protocol steps, 3+ state machine states, lifecycle, 3+ decision points, 3+ data-flow stages, mode/flag combinations, DSL/API surface design, non-obvious single-component shape), verify a corresponding sketch/diagram is present in the High-Level Technical Design section. Count the firing triggers; count the sketches; the sketch count must be at least the count of distinct trigger categories that fired. Missing the section when a trigger fired, OR including the section but skipping a triggered sketch within it, is incomplete — return to Phase 3.4 and add the missing sketch. Token cost is not a valid reason to fail this check.
+- **High-Level Technical Design presence audit.** Add one compact sketch only when it materially clarifies three or more relationships, stages, states, or decisions. Do not create one diagram per trigger category; token and review cost are valid reasons to keep prose when it is clearer.
 - If a High-Level Technical Design section is included, it uses the right medium for the work, carries the non-prescriptive framing, and does not contain implementation code (no imports, exact signatures, or framework-specific syntax)
 - Per-unit technical design fields, if present, are concise and directional rather than copy-paste-ready
 - If the plan creates a new directory structure, would an Output Structure tree help reviewers see the overall shape?
@@ -715,11 +715,14 @@ Plan written to <absolute path to plan>
 
 #### 5.3 Confidence Check and Deepening
 
-After writing the plan file, automatically evaluate whether the plan needs strengthening.
+After writing the plan file, evaluate whether a material unresolved risk needs
+one strengthening pass. Do not run a deepening pass for routine or already
+grounded plans.
 
 **Two deepening modes:**
 
-- **Auto mode** (default during plan generation): Runs without asking the user for approval. The user sees what is being strengthened but does not need to make a decision. Sub-agent findings are synthesized directly into the plan.
+- **Bounded mode** (only for a named material risk): use a direct self-check or
+  one appropriate specialist. Do not create a reviewer panel or fixed agent wave.
 - **Interactive mode** (activated by the re-deepen fast path in Phase 0.1): The user explicitly asked to deepen an existing plan. Sub-agent findings are presented individually for review before integration. The user can accept, reject, or discuss each agent's findings. Only accepted findings are synthesized into the plan.
 
 Interactive mode exists because on-demand deepening is a different user posture — the user already has a plan they are invested in and wants to be surgical about what changes. This applies whether the plan was generated by this skill, written by hand, or produced by another tool.
@@ -728,7 +731,8 @@ Interactive mode exists because on-demand deepening is a different user posture 
 - Use the `ce-doc-review` skill when the document needs clarity, simplification, completeness, or scope control
 - This confidence check strengthens rationale, sequencing, risk treatment, and system-wide thinking when the plan is structurally sound but still needs stronger grounding
 
-**Pipeline mode:** This phase always runs in auto mode in pipeline/disable-model-invocation contexts. No user interaction needed.
+**Pipeline mode:** apply the same material-risk gate. Pipeline membership does
+not make deepening or subagent review automatic.
 
 ##### 5.3.1 Classify Plan Depth and Topic Risk
 

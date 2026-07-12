@@ -9,7 +9,7 @@ Ultrawork is a parallel execution engine for high-throughput task completion. It
 
 <Use_When>
 - Multiple independent tasks can run simultaneously
-- User says "ulw", "ultrawork", or explicitly wants parallel execution
+- User explicitly invokes `$ultrawork`/`ulw` or explicitly wants parallel execution
 - Task benefits from concurrent execution plus lightweight evidence before wrap-up
 - You need a direct-tool lane plus optional background evidence lanes without entering Team or a durable goal workflow
 </Use_When>
@@ -17,7 +17,7 @@ Ultrawork is a parallel execution engine for high-throughput task completion. It
 <Do_Not_Use_When>
 - Task needs durable goal tracking, ledger checkpoints, or resume across stories -- use `ultragoal` instead
 - Task needs coordinated tmux workers, shared task state, mailbox/dispatch coordination, or long-running parallel execution -- use `team` instead
-- Task requires a full autonomous pipeline -- use `autopilot` instead (default loop: `deep-interview -> ralplan -> ultragoal`, with `team` only when needed)
+- Task requires adaptive hands-off delivery across several justified phases -- use `autopilot` instead
 - Task intentionally requires the legacy persistent single-owner completion/verification loop -- use `ralph` explicitly; do not present it as the default durable path
 - There is only one sequential task with no parallelism opportunity -- execute directly, use `ultragoal` for durable tracking, or delegate to a single `executor`
 - The request is still in plan-consensus mode -- keep planning artifacts in `ralplan` until execution is explicitly authorized
@@ -29,30 +29,31 @@ Sequential task execution wastes time when tasks are independent. Ultrawork keep
 
 <Execution_Policy>
 - Gather enough context before implementation. Start with the task intent, desired outcome, constraints, likely touchpoints, and any uncertainty that would change the execution path.
+- Set an explicit token/context/tool/lane/artifact budget. Explore the direct and evidence-backed transitive blast radius, then stop; do not model hypothetical systems or future features.
 - If uncertainty is still material after a quick repo read, do a focused evidence pass first instead of immediately editing.
-- Define pass/fail acceptance criteria before launching execution lanes. Include the command, artifact, or manual check that will prove success.
+- Define pass/fail acceptance criteria before launching execution lanes. Include the cheapest decisive non-test command or artifact that will prove success.
 - Prefer direct tool work when the task is small, coupled, or blocked on immediate local context. Delegate only when the work is independent enough to benefit from parallel execution.
-- When useful, run a direct-tool lane and one or more background evidence lanes at the same time. Evidence lanes can cover docs, tests, regression mapping, or bounded repo analysis.
-- Fire independent agent calls simultaneously -- never serialize independent work.
-- Always pass the `model` parameter explicitly when delegating.
-- Read `docs/shared/agent-tiers.md` before first delegation for agent selection guidance.
-- Auto-delegate `researcher` when official docs, version-aware framework guidance, best practices, or external dependency behavior materially affect task correctness; treat it as an evidence lane, not a replacement primary workflow.
-- Use `run_in_background: true` for operations over ~30 seconds (installs, builds, tests).
+- When useful, run a direct-tool lane and one or more background evidence lanes at the same time. Evidence lanes can cover docs, static contracts, or bounded repo analysis. Test/QA/build/browser lanes require explicit current-task user authorization.
+- When multiple useful lanes are selected, launch independent calls concurrently; do not manufacture lanes to fill capacity.
+- For Codex native subagents, always set an installed `agent_type`; inherit the current model unless a concrete task requirement justifies an override.
+- Read `docs/shared/agent-tiers.md` only when delegation is actually useful.
+- Delegate `researcher` only when current official external evidence materially affects correctness; do not auto-research settled or repo-local questions.
+- Use background execution for authorized long-running operations over ~30 seconds.
 - Run quick commands (git status, file reads, simple checks) in the foreground.
 - Apply the shared workflow guidance pattern: outcome-first framing, concise visible updates for speculative/blocked lanes, local overrides for the active workflow branch, evidence-backed validation, explicit stop rules, and continuation of clear safe execution branches instead of restarting or re-asking.
 - If the user says `continue`, continue the active workflow branch rather than restarting discovery or re-asking settled questions.
 </Execution_Policy>
 
 <Steps>
-1. **Read agent reference**: Load `docs/shared/agent-tiers.md` for tier selection.
+1. **Choose the lightest lane**: Stay direct unless delegation materially improves throughput; load `docs/shared/agent-tiers.md` only when selecting a delegate.
 2. **Context + certainty check**:
    - State the task intent in one sentence.
    - List the constraints and unknowns that could invalidate a quick fix.
    - If confidence is low, explore first and narrow the task before editing.
 3. **Define acceptance criteria before execution**:
    - What must be true at the end?
-   - Which command or artifact proves it?
-   - Which manual QA check is required, if any?
+   - Which narrow non-test command or artifact proves it?
+   - Did the user explicitly authorize any test, build gate, browser, screenshot, or manual QA surface?
 4. **Classify the work by dependency shape**:
    - Independent tasks -> parallel lanes.
    - Shared-file or prerequisite-heavy tasks -> local execution or staged lanes.
@@ -61,12 +62,11 @@ Sequential task execution wastes time when tasks are independent. Ultrawork keep
    - Delegate when the task slice is bounded, independent, and materially improves throughput.
 6. **Run execution lanes**:
    - Direct-tool lane for immediate implementation or verification work.
-   - Background evidence lanes for tests, docs, repo analysis, or regression checks.
+   - Background evidence lanes for docs, static contracts, or repo analysis; tests only when explicitly authorized.
 7. **Run dependent tasks sequentially**: Wait for prerequisites before launching dependent work.
 8. **Close with lightweight evidence**:
-   - Build/typecheck passes when relevant.
-   - Affected tests pass.
-   - Manual QA notes are recorded when the task needs a human-visible or behavior-level check.
+   - The selected narrow proof passes.
+   - Authorized tests/build/browser/manual QA pass only when the user requested them.
    - No new errors introduced.
 </Steps>
 
@@ -76,7 +76,7 @@ Sequential task execution wastes time when tasks are independent. Ultrawork keep
 - Use THOROUGH-tier delegation for complex analysis, architectural review, or risky multi-file changes.
 - Prefer a direct-tool lane when the immediate next step is blocked on local context.
 - Prefer background evidence lanes when you can learn something useful in parallel with implementation.
-- Use `run_in_background: true` for package installs, builds, and test suites.
+- Use background execution for long authorized operations; do not add installs, builds, or tests by default.
 - Use foreground execution for quick status checks and file operations.
 </Tool_Usage>
 
@@ -98,15 +98,14 @@ Use the CLI-first state surface (`omx state ... --json`) for ultrawork lifecycle
 Two-track execution with acceptance criteria up front:
 ```
 Acceptance criteria:
-- `npm run build` passes
-- `node --test dist/scripts/__tests__/codex-native-hook.test.js` passes
-- Manual QA: verify `$ultrawork` activation message still points to the session state file
+- `git diff --check` passes
+- the adapter resolver reports the expected workflow contract
 
 Direct-tool lane:
 - update `skills/ultrawork/SKILL.md`
 
 Background evidence lane:
-- use /prompts:test-engineer for this scoped task
+- inspect the adapter and keyword registry for contradictory routing
 ```
 Why good: Context is grounded first, acceptance criteria are explicit, and the direct-tool lane runs alongside a bounded evidence lane.
 </Good>
@@ -115,7 +114,7 @@ Why good: Context is grounded first, acceptance criteria are explicit, and the d
 Correct use of self-vs-delegate judgment:
 ```
 Shared-file edit in progress across `src/scripts/codex-native-hook.ts` and its test -> keep implementation local.
-Independent regression mapping for keyword-detector coverage -> delegate to a test-engineer lane.
+Independent contract mapping for keyword-detector coverage -> delegate to an explore lane.
 ```
 Why good: Shared-file work stays local; independent evidence work fans out.
 </Good>
@@ -130,16 +129,16 @@ Why bad: No context snapshot, no pass/fail target, and delegation starts before 
 </Bad>
 
 <Bad>
-Claiming success without evidence or manual QA:
+Claiming success without evidence:
 ```
 Made the changes. Ultrawork should be updated now.
 ```
-Why bad: No verification output, no acceptance evidence, and no manual QA note when the behavior is user-visible.
+Why bad: No verification output or acceptance evidence. Manual QA is a separate opt-in surface and is not implied by user visibility.
 </Bad>
 </Examples>
 
 <Escalation_And_Stop_Conditions>
-- When ultrawork is invoked directly, apply lightweight verification only -- build/typecheck passes when relevant, affected tests pass, and manual QA notes are captured when needed.
+- When ultrawork is invoked directly, apply lightweight non-test verification by default. Tests, builds used as gates, browser automation, screenshots, and manual QA run only with explicit current-task user authorization.
 - Ultrawork does not own persistence, durable ledgers, architect verification, deslop, full QA, or the full verified-completion promise. Do not claim those guarantees from direct ultrawork alone.
 - Escalate to `ultragoal` when the work needs durable goal state, story checkpoints, or resume across implementation steps.
 - Escalate to `team` when the work needs coordinated tmux workers, shared task state, or durable multi-worker lifecycle control.
@@ -153,9 +152,8 @@ Why bad: No verification output, no acceptance evidence, and no manual QA note w
 - [ ] Task intent and constraints were grounded before editing
 - [ ] Pass/fail acceptance criteria were stated before execution
 - [ ] Parallel lanes were used only for independent work
-- [ ] Build/typecheck passes when relevant
-- [ ] Affected tests pass
-- [ ] Manual QA notes recorded when behavior is user-visible
+- [ ] The narrowest decisive evidence passes
+- [ ] Test/build/browser/manual QA surfaces were used only when explicitly authorized
 - [ ] No new errors introduced
 - [ ] Completion claim stays inside ultrawork's lightweight-verification boundary
 </Final_Checklist>
@@ -175,9 +173,9 @@ team (tmux coordinated execution)
  \-- owns: worker panes, shared task state, mailbox/dispatch, lifecycle control
  \-- can return: checkpoint-ready evidence to an Ultragoal leader
 
-autopilot (strict autonomous delivery loop)
- \-- default flow: deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa
- \-- may use: team only when an Ultragoal story needs parallel execution
+autopilot (adaptive autonomous router)
+ \-- selects only phases justified by ambiguity, durability, risk, and explicit evidence authority
+ \-- may use: ultrawork/team only when independent lanes materially improve delivery
 
 ralph (supported legacy explicit fallback)
  \-- owns: single-owner persistence loop + architect verification when intentionally selected
@@ -186,5 +184,5 @@ ecomode (deprecated compatibility-only)
  \-- do not route users there from ultrawork; it is not the current model-selection path
 ```
 
-Ultrawork is the parallelism and execution-discipline layer. Ultragoal is the current default durable goal/ledger follow-up. Team is the coordinated tmux parallel runtime, often nested under an Ultragoal story when durable work needs multiple lanes. Autopilot orchestrates the full default lifecycle through deep-interview, ralplan, ultragoal, code-review, and ultraqa. Ralph remains active as an explicit legacy fallback for persistent single-owner verification, but it is not the recommended default durable path. Ecomode is deprecated compatibility-only and should not be advertised as the ultrawork model-selection route.
+Ultrawork is the parallelism and execution-discipline layer. Ultragoal is available when durable goal/ledger state is actually needed. Team is the coordinated tmux parallel runtime. Autopilot is an adaptive router, not a mandatory phase chain: it skips interview, planning, durable goals, review, and UltraQA when they do not materially improve the requested outcome or lack authorization. Ralph remains an explicit legacy fallback. Ecomode is deprecated compatibility-only.
 </Advanced>

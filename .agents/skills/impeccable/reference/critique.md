@@ -67,7 +67,7 @@ node .agents/skills/impeccable/scripts/detect.mjs --json [target]
 - Exit code 0 = clean; 2 = findings.
 - If the detector entrypoint is missing or fails to load, report deterministic scan unavailable and continue with browser/manual review.
 
-Browser visualization is required for a viewable target when browser automation is available. Use a localhost dev/static URL for local files; avoid `file://` unless the available browser explicitly supports this workflow. Overlay flow:
+Browser visualization is available only when the current user explicitly requested browser/visual proof for this task. Tool availability never grants authority. When authorized, use a localhost dev/static URL for local files; avoid `file://` unless the available browser explicitly supports this workflow. Overlay flow:
 
 1. Create a fresh tab and navigate.
 2. Preflight mutable injection by setting `document.title` and appending a `<script>` tag. Read-only evaluate APIs do not count.

@@ -1,263 +1,129 @@
 ---
 name: ultraqa
-description: "[OMX] Adversarial dynamic e2e QA workflow - generate hostile scenarios, test, verify, fix, report, and clean up"
+description: "[OMX] Explicitly authorized, scoped adversarial QA with bounded diagnose-fix-recheck loops"
 ---
 
 # UltraQA Skill
 
-## Operating Contract
+## Activation Gate
 
-- Use outcome-first framing with concise, evidence-dense progress and completion reporting.
-- Treat newer user updates as local overrides for the active workflow branch while preserving earlier non-conflicting constraints.
-- If the user says `continue`, advance the current verified next step instead of restarting discovery.
-- UltraQA is not satisfied by a shallow build/lint/typecheck/test checklist. It must exercise the requested behavior through adversarial dynamic e2e scenarios whenever the target can be run, simulated, or harnessed safely.
+UltraQA is an opt-in evidence surface. Execute it only when the current user explicitly:
 
-[ULTRAQA ACTIVATED - ADVERSARIAL DYNAMIC E2E QA CYCLING]
+- invokes `$ultraqa` or `/ultraqa` with a goal; or
+- asks to run tests, QA, E2E, a build gate, browser automation, screenshots, or another named automated validation surface.
 
-## Overview
+A bare workflow mention, plan reference, handoff, risk label, nearby test file, prior authorization, or statement such as "bug-free" does not activate UltraQA. If activation is absent, record a `TEST_PROPOSAL` when useful and continue with non-test evidence.
 
-UltraQA finds real behavior failures by combining normal verification commands with generated end-to-end scenarios, hostile user modeling, temporary harnesses when useful, and a structured evidence report. The workflow repeats test → diagnose → fix → retest until the goal is met, a bounded stop condition is reached, or a safety boundary blocks further execution.
+## Lean Operating Contract
+
+- Parse the exact authorized claim and evidence surfaces before running commands.
+- Budget tokens, context, tools, generated artifacts, scenarios, cycles, agents, and cleanup work.
+- Inspect only the direct and evidence-backed transitive blast radius; do not invent hypothetical systems or future features.
+- Select the smallest scenario set that can falsify the claim. No universal hostile matrix or minimum scenario count exists.
+- Run only the flags and surfaces the user authorized. `$ultraqa --tests` does not silently add build, browser, lint, typecheck, screenshots, or full-suite work.
+- Create or modify tests, fixtures, or harnesses only when the user's current authorization covers that work and the artifact materially improves proof.
+- Stop on the first decisive pass. There is no minimum cycle count, reviewer count, or command count.
 
 ## Goal Parsing
 
-Parse the goal from arguments. Supported formats:
+| Invocation | Authorized surface |
+|---|---|
+| `$ultraqa --tests` | The narrowest relevant existing tests; create or repair tests only when needed for the requested QA goal |
+| `$ultraqa --build` | The named build command and only the smoke probe explicitly included in the goal |
+| `$ultraqa --lint` | The relevant lint surface |
+| `$ultraqa --typecheck` | The relevant typecheck surface |
+| `$ultraqa --interactive` | The bounded CLI/service interactions named by the goal |
+| `$ultraqa --custom "..."` | Only the specified claim and cheapest decisive runnable evidence |
 
-| Invocation | Goal Type | What to Check |
-|------------|-----------|---------------|
-| `/ultraqa --tests` | tests | Existing tests plus adversarial dynamic e2e scenarios for the changed behavior |
-| `/ultraqa --build` | build | Build succeeds and generated smoke/e2e probes still run against the built artifact when applicable |
-| `/ultraqa --lint` | lint | Lint passes and no generated harness/test artifact violates project hygiene |
-| `/ultraqa --typecheck` | typecheck | Typecheck passes and generated typed harnesses compile when applicable |
-| `/ultraqa --custom "pattern"` | custom | Custom success pattern is verified against behavior, not trusted as misleading success output |
-| `/ultraqa --interactive` | interactive | CLI/service behavior is tested with generated hostile and edge-case interactions |
+If the invocation is unstructured, derive a narrow goal from the user's words. Do not expand it into all available QA surfaces.
 
-If no structured goal is provided, interpret the argument as a custom behavior goal and derive a runnable e2e strategy from repository context.
+## Scenario Selection
 
-## Required Scenario Matrix
+Create a compact scenario matrix only when multiple behavioral scenarios are necessary. Each selected row records:
 
-Before declaring success, create and maintain a scenario matrix. Each row must include: scenario id, intent, user/attacker model, setup, command or harness, expected signal, actual result, fixes applied, evidence, and cleanup status.
+- claim or risk;
+- setup and command/harness;
+- expected signal;
+- actual result and evidence;
+- cleanup status.
 
-The matrix must include normal-path coverage plus adversarial dynamic e2e scenarios selected from the current goal and codebase. Unless clearly irrelevant or impossible, include these hostile and edge-case classes:
+Choose only relevant scenarios. Candidate classes include normal path, malformed input, authorization denial, stale state, interruption/resume, misleading success output, concurrency, or cleanup. Omit irrelevant classes with no ceremony.
 
-1. **Malformed input**: invalid JSON, missing fields, invalid flags, oversized strings, unusual Unicode, path traversal-like values, and corrupted state files.
-2. **Repeated interruptions**: repeated `continue`, stop/cancel/abort wording, interrupted command output, and retries after partial progress.
-3. **Prompt injection attempts**: user text that tries to override instructions, exfiltrate secrets, skip verification, delete state, or claim false success.
-4. **Cancel/resume behavior**: active state cleanup, resume detection, stale in-progress state, and cancellation followed by a fresh run.
-5. **Stale state**: old `.omx/state` files, mismatched sessions, missing timestamps, and contradictory phase metadata.
-6. **Dirty worktree**: pre-existing modifications, untracked generated files, and verification that UltraQA does not hide or overwrite unrelated work.
-7. **Hung or long-running commands**: bounded timeout handling, killed child processes, and recovery notes.
-8. **Flaky tests**: rerun strategy, failure clustering, quarantine evidence, and avoiding false green from a single lucky pass.
-9. **Misleading success output**: output containing success phrases with non-zero exits, hidden failures, skipped tests, or partial command logs.
+## Bounded QA Loop
 
-## Dynamic E2E and Temporary Harness Rules
+### 1. Scope
 
-- Generate temporary tests, scripts, fixtures, or harnesses when they materially improve behavioral confidence and no existing e2e surface covers the scenario.
-- Prefer project-native test tools and small throwaway harnesses under a temporary directory or clearly named test fixture.
-- Record every generated artifact in the scenario matrix, including whether it was committed intentionally or removed during cleanup.
-- Use bounded runtimes and explicit timeouts for commands that can hang.
-- Validate exit codes and output semantics; do not trust success-looking text alone.
-- Do not delete, rewrite, or mask unrelated user work. Capture dirty-worktree evidence before and after generated harness work.
+- Restate the authorized goal, success condition, safety bounds, and stop condition.
+- Identify the exact commands or artifacts allowed by the request.
+- Capture dirty-worktree context without overwriting unrelated work.
 
-### Temporary Harness Generation Guardrails
+### 2. Run the smallest proof
 
-Generated harnesses are part of the QA evidence chain; until setup succeeds, they are evidence about the harness apparatus, not product behavior.
+- Prefer the narrowest relevant test, command, interaction, or harness.
+- Use explicit timeouts for commands that may hang.
+- Check exit status and meaningful output; do not trust success-looking text alone.
+- Do not add a baseline build, full suite, browser run, screenshot pass, or generated harness unless it is authorized and necessary.
 
-- **Use absolute repo imports for built artifacts.** When a harness runs from `/tmp` or another scratch directory but imports repository code, resolve the repository root explicitly from the verified repo cwd and import built modules with an absolute path or `pathToFileURL(join(repoRoot, "dist", ...)).href`. Never rely on `./dist/...` from the harness file's temporary directory.
-- **Use a safe file writer for JS/TS harness bodies.** Prefer a small Node/Python writer or another non-interpolating file-write mechanism for harness source that contains backticks, `${...}`, shell metacharacters, or prompt-injection strings. If a shell heredoc is unavoidable, quote the delimiter and verify the written file before execution; do not use interpolating heredocs for JavaScript assertions.
-- **Sanitize OMX runtime env for isolated probes.** When the scenario creates a temporary repo/state tree or intentionally checks local isolation, run the probe with `OMX_ROOT` and `OMX_STATE_ROOT` unset (for example `env -u OMX_ROOT -u OMX_STATE_ROOT ...`) so ambient boxed runtime state cannot redirect reads/writes away from the scenario fixture.
-- **Classify harness setup failures separately.** If a generated harness fails before exercising product behavior because of import paths, shell interpolation, environment leakage, or fixture construction, record it as harness debris, fix the harness, and rerun the scenario before declaring a product defect.
+### 3. Diagnose only failures
 
-## Cycle Workflow
+- Distinguish product failures from harness, environment, fixture, or authorization failures.
+- Use an architect/debugger lane only when the failure is materially ambiguous; otherwise diagnose locally.
+- Fix the smallest root cause while preserving unrelated work.
 
-### Cycle N (Max 5)
+### 4. Recheck the failed claim
 
-1. **PLAN ADVERSARIAL QA**
-   - Restate the goal, success criteria, safety bounds, and stop condition.
-   - Inspect repository context enough to identify runnable surfaces, test commands, state files, and cleanup paths.
-   - Build or update the required scenario matrix before running commands.
+- Rerun the minimal failing proof after a fix.
+- Expand one step only when new evidence shows the current proof is insufficient.
+- Stop immediately when the authorized success condition is proven.
 
-2. **RUN BASELINE VERIFICATION**
-   - `--tests`: Run the project's test command.
-   - `--build`: Run the project's build command.
-   - `--lint`: Run the project's lint command.
-   - `--typecheck`: Run the project's type check command.
-   - `--custom`: Run the appropriate command and check the pattern plus exit status and failure markers.
-   - `--interactive`: Use qa-tester or an equivalent CLI/service harness:
-     ```
-     Use `/prompts:qa-tester` with:
-     Goal: [describe what to verify]
-     Service: [how to start]
-     Test cases: [normal, hostile, malformed, interruption, resume, stale-state, dirty-worktree, hung-command, flaky, and misleading-output scenarios]
-     ```
+### 5. Clean up
 
-3. **RUN ADVERSARIAL DYNAMIC E2E SCENARIOS**
-   - Execute the scenario matrix using existing e2e tests, generated temporary tests, or generated harnesses.
-   - Model malicious/hostile user behavior explicitly, including prompt injection and attempts to bypass safety or verification.
-   - Exercise malformed input, repeated interruptions, cancel/resume, stale state, dirty worktree handling, hung commands, flaky tests, and misleading success output when relevant.
-   - Capture commands, exit codes, important output excerpts, artifacts, and cleanup status.
+- Remove temporary harnesses, processes, fixtures, state, and logs unless they are intentional deliverables.
+- Record residual risks and skipped surfaces; do not call unrequested work a blocker.
 
-4. **CHECK RESULT**
-   - **YES** only if baseline verification and adversarial e2e scenarios passed, generated artifacts are cleaned up or intentionally tracked, and the report has complete evidence.
-   - **NO** if any scenario failed, was skipped without justification, left debris, relied on misleading output, or lacked evidence. Continue to step 5.
+## Generated Harness Guardrails
 
-5. **ARCHITECT DIAGNOSIS**
-   ```
-   Use `/prompts:architect` with:
-   Goal: [goal type and behavior]
-   Scenario matrix: [rows, commands, failures, evidence]
-   Output: [test/build/e2e/harness output]
-   Provide root cause, safety implications, and specific fix recommendations.
-   ```
-
-6. **FIX ISSUES**
-   ```
-   Use `/prompts:executor` with:
-   Issue: [architect diagnosis]
-   Files: [affected files]
-   Constraints: preserve unrelated dirty work, clean temporary harnesses, keep safety bounds
-   Apply the fix precisely as recommended.
-   ```
-
-7. **CLEAN UP AND ROLLBACK**
-   - Remove temporary harnesses, fixtures, logs, spawned processes, and state files unless they are intentional deliverables.
-   - Roll back failed experimental edits that are not part of the final fix.
-   - Re-check the worktree and record remaining intentional changes or residual debris.
-
-8. **REPEAT**
-   - Go back to step 1 with the updated scenario matrix and failure history.
+- Prefer existing project-native surfaces over new harnesses.
+- Keep temporary artifacts in ignored scratch locations and list them in the report.
+- Resolve repo imports from the verified repo root; do not rely on a temporary file's relative cwd.
+- Use non-interpolating writers for source containing backticks, template markers, or shell metacharacters.
+- Sanitize ambient runtime variables for isolation probes.
+- Treat setup failures as harness evidence, not product defects, until product behavior is exercised.
 
 ## Safety Bounds
 
-UltraQA must stay inside these safety bounds:
+- No destructive cleanup, force resets, secret extraction, credential dumping, production writes, paid actions, or unbounded processes.
+- No external-production or network side effects unless explicitly authorized.
+- Never hide or overwrite unrelated dirty work.
+- Stop and report when the same failure repeats without a materially different recovery path, a safety boundary blocks the proof, or the authorized claim is proven.
 
-- No destructive commands such as force resets, broad deletes, secret exfiltration, credential dumping, production writes, or unbounded process spawning.
-- No reading or printing secrets beyond the minimum metadata needed to verify absence of leakage.
-- No network or external-production side effects unless the user explicitly authorized them.
-- No unbounded waits: use timeouts, retries with caps, and clear hung-command diagnostics.
-- No hiding unrelated dirty work or generated debris.
-- If a required scenario would violate these bounds, mark it blocked in the report with the safe substitute used.
-
-## Exit Conditions
-
-| Condition | Action |
-|-----------|--------|
-| **Goal Met** | Exit with success: `ULTRAQA COMPLETE: Goal met after N cycles` plus the structured report |
-| **Cycle 5 Reached** | Exit with diagnosis: `ULTRAQA STOPPED: Max cycles` plus failures, fixes attempted, residual risks, and evidence |
-| **Same Failure 3x** | Exit early: `ULTRAQA STOPPED: Same failure detected 3 times` plus root cause, safety notes, and next owner |
-| **Safety Boundary** | Exit: `ULTRAQA BLOCKED: [destructive/credentialed/external-production/unbounded action]` plus safe substitute evidence |
-| **Environment Error** | Exit: `ULTRAQA ERROR: [tmux/port/dependency/hung command issue]` plus cleanup status |
-
-## Structured Report
-
-Every terminal UltraQA result must include this report shape:
+## Report
 
 ```markdown
 # UltraQA Report
 
-## Goal and success criteria
-- Goal:
+## Authorized goal
+- Claim:
+- Evidence surfaces:
 - Stop condition:
-- Safety bounds applied:
-
-## Scenario matrix
-| ID | User/attacker model | Scenario | Command/harness | Expected signal | Actual result | Status | Evidence | Cleanup |
-|----|---------------------|----------|-----------------|-----------------|---------------|--------|----------|---------|
-
-## Commands run
-- `[exit code] command` — purpose, duration/timeout, key output evidence
-
-## Failures found
-- Scenario ID, failure signal, root cause, user impact, safety impact
-
-## Fixes applied
-- Files changed, rationale, linked failing scenario(s), regression evidence
-
-## Cleanup and rollback
-- Generated artifacts removed or intentionally kept
-- State/process cleanup performed
-- Worktree status before/after
-
-## Residual risks
-- Untested or blocked scenarios with reasons and safe substitutes
 
 ## Evidence
-- Test output, e2e logs, harness output, screenshots/transcripts when relevant, and rerun/flake evidence
+| ID | Scenario | Command or harness | Expected | Actual | Status | Cleanup |
+|---|---|---|---|---|---|---|
+
+## Fixes
+- Root cause, changed files, and narrow rerun evidence
+
+## Gaps
+- Unrequested, blocked, or still-unproven surfaces and remaining risk
 ```
 
-## Observability
+## State
 
-Output progress each cycle:
+Use `omx state ... --json` only while UltraQA is active:
 
-```text
-[ULTRAQA Cycle 1/5] Planning adversarial scenario matrix...
-[ULTRAQA Cycle 1/5] Running baseline tests...
-[ULTRAQA Cycle 1/5] Running ADV-E2E-003 prompt-injection harness...
-[ULTRAQA Cycle 1/5] FAILED - stale state resume accepted misleading success output
-[ULTRAQA Cycle 1/5] Architect diagnosing scenario ADV-E2E-003...
-[ULTRAQA Cycle 1/5] Fixing: src/hooks/... - validate exit code before success phrase
-[ULTRAQA Cycle 1/5] Cleaning temporary harnesses and state...
-[ULTRAQA Cycle 2/5] PASSED - baseline + 9 adversarial scenarios pass
-[ULTRAQA COMPLETE] Goal met after 2 cycles
-```
+- Start: `omx state write --input '{"mode":"ultraqa","active":true,"current_phase":"scope","iteration":1}' --json`
+- Update only on meaningful phase/cycle changes.
+- Finish or cancel: run `$cancel` or `omx state clear --input '{"mode":"ultraqa"}' --json`.
 
-## State Tracking
-
-Use the CLI-first state surface (`omx state ... --json`) for UltraQA lifecycle state. If explicit MCP compatibility tools are already available, equivalent `omx_state` calls are optional compatibility, not the default.
-
-- **On start**:
-  `omx state write --input '{"mode":"ultraqa","active":true,"current_phase":"planning","iteration":1,"started_at":"<now>","scenario_matrix":[]}' --json`
-- **On each cycle**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"qa","iteration":<cycle>,"scenario_matrix":"<updated matrix path or summary>"}' --json`
-- **On adversarial e2e transition**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"adversarial-e2e"}' --json`
-- **On diagnose/fix transitions**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"diagnose"}' --json`
-  `omx state write --input '{"mode":"ultraqa","current_phase":"fix"}' --json`
-- **On cleanup transition**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"cleanup"}' --json`
-- **On completion**:
-  `omx state write --input '{"mode":"ultraqa","active":false,"current_phase":"complete","completed_at":"<now>"}' --json`
-- **For resume detection**:
-  `omx state read --input '{"mode":"ultraqa"}' --json`
-
-## Scenario Examples
-
-**Good:** The user says `continue` after the workflow already has a clear next step. Continue the current branch of work, rerun the relevant adversarial scenario, and update the report instead of restarting discovery.
-
-**Good:** The user changes only the output shape or downstream delivery step (for example `make a PR`). Preserve earlier non-conflicting workflow constraints and apply the update locally.
-
-**Good:** A CLI prints `SUCCESS` while exiting 1. Mark the misleading success output scenario failed, fix the parser or reporting path, and rerun the generated harness.
-
-**Bad:** The workflow runs only `npm test`, `npm run build`, `npm run lint`, or `npm run typecheck`, sees green output, and declares UltraQA complete without adversarial dynamic e2e coverage.
-
-**Bad:** A generated harness leaves untracked files, state, or a child process behind and the final report omits cleanup status.
-
-**Bad:** The user says `continue`, and the workflow restarts discovery or stops before the missing verification/evidence is gathered.
-
-## Cancellation
-
-User can cancel with `/cancel`, which clears UltraQA state. Cancellation itself should be tested in cancel/resume scenarios when relevant, but UltraQA must not block an explicit user cancellation.
-
-## Important Rules
-
-1. **ADVERSARIAL E2E REQUIRED** - Baseline build/lint/typecheck/test commands are necessary evidence, not sufficient completion proof.
-2. **SCENARIO MATRIX REQUIRED** - Track normal, hostile, malformed, interruption, injection, cancel/resume, stale-state, dirty-worktree, hung-command, flaky, and misleading-output coverage.
-3. **GENERATE HARNESSES WHEN USEFUL** - Create temporary tests or harnesses when they materially improve behavioral confidence, then clean them up or commit them intentionally.
-4. **PARALLEL WHEN SAFE** - Run independent diagnostics while preparing potential fixes; do not parallelize commands that mutate the same state or worktree.
-5. **TRACK FAILURES** - Record each failure to detect patterns and avoid false greens.
-6. **EARLY EXIT ON PATTERN** - 3x same failure = stop and surface with root cause and residual risk.
-7. **CLEAR OUTPUT** - User should always know current cycle, scenario, command, status, and evidence.
-8. **CLEAN UP** - Clear UltraQA state and temporary artifacts on completion, cancellation, or early stop.
-9. **SAFETY FIRST** - Never exfiltrate secrets, run destructive cleanup, write to production, or wait indefinitely to satisfy a scenario.
-
-## STATE CLEANUP ON COMPLETION
-
-When goal is met OR max cycles reached OR exiting early, run `$cancel` or call:
-
-`omx state clear --input '{"mode":"ultraqa"}' --json`
-
-Use CLI state cleanup rather than deleting files directly. Also remove temporary e2e harnesses, fixtures, and logs unless they are intentional artifacts listed in the report.
-
----
-
-Begin ULTRAQA cycling now. Parse the goal, build the adversarial dynamic e2e scenario matrix, and start cycle 1.
+Do not activate or begin cycling until the activation gate is satisfied.

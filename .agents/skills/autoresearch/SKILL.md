@@ -12,6 +12,14 @@ It keeps the useful measured-research loop, but it now runs as a native-hook sta
 
 Use `$autoresearch` when the research output itself is a bounded deliverable that must pass an explicit validator. Do not recommend it for ordinary pre-planning docs lookup or general best-practice checks; use `$best-practice-research` for that. If `$autoresearch` is intentionally run before architecture planning, its approved artifact should feed evidence into `$ralplan`; it should not become a final architecture/component unless the user explicitly asks for ongoing research automation.
 
+## Lean research contract
+
+- Define the decision or artifact the research must support, the source boundary, resource budget, validator, and stop condition before retrieval.
+- Spend tokens, context, tools, sources, agents, and loop iterations only while they materially reduce a named uncertainty.
+- Prefer primary sources and existing repo evidence; do not collect sources to satisfy a count or explore hypothetical future systems.
+- Stop at the first complete artifact that satisfies the validator. No minimum loop, critic, or source count applies.
+- Automated tests, builds used as gates, browser automation, screenshots, and broad QA run only when the current user explicitly authorized them. A mission validator may be a deterministic non-test artifact check; a test command still requires `TEST_TASK` authorization.
+
 ## Use when
 - You want a Ralph-ish persistent research loop
 - The task should keep nudging until explicit validation evidence exists
@@ -59,10 +67,10 @@ The completion artifact must include both an architect approval verdict and an o
 ```
 
 ## Recommended flow
-1. Run `$deep-interview --autoresearch` to clarify mission + evaluator.
+1. Clarify the mission and evaluator directly; use `$deep-interview --autoresearch` only when missing answers would materially change the research.
 2. Materialize `.omx/specs/autoresearch-{slug}/mission.md`, `sandbox.md`, and `result.json`.
 3. Start `$autoresearch` with the chosen validation mode stored in mode state.
-4. Let stop-hook / auto-nudge continue until the completion artifact satisfies the chosen validation mode.
+4. Continue only while new work can materially improve the artifact against the chosen validation mode.
 5. Finish only after the validator artifact is complete.
 
 ## Migration note

@@ -1,10 +1,10 @@
 ---
 name: lfg
-description: Run the full autonomous engineering pipeline end-to-end (plan, work, code review, test, commit, push, open PR, watch CI, fix CI failures until green). Use only when the user explicitly requests hands-off execution of a software task and provides a feature description; do not auto-route casual conversation here.
+description: Run an explicitly requested autonomous engineering pipeline with lean, authority-gated phases. Testing, browser work, commit, push, PR, and CI actions require matching user authority; do not auto-route casual conversation here.
 argument-hint: "[feature description]"
 ---
 
-CRITICAL: You MUST execute every step below IN ORDER. Do NOT skip any required step. Do NOT jump ahead to coding or implementation. The plan phase (step 1) MUST be completed and verified BEFORE any work begins. Violating this order produces bad output.
+**Archestimator lean override:** use the fewest phases needed for the requested outcome. A hands-off or `$lfg` request does not by itself authorize tests, builds-as-gates, browser automation, screenshots, commits, pushes, PR changes, or CI mutation. Run those phases only when the current user explicitly requests the corresponding surface; otherwise skip them and report the proof or authority boundary. The numbered pipeline below is conditional under this override, not a phase quota.
 
 When invoking any skill referenced below, resolve its name against the available-skills list the host platform provides and use that exact entry. Some platforms list skills under a plugin namespace (e.g., `compound-engineering:ce-plan`); others list the bare name. Invoking a short-form guess that isn't in the list will fail — always match a listed entry verbatim before calling the Skill/Task tool.
 
@@ -18,7 +18,7 @@ When invoking any skill referenced below, resolve its name against the available
 
 3. Invoke the `ce-simplify-code` skill on the branch diff.
 
-   This runs before review so the code-review in step 4 covers the simplified code. **Skip** this step when the change is docs-only (only markdown/docs paths changed) or trivial (roughly under 10 changed lines). Otherwise let `ce-simplify-code` resolve the branch-diff scope itself; it preserves behavior and runs the test suite.
+   Run this only when the changed code has a concrete simplification risk. `ce-simplify-code` uses narrow non-test evidence by default and tests only with explicit current-task user authorization.
 
    Do not commit in this step. `ce-simplify-code` leaves its changes in the working tree; step 4's review scopes the working tree (uncommitted changes included), and step 8's `ce-commit-push-pr` commits whatever remains. Committing here would sweep any still-uncommitted `ce-work` edits into a misleading `refactor` commit and could stall on a tree that never goes clean.
 
@@ -58,7 +58,7 @@ When invoking any skill referenced below, resolve its name against the available
 
    Never block DONE on tracker filing failures once residuals have been durably recorded. A `no_sink` outcome is success only when the findings are present in the PR body or in the pushed fallback file.
 
-7. Invoke the `ce-test-browser` skill with `mode:pipeline`.
+7. Invoke `ce-test-browser` only when the current user explicitly authorized browser/E2E/visual proof; otherwise skip this phase and record the non-browser proof boundary.
 
 8. Invoke the `ce-commit-push-pr` skill.
 

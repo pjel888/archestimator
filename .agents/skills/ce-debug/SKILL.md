@@ -8,6 +8,8 @@ argument-hint: "[issue reference, error message, test path, or description of br
 
 Find root causes, then fix them. This skill investigates bugs systematically — tracing the full causal chain before proposing a fix — and optionally implements the fix with test-first discipline.
 
+**Archestimator lean override:** investigate the evidence-supported direct/transitive causal chain deeply, but keep implementation and verification narrow. Do not create or run tests, builds-as-gates, browser automation, screenshots, or broad QA unless the current user explicitly requested that evidence. Risk, reproduction value, or a nearby failing suite authorizes only a `TEST_PROPOSAL`.
+
 <bug_description> #$ARGUMENTS </bug_description>
 
 ## Core Principles
@@ -48,7 +50,7 @@ Read the full conversation — the original description AND every comment, with 
 **Otherwise**, proceed to Phase 1.
 
 **Questions:**
-- Do not ask questions by default — investigate first (read code, run tests, trace errors)
+- Do not ask questions by default — investigate first (read code, inspect current diagnostics, trace errors); run tests only when explicitly authorized
 - Only ask when a genuine ambiguity blocks investigation and cannot be resolved by reading code or running tests
 - When asking, ask one specific question
 
@@ -60,13 +62,13 @@ Read the full conversation — the original description AND every comment, with 
 
 #### 1.1 Reproduce the bug
 
-Confirm the bug exists and understand its behavior. Run the test, trigger the error, follow reported reproduction steps — whatever matches the input.
+Confirm the bug exists and understand its behavior with the least invasive authorized evidence. Run a test or browser reproduction only when the current user explicitly requested that surface.
 
-- **Browser bugs:** Prefer `agent-browser` if installed. Otherwise use whatever works — MCP browser tools, direct URL testing, screenshot capture, etc.
+- **Browser bugs:** Use browser tooling only with explicit current-task user authorization. Otherwise trace source, state, logs, contracts, and static/DOM evidence, and record the exact browser proposal if still needed.
 - **Manual setup required:** If reproduction needs specific conditions the agent cannot create alone (data states, user roles, external services, environment config), document the exact setup steps and guide the user through them. Clear step-by-step instructions save significant time even when the process is fully manual.
 - **Does not reproduce after 2-3 attempts:** Read `references/investigation-techniques.md` for intermittent-bug techniques.
 - **Cannot reproduce at all in this environment:** Document what was tried and what conditions appear to be missing.
-- **Writing the reproduction test:** If the project has testing-conventions guidance — a dedicated testing skill, an `AGENTS.md`/`CLAUDE.md` testing section, or a clear style across existing tests — apply it when authoring the failing test. Otherwise write a minimal isolated test that fails on the current bug and passes once the corrected behavior lands; name it descriptively so the failure message itself explains the bug.
+- **Writing a reproduction test:** Only under an explicit user-authorized `TEST_TASK`; otherwise do not create or edit a test and use non-test causal evidence or a `TEST_PROPOSAL`.
 
 #### 1.2 Verify environment sanity
 
@@ -137,8 +139,8 @@ Before forming a new hypothesis, review what has already been ruled out and why.
 Once the root cause is confirmed, present:
 - The root cause (causal chain summary with file:line references)
 - The proposed fix and which files would change
-- Which tests to add or modify to prevent recurrence (specific test file, test case description, what the assertion should verify)
-- Whether existing tests should have caught this and why they did not
+- The cheapest decisive prevention evidence; include a specific `TEST_PROPOSAL` only when a test would materially reduce residual risk
+- Whether existing contracts or explicitly authorized tests should have caught this and why they did not
 
 Then offer next steps.
 
@@ -188,13 +190,12 @@ If the user chose "Diagnosis only" at the end of Phase 2, skip this phase and go
 - Check for uncommitted changes (`git status`). If the user has unstaged work in files that need modification, confirm before editing — do not overwrite in-progress changes.
 - If the current branch is the default branch, ask whether to create a feature branch first using the platform's blocking question tool (see Phase 2 for the per-platform names). To detect the default branch, compare against `main`, `master`, or the value of `git rev-parse --abbrev-ref origin/HEAD` with its `origin/` prefix stripped (the raw output is `origin/<name>`, so an unstripped comparison will never match the local branch name). Default to creating one; derive a name from the bug and run `git checkout -b <name>`. On any other branch, proceed.
 
-**Test-first:**
-1. Write a failing test that captures the bug (or use the existing failing test)
-2. Verify it fails for the right reason — the root cause, not unrelated setup
-3. Implement the minimal fix — address the root cause and nothing else. Do not bundle drive-by refactors, formatting, or unrelated cleanup into a bug-fix change; those belong in separate commits.
-4. Verify the test passes
-5. Run the broader test suite for regressions
-6. Self-review the diff before declaring the fix done: read every changed line and check for style violations, missed edge cases, regressions in adjacent behavior, and missing test coverage for the fix. For non-trivial fixes (multiple files, risky surface area), also run the harness's lightweight review tool (e.g., `/review` in Claude Code; the equivalent in other harnesses) — not the full `ce-code-review` multi-agent flow, which is PR-tier and over-sized for a single bug fix.
+**Evidence-first fix:**
+1. Record the observed failure and causal chain.
+2. If the user explicitly authorized tests/TDD, use the smallest failing test and verify it fails for the intended reason; otherwise use the narrowest decisive non-test evidence.
+3. Implement the minimal root-cause fix with no drive-by refactor or formatting churn.
+4. Recheck the same authorized failure signal. Do not broaden to another suite, build, browser, or review workflow without explicit authority or a newly evidenced need.
+5. Self-review the changed lines and direct/transitive callers. Add one independent review lane only for a named material risk.
 
 **On a failed fix:** return to Phase 2 and *explicitly invalidate the current hypothesis* before forming a new one. State out loud what evidence ruled out the prior hypothesis, then form a new one with its own grounding observation and prediction. Do not retry variants of the same theory ("maybe it was the other branch", "let me also catch this case") — that is the rationalization spiral, not iteration.
 
@@ -217,7 +218,7 @@ Analyze how this was introduced and what allowed it to survive. Note any systemi
 **Root Cause**: [Full causal chain, with file:line references]
 **Recommended Tests**: [Tests to add/modify to prevent recurrence, with specific file and assertion guidance]
 **Fix**: [What was changed — or "diagnosis only" if Phase 3 was skipped]
-**Prevention**: [Test coverage added; defense-in-depth if applicable]
+**Prevention**: [Non-test evidence, authorized test evidence, or a precise TEST_PROPOSAL; defense-in-depth if applicable]
 **Confidence**: [High/Medium/Low]
 ```
 
