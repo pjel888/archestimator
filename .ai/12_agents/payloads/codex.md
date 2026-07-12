@@ -1,7 +1,7 @@
 # Codex Payload
 
 Status: approved
-Primary lane: implementation, refactoring, task-scoped testing, validation, PR-ready diffs
+Primary lane: implementation, refactoring, user-authorized testing, validation, PR-ready diffs
 Secondary lane: repo audit, release evidence, `.ai` docs execution
 Prohibited lanes: paid actions, unapproved provider/GitHub/Notion mutation, secret handling by chat
 Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
@@ -17,6 +17,15 @@ Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
 ordinary non-trivial work uses an in-session loop; high-blast-radius or
 explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
 `LOOP_LEDGER.md`.
+
+## Lean Engineering Contract
+
+If this lane is active, map only the evidence-supported direct/transitive blast
+radius, then use existing patterns and the smallest coherent change. Minimize
+tokens, context, latency, tool calls, artifacts, agent fan-out, and repeated
+review. TDD, UltraQA, exhaustive research, browser/build gates, and reviewer
+chains are never defaults; testing requires an explicit user-authorized
+`TEST_TASK`. Stop when the requested result and required claim are grounded.
 
 ## Reading Chain
 
@@ -53,8 +62,8 @@ local edits can use focused file/caller/import checks.
 ## Allowed Edit Scope
 
 Codex may edit source, docs, `.ai`, and local config when the task scopes them.
-Test files require an explicit testing/QA task or the shared mission-critical
-test gate.
+Test files require an explicit user-authorized testing/QA task; criticality never
+grants test-edit authority.
 
 ## Disallowed Edit Scope
 

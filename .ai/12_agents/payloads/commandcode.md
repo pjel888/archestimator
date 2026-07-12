@@ -18,6 +18,15 @@ ordinary non-trivial work uses an in-session loop; high-blast-radius or
 explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
 `LOOP_LEDGER.md`.
 
+## Lean Engineering Contract
+
+If this lane is active, map only the evidence-supported direct/transitive blast
+radius, then use existing patterns and the smallest coherent change. Minimize
+tokens, context, latency, tool calls, artifacts, agent fan-out, and repeated
+review. TDD, UltraQA, exhaustive research, browser/build gates, and reviewer
+chains are never defaults; testing requires an explicit user-authorized
+`TEST_TASK`. Stop when the requested result and required claim are grounded.
+
 ## Reading Chain
 
 Start with `AGENTS.md` and the FAST PATH block at the top of

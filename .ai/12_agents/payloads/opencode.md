@@ -24,6 +24,15 @@ defaults only. Project instructions in `AGENTS.md`, `.ai/00_system`, and this
 payload override global mandates such as always-on TDD, fixed coverage
 thresholds, Conventional Commit defaults, or automatic broad E2E requirements.
 
+## Lean Engineering Contract
+
+If this lane is active, map only the evidence-supported direct/transitive blast
+radius, then use existing patterns and the smallest coherent change. Minimize
+tokens, context, latency, tool calls, artifacts, agent fan-out, and repeated
+review. TDD, UltraQA, exhaustive research, browser/build gates, and reviewer
+chains are never defaults; testing requires an explicit user-authorized
+`TEST_TASK`. Stop when the requested result and required claim are grounded.
+
 ## Reading Chain
 
 Start with `AGENTS.md` and the FAST PATH block at the top of

@@ -27,6 +27,13 @@ OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Gemini only if explicitly
 reapproved, and future payloads must map their local capabilities back to that
 shared loop.
 
+Every payload inherits the Lean Engineering Ethos: bound blast radius to
+evidence-supported direct/transitive callers, contracts, state, failure/recovery,
+and rollout; prefer existing patterns and the smallest coherent change; minimize
+tokens, context, latency, tool calls, artifacts, lanes, and repeated review; and
+stop when the requested claim is grounded. Tool availability never creates a
+quota to use agents, TDD, UltraQA, exhaustive research, browsers, or broad gates.
+
 The shared validation contract keeps verification mandatory and makes **tests
 user-gated, not automatic** (the **User Test Authorization Gate**): do not
 create, expand, repair, or run any automated test, test suite, build-as-test-

@@ -28,6 +28,15 @@ explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
 `LOOP_LEDGER.md`. This contract is agent-neutral; the payload adapts it to this
 agent's capabilities but does not fork it.
 
+## Lean Engineering Contract
+
+Map the evidence-supported direct/transitive blast radius before editing. Prefer
+existing patterns, deletion, and the smallest coherent change. Use the fewest
+tokens, context, tools, artifacts, lanes, and checking passes that can ground the
+claim. Do not invoke TDD, UltraQA, exhaustive research, browser/build gates, or
+reviewer chains by default; availability is not a mandate. Stop when the
+requested result and required evidence are complete.
+
 ## Reading Chain
 
 For normal work, start with `AGENTS.md` and the FAST PATH block at the top of

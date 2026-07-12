@@ -15,6 +15,19 @@ Ollama is not an approved Archestimator agent LLM lane. Only the approved
 embedding use, such as nomic embeddings through existing indexing tooling, is
 allowed unless Philip explicitly reapproves a local chat model.
 
+## Lean Engineering Contract
+
+If this lane is active, map only the evidence-supported direct/transitive blast
+radius, then use existing patterns and the smallest coherent change. Minimize
+tokens, context, latency, tool calls, artifacts, agent fan-out, and repeated
+review. TDD, UltraQA, exhaustive research, browser/build gates, and reviewer
+chains are never defaults; testing requires an explicit user-authorized
+`TEST_TASK`. Map only explicit testing/QA requested by the current user to
+`TEST_TASK`. `TARGETED` and `BROADER` are proposal-only and do not authorize
+test execution. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization
+exception is withdrawn. Stop when the requested result and required claim are
+grounded.
+
 ## Reading Chain
 
 No agent reading chain applies unless Philip reapproves an Ollama chat lane. If
