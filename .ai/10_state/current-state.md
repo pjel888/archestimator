@@ -35,9 +35,10 @@ task-specific history. Do not linear-read the detailed history below.
   `.ai` state is durable; unavailable or unsearchable memory sync is a degraded
   auxiliary capability, not an implementation blocker unless Supermemory itself
   is the requested core deliverable.
-- **Agent routing:** use the smallest useful lane set. Sol owns hard judgment;
-  Terra handles bounded read-heavy work; native delegation depth is one and
-  three active lanes is the normal soft limit.
+- **Execution lanes:** use Direct for clear bounded work, Brief for multi-file or
+  moderately risky work, and Plan Pack only when explicitly requested or when a
+  wrong change is genuinely expensive to reverse. Use the fewest agents needed;
+  direct lead execution is the default for tightly coupled work.
 - **Lean engineering:** go deep before edits on the evidence-supported direct and
   transitive blast radius, then implement the smallest coherent solution. Pull
   context on demand, use the fewest capable lanes, avoid speculative artifacts
@@ -47,9 +48,10 @@ task-specific history. Do not linear-read the detailed history below.
   user-gated under the User Test Authorization Gate, not automatic.** Do not
   create, expand, repair, or run tests unless the user explicitly requests them.
   `TEST_TASK` is the only execution trigger and requires an explicit user
-  request. `TARGETED`/`BROADER` identify a risk that would benefit from a test
-  but authorize a `TEST_PROPOSAL` only — record it and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. `NOT_REQUIRED` is
-  the default and uses non-test evidence.
+  request. `TEST_PROPOSAL` records a named risk and exact proposed command but
+  does not authorize execution. `NOT_REQUIRED` is the default and uses non-test
+  evidence. Legacy packs may retain `TARGETED`/`BROADER` only as compatibility
+  values; new work uses the canonical three-state taxonomy.
 - **Browser gate:** browser automation, screenshots, Playwright, Storybook, and
   visual QA are user-gated testing surfaces, not automatic. Run them only when
   Philip explicitly requests the matching proof for the current task.
@@ -59,8 +61,10 @@ task-specific history. Do not linear-read the detailed history below.
   inspection and selected tests prove fixes.
 - **Dev runtime:** `bun dev` intentionally uses Turbopack with memory safeguards.
   Preserve the supported Node preflight and current memory protections.
-- **Planning:** ordinary non-trivial work uses an in-session loop. A dated plan
-  pack is required only for high-blast-radius or explicitly exhaustive work.
+- **Planning:** ordinary non-trivial work uses a short in-session Brief. A dated
+  plan pack is reserved for explicit exhaustive planning, destructive data
+  migration, live auth/token compatibility, material security boundaries, broad
+  architecture replacement, or coordinated multi-owner execution.
 - **Plan-pack execution:** an authorized pack is an execution commitment, not a
   blocker registry. Resolve every repository-controlled prerequisite in the run;
   only exact prohibited external actions may remain as narrow release boundaries.
@@ -10421,3 +10425,15 @@ Open:
 - Release status is unchanged: no browser/hosted proof, named cohort, real-data
   migration or rollback rehearsal, support handoff, or release-truth
   reconciliation has occurred.
+
+## 2026-07-12 — Client Portal and Publisher packs archived by owner direction
+
+- Moved the Client Portal audit pack to
+  `.ai/09_archive/store/2026-07-12-Archestimator-Client-Portal-Audit-Plan-Pack-unresolved/`
+  as `CANCELLED / INCOMPLETE / BOUNDARY`; it is not a completion claim.
+- Moved the completed Publisher audit pack to
+  `.ai/09_archive/store/2026-07-12-Publisher-Page-Audit-complete/`.
+- The Client Portal archive preserves the outstanding immutable Worker upload,
+  authenticated manager migration/rollback, and hosted-proof requirements in
+  `ARCHIVE-DISPOSITION.md` and `LOOP_LEDGER.md`. The controlled cohort remains
+  rejected with both rollout flags disabled.
