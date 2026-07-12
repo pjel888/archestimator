@@ -32,13 +32,13 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "4f3fe0ae7acee4abcabb3e34ba8c520752d77d485d18724dc20061e3e9118bed"
+      "sha256": "be862f4eee2822ff9f7bac2b378dc74538f3058f6b9f75d0834e7577b21aeada"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "1671dbd5902f969966ac3d7e509be09661610ec3aa2dec5051a35760c37c43fd"
+      "sha256": "219249b1133c0b3733454e1b9237fc3ff4ea8a50df7361036eb2cf4fae43a788"
     },
     {
       "id": "ART-003",
@@ -56,13 +56,13 @@
       "id": "ART-005",
       "role": "audit",
       "path": "02-BUG-AND-RISK-REGISTER.md",
-      "sha256": "c52b85966ce6dd701c2adf16a30e95b32f660c9bb736816bf9af108089c7b1ec"
+      "sha256": "1b28fa4753ee06b57b0090c99b29aa15cec3fb8ac77e9c35381fa1619f5ae492"
     },
     {
       "id": "ART-006",
       "role": "audit",
       "path": "03-READINESS-AND-RECOMMENDATIONS.md",
-      "sha256": "c06da178a6d68840d0068e7925514d269998f08cadf787646a13b0f657c33319"
+      "sha256": "51f45c83281a1bac250022e1d378ff60436a2f13ec492db9abdadb4263680bff"
     },
     {
       "id": "ART-007",
@@ -164,7 +164,7 @@
       "id": "ART-023",
       "role": "fix-playbook",
       "path": "20-EMAIL-DNS-FIX-PLAYBOOK.md",
-      "sha256": "91e5896f544ac8f3dcae995cf884b05d1520fe9e34f8ad252898d5988ad1d643"
+      "sha256": "d0636d15d2794f5da50575d6e17d65d4b85b3dc3498962c84b646278ba9842cb"
     }
   ],
   "sources": [
@@ -414,5 +414,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-12T00:00:00.000Z",
-  "manifest_sha256": "353f188c040a296d1cc042dab4d41813933c7ba0ff99eb46494b91ad110567c3"
+  "manifest_sha256": "b11e168e23e0958dcdfaeefdd43db20e0420676c9104847373567c6af23d0768"
 }
