@@ -152,6 +152,8 @@ class FakeD1Statement {
         ? "collaboration_invite_opened"
         : null;
       this.database.auditEvents.push(literalEventType ? [...this.values, literalEventType] : [...this.values]);
+    } else if (normalizedSql.includes("insert into beta_activation_outbox")) {
+      this.database.activationOutbox.push([...this.values]);
     }
 
     return { success: true, meta: { changes } };
@@ -159,6 +161,7 @@ class FakeD1Statement {
 }
 
 class FakeD1Database {
+  activationOutbox: unknown[][] = [];
   auditEvents: unknown[][] = [];
   beforeBatch: (() => void) | null = null;
   estimateMembers = new Map<string, Record<string, unknown>>();
@@ -299,6 +302,15 @@ describe("Cloudflare D1 collaboration invitation store", () => {
       lifecycle_state: "accepted_by_recipient",
     });
     expect(database.auditEvents.some((event) => event.includes("collaboration_invite_accepted"))).toBe(true);
+    expect(database.activationOutbox).toEqual([expect.arrayContaining([
+      "invitee-user",
+      "workspace-alpha",
+      "project-alpha",
+      null,
+      "invite_accepted",
+      "invitation",
+      "workspace-alpha:invitation-alpha:invite_accepted",
+    ])]);
   });
 
   it("batches membership, token consumption, invitation transition, and audit on acceptance", () => {
@@ -308,6 +320,7 @@ describe("Cloudflare D1 collaboration invitation store", () => {
     expect(acceptance).toContain("if (!db.batch)");
     expect(acceptance).toContain("await db.batch([\n    membership.statement,");
     expect(acceptance).toContain("collaboration_invite_accepted");
+    expect(acceptance).toContain("prepareActivationOutboxIntent(db");
   });
 
   it("denies wrong-account acceptance without creating membership", async () => {

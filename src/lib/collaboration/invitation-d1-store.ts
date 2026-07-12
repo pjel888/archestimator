@@ -1,6 +1,8 @@
 import "server-only";
 
 import { getCloudflareD1Database, type D1DatabaseLike, type D1PreparedStatementLike } from "@/lib/cloudflare/d1";
+import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
+import { validateActivationProducerIntent } from "@/lib/onboarding/activation-producer-contract";
 
 export type InviteResolutionRow = {
   state: string;
@@ -577,6 +579,20 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
     return { data: null, error: new Error("Cloudflare D1 batch support is required to accept collaboration invitations.") };
   }
 
+  const activationIntent = validateActivationProducerIntent({
+    domainMutationId: row.invitation_id,
+    estimateId: row.estimate_id,
+    milestone: "invite_accepted",
+    occurredAt: now,
+    projectId: row.project_id,
+    source: "invitation",
+    userId: input.actorUserId,
+    workspaceId: row.workspace_id,
+  });
+  if (activationIntent.status !== "accepted") {
+    return { data: null, error: new Error("Invitation activation intent is invalid.") };
+  }
+
   const results = await db.batch([
     membership.statement,
     input.invitationTokenHash && row.token_id
@@ -694,6 +710,17 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
         membership.alreadyHasAccess ? "collaboration_invite_already_member_confirmed" : "collaboration_invite_accepted",
         now,
       ),
+    prepareActivationOutboxIntent(db, {
+      domainMutationId: row.invitation_id,
+      dedupeKey: activationIntent.dedupeKey,
+      estimateId: row.estimate_id,
+      milestone: "invite_accepted",
+      occurredAt: now,
+      projectId: row.project_id,
+      source: "invitation",
+      userId: input.actorUserId,
+      workspaceId: row.workspace_id,
+    }),
   ]);
 
   if ((results[2]?.meta?.changes ?? 0) !== 1) {
