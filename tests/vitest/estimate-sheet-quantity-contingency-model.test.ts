@@ -159,6 +159,18 @@ describe("quantity contingency row model", () => {
     expect(computeEditableRowTotal(item, { [item.id]: editable })).toBe(225);
   });
 
+  it("uses canonical minor-unit rounding for editable row amounts", () => {
+    const item = row({
+      itemCost: 10.005,
+      quantity: 1,
+      miscCost: 0,
+      contingencyPercentage: 0,
+      adjustmentPercentage: 0,
+    });
+
+    expect(computeEditableRowTotal(item, { [item.id]: getInitialEditableRow(item) })).toBe(10.01);
+  });
+
   it("uses quantity-mode math without applying row-level money contingency", () => {
     const item = row({
       quantity: 120,

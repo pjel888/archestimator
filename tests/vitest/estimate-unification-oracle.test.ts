@@ -10,6 +10,9 @@ import { describe, expect, it } from "vitest";
 import { computeNodeTotal } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
 import { getActivityScopeKey } from "@/components/workshop/estimate-sheet/activity-history-model";
 import { calculateProjectChartRowTotal } from "@/lib/project-charts/aggregate-project-charts";
+import { buildProjectChartSeries } from "@/lib/project-charts/aggregate-project-charts";
+import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
+import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import { buildShareTreeFromSnapshotNodes } from "@/lib/share/reconstruct-share-tree";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 import type { PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
@@ -22,6 +25,8 @@ import {
   stableStringify,
   treeToChartFacts,
   phaseAtLeast,
+  CALCULATION_PARITY_FIXTURE,
+  calculationParityTreeFixture,
 } from "./estimate-unification-oracle.fixtures";
 
 function totalsByNodeId(tree: EstimateTreeNode[]): Record<string, number> {
@@ -167,30 +172,52 @@ describe("oracle · O2 share reconstruct (P1 firewall)", () => {
 });
 
 describe("oracle · O3 proposal export model (P2)", () => {
-  // RECIPE:
-  //   buildProposalExportModel({ metadata: <minimal ProposalExportMetadata>,
-  //     nodes: <fixture>, generatedAt: "2026-01-01T00:00:00.000Z" }) (build-proposal-export-model.ts:463).
-  //   ALL_AREA: snapshot { summaryRows, proposalRows, totals }.
-  //   MIXED: totals.grandTotal === 200; every source row present once;
-  //          NO issue with code "non_area_rows_skipped"; consolidation does not merge a
-  //          container-owned row with a descendant-owned row (add sourceNodeId/leaf marker
-  //          to the consolidation key OR forbid cross-provenance merge — V2 CE2).
-  it.todo("ALL_AREA export model byte-parity (snapshot)");
-  it.todo("MIXED: grand total 200, no rows skipped, no cross-provenance merge (P2)");
+  it("ALL_AREA export model has deterministic generated records", () => {
+    const model = buildProposalExportModel({
+      metadata: { projectId: "oracle-project", estimateId: "oracle-estimate", projectName: "Oracle", estimateName: "Oracle", estimateSheetCode: "OR-001", versionLabel: "v1", currency: "PHP" },
+      nodes: ALL_AREA_FIXTURE,
+      generatedAt: CALCULATION_PARITY_FIXTURE.clock,
+    });
+
+    expect(model.generatedAt).toBe(CALCULATION_PARITY_FIXTURE.clock);
+    expect(model.proposalRows.flatMap((row) => row.sourceRowIds).sort()).toEqual(flattenRows(ALL_AREA_FIXTURE).map((row) => row.id).sort());
+  });
+
+  it("O3: export adjustment includes labor in the canonical basis", () => {
+    const model = buildProposalExportModel({
+      metadata: { projectId: "parity-project", estimateId: "parity-estimate", projectName: "Parity", estimateName: "Parity", estimateSheetCode: "PAR-001", versionLabel: "v1", currency: "PHP" },
+      nodes: calculationParityTreeFixture(),
+      generatedAt: CALCULATION_PARITY_FIXTURE.clock,
+    });
+
+    const row = model.proposalRows.find((candidate) => candidate.sourceRowIds.includes("parity-material-labor"));
+    expect(row?.costAmount).toBe(170);
+  });
 });
 
 describe("oracle · O4b project chart series (P2)", () => {
-  // RECIPE:
-  //   const { rowFacts, nodeFacts, estimateId } = treeToChartFacts(fixture);
-  //   buildProjectChartSeries({ rowFacts, nodeFacts, estimateId, /* + base fields:
-  //     categoryNodeFacts:[], supplierFacts:[], topBucketLimit:8 */ } as any).
-  //   ALL_AREA: snapshot buckets + space table.
-  //   MIXED: bucket sum === 200; BuildingA's OWN row (R_a) is NOT lost to "Unassigned
-  //   space" (today resolveSpaceAreaNode keeps the highest Area only → drops it);
-  //   leaf-detect must switch to leaf-or-has-rows; header roll-up must not double-count
-  //   the "own" sibling (V2 CE1).
-  it.todo("ALL_AREA chart series byte-parity (snapshot)");
-  it.todo("MIXED: bucket sum 200, BuildingA own-row not orphaned, no double-count (P2)");
+  it("MIXED: bucket sum is stable and direct-owner rows are retained", () => {
+    const { estimateId, nodeFacts, rowFacts } = treeToChartFacts(MIXED_FIXTURE);
+    const series = buildProjectChartSeries({
+      estimateId,
+      estimates: [{ id: estimateId, name: "Oracle", sheetCode: "OR-001", currencyCode: "PHP", updatedAt: null, rowCount: rowFacts.length, totalCost: 200 }],
+      rows: rowFacts as never[],
+      nodes: nodeFacts,
+      categoryNodes: [],
+      suppliers: [],
+      groupingMode: "space",
+    });
+
+    expect(series.total).toBe(MIXED_EXPECTED.grandTotal);
+    expect(series.allBuckets.find((bucket) => bucket.sourceNodeId === "bldgA")?.total).toBe(100);
+  });
+
+  it("O4b: chart amounts use canonical minor-unit rounding", () => {
+    expect(calculateProjectChartRowTotal({
+      id: "fractional-chart-row", estimateId: "parity-estimate", nodeId: "parity-included", categoryNodeId: null, supplierId: null, supplierName: null,
+      sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 10.005, miscCost: 0,
+    })).toBe(10.01);
+  });
 });
 
 describe("oracle · O-DIV-1 known divergence (tracked, not folded in)", () => {
@@ -198,5 +225,19 @@ describe("oracle · O-DIV-1 known divergence (tracked, not folded in)", () => {
   // so it already disagrees with in-app/export/charts for contingency rows. The oracle
   // records this as a KNOWN BUG so it does not pretend the five surfaces agree.
   // Decision to fix-or-defer: 09_P1_DESIGN_DECISIONS.md §B.
-  it.todo("snapshot RPC contingency divergence asserted as current(wrong) value + tracked");
+  it("O-DIV-1: publication snapshot retains legacy row contingency", () => {
+    const snapshot = buildProjectPublicationSnapshot({
+      generatedAt: CALCULATION_PARITY_FIXTURE.clock,
+      project: { id: "parity-project", name: "Parity", projectCode: null, clientName: null, location: null, currencyCode: "PHP" },
+      estimates: [{
+        id: "parity-estimate",
+        name: "Parity",
+        sheetCode: "PAR-001",
+        updatedAt: null,
+        rows: [{ id: "contingency", description: "", designation: "", discipline: "", material: "", quantity: 1, unit: "ea", unitCost: 100, miscCost: 0, contingencyPercentage: 5 }],
+      }],
+    });
+
+    expect(snapshot.estimates[0]?.rows[0]).toMatchObject({ rowTotal: 105, rowTotalMinorUnits: 10_500 });
+  });
 });

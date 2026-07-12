@@ -7,6 +7,7 @@
 //                     The forward-proof that rows survive and dollars don't double-count.
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateCalculationInput } from "@/lib/estimates/estimate-row-total";
 
 // Per-phase flag so mixed-fixture acceptance tests stay green as each phase lands.
 // Bump as phases ship: "P0" → "P1" → "P2" → "P3" → … . The test reads this to decide
@@ -120,6 +121,114 @@ export const MIXED_EXPECTED = {
   perNodeRollup: { bldgA: 200, level2: 80, room201: 30, level3: 20 },
   allRowIds: ["R_a", "R_b", "R_c", "R_d"],
 } as const;
+
+// ── CALCULATION_PARITY_FIXTURE v1 ──────────────────────────────────────────
+// Hand-authored independently of production calculators. Values are minor units.
+// It pins membership, currency, fixed clock/settings, and expected output records
+// for the parity migration without coupling expected values to any consumer.
+export const CALCULATION_PARITY_FIXTURE = {
+  version: 1,
+  clock: "2026-07-10T00:00:00.000Z",
+  currencyCode: "PHP",
+  rows: [
+    {
+      id: "parity-material-labor",
+      nodeId: "parity-included",
+      scopeStatus: "included",
+      input: { quantity: 1.25, unit_cost: 100, labor_rate: 20, adjustment_percentage: 10, misc_cost: 5 } satisfies EstimateCalculationInput,
+      expected: { materialMinorUnits: 12_500, laborMinorUnits: 2_500, adjustmentMinorUnits: 1_500, miscMinorUnits: 500, totalMinorUnits: 17_000 },
+    },
+    {
+      id: "parity-quantity-contingency",
+      nodeId: "parity-included",
+      scopeStatus: "included",
+      input: { quantity: 2.5, quantity_base: 2, quantity_contingency_amount: 0.5, unit_cost: 50, misc_cost: 0 } satisfies EstimateCalculationInput,
+      expected: { materialMinorUnits: 12_500, laborMinorUnits: 0, adjustmentMinorUnits: 0, miscMinorUnits: 0, totalMinorUnits: 12_500 },
+    },
+    {
+      id: "parity-excluded",
+      nodeId: "parity-excluded",
+      scopeStatus: "excluded",
+      input: { quantity: 1, unit_cost: 60, misc_cost: 0 } satisfies EstimateCalculationInput,
+      expected: { materialMinorUnits: 6_000, laborMinorUnits: 0, adjustmentMinorUnits: 0, miscMinorUnits: 0, totalMinorUnits: 6_000 },
+    },
+    {
+      id: "parity-by-owner",
+      nodeId: "parity-by-owner",
+      scopeStatus: "by_owner",
+      input: { quantity: 1, unit_cost: 30, misc_cost: 0 } satisfies EstimateCalculationInput,
+      expected: { materialMinorUnits: 3_000, laborMinorUnits: 0, adjustmentMinorUnits: 0, miscMinorUnits: 0, totalMinorUnits: 3_000 },
+    },
+    {
+      id: "parity-legacy-scope",
+      nodeId: "parity-included",
+      scopeStatus: null,
+      input: { quantity: 1.5, unit_cost: 40, contingency_percentage: 5, misc_cost: 0 } satisfies EstimateCalculationInput,
+      expected: { materialMinorUnits: 6_000, laborMinorUnits: 0, adjustmentMinorUnits: 300, miscMinorUnits: 0, totalMinorUnits: 6_300 },
+    },
+    {
+      id: "parity-archived",
+      nodeId: "parity-archived",
+      scopeStatus: "included",
+      archived: true,
+      input: { quantity: 1, unit_cost: 99, misc_cost: 0 } satisfies EstimateCalculationInput,
+      expected: { materialMinorUnits: 9_900, laborMinorUnits: 0, adjustmentMinorUnits: 0, miscMinorUnits: 0, totalMinorUnits: 9_900 },
+    },
+  ],
+  expected: {
+    workingEstimateMinorUnits: 44_800,
+    proposalIncludedDirectMinorUnits: 35_800,
+    sheetAdjustmentMinorUnits: 3_580,
+    proposalContingencyMinorUnits: 1_969,
+    vatMinorUnits: 4_962,
+    finalProposalMinorUnits: 46_311,
+    workbookRecords: [
+      { cell: "H12", valueMinorUnits: 17_000, rowId: "parity-material-labor" },
+      { cell: "H13", valueMinorUnits: 12_500, rowId: "parity-quantity-contingency" },
+      { cell: "H14", valueMinorUnits: 6_300, rowId: "parity-legacy-scope" },
+      { cell: "H20", valueMinorUnits: 46_311, rowId: "final-proposal-total" },
+    ],
+    printRows: ["parity-material-labor", "parity-quantity-contingency", "parity-legacy-scope"],
+  },
+  invalidInputs: [
+    { name: "negative quantity", input: { quantity: -1, unit_cost: 1, misc_cost: 0 } satisfies EstimateCalculationInput, code: "invalid_calculation_input" },
+    { name: "quantity contingency mismatch", input: { quantity: 2, quantity_base: 1, quantity_contingency_amount: 0.5, unit_cost: 1, misc_cost: 0 } satisfies EstimateCalculationInput, code: "invalid_calculation_input" },
+    { name: "unsafe amount", input: { quantity: Number.MAX_VALUE, unit_cost: 1, misc_cost: 0 } satisfies EstimateCalculationInput, code: "amount_out_of_range" },
+  ],
+} as const;
+
+export function calculationParityTreeFixture(): EstimateTreeNode[] {
+  const nodes = new Map<string, EstimateRowItem[]>();
+  for (const row of CALCULATION_PARITY_FIXTURE.rows) {
+    const rows = nodes.get(row.nodeId) ?? [];
+    rows.push(makeRow({
+      id: row.id,
+      material: row.id,
+      quantity: row.input.quantity as number,
+      unitCost: row.input.unit_cost as number,
+      itemCost: row.input.unit_cost as number,
+      laborUnitCost: row.input.labor_rate as number | undefined,
+      quantityBase: row.input.quantity_base as number | null | undefined,
+      quantityContingencyAmount: row.input.quantity_contingency_amount as number | null | undefined,
+      contingencyPercentage: row.input.contingency_percentage as number | undefined,
+      adjustmentPercentage: row.input.adjustment_percentage as number | undefined,
+      miscCost: row.input.misc_cost as number,
+      scopeStatus: row.scopeStatus ?? undefined,
+    }));
+    nodes.set(row.nodeId, rows);
+  }
+
+  return [
+    makeNode("parity-root", "Parity root", "group", {
+      children: [
+        makeNode("parity-included", "Included", "area", { rows: nodes.get("parity-included") }),
+        makeNode("parity-excluded", "Excluded", "area", { rows: nodes.get("parity-excluded") }),
+        makeNode("parity-by-owner", "By owner", "area", { rows: nodes.get("parity-by-owner") }),
+        makeNode("parity-archived", "Archived", "area", { rows: nodes.get("parity-archived") }),
+      ],
+    }),
+  ];
+}
 
 // ── builders that mirror the real read paths ─────────────────────────────────
 

@@ -420,6 +420,21 @@ describe("estimate sheet version control server actions", () => {
     expect(result.rowRevision).toBe(8);
   });
 
+  it("rejects invalid row calculation values before the history RPC", async () => {
+    const supabase = makeSupabase();
+    mockEstimateActionsDataStore(supabase);
+    const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
+
+    await expect(updateEstimateRowItem({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowId: "row-1",
+      quantity: -1,
+    })).rejects.toMatchObject({ code: "invalid_calculation_input", field: "quantity" });
+
+    expect(supabase.rpc).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
+  });
+
   it("keeps manual row scalar updates unlinked in the history RPC patch", async () => {
     const supabase = makeSupabase({ sourceLibraryItemId: null });
     mockEstimateActionsDataStore(supabase);
