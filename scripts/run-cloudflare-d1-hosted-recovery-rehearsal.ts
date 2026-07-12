@@ -172,7 +172,7 @@ function commandPlan() {
   return [
     "wrangler d1 create <disposable-target>",
     "wrangler d1 execute <disposable-target> --remote --file=<ordered-migration>",
-    "wrangler d1 export <authorized-source> --remote --table=<approved-table> --no-schema --output=<restricted-export>",
+    "wrangler d1 export <authorized-source> --remote --output=<restricted-export>",
     "wrangler d1 execute <disposable-target> --remote --file=<sanitized-data-artifact>",
     "wrangler delete <disposable-worker>",
     "wrangler d1 delete <disposable-target>",
@@ -238,6 +238,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   chmodSync(tempDirectory, 0o700);
   const plaintextPath = join(tempDirectory, "table-export.sql");
   const ciphertextPath = join(tempDirectory, "table-export.sql.enc");
+  const schemaPath = join(tempDirectory, "ordered-schema.sql");
   const dataArtifactPath = join(tempDirectory, "approved-application-data.sql");
   const commandDigests: string[] = [];
   let exportKey: Buffer | null = null;
@@ -256,28 +257,20 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   try {
     command(["d1", "create", identity.targetDatabaseName]);
     targetCreated = true;
-    for (const migrationPath of activeMigrationPaths()) {
-      command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", migrationPath, "--yes"]);
-    }
-    const tableExports: Array<{ table: string; source: string }> = [];
-    for (const table of activeApplicationTables()) {
-      command([
-        "d1", "export", identity.sourceDatabaseId, "--remote", "--table", table,
-        "--no-schema", "--output", plaintextPath,
-      ]);
-      chmodSync(plaintextPath, 0o600);
-      const exportBytes = readFileSync(plaintextPath);
-      if (exportBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
-      exportKey = encryptExport(exportBytes, ciphertextPath);
-      unlinkSync(plaintextPath);
-      const restoredBytes = decryptExport(ciphertextPath, exportKey);
-      tableExports.push({ table, source: restoredBytes.toString("utf8") });
-      restoredBytes.fill(0);
-      unlinkSync(ciphertextPath);
-      exportKey.fill(0);
-      exportKey = null;
-    }
-    writeFileSync(dataArtifactPath, buildApprovedDataArtifact(tableExports), { mode: 0o600 });
+    writeFileSync(schemaPath, activeMigrationPaths().map((migrationPath) => readFileSync(migrationPath, "utf8")).join("\n"), { mode: 0o600 });
+    chmodSync(schemaPath, 0o600);
+    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", schemaPath, "--yes"]);
+    unlinkSync(schemaPath);
+    command(["d1", "export", identity.sourceDatabaseId, "--remote", "--output", plaintextPath]);
+    chmodSync(plaintextPath, 0o600);
+    const exportBytes = readFileSync(plaintextPath);
+    if (exportBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
+    exportKey = encryptExport(exportBytes, ciphertextPath);
+    unlinkSync(plaintextPath);
+    const restoredBytes = decryptExport(ciphertextPath, exportKey);
+    const dataArtifact = buildApprovedDataArtifact(restoredBytes, new Set(activeApplicationTables()));
+    restoredBytes.fill(0);
+    writeFileSync(dataArtifactPath, dataArtifact, { mode: 0o600 });
     chmodSync(dataArtifactPath, 0o600);
     command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"]);
     unlinkSync(dataArtifactPath);
@@ -287,6 +280,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     try {
       if (existsSync(plaintextPath)) unlinkSync(plaintextPath);
       if (existsSync(ciphertextPath)) unlinkSync(ciphertextPath);
+      if (existsSync(schemaPath)) unlinkSync(schemaPath);
       if (existsSync(dataArtifactPath)) unlinkSync(dataArtifactPath);
       if (targetCreated) {
         command(["d1", "delete", identity.targetDatabaseName, "-y"]);
@@ -365,9 +359,16 @@ function activeApplicationTables() {
   return [...tables].filter((table) => !EXCLUDED_TABLES.has(table)).sort();
 }
 
-function buildApprovedDataArtifact(tableExports: Array<{ table: string; source: string }>) {
-  const approved = tableExports.flatMap(({ table, source }) => splitSqlStatements(source)
-    .filter((statement) => insertedTable(statement) === table));
+function buildApprovedDataArtifact(exportBytes: Buffer, approvedTables: Set<string>) {
+  const statements = splitSqlStatements(exportBytes.toString("utf8"));
+  const approved = statements
+    .filter((statement) => {
+      const table = insertedTable(statement);
+      return table !== null && approvedTables.has(table) && !EXCLUDED_TABLES.has(table);
+    });
+  if (approved.length === 0 && statements.some((statement) => insertedTable(statement) !== null)) {
+    throw new Error("approved-data-artifact-empty");
+  }
   return Buffer.from([
     "PRAGMA foreign_keys = ON;",
     "BEGIN;",
