@@ -247,8 +247,8 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   let cleanupVerified = false;
   let failure: string | null = null;
   let currentOperation = "preflight";
-  const command = (args: string[]) => {
-    currentOperation = args.slice(0, 3).join("-");
+  const command = (args: string[], operation?: string) => {
+    currentOperation = operation ?? args.slice(0, 3).join("-");
     commandDigests.push(createHash("sha256").update(`wrangler\n${args.join("\n")}`).digest("hex"));
     const result = run({ command: "wrangler", args });
     if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}-${classifyProviderFailure(`${result.stdout}\n${result.stderr}`)}`);
@@ -269,12 +269,14 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     exportKey = encryptExport(exportBytes, ciphertextPath);
     unlinkSync(plaintextPath);
     const restoredBytes = decryptExport(ciphertextPath, exportKey);
-    const dataArtifact = buildApprovedDataArtifact(restoredBytes, new Set(activeApplicationTables()));
+    const dataArtifacts = buildApprovedDataArtifacts(restoredBytes, new Set(activeApplicationTables()));
     restoredBytes.fill(0);
-    writeFileSync(dataArtifactPath, dataArtifact, { mode: 0o600 });
-    chmodSync(dataArtifactPath, 0o600);
-    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"]);
-    unlinkSync(dataArtifactPath);
+    for (const dataArtifact of dataArtifacts) {
+      writeFileSync(dataArtifactPath, dataArtifact.source, { mode: 0o600 });
+      chmodSync(dataArtifactPath, 0o600);
+      command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"], `d1-import-${dataArtifact.table}`);
+      unlinkSync(dataArtifactPath);
+    }
   } catch (error) {
     failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
@@ -360,7 +362,7 @@ function activeApplicationTables() {
   return [...tables].filter((table) => !EXCLUDED_TABLES.has(table)).sort();
 }
 
-function buildApprovedDataArtifact(exportBytes: Buffer, approvedTables: Set<string>) {
+function buildApprovedDataArtifacts(exportBytes: Buffer, approvedTables: Set<string>) {
   const statements = splitSqlStatements(exportBytes.toString("utf8"));
   const statementsByTable = new Map<string, string[]>();
   for (const statement of statements) {
@@ -372,15 +374,16 @@ function buildApprovedDataArtifact(exportBytes: Buffer, approvedTables: Set<stri
       : statement);
     statementsByTable.set(table, entries);
   }
-  const approved = orderApplicationTables(approvedTables)
-    .flatMap((table) => statementsByTable.get(table) ?? []);
+  const orderedTables = orderApplicationTables(approvedTables);
+  const approved = orderedTables.flatMap((table) => statementsByTable.get(table) ?? []);
   if (approved.length === 0 && statements.some((statement) => insertedTable(statement) !== null)) {
     throw new Error("approved-data-artifact-empty");
   }
-  return Buffer.from([
-    "PRAGMA foreign_keys = ON;",
-    ...approved,
-  ].join("\n"), "utf8");
+  return orderedTables.flatMap((table) => {
+    const tableStatements = statementsByTable.get(table) ?? [];
+    if (tableStatements.length === 0) return [];
+    return [{ table, source: Buffer.from(["PRAGMA foreign_keys = ON;", ...tableStatements].join("\n"), "utf8") }];
+  });
 }
 
 function orderApplicationTables(tables: Set<string>) {
