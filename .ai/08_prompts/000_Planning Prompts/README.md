@@ -1,100 +1,35 @@
-# Frontier Planning And Execution Suite
+# Planning Suite
 
-This directory is Archestimator's canonical planning-to-delivery prompt suite.
-It is designed for high-quality autonomous work without routine owner
-involvement.
+Use this suite only for explicitly requested planning or Plan Pack lane work.
+Ordinary work uses Direct or Brief lanes from `AGENTS.md`.
 
 ## Canonical Files
 
-Load shared instructions in this order:
+Load only:
 
-1. `Frontier-Planning-Kernel.md` - precedence, action scope, autonomy,
-   capability routing, evidence, state, safety, and completion invariants.
-2. Applicable sections of `Frontier-Applicability-Gates.md` - only the domain
-   contracts changed or claimed by the task.
-3. One active stage prompt or execution directive.
-4. `Plan-Pack-Schema.md` - the artifact, ID, manifest, readiness, and handoff
-   contract used by the active stage.
-5. `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md` - the anti-bureaucracy rule:
-   resolve every repository-controlled prerequisite instead of leaving an
-   internally generated blocker.
+1. `Frontier-Planning-Kernel.md`;
+2. applicable `Frontier-Applicability-Gates.md` sections;
+3. one stage prompt;
+4. `Plan-Pack-Schema.md` when writing or validating a pack.
 
-| Stage | Prompt | Output |
-|---|---|---|
-| 1. Create | `Creating-Plan-Prompt.md` | Evidence-grounded plan pack |
-| 2. Improve | `Improve-Plan-Prompt.md` | Repaired, simplified, verified pack |
-| 3. Compile | `Create-Implementation-Prompt.md` | Canonical `IMPLEMENTATION_PLAN.md` |
-| 4. Execute | `Executing-Plan-Prompt.md` | Integrated implementation and evidence |
+Stages: create, improve, compile, execute. The multi-agent directive is optional.
 
-`Multi-Agent-Execution-Directive.md` is the reusable execution overlay when a
-task brief or plan does not invoke the four stages directly.
+## Lean Contract
 
-`Prompt-Evaluation-Suite.md` defines the semantic regression scenarios and
-grading assertions for future prompt changes.
+Archestimator is alpha/pre-beta. Plan the direct target design and fix-forward
+path. Do not invent compatibility, flags, rollout, rollback, hosted proof,
+approval, tests, agents, or artifacts without a proven requirement.
 
-Verification is mandatory; automated tests are user-authorized only. Every criterion records
-`test_requirement`, `test_trigger`, and a substantive `test_rationale`.
-`NOT_REQUIRED` plus `NONE` is the default. A named MVP-critical invariant may
-produce a `TEST_PROPOSAL`, but only an explicit current-task testing request may
-select, create, repair, or run tests, builds-as-gates, browser automation, or
-broad validation.
-
-## Lean Engineering Contract
-
-- Archestimator is alpha-stage, not released, and not beta. Treat ordinary
-  repository edits as rapid local product development, not production change
-  management. Prefer direct replacement and fix-forward iteration; add
-  compatibility, flags, rollout, rollback, or release proof only for a proven
-  current user/data/integration obligation or actual external side effect.
-- Map the evidence-supported direct and transitive blast radius before planning
-  implementation; do not invent hypothetical systems, future features, or
-  exhaustive matrices outside that reachable surface.
-- Prefer deletion, existing patterns, and the smallest coherent change. Add no
-  abstraction, dependency, agent lane, artifact, review pass, or evidence layer
-  unless it closes a named requirement or risk.
-- Treat tokens, elapsed time, tool calls, context volume, agent fan-out, and
-  repeated checks as engineering costs. Pull context just in time and stop when
-  a fresh executor can act without invention and the required claim is grounded.
-- Treat dependencies as execution order, never routine handoffs. A pack may
-  retain only a narrow true external boundary after every local core unit is
-  finished; stale plans, test proposals, optional tools, review availability,
-  and internal prerequisites are continuation work.
+Use the fewest files a fresh executor needs. Dependencies are execution order,
+not handoffs. Internal blockers become owned work.
 
 ## Validation
 
-- `bun run validate:planning-prompts` is the fast deterministic contract check
-  for suite edits. It checks structure, load order, context budget, eval
-  inventory/rubric, and the semantic plan-pack fixture; it is not a product test
-  suite.
-- `bun run validate:plan-pack -- <planning-folder>` checks required manifest
-  shape, hashes, traceability, DAG/slices, evidence freshness, real-path
-  containment, and cross-status semantics.
-- `bun run validate:plan-pack -- --write <planning-folder>` refreshes only
-  ordinary artifact and manifest hashes after semantic validation. It never
-  refreshes evidence fingerprints or changed current-source/readiness/proof-
-  bearing hashes; invalidate and re-prove those claims explicitly.
+- `bun run validate:planning-prompts` checks this suite's invariants.
+- `bun run validate:plan-pack -- <folder>` validates a pack.
+- Automated product tests remain user-controlled.
 
 ## Progressive Disclosure
 
-Do not paste the suite into every worker packet. The lead loads the kernel,
-applicable gates, stage, and schema, then sends only the goal capsule, owned IDs,
-exact source context, constraints, dependencies, and required evidence for that
-lane. Retrieve supporting context just in time.
-
-## Adaptive Artifact Shape
-
-Plan packs have no fixed file-count ceiling. Use the selected depth profile and
-applicable gates: keep a focused concern compact, but split substantive
-independently reviewable data, threat, failure, evidence, rollout, or final-audit
-domains when their ownership, freshness, invalidation, or retrieval boundaries
-differ. Cross-link and register every artifact, keep one canonical execution
-artifact, and never create files merely to match another pack's count.
-
-## Research Basis
-
-The primary-source review is recorded in
-`.ai/13_research/frontier-planning-and-autonomous-execution-2026-07-10.md` and
-`.ai/13_research/2026-07-11-openai-gpt-5-6-agent-prompt-efficiency.md`.
-The governing conclusions are lean single-source instructions, task-shape
-orchestration, conditional tests, durable checkpoints, deterministic evidence
-first, and evaluator loops driven by failed criteria rather than ritual cycles.
+Never paste the whole suite into a worker packet. Send goal, owned IDs, relevant
+source, constraints, and expected evidence only.

@@ -1,275 +1,57 @@
-# Frontier Applicability Gates
+# Applicability Gates
 
-<!-- FRONTIER-PLAN-SUITE: 2026-07-11 -->
+<!-- FRONTIER-PLAN-SUITE: 2026-07-12 -->
 
-Load only sections triggered by the task. Mark each gate's applicability and
-criterion status separately, then link current evidence; do not copy irrelevant
-gates into the pack.
+Apply only gates triggered by the requested change. A gate adds analysis, not
+automatic artifacts, tests, agents, or approval.
 
-## Lean Applicability Rule
+## GATE-UX-01: UI And Accessibility
 
-Apply only gates reachable from the evidence-supported direct and transitive
-blast radius. A gate is not a mandate for a new abstraction, artifact, agent,
-test matrix, or proof surface. Select the cheapest evidence that proves its
-changed claim, retrieve context on demand, and stop once the applicable
-criterion is grounded.
+Define user states, keyboard/focus behavior, responsive constraints, and failure
+feedback. Browser proof requires explicit user authorization.
 
-## GATE-UX-01: User-Facing UI, UX, And Accessibility
+## GATE-NEXT-01: Next.js And React
 
-**Triggers:** page/component/layout/navigation/form/copy/interaction change.
+Read relevant local Next 16 docs. Verify server/client boundaries, caching,
+streaming, serialization, and runtime assumptions actually touched.
 
-Require:
+## GATE-CONTRACT-01: Types And APIs
 
-- User job and before/after journey.
-- Loading, empty/not-found, success, validation, error, permission/identity,
-  degraded/offline, disabled/pending, and recovery states as applicable.
-- Keyboard order/shortcuts, focus entry/return, semantic names/roles/states,
-  screen-reader announcements, contrast, zoom/reflow, motion, touch target, and
-  mobile/responsive behavior.
-- Existing `src/components/ui/` reuse and `DESIGN.md` consultation, treating it
-  as an alpha guide rather than owner preference law.
-- Source/static/DOM evidence for behavior by default; browser/manual proof runs
-  only when the user explicitly requests it for the current task and it proves a
-  named routing, layout, focus, responsive, or browser-integration claim.
-- Ordinary UI and cosmetic changes use `test_requirement: NOT_REQUIRED`. A named
-  MVP-critical interaction may produce a `TEST_PROPOSAL`, never auto-execution.
+Map current consumers, validation, error semantics, and compatibility only when
+an active consumer requires it.
 
-Hard fail: a user-facing unit lacks affected states, acceptance criteria, or an
-evidence plan.
+## GATE-DATA-01: D1 And Cloudflare State
 
-## GATE-NEXT-01: React 19 And Next.js 16
+Define schema/data invariants, authorization, concurrency, idempotency, failure
+recovery, and fix-forward path. Use only resources bound in `wrangler.jsonc`.
 
-**Triggers:** App Router, RSC/client boundary, route handler, Server Action,
-caching/revalidation, metadata/assets, build/runtime, or React state/effect work.
+## GATE-SEC-01: Auth And Secrets
 
-Require:
+Model identities, assets, trust boundaries, denial paths, token lifecycle, and
+redaction. Never expose credential material.
 
-- Installed version/config/script evidence and relevant local docs under
-  `node_modules/next/dist/docs/` before framework claims.
-- Route/layout/loading/error/not-found/metadata/proxy/runtime ownership.
-- Default Server Component boundary; justified minimal client islands and
-  serializable props.
-- Data source, cache owner/key/privacy dimensions/lifetime/invalidation, request
-  API constraints, streaming/Suspense behavior, mutation/authz/validation/error
-  contract, and navigation refresh semantics.
-- React state owner, derived-state strategy, effect necessity/cleanup/race
-  behavior, pending/optimistic behavior, hydration stability, and accessibility.
-- The cheapest relevant type/lint/static/runtime proof; apply the test gate
-  before any build or test.
+## GATE-VERIFY-01: Evidence
 
-Hard fail: framework-sensitive decisions rely on model memory, or auth/cache
-boundaries are implicit.
+Map each acceptance criterion to the cheapest decisive authorized evidence.
+Tests and browser/build gates require explicit current-task user authorization.
 
-## GATE-CONTRACT-01: TypeScript, API, Network, And Dependency Contracts
+## GATE-PERF-01: Performance
 
-**Triggers:** exported type/module boundary, route/action/API/event contract,
-network client, package/SDK change, serialization, or error-envelope change.
+Name the hot path, measurable budget, evaluator, and regression signal. Do not
+optimize hypothetical bottlenecks.
 
-Require:
+## GATE-OPS-01: Release And Operations
 
-- Current caller/importer/consumer and compatibility impact.
-- Domain invariants represented in types without unsafe casts or duplicated
-  parallel models; runtime validation at untrusted boundaries.
-- Request/response/event/error schema, authz, idempotency, timeout/cancellation,
-  retry/backoff, pagination, versioning, cache interaction, and failure behavior.
-- Existing utility/package evaluation before new dependency adoption; for any
-  dependency change, official current docs, maintenance/license/security/bundle
-  implications, rejected alternatives, and rollback/removal path.
-- Consumer/provider compatibility checks at the narrowest matching surface;
-  contract tests only for explicit user-authorized current-task testing scope.
-  A mission-critical shared contract may produce a `TEST_PROPOSAL` only.
+Trigger only for actual external operations/release claims, not because local
+work may someday reach production. Separate local, hosted, provider, and operator
+evidence. Add rollout/rollback only when the claim requires it.
 
-Hard fail: a public/shared contract changes without consumer mapping,
-compatibility strategy, or runtime-boundary validation.
+## GATE-AGENT-01: Agent Framework
 
-## GATE-DATA-01: Data, D1, R2, Durable Objects, Queues, Cron, Email, And Images
+Preserve authority precedence, context economy, fallback behavior, shared-file
+ownership, user test control, and deterministic contract validation.
 
-**Triggers:** schema/query/repository/storage/realtime/background job/provider
-binding or lifecycle change.
+## GATE-CLEAN-01: Cleanup And Migration
 
-Require:
-
-- Active boundary proven from `wrangler.jsonc`, generated types, current source,
-  and provider readback when the claim is provider-state dependent.
-- D1 schema/index/constraint/migration/order/backfill/authz/query-plan/restore or
-  fix-forward implications.
-- R2 key naming, authorization, metadata, lifecycle, orphan/cleanup, consistency,
-  and size/abuse behavior.
-- Durable Object identity/state/concurrency/hibernation/reconnect/cleanup.
-- Queue retry/idempotency/DLQ/poison-message/amplification and cron overlap.
-- Email recipient/authz/delivery/failure/redaction behavior and Images transform
-  or signed-access behavior when used.
-- Local migration/query/emulator evidence separated from hosted/provider proof;
-  an implicated critical integrity invariant may produce a `TEST_PROPOSAL`, but
-  tests are required only under an explicit user-authorized `TEST_TASK`.
-
-Use only the Cloudflare resources authorized in `AGENTS.md`. Historical
-Supabase/Vercel/Resend artifacts are migration archaeology unless current repo
-evidence proves active use.
-
-Hard fail: cross-project boundary is unknown, data loss/recovery is unplanned,
-or a provider claim is made from local-only evidence.
-
-## GATE-SEC-01: Auth, Public Links, Invitations, Sessions, And Secrets
-
-**Triggers:** Better Auth, roles/permissions, tenant/workspace access, public
-share, invite, password reset/unlock, OAuth, magic link, API key, cookie, bearer
-token, file access, or recipient credential.
-
-Require:
-
-- Actor/resource/action/tenant authorization matrix and explicit denial-path
-  cases/evidence; automated deny tests require an explicit user-authorized
-  `TEST_TASK`.
-- Credential-material taxonomy: raw/hash/encrypted/derived/public marker;
-  creation, storage, read/use, client visibility, URL/cookie/session use,
-  rotation/revocation, logging, destruction.
-- Direct POST, replay, duplicate click/submit, expired, revoked, copied URL,
-  cross-recipient, cross-workspace, and lowest-privilege cases.
-- Server-boundary validation/authz, CSRF/origin posture, rate/body-size abuse,
-  safe logging/errors/analytics/screenshots, least privilege, and audit events.
-- Server-only design when client-visible credential authority/evidence is absent.
-
-Hard fail: raw and hashed credentials are conflated, public acceptance material
-is unclear, authorization is client-only, or denial evidence is missing.
-
-## GATE-VERIFY-01: Evidence, Critical Tests, And Failure Semantics
-
-**Supreme rule — User Test Authorization Gate.** Do not create, expand, repair,
-or run any automated test, test suite, build-as-test-gate, browser automation,
-or broad validation gate unless the user has explicitly requested testing for
-the current task. The user is the only authority who authorizes test execution;
-a critical risk, high blast radius, nearby test, or agent judgment never
-authorizes running tests. When tests seem warranted, record a `TEST_PROPOSAL`
-(named risk + exact command) and wait.
-
-**Triggers (identify risk; do not authorize execution):** explicit
-testing/QA/coverage/reproduction work; an MVP-critical
-auth/security/privacy, D1/data-integrity, estimate/money/proposal,
-release/observability, or shared-contract risk; or a changed sensitive failure
-path whose correctness cheaper evidence cannot establish; or one existing
-focused test that would be the cheapest decisive proof.
-
-Require:
-
-- A recorded `test_requirement`, `test_trigger`, and substantive
-  `test_rationale`, with critical invariant, cheaper-evidence analysis, and
-  evidence destination.
-- `NOT_REQUIRED` by default, with no test creation or execution. Use source,
-  diff, path/reference, static/type/lint, dry-run, or narrow runtime evidence.
-- `TEST_TASK` plus `EXPLICIT_TEST_TASK` only when the user has explicitly
-  requested testing/QA/coverage/reproduction/regression output; this is the
-  only decision that authorizes test execution. Do not map an explicit request
-  to `TARGETED`.
-- `TARGETED` plus `MVP_CRITICAL_INVARIANT` identifies a named critical invariant
-  cheaper evidence cannot prove, but **authorizes a `TEST_PROPOSAL` only, not
-  test execution.** Likewise `CHEAPEST_DECISIVE_EXISTING_TEST` identifies one
-  already-existing focused test under `TARGETED` that would be decisive, but it
-  does not authorize running it; record a `TEST_PROPOSAL` and wait. Neither
-  trigger permits test creation, expansion, repair, deletion, or skip on the
-  agent's own authority.
-- When the user has authorized tests, the smallest decisive test first; use
-  broader suites, builds, browsers, or adversarial matrices only when the
-  integrated critical claim cannot be proved more cheaply.
-- Happy, nil/missing, invalid/boundary, denied, timeout/cancel, concurrent,
-  retry/idempotency, partial-success, stale/degraded, and recovery cases as
-  applicable to the selected evidence, not as a universal matrix.
-- Structured safe errors and logging; no swallowed sensitive-path failures or
-  unredacted secret/customer data; operator and user recovery behavior.
-- For authorized tests: isolation, deterministic fixtures/clock/randomness,
-  cleanup, expected failure signal, and expected pass signal.
-- Required repository error-handling gates for touched sensitive surfaces.
-- For a plan pack, continue every repository-controlled prerequisite and record
-  an unapproved test only as a `TEST_PROPOSAL`; it cannot create an
-  implementation blocker. Isolate only the exact external claim that lacks the
-  required evidence or authority.
-
-Hard fail: a changed sensitive failure path is unobservable or silently
-swallowed; tests are created or run without explicit user authorization; or a
-recorded `TEST_PROPOSAL` is missing the named risk or exact command.
-
-## GATE-PERF-01: Performance, Scalability, And Reliability
-
-**Triggers:** the task changes a measurable performance/reliability claim,
-algorithmic/cardinality behavior, or a known latency/memory/query/network/
-background-job/concurrency hot path.
-
-Require:
-
-- User-visible goal, baseline, target/budget, fixture/data volume, evaluator,
-  regression threshold, observability source, and rollback trigger.
-- Relevant TTFB/LCP/INP/CLS, navigation, hydration/client JS, RSC payload, API,
-  query count/plan/latency, payload, memory, retry, error, and queue metrics.
-- 10x/100x reasoning where cardinality can grow; pagination/virtualization or a
-  reason not needed.
-- Analyze only relevant timeout, cancellation, retry/idempotency, partial-
-  failure, provider, stale-cache, and recovery paths; execute an adversarial
-  matrix only when explicitly user-authorized.
-- Measured evaluator evidence for performance claims; ordinary tests alone do
-  not prove speed.
-
-Hard fail: “optimize” or “scalable” lacks a falsifiable evaluator.
-
-## GATE-OPS-01: Observability, Release, And Operations
-
-**Triggers:** the task changes production operations, provider mutation,
-background processing, observability/support contracts, or launch/release
-readiness claims.
-
-This gate does not trigger merely because ordinary alpha/pre-beta repository
-work could eventually reach production. Require production ceremony only for an
-actual operations/release claim or proven current external obligation.
-
-Require:
-
-- Structured redacted logs, metric/event/trace/audit signals, correlation, alert
-  threshold or justified `N/A`, dashboard/query/runbook, and support ownership.
-- Rollout stages/flag/default, compatibility window, go/no-go, post-release
-  proof, rollback/fix-forward, data repair, incident path, and cleanup when the
-  requested operations/release claim actually requires them.
-- Local, hosted, provider, production, operator, and external-authority proof
-  explicitly separated.
-- `AUTH-*` packet for any forbidden external side effect; all local prerequisites
-  complete.
-
-Hard fail: release claim depends on missing hosted/provider proof or rollback.
-
-## GATE-AGENT-01: Agent Framework, Prompt, Skill, Or Orchestration Work
-
-**Triggers:** the task changes agent/prompt/skill/payload behavior, routing,
-memory, eval, orchestration, authority, evidence, state, or completion contracts.
-
-Require:
-
-- Precedence/input-injection model and agent-neutral canonical policy.
-- Capability/runtime probe and fallback behavior.
-- Bounded worker packet and context-budget strategy.
-- Shared-worktree ownership/integration, durable state, resume, failure/timeout,
-  and cleanup behavior.
-- Autonomous decision and hard-gate isolation semantics.
-- Deterministic contract validation; add semantic model trials only when model
-  behavior is the explicit eval target or structural checks cannot prove it.
-- `validate:agents` and relevant adapter resolver when adapter/payload surfaces
-  change.
-
-Hard fail: workflow invocation is treated as proof, an optional runtime is
-mandatory without fallback, or completion can be claimed from worker summary.
-
-## GATE-CLEAN-01: Cleanup, Refactor, Deletion, Or Migration
-
-**Triggers:** behavior-preserving cleanup, API/symbol refactor, deletion,
-dependency removal, broad migration, or deslop work.
-
-Require:
-
-- Current behavior, caller, and invariant evidence before editing.
-- Caller/import/graph impact proportional to blast radius.
-- Deletion criteria and proof of no required references/runtime behavior.
-- One smell/boundary at a time; prefer deletion/existing utilities over layers.
-- Compatibility/migration order and rollback/fix-forward.
-- Apply the test gate. Use tests only for explicit user-authorized regression
-  scope. A named mission-critical invariant may produce a `TEST_PROPOSAL`; never
-  run any suite merely because shared behavior changed.
-
-Hard fail: behavior is assumed unchanged without evidence, or unrelated cleanup
-expands the diff.
+Map behavior to preserve, callers, deletion order, and recovery. Prefer deletion
+over compatibility when no current obligation requires preservation.
