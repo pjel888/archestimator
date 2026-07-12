@@ -2,14 +2,23 @@
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 const FREE_DATABASE_LIMIT_BYTES = 500 * 1024 * 1024;
 const FREE_ACCOUNT_STORAGE_LIMIT_BYTES = 5 * 1024 * 1024 * 1024;
 const FREE_IMPORT_LIMIT_BYTES = 5 * 1024 * 1024 * 1024;
 const DISPOSABLE_TARGET_PREFIX = "archestimator-recovery-";
+const MIGRATIONS_DIRECTORY = "migrations";
+const EXCLUDED_TABLES = new Set([
+  "account",
+  "session",
+  "verification",
+  "rateLimit",
+  "collaboration_invitation_tokens",
+  "client_portal_recipient_credentials",
+]);
 
 type RehearsalMode = "dry-run" | "hosted";
 
@@ -105,7 +114,7 @@ function buildIdentityChecks(identity: HostedRecoveryIdentity | undefined) {
   }
 
   const valuesPresent = [identity.accountId, identity.sourceDatabaseId, identity.targetDatabaseName, identity.runId]
-    .every((value) => value.trim().length > 0);
+    .every((value) => typeof value === "string" && value.trim().length > 0);
   const targetIsDisposable = identity.targetDatabaseName.startsWith(DISPOSABLE_TARGET_PREFIX);
   const sourceDiffersFromTarget = identity.sourceDatabaseId !== identity.targetDatabaseName;
   const runIdIsSafe = /^[a-z0-9][a-z0-9-]{7,95}$/.test(identity.runId);
@@ -162,8 +171,9 @@ function buildConfirmationCheck(inputs: HostedRecoveryRehearsalInputs) {
 function commandPlan() {
   return [
     "wrangler d1 create <disposable-target>",
-    "wrangler d1 export <authorized-source> --remote --output=<restricted-export>",
-    "wrangler d1 execute <disposable-target> --remote --file=<restricted-export>",
+    "wrangler d1 migrations apply <disposable-target> --remote",
+    "wrangler d1 export <authorized-source> --remote --table=<approved-table> --no-schema --output=<restricted-export>",
+    "wrangler d1 execute <disposable-target> --remote --file=<sanitized-data-artifact>",
     "wrangler delete <disposable-worker>",
     "wrangler d1 delete <disposable-target>",
   ];
@@ -226,40 +236,56 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   const run = runtime.run ?? runWrangler;
   const tempDirectory = mkdtempSync(join(runtime.tempRoot ?? tmpdir(), "archestimator-recovery-"));
   chmodSync(tempDirectory, 0o700);
-  const plaintextPath = join(tempDirectory, "export.sql");
-  const ciphertextPath = join(tempDirectory, "export.sql.enc");
+  const plaintextPath = join(tempDirectory, "table-export.sql");
+  const ciphertextPath = join(tempDirectory, "table-export.sql.enc");
+  const dataArtifactPath = join(tempDirectory, "approved-application-data.sql");
   const commandDigests: string[] = [];
   let exportKey: Buffer | null = null;
   let targetCreated = false;
   let cleanupVerified = false;
   let failure: string | null = null;
+  let currentOperation = "preflight";
   const command = (args: string[]) => {
+    currentOperation = args.slice(0, 3).join("-");
     commandDigests.push(createHash("sha256").update(`wrangler\n${args.join("\n")}`).digest("hex"));
     const result = run({ command: "wrangler", args });
-    if (result.status !== 0) throw new Error("provider-command-failed");
+    if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}`);
     return result.stdout;
   };
 
   try {
     command(["d1", "create", identity.targetDatabaseName]);
     targetCreated = true;
-    command(["d1", "export", identity.sourceDatabaseId, "--remote", "--output", plaintextPath]);
-    chmodSync(plaintextPath, 0o600);
-    const exportBytes = readFileSync(plaintextPath);
-    if (exportBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
-    exportKey = encryptExport(exportBytes, ciphertextPath);
-    unlinkSync(plaintextPath);
-    const restoredBytes = decryptExport(ciphertextPath, exportKey);
-    writeFileSync(plaintextPath, restoredBytes, { mode: 0o600 });
-    chmodSync(plaintextPath, 0o600);
-    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", plaintextPath]);
-    unlinkSync(plaintextPath);
+    command(["d1", "migrations", "apply", identity.targetDatabaseName, "--remote"]);
+    const tableExports: Array<{ table: string; source: string }> = [];
+    for (const table of activeApplicationTables()) {
+      command([
+        "d1", "export", identity.sourceDatabaseId, "--remote", "--table", table,
+        "--no-schema", "--output", plaintextPath,
+      ]);
+      chmodSync(plaintextPath, 0o600);
+      const exportBytes = readFileSync(plaintextPath);
+      if (exportBytes.length > FREE_IMPORT_LIMIT_BYTES) throw new Error("export-size-limit");
+      exportKey = encryptExport(exportBytes, ciphertextPath);
+      unlinkSync(plaintextPath);
+      const restoredBytes = decryptExport(ciphertextPath, exportKey);
+      tableExports.push({ table, source: restoredBytes.toString("utf8") });
+      restoredBytes.fill(0);
+      unlinkSync(ciphertextPath);
+      exportKey.fill(0);
+      exportKey = null;
+    }
+    writeFileSync(dataArtifactPath, buildApprovedDataArtifact(tableExports), { mode: 0o600 });
+    chmodSync(dataArtifactPath, 0o600);
+    command(["d1", "execute", identity.targetDatabaseName, "--remote", "--file", dataArtifactPath, "--yes"]);
+    unlinkSync(dataArtifactPath);
   } catch (error) {
-    failure = error instanceof Error ? error.message : "unknown-provider-failure";
+    failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
     try {
       if (existsSync(plaintextPath)) unlinkSync(plaintextPath);
       if (existsSync(ciphertextPath)) unlinkSync(ciphertextPath);
+      if (existsSync(dataArtifactPath)) unlinkSync(dataArtifactPath);
       if (targetCreated) {
         command(["d1", "delete", identity.targetDatabaseName, "-y"]);
         const listOutput = command(["d1", "list", "--json"]);
@@ -283,7 +309,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
 }
 
 function runWrangler(command: HostedRecoveryCommand): HostedRecoveryCommandResult {
-  const result = spawnSync(command.command, command.args, { encoding: "utf8", maxBuffer: 1024 * 1024 });
+  const result = spawnSync("bunx", [command.command, ...command.args], { encoding: "utf8", maxBuffer: 1024 * 1024 });
   return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
 }
 
@@ -309,6 +335,71 @@ function decryptExport(ciphertextPath: string, key: Buffer) {
   const decipher = createDecipheriv("aes-256-gcm", key, payload.subarray(0, 12));
   decipher.setAuthTag(payload.subarray(12, 28));
   return Buffer.concat([decipher.update(payload.subarray(28)), decipher.final()]);
+}
+
+function activeMigrationPaths() {
+  const directory = resolve(MIGRATIONS_DIRECTORY);
+  return readdirSync(directory)
+    .filter((entry) => /^\d+_.+\.sql$/.test(entry))
+    .sort((left, right) => left.localeCompare(right, "en", { numeric: true }))
+    .map((entry) => join(directory, entry));
+}
+
+function activeApplicationTables() {
+  const tables = new Set<string>();
+  for (const migrationPath of activeMigrationPaths()) {
+    const source = readFileSync(migrationPath, "utf8");
+    for (const match of source.matchAll(/CREATE TABLE(?: IF NOT EXISTS)?\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)) {
+      tables.add(match[1]!);
+    }
+    for (const match of source.matchAll(/DROP TABLE(?: IF EXISTS)?\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)) {
+      tables.delete(match[1]!);
+    }
+    for (const match of source.matchAll(/ALTER TABLE\s+"?([A-Za-z_][A-Za-z0-9_]*)"?\s+RENAME TO\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)) {
+      tables.delete(match[1]!);
+      tables.add(match[2]!);
+    }
+  }
+  return [...tables].filter((table) => !EXCLUDED_TABLES.has(table)).sort();
+}
+
+function buildApprovedDataArtifact(tableExports: Array<{ table: string; source: string }>) {
+  const approved = tableExports.flatMap(({ table, source }) => splitSqlStatements(source)
+    .filter((statement) => insertedTable(statement) === table));
+  return Buffer.from([
+    "PRAGMA foreign_keys = ON;",
+    "BEGIN;",
+    "PRAGMA defer_foreign_keys = ON;",
+    ...approved,
+    "COMMIT;",
+  ].join("\n"), "utf8");
+}
+
+function insertedTable(statement: string) {
+  const match = statement.match(/^\s*INSERT\s+INTO\s+(?:"([A-Za-z_][A-Za-z0-9_]*)"|([A-Za-z_][A-Za-z0-9_]*))/i);
+  return match?.[1] ?? match?.[2] ?? null;
+}
+
+function splitSqlStatements(source: string) {
+  const statements: string[] = [];
+  let start = 0;
+  let quote: "'" | '"' | null = null;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index]!;
+    if (quote) {
+      if (character === quote) {
+        if (source[index + 1] === quote) index += 1;
+        else quote = null;
+      }
+      continue;
+    }
+    if (character === "'" || character === '"') quote = character;
+    else if (character === ";") {
+      statements.push(source.slice(start, index + 1));
+      start = index + 1;
+    }
+  }
+  return statements;
 }
 
 if (import.meta.main) {

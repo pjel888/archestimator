@@ -5,8 +5,11 @@ import { execFileSync } from "node:child_process";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { validatePlanPack } from "./lib/plan-pack-validator.mjs";
+
 const root = process.cwd();
 const receiptPath = ".ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json";
+const programPlanPath = ".ai/03_plans/2026-07-10/Beta-Readiness-Program";
 const allocationTemplates = [
   ["PLAN-2026-07-10-publisher-and-shared-pages", ".ai/09_archive/store/2026-07-11-Publisher-And-Shared-Pages-complete/plan-pack.json", "publication_foreign_keys", "publisher"],
   ["PLAN-2026-07-10-first-user-activation-and-cohort-operations", ".ai/03_plans/2026-07-10/First-User-Activation-And-Cohort-Operations/plan-pack.json", "beta_activation_events", "activation"],
@@ -34,7 +37,6 @@ async function sha256(filePath) {
 }
 
 const current = JSON.parse(await readFile(path.join(root, receiptPath), "utf8"));
-const currentAllocationsById = new Map(current.allocations.map((allocation) => [allocation.allocation_id, allocation]));
 const migrationPaths = (await readdir(path.join(root, "migrations")))
   .filter((file) => /^\d{4}_.+\.sql$/u.test(file))
   .sort()
@@ -59,7 +61,6 @@ const ownerRows = await Promise.all(allocationTemplates.map(async ([ownerPackage
   const manifestText = await readFile(path.join(root, manifestPath), "utf8");
   const manifest = JSON.parse(manifestText);
   const existingPath = existingPathsBySuffix.get(suffix);
-  const previous = currentAllocationsById.get(allocationId);
   const consumed = Boolean(existingPath);
   const number = consumed
     ? path.basename(existingPath).slice(0, 4)
@@ -73,12 +74,8 @@ const ownerRows = await Promise.all(allocationTemplates.map(async ([ownerPackage
     owner_package_id: ownerPackageId,
     owner_manifest_path: manifestPath,
     planned_path: plannedPath,
-    owner_manifest_file_sha256: consumed && previous?.owner_manifest_file_sha256
-      ? previous.owner_manifest_file_sha256
-      : createHash("sha256").update(manifestText).digest("hex"),
-    owner_manifest_self_sha256: consumed && previous?.owner_manifest_self_sha256
-      ? previous.owner_manifest_self_sha256
-      : manifest.manifest_sha256,
+    owner_manifest_file_sha256: createHash("sha256").update(manifestText).digest("hex"),
+    owner_manifest_self_sha256: manifest.manifest_sha256,
     status: consumed ? "CONSUMED" : "UNCLAIMED",
     ...(consumed ? { consumed_file_sha256: await sha256(existingPath) } : {}),
     allocation_sha256: "",
@@ -108,4 +105,8 @@ const next = {
 next.allocation_set_sha256 = createHash("sha256").update(JSON.stringify(canonicalize(ownerRows))).digest("hex");
 next.receipt_sha256 = digest(next, "receipt_sha256");
 await writeFile(path.join(root, receiptPath), `${JSON.stringify(next, null, 2)}\n`);
+const manifestRefresh = await validatePlanPack(path.join(root, programPlanPath), { write: true });
+if (!manifestRefresh.ok) {
+  throw new Error(`Could not refresh Beta Readiness Program plan-pack hashes: ${manifestRefresh.errors.join("; ")}`);
+}
 console.log(`Reissued migration lease generation ${next.generation}: ${next.migration_tail.latest_path} -> ${ownerRows.map((row) => `${row.number}:${row.status}`).join(", ")}`);

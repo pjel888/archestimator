@@ -472,12 +472,53 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
       },
     }, "estimate-history-proof.json");
     completeInputs.restoreRehearsal = source({
+      schema: "D1-RECOVERY-RECEIPT-v1",
+      producerVersion: "1.0.0",
+      runId: "recovery-20260712-a1b2c3d4",
+      identity: {
+        accountHash: "a".repeat(64),
+        sourceHash: "b".repeat(64),
+        targetHash: "c".repeat(64),
+      },
+      exportDigest: "export-digest",
+      revisions: {
+        migration: "0069",
+        application: "app-revision",
+        authorization: "auth-revision",
+        session: "session-revision",
+        source: "source-revision",
+      },
+      milestones: { startedAt: "2020-01-01T00:00:00.000Z", completedAt: "2020-01-01T00:30:00.000Z" },
+      rtoSeconds: 1800,
+      rpoSeconds: 60,
+      checks: {
+        schema: true,
+        application: true,
+        authorization: true,
+        session: true,
+        corporateIntegrity: true,
+        corporateOnlyDenied: true,
+      },
+      sessionInvalidated: true,
+      cleanup: { inventory: ["d1", "worker", "secrets"], absenceReadback: true, complete: true },
+      operatorLabel: "operator-hash-prefix",
+      failures: [],
+      result: "pass",
       d1ExportReady: true,
       d1ImportReady: true,
       restoreRehearsalReady: true,
       destructiveRestoreDocumented: true,
       localOnly: false,
       providerBacked: true,
+      schemaIntegrityReady: true,
+      applicationIntegrityReady: true,
+      authorizationReady: true,
+      sessionIntegrityReady: true,
+      cleanupReady: true,
+      sourceRevision: "0123456789abcdef",
+      generatedAt: "2026-07-12T00:00:00.000Z",
+      issuedAt: "2020-01-01T00:30:00.000Z",
+      expiresAt: "2099-01-01T00:00:00.000Z",
     }, "restore.json");
     completeInputs.performanceProof = source({
       queryCountBudgetsReady: true,
@@ -537,6 +578,30 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
       "productionProof=no",
     );
     expect(report.blockers).toEqual([]);
+  });
+
+  it("keeps local-only restore mechanics from satisfying the provider recovery gate", () => {
+    const inputs = currentInputs();
+    inputs.restoreRehearsal = source({
+      d1ExportReady: true,
+      d1ImportReady: true,
+      restoreRehearsalReady: true,
+      destructiveRestoreDocumented: true,
+      localOnly: true,
+      providerBacked: false,
+      schemaIntegrityReady: true,
+      applicationIntegrityReady: true,
+      authorizationReady: true,
+      sessionIntegrityReady: true,
+      cleanupReady: true,
+      sourceRevision: "0123456789abcdef",
+      generatedAt: "2026-07-12T00:00:00.000Z",
+    }, "local-restore.json");
+
+    const report = checkCloudflareD1AuthRealtimeReadiness(inputs);
+
+    expect(report.gates.find((gate) => gate.key === "d1-restore-rehearsal")).toMatchObject({ ready: false });
+    expect(report.readiness.restoreProofReady).toBe(false);
   });
 
   it("fails local report readiness when the migration inventory is absent", () => {

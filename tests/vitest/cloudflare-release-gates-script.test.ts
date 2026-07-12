@@ -10,6 +10,7 @@ import {
   type ReleaseGateInputs,
   writeMarkdown,
 } from "../../scripts/check-cloudflare-release-gates";
+import type { BetaOperatingReadinessReport } from "../../scripts/check-beta-operating-readiness";
 
 const source = <T>(value: T, path = "artifact.json") => ({
   source: path,
@@ -332,6 +333,30 @@ const SUPPORT_MONITORING_READY = {
   missing: [],
 };
 
+const BETA_OPERATING_LOCAL_READY: BetaOperatingReadinessReport = {
+  schemaVersion: "BETA-OPERATING-READINESS-v1",
+  producerVersion: "BETA-OPERATING-READINESS-v1",
+  releaseId: "release-20260630-a1b2c3d4",
+  candidateSha: "a".repeat(40),
+  environment: "production",
+  generatedAt: "2026-06-29T00:00:00.000Z",
+  expiresAt: "2026-07-01T00:00:00.000Z",
+  decision: "NO_GO",
+  localReady: true,
+  criteria: [
+    ...["AC-001", "AC-002", "AC-003", "AC-004", "AC-005", "AC-006", "AC-007"].map((id) => ({ id: id as "AC-001" | "AC-002" | "AC-003" | "AC-004" | "AC-005" | "AC-006" | "AC-007", status: "PASS" as const, blockers: [] })),
+    { id: "AC-008", status: "BOUNDARY", blockers: ["AUTH-001"] },
+    { id: "AC-009", status: "BOUNDARY", blockers: ["AUTH-002"] },
+    { id: "AC-010", status: "BOUNDARY", blockers: ["AUTH-003"] },
+  ],
+  boundaries: [
+    { id: "AUTH-001", status: "BOUNDARY", nextAction: "hosted proof" },
+    { id: "AUTH-002", status: "BOUNDARY", nextAction: "auth decision" },
+    { id: "AUTH-003", status: "BOUNDARY", nextAction: "legal decision" },
+  ],
+  artifacts: Object.fromEntries(["telemetry", "operator", "incidentSupport", "auth", "legal", "activation", "recovery", "maintainability"].map((name) => [name, { schemaVersion: "LOCAL-v1", producerVersion: "producer-v1", collectedAt: "2026-06-29T00:00:00.000Z", expiresAt: "2026-07-01T00:00:00.000Z" }])) as BetaOperatingReadinessReport["artifacts"],
+};
+
 function currentLocalInputs(): ReleaseGateInputs {
   return {
     generatedAt: "2026-06-30T00:00:00.000Z",
@@ -363,6 +388,10 @@ function currentLocalInputs(): ReleaseGateInputs {
     supportMonitoring: source(
       SUPPORT_MONITORING_BLOCKED,
       "support-monitoring.json",
+    ),
+    betaOperatingReadiness: source(
+      BETA_OPERATING_LOCAL_READY,
+      "beta-operating-readiness.json",
     ),
   };
 }
@@ -450,6 +479,7 @@ function productionReadyInputs(): ReleaseGateInputs {
       rpcRewritePlanReady: true,
       realtimeReplacementReady: true,
       restoreProofReady: true,
+      recoveryReceiptValid: true,
       performanceProofReady: true,
       localRedesignReadinessReportReady: true,
       productionD1AuthRealtimeReady: true,
@@ -620,7 +650,8 @@ describe("Cloudflare release gate aggregator", () => {
         localEstimateHistoryD1SliceReady: true,
         rpcRewritePlanReady: true,
         realtimeReplacementReady: true,
-        restoreProofReady: true,
+      restoreProofReady: true,
+      recoveryReceiptValid: true,
         performanceProofReady: true,
         localRedesignReadinessReportReady: true,
         productionD1AuthRealtimeReady: true,
@@ -821,7 +852,8 @@ describe("Cloudflare release gate aggregator", () => {
         localEstimateHistoryD1SliceReady: true,
         rpcRewritePlanReady: true,
         realtimeReplacementReady: true,
-        restoreProofReady: true,
+      restoreProofReady: true,
+      recoveryReceiptValid: true,
         performanceProofReady: true,
         localRedesignReadinessReportReady: true,
         productionD1AuthRealtimeReady: true,

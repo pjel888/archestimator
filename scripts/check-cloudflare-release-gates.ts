@@ -3,6 +3,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+import { validateBetaOperatingReadinessReport, type BetaOperatingReadinessReport } from "./check-beta-operating-readiness";
+
 type GateScope =
   | "planning"
   | "local-runtime"
@@ -179,6 +181,7 @@ type D1AuthRealtimeReadinessReport = {
     rpcRewritePlanReady?: boolean;
     realtimeReplacementReady?: boolean;
     restoreProofReady?: boolean;
+    recoveryReceiptValid?: boolean;
     performanceProofReady?: boolean;
     localRedesignReadinessReportReady?: boolean;
     productionD1AuthRealtimeReady?: boolean;
@@ -298,6 +301,7 @@ export type ReleaseGateInputs = {
   observabilityProofRoute: Artifact<ObservabilityProofRouteSmokeReport>;
   productionObservability: Artifact<ProductionObservabilityProofReport>;
   supportMonitoring: Artifact<SupportMonitoringReadinessReport>;
+  betaOperatingReadiness: Artifact<BetaOperatingReadinessReport>;
 };
 
 export type CloudflareReleaseGateReport = {
@@ -342,6 +346,7 @@ const DEFAULT_FILES = {
   productionObservability:
     ".ai/99_scratch/production-observability-proof-check-current.json",
   supportMonitoring: ".ai/99_scratch/support-monitoring-readiness-current.json",
+  betaOperatingReadiness: ".ai/99_scratch/beta-operating-readiness-current.json",
 } as const;
 
 function readEnv(name: string) {
@@ -628,8 +633,8 @@ function buildGates(inputs: ReleaseGateInputs) {
         "d1-auth-realtime-production-proof",
         "D1/Auth/Realtime production proof ready",
         "data-auth-realtime",
-        readiness?.productionD1AuthRealtimeReady === true,
-        `d1Binding=${boolLabel(readiness?.d1BindingReady)}, authReplacement=${boolLabel(readiness?.authReplacementReady)}, appLayerAuthz=${boolLabel(readiness?.appLayerAuthzSpecReady)}, localRpcMechanics=${boolLabel(readiness?.localRpcTransactionMechanicsReady)}, betaFeedbackSlice=${boolLabel(readiness?.localBetaFeedbackD1SliceReady)}, collaborationInvitationSlice=${boolLabel(readiness?.localCollaborationInvitationD1SliceReady)}, closedBetaSlice=${boolLabel(readiness?.localClosedBetaD1SliceReady)}, componentLibrarySlice=${boolLabel(readiness?.localComponentLibraryD1SliceReady)}, estimateHistorySlice=${boolLabel(readiness?.localEstimateHistoryD1SliceReady)}, rpcRewrite=${boolLabel(readiness?.rpcRewritePlanReady)}, realtimeReplacement=${boolLabel(readiness?.realtimeReplacementReady)}, restoreProof=${boolLabel(readiness?.restoreProofReady)}, performanceProof=${boolLabel(readiness?.performanceProofReady)}`,
+        readiness?.productionD1AuthRealtimeReady === true && readiness?.recoveryReceiptValid === true,
+        `d1Binding=${boolLabel(readiness?.d1BindingReady)}, authReplacement=${boolLabel(readiness?.authReplacementReady)}, appLayerAuthz=${boolLabel(readiness?.appLayerAuthzSpecReady)}, localRpcMechanics=${boolLabel(readiness?.localRpcTransactionMechanicsReady)}, betaFeedbackSlice=${boolLabel(readiness?.localBetaFeedbackD1SliceReady)}, collaborationInvitationSlice=${boolLabel(readiness?.localCollaborationInvitationD1SliceReady)}, closedBetaSlice=${boolLabel(readiness?.localClosedBetaD1SliceReady)}, componentLibrarySlice=${boolLabel(readiness?.localComponentLibraryD1SliceReady)}, estimateHistorySlice=${boolLabel(readiness?.localEstimateHistoryD1SliceReady)}, rpcRewrite=${boolLabel(readiness?.rpcRewritePlanReady)}, realtimeReplacement=${boolLabel(readiness?.realtimeReplacementReady)}, restoreProof=${boolLabel(readiness?.restoreProofReady)}, recoveryReceipt=${boolLabel(readiness?.recoveryReceiptValid)}, performanceProof=${boolLabel(readiness?.performanceProofReady)}`,
         "One or more D1/Auth/Realtime production proof subgates are incomplete; see the evidence flags for the exact blockers.",
         inputs.d1AuthRealtimeReadiness.source,
       ),
@@ -1095,6 +1100,47 @@ function buildGates(inputs: ReleaseGateInputs) {
     );
   }
 
+  if (!inputs.betaOperatingReadiness.present) {
+    gates.push(
+      releaseArtifactMissingGate(
+        "beta-operating-readiness",
+        "Beta operating local readiness receipt current",
+        "local-runtime",
+        inputs.betaOperatingReadiness.source,
+      ),
+    );
+  } else {
+    try {
+      const report = validateBetaOperatingReadinessReport(
+        inputs.betaOperatingReadiness.value,
+        new Date(inputs.generatedAt ?? Date.now()),
+      );
+      gates.push(
+        gate(
+          "beta-operating-readiness",
+          "Beta operating local readiness receipt current",
+          "local-runtime",
+          report.localReady,
+          `localReady=${boolLabel(report.localReady)}, decision=${report.decision}, boundaries=${report.boundaries.map((boundary) => boundary.id).join(",")}`,
+          "Beta operating local criteria are incomplete or stale; hosted and human authorization boundaries remain separate.",
+          inputs.betaOperatingReadiness.source,
+        ),
+      );
+    } catch {
+      gates.push(
+        gate(
+          "beta-operating-readiness",
+          "Beta operating local readiness receipt current",
+          "local-runtime",
+          false,
+          "receipt=invalid",
+          "Beta operating readiness receipt is missing, stale, malformed, or contradictory.",
+          inputs.betaOperatingReadiness.source,
+        ),
+      );
+    }
+  }
+
   return gates;
 }
 
@@ -1146,6 +1192,7 @@ export function buildCloudflareReleaseGateReport(
       observabilityProofRoute: inputs.observabilityProofRoute.source,
       productionObservability: inputs.productionObservability.source,
       supportMonitoring: inputs.supportMonitoring.source,
+      betaOperatingReadiness: inputs.betaOperatingReadiness.source,
     },
     gates,
     readiness: {
@@ -1317,6 +1364,10 @@ function readInputs(): ReleaseGateInputs {
     supportMonitoring: readArtifact<SupportMonitoringReadinessReport>(
       readEnv("CLOUDFLARE_RELEASE_SUPPORT_MONITORING_FILE") ??
         DEFAULT_FILES.supportMonitoring,
+    ),
+    betaOperatingReadiness: readArtifact<BetaOperatingReadinessReport>(
+      readEnv("CLOUDFLARE_RELEASE_BETA_OPERATING_READINESS_FILE") ??
+        DEFAULT_FILES.betaOperatingReadiness,
     ),
   };
 }

@@ -11,6 +11,7 @@ import {
 import { dirname, extname, resolve, sep } from "node:path";
 
 import type { CloudflareMigrationInventory } from "./generate-cloudflare-migration-inventory";
+import { validateD1RecoveryReceipt } from "./check-cloudflare-d1-recovery-readiness";
 
 type GateScope =
   | "database"
@@ -204,6 +205,14 @@ type RestoreRehearsalReport = {
   destructiveRestoreDocumented?: boolean;
   localOnly?: boolean;
   providerBacked?: boolean;
+  schemaIntegrityReady?: boolean;
+  applicationIntegrityReady?: boolean;
+  authorizationReady?: boolean;
+  sessionIntegrityReady?: boolean;
+  cleanupReady?: boolean;
+  sourceRevision?: string;
+  generatedAt?: string;
+  recoveryReceiptValid?: boolean;
 };
 
 type PerformanceProofReport = {
@@ -360,6 +369,7 @@ export type CloudflareD1AuthRealtimeReadinessReport = {
     rpcRewritePlanReady: boolean;
     realtimeReplacementReady: boolean;
     restoreProofReady: boolean;
+    recoveryReceiptValid: boolean;
     performanceProofReady: boolean;
     localRedesignReadinessReportReady: boolean;
     productionD1AuthRealtimeReady: boolean;
@@ -852,6 +862,7 @@ function buildGates(
     manifestSummary.hasSupabaseDependency ||
     manifestSummary.hasResendDependency;
 
+  const recoveryReceiptValidation = validateD1RecoveryReceipt(inputs.restoreRehearsal.value);
   gates.push(
     gate(
       "database-inventory",
@@ -1175,9 +1186,19 @@ function buildGates(
         inputs.restoreRehearsal.value?.d1ExportReady === true &&
         inputs.restoreRehearsal.value.d1ImportReady === true &&
         inputs.restoreRehearsal.value.restoreRehearsalReady === true &&
-        inputs.restoreRehearsal.value.destructiveRestoreDocumented === true,
-      `present=${boolLabel(inputs.restoreRehearsal.present)}, export=${boolLabel(inputs.restoreRehearsal.value?.d1ExportReady)}, import=${boolLabel(inputs.restoreRehearsal.value?.d1ImportReady)}, rehearsal=${boolLabel(inputs.restoreRehearsal.value?.restoreRehearsalReady)}, destructiveRestoreDocumented=${boolLabel(inputs.restoreRehearsal.value?.destructiveRestoreDocumented)}, localOnly=${boolLabel(inputs.restoreRehearsal.value?.localOnly)}, providerBacked=${boolLabel(inputs.restoreRehearsal.value?.providerBacked)}`,
-      "D1 export/import restore rehearsal and destructive-restore documentation are missing.",
+        inputs.restoreRehearsal.value.destructiveRestoreDocumented === true &&
+        inputs.restoreRehearsal.value.localOnly === false &&
+        inputs.restoreRehearsal.value.providerBacked === true &&
+        inputs.restoreRehearsal.value.schemaIntegrityReady === true &&
+        inputs.restoreRehearsal.value.applicationIntegrityReady === true &&
+        inputs.restoreRehearsal.value.authorizationReady === true &&
+        inputs.restoreRehearsal.value.sessionIntegrityReady === true &&
+        inputs.restoreRehearsal.value.cleanupReady === true &&
+        Boolean(inputs.restoreRehearsal.value.sourceRevision?.trim()) &&
+        Boolean(inputs.restoreRehearsal.value.generatedAt?.trim()) &&
+        recoveryReceiptValidation.valid,
+      `present=${boolLabel(inputs.restoreRehearsal.present)}, export=${boolLabel(inputs.restoreRehearsal.value?.d1ExportReady)}, import=${boolLabel(inputs.restoreRehearsal.value?.d1ImportReady)}, rehearsal=${boolLabel(inputs.restoreRehearsal.value?.restoreRehearsalReady)}, destructiveRestoreDocumented=${boolLabel(inputs.restoreRehearsal.value?.destructiveRestoreDocumented)}, localOnly=${boolLabel(inputs.restoreRehearsal.value?.localOnly)}, providerBacked=${boolLabel(inputs.restoreRehearsal.value?.providerBacked)}, schema=${boolLabel(inputs.restoreRehearsal.value?.schemaIntegrityReady)}, application=${boolLabel(inputs.restoreRehearsal.value?.applicationIntegrityReady)}, authorization=${boolLabel(inputs.restoreRehearsal.value?.authorizationReady)}, session=${boolLabel(inputs.restoreRehearsal.value?.sessionIntegrityReady)}, cleanup=${boolLabel(inputs.restoreRehearsal.value?.cleanupReady)}, sourceRevision=${inputs.restoreRehearsal.value?.sourceRevision?.trim() ? "yes" : "no"}, generatedAt=${inputs.restoreRehearsal.value?.generatedAt?.trim() ? "yes" : "no"}, receipt=${boolLabel(recoveryReceiptValidation.valid)}`,
+      "Provider-backed restore evidence with schema, application, authorization, session, cleanup, and revision identity proof is missing.",
       inputs.restoreRehearsal.source,
     ),
   );
@@ -1239,6 +1260,7 @@ export function checkCloudflareD1AuthRealtimeReadiness(
     hasResendDependency: packageDependencyNames.has("resend"),
   };
   const gates = buildGates(inputs, manifestSummary, sourceSignals);
+  const recoveryReceiptValidation = validateD1RecoveryReceipt(inputs.restoreRehearsal.value);
   const databaseInventoryReady = gateReady(gates, "database-inventory");
   const d1BindingReady = gateReady(gates, "d1-binding-config");
   const betterAuthLocalProofReady = gateReady(
@@ -1347,6 +1369,7 @@ export function checkCloudflareD1AuthRealtimeReadiness(
       rpcRewritePlanReady,
       realtimeReplacementReady,
       restoreProofReady,
+      recoveryReceiptValid: recoveryReceiptValidation.valid,
       performanceProofReady,
       localRedesignReadinessReportReady,
       productionD1AuthRealtimeReady,
@@ -1471,6 +1494,7 @@ export function writeMarkdown(
     `| RPC rewrite plan ready | ${report.readiness.rpcRewritePlanReady ? "yes" : "no"} |`,
     `| Realtime replacement ready | ${report.readiness.realtimeReplacementReady ? "yes" : "no"} |`,
     `| Restore proof ready | ${report.readiness.restoreProofReady ? "yes" : "no"} |`,
+    `| Recovery receipt valid | ${report.readiness.recoveryReceiptValid ? "yes" : "no"} |`,
     `| Performance proof ready | ${report.readiness.performanceProofReady ? "yes" : "no"} |`,
     `| Local redesign readiness report ready | ${report.readiness.localRedesignReadinessReportReady ? "yes" : "no"} |`,
     `| Production D1/Auth/Realtime ready | ${report.readiness.productionD1AuthRealtimeReady ? "yes" : "no"} |`,
