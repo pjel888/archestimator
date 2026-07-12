@@ -179,6 +179,10 @@ Require:
 - For authorized tests: isolation, deterministic fixtures/clock/randomness,
   cleanup, expected failure signal, and expected pass signal.
 - Required repository error-handling gates for touched sensitive surfaces.
+- For a plan pack, continue every repository-controlled prerequisite and record
+  an unapproved test only as a `TEST_PROPOSAL`; it cannot create an
+  implementation blocker. Isolate only the exact external claim that lacks the
+  required evidence or authority.
 
 Hard fail: a changed sensitive failure path is unobservable or silently
 swallowed; tests are created or run without explicit user authorization; or a

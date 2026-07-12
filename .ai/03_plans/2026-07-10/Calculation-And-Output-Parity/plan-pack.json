@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "19ce6e292ae4b76f2d680790d7a60cf706394598bd5acf624835d43bcc366683"
+      "sha256": "7e18bd37f7be8cbf7020de0bfeea0a0b8a764180ea26f2ff86dd4e584c85c766"
     },
     {
       "id": "ART-002",
@@ -100,6 +100,18 @@
       "role": "rollout-final-audit",
       "path": "ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md",
       "sha256": "5d81bdded7dcc1e12affa60a9e4a504a27c60f6cc0acadd1dfda417708ad0965"
+    },
+    {
+      "id": "ART-015",
+      "role": "agentic-execution-profile",
+      "path": "AGENTIC_EXECUTION_PROFILE.md",
+      "sha256": "cbd9bc81627a354887605cf721250e70a319170f9ec6de8fb9b8e027829c3f83"
+    },
+    {
+      "id": "ART-016",
+      "role": "current-source-readiness-audit",
+      "path": "CURRENT_SOURCE_AND_READINESS_AUDIT.md",
+      "sha256": "1418cefaee3bbe61da6ec7a878f71ed12de7fdb42d3cacdeef447142a89e2244"
     }
   ],
   "sources": [
@@ -930,7 +942,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002"
@@ -951,7 +963,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-003"
@@ -974,7 +986,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -999,7 +1011,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -1022,7 +1034,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006"
@@ -1136,7 +1148,12 @@
       "id": "SLICE-001",
       "unit_ids": [
         "UNIT-001",
-        "UNIT-002"
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
       ]
     }
   ],
@@ -1224,5 +1241,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T12:00:00.000Z",
-  "manifest_sha256": "f4b03897791037ad9e79214bf6f6844e97a1a3073334f31bb16cddc30c7b23fe"
+  "manifest_sha256": "63075c19c14215df6ab0284b0c15d2abe617f3d68f328cf004b5aad69dc8e378"
 }

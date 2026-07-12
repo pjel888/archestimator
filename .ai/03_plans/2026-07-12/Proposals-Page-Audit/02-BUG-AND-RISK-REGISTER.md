@@ -19,6 +19,18 @@ the full evidence on `DEEP` entries.
 
 ---
 
+## P0 — blocks the proposals feature entirely
+
+### P0-1 · Email deliverability: Cloudflare Email Sending never onboarded (nameservers on Namecheap) (`DOMAIN`, rounds 6-10)
+
+- **Root cause (sharpened round 10 via `.ai/10_state/current-state.md`):** public nameservers for `archestimator.com` are at **Namecheap**, not Cloudflare. Cloudflare Email Sending (`send_email` binding) requires an **active Cloudflare zone** (DNS hosted on Cloudflare). The project's own evidence records: *"`wrangler email sending list` still reports no Email Sending domains/subdomains. A direct `wrangler email sending enable archestimator.com` attempt failed with Cloudflare API error `Active zone required [code: 2009]`."* So this is not merely an SPF mismatch — **the email substrate the proposals feature depends on is not production-wired.**
+- **Secondary evidence (DNS 2026-07-12):** SPF → `include:spf.efwd.registrar-servers.com ~all` (Namecheap); MX → five `eforward*.registrar-servers.com` (Namecheap); DMARC → `p=none`; no DKIM. `wrangler.jsonc:28-32` declares the `EMAIL` binding but it has no backing sending domain.
+- **Impact:** the proposals feature routes invitations through `sendCloudflareEmail` when `ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email`. Under that provider, **invitations cannot be sent at all** (sending domain not onboarded). Under the Resend fallback, SPF/DKIM need to be (re)verified against the current DNS. Either way, a recipient who never receives the invitation never opens the proposal, never sees the inbox. **The code can be perfect; the mail never arrives.** Defeats the entire feature for first users.
+- **Fix (copy-paste-ready playbook in `20-EMAIL-DNS-FIX-PLAYBOOK.md`):** owner picks Option A (migrate DNS to Cloudflare → onboard Email Sending) or Option B (stay on Namecheap → re-enable Resend path). Exact DNS records, CLI commands, and verification steps are in `20`. No application code changes — provider is already a flag (`ARCHESTIMATOR_EMAIL_PROVIDER`).
+- **Test decision:** final verification is `TEST_TASK`-gated (real send to Gmail + Outlook external inboxes).
+
+---
+
 ## P1 — must address before first users
 
 ### P1-1 · `delivery_status='responded'` is never written (`KNOWN`)
@@ -96,7 +108,8 @@ the full evidence on `DEEP` entries.
 
 ### P1-6 · `openRecipientProposalAction` no rate limit + enumeration oracle (`DEEP`, `10` §5.2)
 - **Evidence:** `actions.ts:304-380` has no `checkRecordedRateLimit`. Returns distinct errors: `not-a-recipient` ("doesn't exist OR not mine") vs `unavailable` ("exists, mine, revoked/expired"). Timing differs too (second SELECT at `:334-345` only runs on auth success).
-- **Impact:** a logged-in user with candidate `publicationId` UUIDs (from logs/screenshots/URL leaks) can classify each as exists+mine+active / exists+mine+inactive / not-mine-or-absent. Information disclosure / enumeration.
+- **Seeding mechanism (round-3 amplification):** valid `publicationId` UUIDs are **already in every recipient's RSC payload and DOM** — `proposals-data.tsx:12` passes `initialResult` (full rows with `publicationId`) to the client, and `ProposalRow.tsx:146` renders `<input type="hidden" name="publicationId">`. So an attacker does **not** need a "log/screenshot/URL leak" (as the round-1 register implied) — they already have their own valid IDs and can obtain others from any co-recipient. Combined with no rate limit (P2-13), the enumeration is cheaper to mount than originally stated.
+- **Impact:** a logged-in user with candidate `publicationId` UUIDs can classify each as exists+mine+active / exists+mine+inactive / not-mine-or-absent. Information disclosure / enumeration.
 - **Recommended surface:** (a) collapse `not-a-recipient` + `unavailable` into one generic error; (b) add a per-user/per-IP rate limit to `openRecipientProposalAction`.
 - **TEST_PROPOSAL:** named risk = "distinct errors enable publication enumeration". Command: probe action with N random + 1 known UUID (await `TEST_TASK`).
 
@@ -194,21 +207,12 @@ the full evidence on `DEEP` entries.
   documenting the format invariant, or a CHECK constraint if a future migration
   touches these columns.
 
-### P2-7 · Computed `status` diverges from stored `status` for auto-expiry (`NEW`)
+### P2-7 · Computed `status` diverges from stored `status` for auto-expiry (`NEW` → **resolved to P3, no live bug**)
 
-- **Evidence:** SQL CASE (`:107-111`) returns `expired` when
-  `expires_at <= now` even if the stored `publication.status` is still
-  `published`. The stored row is not updated to `expired` by the read path.
-- **Impact:** The UI shows "Expired" but the DB row is still `published`. Any
-  downstream query that filters on `status='published'` (e.g. the partial unique
-  index `idx_project_publications_one_published_per_project WHERE status='published'`)
-  will still treat it as published. There is no background sweeper observed that
-  flips `published`→`expired` at `expires_at`. Could block re-publishing a new
-  proposal for the same project if the old one expired but was never swept.
-- **Recommended surface:** confirm whether a cron sweeps expired publications;
-  the bound crons (`0/15/30 3 * * *` in `wrangler.jsonc`) are candidates. If no
-  sweeper, add one or relax the partial unique index. Needs runtime confirmation
-  (out of scope for a static audit).
+- **Evidence (statically resolved 2026-07-12):** SQL CASE (`:107-111`) returns `expired` when `expires_at <= now` even if the stored `publication.status` is still `published`. **Confirmed there is no sweeper:** the three crons (`worker.ts:202,231`) run upload-jobs and the retention pass (`runRetentionPassInD1`), neither touches `project_publications.status`. The only `UPDATE … SET status = …` writes are `status = 'revoked'` (`admin-d1-client.ts:552`, on revoke) — **never `'expired'`**. Expiry is read-time-computed everywhere (`d1-store.ts:216` `status='published' AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)`).
+- **Impact (re-assessed):** the originally-feared index conflict (`idx_project_publications_one_published_per_project WHERE status='published'` blocking republish) **does not occur**, because `replace_project_publication` first sets the old row to `'revoked'` (`admin-d1-client.ts:551-553`) before inserting the new one — clearing the partial unique index regardless of auto-expiry. So a `published`-but-expired row never blocks a republish.
+- **Residual (P3):** the stored `status` column and the computed status disagree for auto-expired rows. This is cosmetic (no query relies on stored `status='expired'` for an auto-expired row — all read paths recompute). Document the invariant; no fix needed for beta.
+- **Recommended surface:** none for beta. Optionally add a comment in `migrations/0014` noting "auto-expiry is read-time-computed; `status` column is only set to `revoked` by explicit revoke or `published`/`expired` by legacy paths."
 
 ### P2-8 · Console log path leaks un-redacted record (`DEEP`, `09` §6.2)
 - **Evidence:** `logger.ts:163-177` — `const line = JSON.stringify(record); console.error(line);` serializes the **un-redacted** record to stdout/Workers Logs. `logAppError` pre-redacts, but direct `emitLogRecord({ context: { email: ... } })` calls (or fields named `to`/`recipient`) leak plaintext email.
@@ -238,7 +242,30 @@ the full evidence on `DEEP` entries.
 ### P2-14 · Inbox shows multiple rows per project across versions (`DEEP`, `10` §7.3)
 - **Evidence:** `recipient-proposals-repository.ts:128-150` filters `status IN ('published','expired','revoked')` but doesn't de-dupe by `project_id`. A recipient on v1 (revoked) re-invited to v2 (published) sees two rows for the same project.
 - **Impact:** confusing UX; `LIMIT 50` means a heavily-republished project crowds out others.
-- **Recommended surface:** either collapse to latest-per-`project_id` in SQL, or migrate recipient rows on republish. Needs DEC-AUTO (history vs latest).
+- **Recommended surface:** either collapse to latest-per-`project_id` in SQL, or migrate recipient rows on republish. Needs DEC-AUTO (history vs latest) — closed as DEC-AUTO-112 (latest-per-project).
+
+### P2-15 · i18n / locale — date format floats with browser locale (`ADVERSARIAL`, round 3) → **closed by DEC-AUTO-114**
+- **Evidence:** no i18n framework (grep `next-intl|react-intl|i18next|formatjs` in `package.json` → empty). Root layout pins `lang="en"` (`src/app/layout.tsx:36`) app-wide. But `ProposalRow.tsx:44` uses `new Intl.DateTimeFormat(undefined, { month:"short", day:"numeric", year:"numeric" })` — `undefined` resolves to the **browser default locale**, not a fixed locale. So a US-browser recipient sees "Jul 8, 2026" while an en-PH/en-GB recipient sees "8 Jul 2026".
+- **Impact:** for days 1–12, `month:"short", day:"numeric"` is genuinely ambiguous across locales (is "Jul 8" July 8 or 8 July?). On a proposals inbox where expiry/Sent dates drive urgency decisions, this is a real correctness/UX gap for a PH-targeted AEC product — not just polish. (`CurrencyInput` hardcodes `locale="en-US"` too, `src/components/ui/currency-input.tsx:30`, but the inbox shows no currency so that's a separate surface.)
+- **Decision (DEC-AUTO-114):** fix to `Intl.DateTimeFormat("en", { month:"short", day:"2-digit", year:"numeric" })`. Fixed `"en"` matches the declared `lang="en"`; `day:"2-digit"` removes the 1–12 ambiguity. One-line change in `ProposalRow.tsx:44`.
+- **Test decision:** `NOT_REQUIRED` (static: read the date format + locale config).
+
+### P2-16 · Publisher version-swap leaves stale row + generic open error (`ADVERSARIAL`, round 3)
+- **Evidence:** when a publisher republishes, `replace_project_publication` (`admin-d1-client.ts:548-579`) sets the old v1 row `status='revoked'` and inserts a new v2 row. The recipient's inbox still shows the stale v1 row (P2-14) until the next 30s-stale TanStack refetch. If the recipient clicks Review on the stale v1 row in that window, `openRecipientProposalAction` re-checks `isRecipientProposalPublicationAvailable` (`actions.ts:348-350`) and returns `unavailable`. The user sees "This proposal is no longer available. Contact the sender for an updated link." (`ProposalRow.tsx:68`) — **with no indication that a newer version exists or that they should refresh.**
+- **Impact:** for a normal publisher operation (swapping versions mid-review), the recipient experience is confusing. `handleActionError` (`proposals-page-client.tsx:91-96`) does call `refresh()`, so the list self-heals — but there's no targeted "version was replaced" affordance. Distinct from P1-7 (decision-write concurrency) and P2-14 (duplicate rows) — this is the open-time failure mode of the same version-swap flow.
+- **Recommended surface:** on `unavailable` error, surface a targeted message ("This version was replaced — refreshing to show the latest") rather than the generic "no longer available" copy, OR proactively de-dupe (DEC-AUTO-112 / A12) so the stale row isn't there to click.
+- **Test decision:** `NOT_REQUIRED`.
+
+### P2-17 · `/workshop/*` CSP is Report-Only, not enforced (`OWASP` A05, round 7)
+- **Evidence:** `next.config.ts:251-257` — `/workshop/:path*` applies `Content-Security-Policy-Report-Only` (not enforced). The workshop CSP allows `script-src 'unsafe-inline' 'unsafe-eval'` (`:39`). The comment at `:242-245` documents an intentional staged rollout with **unbounded deferral** ("Enforcement is DEFERRED… coordinated with the Shared-Link CSP-nonce work").
+- **Impact:** the proposals page has **no enforced CSP**. An XSS injection (if one existed) would not be blocked — the browser only reports. Defense-in-depth gap, not a live exploit.
+- **Severity:** P2 (A05 Security Misconfiguration). Cross-app effort to enforce (needs CSP-nonce pipeline), not proposals-specific. **Track as known security debt.**
+
+### P2-18 · `/workshop/proposals` not in route-budget table; no enforced perf guard (`PERF`, round 9)
+- **Evidence:** `.ai/01_roadmap/27-performance-budget-and-regression-gates.md:64-70` lists budgets for `/` and `/login` only — no `/workshop/*` row. The CI perf gate (`e2e/route-transition-performance.spec.ts`) has "loose (multi-second medians)" budgets and "authenticated scenarios skip in CI without dev-auth/storage-state secrets" (`:231`).
+- **Impact:** no enforced performance budget for a core workflow route. A bundle or blocking-fetch regression would not be caught by CI (which skips authed routes), and has no numeric budget to breach.
+- **Severity:** P2. No live regression (route is currently small/lean), but no guard either.
+- **Recommended surface:** add `/workshop/proposals` to the route-budget table (e.g. Main Bundle < 80KB gz, LCP < 2.5s authed); wire the authed-perf scenario into the CI gate or document a manual-check cadence.
 
 ---
 
@@ -294,6 +321,26 @@ the full evidence on `DEEP` entries.
 - **Evidence:** `ProposalRow.tsx` uses only `md:` breakpoints (`:86,152`). No `sm:`/`lg:` ladder, no `@media(hover:none)` touch adaptation, no `content-visibility`. Compare `LiveProjectCard.tsx` which has the full ladder + touch adaptation + scroll perf.
 - **Impact:** the current mobile layout works at 375px (graceful stacking), but is less polished than the projects page gold standard.
 - **Recommended surface:** the redesign (`05` Track B) should adopt the `sm`/`md`/`lg` + `@media(hover:none)` ladder.
+
+### P3-11 · No `Permissions-Policy` header anywhere (`OWASP` A05, round 7)
+- **Evidence:** `rg "Permissions-Policy|Feature-Policy" next.config.ts` → none. The global catch-all (`:271-285`) sets 4 hardening headers (HSTS, X-Frame-Options, nosniff, no-referrer) but not `Permissions-Policy`.
+- **Impact:** the browser allows all features (camera, microphone, geolocation, payment) by default on all routes. For an authed app surface, a `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()` would be cheap defense-in-depth.
+- **Severity:** P3 (no live abuse path; polish).
+- **Recommended surface:** add `Permissions-Policy` to the global hardening catch-all. One-line config change.
+
+### P3-12 · A06 vulnerable-components scan — **CLOSED (round 9)**
+- `bun audit` run against `bun.lock` → **"No vulnerabilities found."** OWASP A06 is PASS. (Caveat: advisory scan, not a full SCA tool; wire Dependabot/OSV for Enterprise.)
+
+### P3-13 · No route-segment `dynamic` config on `/workshop/proposals` (`PERF`, round 9)
+- **Evidence:** `rg "export const" src/app/workshop/proposals/*.tsx` → none. No `dynamic`/`revalidate`/`fetchCache`/`runtime` directive.
+- **Impact:** route is implicitly dynamic (correct for authed), but intent is undocumented. A future contributor could accidentally make it static or add a long `revalidate` serving stale authed data.
+- **Severity:** P3 (guardrail; no live bug).
+- **Recommended surface:** add `export const dynamic = "force-dynamic"` + a short comment to `proposals-data.tsx` documenting why (cookies/headers/D1 = always dynamic).
+
+### P3-14 · No bundle-size CI budget (`PERF`, round 9)
+- **Evidence:** `.ai/01_roadmap/27-performance-budget-and-regression-gates.md:231` explicitly notes *"No bundle-size CI budget (size-limit/bundlewatch) exists."*
+- **Severity:** P3 (roadmap-tracked, cross-app, not proposals-specific).
+- **Recommended surface:** wire `size-limit`/`bundlewatch` into CI with per-route chunk budgets.
 
 ---
 

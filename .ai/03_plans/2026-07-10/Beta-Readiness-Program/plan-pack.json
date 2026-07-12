@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "e0724ae879a6af7d68ef147ea2d85e75d1040c66dcda7c1078bbda36bd164d47"
+      "sha256": "7d524b410af243d71549f34cea880d8521531bc3eb2b5a5662bd8e6c11cfca92"
     },
     {
       "id": "ART-002",
@@ -51,13 +51,13 @@
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "5c963ecb45de6d5d016118fc1dd0a63087cff4749520425fd08fc523e8a2f347"
+      "sha256": "ad1bf9b8258148d9fe4fd79078c42038b8b0f5bdea943d4f63f5cdefd4a2dc0e"
     },
     {
       "id": "ART-007",
       "role": "migration-generation",
       "path": "MIGRATION_LEASE_GENERATION.json",
-      "sha256": "57ad5f0cbce06d6e26980cb08023f61adc903c0d9f4bbffad64685bab9ece1b4"
+      "sha256": "00bb0b6694e0e3ba559477cc21d0b17c8668e876948f496881dcedada84a4a74"
     },
     {
       "id": "ART-008",
@@ -100,6 +100,18 @@
       "role": "authorization-final-audit",
       "path": "AUTHORIZATION_RELEASE_AND_FINAL_AUDIT.md",
       "sha256": "7c1d2ae3f8592ace195a708a589ac27156e93111f84d16f674176f0f361e3461"
+    },
+    {
+      "id": "ART-015",
+      "role": "agentic-execution-profile",
+      "path": "AGENTIC_EXECUTION_PROFILE.md",
+      "sha256": "cbd9bc81627a354887605cf721250e70a319170f9ec6de8fb9b8e027829c3f83"
+    },
+    {
+      "id": "ART-016",
+      "role": "current-source-readiness-audit",
+      "path": "CURRENT_SOURCE_AND_READINESS_AUDIT.md",
+      "sha256": "92ca8d2731806ab0a6857b031a0f90eb6306ca8b1f2ff5e4d2ca5dfdd97e7c38"
     }
   ],
   "sources": [
@@ -549,7 +561,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -567,7 +579,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002"
@@ -587,7 +599,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-003"
@@ -607,7 +619,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "BLOCKED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -701,7 +713,11 @@
     {
       "id": "SLICE-001",
       "unit_ids": [
-        "UNIT-001"
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
       ]
     }
   ],
@@ -767,5 +783,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T03:02:21.000Z",
-  "manifest_sha256": "32111b59886c9d85a576deb7adf7cb3589f3aa8f9ef12c146647da854ebf18a5"
+  "manifest_sha256": "b2c9cad217fe71168f201b210d12c947654121e940a53f37cede18a46c592067"
 }

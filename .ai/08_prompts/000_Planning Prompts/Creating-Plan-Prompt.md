@@ -54,6 +54,9 @@ The plan pack must:
 - preserve the full feature objective, requirements, constraints, and non-goals;
 - describe current and target behavior from authoritative evidence;
 - close every internally resolvable decision as `DEC-AUTO-*`;
+- convert every repository-controlled dependency or blocker into a named
+  recovery/implementation unit; never plan an internal handoff as a terminal
+  state;
 - isolate only true `AUTH-*` boundaries with safe fallbacks and continuation
   packets;
 - use a capability/task-shape router and all materially useful available
@@ -181,6 +184,12 @@ ownership, failure/recovery, checkpoint/resume, and objective exit evidence.
 
 Do not include speculative production code or exact imports merely to appear
 detailed. The plan specifies contracts, invariants, sequencing, and proof.
+
+Dependency labels describe ordering, not permission to stop. If a prerequisite
+is local and required for the outcome, create the smallest owned repair or
+integration unit and put it on the critical path. Reserve `BLOCKED` only for a
+true hard boundary defined by the kernel; include the exact allowed continuation
+work and do not let it block unrelated or compatible local units.
 
 ## Phase 6: Write The Minimal Coherent Pack
 

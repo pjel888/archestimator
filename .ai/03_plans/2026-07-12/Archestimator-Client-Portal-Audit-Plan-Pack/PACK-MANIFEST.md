@@ -24,10 +24,15 @@
 ## Scope receipt
 
 - Current GitHub source and migrations reviewed through the connected repository.
-- Current Notion product, engineering, database, security, roadmap, metrics, and feature records reviewed.
+- Current Notion product, engineering, database, security, roadmap, metrics, and feature records reviewed during planning.
 - Official adjacent-system and standards research synthesized.
-- No application code, migration, test, browser session, deployment, or provider state changed.
-- The exact localhost page was not visually opened in this environment.
+- Local implementation and user-authorized focused tests now exist for Units
+  001–019 except the active release-boundary units 018, 020, and 021; see
+  `LOOP_LEDGER.md` and the unit evidence files for current proof.
+- No hosted rollout, provider mutation, browser session, or production proof is
+  claimed by this receipt.
+- The exact localhost page was not visually opened as part of the original
+  audit.
 - The predecessor Shared Estimate audit was moved to `.ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/` after consolidation; no active-path stub remains.
 
 ## Primary recommendation

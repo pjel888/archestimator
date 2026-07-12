@@ -8,6 +8,13 @@ The predecessor is archived only after this receipt and its unit mapping exist.
 
 ## Ordered slices
 
+0. **Slice 0 — email deliverability (P0, owner DNS action):** the proposals
+   feature sends invitations via Cloudflare Email, but `archestimator.com`
+   SPF/MX authenticate against Namecheap → outbound mail SPF-softfails → spam.
+   Fix SPF to include Cloudflare, set up DKIM, tighten DMARC, verify with a real
+   send to Gmail/Outlook. **Ships before everything else — no email = no
+   proposals feature.** See `02` P0-1 and `05` A0. Requires owner DNS access +
+   `TEST_TASK` for the real-send verification.
 1. **Slice 1 — row resilience and decision typing:** execute A1+A2 together in
    `recipient-proposals-repository.ts`. Drop and log unmappable rows, preserve
    the result contract, and use the `"unknown"` decision sentinel.
@@ -17,13 +24,27 @@ The predecessor is archived only after this receipt and its unit mapping exist.
 3. **Slice 3 — bounded inbox signal:** execute A4 with `LIMIT 51`, a boolean
    `truncated` result, and a bounded UI notice. Do not add a count query or
    pagination in V1.
-4. **Slice 4 — collection shell:** execute B1, then B2–B5. Retain the existing
+4. **Slice 3b — deep-audit P1 data-integrity + privacy (round 2):** execute
+   A5 (recipient-removal PII purge, DEC-AUTO-111), A6
+   (`project_publication_events` retention TTL), A7 (`openRecipientProposalAction`
+   rate limit + error collapse, DEC-AUTO-113), A8 (`shared_link_responses`
+   unique-constraint migration). These are the four P1s added by the round-2
+   deep audit (`09`, `10`) and must ship before first users. See
+   `05` §2 for exact paths/approach per unit.
+5. **Slice 3c — deep-audit P2 hardening (round 2):** execute A9 (console log
+   redaction one-liner), A10 (client refresh-failure observability), A11
+   (`loadRecipientProposals` rate limit), A12 (inbox de-dup by project,
+   DEC-AUTO-112). Independent of Slice 3b and each other; batchable.
+6. **Slice 4 — collection shell:** execute B1, then B2–B5. Retain the existing
    TanStack Query key, cache lifetime, focus refetch, and action contracts.
-5. **Slice 5 — presentation:** execute B6+B7, then B8+B9. Extract shared
+7. **Slice 5 — presentation:** execute B6+B7, then B8+B9. Extract shared
    proposal state helpers once; provide card and list modes only.
-6. **Slice 6 — bounded follow-ups:** audit the XLSX contractor-name risk,
-   expiry behavior, stale selectors, and reconciliation only after Slices 1–5.
-   Do not duplicate completed publisher or shared-page work.
+8. **Slice 6 — bounded follow-ups:** audit the XLSX contractor-name risk,
+   expiry behavior, stale selectors, analytics (P2-11/P2-12), and
+   reconciliation only after Slices 1–5. Do not duplicate completed publisher or
+   shared-page work. Includes the beta-recommended domain items from `08`
+   (electronic-consent disclosure, assumptions/exclusions block) if the owner
+   authorizes them via AUTH-3.
 
 ## V1 scope decisions
 

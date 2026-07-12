@@ -106,6 +106,11 @@ schema. The plan must name:
 - failure/retry/reassignment/local fallback;
 - durable checkpoints and resume actions.
 
+Compile each dependency into a runnable path, not a blocker note. For a local
+prerequisite, add or repair its owned unit, reorder independent work, or define
+a compatible fallback. Only a genuine external `AUTH-*` may remain as a narrow
+boundary, and it must not prevent local completion or archive readiness.
+
 Every unit includes objective/non-goals, linked IDs, preconditions, current
  patterns, contracts/invariants, approach, expected postconditions, applicable
  gates, `test_requirement`, `test_trigger`, `test_rationale`, and evidence plan, expected signals,
@@ -202,8 +207,9 @@ Run `bun run validate:plan-pack -- <planning-folder>` after promotion and repair
 every semantic/hash/reference/DAG failure before reporting readiness.
 
 Use `CONDITIONALLY_READY` only when at least one named dependency-closed slice is
-ready and every remaining slice has an explicit blocker and repair/continuation
-path. A true `AUTH-*` is one possible blocker, not a prerequisite.
+ready and every remaining slice has an explicit owned repair/continuation path
+already scheduled in the execution DAG. A true `AUTH-*` is one possible narrow
+boundary, not a prerequisite or a reason to stop local implementation.
 `NOT_READY` is a repair state; do not stop while an internal repair remains
 possible.
 

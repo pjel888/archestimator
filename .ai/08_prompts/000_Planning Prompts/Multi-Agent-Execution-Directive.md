@@ -28,6 +28,12 @@ implementation, proportionate review, and final evidence without routine owner
 involvement. Adversarial QA, tests, builds-as-gates, and browser automation run
 only when explicitly requested by the user for the current task.
 
+For a plan-pack task, treat internal dependencies and worker-reported blockers
+as lead-owned continuation work. Reassign, repair, integrate, reorder, or use a
+compatible fallback; never leave the pack incomplete merely because a worker,
+optional tool, reviewer, stale artifact, or unapproved test is unavailable.
+Only a true external `AUTH-*` may remain, narrowly scoped to the affected claim.
+
 Multi-agent activity is not the objective. Use the smallest topology that
 improves elapsed time, domain coverage, context isolation, or checker
 independence without increasing coordination risk beyond its value.

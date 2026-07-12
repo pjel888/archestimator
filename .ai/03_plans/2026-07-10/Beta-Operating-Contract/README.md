@@ -1,5 +1,14 @@
 # Beta Operating Contract
 
+> **Current execution contract:** Read AGENTIC_EXECUTION_PROFILE.md before
+> implementation. It applies the current lean agent workflow and User Test
+> Authorization Gate to all older execution, testing, browser, validation, and
+> reviewer language in this pack without changing product scope or status.
+>
+> **Freshness:** CURRENT_SOURCE_AND_READINESS_AUDIT.md is the authoritative
+> 2026-07-12 source-drift and individual readiness verdict. Older line numbers,
+> migration tails, and active-pack locations are historical navigation only.
+
 ## Outcome
 
 Establish the privacy, telemetry, support, incident, rollback,
@@ -12,7 +21,7 @@ versioned privacy-safe cohort data contract.
 
 | Field | Value |
 | --- | --- |
-| Package | `CONDITIONALLY_READY` |
+| Package | `IMPLEMENTATION_READY` |
 | Implementation | `NOT_STARTED` |
 | Release | `BOUNDARY` |
 | Lifecycle | `ACTIVE` |

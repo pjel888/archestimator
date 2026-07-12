@@ -15,6 +15,9 @@ Load shared instructions in this order:
 3. One active stage prompt or execution directive.
 4. `Plan-Pack-Schema.md` - the artifact, ID, manifest, readiness, and handoff
    contract used by the active stage.
+5. `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md` - the anti-bureaucracy rule:
+   resolve every repository-controlled prerequisite instead of leaving an
+   internally generated blocker.
 
 | Stage | Prompt | Output |
 |---|---|---|
@@ -47,6 +50,10 @@ broad validation.
 - Treat tokens, elapsed time, tool calls, context volume, agent fan-out, and
   repeated checks as engineering costs. Pull context just in time and stop when
   a fresh executor can act without invention and the required claim is grounded.
+- Treat dependencies as execution order, never routine handoffs. A pack may
+  retain only a narrow true external boundary after every local core unit is
+  finished; stale plans, test proposals, optional tools, review availability,
+  and internal prerequisites are continuation work.
 
 ## Validation
 

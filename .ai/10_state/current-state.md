@@ -56,6 +56,10 @@ task-specific history. Do not linear-read the detailed history below.
   Preserve the supported Node preflight and current memory protections.
 - **Planning:** ordinary non-trivial work uses an in-session loop. A dated plan
   pack is required only for high-blast-radius or explicitly exhaustive work.
+- **Plan-pack execution:** an authorized pack is an execution commitment, not a
+  blocker registry. Resolve every repository-controlled prerequisite in the run;
+  only exact prohibited external actions may remain as narrow release boundaries.
+- **Admin Founder Homebase:** `.ai/03_plans/2026-07-12/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack/` is the canonical consolidated `/admin` plan. It absorbs the July 11 Admin control-plane predecessor, starts at `13-IMPLEMENTATION-ROADMAP.md` `UNIT-001`, prioritizes founder shell/search/Action Inbox/customer/release/data-quality value before advanced campaigns, and preserves the user test authorization gate.
 - **Proposals authority:** `.ai/03_plans/2026-07-12/Proposals-Page-Audit/` is
   the active, implementation-ready `/workshop/proposals` plan. It absorbs the
   unimplemented 2026-07-11 `Proposals-Feature` pack, preserved under
@@ -279,37 +283,11 @@ Stable current truth (verify against git/source before relying on a detail):
   Active provider authority is
   the Cloudflare resources bound in `wrangler.jsonc`; historical Supabase project
   `ebxxqidacheyapmmzavr` remains read-only archaeology.
-- Beta readiness planning suite (2026-07-10): nine high-blast plan packs under
-  `.ai/03_plans/2026-07-10/` now contain 134 registered artifacts across one
-  umbrella Program plus Activity History, Beta Operating, Calculation Parity,
-  Estimate Intelligence, First-User Activation, Hosted D1 Recovery, Publisher,
-  and Release Integrity owner surfaces. Activity and Publisher began as
-  domain-separated audit packs; the other seven began as six registered
-  documents plus `plan-pack.json`, with multiple independently reviewable
-  domains compressed into omnibus files. The earlier schema allowed adaptive
-  counts; the revised prompt suite makes semantic split triggers explicit and
-  normative, and applies them consistently without padding or a fixed
-  file-count target. The Program
-  assigns all 20 `BETA-P0/P1` items exactly once. ACTIVE Generation 4 binds the
-  observed `0052_corporate_accounts.sql` tail and provisional, UNCLAIMED owner
-  leases `0053..0057` (Publisher, Activation, Estimate, Calculation, Activity);
-  Generation 3 was superseded after the concurrent `0052` source collision.
-  The `2026-07-11/Corporate-Accounts` folder is deliberately out of the nine-pack
-  registry and cannot add a backlog row or readiness credit: a release candidate
-  must carry a validated Corporate receipt when it includes that source, or an
-  exact content-addressed exclusion disposition. Activation alone is
-  `IMPLEMENTATION_READY`; the
-  other eight packs are `CONDITIONALLY_READY`; all nine remain `NOT_STARTED`.
-  All nine native validators, the 31-scenario prompt suite, canonical migration
-  receipt, cross-pack ownership/traceability checker, 28/28 durable validator
-  contract tests (26 negative cases plus two positive controls) pass. A
-  one-time final scratch audit also rejected 15 single-pack and 13 cross-pack
-  hostile fixtures; its result receipt is recorded in the Program ledger.
-  Independent semantic, architecture/provenance, and verification reviews found
-  no remaining blocking planning defect after the Generation 4 refreeze.
-  Hosted/provider,
-  GitHub, counsel, owner-approval, and implementation evidence remain explicit
-  future boundaries; no migration, product, or external action was performed.
+- Beta readiness execution (2026-07-12): the seven July 10 packs remain active
+  under `.ai/03_plans/2026-07-10/` until their hosted recovery, staging, release,
+  and legal requirements have fresh completion receipts. Repository-controlled
+  implementation and Cloudflare resource reconciliation are complete; execution
+  continues on the remaining provider-facing units.
 - Error logging and incident evidence (2026-07-08 local): Archestimator should
   not store raw application error logs in D1 as the standard logging path.
   Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do
@@ -10342,3 +10320,99 @@ Open:
 - The former `.ai/03_plans/2026-07-12/Shared-Estimate-Page/` audit was source-reviewed and consolidated through `21-SHARED-ESTIMATE-PAGE-AUDIT-DELTA.md`, then moved without a stub to `.ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/`.
 - Retained predecessor findings include node/row contextual discussion, all-row reachability, large-tree bounds, activity/unread synchronization, mobile decision access, thread lifecycle, hosted no-store proof, and runtime snapshot validation. The obsolete issuance-metadata gap and estimate-variant scope were explicitly retired.
 - Evidence boundary: planning/source/static validation only. No automated tests, builds, browser automation, screenshots, hosted checks, provider mutations, or deployments were run.
+## 2026-07-12 — July 10 plan packs aligned to lean agentic execution
+
+- Updated all seven active packs under `.ai/03_plans/2026-07-10/` with a
+  content-addressed `AGENTIC_EXECUTION_PROFILE.md` referenced from each README
+  and registered in each `plan-pack.json`.
+- The profile applies the current `AGENTS.md` lean workflow, proportional
+  delegation, zero-artificial-blocker rule, and supreme User Test Authorization
+  Gate to legacy test/browser/build/reviewer language without changing product
+  scope, requirement IDs, ownership, readiness, implementation, release, or
+  next-unit status.
+- All seven exact-hash plan-pack validators passed after refresh; the canonical
+  planning prompt suite also passed. No product tests, builds, browser
+  automation, screenshots, or visual QA were run.
+## 2026-07-12 — July 10 packs individually refreshed and implementation-ready
+
+- Audited all seven active July 10 packs individually against current source,
+  archived dependency locations, the current migration tail through
+  `0069_client_portal_message_visibility.sql`, and the current planning schema.
+- Added a content-addressed `CURRENT_SOURCE_AND_READINESS_AUDIT.md` to every
+  pack and linked it from each README as the authoritative freshness delta.
+- All seven manifests now report `package_status=IMPLEMENTATION_READY`; every
+  core unit packet is `READY`, every ready slice is dependency-closed, and the
+  exact start remains `UNIT-001`.
+- Operating, Program, Recovery, and Release retain active `AUTH-*` boundaries
+  and `release_status=BOUNDARY`. Their external unit packets are plan-ready,
+  but execution remains prohibited until the named authorization is resolved.
+- This was planning/readiness work only. No product tests, builds, browser
+  automation, screenshots, provider mutation, deployment, or hosted proof ran.
+
+## 2026-07-12 — Client Portal execution local rollout controls completed
+
+- The active Client Portal plan pack has implemented and locally verified
+  UNIT-019 calculation/output parity and the local portions of UNIT-018,
+  UNIT-020, and UNIT-021. Its structural plan-pack validator passes.
+- Migration apply now requires two disabled-by-default D1 flags:
+  `client_portal_legacy_migration` (`0070`) and
+  `client_portal_legacy_write_freeze` (`0071`). The freeze prevents legacy
+  shared-link comment/decision writes before backfill, while imported, verified,
+  and cutover-complete mappings remain write-frozen automatically.
+- The source-controlled cutover procedure is
+  `.ai/03_plans/2026-07-12/Archestimator-Client-Portal-Audit-Plan-Pack/RUNBOOK-CLIENT-PORTAL-LEGACY-CUTOVER-v1.md`.
+  It preserves legacy reads and supports manager-authorized rollback/fix-forward
+  without destructive reimport.
+- Fresh local evidence: targeted lint; the freeze regression suite passed 5
+  files / 38 tests; `bun run type-check`; and `git diff --check` passed.
+- Boundary: neither a hosted flag enablement nor a named cohort, real-data
+  migration/rollback rehearsal, final-Worker header/denial capture, support
+  handoff, or release-truth reconciliation has occurred. The Client Portal and
+  Publisher plan packs remain active and must not be archived.
+
+## 2026-07-12 — Client Portal legacy migration audit trail completed locally
+
+- Legacy migration import, verification, and manager rollback now write
+  owner-visible `client_portal_audit_events` records as `system` events. Their
+  metadata is limited to migration IDs, row counts, reconciliation hashes, and
+  rollback state; stable tokens, recipient emails, and snapshot payloads are
+  deliberately excluded.
+- D1 writes each migration state transition with its corresponding audit event
+  as a batch when available. The compatible sequential adapter fails closed if
+  either write fails.
+- Fresh evidence: focused lint; 5 focused Vitest files / 38 tests; `bun run
+  type-check`; `bun run validate:plan-pack --write
+  .ai/03_plans/2026-07-12/Archestimator-Client-Portal-Audit-Plan-Pack`; and
+  `git diff --check` all passed.
+- Boundary unchanged: this is local implementation evidence only. No named
+  hosted cohort has produced or reviewed real migration audit events, so both
+  the Client Portal and Publisher packs remain active and unarchived.
+
+## 2026-07-12 — Client Portal legacy decision dual-read repair completed locally
+
+- Restored the legacy shared-link decision handler and dispatches only Client
+  Portal tokens to the v2 decision handler. Existing legacy share review
+  controls retain their API contract before any migration cutover.
+- A migration-write-frozen legacy decision now returns a generic no-store
+  `423`, matching the comment freeze boundary without exposing migration state.
+- Fresh local evidence: targeted ESLint; six focused Vitest files / 68 tests;
+  `bun run type-check`; Client Portal plan-pack refreeze and structural
+  validation; and `git diff --check` all passed.
+- Archive decision: the Client Portal pack remains `IN_PROGRESS` with all
+  seven release gates failing pending cohort/hosted/rehearsal/support proof.
+  The Publisher review retains independent live legacy findings, so neither
+  pack is archive-eligible.
+
+## 2026-07-12 — Client Portal regression sweep completed locally
+
+- After the legacy/Client Portal decision dual-read repair, the authorized
+  regression sweep passed 23 Client Portal files / 69 tests, 17
+  legacy-publication route/security files / 169 tests, and 8 share/UI files /
+  151 tests. Targeted ESLint, workspace `type-check`, and `git diff --check`
+  passed.
+- The sweep aligned stale test contracts with the current Client Link controls,
+  legacy-write freeze dependency, and safe issued calculation fields without
+  weakening production policy or public snapshot redaction.
+- Release status is unchanged: no browser/hosted proof, named cohort, real-data
+  migration or rollback rehearsal, support handoff, or release-truth
+  reconciliation has occurred.

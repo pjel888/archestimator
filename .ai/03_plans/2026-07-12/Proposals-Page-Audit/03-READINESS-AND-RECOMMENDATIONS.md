@@ -4,23 +4,36 @@ Audit date: 2026-07-12. This document closes the audit with a beta-readiness
 verdict, a prioritized recommendation set, and the explicit relationship between
 this audit and the active implementation pack.
 
-## 1. Beta-readiness verdict: CONDITIONAL
+## 1. Beta-readiness verdict: NOT-READY (P0-1 blocks the feature)
 
-The `/workshop/proposals` recipient inbox is **functional and secure for the
-common path**. A signed-in recipient with a small number of proposals will see
-their list, open proposals, and navigate to `/share/<token>` correctly. Authn is
-enforced, data is scoped by email, and opening is independently re-authorized.
+> **Updated (rounds 7-10):** the round-1 verdict was **CONDITIONAL**. Round 7's
+> email-auth check found **P0-1**: Cloudflare Email Sending was never onboarded
+> (`archestimator.com` nameservers are on Namecheap → no active CF zone →
+> `wrangler email sending enable` fails with `Active zone required [code: 2009]`).
+> A proposals feature whose invitation emails can't authenticate (or can't be
+> sent at all under the `cloudflare-email` provider) is **not ready for first
+> users**, regardless of code correctness. The copy-paste fix is in `20-EMAIL-DNS-FIX-PLAYBOOK.md`.
 
-It is **not unconditionally ready** because three classes of problem will bite
-once traffic or data diversity grows:
+The `/workshop/proposals` recipient inbox code is **functional and secure for
+the common path**. A signed-in recipient with a small number of proposals will
+see their list, open proposals, and navigate to `/share/<token>` correctly.
+Authn is enforced (verified round 10 — auth-bypass chain secure), data is
+scoped by email, and opening is independently re-authorized.
 
+But the feature is **NOT-READY for first users** because of one P0 plus the
+pre-existing P1s:
+
+0. **Email substrate not production-wired (P0-1).** Invitations sent via
+   Cloudflare Email cannot authenticate (SPF/MX/DKIM on Namecheap, not
+   Cloudflare) and the sending domain was never onboarded (`Active zone
+   required [code: 2009]`). **Every recipient invitation is at high risk of
+   spam-folder or unsent.** This blocks the feature regardless of inbox code.
+   Fix playbook: `20-EMAIL-DNS-FIX-PLAYBOOK.md`. Owner DNS action required.
 1. **Whole-inbox failure on one bad row** (P1-2, P1-3). A single corrupt
    `decision` or `status` enum value blanks the inbox for that user with a
-   generic error and no log. This is the highest-priority fix because it is a
-   silent trust-killer and a future-schema-change trap.
+   generic error and no log. Silent trust-killer.
 2. **`responded` delivery status never written** (P1-1). Owners cannot rely on
-   the roster/digest to know a recipient decided. The owner workflow is
-   incomplete.
+   the roster/digest to know a recipient decided.
 3. **Silent truncation at 50 proposals** (P2-1) with no UI signal. Acceptable
    for beta only if the ≤50-rows assumption is documented and true; today it is
    undocumented and unguarded.

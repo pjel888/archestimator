@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "9f777f906a22ed71acd7c7672b116365afa47dbe00498ebdcaa02e2167998189"
+      "sha256": "758b39a7b7cd7efc815d4ab12316a1a5f10dc4c3cf747013e05010c05249f8f4"
     },
     {
       "id": "ART-002",
@@ -106,6 +106,18 @@
       "role": "authorization-final-audit",
       "path": "AUTHORIZATION_BOUNDARIES_AND_FINAL_AUDIT.md",
       "sha256": "cd22996a14e00e4b051314c292d024c0579a7cf40e79d30a55b4492b2cc615d0"
+    },
+    {
+      "id": "ART-016",
+      "role": "agentic-execution-profile",
+      "path": "AGENTIC_EXECUTION_PROFILE.md",
+      "sha256": "cbd9bc81627a354887605cf721250e70a319170f9ec6de8fb9b8e027829c3f83"
+    },
+    {
+      "id": "ART-017",
+      "role": "current-source-readiness-audit",
+      "path": "CURRENT_SOURCE_AND_READINESS_AUDIT.md",
+      "sha256": "8804ed5933f2a2e6afc05088483882264866c586109a5411942a0485b86e2790"
     }
   ],
   "sources": [
@@ -988,7 +1000,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "BLOCKED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001",
@@ -1007,7 +1019,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "BLOCKED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004",
@@ -1026,7 +1038,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "BLOCKED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -1174,7 +1186,10 @@
         "UNIT-004",
         "UNIT-005",
         "UNIT-006",
-        "UNIT-007"
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010"
       ]
     }
   ],
@@ -1258,5 +1273,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T04:45:00.000Z",
-  "manifest_sha256": "8df1db632b5b20dd2e198c939a63a9ff75b408d88d6d3fbba884eb8d413029eb"
+  "manifest_sha256": "10303e77856304a894eee3613d3c90277dd4d888457d402cc219bccf8d58f08a"
 }

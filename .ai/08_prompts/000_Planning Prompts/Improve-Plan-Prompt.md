@@ -102,6 +102,9 @@ Repair in dependency order:
    (`TEST_TASK`). A named MVP-critical invariant that cheaper evidence cannot
    prove authorizes a `TEST_PROPOSAL` only under the User Test Authorization
    Gate — never auto-execution.
+   Convert every internal blocker into the next owned repair, prerequisite, or
+   compatible fallback unit; dependency bookkeeping is not an implementation
+   stop condition.
 7. **Evidence** - map every claim to the right evidence class, method, expected
    signal, freshness, cleanup, and final status.
 8. **Rollout/recovery** - repair flags/exposure, monitoring, rollback/fix-forward,

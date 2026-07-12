@@ -204,6 +204,11 @@ or run-log work, also follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 
 ## Loop-engineered product development
 
+For plan-pack work, `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md` is the
+anti-bureaucracy control: plan packs must convert internally resolvable blockers
+into owned continuation work and finish all repository-controlled requirements
+before leaving only a narrow true external boundary.
+
 The normal Archestimator product-development loop is proportional:
 
 1. Discover and audit current reality from source, available evidence, provider

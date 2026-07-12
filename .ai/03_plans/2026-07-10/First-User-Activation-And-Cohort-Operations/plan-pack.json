@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "dfe7e2fb1c79867b18aeab29ef5f6a07a28fce5671b7dbfb29240c07cf79725b"
+      "sha256": "39a1101d2d247ca7c4d475fd9f500d92cfedba0d7ac667e360726f3c570467d9"
     },
     {
       "id": "ART-002",
@@ -100,6 +100,18 @@
       "role": "rollout-final-audit",
       "path": "ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md",
       "sha256": "929271d5e0a485f6daa9a6a2cae35e5d6935be976997659d51b0774aeb32298b"
+    },
+    {
+      "id": "ART-015",
+      "role": "agentic-execution-profile",
+      "path": "AGENTIC_EXECUTION_PROFILE.md",
+      "sha256": "cbd9bc81627a354887605cf721250e70a319170f9ec6de8fb9b8e027829c3f83"
+    },
+    {
+      "id": "ART-016",
+      "role": "current-source-readiness-audit",
+      "path": "CURRENT_SOURCE_AND_READINESS_AUDIT.md",
+      "sha256": "4b5bf1696e05a6d27c0100e05ed7ec378230ee717bdd73fc023175d247ffa72e"
     }
   ],
   "sources": [
@@ -959,5 +971,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T03:35:00.000Z",
-  "manifest_sha256": "fc771cfdd4e7207a1e32a4b7c3d92783545a0e873195effbc61a67a113e38461"
+  "manifest_sha256": "7066745bdae952aa67d8752aabe8bab2c252ea3ab1286257f101010cf57dc77b"
 }

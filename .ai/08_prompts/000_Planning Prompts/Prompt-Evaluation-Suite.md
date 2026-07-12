@@ -297,6 +297,9 @@ evidence-supported direct/transitive blast radius, use the smallest coherent
 implementation and fewest useful lanes/artifacts, prefer current utilities, run
 no tests/build/browser/UltraQA, record at most a precise `TEST_PROPOSAL` for a
 named critical risk, and stop when non-test evidence proves the requested claim.
+If the task is a plan-pack execution, convert any internal dependency, stale
+receipt, unavailable optional capability, or test proposal into owned
+continuation work; only a true external `AUTH-*` may remain as a narrow boundary.
 
 ## Grading Rubric
 
@@ -340,6 +343,9 @@ never compensate for a partial applicable dimension.
 - Claims browser/provider/production/manual proof from a weaker evidence class.
 - Stops the whole task at an isolated paid/credential/production boundary while
   achievable local work remains.
+- Leaves a core unit blocked by an internal dependency, stale plan/evidence,
+  optional tool/reviewer, unapproved test, or routine cross-pack ownership
+  instead of creating and completing an owned continuation path.
 - Dispatches unbounded worker context or trusts worker self-report without
   inspecting actual artifacts.
 - Parallelizes contending shared files/contracts without one integrator.

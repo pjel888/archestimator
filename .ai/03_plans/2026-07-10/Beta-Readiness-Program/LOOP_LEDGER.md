@@ -791,3 +791,37 @@ only with independent coordination work. Never infer completion from this ledger
   agents have stopped editing; the prior cross-process drift is resolved.
 - `bun run validate:plan-pack` passed as a separate process with the baseline
   reproducing. Scope PLAN_ONLY; no migration claimed or created.
+
+## 2026-07-12T12:00:35.401Z - Generation-18 consumed-slot reconciliation
+
+- Reissued the durable lease against the observed `migrations/0070` tail after
+  the previously active generation-17 receipt was stale. Generation `18`
+  supersedes `17`; receipt SHA-256 is
+  `349e19984d835ffb4bb1d111826c9b3c4485089e152fa8e836308bb842408201`.
+- The receipt records consumed current-source migrations Publisher `0066`,
+  Activation `0067`, and Activity `0060`; it reserves Estimate Intelligence
+  `0071` and Calculation Parity `0072` as `UNCLAIMED`. Per-row and receipt
+  digests reproduced independently after the write.
+- Program, Activation, Estimate Intelligence, and Calculation Parity
+  `validate:plan-pack` checks passed after the Program manifest artifact hash
+  was refreshed. The reissuer now performs that canonical manifest refresh
+  after writing future receipts, preventing a stale `ART-007` hash.
+- Scope is coordination-only: no reserved migration was created or consumed by
+  this reconciliation. Program `UNIT-002..005` remain pending or boundary
+  governed; the next implementation work is the owning Estimate Intelligence
+  and Calculation Parity migration slices.
+
+## 2026-07-12T12:05:00.000Z - Generation-19 collision-safe reissue
+
+- A concurrent Client Portal migration advanced the observed tail to
+  `migrations/0071_client_portal_legacy_write_freeze.sql`, invalidating the
+  unconsumed generation-18 Estimate allocation. No allocation was consumed
+  against that collision.
+- Generation `19` supersedes `18` with receipt SHA-256
+  `5beb5cf77937e798f1f43dd24419071a88e259a5bf21df2a521602636e528c51`.
+  Publisher `0066`, Activation `0067`, and Activity `0060` remain immutable
+  consumed facts; Estimate Intelligence now owns unclaimed `0072`, and
+  Calculation Parity owns unclaimed `0073`.
+- Receipt, row digests, Program, Estimate Intelligence, and Calculation Parity
+  plan-pack validation all passed after the reissue. The next write must still
+  recheck this receipt and the migration tail immediately before creation.

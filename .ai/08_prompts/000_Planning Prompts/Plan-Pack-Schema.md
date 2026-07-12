@@ -311,6 +311,13 @@ These fields describe different facts. Planning readiness never implies
 implementation completion, and local implementation completion never implies
 release authority or hosted proof.
 
+`BLOCKED` is a temporary diagnostic status, never an acceptable terminal state
+for a core repository-controlled unit. Each such record must link to an owned
+recovery unit, compatible fallback, or exact true `AUTH-*` boundary and state
+the next action. A local dependency is represented in the DAG and implemented
+or repaired; it is not delegated back to the owner. See
+`.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md`.
+
 ### B. Coordination And Durable State
 
 - Lead, lanes, roles/`agent_type`, goals, owned scope, dependencies, outputs,

@@ -160,25 +160,25 @@
       "id": "ART-023",
       "role": "supporting",
       "path": "LOOP_LEDGER.md",
-      "sha256": "fa47df762318527bdd618bf1d6f51597b46308adb147cfb05e97dd5db0c8b28a"
+      "sha256": "b4274d06cd3cd1eaddb0d639cdaee28164e19b5301a678e738a31276e8f32cac"
     },
     {
       "id": "ART-024",
       "role": "supporting",
       "path": "PACK-MANIFEST.md",
-      "sha256": "20a4897e8e01ec711a9ee0152218066d2884a6bc32cd672243fe2d2a40ff4d19"
+      "sha256": "27de6520cfe0386e9387f485d41c51703233e0edd33c45c2312fab63f18ead2c"
     },
     {
       "id": "ART-025",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "73d0cb41c297596191a7f21aa1770623faeda627a0af830e65bf3d831cb9d8ec"
+      "sha256": "8768e0f062edd4e2b9a59b16c0ad40a9207503a754dc22bec3fa35c6dc3e5d95"
     },
     {
       "id": "ART-026",
       "role": "evidence",
       "path": "evidence/PLANNING-READINESS-v1.md",
-      "sha256": "b3a21decacb4528ece1b2fd4b410ded57ddfc8a25047865dd9e44c3fb239480e"
+      "sha256": "e93eef61a87561a0296066aa314752b949a34dc8accbe963a20fc2a416024e89"
     },
     {
       "id": "ART-027",
@@ -220,7 +220,7 @@
   "sources": [
     {
       "id": "SRC-001",
-      "status": "CURRENT",
+      "status": "STALE",
       "artifact_path": "README.md",
       "affected_ids": [
         "REQ-001",
@@ -3412,7 +3412,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-002",
@@ -3441,7 +3441,7 @@
     },
     {
       "id": "UNIT-012",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-011"
@@ -3460,7 +3460,7 @@
     },
     {
       "id": "UNIT-013",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-003",
@@ -3485,7 +3485,7 @@
     },
     {
       "id": "UNIT-014",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-002",
@@ -3518,7 +3518,7 @@
     },
     {
       "id": "UNIT-015",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-005",
@@ -3546,7 +3546,7 @@
     },
     {
       "id": "UNIT-016",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-002",
@@ -3579,7 +3579,7 @@
     },
     {
       "id": "UNIT-017",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-005",
@@ -3609,7 +3609,7 @@
     },
     {
       "id": "UNIT-018",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-002",
@@ -3637,7 +3637,7 @@
     },
     {
       "id": "UNIT-019",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-005",
@@ -3659,7 +3659,7 @@
     },
     {
       "id": "UNIT-020",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-006"
@@ -3685,7 +3685,7 @@
     },
     {
       "id": "UNIT-021",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "artifact_path": "15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md",
       "depends_on": [
         "UNIT-017",
@@ -3957,9 +3957,9 @@
   "evidence_index": [
     {
       "id": "EVID-001",
-      "status": "STALE",
+      "status": "PASS",
       "artifact_path": "evidence/PLANNING-READINESS-v1.md",
-      "sha256": "b3a21decacb4528ece1b2fd4b410ded57ddfc8a25047865dd9e44c3fb239480e",
+      "sha256": "e93eef61a87561a0296066aa314752b949a34dc8accbe963a20fc2a416024e89",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -4069,7 +4069,7 @@
         "DEC-AUTO-025",
         "DEC-AUTO-026"
       ],
-      "source_revision": "6b59648a70c485cd54bad8f3659b3ec454621530",
+      "source_revision": "worktree-2026-07-12-client-portal-regression-sweep",
       "valid_until": null
     },
     {
@@ -4165,7 +4165,7 @@
     },
     {
       "id": "EVID-004",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "evidence/UNIT-001-DOMAIN-CONTRACT-v1.md",
       "sha256": "c920f1feafd85f178c3f78f1f3d4a2019f9f1785ef406e6031cc62cc8ed2a102",
       "claim_ids": [
@@ -4184,7 +4184,7 @@
     },
     {
       "id": "EVID-005",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "evidence/UNIT-002-D1-SCHEMA-v1.md",
       "sha256": "daf025cec21c9c048dc798f63e253860320b48fb6eb2f094c07ad899a26edae0",
       "claim_ids": [
@@ -4201,7 +4201,7 @@
     },
     {
       "id": "EVID-006",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "evidence/UNIT-003-POLICY-v1.md",
       "sha256": "6f9f966247d9626cd6e9bb059f8e1d6b7e0f9e9b7f329c9ed0720e1076c63f87",
       "claim_ids": [
@@ -4218,7 +4218,7 @@
     },
     {
       "id": "EVID-007",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "evidence/UNIT-004-SECTION-REGISTRY-v1.md",
       "sha256": "4a14d425b741d594b7cd67612ba85e83ac84bd8d65cd9cd65e97ce0baf50b1e8",
       "claim_ids": [
@@ -4237,7 +4237,7 @@
     },
     {
       "id": "EVID-008",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "evidence/UNIT-005-ISSUE-BUILDER-v1.md",
       "sha256": "39cc897c4285f4170e9d6aa7d3813fee9a0bd5f42262d62a23e3a39682a001c3",
       "claim_ids": [
@@ -4253,7 +4253,7 @@
       "valid_until": null
     }
   ],
-  "next_unit": "UNIT-011",
-  "manifest_sha256": "655b1fc3864dba11d832cb05a59c558ca43856933d28eeb1cbcb7075008f5641",
-  "updated_at": "2026-07-12T08:36:00.000Z"
+  "next_unit": "UNIT-018",
+  "manifest_sha256": "7237ac809bcc78dde592cbda0286951d7b830151e3d2665a5d8d5cbdba10d3ea",
+  "updated_at": "2026-07-12T10:24:23.000Z"
 }

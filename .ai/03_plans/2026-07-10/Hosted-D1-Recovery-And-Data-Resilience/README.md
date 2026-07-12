@@ -1,5 +1,14 @@
 # Hosted D1 Recovery And Data Resilience
 
+> **Current execution contract:** Read AGENTIC_EXECUTION_PROFILE.md before
+> implementation. It applies the current lean agent workflow and User Test
+> Authorization Gate to all older execution, testing, browser, validation, and
+> reviewer language in this pack without changing product scope or status.
+>
+> **Freshness:** CURRENT_SOURCE_AND_READINESS_AUDIT.md is the authoritative
+> 2026-07-12 source-drift and individual readiness verdict. Older line numbers,
+> migration tails, and active-pack locations are historical navigation only.
+
 ## Outcome
 
 Prove that a recent hosted Archestimator D1 export can be restored into an isolated disposable D1 target, passes schema/data/authz/application checks, and yields a measured, repeatable recovery artifact without risking the bound production database. This pack owns `BETA-P0-03`.
@@ -8,7 +17,7 @@ Prove that a recent hosted Archestimator D1 export can be restored into an isola
 
 | Field | Value |
 | --- | --- |
-| Package | `CONDITIONALLY_READY` |
+| Package | `IMPLEMENTATION_READY` |
 | Implementation | `NOT_STARTED` |
 | Release | `BOUNDARY` |
 | Lifecycle | `ACTIVE` |

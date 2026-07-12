@@ -4,19 +4,21 @@
 **Repository baseline:** `pjel888/archestimator` on `main`, refreshed at commit `6b59648a70c485cd54bad8f3659b3ec454621530`  
 **Primary route family:** `/share/[token]`, `/api/share/[token]/*`, `/workshop/publisher`  
 **Deliverable type:** source-grounded product, UX, data, security, and implementation plan  
-**Execution status:** planning only; no application code, migration, test, browser run, or provider state was changed
+**Execution status:** local implementation in progress; Units 001–017 and 019
+are verified locally, while Units 018, 020, and 021 retain release-only proof
+boundaries
 
 ## Status capsule
 
 - **Profile:** `high-blast-radius`
 - **Package status:** `IMPLEMENTATION_READY`
-- **Implementation status:** `NOT_STARTED`
+- **Implementation status:** `IN_PROGRESS`
 - **Release status:** `NOT_EVALUATED`
 - **Plan lifecycle:** `ACTIVE`
 - **Terminal status:** `ACTIVE`
-- **Current run scope:** `PLAN_ONLY`
+- **Current run scope:** `IMPLEMENT_LOCAL`
 - **Canonical execution artifact:** `15-IMPLEMENTATION-ROADMAP-AND-BACKLOG.md`
-- **Exact start point:** `UNIT-001`
+- **Resume point:** `UNIT-018`, `UNIT-020`, and `UNIT-021` release gates
 - **Durable resume state:** `LOOP_LEDGER.md`
 - **Manifest:** `plan-pack.json`
 
@@ -86,13 +88,20 @@ The July 12 `Shared-Estimate-Page` audit has now been source-reviewed and consol
 
 ## Evidence boundary
 
-This audit used:
+The original audit used:
 
 - the current GitHub repository through the connected GitHub application;
 - current Notion product-truth, architecture, security, roadmap, feature, and archive pages;
 - official product documentation from Qwilr, Procore, Bluebeam, Figma, Notion, Slack, Cloudflare, NIST, OWASP, and W3C.
 
-The supplied localhost URL could not be opened from this environment. The shared page was therefore audited through its current route, components, APIs, repositories, migrations, and prior repository evidence. No browser automation, screenshots, Playwright, build, or test suite was run; the repository explicitly requires current-task authorization before those evidence surfaces are used.
+The supplied localhost URL was not visually opened during the original audit.
+The shared page was therefore audited through its current route, components,
+APIs, repositories, migrations, and prior repository evidence. Since then,
+local source, migrations, and user-authorized focused tests have implemented
+the verified execution units recorded in `LOOP_LEDGER.md` and `evidence/`.
+No browser automation, screenshots, or hosted-provider proof is claimed; those
+surfaces remain subject to current-task authorization and explicit release
+boundaries.
 
 ## Recommended delivery boundary
 

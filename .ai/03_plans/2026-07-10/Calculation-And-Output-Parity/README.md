@@ -1,6 +1,15 @@
 # Calculation And Output Parity - Plan Pack
 
-Status tuple: `package_status=CONDITIONALLY_READY`,
+> **Current execution contract:** Read AGENTIC_EXECUTION_PROFILE.md before
+> implementation. It applies the current lean agent workflow and User Test
+> Authorization Gate to all older execution, testing, browser, validation, and
+> reviewer language in this pack without changing product scope or status.
+>
+> **Freshness:** CURRENT_SOURCE_AND_READINESS_AUDIT.md is the authoritative
+> 2026-07-12 source-drift and individual readiness verdict. Older line numbers,
+> migration tails, and active-pack locations are historical navigation only.
+
+Status tuple: `package_status=IMPLEMENTATION_READY`,
 `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`,
 `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
@@ -98,8 +107,8 @@ the working estimate.
 ## Proof Boundary And Stop Condition
 
 Planning stops when the pack validates semantically, every advertised ready unit
-is dependency-closed, and `UNIT-001` is the exact next node. The package remains
-`CONDITIONALLY_READY`; downstream migration/Publisher units are `PLANNED`. No
+is dependency-closed, and `UNIT-001` is the exact next node. The package is
+`IMPLEMENTATION_READY`; `UNIT-001..007` form one dependency-closed ready slice. No
 calculation, workbook, print, browser, or release result is claimed by the plan.
 
 Implementation stops only when all cross-surface fixture assertions pass, the

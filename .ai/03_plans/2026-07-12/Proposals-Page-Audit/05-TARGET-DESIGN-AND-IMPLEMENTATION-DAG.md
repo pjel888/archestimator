@@ -16,10 +16,20 @@ first** without touching the redesign; **Track B** is the UX redesign.
 
 ```
 Track A — Data-layer hardening (bug fixes, no UI change)
+  A0 EMAIL DELIVERABILITY (SPF/DKIM/DMARC) — P0, owner DNS action     ← ships FIRST
   A1 repository row-resilience + logging
   A2 normalizeDecision type fix
   A3 responded delivery status write
   A4 truncation signal (`LIMIT 51` + boolean)     ← optional, can move to B
+  --- round-2 deep-audit additions (see `09`, `10`) ---
+  A5 recipient-removal PII purge (P1-4)
+  A6 project_publication_events retention TTL (P1-5)
+  A7 openRecipientProposalAction rate limit + error collapse (P1-6)
+  A8 shared_link_responses unique constraint (P1-7)
+  A9 console log redaction fix (P2-8)
+  A10 client refresh-failure observability (P2-10)
+  A11 loadRecipientProposals rate limit (P2-13)
+  A12 inbox de-duplication by project (P2-14)
 
 Track B — UX redesign ("looks like the projects page")
   B1 WorkshopCollectionLayout adoption + useReducer state
@@ -37,6 +47,17 @@ Track A has **no dependency** on Track B. Track B's units depend on B1 (the
 shell + reducer) but are otherwise parallelizable in small batches.
 
 ## 2. Track A — Data-layer hardening (ship first)
+
+### A0 · Email deliverability (SPF/DKIM/DMARC) — P0, ships before everything else
+- **Goal:** proposal invitations actually reach recipient inboxes (not spam).
+- **Exact problem:** DNS for `archestimator.com` authenticates against Namecheap (`spf.efwd.registrar-servers.com`, `eforward*.registrar-servers.com` MX) while the app sends via Cloudflare Email (`wrangler.jsonc:28-32`). Outbound Cloudflare mail SPF-softfails → spam. DMARC `p=none` (no enforcement). No DKIM found. See `02` P0-1.
+- **This is a DNS/owner action, not a code change.** The owner must:
+  1. Update SPF TXT at the apex to include Cloudflare's send path.
+  2. Publish DKIM for the Cloudflare selector.
+  3. Tighten DMARC to `quarantine` then `reject` after monitoring.
+  4. Send a real test to Gmail + Outlook; confirm authentication headers.
+- **Why first:** no email delivery = no proposals feature. Every other fix in this pack is moot if the invitation never reaches the recipient.
+- **Test decision:** requires `TEST_TASK` (real email send to external inboxes). Maps to Track 3 in `15-COUNSEL-BRIEF-AND-DELIVERY-PLANS.md`, now promoted from side-check to primary beta gate.
 
 ### A1 · Repository row-resilience + logging
 - **Goal:** one unmappable row no longer blanks the whole inbox; D1 failures are logged.
@@ -72,6 +93,55 @@ shell + reducer) but are otherwise parallelizable in small batches.
   and render a bounded "More proposals are available" affordance. Do not add a
   second `COUNT(*)` query in V1.
 - **Dependency:** if done in Track A, touches the result type (a contract the client consumes). Coordinate with B1 if B1 is in flight on the same files. Safe to do first in Track A if B hasn't started.
+
+### A5 · Recipient-removal PII purge (P1-4, `09` §3)
+- **Goal:** removing a recipient actually removes their PII, not just the recipient row.
+- **Exact paths:** `src/lib/publication/actions.ts:1656-1695` (`removeSharedLinkRecipient`); child-table FK behavior in `migrations/0066_*.sql:216,259,312`; `shared_link_comments.author_email` NOT NULL (`0014:103`).
+- **Approach (needs DEC-AUTO-111):** either (a) soft-delete recipient + anonymize `author_email`/`author_name`/`signer_name`/`note`/`body` to `"[removed]"` in the same transaction, or (b) migration to make `author_email` nullable + a purge step. Option (a) is cheaper (no migration); option (b) is cleaner.
+- **Invariants:** publisher's audit trail of *that a decision/comment happened* can be retained (anonymized), but the recipient's identifiable attributes must be scrubbed.
+- **Test decision:** `NOT_REQUIRED`. `TEST_PROPOSAL`: D1 inspection after removal — await `TEST_TASK`.
+
+### A6 · `project_publication_events` retention TTL (P1-5, `09` §5)
+- **Goal:** the access/password audit log doesn't grow forever.
+- **Exact paths:** `src/lib/compliance/retention-core.ts:87-221`; the enum at `migrations/0034_data_retention_events.sql:13-29` omits `project_publication_events`.
+- **Approach:** add `project_publication_events` to `DEFAULT_RETENTION_RULES` mirroring `shared_link_events` (90-day purge). May require extending the `0034` retention-event enum.
+- **Cheapest privacy fix in the register.** Independent of all other units.
+
+### A7 · `openRecipientProposalAction` rate limit + error collapse (P1-6, `10` §5.2)
+- **Goal:** close the enumeration/membership oracle; add DoS protection.
+- **Exact paths:** `src/lib/publication/actions.ts:304-380` (no rate limit; distinct errors `not-a-recipient` vs `unavailable` at `:330-332`); `src/lib/publication/public-repository.ts` (the rate-limit helpers to mirror).
+- **Approach:** (a) collapse `not-a-recipient` + `unavailable` into a single generic `"unavailable"` error so the action reveals nothing about existence/membership; update `ProposalRow.tsx:66-71` error-message mapping accordingly. (b) Add a per-user rate limit (mirror `checkSharedLinkSessionStartRateLimit`, 10/min).
+- **Invariants:** the legitimate recipient's open flow is unaffected; only probing is degraded.
+- **Test decision:** `NOT_REQUIRED`. `TEST_PROPOSAL`: probe with N random + 1 known UUID — await `TEST_TASK`.
+
+### A8 · D1 `shared_link_responses` unique constraint (P1-7, `10` §6)
+- **Goal:** the "first decision is final" contract is DB-enforced, not just app-level.
+- **Exact paths:** `src/lib/publication/d1-store.ts:760-765` (app-level pre-check, raceable); `migrations/0014_publication_shared_links.sql:149-151` (non-unique index).
+- **Approach:** new D1 migration `CREATE UNIQUE INDEX idx_shared_link_responses_recipient_publication ON shared_link_responses(recipient_id, publication_id) WHERE recipient_id IS NOT NULL`. Update the INSERT at `d1-store.ts:791` to `INSERT OR IGNORE` (or catch the constraint violation and return the "already submitted" result).
+- **Invariants:** at most one decision row per (recipient, publication); concurrent submissions produce one winner + one "already submitted."
+- **Test decision:** `NOT_REQUIRED`. `TEST_PROPOSAL`: concurrent POSTs to `/api/share/[token]/decision` — await `TEST_TASK`.
+
+### A9 · Console log redaction fix (P2-8, `09` §6)
+- **Goal:** direct `emitLogRecord` callers can't leak plaintext email to Workers Logs.
+- **Exact paths:** `src/lib/observability/logger.ts:163-177` (`consoleAppLogger.log` serializes the un-redacted record).
+- **Approach:** one-line fix — `const line = JSON.stringify(redactLogRecord(record));` (or apply the same redaction `buildDevRecord` uses) before `console.error(line)`.
+- **Cheapest privacy fix after A6.** Independent.
+
+### A10 · Client refresh-failure observability (P2-10, `10` §2.3)
+- **Goal:** a recipient who can load but not refresh the inbox produces a production signal.
+- **Exact paths:** `src/components/workshop/proposals-page-client.tsx:31-35,79,98-108` (the React Query refresh path catches failures client-side without reporting).
+- **Approach:** in the error branches that render `ProposalsErrorState` / the soft banner, call `postClientErrorReport(buildClientErrorPayload(error, { route: "workshop.proposals", source: "recipient-proposals-refresh" }))` (mirror `WorkshopRouteErrorState.tsx:33-40`).
+- **Test decision:** `NOT_REQUIRED`.
+
+### A11 · `loadRecipientProposals` rate limit (P2-13, `10` §5.3)
+- **Goal:** authenticated DoS protection on the inbox query.
+- **Exact paths:** `src/lib/recipient-proposals/actions.ts:9-12`.
+- **Approach:** add a per-user rate limit (mirror `checkProjectPublicationEventRateLimit`, 60/min) before `listRecipientProposals()`.
+
+### A12 · Inbox de-duplication by project (P2-14, `10` §7.3)
+- **Goal:** one row per project in the inbox even across revoked+published versions.
+- **Exact paths:** `src/lib/repositories/recipient-proposals-repository.ts:128-150` (no `project_id` de-dup).
+- **Approach (needs DEC-AUTO-112):** either (a) collapse to latest-per-`project_id` in SQL (prefer the `published` row, then the most recent by `published_at`), or (b) migrate recipient rows on republish. Option (a) is a SQL-only change; option (b) is a publisher-flow change. The product question: should a recipient see history (revoked v1) or only the latest? Default to latest-only for V1.
 
 ## 3. Track B — UX redesign
 

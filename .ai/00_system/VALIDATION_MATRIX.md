@@ -161,6 +161,12 @@ Do not validate every unit and again every layer with identical commands. Use a
 boundary checkpoint when integration changes the claim, then one fresh final
 check for the evidence actually relied on.
 
+For a plan-pack execution, a missing or unapproved test is never a reason to
+leave local implementation incomplete. Follow
+`.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md`: continue all repository-controlled
+units, record the `TEST_PROPOSAL` as residual risk, and isolate only the exact
+unproven external claim.
+
 Completion reporting names:
 
 - selected test decision;

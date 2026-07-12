@@ -1,6 +1,15 @@
 # Estimate Intelligence And Price Governance - Plan Pack
 
-Status tuple: `package_status=CONDITIONALLY_READY`,
+> **Current execution contract:** Read AGENTIC_EXECUTION_PROFILE.md before
+> implementation. It applies the current lean agent workflow and User Test
+> Authorization Gate to all older execution, testing, browser, validation, and
+> reviewer language in this pack without changing product scope or status.
+>
+> **Freshness:** CURRENT_SOURCE_AND_READINESS_AUDIT.md is the authoritative
+> 2026-07-12 source-drift and individual readiness verdict. Older line numbers,
+> migration tails, and active-pack locations are historical navigation only.
+
+Status tuple: `package_status=IMPLEMENTATION_READY`,
 `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`,
 `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
@@ -86,7 +95,8 @@ Out of scope:
 
 Planning stops when the manifest is validator-clean, all ordinary choices are
 closed, every unit is runnable from bounded context, the ready slice is
-dependency-closed, and `UNIT-001` is the exact restart point. This does not claim
+dependency-closed, `UNIT-001..008` are READY, and `UNIT-001` is the exact
+restart point. This does not claim
 implementation or release readiness.
 
 Implementation stops only after every unit is `VERIFIED`, all acceptance criteria

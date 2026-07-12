@@ -104,11 +104,52 @@
 | DEC-AUTO-008 Accept TanStack cache isolation gap (≤30s) | ✓ (this audit P2 cross-cache gap, accepted) |
 | DEC-AUTO-009 Absorb open items from the four 2026-07-07 packs | ✓ retained through the archived predecessor's reconciliation artifacts |
 
+## DEC-AUTO-111 · Recipient-removal PII policy: anonymize-in-place (round 2)
+- **Question:** When a publisher removes a recipient, what happens to their PII in `shared_link_comments`/`shared_link_responses`? (P1-4, `09` §3)
+- **Evidence:** `0066` FKs are `ON DELETE SET NULL` → `author_email`/`signer_name`/`note`/`body` survive. `author_email` is `NOT NULL` (`0014:103`).
+- **Options:** (a) soft-delete + anonymize-in-place (`"[removed]"`); (b) migration to make `author_email` nullable + hard-purge step; (c) CASCADE delete (loses the publisher's audit trail that a decision happened).
+- **Decision:** **(a) anonymize-in-place.** Set `author_email='[removed]'`, `author_name='[removed]'`, `signer_name='[removed]'`, `note='[removed]'`, `body='[removed]'` in the same transaction as the recipient-row delete. Requires making `author_email` nullable OR using a sentinel value (keep NOT NULL, set to `'[removed]'`).
+- **Why:** preserves the publisher's audit trail (that a decision/comment happened, against which publication/version) while scrubbing identity. No migration needed if using a sentinel value. Avoids CASCADE's data-loss of the publisher's legitimate records.
+- **Rejected:** (b) is cleaner but needs a migration + more code; (c) destroys evidence the publisher needs.
+- **Confidence:** Medium (sentinel value is pragmatic; a future privacy migration can formalize).
+- **Responsible role:** Lead.
+
+## DEC-AUTO-112 · Inbox multi-version de-duplication: latest-per-project (round 2)
+- **Question:** Should the inbox show multiple rows for the same project across revoked+published versions, or collapse to latest? (P2-14, `10` §7)
+- **Evidence:** the inbox query has no `project_id` de-dup; a recipient on v1 (revoked) + v2 (published) sees two rows.
+- **Options:** (a) collapse to latest-per-`project_id` (prefer `published`, then most recent); (b) show full history; (c) migrate recipient rows on republish.
+- **Decision:** **(a) latest-per-project, SQL-only.** Recipients care about "what's the current proposal for this project," not version archaeology. Version history is an Enterprise feature (`ENTERPRISE-P1-PROD-001`).
+- **Why:** simplest, SQL-only change; matches recipient mental model; `LIMIT 50` stops being wasted on stale versions.
+- **Rejected:** (b) clutters the inbox; (c) is a publisher-flow change with wider blast radius.
+- **Confidence:** High.
+- **Rollback trigger:** if recipients/owners ask to see revoked versions for audit, add a "show history" toggle.
+
+## DEC-AUTO-113 · Enumeration-oracle fix: collapse errors (round 2)
+- **Question:** How to close the `not-a-recipient` vs `unavailable` enumeration oracle in `openRecipientProposalAction`? (P1-6, `10` §5.2)
+- **Decision:** **Collapse both into a single generic `"unavailable"` error** + add a per-user rate limit (10/min). The legitimate recipient's open flow is unaffected; only probing is degraded. Update `ProposalRow.tsx:66-71` message mapping to one message: "This proposal could not be opened. Contact the sender for an updated link."
+- **Why:** the distinct errors exist only to help the legitimate user self-serve ("invite your signed-in email"). That UX value is outweighed by the enumeration risk. The generic message + "contact sender" still guides the legitimate user.
+- **Confidence:** High.
+
+## DEC-AUTO-114 · i18n locale fix: explicit `"en"` + `day: "2-digit"` (round 4, closes P2-15)
+- **Question:** What locale should `ProposalRow.tsx:44` `Intl.DateTimeFormat` use? (`ADVERSARIAL` P2-15)
+- **Evidence:** no i18n framework; `layout.tsx:36` pins `lang="en"`; `Intl.DateTimeFormat(undefined, …)` floats with browser locale → "Jul 8" ambiguous for days 1–12 across en-US vs en-PH/en-GB.
+- **Options:** (a) `"en-PH"` explicit (PH-first product); (b) `"en"` (matches the pinned `lang`, lets the runtime pick the en variant); (c) keep `undefined` (status quo); (d) adopt a full i18n framework.
+- **Decision:** **(b) `Intl.DateTimeFormat("en", { month: "short", day: "2-digit", year: "numeric" })`.** Fixed `"en"` matches the declared document language (`lang="en"`); `day: "2-digit"` removes the 1–12 ambiguity ("08 Jul 2026" is unambiguous everywhere). Avoids over-committing to `"en-PH"` before a product-wide locale decision, and avoids the cost of adopting an i18n framework for one date format.
+- **Why:** cheapest fix that closes the correctness gap; aligns the date format with the declared page language; `2-digit` is the unambiguous day format per CLDR.
+- **Rejected:** (a) presumes PH-only before a product-wide decision; (c) is the bug; (d) is out of scope for one date format (adopt when multi-language is a real goal).
+- **Confidence:** High.
+- **Responsible role:** Lead. Maps to a one-line change in Track B (`ProposalRow.tsx:44`) or a standalone tweak.
+
+---
+
 ## True owner-decision boundaries (AUTH-*)
 
 These are **not** closed by this audit — they require the owner:
 
 - **AUTH-1 · Grouping in V1?** (DEC-AUTO-105 defers it; the owner may override.)
 - **AUTH-2 · `clientName` on the inbox row?** (deferred unless a current implementation need proves it useful.)
+- **AUTH-3 · Electronic-consent disclosure + assumptions/exclusions block (domain, `08`).** Beta-recommended, not blocking; owner decides if they ship in the first-users slice or right after.
+- **AUTH-4 · Where do the round-2 P1 bugs go?** Ship Track A (A5-A12) as a standalone slice, or fold into the active pack?
+- **AUTH-5 · The "100% of all possible requirements" bar is outside static audit (2026-07-12).** Owner confirmed the bar is genuinely higher than static audit. Four non-static tracks in `13-NON-STATIC-GAPS-AND-ESCALATION.md` cannot be closed by reading code: (1) browser/UX testing — gated by the User Test Authorization Gate, needs explicit `TEST_TASK`; (2) counsel/legal review — needs a lawyer; (3) provider delivery test — needs real email + owner credentials; (4) domain/SME review — needs a QS/estimator. This is the loop's stop condition 3: a true authorization/resource boundary after every safe in-scope action (4 static rounds + runtime `wrangler d1 info`), with an exact continuation packet (`13`).
 
 No other open internal decisions remain. Every other choice in this audit is closed.

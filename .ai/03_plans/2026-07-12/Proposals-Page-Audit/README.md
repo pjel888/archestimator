@@ -39,7 +39,7 @@ cross-reference.
 |---|---|---|
 | `README.md` (this file) | entrypoint | Outcome, scope, status, and resume pointer |
 | `01-CURRENT-STATE-MAP.md` | audit | Full component/data/server/authz/perf/cloudflare map with file:line refs |
-| `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found (**25: 7×P1, 11×P2, 7×P3** after deep audit), severity, evidence, recommended surface |
+| `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found (**31: 1×P0, 7×P1, 16×P2, 7×P3** across 10 rounds), severity, evidence, recommended surface |
 | `03-READINESS-AND-RECOMMENDATIONS.md` | audit | Beta readiness verdict, prioritized recommendations, relationship to the active pack |
 | `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md` | design | Feature-by-feature projects-vs-proposals gap; exact primitives/patterns to reuse |
 | `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` | execution DAG | Canonical dependency-ordered units (data hardening + redesign) |
@@ -48,14 +48,27 @@ cross-reference.
 | `08-DOMAIN-AND-INDUSTRY-REQUIREMENTS.md` | research | Construction/RFP/e-sign industry norms (RICS NRM, ESIGN/UETA/eIDAS, RA 8792) vs current code |
 | `09-PRIVACY-AND-COMPLIANCE-AUDIT.md` | audit | PII inventory, right-to-be-forgotten, retention, residency, log-leak paths |
 | `10-TECHNICAL-DEEP-AUDIT.md` | audit | Bundle, prod monitoring, analytics, mobile, abuse/enumeration, cross-surface, variants |
+| `12-ADVERSARIAL-PASS.md` | audit | Round-3 adversarial review (12 hypotheses) + round-4 BOUNDARY closures (cron statically traced, i18n decided, D1 region verified at APAC); convergence verdict |
+| `13-NON-STATIC-GAPS-AND-ESCALATION.md` | handoff | The 4 tracks static audit cannot close (browser/UX, legal/counsel, provider delivery, domain/SME) — owner decision: bar is genuinely higher than static |
+| `14-UX-HEURISTIC-EVALUATION.md` | ux | Track 1 (non-browser half): Nielsen + WCAG + recipient-job heuristic evaluation; 6 prioritized UX recommendations; 5 `NEEDS-RUNTIME` items feeding the `TEST_TASK` slice |
+| `15-COUNSEL-BRIEF-AND-DELIVERY-PLANS.md` | handoff | Track 2 (6-question counsel brief), Track 3 (email delivery test procedure), Track 4 (8-point QS/domain checklist) — route-ready artifacts |
+| `16-TRACEABILITY-AND-CONSISTENCY-AUDIT.md` | quality | Round-6 internal consistency proof: every bug→unit→slice mapped (zero orphans), every ID cross-ref resolves, `file:line` citations verified against current source |
+| `17-OWASP-AND-SECURITY-HEADERS-AUDIT.md` | security | Round-7 OWASP Top 10 (2021) + security-headers scorecard; CSP Report-Only gap (P2-17), no Permissions-Policy (P3-11), A06 scan gap (P3-12) |
+| `18-PERFORMANCE-AND-DEPENDENCY-AUDIT.md` | perf/deps | Round-9 perf-budget coverage + `bun audit` (OWASP A06 **CLOSED clean**); route missing from budget table (P2-18), no route-segment config (P3-13), no bundle CI budget (P3-14) |
+| `19-AUTH-BYPASS-VERIFICATION-AND-FRAMEWORK-COVERAGE.md` | security | Round-10: auth-bypass via middleware trust headers **VERIFIED SECURE** (strip-set-compare chain); full framework-coverage enumeration (all authorization-free frameworks checked) |
+| `20-EMAIL-DNS-FIX-PLAYBOOK.md` | fix playbook | **Copy-paste-ready P0-1 fix**: root cause (no active CF zone → Email Sending un-onboarded), Option A (migrate DNS) vs B (stay Namecheap + Resend), exact DNS/CLI/verification steps |
 | `11-ABSORBED-2026-07-11-REQUIREMENTS.md` | merge receipt | Full predecessor-unit disposition and V1 deferrals |
 | `IMPLEMENTATION_PLAN.md` | execution contract | Ordered implementation slices, proof boundaries, and stop condition |
 | `LOOP_LEDGER.md` | execution state | Initial NOT_STARTED ledger and merge evidence |
+| `plan-pack.json` | manifest | **Machine-validated** schema manifest (`bun run validate:plan-pack` passes); status tuple `CONDITIONALLY_READY / NOT_STARTED / BOUNDARY / ACTIVE` |
 
-This remains a lean, human-readable plan pack rather than the schema-managed
-`plan-pack.json` format. `IMPLEMENTATION_PLAN.md`, `05`, and the ledger are the
-execution control surfaces; their status is `IMPLEMENTATION_READY / NOT_STARTED
-/ NOT_EVALUATED / ACTIVE`.
+This pack carries a **schema-valid `plan-pack.json`** (round-6 addition): `bun run
+validate:plan-pack -- .ai/03_plans/2026-07-12/Proposals-Page-Audit` passes.
+Status tuple: `package_status: CONDITIONALLY_READY / implementation_status:
+NOT_STARTED / release_status: BOUNDARY / terminal_status: ACTIVE`. UNIT-001
+(Slice 1, A1+A2) is READY and is the `next_unit`; the full 100%-quality bar is
+BOUNDARY on AUTH-001 (the non-static tracks in `13`). `IMPLEMENTATION_PLAN.md`,
+`05`, and the ledger remain the human-readable execution control surfaces.
 
 ## Scope
 
@@ -92,11 +105,13 @@ execution control surfaces; their status is `IMPLEMENTATION_READY / NOT_STARTED
 
 | Field | Value | Notes |
 |---|---|---|
-| Planning status | IMPLEMENTATION_READY | Audit complete; predecessor scope merged and dispositioned |
-| Bugs found | 14 | 3 P1, 7 P2, 4 P3 — see `02-BUG-AND-RISK-REGISTER.md` |
-| Highest-severity open bug | **`responded` delivery status never written** (`d1-store.ts:377,410`) + **single bad row fails the whole inbox** (`recipient-proposals-repository.ts:65,157`) | Both P1 |
-| Page vs. owner directive | **MISMATCH** | Page is a flat bordered table; this active pack closes the gap. |
-| Beta readiness | **CONDITIONAL** | Inbox is functional and secure for the common path, but has data-truncation, error-swallowing, and UX gaps that will bite at >50 proposals or on any single corrupt row. |
+| Audit status | **P0 FOUND in round 6** — email deliverability (SPF/MX Namecheap/Cloudflare mismatch) defeats the proposals feature | Static audit converged (4 rounds, 0 new findings in round 4); `validate:plan-pack` passes; **but** round-6 domain check found P0-1: SPF/MX point at Namecheap while app sends via Cloudflare → invitations SPF-softfail → spam. This is the highest-severity finding in the pack. Owner DNS action + `TEST_TASK` real-send verification required (Slice 0). |
+| Bugs found | **27** | **7 P1**, 14 P2, 6 P3 — see `02` + `09`. P2-7 downgraded to P3 (statically resolved); P2-15 closed by DEC-AUTO-114. |
+| Highest-severity open bugs | **Decision race** (P1-7, D1 has no unique constraint), **enumeration oracle** (P1-6, `openRecipientProposalAction` distinct errors + no rate limit), **recipient PII survives removal** (P1-4), **audit log no TTL** (P1-5) | Plus round-1 P1s (`responded` P1-1, one-bad-row-fails-all P1-2) |
+| Page vs. owner directive | **MISMATCH** | Page is a flat bordered table; directive wants projects-page card grid. Active pack exists to close this. |
+| Domain gaps | 2 beta-recommended | Electronic-consent disclosure (ESIGN/UETA/RA 8792); sender-side assumptions/exclusions block (RICS NRM). See `08`. |
+| Privacy posture | Conditional | Marketing disclaims SOC2/GDPR/HIPAA/DPA; beta-defensible but P1-4/P1-5/P2-8 should close before first users. See `09`. |
+| Beta readiness | **CONDITIONAL** | Functional + secure on the common path, but the deep audit found data-integrity (P1-7), enumeration (P1-6), privacy (P1-4/P1-5), observability (P2-2/P2-10), and analytics (P2-11) gaps that round 1 missed. |
 
 ## One-line architecture (detail in `01-CURRENT-STATE-MAP.md`)
 
@@ -117,15 +132,17 @@ execution control surfaces; their status is `IMPLEMENTATION_READY / NOT_STARTED
 
 ## Resume pointer
 
-- **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity.
+- **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity (31 bugs: 1 P0, 7 P1, 16 P2, 7 P3).
 - **Start here for architecture:** `01-CURRENT-STATE-MAP.md`.
 - **Start here for "what do we do about it":** `03-READINESS-AND-RECOMMENDATIONS.md`.
 - **Start here for the projects-page parity gap:** `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md`.
 - **Start here for the implementation plan:** `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` (Track A = data fixes, Track B = redesign).
 - **Start here for closed decisions:** `06-DECISION-LOG.md`.
 - **Start here for the readiness snapshot:** `07-BASELINE-CRITERION-MATRIX.md`.
-- **To execute:** begin with `IMPLEMENTATION_PLAN.md` Slice 1 (`A1+A2`), then
-  continue through the dependency order in `05`.
+- **Start here for domain/industry norms:** `08-DOMAIN-AND-INDUSTRY-REQUIREMENTS.md` (RICS NRM, ESIGN/UETA/eIDAS, RA 8792).
+- **Start here for privacy/compliance:** `09-PRIVACY-AND-COMPLIANCE-AUDIT.md` (PII, retention, DSAR, log leak).
+- **Start here for the technical deep audit:** `10-TECHNICAL-DEEP-AUDIT.md` (bundle, monitoring, analytics, mobile, abuse, cross-surface, variants).
+- **To execute fixes:** either (a) ship Track A from `05` as a standalone slice (now expanded with P1-4…P1-7 from the deep audit), or (b) fold the deep-audit bugs into the active `.ai/03_plans/2026-07-11/Proposals-Feature/` pack and continue from its `UNIT-001`.
 
 ## Provenance
 

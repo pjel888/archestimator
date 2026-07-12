@@ -1,13 +1,13 @@
 {
   "schema_version": "1.1.0",
-  "generation": 17,
+  "generation": 22,
   "generation_status": "ACTIVE",
-  "supersedes_generation": 16,
-  "observed_at": "2026-07-11T10:21:03.476Z",
-  "source_revision": "f83d4504d5e8425aa078d286d55e4d19d9cc0612",
+  "supersedes_generation": 21,
+  "observed_at": "2026-07-12T12:13:02.812Z",
+  "source_revision": "18b79a47da1fd947d4eb9854275e03ad4e5a3f3c",
   "canonicalization": "recursive-key-sort,array-order-preserved,json-no-whitespace,omit-current-digest-field",
   "migration_tail": {
-    "latest_path": "migrations/0067_beta_activation_events.sql",
+    "latest_path": "migrations/0073_estimate_calculation_input_constraints.sql",
     "entries": [
       {
         "path": "migrations/0001_closed_beta_feedback.sql",
@@ -239,15 +239,39 @@
       },
       {
         "path": "migrations/0066_publication_foreign_keys.sql",
-        "sha256": "81a8b1c76d8bc114737e5835c304fa4bbc28963e4eb3fb6d5041c7eed84fd62e"
+        "sha256": "771919e530baee3defe94be6b11841efceb15321b06ad2b2a572bb4dc2374bd1"
       },
       {
         "path": "migrations/0067_beta_activation_events.sql",
         "sha256": "8e68d1103241eab67eaf6be26a0ee8b760ab8da31d4be8255af94349ff84c5f9"
+      },
+      {
+        "path": "migrations/0068_client_portal_foundation.sql",
+        "sha256": "22a8c6016f8724d6e3ba120fc82cb6de1377a5fa3e64ddd2cdba64738773faae"
+      },
+      {
+        "path": "migrations/0069_client_portal_message_visibility.sql",
+        "sha256": "7834c26e85d827284d266e1c815282e9a15b12cca5baf843520b7a0684634045"
+      },
+      {
+        "path": "migrations/0070_client_portal_legacy_migration_rollout.sql",
+        "sha256": "0fcc350671b2148fbee4c1ab936804d55f3d489860ff35a01a21ca1061878b3a"
+      },
+      {
+        "path": "migrations/0071_client_portal_legacy_write_freeze.sql",
+        "sha256": "f93a068c3c53191f8664b8fbc28e3e9fa6a55cc7a0eebf9e8ddec6c62bc56a7d"
+      },
+      {
+        "path": "migrations/0072_estimate_intelligence_inputs.sql",
+        "sha256": "4268f3438020a39f304f209bc82af4e64a1f985eb07264219e8ca42838e271ab"
+      },
+      {
+        "path": "migrations/0073_estimate_calculation_input_constraints.sql",
+        "sha256": "9e6ad7c8f9660aecd7b6e318cbe3012b7d7b8cc4b631e710b5cd16b617e050e7"
       }
     ],
     "digest_algorithm": "sha256(canonical-json(sorted path/file-sha256 entries))",
-    "sha256": "fd4e526140dbe5856239662787c546687b047e8109f69e0482a8262c9c46fb32"
+    "sha256": "b3fde2c1e071b05bdb5379ef2537c3f37de44a2f948b36a7921bf13283d4d52b"
   },
   "allocations": [
     {
@@ -256,11 +280,11 @@
       "owner_package_id": "PLAN-2026-07-10-publisher-and-shared-pages",
       "owner_manifest_path": ".ai/09_archive/store/2026-07-11-Publisher-And-Shared-Pages-complete/plan-pack.json",
       "planned_path": "migrations/0066_publication_foreign_keys.sql",
-      "owner_manifest_file_sha256": "3a6c664f496656360eeb2978abc0a713d997df258718d0c77c69a2c32c78af52",
-      "owner_manifest_self_sha256": "1482ae109af86ec2d1747b479cbb9948fa641e8681521d77125428db888e1f63",
+      "owner_manifest_file_sha256": "746a806d7e26785e61006fed8f05b7cdbb21179871a7db5aa9db679e32d67a4c",
+      "owner_manifest_self_sha256": "4c01784cbee0e5a8bd90da3eeecce0cd849c31d1007c8d33b30f25b93b773df4",
       "status": "CONSUMED",
-      "consumed_file_sha256": "81a8b1c76d8bc114737e5835c304fa4bbc28963e4eb3fb6d5041c7eed84fd62e",
-      "allocation_sha256": "9d21198b77e677d5399013f9fd72af105856fb285788849daef3e64773886d7d"
+      "consumed_file_sha256": "771919e530baee3defe94be6b11841efceb15321b06ad2b2a572bb4dc2374bd1",
+      "allocation_sha256": "417a12a4e29cff0ef464aa122c8b8f1d5c22734a08912b39c5531e64111549fb"
     },
     {
       "allocation_id": "activation",
@@ -268,33 +292,35 @@
       "owner_package_id": "PLAN-2026-07-10-first-user-activation-and-cohort-operations",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/First-User-Activation-And-Cohort-Operations/plan-pack.json",
       "planned_path": "migrations/0067_beta_activation_events.sql",
-      "owner_manifest_file_sha256": "9268e9ef08c84adace4d2bcd89188612ecb56ad7461e2e5be18217c68e5048bd",
-      "owner_manifest_self_sha256": "fc771cfdd4e7207a1e32a4b7c3d92783545a0e873195effbc61a67a113e38461",
+      "owner_manifest_file_sha256": "17d4e61366b0e1dbae79092ecc27120a963579b6dfddce1b24f0cfa60fca7045",
+      "owner_manifest_self_sha256": "7066745bdae952aa67d8752aabe8bab2c252ea3ab1286257f101010cf57dc77b",
       "status": "CONSUMED",
       "consumed_file_sha256": "8e68d1103241eab67eaf6be26a0ee8b760ab8da31d4be8255af94349ff84c5f9",
-      "allocation_sha256": "752ef4d2f4fbf6e50e4dee4cb3f898b9a7cd49c4a643363bd6259f5143d7f527"
+      "allocation_sha256": "5bf16673a1f62072589bec4e90380380046e8157ed72bb3f52ec6d3dcc17d035"
     },
     {
       "allocation_id": "estimate-intelligence",
-      "number": "0068",
+      "number": "0072",
       "owner_package_id": "PLAN-2026-07-10-estimate-intelligence-and-price-governance",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/Estimate-Intelligence-And-Price-Governance/plan-pack.json",
-      "planned_path": "migrations/0068_estimate_intelligence_inputs.sql",
-      "owner_manifest_file_sha256": "43df5c0cb5ce8b9cf4f0860f8797ae4572cbb7f8f02f89a9b543cff9bfddbd2c",
-      "owner_manifest_self_sha256": "371529523c3671b107695bda20bba45554851a445938fa11986d670294b8f0ab",
-      "status": "UNCLAIMED",
-      "allocation_sha256": "2d1b0a87d1b583b22925812e8cf36a8ddf70b83bf83bc5971a01758eb9b67079"
+      "planned_path": "migrations/0072_estimate_intelligence_inputs.sql",
+      "owner_manifest_file_sha256": "96ff411be70e86a73f93fa58cd638b64019b4b8bcc4baa4f2ec767e9611a74e5",
+      "owner_manifest_self_sha256": "eaae44c5ff16a5dde152c9df4a70cfcba9d4346e431a184330239b4c217a38a8",
+      "status": "CONSUMED",
+      "consumed_file_sha256": "4268f3438020a39f304f209bc82af4e64a1f985eb07264219e8ca42838e271ab",
+      "allocation_sha256": "fe0a16f242d5947196d729a2285398ea497d66a4ef42d958e42f5fd763441f84"
     },
     {
       "allocation_id": "calculation-parity",
-      "number": "0069",
+      "number": "0073",
       "owner_package_id": "PLAN-2026-07-10-calculation-and-output-parity",
       "owner_manifest_path": ".ai/03_plans/2026-07-10/Calculation-And-Output-Parity/plan-pack.json",
-      "planned_path": "migrations/0069_estimate_calculation_input_constraints.sql",
-      "owner_manifest_file_sha256": "78e4e6de4f3d5654bbc524a916ed5c9124b8a6a7836f8376e19e14276b00a33d",
-      "owner_manifest_self_sha256": "f4b03897791037ad9e79214bf6f6844e97a1a3073334f31bb16cddc30c7b23fe",
-      "status": "UNCLAIMED",
-      "allocation_sha256": "17f92867fafda24ded0bbab6b3aa97437af5e0ad8d0f1accad91f8407f5e1e9d"
+      "planned_path": "migrations/0073_estimate_calculation_input_constraints.sql",
+      "owner_manifest_file_sha256": "000e0a54f284c2495f01d84adf91aeefb94d2574c2440e16ed765acc693b9d6c",
+      "owner_manifest_self_sha256": "63075c19c14215df6ab0284b0c15d2abe617f3d68f328cf004b5aad69dc8e378",
+      "status": "CONSUMED",
+      "consumed_file_sha256": "9e6ad7c8f9660aecd7b6e318cbe3012b7d7b8cc4b631e710b5cd16b617e050e7",
+      "allocation_sha256": "89ada5c50cc507e7b11c8ff8b5a0db373166ab2ae9fd03083ad87208370f9303"
     },
     {
       "allocation_id": "activity",
@@ -309,6 +335,6 @@
       "allocation_sha256": "1e8eaed5920b664e910ec4396f554946a94bce54c03417e879ee3cd742373d51"
     }
   ],
-  "allocation_set_sha256": "2133bc70b4da5e202772beb290f2ae26cb35c7b2039bbcaffed073dc09216cb1",
-  "receipt_sha256": "b6c4264005f00c66e97ed868ba0eb44cc8b7bc8f5d9f233ef3bf824cd5d6d979"
+  "allocation_set_sha256": "1300b1a2ba712ab2d131f037aef4b84b061a911e90faffa4f81aa912b3e656cc",
+  "receipt_sha256": "4d8cc5d7f3fb08a6f0bf34c819b7706763006d5000b0be7fa88c526ce40a6874"
 }

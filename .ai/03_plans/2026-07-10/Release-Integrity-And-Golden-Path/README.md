@@ -1,5 +1,14 @@
 # Release Integrity And Golden Path
 
+> **Current execution contract:** Read AGENTIC_EXECUTION_PROFILE.md before
+> implementation. It applies the current lean agent workflow and User Test
+> Authorization Gate to all older execution, testing, browser, validation, and
+> reviewer language in this pack without changing product scope or status.
+>
+> **Freshness:** CURRENT_SOURCE_AND_READINESS_AUDIT.md is the authoritative
+> 2026-07-12 source-drift and individual readiness verdict. Older line numbers,
+> migration tails, and active-pack locations are historical navigation only.
+
 ## Outcome
 
 Make every external Beta release traceable to an active, required CI run, a deterministic Cloudflare-parity golden-path run, and a generated readiness manifest for the exact deployed commit. This pack owns `BETA-P0-01`, `BETA-P0-02`, `BETA-P0-10`, and release integration for `BETA-P1-09`; the Publisher and Activity packs supply versioned public-review and activity receipts.
@@ -8,7 +17,7 @@ Make every external Beta release traceable to an active, required CI run, a dete
 
 | Field | Value |
 | --- | --- |
-| Package | `CONDITIONALLY_READY` |
+| Package | `IMPLEMENTATION_READY` |
 | Implementation | `NOT_STARTED` |
 | Release | `BOUNDARY` |
 | Lifecycle | `ACTIVE` |

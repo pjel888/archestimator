@@ -147,6 +147,22 @@ For every material choice or conflict:
 
 Do not translate “more than one reasonable option” into a human gate.
 
+## 5.1 Plan-Pack Anti-Blocker Contract
+
+For plan-pack execution, follow `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md`.
+A plan's `BLOCKED`, `NOT_READY`, `CONDITIONALLY_READY`, stale-evidence, or
+dependency label is diagnostic state, never permission to stop an authorized
+implementation run. The lead must repair or implement local prerequisites,
+reorder ready work, absorb a compatible prerequisite, or select a safe fallback
+before reporting a boundary. Do not classify optional tools, reviewers, agents,
+tests lacking explicit authorization, planning artifacts, or ordinary decisions
+as a core blocker. Only an exact true hard gate may narrow an affected external
+claim after all safe in-scope work is complete.
+
+The directive is explicit: **resolve blockers; never stop at them.** A blocker
+is complete only when its recovery work is complete or its exact prohibited
+external action is isolated after all allowed local work is finished.
+
 ## 6. Capability Router
 
 Inventory the capabilities actually available in the current host before

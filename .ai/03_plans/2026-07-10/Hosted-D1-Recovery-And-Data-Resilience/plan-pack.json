@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "26ce05844f7f9428b76b443f9b7698e74f12411a026c04fe08fb45d9a18ca171"
+      "sha256": "fd926e20b3c2bf33328a7f003de74056508b9155b573232e6ee354b8fab03aa1"
     },
     {
       "id": "ART-002",
@@ -100,6 +100,18 @@
       "role": "final-audit",
       "path": "AUTHORIZATION_PACKET_AND_FINAL_AUDIT.md",
       "sha256": "e48256458daee6807daa0235d779b6ac8729b92935151fb0b9c63d3a28655209"
+    },
+    {
+      "id": "ART-015",
+      "role": "agentic-execution-profile",
+      "path": "AGENTIC_EXECUTION_PROFILE.md",
+      "sha256": "cbd9bc81627a354887605cf721250e70a319170f9ec6de8fb9b8e027829c3f83"
+    },
+    {
+      "id": "ART-016",
+      "role": "current-source-readiness-audit",
+      "path": "CURRENT_SOURCE_AND_READINESS_AUDIT.md",
+      "sha256": "7bb35b455fdf8b4840784567d2238f02ed5db9bb719045ff792795038d078da4"
     }
   ],
   "sources": [
@@ -672,7 +684,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "BLOCKED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -786,7 +798,8 @@
         "UNIT-002",
         "UNIT-003",
         "UNIT-004",
-        "UNIT-005"
+        "UNIT-005",
+        "UNIT-006"
       ]
     }
   ],
@@ -851,5 +864,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-11T00:00:00.000Z",
-  "manifest_sha256": "8dc663f189e295e488aec9deb2591cf7941b847956a832169bbba99b4f9ef3c5"
+  "manifest_sha256": "263df51e6470d1a8f5db91c420b5971111be4bc15bd8077aed158c0abc52f146"
 }

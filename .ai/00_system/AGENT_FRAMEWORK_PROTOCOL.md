@@ -146,6 +146,11 @@ are optional bounded helpers, not a mandatory chain. Use them only when their
 extra context/tool cost produces measurable coordination or proof value. Direct
 solo execution remains valid for narrow or tightly coupled work.
 
+For plan packs, apply `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md`: an
+internally resolvable dependency is owned continuation work, not a blocker or
+handoff. Finish repository-controlled prerequisites and preserve only exact
+external release boundaries after local implementation is complete.
+
 ## Shared Behavioral Guardrails
 
 All agents, payloads, skills, prompts, and harness adapters inherit the

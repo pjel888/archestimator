@@ -121,6 +121,18 @@ useful, but record unresolved auxiliary failures without stopping core work. If
 inside the plan pack, update its manifest/hash, and continue. Do not return plan
 repair to the owner.
 
+Treat every internal dependency or `BLOCKED` record as a live repair obligation:
+implement the prerequisite, reorder ready units, absorb the compatible work, or
+use a safe fallback. Do not leave `BLOCKED`, `NOT_READY`, `CONDITIONALLY_READY`,
+an unavailable optional tool/reviewer, or an unapproved `TEST_PROPOSAL` as the
+reason local implementation stops. Only an exact prohibited external action may
+remain as a narrow `AUTH-*` boundary after all safe work is complete.
+
+**Resolve blockers; never stop at them.** A blocker report is useful only when
+it records the next owned repair action and the lead continues executing it.
+Returning it to the owner while authorized repository work remains is a failure
+to execute the plan pack.
+
 ## Phase 3: Build The Live Task Graph And Leases
 
 Convert `UNIT-*` packets into a live dependency graph. Preserve IDs and map
@@ -180,6 +192,11 @@ For each ready unit:
    tactic, mark that tactic exhausted, change hypothesis/tool/approach or isolate
    a spike, and continue. Do not repeat blindly or ask the owner to select a fix.
 10. Unblock dependent nodes only after authoritative lead verification.
+
+If a unit discovers a local prerequisite outside its original packet, create or
+repair the smallest linked unit and continue the DAG. A worker handoff, stale
+receipt, or cross-pack dependency does not transfer the lead's responsibility
+for the authorized repository outcome.
 
 Preserve unfamiliar work. Never reset, clean, stash, revert, overwrite, or
 delete changes you did not make. Do not create/switch/delete/push branches or
