@@ -19,6 +19,7 @@ const EXCLUDED_TABLES = new Set([
   "collaboration_invitation_tokens",
   "client_portal_recipient_credentials",
 ]);
+const UPSERT_TABLES = new Set(["feature_flags"]);
 
 type RehearsalMode = "dry-run" | "hosted";
 
@@ -250,7 +251,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
     currentOperation = args.slice(0, 3).join("-");
     commandDigests.push(createHash("sha256").update(`wrangler\n${args.join("\n")}`).digest("hex"));
     const result = run({ command: "wrangler", args });
-    if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}-${classifyProviderFailure(result.stderr)}`);
+    if (result.status !== 0) throw new Error(`provider-command-failed-${currentOperation}-${classifyProviderFailure(`${result.stdout}\n${result.stderr}`)}`);
     return result.stdout;
   };
 
@@ -361,21 +362,53 @@ function activeApplicationTables() {
 
 function buildApprovedDataArtifact(exportBytes: Buffer, approvedTables: Set<string>) {
   const statements = splitSqlStatements(exportBytes.toString("utf8"));
-  const approved = statements
-    .filter((statement) => {
-      const table = insertedTable(statement);
-      return table !== null && approvedTables.has(table) && !EXCLUDED_TABLES.has(table);
-    });
+  const statementsByTable = new Map<string, string[]>();
+  for (const statement of statements) {
+    const table = insertedTable(statement);
+    if (!table || !approvedTables.has(table) || EXCLUDED_TABLES.has(table)) continue;
+    const entries = statementsByTable.get(table) ?? [];
+    entries.push(UPSERT_TABLES.has(table)
+      ? statement.replace(/^\s*INSERT\s+INTO\b/i, "INSERT OR REPLACE INTO")
+      : statement);
+    statementsByTable.set(table, entries);
+  }
+  const approved = orderApplicationTables(approvedTables)
+    .flatMap((table) => statementsByTable.get(table) ?? []);
   if (approved.length === 0 && statements.some((statement) => insertedTable(statement) !== null)) {
     throw new Error("approved-data-artifact-empty");
   }
   return Buffer.from([
     "PRAGMA foreign_keys = ON;",
-    "BEGIN;",
-    "PRAGMA defer_foreign_keys = ON;",
     ...approved,
-    "COMMIT;",
   ].join("\n"), "utf8");
+}
+
+function orderApplicationTables(tables: Set<string>) {
+  const dependencies = new Map<string, Set<string>>([...tables].map((table) => [table, new Set()]));
+  for (const migrationPath of activeMigrationPaths()) {
+    const source = readFileSync(migrationPath, "utf8");
+    for (const statement of splitSqlStatements(source)) {
+      const owner = statement.match(/(?:CREATE TABLE(?: IF NOT EXISTS)?|ALTER TABLE)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/i)?.[1];
+      if (!owner || !tables.has(owner)) continue;
+      for (const reference of statement.matchAll(/REFERENCES\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/gi)) {
+        const parent = reference[1]!;
+        if (tables.has(parent) && parent !== owner) dependencies.get(owner)!.add(parent);
+      }
+    }
+  }
+  const ordered: string[] = [];
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const visit = (table: string) => {
+    if (visited.has(table) || visiting.has(table)) return;
+    visiting.add(table);
+    for (const parent of [...dependencies.get(table)!].sort()) visit(parent);
+    visiting.delete(table);
+    visited.add(table);
+    ordered.push(table);
+  };
+  for (const table of [...tables].sort()) visit(table);
+  return ordered;
 }
 
 function insertedTable(statement: string) {
@@ -405,12 +438,15 @@ function splitSqlStatements(source: string) {
   return statements;
 }
 
-function classifyProviderFailure(stderr: string) {
-  if (/no such table/i.test(stderr)) return "missing-table";
-  if (/foreign key constraint failed/i.test(stderr)) return "foreign-key";
-  if (/unique constraint failed/i.test(stderr)) return "uniqueness";
-  if (/syntax error|near .*syntax/i.test(stderr)) return "sql-syntax";
-  if (/statement.*too large|request.*too large/i.test(stderr)) return "statement-size";
+function classifyProviderFailure(output: string) {
+  if (/no such table/i.test(output)) return "missing-table";
+  if (/foreign key constraint failed|SQLITE_CONSTRAINT_FOREIGNKEY/i.test(output)) return "foreign-key";
+  if (/unique constraint failed|SQLITE_CONSTRAINT_UNIQUE/i.test(output)) return "uniqueness";
+  if (/syntax error|near .*syntax|SQLITE_ERROR/i.test(output)) return "sql-syntax";
+  if (/statement.*too large|request.*too large/i.test(output)) return "statement-size";
+  if (/BEGIN TRANSACTION|SAVEPOINT|transaction\(\)/i.test(output)) return "transaction";
+  if (/SQLITE_AUTH|not authorized/i.test(output)) return "authorization";
+  if (/D1_ERROR/i.test(output)) return "d1-error";
   return "unknown";
 }
 
