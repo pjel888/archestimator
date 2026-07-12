@@ -4,31 +4,27 @@ Audit date: 2026-07-12. This document closes the audit with a beta-readiness
 verdict, a prioritized recommendation set, and the explicit relationship between
 this audit and the active implementation pack.
 
-## 1. Beta-readiness verdict: NOT-READY (P0-1 blocks the feature)
+## 1. Beta-readiness verdict: CONDITIONAL (P0-1 largely resolved round 11)
 
-> **Updated (rounds 7-10):** the round-1 verdict was **CONDITIONAL**. Round 7's
-> email-auth check found **P0-1**: Cloudflare Email Sending was never onboarded
-> (`archestimator.com` nameservers are on Namecheap → no active CF zone →
-> `wrangler email sending enable` fails with `Active zone required [code: 2009]`).
-> A proposals feature whose invitation emails can't authenticate (or can't be
-> sent at all under the `cloudflare-email` provider) is **not ready for first
-> users**, regardless of code correctness. The copy-paste fix is in `20-EMAIL-DNS-FIX-PLAYBOOK.md`.
+> **Updated (round 11, live verification 2026-07-12):** round 7 found P0-1
+> (email substrate not wired) based on **stale June-30 state docs**. On
+> 2026-07-12 live checks show the situation is largely resolved: nameservers
+> are on Cloudflare, Email Sending is enabled, and all 5 required `cf-bounce`
+> DNS records (MX/SPF/DKIM) are published. Outbound Cloudflare mail should
+> pass SPF+DKIM+DMARC (relaxed-aligned). **P0-1 is downgraded to P2** (DMARC
+> tightening + real-send verification remain). The feature-blocking substrate
+> problem is no longer blocking.
 
 The `/workshop/proposals` recipient inbox code is **functional and secure for
 the common path**. A signed-in recipient with a small number of proposals will
 see their list, open proposals, and navigate to `/share/<token>` correctly.
 Authn is enforced (verified round 10 — auth-bypass chain secure), data is
-scoped by email, and opening is independently re-authorized.
+scoped by email, and opening is independently re-authorized. The email
+substrate is now wired (round 11).
 
-But the feature is **NOT-READY for first users** because of one P0 plus the
-pre-existing P1s:
+The feature is **CONDITIONALLY ready** — the remaining gaps are hardening, not
+blockers:
 
-0. **Email substrate not production-wired (P0-1).** Invitations sent via
-   Cloudflare Email cannot authenticate (SPF/MX/DKIM on Namecheap, not
-   Cloudflare) and the sending domain was never onboarded (`Active zone
-   required [code: 2009]`). **Every recipient invitation is at high risk of
-   spam-folder or unsent.** This blocks the feature regardless of inbox code.
-   Fix playbook: `20-EMAIL-DNS-FIX-PLAYBOOK.md`. Owner DNS action required.
 1. **Whole-inbox failure on one bad row** (P1-2, P1-3). A single corrupt
    `decision` or `status` enum value blanks the inbox for that user with a
    generic error and no log. Silent trust-killer.

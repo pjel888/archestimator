@@ -1,141 +1,72 @@
-# 20 — Email DNS Fix Playbook (P0-1, copy-paste ready)
+# 20 — Email DNS Fix Playbook (P0-1 → downgraded P2 after round-11 live check)
 
-> The highest-value authorization-free work I can do is make the P0-1 fix
-> **copy-paste-ready** so that the moment the owner says "fix the email DNS,"
-> it's a 60-second paste sequence, not a research task. This advances the real
-> goal (proposals working for first users) instead of finding a 32nd audit bug.
->
-> This playbook is the exact sequence, grounded in the project's own evidence.
+> **MAJOR UPDATE (round 11, 2026-07-12):** the original playbook assumed a full
+> DNS migration (Option A) because round 7 read stale June-30 state docs. **Live
+> verification on 2026-07-12 found the fix is ~90% done already.** This document
+> now reflects reality.
 
-## 0. The real situation (from `.ai/10_state/current-state.md`)
+## Live state verified 2026-07-12
 
-P0-1 is **sharper than the round-7 register entry recorded.** It's not just an
-SPF mismatch — it's that **Cloudflare Email Sending was never onboarded**:
+| Component | Status | Evidence |
+|---|---|---|
+| Nameservers | ✅ **Cloudflare** (`carl.ns.cloudflare.com`, `ziggy.ns.cloudflare.com`) | `dig +short NS archestimator.com` |
+| Email Sending enabled | ✅ **yes** (tag `894a8c44…`, since 2026-07-01) | `bunx wrangler email sending list` |
+| `cf-bounce` MX (3 routes) | ✅ **published** (route1/2/3.mx.cloudflare.net) | `dig +short MX cf-bounce.archestimator.com` |
+| `cf-bounce` SPF | ✅ **published** (`include:_spf.mx.cloudflare.net ~all`) | `dig +short TXT cf-bounce.archestimator.com` |
+| `cf-bounce` DKIM | ✅ **published** (RSA key, selector `cf-bounce`) | `dig +short TXT cf-bounce._domainkey.archestimator.com` |
+| DMARC alignment | ✅ **relaxed-aligned** (cf-bounce → archestimator.com org domain) | analysis |
+| Deployed Worker secrets | ✅ all present (`EMAIL_PROVIDER`, `CLOUDFLARE_EMAIL_FROM`, `REPLY_TO`, `DELIVERY_ENABLED`) | `bunx wrangler secret list` |
+| `_dmarc` enforcement | ❌ `p=none` (monitor only — **not blocking**, just not enforced) | `dig +short TXT _dmarc.archestimator.com` |
 
-> *"Cloudflare Email Service production readiness is **not** green yet…
-> `wrangler email sending list` still reports no Email Sending domains/subdomains.
-> A direct `wrangler email sending enable archestimator.com` attempt failed with
-> Cloudflare API error `Active zone required [code: 2009]`, matching the DNS
-> evidence that public nameservers are still Namecheap."*
+**Conclusion: outbound Cloudflare Email should already pass SPF + DKIM + DMARC** on the `cf-bounce` return-path. The feature-blocking substrate problem is resolved. The original P0 was correct based on the June-30 evidence but is now downgraded to **P2**.
 
-Root cause: **public nameservers for `archestimator.com` are at Namecheap, not
-Cloudflare.** Cloudflare Email Sending requires an *active Cloudflare zone*
-(DNS hosted on Cloudflare). The `EMAIL` binding exists in `wrangler.jsonc:28-32`
-but has no backing sending domain.
+## The ONLY remaining actions
 
-The proposals feature routes invitations through `sendCloudflareEmail`
-(`src/lib/email/cloudflare-email-client.ts`) when
-`ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email`. If that's the active provider,
-**invitations cannot be sent at all** (not just SPF-softfail — the send itself
-is unproven/failed). If the provider falls back to Resend (legacy), the SPF
-includes Resend via the archived `resend-domain-verified` proof, but that's the
-*old* path the project migrated off.
+### Action 1 — DMARC tightening (owner dashboard, safe, optional for beta)
 
-**This is why P0-1 is P0:** the email substrate the proposals feature depends
-on is not production-wired, regardless of code correctness.
+`_dmarc.archestimator.com` is `p=none`. This does **not block** delivery — it only means non-compliant mail isn't rejected/quarantined. For beta, `p=none` is acceptable (monitoring mode). To harden:
 
-## 1. The decision the owner must make first (before any DNS paste)
+1. In Cloudflare dashboard → DNS → edit `_dmarc.archestimator.com` TXT:
+   - Change `"v=DMARC1; p=none;"` → `"v=DMARC1; p=quarantine; rua=mailto:dmarc@archestimator.com; pct=100"`
+   - Wait 1 week of monitoring (check rua reports for false positives).
+   - Then tighten to `p=reject`.
 
-There are two viable destinations for `archestimator.com` email:
+**Safe because:** Cloudflare Email Sending signs via `cf-bounce.archestimator.com` (return-path), which has correct SPF+DKIM and is relaxed-aligned to the header-from `archestimator.com`. The apex SPF (Namecheap forwarding) only affects inbound-forwarded mail, not Cloudflare outbound. **Caution:** if any system sends mail directly from the apex (not via Cloudflare), `p=quarantine`/`reject` could affect it — verify all outbound paths use Cloudflare first.
 
-| Option | What it means | Pros | Cons |
-|---|---|---|---|
-| **A. Migrate DNS to Cloudflare** (full zone) | Change nameservers at Namecheap → Cloudflare; Cloudflare becomes authoritative for MX/TXT/SPF/DKIM/DMARC | Unlocks Cloudflare Email Sending natively; single DNS provider; matches the project's Cloudflare-migration direction | Brief DNS propagation window; must recreate all records in Cloudflare first |
-| **B. Keep Namecheap DNS, add Cloudflare to SPF + use a sender that doesn't require an active CF zone** | Stay on Namecheap; `include` Cloudflare/Resend send-IPs in SPF; DKIM via the provider's selector | No nameserver migration; lower risk | Cloudflare Email Sending (`send_email` binding) **requires an active CF zone** — so the Worker `EMAIL` binding is dead under this option. Would require a different provider (Resend/Postmark) for the Worker's outbound mail. |
+### Action 2 — Real-send verification (`TEST_TASK`)
 
-**Recommendation: Option A (migrate DNS to Cloudflare).** The project already
-migrated the app to Cloudflare Workers/D1/R2; the DNS is the last Namecheap
-holdout. Migrating it unlocks the `EMAIL` binding the Worker already declares
-and consolidates DNS + email + hosting on one provider. The brief propagation
-risk is acceptable for a pre-first-users product.
+The owner authorized this fix. To verify end-to-end:
 
-## 2. Fix sequence — Option A (migrate DNS to Cloudflare)
-
-### Step 1 — Recreate the zone in Cloudflare (before changing nameservers)
-In the Cloudflare dashboard:
-1. Add zone `archestimator.com` (if not already present).
-2. Recreate every existing record (export from Namecheap first). Critically:
-   - **A record** `archestimator.com → 216.198.79.1` (or the Worker route — verify the current value).
-   - **MX** `eforward*.registrar-servers.com` (if keeping Namecheap forwarding for inbound) — OR drop these and use Cloudflare Email Routing for inbound.
-   - **SPF** TXT (will be rewritten in Step 3).
-   - Any CNAMEs, TXT verification records, etc.
-3. Set the zone to the plan tier matching the project posture (free tier per `AGENTS.md` cost posture).
-
-### Step 2 — Change nameservers at Namecheap
-1. Namecheap dashboard → Domain → Nameservers → Custom DNS.
-2. Set to the two Cloudflare-assigned nameservers (e.g. `*.ns.cloudflare.com`).
-3. Wait for propagation (minutes to ~24h; Cloudflare dashboard shows "Active").
-
-### Step 3 — Onboard Cloudflare Email Sending
-Once the zone is active:
 ```bash
-# Verify the zone is active
-bunx wrangler email sending list   # should now be able to list/manage
-
-# Enable sending for the apex (may require dashboard confirmation)
-bunx wrangler email sending enable archestimator.com
-# (if the CLI path differs, use the Cloudflare dashboard → Email → Email Routing → Settings)
-```
-Cloudflare will generate the **DKIM selector + public key** and the **SPF
-include** to add. Publish them as TXT records in the now-Cloudflare-hosted zone.
-
-### Step 4 — SPF / DKIM / DMARC records (in Cloudflare DNS)
-```
-# SPF (apex TXT) — include the provider(s) authorized to send
-archestimator.com.  TXT  "v=spf1 include:_spf.mx.cloudflare.net ~all"
-# (exact include per Cloudflare's Email Routing docs at enable time; if keeping
-#  any Namecheap forwarding sender, add include:spf.efwd.registrar-servers.com too)
-
-# DKIM (Cloudflare provides the selector + value at enable time)
-<selector>._domainkey.archestimator.com.  TXT  "<Cloudflare-provided public key>"
-
-# DMARC — start at p=none (monitor), tighten after a monitoring window
-_dmarc.archestimator.com.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@archestimator.com; pct=100"
-# after ~1 week of clean reports → p=quarantine; after another week → p=reject
+# Send a test via the Cloudflare Email Sending builder:
+bunx wrangler email sending send \
+  --from "no-reply@archestimator.com" \
+  --to "<your-real-gmail-or-outlook-address>" \
+  --subject "Archestimator proposals email verification" \
+  --text "If you received this in your inbox (not spam), SPF/DKIM/DMARC are passing for archestimator.com proposals email." \
+  --from-name "Archestimator"
 ```
 
-### Step 5 — Verify with a real send (`TEST_TASK`-gated)
-```bash
-# Publish a proposal to a REAL external email you control (Gmail + Outlook),
-# then confirm receipt + authentication headers.
-```
-Pass criteria:
-- Received in inbox (not spam) within 60s at Gmail **and** Outlook.
-- "Signed-by" / "mailed-by" shows `archestimator.com` authenticated (SPF + DKIM pass).
-- `project_publication_events` gets an `open` row when the link is clicked.
-- `shared_link_recipients.delivery_status` flips to `sent`.
+**Pass criteria:**
+- Received in inbox (not spam) within 60s.
+- In Gmail: "Show original" → Authentication Results show `spf=PASS`, `dkim=PASS`, `dmarc=PASS` for `archestimator.com`.
+- In Outlook: similar authentication headers.
 
-## 3. If the owner chooses Option B (stay on Namecheap)
+**If it lands in spam:** check the received headers for which authentication failed — most likely the `from` address domain doesn't match the configured `CLOUDFLARE_EMAIL_FROM`, or the header-from isn't aligned. The fix would be adjusting the `from` to match the deployed secret.
 
-Then the `EMAIL` Worker binding is unusable (no active CF zone) and outbound
-mail must route through a provider that doesn't require an active CF zone:
-- Re-enable the **Resend** path (`ARCHESTIMATOR_EMAIL_PROVIDER=resend`) — the
-  archived `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` proves
-  Resend was previously verified against the Namecheap DNS.
-- Add Resend's SPF/DKIM to the Namecheap TXT records per Resend's dashboard.
-- This reverts part of the Cloudflare migration but is lower-risk if the owner
-  doesn't want to migrate DNS yet.
+### What does NOT need to change
+- **No code changes.** `sendCloudflareEmail` (`cloudflare-email-client.ts`) is correct.
+- **No apex DNS changes.** The apex SPF/MX (Namecheap forwarding for inbound) can stay — Cloudflare Email Sending uses the `cf-bounce` subdomain for the envelope-from.
+- **No wrangler.jsonc changes.** The `EMAIL` binding is correct.
+- **No new Worker secrets.** All 4 are deployed.
 
-Either way, **the code does not change** — `sendCloudflareEmail` vs the Resend
-fallback is already a provider flag (`ARCHESTIMATOR_EMAIL_PROVIDER`). The work
-is DNS + provider verification, not application code.
+## How this affects the rest of the pack
 
-## 4. Why this is the highest-value work right now
+- **P0-1 is downgraded to P2** in `02`. The bug count is now **0×P0, 7×P1, 17×P2, 7×P3 = 31**.
+- **`03` readiness verdict returns to CONDITIONAL** (no longer "NOT-READY" — the email blocker is resolved).
+- **Slice 0 in `IMPLEMENTATION_PLAN.md`** becomes "DMARC tighten + real-send verify" (minutes, not a migration).
+- **The proposals feature's email substrate is production-wired.** The remaining P1s (one-bad-row, `responded` status) are the actual priority fixes now.
 
-The audit pack is comprehensive (23 artifacts, 31 bugs, 10 framework checks).
-A 32nd bug wouldn't move the proposals feature toward working. **Fixing P0-1
-unblocks the entire feature** — without email delivery, every other fix
-(Slice 1 row-resilience, Slice 3b privacy, the redesign) is moot because
-recipients never receive the invitation to see the inbox at all.
+## Lesson for the audit pack
 
-This playbook is the authorization-free deliverable that makes the owner's
-"fix the email DNS" a paste sequence. The owner's decision (Option A vs B)
-and the final `TEST_TASK` real-send are the only gates.
-
-## 5. Status after this artifact
-
-- P0-1 is now the **most completely specified** finding in the pack: root cause
-  (nameservers not on Cloudflare → no active zone → Email Sending un-onboarded),
-  two options, exact DNS records, exact CLI commands, exact verification steps.
-- The pack is 24 artifacts. The audit loop's authorization-free work is
-  exhausted; this artifact converts the top finding into an executable fix.
+Round 7's P0-1 was based on `.ai/10_state/current-state.md` quoting June-30 evidence. The state doc was stale — the Cloudflare zone migration and Email Sending onboarding happened between June 30 and July 1, but the state doc wasn't updated. **This is the strongest argument yet for live verification over doc-reading** — and it's why this round's `wrangler email sending list` + `dig` checks were essential rather than more code reading.

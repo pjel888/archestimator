@@ -811,6 +811,21 @@
   (BUG-OPS-15) is *effectively* idempotent at the storage layer (no double-free
   crash), even though the backlog + audit events accumulate.
 
+### BUG-SEC-07 [P2] — images GET skips the editor gate (asymmetry vs POST/DELETE + attachments)
+
+- **Location:** `src/app/api/component-library/images/route.ts` — GET handler
+  (`:174-193`) requires session + workspace match (`parsedPath.workspaceId !==
+  workspace.id`, `:180`) but does NOT call `canManageLibrary`; POST (`:202`) and
+  DELETE (`:314`) DO. Contrast `attachments/route.ts` GET (`:393`) which calls
+  `canManageLibrary`.
+- **What:** any authenticated workspace member (including a `viewer`) can GET
+  any image path whose first segment is the workspace id, by guessing/
+  enumerating the `userId/` segment. Cross-workspace is blocked. Low impact
+  (library images are shared workspace content) but inconsistent with the editor
+  gate applied everywhere else.
+- **Recommended surface:** add `canManageLibrary` to the images GET, OR document
+  that images are intentionally workspace-shared-readable.
+
 - **Location:** `src/app/api/component-library/images/route.ts` — GET handler
   (`:174-193`) requires session + workspace match (`parsedPath.workspaceId !==
   workspace.id`, `:180`) but does NOT call `canManageLibrary`; POST (`:202`) and
