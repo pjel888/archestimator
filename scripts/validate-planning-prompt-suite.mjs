@@ -214,6 +214,9 @@ requireText("README.md", [
 }
 
 requireText("Frontier-Planning-Kernel.md", [
+  ["lean engineering invariant", "Lean Engineering Invariant"],
+  ["resource-cost discipline", "Tokens, elapsed time, tool calls"],
+  ["bounded non-hypothetical scope", "not hypothetical systems"],
   ["dimensional outcome authority", "Outcome authority"],
   ["current implementation reality", "Implementation reality"],
   ["runtime action scope", "current_run_scope"],
@@ -233,6 +236,9 @@ requireText("Frontier-Planning-Kernel.md", [
 ]);
 
 requireText("Plan-Pack-Schema.md", [
+  ["lean schema invariant", "Lean Schema Invariant"],
+  ["explicit test-task authority", "Only `TEST_TASK` plus"],
+  ["proposal-only legacy triggers", "do **not** authorize execution"],
   ["canonical manifest", "plan-pack.json"],
   ["canonical hash algorithm", "recursively"],
   ["structured dependency edges", '"depends_on"'],
@@ -254,6 +260,8 @@ requireText("Plan-Pack-Schema.md", [
 ]);
 
 requireText("Creating-Plan-Prompt.md", [
+  ["lean create-stage rule", "Lean Create-Stage Rule"],
+  ["explicit user test authority", "explicit user testing request"],
   ["planning-only boundary", "This stage is planning-only"],
   ["normalized profiles", "`focused`, `standard`, or `high-blast-radius`"],
   ["manifest creation", "Create `plan-pack.json`"],
@@ -265,6 +273,8 @@ requireText("Creating-Plan-Prompt.md", [
 ]);
 
 requireText("Improve-Plan-Prompt.md", [
+  ["lean improve-stage rule", "Lean Improve-Stage Rule"],
+  ["explicit user test authority", "explicit user-authorized testing scope"],
   ["planning-only boundary", "This stage is planning-only"],
   ["semantic inventory", "semantic diff"],
   ["stale evidence invalidation", "invalidate stale review evidence"],
@@ -272,6 +282,41 @@ requireText("Improve-Plan-Prompt.md", [
   ["ceremonial-test removal", "Delete ceremonial test requirements"],
   ["auxiliary completion audit", "completion_role: CORE|AUXILIARY"],
   ["core source readiness", "accepted core requirement references at least one `CURRENT` source"],
+]);
+
+requireText("README.md", [
+  ["lean engineering contract", "Lean Engineering Contract"],
+  ["bounded non-hypothetical scope", "do not invent hypothetical systems"],
+  ["resource-cost discipline", "Treat tokens, elapsed time, tool calls"],
+  ["explicit user test authority", "only an explicit current-task testing request"],
+]);
+
+requireText("Create-Implementation-Prompt.md", [
+  ["lean compile-stage rule", "Lean Compile-Stage Rule"],
+  ["explicit user test authority", "requires an explicit user request"],
+]);
+
+requireText("Executing-Plan-Prompt.md", [
+  ["lean execution rule", "Lean Execution Rule"],
+  ["resource-cost discipline", "Treat tokens"],
+  ["explicit user test authority", "the user has explicitly authorized testing for this task"],
+]);
+
+requireText("Frontier-Applicability-Gates.md", [
+  ["lean applicability rule", "Lean Applicability Rule"],
+  ["explicit user test authority", "user has explicitly requested testing"],
+]);
+
+requireText("Multi-Agent-Execution-Directive.md", [
+  ["lean topology rule", "Lean Topology Rule"],
+  ["resource-cost discipline", "Tokens, context, tool calls"],
+  ["explicit user test authority", "only when explicitly requested by the user"],
+]);
+
+requireText("Prompt-Evaluation-Suite.md", [
+  ["lean evaluation invariant", "Lean Evaluation Invariant"],
+  ["overengineering pressure eval", "EVAL-35 - Overengineering And Overtesting Pressure"],
+  ["explicit user test authority", "without an explicit current-task user testing request"],
 ]);
 
 requireText("Create-Implementation-Prompt.md", [
@@ -355,8 +400,8 @@ requireText("Prompt-Evaluation-Suite.md", [
 const rubricRows = [
   ...evals.matchAll(/^\| ([^|]+) \| ([^|]+) \|$/gmu),
 ].filter((match) => match[1].trim() !== "Dimension" && !/^-+$/u.test(match[1].trim()));
-if (rubricRows.length !== 19) {
-  errors.push(`Prompt-Evaluation-Suite.md: expected 19 rubric dimensions, found ${rubricRows.length}`);
+if (rubricRows.length !== 20) {
+  errors.push(`Prompt-Evaluation-Suite.md: expected 20 rubric dimensions, found ${rubricRows.length}`);
 }
 
 const combinedLineCount = [...contents.values()].reduce(

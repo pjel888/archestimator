@@ -874,15 +874,15 @@ function checkCursorAgents() {
   }
 
   const tddGuide = readRepoText(".cursor/agents/ecc-tdd-guide.md").replace(/\s+/gu, " ");
-  for (const required of ["CHEAPEST_DECISIVE_EXISTING_TEST", "do not use TDD", "run exactly the named existing focused test"]) {
+  for (const required of ["explicitly requested testing and TDD", "TEST_TASK", "never authorize test execution or edits"]) {
     if (!tddGuide.includes(required)) {
-      fail(`.cursor/agents/ecc-tdd-guide.md must preserve the no-edit existing-test branch: missing ${JSON.stringify(required)}.`);
+      fail(`.cursor/agents/ecc-tdd-guide.md must preserve explicit user authorization for TDD: missing ${JSON.stringify(required)}.`);
     }
   }
   const e2eGuide = readRepoText(".cursor/agents/ecc-e2e-runner.md").replace(/\s+/gu, " ");
-  for (const required of ["browser-only claim", "cheaper evidence cannot prove"]) {
+  for (const required of ["explicitly requests E2E/browser proof", "do not grant authority", "separate opt-in boundary"]) {
     if (!e2eGuide.includes(required)) {
-      fail(`.cursor/agents/ecc-e2e-runner.md must keep browser work opt-in: missing ${JSON.stringify(required)}.`);
+      fail(`.cursor/agents/ecc-e2e-runner.md must keep browser work explicitly user-authorized: missing ${JSON.stringify(required)}.`);
     }
   }
   const designRule = readRepoText(".cursor/rules/14-design-system-components.mdc").replace(/\s+/gu, " ");
@@ -894,9 +894,9 @@ function checkCursorAgents() {
 
   for (const testEngineerPath of [".codex/agents/test-engineer.toml", ".codex/prompts/test-engineer.md"]) {
     const testEngineer = readRepoText(testEngineerPath).replace(/\s+/gu, " ");
-    for (const required of ["CHEAPEST_DECISIVE_EXISTING_TEST", "run-only", "without modifying any test file", "do not use TDD"]) {
+    for (const required of ["explicit user-authorized `TEST_TASK`", "proposal-only metadata", "do not run or edit tests", "only when the user explicitly requests TDD"]) {
       if (!testEngineer.includes(required)) {
-        fail(`${testEngineerPath} must keep the cheapest-existing-test lane read-only: missing ${JSON.stringify(required)}.`);
+        fail(`${testEngineerPath} must keep all test work behind explicit current-task user authorization: missing ${JSON.stringify(required)}.`);
       }
     }
   }
@@ -942,7 +942,10 @@ function checkTestGateSummaryContract() {
     ".ai/12_agents/payloads/codex.md",
     ".ai/12_agents/payloads/commandcode.md",
     ".ai/12_agents/payloads/deepseek.md",
+    ".ai/12_agents/payloads/gemini.md",
+    ".ai/12_agents/payloads/hermes.md",
     ".ai/12_agents/payloads/kimi.md",
+    ".ai/12_agents/payloads/ollama.md",
     ".ai/12_agents/payloads/opencode.md",
     ".cursor/rules/00-archestimator-project-brain.mdc",
   ];
@@ -951,19 +954,20 @@ function checkTestGateSummaryContract() {
     const mapsExplicitToTestTask =
       /TEST_TASK.{0,160}explicit (?:test|testing|QA)/iu.test(text) ||
       /explicit (?:test|testing|QA).{0,160}TEST_TASK/iu.test(text);
-    const mapsTargetedToCritical =
-      /TARGETED.{0,240}(?:MVP|mission-critical|critical invariant)/iu.test(text) ||
-      /(?:MVP|mission-critical|critical invariant).{0,240}TARGETED/iu.test(text);
-    const preservesExistingTestGate =
-      /CHEAPEST_DECISIVE_EXISTING_TEST|existing focused test.{0,120}cheapest decisive|cheapest decisive.{0,120}existing focused test/iu.test(text);
+    const keepsTargetedProposalOnly =
+      /TARGETED.{0,280}(?:propos|not authoriz|never authoriz|does not authoriz)/iu.test(text) ||
+      /(?:propos|not authoriz|never authoriz|does not authoriz).{0,280}TARGETED/iu.test(text);
+    const withdrawsExistingTestSelfAuthorization =
+      /CHEAPEST_DECISIVE_EXISTING_TEST.{0,320}(?:withdrawn|propos|not authoriz|never authoriz|does not authoriz)/iu.test(text) ||
+      /(?:withdrawn|propos|not authoriz|never authoriz|does not authoriz).{0,320}CHEAPEST_DECISIVE_EXISTING_TEST/iu.test(text);
     if (!mapsExplicitToTestTask) {
       fail(`${path} must map explicit testing/QA output to TEST_TASK.`);
     }
-    if (!mapsTargetedToCritical) {
-      fail(`${path} must reserve TARGETED for a named critical invariant or the existing-test exception.`);
+    if (!keepsTargetedProposalOnly) {
+      fail(`${path} must keep TARGETED proposal-only without test execution authority.`);
     }
-    if (!preservesExistingTestGate) {
-      fail(`${path} must preserve the CHEAPEST_DECISIVE_EXISTING_TEST exception without authorizing test edits.`);
+    if (!withdrawsExistingTestSelfAuthorization) {
+      fail(`${path} must withdraw CHEAPEST_DECISIVE_EXISTING_TEST self-authorization.`);
     }
   }
 }
@@ -975,6 +979,13 @@ function checkActiveGuidancePolicyDrift() {
     "CLAUDE.md",
     "GEMINI.md",
     ".agents/README.md",
+    ".agents/skills/archestimator-plan-pack/SKILL.md",
+    ".agents/skills/autopilot/SKILL.md",
+    ".agents/skills/autoresearch/SKILL.md",
+    ".agents/skills/autoresearch-goal/SKILL.md",
+    ".agents/skills/ultragoal/SKILL.md",
+    ".agents/skills/ultraqa/SKILL.md",
+    ".agents/skills/ultrawork/SKILL.md",
     ".claude/README.md",
     ".codex/README.md",
     ".commandcode/README.md",
@@ -1099,6 +1110,39 @@ function checkActiveGuidanceReferences() {
   }
 }
 
+function checkCompoundEngineeringLeanOverrides() {
+  const requirements = new Map([
+    [".agents/skills/ce-plan/SKILL.md", ["Archestimator lean override", "TEST_PROPOSAL", "test scenarios only for an explicit"]],
+    [".agents/skills/ce-work/SKILL.md", ["Archestimator lean override", "Test Authorization", "stay on the current branch/worktree"]],
+    [".agents/skills/ce-debug/SKILL.md", ["Archestimator lean override", "TEST_PROPOSAL", "Evidence-first fix"]],
+    [".agents/skills/ce-simplify-code/SKILL.md", ["Select a proportionate review path", "Tests are opt-in", "do not auto-run the full suite"]],
+    [".agents/skills/ce-code-review/SKILL.md", ["Archestimator lean override", "Reviewer count is a cost", "no persona or CE agent is automatic"]],
+    [".agents/skills/ce-test-browser/SKILL.md", ["Archestimator Activation Gate", "explicitly requests browser/E2E/visual proof", "Pipeline membership never grants browser authority"]],
+    [".agents/skills/lfg/SKILL.md", ["Archestimator lean override", "does not by itself authorize tests", "explicitly authorized browser/E2E/visual proof"]],
+  ]);
+
+  for (const [path, phrases] of requirements) {
+    const text = readRepoText(path).replace(/\s+/gu, " ");
+    for (const phrase of phrases) {
+      if (!text.includes(phrase)) {
+        fail(`${path} must preserve the Compound Engineering lean override: missing ${JSON.stringify(phrase)}.`);
+      }
+    }
+  }
+}
+
+function checkCursorTestingRuleGates() {
+  const rulesRoot = join(repoRoot, ".cursor/rules");
+  if (!existsSync(rulesRoot)) return;
+  const testingRules = walkFiles(rulesRoot, (path) => path.endsWith("-testing.mdc"));
+  for (const file of testingRules) {
+    const text = readText(file).replace(/\s+/gu, " ");
+    if (!text.includes("explicit current-task user-authorized `TEST_TASK`")) {
+      fail(`${rel(file)} must preserve the explicit current-task TEST_TASK activation gate.`);
+    }
+  }
+}
+
 function checkGitignoreAdapterHygiene() {
   if (!repoExists(".gitignore")) {
     fail("Missing .gitignore.");
@@ -1161,6 +1205,8 @@ checkActiveGuidancePolicyDrift();
 checkAgentPayloadContracts();
 checkSupermemoryBootstrapContract();
 checkActiveGuidanceReferences();
+checkCompoundEngineeringLeanOverrides();
+checkCursorTestingRuleGates();
 checkGitignoreAdapterHygiene();
 checkNoTrackedLocalState();
 

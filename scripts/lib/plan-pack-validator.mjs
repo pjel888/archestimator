@@ -1139,7 +1139,7 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
       errors.push(`criteria: ${criterion.id} BROADER must explain why targeted evidence is insufficient`);
     }
     const requiresTests = usesConditionalTestGate
-      ? criterion.status !== "N/A" && testRequirement !== "NOT_REQUIRED"
+      ? criterion.status !== "N/A" && testRequirement === "TEST_TASK"
       : criterion.status !== "N/A";
     const testIds = expectStringArray(criterion, "test_ids", `criteria: ${criterion.id}`, errors, { minimum: requiresTests ? 1 : 0, pattern: /^TEST-\d+$/u });
     const evidenceIds = expectStringArray(criterion, "evidence_ids", `criteria: ${criterion.id}`, errors, { minimum: criterion.status === "N/A" ? 0 : 1, pattern: /^EVID-\d+$/u });
@@ -1150,8 +1150,8 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     if (usesConditionalTestGate && testRequirement === "NOT_REQUIRED" && testIds.length > 0) {
       errors.push(`criteria: ${criterion.id} test_ids must be empty when test_requirement is NOT_REQUIRED`);
     }
-    if (usesConditionalTestGate && testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" && testIds.length !== 1) {
-      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST requires exactly one test_id`);
+    if (usesConditionalTestGate && testTrigger === "CHEAPEST_DECISIVE_EXISTING_TEST" && testIds.length > 1) {
+      errors.push(`criteria: ${criterion.id} CHEAPEST_DECISIVE_EXISTING_TEST permits at most one proposal test_id`);
     }
     if (usesConditionalTestGate && criterion.status === "N/A" && testRequirement !== "NOT_REQUIRED") {
       errors.push(`criteria: ${criterion.id} must use test_requirement NOT_REQUIRED when status is N/A`);
@@ -1183,9 +1183,9 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
     }
   }
 
-  if (usesConditionalTestGate && cheapestExistingTestCriteria > 0) {
+  if (usesConditionalTestGate && cheapestExistingTestCriteria > 0 && cheapestExistingTestIds.size > 0) {
     if (cheapestExistingTestIds.size !== 1 || cheapestExistingTestPaths.size !== 1) {
-      errors.push("criteria: CHEAPEST_DECISIVE_EXISTING_TEST permits exactly one shared test_id and existing_test_path per plan pack");
+      errors.push("criteria: linked CHEAPEST_DECISIVE_EXISTING_TEST proposal metadata permits exactly one shared test_id and existing_test_path per plan pack");
     }
     for (const testId of cheapestExistingTestIds) {
       const testRecord = tests.get(testId);
