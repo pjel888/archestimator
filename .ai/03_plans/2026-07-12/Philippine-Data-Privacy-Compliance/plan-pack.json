@@ -297,34 +297,10 @@
       "affected_ids": ["AC-002", "AC-004", "GATE-VERIFY-001"]
     },
     {
-      "id": "AUTH-002",
-      "status": "ACTIVE",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "affected_ids": ["AC-002"]
-    },
-    {
-      "id": "AUTH-003",
-      "status": "ACTIVE",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "affected_ids": ["AC-002"]
-    },
-    {
-      "id": "AUTH-004",
-      "status": "ACTIVE",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "affected_ids": ["AC-004"]
-    },
-    {
       "id": "AUTH-005",
       "status": "ACTIVE",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "affected_ids": ["AC-003"]
-    },
-    {
-      "id": "AUTH-006",
-      "status": "ACTIVE",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "affected_ids": ["AC-004"]
     }
   ],
   "ready_slices": [],
@@ -343,7 +319,7 @@
       "status": "PLANNED",
       "artifact_path": "14_SECURITY_SAFEGUARDS_AND_PRIVACY_ENGINEERING.md",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "claim_ids": ["SEC-001", "UNIT-002", "AC-002"],
+      "claim_ids": ["SEC-001", "UNIT-002", "AC-002", "GATE-VERIFY-001"],
       "source_revision": "b06d8cc4a437efd22b2a03553651a1cc6a87db9f",
       "valid_until": null
     },
@@ -352,7 +328,7 @@
       "status": "PLANNED",
       "artifact_path": "10_RETENTION_DELETION_AND_LEGAL_HOLDS.md",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "claim_ids": ["REQ-006", "UNIT-003", "AC-003"],
+      "claim_ids": ["REQ-006", "UNIT-003", "AC-003", "GATE-VERIFY-001"],
       "source_revision": "b06d8cc4a437efd22b2a03553651a1cc6a87db9f",
       "valid_until": null
     },
@@ -361,7 +337,7 @@
       "status": "PLANNED",
       "artifact_path": "09_DATA_SUBJECT_RIGHTS_OPERATIONS.md",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "claim_ids": ["REQ-005", "SEC-002", "UNIT-004", "AC-004"],
+      "claim_ids": ["REQ-005", "SEC-002", "UNIT-004", "AC-004", "GATE-VERIFY-001"],
       "source_revision": "b06d8cc4a437efd22b2a03553651a1cc6a87db9f",
       "valid_until": null
     }
