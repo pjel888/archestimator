@@ -14,6 +14,20 @@ The FAST PATH is the minimum restart read. Everything else is pull-on-demand.
 
 ## Loop Contract
 
+**Lean Engineering Ethos** governs every iteration: go deep on analysis (problem,
+blast radius, affected surfaces, edge cases — this is where bugs are prevented),
+lean on implementation (smallest coherent change; over-engineering is a bug, not
+thoroughness), lean on testing (tests are user-gated, never a default to feel
+thorough). Proportional everything: planning depth, loop surface, agent count,
+evidence, and ceremony scale with real risk, not with agent confidence. When in
+doubt, simplify the implementation — never compensate with extra tests,
+abstractions, or process for risks the analysis did not find.
+
+Be token- and time-efficient: pull context just in time, use the fewest capable
+lanes, and stop discovery when every evidence-supported direct/transitive caller,
+contract, state, failure, and rollout surface is mapped. Do not turn "all possible
+blast radius" into speculative feature or hypothetical-system inventory.
+
 The canonical loop shape (named):
 
 ```

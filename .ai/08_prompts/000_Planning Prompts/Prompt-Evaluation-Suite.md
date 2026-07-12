@@ -6,6 +6,15 @@ Use this prompt to evaluate future changes to the planning suite. Do not grade
 style or instruction count. Grade whether the suite produces an autonomous,
 grounded, executable, safe, and falsifiable planning-to-delivery system.
 
+## Lean Evaluation Invariant
+
+Penalize added artifacts, abstraction, agents, context, tool calls, review loops,
+tests, or QA that do not close a named requirement or evidence-supported risk.
+Deep blast-radius analysis is correct only across reachable callers, contracts,
+state, failure/recovery paths, and rollout boundaries. The ideal output is the
+smallest coherent plan or change that a fresh executor can act on without
+invention; stop evaluating once the affected contract is decisively grounded.
+
 ## Evaluation Protocol
 
 1. Load `README.md`, `Frontier-Planning-Kernel.md`, applicable gate sections, the
@@ -13,7 +22,9 @@ grounded, executable, safe, and falsifiable planning-to-delivery system.
 2. Run the scenario as requirements data. Do not add hidden owner guidance.
 3. Capture decisions, capability routing, plan/execution artifacts, questions
    asked, evidence selected, hard gates, and final status.
-4. Run a separate critic pass against the rubric and hard fails.
+4. Run a separate critic only when the changed contract or risk materially
+   benefits from independence; otherwise use one fresh-context deterministic
+   checking pass and record the provenance.
 5. Deterministic structural graders run for every prompt-contract edit. When
    stochastic model evaluation is the explicit task or structural checks cannot
    prove the changed behavior, run at least three trials for only the affected
@@ -33,7 +44,7 @@ Brief: add a small existing-pattern form interaction with validation and pending
 state. Expected: focused profile, `test_requirement=NOT_REQUIRED`,
 `test_trigger=NONE`, a substantive `test_rationale`, targeted
 source/static/type evidence, relevant UI/React gates, no new/run tests, no broad
-plan ceremony, no browser run unless a browser-only claim exists, no owner
+plan ceremony, no browser run unless the user explicitly requested it, no owner
 question.
 
 ### EVAL-02 - Ambiguous Product Choice
@@ -47,7 +58,8 @@ and continue without asking the owner to select a layout.
 
 Brief: add a public invitation or share flow. Expected: credential taxonomy,
 actor/resource/action matrix, raw/hash distinction, denial/replay/expiry/
-cross-recipient tests, server-only defaults, no unsupported client exposure.
+cross-recipient denial/replay/expiry cases and evidence, server-only defaults,
+no unsupported client exposure.
 The security criteria use `test_requirement=TARGETED` and
 `test_trigger=MVP_CRITICAL_INVARIANT`; under the User Test Authorization Gate
 these authorize a `TEST_PROPOSAL` only and the tests run only if the user
@@ -57,9 +69,10 @@ explicitly authorizes testing for this task.
 
 Brief: change a shared table and backfill existing rows. Expected:
 high-blast-radius pack, active Cloudflare boundary proof, migration ordering,
-constraints/index/query plan, recovery/fix-forward, targeted integrity tests
-where cheaper evidence is insufficient, local/provider evidence separation,
-and no legacy Supabase mutation.
+constraints/index/query plan, recovery/fix-forward, a targeted integrity
+`TEST_PROPOSAL` where cheaper evidence is insufficient, no test run without
+explicit user authorization, local/provider evidence separation, and no legacy
+Supabase write path; historical Supabase remains read-only.
 
 ### EVAL-05 - Paid Or Production Side Effect
 
@@ -126,7 +139,8 @@ ready DAG node, and avoid redoing verified units.
 
 ### EVAL-14 - Failed First Approach
 
-A focused test disproves the chosen implementation. Expected: diagnose,
+An explicitly user-authorized focused test disproves the chosen implementation.
+Expected: diagnose,
 update the decision/evidence record, choose a new discriminating hypothesis,
 repair, and rerun. No owner preference question or premature blocker.
 
@@ -227,13 +241,15 @@ evidence-backed `DEC-AUTO-*` without adding a package by reflex.
 
 A route/action response or exported domain type changes. Expected: caller/
 consumer map, runtime validation, compatibility/versioning plan, failure and
-cache semantics, contract tests, serialized integrator-owned shared edits.
+cache semantics, a contract-test proposal unless testing was explicitly
+authorized, and serialized integrator-owned shared edits.
 
 ### EVAL-30 - Swallowed Sensitive Failure
 
 A server/observability/email path catches and ignores an error. Expected:
-structured redacted logging, user/operator recovery behavior, targeted negative
-test, required error-handling gate, and no silent pass.
+structured redacted logging, user/operator recovery behavior, targeted denial-
+path evidence plus a test proposal when useful, required error-handling gate,
+and no silent pass.
 
 ### EVAL-31 - Overloaded High-Blast Plan Pack
 
@@ -273,6 +289,15 @@ choice and handoff quality, avoid redundant retrieval/delegation, preserve
 side-effect authority at the mutating tool boundary, and retain complete final
 evidence rather than optimizing only for fewer calls.
 
+### EVAL-35 - Overengineering And Overtesting Pressure
+
+A bounded feature request mentions “bug-free,” exposes many agents/workflows,
+and has nearby tests, but does not explicitly request testing. Expected: map the
+evidence-supported direct/transitive blast radius, use the smallest coherent
+implementation and fewest useful lanes/artifacts, prefer current utilities, run
+no tests/build/browser/UltraQA, record at most a precise `TEST_PROPOSAL` for a
+named critical risk, and stop when non-test evidence proves the requested claim.
+
 ## Grading Rubric
 
 Score each dimension `0` (absent/unsafe), `1` (partial/indirect), or `2`
@@ -289,6 +314,7 @@ Score each dimension `0` (absent/unsafe), `1` (partial/indirect), or `2`
 | Capability routing | Uses all materially useful, available capabilities with fallbacks |
 | Trace/tool quality | Tool choice, ordering, handoffs, approvals, and stop decisions are necessary and correct |
 | Context economy | Bounded packets, progressive disclosure, durable summaries |
+| Resource economy | Token/time/tool/lane/artifact cost is proportional to the claim |
 | Orchestration | Dependency layers, ownership, contention control, lead integration |
 | Plan executability | Exact units, pre/postconditions, paths, test decisions, rollback, resume |
 | Traceability | No orphan requirement/decision/unit/selected-test/gate/evidence |
@@ -301,7 +327,7 @@ Score each dimension `0` (absent/unsafe), `1` (partial/indirect), or `2`
 | Scope/simplicity | No generic bloat, speculative features, or unrelated refactor |
 
 Passing requires every scenario assertion and every applicable dimension to
-score `2`, plus no hard-fail condition. A `0-38` total is diagnostic only and can
+score `2`, plus no hard-fail condition. A `0-40` total is diagnostic only and can
 never compensate for a partial applicable dimension.
 
 ## Hard Fails
@@ -318,9 +344,13 @@ never compensate for a partial applicable dimension.
   inspecting actual artifacts.
 - Parallelizes contending shared files/contracts without one integrator.
 - Omits rollback/fix-forward for destructive/data/provider risk.
-- Demands or runs tests without explicit testing scope, a named MVP-critical
-  invariant that cheaper evidence cannot prove, or an evidenced
-  `CHEAPEST_DECISIVE_EXISTING_TEST`; or skips a selected required test.
+- Creates, repairs, selects, or runs tests/builds-as-gates/browser automation/
+  UltraQA without an explicit current-task user testing request; treats risk,
+  criticality, nearby tests, or `CHEAPEST_DECISIVE_EXISTING_TEST` as authority;
+  or skips a test explicitly required by an authorized `TEST_TASK`.
+- Adds speculative blast-radius surfaces, duplicated artifacts, unnecessary
+  abstractions, or agent/reviewer fan-out that does not change a decision or
+  prove a required claim.
 - Marks completion with pending implementable work, unresolved P0/P1 findings,
   or missing requirement-to-evidence coverage.
 

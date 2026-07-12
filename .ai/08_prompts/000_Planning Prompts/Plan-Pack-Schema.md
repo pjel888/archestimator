@@ -6,13 +6,22 @@ This schema defines the logical contract for plan packs. Physical file count is
 adaptive; every applicable logical field is mandatory. The `tests` index may be
 empty when all criteria use `test_requirement: NOT_REQUIRED`.
 
+## Lean Schema Invariant
+
+The schema is a compact execution contract, not a document quota. Represent the
+evidence-supported direct/transitive blast radius with the fewest artifacts,
+units, lanes, and proof records that preserve distinct ownership or freshness.
+Do not duplicate requirement/test/evidence matrices, invent hypothetical
+surfaces, or add tests/review/QA records merely because fields exist. Empty or
+`N/A` is correct when a field is inapplicable.
+
 ## 1. Depth Profile
 
 | Profile | Use | Required shape |
 |---|---|---|
 | `focused` | Narrow, reversible, bounded work | Compact pack; all logical fields may share a few files |
 | `standard` | Multi-file or multi-domain work | Separate high-density artifacts only where execution, decisions, required tests, or evidence have distinct owners/lifecycles |
-| `high-blast-radius` | Auth, security, data, provider, migration, release, architecture, agent framework, or codebase-wide work | Durable research, threat/data/failure models, rollback proof, live ledger, adversarial QA, final audit |
+| `high-blast-radius` | Auth, security, data, provider, migration, release, architecture, agent framework, or codebase-wide work | Durable research as needed, bounded threat/data/failure models, rollback proof, live ledger, authorized QA only, final audit |
 
 Choose the lightest profile that covers the risk. Do not omit a logical field
 because the pack is compact, and do not create empty files to satisfy a count.
@@ -378,18 +387,23 @@ Represent implementation units as a directed acyclic graph:
   execution. The plan records this distinction so the executing agent never
   auto-runs tests.
 - Acceptance criteria are observable and falsifiable.
-- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, `test_trigger` as `NONE`, `EXPLICIT_TEST_TASK`, `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`, and a substantive `test_rationale` explaining why cheaper evidence is or is not sufficient. `NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`; `TEST_TASK` maps only to `EXPLICIT_TEST_TASK`; `TARGETED` maps only to `MVP_CRITICAL_INVARIANT` or `CHEAPEST_DECISIVE_EXISTING_TEST`; `BROADER` maps only to `MVP_CRITICAL_INVARIANT`; `MVP_CRITICAL_INVARIANT` rationale names the critical invariant and why cheaper evidence is insufficient; `CHEAPEST_DECISIVE_EXISTING_TEST` selects exactly one already-existing focused test, binds its path/command/baseline hash through the `TEST-*` record, and permits no test creation, expansion, repair, deletion, or skip.
+- Every criterion records `test_requirement` as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, `test_trigger` as `NONE`, `EXPLICIT_TEST_TASK`, `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`, and a substantive `test_rationale` explaining why cheaper evidence is or is not sufficient. `NOT_REQUIRED` is the default and requires `test_trigger: NONE` plus `test_ids: []`; `TEST_TASK` maps only to `EXPLICIT_TEST_TASK`; `TARGETED` maps only to `MVP_CRITICAL_INVARIANT` or `CHEAPEST_DECISIVE_EXISTING_TEST`; `BROADER` maps only to `MVP_CRITICAL_INVARIANT`; `MVP_CRITICAL_INVARIANT` rationale names the critical invariant and why cheaper evidence is insufficient. `CHEAPEST_DECISIVE_EXISTING_TEST` is retained for validator compatibility and may describe exactly one existing focused test in a `TEST_PROPOSAL`; it never authorizes running, creating, expanding, repairing, deleting, or skipping that test.
 - `BROADER` rationale must state why targeted evidence is insufficient. The
   machine validator enforces these mappings for suite `2026-07-11`; legacy
   `2026-07-10` packs remain compatible without the new fields.
-- `TARGETED`, `BROADER`, and `TEST_TASK` require linked `TEST-*`; a criterion
-  cannot be `PASS` unless every linked required test is `PASS`.
+- For new user-unapproved work prefer `NOT_REQUIRED`/`NONE`/`test_ids: []` and
+  record a separate `TEST_PROPOSAL`. Legacy `TARGETED`/`BROADER` rows may retain
+  linked `TEST-*` proposal metadata for validator compatibility, but an unrun
+  proposal cannot block completed local implementation. Only explicit
+  `TEST_TASK` rows make a linked test executable and required for `PASS`.
 - Each criterion names evidence class, setup, command/procedure, expected pass
   signal, actual evidence destination, cleanup, and failure response.
 - Cover applicable happy, nil/missing, empty, invalid, boundary, error,
   permission-denied, concurrency, retry/idempotency, partial-success, recovery,
   accessibility, performance, and prompt-injection scenarios.
-- Browser/provider/production proof appears only when the claim requires it.
+- Browser proof appears only when explicitly user-authorized for the current
+  task; provider/production proof appears only when the claim and authority
+  require it.
 - Final audit maps every original requirement and named deliverable to current
   evidence.
 
@@ -428,8 +442,9 @@ Rollback:
 Post-action verification:
 ```
 
-An `AUTH-*` cannot hide achievable code, selected tests, migration authoring, dry runs,
-or documentation.
+An `AUTH-*` cannot hide achievable code, migration authoring, dry runs, or
+documentation. It cannot manufacture test authority; tests remain explicit-
+`TEST_TASK` only.
 
 ## 7. Execution Unit Packet
 
@@ -446,7 +461,7 @@ Owned scope and responsible role:
 Approach and invariants:
 Expected postconditions/compatibility:
 Test requirement and trigger:
-Selected test IDs (empty for NOT_REQUIRED):
+Selected test IDs (empty unless explicit TEST_TASK; proposal IDs stay non-executable):
 Proof IDs, command/procedure, expected signal, evidence class/path:
 Failure response and replan trigger:
 Checkpoint/resume state:
@@ -480,7 +495,7 @@ evidence and freshness. Evidence records separately use
 | Architecture/data/contracts | | | | |
 | Security/privacy | | | | |
 | Performance/reliability | | | | |
-| Test decision / selected adversarial QA | | | | |
+| Test decision / explicitly authorized adversarial QA | | | | |
 | Operations/rollout/rollback | | | | |
 | Completion audit | | | | |
 

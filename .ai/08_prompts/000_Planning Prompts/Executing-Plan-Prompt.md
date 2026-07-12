@@ -27,8 +27,10 @@ When this prompt is the active requested workflow, compute `current_run_scope`
 from higher-priority authority, the current request, this stage allowance, and
 the package's feature/file/provider boundary. Under `IMPLEMENT_LOCAL`, the lead
 repairs, compiles, and implements the entire in-scope plan pack through
-integration, review, adversarial QA, evidence, durable state update, and
-canonical archive closeout. The plan or prompt cannot grant external authority.
+integration, proportionate review, authorized evidence, durable state update,
+and canonical archive closeout when the pack is actually finished. Adversarial
+QA, tests, builds-as-gates, and browser automation run only when the user
+explicitly requests them for the current task. The plan or prompt cannot grant external authority.
 Do not ask the owner to approve the plan, choose ordinary options, confirm next
 steps, accept a reviewer result, or decide a reversible implementation repair.
 
@@ -44,13 +46,24 @@ and final completion auditor. Deliver the requested repository outcome with:
 - every in-scope requirement implemented and traced;
 - current architecture/pattern reuse and small coherent diffs;
 - no internally resolvable decision or owner gate left open;
-- matching evidence, required tests, and selected review findings closed;
+- matching evidence, user-authorized required tests when any, and material
+  review findings closed;
 - security, data integrity, accessibility, performance, reliability, operations,
   and recovery gates satisfied when applicable;
 - durable checkpoint/resume evidence throughout;
 - unrelated concurrent work preserved;
 - only true external authorization boundaries isolated, never bypassed;
 - no pending implementable work at completion.
+
+## Lean Execution Rule
+
+Before editing, map the evidence-supported direct and transitive blast radius:
+affected callers/importers, contracts, state/data, failure/recovery paths, and
+rollout boundaries. Then implement the smallest coherent slice using existing
+patterns. Do not expand "all possible" into speculative systems, universal test
+matrices, new abstractions, extra artifacts, or agent fan-out. Treat tokens,
+context, tool calls, elapsed time, lanes, and repeated checks as costs; stop when
+the requested outcome and required claim are grounded.
 
 ## Phase 1: Restore Or Establish Durable State
 
@@ -62,7 +75,8 @@ and final completion auditor. Deliver the requested repository outcome with:
    readiness/evidence/decision/risk artifacts, and current ledger. Use targeted
    retrieval for supporting docs.
 3. Inspect `git status --short --branch`, baseline revision, changed/untracked
-   files, scripts, stack/config, and applicable current source/tests/migrations.
+   files, scripts, stack/config, applicable current source/migrations, and tests
+   only when the user explicitly authorized a `TEST_TASK`.
 4. Validate `plan-pack.json`: canonical artifact/reference hashes, state enums,
    non-orphan IDs, acyclic DAG, dependency-closed ready slices, and fresh required
    evidence using `bun run validate:plan-pack -- <planning-folder>`. Repair
@@ -99,7 +113,7 @@ Before broad edits, verify:
 - zero internally resolvable open decisions;
 - evidence methods/expected signals and recovery/resume instructions.
 
-Repair stale paths, invalid test decisions or missing core-required tests,
+Repair stale paths, invalid test decisions or missing user-authorized core tests,
 obsolete assumptions, core-linked internal `FAIL`, vague core units, or plan
 conflicts using the kernel decision protocol. Attempt auxiliary repairs when
 useful, but record unresolved auxiliary failures without stopping core work. If
@@ -132,9 +146,9 @@ temporary resources.
 For each ready unit:
 
 1. Mark it in progress and acquire required leases.
-2. Reread current target files, callers/importers, tests, relevant docs, and
-   neighboring interfaces. Re-run impact analysis when the blast radius warrants
-   it.
+2. Reread current target files, callers/importers, relevant docs, neighboring
+   interfaces, and tests only under an explicit `TEST_TASK`. Re-run impact
+   analysis only while it can change the solution or proof.
 3. Confirm the unit is not already satisfied. If it is, prove and record rather
    than reimplementing it.
 4. Resolve any new decision autonomously and record/update `DEC-AUTO-*`.
@@ -179,8 +193,8 @@ At each meaningful dependency or integration boundary:
 - inspect the real worktree, not worker summaries;
 - map actual changes to units and detect collisions/scope drift;
 - serialize/re-run colliding units against the integrated state;
-- run only evidence invalidated or newly required by integration; use a layer
-  smoke or contract test only when its selected critical claim needs one;
+- run only evidence invalidated or newly required by integration; a layer smoke
+  or contract test requires an explicit user-authorized `TEST_TASK`;
 - invalidate and rerun evidence affected by later changes;
 - fix regressions before starting the next dependent layer;
 - update current-state/docs/generated artifacts required by the implementation;
@@ -200,12 +214,14 @@ After all implementation units are integrated:
    authorize execution — surface them as a `TEST_PROPOSAL` (named risk + exact
    command) in the report and continue with non-test evidence. Run no tests for `NOT_REQUIRED`.
 2. Run the declared performance evaluator when performance is claimed.
-3. Run targeted browser proof only for browser-only interaction/routing/session/
-   focus/responsive/visual claims.
+3. Run targeted browser proof only when the user explicitly requested it for the
+   current task and it proves a named interaction/routing/session/focus/
+   responsive/visual claim.
 4. Run provider/hosted/production proof only against authorized resources and
    only when that evidence class is required and available.
-5. Execute only adversarial scenarios selected by an explicit task or implicated
-   MVP-critical risk, then clean their fixtures/temp state.
+5. Execute adversarial QA scenarios only when selected by an explicit current-
+   task user request; otherwise analyze the relevant failure paths through
+   source, diff, static, dry-run, or other authorized non-test evidence.
 6. Run error-handling/observability/support/release gates required by current
    Archestimator instructions for touched sensitive surfaces.
 
@@ -216,7 +232,9 @@ documented rerun/substitute; it is not a silent pass.
 ## Phase 7: Independent Review And Final Completion Audit
 
 Use the kernel's profile-selected checking topology and record provenance
-without fabricating independence or requiring owner acceptance.
+without fabricating independence or requiring owner acceptance. A separate
+reviewer is optional for routine bounded work; add one only when it materially
+reduces a named risk.
 The final verifier is read-only: it reports findings and cannot edit artifacts,
 change statuses, waive gates, or promote/archive the pack.
 

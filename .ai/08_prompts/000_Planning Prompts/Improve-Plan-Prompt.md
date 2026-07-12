@@ -27,6 +27,14 @@ only the target planning folder and required planning evidence. Do not change
 application code/tests/migrations/config/provider/runtime state, deploy, add
 dependencies, or perform destructive/Git-history work.
 
+## Lean Improve-Stage Rule
+
+Improve by deleting duplication, narrowing scope to the evidence-supported
+direct/transitive blast radius, and reusing current contracts before adding any
+artifact, abstraction, lane, or ceremony. Treat context, tokens, elapsed time,
+tool calls, and review passes as costs. Stop when the pack is implementation-
+ready and the remaining uncertainty would not change the solution or proof.
+
 ## Success Contract
 
 The improved pack must be smaller or clearer where possible while becoming
@@ -65,8 +73,9 @@ Build a criterion matrix using `PASS|FAIL|BOUNDARY|N/A` and exact evidence:
 - exact implementation DAG, units, ownership/contention, integration, resume;
 - applicable UX/a11y, framework, data/provider, security/privacy, performance,
   reliability/operations gates;
-- test decision/evidence strategy, selected adversarial cases, cleanup,
-  rollout/recovery;
+- test decision/non-test evidence strategy, relevant adversarial risk cases, and
+  cleanup; executable test or browser cases exist only for an explicit
+  user-authorized `TEST_TASK`; rollout/recovery;
 - package, implementation, release, terminal, and lifecycle status;
 - capability routing, research effect, review provenance, and final audit.
 
@@ -89,7 +98,7 @@ Repair in dependency order:
 5. **Design/contracts** - repair architecture, domain, UX, data, auth, cache,
    provider, performance, and operations boundaries from current evidence.
 6. **Execution DAG** - make units exact, dependency-layered, contention-aware,
-   test-gated, recoverable, checkpointed, and resumable. Delete ceremonial test requirements and add tests only for explicit user-authorized testing scope
+   evidence-gated, recoverable, checkpointed, and resumable. Delete ceremonial test requirements and add tests only for explicit user-authorized testing scope
    (`TEST_TASK`). A named MVP-critical invariant that cheaper evidence cannot
    prove authorizes a `TEST_PROPOSAL` only under the User Test Authorization
    Gate — never auto-execution.
@@ -130,7 +139,8 @@ Use the kernel's profile-selected checking topology to try to disprove:
 - current paths/symbols/contracts/provider facts;
 - authorization/data/privacy/security denial paths;
 - concurrency/idempotency/retry/cache/performance/recovery behavior;
-- user state/accessibility/browser-proof coverage;
+- user state/accessibility/evidence coverage; browser proof only when explicitly
+  authorized by the user for the current task;
 - dependency and parallel-safety claims;
 - evidence class/freshness and completion status;
 - archive/resume safety.

@@ -32,6 +32,14 @@ only planning artifacts in the target folder. Do not implement code/tests/
 migrations/config, mutate provider/runtime state, deploy, add dependencies, or
 perform destructive/Git-history actions.
 
+## Lean Compile-Stage Rule
+
+Compile, do not expand. Preserve the full objective while selecting the minimum
+units, artifacts, lanes, and evidence needed for the evidence-supported direct
+and transitive blast radius. Reuse current contracts, pull context on demand,
+and reject speculative abstractions, duplicated matrices, automatic tests, and
+review ceremony that do not change an implementation decision or prove a claim.
+
 ## Artifact Authority
 
 When written, independently checked, and promoted through `plan-pack.json`,
@@ -109,7 +117,9 @@ record the cheapest decisive proof in `test_rationale`. Under the **User Test
 Authorization Gate**, `TARGETED`, `BROADER`, `MVP_CRITICAL_INVARIANT`, and
 `CHEAPEST_DECISIVE_EXISTING_TEST` authorize a **`TEST_PROPOSAL` only**, never
 execution — the unit records the named risk + exact command so the executing
-agent waits for explicit user authorization. Map explicit testing scope to
+agent waits for explicit user authorization. These legacy risk labels remain
+schema-compatible proposal metadata; they never select a runnable test on agent
+authority. Map explicit testing scope to
 `TEST_TASK` plus `EXPLICIT_TEST_TASK`; it is the only decision that authorizes
 test execution and requires an explicit user request. Map `TARGETED` only to a
 named MVP-critical invariant that cheaper evidence cannot prove or one already-
@@ -140,7 +150,8 @@ Use this concise structure:
    contention, concurrency, integration, lease/resource rules.
 6. **Execution units** - full schema packet for every unit.
 7. **Verification contract** - gate matrix, test decision, selected tests/files/
-   commands/procedures,
+   commands/procedures only for an explicit `TEST_TASK`, otherwise the cheapest
+   decisive non-test methods,
    expected signals, evidence classes/freshness, adversarial scenarios, cleanup.
 8. **Rollout, recovery, and operations** - flags/exposure, observability,
    rollback/fix-forward, data repair, support, post-release proof.

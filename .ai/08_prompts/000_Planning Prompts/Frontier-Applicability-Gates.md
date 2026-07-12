@@ -6,6 +6,14 @@ Load only sections triggered by the task. Mark each gate's applicability and
 criterion status separately, then link current evidence; do not copy irrelevant
 gates into the pack.
 
+## Lean Applicability Rule
+
+Apply only gates reachable from the evidence-supported direct and transitive
+blast radius. A gate is not a mandate for a new abstraction, artifact, agent,
+test matrix, or proof surface. Select the cheapest evidence that proves its
+changed claim, retrieve context on demand, and stop once the applicable
+criterion is grounded.
+
 ## GATE-UX-01: User-Facing UI, UX, And Accessibility
 
 **Triggers:** page/component/layout/navigation/form/copy/interaction change.
@@ -20,11 +28,11 @@ Require:
   mobile/responsive behavior.
 - Existing `src/components/ui/` reuse and `DESIGN.md` consultation, treating it
   as an alpha guide rather than owner preference law.
-- Source/static/DOM evidence for behavior; browser/manual proof only for claims that
-  cheaper evidence cannot prove, such as real routing, layout, focus across
-  navigation, responsive composition, or browser integration.
-- Ordinary UI and cosmetic changes use `test_requirement: NOT_REQUIRED` unless
-  the task explicitly asks for tests or a named MVP-critical interaction needs one.
+- Source/static/DOM evidence for behavior by default; browser/manual proof runs
+  only when the user explicitly requests it for the current task and it proves a
+  named routing, layout, focus, responsive, or browser-integration claim.
+- Ordinary UI and cosmetic changes use `test_requirement: NOT_REQUIRED`. A named
+  MVP-critical interaction may produce a `TEST_PROPOSAL`, never auto-execution.
 
 Hard fail: a user-facing unit lacks affected states, acceptance criteria, or an
 evidence plan.
@@ -68,8 +76,8 @@ Require:
   dependency change, official current docs, maintenance/license/security/bundle
   implications, rejected alternatives, and rollback/removal path.
 - Consumer/provider compatibility checks at the narrowest matching surface;
-  contract tests only for explicit testing scope or a mission-critical shared
-  contract that cheaper evidence cannot prove.
+  contract tests only for explicit user-authorized current-task testing scope.
+  A mission-critical shared contract may produce a `TEST_PROPOSAL` only.
 
 Hard fail: a public/shared contract changes without consumer mapping,
 compatibility strategy, or runtime-boundary validation.
@@ -92,7 +100,8 @@ Require:
 - Email recipient/authz/delivery/failure/redaction behavior and Images transform
   or signed-access behavior when used.
 - Local migration/query/emulator evidence separated from hosted/provider proof;
-  tests are required only for an implicated critical integrity invariant.
+  an implicated critical integrity invariant may produce a `TEST_PROPOSAL`, but
+  tests are required only under an explicit user-authorized `TEST_TASK`.
 
 Use only the Cloudflare resources authorized in `AGENTS.md`. Historical
 Supabase/Vercel/Resend artifacts are migration archaeology unless current repo
@@ -109,7 +118,9 @@ token, file access, or recipient credential.
 
 Require:
 
-- Actor/resource/action/tenant authorization matrix and explicit deny tests.
+- Actor/resource/action/tenant authorization matrix and explicit denial-path
+  cases/evidence; automated deny tests require an explicit user-authorized
+  `TEST_TASK`.
 - Credential-material taxonomy: raw/hash/encrypted/derived/public marker;
   creation, storage, read/use, client visibility, URL/cookie/session use,
   rotation/revocation, logging, destruction.
@@ -187,8 +198,9 @@ Require:
   query count/plan/latency, payload, memory, retry, error, and queue metrics.
 - 10x/100x reasoning where cardinality can grow; pagination/virtualization or a
   reason not needed.
-- Apply the schema's shared adversarial matrix to relevant timeout, cancellation,
-  retry/idempotency, partial-failure, provider, stale-cache, and recovery paths.
+- Analyze only relevant timeout, cancellation, retry/idempotency, partial-
+  failure, provider, stale-cache, and recovery paths; execute an adversarial
+  matrix only when explicitly user-authorized.
 - Measured evaluator evidence for performance claims; ordinary tests alone do
   not prove speed.
 
@@ -246,9 +258,9 @@ Require:
 - Deletion criteria and proof of no required references/runtime behavior.
 - One smell/boundary at a time; prefer deletion/existing utilities over layers.
 - Compatibility/migration order and rollback/fix-forward.
-- Apply the test gate. Use tests only for explicit regression scope or a named
-  mission-critical invariant; never run a broader suite merely because shared
-  behavior changed.
+- Apply the test gate. Use tests only for explicit user-authorized regression
+  scope. A named mission-critical invariant may produce a `TEST_PROPOSAL`; never
+  run any suite merely because shared behavior changed.
 
 Hard fail: behavior is assumed unchanged without evidence, or unrelated cleanup
 expands the diff.

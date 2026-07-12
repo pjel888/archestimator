@@ -29,11 +29,24 @@ task brief or plan does not invoke the four stages directly.
 `Prompt-Evaluation-Suite.md` defines the semantic regression scenarios and
 grading assertions for future prompt changes.
 
-Verification is mandatory; tests are conditional. Every criterion records
+Verification is mandatory; automated tests are user-authorized only. Every criterion records
 `test_requirement`, `test_trigger`, and a substantive `test_rationale`.
-`NOT_REQUIRED` plus `NONE` is the default; select tests only for explicit
-testing scope or a named MVP-critical invariant that cheaper evidence cannot
-prove.
+`NOT_REQUIRED` plus `NONE` is the default. A named MVP-critical invariant may
+produce a `TEST_PROPOSAL`, but only an explicit current-task testing request may
+select, create, repair, or run tests, builds-as-gates, browser automation, or
+broad validation.
+
+## Lean Engineering Contract
+
+- Map the evidence-supported direct and transitive blast radius before planning
+  implementation; do not invent hypothetical systems, future features, or
+  exhaustive matrices outside that reachable surface.
+- Prefer deletion, existing patterns, and the smallest coherent change. Add no
+  abstraction, dependency, agent lane, artifact, review pass, or evidence layer
+  unless it closes a named requirement or risk.
+- Treat tokens, elapsed time, tool calls, context volume, agent fan-out, and
+  repeated checks as engineering costs. Pull context just in time and stop when
+  a fresh executor can act without invention and the required claim is grounded.
 
 ## Validation
 

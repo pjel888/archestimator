@@ -38,6 +38,15 @@ add dependencies, or perform destructive/Git-history actions. Create or edit
 only the new plan folder; store newly produced planning evidence inside it and
 link existing evidence in place.
 
+## Lean Create-Stage Rule
+
+Map the evidence-supported direct and transitive blast radius before designing
+the solution, then plan the smallest coherent change that covers it. Do not turn
+"all possible blast radius" into speculative systems, exhaustive test matrices,
+extra artifacts, or agent fan-out. Reuse existing patterns, retrieve context just
+in time, and stop discovery once affected callers, contracts, state,
+failure/recovery paths, and rollout boundaries are sufficiently grounded.
+
 ## Success Contract
 
 The plan pack must:
@@ -53,7 +62,8 @@ The plan pack must:
   test decisions/evidence, recovery, rollout, and resume state;
 - separate implementation readiness from hosted/provider/production release
   proof;
-- survive adversarial review and a fresh final verification pass;
+- survive one proportionate challenge/checking pass selected by profile and a
+  fresh final verification pass, without reviewer ceremony;
 - remain concise enough that an executor can retrieve only the context needed
   for its current unit.
 
@@ -165,7 +175,8 @@ feature needs:
 
 Build a dependency DAG and critical path. Every `UNIT-*` must satisfy the full
 Execution Unit Packet in the schema, including exact current paths/symbols or a
-bounded discovery unit, test decision and cheapest decisive proof, shared-worktree
+bounded discovery unit, test decision and cheapest decisive non-test proof by
+default, shared-worktree
 ownership, failure/recovery, checkpoint/resume, and objective exit evidence.
 
 Do not include speculative production code or exact imports merely to appear
@@ -197,7 +208,7 @@ file count or add placeholders for numeric parity.
 Use the kernel's profile-based verification topology. Iterate only on a concrete
 `FAIL`, missing required criterion, or material P2.
 
-The critic must try to find:
+The proportionate checking pass must try to find:
 
 - lost, invented, or untraceable requirements;
 - unresolved decisions disguised as assumptions/owner gates;
@@ -205,7 +216,8 @@ The critic must try to find:
 - architecture duplication or needless dependencies;
 - authz/data-integrity/privacy/security failure paths;
 - concurrency/retry/idempotency/cache/performance/rollback gaps;
-- user-state/accessibility and browser-proof gaps;
+- user-state/accessibility and evidence gaps; browser proof applies only when the
+  user explicitly authorizes it for the current task;
 - false parallelism, non-resumable units, and weak evidence classes;
 - inconsistent package/implementation/release/lifecycle status.
 

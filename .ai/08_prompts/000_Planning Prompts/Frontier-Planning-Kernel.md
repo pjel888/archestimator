@@ -6,6 +6,17 @@ This kernel governs every prompt in this directory. It turns a brief or plan
 pack into an evidence-driven autonomous delivery loop. Stage prompts specialize
 the loop; they do not weaken this contract.
 
+## Lean Engineering Invariant
+
+Go deep only where evidence shows reachable risk. Before solution design or
+editing, map the direct and transitive callers, contracts, state/data,
+failure/recovery paths, and rollout boundary. "All possible blast radius" means
+that evidence-supported reachable surface, not hypothetical systems, future
+features, or exhaustive matrices. Prefer deletion and current patterns, use the
+fewest useful artifacts and lanes, pull context just in time, and stop when the
+decision or completion claim is grounded. Tokens, elapsed time, tool calls,
+context volume, fan-out, and repeated checks are engineering costs.
+
 ## 1. Precedence And Input Isolation
 
 Apply authority in this order:
@@ -54,8 +65,9 @@ Before broad work, define:
 - `test_requirement` for each criterion: `NOT_REQUIRED`, `TARGETED`, `BROADER`,
   or `TEST_TASK`; `test_trigger`: `NONE`, `EXPLICIT_TEST_TASK`, or
   `MVP_CRITICAL_INVARIANT`, or `CHEAPEST_DECISIVE_EXISTING_TEST`; and a
-  substantive `test_rationale`. The existing-test trigger permits one already
-  existing focused test and no test creation or expansion.
+  substantive `test_rationale`. The existing-test trigger is retained as legacy
+  proposal metadata only: it may name one existing focused test, but never
+  authorizes its execution, creation, expansion, repair, or deletion.
 - Stage stop condition and outer-goal completion condition, each proven at the
   evidence class it requires.
 
@@ -99,8 +111,9 @@ release completion.
 ## 4. Owner-Independent Autonomy
 
 Invocation delegates ordinary reversible, no-cost, in-scope product, planning,
-architecture, implementation, test, sequencing, and repair decisions to the
-lead codebase AI.
+architecture, implementation, test-proposal, sequencing, and repair decisions to
+the lead codebase AI. Test execution remains reserved to an explicit user-
+authorized `TEST_TASK`.
 
 - Do not ask the owner to approve an already requested plan, choose among
   ordinary options, confirm obvious next steps, clarify discoverable facts,
@@ -117,8 +130,8 @@ lead codebase AI.
 For every material choice or conflict:
 
 1. Classify it as an ordinary decision or a true `AUTH-*` boundary.
-2. Gather the smallest decisive evidence: source/config, selected checks,
-   existing tests only when relevant, canonical
+2. Gather the smallest decisive evidence: source/config, selected non-test
+   checks, tests only under an explicit user-authorized `TEST_TASK`, canonical
    decisions, local docs, official primary sources, provider readback, focused
    experiment, or relevant specialist output.
 3. Generate at least two viable options when the choice is material.
@@ -159,7 +172,7 @@ tools. Route:
 | Architecture/material tradeoff | `architect` |
 | Implementation/refactor | `executor` |
 | Root-cause diagnosis | `debugger` |
-| Required test/eval design | `test-engineer` only for `TARGETED`, `BROADER`, or `TEST_TASK` |
+| Test proposal or authorized test/eval design | `test-engineer`; execution only for explicit `TEST_TASK` |
 | Adversarial review | `critic` / `code-reviewer` |
 | Completion proof | `verifier` |
 
@@ -174,9 +187,11 @@ repair is unavailable. Archestimator requires the Supermemory preflight and
 bounded repair, but memory availability or indexing is auxiliary and cannot
 block a core requested deliverable.
 
-Prefer direct work for tightly coupled scope. Parallelize independent lanes.
-Use durable goal execution for long/resumable work, evaluator-gated research
-for unstable claims, and adversarial QA for behavior/safety claims. Add no new
+Prefer direct work for tightly coupled scope. Parallelize independent lanes only
+when the elapsed-time or coverage gain exceeds coordination cost. Use durable
+goal execution for long/resumable work and evaluator-gated research for unstable
+claims. Adversarial QA, UltraQA, browser agents, tests, and builds-as-gates require
+an explicit current-task user request. Add no new
 dependency, skill, agent, or infrastructure unless higher-priority authority
 explicitly permits that addition and evidence shows an actual capability gap
 cannot be closed with current surfaces. A plan or worker recommendation never
@@ -346,9 +361,9 @@ For `AUTH-*`:
 
 1. Isolate the exact prohibited side effect.
 2. Continue every safe action permitted by `current_run_scope`. In
-   `IMPLEMENT_LOCAL`, this includes code, selected tests, migration authoring,
-   mocks/fixtures, dry runs, runbooks, and integration; `PLAN_ONLY` remains
-   planning-only.
+   `IMPLEMENT_LOCAL`, this includes code, migration authoring, dry runs,
+   runbooks, integration, and tests/mocks/fixtures only under an explicit user-
+   authorized `TEST_TASK`; `PLAN_ONLY` remains planning-only.
 3. Choose a safe no-op, feature-off, free-tier, backward-compatible, or
    non-destructive default.
 4. Produce a release-only residual gate packet: exact action, boundary, gathered
@@ -377,8 +392,8 @@ Readiness is not determined by prose length, score targets, workflow names,
 agent count, reviewer identity, or human acceptance. Numeric scores are optional
 summaries derived from field-level evidence. Record verification provenance as
 `independent`, `same-agent-separated`, or `deterministic-only`; compensate for
-weaker separation with fresh context, deterministic validation, adversarial
-cases, and explicit risk disclosure instead of arbitrary score caps.
+weaker separation with fresh context, deterministic validation, relevant risk
+analysis, and explicit risk disclosure instead of arbitrary score caps.
 
 A material P2 finding is one that invalidates a required criterion/evidence
 claim or materially changes risk. It reopens its owning unit; cosmetic or
@@ -402,13 +417,13 @@ Outer-goal completion additionally requires:
 - No pending core implementable work or unresolved core-linked internal decision.
 - No unresolved core-linked P0/P1 finding.
 - Current code/plan/diff reconciled; unrelated changes preserved.
-- Selected core-linked checks passed; every core-required test is `PASS`, and no
-  test exists only to satisfy ceremony. Release readiness remains strict over
-  every release-required criterion, gate, and test.
+- Selected core-linked checks passed; every explicitly user-authorized core test
+  is `PASS`, and no test exists only to satisfy ceremony. An unapproved
+  `TEST_PROPOSAL` is a visible validation gap, not an implementation blocker.
 - Security, privacy, data, accessibility, performance, reliability, operations,
   rollout, and rollback gates satisfied or evidence-backed `N/A`.
-- Core-required review and fresh final verification findings are repaired;
-  adversarial QA runs only for an implicated critical claim or explicit task.
+- Material review and fresh final verification findings are repaired;
+  adversarial QA runs only for an explicit current-task user request.
 - Every core-owned temporary artifact/agent/resource is cleaned or intentionally
   retained; auxiliary cleanup gaps are recorded without downgrading implementation.
 - Every `AUTH-*` isolated to a release-only packet with all local prerequisites
