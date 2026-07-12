@@ -4,6 +4,8 @@ paths:
 ---
 # Java Testing
 
+**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+
 > This file extends [common/testing.md](../common/testing.md) with Java-specific content.
 
 ## Test Framework

@@ -34,6 +34,17 @@ Re-read files immediately before editing. Preserve unfamiliar changes - they may
 
 ## Validation (No 'Done' Without Proof) — User Test Authorization Gate
 
+**Lean Engineering Ethos:** go deep on analysis (problem, blast radius, edge
+cases — where bugs are prevented), lean on implementation (smallest coherent
+change; over-engineering is a bug, not thoroughness), lean on testing
+(user-gated, never a default to feel thorough). Canonical statement:
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
+
+Bound blast radius to evidence-supported direct/transitive callers, contracts,
+state, failure/recovery, and rollout. Do not invent hypothetical systems. Pull
+context just in time, minimize tokens/tool calls/lanes/artifacts/review passes,
+and stop when the requested claim is grounded.
+
 **Tests are user-gated, not automatic.** Do not create, expand, repair, or run
 any automated test, test suite, build-as-test-gate, browser automation, or
 broad validation gate unless Philip has explicitly requested testing for the
@@ -94,7 +105,10 @@ Stay inside `wrangler.jsonc` bindings: Worker `archestimator-proof`, D1 `ARCH_DB
 ## Multi-Agent Execution Directive
 
 For non-trivial work, follow `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`:
-DISCOVER -> PLAN -> EXECUTE -> VERIFY -> RECORD -> REVIEW -> DECIDE, looped until gates pass or a true blocker remains. Maker/checker separation when practical. Adversarial QA for runtime/data/auth/security surfaces.
+DISCOVER -> PLAN -> EXECUTE -> VERIFY -> RECORD -> DECIDE, looped only while a
+failed criterion needs another action. Add a separate checker only when it
+materially reduces a named risk. Adversarial QA, tests, builds, and browser proof
+require explicit current-task user authorization.
 
 ## Full Rules
 

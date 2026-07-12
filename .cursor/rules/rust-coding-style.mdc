@@ -8,7 +8,7 @@ paths:
 
 ## Formatting
 
-- **rustfmt** for enforcement — always run `cargo fmt` before committing
+- **rustfmt** for enforcement — run `cargo fmt` only when formatting or a commit was explicitly requested and the changed Rust files require it
 - **clippy** for lints — `cargo clippy -- -D warnings` (treat warnings as errors)
 - 4-space indent (rustfmt default)
 - Max line width: 100 characters (rustfmt default)

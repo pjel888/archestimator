@@ -9,6 +9,8 @@ paths:
 
 # Nuxt Testing
 
+**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+
 > This file extends [common/testing.md](../common/testing.md) with Nuxt specific content.
 
 Package: `@nuxt/test-utils`. Vitest-first for unit and component tests, with built-in Playwright browser E2E support. nuxt-vitest and vitest-environment-nuxt are superseded and folded into it.

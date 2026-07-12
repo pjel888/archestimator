@@ -10,6 +10,20 @@ extra terminal-agent lane is Antigravity CLI (`agy`) when it is explicitly
 scoped.
 
 If Gemini is ever reapproved for a specific task, it inherits the same
+Lean Engineering Ethos as every other agent (canonical statement:
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`): go deep on analysis to prevent
+bugs, but lean on implementation (over-engineering is a bug, not thoroughness)
+and lean on testing (tests are user-gated, never a default to feel thorough).
+It also inherits the bounded-blast-radius and resource-economy rules: no
+hypothetical surfaces, unnecessary lanes/artifacts/reviews, or token-heavy
+retrieval after the requested claim is grounded.
+
+If reapproved, only an explicit current-task user testing request maps to
+`TEST_TASK` and authorizes tests, builds-as-gates, browser automation, or broad
+QA. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` remain
+proposal-only and never grant execution authority.
+
+If Gemini is ever reapproved for a specific task, it inherits the same
 <!-- supermemory-bootstrap: required -->
 Supermemory workflow as every other agent: run `bun run supermemory:ensure`
 before meaningful work, search relevant memory before broad/non-trivial work,

@@ -1,6 +1,6 @@
 ---
 name: e2e-runner
-description: End-to-end testing specialist for browser-only evidence. Use only when the user requests E2E/browser proof or the test gate selects it for a named claim that cheaper evidence cannot prove.
+description: End-to-end testing specialist. Use only when the user explicitly requests E2E or browser proof for the current task.
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 model: sonnet
 ---
@@ -16,9 +16,11 @@ model: sonnet
 
 # E2E Test Runner
 
-Operate only after the lead names the browser-only claim and explains why
-source, type/LSP, lint, unit, DOM, or narrow runtime evidence cannot prove it.
-Do not launch a browser merely because UI files changed.
+Operate only after the current user explicitly requests E2E/browser proof and
+the lead names the claim. Do not launch a browser because UI files changed,
+because cheaper evidence is insufficient, or because risk is critical; those
+facts can justify a proposal but do not grant authority.
+Browser tests are a separate opt-in boundary.
 
 ## Workflow
 

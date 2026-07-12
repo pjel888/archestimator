@@ -46,7 +46,7 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 7. Provide the recommended OMX handoff.
 
 **Pass 2 — Self-Verification (machine-checkable acceptance contract):**
-8. Verify every claim in the verification matrix has an explicit evidence source and test-gate decision. Tests/build/browser evidence is used only for explicit requests or integrated MVP-critical claims that cheaper evidence cannot prove.
+8. Verify every claim in the verification matrix has an explicit evidence source and test-gate decision. Tests/build/browser evidence is used only for an explicit current-task user request; criticality may produce a `TEST_PROPOSAL` only.
 9. Verify every step lists its owner / lane / executor; no shared-file conflicts between parallel lanes.
 10. Verify stop, rollback, and acceptance criteria are mutually consistent (no acceptance criterion is satisfied by a state that also triggers rollback).
 11. Verify no destructive, credential-gated, or external-production step is unauthorized.

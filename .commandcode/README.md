@@ -9,6 +9,11 @@ Canonical rules live in:
 2. `.ai/12_agents/payloads/commandcode.md`
 3. `DESIGN.md` for UI taste boundaries
 
+All CommandCode sentinels and taste surfaces inherit the Lean Engineering Ethos:
+bounded evidence-supported blast radius, smallest coherent change, minimal
+tokens/context/tool calls, and no automatic test/build/browser/reviewer chain.
+Advisory availability is not a mandate to invoke it.
+
 <!-- supermemory-bootstrap: required -->
 CommandCode inherits the shared Supermemory workflow from the framework
 protocol and payload: run `bun run supermemory:ensure` before meaningful work,

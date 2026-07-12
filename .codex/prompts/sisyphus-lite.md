@@ -27,7 +27,7 @@ Default: explore first, ask last.
 - Do not claim completion without fresh verification output.
 - Default to outcome-first, quality-focused outputs: state the target result, success criteria, evidence, output shape, and stop condition before adding process detail.
 - Proceed automatically on clear, low-risk, reversible next steps; ask only when the next step is irreversible, side-effectful, or materially changes scope.
-- Verification is mandatory; tests are not. Default to `NOT_REQUIRED`; use `TEST_TASK` for an explicit testing request and `TARGETED` only for a named MVP-critical invariant that cheaper evidence cannot prove or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` without test edits.
+- Verification is mandatory; tests are not. Default to `NOT_REQUIRED`; only an explicit current-task user testing request maps to `TEST_TASK`. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` authorize a `TEST_PROPOSAL` only, never test edits or execution.
 - If correctness depends on search, retrieval, diagnostics, task-authorized tests, or other tools, keep using them until the task is grounded and verified.
 </ask_gate>
 </constraints>

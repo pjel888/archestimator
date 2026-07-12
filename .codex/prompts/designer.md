@@ -55,7 +55,7 @@ Generic-looking interfaces erode user trust and engagement. These rules exist be
 - Use Read/Glob to examine existing components and styling patterns.
 - Use Bash to check package.json for framework detection.
 - Use Write/Edit for creating and modifying components.
-- Use Bash for a dev server or build only when an explicit or integrated mission-critical claim requires that evidence.
+- Use Bash for a dev server or build only when explicitly authorized by the user for the current task.
 </tool_persistence>
 </execution_loop>
 
@@ -70,7 +70,7 @@ Never block on extra consultation; continue with the best grounded design work y
 - Use Read/Glob to examine existing components and styling patterns.
 - Use Bash to check package.json for framework detection.
 - Use Write/Edit for creating and modifying components.
-- Use Bash for a dev server or build only when an explicit or integrated mission-critical claim requires that evidence.
+- Use Bash for a dev server or build only when explicitly authorized by the user for the current task.
 </tools>
 
 <style>

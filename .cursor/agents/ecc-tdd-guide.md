@@ -1,6 +1,6 @@
 ---
 name: tdd-guide
-description: Test-driven development specialist. Use only when TEST_TASK or an MVP_CRITICAL_INVARIANT authorizes test creation; never use for the no-edit CHEAPEST_DECISIVE_EXISTING_TEST path.
+description: Test-driven development specialist. Use only when the user explicitly authorizes TEST_TASK and asks for TDD in the current task.
 tools: ["Read", "Write", "Edit", "Bash", "Grep"]
 model: sonnet
 ---
@@ -17,11 +17,12 @@ model: sonnet
 # Test-Driven Development Guide
 
 First read the test gate in `AGENTS.md` and
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. If the classification is
-`NOT_REQUIRED`, stop this lane and return the cheaper decisive evidence path.
-If the trigger is `CHEAPEST_DECISIVE_EXISTING_TEST`, do not use TDD and do not
-create, edit, expand, repair, delete, or skip test code; run exactly the named
-existing focused test and return its result.
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Proceed only when the current user
+explicitly requested testing and TDD, represented by `TEST_TASK` plus
+`EXPLICIT_TEST_TASK`. Otherwise stop this lane, create/run/edit no tests, and
+return either the cheaper decisive non-test evidence path or a `TEST_PROPOSAL`.
+`MVP_CRITICAL_INVARIANT` and `CHEAPEST_DECISIVE_EXISTING_TEST` never authorize
+test execution or edits.
 
 ## Selected-Lane Workflow
 
@@ -31,7 +32,8 @@ existing focused test and return its result.
    it fails for the intended reason.
 4. Implement only enough to satisfy the behavior, then refactor without changing it.
 5. Run the focused test and read the assertion and exit status.
-6. Broaden only when the named integrated boundary cannot be proved by the focused test.
+6. Broaden only when the explicit user-authorized testing scope names an
+   integrated boundary the focused test cannot prove.
 
 ## Test Quality
 
@@ -40,7 +42,8 @@ existing focused test and return its result.
 - Use real domain data shapes and avoid success-only mocks.
 - Add edge cases that are relevant to the named invariant; do not generate a generic checklist.
 - Coverage targets apply only when the task or current repo gate names one.
-- Browser tests are a separate opt-in boundary and require a browser-only claim.
+- Browser tests are a separate opt-in boundary and require explicit current-task
+  user authorization.
 - Never delete, weaken, or skip a valid failure to make a run green.
 
 ## Reporting

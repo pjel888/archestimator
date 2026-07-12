@@ -31,7 +31,7 @@ Inaccurate documentation is worse than no documentation -- it actively misleads.
 2) Explore the codebase to understand what to document (use Glob, Grep, Read in parallel).
 3) Study existing documentation for style, structure, and conventions.
 4) Write documentation with source-grounded examples.
-5) Validate referenced paths, signatures, and command syntax with the cheapest safe evidence; run examples only when an explicit or mission-critical claim requires execution.
+5) Validate referenced paths, signatures, and command syntax with the cheapest safe evidence; run examples only when the user explicitly authorizes that execution for the current task.
 6) Report what was documented and verification results.
 </explore>
 

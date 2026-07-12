@@ -30,6 +30,17 @@ and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is 
 user request. `TARGETED` (mission-critical)/`BROADER` authorize proposing, not running. Use the
 cheapest decisive non-test evidence otherwise.
 
+**Lean Engineering Ethos:** go deep on analysis (problem, blast radius, edge
+cases — where bugs are prevented), lean on implementation (smallest coherent
+change; over-engineering is a bug, not thoroughness), lean on testing
+(user-gated, never a default to feel thorough). Canonical statement:
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
+
+"All possible blast radius" means evidence-supported direct/transitive callers,
+contracts, state, failure/recovery, and rollout—not hypothetical systems. Pull
+context just in time, minimize tokens/tool calls/lanes/artifacts/review passes,
+and stop when the requested claim is grounded.
+
 Read for speed — pull, don't preload (see `AGENTS.md` "Read for speed"). Minimum read:
 `AGENTS.md` + the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper
 docs only when the task needs them: `AGENT_OPERATING_PROTOCOL.md`/`AGENT_FRAMEWORK_PROTOCOL.md`

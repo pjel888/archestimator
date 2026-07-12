@@ -54,9 +54,9 @@ The default for ambiguous short inputs is `simple` (1-2 sharply targeted questio
 </anti_over_classification>
 
 <test_strategy_single_decision>
-For every implementation family, record one test-gate decision: `NOT_REQUIRED` (default), `TARGETED`, `BROADER`, or `TEST_TASK`. Map an explicit testing/QA/coverage/regression/reproduction request to `TEST_TASK`. Map `TARGETED` only to a named MVP-critical invariant that cheaper evidence cannot prove, or one existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST` without test edits. A source edit, multi-file change, user-visible change, or nearby suite does not trigger tests by itself.
+For every implementation family, record one test-gate decision: `NOT_REQUIRED` (default), `TARGETED`, `BROADER`, or `TEST_TASK`. Map only an explicit current-task user testing/QA/coverage/regression/reproduction request to `TEST_TASK`; it alone authorizes execution. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata. A source edit, multi-file change, user-visible change, critical risk, or nearby suite does not trigger tests.
 
-Do not ask the user about test layers when `NOT_REQUIRED` can be inferred safely; record the substitute evidence and continue. For required test work, bundle framework/layer/coverage choices into one decision. TDD is an optional method only when explicitly selected or when pre-change characterization is necessary for a mission-critical regression. This is the OMX-side import of the OMO Prometheus "single test-infra decision" pattern (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/interview-mode.ts:L132-L191`).
+Do not ask the user about test layers when `NOT_REQUIRED` can be inferred safely; record the substitute evidence and continue. For explicitly authorized test work, bundle framework/layer/coverage choices into one decision. TDD is an optional method only when the user explicitly selects it. This is the OMX-side import of the OMO Prometheus "single test-infra decision" pattern (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/interview-mode.ts:L132-L191`).
 </test_strategy_single_decision>
 </intent_classification>
 

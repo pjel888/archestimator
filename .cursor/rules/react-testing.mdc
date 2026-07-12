@@ -9,6 +9,8 @@ paths:
 ---
 # React Testing
 
+**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+
 > This file extends [typescript/testing.md](../typescript/testing.md) and [common/testing.md](../common/testing.md) with React specific content.
 
 ## Library Choice

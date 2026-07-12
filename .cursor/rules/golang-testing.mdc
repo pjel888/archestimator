@@ -5,6 +5,8 @@ alwaysApply: false
 ---
 # Go Testing
 
+**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+
 > This file extends the common testing rule with Go specific content.
 
 ## Framework
@@ -13,7 +15,8 @@ Use the standard `go test` with **table-driven tests**.
 
 ## Race Detection
 
-Always run with the `-race` flag:
+Within an authorized Go testing task, use the `-race` flag only when the named
+concurrency claim requires it; do not broaden automatically to every package:
 
 ```bash
 go test -race ./...

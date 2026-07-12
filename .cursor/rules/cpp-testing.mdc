@@ -10,6 +10,8 @@ paths:
 ---
 # C++ Testing
 
+**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+
 > This file extends [common/testing.md](../common/testing.md) with C++ specific content.
 
 ## Framework
@@ -33,7 +35,7 @@ lcov --capture --directory . --output-file coverage.info
 
 ## Sanitizers
 
-Always run tests with sanitizers in CI:
+When the current user explicitly authorizes C++ testing for this task, run the selected tests with relevant sanitizers in CI:
 
 ```bash
 cmake -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined" ..

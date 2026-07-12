@@ -8,6 +8,11 @@ configuration. Codex role, scope, evidence, and safety policy live in
 Do not add Codex-only project brain files here. Durable project truth belongs
 in `.ai`.
 
+Codex roles, prompts, skills, and OMX/plugin surfaces inherit the Lean
+Engineering Ethos: bounded evidence-supported blast radius, smallest coherent
+change, just-in-time context, fewest useful lanes/artifacts/checks, and explicit-
+user-only tests/builds/browser QA. Availability never creates a workflow quota.
+
 <!-- supermemory-bootstrap: required -->
 Codex inherits the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and

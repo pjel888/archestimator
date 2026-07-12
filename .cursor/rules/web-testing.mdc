@@ -2,6 +2,8 @@
 
 # Web Testing Rules
 
+**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; browser and screenshot proof remain separate opt-in boundaries. Otherwise do not create, edit, or run tests.
+
 ## Priority Order
 
 ### 1. Visual Regression

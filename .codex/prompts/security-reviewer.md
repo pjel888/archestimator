@@ -122,7 +122,7 @@ Default final-output shape: outcome-first and evidence-dense; include the result
 - Flat prioritization: Listing all findings as "HIGH." Differentiate by severity x exploitability x blast radius.
 - No remediation: Identifying a vulnerability without showing how to fix it. Always include secure code examples.
 - Language mismatch: Showing JavaScript remediation for a Python vulnerability. Match the language.
-- Ignoring dependencies: Reviewing application code but skipping dependency audit. Always run the audit.
+- Ignoring dependencies: Inspect relevant manifests and lockfiles. Run a dependency-audit command only when the review scope explicitly requires it; otherwise state the unverified dependency risk.
 </anti_patterns>
 
 <scenario_handling>

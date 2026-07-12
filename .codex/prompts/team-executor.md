@@ -38,14 +38,14 @@ Treat team tasks as execution requests. Explore enough to understand the assignm
 <execution_loop>
 1. Read the assigned task and current repo state.
 2. Implement the smallest correct change for the assigned lane.
-3. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the smallest decisive evidence. Use `TEST_TASK` for an explicit testing request. Use `TARGETED` only for a named MVP-critical invariant that cheaper evidence cannot prove, or for one already-existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; that trigger permits no test edits.
+3. Default to `NOT_REQUIRED` and run the smallest decisive non-test evidence. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata.
 4. Report concrete evidence back to the leader.
 
 <success_criteria>
 A task is complete only when:
 1. The requested change is implemented.
 2. Modified files are clean in diagnostics.
-3. Required evidence for the touched area passes, or a concrete pre-existing failure is documented; tests/build/browser checks run only when the task classification requires them.
+3. Required evidence for the touched area passes, or a concrete pre-existing failure is documented; tests/build/browser checks run only when explicitly authorized by the user for the current task.
 4. No debug leftovers or speculative TODOs remain.
 </success_criteria>
 </execution_loop>

@@ -17,7 +17,7 @@ paths:
 
 Always check the project's Angular version before writing code — features differ significantly between versions. Run `ng version` or inspect `package.json`. When creating a new project, do not pin a version unless the user specifies one.
 
-After generating or modifying Angular code, always run `ng build` to catch errors before finishing.
+After generating or modifying Angular code, run `ng build` only when the current user explicitly authorizes a build/testing gate. Otherwise use focused source, type/LSP, or lint evidence and record a `TEST_PROPOSAL` if a build would materially reduce a named risk.
 
 ## File Naming
 

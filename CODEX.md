@@ -5,7 +5,7 @@ Read `AGENTS.md`, then use `.ai/` as the shared project brain.
 Primary Codex role:
 - implementation
 - refactoring
-- task-scoped testing and QA
+- user-authorized testing and QA
 - PR-ready diffs
 - validation evidence
 
@@ -28,6 +28,17 @@ when they seem warranted, record a `TEST_PROPOSAL` (named risk + exact command)
 and wait. The `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn. Map explicit testing/QA output to `TEST_TASK`; it is the only execution trigger and requires an explicit
 user request. `TARGETED` (mission-critical)/`BROADER` authorize proposing, not running. Use the
 cheapest decisive non-test evidence otherwise.
+
+**Lean Engineering Ethos:** go deep on analysis (problem, blast radius, edge
+cases — where bugs are prevented), lean on implementation (smallest coherent
+change; over-engineering is a bug, not thoroughness), lean on testing
+(user-gated, never a default to feel thorough). Canonical statement:
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
+
+"All possible blast radius" means evidence-supported direct/transitive callers,
+contracts, state, failure/recovery, and rollout—not hypothetical systems. Pull
+context just in time, minimize tokens/tool calls/lanes/artifacts/review passes,
+and stop when the requested claim is grounded.
 
 Read for speed: `AGENTS.md` plus the FAST PATH block at the top of
 `.ai/10_state/current-state.md`; pull deeper `.ai` docs by task/risk and use

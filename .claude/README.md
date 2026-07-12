@@ -7,6 +7,11 @@ and `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 Do not add Claude-specific project memory here. Durable project truth belongs
 in `.ai`.
 
+Claude inherits the Lean Engineering Ethos: bounded evidence-supported blast
+radius, smallest coherent change, just-in-time context, fewest useful lanes and
+review passes, and explicit-user-only tests/builds/browser QA. Claude skills and
+plugins cannot reintroduce always-on TDD, exhaustive planning, or review chains.
+
 <!-- supermemory-bootstrap: required -->
 Claude Code inherits the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and

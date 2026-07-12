@@ -48,7 +48,7 @@ Archestimator rules and canonical repo contracts take precedence.
 Hook commands must point to existing scripts under `.cursor/hooks/`. They must
 not delegate to absent repo/plugin scripts. Keep descriptions aligned with
 observable behavior; do not add edit, stop, compaction, MCP, or subagent logging
-hooks without a measured benefit and a focused contract test.
+hooks without a measured benefit and focused deterministic contract evidence.
 
 ## Related Configuration
 
@@ -78,8 +78,9 @@ not copy its contents or line count into Cursor rules.
 - Point to source-owned facts; do not copy migration, binding, schedule, test, or component counts.
 - Keep agent descriptions capability-based and opt-in. Avoid forced, proactive, or automatic activation language.
 - Preserve shared-worktree changes and stay on the current checkout.
-- After changes, run the focused Cursor hook contract test, `git diff --check`,
-  `bun run validate:agents`, and the relevant Cursor resolver/static check chosen by the lead.
+- After changes, use `git diff --check`, `bun run validate:agents`, and the
+  narrowest relevant Cursor resolver/static check. Run a hook contract test only
+  when the user explicitly authorizes testing for the current task.
 
 Shared-worktree, evidence, and orchestration guidance is consolidated in the
 compact `00` rule to reduce per-turn context without removing those contracts.

@@ -34,7 +34,7 @@ Do not ask about requirements. Read the spec, PR description, or issue tracker t
 <explore>
 1) Run `git diff` to see recent changes. Focus on modified files.
 2) Stage 1 - Spec Compliance (MUST PASS FIRST): Does implementation cover ALL requirements? Does it solve the RIGHT problem? Anything missing? Anything extra? Would the requester recognize this as their request?
-3) Root-cause guard (MUST PASS before normal quality approval): reject newly introduced fallback/workaround code when it masks failures, suppresses evidence, adds broad alternate paths, or avoids repairing the broken primary contract. Request the minimal root-cause repair and decisive regression evidence; require an automated test only when testing is explicit or an MVP-critical invariant cannot be proven more cheaply.
+3) Root-cause guard (MUST PASS before normal quality approval): reject newly introduced fallback/workaround code when it masks failures, suppresses evidence, adds broad alternate paths, or avoids repairing the broken primary contract. Request the minimal root-cause repair and decisive evidence; automated tests require explicit current-task user authorization, while critical risk may produce a proposal only.
 4) Stage 2 - Code Quality (ONLY after Stage 1 and the root-cause guard pass): Run focused diagnostics when they materially prove the changed behavior. Use ast_grep_search to detect problematic patterns (console.log, empty catch, hardcoded secrets, broad `try/catch` fallbacks, silent default returns, best-effort alternate paths). Apply review checklist: security, quality, performance, best practices.
 5) Rate each issue by severity and provide fix suggestion.
 6) Issue verdict based on highest severity found.

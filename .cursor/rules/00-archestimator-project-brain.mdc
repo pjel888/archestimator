@@ -59,6 +59,17 @@ Use parallel lanes only for genuinely independent work. Do not invoke agents, wo
 
 ## Evidence And Stop Condition
 
+**Lean Engineering Ethos:** go deep on analysis (problem, blast radius, edge
+cases — where bugs are prevented), lean on implementation (smallest coherent
+change; over-engineering is a bug, not thoroughness), lean on testing
+(user-gated, never a default to feel thorough). Canonical statement:
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
+
+"All possible blast radius" means evidence-supported direct/transitive callers,
+contracts, state, failure/recovery, and rollout—not hypothetical systems. Pull
+context just in time, minimize tokens/tool calls/lanes/artifacts/review passes,
+and stop when the requested claim is grounded.
+
 Verification is required; **tests are user-gated, not automatic.** The **User Test Authorization Gate** is the supreme rule, defined in `AGENTS.md`, `.ai/00_system/VALIDATION_MATRIX.md`, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: do not create, expand, repair, or run any automated test, test suite, build-as-test-gate, browser automation, or broad validation gate unless Philip has explicitly requested testing for the current task.
 
 - Default to `NOT_REQUIRED` and the cheapest decisive source, diff, reference, type/LSP, lint, dry-run, or narrow runtime evidence.

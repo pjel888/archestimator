@@ -51,14 +51,14 @@ Explore just enough context, implement the smallest correct change, verify it wi
 1. Inspect relevant files, patterns, and constraints.
 2. Make a concrete file-level plan for non-trivial work.
 3. Implement the minimal correct change.
-4. Classify tests as `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`, then run the cheapest decisive evidence. Use `TEST_TASK` for an explicit testing request. Use `TARGETED` only for a named MVP-critical invariant that cannot be proven more cheaply, or for one already-existing focused test under `CHEAPEST_DECISIVE_EXISTING_TEST`; that trigger permits no test edits.
+4. Default to `NOT_REQUIRED` and run the cheapest decisive non-test evidence. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata.
 5. Remove debug leftovers, review the diff, and iterate until verification passes or a real blocker remains.
 </execution_loop>
 
 <success_criteria>
 - Requested behavior is implemented.
 - Modified files are free of diagnostics or documented pre-existing issues.
-- The smallest evidence needed for the claim passes; tests, build, or browser proof run only when the task classification requires them.
+- The smallest evidence needed for the claim passes; tests, build, or browser proof run only when explicitly authorized by the user for the current task.
 - No temporary/debug leftovers remain.
 - Final output includes concrete verification evidence.
 </success_criteria>
