@@ -212,6 +212,15 @@ Stable current truth (verify against git/source before relying on a detail):
   `bun run validate:agents` passed. Note: repo `.codex/skills` is local-only
   because `.codex/*` is ignored, but Codex also has user-level copies in
   `~/.codex/skills`.
+- MengTo Agent Skills refresh (2026-07-12 local): installed all 95 upstream
+  `SKILL.md` directories from `MengTo/Skills` at commit
+  `25f872a94e3bbee85ecacba4041fa52c21cb0e44` into the recognized Codex,
+  Cursor, Claude, CommandCode, Vibe, GitHub, OpenCode, and `.agents` roots.
+  The full skill folders, including optional references, scripts, assets, and
+  metadata, were copied additively: 1,510 new copies were installed and 10
+  existing same-name directories were preserved. All 16 roots have zero
+  missing upstream manifests; `bun run validate:agents` passed. Repo-local
+  `.codex/skills` remains local-only because `.codex/*` is ignored.
 - Development memory safety and fast default (2026-07-10): `bun dev` now
   explicitly runs Next 16.2.10 with Turbopack; `dev:turbo` remains a compatible
   equivalent. The prior idle filesystem-cache persistence/compaction OOM stays

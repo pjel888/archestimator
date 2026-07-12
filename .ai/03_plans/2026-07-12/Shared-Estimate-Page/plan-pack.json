@@ -1,0 +1,446 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-11",
+  "package_id": "PLAN-2026-07-12-shared-estimate-page-audit",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACHIEVED",
+  "baseline": {
+    "head": "2dab33405d72de6c345b42b00b7887ba67db7a24",
+    "scoped_pathspecs": [
+      ".ai/03_plans/2026-07-12/Shared-Estimate-Page"
+    ],
+    "scoped_status_sha256": "67daab98d2f41ccfa352c1a7bd8c43274c6b0ccb54a72e68496f3ae9015edec7",
+    "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "canonical_execution_artifact": "README.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "README.md",
+      "sha256": "99170d07fcc8645712de9b7d021b5a263602685458ea1f5c8271f3f3a8794452"
+    },
+    {
+      "id": "ART-002",
+      "role": "current-state",
+      "path": "01-CURRENT-STATE-MAP.md",
+      "sha256": "32bfc08c0abcc7517790cf98a0fa2e6306805edf0204a6f8b2f9fd62b5d2ab4b"
+    },
+    {
+      "id": "ART-003",
+      "role": "findings",
+      "path": "02-FINDINGS-PERF-AND-BUGS.md",
+      "sha256": "94d61bd106f4b7e9052c86f9466f024e7675b81d7710cffa407c1325d2c1e8e1"
+    },
+    {
+      "id": "ART-004",
+      "role": "findings",
+      "path": "03-FINDINGS-COMMENTING-DECISION.md",
+      "sha256": "0d4be443c2e254c10cca3a09edfaead3b534795761d5b7ed1af8e33a90718877"
+    },
+    {
+      "id": "ART-005",
+      "role": "findings",
+      "path": "04-FINDINGS-REGISTRY.md",
+      "sha256": "981b138ef8b1f0ed71c9cf53eff972025477b7eec2a1094b73ba462f79f62f17"
+    },
+    {
+      "id": "ART-006",
+      "role": "execution-dag",
+      "path": "05-EXECUTION-UNITS.md",
+      "sha256": "b81a967dcf7162b67e0dd8d971e44ca76b81c5633497362186bb0c7465c1608b"
+    },
+    {
+      "id": "ART-007",
+      "role": "target-design",
+      "path": "06-AREA-BRANCH-COMMENTING-DESIGN.md",
+      "sha256": "271ebb0bd36b13fa975060b45c4f37bee838c58ff50909cb1503e58899870b29"
+    },
+    {
+      "id": "ART-008",
+      "role": "backlog",
+      "path": "07-FEATURE-GAP-BACKLOG.md",
+      "sha256": "7fb31dce467ed480c32164ad90092ad951790abe7096026b66d099bb22f686ea"
+    },
+    {
+      "id": "ART-009",
+      "role": "test-policy",
+      "path": "08-TEST-POLICY.md",
+      "sha256": "ae80eb9ac636d875403349baa2f0cf30ceaea070b091d08e9680caca443dd2da"
+    },
+    {
+      "id": "ART-010",
+      "role": "design-target",
+      "path": "09-DESIGN-AND-UX-TARGET.md",
+      "sha256": "ef7737b7359f634bf8d9bbd35a579d52435f9b00eb078c22f3c08e3655933ea7"
+    },
+    {
+      "id": "ART-011",
+      "role": "clarification",
+      "path": "10-VARIANTS-CLARIFICATION.md",
+      "sha256": "bb2c89b49510a25a38a7fbe5a837501d08829de1dc239f09a03d98fcc5bf7b06"
+    },
+    {
+      "id": "ART-012",
+      "role": "evidence",
+      "path": "evidence/audit-sources.txt",
+      "sha256": "a49e1f5a69ad511626edbe0b6c77407c4bc83bb58e696704de96c2f5aa3c8625"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-STATE-MAP.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "artifact_path": "README.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "completion_role": "CORE"
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "artifact_path": "06-AREA-BRANCH-COMMENTING-DESIGN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "completion_role": "CORE"
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "artifact_path": "03-FINDINGS-COMMENTING-DECISION.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "completion_role": "CORE"
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "artifact_path": "02-FINDINGS-PERF-AND-BUGS.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "completion_role": "CORE"
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "artifact_path": "07-FEATURE-GAP-BACKLOG.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "completion_role": "CORE"
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "artifact_path": "09-DESIGN-AND-UX-TARGET.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "completion_role": "CORE"
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "08-TEST-POLICY.md",
+      "unit_ids": [
+        "UNIT-1"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "01-CURRENT-STATE-MAP.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Read-only audit; cheapest decisive evidence is source/schema inspection across route, components, lib, API, and migrations. All findings cited file:line against commit 2dab33405d.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "06-AREA-BRANCH-COMMENTING-DESIGN.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Area-branch breakdown comprehended end-to-end (snapshot preserves treeNodes + row.nodeId; tree renders it). Headline gap (node-level commenting) diagnosed with concrete additive design + UNIT DAG.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "03-FINDINGS-COMMENTING-DECISION.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Commenting/decision/activity surface fully audited from schema through UI; target_kind constraint confirmed at TS type, route validator, and D1 CHECK levels.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "04-FINDINGS-REGISTRY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "8 P1 + 18 P2 + 9 P3 findings catalogued with file:line evidence; zero P0 correctness/data bugs. Each maps to a remediation UNIT. TEST_PROPOSALs recorded, none run.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "07-FEATURE-GAP-BACKLOG.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The 'so much lacking' surface is inventoried (34 candidate items incl. research-backed design targets) with value/effort/sequencing. Candidates are not commitments.",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "09-DESIGN-AND-UX-TARGET.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Design/UX target grounded in 2025-2026 best-practice research (Figma/Linear/Docs anchored comments; ACM approval patterns; WBS/CBS norms; mobile-first; trust signals) and the alpha DESIGN.md language. Prioritized targets D1-D8 mapped to UNIT-13/14 and the backlog.",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-VERIFY-001",
+      "status": "PASS",
+      "artifact_path": "08-TEST-POLICY.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-1",
+      "status": "VERIFIED",
+      "artifact_path": "README.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "06-AREA-BRANCH-COMMENTING-DESIGN.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-1"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "06-AREA-BRANCH-COMMENTING-DESIGN.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-1"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "06-AREA-BRANCH-COMMENTING-DESIGN.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "05-EXECUTION-UNITS.md",
+      "affected_ids": [
+        "REQ-004",
+        "UNIT-1"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "05-EXECUTION-UNITS.md",
+      "affected_ids": [
+        "REQ-004",
+        "UNIT-1"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "10-VARIANTS-CLARIFICATION.md",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "ready_slices": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/audit-sources.txt",
+      "sha256": "a49e1f5a69ad511626edbe0b6c77407c4bc83bb58e696704de96c2f5aa3c8625",
+      "claim_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "UNIT-1",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "GATE-VERIFY-001",
+        "RISK-001"
+      ],
+      "source_revision": "2dab33405d72de6c345b42b00b7887ba67db7a24",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "source-or-config-hash-change"
+  ],
+  "next_unit": null,
+  "updated_at": "2026-07-12T00:00:00.000Z",
+  "manifest_sha256": "77c072458733e4af4a23443118877f198561d26a78b5b3a4cc944ce8e5958cf5"
+}

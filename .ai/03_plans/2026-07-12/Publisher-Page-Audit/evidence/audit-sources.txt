@@ -1,0 +1,43 @@
+# Audit Evidence — Publisher Page Audit
+
+This record documents the evidence basis for the Publisher Page Audit pack.
+It is a planning-evidence artifact (source inspection), not a product test.
+
+## Evidence class
+local-only (read-only source/docs/migrations inspection). No runtime, test,
+build, browser, or provider evidence was produced or required for this audit.
+
+## Baseline
+- Git HEAD at audit: f8295c85b82a0ee6fa455748874dd908376347b4
+- Cited commit in findings: b4b85b307 (HEAD~1 at session start; findings
+  re-validated against f8295c85b which has no publisher-path diffs).
+- Scoped baseline pathspecs (publisher surface):
+  src/app/workshop/publisher, src/components/workshop/publisher, src/lib/publisher
+- scoped_status_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  (publisher pathspecs clean relative to HEAD — no uncommitted publisher changes)
+- scoped_diff_sha256: 3391e312d3d0b9367179a8574669640a19d61ad442d649e472a890a5812178
+
+## What was audited (files read)
+Routes: src/app/workshop/publisher/{page,loading,error}.tsx,
+preview/[projectId]/page.tsx.
+Components (15): src/components/workshop/publisher/* (all).
+Lib (6): src/lib/publisher/* (all).
+Data/mutation deps: src/lib/publication/{actions,d1-store,types,security,
+snapshot}.ts, admin-d1-client.ts, workspace-repository.ts publication paths.
+Public share reuse: src/components/share/*, RecipientEmailComposer.tsx,
+SheetPickerList.tsx, src/app/share/[token]/page.tsx.
+Migrations: 0014_publication_shared_links.sql, 0015_publication_admin_sidecars.sql,
+0066_publication_foreign_keys.sql.
+
+## Method
+Three parallel read-only exploration lanes (publication mutation layer; activity
+repo + UI components; public share read path) + lead direct reads of the route,
+roster repository, filter, permissions, drawer, and wizard. All findings carry
+file:line citations. Cross-checked dead-code (rg), query counts (grep), and
+migration schemas (read).
+
+## Validator gate
+This pack is checked with `bun run validate:plan-pack -- <folder>` (planning-
+contract check: manifest shape, hashes, traceability, DAG, cross-status
+semantics). It validates the pack artifact, not application code, and is
+permitted under the User Test Authorization Gate.

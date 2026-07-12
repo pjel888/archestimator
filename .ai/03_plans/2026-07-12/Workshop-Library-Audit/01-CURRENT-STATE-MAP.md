@@ -2,6 +2,8 @@
 
 > Evidence-grounded map of `/workshop/library` as of 2026-07-12. Every claim has
 > a `file:line` reference. Read alongside `02-BUG-AND-RISK-REGISTER.md`.
+> Deep-dives: `04` (variant/component flow), `05` (UX/UI/design), `06`
+> (templates surface).
 
 ## 1. Route + server/client boundary
 
@@ -47,8 +49,13 @@ LIVE; mounted by `LibraryPageClient.tsx`, `component-library/index.tsx`, and
 |---|---|---|
 | `ComponentLibraryManager.tsx` (~2900L) | catalogue card grid + dense virtualized table, query-cache coherence, route-state, detail hydration, bulk archive, folder CRUD | two reducers; `useTransition`; `useVirtualizer` (gated by `WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION`); receives `onLibraryItemsMutated`/`onLibraryFoldersMutated`/`onProjectPromotionSucceeded` to patch warm cache instead of `router.refresh()` |
 | `LibraryFolderTree.tsx` (~1458L) | folder + component tree, drag reorder, bulk selection, context menu, view modes (default/suppliers/brand) | `reorderLibraryFolders` action |
-| `AddComponentModal.tsx` (~2370L) | create/edit component modal: variants, image upload (`resizeImageForUpload`, `uploadComponentImage`), attachment upload, draft saving, duplicate detection | largest file in the audit |
+| `AddComponentModal.tsx` (~2370L) | create/edit component modal: variants, image upload (`resizeImageForUpload`, `uploadComponentImage`), attachment upload, draft saving, duplicate detection | largest file in the audit. **Two divergent edit surfaces** (see `04` §1): create path is multi-variant; library edit uses `EditComponentDrawer` (single-variant); in-estimate edit (`EstimateSheetContent`) is local-only (BUG-VA-02). **Attachments never persist** (BUG-VA-01). |
 | `library-folder-tree-shared.ts` | shared types/constants (`ComponentViewMode`, `ALL_COMPONENTS_FOLDER_ID`, ...) | pure |
+
+> **Component/variant value stream:** full create/edit + variant/cost-entry/
+> image/attachment round-trip analysis in `04-VARIANT-AND-COMPONENT-FLOW.md`.
+> Headline defects: BUG-VA-01 (attachments never persisted), BUG-VA-02
+> (in-estimate edit local-only), BUG-VA-03 (image metadata lost on re-edit).
 
 **Route-state write pattern (verify):** `ComponentLibraryManager.tsx:2365-2374`
 and `:2400-2408` write `?component=` via raw `window.history.pushState/
@@ -72,7 +79,7 @@ Next's router, so `useSearchParams` subscribers don't observe the change. See
 | `TemplateEditorClient.tsx` | top-level composer | `useReducer`; lazy TanStack Query for lite component library (`workspaceComponentLibraryLiteQueryKey`, `enabled: dockRequested`); updates `useLibraryEditorChrome`; dynamic-imports `EstimateRightSidebar` |
 | `TemplateEditorSheet.tsx` | center work surface: editable rows + branch nodes, drag/drop | `dragOverCount` state; `TemplateEditableRow` uses derived-state-during-render (see `02` BUG-P2-02) |
 | `TemplateStructureTree.tsx` | left tree: context-menu CRUD + drag reorder | move up/down (U12 step) with `aria-live` announcements |
-| `use-template-editor.ts` | optimistic editing hook centralizing tree mutations | render-phase setState + `run` race — see `02` BUG-P2-01, BUG-P1-... |
+| `use-template-editor.ts` | optimistic editing hook centralizing tree mutations | render-phase setState is a **correct guarded prop-sync** (re-analyzed in `06` §3 — not a bug); `run()` rollback is **correct** (`06` §7). `moveNode`/`insertTemplate` skip optimistic local transform (laggy drag-reorder). See `06` for the full templates deep-dive. |
 
 ## 6. Shared library models + facet filter
 
@@ -117,17 +124,20 @@ inputs. All `IN (...)` clauses use `placeholders()` → `?` with bound values
 `includeDetailGraph` gates the versions/price-history/state-history/attachments
 graph (the U18 optimization) — browse surfaces skip it. Good.
 
-**Type/schema drift to verify:** `ComponentPriceOptionRow` (lines 145-182)
-declares `sku`, `variant_description`, `package_quantity`,
+**Type/schema drift — RESOLVED (not a bug):** `ComponentPriceOptionRow`
+(lines 145-182) declares `sku`, `variant_description`, `package_quantity`,
 `dimension_length/width/height`, `mass`, `image_bucket/image_path`,
 `source_url`, `active_cost_entry_id`, etc. The D1 table
 `cost_library_item_price_options` (migration `0026:77-98`) has **none** of these
-columns, and no later migration ALTERs them in (confirmed by grep). The query
-ORDER BY uses `json_extract(metadata_json, '$.variantSortOrder')` — so variant
-metadata may be stored in `metadata_json` JSON, not as columns. **This needs
-confirmation**: is the variant feature wired to write/read these fields via
-`metadata_json`, or is the type a stale aspiration? If the latter, the type is
-misleading and should be trimmed. See `02` DATA-DRIFT-01.
+as real columns, and no later migration ALTERs them in. **Resolution (v2):**
+variant data persists INTO `metadata_json` via `priceOptionSnapshot`
+(`actions.ts:909-944`, bound at `:1090`) and reads BACK OUT via
+`normalizePriceOption` (`repository.ts:580-632`) with a column-first,
+metadata-fallback ladder; ORDER BY uses
+`json_extract(metadata_json, '$.variantSortOrder')`. The type is a **tolerant
+read model**, not a missing-column bug. The round-trip works, with a latent
+fragility (a future writer setting a stale column would shadow the blob). Full
+detail in `04` §3.
 
 ## 9. Write layer — server actions
 

@@ -139,13 +139,13 @@ shape validation at every API.
 
 | Field | Value | Why |
 |---|---|---|
-| `package_status` | `IMPLEMENTATION_READY` | Audit complete; remediation units are concrete and evidence-cited |
-| `implementation_status` | `NOT_STARTED` | This pack audits; no fix is implemented |
+| `package_status` | `IMPLEMENTATION_READY` | Audit deliverable complete; remediation units are concrete and evidence-cited |
+| `implementation_status` | `COMPLETE` | The **audit** (comprehension + findings + remediation backlog) is complete. Remediation itself is future, separately-authorized work, not part of this pack's deliverable. |
 | `release_status` | `NOT_EVALUATED` | No release claim (read-only audit) |
-| `plan_lifecycle` | `ACTIVE` | Findings await a separate execution authorization |
-| `terminal_status` | `ACTIVE` | Audit delivered; fixes are future work |
-| `package_action_ceiling` | `IMPLEMENT_LOCAL` | Describes future remediation reach |
-| `last_observed_run_scope` | `PLAN_ONLY` | This run only wrote the pack folder |
+| `plan_lifecycle` | `N/A` | Audit pack; no implementation lifecycle to archive |
+| `terminal_status` | `ACHIEVED` | The requested audit outcome is fully delivered |
+| `package_action_ceiling` | `IMPLEMENT_LOCAL` | Describes the future remediation units' reach |
+| `last_observed_run_scope` | `PLAN_ONLY` | This run only wrote the pack folder (read source/docs/migrations) |
 
 `package_action_ceiling: IMPLEMENT_LOCAL` describes the **remediation units**
 the pack proposes, not anything this audit run performed. The audit run itself
@@ -155,53 +155,91 @@ was strictly `PLAN_ONLY` (read source/docs/migrations, wrote only this folder).
 
 Severity legend: **P0** = correctness/security/data bug · **P1** = real bug with
 user impact or notable perf · **P2** = quality/consistency/tech-debt · **P3** =
-minor/nit. Counts: see `03-findings-registry.md`.
+minor/nit. **Totals: 65 findings — 0 P0, 23 P1, 27 P2, 11 P3, 4 safe/accepted.**
+Full index: `04-findings-registry.md`. Improve-pass added `07` (adversarial),
+`08` (design/a11y), `09` (perf-budget).
 
-**Top issues (P0/P1):**
+**Create-stage said "8 D1 round-trips"; improve-stage corrected this to ~20**
+(the create-stage count missed `listCurrentWorkspaceProjects`'s 11-14 upstream
+RTs). See PF-1 in `09-findings-performance-budget.md`.
 
-1. **[PERF-1, P1]** Roster read does **8 D1 round-trips per page load** with
-   in-memory filtering/pagination — does not scale and over-fetches
-   (`roster-repository.ts:630-688`). Worst cost on the master/detail cold load.
-2. **[PERF-2, P1]** Correlated subquery in `readLatestPublicationStatusByProjectId`
-   runs once per manageable project (`roster-repository.ts:595-628`).
-3. **[BUG-1, P1]** Activity feed source-cap boundary: when one source has a
-   contiguous run > `safeLimit+1` (51) newest rows, older rows from that source
-   are silently dropped on subsequent pages (`activity-repository.ts:293,358`).
-4. **[BUG-2, P1]** `submitClientResponse` read-then-write dedupe is racy; the
-   unique partial index is the real guard but the INSERT path doesn't catch a
-   uniqueness violation, so concurrent double-submit throws instead of returning
-   null (`d1-store.ts:760-765`, `779`).
-5. **[SEC-1, P1]** Share HTML page sends no explicit `Cache-Control: no-store`;
-   relies on `force-dynamic` + Cloudflare defaults. A password-unlocked page's
-   HTML could be CDN-cached if rules are loose (`share/[token]/page.tsx`).
-6. **[BUG-3, P1]** `assertProjectPublicationManager` and all manager mutations
-   **throw on D1 error with no try/catch**; `usePublisherDrawer` has **no
-   `onError`**. A D1 blip surfaces as an unhandled server-action error with no
-   user-facing recovery (`actions.ts:394`, `usePublisherDrawer.ts:42-58`).
-7. **[UX-1, P1]** `PublisherProjectMembersPanel` is **dead production code** —
-   zero production importers (only tests). If the drawer was meant to show
-   project members, the wiring is missing (`PublisherProjectMembersPanel.tsx`).
+**Top issues (P1, grouped):**
 
-**Notable P2:** activity `limit:50` duplicated as literal in 3 files;
-`ClientPreviewBanner` hardcodes amber palette bypassing theme tokens;
-`ShareLinkDisplay.message` never auto-clears; `console.warn` left in
-`roster-repository.ts:199`; activity publications capped at 250 silently;
-`PublisherRosterRow` misnamed (it's a helpers module, not a component).
+*Performance / data layer:*
+1. **[PF-1, P1]** Roster cold load is **~20 D1 round-trips across 4 serial waves**
+   on a route nominally budgeted <100ms (`roster-repository.ts:635-673`;
+   `workspace-repository.ts:1486-1624`). No D1/query-count budget exists.
+2. **[PF-2, P1]** `readAccessibleEstimateIdSet` is a serial loop of 1 RT per 90
+   estimates, paid every load (`workspace-repository.ts:1279,1292`).
+3. **[PF-3, P1]** Correlated subquery is redundant — latest-status derivable
+   from already-fetched rows (`roster-repository.ts:595-628`). Quickest win.
+4. **[PF-4/PF-5, P1]** `ShareWizard` (+764-LOC `RecipientEmailComposer`),
+   `PublisherDrawer`, `PublisherProjectPicker` all statically imported but
+   user-gated — no `next/dynamic` anywhere in the tree. Violates the
+   `/workshop/*` <80KB main bundle budget.
+
+*Bugs (data/logic):*
+5. **[BUG-1, P1]** Activity feed drops rows when one source dominates the
+   `safeLimit+1` cap (`activity-repository.ts:293,358`).
+6. **[BUG-2, P1]** `submitClientResponse` dedupe race — concurrent double-submit
+   throws instead of returning null (`d1-store.ts:760-765,779`).
+7. **[BUG-3, P1]** Manager mutations throw with no client `onError` — D1 blips
+   surface as unhandled errors (`actions.ts:394`, `usePublisherDrawer.ts:42-58`).
+
+*Bugs (client state/navigation — adversarial pass):*
+8. **[A-BUG-1, P1]** `searchValue` never re-syncs from `filters.search` → stale
+   input / URL clobber on back/forward (`PublisherRosterClient.tsx:120,247`).
+9. **[A-BUG-2, P1]** `selectedProjectId` not kept valid vs `roster.rows` → detail
+   pane collapses when a filter removes the selected row (`:130-139`).
+10. **[A-BUG-4, P1]** `verificationPending` stuck screen — no "back to editor"
+    after a transient post-save verify failure (`ShareWizard.tsx:45,105-138`).
+11. **[A-BUG-6, P1]** Draft state (password, selections) wiped before verify
+    confirms → lost draft on verify-fail (`ShareWizard.tsx:140-162`).
+12. **[A-BUG-12, P1]** Drawer/wizard deep-links matched only against current-page
+    rows → `?drawer=<id>` for an off-page project silently never opens
+    (`PublisherRosterClient.tsx:91-108`).
+
+*Security / dead code / design:*
+13. **[SEC-1, P1]** Share HTML page sends no `Cache-Control: no-store` — CDN-cache
+    risk for unlocked proposal HTML (`share/[token]/page.tsx:35`).
+14. **[BUG-6/UX-1, P1]** `PublisherProjectMembersPanel` dead production code
+    (zero importers) — feature gap or stale scaffold.
+15. **[D-1, P1]** `ClientPreviewBanner` hardcodes amber palette bypassing tokens.
+16. **[D-9, P1]** Mobile/desktop split via imperative `matchMedia` at click time;
+    `mobile` empty-state variant exists but is never rendered (dead).
+17. **[D-12, P1]** Copy "Copied" feedback never resets (3 sites).
+18. **[D-15, P1]** Roster list has no listbox/arrow-key semantics.
+
+**Notable P2:** `closeWizard` leaves `project` param (A-BUG-13); picker focus
+lands on close button not search (A-BUG-9); warning text contrast borderline
+4.51:1 (D-17); link-as-button duplicated & drifted in 4 sites (D-5); D1 RTs
+invisible to tracing (PF-6); mutations do full `router.refresh()` (PF-8).
+
+**Cleared suspicions:** no redirect loop in `page.tsx`; no XSS; no memory leaks.
 
 ## 6. Execution DAG (remediation units — for a FUTURE implementation run)
 
-Units are independent unless noted. Owner can pick any subset; nothing here is
-auto-executed. Each `UNIT-*` in `04-execution-units.md`.
+Units are independent unless noted (UNIT-11 should follow UNIT-8/9/10). Owner
+can pick any subset; nothing here is auto-executed. Each `UNIT-*` in
+`05-execution-units.md`. Improve-stage added UNIT-8..11.
 
 ```
-UNIT-1 (PERF roster query consolidation)  ──┐
-UNIT-2 (BUG activity source-cap fix)      ──┼─ all independent, serialize on shared files only
-UNIT-3 (BUG response dedupe race)         ──┤
-UNIT-4 (SEC share Cache-Control header)   ──┤
-UNIT-5 (BUG mutation error handling)      ──┤
-UNIT-6 (DEADCODE remove/repurpose members panel) ─┤
-UNIT-7 (P2 cleanup: constants, console, theme, message) ─┘
+UNIT-1 (perf: roster query consolidation + RT reduction)
+UNIT-2 (bug: activity source-cap + 250 cap + load() guard)
+UNIT-3 (bug: response dedupe race)
+UNIT-4 (sec: share Cache-Control header)
+UNIT-5 (bug: mutation error handling + in-flight ref + onError)
+UNIT-6 (deadcode: members panel — owner intent)
+UNIT-7 (P2/P3 cleanup: amber, copy-reset, aria-live, console, constants, focus)
+UNIT-8 (client state sync: searchValue, selectedProjectId, matchMedia, deep-link, closeWizard)  [improve-pass]
+UNIT-9 (ShareWizard lifecycle: verificationPending, retry, draft-wipe, checkbox)                [improve-pass]
+UNIT-10 (a11y: roster listbox + non-color selection cue)                                       [improve-pass]
+UNIT-11 (bundle: next/dynamic ShareWizard/Drawer/Picker + Suspense split)                      [improve-pass]
 ```
+
+**Recommended order (impact/risk for first-users stage):** UNIT-4 → (D-12/D-13/D-1
+subset of UNIT-7) → PF-3 (⊂UNIT-1) → UNIT-8 → UNIT-3 → UNIT-9 → UNIT-2 → UNIT-5
+→ UNIT-10 → UNIT-11 → UNIT-6 (after owner intent) → rest of UNIT-7.
 
 ## 7. Test policy (User Test Authorization Gate)
 

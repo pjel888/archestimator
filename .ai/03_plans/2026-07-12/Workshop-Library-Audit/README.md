@@ -38,6 +38,9 @@ cross-reference.
 | `01-CURRENT-STATE-MAP.md` | audit | Full route/client/data/server/authz/perf/cloudflare map with file:line refs |
 | `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found, severity, evidence, recommended surface |
 | `03-READINESS-AND-RECOMMENDATIONS.md` | audit | First-user readiness verdict + prioritized recommendations |
+| `04-VARIANT-AND-COMPONENT-FLOW.md` | deep-dive | Component create/edit + variant/cost-entry/image/attachment round-trip + the attachment-persistence defect |
+| `05-UX-UI-DESIGN-ANALYSIS.md` | deep-dive | Layout, state coverage, interaction patterns, a11y, responsive, design-system, perceived-perf, the Overview skeleton/empty-body problem |
+| `06-TEMPLATES-SURFACE.md` | deep-dive | Templates browse + editor + insert-into-estimate + the stale-link blindness defect |
 
 No `plan-pack.json` manifest is emitted because this is an **audit-only** pack
 (no implementation units, gates, or status tuple to enforce). Emitting a
@@ -80,11 +83,26 @@ the canonical next step (see `03` §"Turning this into implementation work").
 
 | Field | Value | Notes |
 |---|---|---|
-| Audit status | COMPLETE | Full surface mapped; every claim has file:line evidence |
-| Bugs found | 23 | 2 P1, 10 P2, 11 P3 — see `02-BUG-AND-RISK-REGISTER.md` |
-| Highest-severity open bug | **direct-upload authz gap** (viewers can upload) `attachments/direct-upload/route.ts:486-488,499-501` + **non-atomic upload record writes strand R2 orphans** `upload-records.ts:90-216` | Both P1 |
-| Dead code items | 11 | `02` §Dead code |
-| First-user readiness | **CONDITIONAL** | Common browse/search/edit flows work and are well-authz'd on the main paths; the upload pipeline has an authz gap and non-atomic write paths that will leak R2 orphans and can strand sessions under failure. |
+| Audit status | COMPLETE (v2 — improved) | Full surface mapped; every claim has file:line evidence. v2 added 3 deep-dives (variants, UX/UI, templates), resolved DATA-DRIFT-01, and found 3 new headline bugs the first pass missed. |
+| Bugs found | 34 | **5 P1**, 13 P2, 16 P3 — see `02-BUG-AND-RISK-REGISTER.md` |
+| Highest-severity open bugs | **(1)** direct-upload authz gap (viewers can upload) `attachments/direct-upload/route.ts:486-488,499-501`; **(2)** non-atomic upload record writes strand R2 orphans `upload-records.ts:90-216`; **(3)** variant attachments never persisted (write-and-display-once; orphan in R2) `actions.ts:1012-1180`; **(4)** in-estimate component edit mutates local state only, never the library `EstimateSheetContent.tsx:1740-1765`; **(5)** template insert stale-link blindness — archived-component hard-block unreachable `repository.ts:988, 952-995` | All 5 P1 |
+| Dead code items | 12 | `02` §Dead code |
+| First-user readiness | **NOT READY** | Upgraded from CONDITIONAL after v2 found that the two core value streams (component create with attachments, template insert with stale-link gating) have silent data-loss/correctness defects. Browse/search/edit flows themselves are solid and well-authz'd. |
+
+### What v2 changed (improvement provenance)
+
+- **Resolved** the first-pass DATA-DRIFT-01 open question: variant fields DO
+  round-trip through `metadata_json` (write via `priceOptionSnapshot`
+  `actions.ts:909`, read via `normalizePriceOption` `repository.ts:580-632`). The
+  type is a tolerant read model, not a missing-column bug. Documented in
+  `04` §3.
+- **Downgraded** first-pass BUG-P2-01 (`useTemplateEditor.run` race): re-analysis
+  in `06` confirms the `previous` capture inside the state updater is the
+  canonical React-18-safe pattern; not broken.
+- **Found 3 new headline defects** the first pass missed: BUG-VA-01 (attachments
+  never persist), BUG-VA-02 (in-estimate edit is local-only), BUG-TM-01 (template
+  stale-link blindness) — all elevated to P1.
+- **Added** the Overview skeleton/reality divergence as a P1 UX finding (`05` §8).
 
 ## One-line architecture (detail in `01-CURRENT-STATE-MAP.md`)
 
@@ -94,6 +112,7 @@ the canonical next step (see `03` §"Turning this into implementation work").
 ├─ Components tab    LibraryComponentsRoute (RSC) → ComponentLibraryManager (~2900L client)
 │                    └─ LibraryFolderTree + AddComponentModal + ComponentInspectorDock + EditComponentDrawer
 │                    └─ virtualized table + catalogue grid; query-cache coherence callbacks
+│                    └─ variants: AddComponentModal (create) is multi-variant; EditComponentDrawer (edit) is single-variant
 └─ Templates tab     TemplatesBrowsePageClient (warm TanStack cache) → TemplatesBrowseManager (~1200L)
    └─ TemplateGallery + SelectedTemplatePreview + InsertIntoEstimatePicker
    └─ /templates/[id] TemplateEditorClient (sheet + structure tree + right sidebar)
@@ -104,12 +123,19 @@ Data:
   Uploads /api/component-library/{attachments,attachments/direct-upload,images,attachments/scan-override}
           → R2 (component-attachments / component-images buckets) + D1 upload_sessions/assets/events
           → UPLOAD_JOBS_QUEUE (cron) → scan → /api/internal/upload-scan
+
+Critical round-trip contract (resolved in 04 §3):
+  variant fields (sku, dims, mass, image path, etc.) persist INTO metadata_json (priceOptionSnapshot)
+  and read BACK OUT of metadata_json (normalizePriceOption) — NOT as D1 columns.
 ```
 
 ## Resume pointer
 
 - **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity.
 - **Start here for architecture:** `01-CURRENT-STATE-MAP.md`.
+- **Start here for the component/variant value stream:** `04-VARIANT-AND-COMPONENT-FLOW.md`.
+- **Start here for UX/UI/design:** `05-UX-UI-DESIGN-ANALYSIS.md`.
+- **Start here for templates/insert:** `06-TEMPLATES-SURFACE.md`.
 - **Start here for "what do we do about it":** `03-READINESS-AND-RECOMMENDATIONS.md`.
 
 ## Provenance

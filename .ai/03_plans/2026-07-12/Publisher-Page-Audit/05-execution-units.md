@@ -225,14 +225,92 @@ change to data/security paths.
 
 ---
 
-## DAG
+## UNIT-8 — PublisherRosterClient URL/state sync fixes (A-BUG-1/2/3/12/13, D-9)
+
+**Goal:** fix the navigation/state-sync defects in the master/detail client shell.
+
+**Linked findings:** A-BUG-1 (searchValue desync), A-BUG-2 (selectedProjectId stale), A-BUG-3/D-9 (matchMedia at click time + dead mobile empty-state), A-BUG-12 (drawer deep-link vs current-page rows), A-BUG-13 (closeWizard leaves `project` param).
+
+**Exact paths:** `src/components/workshop/publisher/PublisherRosterClient.tsx` (`:120,130-139,190,207-235`); optionally `src/app/workshop/publisher/page.tsx` (server-side `drawer` filter rewrite, mirroring the `wizard` rewrite at `:18-29`).
+
+**Approach:**
+1. Add a guarded `useEffect` syncing `searchValue` from `filters.search` (A-BUG-1).
+2. Add an effect keeping `selectedProjectId` valid against `roster.rows` (fall back to `rows[0]`) (A-BUG-2).
+3. Replace the imperative `matchMedia` read with a `useSyncExternalStore`-backed `useMediaQuery` hook; wire the `mobile` empty-state variant for no-JS/narrow fallback (A-BUG-3/D-9).
+4. For `?drawer=` deep links: either add the server-side filter rewrite (like `wizard`) or construct a minimal row from the URL param as a fallback (A-BUG-12).
+5. `closeWizard` should also clear `project`/`page` when the wizard was opened via the picker (A-BUG-13).
+
+**Test requirement:** `TARGETED`/`MVP_CRITICAL_INVARIANT` (URL↔state sync + navigation correctness). **`TEST_PROPOSAL` only.**
+
+---
+
+## UNIT-9 — ShareWizard lifecycle + design fixes (A-BUG-4/5/6, D-6/D-8)
+
+**Goal:** fix the wizard state-machine defects and primitive misuse.
+
+**Linked findings:** A-BUG-4 (verificationPending stuck), A-BUG-5 (retryProjectDetails early-return), A-BUG-6 (draft wiped before verify), D-6 (native checkbox), D-8 (picker re-implements AppModal — adjacent).
+
+**Exact paths:** `src/components/workshop/publisher/ShareWizard.tsx` (`:45,51,105-162,309`); `src/components/workshop/publisher/PublisherProjectPicker.tsx` (D-8).
+
+**Approach:**
+1. Add a "Return to editor" action from the `verificationPending` error state (A-BUG-4).
+2. Separate initial-load retry from post-save retry so `retryProjectDetails` checks the refetch result regardless of `verificationPending` (A-BUG-5).
+3. Move the draft reset (`password`, overrides) to after verification succeeds (A-BUG-6).
+4. Swap native `<input type="checkbox">` → `<Checkbox>` primitive (D-6).
+5. (Optional, D-8) replace picker's manual Dialog chrome with `<AppModal>`.
+
+**Test requirement:** `TARGETED`/`MVP_CRITICAL_INVARIANT` (wizard save/verify state machine). **`TEST_PROPOSAL` only.**
+
+---
+
+## UNIT-10 — Roster listbox + a11y (D-15/D-16)
+
+**Goal:** give the roster list proper listbox/keyboard semantics and a non-color selection cue.
+
+**Linked findings:** D-15 (no listbox/arrow-key nav), D-16 (color-only selection + brand-orange ring).
+
+**Exact paths:** `src/components/workshop/publisher/PublisherRosterClient.tsx` (`:342-358` list container); `src/components/workshop/publisher/PublisherRosterCard.tsx` (`:38,46`).
+
+**Approach:** wrap rows in `<div role="listbox" aria-label="Client links">` + roving `tabIndex` + ArrowUp/Down/Home/End (model on `DropdownSelect` APG pattern), or at minimum `role="list"`/`role="listitem"`; add a non-color selection cue (left-edge border or checkmark) and drop the brand-orange ring.
+
+**Test requirement:** `NOT_REQUIRED` (a11y structure verifiable by inspection; keyboard nav `TEST_PROPOSAL` optional).
+
+---
+
+## UNIT-11 — Bundle splitting + streaming (PF-4/PF-5/PF-7)
+
+**Goal:** code-split user-gated heavy subtrees; fix the double-Suspense.
+
+**Linked findings:** PF-4 (ShareWizard static), PF-5 (Drawer/Picker static), PF-7 (double Suspense).
+
+**Exact paths:** `src/components/workshop/publisher/PublisherRosterClient.tsx` (`:10,13,15` imports); `src/app/workshop/publisher/page.tsx` (`:42-60`).
+
+**Approach:**
+1. `next/dynamic(() => import("./ShareWizard"), { ssr:false, loading:… })` (PF-4).
+2. `next/dynamic` for `PublisherDrawer` (evaluate `ssr:true`+loading since it's the right pane) and `PublisherProjectPicker` (`ssr:false`) (PF-5).
+3. Split `PublisherRosterClient` into a static shell (filters + empty list, outside Suspense) that streams immediately + a roster `Suspense` resolving with rows; or collapse to one boundary (PF-7).
+
+**Invariant:** first-paint roster (list/filter chrome + `PublisherRosterCard`) must render without the lazy chunks; lazy chunks must show a skeleton. Verify against `/workshop/*` <80KB main / <120KB critical-path budgets.
+
+**Test requirement:** `NOT_REQUIRED` (bundle size verifiable by build output inspection; runtime lazy-load `TEST_PROPOSAL` optional — needs build, user-gated).
+
+---
+
+## DAG (all units)
 
 ```
-UNIT-4 (independent)          UNIT-7 (independent, batch)
-UNIT-1 (roster-repository)    UNIT-3 (d1-store)          UNIT-5 (actions + 3 components)
-UNIT-2 (activity-repo + feed) UNIT-6 (needs owner intent)
+UNIT-4 (Cache-Control, independent)   UNIT-7 (P2/P3 cleanup batch)
+UNIT-1 (roster-repository + perf)     UNIT-3 (d1-store)        UNIT-5 (actions + drawer error handling)
+UNIT-2 (activity-repo + feed)         UNIT-6 (members panel — owner intent)
+UNIT-8 (PublisherRosterClient state)  UNIT-9 (ShareWizard lifecycle)   UNIT-10 (listbox a11y)
+UNIT-11 (bundle/streaming — depends on UNIT-8/9/10 settling component shape)
 ```
-All independent except shared-file overlap (note: UNIT-1 and UNIT-2/5/7 touch
-different files → safe parallel; UNIT-5 touches `actions.ts` which UNIT-3's
-`d1-store.ts` does not → safe). Serialize only when two units edit the same file
-in one run.
+All independent except: UNIT-11 (bundle) should run AFTER UNIT-8/9/10 so the
+dynamic-import sites wrap the final component shape. UNIT-7 overlaps files with
+UNIT-8/9/10 (cosmetic changes) — serialize the overlapping files within a run.
+Serialize only when two units edit the same file simultaneously.
+
+**Recommended order (impact/risk):** UNIT-4 → (D-12/D-13/D-1 subset of UNIT-7) →
+PF-3 (⊂UNIT-1) → UNIT-8 → UNIT-3 → UNIT-9 → UNIT-2 → UNIT-5 → UNIT-10 →
+UNIT-11 → UNIT-6 (after owner intent) → rest of UNIT-7.
+

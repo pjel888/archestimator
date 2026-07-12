@@ -1,0 +1,84 @@
+# Source files inspected during the Shared Estimate Page audit (commit 2dab33405d)
+
+# Route
+src/app/share/[token]/page.tsx
+src/app/share/[token]/loading.tsx
+src/app/share/[token]/not-found.tsx
+src/app/share/print.css
+
+# Share components
+src/components/share/ShareReviewWorkspace.tsx
+src/components/share/SharePageTabs.tsx
+src/components/share/SharePageComments.tsx
+src/components/share/SharePageDecision.tsx
+src/components/share/SharePageDecisionConfirmDialog.tsx
+src/components/share/ShareEstimateTreePanel.tsx
+src/components/share/ShareEstimateTreeView.tsx
+src/components/share/SharedLinkActivityFeed.tsx
+src/components/share/SharePageSummaryCard.tsx
+src/components/share/ProjectPublicationPasswordForm.tsx
+src/components/share/SharePageHero.tsx
+src/components/share/SharePageSessionBanner.tsx
+src/components/share/SharePageProposalHeader.tsx
+src/components/share/ProposalStatusBadge.tsx
+src/components/share/StickyDecisionBar.tsx
+src/components/share/ShareContainer.tsx
+src/components/share/SharePrintButton.tsx
+src/components/share/CoverImagePlaceholder.tsx
+src/components/share/ensure-query-client.tsx
+src/components/share/share-review-target.ts
+
+# Share lib
+src/lib/share/reconstruct-share-tree.ts
+src/lib/share/aggregate-share-chart-buckets.ts
+
+# Publication backend
+src/lib/publication/public-repository.ts
+src/lib/publication/actions.ts
+src/lib/publication/d1-store.ts
+src/lib/publication/security.ts
+src/lib/publication/snapshot.ts
+src/lib/publication/types.ts
+src/lib/publication/activity-helpers.ts
+src/lib/publication/admin-d1-client.ts
+src/lib/publication/image-url.ts
+src/lib/publication/email-links.ts
+src/lib/publication/share-copy.ts
+src/lib/publication/client-csrf.ts
+src/lib/publication/recipient-limits.ts
+
+# API routes
+src/app/api/share/[token]/route.ts
+src/app/api/share/[token]/comment/route.ts
+src/app/api/share/[token]/decision/route.ts
+src/app/api/share/[token]/session/route.ts
+src/app/api/share/[token]/password/route.ts
+src/app/api/share/[token]/activity/route.ts
+src/app/api/share/[token]/unsubscribe/route.ts
+
+# Shared workshop primitive
+src/components/workshop/workshop-tree.tsx
+
+# Estimate source model (read-only comparison)
+src/lib/estimates/types.ts
+src/lib/estimates/tree-hierarchy.ts
+
+# D1 migrations (active)
+migrations/0014_publication_shared_links.sql
+migrations/0015_publication_admin_sidecars.sql
+migrations/0066_publication_foreign_keys.sql
+
+# Supabase migrations (historical; read-only schema reference)
+supabase/migrations/20260518090000_archestimator_core_schema.sql
+supabase/migrations/20260612094734_estimate_tabs_foundation.sql
+supabase/migrations/20260614003639_unify_estimate_node_kinds.sql
+supabase/migrations/20260621042221_shared_link_event_context.sql
+
+# Config
+wrangler.jsonc
+
+# Performance budget
+.ai/01_roadmap/27-performance-budget-and-regression-gates.md
+
+# Sibling packs (cross-reference)
+.ai/03_plans/2026-07-12/Publisher-Page-Audit/README.md

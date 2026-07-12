@@ -7,6 +7,12 @@
 > No tests were run (User Test Authorization Gate). Where a bug warrants a test,
 > a `TEST_PROPOSAL` (named risk + exact command) is recorded for explicit owner
 > authorization.
+>
+> **v2 note:** this register supersedes the first-pass version. Three new P1s
+> were found by the deep-dive passes (`04`/`05`/`06`): BUG-VA-01, BUG-VA-02,
+> BUG-TM-01. First-pass BUG-P2-01 (`useTemplateEditor.run` race) was
+> **downgraded/removed** after re-analysis in `06` §7 (the pattern is correct).
+> First-pass DATA-DRIFT-01 was **resolved** (not a bug) in `04` §3.
 
 ## P1 — fix before first users
 
@@ -44,18 +50,76 @@
 - **Proof class:** source inspection. `TEST_PROPOSAL`: simulate a mid-sequence
   D1 failure and assert cleanup eligibility.
 
+### BUG-VA-01 [P1] — variant attachments are never persisted (silent data loss)
+
+- **Location:** `src/lib/component-library/actions.ts:1012-1180`
+  (`upsertComponentPriceOptionInD1`); modal at
+  `src/components/workshop/component-library-manager/AddComponentModal.tsx:1231-1263, 1126-1133`
+- **What:** `AddComponentModal` uploads attachments per variant to R2 +
+  `upload_assets` (POST `/api/component-library/attachments`), validates them
+  server-side (`validatePriceOptions`), transmits them in the create payload —
+  but `upsertComponentPriceOptionInD1` **never inserts a row into
+  `cost_library_item_variant_attachments`**. Verified: zero production
+  `INSERT INTO cost_library_item_variant_attachments` in `src/` (only the proof
+  harness `upload-lifecycle-proof-router.ts:268` writes it).
+- **Impact:** uploaded attachment files orphan in R2 + `upload_assets` with no
+  link to any price option/item. On next library read, the modal shows "No files
+  attached." The user sees a successful "Add Component" and the attachment chips
+  silently disappear. The entire `cost_library_item_variant_attachments` review
+  workflow (`uploaded/approved/rejected/superseded`) is unreachable. Detail in
+  `04` §5.
+- **Recommended surface:** add the attachment-row INSERT in
+  `upsertComponentPriceOptionInD1` (or a sibling batched write); surface
+  `scanStatus`/review state in the modal.
+- **Proof class:** source inspection + grep. `TEST_PROPOSAL`: create a component
+  with an attachment, reload, assert the attachment row exists + chip renders.
+
+### BUG-VA-02 [P1] — in-estimate component edit mutates local state only
+
+- **Location:** `src/components/workshop/EstimateSheetContent.tsx:1740-1765`
+  (`updateComponentFromEditor`); modal save at
+  `AddComponentModal.tsx:1530-1531`
+- **What:** `EstimateSheetContent` opens `AddComponentModal` in edit mode
+  (`editingItem`). On save, `onComponentUpdated(buildEditedItem())` calls
+  `updateComponentFromEditor`, which only calls `updateRowItem(...)` — a local
+  estimate-row state update. It never calls `updateCostLibraryComponent` or
+  `upsertCostLibraryComponentPriceOption`.
+- **Impact:** users editing a library component from inside an estimate sheet
+  believe they edited the library; they only edited the row. The rich
+  multi-variant edit UI (`AddComponentModal` edit branch + `buildEditedItem`) is
+  a UI-only transformation on that surface. Detail in `04` §1/§6.
+- **Recommended surface:** either persist the edit to the library via the
+  existing server actions, or clearly label the in-estimate editor as
+  "row-only" and disable library-mutation affordances there.
+- **Proof class:** source inspection. `TEST_PROPOSAL`: edit a library component
+  from an estimate, reload the library, assert the change is/isn't present per
+  the chosen intent.
+
+### BUG-TM-01 [P1] — template insert stale-link blindness
+
+- **Location:** `src/lib/repositories/component-library-repository.ts:988, 952-995`
+  (`normalizeTemplateRowItem`); gate at
+  `src/components/workshop/library/source-trust-model.ts:463-588`
+- **What:** `getTemplateDependencyHealth` gates insert on
+  `row.lifecycleState`/`row.linkState`, but the row normalizer reads
+  `lifecycleState` from the insert-time **snapshot** (`sourceSnapshot.lifecycleState`)
+  — not a live join to `cost_library_items.lifecycle_state`. And `row.link_state`
+  is **never copied onto the output object** (absent from the returned shape),
+  so `rowLinkState` always falls back to `linked-clean`/`unlinked`. The only
+  `link_state` write sites stamp `"linked-clean"`/`"unlinked"` — never
+  `"source-changed"`. `pricingDate` falls back to `row.created_at` slice.
+- **Impact:** when a referenced component is archived/deleted/price-changed
+  *after* the template row was created, the insert picker reports the template
+  as `healthy` and allows insert with no override. The "archived dependency"
+  hard-block (`source-trust-model.ts:471-481`) is effectively unreachable
+  through browse→insert. No broken-link UX. Detail in `06` §4.
+- **Recommended surface:** live-join `source_library_item_id → cost_library_items`
+  for current lifecycle at read time (or at insert-resolution time); surface
+  `row.link_state` and recompute it; add a broken-link UX.
+- **Proof class:** source inspection. `TEST_PROPOSAL`: archive a component
+  referenced by a template, open the insert picker, assert the hard-block fires.
+
 ## P2 — real bugs, bounded blast radius
-
-### BUG-P2-01 — `useTemplateEditor.run` optimistic-update race
-
-- **Location:** `src/components/workshop/library/template-editor/use-template-editor.ts:90-119`
-- **What:** `run` captures `previous` via closure **outside** the setState
-  updater. If two mutations overlap before the first commits, the second's
-  rollback target is stale → clobbers the first mutation's optimistic change on
-  failure.
-- **Impact:** visible only under fast double-edits; rollback to wrong snapshot.
-- **Recommended surface:** capture the snapshot inside the updater, or queue
-  mutations.
 
 ### BUG-P2-02 — render-phase derived setState (3 sites)
 
@@ -66,7 +130,13 @@
 - **What:** setState called during render guarded by an id/reference inequality
   check. React tolerates this (id-guard prevents infinite loop), but it's flagged
   by react-doctor-style linters and is fragile.
-- **Recommended surface:** move to `useEffect`/`useMemo` keyed on the id/ref.
+- **Note:** the `use-template-editor.ts:57-60` site was re-analyzed in `06` §3
+  and is a **correct guarded prop-sync** (React permits setState-during-render
+  when conditional on a prop change targeting the same component) — keep as a
+  defensive-pattern observation, not an active bug. The other two sites remain
+  candidates for `useEffect`/`useMemo`.
+- **Recommended surface:** move `EditComponentDrawer` and `TemplateEditableRow`
+  sites to `useEffect`/`useMemo` keyed on the id/ref.
 
 ### BUG-P2-03 — `createCostLibraryComponent` non-atomic multi-statement
 
@@ -214,6 +284,87 @@
   items on first paint, a synthetic row array is constructed; double-layout on
   first mount for large lists.
 
+### BUG-VA-03 [P2] — image metadata lost on re-edit
+
+- `AddComponentModal.tsx:569-580` (`toExistingVariantImageDraft`) discards
+  `bucket/path/thumbnailStoragePath/imageMetadata` on edit-hydrate. A re-edit
+  that changes only the label and saves will overwrite the stored image paths
+  with empty strings. Data-loss-on-re-edit. Detail in `04` §5.
+
+### BUG-VA-04 [P2] — non-atomic serial writes in `createCostLibraryComponent`
+
+- `actions.ts:1294-1384`: INSERT item → serial `for` loop of
+  `upsertComponentPriceOptionInD1` per variant → UPDATE
+  `active_price_option_id` → `insertComponentVersion`, no transaction, no
+  rollback. A failure on variant 3 orphan-commits the item + first two variants.
+  Same non-atomicity in `updateCostLibraryComponent` and
+  `upsertCostLibraryComponentPriceOption`. Detail in `04` §6.
+
+### BUG-VA-05 [P2] — optimistic update reconciliation by label is fragile
+
+- `AddComponentModal.tsx:1333` (`buildOptimisticItem`) matches draft variants to
+  server-returned `priceOptions` by `option.label === entry.label`. Duplicate
+  labels (which validation permits) → wrong persisted id or a dangling
+  `optimistic-` prefixed id.
+
+### BUG-VA-06 [P2] — optimistic update drops miscCost/pricingSource/confidence/sourceUrl/notes
+
+- `AddComponentModal.tsx:1337-1371` hardcodes `miscCost: 0`,
+  `pricingSource: null`, etc. regardless of input/server truth. Until a full
+  refetch, the UI shows zero misc cost + no pricing provenance.
+
+### BUG-VA-07 [P2] — race on concurrent default mutation
+
+- `actions.ts:1038-1050`: `upsertComponentPriceOptionInD1` clears sibling
+  defaults in a separate statement before the upsert, no transaction. Two
+  concurrent upserts for different variants on the same item can interleave →
+  both end `is_default=1`. `validatePriceOptions` runs only on the in-memory
+  input array, not stored rows.
+
+### BUG-UX-01 [P1] — Overview route skeleton/reality divergence + dead-end body
+
+- `src/app/workshop/library/loading.tsx:7-61` paints an elaborate skeleton
+  (search row, 6 component cards, 4 template rows, health-line) but
+  `LibraryOverview.tsx:7` renders a completely empty `<div>`. The skeleton's own
+  comment says it "mirrors LibraryOverview … Components/Templates/health line" —
+  it describes a previous design. First-user sees a rich loading state vanish
+  into a blank canvas with no orientation (no "Welcome," no CTA). Detail in `05`
+  §8.
+- **Recommended surface:** either restore real Overview content (wire the
+  already-built `RecentComponentCard`) or replace the skeleton with one matching
+  reality + add an in-body orientation panel. Owner decision; the skeleton
+  divergence + dead-end body are almost certainly not intended.
+
+### BUG-TM-02 [P2] — `insertTemplateIntoTemplate` non-atomic across node+row insert
+
+- `template-editor-actions.ts:1009, 1027-1038`: node insert + row insert are
+  separate `runBatch` calls with no DB transaction; compensating delete only
+  fires on row-insert failure, not node-insert partial failure. Detail in `06`
+  §5.
+
+### BUG-UX-02 [P2] — drag-only folder reorder + component-move (no keyboard path)
+
+- `LibraryFolderTree.tsx:602-624` (folder reorder) and `:579-600`
+  (component→folder move) have no keyboard alternative, violating the project's
+  own "every drag has a non-drag path" rule codified at
+  `TemplatesBrowseManager.tsx:407-412` (which templates honors via "Move to
+  group…"). Detail in `05` §3/§4.
+
+### BUG-UX-03 [P2] — reduced-motion unhandled in the library surface
+
+- Grep for `prefers-reduced-motion`/`prefers-reduced-transparency` across
+  `library/**` + `component-library-manager/**` = zero hits, yet the surface
+  uses card hover scale (`ComponentLibraryManager.tsx:795,805`), caret rotation
+  (`TemplateEditorSheet.tsx:372`), row transitions. DESIGN.md (`:586`) mandates
+  it. (A global stylesheet override may exist outside these files —
+  unverifiable from source.) Detail in `05` §4.
+
+### BUG-UX-04 [P2] — templates-browse source dock hard-hidden below `lg`
+
+- `TemplatesBrowseManager.tsx:1088`: `EstimateRightSidebar` is `hidden … lg:flex`
+  with no drawer fallback (unlike the inspector, which uses `ResizableSidePanel`).
+  Below 1024px the entire source dock disappears. Detail in `05` §5.
+
 ## Performance findings
 
 ### PERF-01 — workspace-wide paged table scans to filter by itemIds
@@ -261,22 +412,25 @@
 
 ## Data / schema drift
 
-### DATA-DRIFT-01 — `ComponentPriceOptionRow` type vs D1 columns (VERIFY)
+### DATA-DRIFT-01 — `ComponentPriceOptionRow` type vs D1 columns — RESOLVED (not a bug)
 
 - `component-library-repository.ts:145-182` declares `sku`,
   `variant_description`, `package_quantity`, `dimension_length/width/height`,
   `mass`, `image_bucket/image_path`, `source_url`, `active_cost_entry_id`, etc.
-  D1 `cost_library_item_price_options` (`0026:77-98`) has none of these, and no
-  migration ALTERs them in. The ORDER BY uses
-  `json_extract(metadata_json, '$.variantSortOrder')`, suggesting variant data
-  lives in `metadata_json` JSON — but that is unconfirmed for the full column
-  set.
-- **Action:** confirm whether the variant feature writes/reads these via
-  `metadata_json` (type is correct, columns intentionally absent) or whether the
-  type is a stale aspiration (legacy Postgres
-  `supabase/migrations/20260524120322_component_library_variants.sql` defines
-  them as real columns). If stale, trim the type. If intended, document the
-  JSON-column contract.
+  D1 `cost_library_item_price_options` (`0026:77-98`) has none of these as real
+  columns, and no migration ALTERs them in.
+- **Resolution (v2):** variant data persists INTO `metadata_json` via
+  `priceOptionSnapshot` (`actions.ts:909-944`, bound at `:1090`) and reads BACK
+  OUT of `metadata_json` via `normalizePriceOption` (`repository.ts:580-632`)
+  with a column-first, metadata-fallback ladder. ORDER BY uses
+  `json_extract(metadata_json, '$.variantSortOrder')` (`repository.ts:1162`).
+  The type is a **tolerant read model** over the JSON-enriched shape, not a
+  missing-column bug. The round-trip works. Detail in `04` §3.
+- **Latent fragility (not data loss today):** the typed columns are never
+  written by the actions layer — they exist only as a fallback ladder that
+  always falls through to `metadata_json`. If a future writer sets a stale
+  column while `metadata_json` holds truth, the column wins and the blob is
+  silently shadowed. Recommend documenting the JSON-blob contract in code.
 
 ### DATA-02 — missing UNIQUE constraints (name uniqueness)
 
@@ -330,6 +484,19 @@
 - `component-library-repository.ts:2030` — `const` declared at file end; verify
   it's exported/consumed. If not, dead.
 
+### DEAD-UI-06 — `reorderEstimateTemplateRowItems` exported but unused
+
+- `template-editor-actions.ts:889-917` — full authz but no client caller. The
+  editor reorders nodes via drag (`moveEstimateTemplateNode`), not row reorder.
+  Wire it to a row drag handle or remove. Detail in `06` §7.
+
+### DEAD-UI-07 — template editor read-only branch dead at the only call site
+
+- `TemplateEditorClient.tsx:503-529` renders a read-only dock when
+  `!canEditTemplate`, but `templates/[templateId]/page.tsx:23` always passes
+  truthy. The `canEditTemplate`/`canEdit` guards across the editor are defensive
+  dead code in the current routing. Detail in `06` §7.
+
 ### DEAD-SCHEMA-01 — empty `component_category_nodes` + dead `*_category_node_id` columns
 
 - `0037_remove_preloaded_component_categories.sql` purged all rows + NULLed
@@ -360,10 +527,15 @@
 
 ## UX / UI notes
 
+> Full UX/UI + visual-design analysis with prioritized recommendations lives in
+> `05-UX-UI-DESIGN-ANALYSIS.md`. Summary below.
+
 - **Overview tab is intentionally empty** (`LibraryOverview.tsx` returns an empty
-  div, owner's request). The `LibraryOverviewSearch` (⌘K combobox) is the only
-  live Overview content. `RecentComponentCard` is dead because the host was
-  cleared.
+  div, owner's request), BUT `library/loading.tsx` paints an elaborate skeleton
+  (cards/templates/health-line) that doesn't match reality, and the empty body
+  has no orientation. This is BUG-UX-01 (P1). The `LibraryOverviewSearch` (⌘K
+  combobox) is the only live Overview content. `RecentComponentCard` is dead
+  because the host was cleared.
 - The three-tab split (Overview / Components / Templates) is well-coordinated;
   active tab is derived purely from `usePathname` (no drift). Tab strip hides on
   the template-editor sub-route.
@@ -374,6 +546,15 @@
 - The component-library-manager (new) and component-library (legacy estimate
   sidebar) coexist intentionally; not duplicates.
 - Accessibility is generally solid: combobox + listbox ARIA on search,
-  `role="tablist"/"tabpanel"`, `aria-live` move announcements in the structure
-  tree, Esc-to-close on the inspector dock. The render-phase setState sites
-  (BUG-P2-02) are the main React-correctness smell, not an a11y issue.
+  `role="tablist"/"tabpanel"` (textbook), full tree keyboard nav, `aria-live`
+  announcements widely + correctly, Dialog/Sheet focus traps, focus restore on
+  close. **Gaps:** drag-only folder reorder/component-move with no keyboard path
+  (BUG-UX-02), reduced-motion unhandled in this surface (BUG-UX-03),
+  double-click-to-rename undiscoverable, templates-browse source dock hard-hidden
+  below `lg` (BUG-UX-04).
+- Missing empty states: zero-component workspace, zero-template workspace,
+  empty folder, no-results-after-filtering in both bodies (all flagged in `05`
+  §2/§9 as P1).
+- Design-system reuse is strong (`src/components/ui` primitives throughout);
+  typography + theming (`library-surface-class.ts`) compliant + well-factored.
+  Minor hand-rolls flagged in `05` §6.

@@ -43,8 +43,15 @@ cross-reference.
 |---|---|---|
 | `README.md` (this file) | entrypoint | Outcome, scope, map, status, resume pointer |
 | `01-CURRENT-STATE-MAP.md` | audit | Full component/data/server/authz/perf/cloudflare map with file:line refs |
-| `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found, severity, evidence, recommended surface |
+| `02-BUG-AND-RISK-REGISTER.md` | audit | Every defect/risk found (**25: 7×P1, 11×P2, 7×P3** after deep audit), severity, evidence, recommended surface |
 | `03-READINESS-AND-RECOMMENDATIONS.md` | audit | Beta readiness verdict, prioritized recommendations, relationship to the active pack |
+| `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md` | design | Feature-by-feature projects-vs-proposals gap; exact primitives/patterns to reuse |
+| `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` | design | Two-track implementation DAG (data hardening + redesign), units grounded in real paths |
+| `06-DECISION-LOG.md` | decisions | 10 `DEC-AUTO-*` closures + 3 `AUTH-*` owner boundaries; re-confirms active-pack decisions |
+| `07-BASELINE-CRITERION-MATRIX.md` | audit | PASS/FAIL/BOUNDARY/N/A snapshot across all Improve-prompt dimensions |
+| `08-DOMAIN-AND-INDUSTRY-REQUIREMENTS.md` | research | Construction/RFP/e-sign industry norms (RICS NRM, ESIGN/UETA/eIDAS, RA 8792) vs current code |
+| `09-PRIVACY-AND-COMPLIANCE-AUDIT.md` | audit | PII inventory, right-to-be-forgotten, retention, residency, log-leak paths |
+| `10-TECHNICAL-DEEP-AUDIT.md` | audit | Bundle, prod monitoring, analytics, mobile, abuse/enumeration, cross-surface, variants |
 
 No `plan-pack.json` manifest is emitted because this is an **audit-only** pack
 (no implementation units, gates, or status tuple to enforce). Emitting a
@@ -115,7 +122,11 @@ pack is the canonical home (see `03` §"Relationship to the active pack").
 - **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity.
 - **Start here for architecture:** `01-CURRENT-STATE-MAP.md`.
 - **Start here for "what do we do about it":** `03-READINESS-AND-RECOMMENDATIONS.md`.
-- **To execute fixes:** continue the active `.ai/03_plans/2026-07-11/Proposals-Feature/` pack; this audit's bug register is designed to drop straight into that pack's risk/unit inventory.
+- **Start here for the projects-page parity gap:** `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md`.
+- **Start here for the implementation plan:** `05-TARGET-DESIGN-AND-IMPLEMENTATION-DAG.md` (Track A = data fixes, Track B = redesign).
+- **Start here for closed decisions:** `06-DECISION-LOG.md`.
+- **Start here for the readiness snapshot:** `07-BASELINE-CRITERION-MATRIX.md`.
+- **To execute fixes:** either (a) ship Track A from `05` as a standalone slice, or (b) fold Track A's 3 new bugs into the active `.ai/03_plans/2026-07-11/Proposals-Feature/` pack and continue from its `UNIT-001`.
 
 ## Provenance
 

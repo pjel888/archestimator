@@ -11,6 +11,11 @@ Authorization Gate.
 
 Legend: `KNOWN` = already recorded in `.ai/03_plans/2026-07-11/Proposals-Feature/`
 or `.ai/10_state/known-issues.md`. `NEW` = surfaced/confirmed by this 2026-07-12 audit.
+`DEEP` = surfaced by the round-2 deep audit (`09` privacy / `10` technical).
+
+**Register expanded from 14 → 25 bugs** after the deep audit (privacy,
+enumeration, data-integrity, observability, analytics). See `09` and `10` for
+the full evidence on `DEEP` entries.
 
 ---
 
@@ -77,6 +82,29 @@ or `.ai/10_state/known-issues.md`. `NEW` = surfaced/confirmed by this 2026-07-12
   `RecipientProposalDecision | "unknown"` or a dedicated `DecisionParseResult`)
   and handle the unknown branch explicitly (skip + log), in the same change as
   P1-2.
+
+### P1-4 · Recipient removal leaves PII behind (`DEEP`, `09` §3.1)
+- **Evidence:** `removeSharedLinkRecipient` (`actions.ts:1656-1695`) hard-deletes the `shared_link_recipients` row, but `0066` FKs are `ON DELETE SET NULL` on child tables → `shared_link_comments.author_email`/`author_name`/`body`, `shared_link_responses.signer_name`/`note`/`signature_intent_hash` all **retained**. `author_email` is `NOT NULL` (`0014:103`) so can't be blanked without schema change.
+- **Impact:** a recipient who asks "delete my data" still has name, email, and signed decision in the publisher's history. Privacy/compliance gap.
+- **Recommended surface:** decide policy (soft-delete + anonymize, or nullable `author_email` + purge step). Needs DEC-AUTO (see `06`).
+- **TEST_PROPOSAL:** named risk = "removed recipient PII persists in comments/responses". Command: D1 inspection after removal (await `TEST_TASK`).
+
+### P1-5 · `project_publication_events` has no retention TTL (`DEEP`, `09` §5)
+- **Evidence:** `retention-core.ts:87-221` includes `shared_link_events` (90-day purge) but **not** `project_publication_events` (`0034:13-29` enum omits it). The access/password audit log grows forever.
+- **Impact:** unbounded audit-log growth; inconsistent with the sibling table that IS purged.
+- **Recommended surface:** add `project_publication_events` to `DEFAULT_RETENTION_RULES` mirroring `shared_link_events`. Cheapest privacy fix in the register.
+
+### P1-6 · `openRecipientProposalAction` no rate limit + enumeration oracle (`DEEP`, `10` §5.2)
+- **Evidence:** `actions.ts:304-380` has no `checkRecordedRateLimit`. Returns distinct errors: `not-a-recipient` ("doesn't exist OR not mine") vs `unavailable` ("exists, mine, revoked/expired"). Timing differs too (second SELECT at `:334-345` only runs on auth success).
+- **Impact:** a logged-in user with candidate `publicationId` UUIDs (from logs/screenshots/URL leaks) can classify each as exists+mine+active / exists+mine+inactive / not-mine-or-absent. Information disclosure / enumeration.
+- **Recommended surface:** (a) collapse `not-a-recipient` + `unavailable` into one generic error; (b) add a per-user/per-IP rate limit to `openRecipientProposalAction`.
+- **TEST_PROPOSAL:** named risk = "distinct errors enable publication enumeration". Command: probe action with N random + 1 known UUID (await `TEST_TASK`).
+
+### P1-7 · D1 `shared_link_responses` no unique constraint → decision race (`DEEP`, `10` §6.2)
+- **Evidence:** D1 path (`d1-store.ts:760-765`) uses app-level pre-check then `INSERT`; **no DB unique constraint** on `(recipient_id, publication_id)` (`0014:149-151` non-unique). Postgres path uses `ON CONFLICT DO NOTHING` (`supabase/…/20260616…sql:220-226`). Under concurrency, two submissions can race past the pre-check → two rows → "Decision submitted" could flip.
+- **Impact:** decision-integrity race; a recipient could (under concurrency) flip a recorded decision, undermining the "first decision is final" contract.
+- **Recommended surface:** D1 migration `CREATE UNIQUE INDEX … ON shared_link_responses(recipient_id, publication_id) WHERE recipient_id IS NOT NULL` + make INSERT `INSERT OR IGNORE` or catch the constraint violation.
+- **TEST_PROPOSAL:** named risk = "concurrent decision submission creates duplicate rows". Command: concurrent POSTs to `/api/share/[token]/decision` (await `TEST_TASK`).
 
 ---
 
@@ -182,6 +210,36 @@ or `.ai/10_state/known-issues.md`. `NEW` = surfaced/confirmed by this 2026-07-12
   sweeper, add one or relax the partial unique index. Needs runtime confirmation
   (out of scope for a static audit).
 
+### P2-8 · Console log path leaks un-redacted record (`DEEP`, `09` §6.2)
+- **Evidence:** `logger.ts:163-177` — `const line = JSON.stringify(record); console.error(line);` serializes the **un-redacted** record to stdout/Workers Logs. `logAppError` pre-redacts, but direct `emitLogRecord({ context: { email: ... } })` calls (or fields named `to`/`recipient`) leak plaintext email.
+- **Impact:** email PII can land in Cloudflare Workers observability logs.
+- **Recommended surface:** one-line fix — serialize the redacted copy in `consoleAppLogger.log`.
+
+### P2-10 · Client refresh failure emits no production signal (`DEEP`, `10` §2.3)
+- **Evidence:** the React Query refresh path (`proposals-page-client.tsx:31-35,79,98-108`) catches failures client-side and shows a toast **without calling `postClientErrorReport`**.
+- **Impact:** a recipient who loads the inbox but cannot refresh gets zero production signal (combines with P2-2 server-side silence).
+- **Recommended surface:** add `postClientErrorReport` on the client refresh-failure path.
+
+### P2-11 · No inbox-side analytics (`DEEP`, `10` §3.2)
+- **Evidence:** GA4/Clarity mounted only on public pages via `PublicPageShell`. The proposals inbox has zero view/open/decision telemetry. The inbox → open → decision funnel is unmeasurable.
+- **Impact:** GTM blind spot for a startup preparing for first users.
+- **Recommended surface:** emit at least a `project_publication_events` row (or new event type) when `openRecipientProposalAction` fires + an inbox-view event.
+
+### P2-12 · `shared_link_events` is write-dead (`DEEP`, `10` §3.3)
+- **Evidence:** `insertSharedLinkEvent` is defined (`d1-store.ts:433-461`) but has **zero callers**. The per-recipient decision/comment funnel schema (`open`/`comment_add`/`accept_decision`/`decline_decision`) records nothing.
+- **Impact:** cannot answer "how many recipients who opened also decided" despite the schema being designed for exactly that.
+- **Recommended surface:** wire `insertSharedLinkEvent` into the decision + comment route handlers, or drop the table.
+
+### P2-13 · `loadRecipientProposals` not rate-limited (`DEEP`, `10` §5.3)
+- **Evidence:** `recipient-proposals/actions.ts:9-12` + `recipient-proposals-repository.ts:86-163` — no rate limit on the 4-join + lateral-subquery D1 query.
+- **Impact:** authenticated DoS vector (bounded by LIMIT 50 + indexed, so medium-low, but unprotected).
+- **Recommended surface:** add a per-user rate limit (mirror the share-surface limiters).
+
+### P2-14 · Inbox shows multiple rows per project across versions (`DEEP`, `10` §7.3)
+- **Evidence:** `recipient-proposals-repository.ts:128-150` filters `status IN ('published','expired','revoked')` but doesn't de-dupe by `project_id`. A recipient on v1 (revoked) re-invited to v2 (published) sees two rows for the same project.
+- **Impact:** confusing UX; `LIMIT 50` means a heavily-republished project crowds out others.
+- **Recommended surface:** either collapse to latest-per-`project_id` in SQL, or migrate recipient rows on republish. Needs DEC-AUTO (history vs latest).
+
 ---
 
 ## P3 — polish / tech debt / stale
@@ -231,6 +289,21 @@ or `.ai/10_state/known-issues.md`. `NEW` = surfaced/confirmed by this 2026-07-12
   into. Anyone relying on that e2e as recipient-flow proof is mistaken.
 - **Recommended surface:** fix the e2e selector or delete the stale spec; remove
   `ShareFloatingTreeNav`. Out of scope here unless the owner asks.
+
+### P3-9 · Mobile responsive is single-breakpoint, less polished than projects (`DEEP`, `10` §4)
+- **Evidence:** `ProposalRow.tsx` uses only `md:` breakpoints (`:86,152`). No `sm:`/`lg:` ladder, no `@media(hover:none)` touch adaptation, no `content-visibility`. Compare `LiveProjectCard.tsx` which has the full ladder + touch adaptation + scroll perf.
+- **Impact:** the current mobile layout works at 375px (graceful stacking), but is less polished than the projects page gold standard.
+- **Recommended surface:** the redesign (`05` Track B) should adopt the `sm`/`md`/`lg` + `@media(hover:none)` ladder.
+
+---
+
+## Privacy findings (from `09`)
+
+The deep audit added privacy-specific risks P1-4, P1-5, P2-8 and P3-5…P3-8.
+P3-5…P3-8 (DSAR erasure unimplemented; unsubscribe is soft-only; no D1 residency
+config; plaintext emails at rest) are **Enterprise** classification and live in
+`09-PRIVACY-AND-COMPLIANCE-AUDIT.md` §7 to keep this register focused on
+actionable beta defects. They are not duplicated here.
 
 ---
 
