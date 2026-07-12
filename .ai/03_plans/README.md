@@ -178,6 +178,24 @@ A new plan must state:
 
 Do not create broad route families, dashboards, proposal systems, component libraries, grids, or persistence layers without explicit approval in the plan.
 
+### Lean plan packs
+
+Plan packs follow the Lean Engineering Ethos in
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: a plan scopes to the real job and
+its acceptance criteria — no speculative features, gold-plating, or future-proof
+abstractions the request does not justify. **Implementing a plan stays within its
+acceptance criteria**: do not over-engineer beyond what the plan requires, and do
+not over-test beyond its `test_requirement` (tests remain user-gated). A plan
+pack is not a license to expand scope; it is a bounded contract for a bounded
+job. If the analysis behind the plan finds real risk, deepen the analysis — do
+not compensate with extra implementation surface or test ceremony.
+
+Keep the pack token- and execution-efficient: one canonical goal, one bounded
+blast-radius map, the minimum artifacts needed for distinct ownership or
+freshness, and no duplicated requirement/test/evidence matrices. Stop adding
+detail when a fresh executor can act without guessing. New criteria default to
+`NOT_REQUIRED`; risk alone may produce a `TEST_PROPOSAL`, never an automatic test.
+
 ## Rules for archiving plan packs
 
 When a plan pack is archived (moved to `.ai/09_archive/store/<archive-date>-<slug>/`):

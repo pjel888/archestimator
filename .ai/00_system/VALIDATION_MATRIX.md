@@ -4,6 +4,11 @@
 
 ## User Test Authorization Gate (Supreme Rule)
 
+This gate implements the **lean-on-testing** commitment of the Lean Engineering
+Ethos in `AGENT_OPERATING_PROTOCOL.md`: go deep on analysis to prevent bugs, but
+lean on implementation and lean on testing — never add, expand, or run tests to
+feel thorough; that is over-testing.
+
 **Do not create, expand, repair, or run any automated test, test suite,
 build-as-test-gate, browser automation, or broad validation gate unless the
 user has explicitly requested testing for the current task.** This is the
@@ -30,6 +35,12 @@ sufficient to run tests. When the user has not explicitly requested tests:
 `TEST_TASK` is the only decision that authorizes creating, expanding, or
 running tests, and it requires an explicit user request for the current task.
 
+No workflow name, plan-pack depth, risk label, reviewer recommendation, nearby
+test, or "bug-free" aspiration changes this gate. Deep blast-radius analysis is
+the prevention mechanism; it narrows the implementation and non-test evidence
+instead of manufacturing more tests. Do not repeat equivalent checks at unit,
+slice, package, and final levels merely to accumulate green receipts.
+
 ## Governing Rule
 
 Verification is mandatory; tests are user-gated. Before editing, record one
@@ -51,7 +62,7 @@ your own — it authorizes a `TEST_PROPOSAL` only. The previous
 focused test may not run without explicit user authorization.
 
 Later edits invalidate only the non-test evidence they affect; rerun that
-evidence, not the entire matrix.
+evidence, not the entire matrix. Stop when the affected claim is proven.
 
 ## Fast Selection
 

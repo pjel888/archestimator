@@ -8,13 +8,49 @@ repeatable work loop-engineered: the system should discover, plan, research,
 execute, verify, remember, and choose the next step instead of relying on a
 human to re-prompt every phase.
 
+## Lean Engineering Ethos
+
+The agentic development goal is fast, lean, effective, and BUG-free work. Hold
+these three commitments together — none in isolation:
+
+1. **Go deep on analysis, lean on implementation.** Invest thinking in the
+   problem, blast radius, affected surfaces, and edge cases BEFORE editing — this
+   is where bugs are prevented. Then implement the smallest coherent change that
+   satisfies the request. Do not let analysis depth spill into speculative
+   features, single-use abstractions, unused configurability, gold-plating, or
+   defensive branches for impossible states. **Over-engineering is a bug, not
+   thoroughness.**
+2. **Go lean on testing.** Tests are user-gated (User Test Authorization Gate),
+   not a default. Prefer the cheapest decisive non-test evidence. Do not add,
+   expand, or run tests to feel thorough — that is over-testing. Propose a test
+   only for a named critical invariant that genuinely needs one, and only when
+   the user authorizes it.
+3. **Be token- and time-efficient.** Pull context on demand, use the smallest
+   capable lane set, keep packets and reports concise, and stop retrieval once
+   the affected behavior and direct/transitive blast radius are grounded. "All
+   possible blast radius" means every evidence-supported caller, contract,
+   state, failure, and rollout surface that can actually be affected — not an
+   invitation to enumerate hypothetical systems or future features.
+4. **Proportional everything.** Planning depth, loop surface, agent count,
+   evidence, and ceremony scale with real risk — not with agent confidence or a
+   desire for completeness. A two-line reversible fix needs no plan pack, loop,
+   multi-agent fan-out, or test suite; a D1 migration or auth change earns deeper
+   analysis.
+
+Deep analysis is the license to be lean elsewhere: because you understood the
+blast radius up front, you ship the smallest correct change with proportional
+evidence and no gold-plating. When in doubt, simplify the implementation — never
+compensate with extra tests, abstractions, or process for risks the analysis did
+not find.
+
 ## Default workflow
 
 Use the lightest path that can satisfy the request:
 
 1. Identify the target result, obvious constraints, affected files, and stop condition.
 2. Read only the relevant `.ai` docs and source files.
-3. Classify `test_requirement` before editing.
+3. Map the evidence-supported direct/transitive blast radius and classify
+   `test_requirement` before editing.
 4. Edit directly when the task is clear and reversible.
 5. Verify with the narrowest evidence that proves the change.
 6. Update `.ai` state/docs only when a durable decision or project reality changes.
@@ -88,7 +124,8 @@ repo's speed and autonomy:
 - **Simplicity first:** implement the minimum coherent change that satisfies the
   request. Avoid speculative features, single-use abstractions, unused
   configurability, and defensive branches for impossible states. If a solution
-  grows beyond the problem, simplify before verification.
+  grows beyond the problem, simplify before verification. Over-engineering is a
+  bug, not thoroughness — see the Lean Engineering Ethos above.
 - **Surgical changes:** every changed line should trace to the active request,
   current bug, or cleanup created by the current edit. Match local style, avoid
   drive-by refactors, and report unrelated dead code instead of deleting it
@@ -142,8 +179,8 @@ Default posture: act, measure, and fix forward. The product has no external
 users yet, so do not treat every database or provider-facing edit as release
 ceremony. Apply the test gate above, then use the smallest decisive evidence:
 focused SQL/schema checks, type generation, static checks, or a narrow app
-smoke. Use broad suites, builds, or manual QA only for an explicit request or an
-integrated MVP-critical claim that targeted evidence cannot prove.
+smoke. Use broad suites, builds, browser automation, or manual QA only when the
+user explicitly requests that testing/QA surface for the current task.
 
 Standing authorization is not a license to cross hard boundaries. Never mutate
 historical Supabase project `ebxxqidacheyapmmzavr`, the unrelated
@@ -177,9 +214,10 @@ The normal Archestimator product-development loop is proportional:
 3. Research uncertain implementation, product, dependency, policy, or UX claims
    and store durable source-backed notes in `.ai/13_research/`.
 4. Execute through the smallest loop surface that preserves quality.
-5. Drive the result through its real matching surface: source/static evidence,
-   selected tests, HTTP, browser, provider dashboard, CLI transcript, database
-   diff, or manual proof packet as the claim requires.
+5. Drive the result through the cheapest matching authorized surface:
+   source/static evidence, HTTP, provider readback, CLI transcript, or database
+   diff; tests, builds, browser automation, and manual QA only under an explicit
+   user-authorized `TEST_TASK`.
 6. Record what passed, what failed, cleanup receipts, and the next decision in
    `.ai`, `.omx`, `.omo`, an issue tracker, or another approved durable state.
 
@@ -223,11 +261,10 @@ the whole requested outcome is proven.
 
 Proportionality: the loop increases speed, quality, and memory; it is not
 ceremony. Apply the test gate and `VALIDATION_MATRIX.md`. Minor cosmetic UI
-edits use static review and relevant focused checks. Reserve browser/manual
-proof for a browser-only interaction, routing, auth/data, responsive,
-accessibility, composition, or explicit visual claim. Reserve broad
-`validate`/build/E2E/Storybook/provider proof for explicit or integrated
-MVP-critical claims. Durable loop
+edits use static review and relevant focused non-test checks. Browser/manual,
+build, E2E, Storybook, and broad `validate` proof are opt-in and run only when
+the user explicitly requests the matching testing/QA claim. Criticality deepens
+analysis and may produce a `TEST_PROPOSAL`; it never self-authorizes testing. Durable loop
 artifacts (plan pack + `LOOP_LEDGER.md`) live in `.ai`, not chat — see `AGENT_FRAMEWORK_PROTOCOL.md`.
 Reusable prompt: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 
@@ -239,15 +276,14 @@ Loop surface routing:
   across stories.
 - Use `omo:ulw-loop` when success criteria need criterion-by-criterion real
   surface evidence and cleanup receipts.
-- Use `autopilot` when the full clarify -> plan -> durable execution -> review
-  -> adversarial QA lifecycle is desired.
+- Use `autopilot` only when its multi-stage lifecycle materially helps; it must
+  skip testing/UltraQA unless the user explicitly requested testing/QA.
 - Use `omo:ultraresearch` when the research itself must be exhaustive,
   source-cited, and expansion-driven.
-- Use `ultraqa` when user-facing, CLI/runtime, integration, or safety-sensitive
-  behavior could otherwise report a false green.
-- Use `vercel:agent-browser` or an equivalent browser-driving surface when the
-  claim depends on real web behavior. Do not use it just because a tiny cosmetic
-  UI edit is technically user-visible.
+- Use `ultraqa` only for an explicit user testing/QA request; risk alone may
+  justify a `TEST_PROPOSAL`, never activation.
+- Use `vercel:agent-browser` or an equivalent browser-driving surface only when
+  the user explicitly requested browser/visual testing for the current task.
 
 A loop is complete only when the stop condition is proven by evidence outside
 the chat. A green unit test, worker self-report, or plan document can support the
@@ -262,7 +298,10 @@ is being made.
 Use response economy as an advisory execution habit, not as a separate workflow
 or approval gate. Prefer targeted diffs over full rewrites, concise progress
 updates over repeated narration, and compact final reports that name the result,
-evidence, validation gaps, and changed files.
+evidence, validation gaps, and changed files. Treat tokens, wall time, tool calls,
+agent fan-out, artifacts, and repeated reviews as costs: spend them only when
+they materially reduce correctness risk or elapsed time, and stop when the
+acceptance claim is already grounded.
 
 For broad or open-ended requests, scope the work before editing and surface
 options only when the choice materially changes risk, cost, behavior, approval

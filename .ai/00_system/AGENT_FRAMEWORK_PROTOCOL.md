@@ -159,6 +159,13 @@ quality controls to the framework:
 - **Simplicity budget:** prefer deletion, reuse, and the smallest coherent
   implementation over new layers. New abstractions must remove real complexity,
   reduce meaningful duplication, or match an established local pattern.
+  Over-engineering is a bug, not thoroughness. The Lean Engineering Ethos in
+  `AGENT_OPERATING_PROTOCOL.md` is the governing principle: go deep on analysis,
+  lean on implementation, lean on testing.
+- **Context and lane budget:** pull only task-relevant context, use the fewest
+  capable agents, keep worker packets bounded, and stop analysis/retrieval when
+  the evidence-supported direct/transitive blast radius is known. Workflow names,
+  agent count, artifact count, and repeated review are never quality evidence.
 - **Diff traceability:** each edit should be attributable to the active goal or
   to cleanup made necessary by that edit. Adapters must not use a task as cover
   for unrelated comment churn, formatting churn, or opportunistic refactors.
@@ -233,14 +240,14 @@ implementation work persists loop state in `.ai`, never in chat:
 Maker/checker: the lane that implements does not treat its own edits as final. Use a separate review
 lane, fresh-context self-review, or a task-appropriate deterministic check before claiming done. Worker
 success, one green check, or a completed iteration is not completion; the lead owns final integration
-and evidence. Maker/checker separation is expected when risk, breadth, or user-visible impact justifies it.
+and evidence. Use maker/checker separation only when a named material risk justifies the extra lane and handoff cost.
 
 Proof-boundary labels (use precisely; never call a local check provider/browser proof):
 `local-only` · `provider-proven` · `browser-proven` · `manual-proof-pending` · `not-verified`. Match
-the surface to the claim: code -> focused source/static/type/lint evidence plus selected tests only
-when the test gate requires them; minor cosmetic UI edits -> static review or a relevant focused check; UI
-interaction/routing/auth/data/responsive-layout/a11y/complex-composition claims → targeted
-browser/manual/Playwright proof; Cloudflare D1/R2/DO/Queue/Email/Images → active migration/
+the surface to the claim: code -> focused source/static/type/lint evidence;
+tests, builds, browser automation, and manual QA only for an explicit user-
+authorized `TEST_TASK`; minor cosmetic UI edits -> static review or a relevant
+focused non-test check; Cloudflare D1/R2/DO/Queue/Email/Images → active migration/
 binding/repository/emulator proof plus hosted provider evidence only when claimed;
 provider claims → provider evidence; docs-only → path checks + `git diff --check`.
 
@@ -294,7 +301,7 @@ usually enough. Add deeper checks when they materially affect correctness:
 |---|---:|---|---|
 | plan-only | `.ai/03_plans`, related `.ai` state/log/task docs | lead high for strategy/architecture; lower lanes for lookup | path checks, graph/repo-truth where relevant, `git diff --check` |
 | read-only | none | lower lanes for inventory; high lanes for risk judgment | command/source citations and no writes |
-| implementation | scoped source/tests/docs | lead high/standard; workers matched to slice complexity | test decision plus the cheapest decisive evidence; targeted/broad tests only when selected |
+| implementation | scoped source/tests/docs | lead high/standard; workers matched to slice complexity | test decision plus the cheapest decisive non-test evidence; tests only for explicit user-authorized `TEST_TASK` |
 | review | none unless explicitly assigned | independent reviewer at standard/high; final call by lead | findings with severity and file references |
 | debug | usually none until root cause known | high for root cause; lower lanes for reproduction inventory | reproduction or documented blocker |
 | release/provider-proof | evidence docs only unless action approved | high lead, cautious provider lanes | local/provider/manual proof separated |

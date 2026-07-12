@@ -13,6 +13,10 @@ Philip reported that agent performance is degrading. The likely failure mode is 
 - agents promise work instead of executing and verifying it;
 - agents make broad product claims without checking the current repo state;
 - agents stack new plans on top of unverified assumptions;
+- agents answer uncertainty with more abstractions, agents, artifacts, tests, or
+  repeated review instead of narrowing the real blast radius;
+- agents burn context on full-history reads, redundant scans, and duplicated
+  evidence after the affected claim is already grounded;
 - agents under-report uncertainty and over-report completion.
 
 This document is the mandatory recovery loop when an agent seems confused, slow, stale, repetitive, overconfident, or misaligned with Philip's current direction.
@@ -63,6 +67,8 @@ Do this before further planning or coding:
    - stop conditions.
 5. Reduce scope:
    - choose the smallest useful change;
+   - stop discovery when the evidence-supported direct/transitive blast radius
+     and governing constraints are known;
    - do not revive old routes, modules, data layers, or UI unless the current task explicitly requires them;
    - do not add a new plan if an active plan already covers the work.
 6. Verify evidence before final response:
@@ -77,6 +83,9 @@ Do this before further planning or coding:
 - Summarize old material as `historical context`, not active instruction, unless current-state docs point to it.
 - Do not continue from a long degraded session for implementation work; start a fresh session or delegate to an isolated builder with a concise brief.
 - Do not let a model-specific skill override repo-local `.ai` source-of-truth docs.
+- Do not let a workflow impose automatic TDD, UltraQA, browser automation,
+  builds, broad validation, repeated review, or multi-agent fan-out without the
+  task-specific authorization and proportional benefit required by `AGENTS.md`.
 - Do not trust memory-derived route, feature, provider, AI, or package facts
   without a cheap current-file check.
 

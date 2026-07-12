@@ -1,5 +1,33 @@
 # Decisions
 
+## 2026-07-12 — Lean Engineering Ethos governs every coding-agent surface
+
+**Decision:** Archestimator agentic development optimizes for fast, lean,
+effective, efficient, BUG-free delivery. Agents go deep before editing on the
+evidence-supported direct/transitive blast radius, then implement the smallest
+coherent solution. Over-engineering and over-testing are workflow bugs, not
+signals of thoroughness.
+
+**Execution rule:** Pull context just in time, use the fewest capable lanes,
+create only artifacts with distinct execution/ownership/freshness value, prefer
+reuse/deletion/local patterns over new layers, and stop analysis or verification
+when the affected acceptance claim is grounded. "All possible blast radius"
+means all actually reachable callers, contracts, state, failures, and rollout
+surfaces supported by current evidence; it does not mean hypothetical future
+features or exhaustive ceremony.
+
+**Testing rule:** The 2026-07-11 User Test Authorization Gate remains supreme.
+Risk, workflow names, reviewer recommendations, nearby tests, plan-pack depth,
+and a BUG-free objective may produce a `TEST_PROPOSAL`; none authorizes tests,
+builds, browser automation, Storybook, visual QA, or broad validation without an
+explicit user testing request for the current task.
+
+**Directive:** All root contracts, `.ai/00_system`, planning prompts, payloads,
+thin adapters, role prompts, and workflow skills must inherit this policy. A
+tool-specific mandate for always-on TDD, automatic UltraQA/browser work,
+mandatory multi-agent fan-out, duplicated reviewers, or exhaustive artifacts is
+subordinate and must be skipped or narrowed.
+
 ## 2026-07-11 — User Test Authorization Gate: tests are never automatic
 
 **Decision:** No agent may create, expand, repair, or run any automated test,
