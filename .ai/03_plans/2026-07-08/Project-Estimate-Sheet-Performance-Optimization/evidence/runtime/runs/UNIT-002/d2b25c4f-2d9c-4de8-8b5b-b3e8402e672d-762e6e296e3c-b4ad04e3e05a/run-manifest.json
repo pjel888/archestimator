@@ -1,0 +1,202 @@
+{
+  "schema_version": "estimate-sheet-performance-run.v1",
+  "package_id": "PLAN-2026-07-08-project-estimate-sheet-performance",
+  "unit_id": "UNIT-002",
+  "run_id": "d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d",
+  "profile": "limit",
+  "evidence_class": "local-browser",
+  "cleanupRequirement": "REQUIRED",
+  "run_root": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a",
+  "immutable_run_root": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/runtime/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a",
+  "pointer_path": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/run-pointer.json",
+  "logical_outputs": {
+    "fixture": "fixtures/fixture.json",
+    "jsdom": "reports/jsdom.json",
+    "browser": "reports/browser.json",
+    "browser-child": "reports/browser-child.json",
+    "d1": "reports/d1.json",
+    "d1-child": "reports/d1-child.json",
+    "integration": "reports/integration.json",
+    "unit-proof": "reports/unit-proof.json",
+    "hosted": "reports/hosted-d1.json",
+    "mode-proof": "mode-proof.json",
+    "decision": "receipts/decision.json",
+    "supersession": "receipts/supersession.json",
+    "release": "release-evaluation.md",
+    "cleanup": "cleanup-receipt.json",
+    "decision-tests": "receipts/decision-tests.json",
+    "dom-tests": "receipts/dom-tests.json",
+    "e2e-tests": "receipts/e2e-tests.json",
+    "dom-graph": "receipts/dom-graph.json",
+    "dom-performance": "receipts/dom-performance.json",
+    "refreeze-tests": "receipts/refreeze-tests.json",
+    "release-gates-json": "receipts/release-gates-json.json",
+    "release-gates-md": "receipts/release-gates-md.md",
+    "fingerprint-reference": "receipts/command-fingerprint-reference.json",
+    "typecheck": "receipts/command-typecheck.json",
+    "error-handling": "receipts/command-error-handling.json",
+    "next-build": "receipts/command-next-build.json",
+    "opennext-build": "receipts/command-opennext-build.json",
+    "browser-check": "receipts/command-browser-check.json",
+    "d1-check": "receipts/command-d1-check.json",
+    "react-doctor": "receipts/command-react-doctor.json",
+    "wrangler-auth": "receipts/command-wrangler-auth.json",
+    "provider-resources": "receipts/command-provider-resources.json",
+    "release-gates": "receipts/command-release-gates.json"
+  },
+  "prepareInput": {
+    "schema_version": "estimate-sheet-performance-prepare-input.v1",
+    "unit_id": "UNIT-002",
+    "profile": "limit",
+    "application_fingerprint": {
+      "contract_version": "estimate-sheet-application-fingerprint.v1",
+      "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+      "package_projection_rule": "package-json-without-scripts.v1",
+      "path_count": 1231,
+      "path_list_sha256": "2e29d69491d7c63e6df83076f0f85f8e4662ada416a2c2104ed79dc9526ca5d9",
+      "content_sha256": "762e6e296e3ca7d07d2efd81ef5ab6438fab03d6f3f1b01457a9934c461795f2"
+    },
+    "producer_fingerprint": {
+      "contract_version": "estimate-sheet-producer-fingerprint.v1",
+      "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+      "package_projection_rule": "full-package-json.v1",
+      "path_count": 962,
+      "path_list_sha256": "ab25058fc4d2f6e365cb3f73b0d9b40b56157e20626bc68f2b939b519e905a0d",
+      "content_sha256": "3b536ab6c7f5e2bd80909bb6cbe36b05aa397de2c198a3dbedcb8ea66d57188f"
+    },
+    "fixture": {
+      "profile": "limit",
+      "payload_sha256": "f9aecb68ae0afdda7ed0e9e9f6582b5a83d4fabef85e27d2b79333a460fe3d56",
+      "namespace_roles": [
+        "browser"
+      ]
+    },
+    "decision": null,
+    "predecessor": {
+      "unit_id": "UNIT-001",
+      "run_id": "6ac67246-b347-4ec2-8ab7-973a0d579b1b",
+      "index_immutable_path": "evidence/runtime/runs/UNIT-001/6ac67246-b347-4ec2-8ab7-973a0d579b1b-762e6e296e3c-21a2fbda3df3/evidence-index.json",
+      "index_sha256": "411ecd7ebc620dba0d416c45594a155e89144b1694c57e5fd6ce2a233262afde",
+      "evidence_immutable_path": "evidence/runtime/runs/UNIT-001/6ac67246-b347-4ec2-8ab7-973a0d579b1b-762e6e296e3c-21a2fbda3df3/reports/jsdom.json",
+      "evidence_sha256": "512475a816e474cfc1f7f546e157c1012f5091653fb1734384ff4e241725e761",
+      "application_fingerprint": {
+        "content_sha256": "762e6e296e3ca7d07d2efd81ef5ab6438fab03d6f3f1b01457a9934c461795f2",
+        "contract_version": "estimate-sheet-application-fingerprint.v1",
+        "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+        "package_projection_rule": "package-json-without-scripts.v1",
+        "path_count": 1231,
+        "path_list_sha256": "2e29d69491d7c63e6df83076f0f85f8e4662ada416a2c2104ed79dc9526ca5d9"
+      },
+      "producer_fingerprint": {
+        "content_sha256": "3b536ab6c7f5e2bd80909bb6cbe36b05aa397de2c198a3dbedcb8ea66d57188f",
+        "contract_version": "estimate-sheet-producer-fingerprint.v1",
+        "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+        "package_projection_rule": "full-package-json.v1",
+        "path_count": 962,
+        "path_list_sha256": "ab25058fc4d2f6e365cb3f73b0d9b40b56157e20626bc68f2b939b519e905a0d"
+      }
+    },
+    "admission": null
+  },
+  "prepareInputSha256": "b4ad04e3e05a0c891348cc3b61bc67578d7ac1619f1c0971a9bc4cf16bd81d11",
+  "created_at": "2026-07-12T00:33:27.060Z",
+  "status": "PREPARED",
+  "sourceFingerprint": {
+    "contract_version": "estimate-sheet-source-fingerprint.v2",
+    "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+    "head": "9c91c3fcf712083a164d2b44d3e32c62ed36bb59",
+    "path_count": 2181,
+    "path_list_sha256": "a3bffb9aaa9fd993fdbad12d945fd0020fd62f51caca357253f5e16469aa8089",
+    "scoped_status_sha256": "225c0cf225491344a9c0589e4e8ee3c60c167476c895d415e92ad6f7ee7f02f1",
+    "scoped_diff_sha256": "655e4188b084bd0bae41641b4113a74f25b7dc8fda1cfa741bc089f2a6e149c7",
+    "application": {
+      "contract_version": "estimate-sheet-application-fingerprint.v1",
+      "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+      "package_projection_rule": "package-json-without-scripts.v1",
+      "path_count": 1231,
+      "path_list_sha256": "2e29d69491d7c63e6df83076f0f85f8e4662ada416a2c2104ed79dc9526ca5d9",
+      "content_sha256": "762e6e296e3ca7d07d2efd81ef5ab6438fab03d6f3f1b01457a9934c461795f2"
+    },
+    "producer": {
+      "contract_version": "estimate-sheet-producer-fingerprint.v1",
+      "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+      "package_projection_rule": "full-package-json.v1",
+      "path_count": 962,
+      "path_list_sha256": "ab25058fc4d2f6e365cb3f73b0d9b40b56157e20626bc68f2b939b519e905a0d",
+      "content_sha256": "3b536ab6c7f5e2bd80909bb6cbe36b05aa397de2c198a3dbedcb8ea66d57188f"
+    },
+    "status_bytes": 1419,
+    "tracked_diff_bytes": 91759,
+    "untracked_record_count": 2,
+    "untracked_record_bytes": 293
+  },
+  "applicationFingerprint": {
+    "contract_version": "estimate-sheet-application-fingerprint.v1",
+    "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+    "package_projection_rule": "package-json-without-scripts.v1",
+    "path_count": 1231,
+    "path_list_sha256": "2e29d69491d7c63e6df83076f0f85f8e4662ada416a2c2104ed79dc9526ca5d9",
+    "content_sha256": "762e6e296e3ca7d07d2efd81ef5ab6438fab03d6f3f1b01457a9934c461795f2"
+  },
+  "producerFingerprint": {
+    "contract_version": "estimate-sheet-producer-fingerprint.v1",
+    "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
+    "package_projection_rule": "full-package-json.v1",
+    "path_count": 962,
+    "path_list_sha256": "ab25058fc4d2f6e365cb3f73b0d9b40b56157e20626bc68f2b939b519e905a0d",
+    "content_sha256": "3b536ab6c7f5e2bd80909bb6cbe36b05aa397de2c198a3dbedcb8ea66d57188f"
+  },
+  "fixture": {
+    "profile": "limit",
+    "namespaceIdSha256": "2c97dc7d49bcfc33eb9bd5fcd4dd3c13eb94cb99d4cfa6dcc112f6e066e53947",
+    "preStateSha256": "f9aecb68ae0afdda7ed0e9e9f6582b5a83d4fabef85e27d2b79333a460fe3d56"
+  },
+  "namespaces": {
+    "browser": {
+      "idSha256": "2c97dc7d49bcfc33eb9bd5fcd4dd3c13eb94cb99d4cfa6dcc112f6e066e53947",
+      "preStateSha256": "f9aecb68ae0afdda7ed0e9e9f6582b5a83d4fabef85e27d2b79333a460fe3d56"
+    }
+  },
+  "mutationJournal": [],
+  "previewProcesses": [],
+  "leasedPort": 3126,
+  "port": 3126,
+  "runtimeEnv": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/runtime.env",
+  "runtimeEnvSha256": "214e4d7eb434142e4d2399633a248b9b5c137c5367e3a6a202a157648e661d09",
+  "runtimeEnvStableSha256": "1ebaef5d82c62bf8e899117668d1b2a82fb76af30336dc333dfbf5b79a502e64",
+  "storageState": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/storage-state.json",
+  "storageStateSha256": "0da720d4de08123227768d6c82a3d9a09d456c9bd4e261e8aacdc6c8fe930117",
+  "storageStateExpiresAt": "2026-07-13T00:33:27.060Z",
+  "processJournal": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/preview/process-journal.json",
+  "routePath": "/workshop/projects/b06b943e-53a4-4183-884e-8ff782665d57/estimates/6f200446-0fd8-46bd-88fe-ce2efdccbf36",
+  "route": {
+    "path": "/workshop/projects/b06b943e-53a4-4183-884e-8ff782665d57/estimates/6f200446-0fd8-46bd-88fe-ce2efdccbf36",
+    "projectId": "b06b943e-53a4-4183-884e-8ff782665d57",
+    "nodeId": "6f200446-0fd8-46bd-88fe-ce2efdccbf36",
+    "fixtureRole": "browser"
+  },
+  "fixture_hash": "f9aecb68ae0afdda7ed0e9e9f6582b5a83d4fabef85e27d2b79333a460fe3d56",
+  "auth_fixture_hash": "f96a2371ce4116cff74d315aa72e8eb455901a5798c66f171d30321daa2ac5f3",
+  "wranglerState": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/wrangler-state",
+  "resources": {
+    "d1Binding": "ARCH_DB",
+    "wranglerState": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/wrangler-state",
+    "localConfig": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/resources/d1/wrangler-local.json",
+    "localConfigSha256": "4313bd9851f8bccc18df2c497a735af16963efe035aac0a7da6fdf82c834c194",
+    "generatedSchema": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/better-auth-schema.sql",
+    "generatedSchemaSha256": "9f206f37cfe76b563039dc2759cb28ff91c043caed7e472691cf67fca76961e1",
+    "migrations": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/resources/d1/migrations.json",
+    "migrationsSha256": "58f615c9a635aa25b430c24f829f6e3bef2e6ca7ee6463177d99629fdc260d1f",
+    "migrationHead": "0067_beta_activation_events.sql",
+    "migrationCount": 59,
+    "seedSql": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/seed.sql",
+    "seedSqlSha256": "2ffe8ec79462fe7e02187f7440b31a9b1baee206630a1bf703b6e34abe24e99f",
+    "cleanupSql": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/runs/UNIT-002/d2b25c4f-2d9c-4de8-8b5b-b3e8402e672d-762e6e296e3c-b4ad04e3e05a/resources/d1/cleanup.sql",
+    "cleanupSqlSha256": "ca535a418402f0627a21d9b235f575d200c8f2788188953c6673bf27964cffd5",
+    "cleanupStateSha256ByRole": {
+      "browser": "04475a675158d6ee3eee14ab412cd3d605e6fe2376ada0b5bb530dcdebb5d82e"
+    },
+    "unitLease": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/leases/units/UNIT-002",
+    "portLease": "/Users/philiplewis/Documents/archestimator/.ai/99_scratch/estimate-sheet-performance/leases/ports/3126"
+  }
+}

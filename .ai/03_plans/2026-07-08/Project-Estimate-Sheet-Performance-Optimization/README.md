@@ -1,6 +1,14 @@
 # Project Estimate Sheet Performance Optimization
 
-Status tuple: `package_status=NOT_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=NOT_READY`, `implementation_status=INCOMPLETE`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=CANCELLED`.
+
+## Cancellation Record - 2026-07-12
+
+This pack is closed because its eleven-unit execution chain is disproportionate to the product work it uncovered. It spent the implementation budget building a bespoke evidence pipeline and repeatedly collecting broad browser/runtime proof before a measured bottleneck justified any route, graph, render, mutation, or hosted-D1 change.
+
+Delivered work remains in the shared worktree: component duplicate acknowledgement behavior, variant source-snapshot preservation, detached-library source classification, and the estimate-sheet benchmark launcher's bounded readiness timeout. `UNIT-001` has a verified evaluator/fixture baseline. The remaining `UNIT-002` through `UNIT-011` units are retained as non-runnable historical planning records, not pending product implementation.
+
+No performance optimization is claimed from this pack. A future performance task must begin with one focused, user-visible symptom and one cheap baseline measurement, then implement only the proven bottleneck. It must not inherit this evaluator or its hosted-release pipeline as a completion gate.
 
 Current run: implementation re-admission after shared-worktree coordination. The Estimate Sheet Tree lane is complete, archived, and has released its leases. Later unrelated workshop, proposals, dev-server, landing, admin, support, and migration-index work changed the broad admission fingerprint without changing the estimate-sheet behavior premises. Concurrent application writes invalidated multiple replacement quiet-window candidates before artifact freeze. A later consistency audit also required a frozen read-only planning reference plus a write-once admission recorder whose receipt becomes an immutable UNIT-001 dependency. No implementation unit is admitted until the broad source scope becomes quiet and the final refreshed candidate passes validators and the orchestrator-separated procedural review lanes. Future package ceiling: local implementation plus scoped hosted proof against the Cloudflare resources bound in `wrangler.jsonc`. This pack does not authorize or perform a production deploy.
 
@@ -8,13 +16,13 @@ Canonical execution artifact: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
 
 Machine-readable contract: [`plan-pack.json`](plan-pack.json)
 
-Candidate next unit after re-admission: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, implements the strict evaluator/refreeze contract, and wires one inert all-off server-resolved mode snapshot through the route and client before any optimization code. `AC-012` requires new same-hash architect, critic, and fingerprint-verifier receipts for the refreshed deterministic candidate.
+There is no next unit. The former execution chain is retained only as historical context for any future, narrowly scoped performance work.
 
 ## Mission
 
 Prove and then remove the dominant route, derivation, render, and mutation bottlenecks while preserving all estimate-sheet behavior at the supported ceiling of 1,500 nodes and 5,000 loaded rows.
 
-The same-hash review gate is closed until a fresh candidate is reviewed. Product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011` after re-admission.
+The same-hash review gate and the remaining runtime evidence pipeline are superseded. Product performance optimization remains incomplete and intentionally deferred.
 
 ## Authority Order
 

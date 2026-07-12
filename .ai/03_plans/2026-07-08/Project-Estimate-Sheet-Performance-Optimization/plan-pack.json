@@ -5,11 +5,11 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "IMPLEMENT_LOCAL",
-  "package_status": "IMPLEMENTATION_READY",
-  "implementation_status": "IN_PROGRESS",
+  "package_status": "NOT_READY",
+  "implementation_status": "INCOMPLETE",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "terminal_status": "CANCELLED",
   "baseline": {
     "contract_version": "estimate-sheet-source-fingerprint.v2",
     "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
@@ -227,13 +227,13 @@
       "id": "ART-032",
       "role": "loop-ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "c9c8dc713b22a7845ae2e61a25a7f292c83aba20ad21510be1a6ed945358a0fc"
+      "sha256": "7881f83e61892f2b6bfcd976b77138d230181a707a236f9476c9d67b7c13a950"
     },
     {
       "id": "ART-033",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "e738cfa013c862c3ef25d19db313f30fee4fdcd9c9165d454ab92ee1a427a10d"
+      "sha256": "3661e186261ba21977b4af75a08dd768d777fa29a15b7cec0da27526b74d455e"
     },
     {
       "id": "ART-034",
@@ -269,13 +269,13 @@
       "id": "ART-039",
       "role": "runtime-evidence-projection",
       "path": "evidence/runtime/fixture-manifest.json",
-      "sha256": "d9236eab7e1d8674587d274c4625b1adc0600ee88ca2b1aa4f4e7b7e483f56dd"
+      "sha256": "34937c9b141d48a9f63367acb1645227e10edeb62d26878798b3b78805be291e"
     },
     {
       "id": "ART-040",
       "role": "runtime-evidence-projection",
       "path": "evidence/runtime/jsdom-baseline.json",
-      "sha256": "9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77"
+      "sha256": "1679aa7a002585599fddfe0c913705b38bed20d6bce697a0f8d8ba33e8005820"
     },
     {
       "id": "ART-041",
@@ -347,19 +347,19 @@
       "id": "ART-052",
       "role": "runtime-evidence-registry",
       "path": "evidence/runtime/evidence-index.json",
-      "sha256": "c45d14be47f161ce6084537fd0c86f6053764bec4f73d96fddcc1b8af9bbba7e"
+      "sha256": "c1e3a91a964e115a282b5dbd9093ae267e254ddb6f5d9e29eda13b4d950e4713"
     }
   ],
   "runtime_evidence": {
     "contract_version": "estimate-sheet-runtime-manifest-state.v1",
-    "transition_sequence": 5,
-    "latest_unit_id": "UNIT-001",
-    "latest_run_id": "c017a99a-dff0-4896-8997-d60774c2193f",
+    "transition_sequence": 206,
+    "latest_unit_id": "UNIT-002",
+    "latest_run_id": "434f3b3c-8f86-4bcf-8641-c6db722af037",
     "registry": {
       "artifact_id": "ART-052",
       "projection_path": "evidence/runtime/evidence-index.json",
-      "immutable_path": "evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/evidence-index.json",
-      "sha256": "c45d14be47f161ce6084537fd0c86f6053764bec4f73d96fddcc1b8af9bbba7e"
+      "immutable_path": "evidence/runtime/runs/UNIT-001/aa4465db-1488-493d-bb3c-92ea9e83cac4-f10fee1e3b6e-f7d7466fb73b/evidence-index.json",
+      "sha256": "c1e3a91a964e115a282b5dbd9093ae267e254ddb6f5d9e29eda13b4d950e4713"
     },
     "projections": [
       {
@@ -368,8 +368,8 @@
         "relationship": "SECONDARY",
         "role": "fixture",
         "projection_path": "evidence/runtime/fixture-manifest.json",
-        "immutable_path": "evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/fixtures/fixture.json",
-        "sha256": "d9236eab7e1d8674587d274c4625b1adc0600ee88ca2b1aa4f4e7b7e483f56dd"
+        "immutable_path": "evidence/runtime/runs/UNIT-001/aa4465db-1488-493d-bb3c-92ea9e83cac4-f10fee1e3b6e-f7d7466fb73b/fixtures/fixture.json",
+        "sha256": "34937c9b141d48a9f63367acb1645227e10edeb62d26878798b3b78805be291e"
       },
       {
         "artifact_id": "ART-040",
@@ -377,8 +377,8 @@
         "relationship": "PRIMARY",
         "role": "jsdom",
         "projection_path": "evidence/runtime/jsdom-baseline.json",
-        "immutable_path": "evidence/runtime/runs/UNIT-001/c017a99a-dff0-4896-8997-d60774c2193f-797f84ffbdd9-c27062288edd/reports/jsdom.json",
-        "sha256": "9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77"
+        "immutable_path": "evidence/runtime/runs/UNIT-001/aa4465db-1488-493d-bb3c-92ea9e83cac4-f10fee1e3b6e-f7d7466fb73b/reports/jsdom.json",
+        "sha256": "1679aa7a002585599fddfe0c913705b38bed20d6bce697a0f8d8ba33e8005820"
       },
       {
         "artifact_id": "ART-041",
@@ -480,7 +480,7 @@
         "sha256": "34e4ec3521506b4e04ffef366d35a96e226ec6893f792d147ab1b22466282ba7"
       }
     ],
-    "latest_run_manifest_sha256": "ff15d889db44a68ecfc9c216613da6a78c9a5b289402b2b6f57a9c4758fc32c8"
+    "latest_run_manifest_sha256": "d31be33c956f17a7970963206ce1ae7d4a437258b9835bd9b725de3bda674fc6"
   },
   "sources": [
     {
@@ -3270,7 +3270,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -3321,7 +3321,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002"
@@ -3353,7 +3353,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-003"
@@ -3373,7 +3373,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -3407,7 +3407,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -3440,7 +3440,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006"
@@ -3470,7 +3470,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-007"
@@ -3502,7 +3502,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-008"
@@ -3558,7 +3558,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-009"
@@ -3603,7 +3603,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-010"
@@ -3757,24 +3757,7 @@
     }
   ],
   "authorization_boundaries": [],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
@@ -3890,12 +3873,12 @@
       "id": "EVID-002",
       "status": "PASS",
       "artifact_path": "evidence/runtime/jsdom-baseline.json",
-      "sha256": "9e5352080c74a0d31f13fb4d0235157d7bd348d3f6d4249948366a7ef2917c77",
+      "sha256": "1679aa7a002585599fddfe0c913705b38bed20d6bce697a0f8d8ba33e8005820",
       "claim_ids": [
         "UNIT-001",
         "TEST-002"
       ],
-      "source_revision": "run:c017a99a-dff0-4896-8997-d60774c2193f:797f84ffbdd9753287e62d77ddf4df1b108ba98fa39cfe24804cfaeb711ca669:4cb1978d8a534b17012b48ea870d7000e6c4aef341fe4071fc23b4a13beccd38",
+      "source_revision": "run:aa4465db-1488-493d-bb3c-92ea9e83cac4:f10fee1e3b6e2f5753c7cc017f1e13ec354765eefe612bbe7f22563f2676bb03:17b82d60958b45a244d5ae30a5e2ae3dd2cd408dde2d4d81f0b41d6c5a8caa1c",
       "valid_until": null
     },
     {
@@ -4046,7 +4029,7 @@
     "active-d1-migration-or-binding-change",
     "unit-owned-shared-worktree-diff-change"
   ],
-  "next_unit": "UNIT-002",
-  "updated_at": "2026-07-11T19:34:35.557Z",
-  "manifest_sha256": "55d698651c4d7ae95d3f1731a0cbc57ebf094733ce852c8ce17d3530b0fa7661"
+  "next_unit": null,
+  "updated_at": "2026-07-12T03:27:00.000Z",
+  "manifest_sha256": "19090a04300796675038f922532ff86fcc43707b40f09cfccfefad48b4dbfd6b"
 }

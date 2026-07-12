@@ -55,6 +55,12 @@ task-specific history. Do not linear-read the detailed history below.
 
 <!-- FAST PATH:END -->
 
+### 2026-07-12 - Estimate Sheet Performance Pack Cancelled
+
+- `.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization` is cancelled as an over-engineered execution pipeline, not an implemented performance optimization. Its truthful status is `package_status=NOT_READY`, `implementation_status=INCOMPLETE`, `plan_lifecycle=ACTIVE`, `terminal_status=CANCELLED`, with no next unit or ready slice.
+- `UNIT-001` remains verified baseline/evaluator work. Do not resume `UNIT-002` through `UNIT-011`, the broad Playwright matrix, or the hosted-D1/release pipeline from that pack.
+- Concrete shared-worktree fixes remain intact. Future performance work must start from a specific observed estimate-sheet symptom, a single cheap baseline, and only the implementation required by that measurement.
+
 ## Detailed Append-only History
 
 Historical entries are preserved verbatim for retrieval and audit. They can
