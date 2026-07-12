@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "b06d8cc4a437efd22b2a03553651a1cc6a87db9f",
-    "scoped_status_sha256": "a5dc1b970335cb0f45a9ebdeaca58dc94c12f9440df00cbb6499856d628f0981",
-    "scoped_diff_sha256": "96d589d9b19c03dd9e182848f394ec7b78350b996549d3a3b4becb20023ecd59"
+    "head": "67dad3477919e535e657f7b8c5f662d80657073b",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "3391e312d3d0b9367179a6a8574669640a19d61ad442d649e472a890a5812178"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -492,5 +492,5 @@
   ],
   "next_unit": null,
   "updated_at": "2026-07-12T00:00:00.000Z",
-  "manifest_sha256": "d9901ef8483a0862231b43e844e1348fa42f546510c0a70da0be4080ab00f87b"
+  "manifest_sha256": "de9d80072508ecc013f6350d780eb4311e5c44f242a6d086a4126e47d40937db"
 }

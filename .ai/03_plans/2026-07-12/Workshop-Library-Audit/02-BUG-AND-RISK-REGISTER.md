@@ -826,6 +826,182 @@
 - **Recommended surface:** add `canManageLibrary` to the images GET, OR document
   that images are intentionally workspace-shared-readable.
 
+### PERF-06 [P2] — `searchLibraryOverview` component arm: triple-defeat full scan per keystroke
+
+- **Location:** `src/lib/component-library/actions.ts:2917-2931` —
+  `WHERE workspace_id=? AND lifecycle_state<>'archived' AND (LOWER(name) LIKE
+  LOWER(?) OR LOWER(COALESCE(supplier,'')) LIKE LOWER(?) OR LOWER(COALESCE(brand,''))
+  LIKE LOWER(?)) ORDER BY updated_at DESC LIMIT 6`. Fires per keystroke
+  (`LibraryOverviewSearch.tsx:135`).
+- **What:** three independent index-defeats combine: (a) leading `%` wildcard
+  (pattern `%query%` at `:2911`); (b) `LOWER(col)` + `LOWER(COALESCE(...))`
+  wraps every column in a function — unusable without an expression index, and
+  **none exists** (grep `INDEX.*json_extract|INDEX.*LOWER|INDEX.*COALESCE` in
+  migrations = empty); (c) `OR` across 3 columns blocks index merge on SQLite.
+  Sharps BUG-OPS-01: the `idx_cost_library_items_workspace_lifecycle` narrows the
+  candidate set by `workspace_id`, but **every non-archived row** is string-
+  compared 3× per keystroke. This is the worst query on the table.
+- **Impact:** per-keystroke scan over the unbounded `cost_library_items` table;
+  D1 CPU/latency scales linearly with workspace size. At 10k items this is a
+  noticeable search lag.
+- **Recommended surface:** expression index on `LOWER(name)` (or a normalized
+  `search_tsv` column per BUG-OPS-01); drop the `COALESCE` wrappers (store
+  non-null supplier/brand or use a generated column); consider an n-gram index
+  table for the leading-`%` case.
+
+### BUG-SEC-08 [P3] — `previewBulkArchiveLibraryComponents` skips `assertCanManageLibrary` (contradicts module docstring)
+
+- **Location:** `src/lib/component-library/actions.ts:1651-1660` — preview calls
+  only `ensureDefaultWorkspace()` + `requireCurrentUserContext()`; **no
+  `assertCanManageLibrary`**. Compare sibling `executeBulkArchiveLibraryComponents`
+  at `:1719` which DOES call `assertCanManageLibrary`. The preview returns
+  `{id, name, lifecycle_state}` per row (`:1662-1672`) for up to 500 ids.
+- **What:** a workspace **viewer** can POST to the preview and enumerate up to
+  500 components' names + lifecycle states. Read-only and RLS still scopes to the
+  workspace (no cross-tenant leak), but it contradicts the module docstring at
+  `:335-338` ("applied to every mutating component/template action") — the
+  preview is the one action whose authz is weaker than its family.
+- **Impact:** defense-in-depth gap + docstring inaccuracy. Viewers can already
+  see components via the browse loaders (which also use only
+  `requireCurrentUserContext`), so the incremental exposure is low.
+- **Recommended surface:** add `assertCanManageLibrary` to the preview for
+  consistency with execute + the docstring.
+
+### PERF-07 [P3] — price-option `COALESCE(json_extract(metadata_json,'$.variantSortOrder'),0)` ORDER BY has no expression index
+
+- **Location:** `src/lib/repositories/component-library-repository.ts:1162,1171`
+  — `ORDER BY is_default DESC, COALESCE(json_extract(metadata_json,
+  '$.variantSortOrder'),0) ASC, created_at ASC`. No expression index exists
+  (grep `INDEX.*variantSortOrder|INDEX.*json_extract` in migrations = empty).
+- **What:** always a temp b-tree sort, never index-served. Mitigated: the
+  candidate set is bounded by `item_id IN (...)` (`:364-365`), so the sort is
+  per-item-slice, not whole-table. Low impact but confirms the index set was
+  designed for equality browse, not for JSON-order.
+
+### BUG-SEC-09 [P2] — legacy publication `snapshot_json` read path has no integrity verification
+
+- **Location:** `src/lib/publication/d1-store.ts:235-246`
+  (`getPublicationSnapshotByTokenHash`) — returns `snapshot_json` verbatim from
+  D1. No `sha256(snapshot_json)` column on `project_publications`, no recompute.
+  The recipient share page (`src/app/share/[token]/page.tsx`) renders whatever
+  blob D1 returns. The active-state gate (`isActivePublication`) checks
+  `status`/`revoked_at`/`expires_at`, not content integrity.
+- **What:** any alteration of `snapshot_json` in D1 (or via a code/RCE path) is
+  silently served to recipients with no detection. Contrast the **client-portal
+  (new) path** which DOES verify: per-section SHA-256 recomputed on every read
+  (`public-repository.ts:88`), hash over full sanitized payload, server-
+  authoritative (CONFIRMED robust — recorded positively).
+- **Impact:** the legacy path is being frozen
+  (`assertLegacyPublicationWriteFreezeEnabled` blocks writes once migrated), but
+  reads remain integrity-unverified for any publication not yet migrated, and
+  the freeze is feature-flag-gated.
+- **Recommended surface:** backport the client-portal hash-verification pattern
+  to the legacy read path, OR expedite the migration so the legacy path is
+  retired.
+- **Proof class:** source inspection (no hash column in
+  `migrations/0066_publication_foreign_keys.sql`; `getPublicationSnapshotByTokenHash`
+  returns verbatim).
+
+### BUG-DOM-28 [P1] — estimate→library promotion (`promoteEstimateRowToLibraryComponent`) bypasses validation + quota (same class as BUG-DOM-18)
+
+- **Location:** `src/lib/estimates/express-promotion-actions.ts:340,402` (direct
+  `INSERT INTO cost_library_items` + `INSERT INTO cost_library_item_price_options`
+  in a `runBatch`); the validated path at
+  `src/lib/component-library/actions.ts:1242-1371`. Flag gate at
+  `src/lib/estimates/express-components.ts:63,87`
+  (`isExpressComponentPromotionEnabled`, `readFeatureFlag(..., false)` →
+  **defaults OFF**).
+- **What:** when an estimator promotes an express row to the library, the
+  promotion does a **direct INSERT** rather than calling
+  `createCostLibraryComponent`. It skips: `validatePriceOptions`, the quick-add
+  field validation (`validateQuickAddComponentInput`), the formula-prefix guard,
+  length/money/date/URL validation, AND **`assertWithinLibraryQuota`** (the 10k
+  component cap — grep confirms zero calls in `express-promotion-actions.ts`).
+  It inserts with hardcoded `category="Uncategorized"`, no brand, no confidence
+  — exactly the kind of row the library's validation is designed to reject.
+  Third instance of the BUG-DOM-18 bypass class (AI apply = BUG-DOM-18; this =
+  estimate promotion; both write library rows outside the domain-validation
+  boundary).
+- **Mitigation:** auth-gated (`canEditEstimateInD1` + `isWorkspaceEditorInD1`)
+  AND flag-gated **default-off** (`EXPRESS_COMPONENT_PROMOTION_ENABLED=false`).
+  So the bypass is not reachable in the default deployment. Any deployment that
+  enables the flag gets the full bypass.
+- **Impact:** when enabled, a scripted editor can blow past the 10k quota and
+  insert unvalidated/formula-prefixed/oversized components via the promote
+  action. Same money/formula-injection + quota-bypass surface as BUG-DOM-18.
+- **Recommended surface:** route promotion through `createCostLibraryComponent`
+  (or a shared validator that runs `validatePriceOptions` +
+  `validateQuickAddComponentInput` + `assertWithinLibraryQuota`), not direct
+  SQL. Same fix class as BUG-DOM-18 — consolidate the three write paths (modal,
+  AI, promotion) onto one validated entrypoint.
+- **Proof class:** source inspection (direct INSERT at `:340,402`; zero
+  validator/quota calls in the file; flag default `false` at `express-components.ts:90`).
+
+### BUG-OPS-19 [P2] — template `template_id IN (...)` read-list can reach 2,000 (>SQLite 999 default), no chunking
+
+- **Location:** `src/lib/repositories/component-library-repository.ts:1311-1329`
+  — `loadCurrentWorkspaceEstimateTemplatesAppPath` builds a single
+  `template_id IN (...)` list from every workspace template (up to
+  `LIBRARY_TEMPLATE_CAP = 2_000`, `actions.ts:379`), fired against both
+  `estimate_template_nodes` and `estimate_template_row_items`. No chunking, no
+  read-side cap. The cap is enforced only at create time (`assertWithinLibraryQuota`
+  at `actions.ts:2273`), never at read.
+- **What:** SQLite's default bind limit is 999 host params; D1 ships the compiled
+  higher limit (~32,766), so a 2,000-element IN-list survives today. But there is
+  zero margin if the template cap rises, and no defensive guard in
+  `placeholders()`/`bindValues()`/`all()`/`first()`/`run()` (grep
+  `999|32766|SQLITE_MAX|MAX_BIND` = empty across `src/lib/repositories/`,
+  `src/lib/component-library/`, `src/lib/cloudflare/`).
+- **Impact:** latent breakage for any SQLite build at the default 999 limit; a
+  quota raise to >32k would break D1 too.
+- **Recommended surface:** chunk large IN-lists (batches of ~900); add a
+  defensive bind-count guard to `placeholders()` that throws on >N.
+
+### BUG-SEC-10 [P2] — AI draft-token secret falls back to hardcoded repo-visible string in all non-prod environments
+
+- **Location:** `src/lib/ai/package-builder/draft-token.ts:20-25`
+  (`getDraftSigningSecret`).
+- **What:** production with unset/empty secret → throws (fail-closed, safe).
+  Non-production with unset/empty → silently falls back to
+  `"archestimator-local-package-builder-draft-token"` — a hardcoded,
+  source-repo-visible HMAC key. Anyone who can read this repo can forge AI
+  draft tokens in dev/staging/preview/PR deployments.
+- **Mitigation:** `verifyPackageDraftToken` still enforces expiry + userId +
+  workspaceId + draftHash binding (`:107-111`), so forged tokens only allow
+  applying an already-server-issued draft within the same user/workspace —
+  bounded but still a secret-management smell. Preview/stage deployments are the
+  concern (they're often reachable).
+- **Recommended surface:** require the secret in ALL environments (no hardcoded
+  fallback); add a key-id/version for rotation.
+
+### Dead-action attack surface: CONFIRMED bounded (positive record)
+
+- 44 exported server actions across the two `"use server"` modules are POST-
+  reachable. 3 are dead (0 production callers): `changeCostLibraryComponentLifecycleState`
+  (`actions.ts:1583`, authz holds), `loadCurrentWorkspaceComponentLibrary`
+  (`:1185`, read-only, no `assertCanManageLibrary` but RLS scopes), and
+  `reorderEstimateTemplateRowItems` (`template-editor-actions.ts:889`, authz
+  holds). **All dead actions carry authz** — a crafted POST from a viewer is
+  rejected. The realistic exposure is an editor/admin mutating outside the UI
+  flow (feature-availability/audit gap, not privilege escalation). The only
+  authz inconsistency is BUG-SEC-08 (the preview). No action is more permissive
+  than its UI implies beyond that.
+
+### Estimate↔library coupling: CONFIRMED bounded (positive record)
+
+- Only two non-write imports cross the boundary (estimate→library): a pure
+  string sanitizer (`sanitizeComponentSourceUrl`) + fire-and-forget telemetry
+  (`recordLibraryEvent`). No estimate code calls a library mutation action
+  directly EXCEPT the promotion path (BUG-DOM-28, flag-gated off).
+- `EstimateRightSidebar` shared between library editor + estimate sheet uses
+  **per-mount `useState`** (not a shared zustand/module store) — no cross-
+  context state leak (grep `zustand` in `component-library/` = only the
+  unrelated estimate row editor). Each sidebar mount owns its own slice.
+- The three direct-write paths to library tables (modal `createCostLibraryComponent`,
+  AI `apply.ts:1783`, promotion `express-promotion-actions.ts:340`) duplicate
+  the INSERT logic instead of consolidating on one validated entrypoint — the
+  root cause of the BUG-DOM-18/28 bypass class.
+
 - **Location:** `src/app/api/component-library/images/route.ts` — GET handler
   (`:174-193`) requires session + workspace match (`parsedPath.workspaceId !==
   workspace.id`, `:180`) but does NOT call `canManageLibrary`; POST (`:202`) and
