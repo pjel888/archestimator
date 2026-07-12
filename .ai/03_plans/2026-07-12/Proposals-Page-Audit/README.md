@@ -132,7 +132,7 @@ BOUNDARY on AUTH-001 (the non-static tracks in `13`). `IMPLEMENTATION_PLAN.md`,
 
 ## Resume pointer
 
-- **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity (31 bugs: 1 P0, 7 P1, 16 P2, 7 P3).
+- **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity (31 bugs: 0 P0, 7 P1, 17 P2, 7 P3). P0-1 downgraded to P2 after round-11 live verification showed the email substrate is wired.
 - **Start here for architecture:** `01-CURRENT-STATE-MAP.md`.
 - **Start here for "what do we do about it":** `03-READINESS-AND-RECOMMENDATIONS.md`.
 - **Start here for the projects-page parity gap:** `04-PROJECTS-PAGE-PARITY-GAP-ANALYSIS.md`.
