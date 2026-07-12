@@ -108,7 +108,10 @@ Repair in dependency order:
 7. **Evidence** - map every claim to the right evidence class, method, expected
    signal, freshness, cleanup, and final status.
 8. **Rollout/recovery** - repair flags/exposure, monitoring, rollback/fix-forward,
-   data repair, support, and post-release proof.
+   data repair, support, and post-release proof only where a proven current
+   obligation requires them. Because Archestimator is alpha/pre-beta, delete
+   speculative production ceremony and prefer direct replacement plus
+   fix-forward recovery for ordinary local work.
 9. **Information architecture** - consolidate duplicated rules, resolve addenda
    in place, remove obsolete documents/content, split substantively overloaded
    domain artifacts, register every artifact in the manifest, and repair

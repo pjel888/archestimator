@@ -41,6 +41,11 @@ broad validation.
 
 ## Lean Engineering Contract
 
+- Archestimator is alpha-stage, not released, and not beta. Treat ordinary
+  repository edits as rapid local product development, not production change
+  management. Prefer direct replacement and fix-forward iteration; add
+  compatibility, flags, rollout, rollback, or release proof only for a proven
+  current user/data/integration obligation or actual external side effect.
 - Map the evidence-supported direct and transitive blast radius before planning
   implementation; do not invent hypothetical systems, future features, or
   exhaustive matrices outside that reachable surface.

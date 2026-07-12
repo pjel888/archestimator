@@ -51,6 +51,10 @@ failure/recovery paths, and rollout boundaries are sufficiently grounded.
 
 The plan pack must:
 
+- encode the alpha/pre-beta bias to action: target the direct desired design,
+  tolerate temporary local breakage during replacement, and omit compatibility,
+  rollout, rollback, feature-flag, hosted-proof, or approval machinery unless a
+  proven current obligation requires it;
 - preserve the full feature objective, requirements, constraints, and non-goals;
 - describe current and target behavior from authoritative evidence;
 - close every internally resolvable decision as `DEC-AUTO-*`;

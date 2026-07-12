@@ -138,8 +138,10 @@ For every material choice or conflict:
 4. Compare outcome fit, correctness, security/privacy, data preservation,
    compatibility, reversibility, simplicity, maintainability, performance,
    operational burden, free-tier cost, and evidence strength.
-5. Choose the highest-evidence option. On a tie, choose the safer, more
-   reversible, compatible, simple, inexpensive, established pattern.
+5. Choose the highest-evidence option. On a tie in alpha/pre-beta repository
+   work, choose the simpler, faster fix-forward path. Prefer compatibility or
+   reversibility only when a proven current user, persisted-data contract,
+   integration, or external side effect makes it valuable.
 6. Record `DEC-AUTO-*`: decision, evidence, options, rejected alternatives,
    confidence, consequences, affected IDs, and rollback/revision trigger.
 7. If confidence remains insufficient, run a bounded discovery,
@@ -162,6 +164,20 @@ claim after all safe in-scope work is complete.
 The directive is explicit: **resolve blockers; never stop at them.** A blocker
 is complete only when its recovery work is complete or its exact prohibited
 external action is isolated after all allowed local work is finished.
+
+## 5.2 Alpha / Pre-Beta Bias To Action
+
+Archestimator is not released and not beta. Do not model ordinary repository
+edits as production change-control events. Temporary local breakage during a
+coherent replacement is acceptable; repair the affected in-scope path in the
+same run and fix forward. Do not create compatibility shims, dual paths, flags,
+phased rollout, rollback ceremony, hosted proof, or approval gates for
+hypothetical future users.
+
+Require those mechanisms only when current evidence proves a live-user,
+persisted-data, external-integration, irreversible-data, paid-resource, secret,
+or actual deployment obligation. High blast radius changes require deeper
+analysis, not slower implementation by default.
 
 ## 6. Capability Router
 
