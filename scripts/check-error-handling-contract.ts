@@ -47,7 +47,7 @@ type CliOptions = {
 };
 
 export const DEFAULT_ERROR_HANDLING_CONTRACT_OUTPUT =
-  ".ai/03_plans/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json";
+  ".ai/09_archive/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json";
 
 export const DEFAULT_ERROR_HANDLING_SCAN_TARGETS = [
   "worker.ts",

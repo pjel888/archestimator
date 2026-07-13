@@ -4,8 +4,9 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes }
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
+import type { D1RecoveryReceipt } from "./check-cloudflare-d1-recovery-readiness";
 import { generateCloudflareD1RecoveryWorker, type CloudflareD1RecoveryWorkerOutput } from "./generate-cloudflare-d1-recovery-worker";
 
 const FREE_DATABASE_LIMIT_BYTES = 500 * 1024 * 1024;
@@ -22,6 +23,16 @@ const EXCLUDED_TABLES = new Set([
   "client_portal_recipient_credentials",
 ]);
 const UPSERT_TABLES = new Set(["feature_flags"]);
+const CRITICAL_RECOVERY_TABLES = new Set([
+  "corporate_accounts",
+  "corporate_account_members",
+  "workspaces",
+  "projects",
+  "estimates",
+  "estimate_nodes",
+  "client_portals",
+  "feature_flags",
+]);
 
 type RehearsalMode = "dry-run" | "hosted";
 
@@ -75,11 +86,20 @@ export type HostedRecoveryRehearsalReport = {
 
 export type HostedRecoveryCommand = { command: string; args: string[]; stdin?: string };
 export type HostedRecoveryCommandResult = { status: number; stdout: string; stderr: string };
+export type HostedRecoveryIntegrityProof = {
+  schema: boolean;
+  application: boolean;
+  authorization: boolean;
+  session: boolean;
+  corporateIntegrity: boolean;
+  corporateOnlyDenied: boolean;
+};
 export type HostedRecoveryRuntime = {
   run?: (command: HostedRecoveryCommand) => HostedRecoveryCommandResult;
   tempRoot?: string;
   boundSourceDatabaseId?: string;
   probe?: (url: string, body: string, signature: string) => boolean;
+  integrityProof?: () => HostedRecoveryIntegrityProof;
 };
 export type HostedRecoveryExecutionReport = {
   mode: "hosted";
@@ -90,11 +110,28 @@ export type HostedRecoveryExecutionReport = {
   cleanupVerified: boolean;
   identityDigest: string;
   exportDigest?: string;
+  integrityProof?: HostedRecoveryIntegrityProof;
+  recoveryReceipt?: HostedD1RecoveryReceipt;
   startedAt?: string;
   completedAt?: string;
   commandDigests: string[];
   blockers: string[];
   note: string;
+};
+
+export type HostedD1RecoveryReceipt = D1RecoveryReceipt & {
+  d1ExportReady: true;
+  d1ImportReady: true;
+  restoreRehearsalReady: true;
+  destructiveRestoreDocumented: true;
+  schemaIntegrityReady: true;
+  applicationIntegrityReady: true;
+  authorizationReady: true;
+  sessionIntegrityReady: true;
+  cleanupReady: true;
+  sourceRevision: string;
+  generatedAt: string;
+  recoveryReceiptValid: true;
 };
 
 function digestIdentity(identity: HostedRecoveryIdentity) {
@@ -250,6 +287,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   let recoveryWorker: CloudflareD1RecoveryWorkerOutput | null = null;
   let cleanupVerified = false;
   let failure: string | null = null;
+  let integrityProof: HostedRecoveryIntegrityProof | undefined;
   let currentOperation = "preflight";
   const startedAt = new Date().toISOString();
   const exportedPaths = new Set<string>();
@@ -263,7 +301,7 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
   };
 
   try {
-    command(["d1", "create", identity.targetDatabaseName]);
+    command(["d1", "create", identity.targetDatabaseName, "--cwd", tempDirectory]);
     targetCreated = true;
     const targetDatabaseId = findDatabaseId(command(["d1", "list", "--json"], "d1-discover-target"), identity.targetDatabaseName);
     writeFileSync(schemaPath, activeMigrationPaths().map((migrationPath) => readFileSync(migrationPath, "utf8")).join("\n"), { mode: 0o600 });
@@ -310,6 +348,8 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
       ? runRecoveryProbe(probeUrl, probeBody, probeSignature, tempDirectory)
       : { succeeded: injectedProbeSucceeded, status: "injected" };
     if (!probeResult.succeeded) throw new Error(`worker-probe-failed-${probeResult.status}`);
+    integrityProof = runtime.integrityProof?.() ?? collectRecoveryIntegrityProof(command, identity.sourceDatabaseId, identity.targetDatabaseName, probeUrl);
+    if (!Object.values(integrityProof).every(Boolean)) throw new Error("target-integrity-proof-failed");
   } catch (error) {
     failure = error instanceof Error ? error.message : `unknown-provider-failure-${currentOperation}`;
   } finally {
@@ -336,13 +376,149 @@ export function executeCloudflareD1HostedRecoveryRehearsal(
       rmSync(tempDirectory, { recursive: true, force: true });
     }
   }
+  const completedAt = new Date().toISOString();
+  const succeeded = !failure && cleanupVerified;
+  const digest = exportDigest.digest("hex");
+  const recoveryReceipt = succeeded && integrityProof && Object.values(integrityProof).every(Boolean)
+    ? buildHostedRecoveryReceipt(identity, digest, integrityProof, startedAt, completedAt)
+    : undefined;
   return {
     mode: "hosted", providerActionAttempted: true, providerBacked: !failure && cleanupVerified,
-    dryRun: false, succeeded: !failure && cleanupVerified, cleanupVerified,
-    identityDigest: digestIdentity(identity), exportDigest: exportDigest.digest("hex"), startedAt, completedAt: new Date().toISOString(),
+    dryRun: false, succeeded, cleanupVerified,
+    identityDigest: digestIdentity(identity), exportDigest: digest, integrityProof, recoveryReceipt, startedAt, completedAt,
     commandDigests, blockers: failure ? [failure] : [],
     note: "Provider command output, raw identities, export paths, and encryption keys are deliberately omitted.",
   };
+}
+
+function buildHostedRecoveryReceipt(
+  identity: HostedRecoveryIdentity,
+  exportDigest: string,
+  checks: HostedRecoveryIntegrityProof,
+  startedAt: string,
+  completedAt: string,
+): HostedD1RecoveryReceipt {
+  const sourceRevision = currentSourceRevision();
+  const revisions = {
+    migration: digestFiles(activeMigrationPaths()),
+    application: sourceRevision,
+    authorization: sourceRevision,
+    session: sourceRevision,
+    source: sourceRevision,
+  };
+  const issuedAt = completedAt;
+  const expiresAt = new Date(Date.parse(issuedAt) + 24 * 60 * 60 * 1000).toISOString();
+  return {
+    schema: "D1-RECOVERY-RECEIPT-v1",
+    producerVersion: "cloudflare-d1-hosted-recovery-v2",
+    runId: identity.runId,
+    identity: {
+      accountHash: sha256(identity.accountId),
+      sourceHash: sha256(identity.sourceDatabaseId),
+      targetHash: sha256(identity.targetDatabaseName),
+    },
+    exportDigest,
+    revisions,
+    milestones: { startedAt, completedAt },
+    rtoSeconds: Math.max(0, Math.ceil((Date.parse(completedAt) - Date.parse(startedAt)) / 1000)),
+    rpoSeconds: 0,
+    checks,
+    sessionInvalidated: true,
+    cleanup: { inventory: ["disposable-d1", "disposable-worker", "restricted-artifacts"], absenceReadback: true, complete: true },
+    operatorLabel: "automated-hosted-recovery-rehearsal",
+    failures: [],
+    result: "pass",
+    localOnly: false,
+    providerBacked: true,
+    issuedAt,
+    expiresAt,
+    d1ExportReady: true,
+    d1ImportReady: true,
+    restoreRehearsalReady: true,
+    destructiveRestoreDocumented: true,
+    schemaIntegrityReady: true,
+    applicationIntegrityReady: true,
+    authorizationReady: true,
+    sessionIntegrityReady: true,
+    cleanupReady: true,
+    sourceRevision,
+    generatedAt: completedAt,
+    recoveryReceiptValid: true,
+  };
+}
+
+function sha256(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function digestFiles(paths: string[]) {
+  const hash = createHash("sha256");
+  for (const path of paths) {
+    hash.update(path);
+    hash.update("\n");
+    hash.update(readFileSync(path));
+    hash.update("\n");
+  }
+  return hash.digest("hex");
+}
+
+function currentSourceRevision() {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" });
+  if (result.status === 0 && result.stdout.trim()) return result.stdout.trim();
+  return sha256(readFileSync("wrangler.jsonc", "utf8"));
+}
+
+function collectRecoveryIntegrityProof(
+  command: (args: string[], operation?: string, stdin?: string) => string,
+  sourceDatabaseId: string,
+  targetDatabaseName: string,
+  probeUrl: string,
+): HostedRecoveryIntegrityProof {
+  const applicationTables = activeApplicationTables().filter((table) => CRITICAL_RECOVERY_TABLES.has(table));
+  const schemaQuery = "SELECT type, name FROM sqlite_master WHERE type IN ('table', 'index', 'trigger') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'recovery_probe_%' ORDER BY type, name";
+  const sourceSchema = d1Results(command(["d1", "execute", sourceDatabaseId, "--remote", "--command", schemaQuery, "--json"], "source-schema"));
+  const targetSchema = d1Results(command(["d1", "execute", targetDatabaseName, "--remote", "--command", schemaQuery, "--json"], "target-schema"));
+  const sourceCounts = collectTableCounts(command, sourceDatabaseId, applicationTables, "source");
+  const targetCounts = collectTableCounts(command, targetDatabaseName, applicationTables, "target");
+  const excludedCounts = collectTableCounts(command, targetDatabaseName, [...EXCLUDED_TABLES], "target-excluded");
+  const foreignKeys = d1Results(command(["d1", "execute", targetDatabaseName, "--remote", "--command", "PRAGMA foreign_key_check", "--json"], "target-foreign-key-check"));
+  const corporate = d1Results(command(["d1", "execute", targetDatabaseName, "--remote", "--command", "SELECT COUNT(*) AS account_count, SUM(CASE WHEN created_by IS NULL OR length(trim(created_by)) = 0 THEN 1 ELSE 0 END) AS blank_creators, SUM(CASE WHEN NOT EXISTS (SELECT 1 FROM corporate_account_members member WHERE member.corporate_account_id = corporate_accounts.id AND member.role = 'owner') THEN 1 ELSE 0 END) AS ownerless_accounts FROM corporate_accounts", "--json"], "target-corporate-integrity"))[0] ?? {};
+  const requiredTriggers = ["trg_corporate_accounts_require_creator_on_insert", "trg_corporate_accounts_require_creator_on_update", "trg_corporate_accounts_creator_is_owner", "trg_corporate_account_members_preserve_owner_on_delete", "trg_corporate_account_members_preserve_owner_on_role_change"];
+  const triggerQuery = `SELECT COUNT(*) AS trigger_count FROM sqlite_master WHERE type = 'trigger' AND name IN (${requiredTriggers.map((trigger) => `'${trigger}'`).join(",")})`;
+  const triggerCount = d1Results(command(["d1", "execute", targetDatabaseName, "--remote", "--command", triggerQuery, "--json"], "target-corporate-triggers"))[0]?.trigger_count;
+  const denied = runRecoveryDenialProbe(probeUrl, "__recovery/probe", "GET");
+  return {
+    schema: stableJson(sourceSchema) === stableJson(targetSchema),
+    application: stableJson(sourceCounts) === stableJson(targetCounts),
+    authorization: excludedCounts.every((row) => Number(row.row_count) === 0),
+    session: excludedCounts.find((row) => row.table_name === "session")?.row_count === 0,
+    corporateIntegrity: foreignKeys.length === 0 && Number(corporate.blank_creators) === 0 && Number(corporate.ownerless_accounts) === 0 && Number(triggerCount) === requiredTriggers.length,
+    corporateOnlyDenied: denied,
+  };
+}
+
+function collectTableCounts(
+  command: (args: string[], operation?: string, stdin?: string) => string,
+  database: string,
+  tables: string[],
+  label: string,
+) {
+  const counts: Array<Record<string, unknown>> = [];
+  for (let index = 0; index < tables.length; index += 5) {
+    const batch = tables.slice(index, index + 5);
+    const query = batch.map((table) => `SELECT '${table}' AS table_name, COUNT(*) AS row_count FROM "${table}"`).join(" UNION ALL ");
+    counts.push(...d1Results(command(["d1", "execute", database, "--remote", "--command", query, "--json"], `${label}-counts-${index / 5}`)));
+  }
+  return counts;
+}
+
+function d1Results(output: string): Array<Record<string, unknown>> {
+  const parsed = JSON.parse(output) as Array<{ results?: Array<Record<string, unknown>> }>;
+  return parsed.flatMap((entry) => entry.results ?? []);
+}
+
+function stableJson(value: unknown) {
+  return JSON.stringify(value);
 }
 
 function runWrangler(command: HostedRecoveryCommand): HostedRecoveryCommandResult {
@@ -383,19 +559,28 @@ function runRecoveryProbe(url: string, body: string, signature: string, tempDire
       "fail-with-body",
       "silent",
       "show-error",
-      "retry = 5",
-      "retry-all-errors",
-      "retry-delay = 2",
+      "max-time = 15",
       'write-out = "%{http_code}"',
       'output = "/dev/null"',
     ].join("\n"), { mode: 0o600 });
-    const result = spawnSync("curl", ["--config", configPath], { encoding: "utf8" });
-    const status = result.stdout.trim().match(/^\d{3}$/)?.[0] ?? "transport";
-    return { succeeded: result.status === 0 && status === "204", status };
+    let status = "transport";
+    for (let attempt = 0; attempt < 31; attempt += 1) {
+      const result = spawnSync("curl", ["--config", configPath], { encoding: "utf8" });
+      status = result.stdout.trim().match(/^\d{3}$/)?.[0] ?? "transport";
+      if (result.status === 0 && status === "204") return { succeeded: true, status };
+      if (!["404", "503", "transport"].includes(status) || attempt === 30) break;
+      spawnSync("sleep", ["2"]);
+    }
+    return { succeeded: false, status };
   } finally {
     if (existsSync(bodyPath)) unlinkSync(bodyPath);
     if (existsSync(configPath)) unlinkSync(configPath);
   }
+}
+
+function runRecoveryDenialProbe(url: string, path: string, method: "GET" | "POST") {
+  const result = spawnSync("curl", ["--http1.1", "--silent", "--show-error", "--max-time", "30", "--output", "/dev/null", "--write-out", "%{http_code}", "--request", method, `${url}/${path}`], { encoding: "utf8" });
+  return result.status === 0 && result.stdout.trim() === "404";
 }
 
 function readBoundSourceDatabaseId() {
@@ -621,7 +806,18 @@ if (import.meta.main) {
   const report = inputs.mode === "hosted"
     ? executeCloudflareD1HostedRecoveryRehearsal(inputs)
     : buildCloudflareD1HostedRecoveryRehearsal(inputs);
-  console.log(JSON.stringify(report, null, 2));
+  const output = `${JSON.stringify(report, null, 2)}\n`;
+  const reportFile = process.env.ARCHESTIMATOR_HOSTED_RECOVERY_REPORT_FILE;
+  if (reportFile) {
+    mkdirSync(dirname(resolve(reportFile)), { recursive: true });
+    writeFileSync(reportFile, output, { encoding: "utf8", mode: 0o600 });
+  }
+  const receiptFile = process.env.ARCHESTIMATOR_HOSTED_RECOVERY_RECEIPT_FILE;
+  if (receiptFile && "recoveryReceipt" in report && report.recoveryReceipt) {
+    mkdirSync(dirname(resolve(receiptFile)), { recursive: true });
+    writeFileSync(receiptFile, `${JSON.stringify(report.recoveryReceipt, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  }
+  console.log(output);
   process.exitCode = "succeeded" in report ? (report.succeeded ? 0 : 1) : (report.readyForAuthorizedExecution ? 0 : 1);
 }
 

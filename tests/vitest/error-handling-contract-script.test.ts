@@ -132,7 +132,7 @@ describe("error handling contract checker", () => {
     const parsed = parseErrorHandlingContractArgs(["--no-write", "--target", "src/lib/observability"], {});
 
     expect(parsed).toEqual({
-      output: ".ai/03_plans/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json",
+      output: ".ai/09_archive/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json",
       targets: ["src/lib/observability"],
       writeReport: false,
     });

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { validateD1RecoveryReceipt } from "../../scripts/check-cloudflare-d1-recovery-readiness";
 import {
   buildCloudflareD1HostedRecoveryRehearsal,
   executeCloudflareD1HostedRecoveryRehearsal,
@@ -132,6 +133,7 @@ describe("Cloudflare D1 hosted recovery executor", () => {
           : "{}", stderr: "" };
       },
       probe: () => true,
+      integrityProof: () => ({ schema: true, application: true, authorization: true, session: true, corporateIntegrity: true, corporateOnlyDenied: true }),
     });
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
 
@@ -139,9 +141,12 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(report.providerBacked).toBe(true);
     expect(report.cleanupVerified).toBe(true);
     expect(report.exportDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(validateD1RecoveryReceipt(report.recoveryReceipt).valid).toBe(true);
+    expect(report.recoveryReceipt?.restoreRehearsalReady).toBe(true);
     expect(commands.slice(0, 3).map((args) => args.slice(0, 2).join(" "))).toEqual([
       "d1 create", "d1 list", "d1 execute",
     ]);
+    expect(commands[0]).toContain("--cwd");
     const exports = commands.filter((args) => args.slice(0, 2).join(" ") === "d1 export");
     expect(exports).toHaveLength(1);
     expect(exports[0]).toContain("--no-schema");
@@ -188,6 +193,7 @@ describe("Cloudflare D1 hosted recovery executor", () => {
           : "{}", stderr: "" };
       },
       probe: () => true,
+      integrityProof: () => ({ schema: true, application: true, authorization: true, session: true, corporateIntegrity: true, corporateOnlyDenied: true }),
     });
     process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
 
@@ -196,5 +202,37 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(importedArtifacts.every((artifact) => !artifact.includes("accessToken"))).toBe(true);
     expect(importedArtifacts.every((artifact) => !artifact.includes('INSERT INTO "account"'))).toBe(true);
     expect(commands.slice(-3).map((args) => args.slice(0, 2).join(" "))).toEqual(["delete --name", "d1 delete", "d1 list"]);
+  });
+
+  it("cleans up the disposable provider resources after a recovery command fails", () => {
+    const original = process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE;
+    process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = "1";
+    const commands: string[][] = [];
+    let deleted = false;
+    const report = executeCloudflareD1HostedRecoveryRehearsal({
+      ...validInputs,
+      mode: "hosted",
+      identity: { ...validInputs.identity!, sourceDatabaseId: "bound-source" },
+    }, {
+      boundSourceDatabaseId: "bound-source",
+      run: ({ args }) => {
+        commands.push(args);
+        if (args[0] === "d1" && args[1] === "delete") deleted = true;
+        if (args[0] === "d1" && args[1] === "execute") return { status: 1, stdout: "", stderr: "simulated import failure" };
+        return {
+          status: 0,
+          stdout: args[1] === "list"
+            ? (deleted ? "[]" : JSON.stringify([{ name: validInputs.identity!.targetDatabaseName, uuid: "disposable-id" }]))
+            : "{}",
+          stderr: "",
+        };
+      },
+    });
+    process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
+
+    expect(report.succeeded).toBe(false);
+    expect(report.cleanupVerified).toBe(true);
+    expect(report.blockers[0]).toMatch(/^provider-command-failed-d1-execute-/);
+    expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual(["d1 delete", "d1 list"]);
   });
 });
