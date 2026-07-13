@@ -63,9 +63,12 @@ export function readEstimateLibraryItemPayload(value: unknown): EstimateLibraryI
   if (!value) return { ok: false, reason: "empty_payload" };
   if (!isRecord(value)) return { ok: false, reason: "not_object" };
 
-  for (const field of ["id", "material", "description", "supplier", "unit", "category", "pricingSource", "pricingDate"] as const) {
-    const hasRequiredString = field === "description" ? hasStringField(value, field) : hasNonEmptyStringField(value, field);
-    if (!hasRequiredString) return { ok: false, reason: "missing_required_field", field };
+  for (const field of ["id", "material", "unit", "category"] as const) {
+    if (!hasNonEmptyStringField(value, field)) return { ok: false, reason: "missing_required_field", field };
+  }
+
+  for (const field of ["description", "supplier", "pricingSource", "pricingDate"] as const) {
+    if (!hasStringField(value, field)) return { ok: false, reason: "missing_required_field", field };
   }
 
   if (!isEstimateRowItemSource(value.source)) return { ok: false, reason: "invalid_source", field: "source" };

@@ -142,7 +142,6 @@ describe("estimate sheet tree add-node toolbar flow", () => {
 
     expect(getOptimisticTreeRow("area")).toBeInTheDocument();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
-    expect(screen.getByRole("status")).toHaveTextContent("Adding area");
     const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
     expect(JSON.stringify(optimisticTree)).toContain("New Area");
   });
@@ -187,6 +186,25 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(formData.get("name")).toBe("New Area");
     expect(formData.get("parentId")).toBe("main-house");
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the current branch visible but creates at the root after blank tree-panel space is clicked", () => {
+    renderTree(sampleEstimateTree, "main-house");
+
+    const mainHouseBranch = document.querySelector('[data-tree-row="main-house"]');
+    if (!(mainHouseBranch instanceof HTMLElement)) throw new Error("Missing Main House branch.");
+    const blankTreePanelSpace = document.querySelector("[data-estimate-tree-blank-space]");
+    if (!(blankTreePanelSpace instanceof HTMLElement)) throw new Error("Missing blank estimate tree panel space.");
+
+    fireEvent.click(mainHouseBranch);
+    expect(mainHouseBranch).toHaveAttribute("aria-current", "page");
+
+    fireEvent.pointerDown(blankTreePanelSpace);
+
+    expect(mainHouseBranch).toHaveAttribute("aria-current", "page");
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+
+    expect(submittedCreateFormData().get("parentId")).toBeNull();
   });
 
   it("Add Area adds a child area under a selected row-owning node (former area), no error (P6)", () => {

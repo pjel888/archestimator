@@ -13,9 +13,9 @@ import {
   readEstimateTemplateDragPayload,
   type EstimateTemplateDragPayload,
 } from "../../component-library/templates";
-import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
+import { endEstimateWorkshopDrag, useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
-import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
+import { EMPTY_ESTIMATE_ROW_ITEMS, LIBRARY_ITEM_DRAG_MIME_TYPE, readEstimateLibraryItemDragPayload } from "./constants";
 import type { EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
 import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals-utils";
@@ -237,14 +237,17 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
   const componentDragActive = activeDrag?.kind === "library-item";
   const rowItemDragActive = activeDrag?.kind === "estimate-row-item";
   const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
-  const [templateDragOverCount, setTemplateDragOverCount] = useState(0);
+  const [branchDragOverCount, setBranchDragOverCount] = useState(0);
 
   // A cancelled drag never delivers the balancing dragleave; adjust the
   // stale counter during render once the drag store empties.
-  if (!templateDragActive && templateDragOverCount !== 0) setTemplateDragOverCount(0);
+  if (!templateDragActive && !componentDragActive && branchDragOverCount !== 0) setBranchDragOverCount(0);
 
-  function handleTemplateDragOver(event: DragEvent<HTMLElement>) {
-    if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+  function handleBranchDragOver(event: DragEvent<HTMLElement>) {
+    if (!canEditEstimate || event.defaultPrevented) return;
+    const acceptsTemplate = event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE);
+    const acceptsLibraryItem = event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE);
+    if (!acceptsTemplate && !acceptsLibraryItem) return;
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "copy";
@@ -253,16 +256,22 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
   // Every node is now a direct drop target, so each stops enter/leave
   // propagation: an ancestor's highlight turns off while the pointer is over a
   // nested node (where the drop actually lands).
-  function handleTemplateDragEnter(event: DragEvent<HTMLElement>) {
-    if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+  function handleBranchDragEnter(event: DragEvent<HTMLElement>) {
+    if (!canEditEstimate || event.defaultPrevented) return;
+    const acceptsTemplate = event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE);
+    const acceptsLibraryItem = event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE);
+    if (!acceptsTemplate && !acceptsLibraryItem) return;
     event.stopPropagation();
-    setTemplateDragOverCount((count) => count + 1);
+    setBranchDragOverCount((count) => count + 1);
   }
 
-  function handleTemplateDragLeave(event: DragEvent<HTMLElement>) {
-    if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+  function handleBranchDragLeave(event: DragEvent<HTMLElement>) {
+    if (!canEditEstimate || event.defaultPrevented) return;
+    const acceptsTemplate = event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE);
+    const acceptsLibraryItem = event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE);
+    if (!acceptsTemplate && !acceptsLibraryItem) return;
     event.stopPropagation();
-    setTemplateDragOverCount((count) => Math.max(0, count - 1));
+    setBranchDragOverCount((count) => Math.max(0, count - 1));
   }
 
   function applyTemplateDropPayload(payload: EstimateTemplateDragPayload) {
@@ -287,9 +296,20 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
     onInsertLibraryItem(targetNodeId, libraryItem);
   }
 
-  function handleTemplateDrop(event: DragEvent<HTMLElement>) {
+  function handleBranchDrop(event: DragEvent<HTMLElement>) {
+    if (!canEditEstimate || event.defaultPrevented) return;
+    setBranchDragOverCount(0);
+
+    const libraryItemPayload = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
+    if (libraryItemPayload.ok) {
+      event.preventDefault();
+      event.stopPropagation();
+      endEstimateWorkshopDrag();
+      handleInsertLibraryItem(node.id, libraryItemPayload.item);
+      return;
+    }
+
     if (!canReceiveTemplates) return;
-    setTemplateDragOverCount(0);
     const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
     if (!payload) return;
     event.preventDefault();
@@ -317,13 +337,14 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
         // The row table keeps its own border, so each node's data grid stays
         // framed at every depth.
         estimateSurfaceClass(surfaceVariant, "gridNodeSurface"),
-        templateDragActive && templateDragOverCount > 0 && "bg-surfaceWarm/30",
+        (templateDragActive || componentDragActive) && branchDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
-      onDragOver={handleTemplateDragOver}
-      onDragEnter={handleTemplateDragEnter}
-      onDragLeave={handleTemplateDragLeave}
-      onDrop={handleTemplateDrop}
+      data-estimate-node-drop-target={node.id}
+      onDragOver={handleBranchDragOver}
+      onDragEnter={handleBranchDragEnter}
+      onDragLeave={handleBranchDragLeave}
+      onDrop={handleBranchDrop}
     >
       <div className={cn(estimateSurfaceClass(surfaceVariant, "gridStickyHeader"), isStickyHeader && "sticky top-0 z-[20]")}>
         <div

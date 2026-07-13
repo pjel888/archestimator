@@ -14,7 +14,7 @@ type StateUpdater<T> = T | ((current: T) => T);
 type TreeUpdater = EstimateTreeNode[] | ((current: EstimateTreeNode[]) => EstimateTreeNode[]);
 type Input = {
   projectId:string; estimateId:string; activeTabId?:string; localNodes:EstimateTreeNode[];
-  activeSelectedNodeId:string|null; selectedParentNodeId:string|null; expandedItems:string[];
+  activeSelectedNodeId:string|null; creationParentNodeId:string|null; expandedItems:string[];
   canEditEstimate:boolean; isTreeMutationSaving:boolean; currentRouteNodeId:string|null;
   editingNodeName:string; deleteTargetNode:EstimateTreeNode|null; deletePending:boolean;
   bulkDeletePending:boolean; bulkDeleteRootNodeIds:string[]; bulkSelectedNodeIds:Set<string>;
@@ -33,7 +33,7 @@ type Input = {
 };
 
 export function useEstimateTreeCrud(input: Input) {
-  const { projectId, estimateId, activeTabId, localNodes, activeSelectedNodeId, selectedParentNodeId,
+  const { projectId, estimateId, activeTabId, localNodes, activeSelectedNodeId, creationParentNodeId,
     expandedItems, canEditEstimate, isTreeMutationSaving, currentRouteNodeId, editingNodeName,
     deleteTargetNode, deletePending, bulkDeletePending, bulkDeleteRootNodeIds, bulkSelectedNodeIds,
     setLocalNodes, snapshotLocalNodes, restoreLocalNodes, getLocalTreeRevision,
@@ -66,7 +66,7 @@ export function useEstimateTreeCrud(input: Input) {
   const handleAddTreeNode = useCallback((parentNodeIdOverride?: string) => {
     if (!canEditEstimate) return;
 
-    const targetParentNodeId = parentNodeIdOverride ?? selectedParentNodeId;
+    const targetParentNodeId = parentNodeIdOverride ?? creationParentNodeId;
 
     const nodeName = "New Area";
     const optimisticNodeId = makeOptimisticTreeNodeId();
@@ -158,7 +158,7 @@ export function useEstimateTreeCrud(input: Input) {
     setBulkSelectedNodeIds,
     setEditingNodeId,
     setReorderStatus,
-    selectedParentNodeId,
+    creationParentNodeId,
     setExpandedNodeIds,
     setLocalNodes,
     setSelectedNodeId,
@@ -640,4 +640,3 @@ function resolveConfirmedDeleteFallbackNodeId(tree: EstimateTreeNode[], fallback
 function isOptimisticEstimateNodeId(nodeId: string) {
   return nodeId.startsWith("optimistic-");
 }
-

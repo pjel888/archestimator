@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from "react";
 import {
   ArrowsOutCardinal,
   Check,
@@ -509,13 +509,20 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     return () => dismissToast("estimate-tree-mutation");
   }, [dismissToast]);
 
-  // P6 single-node model: ANY selected node is a valid create parent (an "Add
-  // Area" targets the selection as a child, or a root when nothing/an unknown
-  // node is selected). No group-kind gate — every node can take a sub-area.
-  const selectedParentNodeId = useMemo(() => {
-    const selectedNode = activeSelectedNodeId ? findEstimateNode(treeViewNodes, activeSelectedNodeId) : undefined;
-    return selectedNode ? selectedNode.id : null;
-  }, [activeSelectedNodeId, treeViewNodes]);
+  // P6 single-node model: clicking a branch makes it the next create parent,
+  // while blank tree-panel space resets creation to the root without changing
+  // the displayed branch. No group-kind gate — every node can take a sub-area.
+  const [creationParentNodeId, setCreationParentNodeId] = useState<string | null>(activeSelectedNodeId);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setCreationParentNodeId(activeSelectedNodeId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSelectedNodeId]);
 
   const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
   const canReorderNow = !isTreeMutationSaving;
@@ -580,10 +587,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
   }, [setBulkSelectedNodeIds]);
-  const treeMutationStatusMessage = reorderStatus.state === "saving" || reorderStatus.state === "saved"
-    ? reorderStatus.message
-    : "";
-
   // Selection is client state: syncing the URL with replaceState keeps deep
   // links shareable without re-running the server route, which would remount
   // the whole workspace just to change the middle sheet.
@@ -605,7 +608,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     handleDeleteModalOpenChange,
     handleConfirmBulkDeleteNodes,
   } = useEstimateTreeCrud({
-    projectId, estimateId, activeTabId, localNodes, activeSelectedNodeId, selectedParentNodeId,
+    projectId, estimateId, activeTabId, localNodes, activeSelectedNodeId, creationParentNodeId,
     expandedItems, canEditEstimate, isTreeMutationSaving, currentRouteNodeId, editingNodeName,
     deleteTargetNode, deletePending, bulkDeletePending, bulkDeleteRootNodeIds, bulkSelectedNodeIds,
     setLocalNodes, snapshotLocalNodes, restoreLocalNodes, getLocalTreeRevision,
@@ -658,6 +661,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     if (editingNodeId) return;
     const node = findEstimateNode(localNodes, nodeId);
     if (!node) return;
+    setCreationParentNodeId(node.id);
     setSelectedNodeId(node.id);
     syncEstimateRouteUrl(node.id);
   }, [editingNodeId, localNodes, setSelectedNodeId, syncEstimateRouteUrl]);
@@ -1058,22 +1062,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
-          {treeMutationStatusMessage ? (
-            <output
-              className={cn(
-                "mx-2 mb-1 inline-flex min-h-4 w-fit items-center rounded-xs px-1.5 text-[9px] font-medium leading-4",
-                reorderStatus.state === "saved"
-                  ? "bg-successSoft text-success"
-                  : "bg-surfaceMuted text-tertiary",
-              )}
-              aria-live="polite"
-              aria-atomic="true"
-              data-estimate-tree-mutation-status
-            >
-              {treeMutationStatusMessage}
-            </output>
-          ) : null}
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div
+            className="min-h-0 flex-1 overflow-auto"
+            data-estimate-tree-blank-space
+            onPointerDown={(event) => {
+              if (event.target instanceof Element && event.target.closest("[data-tree-row], [data-tree-root-drop-edge]")) return;
+              setCreationParentNodeId(null);
+            }}
+          >
             <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
               <nav aria-label={`${projectName} estimate areas`}>
                 <ContextMenu onOpenChange={setContextMenuOpen}>

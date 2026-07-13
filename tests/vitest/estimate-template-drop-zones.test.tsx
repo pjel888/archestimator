@@ -235,6 +235,25 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(await screen.findByText("Collapsed Lot Test Component")).toBeInTheDocument();
   });
 
+  it("accepts a library component drop on the full node surface", async () => {
+    renderSheet();
+    act(() => beginEstimateWorkshopDrag({ kind: "library-item" }));
+
+    const kitchenSection = screen.getByRole("region", { name: "Kitchen" });
+    const droppedLibraryItem = {
+      ...estimateLibraryItems[0],
+      id: "kitchen-surface-drop-row",
+      material: "Kitchen Surface Drop Component",
+    };
+    const dataTransfer = createDataTransferStub([LIBRARY_ITEM_DRAG_MIME_TYPE]);
+    dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(droppedLibraryItem));
+
+    fireEvent.dragOver(kitchenSection, { dataTransfer });
+    fireEvent.drop(kitchenSection, { dataTransfer });
+
+    expect(await screen.findByText("Kitchen Surface Drop Component")).toBeInTheDocument();
+  });
+
   it("reveals template drop zones on groups during a template drag and inserts on drop", async () => {
     renderSheet();
 
