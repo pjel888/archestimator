@@ -27,6 +27,7 @@ import {
 import {
   createCostLibraryComponent,
   saveCostLibraryComponentDraft,
+  updateCostLibraryComponentWithPriceOptions,
   type ComponentLifecycleState,
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
@@ -1612,14 +1613,28 @@ function OpenAddComponentModal({
       setError("");
       return;
     }
-    const payload = isEditing ? null : buildComponentPayload();
+    const payload = buildComponentPayload();
 
     startTransition(async () => {
       setError("");
       try {
         if (isEditing) {
-          await onComponentUpdated?.(buildEditedItem());
-        } else if (payload) {
+          let editedItem = buildEditedItem();
+          const sourceLibraryItemId = editingItem?.sourceLibraryItemId
+            ?? (editingItem?.source === "library" ? editingItem.id : null);
+          if (sourceLibraryItemId) {
+            const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, payload);
+            editedItem = {
+              ...editedItem,
+              source: "library",
+              sourceLibraryItemId,
+              linkState: "linked-clean",
+              componentVersionNumber: result.versionNumber,
+              priceOptionId: result.activePriceOptionId,
+            };
+          }
+          await onComponentUpdated?.(editedItem);
+        } else {
           const result = await createCostLibraryComponent(payload);
           onComponentCreated(buildOptimisticItem(result));
         }

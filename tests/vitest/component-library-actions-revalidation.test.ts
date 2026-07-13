@@ -29,6 +29,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
 const TEMPLATE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const COMPONENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 function createD1Fixture(options: {
   firstResults?: unknown[];
@@ -105,5 +106,90 @@ describe("template-surface revalidation (U11)", () => {
     await expect(createEstimateTemplate({ name: "Over the limit" })).rejects.toThrow(/limit/);
     expect(d1.statements.some((statement) => statement.sql.includes("INSERT INTO estimate_templates"))).toBe(false);
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("library component instance reconciliation", () => {
+  it("persists canonical component details to every linked estimate row", async () => {
+    const database = createD1Fixture({
+      firstResults: [
+        {
+          id: COMPONENT_ID,
+          workspace_id: WORKSPACE_ID,
+          name: "Original",
+          unit: "box",
+          unit_cost: 100,
+          misc_cost: 0,
+          current_version_number: 1,
+          active_price_option_id: "price-1",
+          lifecycle_state: "available",
+        },
+        {
+          id: COMPONENT_ID,
+          name: "Updated Oak",
+          description: "Updated description",
+          category: "Flooring",
+          category_node_id: "category-flooring",
+          supplier: "Supplier A",
+          supplier_id: "supplier-a",
+          brand: "Pergo",
+          brand_id: "brand-pergo",
+          unit: "box",
+          unit_cost: 2500.5,
+          misc_cost: 0,
+          lifecycle_state: "available",
+          current_version_number: 2,
+          active_price_option_id: "price-1",
+          pricing_source: "Supplier A",
+          pricing_date: "2026-07-13",
+          thumbnail_path: "/oak.webp",
+          updated_at: "2026-07-13T10:00:00.000Z",
+        },
+      ],
+      allResults: [
+        [{
+          id: "price-1",
+          label: "V1",
+          unit: "box",
+          unit_cost: 2500.5,
+          misc_cost: 0,
+          currency: "PHP",
+          is_active: 1,
+          is_default: 1,
+          pricing_source: "Supplier A",
+          metadata_json: JSON.stringify({ pricingDate: "2026-07-13", thumbnailPath: "/oak.webp" }),
+        }],
+        [{ project_id: "project-1", estimate_id: "estimate-1" }],
+      ],
+    });
+    const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
+
+    const result = await updateCostLibraryComponent(COMPONENT_ID, {
+      name: "Updated Oak",
+      description: "Updated description",
+      category: "Flooring",
+      categoryNodeId: "category-flooring",
+      supplier: "Supplier A",
+      supplierId: "supplier-a",
+      brand: "Pergo",
+      brandId: "brand-pergo",
+      unit: "box",
+      lifecycleState: "available",
+    });
+
+    const linkedRowUpdate = database.statements.find((statement) =>
+      statement.sql.includes("UPDATE estimate_row_items") && statement.sql.includes("source_library_item_id"),
+    );
+    expect(linkedRowUpdate).toBeDefined();
+    expect(linkedRowUpdate?.sql).toContain("link_state = 'linked-clean'");
+    expect(linkedRowUpdate?.sql).toContain("row_revision = row_revision + 1");
+    expect(linkedRowUpdate?.values).toContain(COMPONENT_ID);
+    expect(result).toMatchObject({
+      itemId: COMPONENT_ID,
+      versionNumber: 2,
+      updatedRowCount: 1,
+      affectedEstimates: [{ projectId: "project-1", estimateId: "estimate-1" }],
+    });
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
   });
 });

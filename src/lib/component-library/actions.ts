@@ -89,6 +89,46 @@ type ComponentItemD1Row = {
   lifecycle_state: ComponentLifecycleState | string;
 };
 
+type LibraryComponentProjectionD1Row = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  category_node_id: string | null;
+  supplier: string | null;
+  supplier_id: string | null;
+  brand: string | null;
+  brand_id: string | null;
+  unit: string;
+  unit_cost: number | string | null;
+  misc_cost: number | string | null;
+  lifecycle_state: ComponentLifecycleState | string;
+  current_version_number: number | string | null;
+  active_price_option_id: string | null;
+  pricing_source: string | null;
+  pricing_date: string | null;
+  thumbnail_path: string | null;
+  updated_at: string;
+};
+
+type LibraryPriceOptionProjectionD1Row = {
+  id: string;
+  label: string;
+  unit: string;
+  unit_cost: number | string | null;
+  misc_cost: number | string | null;
+  currency: string;
+  is_active: number | boolean;
+  is_default: number | boolean;
+  pricing_source: string | null;
+  metadata_json: string | null;
+};
+
+export type LibraryComponentInstanceSyncResult = {
+  affectedEstimates: Array<{ projectId: string; estimateId: string }>;
+  updatedRowCount: number;
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -305,6 +345,178 @@ export type ExecuteBulkArchiveLibraryComponentsInput = BulkArchiveLibraryCompone
 function revalidateLibraryRoutes() {
   revalidatePath("/workshop/library");
   revalidatePath("/workshop/library/components");
+}
+
+function readBoolean(value: unknown) {
+  return value === true || value === 1 || value === "1";
+}
+
+async function reconcileLinkedEstimateRowsForLibraryComponent(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  itemId: string,
+): Promise<LibraryComponentInstanceSyncResult> {
+  const component = await first<LibraryComponentProjectionD1Row>(
+    database,
+    `
+      SELECT id, name, description, category, category_node_id, supplier, supplier_id,
+        brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state,
+        current_version_number, active_price_option_id, pricing_source, pricing_date,
+        thumbnail_path, updated_at
+      FROM cost_library_items
+      WHERE id = ?
+        AND workspace_id = ?
+      LIMIT 1
+    `,
+    [itemId, workspaceId],
+  );
+  if (!component) throw new Error("Component not found in the current workspace.");
+
+  const priceOptionRows = await all<LibraryPriceOptionProjectionD1Row>(
+    database,
+    `
+      SELECT id, label, unit, unit_cost, misc_cost, currency, is_active, is_default,
+        pricing_source, metadata_json
+      FROM cost_library_item_price_options
+      WHERE item_id = ?
+        AND workspace_id = ?
+        AND is_active = 1
+      ORDER BY is_default DESC, updated_at DESC, id ASC
+    `,
+    [itemId, workspaceId],
+  );
+  const priceOptions = priceOptionRows.map((row) => {
+    const metadata = readJsonRecord(row.metadata_json);
+    const pricingSource = row.pricing_source ?? (typeof metadata.pricingSource === "string" ? metadata.pricingSource : null);
+    const pricingDate = typeof metadata.pricingDate === "string" ? metadata.pricingDate : null;
+    const thumbnailPath = typeof metadata.thumbnailPath === "string" ? metadata.thumbnailPath : null;
+    return {
+      ...metadata,
+      id: row.id,
+      label: row.label,
+      unit: row.unit,
+      unitCost: numberValue(row.unit_cost),
+      miscCost: numberValue(row.misc_cost),
+      currency: row.currency,
+      isActive: readBoolean(row.is_active),
+      isDefault: readBoolean(row.is_default),
+      pricingSource,
+      pricingDate,
+      thumbnailPath,
+    };
+  });
+  const activePriceOption = priceOptions.find((option) => option.id === component.active_price_option_id)
+    ?? priceOptions.find((option) => option.isDefault)
+    ?? priceOptions[0];
+  const unit = typeof activePriceOption?.unit === "string" ? activePriceOption.unit : component.unit;
+  const unitCost = typeof activePriceOption?.unitCost === "number" ? activePriceOption.unitCost : numberValue(component.unit_cost);
+  const miscCost = typeof activePriceOption?.miscCost === "number" ? activePriceOption.miscCost : numberValue(component.misc_cost);
+  const pricingSource = typeof activePriceOption?.pricingSource === "string"
+    ? activePriceOption.pricingSource
+    : component.pricing_source;
+  const pricingDate = typeof activePriceOption?.pricingDate === "string"
+    ? activePriceOption.pricingDate
+    : component.pricing_date;
+  const imageUrl = typeof activePriceOption?.thumbnailPath === "string" && activePriceOption.thumbnailPath
+    ? activePriceOption.thumbnailPath
+    : component.thumbnail_path;
+  const snapshotPatch = {
+    brand: component.brand,
+    brandId: component.brand_id,
+    category: component.category,
+    categoryNodeId: component.category_node_id,
+    componentVersionNumber: numberValue(component.current_version_number, 1),
+    description: component.description,
+    imageUrl,
+    lifecycleState: component.lifecycle_state,
+    material: component.name,
+    misc_cost: miscCost,
+    priceOptionId: activePriceOption?.id ?? null,
+    priceOptionLabel: activePriceOption?.label ?? null,
+    priceOptions,
+    pricingDate,
+    pricingSource,
+    sourceComponentId: itemId,
+    sourceLibraryItemId: itemId,
+    sourceType: "library_component",
+    sourceUpdatedAt: component.updated_at,
+    supplier: component.supplier,
+    supplierId: component.supplier_id,
+    unit,
+    unit_cost: unitCost,
+  };
+  const metadataPatch = {
+    brandId: component.brand_id,
+    categoryNodeId: component.category_node_id,
+    componentVersionNumber: numberValue(component.current_version_number, 1),
+    priceOptionId: activePriceOption?.id ?? null,
+    sourceComponentId: itemId,
+    supplierId: component.supplier_id,
+  };
+  const affectedRows = await all<{ project_id: string; estimate_id: string }>(
+    database,
+    `
+      SELECT DISTINCT project.id AS project_id, estimate.id AS estimate_id
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      INNER JOIN projects project ON project.id = estimate.project_id
+      WHERE project.workspace_id = ?
+        AND row_item.source_library_item_id = ?
+        AND row_item.link_state NOT IN ('detached', 'unlinked')
+    `,
+    [workspaceId, itemId],
+  );
+  if (affectedRows.length === 0) return { affectedEstimates: [], updatedRowCount: 0 };
+
+  const result = await run(
+    database,
+    `
+      UPDATE estimate_row_items
+      SET material = ?,
+          description = ?,
+          supplier = ?,
+          supplier_id = ?,
+          unit = ?,
+          unit_cost = ?,
+          misc_cost = ?,
+          category_node_id = ?,
+          source_snapshot_json = json_patch(COALESCE(source_snapshot_json, '{}'), ?),
+          metadata_json = json_patch(COALESCE(metadata_json, '{}'), ?),
+          link_state = 'linked-clean',
+          row_revision = row_revision + 1,
+          updated_at = ?
+      WHERE source_library_item_id = ?
+        AND link_state NOT IN ('detached', 'unlinked')
+        AND estimate_id IN (
+          SELECT estimate.id
+          FROM estimates estimate
+          INNER JOIN projects project ON project.id = estimate.project_id
+          WHERE project.workspace_id = ?
+        )
+    `,
+    [
+      component.name,
+      component.description,
+      component.supplier,
+      component.supplier_id,
+      unit,
+      unitCost,
+      miscCost,
+      component.category_node_id,
+      jsonText(snapshotPatch),
+      jsonText(metadataPatch),
+      component.updated_at,
+      itemId,
+      workspaceId,
+    ],
+  );
+  for (const row of affectedRows) {
+    revalidatePath(`/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`);
+  }
+  return {
+    affectedEstimates: affectedRows.map((row) => ({ projectId: row.project_id, estimateId: row.estimate_id })),
+    updatedRowCount: result.meta?.changes ?? 0,
+  };
 }
 
 function getMassDeletionCorrelationId(correlationId: string | undefined) {
@@ -1477,10 +1689,143 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
     effectiveAt: component.effectiveAt,
     userId: currentUser.userId,
   });
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
   revalidateLibraryRoutes();
   return {
     itemId,
     versionNumber: nextVersion,
+    ...instanceSync,
+  };
+}
+
+export async function updateCostLibraryComponentWithPriceOptions(itemId: string, input: CreateCostLibraryComponentInput) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
+  const existing = await readComponentItem(database, workspace.id, itemId);
+  if (!existing) throw new Error("Component not found in the current workspace.");
+
+  const component = normalizeComponentInput(input);
+  const priceOptionInputs = input.fieldContract === "opendesign-add-component"
+    ? input.priceOptions.map(sanitizeOpenDesignAddComponentPriceOption)
+    : input.priceOptions;
+  validatePriceOptions(priceOptionInputs);
+  const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
+  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
+  const timestamp = nowIso();
+  await run(
+    database,
+    `
+      UPDATE cost_library_items
+      SET name = ?,
+          description = ?,
+          category = ?,
+          category_node_id = ?,
+          supplier = ?,
+          supplier_id = ?,
+          brand = ?,
+          brand_id = ?,
+          unit = ?,
+          thumbnail_path = ?,
+          lifecycle_state = ?,
+          current_version_number = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    [
+      component.name,
+      component.description,
+      component.category,
+      component.categoryNodeId,
+      component.supplier,
+      component.supplierId,
+      component.brand,
+      component.brandId,
+      component.unit,
+      component.thumbnailPath,
+      component.lifecycleState,
+      nextVersion,
+      timestamp,
+      itemId,
+      workspace.id,
+    ],
+  );
+
+  const persistedPriceOptions = [];
+  for (const priceOption of priceOptions) {
+    persistedPriceOptions.push(await upsertComponentPriceOptionInD1(database, {
+      workspaceId: workspace.id,
+      itemId,
+      priceOption,
+      userId: currentUser.userId,
+      effectiveAt: priceOption.effectiveAt,
+      writeHistory: false,
+    }));
+  }
+  const retainedPriceOptionIds = persistedPriceOptions.map((option) => option.id);
+  if (retainedPriceOptionIds.length > 0) {
+    await run(
+      database,
+      `
+        UPDATE cost_library_item_price_options
+        SET is_active = 0,
+            is_default = 0,
+            updated_at = ?
+        WHERE item_id = ?
+          AND workspace_id = ?
+          AND id NOT IN (${placeholders(retainedPriceOptionIds)})
+      `,
+      [timestamp, itemId, workspace.id, ...retainedPriceOptionIds],
+    );
+  }
+  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
+  if (!activePriceOption) throw new Error("At least one active component variant is required.");
+  await run(
+    database,
+    `
+      UPDATE cost_library_items
+      SET active_price_option_id = ?,
+          unit = ?,
+          unit_cost = ?,
+          misc_cost = ?,
+          pricing_source = ?,
+          pricing_date = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    [
+      activePriceOption.id,
+      activePriceOption.unit,
+      activePriceOption.unitCost,
+      activePriceOption.miscCost,
+      activePriceOption.pricingSource,
+      activePriceOption.pricingDate,
+      timestamp,
+      itemId,
+      workspace.id,
+    ],
+  );
+  await insertComponentVersion(database, {
+    itemId,
+    workspaceId: workspace.id,
+    versionNumber: nextVersion,
+    snapshot: componentSnapshot(component, { priceOptions: persistedPriceOptions }),
+    summary: "Component and variants updated",
+    reason: component.changeReason,
+    effectiveAt: component.effectiveAt,
+    userId: currentUser.userId,
+  });
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
+  revalidateLibraryRoutes();
+  return {
+    itemId,
+    versionNumber: nextVersion,
+    activePriceOptionId: activePriceOption.id,
+    priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
+    ...instanceSync,
   };
 }
 
@@ -1549,11 +1894,13 @@ export async function upsertCostLibraryComponentPriceOption(itemId: string, inpu
     effectiveAt: priceOption.effectiveAt,
     userId: currentUser.userId,
   });
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
   revalidateLibraryRoutes();
   return {
     itemId,
     priceOptionId: persisted.id,
     versionNumber: nextVersion,
+    ...instanceSync,
   };
 }
 
@@ -1617,11 +1964,13 @@ export async function changeCostLibraryComponentLifecycleState(input: {
     effectiveAt,
     userId: currentUser.userId,
   });
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, input.itemId);
   revalidateLibraryRoutes();
   return {
     itemId: input.itemId,
     versionNumber: nextVersion,
     lifecycleState: input.lifecycleState,
+    ...instanceSync,
   };
 }
 
