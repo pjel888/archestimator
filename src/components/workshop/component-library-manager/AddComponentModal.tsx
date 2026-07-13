@@ -1439,7 +1439,6 @@ function OpenAddComponentModal({
         currency: "PHP",
         pricingSource: null,
         pricingDate: today(),
-        confidence: null,
         sourceUrl: null,
         notes: null,
         supplierId: draft.supplierId || null,
@@ -1509,7 +1508,6 @@ function OpenAddComponentModal({
       updatedAt: new Date().toISOString(),
       pricingSource: supplierName || "Component library",
       pricingDate: today(),
-      confidence: undefined,
       isCustom: true,
     };
   }
@@ -1535,7 +1533,6 @@ function OpenAddComponentModal({
         currency: existingOption?.currency ?? "PHP",
         pricingSource: existingOption?.pricingSource ?? null,
         pricingDate: existingOption?.pricingDate ?? (draft.effectiveAt || today()),
-        confidence: existingOption?.confidence ?? null,
         sourceUrl: existingOption?.sourceUrl ?? null,
         notes: existingOption?.notes ?? null,
         supplierId: draft.supplierId || existingOption?.supplierId || null,

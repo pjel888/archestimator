@@ -44,7 +44,6 @@ function makeRow(overrides: Partial<EstimateRowItem> & { id: string; material: s
     sourceLibraryItemId: `component-${overrides.id}`,
     linkState: "linked-clean",
     lifecycleState: "available",
-    confidence: "Quoted",
     ...overrides,
   };
 }

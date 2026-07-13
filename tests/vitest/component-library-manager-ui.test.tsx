@@ -645,11 +645,11 @@ describe("component library manager UI", () => {
     expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
   });
 
-  it("shows catalogue result counts and searches pricing source trust fields", async () => {
+  it("shows catalogue result counts and searches pricing source fields", async () => {
     await renderLibrary({
       libraryItems: sharedLibraryItems.map((item) =>
         item.id === "db-library-steel-frame"
-          ? { ...item, pricingSource: "May quote ledger", confidence: "supplier quote" }
+          ? { ...item, pricingSource: "May quote ledger" }
           : item,
       ),
     });
@@ -660,7 +660,6 @@ describe("component library manager UI", () => {
     expect(contextStrip).toHaveTextContent("Sorted by folder order");
     expect(within(sheet).getByText("Source: May quote ledger")).toBeInTheDocument();
     expect(within(sheet).getAllByText("Checked 2026-05-22").length).toBeGreaterThan(0);
-    expect(within(sheet).getByText("Confidence: supplier quote")).toBeInTheDocument();
 
     const treeSearch = openLibraryTreeSearch();
     fireEvent.change(treeSearch, { target: { value: "quote ledger" } });
@@ -777,7 +776,6 @@ describe("component library manager UI", () => {
     expect(within(dialog).getByRole("combobox", { name: "Unit" })).toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Pricing source")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Pricing date")).not.toBeInTheDocument();
-    expect(within(dialog).queryByLabelText("Confidence")).not.toBeInTheDocument();
   });
 
   it("keeps supplier and brand typing as form fields without staging modal tree folders", async () => {
@@ -833,7 +831,6 @@ describe("component library manager UI", () => {
     expect(screen.queryByRole("dialog", { name: "Cost Manager" })).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Misc cost")).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Pricing source")).not.toBeInTheDocument();
-    expect(within(drawer).queryByLabelText("Confidence")).not.toBeInTheDocument();
   });
 
   it("keeps the OpenDesign modal/drawer motion, shadow, and alignment contracts in source", () => {

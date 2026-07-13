@@ -25,8 +25,6 @@ import { useStableCallback } from "@/hooks/use-stable-callback";
 import { cn } from "@/lib/ui/cn";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
-import { SourceTrustChips } from "../../library/source-trust-chips";
-import { getComponentSourceTrustChips } from "../../library/source-trust-model";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
 import { getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";
@@ -169,7 +167,6 @@ function LibraryItemRowContent({
   addLabel,
   showAddAction,
   showThumbnail,
-  showSourceTrustChips,
   sourceScopeLabel = "Library",
   onAdd,
 }: {
@@ -178,13 +175,11 @@ function LibraryItemRowContent({
   addLabel?: string;
   showAddAction: boolean;
   showThumbnail: boolean;
-  showSourceTrustChips: boolean;
   sourceScopeLabel?: string;
   onAdd: () => void;
 }) {
   const name = getComponentName(item);
   const price = getComponentPrice(item);
-  const trustChips = showSourceTrustChips ? getComponentSourceTrustChips(item) : [];
   const sourceScope = sourceScopeLabel.trim();
   const brand = item.brand?.trim();
   const supplierLabel = item.supplier || "No supplier";
@@ -209,14 +204,6 @@ function LibraryItemRowContent({
             <span className="truncate text-[9px] leading-3 text-tertiary" title={supplierLabel}>{supplierLabel}</span>
           </>
         ) : <span className="truncate text-[9px] leading-3 text-tertiary" title={sourceLabel}>{sourceLabel}</span>}
-        {showSourceTrustChips && !showThumbnail ? (
-          <SourceTrustChips
-            chips={trustChips}
-            ariaLabel={`${name} source trust`}
-            className="mt-0.5"
-            maxChips={3}
-          />
-        ) : null}
       </span>
       <span className="flex shrink-0 flex-col items-end justify-center">
         <span className="text-[9px] font-medium leading-3 tabular-nums text-ink">{pesoFormatter.format(price)}</span>
@@ -421,7 +408,6 @@ export function LibraryTree({
   showItemAddAction,
   onItemDragStart,
   showThumbnails = false,
-  showSourceTrustChips = true,
   editingNodeId,
   editingNodeValue = "",
   onEditingNodeValueChange,
@@ -607,7 +593,6 @@ export function LibraryTree({
           addLabel={addLabel}
           showAddAction={canShowAddAction}
           showThumbnail={showThumbnails}
-          showSourceTrustChips={showSourceTrustChips}
           sourceScopeLabel={sourceScopeLabel}
           onAdd={() => onItemAdd?.(item)}
         />
@@ -623,7 +608,6 @@ export function LibraryTree({
       onEditingNodeCommit,
       onEditingNodeValueChange,
       onItemAdd,
-      showSourceTrustChips,
       showThumbnails,
       sourceScopeLabel,
     ],

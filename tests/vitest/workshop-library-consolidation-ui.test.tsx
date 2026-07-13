@@ -419,9 +419,9 @@ describe("workshop library consolidation UI", () => {
         brands={sharedBrands}
         libraryFolders={sharedFolders}
         libraryItems={[
-          { ...sharedLibraryItems[0], confidence: "Quoted", lifecycleState: "available" },
-          { ...sharedLibraryItems[1], confidence: "Allowance", lifecycleState: "draft" },
-          { ...sharedLibraryItems[2], confidence: "", lifecycleState: "discontinued" },
+          { ...sharedLibraryItems[0], lifecycleState: "available" },
+          { ...sharedLibraryItems[1], lifecycleState: "draft" },
+          { ...sharedLibraryItems[2], lifecycleState: "discontinued" },
         ]}
         canManageLibrary
       />,
@@ -435,7 +435,7 @@ describe("workshop library consolidation UI", () => {
     expect(window.localStorage.getItem("archestimator_component_library_display_mode_v1")).toBe("dense");
     const table = screen.getByRole("table", { name: "All Components dense component table" });
     expect(table).toHaveAttribute("data-library-virtualization-source", "WORKSHOP_VIRTUALIZATION_FLAGS");
-    for (const column of ["Name", "Folder", "Brand", "Supplier", "Cost", "Pricing source", "Pricing date", "Confidence", "Lifecycle", "Usage", "Actions"]) {
+    for (const column of ["Name", "Folder", "Brand", "Supplier", "Cost", "Pricing source", "Pricing date", "Lifecycle", "Usage", "Actions"]) {
       expect(within(table).getByRole("columnheader", { name: new RegExp(column, "i") })).toBeInTheDocument();
     }
 

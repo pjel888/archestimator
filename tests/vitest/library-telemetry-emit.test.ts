@@ -83,7 +83,6 @@ describe("library telemetry", () => {
       query: "cabinet supplier",
       price: 1200,
       pricingSource: "Supplier quote",
-      confidence: "Verified invoice",
     } as LibraryTelemetryPayload & Record<string, unknown>);
 
     expect(records).toHaveLength(1);
@@ -95,7 +94,7 @@ describe("library telemetry", () => {
       reason: "validation_error",
     });
     expect(Object.keys(records[0] ?? {})).not.toEqual(
-      expect.arrayContaining(["name", "query", "price", "pricingSource", "pricing_source", "confidence"]),
+      expect.arrayContaining(["name", "query", "price", "pricingSource", "pricing_source"]),
     );
   });
 

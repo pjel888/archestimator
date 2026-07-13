@@ -11,8 +11,6 @@ import {
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
-import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
-import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import type { LibraryOverviewComponent } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 
@@ -95,12 +93,6 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
               {subline}
             </p>
           ) : null}
-          <SourceTrustChips
-            chips={getComponentSourceTrustChips(component)}
-            ariaLabel={`Source trust for ${component.name}`}
-            maxChips={2}
-            chipClassName="max-w-[88px]"
-          />
           <p className="mt-auto pt-1 text-[10px] font-medium leading-4 tabular-nums text-ink">
             {pesoFormatter.format(component.unitCost)}
             <span className="ml-1 text-[8px] font-normal text-tertiary">/ {component.unit}</span>

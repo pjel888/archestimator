@@ -742,7 +742,6 @@ describe("estimate sheet library insertion persistence", () => {
         currency: "PHP",
         pricingSource: "Variant schedule",
         pricingDate: "2026-07-08",
-        confidence: "confirmed",
         thumbnailPath: "https://example.com/cabinet-premium.webp",
         isActive: true,
         isDefault: false,
@@ -782,7 +781,6 @@ describe("estimate sheet library insertion persistence", () => {
         priceOptionLabel: "Premium",
         pricingSource: "Variant schedule",
         pricingDate: "2026-07-08",
-        confidence: "confirmed",
       }),
     }));
   });
@@ -811,7 +809,6 @@ describe("estimate sheet library insertion persistence", () => {
         currency: "PHP",
         pricingSource: "Variant schedule",
         pricingDate: "2026-07-08",
-        confidence: "confirmed",
         thumbnailPath: "https://example.com/cabinet-premium.webp",
         isActive: true,
         isDefault: false,
@@ -851,7 +848,6 @@ describe("estimate sheet library insertion persistence", () => {
       imageUrl: "https://example.com/cabinet-premium.webp",
       pricingSource: "Variant schedule",
       pricingDate: "2026-07-08",
-      confidence: "confirmed",
     });
   });
 

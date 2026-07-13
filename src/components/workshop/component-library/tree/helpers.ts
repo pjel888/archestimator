@@ -16,7 +16,6 @@ export function matchesQuery(node: LibraryTreeNode, query: string): boolean {
     node.item?.description,
     node.item?.pricingSource,
     node.item?.pricingDate,
-    node.item?.confidence,
     ...(node.item?.categoryPath ?? []),
   ]
     .filter(Boolean)

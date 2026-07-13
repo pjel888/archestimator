@@ -32,7 +32,6 @@ type EditComponentFormState = {
   miscCost: string;
   pricingDate: string;
   pricingSource: string;
-  confidence: string;
 };
 
 function buildFormState(item: EstimateRowItem): EditComponentFormState {
@@ -47,7 +46,6 @@ function buildFormState(item: EstimateRowItem): EditComponentFormState {
     miscCost: String(item.miscCost ?? 0),
     pricingDate: item.pricingDate ?? "",
     pricingSource: item.pricingSource ?? "",
-    confidence: item.confidence ?? "",
   };
 }
 
@@ -98,12 +96,10 @@ export function EditComponentDrawer({
     brand: form.brand,
     pricingDate: form.pricingDate,
     pricingSource: form.pricingSource,
-    confidence: form.confidence,
     libraryFolderId: item.libraryFolderId ?? null,
   }), [
     componentCategory,
     form.brand,
-    form.confidence,
     form.miscCost,
     form.name,
     form.pricingDate,
@@ -134,7 +130,6 @@ export function EditComponentDrawer({
     const miscCost = normalized.miscCost ?? Number(form.miscCost || "0");
     const pricingDate = normalized.pricingDate ?? "";
     const pricingSource = normalized.pricingSource ?? "";
-    const confidence = normalized.confidence ?? "";
     const supplier = normalized.supplier ?? "";
     const brand = normalized.brand ?? "";
 
@@ -143,8 +138,7 @@ export function EditComponentDrawer({
       miscCost !== item.miscCost ||
       unit !== item.unit ||
       pricingDate !== (item.pricingDate ?? "") ||
-      pricingSource !== (item.pricingSource ?? "") ||
-      confidence !== (item.confidence ?? "");
+      pricingSource !== (item.pricingSource ?? "");
 
     startSaving(async () => {
       try {
@@ -172,7 +166,6 @@ export function EditComponentDrawer({
             miscCost,
             pricingDate: pricingDate || undefined,
             pricingSource: pricingSource || undefined,
-            confidence: confidence || undefined,
             packageQuantity: defaultPriceOption?.packageQuantity ?? null,
             packageUnit: defaultPriceOption?.packageUnit ?? null,
             isDefault: true,
@@ -193,7 +186,6 @@ export function EditComponentDrawer({
           miscCost,
           pricingDate,
           pricingSource,
-          confidence: confidence || undefined,
         });
         onOpenChange(false);
       } catch (saveError) {
@@ -294,14 +286,6 @@ export function EditComponentDrawer({
                 value={form.pricingDate}
                 onChange={(event) => setField("pricingDate", event.target.value)}
                 invalid={Boolean(validation.errors.pricingDate)}
-              />
-            </ControlField>
-            <ControlField label="Confidence" errorText={validation.errors.confidence}>
-              <ControlInput
-                value={form.confidence}
-                placeholder="Supplier quote, verified invoice"
-                onChange={(event) => setField("confidence", event.target.value)}
-                invalid={Boolean(validation.errors.confidence)}
               />
             </ControlField>
           </div>

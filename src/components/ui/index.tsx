@@ -90,8 +90,6 @@ export { Pagination } from "./pagination";
 export type { PaginationProps } from "./pagination";
 export { Timeline } from "./timeline";
 export type { TimelineItem, TimelineProps } from "./timeline";
-export { ConfidenceIndicator } from "./confidence-indicator";
-export type { ConfidenceIndicatorProps } from "./confidence-indicator";
 export { EstimateCell } from "./estimate-cell";
 export type { EstimateCellProps } from "./estimate-cell";
 export { FinancialTotalCard } from "./financial-total-card";

@@ -630,7 +630,6 @@ type EstimateRightSidebarProps = {
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
-  showSourceTrustChips?: boolean;
   /** True while the sidebar's library/template/project-component dataset is still loading. */
   libraryDataLoading?: boolean;
   /** Reads/writes the user's saved active sidebar tab and view prefs. Disable for public/mockup embeds. */
@@ -831,7 +830,6 @@ function useEstimateRightSidebarContent({
   suppliers = EMPTY_SUPPLIER_OPTIONS,
   brands = EMPTY_COMPONENT_BRANDS,
   libraryFolders = EMPTY_LIBRARY_FOLDERS,
-  showSourceTrustChips = true,
   libraryDataLoading = false,
   useStoredPreferences = true,
   enableReusableProjectSources = true,
@@ -2930,7 +2928,6 @@ function useEstimateRightSidebarContent({
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
                 showThumbnails
-                showSourceTrustChips={isProjectTab ? false : showSourceTrustChips}
                 editingNodeId={editingFolderId}
                 editingNodeValue={editingFolderName}
                 onEditingNodeValueChange={setEditingFolderName}

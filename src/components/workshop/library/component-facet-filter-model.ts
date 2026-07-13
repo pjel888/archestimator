@@ -1,21 +1,47 @@
 import type { ComponentLifecycleState, EstimateRowItem } from "@/lib/estimates/types";
+import { DEFAULT_PRICE_FRESHNESS_POLICY, getPriceFreshness } from "@/lib/estimate-health";
 import { filterMapBy } from "@/lib/util/array";
-import {
-  componentMatchesPricingFreshness,
-  COMPONENT_FACET_STALE_DAYS,
-  COMPONENT_FACET_VERY_STALE_DAYS,
-  COMPONENT_LIFECYCLE_FACET_LABELS,
-  type ComponentPricingFreshness,
-} from "./source-trust-model";
 
-export {
-  COMPONENT_FACET_STALE_DAYS,
-  COMPONENT_FACET_VERY_STALE_DAYS,
-  COMPONENT_LIFECYCLE_FACET_LABELS,
-  COMPONENT_PRICING_FRESHNESS_LABELS,
-  getComponentPricingFreshness,
-  type ComponentPricingFreshness,
-} from "./source-trust-model";
+export const COMPONENT_FACET_STALE_DAYS = 90;
+export const COMPONENT_FACET_VERY_STALE_DAYS = 180;
+
+export type ComponentPricingFreshness = "any" | "fresh" | "stale" | "very-stale" | "missing";
+
+export const COMPONENT_LIFECYCLE_FACET_LABELS: Record<ComponentLifecycleState, string> = {
+  draft: "Draft",
+  in_production: "In production",
+  available: "Available",
+  discontinued: "Discontinued",
+  archived: "Archived",
+};
+
+export const COMPONENT_PRICING_FRESHNESS_LABELS: Record<Exclude<ComponentPricingFreshness, "any">, string> = {
+  fresh: "Fresh price",
+  stale: "Stale price",
+  "very-stale": "Very stale price",
+  missing: "Missing price source",
+};
+
+export function getComponentPricingFreshness(
+  item: Pick<EstimateRowItem, "pricingDate">,
+  now: number = Date.now(),
+): Exclude<ComponentPricingFreshness, "any"> {
+  const raw = item.pricingDate?.trim();
+  if (!raw) return "missing";
+  const parsed = Date.parse(raw);
+  if (Number.isNaN(parsed)) return "missing";
+  return getPriceFreshness({ timestamp: parsed, now, policy: DEFAULT_PRICE_FRESHNESS_POLICY });
+}
+
+function componentMatchesPricingFreshness(
+  item: Pick<EstimateRowItem, "pricingDate">,
+  freshness: Exclude<ComponentPricingFreshness, "any">,
+  now: number,
+) {
+  const itemFreshness = getComponentPricingFreshness(item, now);
+  if (freshness === "stale") return itemFreshness === "stale" || itemFreshness === "very-stale";
+  return itemFreshness === freshness;
+}
 
 export const NO_SUPPLIER_OPTION = "__no_supplier__";
 export const NO_BRAND_OPTION = "__no_brand__";
@@ -24,7 +50,6 @@ export type ComponentFacetFilters = {
   suppliers: string[];
   brands: string[];
   lifecycles: ComponentLifecycleState[];
-  confidence: string[];
   freshness: ComponentPricingFreshness;
 };
 
@@ -32,7 +57,6 @@ export const EMPTY_COMPONENT_FACET_FILTERS: ComponentFacetFilters = {
   suppliers: [],
   brands: [],
   lifecycles: [],
-  confidence: [],
   freshness: "any",
 };
 
@@ -41,7 +65,6 @@ export function countActiveComponentFacets(filters: ComponentFacetFilters): numb
     filters.suppliers.length +
     filters.brands.length +
     filters.lifecycles.length +
-    filters.confidence.length +
     (filters.freshness === "any" ? 0 : 1)
   );
 }
@@ -65,10 +88,6 @@ export function componentMatchesFacets(
     const lifecycle = item.lifecycleState ?? "available";
     if (!filters.lifecycles.includes(lifecycle)) return false;
   }
-  if (filters.confidence.length > 0) {
-    const confidence = item.confidence?.trim();
-    if (!confidence || !filters.confidence.includes(confidence)) return false;
-  }
   if (filters.freshness !== "any" && !componentMatchesPricingFreshness(item, filters.freshness, now)) return false;
   return true;
 }
@@ -76,7 +95,7 @@ export function componentMatchesFacets(
 /**
  * Reads facet deep-link search params (used by the Library Overview health
  * line): `?lifecycle=discontinued`, `?brand=none`, `?freshness=stale`,
- * `?supplier=...`, `?confidence=...`.
+ * `?supplier=...`.
  */
 export function parseComponentFacetSearchParams(params: URLSearchParams): ComponentFacetFilters {
   const lifecycles = params
@@ -84,14 +103,13 @@ export function parseComponentFacetSearchParams(params: URLSearchParams): Compon
     .filter((value): value is ComponentLifecycleState => value in COMPONENT_LIFECYCLE_FACET_LABELS);
   const brands = params.getAll("brand").map((value) => (value === "none" ? NO_BRAND_OPTION : value));
   const suppliers = params.getAll("supplier").map((value) => (value === "none" ? NO_SUPPLIER_OPTION : value));
-  const confidence = params.getAll("confidence");
   const freshnessRaw = params.get("freshness");
   const freshness: ComponentPricingFreshness =
     freshnessRaw === "fresh" || freshnessRaw === "stale" || freshnessRaw === "very-stale" || freshnessRaw === "missing"
       ? freshnessRaw
       : "any";
 
-  return { suppliers, brands, lifecycles, confidence, freshness };
+  return { suppliers, brands, lifecycles, freshness };
 }
 
 export type FacetOption = { value: string; label: string };
@@ -100,14 +118,12 @@ export type ComponentFacetOptions = {
   suppliers: FacetOption[];
   brands: FacetOption[];
   lifecycles: FacetOption[];
-  confidence: FacetOption[];
 };
 
 export function buildComponentFacetOptions(items: EstimateRowItem[]): ComponentFacetOptions {
   const suppliers = new Set<string>();
   const brands = new Set<string>();
   const lifecycles = new Set<ComponentLifecycleState>();
-  const confidence = new Set<string>();
   let hasNoSupplier = false;
   let hasNoBrand = false;
 
@@ -119,8 +135,6 @@ export function buildComponentFacetOptions(items: EstimateRowItem[]): ComponentF
     if (brand) brands.add(brand);
     else hasNoBrand = true;
     lifecycles.add(item.lifecycleState ?? "available");
-    const confidenceValue = item.confidence?.trim();
-    if (confidenceValue) confidence.add(confidenceValue);
   }
 
   const toSortedOptions = (values: Set<string>) =>
@@ -142,6 +156,5 @@ export function buildComponentFacetOptions(items: EstimateRowItem[]): ComponentF
       (state) => lifecycles.has(state),
       (state) => ({ value: state, label: COMPONENT_LIFECYCLE_FACET_LABELS[state] }),
     ),
-    confidence: toSortedOptions(confidence),
   };
 }

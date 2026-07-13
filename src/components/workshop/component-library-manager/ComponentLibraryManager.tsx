@@ -43,8 +43,6 @@ import {
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
-import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
-import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import { promoteExpressRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
 import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
@@ -175,7 +173,6 @@ type DenseSortKey =
   | "cost"
   | "pricingSource"
   | "pricingDate"
-  | "confidence"
   | "lifecycle"
   | "usage";
 
@@ -477,7 +474,6 @@ function itemMatchesSheetQuery(item: EstimateRowItem, query: string): boolean {
     item.description,
     item.pricingSource,
     item.pricingDate,
-    item.confidence,
     ...(item.categoryPath ?? []),
   ]
     .flatMap((value) => (typeof value === "string" && value.length > 0 ? [value] : []));
@@ -641,8 +637,6 @@ function getDenseSortValue(card: CatalogueCard, key: DenseSortKey): string | num
       return getItemPricingSourceLabel(item);
     case "pricingDate":
       return item.pricingDate || "";
-    case "confidence":
-      return item.confidence || "";
     case "lifecycle":
       return getComponentLifecycleLabel(item);
     case "usage":
@@ -879,23 +873,12 @@ function ComponentCatalogueCard({
             </button>
           ) : null}
           <div className={cn("mt-1 space-y-0.5 border-t pt-1", surfaceVariant === "glass" ? LIBRARY_GLASS_DIVIDER_CLASS : "border-hairline")}>
-            <SourceTrustChips
-              chips={getComponentSourceTrustChips(item)}
-              ariaLabel={`Source trust for ${name}`}
-              maxChips={3}
-              chipClassName="max-w-[96px]"
-            />
             <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={pricingSource}>
               Source: {pricingSource}
             </p>
             <p className="truncate text-[8px] font-normal leading-3 text-tertiary">
               Checked {item.pricingDate || "date not set"}
             </p>
-            {item.confidence ? (
-              <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={item.confidence}>
-                Confidence: {item.confidence}
-              </p>
-            ) : null}
           </div>
         </div>
       </div>
@@ -1115,7 +1098,6 @@ function ComponentCatalogueDenseTable({
             <DenseSortableHeader label="Cost" sortKey="cost" sort={sort} onSort={onSort} />
             <DenseSortableHeader label="Pricing source" sortKey="pricingSource" sort={sort} onSort={onSort} />
             <DenseSortableHeader label="Pricing date" sortKey="pricingDate" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Confidence" sortKey="confidence" sort={sort} onSort={onSort} />
             <DenseSortableHeader label="Lifecycle" sortKey="lifecycle" sort={sort} onSort={onSort} />
             <DenseSortableHeader label="Usage" sortKey="usage" sort={sort} onSort={onSort} />
             <th
@@ -1216,13 +1198,6 @@ function ComponentCatalogueDenseTable({
                   >
                     {name}
                   </button>
-                  <SourceTrustChips
-                    chips={getComponentSourceTrustChips(item)}
-                    ariaLabel={`Source trust for ${name}`}
-                    maxChips={3}
-                    chipClassName="max-w-[92px]"
-                    className="mt-1"
-                  />
                 </th>
                 <td className="truncate px-2 py-1 align-top text-secondary" title={card.pathLabel}>{card.pathLabel}</td>
                 <td className="truncate px-2 py-1 align-top text-tertiary" title={getItemBrandLabel(item)}>
@@ -1239,9 +1214,6 @@ function ComponentCatalogueDenseTable({
                 </td>
                 <td className="truncate px-2 py-1 align-top tabular-nums text-tertiary">
                   {item.pricingDate || "Date not set"}
-                </td>
-                <td className="truncate px-2 py-1 align-top text-tertiary" title={item.confidence || "Not set"}>
-                  {item.confidence || "Not set"}
                 </td>
                 <td className="truncate px-2 py-1 align-top text-tertiary">{lifecycle}</td>
                 <td className="truncate px-2 py-1 align-top text-tertiary" title={getComponentUsageLabel(item)}>
@@ -2461,7 +2433,6 @@ export function ComponentLibraryManager({
               miscCost: source.miscCost,
               pricingSource: source.pricingSource || undefined,
               pricingDate: source.pricingDate || undefined,
-              confidence: source.confidence || undefined,
               isDefault: true,
             },
           ],

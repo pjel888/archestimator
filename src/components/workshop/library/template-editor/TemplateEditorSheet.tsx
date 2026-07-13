@@ -29,8 +29,6 @@ import {
   useLibrarySurfaceVariant,
 } from "../library-surface-variant";
 import { librarySurfaceClass } from "../library-surface-class";
-import { SourceTrustChips } from "../source-trust-chips";
-import { getTemplateSourceTrustChips } from "../source-trust-model";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 
@@ -626,19 +624,6 @@ export function TemplateEditorSheet({
             },
           ] : []}
         />
-        <div
-          className={cn(
-            "flex min-h-7 items-center px-2",
-            librarySurfaceClass(surfaceVariant, "contextStrip"),
-          )}
-          data-template-editor-source-trust="true"
-        >
-          <SourceTrustChips
-            chips={getTemplateSourceTrustChips(template)}
-            ariaLabel={`Source trust for ${template.name}`}
-            maxChips={3}
-          />
-        </div>
         <div
           className={cn(
             "grid min-h-7 items-center border-b border-hairline text-[8px] font-medium leading-3 text-tertiary",

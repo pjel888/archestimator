@@ -4,8 +4,6 @@ import { X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
-import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import { cn } from "@/lib/ui/cn";
 import type { EstimateRowItem } from "../estimate-tree-data";
 import {
@@ -52,7 +50,6 @@ export function PreviewPanel({
   const stalenessTone = getStalenessTone(item.pricingDate);
   const stalenessLabel = getStalenessLabel(item.pricingDate);
   const sourceHref = sanitizeComponentSourceUrl(item.sourceUrl);
-  const trustChips = getComponentSourceTrustChips(item);
   const hasManagementActions = Boolean(onEdit || onDuplicate || onFavorite || onDelete);
   const stalenessClass =
     stalenessTone === "danger"
@@ -95,12 +92,6 @@ export function PreviewPanel({
             Library · {item.pricingSource || item.supplier || "Missing price source"}
             {stalenessLabel ? ` · ${stalenessLabel}` : ""}
           </p>
-          <SourceTrustChips
-            chips={trustChips}
-            ariaLabel={`${getComponentName(item)} preview source trust`}
-            className="mt-1"
-            maxChips={4}
-          />
         </div>
       </div>
       <div className="px-2 pb-2">

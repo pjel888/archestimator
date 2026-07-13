@@ -17,8 +17,6 @@ import {
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
-import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
-import { getTemplateSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 import { buildTemplatePreviewNodeTotals } from "./TemplatePreviewDockModel";
@@ -134,11 +132,6 @@ function SelectedTemplatePreview({
         {template.description ? (
           <p className="mb-2 text-[9px] leading-4 text-tertiary">{template.description}</p>
         ) : null}
-        <SourceTrustChips
-          chips={getTemplateSourceTrustChips(template)}
-          ariaLabel={`Source trust for ${template.name}`}
-          className="mb-2"
-        />
         <ul className="border-t border-hairline pt-2" aria-label={`${template.name} structure outline`}>
           {template.nodes.length > 0 ? (
             template.nodes.map((node) => (
@@ -226,12 +219,6 @@ const TemplateGalleryRow = memo(function TemplateGalleryRow({
       ) : null}
       <div className="mt-2 flex items-center gap-1">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-          <SourceTrustChips
-            chips={getTemplateSourceTrustChips(template)}
-            ariaLabel={`Source trust for ${template.name}`}
-            maxChips={3}
-            chipClassName="max-w-[112px]"
-          />
           {getTemplateChips(template).map((chip) => (
             <span
               key={chip}

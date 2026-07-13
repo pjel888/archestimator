@@ -187,7 +187,6 @@ export type ComponentPriceOptionInput = {
   currency?: string;
   pricingSource?: string;
   pricingDate?: string;
-  confidence?: string;
   sourceUrl?: string;
   notes?: string;
   supplierId?: string | null;
@@ -221,7 +220,6 @@ export type ComponentVariantCostEntryInput = {
   currency?: string;
   pricingSource?: string;
   pricingDate?: string;
-  confidence?: string;
   sourceUrl?: string;
   notes?: string;
   isCurrent?: boolean;
@@ -742,11 +740,9 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     miscCost: input.miscCost ?? 0,
     pricingDate: input.pricingDate,
     pricingSource: input.pricingSource,
-    confidence: input.confidence,
   });
   if (sourceValidation.errors.pricingDate) throw new Error(sourceValidation.errors.pricingDate);
   if (sourceValidation.errors.pricingSource) throw new Error(sourceValidation.errors.pricingSource);
-  if (sourceValidation.errors.confidence) throw new Error(sourceValidation.errors.confidence);
   const costEntries = input.costEntries?.length
     ? input.costEntries.map((entry) => {
         const entryValidation = validateQuickAddComponentInput({
@@ -757,11 +753,9 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
           miscCost: entry.miscCost ?? 0,
           pricingDate: entry.pricingDate || input.pricingDate,
           pricingSource: entry.pricingSource,
-          confidence: entry.confidence,
         });
         if (entryValidation.errors.pricingDate) throw new Error(entryValidation.errors.pricingDate);
         if (entryValidation.errors.pricingSource) throw new Error(entryValidation.errors.pricingSource);
-        if (entryValidation.errors.confidence) throw new Error(entryValidation.errors.confidence);
         return {
           ...entry,
           clientId: entry.clientId?.trim() || entry.id?.trim() || undefined,
@@ -770,7 +764,6 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
           currency: entry.currency ?? input.currency ?? "PHP",
           pricingSource: entryValidation.normalized.pricingSource ?? null,
           pricingDate: entryValidation.normalized.pricingDate || input.pricingDate || null,
-          confidence: entryValidation.normalized.confidence ?? null,
           sourceUrl: readComponentSourceUrlInput(entry.sourceUrl, "Cost entry source URL"),
           notes: entry.notes ?? "",
           deletedAt: entry.deletedAt ?? null,
@@ -784,7 +777,6 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
         currency: input.currency ?? "PHP",
         pricingSource: sourceValidation.normalized.pricingSource ?? null,
         pricingDate: sourceValidation.normalized.pricingDate || null,
-        confidence: sourceValidation.normalized.confidence ?? null,
         sourceUrl,
         notes: input.notes ?? "",
         isCurrent: true,
@@ -812,7 +804,6 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     currency: input.currency ?? "PHP",
     pricingSource: sourceValidation.normalized.pricingSource ?? null,
     pricingDate: sourceValidation.normalized.pricingDate || null,
-    confidence: sourceValidation.normalized.confidence ?? null,
     sourceUrl,
     notes: input.notes ?? "",
     supplierId: input.supplierId ?? null,
@@ -918,7 +909,6 @@ function priceOptionSnapshot(priceOption: ReturnType<typeof normalizePriceOption
     currency: priceOption.currency,
     pricingSource: priceOption.pricingSource,
     pricingDate: priceOption.pricingDate,
-    confidence: priceOption.confidence,
     sourceUrl: priceOption.sourceUrl,
     notes: priceOption.notes,
     supplierId: priceOption.supplierId,
@@ -1054,10 +1044,10 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
     `
       INSERT INTO cost_library_item_price_options (
         id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,
-        is_active, is_default, updated_at, confidence, supplier_id, pricing_source,
+        is_active, is_default, updated_at, supplier_id, pricing_source,
         metadata_json, created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         label = excluded.label,
         unit = excluded.unit,
@@ -1067,7 +1057,6 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
         is_active = excluded.is_active,
         is_default = excluded.is_default,
         updated_at = excluded.updated_at,
-        confidence = excluded.confidence,
         supplier_id = excluded.supplier_id,
         pricing_source = excluded.pricing_source,
         metadata_json = excluded.metadata_json
@@ -1084,7 +1073,6 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
       boolInt(input.priceOption.isActive),
       boolInt(input.priceOption.isDefault),
       timestamp,
-      input.priceOption.confidence,
       input.priceOption.supplierId,
       input.priceOption.pricingSource,
       jsonText(metadata),
@@ -1098,17 +1086,16 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
       sql: `
         INSERT INTO cost_library_item_variant_cost_entries (
           id, workspace_id, item_id, price_option_id, unit_cost, misc_cost, currency,
-          pricing_source, pricing_date, confidence, source_url, notes, is_current,
+          pricing_source, pricing_date, source_url, notes, is_current,
           deleted_at, metadata_json, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           unit_cost = excluded.unit_cost,
           misc_cost = excluded.misc_cost,
           currency = excluded.currency,
           pricing_source = excluded.pricing_source,
           pricing_date = excluded.pricing_date,
-          confidence = excluded.confidence,
           source_url = excluded.source_url,
           notes = excluded.notes,
           is_current = excluded.is_current,
@@ -1126,7 +1113,6 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
         entry.currency,
         entry.pricingSource,
         entry.pricingDate,
-        entry.confidence,
         entry.sourceUrl,
         entry.notes,
         boolInt(entry.isCurrent),
@@ -1175,7 +1161,6 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
     miscCost: input.priceOption.miscCost,
     pricingSource: input.priceOption.pricingSource,
     pricingDate: input.priceOption.pricingDate,
-    confidence: input.priceOption.confidence,
   };
 }
 
@@ -1267,7 +1252,6 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     brand: component.brand,
     pricingDate: defaultPriceOption?.pricingDate,
     pricingSource: defaultPriceOption?.pricingSource,
-    confidence: defaultPriceOption?.confidence,
     libraryFolderId: component.libraryFolderId,
   });
   if (Object.keys(quickAddValidation.errors).length > 0) {
@@ -1282,7 +1266,6 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     brand: component.brand,
     pricingDate: defaultPriceOption?.pricingDate,
     pricingSource: defaultPriceOption?.pricingSource,
-    confidence: defaultPriceOption?.confidence,
     libraryFolderId: component.libraryFolderId,
   });
   const normalizedPriceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
@@ -1298,10 +1281,10 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
         id, workspace_id, name, description, category, category_node_id,
         library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost,
         misc_cost, lifecycle_state, current_version_number, active_price_option_id,
-        confidence, pricing_source, pricing_date, thumbnail_path, metadata_json,
+        pricing_source, pricing_date, thumbnail_path, metadata_json,
         created_by, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       itemId,
@@ -1320,7 +1303,6 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       defaultPriceOption?.miscCost ?? 0,
       component.lifecycleState,
       1,
-      defaultPriceOption?.confidence ?? null,
       defaultPriceOption?.pricingSource ?? null,
       defaultPriceOption?.pricingDate ?? null,
       component.thumbnailPath,
@@ -1351,7 +1333,6 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
             unit = ?,
             unit_cost = ?,
             misc_cost = ?,
-            confidence = ?,
             pricing_source = ?,
             pricing_date = ?,
             updated_at = ?
@@ -1363,7 +1344,6 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
         activePriceOption.unit,
         activePriceOption.unitCost,
         activePriceOption.miscCost,
-        activePriceOption.confidence,
         activePriceOption.pricingSource,
         activePriceOption.pricingDate,
         timestamp,
@@ -1529,7 +1509,6 @@ export async function upsertCostLibraryComponentPriceOption(itemId: string, inpu
         miscCost: priceOption.miscCost,
         pricingSource: priceOption.pricingSource,
         pricingDate: priceOption.pricingDate,
-        confidence: priceOption.confidence,
       }
     : { activePriceOptionId: existing.active_price_option_id };
   await run(
@@ -1542,7 +1521,6 @@ export async function upsertCostLibraryComponentPriceOption(itemId: string, inpu
           misc_cost = COALESCE(?, misc_cost),
           pricing_source = COALESCE(?, pricing_source),
           pricing_date = COALESCE(?, pricing_date),
-          confidence = COALESCE(?, confidence),
           current_version_number = ?,
           updated_at = ?
       WHERE id = ?
@@ -1555,7 +1533,6 @@ export async function upsertCostLibraryComponentPriceOption(itemId: string, inpu
       "miscCost" in itemPatch ? itemPatch.miscCost ?? null : null,
       "pricingSource" in itemPatch ? itemPatch.pricingSource ?? null : null,
       "pricingDate" in itemPatch ? itemPatch.pricingDate ?? null : null,
-      "confidence" in itemPatch ? itemPatch.confidence ?? null : null,
       nextVersion,
       nowIso(),
       itemId,

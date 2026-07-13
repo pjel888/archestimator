@@ -42,8 +42,6 @@ export type LibraryTreeProps = {
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;
   /** Shows fixed-size decorative thumbnails for component leaf rows only. */
   showThumbnails?: boolean;
-  /** Shows pricing freshness/confidence/lifecycle chips under component rows. */
-  showSourceTrustChips?: boolean;
   editingNodeId?: string | null;
   editingNodeValue?: string;
   onEditingNodeValueChange?: (value: string) => void;

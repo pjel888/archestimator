@@ -57,7 +57,6 @@ const libraryItems: EstimateRowItem[] = [
     categoryNodeId: "category-finishes",
     pricingSource: "Supplier quote",
     pricingDate: new Date().toISOString().slice(0, 10),
-    confidence: "quoted",
     lifecycleState: "available",
   },
   {
@@ -80,7 +79,6 @@ const libraryItems: EstimateRowItem[] = [
     categoryNodeId: "category-finishes",
     pricingSource: "Supplier quote",
     pricingDate: "2025-01-01",
-    confidence: "catalog",
     lifecycleState: "available",
   },
   {
@@ -102,7 +100,6 @@ const libraryItems: EstimateRowItem[] = [
     categoryNodeId: "category-finishes",
     pricingSource: "Owner",
     pricingDate: "",
-    confidence: "allowance",
     lifecycleState: "discontinued",
   },
 ];

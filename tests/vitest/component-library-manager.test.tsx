@@ -110,21 +110,18 @@ const fixtureItems: EstimateRowItem[] = [
     id: "item-fresh",
     material: "Fresh Tile",
     brand: "Mariwasa",
-    confidence: "Quoted",
     lifecycleState: "available",
   }),
   makeItem({
     id: "item-discontinued",
     material: "Discontinued Plank",
     brand: "Kahrs",
-    confidence: "Estimated",
     lifecycleState: "discontinued",
   }),
   makeItem({
     id: "item-stale-no-brand",
     material: "Stale Paint",
     brand: undefined,
-    confidence: "Quoted",
     lifecycleState: "available",
     pricingDate: "2024-01-01",
   }),
@@ -314,11 +311,6 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
 
     const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
     expect(within(dock).getByText("Mariwasa")).toBeInTheDocument();
-    const trustChips = within(dock).getByLabelText("Source trust for Fresh Tile");
-    expect(within(trustChips).queryByText("Fresh price")).not.toBeInTheDocument();
-    expect(within(trustChips).getByText("Verified source")).toBeInTheDocument();
-    expect(within(dock).getByText("Confidence")).toBeInTheDocument();
-    expect(within(dock).getByText("Quoted")).toBeInTheDocument();
     expect(within(dock).getByText("Available")).toBeInTheDocument();
     expect(await within(dock).findByText("Price option changed (₱100.00)")).toBeInTheDocument();
     expect(await within(dock).findByText("2 template rows · 6 estimate rows")).toBeInTheDocument();

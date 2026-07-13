@@ -17,7 +17,6 @@ describe("quick add validation", () => {
       brand: " Hinge Co ",
       pricingDate: "2026-01-10",
       pricingSource: "Supplier quote 123",
-      confidence: " verified invoice ",
     }, { today: "2026-06-22" });
 
     expect(normalized).toMatchObject({
@@ -30,7 +29,6 @@ describe("quick add validation", () => {
       brand: "Hinge Co",
       pricingDate: "2026-01-10",
       pricingSource: "Supplier quote 123",
-      confidence: "verified invoice",
     });
   });
 
@@ -42,7 +40,6 @@ describe("quick add validation", () => {
       unitCost: "-1",
       pricingDate: "2999-01-01",
       pricingSource: "ftp://supplier.example/quote",
-      confidence: "x".repeat(121),
     }, { today: "2026-06-22" });
 
     expect(result.errors).toMatchObject({
@@ -52,7 +49,6 @@ describe("quick add validation", () => {
       unitCost: "Enter a unit cost of zero or more.",
       pricingDate: "Enter a pricing date that is not in the future.",
       pricingSource: "Enter a valid https URL.",
-      confidence: "Use 120 characters or fewer for the confidence note.",
     });
   });
 
@@ -65,7 +61,6 @@ describe("quick add validation", () => {
       supplier: "-Supplier",
       brand: "=Brand",
       pricingSource: "=cmd|' /C calc'!A0",
-      confidence: "+verified invoice",
     }, { today: "2026-06-22" });
 
     expect(result.errors).toMatchObject({
@@ -75,7 +70,6 @@ describe("quick add validation", () => {
       supplier: "Remove spreadsheet formula prefixes.",
       brand: "Remove spreadsheet formula prefixes.",
       pricingSource: "Remove spreadsheet formula prefixes from the pricing source.",
-      confidence: "Remove spreadsheet formula prefixes from the confidence note.",
     });
   });
 });

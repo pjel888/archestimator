@@ -26,7 +26,6 @@ describe("library copy contract", () => {
     "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx",
     "src/components/workshop/component-library-manager/AddComponentModal.tsx",
     "src/components/workshop/BulkDestructivePreviewModal.tsx",
-    "src/components/workshop/library/source-trust-model.ts",
     "src/components/workshop/library/overview/LibraryOverview.tsx",
     "src/components/workshop/library/overview/LibraryOverviewSearch.tsx",
     "src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx",
@@ -58,9 +57,6 @@ describe("library copy contract", () => {
       "Very stale price",
       "Missing price source",
       "Verified source",
-      "Likely source",
-      "Low confidence",
-      "Recorded confidence note.",
       "No source",
       "Pricing source is not set",
       "No pricing date recorded. Add one to track freshness.",
@@ -78,9 +74,6 @@ describe("library copy contract", () => {
       "Open or create an estimate",
       "That estimate is no longer available. Choose another target.",
       "You cannot edit ${estimateName}. Choose a target you can edit.",
-      "Dependency insert blocked",
-      "Review template dependencies",
-      "Insert anyway after reviewing dependency warnings",
       "Loading projects",
       "Reload projects",
       "Insert template",
@@ -94,7 +87,6 @@ describe("library copy contract", () => {
       "Enter a pricing date that is not in the future.",
       "Enter a valid https URL.",
       "Shorten this URL.",
-      "Use 120 characters or fewer for the confidence note.",
     ].forEach((expected) => {
       expectSourceToContain(sources, expected);
     });
@@ -114,7 +106,7 @@ describe("library copy contract", () => {
     });
   });
 
-  it("does not reintroduce stale destructive-dialog or source-trust copy", () => {
+  it("does not reintroduce stale destructive-dialog copy", () => {
     [
       'title: "Create folder"',
       'confirmLabel: "Rename folder"',
@@ -125,7 +117,6 @@ describe("library copy contract", () => {
       'unlinked: "Unlinked"',
       '"linked-overridden": "Local overrides"',
       'detached: "Detached rows"',
-      'title: "Confidence is not set"',
       "Pricing date is not set",
       "Build your component library",
       "Add your first component, or import from a price list.",

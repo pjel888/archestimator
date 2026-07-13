@@ -14,7 +14,6 @@ import {
   type EstimateInsertTargetProject,
 } from "@/lib/component-library/actions";
 import { insertEstimateTemplateIntoEstimate } from "@/lib/estimates/actions";
-import { getTemplateDependencyHealth } from "@/components/workshop/library/source-trust-model";
 
 type TargetsState =
   | { state: "loading" }
@@ -44,10 +43,6 @@ type InsertPickerState = {
     resolution: TargetResolutionState;
   };
   submitError: string;
-  dependencyOverrideRecord: {
-    templateId: string;
-    value: boolean;
-  };
   pending: boolean;
 };
 
@@ -60,17 +55,15 @@ type InsertPickerAction =
   | { type: "resolution"; key: string; resolution: TargetResolutionState }
   | { type: "submit:error"; message: string }
   | { type: "submit:start" }
-  | { type: "submit:finish" }
-  | { type: "dependencyOverride"; templateId: string; value: boolean };
+  | { type: "submit:finish" };
 
-function getInitialInsertPickerState(templateId: string): InsertPickerState {
+function getInitialInsertPickerState(): InsertPickerState {
   return {
     targets: { state: "loading" },
     selectedProjectId: "",
     selectedEstimateId: "",
     targetResolutionRecord: { key: "", resolution: { state: "idle" } },
     submitError: "",
-    dependencyOverrideRecord: { templateId, value: false },
     pending: false,
   };
 }
@@ -95,12 +88,6 @@ function insertPickerReducer(state: InsertPickerState, action: InsertPickerActio
       return { ...state, pending: true, submitError: "" };
     case "submit:finish":
       return { ...state, pending: false };
-    case "dependencyOverride":
-      return {
-        ...state,
-        dependencyOverrideRecord: { templateId: action.templateId, value: action.value },
-        submitError: "",
-      };
     default:
       return state;
   }
@@ -155,26 +142,15 @@ export function InsertIntoEstimatePicker(props: InsertIntoEstimatePickerProps) {
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted }: InsertIntoEstimatePickerProps) {
-  const [pickerState, dispatchPicker] = useReducer(insertPickerReducer, template.id, getInitialInsertPickerState);
+  const [pickerState, dispatchPicker] = useReducer(insertPickerReducer, getInitialInsertPickerState());
   const {
     targets,
     selectedProjectId,
     selectedEstimateId,
     targetResolutionRecord,
     submitError,
-    dependencyOverrideRecord,
     pending,
   } = pickerState;
-  const dependencyHealth = useMemo(() => getTemplateDependencyHealth(template), [template]);
-  const hasDependencyWarnings = dependencyHealth.warningIssues.length > 0;
-  const hasDependencyBlocks = dependencyHealth.blockedIssues.length > 0;
-  const dependencyOverride = dependencyOverrideRecord.templateId === template.id ? dependencyOverrideRecord.value : false;
-  const setDependencyOverride = useCallback(
-    (value: boolean) => {
-      dispatchPicker({ type: "dependencyOverride", templateId: template.id, value });
-    },
-    [template.id],
-  );
 
   // The fetch only sets state from its async callbacks; the initial state
   // already reads "loading", so the mount effect does not set state itself.
@@ -283,11 +259,6 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
 
   const handleSubmit = useCallback(async () => {
     if (pending || !selectedProject || !selectedEstimate) return;
-    if (hasDependencyBlocks) return;
-    if (hasDependencyWarnings && !dependencyOverride) {
-      dispatchPicker({ type: "submit:error", message: "Review dependency warnings before inserting." });
-      return;
-    }
     dispatchPicker({ type: "submit:start" });
     try {
       const resolvedTarget = normalizeResolvedTarget(await resolveEstimateTemplateInsertTarget({
@@ -321,9 +292,6 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
       dispatchPicker({ type: "submit:finish" });
     }
   }, [
-    dependencyOverride,
-    hasDependencyBlocks,
-    hasDependencyWarnings,
     onInserted,
     onOpenChange,
     pending,
@@ -333,8 +301,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     template.id,
   ]);
 
-  const dependencyGateOpen = !hasDependencyBlocks && (!hasDependencyWarnings || dependencyOverride);
-  const canSubmit = targetResolution.state === "resolved" && dependencyGateOpen && !pending;
+  const canSubmit = targetResolution.state === "resolved" && !pending;
 
   return (
     <Modal
@@ -368,43 +335,6 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
             <p className="text-[10px] font-medium leading-4 text-tertiary">Select where to insert.</p>
           )}
         </div>
-
-        {dependencyHealth.severity !== "healthy" ? (
-          <section
-            className="rounded-xs border border-warning/20 bg-warningSoft/60 p-2"
-            aria-label="Template dependency health"
-          >
-            <p className="text-[10px] font-medium leading-4 text-ink">
-              {hasDependencyBlocks ? "Dependency insert blocked" : "Review template dependencies"}
-            </p>
-            <ul className="mt-1 grid gap-1">
-              {dependencyHealth.issues.map((issue) => (
-                <li key={issue.id} className="grid gap-0.5">
-                  <span className={issue.severity === "blocked" ? "text-[9px] font-medium text-danger" : "text-[9px] font-medium text-warning"}>
-                    {issue.label}
-                  </span>
-                  <span className="text-[9px] leading-3 text-tertiary">
-                    {issue.count} {issue.count === 1 ? "row" : "rows"} · {issue.description}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {!hasDependencyBlocks && hasDependencyWarnings ? (
-              <label className="mt-2 flex items-start gap-2 text-[9px] leading-3 text-secondary">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-3"
-	                checked={dependencyOverride}
-	                onChange={(event) => {
-	                  setDependencyOverride(event.target.checked);
-	                }}
-                  aria-label="Insert anyway after reviewing dependency warnings"
-                />
-                <span>Insert anyway after reviewing dependency warnings</span>
-              </label>
-            ) : null}
-          </section>
-        ) : null}
 
         {targets.state === "loading" ? (
           <p className="text-[10px] leading-4 text-tertiary" role="status">

@@ -12,8 +12,6 @@ import {
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
-import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
-import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import { getCostLibraryComponentUsage } from "@/lib/component-library/actions";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { EstimateRowItem } from "@/lib/estimates/types";
@@ -123,7 +121,6 @@ export function ComponentInspectorDock({
   const priceHistory = (item.history ?? []).filter((entry) => entry.type === "price");
   const visibleHistory = showAllHistory ? priceHistory : priceHistory.slice(0, PRICE_HISTORY_PREVIEW_COUNT);
   const lifecycle = item.lifecycleState ?? "available";
-  const confidence = item.confidence?.trim();
 
   const detailsPanel = (
       <section
@@ -190,12 +187,6 @@ export function ComponentInspectorDock({
           <p className="mt-0.5 truncate text-[9px] leading-3 text-tertiary" title={taxonomyPath}>
             {taxonomyPath}
           </p>
-          <SourceTrustChips
-            chips={getComponentSourceTrustChips(item)}
-            ariaLabel={`Source trust for ${name}`}
-            className="mt-2"
-          />
-
           <dl className={cn("mt-3 border-t pt-2", surfaceVariant === "glass" ? INSPECTOR_GLASS_DIVIDER_CLASS : "border-hairline")}>
             <DetailRow label="Unit cost">
               <span className="font-medium tabular-nums">{pesoFormatter.format(item.itemCost)}</span>
@@ -209,7 +200,6 @@ export function ComponentInspectorDock({
             <DetailRow label="Supplier">{item.supplier?.trim() || "No supplier"}</DetailRow>
             <DetailRow label="Brand">{item.brand?.trim() || "No brand"}</DetailRow>
             <DetailRow label="Pricing date">{item.pricingDate?.trim() || "Not set"}</DetailRow>
-            <DetailRow label="Confidence">{confidence || "Not set"}</DetailRow>
             <DetailRow label="Lifecycle">{COMPONENT_LIFECYCLE_FACET_LABELS[lifecycle]}</DetailRow>
             {typeof item.componentVersionNumber === "number" ? (
               <DetailRow label="Version">{`v${item.componentVersionNumber} · current`}</DetailRow>

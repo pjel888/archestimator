@@ -5,7 +5,6 @@ export const QUICK_ADD_TEXT_LIMITS = {
   supplier: 120,
   brand: 120,
   pricingSource: 2048,
-  confidence: 120,
 } as const;
 
 export type QuickAddField =
@@ -17,8 +16,7 @@ export type QuickAddField =
   | "supplier"
   | "brand"
   | "pricingDate"
-  | "pricingSource"
-  | "confidence";
+  | "pricingSource";
 
 export type QuickAddComponentValidationInput = {
   name: unknown;
@@ -30,7 +28,6 @@ export type QuickAddComponentValidationInput = {
   brand?: unknown;
   pricingDate?: unknown;
   pricingSource?: unknown;
-  confidence?: unknown;
   libraryFolderId?: string | null;
 };
 
@@ -44,7 +41,6 @@ export type NormalizedQuickAddComponentInput = {
   brand: string | null;
   pricingDate: string | null;
   pricingSource: string | null;
-  confidence: string | null;
   libraryFolderId: string | null;
 };
 
@@ -138,7 +134,6 @@ export function validateQuickAddComponentInput(
   const brand = normalizeQuickAddText(input.brand);
   const pricingDate = normalizeDateOnly(input.pricingDate);
   const pricingSource = normalizeQuickAddText(input.pricingSource);
-  const confidence = normalizeQuickAddText(input.confidence);
   const unitCost = parseQuickAddMoney(input.unitCost);
   const miscCost = input.miscCost === undefined || normalizeQuickAddText(input.miscCost) === ""
     ? 0
@@ -153,7 +148,6 @@ export function validateQuickAddComponentInput(
   addTextLengthError(errors, "unit", unit, QUICK_ADD_TEXT_LIMITS.unit, "Use 32 characters or fewer for the unit.");
   addTextLengthError(errors, "supplier", supplier, QUICK_ADD_TEXT_LIMITS.supplier, "Use 120 characters or fewer.");
   addTextLengthError(errors, "brand", brand, QUICK_ADD_TEXT_LIMITS.brand, "Use 120 characters or fewer.");
-  addTextLengthError(errors, "confidence", confidence, QUICK_ADD_TEXT_LIMITS.confidence, "Use 120 characters or fewer for the confidence note.");
 
   addFormulaPrefixError(errors, "name", name, "Remove spreadsheet formula prefixes from the name.");
   addFormulaPrefixError(errors, "category", category, "Remove spreadsheet formula prefixes from the category.");
@@ -161,7 +155,6 @@ export function validateQuickAddComponentInput(
   addFormulaPrefixError(errors, "supplier", supplier, "Remove spreadsheet formula prefixes.");
   addFormulaPrefixError(errors, "brand", brand, "Remove spreadsheet formula prefixes.");
   addFormulaPrefixError(errors, "pricingSource", pricingSource, "Remove spreadsheet formula prefixes from the pricing source.");
-  addFormulaPrefixError(errors, "confidence", confidence, "Remove spreadsheet formula prefixes from the confidence note.");
 
   if (normalizeQuickAddText(input.unitCost) === "") {
     errors.unitCost = "Enter a unit cost.";
@@ -203,7 +196,6 @@ export function validateQuickAddComponentInput(
       brand: brand || null,
       pricingDate,
       pricingSource: pricingSource || null,
-      confidence: confidence || null,
       libraryFolderId: input.libraryFolderId ?? null,
     },
   };

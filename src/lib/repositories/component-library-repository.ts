@@ -12,7 +12,6 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "@/lib/component-library/estimate-templates";
-import { getTemplateSourceTrustChips, type SourceTrustChipSpec } from "@/components/workshop/library/source-trust-model";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import {
   buildComponentCategoryTreeFromRows,
@@ -132,7 +131,6 @@ type CostLibraryItemRow = {
   misc_cost: number | string;
   pricing_source: string | null;
   pricing_date: string | null;
-  confidence: string | null;
   metadata: Json | string;
   thumbnail_path: string | null;
   active_price_option_id: string | null;
@@ -156,7 +154,6 @@ type ComponentPriceOptionRow = {
   currency: string;
   pricing_source: string | null;
   pricing_date?: string | null;
-  confidence: string | null;
   source_url?: string | null;
   notes?: string | null;
   supplier_id: string | null;
@@ -227,7 +224,6 @@ type ComponentVariantCostEntryRow = {
   currency: string;
   pricing_source: string | null;
   pricing_date: string | null;
-  confidence: string | null;
   source_url: string | null;
   notes: string;
   is_current: boolean | number;
@@ -262,10 +258,10 @@ const COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE = 1000;
 export const SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100;
 export const SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS =
-  "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, confidence, metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
+  "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
 
 const COST_LIBRARY_ITEM_D1_COLUMNS =
-  "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, confidence, metadata_json AS metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
+  "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, metadata_json AS metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
 
 type ComponentRowsLibraryLoadOptions = {
   includeDetailGraph?: boolean;
@@ -541,7 +537,6 @@ function normalizeComponentLibraryItem(
     updatedAt: row.updated_at,
     pricingSource,
     pricingDate,
-    confidence: defaultPriceOption?.confidence ?? row.confidence ?? undefined,
     isCustom: metadata.isCustom === true || metadata.source === "project" || metadata.folderKind === "custom",
   };
 }
@@ -554,7 +549,6 @@ function normalizeCostEntry(row: ComponentVariantCostEntryRow): ComponentVariant
     currency: row.currency,
     pricingSource: row.pricing_source,
     pricingDate: row.pricing_date ?? "",
-    confidence: row.confidence,
     sourceUrl: sanitizeComponentSourceUrl(row.source_url) ?? null,
     notes: row.notes,
     isCurrent: readBoolean(row.is_current),
@@ -604,7 +598,6 @@ function normalizePriceOption(
     currency: row.currency,
     pricingSource: currentCostEntry?.pricingSource ?? row.pricing_source,
     pricingDate,
-    confidence: currentCostEntry?.confidence ?? row.confidence,
     sourceUrl: sanitizeComponentSourceUrl(sourceUrl) ?? null,
     notes,
     supplierId: row.supplier_id,
@@ -991,7 +984,6 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     updatedAt: row.updated_at,
     pricingSource: readString(sourceSnapshot.pricingSource) ?? "Template snapshot",
     pricingDate: readString(sourceSnapshot.pricingDate) ?? "",
-    confidence: readString(sourceSnapshot.confidence),
   };
 }
 
@@ -1406,7 +1398,6 @@ export type LibraryOverviewComponent = {
   imageUrl?: string;
   pricingSource?: string | null;
   pricingDate?: string | null;
-  confidence?: string | null;
   lifecycleState: CostLibraryLifecycleState;
   updatedAt: string;
 };
@@ -1420,7 +1411,6 @@ export type LibraryOverviewTemplate = {
   areaCount: number;
   rowCount: number;
   total: number;
-  sourceTrustChips: SourceTrustChipSpec[];
 };
 
 export type LibraryOverviewHealth = {
@@ -1461,12 +1451,11 @@ function toLibraryOverviewTemplate(template: EstimateTemplate): LibraryOverviewT
     areaCount: summary.areaCount,
     rowCount: summary.rowCount,
     total: summary.total,
-    sourceTrustChips: getTemplateSourceTrustChips(template),
   };
 }
 
 const LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS =
-  "id, name, category, brand, supplier, unit, unit_cost, thumbnail_path, pricing_source, pricing_date, confidence, lifecycle_state, updated_at";
+  "id, name, category, brand, supplier, unit, unit_cost, thumbnail_path, pricing_source, pricing_date, lifecycle_state, updated_at";
 
 type LibraryOverviewComponentRow = Pick<
   CostLibraryItemRow,
@@ -1480,7 +1469,6 @@ type LibraryOverviewComponentRow = Pick<
   | "thumbnail_path"
   | "pricing_source"
   | "pricing_date"
-  | "confidence"
   | "lifecycle_state"
   | "updated_at"
 >;
@@ -1497,7 +1485,6 @@ function toLibraryOverviewComponent(row: LibraryOverviewComponentRow): LibraryOv
     imageUrl: row.thumbnail_path ?? undefined,
     pricingSource: row.pricing_source,
     pricingDate: row.pricing_date,
-    confidence: row.confidence,
     lifecycleState: row.lifecycle_state,
     updatedAt: row.updated_at,
   };
@@ -1580,7 +1567,6 @@ function assertLibraryOverviewComponentRow(value: Record<string, unknown>, path:
     thumbnail_path: assertLibraryOverviewRpcOptionalString(value.thumbnail_path, `${path}.thumbnail_path`),
     pricing_source: assertLibraryOverviewRpcOptionalString(value.pricing_source, `${path}.pricing_source`),
     pricing_date: assertLibraryOverviewRpcOptionalString(value.pricing_date, `${path}.pricing_date`),
-    confidence: assertLibraryOverviewRpcOptionalString(value.confidence, `${path}.confidence`),
     lifecycle_state: assertLibraryOverviewRpcString(value.lifecycle_state, `${path}.lifecycle_state`) as LibraryOverviewComponentRow["lifecycle_state"],
     updated_at: assertLibraryOverviewRpcString(value.updated_at, `${path}.updated_at`),
   };

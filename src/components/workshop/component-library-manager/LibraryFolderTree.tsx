@@ -87,7 +87,6 @@ function itemMatchesQuery(item: EstimateRowItem, query: string): boolean {
     item.description,
     item.pricingSource,
     item.pricingDate,
-    item.confidence,
     ...(item.categoryPath ?? []),
   ]
     .filter((value): value is string => typeof value === "string" && value.length > 0)

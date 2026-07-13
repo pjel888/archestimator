@@ -35,7 +35,7 @@ const APPLIED_FRESHNESS_LABELS: Record<Exclude<ComponentPricingFreshness, "any">
   missing: "No pricing date",
 };
 
-type ComponentAppliedFacetKind = "supplier" | "brand" | "lifecycle" | "confidence" | "freshness";
+type ComponentAppliedFacetKind = "supplier" | "brand" | "lifecycle" | "freshness";
 
 type ComponentAppliedFacetChip = {
   id: string;
@@ -56,8 +56,6 @@ function appliedFacetPrefix(kind: ComponentAppliedFacetKind) {
       return "Brand";
     case "lifecycle":
       return "Lifecycle";
-    case "confidence":
-      return "Confidence";
     case "freshness":
       return "Pricing";
     default:
@@ -94,14 +92,6 @@ function buildComponentAppliedFacetChips(
       label: `${appliedFacetPrefix("lifecycle")}: ${COMPONENT_LIFECYCLE_FACET_LABELS[value]}`,
     });
   }
-  for (const value of filters.confidence) {
-    chips.push({
-      id: `confidence:${value}`,
-      kind: "confidence",
-      value,
-      label: `${appliedFacetPrefix("confidence")}: ${findFacetOptionLabel(options.confidence, value)}`,
-    });
-  }
   if (filters.freshness !== "any") {
     chips.push({
       id: `freshness:${filters.freshness}`,
@@ -124,8 +114,6 @@ function removeAppliedFacetChip(
       return { ...filters, brands: filters.brands.filter((value) => value !== chip.value) };
     case "lifecycle":
       return { ...filters, lifecycles: filters.lifecycles.filter((value) => value !== chip.value) };
-    case "confidence":
-      return { ...filters, confidence: filters.confidence.filter((value) => value !== chip.value) };
     case "freshness":
       return { ...filters, freshness: "any" };
     default:
@@ -225,7 +213,7 @@ function FacetCheckboxGroup({
 
 /**
  * Wired facet filter for the Components sheet: composes the generic
- * `FilterPopover` with supplier/brand/lifecycle/confidence/freshness facets.
+ * `FilterPopover` with supplier/brand/lifecycle/freshness facets.
  * Category scoping stays with the left folder tree; duplicating it here
  * would double-filter the same axis.
  */
@@ -288,12 +276,6 @@ export function ComponentFacetFilterPopover({
               lifecycles: toggleValue(filters.lifecycles, value as ComponentLifecycleState),
             })
           }
-        />
-        <FacetCheckboxGroup
-          legend="Confidence"
-          options={options.confidence}
-          selected={filters.confidence}
-          onToggle={(value) => onFiltersChange({ ...filters, confidence: toggleValue(filters.confidence, value) })}
         />
         <fieldset className="min-w-0">
           <legend className="text-[9px] font-medium leading-3 text-tertiary">Pricing freshness</legend>

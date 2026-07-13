@@ -253,7 +253,6 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     expect(within(dialog).queryByLabelText("Pricing date")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Pricing source")).not.toBeInTheDocument();
-    expect(within(dialog).queryByLabelText("Confidence")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Source URL")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Misc cost")).not.toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Length")).not.toBeInTheDocument();
@@ -533,7 +532,6 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(payload).not.toHaveProperty("libraryFolderId");
     expect(payload.priceOptions[0]).not.toHaveProperty("pricingDate");
     expect(payload.priceOptions[0]).not.toHaveProperty("pricingSource");
-    expect(payload.priceOptions[0]).not.toHaveProperty("confidence");
     expect(payload.priceOptions[0]).not.toHaveProperty("sourceUrl");
     expect(payload.priceOptions[0]).not.toHaveProperty("notes");
     expect(payload.priceOptions[0]).not.toHaveProperty("miscCost");
@@ -574,7 +572,6 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     expect(within(drawer).queryByLabelText("Pricing date")).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Pricing source")).not.toBeInTheDocument();
-    expect(within(drawer).queryByLabelText("Confidence")).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Dimension unit")).not.toBeInTheDocument();
   });
 
