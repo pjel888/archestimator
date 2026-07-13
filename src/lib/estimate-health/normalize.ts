@@ -23,12 +23,3 @@ export function toTimestamp(value: string | null | undefined): number | null {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : null;
 }
-
-export function normalizedConfidence(value: string | null | undefined): string {
-  return value?.trim().toLowerCase() ?? "";
-}
-
-export function isLowConfidence(value: string | null | undefined): boolean {
-  const confidence = normalizedConfidence(value);
-  return !confidence || /^(low|unknown|unpriced)/.test(confidence);
-}

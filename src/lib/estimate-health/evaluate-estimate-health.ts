@@ -1,4 +1,4 @@
-import { finiteOrZero, hasExplicitProvenance, isIncludedRow, isLowConfidence, toTimestamp } from "./normalize";
+import { finiteOrZero, hasExplicitProvenance, isIncludedRow, toTimestamp } from "./normalize";
 import { getPriceFreshness, resolvePriceFreshnessPolicy } from "./price-policy";
 import {
   ESTIMATE_HEALTH_EVALUATOR_VERSION,
@@ -11,7 +11,7 @@ import {
 
 const severityRank: Record<EstimateHealthSeverity, number> = { error: 0, warning: 1, info: 2 };
 const ruleSeverity: Record<EstimateHealthRuleId, EstimateHealthSeverity> = {
-  unpriced: "error", "quantity-missing": "warning", "provenance-missing": "warning", "price-stale": "warning", "price-very-stale": "error", "confidence-low": "warning", "source-changed": "warning", "source-discontinued": "error", "budget-missing": "info", "budget-near": "warning", "budget-over": "error",
+  unpriced: "error", "quantity-missing": "warning", "provenance-missing": "warning", "price-stale": "warning", "price-very-stale": "error", "source-changed": "warning", "source-discontinued": "error", "budget-missing": "info", "budget-near": "warning", "budget-over": "error",
 };
 
 type IssueAccumulator = { rowIds: string[]; amountImpact: number; estimateIds: Set<string> };
@@ -55,7 +55,6 @@ export function evaluateEstimateHealth(input: EstimateHealthInput): EstimateHeal
       if (freshness === "stale") add("price-stale", row, amount);
       if (freshness === "very-stale") add("price-very-stale", row, amount);
     }
-    if (isLowConfidence(row.confidence)) add("confidence-low", row, amount);
     if (row.linkState === "source-changed") add("source-changed", row, amount);
     if (row.lifecycleState === "discontinued" || row.lifecycleState === "archived") add("source-discontinued", row, amount);
   }

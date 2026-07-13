@@ -7,7 +7,6 @@ export type EstimateHealthRuleId =
   | "provenance-missing"
   | "price-stale"
   | "price-very-stale"
-  | "confidence-low"
   | "source-changed"
   | "source-discontinued"
   | "budget-missing"
@@ -33,7 +32,6 @@ export type EstimateHealthRowFact = {
   pricingProvenanceOrigin: EstimatePricingProvenanceOrigin | null;
   pricingSource: string | null;
   pricingDate: string | null;
-  confidence: string | null;
   linkState: "linked-clean" | "source-changed" | "unlinked" | null;
   lifecycleState: "available" | "discontinued" | "archived" | null;
 };

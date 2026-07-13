@@ -7,7 +7,7 @@ describe("estimate-health rules contract (UNIT-001 red baseline)", () => {
   it("freezes the full stable issue taxonomy", () => {
     expect(ESTIMATE_HEALTH_RULE_IDS).toEqual([
       "unpriced", "quantity-missing", "provenance-missing", "price-stale", "price-very-stale",
-      "confidence-low", "source-changed", "source-discontinued", "budget-missing", "budget-near", "budget-over",
+      "source-changed", "source-discontinued", "budget-missing", "budget-near", "budget-over",
     ]);
   });
 
@@ -17,7 +17,7 @@ describe("estimate-health rules contract (UNIT-001 red baseline)", () => {
     expect(first).toEqual(second);
     expect(first.summary).toMatchObject({ grade: "needs_attention", policyRevision: 7 });
     expect(first.issues.map((issue) => issue.ruleId)).toEqual([
-      "price-very-stale", "source-discontinued", "unpriced", "confidence-low", "price-stale", "provenance-missing", "quantity-missing", "source-changed",
+      "price-very-stale", "source-discontinued", "unpriced", "price-stale", "provenance-missing", "quantity-missing", "source-changed",
     ]);
     expect(first.issues.find((issue) => issue.ruleId === "provenance-missing")?.rowIds).toEqual(["missing-provenance", "synthesized"]);
   });

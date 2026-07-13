@@ -137,7 +137,6 @@ async function loadFacts(database: D1DatabaseLike, estimateIds: string[]) {
       pricingProvenanceOrigin: record.pricing_provenance_origin ?? null,
       pricingSource: readString(snapshot.pricingSource),
       pricingDate: readString(snapshot.pricingDate),
-      confidence: readString(snapshot.confidence),
       linkState: record.link_state ?? "unlinked",
       lifecycleState: readLifecycleState(snapshot.lifecycleState),
     } satisfies EstimateHealthRowFact;
