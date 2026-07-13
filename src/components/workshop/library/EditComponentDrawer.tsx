@@ -6,10 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/control-input";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Sheet } from "@/components/ui/overlays/sheet-drawer";
-import {
-  updateCostLibraryComponent,
-  upsertCostLibraryComponentPriceOption,
-} from "@/lib/component-library/actions";
+import { updateCostLibraryComponent } from "@/lib/component-library/actions";
 import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
 import type { ComponentLifecycleState, EstimateRowItem } from "@/lib/estimates/types";
 
@@ -49,12 +46,6 @@ function buildFormState(item: EstimateRowItem): EditComponentFormState {
   };
 }
 
-/**
- * Focused versioned edit flow for a library component (Phase 1.5): writes
- * identity fields through `update_cost_library_component` and price changes
- * through `upsert_cost_library_component_price_option` — the same hardened
- * RPC path the add flow uses.
- */
 export function EditComponentDrawer({
   item,
   open,
@@ -78,13 +69,6 @@ export function EditComponentDrawer({
     setError(null);
   }
 
-  const defaultPriceOption = useMemo(
-    () =>
-      (item.priceOptions ?? []).find((option) => option.isDefault && option.isActive) ??
-      (item.priceOptions ?? []).find((option) => option.isActive) ??
-      null,
-    [item.priceOptions],
-  );
   const componentCategory = item.category?.trim() || "Component";
   const validation = useMemo(() => validateQuickAddComponentInput({
     name: form.name,
@@ -133,13 +117,6 @@ export function EditComponentDrawer({
     const supplier = normalized.supplier ?? "";
     const brand = normalized.brand ?? "";
 
-    const priceChanged =
-      unitCost !== item.itemCost ||
-      miscCost !== item.miscCost ||
-      unit !== item.unit ||
-      pricingDate !== (item.pricingDate ?? "") ||
-      pricingSource !== (item.pricingSource ?? "");
-
     startSaving(async () => {
       try {
         await updateCostLibraryComponent(item.id, {
@@ -154,24 +131,12 @@ export function EditComponentDrawer({
           categoryNodeId: item.categoryNodeId ?? null,
           libraryFolderId: item.libraryFolderId ?? null,
           lifecycleState: form.lifecycleState,
+          unitCost,
+          miscCost,
+          pricingDate: pricingDate || null,
+          pricingSource: pricingSource || null,
           changeReason: "Edited from the component inspector",
         });
-
-        if (priceChanged) {
-          await upsertCostLibraryComponentPriceOption(item.id, {
-            id: defaultPriceOption?.id,
-            label: defaultPriceOption?.label ?? name,
-            unit,
-            unitCost,
-            miscCost,
-            pricingDate: pricingDate || undefined,
-            pricingSource: pricingSource || undefined,
-            packageQuantity: defaultPriceOption?.packageQuantity ?? null,
-            packageUnit: defaultPriceOption?.packageUnit ?? null,
-            isDefault: true,
-            changeReason: "Edited from the component inspector",
-          });
-        }
 
         onSaved({
           id: item.id,
@@ -201,7 +166,7 @@ export function EditComponentDrawer({
       side="right"
       size="md"
       title="Edit component"
-      description="Changes create a new component version; estimates keep their captured prices."
+      description="Changes create a new component version and update every linked estimate instance."
     >
       <form className="flex h-full min-h-0 flex-col" onSubmit={handleSubmit}>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { canEditEstimateInD1, isWorkspaceEditorInD1, isWorkspaceMemberInD1 } from "@/lib/authz/d1-access";
-import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Result, type D1Value } from "@/lib/cloudflare/d1";
 import {
   buildRejectedPreviewResult,
   coerceBulkExecutionResult,
@@ -86,6 +86,10 @@ type ComponentItemD1Row = {
   misc_cost: number | string | null;
   current_version_number: number | string | null;
   active_price_option_id: string | null;
+  pricing_source: string | null;
+  pricing_date: string | null;
+  thumbnail_path: string | null;
+  metadata_json: string | null;
   lifecycle_state: ComponentLifecycleState | string;
 };
 
@@ -126,6 +130,7 @@ type LibraryPriceOptionProjectionD1Row = {
 
 export type LibraryComponentInstanceSyncResult = {
   affectedEstimates: Array<{ projectId: string; estimateId: string }>;
+  rowRevisions: Record<string, number>;
   updatedRowCount: number;
 };
 
@@ -184,8 +189,8 @@ async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] =
   return result.results ?? [];
 }
 
-async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
-  const result = await database.prepare(sql).bind(...values).run();
+async function run<T = Record<string, unknown>>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).run();
   if (result.success === false) throw new Error("Cloudflare D1 component library write failed.");
   return result;
 }
@@ -202,6 +207,18 @@ async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: strin
     return;
   }
   for (const statement of statements) await run(database, statement.sql, statement.values ?? []);
+}
+
+async function runAtomicBatch(
+  database: D1DatabaseLike,
+  statements: Array<{ sql: string; values?: D1Value[] }>,
+): Promise<D1Result[]> {
+  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for component updates.");
+  const results = await database.batch(
+    statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
+  );
+  if (results.some((result) => result.success === false)) throw new Error("Cloudflare D1 component update batch failed.");
+  return results;
 }
 
 // U11 (DATA-2/DATA-3): one place to revalidate every server-rendered surface that
@@ -288,6 +305,10 @@ export type CostLibraryComponentInput = {
   brand?: string | null;
   brandId?: string | null;
   unit: string;
+  unitCost?: number;
+  miscCost?: number;
+  pricingSource?: string | null;
+  pricingDate?: string | null;
   thumbnailPath?: string | null;
   libraryFolderId?: string | null;
   lifecycleState?: ComponentLifecycleState;
@@ -351,6 +372,128 @@ function readBoolean(value: unknown) {
   return value === true || value === 1 || value === "1";
 }
 
+function projectLibraryPriceOptions(rows: LibraryPriceOptionProjectionD1Row[]) {
+  return rows.map((row) => {
+    const metadata = readJsonRecord(row.metadata_json);
+    return {
+      ...metadata,
+      id: row.id,
+      label: row.label,
+      unit: row.unit,
+      unitCost: numberValue(row.unit_cost),
+      miscCost: numberValue(row.misc_cost),
+      currency: row.currency,
+      isActive: readBoolean(row.is_active),
+      isDefault: readBoolean(row.is_default),
+      pricingSource: row.pricing_source ?? (typeof metadata.pricingSource === "string" ? metadata.pricingSource : null),
+      pricingDate: typeof metadata.pricingDate === "string" ? metadata.pricingDate : null,
+      thumbnailPath: typeof metadata.thumbnailPath === "string" ? metadata.thumbnailPath : null,
+    };
+  });
+}
+
+type LinkedEstimateRowTarget = {
+  row_id: string;
+  project_id: string;
+  estimate_id: string;
+};
+
+async function listLinkedEstimateRowTargets(database: D1DatabaseLike, workspaceId: string, itemId: string) {
+  return all<LinkedEstimateRowTarget>(
+    database,
+    `
+      SELECT row_item.id AS row_id, project.id AS project_id, estimate.id AS estimate_id
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      INNER JOIN projects project ON project.id = estimate.project_id
+      WHERE project.workspace_id = ?
+        AND row_item.source_library_item_id = ?
+        AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
+    `,
+    [workspaceId, itemId],
+  );
+}
+
+function buildLinkedEstimateRowsSyncStatement(input: {
+  workspaceId: string;
+  itemId: string;
+  material: string;
+  description: string;
+  supplier: string | null;
+  supplierId: string | null;
+  unit: string;
+  unitCost: number;
+  categoryNodeId: string | null;
+  sourceSnapshot: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  updatedAt: string;
+}) {
+  return {
+    sql: `
+      UPDATE estimate_row_items
+      SET material = ?,
+          description = ?,
+          supplier = ?,
+          supplier_id = ?,
+          unit = ?,
+          unit_cost = ?,
+          category_node_id = ?,
+          source_snapshot_json = json_patch(COALESCE(source_snapshot_json, '{}'), ?),
+          metadata_json = json_patch(COALESCE(metadata_json, '{}'), ?),
+          link_state = 'linked-clean',
+          row_revision = row_revision + 1,
+          updated_at = ?
+      WHERE source_library_item_id = ?
+        AND (link_state IS NULL OR link_state NOT IN ('detached', 'unlinked'))
+        AND estimate_id IN (
+          SELECT estimate.id
+          FROM estimates estimate
+          INNER JOIN projects project ON project.id = estimate.project_id
+          WHERE project.workspace_id = ?
+        )
+      RETURNING id, row_revision
+    `,
+    values: [
+      input.material,
+      input.description,
+      input.supplier,
+      input.supplierId,
+      input.unit,
+      input.unitCost,
+      input.categoryNodeId,
+      jsonText(input.sourceSnapshot),
+      jsonText(input.metadata),
+      input.updatedAt,
+      input.itemId,
+      input.workspaceId,
+    ] as D1Value[],
+  };
+}
+
+function buildLibraryComponentInstanceSyncResult(
+  affectedRows: LinkedEstimateRowTarget[],
+  result: D1Result<{ id: string; row_revision: number | string }>,
+): LibraryComponentInstanceSyncResult {
+  const affectedEstimateKeys = new Set<string>();
+  const affectedEstimates: LibraryComponentInstanceSyncResult["affectedEstimates"] = [];
+  for (const row of affectedRows) {
+    const key = `${row.project_id}:${row.estimate_id}`;
+    if (affectedEstimateKeys.has(key)) continue;
+    affectedEstimateKeys.add(key);
+    affectedEstimates.push({ projectId: row.project_id, estimateId: row.estimate_id });
+  }
+  return {
+    affectedEstimates,
+    rowRevisions: Object.fromEntries((result.results ?? []).map((row) => [row.id, numberValue(row.row_revision)])),
+    updatedRowCount: result.meta?.changes ?? 0,
+  };
+}
+
+function revalidateLinkedEstimateRows(rows: LinkedEstimateRowTarget[]) {
+  const paths = new Set(rows.map((row) => `/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`));
+  for (const path of paths) revalidatePath(path);
+}
+
 async function reconcileLinkedEstimateRowsForLibraryComponent(
   database: D1DatabaseLike,
   workspaceId: string,
@@ -385,32 +528,12 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
     `,
     [itemId, workspaceId],
   );
-  const priceOptions = priceOptionRows.map((row) => {
-    const metadata = readJsonRecord(row.metadata_json);
-    const pricingSource = row.pricing_source ?? (typeof metadata.pricingSource === "string" ? metadata.pricingSource : null);
-    const pricingDate = typeof metadata.pricingDate === "string" ? metadata.pricingDate : null;
-    const thumbnailPath = typeof metadata.thumbnailPath === "string" ? metadata.thumbnailPath : null;
-    return {
-      ...metadata,
-      id: row.id,
-      label: row.label,
-      unit: row.unit,
-      unitCost: numberValue(row.unit_cost),
-      miscCost: numberValue(row.misc_cost),
-      currency: row.currency,
-      isActive: readBoolean(row.is_active),
-      isDefault: readBoolean(row.is_default),
-      pricingSource,
-      pricingDate,
-      thumbnailPath,
-    };
-  });
+  const priceOptions = projectLibraryPriceOptions(priceOptionRows);
   const activePriceOption = priceOptions.find((option) => option.id === component.active_price_option_id)
     ?? priceOptions.find((option) => option.isDefault)
     ?? priceOptions[0];
   const unit = typeof activePriceOption?.unit === "string" ? activePriceOption.unit : component.unit;
   const unitCost = typeof activePriceOption?.unitCost === "number" ? activePriceOption.unitCost : numberValue(component.unit_cost);
-  const miscCost = typeof activePriceOption?.miscCost === "number" ? activePriceOption.miscCost : numberValue(component.misc_cost);
   const pricingSource = typeof activePriceOption?.pricingSource === "string"
     ? activePriceOption.pricingSource
     : component.pricing_source;
@@ -430,7 +553,6 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
     imageUrl,
     lifecycleState: component.lifecycle_state,
     material: component.name,
-    misc_cost: miscCost,
     priceOptionId: activePriceOption?.id ?? null,
     priceOptionLabel: activePriceOption?.label ?? null,
     priceOptions,
@@ -453,70 +575,30 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
     sourceComponentId: itemId,
     supplierId: component.supplier_id,
   };
-  const affectedRows = await all<{ project_id: string; estimate_id: string }>(
-    database,
-    `
-      SELECT DISTINCT project.id AS project_id, estimate.id AS estimate_id
-      FROM estimate_row_items row_item
-      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-      INNER JOIN projects project ON project.id = estimate.project_id
-      WHERE project.workspace_id = ?
-        AND row_item.source_library_item_id = ?
-        AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
-    `,
-    [workspaceId, itemId],
-  );
-  if (affectedRows.length === 0) return { affectedEstimates: [], updatedRowCount: 0 };
+  const affectedRows = await listLinkedEstimateRowTargets(database, workspaceId, itemId);
+  if (affectedRows.length === 0) return { affectedEstimates: [], rowRevisions: {}, updatedRowCount: 0 };
 
-  const result = await run(
+  const statement = buildLinkedEstimateRowsSyncStatement({
+    workspaceId,
+    itemId,
+    material: component.name,
+    description: component.description,
+    supplier: component.supplier,
+    supplierId: component.supplier_id,
+    unit,
+    unitCost,
+    categoryNodeId: component.category_node_id,
+    sourceSnapshot: snapshotPatch,
+    metadata: metadataPatch,
+    updatedAt: component.updated_at,
+  });
+  const result = await run<{ id: string; row_revision: number | string }>(
     database,
-    `
-      UPDATE estimate_row_items
-      SET material = ?,
-          description = ?,
-          supplier = ?,
-          supplier_id = ?,
-          unit = ?,
-          unit_cost = ?,
-          misc_cost = ?,
-          category_node_id = ?,
-          source_snapshot_json = json_patch(COALESCE(source_snapshot_json, '{}'), ?),
-          metadata_json = json_patch(COALESCE(metadata_json, '{}'), ?),
-          link_state = 'linked-clean',
-          row_revision = row_revision + 1,
-          updated_at = ?
-      WHERE source_library_item_id = ?
-        AND (link_state IS NULL OR link_state NOT IN ('detached', 'unlinked'))
-        AND estimate_id IN (
-          SELECT estimate.id
-          FROM estimates estimate
-          INNER JOIN projects project ON project.id = estimate.project_id
-          WHERE project.workspace_id = ?
-        )
-    `,
-    [
-      component.name,
-      component.description,
-      component.supplier,
-      component.supplier_id,
-      unit,
-      unitCost,
-      miscCost,
-      component.category_node_id,
-      jsonText(snapshotPatch),
-      jsonText(metadataPatch),
-      component.updated_at,
-      itemId,
-      workspaceId,
-    ],
+    statement.sql,
+    statement.values,
   );
-  for (const row of affectedRows) {
-    revalidatePath(`/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`);
-  }
-  return {
-    affectedEstimates: affectedRows.map((row) => ({ projectId: row.project_id, estimateId: row.estimate_id })),
-    updatedRowCount: result.meta?.changes ?? 0,
-  };
+  revalidateLinkedEstimateRows(affectedRows);
+  return buildLibraryComponentInstanceSyncResult(affectedRows, result);
 }
 
 function getMassDeletionCorrelationId(correlationId: string | undefined) {
@@ -1148,7 +1230,7 @@ async function readComponentItem(database: D1DatabaseLike, workspaceId: string, 
     database,
     `
       SELECT id, workspace_id, name, unit, unit_cost, misc_cost, current_version_number,
-        active_price_option_id, lifecycle_state
+        active_price_option_id, pricing_source, pricing_date, thumbnail_path, metadata_json, lifecycle_state
       FROM cost_library_items
       WHERE id = ?
         AND workspace_id = ?
@@ -1190,7 +1272,7 @@ async function insertComponentVersion(database: D1DatabaseLike, input: {
   await run(
     database,
     `
-      INSERT OR IGNORE INTO cost_library_item_versions (
+      INSERT INTO cost_library_item_versions (
         id, item_id, workspace_id, version_number, snapshot_json, change_summary,
         change_reason, effective_at, created_by, created_at
       )
@@ -1211,49 +1293,40 @@ async function insertComponentVersion(database: D1DatabaseLike, input: {
   );
 }
 
-async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
+type ComponentPriceOptionWriteInput = {
   workspaceId: string;
   itemId: string;
   priceOption: ReturnType<typeof normalizePriceOptionInput>;
   userId: string;
   effectiveAt: string;
   writeHistory: boolean;
-}) {
-  const priceOptionId = input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID();
-  const timestamp = nowIso();
+};
+
+function buildComponentPriceOptionWritePlan(
+  input: ComponentPriceOptionWriteInput,
+  options: { oldSnapshotJson?: string | null; priceOptionId?: string; timestamp?: string } = {},
+) {
+  const priceOptionId = options.priceOptionId
+    ?? (input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID());
+  const timestamp = options.timestamp ?? nowIso();
   const metadata = priceOptionSnapshot({ ...input.priceOption, id: priceOptionId });
-  const oldSnapshotRow = input.writeHistory
-    ? await first<{ metadata_json: string | null }>(
-      database,
-      `
-        SELECT metadata_json
-        FROM cost_library_item_price_options
-        WHERE id = ?
-          AND item_id = ?
-          AND workspace_id = ?
-        LIMIT 1
-      `,
-      [priceOptionId, input.itemId, input.workspaceId],
-    )
-    : null;
+  const statements: Array<{ sql: string; values: D1Value[] }> = [];
 
   if (input.priceOption.isDefault) {
-    await run(
-      database,
-      `
+    statements.push({
+      sql: `
         UPDATE cost_library_item_price_options
         SET is_default = 0
         WHERE item_id = ?
           AND workspace_id = ?
           AND id <> ?
       `,
-      [input.itemId, input.workspaceId, priceOptionId],
-    );
+      values: [input.itemId, input.workspaceId, priceOptionId],
+    });
   }
 
-  await run(
-    database,
-    `
+  statements.push({
+    sql: `
       INSERT INTO cost_library_item_price_options (
         id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,
         is_active, is_default, updated_at, supplier_id, pricing_source,
@@ -1273,7 +1346,7 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
         pricing_source = excluded.pricing_source,
         metadata_json = excluded.metadata_json
     `,
-    [
+    values: [
       priceOptionId,
       input.workspaceId,
       input.itemId,
@@ -1290,11 +1363,10 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
       jsonText(metadata),
       timestamp,
     ],
-  );
+  });
 
-  const activeCostEntries = input.priceOption.costEntries.filter((entry) => entry.deletedAt === null);
-  if (activeCostEntries.length > 0) {
-    const entryStatements = activeCostEntries.map((entry) => ({
+  for (const entry of input.priceOption.costEntries.filter((candidate) => candidate.deletedAt === null)) {
+    statements.push({
       sql: `
         INSERT INTO cost_library_item_variant_cost_entries (
           id, workspace_id, item_id, price_option_id, unit_cost, misc_cost, currency,
@@ -1332,48 +1404,75 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
         jsonText({ source: "component-library-action" }),
         timestamp,
         timestamp,
-      ] as D1Value[],
-    }));
-    await runBatch(database, entryStatements);
+      ],
+    });
   }
 
   if (input.writeHistory) {
-    await run(
-      database,
-      `
+    statements.push({
+      sql: `
         INSERT OR IGNORE INTO cost_library_item_price_history (
           id, price_option_id, item_id, workspace_id, operation_key, old_snapshot,
           new_snapshot, change_reason, effective_at, created_by, created_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [
+      values: [
         randomUUID(),
         priceOptionId,
         input.itemId,
         input.workspaceId,
         `${input.itemId}:${priceOptionId}:${input.effectiveAt}`,
-        oldSnapshotRow?.metadata_json ?? null,
+        options.oldSnapshotJson ?? null,
         jsonText(metadata),
         input.priceOption.changeReason,
         input.effectiveAt,
         input.userId,
         timestamp,
       ],
-    );
+    });
   }
 
   return {
-    id: priceOptionId,
-    label: input.priceOption.label,
-    isDefault: input.priceOption.isDefault,
-    isActive: input.priceOption.isActive,
-    unit: input.priceOption.unit,
-    unitCost: input.priceOption.unitCost,
-    miscCost: input.priceOption.miscCost,
-    pricingSource: input.priceOption.pricingSource,
-    pricingDate: input.priceOption.pricingDate,
+    persisted: {
+      id: priceOptionId,
+      label: input.priceOption.label,
+      isDefault: input.priceOption.isDefault,
+      isActive: input.priceOption.isActive,
+      unit: input.priceOption.unit,
+      unitCost: input.priceOption.unitCost,
+      miscCost: input.priceOption.miscCost,
+      pricingSource: input.priceOption.pricingSource,
+      pricingDate: input.priceOption.pricingDate,
+      thumbnailPath: input.priceOption.thumbnailPath,
+      snapshot: metadata,
+    },
+    statements,
   };
+}
+
+async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: ComponentPriceOptionWriteInput) {
+  const priceOptionId = input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID();
+  const oldSnapshotRow = input.writeHistory
+    ? await first<{ metadata_json: string | null }>(
+      database,
+      `
+        SELECT metadata_json
+        FROM cost_library_item_price_options
+        WHERE id = ?
+          AND item_id = ?
+          AND workspace_id = ?
+        LIMIT 1
+      `,
+      [priceOptionId, input.itemId, input.workspaceId],
+    )
+    : null;
+  const plan = buildComponentPriceOptionWritePlan(input, {
+    oldSnapshotJson: oldSnapshotRow?.metadata_json,
+    priceOptionId,
+  });
+  await runBatch(database, plan.statements);
+  return plan.persisted;
 }
 
 // Lazy estimate-sheet path: the sheet renders without the library dataset and
@@ -1637,9 +1736,73 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
   const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
   const nextVersion = numberValue(existing.current_version_number, 1) + 1;
   const timestamp = nowIso();
-  await run(
+  const priceOptionRows = await all<LibraryPriceOptionProjectionD1Row>(
     database,
     `
+      SELECT id, label, unit, unit_cost, misc_cost, currency, is_active, is_default,
+        pricing_source, metadata_json
+      FROM cost_library_item_price_options
+      WHERE item_id = ?
+        AND workspace_id = ?
+        AND is_active = 1
+      ORDER BY is_default DESC, updated_at DESC, id ASC
+    `,
+    [itemId, workspace.id],
+  );
+  const currentPriceOptions = projectLibraryPriceOptions(priceOptionRows);
+  const currentActivePriceOption = currentPriceOptions.find((option) => option.id === existing.active_price_option_id)
+    ?? currentPriceOptions.find((option) => option.isDefault)
+    ?? currentPriceOptions[0];
+  const unitCost = input.unitCost ?? currentActivePriceOption?.unitCost ?? numberValue(existing.unit_cost);
+  const miscCost = input.miscCost ?? currentActivePriceOption?.miscCost ?? numberValue(existing.misc_cost);
+  const pricingSource = input.pricingSource !== undefined
+    ? input.pricingSource
+    : currentActivePriceOption?.pricingSource ?? existing.pricing_source;
+  const pricingDate = input.pricingDate !== undefined
+    ? input.pricingDate
+    : currentActivePriceOption?.pricingDate ?? existing.pricing_date;
+  const thumbnailPath = input.thumbnailPath === undefined ? existing.thumbnail_path : component.thumbnailPath;
+  const metadataJson = input.metadata === undefined ? existing.metadata_json ?? "{}" : jsonText(readMetadataObject(component.metadata));
+  const versionComponent = { ...component, thumbnailPath };
+  const priceOptions = currentPriceOptions.map((option) => option.id === currentActivePriceOption?.id
+    ? { ...option, unit: component.unit, unitCost, miscCost, pricingSource, pricingDate }
+    : option);
+  const activePriceOption = priceOptions.find((option) => option.id === currentActivePriceOption?.id) ?? priceOptions[0];
+  const affectedRows = await listLinkedEstimateRowTargets(database, workspace.id, itemId);
+  const sourceSnapshot = {
+    brand: component.brand,
+    brandId: component.brandId,
+    category: component.category,
+    categoryNodeId: component.categoryNodeId,
+    componentVersionNumber: nextVersion,
+    description: component.description,
+    imageUrl: activePriceOption?.thumbnailPath || thumbnailPath,
+    lifecycleState: component.lifecycleState,
+    material: component.name,
+    priceOptionId: activePriceOption?.id ?? null,
+    priceOptionLabel: activePriceOption?.label ?? null,
+    priceOptions,
+    pricingDate,
+    pricingSource,
+    sourceComponentId: itemId,
+    sourceLibraryItemId: itemId,
+    sourceType: "library_component",
+    sourceUpdatedAt: timestamp,
+    supplier: component.supplier,
+    supplierId: component.supplierId,
+    unit: component.unit,
+    unit_cost: unitCost,
+  };
+  const metadataPatch = {
+    brandId: component.brandId,
+    categoryNodeId: component.categoryNodeId,
+    componentVersionNumber: nextVersion,
+    priceOptionId: activePriceOption?.id ?? null,
+    sourceComponentId: itemId,
+    supplierId: component.supplierId,
+  };
+  const statements: Array<{ sql: string; values: D1Value[] }> = [{
+    sql: `
       UPDATE cost_library_items
       SET name = ?,
           description = ?,
@@ -1651,6 +1814,10 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
           brand = ?,
           brand_id = ?,
           unit = ?,
+          unit_cost = ?,
+          misc_cost = ?,
+          pricing_source = ?,
+          pricing_date = ?,
           thumbnail_path = ?,
           lifecycle_state = ?,
           current_version_number = ?,
@@ -1659,7 +1826,7 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
       WHERE id = ?
         AND workspace_id = ?
     `,
-    [
+    values: [
       component.name,
       component.description,
       component.category,
@@ -1670,26 +1837,116 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
       component.brand,
       component.brandId ?? null,
       component.unit,
-      component.thumbnailPath,
+      unitCost,
+      miscCost,
+      pricingSource,
+      pricingDate,
+      thumbnailPath,
       component.lifecycleState,
       nextVersion,
-      jsonText(readMetadataObject(component.metadata)),
+      metadataJson,
       timestamp,
       itemId,
       workspace.id,
     ],
-  );
-  await insertComponentVersion(database, {
-    itemId,
-    workspaceId: workspace.id,
-    versionNumber: nextVersion,
-    snapshot: componentSnapshot(component),
-    summary: "Component updated",
-    reason: component.changeReason,
-    effectiveAt: component.effectiveAt,
-    userId: currentUser.userId,
+  }];
+  if (activePriceOption) {
+    statements.push({
+      sql: `
+        UPDATE cost_library_item_price_options
+        SET unit = ?,
+            unit_cost = ?,
+            misc_cost = ?,
+            pricing_source = ?,
+            metadata_json = json_patch(COALESCE(metadata_json, '{}'), ?),
+            updated_at = ?
+        WHERE id = ?
+          AND item_id = ?
+          AND workspace_id = ?
+      `,
+      values: [
+        component.unit,
+        unitCost,
+        miscCost,
+        pricingSource,
+        jsonText({ pricingDate, pricingSource, unit: component.unit, unitCost, miscCost }),
+        timestamp,
+        activePriceOption.id,
+        itemId,
+        workspace.id,
+      ],
+    }, {
+      sql: `
+        UPDATE cost_library_item_variant_cost_entries
+        SET unit_cost = ?,
+            misc_cost = ?,
+            pricing_source = ?,
+            pricing_date = ?,
+            updated_at = ?
+        WHERE price_option_id = ?
+          AND item_id = ?
+          AND workspace_id = ?
+          AND is_current = 1
+          AND deleted_at IS NULL
+      `,
+      values: [
+        unitCost,
+        miscCost,
+        pricingSource,
+        pricingDate,
+        timestamp,
+        activePriceOption.id,
+        itemId,
+        workspace.id,
+      ],
+    });
+  }
+  statements.push({
+    sql: `
+      INSERT INTO cost_library_item_versions (
+        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
+        change_reason, effective_at, created_by, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    values: [
+      randomUUID(),
+      itemId,
+      workspace.id,
+      nextVersion,
+      jsonText(componentSnapshot(versionComponent, { priceOptions })),
+      "Component updated",
+      component.changeReason,
+      component.effectiveAt,
+      currentUser.userId,
+      timestamp,
+    ],
   });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
+  const syncStatementIndex = affectedRows.length > 0 ? statements.length : -1;
+  if (affectedRows.length > 0) {
+    statements.push(buildLinkedEstimateRowsSyncStatement({
+      workspaceId: workspace.id,
+      itemId,
+      material: component.name,
+      description: component.description,
+      supplier: component.supplier,
+      supplierId: component.supplierId,
+      unit: component.unit,
+      unitCost,
+      categoryNodeId: component.categoryNodeId,
+      sourceSnapshot,
+      metadata: metadataPatch,
+      updatedAt: timestamp,
+    }));
+  }
+  const results = await runAtomicBatch(database, statements);
+  const instanceSync = syncStatementIndex >= 0
+    ? buildLibraryComponentInstanceSyncResult(
+        affectedRows,
+        results[syncStatementIndex] as D1Result<{ id: string; row_revision: number | string }>,
+      )
+    : { affectedEstimates: [], rowRevisions: {}, updatedRowCount: 0 };
+  revalidateLinkedEstimateRows(affectedRows);
   revalidateLibraryRoutes();
   return {
     itemId,
@@ -1715,9 +1972,54 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
   const nextVersion = numberValue(existing.current_version_number, 1) + 1;
   const timestamp = nowIso();
-  await run(
-    database,
-    `
+  const priceOptionPlans = priceOptions.map((priceOption) => buildComponentPriceOptionWritePlan({
+    workspaceId: workspace.id,
+    itemId,
+    priceOption,
+    userId: currentUser.userId,
+    effectiveAt: priceOption.effectiveAt,
+    writeHistory: false,
+  }, { timestamp }));
+  const persistedPriceOptions = priceOptionPlans.map((plan) => plan.persisted);
+  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
+  if (!activePriceOption) throw new Error("At least one active component variant is required.");
+  const retainedPriceOptionIds = persistedPriceOptions.map((option) => option.id);
+  const affectedRows = await listLinkedEstimateRowTargets(database, workspace.id, itemId);
+  const sourcePriceOptions = persistedPriceOptions.map((option) => ({ ...option.snapshot, id: option.id }));
+  const sourceSnapshot = {
+    brand: component.brand,
+    brandId: component.brandId,
+    category: component.category,
+    categoryNodeId: component.categoryNodeId,
+    componentVersionNumber: nextVersion,
+    description: component.description,
+    imageUrl: activePriceOption.thumbnailPath || component.thumbnailPath,
+    lifecycleState: component.lifecycleState,
+    material: component.name,
+    priceOptionId: activePriceOption.id,
+    priceOptionLabel: activePriceOption.label,
+    priceOptions: sourcePriceOptions,
+    pricingDate: activePriceOption.pricingDate,
+    pricingSource: activePriceOption.pricingSource,
+    sourceComponentId: itemId,
+    sourceLibraryItemId: itemId,
+    sourceType: "library_component",
+    sourceUpdatedAt: timestamp,
+    supplier: component.supplier,
+    supplierId: component.supplierId,
+    unit: activePriceOption.unit,
+    unit_cost: activePriceOption.unitCost,
+  };
+  const metadataPatch = {
+    brandId: component.brandId,
+    categoryNodeId: component.categoryNodeId,
+    componentVersionNumber: nextVersion,
+    priceOptionId: activePriceOption.id,
+    sourceComponentId: itemId,
+    supplierId: component.supplierId,
+  };
+  const statements: Array<{ sql: string; values: D1Value[] }> = [{
+    sql: `
       UPDATE cost_library_items
       SET name = ?,
           description = ?,
@@ -1737,7 +2039,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       WHERE id = ?
         AND workspace_id = ?
     `,
-    [
+    values: [
       component.name,
       component.description,
       component.category,
@@ -1756,24 +2058,10 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       itemId,
       workspace.id,
     ],
-  );
-
-  const persistedPriceOptions = [];
-  for (const priceOption of priceOptions) {
-    persistedPriceOptions.push(await upsertComponentPriceOptionInD1(database, {
-      workspaceId: workspace.id,
-      itemId,
-      priceOption,
-      userId: currentUser.userId,
-      effectiveAt: priceOption.effectiveAt,
-      writeHistory: false,
-    }));
-  }
-  const retainedPriceOptionIds = persistedPriceOptions.map((option) => option.id);
-  if (retainedPriceOptionIds.length > 0) {
-    await run(
-      database,
-      `
+  }];
+  for (const plan of priceOptionPlans) statements.push(...plan.statements);
+  statements.push({
+    sql: `
         UPDATE cost_library_item_price_options
         SET is_active = 0,
             is_default = 0,
@@ -1782,14 +2070,9 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
           AND workspace_id = ?
           AND id NOT IN (${placeholders(retainedPriceOptionIds)})
       `,
-      [timestamp, itemId, workspace.id, ...retainedPriceOptionIds],
-    );
-  }
-  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
-  if (!activePriceOption) throw new Error("At least one active component variant is required.");
-  await run(
-    database,
-    `
+    values: [timestamp, itemId, workspace.id, ...retainedPriceOptionIds],
+  }, {
+    sql: `
       UPDATE cost_library_items
       SET active_price_option_id = ?,
           unit = ?,
@@ -1801,7 +2084,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       WHERE id = ?
         AND workspace_id = ?
     `,
-    [
+    values: [
       activePriceOption.id,
       activePriceOption.unit,
       activePriceOption.unitCost,
@@ -1812,18 +2095,52 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       itemId,
       workspace.id,
     ],
-  );
-  await insertComponentVersion(database, {
-    itemId,
-    workspaceId: workspace.id,
-    versionNumber: nextVersion,
-    snapshot: componentSnapshot(component, { priceOptions: persistedPriceOptions }),
-    summary: "Component and variants updated",
-    reason: component.changeReason,
-    effectiveAt: component.effectiveAt,
-    userId: currentUser.userId,
+  }, {
+    sql: `
+      INSERT INTO cost_library_item_versions (
+        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
+        change_reason, effective_at, created_by, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    values: [
+      randomUUID(),
+      itemId,
+      workspace.id,
+      nextVersion,
+      jsonText(componentSnapshot(component, { priceOptions: sourcePriceOptions })),
+      "Component and variants updated",
+      component.changeReason,
+      component.effectiveAt,
+      currentUser.userId,
+      timestamp,
+    ],
   });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
+  const syncStatementIndex = affectedRows.length > 0 ? statements.length : -1;
+  if (affectedRows.length > 0) {
+    statements.push(buildLinkedEstimateRowsSyncStatement({
+      workspaceId: workspace.id,
+      itemId,
+      material: component.name,
+      description: component.description,
+      supplier: component.supplier,
+      supplierId: component.supplierId,
+      unit: activePriceOption.unit,
+      unitCost: activePriceOption.unitCost,
+      categoryNodeId: component.categoryNodeId,
+      sourceSnapshot,
+      metadata: metadataPatch,
+      updatedAt: timestamp,
+    }));
+  }
+  const results = await runAtomicBatch(database, statements);
+  const instanceSync = syncStatementIndex >= 0
+    ? buildLibraryComponentInstanceSyncResult(
+        affectedRows,
+        results[syncStatementIndex] as D1Result<{ id: string; row_revision: number | string }>,
+      )
+    : { affectedEstimates: [], rowRevisions: {}, updatedRowCount: 0 };
+  revalidateLinkedEstimateRows(affectedRows);
   revalidateLibraryRoutes();
   return {
     itemId,

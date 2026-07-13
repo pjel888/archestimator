@@ -34,6 +34,8 @@ const COMPONENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 function createD1Fixture(options: {
   firstResults?: unknown[];
   allResults?: unknown[][];
+  batchFailureAt?: number;
+  linkedRowRevisionResults?: Array<{ id: string; row_revision: number }>;
 } = {}) {
   const firstResults = [...(options.firstResults ?? [])];
   const allResults = [...(options.allResults ?? [])];
@@ -45,10 +47,19 @@ function createD1Fixture(options: {
         return {
           first: vi.fn(async () => firstResults.shift() ?? null),
           all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
-          run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+          run: vi.fn(async () => ({
+            success: true,
+            meta: { changes: 1 },
+            results: sql.includes("UPDATE estimate_row_items") ? options.linkedRowRevisionResults ?? [] : [],
+          })),
         };
       }),
     })),
+    batch: vi.fn(async (preparedStatements: Array<{ run: () => Promise<unknown> }>) => Promise.all(
+      preparedStatements.map((statement, index) => index === options.batchFailureAt
+        ? { success: false, meta: { changes: 0 }, results: [] }
+        : statement.run()),
+    )),
     statements,
   };
   d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
@@ -122,6 +133,10 @@ describe("library component instance reconciliation", () => {
           misc_cost: 0,
           current_version_number: 1,
           active_price_option_id: "price-1",
+          pricing_source: "Supplier A",
+          pricing_date: "2026-07-01",
+          thumbnail_path: "/original.webp",
+          metadata_json: JSON.stringify({ custom: "keep" }),
           lifecycle_state: "available",
         },
         {
@@ -159,8 +174,9 @@ describe("library component instance reconciliation", () => {
           pricing_source: "Supplier A",
           metadata_json: JSON.stringify({ pricingDate: "2026-07-13", thumbnailPath: "/oak.webp" }),
         }],
-        [{ project_id: "project-1", estimate_id: "estimate-1" }],
+        [{ row_id: "row-1", project_id: "project-1", estimate_id: "estimate-1" }],
       ],
+      linkedRowRevisionResults: [{ id: "row-1", row_revision: 4 }],
     });
     const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
 
@@ -186,15 +202,102 @@ describe("library component instance reconciliation", () => {
     expect(linkedRowUpdate?.sql).toContain("link_state IS NULL OR link_state NOT IN ('detached', 'unlinked')");
     expect(linkedRowUpdate?.sql).toContain("project.workspace_id = ?");
     expect(linkedRowUpdate?.sql).not.toContain("quantity =");
+    expect(linkedRowUpdate?.sql).not.toContain("misc_cost =");
     expect(linkedRowUpdate?.sql).not.toContain("contingency_percentage =");
     expect(linkedRowUpdate?.sql).not.toContain("adjustment_percentage =");
     expect(linkedRowUpdate?.values).toContain(COMPONENT_ID);
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    expect(database.statements.find((statement) => statement.sql.includes("cost_library_item_versions"))?.sql).not.toContain("OR IGNORE");
+    expect(database.statements.some((statement) => statement.sql.includes("UPDATE cost_library_item_variant_cost_entries"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("id NOT IN"))).toBe(false);
+    expect(database.statements.find((statement) => statement.sql.includes("UPDATE cost_library_item_price_options"))?.sql).toContain("json_patch");
+    const componentUpdate = database.statements.find((statement) => statement.sql.includes("UPDATE cost_library_items"));
+    expect(componentUpdate?.values).toContain("/original.webp");
+    expect(componentUpdate?.values).toContain(JSON.stringify({ custom: "keep" }));
     expect(result).toMatchObject({
       itemId: COMPONENT_ID,
       versionNumber: 2,
       updatedRowCount: 1,
+      rowRevisions: { "row-1": 4 },
       affectedEstimates: [{ projectId: "project-1", estimateId: "estimate-1" }],
     });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
+  });
+
+  it("atomically updates component variants, version history, and linked row revisions", async () => {
+    const database = createD1Fixture({
+      firstResults: [{
+        id: COMPONENT_ID,
+        workspace_id: WORKSPACE_ID,
+        name: "Original",
+        unit: "box",
+        unit_cost: 100,
+        misc_cost: 0,
+        current_version_number: 1,
+        active_price_option_id: "price-1",
+        lifecycle_state: "available",
+      }],
+      allResults: [[{ row_id: "row-1", project_id: "project-1", estimate_id: "estimate-1" }]],
+      linkedRowRevisionResults: [{ id: "row-1", row_revision: 6 }],
+    });
+    const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
+
+    const result = await updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
+      name: "Updated Oak",
+      description: "Updated description",
+      category: "Flooring",
+      supplier: "Supplier A",
+      brand: "Pergo",
+      unit: "box",
+      lifecycleState: "available",
+      priceOptions: [{
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        label: "V1",
+        unit: "box",
+        unitCost: 2500.5,
+        miscCost: 25,
+        isActive: true,
+        isDefault: true,
+      }],
+    });
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    expect(database.statements.some((statement) => statement.sql.includes("UPDATE cost_library_items"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("cost_library_item_versions"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("UPDATE estimate_row_items"))).toBe(true);
+    expect(result).toMatchObject({
+      itemId: COMPONENT_ID,
+      versionNumber: 2,
+      rowRevisions: { "row-1": 6 },
+      updatedRowCount: 1,
+    });
+  });
+
+  it("fails the action when the required atomic batch reports a write failure", async () => {
+    createD1Fixture({
+      firstResults: [{
+        id: COMPONENT_ID,
+        workspace_id: WORKSPACE_ID,
+        name: "Original",
+        unit: "box",
+        unit_cost: 100,
+        misc_cost: 0,
+        current_version_number: 1,
+        active_price_option_id: "price-1",
+        pricing_source: null,
+        pricing_date: null,
+        lifecycle_state: "available",
+      }],
+      allResults: [[], []],
+      batchFailureAt: 0,
+    });
+    const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
+
+    await expect(updateCostLibraryComponent(COMPONENT_ID, {
+      name: "Should roll back",
+      unit: "box",
+      category: "Flooring",
+    })).rejects.toThrow(/batch failed/);
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

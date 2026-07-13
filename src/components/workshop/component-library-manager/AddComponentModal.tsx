@@ -30,6 +30,7 @@ import {
   updateCostLibraryComponentWithPriceOptions,
   type ComponentLifecycleState,
   type CreateCostLibraryComponentInput,
+  type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
 import {
   type LibraryFolderRecord,
@@ -154,7 +155,7 @@ type AddComponentModalProps = {
   imageUploadProjectId?: string | null;
   onOpenChange: (open: boolean) => void;
   onComponentCreated: (item: EstimateRowItem) => void;
-  onComponentUpdated?: (item: EstimateRowItem) => void | Promise<void>;
+  onComponentUpdated?: (item: EstimateRowItem, instanceSync?: LibraryComponentInstanceSyncResult) => void | Promise<void>;
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
   onDeleteFolder?: (folderId: string, currentName: string) => void;
@@ -1620,10 +1621,12 @@ function OpenAddComponentModal({
       try {
         if (isEditing) {
           let editedItem = buildEditedItem();
+          let instanceSync: LibraryComponentInstanceSyncResult | undefined;
           const sourceLibraryItemId = editingItem?.sourceLibraryItemId
             ?? (editingItem?.source === "library" ? editingItem.id : null);
           if (sourceLibraryItemId) {
             const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, payload);
+            instanceSync = result;
             editedItem = {
               ...editedItem,
               source: "library",
@@ -1633,7 +1636,7 @@ function OpenAddComponentModal({
               priceOptionId: result.activePriceOptionId,
             };
           }
-          await onComponentUpdated?.(editedItem);
+          await onComponentUpdated?.(editedItem, instanceSync);
         } else {
           const result = await createCostLibraryComponent(payload);
           onComponentCreated(buildOptimisticItem(result));
