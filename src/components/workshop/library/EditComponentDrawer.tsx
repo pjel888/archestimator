@@ -119,7 +119,10 @@ export function EditComponentDrawer({
 
     startSaving(async () => {
       try {
-        await updateCostLibraryComponent(item.id, {
+        if (!item.updatedAt || !item.componentVersionNumber) {
+          throw new Error("Refresh this component before editing it.");
+        }
+        const result = await updateCostLibraryComponent(item.id, {
           name,
           description: form.description.trim(),
           unit,
@@ -136,6 +139,8 @@ export function EditComponentDrawer({
           pricingDate: pricingDate || null,
           pricingSource: pricingSource || null,
           changeReason: "Edited from the component inspector",
+          expectedUpdatedAt: item.updatedAt,
+          expectedVersionNumber: item.componentVersionNumber,
         });
 
         onSaved({
@@ -151,6 +156,8 @@ export function EditComponentDrawer({
           miscCost,
           pricingDate,
           pricingSource,
+          componentVersionNumber: result.versionNumber,
+          updatedAt: result.updatedAt,
         });
         onOpenChange(false);
       } catch (saveError) {

@@ -10,6 +10,7 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
+  updateCostLibraryComponentWithPriceOptions: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
@@ -114,6 +115,8 @@ function makeEditingItem(overrides: Partial<EstimateRowItem> = {}): EstimateRowI
     quantity: 5,
     subTotal: 12500,
     totalItemCosts: 12500,
+    componentVersionNumber: 1,
+    updatedAt: "2026-07-13T10:00:00.000Z",
     ...overrides,
   };
 }
@@ -217,6 +220,17 @@ describe("AddComponentModal OpenDesign field contract", () => {
       itemId: "component-created",
       activePriceOptionId: "price-created",
       versionNumber: 1,
+      createdAt: "2026-07-13T10:00:00.000Z",
+      updatedAt: "2026-07-13T10:00:00.000Z",
+    });
+    actionMocks.updateCostLibraryComponentWithPriceOptions.mockResolvedValue({
+      itemId: "component-created",
+      activePriceOptionId: "price-created",
+      versionNumber: 2,
+      updatedAt: "2026-07-13T11:00:00.000Z",
+      affectedEstimates: [],
+      rowRevisions: {},
+      updatedRowCount: 0,
     });
     actionMocks.saveCostLibraryComponentDraft.mockResolvedValue({
       draftId: "component-draft-1",
@@ -541,6 +555,8 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const createdItem = props.onComponentCreated.mock.calls[0][0] as EstimateRowItem;
     expect(createdItem.category).toBe("Hardware");
     expect(createdItem.categoryPath).toBeUndefined();
+    expect(createdItem.createdAt).toBe("2026-07-13T10:00:00.000Z");
+    expect(createdItem.updatedAt).toBe("2026-07-13T10:00:00.000Z");
   });
 
   it("opens the variants drawer with OpenDesign variant-only fields", async () => {
@@ -752,6 +768,35 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const imageUrl = decodeURIComponent(updatedItem.imageUrl ?? "");
     expect(imageUrl).toContain("/api/component-library/images?path=");
     expect(imageUrl).toContain(imagePath);
+  });
+
+  it("keeps the authoritative server revision after editing a linked component", async () => {
+    const onComponentUpdated = vi.fn();
+    renderAddModal({
+      editingItem: makeEditingItem({
+        id: "component-created",
+        source: "library",
+        sourceLibraryItemId: "component-created",
+        updatedAt: "2026-07-13T10:00:00.000Z",
+      }),
+      onComponentUpdated,
+    });
+    const dialog = await getEditDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(1);
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledWith(
+      "component-created",
+      expect.objectContaining({
+        expectedUpdatedAt: "2026-07-13T10:00:00.000Z",
+        expectedVersionNumber: 1,
+      }),
+    );
+    const updatedItem = onComponentUpdated.mock.calls[0][0] as EstimateRowItem;
+    expect(updatedItem.componentVersionNumber).toBe(2);
+    expect(updatedItem.updatedAt).toBe("2026-07-13T11:00:00.000Z");
   });
 
   it("creates the first variant when a thumbnail is selected before variants exist", async () => {

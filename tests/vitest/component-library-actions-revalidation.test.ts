@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Regression guard for U11: revalidateTemplateSurfaces() must revalidate BOTH
 // template surfaces (the library overview + the templates browse route). A prior
@@ -45,6 +45,7 @@ function createD1Fixture(options: {
       bind: vi.fn((...values: unknown[]) => {
         statements.push({ sql, values });
         return {
+          sql,
           first: vi.fn(async () => firstResults.shift() ?? null),
           all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
           run: vi.fn(async () => ({
@@ -75,6 +76,10 @@ beforeEach(() => {
   authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
   authzMocks.canEditEstimateInD1.mockResolvedValue(true);
   authzMocks.isWorkspaceMemberInD1.mockResolvedValue(true);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("template-surface revalidation (U11)", () => {
@@ -121,6 +126,40 @@ describe("template-surface revalidation (U11)", () => {
 });
 
 describe("library component instance reconciliation", () => {
+  it("atomically creates a component and returns its authoritative revision", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-13T10:00:00.000Z"));
+    const database = createD1Fixture({ firstResults: [{ count: 0 }] });
+    const { createCostLibraryComponent } = await import("@/lib/component-library/actions");
+
+    const result = await createCostLibraryComponent({
+      fieldContract: "opendesign-add-component",
+      name: "Fresh Oak",
+      category: "Flooring",
+      supplier: "Acme",
+      brand: "Pergo",
+      unit: "box",
+      priceOptions: [{
+        label: "V1",
+        unit: "box",
+        unitCost: 2500.5,
+        isActive: true,
+        isDefault: true,
+      }],
+    });
+
+    expect(result).toMatchObject({
+      versionNumber: 1,
+      createdAt: "2026-07-13T10:00:00.000Z",
+      updatedAt: "2026-07-13T10:00:00.000Z",
+    });
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql?: string }>;
+    expect(batchStatements.some((statement) => statement.sql?.includes("INSERT INTO cost_library_items"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql?.includes("cost_library_item_price_options"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql?.includes("cost_library_item_versions"))).toBe(true);
+  });
+
   it("persists canonical component details to every linked estimate row", async () => {
     const database = createD1Fixture({
       firstResults: [
@@ -138,6 +177,7 @@ describe("library component instance reconciliation", () => {
           thumbnail_path: "/original.webp",
           metadata_json: JSON.stringify({ custom: "keep" }),
           lifecycle_state: "available",
+          updated_at: "2026-07-13T09:00:00.000Z",
         },
         {
           id: COMPONENT_ID,
@@ -191,6 +231,8 @@ describe("library component instance reconciliation", () => {
       brandId: "brand-pergo",
       unit: "box",
       lifecycleState: "available",
+      expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+      expectedVersionNumber: 1,
     });
 
     const linkedRowUpdate = database.statements.find((statement) =>
@@ -207,16 +249,26 @@ describe("library component instance reconciliation", () => {
     expect(linkedRowUpdate?.sql).not.toContain("adjustment_percentage =");
     expect(linkedRowUpdate?.values).toContain(COMPONENT_ID);
     expect(database.batch).toHaveBeenCalledTimes(1);
+    const revisionGuard = database.statements.find((statement) => statement.sql.includes("WHEN updated_at = ? AND current_version_number = ?"));
+    expect(revisionGuard?.values).toEqual([
+      "2026-07-13T09:00:00.000Z",
+      1,
+      COMPONENT_ID,
+      WORKSPACE_ID,
+    ]);
     expect(database.statements.find((statement) => statement.sql.includes("cost_library_item_versions"))?.sql).not.toContain("OR IGNORE");
     expect(database.statements.some((statement) => statement.sql.includes("UPDATE cost_library_item_variant_cost_entries"))).toBe(true);
     expect(database.statements.some((statement) => statement.sql.includes("id NOT IN"))).toBe(false);
     expect(database.statements.find((statement) => statement.sql.includes("UPDATE cost_library_item_price_options"))?.sql).toContain("json_patch");
-    const componentUpdate = database.statements.find((statement) => statement.sql.includes("UPDATE cost_library_items"));
+    const componentUpdate = database.statements.find((statement) =>
+      statement.sql.includes("UPDATE cost_library_items") && statement.sql.includes("SET name = ?"),
+    );
     expect(componentUpdate?.values).toContain("/original.webp");
     expect(componentUpdate?.values).toContain(JSON.stringify({ custom: "keep" }));
     expect(result).toMatchObject({
       itemId: COMPONENT_ID,
       versionNumber: 2,
+      updatedAt: expect.any(String),
       updatedRowCount: 1,
       rowRevisions: { "row-1": 4 },
       affectedEstimates: [{ projectId: "project-1", estimateId: "estimate-1" }],
@@ -236,6 +288,7 @@ describe("library component instance reconciliation", () => {
         current_version_number: 1,
         active_price_option_id: "price-1",
         lifecycle_state: "available",
+        updated_at: "2026-07-13T09:00:00.000Z",
       }],
       allResults: [[{ row_id: "row-1", project_id: "project-1", estimate_id: "estimate-1" }]],
       linkedRowRevisionResults: [{ id: "row-1", row_revision: 6 }],
@@ -250,6 +303,8 @@ describe("library component instance reconciliation", () => {
       brand: "Pergo",
       unit: "box",
       lifecycleState: "available",
+      expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+      expectedVersionNumber: 1,
       priceOptions: [{
         id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
         label: "V1",
@@ -268,6 +323,7 @@ describe("library component instance reconciliation", () => {
     expect(result).toMatchObject({
       itemId: COMPONENT_ID,
       versionNumber: 2,
+      updatedAt: expect.any(String),
       rowRevisions: { "row-1": 6 },
       updatedRowCount: 1,
     });
@@ -287,6 +343,7 @@ describe("library component instance reconciliation", () => {
         pricing_source: null,
         pricing_date: null,
         lifecycle_state: "available",
+        updated_at: "2026-07-13T09:00:00.000Z",
       }],
       allResults: [[], []],
       batchFailureAt: 0,
@@ -297,7 +354,40 @@ describe("library component instance reconciliation", () => {
       name: "Should roll back",
       unit: "box",
       category: "Flooring",
+      expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+      expectedVersionNumber: 1,
     })).rejects.toThrow(/batch failed/);
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stale component edit before any write batch runs", async () => {
+    const database = createD1Fixture({
+      firstResults: [{
+        id: COMPONENT_ID,
+        workspace_id: WORKSPACE_ID,
+        name: "Already updated",
+        unit: "box",
+        unit_cost: 100,
+        misc_cost: 0,
+        current_version_number: 2,
+        active_price_option_id: "price-1",
+        pricing_source: null,
+        pricing_date: null,
+        thumbnail_path: null,
+        metadata_json: "{}",
+        lifecycle_state: "available",
+        updated_at: "2026-07-13T10:00:00.000Z",
+      }],
+    });
+    const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
+
+    await expect(updateCostLibraryComponent(COMPONENT_ID, {
+      name: "Stale edit",
+      unit: "box",
+      category: "Flooring",
+      expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+      expectedVersionNumber: 1,
+    })).rejects.toThrow(/changed after you opened it/i);
+    expect(database.batch).not.toHaveBeenCalled();
   });
 });

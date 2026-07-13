@@ -91,6 +91,7 @@ type ComponentItemD1Row = {
   thumbnail_path: string | null;
   metadata_json: string | null;
   lifecycle_state: ComponentLifecycleState | string;
+  updated_at: string;
 };
 
 type LibraryComponentProjectionD1Row = {
@@ -322,6 +323,16 @@ export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
   priceOptions: ComponentPriceOptionInput[];
 };
 
+export type UpdateCostLibraryComponentInput = CostLibraryComponentInput & {
+  expectedUpdatedAt: string;
+  expectedVersionNumber: number;
+};
+
+export type UpdateCostLibraryComponentWithPriceOptionsInput = CreateCostLibraryComponentInput & {
+  expectedUpdatedAt: string;
+  expectedVersionNumber: number;
+};
+
 export type SaveCostLibraryComponentDraftInput = {
   fieldContract?: "opendesign-add-component";
   title?: string | null;
@@ -359,6 +370,15 @@ export type BulkArchiveLibraryComponentsInput = {
 };
 
 export type ExecuteBulkArchiveLibraryComponentsInput = BulkArchiveLibraryComponentsInput & {
+  expectedPreviewHash: string;
+  correlationId?: string;
+};
+
+export type BulkDeleteLibraryComponentsInput = {
+  itemIds: string[];
+};
+
+export type ExecuteBulkDeleteLibraryComponentsInput = BulkDeleteLibraryComponentsInput & {
   expectedPreviewHash: string;
   correlationId?: string;
 };
@@ -1172,6 +1192,22 @@ function createBulkArchivePreviewHash(input: {
     .digest("hex");
 }
 
+function createBulkDeletePreviewHash(input: {
+  eligibleIds: string[];
+  blocked: unknown[];
+  summary: Record<string, unknown>;
+}) {
+  return createHash("sha256")
+    .update(JSON.stringify({
+      targetType: "library_component",
+      action: "delete",
+      ids: input.eligibleIds,
+      blocked: input.blocked,
+      summary: input.summary,
+    }))
+    .digest("hex");
+}
+
 function componentSnapshot(component: ReturnType<typeof normalizeComponentInput>, patch: Record<string, unknown> = {}) {
   return {
     name: component.name,
@@ -1230,7 +1266,7 @@ async function readComponentItem(database: D1DatabaseLike, workspaceId: string, 
     database,
     `
       SELECT id, workspace_id, name, unit, unit_cost, misc_cost, current_version_number,
-        active_price_option_id, pricing_source, pricing_date, thumbnail_path, metadata_json, lifecycle_state
+        active_price_option_id, pricing_source, pricing_date, thumbnail_path, metadata_json, lifecycle_state, updated_at
       FROM cost_library_items
       WHERE id = ?
         AND workspace_id = ?
@@ -1238,6 +1274,66 @@ async function readComponentItem(database: D1DatabaseLike, workspaceId: string, 
     `,
     [itemId, workspaceId],
   );
+}
+
+const STALE_COMPONENT_REVISION_ERROR = "This component changed after you opened it. Refresh and try again.";
+
+function assertExpectedComponentRevision(
+  existing: ComponentItemD1Row,
+  expectedUpdatedAt: string,
+  expectedVersionNumber: number,
+) {
+  if (
+    !expectedUpdatedAt
+    || !Number.isInteger(expectedVersionNumber)
+    || expectedVersionNumber < 1
+    || existing.updated_at !== expectedUpdatedAt
+    || numberValue(existing.current_version_number, 1) !== expectedVersionNumber
+  ) {
+    throw new Error(STALE_COMPONENT_REVISION_ERROR);
+  }
+}
+
+function buildComponentRevisionGuardStatement(input: {
+  workspaceId: string;
+  itemId: string;
+  expectedUpdatedAt: string;
+  expectedVersionNumber: number;
+}) {
+  return {
+    sql: `
+      UPDATE cost_library_items
+      SET current_version_number = CASE
+        WHEN updated_at = ? AND current_version_number = ? THEN current_version_number
+        ELSE 0
+      END
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    values: [input.expectedUpdatedAt, input.expectedVersionNumber, input.itemId, input.workspaceId] as D1Value[],
+  };
+}
+
+async function runComponentRevisionGuardedBatch(
+  database: D1DatabaseLike,
+  statements: Array<{ sql: string; values?: D1Value[] }>,
+  input: {
+    workspaceId: string;
+    itemId: string;
+    expectedUpdatedAt: string;
+    expectedVersionNumber: number;
+  },
+) {
+  try {
+    const [, ...results] = await runAtomicBatch(database, [buildComponentRevisionGuardStatement(input), ...statements]);
+    return results;
+  } catch (error) {
+    const current = await readComponentItem(database, input.workspaceId, input.itemId);
+    if (current) {
+      assertExpectedComponentRevision(current, input.expectedUpdatedAt, input.expectedVersionNumber);
+    }
+    throw error;
+  }
 }
 
 async function assertLibraryFolderInWorkspace(database: D1DatabaseLike, workspaceId: string, folderId: string | null | undefined) {
@@ -1585,9 +1681,19 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   const timestamp = nowIso();
   await assertWithinLibraryQuota(database, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
   const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
-  await run(
-    database,
-    `
+  const priceOptionPlans = priceOptions.map((priceOption) => buildComponentPriceOptionWritePlan({
+    workspaceId: workspace.id,
+    itemId,
+    priceOption,
+    userId: currentUser.userId,
+    effectiveAt: priceOption.effectiveAt,
+    writeHistory: false,
+  }, { timestamp }));
+  const persistedPriceOptions = priceOptionPlans.map((plan) => plan.persisted);
+  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
+  if (!activePriceOption) throw new Error("At least one active component variant is required.");
+  const statements: Array<{ sql: string; values: D1Value[] }> = [{
+    sql: `
       INSERT INTO cost_library_items (
         id, workspace_id, name, description, category, category_node_id,
         library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost,
@@ -1595,9 +1701,9 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
         pricing_source, pricing_date, thumbnail_path, metadata_json,
         created_by, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-    [
+    values: [
       itemId,
       workspace.id,
       component.name,
@@ -1609,76 +1715,52 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       component.supplierId ?? null,
       component.brand,
       component.brandId ?? null,
-      component.unit,
-      defaultPriceOption?.unitCost ?? 0,
-      defaultPriceOption?.miscCost ?? 0,
+      activePriceOption.unit,
+      activePriceOption.unitCost,
+      activePriceOption.miscCost,
       component.lifecycleState,
       1,
-      defaultPriceOption?.pricingSource ?? null,
-      defaultPriceOption?.pricingDate ?? null,
+      activePriceOption.id,
+      activePriceOption.pricingSource,
+      activePriceOption.pricingDate,
       component.thumbnailPath,
       jsonText(readMetadataObject(component.metadata)),
       currentUser.userId,
       timestamp,
       timestamp,
     ],
-  );
-  const persistedPriceOptions = [];
-  for (const priceOption of priceOptions) {
-    persistedPriceOptions.push(await upsertComponentPriceOptionInD1(database, {
-      workspaceId: workspace.id,
+  }];
+  for (const plan of priceOptionPlans) statements.push(...plan.statements);
+  statements.push({
+    sql: `
+      INSERT INTO cost_library_item_versions (
+        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
+        change_reason, effective_at, created_by, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    values: [
+      randomUUID(),
       itemId,
-      priceOption,
-      userId: currentUser.userId,
-      effectiveAt: priceOption.effectiveAt,
-      writeHistory: false,
-    }));
-  }
-  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
-  if (activePriceOption) {
-    await run(
-      database,
-      `
-        UPDATE cost_library_items
-        SET active_price_option_id = ?,
-            unit = ?,
-            unit_cost = ?,
-            misc_cost = ?,
-            pricing_source = ?,
-            pricing_date = ?,
-            updated_at = ?
-        WHERE id = ?
-          AND workspace_id = ?
-      `,
-      [
-        activePriceOption.id,
-        activePriceOption.unit,
-        activePriceOption.unitCost,
-        activePriceOption.miscCost,
-        activePriceOption.pricingSource,
-        activePriceOption.pricingDate,
-        timestamp,
-        itemId,
-        workspace.id,
-      ],
-    );
-  }
-  await insertComponentVersion(database, {
-    itemId,
-    workspaceId: workspace.id,
-    versionNumber: 1,
-    snapshot: componentSnapshot(component, { priceOptions: persistedPriceOptions }),
-    summary: "Component created",
-    reason: component.changeReason,
-    effectiveAt: component.effectiveAt,
-    userId: currentUser.userId,
+      workspace.id,
+      1,
+      jsonText(componentSnapshot(component, { priceOptions: persistedPriceOptions })),
+      "Component created",
+      component.changeReason,
+      component.effectiveAt,
+      currentUser.userId,
+      timestamp,
+    ],
   });
+  await runAtomicBatch(database, statements);
   revalidateLibraryRoutes();
   return {
     itemId,
     versionNumber: 1,
-    activePriceOptionId: activePriceOption?.id,
+    activePriceOptionId: activePriceOption.id,
     priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
+    createdAt: timestamp,
+    updatedAt: timestamp,
   };
 }
 
@@ -1725,7 +1807,7 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
   return { draftId, savedAt: timestamp };
 }
 
-export async function updateCostLibraryComponent(itemId: string, input: CostLibraryComponentInput) {
+export async function updateCostLibraryComponent(itemId: string, input: UpdateCostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
@@ -1733,6 +1815,7 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
   const component = normalizeComponentInput(input);
   const existing = await readComponentItem(database, workspace.id, itemId);
   if (!existing) throw new Error("Component not found in the current workspace.");
+  assertExpectedComponentRevision(existing, input.expectedUpdatedAt, input.expectedVersionNumber);
   const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
   const nextVersion = numberValue(existing.current_version_number, 1) + 1;
   const timestamp = nowIso();
@@ -1939,7 +2022,12 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
       updatedAt: timestamp,
     }));
   }
-  const results = await runAtomicBatch(database, statements);
+  const results = await runComponentRevisionGuardedBatch(database, statements, {
+    workspaceId: workspace.id,
+    itemId,
+    expectedUpdatedAt: input.expectedUpdatedAt,
+    expectedVersionNumber: input.expectedVersionNumber,
+  });
   const instanceSync = syncStatementIndex >= 0
     ? buildLibraryComponentInstanceSyncResult(
         affectedRows,
@@ -1951,17 +2039,19 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
   return {
     itemId,
     versionNumber: nextVersion,
+    updatedAt: timestamp,
     ...instanceSync,
   };
 }
 
-export async function updateCostLibraryComponentWithPriceOptions(itemId: string, input: CreateCostLibraryComponentInput) {
+export async function updateCostLibraryComponentWithPriceOptions(itemId: string, input: UpdateCostLibraryComponentWithPriceOptionsInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
   if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
   const existing = await readComponentItem(database, workspace.id, itemId);
   if (!existing) throw new Error("Component not found in the current workspace.");
+  assertExpectedComponentRevision(existing, input.expectedUpdatedAt, input.expectedVersionNumber);
 
   const component = normalizeComponentInput(input);
   const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
@@ -2133,7 +2223,12 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       updatedAt: timestamp,
     }));
   }
-  const results = await runAtomicBatch(database, statements);
+  const results = await runComponentRevisionGuardedBatch(database, statements, {
+    workspaceId: workspace.id,
+    itemId,
+    expectedUpdatedAt: input.expectedUpdatedAt,
+    expectedVersionNumber: input.expectedVersionNumber,
+  });
   const instanceSync = syncStatementIndex >= 0
     ? buildLibraryComponentInstanceSyncResult(
         affectedRows,
@@ -2147,6 +2242,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     versionNumber: nextVersion,
     activePriceOptionId: activePriceOption.id,
     priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
+    updatedAt: timestamp,
     ...instanceSync,
   };
 }
@@ -2409,6 +2505,193 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
   }, { targetType: "library_component", ids });
   if (result.ok) revalidateLibraryRoutes();
   return result;
+}
+
+async function readLibraryComponentUsageTotals(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  itemIds: string[],
+) {
+  if (itemIds.length === 0) return { estimateRowCount: 0, templateRowCount: 0 };
+  const [estimateRows, templateRows] = await Promise.all([
+    first<{ count: number }>(
+      database,
+      `
+        SELECT COUNT(*) AS count
+        FROM estimate_row_items row_item
+        INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+        INNER JOIN projects project ON project.id = estimate.project_id
+        WHERE project.workspace_id = ?
+          AND row_item.source_library_item_id IN (${placeholders(itemIds)})
+      `,
+      [workspaceId, ...itemIds],
+    ),
+    first<{ count: number }>(
+      database,
+      `
+        SELECT COUNT(*) AS count
+        FROM estimate_template_row_items row_item
+        INNER JOIN estimate_templates template ON template.id = row_item.template_id
+        WHERE template.workspace_id = ?
+          AND row_item.source_library_item_id IN (${placeholders(itemIds)})
+      `,
+      [workspaceId, ...itemIds],
+    ),
+  ]);
+  return {
+    estimateRowCount: numberValue(estimateRows?.count),
+    templateRowCount: numberValue(templateRows?.count),
+  };
+}
+
+export async function previewBulkDeleteLibraryComponents(input: BulkDeleteLibraryComponentsInput): Promise<BulkActionPreviewResult> {
+  const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
+  if (issues.length > 0) return buildRejectedPreviewResult("library_component", ids, issues);
+
+  const [{ workspace }, currentUser] = await Promise.all([
+    ensureDefaultWorkspace(),
+    requireCurrentUserContext(),
+  ]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  const sortedIds = [...ids].sort();
+  const rows = await all<{ id: string; name: string }>(
+    database,
+    `
+      SELECT id, name
+      FROM cost_library_items
+      WHERE workspace_id = ?
+        AND id IN (${placeholders(sortedIds)})
+    `,
+    [workspace.id, ...sortedIds],
+  );
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const eligibleIds: string[] = [];
+  const blocked = [];
+  for (const id of sortedIds) {
+    const row = byId.get(id);
+    if (!row) {
+      blocked.push({ id, code: "not_found", message: "Component was not found in this workspace." });
+      continue;
+    }
+    eligibleIds.push(id);
+  }
+  const usage = await readLibraryComponentUsageTotals(database, workspace.id, eligibleIds);
+  const summary = {
+    requestedCount: sortedIds.length,
+    eligibleCount: eligibleIds.length,
+    blockedCount: blocked.length,
+    ...usage,
+  };
+  return coerceBulkPreviewResult({
+    ok: eligibleIds.length > 0 && blocked.length === 0,
+    targetType: "library_component",
+    ids: sortedIds,
+    eligibleIds,
+    previewHash: createBulkDeletePreviewHash({ eligibleIds, blocked, summary }),
+    summary,
+    issues: blocked,
+    blocked,
+  }, { targetType: "library_component", ids: sortedIds });
+}
+
+export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDeleteLibraryComponentsInput): Promise<BulkActionExecutionResult> {
+  const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
+  if (issues.length > 0) {
+    return {
+      ...buildRejectedPreviewResult("library_component", ids, issues),
+      deletedIds: [],
+    };
+  }
+
+  const [{ workspace }, currentUser] = await Promise.all([
+    ensureDefaultWorkspace(),
+    requireCurrentUserContext(),
+  ]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  const preview = await previewBulkDeleteLibraryComponents({ itemIds: ids });
+  if (preview.previewHash !== input.expectedPreviewHash) {
+    return {
+      ...preview,
+      ok: false,
+      deletedIds: [],
+      issues: [
+        ...preview.issues,
+        { code: "stale_preview", message: "Preview changed; refresh the deletion preview." },
+      ],
+    };
+  }
+  if (!preview.ok) return { ...preview, deletedIds: [] };
+
+  const deletedIds = preview.eligibleIds;
+  const affectedRows = await all<LinkedEstimateRowTarget>(
+    database,
+    `
+      SELECT row_item.id AS row_id, project.id AS project_id, estimate.id AS estimate_id
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      INNER JOIN projects project ON project.id = estimate.project_id
+      WHERE project.workspace_id = ?
+        AND row_item.source_library_item_id IN (${placeholders(deletedIds)})
+    `,
+    [workspace.id, ...deletedIds],
+  );
+  const timestamp = nowIso();
+  await runAtomicBatch(database, [{
+    sql: `
+      UPDATE estimate_row_items
+      SET source_library_item_id = NULL,
+          source_snapshot_json = NULL,
+          link_state = 'detached',
+          row_revision = row_revision + 1,
+          updated_at = ?
+      WHERE source_library_item_id IN (${placeholders(deletedIds)})
+        AND estimate_id IN (
+          SELECT estimate.id
+          FROM estimates estimate
+          INNER JOIN projects project ON project.id = estimate.project_id
+          WHERE project.workspace_id = ?
+        )
+    `,
+    values: [timestamp, ...deletedIds, workspace.id],
+  }, {
+    sql: `
+      UPDATE estimate_template_row_items
+      SET source_library_item_id = NULL,
+          source_snapshot = NULL,
+          link_state = 'detached',
+          updated_at = ?
+      WHERE source_library_item_id IN (${placeholders(deletedIds)})
+        AND template_id IN (
+          SELECT id
+          FROM estimate_templates
+          WHERE workspace_id = ?
+        )
+    `,
+    values: [timestamp, ...deletedIds, workspace.id],
+  }, {
+    sql: `
+      DELETE FROM cost_library_items
+      WHERE workspace_id = ?
+        AND id IN (${placeholders(deletedIds)})
+    `,
+    values: [workspace.id, ...deletedIds],
+  }]);
+
+  revalidateLinkedEstimateRows(affectedRows);
+  revalidateTemplateSurfaces();
+  revalidateLibraryRoutes();
+  return coerceBulkExecutionResult({
+    ok: true,
+    targetType: "library_component",
+    ids,
+    deletedIds,
+    previewHash: input.expectedPreviewHash,
+    summary: preview.summary,
+    issues: [],
+    blocked: [],
+  }, { targetType: "library_component", ids });
 }
 
 export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {

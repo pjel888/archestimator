@@ -45,6 +45,8 @@ const TEMPLATE_NODE_ID = "00000000-0000-4000-8000-000000000011";
 const validComponentInput = {
   name: "Viewer Guard Component",
   unit: "pc",
+  expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+  expectedVersionNumber: 1,
   priceOptions: [
     {
       label: "Standard",
@@ -102,6 +104,9 @@ function createD1Fixture(options: {
         };
       }),
     })),
+    batch: vi.fn(async (preparedStatements: Array<{ run: () => Promise<unknown> }>) => (
+      Promise.all(preparedStatements.map((statement) => statement.run()))
+    )),
     statements,
   };
   d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
@@ -361,13 +366,13 @@ describe("library viewer mutation authorization", () => {
     expect(priceOptionInserts[0]?.values[5]).toBe(12.34);
     expect(priceOptionInserts[0]?.values[6]).toBe(0);
     expect(priceOptionInserts[0]?.values[11]).toBeNull();
-    expect(priceOptionInserts[0]?.values[13]).toBeNull();
-    expect(JSON.parse(String(priceOptionInserts[0]?.values[14]))).toEqual(expect.objectContaining({
+    expect(priceOptionInserts[0]?.values[12]).toBeNull();
+    expect(JSON.parse(String(priceOptionInserts[0]?.values[13]))).toEqual(expect.objectContaining({
       packageQuantity: null,
       packageUnit: null,
       variantMetadata: {},
     }));
-    expect(JSON.parse(String(priceOptionInserts[1]?.values[14]))).toEqual(expect.objectContaining({
+    expect(JSON.parse(String(priceOptionInserts[1]?.values[13]))).toEqual(expect.objectContaining({
       packageQuantity: 12,
       packageUnit: "pieces",
     }));

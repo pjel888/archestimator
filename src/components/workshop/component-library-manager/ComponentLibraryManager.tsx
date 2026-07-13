@@ -8,6 +8,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { ControlInput } from "@/components/ui/control-input";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
@@ -30,9 +31,11 @@ import {
   createLibraryFolder,
   deleteLibraryFolder,
   executeBulkArchiveLibraryComponents,
+  executeBulkDeleteLibraryComponents,
   loadCostLibraryComponentRowDetail,
   moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
+  previewBulkDeleteLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
 import {
@@ -289,7 +292,7 @@ type ComponentRowsLoadState = {
 
 type StateUpdater<T> = T | ((current: T) => T);
 type LibraryItemState = { source: EstimateRowItem[]; items: EstimateRowItem[] };
-type ArchiveComponentState = "idle" | "loading" | "ready" | "executing";
+type DestructiveComponentState = "idle" | "loading" | "ready" | "executing";
 
 type FolderTextPrompt = {
   title: string;
@@ -314,7 +317,11 @@ type ComponentLibraryManagerState = {
   archiveComponentTargetIds: string[];
   archiveComponentPreview: BulkActionPreviewResult | null;
   archiveComponentError: string | null;
-  archiveComponentState: ArchiveComponentState;
+  archiveComponentState: DestructiveComponentState;
+  deleteComponentTargetIds: string[];
+  deleteComponentPreview: BulkActionPreviewResult | null;
+  deleteComponentError: string | null;
+  deleteComponentState: DestructiveComponentState;
   folderTextPrompt: FolderTextPrompt | null;
   folderTextPromptValue: string;
   deleteFolderTarget: { folderId: string; currentName: string } | null;
@@ -342,7 +349,11 @@ type ComponentLibraryManagerAction =
   | { type: "archiveComponentTargetIdsChanged"; value: StateUpdater<string[]> }
   | { type: "archiveComponentPreviewChanged"; value: StateUpdater<BulkActionPreviewResult | null> }
   | { type: "archiveComponentErrorChanged"; value: StateUpdater<string | null> }
-  | { type: "archiveComponentStateChanged"; value: StateUpdater<ArchiveComponentState> }
+  | { type: "archiveComponentStateChanged"; value: StateUpdater<DestructiveComponentState> }
+  | { type: "deleteComponentTargetIdsChanged"; value: StateUpdater<string[]> }
+  | { type: "deleteComponentPreviewChanged"; value: StateUpdater<BulkActionPreviewResult | null> }
+  | { type: "deleteComponentErrorChanged"; value: StateUpdater<string | null> }
+  | { type: "deleteComponentStateChanged"; value: StateUpdater<DestructiveComponentState> }
   | { type: "folderTextPromptChanged"; value: StateUpdater<FolderTextPrompt | null> }
   | { type: "folderTextPromptValueChanged"; value: StateUpdater<string> }
   | { type: "deleteFolderTargetChanged"; value: StateUpdater<{ folderId: string; currentName: string } | null> }
@@ -376,6 +387,10 @@ function createInitialComponentLibraryManagerState({
     archiveComponentPreview: null,
     archiveComponentError: null,
     archiveComponentState: "idle",
+    deleteComponentTargetIds: [],
+    deleteComponentPreview: null,
+    deleteComponentError: null,
+    deleteComponentState: "idle",
     folderTextPrompt: null,
     folderTextPromptValue: "",
     deleteFolderTarget: null,
@@ -419,6 +434,14 @@ function componentLibraryManagerReducer(
       return { ...state, archiveComponentError: resolveStateUpdater(state.archiveComponentError, action.value) };
     case "archiveComponentStateChanged":
       return { ...state, archiveComponentState: resolveStateUpdater(state.archiveComponentState, action.value) };
+    case "deleteComponentTargetIdsChanged":
+      return { ...state, deleteComponentTargetIds: resolveStateUpdater(state.deleteComponentTargetIds, action.value) };
+    case "deleteComponentPreviewChanged":
+      return { ...state, deleteComponentPreview: resolveStateUpdater(state.deleteComponentPreview, action.value) };
+    case "deleteComponentErrorChanged":
+      return { ...state, deleteComponentError: resolveStateUpdater(state.deleteComponentError, action.value) };
+    case "deleteComponentStateChanged":
+      return { ...state, deleteComponentState: resolveStateUpdater(state.deleteComponentState, action.value) };
     case "folderTextPromptChanged":
       return { ...state, folderTextPrompt: resolveStateUpdater(state.folderTextPrompt, action.value) };
     case "folderTextPromptValueChanged":
@@ -1531,6 +1554,7 @@ function ComponentLibrarySheet({
   inspectorItemId,
   onAddComponent,
   onArchiveSelected,
+  onDeleteSelected,
   onClearSelected,
   onSelectVisible,
   onToggleSelected,
@@ -1555,6 +1579,7 @@ function ComponentLibrarySheet({
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
   onArchiveSelected: (itemIds: string[]) => void;
+  onDeleteSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
@@ -1832,11 +1857,16 @@ function ComponentLibrarySheet({
         {canManageLibrary ? (
           <BulkActionToolbar
             selectedCount={selectedVisibleItemIds.length}
-            actionLabel="Archive selected"
-            helperText="Archive is reversible and hides components from sheet insertion."
-            onAction={() => onArchiveSelected(selectedVisibleItemIds)}
+            actionLabel="Delete selected"
+            helperText="Delete is permanent; linked rows keep their current values after detaching."
+            onAction={() => onDeleteSelected(selectedVisibleItemIds)}
             onClear={onClearSelected}
             onSelectVisible={() => onSelectVisible(visibleItems.map((item) => item.id))}
+            secondaryActionSlot={(
+              <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => onArchiveSelected(selectedVisibleItemIds)}>
+                Archive selected
+              </Button>
+            )}
           />
         ) : null}
       </header>
@@ -1956,6 +1986,7 @@ function ComponentLibrarySheetPanel({
   inspectorItemId,
   onAddComponent,
   onArchiveSelected,
+  onDeleteSelected,
   onClearSelected,
   onSelectVisible,
   onToggleSelected,
@@ -1980,6 +2011,7 @@ function ComponentLibrarySheetPanel({
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
   onArchiveSelected: (itemIds: string[]) => void;
+  onDeleteSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
@@ -2007,6 +2039,7 @@ function ComponentLibrarySheetPanel({
         inspectorItemId={inspectorItemId}
         onAddComponent={onAddComponent}
         onArchiveSelected={onArchiveSelected}
+        onDeleteSelected={onDeleteSelected}
         onClearSelected={onClearSelected}
         onSelectVisible={onSelectVisible}
         onToggleSelected={onToggleSelected}
@@ -2101,6 +2134,10 @@ export function ComponentLibraryManager({
     archiveComponentPreview,
     archiveComponentError,
     archiveComponentState,
+    deleteComponentTargetIds,
+    deleteComponentPreview,
+    deleteComponentError,
+    deleteComponentState,
     folderTextPrompt,
     folderTextPromptValue,
     deleteFolderTarget,
@@ -2134,8 +2171,16 @@ export function ComponentLibraryManager({
     dispatchManager({ type: "archiveComponentPreviewChanged", value });
   const setArchiveComponentError = (value: StateUpdater<string | null>) =>
     dispatchManager({ type: "archiveComponentErrorChanged", value });
-  const setArchiveComponentState = (value: StateUpdater<ArchiveComponentState>) =>
+  const setArchiveComponentState = (value: StateUpdater<DestructiveComponentState>) =>
     dispatchManager({ type: "archiveComponentStateChanged", value });
+  const setDeleteComponentTargetIds = (value: StateUpdater<string[]>) =>
+    dispatchManager({ type: "deleteComponentTargetIdsChanged", value });
+  const setDeleteComponentPreview = (value: StateUpdater<BulkActionPreviewResult | null>) =>
+    dispatchManager({ type: "deleteComponentPreviewChanged", value });
+  const setDeleteComponentError = (value: StateUpdater<string | null>) =>
+    dispatchManager({ type: "deleteComponentErrorChanged", value });
+  const setDeleteComponentState = (value: StateUpdater<DestructiveComponentState>) =>
+    dispatchManager({ type: "deleteComponentStateChanged", value });
   const setFolderTextPrompt = (value: StateUpdater<FolderTextPrompt | null>) =>
     dispatchManager({ type: "folderTextPromptChanged", value });
   const setFolderTextPromptValue = (value: StateUpdater<string>) =>
@@ -2174,6 +2219,13 @@ export function ComponentLibraryManager({
 
   const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;
   const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive 1 component?" : `Archive ${archiveComponentTargetIds.length} components?`;
+  const deleteComponentPhrase = deleteComponentTargetIds.length === 1 ? "DELETE COMPONENT" : `DELETE ${deleteComponentTargetIds.length} COMPONENTS`;
+  const deleteComponentTitle = deleteComponentTargetIds.length === 1 ? "Permanently delete 1 component?" : `Permanently delete ${deleteComponentTargetIds.length} components?`;
+  const detachedEstimateRowCount = Number(deleteComponentPreview?.summary.estimateRowCount ?? 0);
+  const detachedTemplateRowCount = Number(deleteComponentPreview?.summary.templateRowCount ?? 0);
+  const deleteComponentDescription = deleteComponentPreview
+    ? `This permanently removes the source and detaches ${detachedEstimateRowCount} estimate row${detachedEstimateRowCount === 1 ? "" : "s"} and ${detachedTemplateRowCount} template row${detachedTemplateRowCount === 1 ? "" : "s"}. Their current values stay unchanged.`
+    : "This permanently removes the source. Linked estimate and template rows keep their current values after detaching.";
 
   function denyLibraryManagement() {
     setSheetStatus({ state: "error", message: "Only workspace editors/admins can manage the library." });
@@ -2448,6 +2500,9 @@ export function ComponentLibraryManager({
           history: [],
           priceOptions: undefined,
           componentVersionNumber: result.versionNumber,
+          priceOptionId: result.activePriceOptionId,
+          createdAt: result.createdAt,
+          updatedAt: result.updatedAt,
         };
         handleComponentCreated(duplicated);
         writeComponentRouteState(duplicatedItemId);
@@ -2585,6 +2640,82 @@ export function ComponentLibraryManager({
         .catch((error: unknown) => {
           setArchiveComponentError(error instanceof Error ? error.message : "Could not archive components.");
           setArchiveComponentState("ready");
+        });
+    });
+  }
+
+  function openDeleteComponentPreview(itemIds: string[]) {
+    if (!canManageLibrary) {
+      denyLibraryManagement();
+      return;
+    }
+    const itemsById = new Map(localLibraryItems.map((item) => [item.id, item]));
+    const ids = Array.from(new Set(itemIds)).filter((id) => {
+      const item = itemsById.get(id);
+      return item && !isProjectProjectionItem(item);
+    });
+    if (ids.length === 0 || ids.length !== new Set(itemIds).size) {
+      setSheetStatus({ state: "error", message: "Project components are estimate-backed. Select only workspace library components to delete here." });
+      return;
+    }
+    setDeleteComponentTargetIds(ids);
+    setDeleteComponentPreview(null);
+    setDeleteComponentError(null);
+    setDeleteComponentState("loading");
+    startTreeMutation(() => {
+      void previewBulkDeleteLibraryComponents({ itemIds: ids })
+        .then((preview) => {
+          setDeleteComponentPreview(preview);
+          setDeleteComponentState("ready");
+        })
+        .catch((error: unknown) => {
+          setDeleteComponentError(error instanceof Error ? error.message : "Could not load deletion preview.");
+          setDeleteComponentState("ready");
+        });
+    });
+  }
+
+  function closeDeleteComponentPreview() {
+    setDeleteComponentTargetIds([]);
+    setDeleteComponentPreview(null);
+    setDeleteComponentError(null);
+    setDeleteComponentState("idle");
+  }
+
+  function executeDeleteComponentPreview() {
+    if (!deleteComponentPreview?.previewHash) return;
+    const previewHash = deleteComponentPreview.previewHash;
+    setDeleteComponentState("executing");
+    startTreeMutation(() => {
+      void executeBulkDeleteLibraryComponents({
+        itemIds: deleteComponentTargetIds,
+        expectedPreviewHash: previewHash,
+        correlationId: createBulkActionCorrelationId(),
+      })
+        .then((result) => {
+          if (!result.ok) {
+            setDeleteComponentPreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
+            setDeleteComponentError(result.issues[0]?.message ?? "Could not delete components.");
+            setDeleteComponentState("ready");
+            return;
+          }
+          const deletedIds = result.deletedIds?.length ? result.deletedIds : deleteComponentTargetIds;
+          updateLocalLibraryItems((items) => items.filter((item) => !deletedIds.includes(item.id)));
+          setSelectedItemIds((current) => {
+            const next = new Set(current);
+            for (const id of deletedIds) next.delete(id);
+            return next;
+          });
+          setSheetStatus({ state: "saved", message: `${deletedIds.length} component${deletedIds.length === 1 ? "" : "s"} permanently deleted.` });
+          if (inspectorItemId && deletedIds.includes(inspectorItemId)) {
+            writeComponentRouteState(null);
+          }
+          closeDeleteComponentPreview();
+          syncLibraryItemsCache((items) => items.filter((item) => !deletedIds.includes(item.id)));
+        })
+        .catch((error: unknown) => {
+          setDeleteComponentError(error instanceof Error ? error.message : "Could not delete components.");
+          setDeleteComponentState("ready");
         });
     });
   }
@@ -2811,6 +2942,7 @@ export function ComponentLibraryManager({
             inspectorItemId={inspectorItemId}
             onAddComponent={openAddComponentModal}
             onArchiveSelected={openArchiveComponentPreview}
+            onDeleteSelected={openDeleteComponentPreview}
             onClearSelected={clearComponentSelection}
             onSelectVisible={selectVisibleComponents}
             onToggleSelected={toggleComponentSelection}
@@ -2826,10 +2958,12 @@ export function ComponentLibraryManager({
               onEdit={() => setEditDrawerOpen(true)}
               onDuplicate={duplicateInspectorComponent}
               onArchive={() => openArchiveComponentPreview([inspectorItem.id])}
+              onDelete={() => openDeleteComponentPreview([inspectorItem.id])}
               duplicatePending={isDuplicatePending}
               canEdit={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               canDuplicate={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               canArchive={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
+              canDelete={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               promoteAction={canPromoteProjectProjectionItem(inspectorItem, projectId, promotionEnabled) ? {
                 label: "Promote to library",
                 pending: promotingItemId === inspectorItem.id,
@@ -2923,6 +3057,21 @@ export function ComponentLibraryManager({
         onExecute={executeArchiveComponentPreview}
         onOpenChange={(open) => {
           if (!open) closeArchiveComponentPreview();
+        }}
+      />
+      <BulkDestructivePreviewModal
+        open={deleteComponentTargetIds.length > 0}
+        title={deleteComponentTitle}
+        description={deleteComponentDescription}
+        requiredPhrase={deleteComponentPhrase}
+        executeLabel="Delete permanently"
+        loading={deleteComponentState === "loading"}
+        executing={deleteComponentState === "executing"}
+        preview={deleteComponentPreview}
+        previewError={deleteComponentError}
+        onExecute={executeDeleteComponentPreview}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteComponentPreview();
         }}
       />
     </div>

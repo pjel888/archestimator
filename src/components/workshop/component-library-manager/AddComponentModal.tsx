@@ -156,6 +156,7 @@ type AddComponentModalProps = {
   onOpenChange: (open: boolean) => void;
   onComponentCreated: (item: EstimateRowItem) => void;
   onComponentUpdated?: (item: EstimateRowItem, instanceSync?: LibraryComponentInstanceSyncResult) => void | Promise<void>;
+  onComponentUpdatePendingChange?: (item: EstimateRowItem, pending: boolean) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
   onDeleteFolder?: (folderId: string, currentName: string) => void;
@@ -780,6 +781,7 @@ function OpenAddComponentModal({
   onOpenChange,
   onComponentCreated,
   onComponentUpdated,
+  onComponentUpdatePendingChange,
   catalogueOptionsStorageScope,
 }: AddComponentModalProps) {
   const isEditing = Boolean(editingItem);
@@ -1412,10 +1414,12 @@ function OpenAddComponentModal({
   }
 
   function buildOptimisticItem(result: {
-    itemId?: string;
-    versionNumber?: number;
-    activePriceOptionId?: string;
+    itemId: string;
+    versionNumber: number;
+    activePriceOptionId: string;
     priceOptions?: Array<{ id: string; label: string; isDefault: boolean }>;
+    createdAt: string;
+    updatedAt: string;
   }): EstimateRowItem {
     const variant = defaultVariant;
     const variantImage = getVariantImage(draft, variant);
@@ -1466,7 +1470,7 @@ function OpenAddComponentModal({
     });
 
     return {
-      id: result.itemId ?? crypto.randomUUID(),
+      id: result.itemId,
       material: draft.name.trim(),
       name: draft.name.trim(),
       description: variant?.description ?? "",
@@ -1497,17 +1501,17 @@ function OpenAddComponentModal({
       lifecycleState: draft.lifecycleState,
       lifecycleStateChangedAt: draft.effectiveAt,
       history: [{
-        id: `optimistic-${result.itemId ?? "component"}`,
+        id: `optimistic-${result.itemId}`,
         type: "version",
-        label: `v${result.versionNumber ?? 1}`,
+        label: `v${result.versionNumber}`,
         summary: "Component created",
         effectiveAt: draft.effectiveAt,
-        createdAt: new Date().toISOString(),
-        versionNumber: result.versionNumber ?? 1,
+        createdAt: result.createdAt,
+        versionNumber: result.versionNumber,
       }],
       notes: draft.changeReason,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
       pricingSource: supplierName || "Component library",
       pricingDate: today(),
       isCustom: true,
@@ -1516,6 +1520,7 @@ function OpenAddComponentModal({
 
   function buildEditedItem(): EstimateRowItem {
     const currentItem = editingItem;
+    if (!currentItem) throw new Error("A component is required for editing.");
     const variant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
     const variantImage = getVariantImage(draft, variant);
     const existingPriceOptionsById = new Map((currentItem?.priceOptions ?? []).map((option) => [option.id, option]));
@@ -1572,7 +1577,7 @@ function OpenAddComponentModal({
     const adjustmentPercentage = currentItem?.adjustmentPercentage ?? 0;
     const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
     return {
-      ...(currentItem ?? buildOptimisticItem({})),
+      ...currentItem,
       material: draft.name.trim(),
       name: draft.name.trim(),
       description: variant.description,
@@ -1615,6 +1620,8 @@ function OpenAddComponentModal({
       return;
     }
     const payload = buildComponentPayload();
+    const pendingEditingItem = isEditing ? editingItem ?? null : null;
+    if (pendingEditingItem) onComponentUpdatePendingChange?.(pendingEditingItem, true);
 
     startTransition(async () => {
       setError("");
@@ -1625,7 +1632,14 @@ function OpenAddComponentModal({
           const sourceLibraryItemId = editingItem?.sourceLibraryItemId
             ?? (editingItem?.source === "library" ? editingItem.id : null);
           if (sourceLibraryItemId) {
-            const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, payload);
+            if (!editingItem?.updatedAt || !editingItem.componentVersionNumber) {
+              throw new Error("Refresh this component before editing it.");
+            }
+            const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, {
+              ...payload,
+              expectedUpdatedAt: editingItem.updatedAt,
+              expectedVersionNumber: editingItem.componentVersionNumber,
+            });
             instanceSync = result;
             editedItem = {
               ...editedItem,
@@ -1634,6 +1648,7 @@ function OpenAddComponentModal({
               linkState: "linked-clean",
               componentVersionNumber: result.versionNumber,
               priceOptionId: result.activePriceOptionId,
+              updatedAt: result.updatedAt,
             };
           }
           await onComponentUpdated?.(editedItem, instanceSync);
@@ -1645,6 +1660,8 @@ function OpenAddComponentModal({
         onOpenChange(false);
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : "Could not save component.");
+      } finally {
+        if (pendingEditingItem) onComponentUpdatePendingChange?.(pendingEditingItem, false);
       }
     });
   }

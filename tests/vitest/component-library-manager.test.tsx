@@ -101,6 +101,8 @@ function makeItem(overrides: Partial<EstimateRowItem> & { id: string; material: 
     libraryFolderId: "folder-finishes",
     pricingSource: "Test source",
     pricingDate: todayIsoDate(),
+    componentVersionNumber: 1,
+    updatedAt: "2026-07-13T09:00:00.000Z",
     ...overrides,
   };
 }
@@ -169,8 +171,20 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 2, estimateRowCount: 6 });
     actionMocks.loadCostLibraryComponentRowDetail.mockReset();
     actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValue(null);
+    actionMocks.createCostLibraryComponent.mockReset();
+    actionMocks.createCostLibraryComponent.mockResolvedValue({
+      itemId: "item-copy",
+      activePriceOptionId: "price-copy",
+      versionNumber: 1,
+      createdAt: "2026-07-13T09:30:00.000Z",
+      updatedAt: "2026-07-13T09:30:00.000Z",
+    });
     actionMocks.updateCostLibraryComponent.mockReset();
-    actionMocks.updateCostLibraryComponent.mockResolvedValue({ itemId: "item-fresh", versionNumber: 2 });
+    actionMocks.updateCostLibraryComponent.mockResolvedValue({
+      itemId: "item-fresh",
+      versionNumber: 2,
+      updatedAt: "2026-07-13T10:00:00.000Z",
+    });
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
     promotionMocks.promoteExpressRowToLibraryComponent.mockReset();
   });
@@ -358,6 +372,30 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(actionMocks.upsertCostLibraryComponentPriceOption).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByText("Component updated.")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps a duplicated component immediately editable with its server revision", async () => {
+    renderManager();
+    await waitForSheet();
+
+    fireEvent.click(getComponentNameInspectButton("item-fresh"));
+    const originalDock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
+    fireEvent.click(within(originalDock).getByRole("button", { name: "Duplicate" }));
+
+    const copyDock = await screen.findByRole("region", { name: "Component details for Fresh Tile copy" });
+    fireEvent.click(within(copyDock).getByRole("button", { name: "Edit component" }));
+    const drawer = await screen.findByRole("dialog", { name: "Edit component" });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
+        "item-copy",
+        expect.objectContaining({
+          expectedUpdatedAt: "2026-07-13T09:30:00.000Z",
+          expectedVersionNumber: 1,
+        }),
+      );
     });
   });
 

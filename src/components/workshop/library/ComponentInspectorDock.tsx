@@ -59,10 +59,12 @@ export function ComponentInspectorDock({
   onEdit,
   onDuplicate,
   onArchive,
+  onDelete,
   duplicatePending = false,
   canEdit = true,
   canDuplicate = true,
   canArchive = true,
+  canDelete = true,
   promoteAction,
 }: {
   item: EstimateRowItem;
@@ -70,10 +72,12 @@ export function ComponentInspectorDock({
   onEdit: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   duplicatePending?: boolean;
   canEdit?: boolean;
   canDuplicate?: boolean;
   canArchive?: boolean;
+  canDelete?: boolean;
   promoteAction?: { label: string; pending?: boolean; onClick: () => void };
 }) {
   const surfaceVariant = useLibrarySurfaceVariant();
@@ -146,6 +150,7 @@ export function ComponentInspectorDock({
                 }}
               />
               {canArchive ? <DropdownMenu.Item label="Archive component" destructive onClick={onArchive} /> : null}
+              {canDelete ? <DropdownMenu.Item label="Delete permanently" destructive onClick={onDelete} /> : null}
             </DropdownMenu>
             <Button
               variant="ghost"
