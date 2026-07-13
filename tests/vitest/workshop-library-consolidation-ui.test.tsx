@@ -642,7 +642,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.change(skuInput, { target: { value: "ACP-600" } });
     const variantOneCostInput = within(variantOneEditor).getByLabelText("Variant unit cost");
     fireEvent.change(variantOneCostInput, { target: { value: "1300" } });
-    expect(variantOneCostInput).toHaveValue("1,300.00");
+    expect(variantOneCostInput).toHaveValue("1300");
     const variantOneUnitCombobox = within(variantOneEditor).getByRole("combobox", { name: "Variant unit" });
     expect(variantOneUnitCombobox).toHaveAttribute("placeholder", "Search units");
     fireEvent.change(variantOneUnitCombobox, { target: { value: "box" } });
@@ -650,11 +650,9 @@ describe("workshop library consolidation UI", () => {
     expect(variantOneUnitCombobox).toHaveValue("box");
     const equivalentQuantity = await within(variantOneEditor).findByLabelText("Equivalent quantity");
     fireEvent.change(equivalentQuantity, { target: { value: "12" } });
-    const equivalentUnitCombobox = within(variantOneEditor).getByRole("combobox", { name: "Equivalent unit" });
-    fireEvent.change(equivalentUnitCombobox, { target: { value: "pc" } });
-    expect(screen.getByRole("option", { name: /^pieces/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("option", { name: /^pieces/i }));
-    expect(equivalentUnitCombobox).toHaveValue("pieces");
+    const equivalentUnitInput = within(variantOneEditor).getByLabelText("Equivalent unit");
+    fireEvent.change(equivalentUnitInput, { target: { value: "pieces" } });
+    expect(equivalentUnitInput).toHaveValue("pieces");
     clickDrawerAddVariant(variantsPanel);
     await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V2" })).toHaveAttribute("aria-pressed", "true"));
     const variantTwoEditor = within(variantsPanel).getByLabelText("Variant editor");
@@ -662,7 +660,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(variantsPanel).getByRole("button", { name: "Delete variant" })).toBeInTheDocument();
     const variantTwoCostInput = within(variantTwoEditor).getByLabelText("Variant unit cost");
     fireEvent.change(variantTwoCostInput, { target: { value: "1450" } });
-    expect(variantTwoCostInput).toHaveValue("1,450.00");
+    expect(variantTwoCostInput).toHaveValue("1450");
     const variantTwoUnitCombobox = within(variantTwoEditor).getByRole("combobox", { name: "Variant unit" });
     fireEvent.change(variantTwoUnitCombobox, { target: { value: "tile-box" } });
     fireEvent.click(screen.getByRole("option", { name: 'Add unit "tile-box"' }));

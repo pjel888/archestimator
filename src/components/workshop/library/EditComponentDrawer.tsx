@@ -173,6 +173,8 @@ export function EditComponentDrawer({
             pricingDate: pricingDate || undefined,
             pricingSource: pricingSource || undefined,
             confidence: confidence || undefined,
+            packageQuantity: defaultPriceOption?.packageQuantity ?? null,
+            packageUnit: defaultPriceOption?.packageUnit ?? null,
             isDefault: true,
             changeReason: "Edited from the component inspector",
           });

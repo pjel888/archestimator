@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const estimateSheetContentSource = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
 const estimateWorkspaceClientSource = readFileSync("src/components/workshop/EstimateWorkspaceClient.tsx", "utf8");
+const estimateRightSidebarSource = readFileSync("src/components/workshop/component-library/index.tsx", "utf8");
 
 describe("estimate component-library lazy-load boundary", () => {
   it("keeps the workspace panes behind dynamic boundaries while preserving a stable route skeleton", () => {
@@ -38,5 +39,9 @@ describe("estimate component-library lazy-load boundary", () => {
     expect(estimateSheetContentSource).toContain(
       "shouldLoadLibraryLazily && !librarySidebarCanHydrate",
     );
+  });
+
+  it("keeps component thumbnail uploads scoped to the active project", () => {
+    expect(estimateRightSidebarSource).toContain("imageUploadProjectId={projectId ?? null}");
   });
 });

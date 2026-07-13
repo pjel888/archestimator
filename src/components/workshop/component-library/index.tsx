@@ -3040,6 +3040,7 @@ function useEstimateRightSidebarContent({
             brands={brands}
             libraryItems={reusableLibraryItems}
             selectedFolderId={null}
+            imageUploadProjectId={projectId ?? null}
             onOpenChange={setAddComponentOpen}
             onComponentCreated={handleComponentCreated}
             catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-sidebar"}

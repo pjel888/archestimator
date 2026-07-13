@@ -21,7 +21,6 @@ import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import {
   COMPONENT_UNIT_COMBOBOX_OPTIONS,
-  CONTENT_UNIT_COMBOBOX_OPTIONS,
   getSelectedUnitId,
   getUnitComboboxValue,
 } from "@/components/workshop/component-unit-combobox-options";
@@ -38,7 +37,6 @@ import { validateQuickAddComponentInput } from "@/lib/component-library/quick-ad
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
   getUnitDisplayLabel,
-  unitUsesContentConversion,
 } from "@/lib/component-library/unit-options";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { EstimateRowItem } from "@/lib/estimates/types";
@@ -49,6 +47,7 @@ import {
   uploadComponentAttachment,
   validateComponentAttachmentFile,
 } from "@/lib/uploads/component-attachment-client";
+import { postUploadFormData } from "@/lib/uploads/client-upload";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
 import {
   type CreateLibraryFolderHandler,
@@ -352,6 +351,10 @@ function formatAccountingMoney(value: string) {
   return Number.isFinite(parsed) ? accountingNumberFormatter.format(parsed) : value;
 }
 
+function parseAccountingMoney(value: string) {
+  return parseMoney(formatAccountingMoney(value));
+}
+
 function readOptionalPositiveNumber(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -439,6 +442,75 @@ function makeVariantDraft(index: number, overrides: Partial<VariantDraft> = {}):
     attachments: [],
     ...overrides,
   };
+}
+
+function getDraftImageSnapshot(image: VariantImageDraft | null) {
+  if (!image) return null;
+  return {
+    bucket: image.bucket,
+    path: image.path,
+    thumbnailPath: image.thumbnailPath,
+    thumbnailStoragePath: image.thumbnailStoragePath,
+    url: image.url,
+    thumbnailUrl: image.thumbnailUrl,
+  };
+}
+
+function hasMeaningfulVariantValue(variant: VariantDraft, index: number) {
+  return Boolean(
+    (variant.label.trim() && variant.label.trim() !== `V${index + 1}`)
+      || variant.description.trim()
+      || variant.sku.trim()
+      || variant.unitCost.trim()
+      || variant.unit !== "unit"
+      || variant.packageQuantity.trim()
+      || variant.packageUnit.trim()
+      || variant.image
+      || variant.attachments.length > 0,
+  );
+}
+
+function getDraftSnapshot(draft: ComponentDraft) {
+  return {
+    name: draft.name.trim(),
+    category: draft.category.trim(),
+    categoryNodeId: draft.categoryNodeId,
+    supplierId: draft.supplierId,
+    supplierName: draft.supplierName.trim(),
+    brand: draft.brand.trim(),
+    brandId: draft.brandId,
+    thumbnailPath: draft.thumbnailPath,
+    lifecycleState: draft.lifecycleState,
+    effectiveAt: draft.effectiveAt,
+    changeReason: draft.changeReason.trim(),
+    sharedImageForAllVariants: draft.sharedImageForAllVariants,
+    sharedImage: draft.sharedImageForAllVariants ? getDraftImageSnapshot(draft.sharedImage) : null,
+    variants: draft.variants
+      .map((variant, index) => ({ variant, index }))
+      .filter(({ variant, index }) => hasMeaningfulVariantValue(variant, index))
+      .map(({ variant }) => ({
+        label: variant.label.trim(),
+        description: variant.description.trim(),
+        sku: variant.sku.trim(),
+        unitCost: variant.unitCost.trim(),
+        unit: variant.unit,
+        packageQuantity: variant.packageQuantity.trim(),
+        packageUnit: variant.packageUnit.trim(),
+        isDefault: variant.isDefault,
+        image: getDraftImageSnapshot(variant.image),
+        attachments: variant.attachments.map((attachment) => ({
+          bucket: attachment.bucket,
+          path: attachment.path,
+          fileName: attachment.fileName,
+          contentType: attachment.contentType,
+          sizeBytes: attachment.sizeBytes,
+        })),
+      })),
+  };
+}
+
+function hasMeaningfulDraftChanges(initialDraft: ComponentDraft, draft: ComponentDraft) {
+  return JSON.stringify(getDraftSnapshot(initialDraft)) !== JSON.stringify(getDraftSnapshot(draft));
 }
 
 type ExistingPriceOption = NonNullable<EstimateRowItem["priceOptions"]>[number];
@@ -637,16 +709,10 @@ async function uploadComponentImage(file: File, target: { projectId?: string | n
   formData.set("file", file);
   const projectId = target.projectId?.trim() ?? "";
   if (projectId) formData.set("projectId", projectId);
-  const response = await fetch(projectId ? "/api/projects/images" : "/api/component-library/images", {
-    method: "POST",
-    body: formData,
+  return postUploadFormData<UploadedComponentImage>(projectId ? "/api/projects/images" : "/api/component-library/images", formData, {
+    fallbackMessage: "Could not upload image.",
+    timeoutMessage: "Image upload timed out. Try again.",
   });
-  const result = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = result && typeof result.error === "string" ? result.error : "Could not upload image.";
-    throw new Error(message);
-  }
-  return result as UploadedComponentImage;
 }
 
 async function removeComponentImageUpload(image: VariantImageDraft | null | undefined) {
@@ -724,6 +790,7 @@ function OpenAddComponentModal({
   }));
   const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
   const [activeVariantId, setActiveVariantId] = useState(() => draft.variants.find((variant) => variant.isDefault)?.id ?? draft.variants[0]?.id ?? "");
+  const [variantModeEnabled, setVariantModeEnabled] = useState(() => (editingItem?.priceOptions?.length ?? 0) > 1);
   const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
   const [variantDrawerView, setVariantDrawerView] = useState<VariantDrawerView>("manager");
   const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
@@ -743,6 +810,7 @@ function OpenAddComponentModal({
   const attachmentInputId = useId();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
+  const initialDraftRef = useRef(draft);
   const duplicateCheckTimerRef = useRef<number | null>(null);
   const draftRef = useRef(draft);
   const variantPreviewUrlsRef = useRef(variantPreviewUrls);
@@ -790,6 +858,7 @@ function OpenAddComponentModal({
   const selectedBrandOptionId = draft.brandId || findSelectedLocalCatalogueOptionId(brandValue, localBrandOptions);
   const defaultVariant = draft.variants.find((variant) => variant.isDefault) ?? draft.variants[0];
   const activeVariant = draft.variants.find((variant) => variant.id === activeVariantId) ?? defaultVariant ?? draft.variants[0];
+  const visibleVariants = variantModeEnabled ? draft.variants : [];
   const activeVariantImage = getVariantImage(draft, activeVariant);
   const activePreviewUrl = draft.sharedImageForAllVariants ? sharedPreviewUrl : (activeVariant ? variantPreviewUrls[activeVariant.id] ?? "" : "");
   const activeImageSrc = activePreviewUrl || activeVariantImage?.thumbnailUrl || activeVariantImage?.url || "";
@@ -866,7 +935,7 @@ function OpenAddComponentModal({
       if (!Number.isFinite(parseMoney(variant.unitCost)) || parseMoney(variant.unitCost) < 0) {
         messages.push(`${label} cost must be a non-negative number.`);
       }
-      if (unitUsesContentConversion(variant.unit) && Number.isNaN(readOptionalPositiveNumber(variant.packageQuantity))) {
+      if (Number.isNaN(readOptionalPositiveNumber(variant.packageQuantity))) {
         messages.push(`${label} equivalent quantity must be a positive number when provided.`);
       }
     }
@@ -1021,18 +1090,23 @@ function OpenAddComponentModal({
   }
 
   function updateActiveVariantUnit(unit: string) {
-    updateActiveVariant({
-      unit,
-      ...(unitUsesContentConversion(unit) ? {} : { packageQuantity: "", packageUnit: "" }),
-    });
+    updateActiveVariant({ unit });
   }
 
   function addVariant() {
     markDirty();
+    if (!variantModeEnabled && defaultVariant) {
+      setVariantModeEnabled(true);
+      setActiveVariantId(defaultVariant.id);
+      setVariantDrawerOpen(true);
+      setVariantDrawerView("variant");
+      return;
+    }
     const nextVariant = makeVariantDraft(draft.variants.length + 1, {
       unit: defaultVariant?.unit ?? "unit",
     });
     setDraft((current) => ({ ...current, variants: [...current.variants, nextVariant] }));
+    setVariantModeEnabled(true);
     setActiveVariantId(nextVariant.id);
     setVariantDrawerOpen(true);
     setVariantDrawerView("variant");
@@ -1041,6 +1115,11 @@ function OpenAddComponentModal({
   function removeActiveVariant() {
     if (!activeVariant) return;
     markDirty();
+    if (variantModeEnabled && draft.variants.length === 1) {
+      setVariantModeEnabled(false);
+      setVariantDrawerView("manager");
+      return;
+    }
     const removedImage = draft.sharedImageForAllVariants ? null : activeVariant.image;
     const removedAttachments = activeVariant.attachments;
     const removedIndex = draft.variants.findIndex((variant) => variant.id === activeVariant.id);
@@ -1079,7 +1158,7 @@ function OpenAddComponentModal({
       setError("Wait for uploads to finish before closing.");
       return;
     }
-    if (!dirtyRef.current) {
+    if (!dirtyRef.current || !hasMeaningfulDraftChanges(initialDraftRef.current, draft)) {
       onOpenChange(false);
       return;
     }
@@ -1114,11 +1193,11 @@ function OpenAddComponentModal({
           variantDescription: variant.description,
           variantSortOrder: index + 1,
           unit: variant.unit || fallbackVariant.unit || "unit",
-          unitCost: parseMoney(variant.unitCost),
+          unitCost: parseAccountingMoney(variant.unitCost),
           currency: "PHP",
           supplierId: draft.supplierId || null,
-          packageQuantity: unitUsesContentConversion(variant.unit) ? readOptionalPositiveNumber(variant.packageQuantity) : null,
-          packageUnit: unitUsesContentConversion(variant.unit) ? variant.packageUnit || null : null,
+          packageQuantity: readOptionalPositiveNumber(variant.packageQuantity),
+          packageUnit: variant.packageUnit || null,
           imageBucket: variantImage?.bucket ?? null,
           imagePath: variantImage?.path ?? null,
           thumbnailPath: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || null,
@@ -1181,7 +1260,7 @@ function OpenAddComponentModal({
   }
 
   async function handleThumbnailUpload(file: File) {
-    if (!activeVariant) return;
+    const uploadVariant = activeVariant ?? makeVariantDraft(1);
     if (file.type && !ALLOWED_UPLOAD_TYPES.has(file.type)) {
       setImageUpload({ state: "error", message: "Use a JPG, PNG, WebP, or AVIF image." });
       return;
@@ -1191,15 +1270,29 @@ function OpenAddComponentModal({
       return;
     }
 
-    const previousImage = getVariantImage(draft, activeVariant);
-    const localPreviewUrl = URL.createObjectURL(file);
-    if (draft.sharedImageForAllVariants) {
-      if (sharedPreviewUrl) URL.revokeObjectURL(sharedPreviewUrl);
-      setSharedPreviewUrl(localPreviewUrl);
-    } else {
-      const existingPreviewUrl = variantPreviewUrls[activeVariant.id];
-      if (existingPreviewUrl) URL.revokeObjectURL(existingPreviewUrl);
-      setVariantPreviewUrls((current) => ({ ...current, [activeVariant.id]: localPreviewUrl }));
+    if (!activeVariant) {
+      setDraft((current) => current.variants.length > 0
+        ? current
+        : { ...current, variants: [uploadVariant] });
+      setActiveVariantId(uploadVariant.id);
+    }
+
+    const previousImage = getVariantImage(draft, uploadVariant);
+    let localPreviewUrl = "";
+    try {
+      localPreviewUrl = URL.createObjectURL(file);
+    } catch {
+      localPreviewUrl = "";
+    }
+    if (localPreviewUrl) {
+      if (draft.sharedImageForAllVariants) {
+        if (sharedPreviewUrl) URL.revokeObjectURL(sharedPreviewUrl);
+        setSharedPreviewUrl(localPreviewUrl);
+      } else {
+        const existingPreviewUrl = variantPreviewUrls[uploadVariant.id];
+        if (existingPreviewUrl) URL.revokeObjectURL(existingPreviewUrl);
+        setVariantPreviewUrls((current) => ({ ...current, [uploadVariant.id]: localPreviewUrl }));
+      }
     }
     markDirty();
     setImageUpload({ state: "processing", message: "Optimizing image..." });
@@ -1213,8 +1306,8 @@ function OpenAddComponentModal({
       if (draft.sharedImageForAllVariants) {
         updateDraft({ sharedImage: imageDraft, thumbnailPath: imageDraft.thumbnailUrl || imageDraft.url });
       } else {
-        updateActiveVariant({ image: imageDraft });
-        if (activeVariant.isDefault) updateDraft({ thumbnailPath: imageDraft.thumbnailUrl || imageDraft.url });
+        updateVariant(uploadVariant.id, { image: imageDraft });
+        if (uploadVariant.isDefault) updateDraft({ thumbnailPath: imageDraft.thumbnailUrl || imageDraft.url });
       }
       if (previousImage && previousImage.path !== imageDraft.path) void removeComponentImageUpload(previousImage);
       setImageUpload({
@@ -1324,7 +1417,7 @@ function OpenAddComponentModal({
   }): EstimateRowItem {
     const variant = defaultVariant;
     const variantImage = getVariantImage(draft, variant);
-    const itemCost = parseMoney(variant?.unitCost ?? "0");
+    const itemCost = parseAccountingMoney(variant?.unitCost ?? "0");
     const supplierName = selectedSupplier?.name ?? draft.supplierName;
     const brandName = selectedBrand?.name ?? draft.brand;
     const category = draft.category.trim();
@@ -1341,7 +1434,7 @@ function OpenAddComponentModal({
         variantDescription: entry.description,
         variantSortOrder: index + 1,
         unit: entry.unit,
-        unitCost: parseMoney(entry.unitCost),
+        unitCost: parseAccountingMoney(entry.unitCost),
         miscCost: 0,
         currency: "PHP",
         pricingSource: null,
@@ -1350,8 +1443,8 @@ function OpenAddComponentModal({
         sourceUrl: null,
         notes: null,
         supplierId: draft.supplierId || null,
-        packageQuantity: unitUsesContentConversion(entry.unit) ? readOptionalPositiveNumber(entry.packageQuantity) : null,
-        packageUnit: unitUsesContentConversion(entry.unit) ? entry.packageUnit || null : null,
+        packageQuantity: readOptionalPositiveNumber(entry.packageQuantity),
+        packageUnit: entry.packageUnit || null,
         imageBucket: image?.bucket,
         imagePath: image?.path,
         thumbnailPath: image?.thumbnailUrl || image?.thumbnailPath,
@@ -1429,7 +1522,7 @@ function OpenAddComponentModal({
     const editedPriceOptions = draft.variants.map((entry, index): ExistingPriceOption => {
       const existingOption = existingPriceOptionsById.get(entry.id);
       const image = getVariantImage(draft, entry);
-      const unitCost = parseMoney(entry.unitCost);
+      const unitCost = parseAccountingMoney(entry.unitCost);
       return {
         id: entry.id,
         label: entry.label,
@@ -1448,8 +1541,8 @@ function OpenAddComponentModal({
         supplierId: draft.supplierId || existingOption?.supplierId || null,
         activeCostEntryId: existingOption?.activeCostEntryId ?? null,
         costEntries: existingOption?.costEntries,
-        packageQuantity: unitUsesContentConversion(entry.unit) ? readOptionalPositiveNumber(entry.packageQuantity) : null,
-        packageUnit: unitUsesContentConversion(entry.unit) ? entry.packageUnit || null : null,
+        packageQuantity: readOptionalPositiveNumber(entry.packageQuantity),
+        packageUnit: entry.packageUnit || null,
         imageBucket: image?.bucket || existingOption?.imageBucket || null,
         imagePath: image?.path || existingOption?.imagePath || null,
         thumbnailPath: image?.thumbnailUrl || image?.thumbnailPath || existingOption?.thumbnailPath || null,
@@ -1470,7 +1563,7 @@ function OpenAddComponentModal({
         updatedAt: existingOption?.updatedAt,
       };
     });
-    const itemCost = parseMoney(variant.unitCost);
+    const itemCost = parseAccountingMoney(variant.unitCost);
     const resolvedItemCost = Number.isFinite(itemCost) ? itemCost : currentItem?.itemCost ?? 0;
     const quantity = currentItem?.quantity ?? 1;
     const subTotal = resolvedItemCost * quantity;
@@ -1543,10 +1636,9 @@ function OpenAddComponentModal({
 
   const showValidationErrors = submitAttempted && validation.length > 0;
   const visibleValidationErrors: Partial<typeof quickAddValidation.errors> = showValidationErrors ? quickAddValidation.errors : {};
-  const componentStatus = error || (showValidationErrors ? `Complete the required fields before ${isEditing ? "saving" : "adding"} this component.` : `Ready to ${isEditing ? "save" : "add"} component.`);
+  const componentStatus = error || (showValidationErrors ? `Complete the required fields before ${isEditing ? "saving" : "adding"} this component.` : "");
   const unitLabel = getUnitDisplayLabel(activeVariant?.unit ?? "") || activeVariant?.unit || "unit";
-  const showActiveVariantEquivalency = activeVariant ? unitUsesContentConversion(activeVariant.unit) : false;
-  const showMainCostSection = !(variantDrawerOpen && variantDrawerView === "variant");
+  const showMainCostSection = !variantModeEnabled;
 
   return (
     <>
@@ -1641,10 +1733,12 @@ function OpenAddComponentModal({
                     aria-label="Upload thumbnail"
                     disabled={imageBusy}
                     onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.currentTarget.value = "";
+                      const input = event.currentTarget;
+                      const file = input.files?.[0];
                       if (!file) return;
-                      void handleThumbnailUpload(file);
+                      void handleThumbnailUpload(file).finally(() => {
+                        input.value = "";
+                      });
                     }}
                     className="sr-only"
                   />
@@ -1708,57 +1802,6 @@ function OpenAddComponentModal({
                       />
                     </ControlField>
                   </section>
-
-                  {showMainCostSection ? (
-                    <section className={OPENDESIGN_SECTION_CLASS} aria-label="Cost fields">
-                      <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
-                        <Money size={11} weight="regular" aria-hidden="true" />
-                        Cost
-                      </div>
-                      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(76px,0.5fr)]">
-                        <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unitCost}>
-                          <div className="relative">
-                            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-[9px] font-medium text-tertiary">PHP</span>
-                            <ControlInput
-                              aria-label="Unit cost"
-                              aria-required="true"
-                              inputMode="decimal"
-                              value={defaultVariant?.unitCost ?? ""}
-                              onChange={(event) => updatePrimaryVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
-                              invalid={Boolean(visibleValidationErrors.unitCost)}
-                              className={cn(OPENDESIGN_INPUT_CLASS, "pl-[34px] text-right tabular-nums")}
-                              placeholder="0.00"
-                            />
-                          </div>
-                        </ControlField>
-                        <ControlField as="div" label="Unit" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unit}>
-                          <CreatableCombobox
-                            ariaLabel="Unit"
-                            ariaRequired
-                            value={defaultVariant?.unit ?? ""}
-                            selectedId={getSelectedUnitId(defaultVariant?.unit ?? "", COMPONENT_UNIT_COMBOBOX_OPTIONS)}
-                            options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
-                            placeholder="Search units"
-                            emptyLabel="No units found"
-                            createLabel={(value) => `Add unit "${value}"`}
-                            invalid={Boolean(visibleValidationErrors.unit)}
-                            inputClassName={OPENDESIGN_INPUT_CLASS}
-                            onChange={(change) => {
-                              const unit = getUnitComboboxValue(change);
-                              updatePrimaryVariant({
-                                unit,
-                                ...(unitUsesContentConversion(unit) ? {} : { packageQuantity: "", packageUnit: "" }),
-                              });
-                            }}
-                            preferSelectionOnEnter
-                            suppressCreateWhenSearchMatches
-                            optionPresentation="unit"
-                            showClearButton={false}
-                          />
-                        </ControlField>
-                      </div>
-                    </section>
-                  ) : null}
 
                   <section className={OPENDESIGN_SECTION_CLASS} aria-label="Catalogue fields">
                     <div className={OPENDESIGN_SECTION_TITLE_CLASS}>Catalogue</div>
@@ -1842,6 +1885,55 @@ function OpenAddComponentModal({
                       </output>
                     ) : null}
                   </section>
+
+                  {showMainCostSection ? (
+                    <section className={OPENDESIGN_SECTION_CLASS} aria-label="Cost fields">
+                      <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
+                        <Money size={11} weight="regular" aria-hidden="true" />
+                        Cost
+                      </div>
+                      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(76px,0.5fr)]">
+                        <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unitCost}>
+                          <div className="relative">
+                            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-[9px] font-medium text-tertiary">PHP</span>
+                            <ControlInput
+                              aria-label="Unit cost"
+                              aria-required="true"
+                              inputMode="decimal"
+                              value={defaultVariant?.unitCost ?? ""}
+                              onChange={(event) => updatePrimaryVariant({ unitCost: normalizeMoneyInput(event.target.value) })}
+                              onBlur={(event) => updatePrimaryVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
+                              invalid={Boolean(visibleValidationErrors.unitCost)}
+                              className={cn(OPENDESIGN_INPUT_CLASS, "pl-[34px] text-right tabular-nums")}
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </ControlField>
+                        <ControlField as="div" label="Unit" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unit}>
+                          <CreatableCombobox
+                            ariaLabel="Unit"
+                            ariaRequired
+                            value={defaultVariant?.unit ?? ""}
+                            selectedId={getSelectedUnitId(defaultVariant?.unit ?? "", COMPONENT_UNIT_COMBOBOX_OPTIONS)}
+                            options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
+                            placeholder="Search units"
+                            emptyLabel="No units found"
+                            createLabel={(value) => `Add unit "${value}"`}
+                            invalid={Boolean(visibleValidationErrors.unit)}
+                            inputClassName={OPENDESIGN_INPUT_CLASS}
+                            onChange={(change) => {
+                              const unit = getUnitComboboxValue(change);
+                              updatePrimaryVariant({ unit });
+                            }}
+                            preferSelectionOnEnter
+                            suppressCreateWhenSearchMatches
+                            optionPresentation="unit"
+                            showClearButton={false}
+                          />
+                        </ControlField>
+                      </div>
+                    </section>
+                  ) : null}
                 </div>
               </main>
             </div>
@@ -1938,7 +2030,7 @@ function OpenAddComponentModal({
             <header className="flex h-[45px] shrink-0 items-center gap-2 border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.72)] pl-4 pr-2">
               <div className="mr-auto min-w-0">
                 <h3 className="truncate text-[11px] font-medium leading-[1.2] text-ink">Manage Variants</h3>
-                <p className="m-0 truncate text-[9px] font-medium leading-3 text-tertiary">{draft.variants.length} variant{draft.variants.length === 1 ? "" : "s"}</p>
+                <p className="m-0 truncate text-[9px] font-medium leading-3 text-tertiary">{visibleVariants.length} variant{visibleVariants.length === 1 ? "" : "s"}</p>
               </div>
               <button
                 type="button"
@@ -1953,8 +2045,8 @@ function OpenAddComponentModal({
             <div className="flex h-8 shrink-0 items-center justify-start gap-2 border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.58)] px-2 pb-[5px] pl-4 pt-1">
               <button
                 type="button"
-                aria-pressed={activeVariant?.isDefault ?? false}
-                disabled={!activeVariant}
+                aria-pressed={variantModeEnabled && (activeVariant?.isDefault ?? false)}
+                disabled={!variantModeEnabled || !activeVariant}
                 onClick={setActiveVariantAsDefault}
                 className={cn(
                   "h-5 rounded-full px-2 text-[9px] font-medium leading-none transition disabled:opacity-50",
@@ -1996,14 +2088,14 @@ function OpenAddComponentModal({
                   className={cn(
                     "-mt-px grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary opacity-[0.82] transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
                     OPENDESIGN_RAIL_SHADOW_CLASS,
-                    draft.variants.length === 0 && "rounded-br-[3px]",
+                    visibleVariants.length === 0 && "rounded-br-[3px]",
                   )}
                 >
                   <Plus size={14} weight="regular" aria-hidden="true" />
                 </button>
-                {draft.variants.map((variant, index) => {
+                {visibleVariants.map((variant, index) => {
                   const isActive = activeVariant?.id === variant.id && variantDrawerView === "variant";
-                  const isLast = index === draft.variants.length - 1;
+                  const isLast = index === visibleVariants.length - 1;
                   return (
                     <button
                       key={variant.id}
@@ -2032,12 +2124,12 @@ function OpenAddComponentModal({
             <div className="min-h-0 flex-1 overflow-auto px-2 pb-2 pl-4 pt-[6px]">
               {variantDrawerView === "manager" ? (
                 <div className="grid gap-2" aria-label="Variant manager">
-                  {draft.variants.length === 0 ? (
+                  {visibleVariants.length === 0 ? (
                     <div className="grid min-h-[64px] place-items-center rounded-[3px] bg-[rgba(61,61,61,0.05)] px-3 text-center text-[10px] font-medium leading-[1.35] text-tertiary">
                       No variants yet.
                     </div>
                   ) : null}
-                  {draft.variants.map((variant, index) => (
+                  {visibleVariants.map((variant, index) => (
                     <button
                       key={variant.id}
                       type="button"
@@ -2086,10 +2178,12 @@ function OpenAddComponentModal({
                         aria-label="Upload variant thumbnail"
                         disabled={imageBusy}
                         onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          event.currentTarget.value = "";
+                          const input = event.currentTarget;
+                          const file = input.files?.[0];
                           if (!file) return;
-                          void handleThumbnailUpload(file);
+                          void handleThumbnailUpload(file).finally(() => {
+                            input.value = "";
+                          });
                         }}
                         className="sr-only"
                       />
@@ -2136,12 +2230,7 @@ function OpenAddComponentModal({
                   <section className={OPENDESIGN_SECTION_CLASS} aria-label="Variant cost">
                     <div className={OPENDESIGN_SECTION_TITLE_CLASS}>Cost</div>
                     <div
-                      className={cn(
-                        "grid gap-2",
-                        showActiveVariantEquivalency
-                          ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.05fr)]"
-                          : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]",
-                      )}
+                      className="grid grid-cols-[minmax(0,1fr)_minmax(76px,0.5fr)] items-start gap-2 min-[1121px]:grid-cols-[minmax(190px,1.35fr)_minmax(76px,0.5fr)_minmax(196px,1fr)] max-md:grid-cols-1"
                     >
                       <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unitCost : undefined}>
                         <div className="relative">
@@ -2151,7 +2240,8 @@ function OpenAddComponentModal({
                             aria-required="true"
                             inputMode="decimal"
                             value={activeVariant.unitCost}
-                            onChange={(event) => updateActiveVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
+                            onChange={(event) => updateActiveVariant({ unitCost: normalizeMoneyInput(event.target.value) })}
+                            onBlur={(event) => updateActiveVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
                             invalid={showValidationErrors && (!Number.isFinite(parseMoney(activeVariant.unitCost)) || parseMoney(activeVariant.unitCost) < 0)}
                             className={cn(OPENDESIGN_INPUT_CLASS, "pl-[34px] text-right tabular-nums")}
                             placeholder="0.00"
@@ -2178,8 +2268,8 @@ function OpenAddComponentModal({
                           showClearButton={false}
                         />
                       </ControlField>
-                      {showActiveVariantEquivalency ? (
-                        <div className="grid h-8 grid-cols-[auto_auto_minmax(44px,0.55fr)_minmax(66px,0.75fr)] items-center gap-1.5 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-1.5">
+                      <ControlField as="div" label="Equivalency" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} className="max-[1120px]:col-span-full">
+                        <div className="grid h-8 grid-cols-[auto_auto_minmax(44px,0.55fr)_minmax(66px,0.75fr)] items-center gap-1.5 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-1.5 max-sm:grid-cols-[auto_auto_minmax(52px,0.5fr)_minmax(82px,1fr)]">
                           <span className="text-[10px] font-medium text-muted">
                             1 <span className="text-ink">{unitLabel}</span>
                           </span>
@@ -2195,26 +2285,17 @@ function OpenAddComponentModal({
                               placeholder="12"
                             />
                           </ControlField>
-                          <ControlField as="div" label="Equivalent unit" labelClassName="sr-only">
-                            <CreatableCombobox
-                              ariaLabel="Equivalent unit"
+                          <ControlField label="Equivalent unit" labelClassName="sr-only">
+                            <ControlInput
+                              aria-label="Equivalent unit"
                               value={activeVariant.packageUnit}
-                              selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
-                              options={CONTENT_UNIT_COMBOBOX_OPTIONS}
-                              placeholder={unitLabel}
-                              emptyLabel="No units found"
-                              createLabel={(value) => `Add unit "${value}"`}
-                              inputClassName={cn(OPENDESIGN_INPUT_CLASS, "h-6 px-1.5")}
-                              onChange={(change) => updateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
-                              preferSelectionOnEnter
-                              suppressCreateWhenSearchMatches
-                              optionPresentation="unit"
-                              dropdownPlacement="top"
-                              showClearButton={false}
+                              onChange={(event) => updateActiveVariant({ packageUnit: event.target.value })}
+                              className={cn(OPENDESIGN_INPUT_CLASS, "h-6 px-1.5")}
+                              placeholder="tiles"
                             />
                           </ControlField>
                         </div>
-                      ) : null}
+                      </ControlField>
                     </div>
                   </section>
 
@@ -2231,10 +2312,12 @@ function OpenAddComponentModal({
                         aria-label="Upload attachment"
                         disabled={attachmentBusy}
                         onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          event.currentTarget.value = "";
+                          const input = event.currentTarget;
+                          const file = input.files?.[0];
                           if (!file) return;
-                          void handleAttachmentUpload(file);
+                          void handleAttachmentUpload(file).finally(() => {
+                            input.value = "";
+                          });
                         }}
                         className="sr-only"
                       />

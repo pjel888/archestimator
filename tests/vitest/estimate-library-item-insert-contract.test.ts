@@ -55,6 +55,20 @@ describe("estimate library item insert contract", () => {
     });
   });
 
+  it("accepts reviewable library payloads with missing source metadata", () => {
+    const reviewableItem = {
+      ...estimateLibraryItems[0],
+      supplier: "",
+      pricingSource: "",
+      pricingDate: "",
+    };
+
+    expect(readEstimateLibraryItemDragPayload(JSON.stringify(reviewableItem))).toEqual({
+      ok: true,
+      item: reviewableItem,
+    });
+  });
+
   it("supports acknowledged custom events while preserving the legacy raw-item detail", () => {
     const accepted = vi.fn();
     expect(readAddLibraryItemEventDetail({ libraryItem: estimateLibraryItems[0], onAccepted: accepted })).toMatchObject({

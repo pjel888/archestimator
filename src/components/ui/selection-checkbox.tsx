@@ -82,14 +82,19 @@ export function SelectionCheckbox({
         <Check
           weight="regular"
           data-selection-checkbox-icon="checked"
-          className={cn("h-2.5 w-2.5", tone === "blue" ? "text-blue-700" : "text-white")}
+          // Icons must paint ABOVE the absolute, opacity-100 input so the
+          // checkmark is visible over the selected fill. `absolute` promotes
+          // the icon into the input's stacking layer (DOM order wins → on
+          // top), and `pointer-events-none` lets clicks fall through to the
+          // input. Mirrors the proven pattern in ui/checkbox.tsx.
+          className={cn("pointer-events-none absolute h-2.5 w-2.5", tone === "blue" ? "text-blue-700" : "text-white")}
         />
       )}
       {indeterminate && (
         <Minus
           weight="regular"
           data-selection-checkbox-icon="mixed"
-          className={cn("h-2.5 w-2.5", tone === "blue" ? "text-blue-700" : "text-tertiary")}
+          className={cn("pointer-events-none absolute h-2.5 w-2.5", tone === "blue" ? "text-blue-700" : "text-tertiary")}
         />
       )}
     </span>

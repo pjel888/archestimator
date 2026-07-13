@@ -493,7 +493,7 @@ function normalizeComponentLibraryItem(
   const itemCost = Number(defaultPriceOption?.unitCost ?? row.unit_cost);
   const miscCost = Number(defaultPriceOption?.miscCost ?? row.misc_cost);
   const unit = defaultPriceOption?.unit ?? row.unit;
-  const pricingDate = defaultPriceOption?.pricingDate ?? row.pricing_date ?? row.created_at.slice(0, 10);
+  const pricingDate = defaultPriceOption?.pricingDate ?? row.pricing_date ?? "";
   const pricingSource = defaultPriceOption?.pricingSource ?? row.pricing_source ?? supplier?.name ?? "Component library";
 
   return {
@@ -553,7 +553,7 @@ function normalizeCostEntry(row: ComponentVariantCostEntryRow): ComponentVariant
     miscCost: Number(row.misc_cost),
     currency: row.currency,
     pricingSource: row.pricing_source,
-    pricingDate: row.pricing_date ?? row.created_at.slice(0, 10),
+    pricingDate: row.pricing_date ?? "",
     confidence: row.confidence,
     sourceUrl: sanitizeComponentSourceUrl(row.source_url) ?? null,
     notes: row.notes,
@@ -990,7 +990,7 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     pricingSource: readString(sourceSnapshot.pricingSource) ?? "Template snapshot",
-    pricingDate: readString(sourceSnapshot.pricingDate) ?? row.created_at.slice(0, 10),
+    pricingDate: readString(sourceSnapshot.pricingDate) ?? "",
     confidence: readString(sourceSnapshot.confidence),
   };
 }

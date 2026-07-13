@@ -268,6 +268,31 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(within(dialog).getByText("Enter a component name.")).toBeInTheDocument();
   });
 
+  it("keeps Unit cost editable while typing and formats it after focus leaves", async () => {
+    renderAddModal();
+
+    const dialog = await getAddDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const unitCost = within(form).getByLabelText("Unit cost");
+
+    fireEvent.change(unitCost, { target: { value: "1" } });
+    expect(unitCost).toHaveValue("1");
+    fireEvent.change(unitCost, { target: { value: "12." } });
+    expect(unitCost).toHaveValue("12.");
+    fireEvent.change(unitCost, { target: { value: "12.5" } });
+    expect(unitCost).toHaveValue("12.5");
+
+    fireEvent.blur(unitCost);
+    expect(unitCost).toHaveValue("12.50");
+
+    const variantsDrawer = openVariantDrawer(dialog);
+    const variantUnitCost = within(variantsDrawer).getByLabelText("Variant unit cost");
+    fireEvent.change(variantUnitCost, { target: { value: "3" } });
+    expect(variantUnitCost).toHaveValue("3");
+    fireEvent.blur(variantUnitCost);
+    expect(variantUnitCost).toHaveValue("3.00");
+  });
+
   it("lets a nested combobox own Escape before the dirty modal close dialog", async () => {
     const nativeConfirm = vi.spyOn(window, "confirm").mockImplementation(() => false);
     const props = renderAddModal();
@@ -292,6 +317,31 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(props.onOpenChange).not.toHaveBeenCalledWith(false);
 
     nativeConfirm.mockRestore();
+  });
+
+  it("closes without a warning when the draft has no meaningful values", async () => {
+    const props = renderAddModal();
+    const dialog = await getAddDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
+    const variantsDrawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
+    clickAddVariant(variantsDrawer);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close add component modal" }));
+
+    expect(props.onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("dialog", { name: "Save component draft?" })).not.toBeInTheDocument();
+  });
+
+  it("warns only while a meaningful value remains in the draft", async () => {
+    renderAddModal();
+    const dialog = await getAddDialog();
+    const name = within(dialog).getByLabelText("Name");
+
+    fireEvent.change(name, { target: { value: "Temporary component" } });
+    fireEvent.change(name, { target: { value: "   " } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close add component modal" }));
+
+    expect(screen.queryByRole("dialog", { name: "Save component draft?" })).not.toBeInTheDocument();
   });
 
   it("keeps the draft open after a failed create and preserves OpenDesign fields", async () => {
@@ -506,13 +556,20 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(within(drawer).getByLabelText("Variant unit cost")).toBeInTheDocument();
     const variantUnit = within(drawer).getByRole("combobox", { name: "Variant unit" });
     expect(variantUnit).toBeInTheDocument();
-    expect(within(drawer).queryByLabelText("Equivalent quantity")).not.toBeInTheDocument();
-    expect(within(drawer).queryByRole("combobox", { name: "Equivalent unit" })).not.toBeInTheDocument();
+    expect(within(drawer).getByText("Equivalency")).toBeInTheDocument();
+    const equivalentQuantity = within(drawer).getByLabelText("Equivalent quantity");
+    const equivalentUnit = within(drawer).getByLabelText("Equivalent unit");
+    expect(equivalentQuantity).toBeInTheDocument();
+    expect(equivalentUnit).toBeInTheDocument();
+    fireEvent.change(equivalentQuantity, { target: { value: "12" } });
+    fireEvent.change(equivalentUnit, { target: { value: "tiles" } });
 
     fireEvent.change(variantUnit, { target: { value: "box" } });
 
     expect(within(drawer).getByLabelText("Equivalent quantity")).toBeInTheDocument();
-    expect(within(drawer).getByRole("combobox", { name: "Equivalent unit" })).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Equivalent unit")).toBeInTheDocument();
+    expect(equivalentQuantity).toHaveValue("12");
+    expect(equivalentUnit).toHaveValue("tiles");
     expect(within(drawer).getByLabelText("Upload attachment")).toBeInTheDocument();
 
     expect(within(drawer).queryByLabelText("Pricing date")).not.toBeInTheDocument();
@@ -698,6 +755,61 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const imageUrl = decodeURIComponent(updatedItem.imageUrl ?? "");
     expect(imageUrl).toContain("/api/component-library/images?path=");
     expect(imageUrl).toContain(imagePath);
+  });
+
+  it("creates the first variant when a thumbnail is selected before variants exist", async () => {
+    const projectImageProjectId = "22222222-2222-4222-8222-222222222222";
+    const thumbnailUrl = "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak-thumb.webp";
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      bucket: "project-images",
+      path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak.webp",
+      thumbnailPath: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak-thumb.webp",
+      url: "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak.webp",
+      thumbnailUrl,
+      originalBytes: 16,
+      optimizedBytes: 12,
+      contentType: "image/webp",
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderAddModal({ imageUploadProjectId: projectImageProjectId });
+    const dialog = await getAddDialog();
+
+    const drawer = openVariantManager(dialog);
+    expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
+    fireEvent.click(within(drawer).getByRole("button", { name: "Close variants panel" }));
+
+    const file = new File(["fake-image-bytes"], "oak.png", { type: "image/png" });
+    const thumbnailInput = within(dialog).getByLabelText("Upload thumbnail") as HTMLInputElement;
+    let selectedFiles: File[] = [file];
+    Object.defineProperty(thumbnailInput, "files", {
+      configurable: true,
+      get: () => selectedFiles,
+    });
+    Object.defineProperty(thumbnailInput, "value", {
+      configurable: true,
+      get: () => selectedFiles[0]?.name ?? "",
+      set: (value: string) => {
+        if (value === "") selectedFiles = [];
+      },
+    });
+    const createObjectUrlMock = vi.spyOn(URL, "createObjectURL").mockImplementation(() => {
+      if (selectedFiles.length === 0) throw new Error("The native file selection was cleared too early.");
+      return "blob:oak-preview";
+    });
+
+    fireEvent.change(thumbnailInput);
+
+    await screen.findByText(/Stored WebP thumbnail/);
+    expect(createObjectUrlMock).toHaveBeenCalledWith(file);
+    expect(selectedFiles).toHaveLength(0);
+    expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" }));
+    expect(within(dialog).getByAltText("Component thumbnail preview")).toBeInTheDocument();
+    const updatedDrawer = openVariantManager(dialog);
+    expect(within(updatedDrawer).getByText("No variants yet.")).toBeInTheDocument();
+    expect(within(updatedDrawer).getByRole("button", { name: "Default" })).toBeDisabled();
   });
 
   it("uploads edit-mode thumbnails through the project image route when a project id is provided", async () => {

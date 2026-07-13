@@ -16,7 +16,7 @@ export const COMPONENT_LIFECYCLE_FACET_LABELS: Record<ComponentLifecycleState, s
 };
 
 export const COMPONENT_PRICING_FRESHNESS_LABELS: Record<Exclude<ComponentPricingFreshness, "any">, string> = {
-  fresh: "Current",
+  fresh: "Fresh price",
   stale: "Stale price",
   "very-stale": "Very stale price",
   missing: "Missing price source",
@@ -159,8 +159,9 @@ export function componentMatchesPricingFreshness(
 function pricingFreshnessChip(
   input: Pick<ComponentSourceTrustInput, "pricingDate">,
   now = Date.now(),
-): SourceTrustChipSpec {
+): SourceTrustChipSpec | null {
   const freshness = getComponentPricingFreshness(input, now);
+  if (freshness === "fresh" || freshness === "missing") return null;
   return {
     id: `pricing-${freshness}`,
     label: COMPONENT_PRICING_FRESHNESS_LABELS[freshness],
@@ -169,16 +170,9 @@ function pricingFreshnessChip(
   };
 }
 
-function confidenceChip(input: Pick<ComponentSourceTrustInput, "confidence">): SourceTrustChipSpec {
+function confidenceChip(input: Pick<ComponentSourceTrustInput, "confidence">): SourceTrustChipSpec | null {
   const confidence = normalizeTrimmed(input.confidence);
-  if (!confidence) {
-    return {
-      id: "confidence-missing",
-      label: "No confidence",
-      tone: "neutral",
-      title: "No source confidence recorded.",
-    };
-  }
+  if (!confidence) return null;
   const copy = confidenceChipCopy(confidence);
   return {
     id: `confidence-${confidence.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
@@ -453,12 +447,14 @@ export function getTemplateSourceTrustChips(
   const freshness = rows.length > 0 ? worstFreshnessForRows(rows, options.now) : "missing";
   return [
     templateLinkChip(rows),
-    {
-      id: `template-pricing-${freshness}`,
-      label: COMPONENT_PRICING_FRESHNESS_LABELS[freshness],
-      tone: FRESHNESS_TONE[freshness],
-      title: rows.length > 0 ? "Worst pricing freshness among template rows" : "No template row pricing dates",
-    },
+    freshness === "fresh" || freshness === "missing"
+      ? null
+      : {
+          id: `template-pricing-${freshness}`,
+          label: COMPONENT_PRICING_FRESHNESS_LABELS[freshness],
+          tone: FRESHNESS_TONE[freshness],
+          title: "Worst pricing freshness among template rows",
+        },
     templateLinkStateChip(rows),
   ].filter((chip): chip is SourceTrustChipSpec => chip !== null);
 }

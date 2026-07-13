@@ -44,7 +44,7 @@ function makeRow(overrides: Partial<EstimateRowItem> & { id: string; material: s
 }
 
 describe("library source trust model", () => {
-  it("classifies pricing freshness into current, stale, very stale, and missing tiers", () => {
+  it("classifies pricing freshness into fresh, stale, very stale, and missing tiers", () => {
     expect(getComponentPricingFreshness({ pricingDate: "2026-06-01" }, NOW)).toBe("fresh");
     expect(getComponentPricingFreshness({ pricingDate: "2026-02-01" }, NOW)).toBe("stale");
     expect(getComponentPricingFreshness({ pricingDate: "2025-12-01" }, NOW)).toBe("very-stale");
@@ -67,13 +67,13 @@ describe("library source trust model", () => {
     );
   });
 
-  it("renders component confidence as copy-deck labels and flags missing source fields", () => {
+  it("renders explicit component source warnings without default status chips", () => {
     expect(
       getComponentSourceTrustChips(
         { pricingDate: "2026-06-01", pricingSource: "Supplier quote", confidence: "Quoted", lifecycleState: "available" },
         { now: NOW },
       ).map((chip) => chip.label),
-    ).toEqual(["Current", "Verified source"]);
+    ).toEqual(["Verified source"]);
 
     expect(
       getComponentSourceTrustChips(
@@ -112,15 +112,9 @@ describe("library source trust model", () => {
       { pricingDate: "", pricingSource: "", confidence: "", lifecycleState: "archived" },
       { now: NOW },
     );
-    expect(missingChips.map((chip) => chip.label)).toEqual(["Missing price source", "No confidence", "Archived", "Missing price source"]);
-    expect(missingChips.find((chip) => chip.id === "pricing-missing")).toMatchObject({
-      tone: "neutral",
-      title: "No pricing date recorded. Add one to track freshness.",
-    });
-    expect(missingChips.find((chip) => chip.id === "confidence-missing")).toMatchObject({
-      tone: "neutral",
-      title: "No source confidence recorded.",
-    });
+    expect(missingChips.map((chip) => chip.label)).toEqual(["Archived", "Missing price source"]);
+    expect(missingChips.find((chip) => chip.id === "pricing-missing")).toBeUndefined();
+    expect(missingChips.find((chip) => chip.id === "confidence-missing")).toBeUndefined();
     expect(missingChips.find((chip) => chip.id === "lifecycle-archived")).toMatchObject({
       tone: "neutral",
     });

@@ -207,7 +207,7 @@ describe("ui tree", () => {
     expect(onNodeDragStart).toHaveBeenCalledWith("c", expect.any(Object));
   });
 
-  it("keeps the keyboard-focused row distinct with a left border only", async () => {
+  it("keeps the keyboard-focused row distinct with an inset focus ring", async () => {
     render(
       <Tree
         nodes={sampleNodes()}
@@ -221,10 +221,27 @@ describe("ui tree", () => {
 
     await waitFor(() => expect(row("b")).toHaveFocus());
     expect(row("b")).toHaveAttribute("tabindex", "0");
-    expect(row("b")).toHaveClass("border-l-focus");
+    expect(row("b")).toHaveClass("focus-visible:ring-1", "focus-visible:ring-inset", "focus-visible:ring-focus");
     expect(row("b")).not.toHaveClass("bg-surfaceMuted");
     expect(row("a")).toHaveClass("bg-accentSoft");
     expect(row("a")).not.toHaveClass("border-l-focus");
+  });
+
+  it("keeps the current left rail exclusive when keyboard focus moves elsewhere", async () => {
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        currentId="a"
+      />,
+    );
+
+    row("a").focus();
+    fireEvent.keyDown(row("a"), { key: "ArrowDown" });
+
+    await waitFor(() => expect(row("b")).toHaveFocus());
+    expect(row("a")).toHaveClass("border-l-focus");
+    expect(row("b")).not.toHaveClass("border-l-focus");
   });
 
   it("supports typeahead and complete left/right tree navigation", async () => {

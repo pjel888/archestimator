@@ -315,7 +315,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
     expect(within(dock).getByText("Mariwasa")).toBeInTheDocument();
     const trustChips = within(dock).getByLabelText("Source trust for Fresh Tile");
-    expect(within(trustChips).getByText("Current")).toBeInTheDocument();
+    expect(within(trustChips).queryByText("Fresh price")).not.toBeInTheDocument();
     expect(within(trustChips).getByText("Verified source")).toBeInTheDocument();
     expect(within(dock).getByText("Confidence")).toBeInTheDocument();
     expect(within(dock).getByText("Quoted")).toBeInTheDocument();

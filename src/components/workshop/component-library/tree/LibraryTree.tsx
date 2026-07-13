@@ -22,6 +22,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import { useStableCallback } from "@/hooks/use-stable-callback";
+import { cn } from "@/lib/ui/cn";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { SourceTrustChips } from "../../library/source-trust-chips";
@@ -188,6 +189,7 @@ function LibraryItemRowContent({
   const brand = item.brand?.trim();
   const supplierLabel = item.supplier || "No supplier";
   const sourceLabel = sourceScope ? `${sourceScope} · ${supplierLabel}` : supplierLabel;
+  const brandLabel = brand || "No brand";
   const resolvedAddLabel = addDisabled
     ? `Select an area before adding ${name}`
     : addLabel
@@ -195,21 +197,19 @@ function LibraryItemRowContent({
       : `Add ${name} to selected estimate area`;
 
   return (
-    <span className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5">
+    <span className={cn("flex min-w-0 flex-1 items-center gap-2", showThumbnail ? "py-1.5" : "py-0.5")}>
       {showThumbnail ? <LibraryItemThumbnail item={item} /> : null}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span data-component-library-tree-label className="truncate text-[10px] font-medium leading-4 text-ink">
+        <span data-component-library-tree-label className="truncate text-[10px] font-medium leading-3 text-ink">
           {name}
         </span>
-        {brand ? (
-          <span className="mt-0.5 flex min-w-0 leading-3">
-            <span className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 !text-[9px] font-medium leading-[11px] text-secondary" title={brand}>
-              <span className="truncate">{brand}</span>
-            </span>
-          </span>
-        ) : null}
-        <span className="truncate text-[9px] leading-3 text-tertiary">{sourceLabel}</span>
-        {showSourceTrustChips ? (
+        {showThumbnail ? (
+          <>
+            <span className="truncate text-[9px] leading-3 text-tertiary" title={brandLabel}>{brandLabel}</span>
+            <span className="truncate text-[9px] leading-3 text-tertiary" title={supplierLabel}>{supplierLabel}</span>
+          </>
+        ) : <span className="truncate text-[9px] leading-3 text-tertiary" title={sourceLabel}>{sourceLabel}</span>}
+        {showSourceTrustChips && !showThumbnail ? (
           <SourceTrustChips
             chips={trustChips}
             ariaLabel={`${name} source trust`}
@@ -218,9 +218,9 @@ function LibraryItemRowContent({
           />
         ) : null}
       </span>
-      <span className="flex shrink-0 flex-col items-end">
-        <span className="text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(price)}</span>
-        <span className="text-[9px] text-tertiary">/{item.unit}</span>
+      <span className="flex shrink-0 flex-col items-end justify-center">
+        <span className="text-[9px] font-medium leading-3 tabular-nums text-ink">{pesoFormatter.format(price)}</span>
+        <span className="text-[9px] leading-3 text-tertiary">/{item.unit}</span>
       </span>
       {showAddAction ? (
         <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover/tree-row:opacity-100 group-focus-within/tree-row:opacity-100">
@@ -247,35 +247,14 @@ function LibraryItemRowContent({
   );
 }
 
-const COMPONENT_IMAGE_ROUTE_PREFIX = "/api/component-library/images";
-const COMPONENT_IMAGE_ROUTE_ORIGIN = "https://component-library-images.local";
-const COMPONENT_IMAGE_ROUTE_PATH_PATTERN = /^[A-Za-z0-9._-]+\.(?:avif|jpe?g|png|webp)$/i;
-
-function normalizeComponentImageRouteUrl(url: string) {
-  if (url.includes("..") || url.includes("\\") || url.includes("#") || /%(?:2e|2f|5c)/i.test(url)) return "";
-
-  try {
-    const parsed = new URL(url, COMPONENT_IMAGE_ROUTE_ORIGIN);
-    const pathParams = parsed.searchParams.getAll("path");
-    const paramNames = Array.from(parsed.searchParams.keys());
-    if (parsed.origin !== COMPONENT_IMAGE_ROUTE_ORIGIN) return "";
-    if (parsed.pathname !== COMPONENT_IMAGE_ROUTE_PREFIX) return "";
-    if (parsed.hash || paramNames.length !== 1 || paramNames[0] !== "path" || pathParams.length !== 1) return "";
-    if (!COMPONENT_IMAGE_ROUTE_PATH_PATTERN.test(pathParams[0] ?? "")) return "";
-    return `${parsed.pathname}${parsed.search}`;
-  } catch {
-    return "";
-  }
-}
-
 function readLibraryItemThumbnailUrl(item: EstimateRowItem) {
   const url = typeof item.imageUrl === "string" ? item.imageUrl.trim() : "";
   if (!url) return "";
-  if (url.startsWith("/") && !url.startsWith("//")) {
-    const routeUrl = normalizeComponentImageRouteUrl(url);
-    if (routeUrl) return routeUrl;
-  }
-  return normalizeEstimateRowImageUrl(url) ?? "";
+  const normalizedUrl = normalizeEstimateRowImageUrl(url);
+  if (normalizedUrl) return normalizedUrl;
+
+  const search = new URLSearchParams({ path: url });
+  return normalizeEstimateRowImageUrl(`/api/component-library/images?${search.toString()}`) ?? "";
 }
 
 function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
@@ -284,7 +263,7 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
   return (
     <span
       data-component-library-row-thumbnail
-      className="relative grid size-6 shrink-0 place-items-center overflow-hidden rounded-xs border border-hairline bg-surface-muted"
+      className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-xs border border-hairline bg-surface-muted"
       aria-hidden="true"
     >
       {thumbnailUrl ? (
@@ -292,7 +271,7 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
           src={thumbnailUrl}
           alt=""
           fill
-          sizes="24px"
+          sizes="36px"
           unoptimized
           loading="lazy"
           className="object-cover"
