@@ -301,6 +301,13 @@ function patchRowsById(
   return visit(tree, []);
 }
 
+export function patchEstimateRowItemsInTree(
+  tree: EstimateTreeNode[],
+  patches: Readonly<Record<string, EstimateRowItemPatch>>,
+) {
+  return patchRowsById(tree, new Map(Object.entries(patches)), createEstimateTreeIndex(tree));
+}
+
 export function patchComponentInstanceRowsInTree(
   tree: EstimateTreeNode[],
   rowId: string,
@@ -388,7 +395,7 @@ export function restoreEstimateRowPatchesInTree(
   tree: EstimateTreeNode[],
   patches: Record<string, EstimateRowItemPatch>,
 ) {
-  return patchRowsById(tree, new Map(Object.entries(patches)), createEstimateTreeIndex(tree));
+  return patchEstimateRowItemsInTree(tree, patches);
 }
 
 function getEstimateRowAtLocation(tree: EstimateTreeNode[], nodePath: number[], rowIndex: number) {

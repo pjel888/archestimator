@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { patchComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import { patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree } from "@/lib/estimates/estimate-row-tree-patch";
 
 function row(id: string, componentId: string, material = "Original") {
   return {
@@ -60,8 +60,9 @@ describe("estimate project-component fan-out", () => {
     const libraryTree: EstimateTreeNode[] = [{
       ...tree[0],
       estimateRowItems: [
-        { ...row("library-row-1", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "linked-clean", quantity: 2 },
-        { ...row("library-row-2", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "linked-overridden", quantity: 5 },
+        { ...row("library-row-1", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "linked-clean", quantity: 2, miscCost: 10, rowRevision: 1 },
+        { ...row("library-row-2", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "linked-overridden", quantity: 5, miscCost: 20, rowRevision: 3 },
+        { ...row("library-row-detached", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "detached", quantity: 6, miscCost: 30, rowRevision: 5 },
         { ...row("library-row-3", "unused"), source: "library", sourceLibraryItemId: "library-b", linkState: "linked-clean", quantity: 7 },
       ],
     }];
@@ -69,12 +70,20 @@ describe("estimate project-component fan-out", () => {
     const next = patchComponentInstanceRowsInTree(libraryTree, "library-row-1", {
       material: "Updated library component",
       quantity: 3,
+      miscCost: 11,
     });
 
-    expect(next[0].estimateRowItems?.map((item) => ({ id: item.id, material: item.material, quantity: item.quantity }))).toEqual([
-      { id: "library-row-1", material: "Updated library component", quantity: 3 },
-      { id: "library-row-2", material: "Updated library component", quantity: 5 },
-      { id: "library-row-3", material: "Original", quantity: 7 },
+    expect(next[0].estimateRowItems?.map((item) => ({ id: item.id, material: item.material, quantity: item.quantity, miscCost: item.miscCost }))).toEqual([
+      { id: "library-row-1", material: "Updated library component", quantity: 3, miscCost: 11 },
+      { id: "library-row-2", material: "Updated library component", quantity: 5, miscCost: 20 },
+      { id: "library-row-detached", material: "Original", quantity: 6, miscCost: 30 },
+      { id: "library-row-3", material: "Original", quantity: 7, miscCost: 0 },
     ]);
+
+    const revised = patchEstimateRowItemsInTree(next, {
+      "library-row-1": { rowRevision: 2 },
+      "library-row-2": { rowRevision: 4 },
+    });
+    expect(revised[0].estimateRowItems?.map((item) => item.rowRevision)).toEqual([2, 4, 5, undefined]);
   });
 });

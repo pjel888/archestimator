@@ -105,8 +105,11 @@ describe("estimate component edit-surface ownership", () => {
 
     await waitFor(() => expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
       libraryItem.id,
-      expect.objectContaining({ name: "Door Stop Premium" }),
+      expect.objectContaining({ name: "Door Stop Premium", unitCost: 125, miscCost: 0 }),
     ));
+    expect(actionMocks.updateCostLibraryComponent.mock.calls[0]?.[1]).not.toHaveProperty("priceOptions");
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).not.toHaveBeenCalled();
+    expect(actionMocks.upsertCostLibraryComponentPriceOption).not.toHaveBeenCalled();
     expect(actionMocks.createCostLibraryComponent).not.toHaveBeenCalled();
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: libraryItem.id, material: "Door Stop Premium" }));
   });

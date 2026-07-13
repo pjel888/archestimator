@@ -145,7 +145,8 @@ import {
   type ExpressInsertDraft,
   type RowComponentPickerState,
 } from "./estimate-sheet/use-estimate-row-handlers";
-import { patchComponentInstanceRowsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import type { LibraryComponentInstanceSyncResult } from "@/lib/component-library/actions";
 import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
 import {
   type ExpressInsertDraftState,
@@ -1942,7 +1943,7 @@ export function EstimateSheetContent({
     recordReadOnlyLibraryMutationAttempt,
     toast,
   });
-  const updateComponentFromEditor = useStableCallback((item: EstimateRowItem) => {
+  const updateComponentFromEditor = useStableCallback((item: EstimateRowItem, instanceSync?: LibraryComponentInstanceSyncResult) => {
     const values = {
       name: item.material,
       description: item.description,
@@ -1995,6 +1996,12 @@ export function EstimateSheetContent({
       let patchedTree = estimateTree;
       setEstimateTree((current) => {
         patchedTree = patchComponentInstanceRowsInTree(current, item.id, patch);
+        if (instanceSync && Object.keys(instanceSync.rowRevisions).length > 0) {
+          patchedTree = patchEstimateRowItemsInTree(
+            patchedTree,
+            Object.fromEntries(Object.entries(instanceSync.rowRevisions).map(([rowId, rowRevision]) => [rowId, { rowRevision }])),
+          );
+        }
         return patchedTree;
       });
       setEditableRows(collectEditableRows(patchedTree));
