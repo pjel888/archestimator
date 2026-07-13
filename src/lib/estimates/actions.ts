@@ -1333,6 +1333,7 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
     sourceLibraryItemId,
     sourceProjectId: projectComponentProjection?.projectId ?? null,
     sourceType: projectComponentId ? "project_component" : sourceLibraryItemId ? "library_component" : null,
+    sourceUpdatedAt: libraryItem.updatedAt ?? null,
     supplier: libraryItem.supplier ?? null,
     supplierId: libraryItem.supplierId ?? null,
     tags: libraryItem.tags ?? [],

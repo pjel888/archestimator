@@ -39,7 +39,7 @@ import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-flags";
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
-import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
+import type { ComponentLibraryBrand, ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { useToast } from "@/components/ui/toast";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
@@ -74,7 +74,7 @@ import {
 import {
   reportEstimateSheetContentRender,
 } from "./estimate-sheet-render-probe";
-import { createEstimateTreeIndex } from "@/lib/estimates/estimate-tree-index";
+import { createEstimateTreeIndex, getEstimateComponentInstanceRowIds } from "@/lib/estimates/estimate-tree-index";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { buildComponentCatalogueComboboxOptions } from "./component-catalogue-combobox-options";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
@@ -145,7 +145,7 @@ import {
   type ExpressInsertDraft,
   type RowComponentPickerState,
 } from "./estimate-sheet/use-estimate-row-handlers";
-import { patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { applyEstimateRowItemPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import type { LibraryComponentInstanceSyncResult } from "@/lib/component-library/actions";
 import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
 import {
@@ -1091,6 +1091,7 @@ export function EstimateSheetContent({
   const [sourcesDrawerOpen, setSourcesDrawerOpen] = useState(false);
   const [rowMoveDialog, setRowMoveDialog] = useState<RowMoveDialogState | null>(null);
   const [componentEditor, setComponentEditor] = useState<{ rowItemId: string; opener: HTMLElement | null } | null>(null);
+  const [componentEditorPendingRowIds, setComponentEditorPendingRowIds] = useState<ReadonlySet<string>>(() => new Set());
   const [editableRowStore] = useState(() => createEditableRowStore(editableRows, estimateTree));
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
     const nextRows = typeof value === "function"
@@ -1457,6 +1458,11 @@ export function EstimateSheetContent({
     [activeSelectedNodeId, estimateTree],
   );
   const estimateTreeIndex = useMemo(() => createEstimateTreeIndex(estimateTree), [estimateTree]);
+  const handleComponentEditorPendingChange = useStableCallback((item: EstimateRowItem, pending: boolean) => {
+    setComponentEditorPendingRowIds(
+      pending ? new Set(getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id)) : new Set(),
+    );
+  });
   const selectedNodePresentation = useMemo(() => {
     const selectedNodeLocation = resolvedSelectedNodeId ? estimateTreeIndex.nodesById.get(resolvedSelectedNodeId) : undefined;
     if (!selectedNodeLocation) return EMPTY_SELECTED_NODE_PRESENTATION;
@@ -1991,8 +1997,19 @@ export function EstimateSheetContent({
         lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
         componentVersionNumber: item.componentVersionNumber ?? null,
         notes: item.notes ?? null,
+        updatedAt: item.updatedAt ?? null,
         linkState: "linked-clean",
       };
+      if (workspaceId && item.sourceLibraryItemId) {
+        queryClient.setQueryData<ComponentLibraryDataset>(lazyLibraryQueryKey, (current) => current ? {
+          ...current,
+          libraryItems: current.libraryItems.map((libraryItem) => (
+            libraryItem.id === item.sourceLibraryItemId
+              ? { ...applyEstimateRowItemPatch(libraryItem, patch), id: libraryItem.id }
+              : libraryItem
+          )),
+        } : current);
+      }
       let patchedTree = estimateTree;
       setEstimateTree((current) => {
         patchedTree = patchComponentInstanceRowsInTree(current, item.id, patch);
@@ -2332,6 +2349,7 @@ export function EstimateSheetContent({
           }}
           onComponentCreated={() => undefined}
           onComponentUpdated={updateComponentFromEditor}
+          onComponentUpdatePendingChange={handleComponentEditorPendingChange}
           catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-component-editor"}
         />
       ) : null}
@@ -2749,6 +2767,7 @@ export function EstimateSheetContent({
                         onPromoteRowToLibrary={promoteRowToLibrary}
                         promotingRowId={promotingRowId}
                         rowMutationStatuses={rowMutationStatuses}
+                        componentSyncPendingRowIds={componentEditorPendingRowIds}
                         onMoveRowComponent={moveRowComponent}
                         onMoveRowItem={moveRowItemToNode}
                         onOpenMoveRowItemDialog={openMoveRowItemDialog}

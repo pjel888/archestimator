@@ -52,6 +52,8 @@ const libraryItem: EstimateRowItem = {
   category: "Hardware",
   pricingSource: "Fixture",
   pricingDate: "2026-07-11",
+  componentVersionNumber: 1,
+  updatedAt: "2026-07-13T09:00:00.000Z",
 };
 
 describe("estimate component edit-surface ownership", () => {
@@ -60,7 +62,13 @@ describe("estimate component edit-surface ownership", () => {
   });
 
   it("creates a library master through Add Component without invoking the master-update path", async () => {
-    actionMocks.createCostLibraryComponent.mockResolvedValueOnce({ itemId: "created-component", activePriceOptionId: "price-1", versionNumber: 1 });
+    actionMocks.createCostLibraryComponent.mockResolvedValueOnce({
+      itemId: "created-component",
+      activePriceOptionId: "price-1",
+      versionNumber: 1,
+      createdAt: "2026-07-13T09:00:00.000Z",
+      updatedAt: "2026-07-13T09:00:00.000Z",
+    });
 
     render(createElement(AddComponentModal, {
       open: true,
@@ -89,7 +97,11 @@ describe("estimate component edit-surface ownership", () => {
   });
 
   it("edits a library master through Edit Component Drawer without creating another component", async () => {
-    actionMocks.updateCostLibraryComponent.mockResolvedValueOnce({ itemId: libraryItem.id, versionNumber: 2 });
+    actionMocks.updateCostLibraryComponent.mockResolvedValueOnce({
+      itemId: libraryItem.id,
+      versionNumber: 2,
+      updatedAt: "2026-07-13T10:00:00.000Z",
+    });
     const onSaved = vi.fn();
 
     render(createElement(EditComponentDrawer, {
@@ -105,12 +117,23 @@ describe("estimate component edit-surface ownership", () => {
 
     await waitFor(() => expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
       libraryItem.id,
-      expect.objectContaining({ name: "Door Stop Premium", unitCost: 125, miscCost: 0 }),
+      expect.objectContaining({
+        name: "Door Stop Premium",
+        unitCost: 125,
+        miscCost: 0,
+        expectedUpdatedAt: libraryItem.updatedAt,
+        expectedVersionNumber: libraryItem.componentVersionNumber,
+      }),
     ));
     expect(actionMocks.updateCostLibraryComponent.mock.calls[0]?.[1]).not.toHaveProperty("priceOptions");
     expect(actionMocks.updateCostLibraryComponentWithPriceOptions).not.toHaveBeenCalled();
     expect(actionMocks.upsertCostLibraryComponentPriceOption).not.toHaveBeenCalled();
     expect(actionMocks.createCostLibraryComponent).not.toHaveBeenCalled();
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: libraryItem.id, material: "Door Stop Premium" }));
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({
+      id: libraryItem.id,
+      material: "Door Stop Premium",
+      componentVersionNumber: 2,
+      updatedAt: "2026-07-13T10:00:00.000Z",
+    }));
   });
 });

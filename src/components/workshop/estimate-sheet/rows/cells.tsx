@@ -8,6 +8,7 @@ import { ControlInput } from "@/components/ui/control-input";
 import { CreatableCombobox, type CreatableComboboxChange, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Modal } from "@/components/ui/modal";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getComponentCatalogueComboboxValue,
   getSelectedComponentCatalogueOptionId,
@@ -250,6 +251,30 @@ function EstimateMaterialCardFrame({
       <div className="col-start-3 row-start-2 flex min-w-0 items-center justify-end" data-estimate-material-unit-slot="true">
         {unit}
       </div>
+    </div>
+  );
+}
+
+function EstimateMaterialCardSyncSkeleton() {
+  const skeletonClassName = "bg-[#EFEFEF]";
+  return (
+    <div className="absolute inset-y-2 right-2 left-3 z-20" data-component-sync-skeleton="true">
+      <span className="sr-only">Updating linked component</span>
+      <EstimateMaterialCardFrame
+        image={<Skeleton className={cn("size-14", skeletonClassName)} />}
+        name={<Skeleton className={cn("h-3 w-2/3 max-w-40", skeletonClassName)} />}
+        brand={<Skeleton className={cn("h-2 w-20", skeletonClassName)} />}
+        supplier={<Skeleton className={cn("h-2 w-28", skeletonClassName)} />}
+        cost={<Skeleton className={cn("h-3 w-20", skeletonClassName)} />}
+        variant={(
+          <div className="flex items-center gap-1">
+            <Skeleton className={cn("size-2", skeletonClassName)} />
+            <Skeleton className={cn("h-2 w-7", skeletonClassName)} />
+          </div>
+        )}
+        description={<Skeleton className={cn("h-2.5 w-full", skeletonClassName)} />}
+        unit={<Skeleton className={cn("h-2.5 w-10", skeletonClassName)} />}
+      />
     </div>
   );
 }
@@ -967,6 +992,7 @@ function ExpressMaterialEditor({
 
 export function EstimateMaterialCell({
   canEditEstimate = true,
+  componentSyncPending = false,
   item,
   editableRow,
   brandOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
@@ -995,6 +1021,7 @@ export function EstimateMaterialCell({
   onDeleteExpressDraft,
 }: {
   canEditEstimate?: boolean;
+  componentSyncPending?: boolean;
   item: EstimateRowItem;
   editableRow: EditableRowValue;
   brandOptions?: CreatableComboboxOption[];
@@ -1072,6 +1099,7 @@ export function EstimateMaterialCell({
   const componentLabel = showInlineComponentEditor ? (editableRow.name || "Project Component") : (item.material || "component");
   const sourceTone = getComponentSourceTone(item);
   const sourceLabel = getComponentSourceLabel(sourceTone);
+  const componentInteractionEnabled = canEditEstimate && !componentSyncPending;
 
   return (
     <div
@@ -1080,11 +1108,13 @@ export function EstimateMaterialCell({
         surfaceVariant === "glass" ? "hover:bg-white/40" : "bg-white hover:bg-neutral-50",
         isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent",
       )}
-      onDragOver={canEditEstimate ? handleReplacementDragOver : undefined}
-      onDragLeave={canEditEstimate ? onReplaceDragLeave : undefined}
-      onDrop={canEditEstimate ? handleReplacementDrop : undefined}
+      onDragOver={componentInteractionEnabled ? handleReplacementDragOver : undefined}
+      onDragLeave={componentInteractionEnabled ? onReplaceDragLeave : undefined}
+      onDrop={componentInteractionEnabled ? handleReplacementDrop : undefined}
       data-replace-target-active={isReplaceTarget ? "true" : undefined}
       data-component-source={sourceTone}
+      data-component-sync-pending={componentSyncPending ? "true" : undefined}
+      aria-busy={componentSyncPending ? true : undefined}
       aria-label={canEditEstimate ? `${componentLabel} replaceable estimate component` : `${componentLabel} estimate component`}
       title={canEditEstimate ? `${sourceLabel}. Drop another component here to replace this component` : sourceLabel}
     >
@@ -1093,7 +1123,12 @@ export function EstimateMaterialCell({
         aria-hidden="true"
       />
       <span className="sr-only">{sourceLabel}</span>
-      <div className="absolute top-1 right-1 z-10 flex items-center gap-1.5" aria-label={`Component actions for ${componentLabel}`}>
+      <div
+        className={cn("absolute top-1 right-1 z-10 flex items-center gap-1.5", componentSyncPending && "invisible")}
+        inert={componentSyncPending}
+        aria-hidden={componentSyncPending || undefined}
+        aria-label={`Component actions for ${componentLabel}`}
+      >
         {showProjectSpecificAction ? (
           <ActionTooltip label="Make project component">
             <Button
@@ -1214,26 +1249,29 @@ export function EstimateMaterialCell({
           </ActionTooltip>
         ) : null}
       </div>
-      {canEditEstimate && showInlineComponentEditor ? (
-        <ExpressMaterialEditor
-          key={`${item.id}:${editableRow.imageUrl}`}
-          item={item}
-          editableRow={editableRow}
-          brandOptions={brandOptions}
-          supplierOptions={supplierOptions}
-          projectId={projectId}
-          estimateId={estimateId}
-          onChange={onExpressFieldChange}
-          onCommit={onExpressFieldCommit}
-          onRevert={onExpressFieldRevert}
-          onActiveChange={onExpressEditorActiveChange}
-          draftState={expressDraftState}
-          onRetryDraft={onRetryExpressDraft}
-          onDeleteDraft={onDeleteExpressDraft}
-        />
-      ) : (
-        <EstimateMaterialCardContent item={item} canEditEstimate={canEditEstimate} onSelectVariant={onSelectVariant} />
-      )}
+      <div className={cn("contents", componentSyncPending && "invisible")} inert={componentSyncPending} aria-hidden={componentSyncPending || undefined}>
+        {canEditEstimate && showInlineComponentEditor ? (
+          <ExpressMaterialEditor
+            key={`${item.id}:${editableRow.imageUrl}`}
+            item={item}
+            editableRow={editableRow}
+            brandOptions={brandOptions}
+            supplierOptions={supplierOptions}
+            projectId={projectId}
+            estimateId={estimateId}
+            onChange={onExpressFieldChange}
+            onCommit={onExpressFieldCommit}
+            onRevert={onExpressFieldRevert}
+            onActiveChange={onExpressEditorActiveChange}
+            draftState={expressDraftState}
+            onRetryDraft={onRetryExpressDraft}
+            onDeleteDraft={onDeleteExpressDraft}
+          />
+        ) : (
+          <EstimateMaterialCardContent item={item} canEditEstimate={canEditEstimate} onSelectVariant={onSelectVariant} />
+        )}
+      </div>
+      {componentSyncPending ? <EstimateMaterialCardSyncSkeleton /> : null}
     </div>
   );
 }

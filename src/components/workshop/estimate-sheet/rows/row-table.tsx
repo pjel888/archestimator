@@ -91,6 +91,7 @@ export type EstimateRowItemsTableProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   rowMutationStatuses?: EstimateRowMutationStatusMap;
+  componentSyncPendingRowIds?: ReadonlySet<string>;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -162,6 +163,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
   for (const item of next.items) {
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return false;
     if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return false;
+    if (prev.componentSyncPendingRowIds?.has(item.id) !== next.componentSyncPendingRowIds?.has(item.id)) return false;
   }
   return true;
 }
@@ -278,6 +280,7 @@ type EstimateRowItemTableRowProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   rowMutationStatus?: EstimateRowMutationStatus;
+  componentSyncPending?: boolean;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -318,6 +321,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onPromoteRowToLibrary,
   promotingRowId,
   rowMutationStatus,
+  componentSyncPending = false,
   onMoveRowComponent,
   onMoveRowItem,
   onOpenMoveRowItemDialog,
@@ -674,6 +678,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td className="min-w-0 border-r border-hairline">
         <EstimateMaterialCell
           canEditEstimate={canEditEstimate}
+          componentSyncPending={componentSyncPending || Boolean(rowMutationStatus?.phase === "pending" && rowMutationStatus.componentSync)}
           item={computedItem}
           editableRow={resolvedEditableRow}
           brandOptions={brandOptions}
@@ -1011,6 +1016,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onPromoteRowToLibrary,
   promotingRowId,
   rowMutationStatuses,
+  componentSyncPendingRowIds,
   onMoveRowComponent,
   onMoveRowItem,
   onOpenMoveRowItemDialog,
@@ -1282,6 +1288,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
                 rowMutationStatus={rowMutationStatuses?.[item.id]}
+                componentSyncPending={componentSyncPendingRowIds?.has(item.id)}
                 onMoveRowComponent={onMoveRowComponent}
                 onMoveRowItem={onMoveRowItem}
                 onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}

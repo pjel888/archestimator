@@ -3625,6 +3625,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     priceOptionLabel: typeof sourceSnapshot.priceOptionLabel === "string" ? sourceSnapshot.priceOptionLabel : undefined,
     priceOptions,
     lifecycleState: typeof sourceSnapshot.lifecycleState === "string" ? sourceSnapshot.lifecycleState as EstimateRowItem["lifecycleState"] : undefined,
+    updatedAt: typeof sourceSnapshot.sourceUpdatedAt === "string" ? sourceSnapshot.sourceUpdatedAt : undefined,
     pricingSource: typeof sourceSnapshot.pricingSource === "string" ? sourceSnapshot.pricingSource : "Estimate row snapshot",
     pricingDate: typeof sourceSnapshot.pricingDate === "string" ? sourceSnapshot.pricingDate : "",
   };

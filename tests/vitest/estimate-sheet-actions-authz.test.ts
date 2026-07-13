@@ -28,6 +28,7 @@ const libraryItem = {
   category: "Express",
   pricingSource: "Test",
   pricingDate: "2026-06-15",
+  updatedAt: "2026-07-13T10:00:00.000Z",
 } as const;
 
 function canonicalRow(overrides: Record<string, unknown> = {}) {
@@ -620,6 +621,9 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       material: "Express component",
       sourceSnapshot: { sourceType: "express_component" },
     });
+
+    const insertCall = rpcSpy.mock.calls.find(([fn]) => fn === "insert_estimate_row_item_with_history") as [string, { row_payload: { sourceSnapshot: Record<string, unknown> } }] | undefined;
+    expect(insertCall?.[1].row_payload.sourceSnapshot.sourceUpdatedAt).toBe(libraryItem.updatedAt);
   });
 
   it("replaceEstimateRowItemWithLibrary replaces express rows through the history RPC", async () => {

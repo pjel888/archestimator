@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import { estimateRowMutationResultToPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree } from "@/lib/estimates/estimate-row-tree-patch";
 
 function row(id: string, componentId: string, material = "Original") {
   return {
@@ -38,6 +38,29 @@ const tree: EstimateTreeNode[] = [{
 }];
 
 describe("estimate project-component fan-out", () => {
+  it("maps the authoritative source revision into the reusable row token", () => {
+    const updatedAt = "2026-07-13T11:00:00.000Z";
+    const patch = estimateRowMutationResultToPatch({
+      material: "Updated component",
+      description: "Description",
+      supplier: "Supplier",
+      unit: "each",
+      quantity: 1,
+      quantityBase: null,
+      quantityContingencyAmount: null,
+      itemCost: 100,
+      contingencyPercentage: 0,
+      adjustmentPercentage: 0,
+      miscCost: 0,
+      sourceSnapshot: { sourceUpdatedAt: updatedAt },
+      metadata: {},
+      linkState: "linked-clean",
+      rowRevision: 2,
+    });
+
+    expect(patch.updatedAt).toBe(updatedAt);
+  });
+
   it("applies shared fields only to rows with the target component identity", () => {
     const next = patchComponentInstanceRowsInTree(tree, "row-1", {
       material: "Updated component",
@@ -71,13 +94,14 @@ describe("estimate project-component fan-out", () => {
       material: "Updated library component",
       quantity: 3,
       miscCost: 11,
+      updatedAt: "2026-07-13T11:00:00.000Z",
     });
 
-    expect(next[0].estimateRowItems?.map((item) => ({ id: item.id, material: item.material, quantity: item.quantity, miscCost: item.miscCost }))).toEqual([
-      { id: "library-row-1", material: "Updated library component", quantity: 3, miscCost: 11 },
-      { id: "library-row-2", material: "Updated library component", quantity: 5, miscCost: 20 },
-      { id: "library-row-detached", material: "Original", quantity: 6, miscCost: 30 },
-      { id: "library-row-3", material: "Original", quantity: 7, miscCost: 0 },
+    expect(next[0].estimateRowItems?.map((item) => ({ id: item.id, material: item.material, quantity: item.quantity, miscCost: item.miscCost, updatedAt: item.updatedAt }))).toEqual([
+      { id: "library-row-1", material: "Updated library component", quantity: 3, miscCost: 11, updatedAt: "2026-07-13T11:00:00.000Z" },
+      { id: "library-row-2", material: "Updated library component", quantity: 5, miscCost: 20, updatedAt: "2026-07-13T11:00:00.000Z" },
+      { id: "library-row-detached", material: "Original", quantity: 6, miscCost: 30, updatedAt: undefined },
+      { id: "library-row-3", material: "Original", quantity: 7, miscCost: 0, updatedAt: undefined },
     ]);
 
     const revised = patchEstimateRowItemsInTree(next, {

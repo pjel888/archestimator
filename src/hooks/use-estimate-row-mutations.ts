@@ -28,7 +28,7 @@ import {
   type UpdateEstimateRowItemResult,
 } from "@/lib/estimates/actions";
 import { reconcileEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
-import { createEstimateTreeIndex } from "@/lib/estimates/estimate-tree-index";
+import { createEstimateTreeIndex, getEstimateComponentInstanceRowIds } from "@/lib/estimates/estimate-tree-index";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import {
   applyEstimateRowItemPatch,
@@ -60,6 +60,7 @@ export type EstimateRowMutationError = {
 export type EstimateRowMutationStatus = {
   phase: "pending" | "failed";
   label: string;
+  componentSync?: boolean;
   mutationId?: string;
   message?: string;
   startedAt: number;
@@ -631,6 +632,7 @@ export function useEstimateRowMutations(
     label: string,
     operation: EstimateMutationOperation,
     mutationId?: string,
+    options?: { componentSync?: boolean },
   ): ScopedMutationContext => {
     const uniqueRowIds = [...new Set(rowIds.filter(Boolean))];
     const operationIds: Record<string, number> = {};
@@ -644,6 +646,7 @@ export function useEstimateRowMutations(
       const status: EstimateRowMutationStatus = {
         phase: "pending",
         label,
+        componentSync: options?.componentSync,
         mutationId,
         startedAt,
       };
@@ -1201,11 +1204,23 @@ export function useEstimateRowMutations(
     },
     onMutate: async (input): Promise<UpdateMutationContext> => {
       markSaving();
-      const scopedMutation = beginScopedRowMutation([input.rowId], "Saving row changes", "update_row", input.mutationId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+      const cachedTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
+      const optimisticPatch = toOptimisticRowPatch(input);
+      const cachedTreeIndex = cachedTree ? createEstimateTreeIndex(cachedTree) : undefined;
+      const componentSync = hasEstimateRowPatchFields(pickSharedComponentPatch(optimisticPatch));
+      const affectedRowIds = componentSync && cachedTreeIndex
+        ? getEstimateComponentInstanceRowIds(cachedTreeIndex, input.rowId)
+        : [input.rowId];
+      const scopedMutation = beginScopedRowMutation(
+        affectedRowIds,
+        componentSync ? "Updating linked component" : "Saving row changes",
+        "update_row",
+        input.mutationId,
+        { componentSync },
+      );
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
-      const optimisticPatch = toOptimisticRowPatch(input);
       const previousTreeIndex = previousTree ? createEstimateTreeIndex(previousTree) : undefined;
       const previousPatches = previousTree
         ? collectComponentRollbackPatches(previousTree, input.rowId, optimisticPatch, previousTreeIndex)

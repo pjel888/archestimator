@@ -63,3 +63,9 @@ export function createEstimateTreeIndex(tree: EstimateTreeNode[]): EstimateTreeI
   visit(tree, [], [], []);
   return { nodesById, rowsById, componentIdentityByRowId, rowIdsByComponentIdentity };
 }
+
+export function getEstimateComponentInstanceRowIds(index: EstimateTreeIndex, rowId: string): readonly string[] {
+  const componentIdentity = index.componentIdentityByRowId.get(rowId);
+  if (componentIdentity) return index.rowIdsByComponentIdentity.get(componentIdentity) ?? [rowId];
+  return index.rowsById.has(rowId) ? [rowId] : [];
+}

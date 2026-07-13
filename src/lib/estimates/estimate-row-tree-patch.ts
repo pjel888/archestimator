@@ -34,6 +34,7 @@ export type EstimateRowItemPatch = {
   componentVersionId?: string | null;
   componentVersionNumber?: number | null;
   notes?: string | null;
+  updatedAt?: string | null;
   metadata?: EstimateRowItem["metadata"];
   source?: EstimateRowItem["source"];
   sourceLibraryItemId?: string | null;
@@ -112,6 +113,7 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     priceOptionLabel: readSnapshotString(result.sourceSnapshot, "priceOptionLabel") ?? undefined,
     lifecycleState: readSnapshotString(result.sourceSnapshot, "lifecycleState") as EstimateRowItem["lifecycleState"] | null | undefined,
     lifecycleStateChangedAt: readSnapshotString(result.sourceSnapshot, "sourceUpdatedAt"),
+    updatedAt: readSnapshotString(result.sourceSnapshot, "sourceUpdatedAt"),
     componentVersionId: readSnapshotString(result.sourceSnapshot, "componentVersionId"),
     notes: readSnapshotString(result.sourceSnapshot, "notes"),
     componentVersionNumber: readSnapshotNumber(result.sourceSnapshot, "componentVersionNumber") ?? undefined,
@@ -174,6 +176,7 @@ export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: Estimate
     ...(patch.componentVersionId !== undefined ? { componentVersionId: patch.componentVersionId ?? undefined } : {}),
     ...(patch.componentVersionNumber !== undefined ? { componentVersionNumber: patch.componentVersionNumber ?? undefined } : {}),
     ...(patch.notes !== undefined ? { notes: patch.notes ?? undefined } : {}),
+    ...(patch.updatedAt !== undefined ? { updatedAt: patch.updatedAt ?? undefined } : {}),
     ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
     source: patch.source ?? item.source,
     sourceLibraryItemId: patch.sourceLibraryItemId !== undefined ? patch.sourceLibraryItemId : item.sourceLibraryItemId,
@@ -234,6 +237,7 @@ const SHARED_COMPONENT_PATCH_KEYS: Array<keyof EstimateRowItemPatch> = [
   "componentVersionId",
   "componentVersionNumber",
   "notes",
+  "updatedAt",
 ];
 
 function hasOwnPatchField(patch: EstimateRowItemPatch, key: keyof EstimateRowItemPatch) {
@@ -362,6 +366,7 @@ function previousPatchForRow(item: EstimateRowItem, patch: EstimateRowItemPatch)
     ...(hasOwnPatchField(patch, "componentVersionId") ? { componentVersionId: item.componentVersionId ?? null } : {}),
     ...(hasOwnPatchField(patch, "componentVersionNumber") ? { componentVersionNumber: item.componentVersionNumber ?? null } : {}),
     ...(hasOwnPatchField(patch, "notes") ? { notes: item.notes ?? null } : {}),
+    ...(hasOwnPatchField(patch, "updatedAt") ? { updatedAt: item.updatedAt ?? null } : {}),
     ...(hasOwnPatchField(patch, "metadata") ? { metadata: itemJson.metadata ?? {} } : {}),
   };
 }

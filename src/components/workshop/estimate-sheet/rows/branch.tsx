@@ -56,6 +56,7 @@ export type EstimateSheetBranchProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   rowMutationStatuses?: EstimateRowMutationStatusMap;
+  componentSyncPendingRowIds?: ReadonlySet<string>;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -114,13 +115,14 @@ function areAncestorPathsEqual(prev: readonly BreadcrumbNode[], next: readonly B
 
 function branchRowStateChanged(
   node: EstimateTreeNode,
-  prev: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses">,
-  next: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses">,
+  prev: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses" | "componentSyncPendingRowIds">,
+  next: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses" | "componentSyncPendingRowIds">,
   includeDescendants: boolean,
 ): boolean {
   for (const item of node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS) {
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return true;
     if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return true;
+    if (prev.componentSyncPendingRowIds?.has(item.id) !== next.componentSyncPendingRowIds?.has(item.id)) return true;
   }
   if (!includeDescendants) return false;
   for (const child of node.children ?? []) {
@@ -179,6 +181,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
   const needsRowStateCheck =
     prev.selectedRowIds !== next.selectedRowIds ||
     prev.rowMutationStatuses !== next.rowMutationStatuses ||
+    prev.componentSyncPendingRowIds !== next.componentSyncPendingRowIds ||
     !prev.nodeTotals ||
     !next.nodeTotals;
   if (!needsRowStateCheck) return true;
@@ -187,7 +190,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const editableRowStore = useEditableRowStore();
   const storedNodeTotal = useStore(editableRowStore, (state) => state.nodeTotals.get(node.id));
@@ -462,6 +465,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               onPromoteRowToLibrary={onPromoteRowToLibrary}
               promotingRowId={promotingRowId}
               rowMutationStatuses={rowMutationStatuses}
+              componentSyncPendingRowIds={componentSyncPendingRowIds}
               onMoveRowComponent={onMoveRowComponent}
               onMoveRowItem={onMoveRowItem}
               onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}
@@ -520,6 +524,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
                 rowMutationStatuses={rowMutationStatuses}
+                componentSyncPendingRowIds={componentSyncPendingRowIds}
                 onMoveRowComponent={onMoveRowComponent}
                 onMoveRowItem={onMoveRowItem}
                 onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}
