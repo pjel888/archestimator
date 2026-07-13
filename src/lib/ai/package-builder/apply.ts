@@ -72,7 +72,6 @@ type LibraryValidationRow = {
   active_price_option_id: string | null;
   pricing_date: string | null;
   pricing_source: string | null;
-  confidence: string | null;
   thumbnail_path: string | null;
 };
 
@@ -88,7 +87,6 @@ type PriceOptionValidationRow = {
   currency: string;
   pricing_date: string | null;
   pricing_source: string | null;
-  confidence: string | null;
   supplier_id: string | null;
   updated_at: string;
 };
@@ -316,7 +314,7 @@ async function validateLinkedLibraryRows({
   const items = await all<LibraryValidationRow>(
     database,
     `
-      SELECT id, workspace_id, name, description, supplier, supplier_id, category, category_node_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, NULL AS pricing_date, NULL AS pricing_source, confidence, NULL AS thumbnail_path
+      SELECT id, workspace_id, name, description, supplier, supplier_id, category, category_node_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, NULL AS pricing_date, NULL AS pricing_source, NULL AS thumbnail_path
       FROM cost_library_items
       WHERE workspace_id = ?
         AND id IN (${placeholders(itemIds)})
@@ -339,7 +337,7 @@ async function validateLinkedLibraryRows({
     const priceOptions = await all<PriceOptionValidationRow>(
       database,
       `
-        SELECT id, item_id, workspace_id, is_active, label, unit, unit_cost, misc_cost, currency, NULL AS pricing_date, pricing_source, confidence, supplier_id, updated_at
+        SELECT id, item_id, workspace_id, is_active, label, unit, unit_cost, misc_cost, currency, NULL AS pricing_date, pricing_source, supplier_id, updated_at
         FROM cost_library_item_price_options
         WHERE workspace_id = ?
           AND id IN (${placeholders(priceOptionIds)})
@@ -405,7 +403,6 @@ function buildLibrarySourceSnapshot({
     unit: priceOption?.unit ?? item.unit,
     unit_cost: priceOption?.unit_cost ?? item.unit_cost,
     misc_cost: priceOption?.misc_cost ?? item.misc_cost,
-    confidence: priceOption?.confidence ?? item.confidence,
     currency: priceOption?.currency ?? "PHP",
     snapshotPreservedAt: new Date().toISOString(),
   };
@@ -1714,7 +1711,6 @@ function buildComponentCreatePayload({
         currency: componentCreate.currencyCode,
         pricingSource: componentCreate.pricingSource ?? "Ask Flip draft",
         pricingDate,
-        confidence: componentCreate.confidence,
         notes: componentCreate.warnings.join(" "),
         isDefault: true,
         isActive: true,
@@ -1727,7 +1723,6 @@ function buildComponentCreatePayload({
             currency: componentCreate.currencyCode,
             pricingSource: componentCreate.pricingSource ?? "Ask Flip draft",
             pricingDate,
-            confidence: componentCreate.confidence,
             notes: componentCreate.warnings.join(" "),
             isCurrent: true,
             deletedAt: null,
@@ -1798,14 +1793,13 @@ async function applyComponentCreateDraft({
           lifecycle_state,
           current_version_number,
           active_price_option_id,
-          confidence,
           source_estimate_row_item_id,
           metadata_json,
           created_by,
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?, NULL, ?, ?, ?, ?, 1, ?, ?, NULL, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?, NULL, ?, ?, ?, ?, 1, ?, NULL, ?, ?, ?, ?)
       `,
       values: [
         componentId,
@@ -1820,7 +1814,6 @@ async function applyComponentCreateDraft({
         priceOption.miscCost,
         payload.component.lifecycleState,
         priceOptionId,
-        priceOption.confidence,
         payload.component.metadata,
         input.userContext.userId,
         timestamp,
@@ -1841,13 +1834,12 @@ async function applyComponentCreateDraft({
           is_active,
           is_default,
           updated_at,
-          confidence,
           supplier_id,
           pricing_source,
           metadata_json,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
       `,
       values: [
         priceOptionId,
@@ -1861,7 +1853,6 @@ async function applyComponentCreateDraft({
         priceOption.isActive ? 1 : 0,
         priceOption.isDefault ? 1 : 0,
         timestamp,
-        priceOption.confidence,
         priceOption.pricingSource,
         priceOption.variantMetadata,
         timestamp,

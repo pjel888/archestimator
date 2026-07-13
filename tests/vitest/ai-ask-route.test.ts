@@ -391,7 +391,6 @@ describe("AI Ask route", () => {
               currency: "PHP",
               lifecycleState: "available",
               currentVersionNumber: 4,
-              confidence: "quoted",
             },
           ],
           resultLimit: 12,

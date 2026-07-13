@@ -204,7 +204,6 @@ function runForSql(fixture: Fixture, sql: string, values: unknown[]) {
       misc_cost: values[9],
       lifecycle_state: values[10],
       active_price_option_id: values[11],
-      confidence: values[12],
       metadata_json: values[13],
     });
     return;
@@ -222,7 +221,6 @@ function runForSql(fixture: Fixture, sql: string, values: unknown[]) {
       is_active: values[8],
       is_default: values[9],
       updated_at: values[10],
-      confidence: values[11],
       pricing_source: values[12],
       metadata_json: values[13],
     });
@@ -344,7 +342,6 @@ function makeLibraryValidationRows() {
       active_price_option_id: null,
       pricing_date: "2026-05-28",
       pricing_source: "Component library",
-      confidence: "catalog",
       thumbnail_path: null,
     },
     {
@@ -366,7 +363,6 @@ function makeLibraryValidationRows() {
       active_price_option_id: null,
       pricing_date: "2026-05-28",
       pricing_source: "Component library",
-      confidence: "catalog",
       thumbnail_path: null,
     },
   ];
@@ -487,7 +483,6 @@ function makeThreeBedroomCondoReadData(): PackageBuilderReadToolsData {
       lifecycleState: "available",
       sourceLibraryItemId: String(row.id),
       currentVersionNumber: 1,
-      confidence: "catalog",
     })),
     templateMatches: [],
     memoryPreferences: { componentSignals: [], templateSignals: [], sourceRowCount: 0 },
@@ -545,7 +540,6 @@ function makeFillCurrentEstimateDraft(overrides: Partial<PackageBuilderDraft> = 
         miscCost: 1_000,
         contingencyPercentage: 10,
         adjustmentPercentage: 10,
-        confidence: "requires-user-review",
         assumption: "No matched component.",
         warnings: ["Review before purchase."],
         applyEligible: true,
@@ -598,7 +592,6 @@ function makeLibraryComponentCreateDraft(): PackageBuilderDraft {
         miscCost: 0,
         currencyCode: "PHP",
         pricingSource: "Ask Flip draft",
-        confidence: "requires-user-review",
         lifecycleState: "available",
         warnings: ["Review supplier and pricing before Apply."],
         applyEligible: true,

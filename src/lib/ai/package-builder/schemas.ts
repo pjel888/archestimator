@@ -19,7 +19,6 @@ const PACKAGE_BUILDER_OPERATION_TYPES = [
 ] as const;
 
 const PACKAGE_BUILDER_SOURCE_TYPES = ["library_item", "template", "allowance"] as const;
-const PACKAGE_BUILDER_CONFIDENCE_VALUES = ["matched", "requires-user-review", "allowance"] as const;
 const PACKAGE_BUILDER_COMPONENT_LIFECYCLE_STATES = ["draft", "in_production", "available"] as const;
 
 const FORBIDDEN_IDENTITY_KEYS = new Set([
@@ -35,7 +34,6 @@ export type PackageBuilderRequestMode = "draft" | "refine" | "feedback" | "apply
 export type PackageBuilderIntent = (typeof PACKAGE_BUILDER_INTENTS)[number];
 export type PackageBuilderOperationType = (typeof PACKAGE_BUILDER_OPERATION_TYPES)[number];
 export type PackageBuilderSourceType = (typeof PACKAGE_BUILDER_SOURCE_TYPES)[number];
-export type PackageBuilderConfidence = (typeof PACKAGE_BUILDER_CONFIDENCE_VALUES)[number];
 
 export type PackageBuilderBrief = {
   projectName: string;
@@ -84,7 +82,6 @@ export type PackageBuilderRowDraft = {
   miscCost: number;
   contingencyPercentage: number;
   adjustmentPercentage?: number;
-  confidence: PackageBuilderConfidence;
   assumption: string;
   warnings: string[];
   applyEligible: boolean;
@@ -195,7 +192,6 @@ export type PackageBuilderComponentCreateDraft = {
   miscCost: number;
   currencyCode: string;
   pricingSource: string | null;
-  confidence: string | null;
   lifecycleState: (typeof PACKAGE_BUILDER_COMPONENT_LIFECYCLE_STATES)[number];
   warnings: string[];
   applyEligible: boolean;
@@ -210,7 +206,6 @@ export type PackageBuilderComponentMatch = {
   unitCost: number;
   priceOptionId?: string | null;
   lifecycleState?: string | null;
-  confidence?: string | null;
 };
 
 export type PackageBuilderTemplateMatch = {
@@ -525,7 +520,6 @@ function parseRowDraft(value: unknown): PackageBuilderRowDraft {
       "miscCost",
       "contingencyPercentage",
       "adjustmentPercentage",
-      "confidence",
       "assumption",
       "warnings",
       "applyEligible",
@@ -551,7 +545,6 @@ function parseRowDraft(value: unknown): PackageBuilderRowDraft {
     miscCost: readNonNegativeNumber(record.miscCost, "Row misc cost"),
     contingencyPercentage: adjustmentPercentage,
     adjustmentPercentage,
-    confidence: readEnum(record.confidence, PACKAGE_BUILDER_CONFIDENCE_VALUES, "Unsupported package-builder row confidence."),
     assumption: readString(record.assumption, "Row assumption", 400),
     warnings: readStringArray(record.warnings, "Row warnings"),
     applyEligible: readBoolean(record.applyEligible, "Row apply eligibility"),
@@ -768,7 +761,6 @@ function parseComponentCreateDraft(value: unknown): PackageBuilderComponentCreat
       "miscCost",
       "currencyCode",
       "pricingSource",
-      "confidence",
       "lifecycleState",
       "warnings",
       "applyEligible",
@@ -789,7 +781,6 @@ function parseComponentCreateDraft(value: unknown): PackageBuilderComponentCreat
     miscCost: readNonNegativeNumber(record.miscCost, "Component misc cost"),
     currencyCode,
     pricingSource: readNullableString(record.pricingSource, "Component pricing source", 160),
-    confidence: readNullableString(record.confidence, "Component confidence", 120),
     lifecycleState: readEnum(record.lifecycleState, PACKAGE_BUILDER_COMPONENT_LIFECYCLE_STATES, "Unsupported component lifecycle state."),
     warnings: readStringArray(record.warnings, "Component warnings"),
     applyEligible: readBoolean(record.applyEligible, "Component apply eligibility"),
@@ -798,7 +789,7 @@ function parseComponentCreateDraft(value: unknown): PackageBuilderComponentCreat
 
 function parseComponentMatch(value: unknown): PackageBuilderComponentMatch {
   const record = readRecord(value, "Component match");
-  assertAllowedKeys(record, ["id", "material", "category", "supplier", "unit", "unitCost", "priceOptionId", "lifecycleState", "confidence"], "Component match");
+  assertAllowedKeys(record, ["id", "material", "category", "supplier", "unit", "unitCost", "priceOptionId", "lifecycleState"], "Component match");
   return {
     id: readString(record.id, "Component id", 80),
     material: readString(record.material, "Component material", 160),
@@ -808,7 +799,6 @@ function parseComponentMatch(value: unknown): PackageBuilderComponentMatch {
     unitCost: readNonNegativeNumber(record.unitCost, "Component unit cost"),
     priceOptionId: readNullableString(record.priceOptionId, "Component price option id", 80),
     lifecycleState: readNullableString(record.lifecycleState, "Component lifecycle state", 40),
-    confidence: readNullableString(record.confidence, "Component confidence", 120),
   };
 }
 
@@ -1446,7 +1436,7 @@ export function buildPackageBudgetSummary({
   const contingencyTotal = totals.reduce((sum, total) => sum + total.contingency, 0);
   const allowanceTotal = rows.reduce((sum, row, index) => sum + (row.sourceType === "allowance" ? totals[index]?.total ?? 0 : 0), 0) + additionalAllowanceTotal;
   const draftTotal = totals.reduce((sum, total) => sum + total.total, 0) + additionalAllowanceTotal;
-  const hasReviewRows = additionalAllowanceTotal > 0 || rows.some((row) => row.confidence === "requires-user-review" || row.sourceType === "allowance");
+  const hasReviewRows = additionalAllowanceTotal > 0 || rows.some((row) => row.sourceType === "allowance" || row.warnings.length > 0);
 
   return {
     targetBudget,

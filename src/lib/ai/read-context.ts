@@ -122,7 +122,6 @@ type AiAskProviderComponent = {
   currency: string;
   lifecycleState: string | null;
   currentVersionNumber: number | null;
-  confidence: string | null;
 };
 
 type AiAskTemplateRowPreview = {
@@ -309,7 +308,6 @@ type AiAskComponentSearchItem = {
   lifecycle_state: string | null;
   current_version_number: number | null;
   active_price_option_id: string | null;
-  confidence: string | null;
 };
 
 type AiAskComponentPriceOption = {
@@ -322,7 +320,6 @@ type AiAskComponentPriceOption = {
   is_active: boolean | number;
   is_default: boolean | number;
   updated_at: string;
-  confidence: string | null;
   supplier_id: string | null;
 };
 
@@ -1671,7 +1668,7 @@ async function searchAskComponentLibrary({
     `
       SELECT id, name, description, category, supplier, supplier_id, brand, unit,
              unit_cost, misc_cost, lifecycle_state, current_version_number,
-             active_price_option_id, confidence
+             active_price_option_id
       FROM cost_library_items
       WHERE workspace_id = ?
         AND lifecycle_state NOT IN ('archived', 'discontinued')
@@ -1690,7 +1687,7 @@ async function searchAskComponentLibrary({
       database,
       `
         SELECT id, item_id, unit, unit_cost, misc_cost, currency,
-               is_active, is_default, updated_at, confidence, supplier_id
+               is_active, is_default, updated_at, supplier_id
         FROM cost_library_item_price_options
         WHERE workspace_id = ?
           AND is_active = 1
@@ -1718,7 +1715,6 @@ async function searchAskComponentLibrary({
         currency: priceOption?.currency ?? "PHP",
         lifecycleState: item.lifecycle_state,
         currentVersionNumber: item.current_version_number,
-        confidence: priceOption?.confidence ?? item.confidence,
       };
       const score = scoreComponentMatch(component, terms);
       return score > 0 ? { component, score } : null;

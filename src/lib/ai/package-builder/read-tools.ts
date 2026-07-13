@@ -159,7 +159,6 @@ export type PackageBuilderComponentSummary = {
   priceOptionUpdatedAt?: string | null;
   sourceLibraryItemId?: string | null;
   currentVersionNumber?: number | null;
-  confidence?: string | null;
 };
 
 export type PackageBuilderTemplateRowPreview = {
@@ -457,7 +456,6 @@ type AiComponentSearchItem = {
   lifecycle_state: string | null;
   current_version_number: number;
   active_price_option_id: string | null;
-  confidence: string | null;
   workspace_id: string;
 };
 
@@ -471,7 +469,6 @@ type AiComponentSearchPriceOption = {
   is_active: boolean;
   is_default: boolean;
   updated_at: string;
-  confidence: string | null;
   supplier_id: string | null;
 };
 
@@ -858,7 +855,7 @@ async function searchScopedComponentSummaries({
   const itemRows = await all<AiComponentSearchItem>(
     database,
     `
-      SELECT id, name, description, category, category_node_id, library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, confidence, workspace_id
+      SELECT id, name, description, category, category_node_id, library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, workspace_id
       FROM cost_library_items
       WHERE workspace_id = ?
         AND lifecycle_state NOT IN ('archived', 'discontinued')
@@ -878,7 +875,7 @@ async function searchScopedComponentSummaries({
     const priceOptionRows = await all<AiComponentSearchPriceOption>(
       database,
       `
-        SELECT id, item_id, unit, unit_cost, misc_cost, currency, is_active, is_default, updated_at, confidence, supplier_id
+        SELECT id, item_id, unit, unit_cost, misc_cost, currency, is_active, is_default, updated_at, supplier_id
         FROM cost_library_item_price_options
         WHERE workspace_id = ?
           AND is_active = 1
@@ -965,7 +962,6 @@ async function searchScopedComponentSummaries({
         priceOptionUpdatedAt: priceOption?.updated_at ?? null,
         sourceLibraryItemId: item.id,
         currentVersionNumber: item.current_version_number,
-        confidence: priceOption?.confidence ?? item.confidence,
       };
       const score = scoreComponentSummary(summary, terms);
       return score > 0 ? { item: summary, score } : null;

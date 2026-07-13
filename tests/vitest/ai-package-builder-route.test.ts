@@ -41,7 +41,6 @@ const readData: PackageBuilderReadToolsData = {
       priceOptionId: "33333333-3333-4333-8333-333333333333",
       priceOptionUpdatedAt: "2026-05-27T00:00:00.000Z",
       sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-      confidence: "catalog",
     },
   ],
   templateMatches: [],
@@ -149,7 +148,6 @@ function makeExactThreeBedroomCondoReadData(): PackageBuilderReadToolsData {
         lifecycleState: "available",
         sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
         currentVersionNumber: 1,
-        confidence: "catalog",
       },
       {
         id: "22222222-2222-4222-8222-222222222222",
@@ -167,7 +165,6 @@ function makeExactThreeBedroomCondoReadData(): PackageBuilderReadToolsData {
         lifecycleState: "available",
         sourceLibraryItemId: "22222222-2222-4222-8222-222222222222",
         currentVersionNumber: 1,
-        confidence: "catalog",
       },
     ],
     historicalRowMatches: [
@@ -996,7 +993,6 @@ describe("AI package-builder route", () => {
               lifecycleState: "available",
               sourceLibraryItemId: "88888888-8888-4888-8888-888888888888",
               currentVersionNumber: 1,
-              confidence: "catalog",
             },
           ],
         }),

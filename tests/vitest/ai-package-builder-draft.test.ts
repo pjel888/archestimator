@@ -29,7 +29,6 @@ function makeReadData(): PackageBuilderReadToolsData {
         lifecycleState: "available",
         sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
         currentVersionNumber: 1,
-        confidence: "catalog",
       },
       {
         id: "22222222-2222-4222-8222-222222222222",
@@ -45,7 +44,6 @@ function makeReadData(): PackageBuilderReadToolsData {
         lifecycleState: "available",
         sourceLibraryItemId: "22222222-2222-4222-8222-222222222222",
         currentVersionNumber: 1,
-        confidence: "catalog",
       },
       {
         id: "33333333-3333-4333-8333-333333333333",
@@ -61,7 +59,6 @@ function makeReadData(): PackageBuilderReadToolsData {
         lifecycleState: "available",
         sourceLibraryItemId: "33333333-3333-4333-8333-333333333333",
         currentVersionNumber: 1,
-        confidence: "catalog",
       },
     ],
     templateMatches: [],
@@ -1189,7 +1186,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "99999999-9999-4999-8999-999999999999",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -1205,7 +1201,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           ...readData.componentMatches.filter((component) => !component.material.toLowerCase().includes("bed")),
         ],
@@ -1273,7 +1268,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "99999999-9999-4999-8999-999999999999",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -1289,7 +1283,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           ...readData.componentMatches.filter((component) => !component.material.toLowerCase().includes("bed")),
         ],
@@ -1354,7 +1347,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "99999999-9999-4999-8999-999999999999",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -1370,7 +1362,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           ...readData.componentMatches.filter((component) => !component.material.toLowerCase().includes("bed")),
         ],
@@ -1435,7 +1426,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "77777777-7777-4777-8777-777777777777",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "88888888-8888-4888-8888-888888888888",
@@ -1451,7 +1441,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "88888888-8888-4888-8888-888888888888",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "99999999-9999-4999-8999-999999999999",
@@ -1467,7 +1456,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "99999999-9999-4999-8999-999999999999",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -1483,7 +1471,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
         ],
       },
@@ -1689,7 +1676,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "55555555-5555-4555-8555-555555555555",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "66666666-6666-4666-8666-666666666666",
@@ -1705,7 +1691,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "66666666-6666-4666-8666-666666666666",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
         ],
       },
@@ -1759,7 +1744,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "77777777-7777-4777-8777-777777777777",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "88888888-8888-4888-8888-888888888888",
@@ -1775,7 +1759,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "88888888-8888-4888-8888-888888888888",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "99999999-9999-4999-8999-999999999999",
@@ -1791,7 +1774,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "99999999-9999-4999-8999-999999999999",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -1807,7 +1789,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
           {
             id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -1823,7 +1804,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
         ],
       },
@@ -1900,7 +1880,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "88888888-8888-4888-8888-888888888888",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
         ],
       },
@@ -1957,7 +1936,6 @@ describe("AI package-builder draft assembly", () => {
             lifecycleState: "available",
             sourceLibraryItemId: "77777777-7777-4777-8777-777777777777",
             currentVersionNumber: 1,
-            confidence: "catalog",
           },
         ],
       },
@@ -2088,7 +2066,6 @@ describe("AI package-builder draft assembly", () => {
     expect([...bedroomTemplateRows, ...toiletTemplateRows].every((row) =>
       row.sourceType === "allowance"
       && row.sourceTemplateId === "77777777-7777-4777-8777-777777777777"
-      && row.confidence === "requires-user-review"
       && row.sourceSnapshot?.sourceType === "estimate_template_row"
       && row.warnings.some((warning) => warning.includes("Template row"))
     )).toBe(true);
