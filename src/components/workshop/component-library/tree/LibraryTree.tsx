@@ -8,6 +8,7 @@ import {
   CopySimple,
   Eye,
   FolderSimple,
+  ImageSquare,
   Package,
   PencilSimple,
   Plus,
@@ -26,8 +27,13 @@ import { cn } from "@/lib/ui/cn";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
+import { isProjectComponentProjectionItem } from "./buildLibraryTree";
 import { getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";
+
+function getComponentIconColorClass(item: EstimateRowItem) {
+  return isProjectComponentProjectionItem(item) ? "text-[#AAB6E8]" : "text-[#E8B99D]";
+}
 
 function menuIcon(Icon: typeof Plus) {
   return <Icon size={12} weight="regular" aria-hidden="true" />;
@@ -265,7 +271,7 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <Package size={12} weight="regular" aria-hidden="true" className="text-tertiary" />
+        <ImageSquare size={12} weight="regular" aria-hidden="true" className={getComponentIconColorClass(item)} />
       )}
     </span>
   );
@@ -320,15 +326,21 @@ function FolderRenameInput({
 
 function toUiNodes(nodes: LibraryTreeNode[], draggableFolders: boolean): UiTreeNode[] {
   return nodes.map((node) => {
-    const isItem = Boolean(node.item);
+    const item = node.item;
+    const isItem = Boolean(item);
     return {
       id: node.id,
       label: node.label,
       ariaLabel: node.item ? getComponentName(node.item) : node.label,
       isLeaf: isItem,
       draggable: isItem || draggableFolders,
-      icon: isItem ? (
-        <Package size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+      icon: item ? (
+        <Package
+          size={TREE_ROW_ICON_SIZE}
+          weight="regular"
+          className={cn("shrink-0", getComponentIconColorClass(item))}
+          aria-hidden="true"
+        />
       ) : (
         <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
       ),

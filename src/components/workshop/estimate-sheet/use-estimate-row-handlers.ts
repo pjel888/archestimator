@@ -7,7 +7,12 @@ import type { useEstimateRowMutations, EstimateRowMutationStatus, EstimateRowMut
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
 import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
-import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import {
+  isExpressComponentRow,
+  readEstimateRowMetadata,
+  readProjectComponentProjectionMetadata,
+  withExpressComponentMetadata,
+} from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import type { Json } from "@/lib/types/json";
 
@@ -412,6 +417,7 @@ export function useEstimateRowHandlers({
   const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>(expressInsertDrafts);
   const saveStateRef = useRef(saveState);
   const pendingFocusRowIdRef = useRef("");
+  const pendingFocusTargetRef = useRef<"name" | "quantity">("name");
   const pendingFocusFrameIdRef = useRef(0);
 
   useEffect(() => {
@@ -449,8 +455,9 @@ export function useEstimateRowHandlers({
     });
   }, [estimateTree, rowMutationStatuses, saveState, setEditableRows, skipEditableRowsSyncRef]);
 
-  const requestPendingRowFocus = useStableCallback((rowId: string) => {
+  const requestPendingRowFocus = useStableCallback((rowId: string, target: "name" | "quantity" = "name") => {
     pendingFocusRowIdRef.current = rowId;
+    pendingFocusTargetRef.current = target;
     if (pendingFocusFrameIdRef.current) window.cancelAnimationFrame(pendingFocusFrameIdRef.current);
     let attempts = 0;
 
@@ -460,9 +467,12 @@ export function useEstimateRowHandlers({
         pendingFocusFrameIdRef.current = 0;
         return;
       }
-      const focusTarget =
-        document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"] [data-express-field="name"]`) ??
-        document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
+      const quantityInput = document.querySelector<HTMLInputElement>(
+        `[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`,
+      );
+      const focusTarget = pendingFocusTargetRef.current === "quantity"
+        ? quantityInput
+        : document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"] [data-express-field="name"]`) ?? quantityInput;
       if (focusTarget) {
         focusTarget.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
         focusTarget.focus();
@@ -750,7 +760,10 @@ export function useEstimateRowHandlers({
     const newItem = cloneLibraryItemForEstimate(libraryItem);
     const isExpressInsert = isExpressComponentRow(newItem);
     const mutationId = isExpressInsert ? createEstimateRowItemId() : undefined;
-    requestPendingRowFocus(newItem.id);
+    requestPendingRowFocus(
+      newItem.id,
+      readProjectComponentProjectionMetadata(newItem.metadata) ? "quantity" : "name",
+    );
     if (isExpressInsert && mutationId) {
       setExpressInsertDrafts((current) => ({
         ...current,
