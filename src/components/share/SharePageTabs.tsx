@@ -589,7 +589,7 @@ export default function SharePageTabs({
     // AC-UX-08: never a silent null — show a visible, calm empty state.
     return (
       <output
-        className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary"
+        className="border border-dashed border-hairline bg-white p-3 text-center text-[11px] leading-[16px] text-secondary"
       >
         No estimates are included in this shared proposal yet.
       </output>
@@ -602,21 +602,24 @@ export default function SharePageTabs({
   const costBreakdownId = `share-cost-breakdown-${activeEstimate.id}`;
 
   return (
-    <div className="space-y-3">
-      <div className="share-print-screen-only space-y-3">
+    <div className="space-y-2">
+      <div className="share-print-screen-only space-y-2">
       {/* Active estimate summary — sheet name + total, with the view-mode toggle consolidated
           onto this row (UX-15: no separate full-width Tree/Grid strip). */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{activeEstimate?.name}</h2>
+          <h2 className="text-[12px] font-medium leading-[16px] text-ink">{activeEstimate?.name}</h2>
           {activeEstimateMetaText ? (
-            <p className="text-[13px] leading-[18px] tracking-normal text-secondary">{activeEstimateMetaText}</p>
+            <p className="text-[10px] leading-[14px] text-secondary">{activeEstimateMetaText}</p>
           ) : null}
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
-          <p className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">
-            {formatMoney(activeContentTotal, currencyCode)}
-          </p>
+          <div className="text-right">
+            <p className="text-[9px] font-medium leading-[12px] text-tertiary">Sheet total</p>
+            <p className="text-[12px] font-medium leading-[16px] tabular-nums text-ink">
+              {formatMoney(activeContentTotal, currencyCode)}
+            </p>
+          </div>
           <div
             role="tablist"
             aria-label="Estimate view mode"
@@ -635,7 +638,7 @@ export default function SharePageTabs({
                   aria-selected={isActive}
                   aria-controls={`share-estimate-panel-${activeEstimate.id}`}
                   tabIndex={isActive ? 0 : -1}
-                  className={`rounded-xs px-2.5 py-1 text-[12px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                  className={`rounded-xs px-2.5 py-1 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                     isActive ? "bg-surfaceMuted text-ink" : "text-secondary hover:text-ink"
                   }`}
                   onClick={() => setViewForCurrentSheet(mode)}
@@ -651,7 +654,7 @@ export default function SharePageTabs({
       {/* The receiver surface is often 320-390px wide inside email/browser chrome. The full
           callout donut is kept for workshop charts; here the ring stays clean and this adjacent
           list carries the readable client-facing labels. */}
-      <div className="mx-auto grid w-full max-w-[560px] gap-3 sm:grid-cols-[190px_minmax(0,1fr)] sm:items-center" data-share-cost-breakdown>
+      {donutBuckets.length > 0 ? <div className="mx-auto grid w-full max-w-[560px] gap-3 sm:grid-cols-[190px_minmax(0,1fr)] sm:items-center" data-share-cost-breakdown>
         <CostDonutChart
           buckets={donutBuckets}
           total={activeContentTotal}
@@ -682,7 +685,7 @@ export default function SharePageTabs({
             </li>
           ))}
         </ul>
-      </div>
+      </div> : null}
 
       {/* Tablist — horizontal scroll + fade masks for mobile, design-system compliant */}
       <div className="relative">
@@ -690,7 +693,7 @@ export default function SharePageTabs({
           ref={scrollRef}
           role="tablist"
           aria-label="Estimates"
-          className="flex h-[34px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[11px] font-medium scrollbar-thin scrollbar-thumb-hairline"
+          className="flex h-8 items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
           style={{ scrollbarWidth: "thin" }}
         >
           {estimates.map((estimate, index) => {
@@ -707,7 +710,7 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${estimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[13px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "z-10 bg-white text-ink border-hairline -mb-px"
                     : "bg-surfaceMuted text-secondary border-transparent hover:text-ink hover:border-hairline"
@@ -717,7 +720,7 @@ export default function SharePageTabs({
               >
                 <span className="truncate">{estimate.name}</span>
                 {estimate.sheetCode ? (
-                  <span className="ml-1 text-[12px] text-secondary">({estimate.sheetCode})</span>
+                  <span className="ml-1 text-[9px] text-secondary">({estimate.sheetCode})</span>
                 ) : null}
               </button>
             );
@@ -739,7 +742,7 @@ export default function SharePageTabs({
         <div
           role="tablist"
           aria-label={`${activeEstimate.name} tabs`}
-          className="flex h-8 items-center gap-0 overflow-x-auto border-b border-hairline bg-white text-[13px] font-medium tracking-normal"
+          className="flex h-8 items-center gap-0 overflow-x-auto border-b border-hairline bg-white text-[10px] font-medium"
         >
           {activeEstimateTabs.map((tab, index) => {
             const isActive = tab.id === activeEstimateTabId;
@@ -755,7 +758,7 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${activeEstimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`h-full flex-shrink-0 rounded-xs border px-3 text-[13px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`h-full flex-shrink-0 rounded-xs border px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "bg-surfaceMuted text-ink border-hairline"
                     : "text-secondary hover:text-ink border-transparent hover:border-hairline"
@@ -781,12 +784,12 @@ export default function SharePageTabs({
           <div>
             <div className="flex flex-col gap-2 border-b border-hairline bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <h3 className="text-[13px] font-medium leading-[18px] tracking-normal text-ink">Details</h3>
-                <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
+                <h3 className="text-[11px] font-medium leading-[16px] text-ink">Details</h3>
+                <p className="text-[10px] leading-[14px] text-secondary">
                   {filteredRows.length} line item{filteredRows.length === 1 ? "" : "s"} shown for client review
                 </p>
                 {hiddenCollatedRowCount > 0 ? (
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] leading-[16px] tracking-normal text-secondary">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] leading-[14px] text-secondary">
                     <span>Showing {visibleCollatedRows.length} of {filteredRows.length} line items.</span>
                     <Button type="button" variant="ghost" size="sm" onClick={() => dispatchTabsState({ type: "collatedRowsExpanded", limit: collatedRowLimit + COLLATED_ROW_LIMIT })}>
                       Show more
@@ -816,13 +819,13 @@ export default function SharePageTabs({
                     dispatchTabsState({ type: "gridSearchChanged", key: gridSearchKey || activeEstimate.id, value: next });
                   }}
                   placeholder="Filter rows"
-                  className="h-8 min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft"
+                  className="h-8 min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-[14px] text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft"
                 />
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-[760px] border-collapse text-left text-[12px] leading-[16px] tracking-normal">
-                <thead className="bg-surfaceMuted text-[11px] uppercase tracking-normal text-secondary">
+              <table className="min-w-[760px] border-collapse text-left text-[10px] leading-[14px]">
+                <thead className="bg-surfaceMuted text-[9px] text-secondary">
                   <tr>
                     <th className="w-[52px] border-r border-hairline px-2 py-2 font-medium">ITEM</th>
                     <th className="min-w-[240px] border-r border-hairline px-2 py-2 font-medium">PARTICULARS</th>
@@ -867,10 +870,10 @@ export default function SharePageTabs({
                             ) : null}
                             <div className="min-w-0">
                               <span className="block text-ink">{row.description}</span>
-                              <span className="mt-0.5 block text-[12px] leading-[16px] text-secondary">
+                              <span className="mt-0.5 block text-[10px] leading-[14px] text-secondary">
                                 Qty {row.quantity} · {row.unit}
                               </span>
-                              <span className="mt-1 block text-[11px] leading-[16px] text-tertiary opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                              <span className="mt-1 block text-[9px] leading-[12px] text-tertiary opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                                 Select to ask a question
                               </span>
                             </div>
@@ -885,7 +888,7 @@ export default function SharePageTabs({
                     );
                   }) : (
                     <tr className="border-t border-hairline">
-                      <td colSpan={7} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary">
+                      <td colSpan={7} className="px-3 py-4 text-center text-[10px] leading-[14px] text-secondary">
                         {`No rows match "${activeGridSearch.trim()}"`}
                       </td>
                     </tr>
@@ -895,9 +898,9 @@ export default function SharePageTabs({
             </div>
           </div>
         ) : (
-          <div className="flex gap-0" ref={contentRef}>
+          <div className="flex flex-col gap-0 lg:flex-row" ref={contentRef}>
             <details className="w-full border-b border-hairline bg-white lg:hidden">
-              <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium leading-[18px] tracking-normal text-ink">
+              <summary className="cursor-pointer px-3 py-2 text-[11px] font-medium leading-[16px] text-ink">
                 Browse estimate sections
               </summary>
               <div className="h-[360px] border-t border-hairline">

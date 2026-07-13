@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 
 import { ClientPreviewBanner } from "@/components/workshop/publisher/ClientPreviewBanner";
 import { ShareContainer } from "@/components/share/ShareContainer";
-import SharePageHero from "@/components/share/SharePageHero";
 import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
+import { SharePageBrandHeader } from "@/components/share/SharePageBrandHeader";
+import { SharePageFooter } from "@/components/share/SharePageFooter";
 import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
-import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
 import { requireAuth } from "@/lib/auth/session";
 import { assertProjectPublicationManager } from "@/lib/publication/actions";
 import { createPublicationD1Store } from "@/lib/publication/d1-store";
@@ -28,13 +28,15 @@ export default async function PublisherPreviewPage({ params }: PreviewPageProps)
   const snapshot = sanitizeProjectPublicationSnapshotForPublicRead(storedSnapshot as ProjectPublicationSnapshot);
 
   return (
-    <main aria-label="Manager client preview" className="min-h-dvh bg-white text-ink">
+    <main aria-label="Manager client preview" className="flex min-h-dvh flex-col bg-white text-ink">
       <ClientPreviewBanner projectId={projectId} />
-      <ShareContainer className="share-print-content flex flex-col gap-5 py-6">
-        <SharePageProposalHeader project={snapshot.project} />
-        <section id="share-summary"><SharePageSummaryCard snapshot={snapshot} /></section>
-        <SharePageHero project={snapshot.project} />
-        <ShareReviewWorkspace estimates={snapshot.estimates} currencyCode={snapshot.project.currencyCode} previewMode="manager-read-only" token="manager-preview" viewToken="manager-preview" />
+      <ShareContainer className="share-print-content flex min-h-0 flex-1 flex-col">
+        <SharePageBrandHeader project={snapshot.project} />
+        <div className="flex min-h-0 flex-1 flex-col gap-4 py-4 sm:py-5">
+          <SharePageProposalHeader project={snapshot.project} />
+          <ShareReviewWorkspace estimates={snapshot.estimates} currencyCode={snapshot.project.currencyCode} previewMode="manager-read-only" snapshot={snapshot} token="manager-preview" viewToken="manager-preview" />
+        </div>
+        <SharePageFooter snapshot={snapshot} />
       </ShareContainer>
     </main>
   );

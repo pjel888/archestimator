@@ -36,15 +36,13 @@ function formatExpiry(expiresAt: string) {
 /**
  * T1-C (Shared Link Improvement — MVP): the inline trust Summary card (AC-UX-12).
  *
- * A "financial total" card with strong numeric hierarchy that anchors the public
- * proposal page on the grand total (24px tabular-nums) rather than hand-rolled
+ * A "financial total" summary strip that anchors the public proposal page on the
+ * grand total rather than hand-rolled
  * decision-button styling. All data is sourced directly from the existing snapshot —
  * NO new snapshot fields, NO data change. Rendered inline (kept visible in print).
  *
- * Design-system compliant: rounded-xs, hairline borders, surface tokens, SF Pro
- * regular/medium weights, zero tracking. Label floor 12px / body 13px per the
- * Client-Portal scale (the /share px-cap exemption permits the larger sizes; this
- * file keeps every client-facing string at or above 11px).
+ * Design-system compliant: hairline borders, surface tokens, SF Pro regular/medium
+ * weights, and compact client-review density.
  */
 export function SharePageSummaryCard({ expiresAt, snapshot }: SharePageSummaryCardProps) {
   const { project } = snapshot;
@@ -77,22 +75,22 @@ export function SharePageSummaryCard({ expiresAt, snapshot }: SharePageSummaryCa
   return (
     <section
       aria-label="Proposal summary"
-      className="rounded-xs border border-hairline bg-white p-4 text-ink"
+      className="border-y border-hairline py-3 text-ink"
     >
-      <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
+      <p className="text-[9px] font-medium leading-[12px] text-tertiary">
         Proposal total
       </p>
-      <p className="mt-1.5 text-[24px] font-medium leading-[30px] tracking-normal tabular-nums text-ink">
+      <p className="mt-1 text-[18px] font-medium leading-[24px] tabular-nums text-ink">
         {formatMoney(snapshot.totalCost, currencyCode)}
       </p>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-hairline pt-4 sm:grid-cols-3">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-hairline pt-3 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map((stat) => (
           <div key={stat.label} className="min-w-0">
-            <dt className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
+            <dt className="text-[9px] font-medium leading-[12px] text-tertiary">
               {stat.label}
             </dt>
-            <dd className="mt-0.5 truncate text-[13px] leading-[18px] tracking-normal text-ink" title={stat.value}>
+            <dd className="mt-0.5 truncate text-[11px] leading-[16px] text-ink" title={stat.value}>
               {stat.value}
             </dd>
           </div>

@@ -684,6 +684,7 @@ async function buildSnapshotForProject(
       locationVisibility,
       currencyCode: context.project.currency_code,
       senderName: context.currentUserDisplayName,
+      showArchestimatorBranding: readBooleanMetadataValue(context.project.metadata, "showArchestimatorBranding") !== false,
       // P9: capture cover for receiver hero (from metadata at publish; additive)
       coverImageUrl:
         readStringMetadataValue(context.project.metadata, "projectImageUrl") ??
@@ -755,6 +756,12 @@ function readStringMetadataValue(metadata: Json | null | undefined, key: string)
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
   const value = metadata[key];
   return typeof value === "string" ? value : null;
+}
+
+function readBooleanMetadataValue(metadata: Json | null | undefined, key: string) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
+  const value = metadata[key];
+  return typeof value === "boolean" ? value : undefined;
 }
 
 function readFiniteMetadataNumber(metadata: Json | null | undefined, key: string) {

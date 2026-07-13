@@ -7,7 +7,7 @@ import type { ShareDecisionType } from "@/components/share/SharePageDecisionConf
 
 const STICKY_DECISION_THRESHOLD = 320;
 
-export function StickyDecisionBar() {
+export function StickyDecisionBar({ onDecisionRequested }: { onDecisionRequested?: () => void }) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -18,8 +18,11 @@ export function StickyDecisionBar() {
   }, []);
 
   const requestDecision = (decision: ShareDecisionType) => {
-    document.getElementById("share-response")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    window.dispatchEvent(new CustomEvent<ShareDecisionType>("share:request-decision", { detail: decision }));
+    onDecisionRequested?.();
+    window.setTimeout(() => {
+      document.getElementById("share-response")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.dispatchEvent(new CustomEvent<ShareDecisionType>("share:request-decision", { detail: decision }));
+    }, 0);
   };
 
   if (!isVisible) return null;

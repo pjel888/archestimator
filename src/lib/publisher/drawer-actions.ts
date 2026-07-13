@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import type {
   ProjectEstimateSheet,
   ProjectPublicationSummary,
@@ -25,6 +26,35 @@ export type PublisherPublicationDrawerData = {
   legacyMigrationEnabled: boolean;
   summary: ProjectPublicationSummary | null;
 };
+
+export async function updatePublisherProjectClientName({
+  clientName,
+  projectId,
+}: {
+  clientName: string;
+  projectId: string;
+}) {
+  await requireAuth();
+  const normalizedClientName = clientName.trim().replace(/\s+/g, " ");
+  if (normalizedClientName.length > 160) {
+    throw new Error("Client name must be 160 characters or fewer.");
+  }
+
+  const workspaceProjects = await listCurrentWorkspaceProjects();
+  const project = workspaceProjects.projects.find((item) => item.project.id === projectId);
+  if (!project || !canManagePublisherRosterProject(project.currentUserRole)) {
+    throw new Error("You do not have permission to edit this Publisher project.");
+  }
+
+  const database = await getCloudflareD1Database();
+  if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required to update the client name.");
+  await database
+    .prepare("UPDATE projects SET client_name = ?, updated_at = ? WHERE id = ?")
+    .bind(normalizedClientName || null, new Date().toISOString(), projectId)
+    .run();
+
+  return { clientName: normalizedClientName || null, ok: true };
+}
 
 function redactPublisherClientLinkForReadOnly(
   summary: ProjectPublicationSummary | null,

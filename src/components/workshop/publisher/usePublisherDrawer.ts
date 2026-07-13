@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import {
   readPublisherPublicationDrawerData,
+  updatePublisherProjectClientName,
 } from "@/lib/publisher/drawer-actions";
 import {
   republishProjectPublication,
@@ -46,6 +47,12 @@ export function usePublisherDrawer(projectId: string | null, open: boolean) {
   const republishMutation = useMutation({
     mutationFn: (input: Parameters<typeof republishProjectPublication>[0]) =>
       republishProjectPublication(input),
+    onSuccess: refreshPublisherSurface,
+  });
+
+  const clientNameMutation = useMutation({
+    mutationFn: (input: Parameters<typeof updatePublisherProjectClientName>[0]) =>
+      updatePublisherProjectClientName(input),
     onSuccess: refreshPublisherSurface,
   });
 
@@ -91,7 +98,8 @@ export function usePublisherDrawer(projectId: string | null, open: boolean) {
 
   return {
     data: query.data,
-    isMutating: republishMutation.isPending || rotateMutation.isPending || revokeMutation.isPending || migrateLegacyMutation.isPending || rollbackLegacyMigrationMutation.isPending,
+    isMutating: clientNameMutation.isPending || republishMutation.isPending || rotateMutation.isPending || revokeMutation.isPending || migrateLegacyMutation.isPending || rollbackLegacyMigrationMutation.isPending,
+    clientNameMutation,
     migrateLegacyMutation,
     query,
     republishMutation,

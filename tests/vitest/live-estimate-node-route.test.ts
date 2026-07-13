@@ -35,7 +35,7 @@ describe("live estimate node route", () => {
     // estimate-mixed-content.test.tsx.
     expect(estimateTree).not.toContain("isEstimateGroupNodeKind");
     expect(estimateTree).not.toContain("selectedGroupId");
-    expect(estimateTree).toContain("selectedParentNodeId");
+    expect(estimateTree).toContain("creationParentNodeId");
     expect(estimateTree).not.toContain("you must select a group first before adding an area node");
     expect(estimateTree).toContain("renderRow={renderEstimateTreeRowLabel}");
     expect(estimateTree).toContain("currentId={activeSelectedNodeId}");

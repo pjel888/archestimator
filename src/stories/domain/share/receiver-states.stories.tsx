@@ -9,7 +9,7 @@ import SharePageDecision from "@/components/share/SharePageDecision";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
 import SharePageTabs from "@/components/share/SharePageTabs";
 import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
-import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
+import type { ProjectPublicationSnapshot, PublicationSnapshotEstimate } from "@/lib/publication/types";
 
 type StoryScenario = "normal" | "comments-loading" | "comments-error" | "comments-empty" | "decision-locked" | "password-invalid" | "password-locked";
 
@@ -152,6 +152,25 @@ const storyEstimates: PublicationSnapshotEstimate[] = [
   },
 ];
 
+const storySnapshot: ProjectPublicationSnapshot = {
+  schemaVersion: 1.4,
+  generatedAt: "2026-06-20T09:00:00.000Z",
+  project: {
+    id: "story-project",
+    name: "Riverside Fit-out",
+    projectCode: "STORY-01",
+    clientName: "Story client",
+    location: "Makati, Philippines",
+    locationVisibility: "locality",
+    currencyCode: "PHP",
+    senderName: "Project team",
+  },
+  estimateCount: storyEstimates.length,
+  rowCount: storyEstimates.reduce((total, estimate) => total + estimate.rowCount, 0),
+  totalCost: storyEstimates.reduce((total, estimate) => total + estimate.totalCost, 0),
+  estimates: storyEstimates,
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -266,7 +285,7 @@ function WorkspaceState({
 }) {
   return (
     <ReceiverStateFrame scenario={scenario} session={session}>
-      <ShareReviewWorkspace currencyCode="PHP" estimates={estimates} token={TOKEN} viewToken={VIEW_TOKEN} />
+      <ShareReviewWorkspace currencyCode="PHP" estimates={estimates} snapshot={{ ...storySnapshot, estimates }} token={TOKEN} viewToken={VIEW_TOKEN} />
     </ReceiverStateFrame>
   );
 }
@@ -294,6 +313,7 @@ type Story = StoryObj<typeof meta>;
 const defaultArgs = {
   currencyCode: "PHP",
   estimates: storyEstimates,
+  snapshot: storySnapshot,
   token: TOKEN,
   viewToken: VIEW_TOKEN,
 };

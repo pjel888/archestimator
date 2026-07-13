@@ -20,23 +20,30 @@ function isSafeComponentLibraryImagePath(path: string) {
   );
 }
 
-function isSafeProjectEstimateRowImagePath(path: string) {
+function isSafeProjectImagePath(path: string) {
   if (!path || path.includes("..") || path.includes("//") || path.includes("\\")) return false;
   if (!path.endsWith(".webp")) return false;
 
   const segments = path.split("/");
-  if (segments.length !== 7) return false;
-  const [workspaceId, ownerUserId, marker, projectId, estimateRowMarker, estimateId, fileName] = segments;
+  if (segments.length < 5) return false;
+  const [workspaceId, ownerUserId, marker, projectId] = segments;
+  const hasProjectThumbnailShape =
+    segments.length === 5
+    && /^[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/i.test(segments[4] ?? "");
+  const hasEstimateRowThumbnailShape =
+    segments.length === 7
+    && segments[4] === "estimate-row-images"
+    && UUID_PATTERN.test(segments[5] ?? "")
+    && /^[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/i.test(segments[6] ?? "");
+
   return Boolean(
     workspaceId
       && ownerUserId
       && marker === "project-images"
-      && estimateRowMarker === "estimate-row-images"
-      && fileName
       && UUID_PATTERN.test(workspaceId)
       && UUID_PATTERN.test(projectId ?? "")
-      && UUID_PATTERN.test(estimateId ?? "")
-      && /^[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/i.test(fileName),
+      && segments.every((segment) => segment.length > 0)
+      && (hasProjectThumbnailShape || hasEstimateRowThumbnailShape),
   );
 }
 
@@ -55,7 +62,7 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
     if (!hasOnlyPathParam(imageUrl)) return null;
     const path = imageUrl.searchParams.get("path") ?? "";
     if (imageUrl.pathname === "/api/projects/images") {
-      if (!isSafeProjectEstimateRowImagePath(path)) return null;
+      if (!isSafeProjectImagePath(path)) return null;
     } else if (imageUrl.pathname === "/api/component-library/images") {
       if (!isSafeComponentLibraryImagePath(path)) return null;
     } else {

@@ -59,8 +59,6 @@ const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
   { id: "publisher", href: "/workshop/publisher", label: "Share", icon: ShareNetwork, shortcut: "⌘5" },
 ];
 
-const sidebarPrefetchRoutes = sidebarNavItems.map((item) => ({ pathname: item.href }));
-
 const isActiveHref = (pathname: string | null, href: string) => pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
 function formatPendingInviteBadgeLabel(count: number) {
@@ -199,8 +197,7 @@ export function MainSidebar({
     nav.querySelector<HTMLElement>("[data-sidebar-favorites-header]")?.focus();
   }, [favoriteLinkOrder]);
   const favoritePrefetchRoutes = useMemo(() => createFavoritePrefetchRoutes(liveFavoriteProjects), [liveFavoriteProjects]);
-  const prefetchRoutes = useMemo(() => [...sidebarPrefetchRoutes, ...favoritePrefetchRoutes], [favoritePrefetchRoutes]);
-  const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
+  const { prefetch, cancel } = usePrefetchOnHover(favoritePrefetchRoutes);
   const userName = user?.displayName || user?.email || "Workspace";
   const userSubtitle = user?.email || "Archestimator";
   const userInitials = userName
@@ -349,8 +346,6 @@ export function MainSidebar({
                   item={item}
                   active={item.id === dashboardItem.id ? pathname === item.href : isActiveHref(pathname, item.href)}
                   expanded={expanded}
-                  onPrefetchStart={prefetch}
-                  onPrefetchCancel={cancel}
                 />
               ))}
             </div>

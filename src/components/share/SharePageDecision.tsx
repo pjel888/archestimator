@@ -264,8 +264,8 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
         aria-label="How to respond to this proposal"
         className="share-print-hidden w-full rounded-xs border border-hairline bg-proposalPaper p-3 text-ink"
       >
-        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
-        <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">
+        <div className="text-[9px] font-medium leading-[12px] text-tertiary">Your response</div>
+        <p className="mt-1 max-w-[600px] text-[10px] leading-[14px] text-secondary">
           You are viewing this proposal in read-only mode. To accept, decline, or request a revision — and to join
           the discussion — open the personalized review link sent to your email. Each recipient receives their own
           secure link.
@@ -356,21 +356,21 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
       <section
         data-share-decision-bar="true"
         data-testid="decision-locked-badge"
-        className="share-print-hidden w-full rounded-xs border border-hairline bg-proposalPaper p-3 text-[13px] leading-[18px] tracking-normal text-ink"
+        className="share-print-hidden w-full rounded-xs border border-hairline bg-proposalPaper p-3 text-[10px] leading-[14px] text-ink"
         role="status"
         aria-live="polite"
       >
-        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
-        <div className="mt-1 text-[15px] font-medium leading-[20px] tracking-normal text-ink">{decisionLabel(decided.decision)}</div>
+        <div className="text-[9px] font-medium leading-[12px] text-tertiary">Your response</div>
+        <div className="mt-1 text-[12px] font-medium leading-[16px] text-ink">{decisionLabel(decided.decision)}</div>
         {decided.targetLabel ? (
-          <div className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+          <div className="mt-1 text-[10px] leading-[14px] text-secondary">
             Applies to {decided.targetLabel}
             {decided.targetSecondaryLabel ? ` · ${decided.targetSecondaryLabel}` : ""}
           </div>
         ) : null}
-        {decided.note && <div className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">Note: {decided.note}</div>}
-        <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-secondary">{recordedLine} You can still add comments below.</div>
-        {(error || loadDecisionError) && <div role="alert" className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error ?? loadDecisionError}</div>}
+        {decided.note && <div className="mt-1 text-[10px] leading-[14px] text-secondary">Note: {decided.note}</div>}
+        <div className="mt-2 text-[10px] leading-[14px] text-secondary">{recordedLine} You can still add comments below.</div>
+        {(error || loadDecisionError) && <div role="alert" className="mt-1 text-[10px] leading-[14px] text-danger">{error ?? loadDecisionError}</div>}
         <div aria-live="polite" className="sr-only">{announcement}</div>
       </section>
     );
@@ -385,11 +385,11 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
-          <p className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">
+          <div className="text-[9px] font-medium leading-[12px] text-tertiary">Your response</div>
+          <p className="mt-1 text-[10px] leading-[14px] text-secondary">
             {isLoadingDecision ? "Checking for an existing response..." : "Choose a response when you are ready."}
           </p>
-          <p className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+          <p className="mt-1 text-[10px] leading-[14px] text-secondary">
             Applies to {activeReviewTargetLabel}
           </p>
         </div>

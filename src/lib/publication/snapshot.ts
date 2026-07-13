@@ -20,6 +20,7 @@ type SnapshotProjectInput = {
   locationVisibility?: ProjectPublicationLocationVisibility | null;
   currencyCode: string;
   senderName?: string | null;
+  showArchestimatorBranding?: boolean;
   // P9 additive
   coverImageUrl?: string | null;
 };
@@ -512,6 +513,7 @@ export function buildProjectPublicationSnapshot({
       ? {
           ...project,
           ...(senderName ? { senderName } : {}),
+          showArchestimatorBranding: project.showArchestimatorBranding !== false,
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
           coverImageUrl: normalizePublicationImageUrl(project.coverImageUrl),
@@ -519,6 +521,7 @@ export function buildProjectPublicationSnapshot({
       : {
           ...project,
           ...(senderName ? { senderName } : {}),
+          showArchestimatorBranding: project.showArchestimatorBranding !== false,
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
         };

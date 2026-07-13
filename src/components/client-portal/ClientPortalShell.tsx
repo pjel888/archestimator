@@ -6,6 +6,8 @@ import Image from "next/image";
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import { Button } from "@/components/ui/button";
 import { ClientPortalDecisionSection } from "@/components/client-portal/ClientPortalDecisionSection";
+import { ClientPortalDiscussionSection } from "@/components/client-portal/ClientPortalDiscussionSection";
+import { ClientPortalFinancialSection } from "@/components/client-portal/ClientPortalFinancialSection";
 import { EstimateBrowserSection } from "@/components/client-portal/EstimateBrowserSection";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
@@ -47,6 +49,16 @@ type ClientPortalSection = {
 };
 
 type AccessState = "loading" | "ready" | "password" | "unavailable";
+type PortalView = "overview" | "estimate" | "financials" | "discussion" | "decision";
+type DiscussionTarget = { kind: "estimate" | "estimate_tab" | "area_group" | "row"; publicId: string; label: string; secondaryLabel: string | null; sectionId: string };
+
+const PORTAL_VIEW_LABELS: Record<PortalView, string> = {
+  overview: "Overview",
+  estimate: "Estimate",
+  financials: "Financials",
+  discussion: "Discussion",
+  decision: "Decision",
+};
 
 function routePath(token: string, suffix = "") {
   return `/api/share/${encodeURIComponent(token)}${suffix}`;
@@ -54,6 +66,18 @@ function routePath(token: string, suffix = "") {
 
 function sectionLabel(section: ManifestSection) {
   return section.title.trim() || section.kind.replace(/_/g, " ");
+}
+
+function isFinancialSection(kind: string): kind is "financial_summary" | "cost_breakdown" | "estimate_comparison" {
+  return kind === "financial_summary" || kind === "cost_breakdown" || kind === "estimate_comparison";
+}
+
+function portalViewForSection(kind: string): PortalView {
+  if (kind === "estimate_browser") return "estimate";
+  if (isFinancialSection(kind)) return "financials";
+  if (kind === "discussion") return "discussion";
+  if (kind === "decision") return "decision";
+  return "overview";
 }
 
 function formattedDate(value: string | null) {
@@ -95,6 +119,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   const [section, setSection] = useState<ClientPortalSection | null>(null);
   const [sectionState, setSectionState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
   const [contextOpen, setContextOpen] = useState(false);
+  const [discussionTarget, setDiscussionTarget] = useState<DiscussionTarget | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -161,10 +186,27 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   }, [access, selectedSectionId, token]);
 
   const selectedSection = useMemo(() => manifest?.sections.find((item) => item.id === selectedSectionId) ?? null, [manifest, selectedSectionId]);
+  const availableViews = useMemo(() => {
+    if (!manifest) return [];
+    const views = new Set(manifest.sections.map((item) => portalViewForSection(item.kind)));
+    return (["overview", "estimate", "financials", "discussion", "decision"] as const).filter((view) => views.has(view));
+  }, [manifest]);
+  const selectedView = selectedSection ? portalViewForSection(selectedSection.kind) : availableViews[0] ?? "overview";
+  const sectionsInSelectedView = manifest?.sections.filter((item) => portalViewForSection(item.kind) === selectedView) ?? [];
 
   function selectSection(sectionId: string) {
     setSelectedSectionId(sectionId);
     window.history.replaceState(null, "", `#${encodeURIComponent(sectionId)}`);
+  }
+
+  function selectView(view: PortalView) {
+    const nextSection = manifest?.sections.find((item) => portalViewForSection(item.kind) === view);
+    if (nextSection) selectSection(nextSection.id);
+  }
+
+  function discussEstimateTarget(target: Omit<DiscussionTarget, "sectionId">, sectionId: string) {
+    setDiscussionTarget({ ...target, sectionId });
+    selectView("discussion");
   }
 
   if (access === "loading") {
@@ -225,11 +267,17 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
         </div>
       </header>
 
+      <nav aria-label="Client presentation views" className="share-print-hidden sticky top-16 z-10 border-b border-hairline bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <div role="tablist" className="flex gap-0 overflow-x-auto">
+          {availableViews.map((view) => <button key={view} type="button" role="tab" aria-selected={selectedView === view} className={`shrink-0 border-b-2 px-4 py-3 text-[13px] font-medium transition-colors ${selectedView === view ? "border-accent text-ink" : "border-transparent text-secondary hover:border-hairline hover:text-ink"}`} onClick={() => selectView(view)}>{PORTAL_VIEW_LABELS[view]}</button>)}
+        </div>
+      </nav>
+
       <div className="grid gap-0 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[15rem_minmax(0,1fr)_17rem]">
-        <nav aria-label="Portal sections" className="hidden border-r border-hairline bg-white p-3 lg:sticky lg:top-16 lg:block lg:h-[calc(100dvh-4rem)]">
-          <p className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wide text-tertiary">Issued sections</p>
+        <nav aria-label={`${PORTAL_VIEW_LABELS[selectedView]} sections`} className="hidden border-r border-hairline bg-white p-3 lg:sticky lg:top-[7.1rem] lg:block lg:h-[calc(100dvh-7.1rem)]">
+          <p className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wide text-tertiary">{PORTAL_VIEW_LABELS[selectedView]} views</p>
           <div className="grid gap-1">
-            {manifest.sections.map((item) => (
+            {sectionsInSelectedView.map((item) => (
               <Button key={item.id} variant={item.id === selectedSectionId ? "soft" : "ghost"} size="sm" className="justify-start !min-w-0" onClick={() => selectSection(item.id)}>
                 {sectionLabel(item)}
               </Button>
@@ -238,10 +286,10 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
         </nav>
 
         <section className="min-w-0 p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8">
-          <div className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="Portal sections">
-            {manifest.sections.map((item) => (
+          <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label={`${PORTAL_VIEW_LABELS[selectedView]} sections`}>
+            {sectionsInSelectedView.length > 1 ? sectionsInSelectedView.map((item) => (
               <Button key={item.id} variant={item.id === selectedSectionId ? "soft" : "secondary"} size="sm" onClick={() => selectSection(item.id)}>{sectionLabel(item)}</Button>
-            ))}
+            )) : null}
           </div>
           <div id={selectedSection?.id} className="border border-hairline bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-hairline pb-4">
@@ -253,7 +301,15 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
             </div>
             {sectionState === "loading" ? <p aria-live="polite" className="text-[13px] text-secondary">Loading issued section…</p> : null}
             {sectionState === "unavailable" ? <p role="alert" className="text-[13px] text-secondary">This issued section is unavailable.</p> : null}
-            {sectionState === "ready" && section ? section.section.kind === "estimate_browser" ? <EstimateBrowserSection payload={section.section.payload} /> : section.section.kind === "decision" ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} /> : <ClientPortalPayload payload={section.section.payload} /> : null}
+            {sectionState === "ready" && section ? section.section.kind === "estimate_browser"
+              ? <EstimateBrowserSection payload={section.section.payload} onDiscussTarget={manifest.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? (target) => discussEstimateTarget(target, section.section.id) : undefined} />
+              : isFinancialSection(section.section.kind)
+                ? <ClientPortalFinancialSection kind={section.section.kind} payload={section.section.payload} />
+                : section.section.kind === "discussion"
+                  ? <ClientPortalDiscussionSection capabilities={manifest.capabilities} composeTarget={discussionTarget} issueId={manifest.issue.id} projectName={manifest.project.name} sectionId={section.section.id} token={token} />
+                  : section.section.kind === "decision"
+                    ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} />
+                    : <ClientPortalPayload payload={section.section.payload} /> : null}
           </div>
         </section>
 

@@ -146,6 +146,7 @@ export type ProjectPublicationSnapshot = {
     locationVisibility: ProjectPublicationLocationVisibility;
     currencyCode: string;
     senderName?: string | null;
+    showArchestimatorBranding?: boolean;
     // P9: cover from projects.metadata (projectImageUrl etc) captured at publish time for hero
     coverImageUrl?: string | null;
   };

@@ -176,7 +176,7 @@ describe("TemplateEditorClient", () => {
     expect(screen.getByRole("region", { name: "Template content" })).toBeInTheDocument();
     const sourceTrust = screen.getByLabelText("Source trust for Powder Room Basic");
     expect(within(sourceTrust).getByText("1/2 linked rows")).toBeInTheDocument();
-    expect(within(sourceTrust).getByText("Current")).toBeInTheDocument();
+    expect(within(sourceTrust).queryByText("Fresh price")).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("GROHE Lavatory Faucet")).toBeInTheDocument();
     expect(screen.getByText("Totals are reference pricing: estimates re-price on insert")).toBeInTheDocument();
   });

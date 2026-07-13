@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/ui/cn";
@@ -11,8 +10,6 @@ type SidebarNavItemProps = {
   item: SidebarNavItem & { icon: PhosphorIcon };
   active: boolean;
   expanded: boolean;
-  onPrefetchStart?: (href: string) => void;
-  onPrefetchCancel?: (href: string) => void;
 };
 
 function formatBadgeCount(count: number) {
@@ -20,21 +17,11 @@ function formatBadgeCount(count: number) {
   return String(count);
 }
 
-export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onPrefetchCancel }: SidebarNavItemProps) {
+export function SidebarNavItemRow({ item, active, expanded }: SidebarNavItemProps) {
   const Icon = item.icon;
-  const [prefetchIntent, setPrefetchIntent] = useState(false);
   const badgeCount = item.badgeCount && item.badgeCount > 0 ? item.badgeCount : 0;
   const badgeText = badgeCount > 0 ? formatBadgeCount(badgeCount) : null;
   const collapsedLabel = item.badgeLabel ? `${item.label}, ${item.badgeLabel}` : item.label;
-
-  const startPrefetch = () => {
-    setPrefetchIntent(true);
-    onPrefetchStart?.(item.href);
-  };
-
-  const cancelPrefetch = () => {
-    onPrefetchCancel?.(item.href);
-  };
 
   // The hover/active tint spans the full row when expanded, or just the icon
   // slot when collapsed so the collapsed rail stays a clean icon-only strip.
@@ -43,13 +30,9 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
   return (
     <Link
       href={item.href}
-      prefetch={prefetchIntent ? null : false}
+      prefetch
       aria-current={active ? "page" : undefined}
       aria-label={expanded ? undefined : collapsedLabel}
-      onBlur={cancelPrefetch}
-      onFocus={startPrefetch}
-      onMouseEnter={startPrefetch}
-      onMouseLeave={cancelPrefetch}
       className={cn(
         "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-[color,transform] duration-[120ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
         "before:absolute before:top-[-2px] before:z-0 before:h-9 before:[border-radius:var(--glass-nav-radius)] before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",

@@ -402,7 +402,7 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
     } finally {
       dispatchCommentsState({ type: "commentsMoreLoadSettled" });
     }
-  }, [isLoadingMoreComments, loadCommentPage, nextCommentsCursor]);
+  }, [dispatchCommentsState, isLoadingMoreComments, loadCommentPage, nextCommentsCursor]);
 
   const flushQueue = useCallback(async () => {
     const q = loadQueue();
@@ -588,9 +588,9 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
 
   if (!isValid) {
     return (
-      <section aria-label="Discussion comments" className="share-print-hidden w-full rounded-xs border border-hairline bg-white p-3 text-[13px] leading-[18px] tracking-normal text-secondary">
-        <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
-        <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">Recipient session required to comment and respond to this proposal.</p>
+      <section aria-label="Discussion comments" className="share-print-hidden w-full border border-hairline bg-white p-3 text-[10px] leading-[14px] text-secondary">
+        <div className="text-[12px] font-medium leading-[16px] text-ink">Discussion</div>
+        <p className="mt-1 max-w-[600px] text-[10px] leading-[14px] text-secondary">Recipient session required to comment and respond to this proposal.</p>
       </section>
     );
   }
@@ -602,11 +602,11 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
     >
       <div className="flex items-start justify-between gap-3 border-b border-hairline px-3 py-2">
         <div>
-          <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
-          <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
+          <div className="text-[12px] font-medium leading-[16px] text-ink">Discussion</div>
+          <p className="text-[10px] leading-[14px] text-secondary">
             {comments.length} comment{comments.length === 1 ? "" : "s"} • visible to the project team
           </p>
-          <p className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+          <p className="mt-1 text-[10px] leading-[14px] text-secondary">
             Applies to {activeReviewTargetLabel}
           </p>
         </div>
@@ -627,7 +627,7 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
       <div
         id="share-page-discussion-body"
         aria-live="polite"
-        className={isExpanded ? "max-h-[420px] overflow-y-auto px-3 py-2 text-[13px] leading-[18px] tracking-normal text-ink" : "sr-only"}
+        className={isExpanded ? "max-h-[420px] overflow-y-auto px-3 py-2 text-[10px] leading-[14px] text-ink" : "sr-only"}
         style={{ scrollbarWidth: "thin" }}
       >
         {isLoadingComments ? (
@@ -636,25 +636,25 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
             <div className="h-3 w-1/2 rounded-xs bg-surfaceMuted" />
           </div>
         ) : loadError ? (
-          <div className="rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[12px] leading-[16px] tracking-normal text-danger" role="alert">
+          <div className="rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[10px] leading-[14px] text-danger" role="alert">
             {loadError}
             <Button variant="ghost" size="sm" className="ml-2" onClick={() => void loadComments()}>
               Retry
             </Button>
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-[12px] leading-[16px] tracking-normal text-secondary">No comments yet. Add a note or question below.</p>
+          <p className="text-[10px] leading-[14px] text-secondary">No comments yet. Add a note or question below.</p>
         ) : (
           <>
             <ul className="max-w-[600px] space-y-3">
               {comments.map((c) => (
                 <li key={c.id} className="rounded-xs border border-hairline bg-white p-2">
-                <div className="text-[12px] leading-[16px] tracking-normal text-secondary">
+                <div className="text-[10px] leading-[14px] text-secondary">
                   {c.authorName || c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {c.isOptimistic ? " (sending...)" : ""}
                 </div>
                 {c.targetLabel ? (
-                  <div className="mt-1 inline-flex max-w-full rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 text-[11px] leading-[15px] tracking-normal text-secondary">
+                  <div className="mt-1 inline-flex max-w-full rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 text-[9px] leading-[12px] text-secondary">
                     <span className="truncate">{c.targetLabel}</span>
                     {c.targetSecondaryLabel ? <span className="ml-1 truncate text-tertiary">· {c.targetSecondaryLabel}</span> : null}
                   </div>
@@ -680,7 +680,7 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
       {/* Composer + counter */}
       <div className="border-t border-hairline p-3 pb-[env(safe-area-inset-bottom)]">
         {error && (
-          <div className="mb-2 rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[12px] tracking-normal text-danger" role="alert">
+          <div className="mb-2 rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[10px] text-danger" role="alert">
             {error}
             {staleSnapshot ? (
               <Button variant="ghost" size="sm" className="ml-2" onClick={() => window.location.reload()}>
@@ -696,12 +696,12 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
 
         {/* P12 additive status (retry/queued) — strictly design compliant (rounded-xs, existing tokens, no new primitives) */}
         {(retryStatus || pendingCount > 0) && (
-          <output className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[12px] tracking-normal text-secondary" aria-live="polite">
+          <output className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[10px] text-secondary" aria-live="polite">
             {retryStatus ? retryStatus : `${pendingCount} comment${pendingCount > 1 ? "s" : ""} queued — will retry on reconnect`}
           </output>
         )}
 
-        <div className="mb-2 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+        <div className="mb-2 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[10px] leading-[14px] text-secondary">
           Applies to {activeReviewTargetLabel}
         </div>
 
@@ -713,14 +713,14 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
           }}
           onKeyDown={handleKeyDown}
           placeholder="Add a comment, note, or question for the project team..."
-          className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:bg-accentSoft focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[10px] leading-[14px] text-ink placeholder:text-tertiary focus:bg-accentSoft focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           rows={3}
           maxLength={MAX}
           disabled={isPosting || !isValid}
           aria-label="Comment body"
         />
 
-        <div className="mt-1 flex items-center justify-between text-[12px] tracking-normal text-secondary">
+        <div className="mt-1 flex items-center justify-between text-[10px] text-secondary">
           <span>
             {remaining} / {MAX}
           </span>
@@ -728,7 +728,7 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
             {isPosting ? "Sending..." : "Send"}
           </Button>
         </div>
-        <p className="mt-1 text-[11px] leading-[15px] tracking-normal text-secondary">Comments are sent to the project team. Max 1000 characters.</p>
+        <p className="mt-1 text-[9px] leading-[12px] text-secondary">Comments are sent to the project team. Max 1000 characters.</p>
       </div>
     </section>
   );

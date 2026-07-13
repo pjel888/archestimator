@@ -30,6 +30,7 @@ type ShareWizardProps = {
 };
 
 type WizardFeedback = { text: string; tone: "success" | "error" };
+type ClientNameState = { projectId: string | null; savedValue: string; value: string };
 
 function haveSameStringValues(left: readonly string[], right: readonly string[]) {
   if (left.length !== right.length) return false;
@@ -41,6 +42,11 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
   const [selectedEstimateIdsOverride, setSelectedEstimateIdsOverride] = useState<string[] | null>(null);
   const [passwordRequiredOverride, setPasswordRequiredOverride] = useState<boolean | null>(null);
   const [password, setPassword] = useState("");
+  const [clientNameState, setClientNameState] = useState<ClientNameState>({
+    projectId: row?.projectId ?? null,
+    savedValue: row?.clientName ?? "",
+    value: row?.clientName ?? "",
+  });
   const [feedback, setFeedback] = useState<WizardFeedback | null>(null);
   const [complete, setComplete] = useState(false);
   const [verificationPending, setVerificationPending] = useState(false);
@@ -69,11 +75,15 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
       && !drawer.isMutating,
   );
   const clientLinkPath = summary?.clientLinkPath;
+  const usesCurrentProjectClientName = clientNameState.projectId === row?.projectId;
+  const clientName = usesCurrentProjectClientName ? clientNameState.value : row?.clientName ?? "";
+  const savedClientName = usesCurrentProjectClientName ? clientNameState.savedValue : row?.clientName ?? "";
   const hasUnsavedChanges = !complete && (
     (selectedEstimateIdsOverride !== null
       && !haveSameStringValues(selectedEstimateIdsOverride, defaultSelectedEstimateIds))
     || (passwordRequiredOverride !== null && passwordRequiredOverride !== defaultPasswordRequired)
     || password.trim().length > 0
+    || clientName.trim() !== savedClientName.trim()
   );
 
   if (!row) return null;
@@ -142,6 +152,10 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
     if (!canShare) return;
     setFeedback(null);
     try {
+      if (clientName.trim() !== savedClientName.trim()) {
+        const clientResult = await drawer.clientNameMutation.mutateAsync({ clientName, projectId });
+        setClientNameState({ projectId, savedValue: clientResult.clientName ?? "", value: clientResult.clientName ?? "" });
+      }
       const result = await drawer.republishMutation.mutateAsync({
         clearPassword: !passwordRequired,
         password: passwordRequired ? password.trim() || undefined : undefined,
@@ -160,6 +174,18 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
         text: "The client link could not be saved. Please try again.",
         tone: "error",
       });
+    }
+  }
+
+  async function saveClientName() {
+    if (!canManage || clientName.trim() === savedClientName.trim()) return;
+    setFeedback(null);
+    try {
+      const result = await drawer.clientNameMutation.mutateAsync({ clientName, projectId });
+      setClientNameState({ projectId, savedValue: result.clientName ?? "", value: result.clientName ?? "" });
+      setFeedback({ text: "Client name saved. Republish the link to include it in the issued proposal.", tone: "success" });
+    } catch {
+      setFeedback({ text: "The client name could not be saved. Please try again.", tone: "error" });
     }
   }
 
@@ -319,6 +345,32 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
           </section>
 
           <aside className="space-y-3 p-3">
+            <section>
+              <h3 className="text-[11px] font-medium leading-4 text-ink">Client</h3>
+              <ControlField label="Client name" className="mt-2 [&>label]:!text-[9px]">
+                <ControlInput
+                  value={clientName}
+                  onChange={(event) => setClientNameState({ projectId, savedValue: savedClientName, value: event.currentTarget.value })}
+                  className={cn("min-h-8 !text-[10px]", CONTROL_INPUT_SURFACE_CLASS)}
+                  disabled={!canManage || drawer.isMutating}
+                  placeholder="Client or owner name"
+                />
+              </ControlField>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-[9px] leading-3 text-secondary">Shown in the client overview and next issued link.</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="min-h-7 shrink-0 px-2 !text-[9px]"
+                  disabled={!canManage || drawer.isMutating || clientName.trim() === savedClientName.trim()}
+                  onClick={() => void saveClientName()}
+                >
+                  {drawer.clientNameMutation.isPending ? "Saving…" : "Save client"}
+                </Button>
+              </div>
+            </section>
+
             <section>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Access</h3>
               <Checkbox

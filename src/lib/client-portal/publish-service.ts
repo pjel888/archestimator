@@ -11,8 +11,10 @@ import { buildProjectPublicationSnapshot, sanitizeProjectPublicationSnapshotForP
 type PortalSource = { id: string; project_id: string; status: "draft" | "ready" | "live" | "access_off" | "archived"; workspace_id: string };
 type ProjectSource = { currency_code: string; id: string; name: string; project_code: string | null };
 type EstimateSource = { id: string; name: string; sheet_code: string; updated_at: string | null };
+type NodeSource = { estimate_id: string; estimate_tab_id: string | null; id: string; kind: string; name: string; parent_id: string | null; sort_order: number };
 type RowSource = { adjustment_percentage: number | string | null; contingency_percentage: number | string | null; description: string; designation: string; discipline: string; estimate_id: string; id: string; material: string; misc_cost: number | string | null; node_id: string | null; quantity: number | string | null; quantity_base: number | string | null; quantity_contingency_amount: number | string | null; unit: string; unit_cost: number | string | null };
 type SectionSource = { config_json: string; description: string | null; enabled: number; field_policy_json: string; id: string; interaction_policy_json: string; kind: string; layout_mode: string; print_policy_json: string; sort_order: number; title: string };
+type TabSource = { estimate_id: string; id: string; is_default: number; name: string; sort_order: number };
 
 export class ClientPortalPublishError extends Error {
   constructor(public readonly code: "client_portal_publish_invalid" | "client_portal_publish_not_found", message: string) {
@@ -77,7 +79,7 @@ function payloadForSection(draft: ClientPortalSectionDraft, input: { currencyCod
     case "financial_summary":
       return buildClientPortalFinancialSummaryPayload({ currencyCode: input.currencyCode, estimates: input.estimates });
     case "cost_breakdown":
-      return buildClientPortalCostBreakdownPayload({ currencyCode: input.currencyCode, estimates: input.estimates });
+      return buildClientPortalCostBreakdownPayload({ currencyCode: input.currencyCode, estimates: input.estimates, groupBy: draft.config.groupBy ?? "area" });
     case "estimate_comparison":
       return buildClientPortalEstimateComparisonPayload({ currencyCode: input.currencyCode, estimates: input.estimates });
     case "assumptions_exclusions":
@@ -105,9 +107,17 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
   const placeholders = estimateIds.map(() => "?").join(", ");
   const estimates = await all<EstimateSource>(database, `SELECT id, name, sheet_code, updated_at FROM estimates WHERE project_id = ? AND id IN (${placeholders}) ORDER BY sheet_code ASC, id ASC`, [project.id, ...estimateIds]);
   if (estimates.length !== estimateIds.length) throw new ClientPortalPublishError("client_portal_publish_invalid", "One or more selected estimate sources are unavailable for this project.");
-  const rows = await all<RowSource>(database, `SELECT id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage FROM estimate_row_items WHERE estimate_id IN (${placeholders}) ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds);
+  const [rows, nodes, tabs] = await Promise.all([
+    all<RowSource>(database, `SELECT id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage FROM estimate_row_items WHERE estimate_id IN (${placeholders}) ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
+    all<NodeSource>(database, `SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order FROM estimate_nodes WHERE estimate_id IN (${placeholders}) ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
+    all<TabSource>(database, `SELECT id, estimate_id, name, sort_order, is_default FROM estimate_tabs WHERE estimate_id IN (${placeholders}) AND archived_at IS NULL ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
+  ]);
   const rowsByEstimate = new Map<string, RowSource[]>();
+  const nodesByEstimate = new Map<string, NodeSource[]>();
+  const tabsByEstimate = new Map<string, TabSource[]>();
   for (const row of rows) rowsByEstimate.set(row.estimate_id, [...(rowsByEstimate.get(row.estimate_id) ?? []), row]);
+  for (const node of nodes) nodesByEstimate.set(node.estimate_id, [...(nodesByEstimate.get(node.estimate_id) ?? []), node]);
+  for (const tab of tabs) tabsByEstimate.set(tab.estimate_id, [...(tabsByEstimate.get(tab.estimate_id) ?? []), tab]);
   const snapshot = sanitizeProjectPublicationSnapshotForPublicRead(buildProjectPublicationSnapshot({
     generatedAt: new Date().toISOString(),
     project: { id: project.id, name: project.name, projectCode: project.project_code, clientName: null, location: null, locationVisibility: "hidden", currencyCode: project.currency_code },
@@ -117,6 +127,8 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
       sheetCode: estimate.sheet_code,
       updatedAt: estimate.updated_at,
       rows: (rowsByEstimate.get(estimate.id) ?? []).map((row) => ({ id: row.id, nodeId: row.node_id, description: row.description, designation: row.designation, discipline: row.discipline, material: row.material, quantity: numberValue(row.quantity), quantityBase: row.quantity_base === null ? null : numberValue(row.quantity_base), quantityContingencyAmount: row.quantity_contingency_amount === null ? null : numberValue(row.quantity_contingency_amount), unit: row.unit, unitCost: numberValue(row.unit_cost), miscCost: numberValue(row.misc_cost), contingencyPercentage: numberValue(row.contingency_percentage), adjustmentPercentage: numberValue(row.adjustment_percentage) })),
+      nodes: (nodesByEstimate.get(estimate.id) ?? []).map((node) => ({ id: node.id, name: node.name, kind: node.kind === "area" ? "area" as const : "group" as const, parentId: node.parent_id, sortOrder: node.sort_order, estimateTabId: node.estimate_tab_id })),
+      tabs: (tabsByEstimate.get(estimate.id) ?? []).map((tab) => ({ id: tab.id, name: tab.name, sortOrder: tab.sort_order, isDefault: Boolean(tab.is_default) })),
     })),
   }));
 

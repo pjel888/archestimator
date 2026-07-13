@@ -4,11 +4,11 @@ import { after } from "next/server";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import { SHARE_CONTAINER_WIDTH, ShareContainer } from "@/components/share/ShareContainer";
-import SharePageHero from "@/components/share/SharePageHero";
+import { SharePageBrandHeader } from "@/components/share/SharePageBrandHeader";
+import { SharePageFooter } from "@/components/share/SharePageFooter";
 import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
 import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
-import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
 import { ClientPortalShell } from "@/components/client-portal/ClientPortalShell";
 
 import {
@@ -57,31 +57,26 @@ function ProjectPublicationView({
   viewToken: string;
 }) {
   return (
-    <main aria-label="Proposal review" className="min-h-dvh bg-white text-ink">
+    <main aria-label="Proposal review" className="flex min-h-dvh flex-col bg-white text-ink">
       {recipientSessionStatus === "invalid" ? <SharePageRecipientSessionAlert /> : null}
       <SharePageSessionBanner recipientEmail={recipientEmail} token={token} />
       {/* T1-C MVP: single-column ShareContainer replaces the 960px cap (UX-14). Width
           ladder lives once in ShareContainer; share-print-content stays on this wrapper. */}
-      <ShareContainer className="share-print-content flex flex-col gap-5 py-6">
-        <SharePageProposalHeader project={snapshot.project} token={token} />
-        <section id="share-summary">
-          <SharePageSummaryCard expiresAt={expiresAt} snapshot={snapshot} />
-        </section>
-
-        {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
-            Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
-        <SharePageHero project={snapshot.project} />
-
-        <ShareReviewWorkspace
-          estimates={snapshot.estimates}
-          currencyCode={snapshot.project.currencyCode}
-          token={token}
-          viewToken={viewToken}
-        />
-        <SharePageNoScriptEstimates snapshot={snapshot} />
-        <footer className="share-print-hidden border-t border-hairline pt-3 text-[11px] leading-[15px] text-tertiary">
-          Shared via Archestimator. Access is protected for invited recipients.
-        </footer>
+      <ShareContainer className="share-print-content flex min-h-0 flex-1 flex-col">
+        <SharePageBrandHeader project={snapshot.project} />
+        <div className="flex min-h-0 flex-1 flex-col gap-4 py-4 sm:py-5">
+          <SharePageProposalHeader project={snapshot.project} token={token} />
+          <ShareReviewWorkspace
+            estimates={snapshot.estimates}
+            currencyCode={snapshot.project.currencyCode}
+            expiresAt={expiresAt}
+            snapshot={snapshot}
+            token={token}
+            viewToken={viewToken}
+          />
+          <SharePageNoScriptEstimates snapshot={snapshot} />
+        </div>
+        <SharePageFooter snapshot={snapshot} />
       </ShareContainer>
     </main>
   );
