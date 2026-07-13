@@ -40,7 +40,6 @@ import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-fla
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
-import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { useToast } from "@/components/ui/toast";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
@@ -144,7 +143,6 @@ import {
   findEstimateRowItem,
   useEstimateRowHandlers,
   type ExpressInsertDraft,
-  type PendingLibraryCommitGate,
   type RowComponentPickerState,
 } from "./estimate-sheet/use-estimate-row-handlers";
 import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
@@ -219,7 +217,6 @@ type EstimateSheetContentProps = {
   librarySuppliers?: ComponentLibrarySupplierOption[];
   libraryBrands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
-  libraryShowSourceTrustChips?: boolean;
   libraryUseStoredPreferences?: boolean;
   libraryEnableReusableProjectSources?: boolean;
   libraryUsePersistentPanelWidth?: boolean;
@@ -506,7 +503,6 @@ const EMPTY_ROW_MOVE_NODE_OPTIONS: RowMoveNodeOption[] = [];
 type EstimateSheetContentState = {
   editableRows: Record<string, EditableRowValue>;
   expressInsertDrafts: Record<string, ExpressInsertDraft>;
-  pendingLibraryCommitGate: PendingLibraryCommitGate | null;
   showCommandPalette: boolean;
   collapsedNodeIdsByScope: Record<string, string[]>;
   bulkSelectedRowIds: Set<string>;
@@ -553,7 +549,6 @@ function createInitialEstimateSheetContentState(nodes: EstimateTreeNode[]): Esti
   return {
     editableRows: collectEditableRows(nodes),
     expressInsertDrafts: {},
-    pendingLibraryCommitGate: null,
     showCommandPalette: false,
     collapsedNodeIdsByScope: {},
     bulkSelectedRowIds: new Set(),
@@ -946,7 +941,6 @@ export function EstimateSheetContent({
   librarySuppliers,
   libraryBrands,
   libraryFolders,
-  libraryShowSourceTrustChips = true,
   libraryUseStoredPreferences = true,
   libraryEnableReusableProjectSources = true,
   libraryUsePersistentPanelWidth = !disableRouteSync,
@@ -1066,7 +1060,6 @@ export function EstimateSheetContent({
   const {
     editableRows,
     expressInsertDrafts,
-    pendingLibraryCommitGate,
     showCommandPalette,
     collapsedNodeIdsByScope,
     bulkSelectedRowIds,
@@ -1110,9 +1103,6 @@ export function EstimateSheetContent({
   useEffect(() => {
     editableRowStore.getState().syncTree(estimateTree);
   }, [editableRowStore, estimateTree]);
-  const setPendingLibraryCommitGate = useStableCallback((value: SetStateAction<PendingLibraryCommitGate | null>) => {
-    dispatchContentState(estimateSheetContentFieldAction("pendingLibraryCommitGate", value));
-  });
   const setShowCommandPalette = useStableCallback((value: SetStateAction<boolean>) => {
     dispatchContentState(estimateSheetContentFieldAction("showCommandPalette", value));
   });
@@ -1739,32 +1729,6 @@ export function EstimateSheetContent({
     setComponentEditor(null);
     window.requestAnimationFrame(() => opener?.focus());
   }, [componentEditor?.opener]);
-  const updateComponentFromEditor = useStableCallback((item: EstimateRowItem) => {
-    updateRowItem(item.id, {
-      name: item.material,
-      description: item.description,
-      brand: item.brand ?? "",
-      supplier: item.supplier,
-      unit: item.unit,
-      unitCost: String(item.itemCost),
-      imageUrl: item.imageUrl ?? "",
-      sourceUrl: item.sourceUrl ?? "",
-      category: item.category,
-      categoryNodeId: item.categoryNodeId ?? null,
-      brandId: item.brandId ?? null,
-      supplierId: item.supplierId ?? null,
-      sku: item.sku ?? null,
-      priceOptionId: item.priceOptionId ?? null,
-      priceOptionLabel: item.priceOptionLabel ?? null,
-      priceOptions: item.priceOptions,
-      pricingDate: item.pricingDate ?? null,
-      pricingSource: item.pricingSource ?? null,
-      confidence: item.confidence ?? null,
-      lifecycleState: item.lifecycleState ?? null,
-      lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
-      notes: item.notes ?? null,
-    });
-  });
   const closeRowComponentPicker = useCallback(() => {
     const opener = rowComponentPicker?.opener;
     setRowComponentPicker(null);
@@ -1915,9 +1879,7 @@ export function EstimateSheetContent({
   ]);
 
   const {
-    cancelPendingLibraryCommit,
     clearRowComponent,
-    confirmPendingLibraryCommit,
     confirmProjectSpecific,
     deleteExpressDraft,
     deleteRowItem,
@@ -1939,7 +1901,6 @@ export function EstimateSheetContent({
     canEditEstimate,
     canMoveRowItems,
     projectId,
-    workspaceId,
     estimateId,
     activeTabId: dataTabId,
     estimateTree,
@@ -1948,7 +1909,6 @@ export function EstimateSheetContent({
     saveState,
     rowMutationStatuses,
     insertTargetNodeId,
-    pendingLibraryCommitGate,
     expressInsertDrafts,
     bulkSelectedRowIds,
     rowComponentPicker,
@@ -1968,7 +1928,6 @@ export function EstimateSheetContent({
     setEstimateTree,
     setEditableRows,
     setExpressInsertDrafts,
-    setPendingLibraryCommitGate,
     setBulkSelectedRowIds,
     setProjectSpecificRowId,
     setPromotingRowId,
@@ -1979,6 +1938,31 @@ export function EstimateSheetContent({
     handleLibraryDataChanged,
     recordReadOnlyLibraryMutationAttempt,
     toast,
+  });
+  const updateComponentFromEditor = useStableCallback((item: EstimateRowItem) => {
+    updateRowItem(item.id, {
+      name: item.material,
+      description: item.description,
+      brand: item.brand ?? "",
+      supplier: item.supplier,
+      unit: item.unit,
+      unitCost: String(item.itemCost),
+      imageUrl: item.imageUrl ?? "",
+      sourceUrl: item.sourceUrl ?? "",
+      category: item.category,
+      categoryNodeId: item.categoryNodeId ?? null,
+      brandId: item.brandId ?? null,
+      supplierId: item.supplierId ?? null,
+      sku: item.sku ?? null,
+      priceOptionId: item.priceOptionId ?? null,
+      priceOptionLabel: item.priceOptionLabel ?? null,
+      priceOptions: item.priceOptions,
+      pricingDate: item.pricingDate ?? null,
+      pricingSource: item.pricingSource ?? null,
+      lifecycleState: item.lifecycleState ?? null,
+      lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
+      notes: item.notes ?? null,
+    });
   });
 
   const rowMoveNodeOptions = useMemo(
@@ -2240,71 +2224,6 @@ export function EstimateSheetContent({
           onClose={() => setShowCommandPalette(false)}
           onInsert={insertIntoSelectedNode}
         />
-      ) : null}
-      {pendingLibraryCommitGate ? (
-        <Modal
-          open
-          title={pendingLibraryCommitGate.gate.title}
-          description={pendingLibraryCommitGate.gate.summary}
-          tone={pendingLibraryCommitGate.gate.severity === "block" ? "danger" : "warning"}
-          size="sm"
-          closeLabel="Cancel source review"
-          onOpenChange={(open) => {
-            if (!open) cancelPendingLibraryCommit();
-          }}
-          footer={(
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={cancelPendingLibraryCommit}>
-                {pendingLibraryCommitGate.gate.cancelLabel}
-              </Button>
-              {pendingLibraryCommitGate.gate.severity !== "block" ? (
-                <Button type="button" size="sm" onClick={confirmPendingLibraryCommit}>
-                  {pendingLibraryCommitGate.gate.confirmLabel}
-                </Button>
-              ) : null}
-            </div>
-          )}
-        >
-          <div className="grid gap-3 text-[10px] leading-4">
-            <div className="grid gap-1 rounded-xs border border-hairline bg-surfaceMuted p-2">
-              <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">
-                Incoming Library source
-              </p>
-              <p className="font-medium text-ink">
-                {pendingLibraryCommitGate.libraryItem.name || pendingLibraryCommitGate.libraryItem.material}
-              </p>
-              <p className="text-tertiary">
-                {pendingLibraryCommitGate.libraryItem.supplier || "No supplier"} · {pesoFormatter.format(pendingLibraryCommitGate.libraryItem.itemCost)} / {pendingLibraryCommitGate.libraryItem.unit}
-              </p>
-            </div>
-            {pendingLibraryCommitGate.existingRow ? (
-              <div className="grid gap-1 rounded-xs border border-hairline bg-white p-2">
-                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">
-                  Current estimate row
-                </p>
-                <p className="font-medium text-ink">
-                  {pendingLibraryCommitGate.existingRow.name || pendingLibraryCommitGate.existingRow.material}
-                </p>
-                <p className="text-tertiary">
-                  {pendingLibraryCommitGate.existingRow.supplier || "No supplier"} · {pesoFormatter.format(pendingLibraryCommitGate.existingRow.itemCost)} / {pendingLibraryCommitGate.existingRow.unit}
-                </p>
-              </div>
-            ) : null}
-            <SourceTrustChips
-              chips={pendingLibraryCommitGate.gate.reasons}
-              ariaLabel="Library source review warnings"
-              maxChips={6}
-            />
-            <ul className="grid gap-1">
-              {pendingLibraryCommitGate.gate.reasons.map((reason) => (
-                <li key={reason.id} className="rounded-xs border border-hairline bg-white px-2 py-1">
-                  <span className="font-medium text-ink">{reason.label}</span>
-                  <span className="text-tertiary"> · {reason.description}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Modal>
       ) : null}
       {isProposalPreviewOpen ? (
         <ProposalExportPreviewDialog
@@ -2878,7 +2797,6 @@ export function EstimateSheetContent({
             suppliers={librarySuppliers ?? lazyLibrary?.suppliers}
             brands={libraryBrands ?? lazyLibrary?.brands}
             libraryFolders={libraryFolders ?? lazyLibrary?.libraryFolders}
-            showSourceTrustChips={libraryShowSourceTrustChips}
             libraryDataLoading={isLazyLibraryLoading}
             useStoredPreferences={libraryUseStoredPreferences}
             enableReusableProjectSources={libraryEnableReusableProjectSources}

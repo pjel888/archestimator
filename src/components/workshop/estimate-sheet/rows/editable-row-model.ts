@@ -119,7 +119,6 @@ export type EditableRowValue = {
   priceOptions?: EstimateRowItem["priceOptions"];
   pricingDate?: string | null;
   pricingSource?: string | null;
-  confidence?: string | null;
   lifecycleState?: EstimateRowItem["lifecycleState"] | null;
   lifecycleStateChangedAt?: string | null;
   notes?: string | null;

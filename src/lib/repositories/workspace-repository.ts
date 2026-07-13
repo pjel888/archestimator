@@ -3546,7 +3546,6 @@ function readSnapshotPriceOptions(value: unknown): ComponentPriceOption[] | unde
       ...(typeof option.variantDescription === "string" ? { variantDescription: option.variantDescription } : {}),
       ...(typeof option.pricingSource === "string" ? { pricingSource: option.pricingSource } : {}),
       ...(typeof option.pricingDate === "string" ? { pricingDate: option.pricingDate } : {}),
-      ...(typeof option.confidence === "string" ? { confidence: option.confidence } : {}),
       ...(typeof option.thumbnailPath === "string" ? { thumbnailPath: option.thumbnailPath } : {}),
     }];
   });

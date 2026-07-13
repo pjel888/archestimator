@@ -87,7 +87,6 @@ type EstimateWorkspaceClientProps = {
   librarySuppliers?: ComponentLibrarySupplierOption[];
   libraryBrands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
-  libraryShowSourceTrustChips?: boolean;
   /** Disable localStorage-backed sidebar state when the workspace is rendered as a public/static mockup. */
   libraryUseStoredPreferences?: boolean;
   /** Disable reusable project-source loading when the workspace is rendered outside the private app surface. */
@@ -126,7 +125,6 @@ export function EstimateWorkspaceClient({
   librarySuppliers,
   libraryBrands,
   libraryFolders,
-  libraryShowSourceTrustChips,
   libraryUseStoredPreferences,
   libraryEnableReusableProjectSources,
   surfaceVariant = "paper",
@@ -162,7 +160,6 @@ export function EstimateWorkspaceClient({
     : defaultTabId;
   const displayActiveTabId = resolvedActiveTabId ?? fallbackTabs[0]?.id ?? "legacy-main";
   const routeSelectedNodeId = resolvedActiveTabId === activeTabId ? selectedNodeId : null;
-  const resolvedLibraryShowSourceTrustChips = libraryShowSourceTrustChips ?? projectId !== "hero-sanitized-project";
   const resolvedLibraryUseStoredPreferences = libraryUseStoredPreferences ?? !disableRouteSync;
   const resolvedLibraryEnableReusableProjectSources = libraryEnableReusableProjectSources ?? !disableRouteSync;
   return (
@@ -241,7 +238,6 @@ export function EstimateWorkspaceClient({
         librarySuppliers={librarySuppliers}
         libraryBrands={libraryBrands}
         libraryFolders={libraryFolders}
-        libraryShowSourceTrustChips={resolvedLibraryShowSourceTrustChips}
         libraryUseStoredPreferences={resolvedLibraryUseStoredPreferences}
         libraryEnableReusableProjectSources={resolvedLibraryEnableReusableProjectSources}
       />

@@ -83,7 +83,6 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
     priceOptionId: "44444444-4444-4444-8444-444444444444",
     pricingSource: "Supplier quote",
     pricingDate: "2026-05-24",
-    confidence: "quoted",
     lifecycleState: "available",
     ...overrides,
   };

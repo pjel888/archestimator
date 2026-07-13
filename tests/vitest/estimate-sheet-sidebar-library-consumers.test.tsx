@@ -75,23 +75,6 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(tabStripSource).toContain("toast({");
   });
 
-  it("routes risky Library commits through the Estimate Sheet source review gate", () => {
-    const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
-    const rowHandlersSource = source("src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts");
-    const trustModelSource = source("src/components/workshop/library/source-trust-model.ts");
-    const estimateActionsSource = source("src/lib/estimates/actions.ts");
-
-    expect(rowHandlersSource).toContain("getLibraryCommitTrustGate");
-    expect(trustModelSource).toContain("Review source before replacing row");
-    expect(sheetSource).toContain("Incoming Library source");
-    expect(sheetSource).toContain("Current estimate row");
-    expect(rowHandlersSource).toContain("trust_insert_gate_warned");
-    expect(rowHandlersSource).toContain("trust_insert_gate_confirmed");
-    expect(rowHandlersSource).toContain('item.source === "supplier"');
-    expect(estimateActionsSource).toContain("libraryItem.sourceLibraryItemId && isUuid(libraryItem.sourceLibraryItemId)");
-    expect(estimateActionsSource).toContain("assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem)");
-  });
-
   it("keeps the estimate sidebar Library fetch bounded to the first trusted page", () => {
     const actionsSource = source("src/lib/component-library/actions.ts");
     const repositorySource = source("src/lib/repositories/component-library-repository.ts");

@@ -44,12 +44,7 @@ export type ExpressInsertDraftState = "creating" | "failed";
 
 type ComponentSourceTone = "library" | "express" | "project" | "manual";
 
-const MATERIAL_UNIT_SLOT_CLASS =
-  "pointer-events-none absolute right-0 top-[calc(50%+22px)] flex w-[112px] justify-end whitespace-nowrap text-right !text-[10px] font-medium leading-3 text-tertiary";
 const MATERIAL_COST_SLOT_CLASS = "w-[112px] shrink-0";
-const MATERIAL_TEXT_RESERVE_CLASS = "min-w-0 pr-16";
-const MATERIAL_PRICE_RAIL_CLASS =
-  "absolute right-0 top-1/2 flex w-[112px] -translate-y-1/2 justify-end";
 const MATERIAL_UNIT_LABEL_CLASS =
   "flex min-w-0 max-w-full items-center justify-end gap-0.5 text-right !text-[10px] font-medium leading-3";
 const MATERIAL_UNIT_SLASH_CLASS = "block shrink-0 leading-3 text-tertiary";
@@ -242,27 +237,17 @@ function EstimateMaterialCardFrame({
   unit: ReactNode;
 }) {
   return (
-    <div className="relative flex h-full min-h-0 pr-[124px]">
-      <div className="flex min-h-0 flex-1 items-start gap-2">
-        <div className="flex w-14 shrink-0 flex-col gap-1">
-          {image}
-          {variant}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-          <div className={MATERIAL_TEXT_RESERVE_CLASS}>
-            {name}
-            <div className="mt-0.5 flex min-w-0 flex-col gap-0.5">
-              {brand}
-              {supplier}
-            </div>
-            <div className="mt-1 min-w-0">
-              {description}
-            </div>
-          </div>
-        </div>
+    <div className="grid h-full min-h-0 grid-cols-[56px_minmax(0,1fr)_112px] grid-rows-[56px_16px] gap-x-2 gap-y-1">
+      <div className="col-start-1 row-start-1 min-w-0">{image}</div>
+      <div className="col-start-2 row-start-1 flex h-14 min-w-0 flex-col justify-between overflow-hidden pr-16">
+        {name}
+        {brand}
+        {supplier}
       </div>
-      <div className={MATERIAL_PRICE_RAIL_CLASS}>{cost}</div>
-      <div className={MATERIAL_UNIT_SLOT_CLASS} data-estimate-material-unit-slot="true">
+      <div className="col-start-3 row-start-1 flex min-w-0 items-center justify-end">{cost}</div>
+      <div className="col-start-1 row-start-2 flex min-w-0 items-center">{variant}</div>
+      <div className="col-start-2 row-start-2 min-w-0 overflow-hidden">{description}</div>
+      <div className="col-start-3 row-start-2 flex min-w-0 items-center justify-end" data-estimate-material-unit-slot="true">
         {unit}
       </div>
     </div>
@@ -288,7 +273,7 @@ function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVari
   }];
 }
 
-function MaterialVariantPill({
+function MaterialVariantControl({
   item,
   canEditEstimate,
   onSelectVariant,
@@ -301,12 +286,13 @@ function MaterialVariantPill({
   const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const variantOptions = getMaterialVariantOptions(item);
   const activeOptionId = item.priceOptionId ?? variantOptions.find((option) => option.label === variantLabel)?.id ?? variantOptions[0]?.id;
-  const pillClass =
-    "inline-flex h-4 w-14 min-w-0 items-center justify-center gap-0.5 rounded-full border border-hairline bg-white px-1 text-[8px] font-medium leading-none text-secondary shadow-[0_1px_1px_rgba(15,23,42,0.03)] transition hover:border-secondary/20 hover:bg-surfaceMuted hover:text-ink";
+  const controlClass =
+    "inline-flex h-3.5 w-fit max-w-full min-w-0 items-center justify-start gap-0.5 self-start px-0 text-[8px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40";
 
   if (!canEditEstimate || !onSelectVariant) {
     return (
-      <span className={pillClass} title={`Variant: ${variantLabel}`}>
+      <span className={controlClass} title={`Variant: ${variantLabel}`}>
+        <CaretDown size={8} weight="regular" className="shrink-0" aria-hidden="true" />
         <span className="truncate">{variantLabel}</span>
       </span>
     );
@@ -320,13 +306,13 @@ function MaterialVariantPill({
       trigger={(
         <button
           type="button"
-          className={pillClass}
+          className={controlClass}
           aria-label={`Change variant for ${item.material}`}
           title={`Variant: ${variantLabel}`}
           onClick={(event) => event.stopPropagation()}
         >
+          <CaretDown size={8} weight="regular" className="shrink-0" aria-hidden="true" />
           <span className="truncate">{variantLabel}</span>
-          <CaretDown size={8} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
         </button>
       )}
     >
@@ -363,19 +349,15 @@ function EstimateMaterialCardContent({
           aria-label={`${item.material} reference image`}
         />
       )}
-      name={<p className="truncate text-[11px] font-medium leading-4 text-ink">{item.material}</p>}
+      name={<p className="truncate text-left text-[11px] font-medium leading-4 text-ink">{item.material}</p>}
       brand={brand ? (
-        <p className="mt-0.5 flex min-w-0 leading-3">
-          <span className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 !text-[9px] font-medium leading-[11px] text-secondary" title={brand}>
-            <span className="truncate">{brand}</span>
-          </span>
-        </p>
+        <p className="truncate text-left text-[10px] font-medium leading-3 text-secondary" title={brand}>{brand}</p>
       ) : null}
-      supplier={<p className="truncate text-[10px] font-normal leading-3 text-tertiary">{item.supplier}</p>}
-      variant={<MaterialVariantPill item={item} canEditEstimate={canEditEstimate} onSelectVariant={onSelectVariant} />}
+      supplier={<p className="truncate text-left text-[10px] font-normal leading-3 text-tertiary">{item.supplier}</p>}
+      variant={<MaterialVariantControl item={item} canEditEstimate={canEditEstimate} onSelectVariant={onSelectVariant} />}
       cost={<p className="whitespace-nowrap text-[10px] font-medium leading-3 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>}
       description={(
-        <p className="truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
+        <p className="block max-w-full truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
           {item.description}
         </p>
       )}
@@ -883,7 +865,7 @@ function ExpressMaterialEditor({
             emptyLabel="No brands yet"
             createLabel={(value) => `Add brand "${value}"`}
             showClearButton={false}
-            className="mt-0.5 w-full max-w-full"
+            className="w-full max-w-full"
             inputClassName={cn(catalogueMetaInputClass, "!text-[9px] font-medium leading-3 text-secondary")}
           />
         )}

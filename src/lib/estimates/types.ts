@@ -22,7 +22,6 @@ export type ComponentVariantCostEntry = {
   currency: string;
   pricingSource?: string | null;
   pricingDate: string;
-  confidence?: string | null;
   sourceUrl?: string | null;
   notes?: string | null;
   isCurrent: boolean;
@@ -54,7 +53,6 @@ export type ComponentPriceOption = {
   currency: string;
   pricingSource?: string | null;
   pricingDate?: string | null;
-  confidence?: string | null;
   sourceUrl?: string | null;
   notes?: string | null;
   supplierId?: string | null;
@@ -146,7 +144,6 @@ export type EstimateRowItem = {
   lastUsedAt?: string;
   pricingSource: string;
   pricingDate: string;
-  confidence?: string;
   // P3-T1/T2 (read-side via estimate_row_items.metadata JSONB; typed columns DB-gated):
   // interim labor unit rate and per-row scope for the proposal export. Absent → 0 / included.
   laborUnitCost?: number;

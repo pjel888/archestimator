@@ -5,12 +5,10 @@ import { flushSync } from "react-dom";
 
 import type { useEstimateRowMutations, EstimateRowMutationStatus, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
-import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
 import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree, patchProjectComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
-import { getLibraryCommitTrustGate, type LibraryCommitTrustGateResult } from "@/components/workshop/library/source-trust-model";
 import type { Json } from "@/lib/types/json";
 
 import { findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -50,16 +48,6 @@ type Toast = (input: {
   action?: { label: string; onClick: () => void };
 }) => string;
 
-export type PendingLibraryCommitGate = {
-  id: string;
-  action: "insert" | "replace";
-  targetNodeId?: string;
-  rowItemId?: string;
-  libraryItem: EstimateRowItem;
-  existingRow?: EstimateRowItem | null;
-  gate: LibraryCommitTrustGateResult;
-};
-
 export type ExpressInsertDraft = {
   targetNodeId: string;
   libraryItem: EstimateRowItem;
@@ -85,7 +73,6 @@ type UseEstimateRowHandlersInput = {
   canEditEstimate: boolean;
   canMoveRowItems?: boolean;
   projectId?: string;
-  workspaceId?: string;
   estimateId?: string;
   activeTabId?: string | null;
   estimateTree: EstimateTreeNode[];
@@ -94,7 +81,6 @@ type UseEstimateRowHandlersInput = {
   saveState: EstimateSaveState;
   rowMutationStatuses: EstimateRowMutationStatusMap;
   insertTargetNodeId: string;
-  pendingLibraryCommitGate: PendingLibraryCommitGate | null;
   expressInsertDrafts: Record<string, ExpressInsertDraft>;
   bulkSelectedRowIds: Set<string>;
   rowComponentPicker: RowComponentPickerState | null;
@@ -114,7 +100,6 @@ type UseEstimateRowHandlersInput = {
   setEstimateTree: EstimateTreeUpdater;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   setExpressInsertDrafts: Dispatch<SetStateAction<Record<string, ExpressInsertDraft>>>;
-  setPendingLibraryCommitGate: Dispatch<SetStateAction<PendingLibraryCommitGate | null>>;
   setBulkSelectedRowIds: Dispatch<SetStateAction<Set<string>>>;
   setProjectSpecificRowId: Dispatch<SetStateAction<string>>;
   setPromotingRowId: Dispatch<SetStateAction<string | null>>;
@@ -213,14 +198,6 @@ export function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string
   return null;
 }
 
-function shouldGateLibraryCommit(item: EstimateRowItem) {
-  return item.source === "library" || item.source === "supplier" || Boolean(item.sourceLibraryItemId);
-}
-
-function libraryCommitEventAction(action: PendingLibraryCommitGate["action"]) {
-  return action === "replace" ? "replace_row" : "insert_row";
-}
-
 function createBlankEstimateRowTemplate(): EstimateRowItem {
   return {
     id: "manual-estimate-row-template",
@@ -243,7 +220,6 @@ function createBlankEstimateRowTemplate(): EstimateRowItem {
     tags: [BLANK_ESTIMATE_ROW_TAG],
     pricingSource: "Manual estimate row",
     pricingDate: new Date().toISOString().slice(0, 10),
-    confidence: "unpriced",
   };
 }
 
@@ -269,7 +245,6 @@ function createExpressEstimateRowTemplate(): EstimateRowItem {
     category: "Unassigned",
     pricingSource: "Express component",
     pricingDate: createdAt.slice(0, 10),
-    confidence: "unpriced",
     discipline: "Unspecified",
     designation: "",
     sourceLibraryItemId: null,
@@ -396,7 +371,6 @@ export function useEstimateRowHandlers({
   canEditEstimate,
   canMoveRowItems = true,
   projectId,
-  workspaceId,
   estimateId,
   activeTabId,
   estimateTree,
@@ -405,7 +379,6 @@ export function useEstimateRowHandlers({
   saveState,
   rowMutationStatuses,
   insertTargetNodeId,
-  pendingLibraryCommitGate,
   expressInsertDrafts,
   bulkSelectedRowIds,
   rowComponentPicker,
@@ -425,7 +398,6 @@ export function useEstimateRowHandlers({
   setEstimateTree,
   setEditableRows,
   setExpressInsertDrafts: setExpressInsertDraftsState,
-  setPendingLibraryCommitGate,
   setBulkSelectedRowIds,
   setProjectSpecificRowId,
   setPromotingRowId,
@@ -562,7 +534,6 @@ export function useEstimateRowHandlers({
       || values.priceOptionLabel !== undefined
       || values.pricingDate !== undefined
       || values.pricingSource !== undefined
-      || values.confidence !== undefined
       || values.lifecycleState !== undefined
       || values.lifecycleStateChangedAt !== undefined
       || values.notes !== undefined
@@ -585,7 +556,6 @@ export function useEstimateRowHandlers({
           ...(values.priceOptionLabel !== undefined ? { priceOptionLabel: nullableTrimmedText(values.priceOptionLabel) } : {}),
           ...(values.pricingDate !== undefined ? { pricingDate: nullableTrimmedText(values.pricingDate) } : {}),
           ...(values.pricingSource !== undefined ? { pricingSource: nullableTrimmedText(values.pricingSource) } : {}),
-          ...(values.confidence !== undefined ? { confidence: nullableTrimmedText(values.confidence) } : {}),
           ...(values.lifecycleState !== undefined ? { lifecycleState: values.lifecycleState ?? null } : {}),
           ...(values.lifecycleStateChangedAt !== undefined ? { sourceUpdatedAt: values.lifecycleStateChangedAt ?? null } : {}),
           ...(values.notes !== undefined ? { notes: values.notes ?? null } : {}),
@@ -826,25 +796,7 @@ export function useEstimateRowHandlers({
       recordReadOnlyLibraryMutationAttempt("insert_row");
       return false;
     }
-    if (!shouldGateLibraryCommit(libraryItem)) return commitLibraryItemInsert(targetNodeId, libraryItem);
-    const gate = getLibraryCommitTrustGate(libraryItem, { action: "insert" });
-    if (gate.severity === "pass") return commitLibraryItemInsert(targetNodeId, libraryItem);
-    recordLibraryEvent(gate.severity === "block" ? "trust_insert_gate_blocked" : "trust_insert_gate_warned", {
-      workspaceId,
-      projectId,
-      estimateId,
-      itemId: libraryItem.id,
-      action: libraryCommitEventAction("insert"),
-      reason: gate.reasons.map((reason) => reason.id).join(","),
-    });
-    setPendingLibraryCommitGate({
-      id: `${libraryItem.id}:insert:${targetNodeId}:${Date.now()}`,
-      action: "insert",
-      targetNodeId,
-      libraryItem,
-      gate,
-    });
-    return true;
+    return commitLibraryItemInsert(targetNodeId, libraryItem);
   });
 
   const insertIntoSelectedNode = useStableCallback((libraryItem: EstimateRowItem) => {
@@ -906,75 +858,7 @@ export function useEstimateRowHandlers({
       recordReadOnlyLibraryMutationAttempt("replace_row");
       return false;
     }
-    if (!shouldGateLibraryCommit(libraryItem)) return commitReplaceRowItem(rowItemId, libraryItem);
-    const existingRow = findEstimateRowItem(estimateTree, rowItemId);
-    const editableReplacement = getEditableRows()[rowItemId];
-    const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
-    const gate = getLibraryCommitTrustGate(replacementLibraryItem, {
-      action: "replace",
-      existingRow,
-    });
-    if (gate.severity === "pass") return commitReplaceRowItem(rowItemId, libraryItem);
-    recordLibraryEvent(gate.severity === "block" ? "trust_insert_gate_blocked" : "trust_insert_gate_warned", {
-      workspaceId,
-      projectId,
-      estimateId,
-      itemId: libraryItem.id,
-      rowId: rowItemId,
-      action: libraryCommitEventAction("replace"),
-      reason: gate.reasons.map((reason) => reason.id).join(","),
-    });
-    setPendingLibraryCommitGate({
-      id: `${libraryItem.id}:replace:${rowItemId}:${Date.now()}`,
-      action: "replace",
-      rowItemId,
-      libraryItem,
-      existingRow,
-      gate,
-    });
-    return true;
-  });
-
-  const cancelPendingLibraryCommit = useStableCallback(() => {
-    if (pendingLibraryCommitGate) {
-      recordLibraryEvent("trust_insert_gate_blocked", {
-        workspaceId,
-        projectId,
-        estimateId,
-        itemId: pendingLibraryCommitGate.libraryItem.id,
-        rowId: pendingLibraryCommitGate.rowItemId,
-        action: libraryCommitEventAction(pendingLibraryCommitGate.action),
-        reason: "cancelled",
-      });
-    }
-    setPendingLibraryCommitGate(null);
-  });
-
-  const confirmPendingLibraryCommit = useStableCallback(() => {
-    if (!pendingLibraryCommitGate || pendingLibraryCommitGate.gate.severity === "block") return;
-    if (!canEditEstimate) {
-      recordReadOnlyLibraryMutationAttempt(libraryCommitEventAction(pendingLibraryCommitGate.action));
-      setPendingLibraryCommitGate(null);
-      return;
-    }
-    const { action, targetNodeId, rowItemId, libraryItem } = pendingLibraryCommitGate;
-    setPendingLibraryCommitGate(null);
-    recordLibraryEvent("trust_insert_gate_confirmed", {
-      workspaceId,
-      projectId,
-      estimateId,
-      itemId: libraryItem.id,
-      rowId: rowItemId,
-      action: libraryCommitEventAction(action),
-      reason: pendingLibraryCommitGate.gate.reasons.map((reason) => reason.id).join(","),
-    });
-    if (action === "insert" && targetNodeId) {
-      commitLibraryItemInsert(targetNodeId, libraryItem);
-      return;
-    }
-    if (action === "replace" && rowItemId) {
-      commitReplaceRowItem(rowItemId, libraryItem);
-    }
+    return commitReplaceRowItem(rowItemId, libraryItem);
   });
 
   const clearRowComponent = useStableCallback((rowItemId: string) => {
@@ -1408,9 +1292,7 @@ export function useEstimateRowHandlers({
   });
 
   return {
-    cancelPendingLibraryCommit,
     clearRowComponent,
-    confirmPendingLibraryCommit,
     confirmProjectSpecific,
     deleteExpressDraft,
     deleteRowItem,

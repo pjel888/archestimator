@@ -1375,7 +1375,6 @@ const SOURCE_SNAPSHOT_ALLOWED_KEYS = new Set([
   "categoryPath",
   "componentVersionId",
   "componentVersionNumber",
-  "confidence",
   "contingency_percentage",
   "currency",
   "description",

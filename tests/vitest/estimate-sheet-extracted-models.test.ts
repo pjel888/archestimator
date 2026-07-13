@@ -33,7 +33,6 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     category: "Finishes",
     pricingSource: "Quote",
     pricingDate: "2026-06-26",
-    confidence: "quoted",
     designation: "F-01",
     sourceLibraryItemId: null,
     linkState: "unlinked",

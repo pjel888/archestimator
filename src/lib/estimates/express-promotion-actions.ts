@@ -355,14 +355,13 @@ export async function promoteEstimateRowToLibraryComponent({
             lifecycle_state,
             current_version_number,
             active_price_option_id,
-            confidence,
             source_estimate_row_item_id,
             metadata_json,
             created_by,
             created_at,
             updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         values: [
           itemId,
@@ -382,7 +381,6 @@ export async function promoteEstimateRowToLibraryComponent({
           "available",
           1,
           priceOptionId,
-          null,
           rowId,
           jsonObject({
             source: "estimate-row-promotion",
@@ -411,12 +409,11 @@ export async function promoteEstimateRowToLibraryComponent({
             is_active,
             is_default,
             updated_at,
-            confidence,
             supplier_id,
             metadata_json,
             created_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         values: [
           priceOptionId,
@@ -430,7 +427,6 @@ export async function promoteEstimateRowToLibraryComponent({
           1,
           1,
           timestamp,
-          null,
           row.supplier_id ?? null,
           jsonObject({ source: "estimate-row-promotion", rowId, correlationId }),
           timestamp,

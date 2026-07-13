@@ -26,7 +26,6 @@ export type EstimateRowItemPatch = {
   sku?: string | null;
   pricingSource?: string | null;
   pricingDate?: string | null;
-  confidence?: string | null;
   priceOptionId?: string | null;
   priceOptionLabel?: string | null;
   priceOptions?: EstimateRowItem["priceOptions"];
@@ -109,7 +108,6 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     sku: readSnapshotString(result.sourceSnapshot, "sku"),
     pricingSource: readSnapshotString(result.sourceSnapshot, "pricingSource"),
     pricingDate: readSnapshotString(result.sourceSnapshot, "pricingDate"),
-    confidence: readSnapshotString(result.sourceSnapshot, "confidence"),
     priceOptionId: readSnapshotString(result.sourceSnapshot, "priceOptionId"),
     priceOptionLabel: readSnapshotString(result.sourceSnapshot, "priceOptionLabel") ?? undefined,
     lifecycleState: readSnapshotString(result.sourceSnapshot, "lifecycleState") as EstimateRowItem["lifecycleState"] | null | undefined,
@@ -168,7 +166,6 @@ export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: Estimate
     ...(patch.sku !== undefined ? { sku: patch.sku ?? undefined } : {}),
     ...(patch.pricingSource !== undefined ? { pricingSource: patch.pricingSource ?? item.pricingSource } : {}),
     ...(patch.pricingDate !== undefined ? { pricingDate: patch.pricingDate ?? item.pricingDate } : {}),
-    ...(patch.confidence !== undefined ? { confidence: patch.confidence ?? undefined } : {}),
     ...(patch.priceOptionId !== undefined ? { priceOptionId: patch.priceOptionId } : {}),
     ...(patch.priceOptionLabel !== undefined ? { priceOptionLabel: patch.priceOptionLabel ?? undefined } : {}),
     ...(patch.priceOptions !== undefined ? { priceOptions: patch.priceOptions } : {}),
@@ -229,7 +226,6 @@ const SHARED_PROJECT_COMPONENT_PATCH_KEYS: Array<keyof EstimateRowItemPatch> = [
   "sku",
   "pricingSource",
   "pricingDate",
-  "confidence",
   "priceOptionId",
   "priceOptionLabel",
   "priceOptions",
@@ -351,7 +347,6 @@ function previousPatchForRow(item: EstimateRowItem, patch: EstimateRowItemPatch)
     ...(hasOwnPatchField(patch, "sku") ? { sku: item.sku ?? null } : {}),
     ...(hasOwnPatchField(patch, "pricingSource") ? { pricingSource: item.pricingSource } : {}),
     ...(hasOwnPatchField(patch, "pricingDate") ? { pricingDate: item.pricingDate } : {}),
-    ...(hasOwnPatchField(patch, "confidence") ? { confidence: item.confidence ?? null } : {}),
     ...(hasOwnPatchField(patch, "priceOptionId") ? { priceOptionId: item.priceOptionId ?? null } : {}),
     ...(hasOwnPatchField(patch, "priceOptionLabel") ? { priceOptionLabel: item.priceOptionLabel ?? null } : {}),
     ...(hasOwnPatchField(patch, "priceOptions") ? { priceOptions: item.priceOptions } : {}),
