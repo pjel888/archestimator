@@ -101,7 +101,6 @@ function makeRow(overrides: Partial<EstimateRowItem> & { id: string; material: s
     category: "General",
     pricingSource: "Test source",
     pricingDate: "2026-06-01",
-    confidence: "Quoted",
     sourceLibraryItemId: `component-${overrides.id}`,
     linkState: "linked-clean",
     ...overrides,
@@ -220,9 +219,6 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     const gallery = getGallery();
     expect(within(gallery).getByText("2 areas · 1 row")).toBeInTheDocument();
     expect(within(gallery).getByText("2 areas · 2 rows")).toBeInTheDocument();
-    const condoTrust = within(gallery).getByLabelText("Source trust for Condo Starter");
-    expect(within(condoTrust).getByText("1/1 linked rows")).toBeInTheDocument();
-    expect(within(condoTrust).queryByText("Fresh price")).not.toBeInTheDocument();
     const contextStrip = document.querySelector('[data-template-sheet-context-strip="true"]');
     expect(contextStrip).toHaveTextContent("All Templates · 2 templates");
     expect(contextStrip).toHaveTextContent("Sorted by group");

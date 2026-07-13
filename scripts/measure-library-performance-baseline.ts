@@ -41,7 +41,6 @@ type SyntheticLibraryItem = {
   miscCost: number;
   pricingSource: string;
   pricingDate: string | null;
-  confidence: string | null;
   lifecycleState: "available" | "draft" | "discontinued";
   detailGraph?: {
     priceOptions: Array<{ id: string; unitCost: number; isDefault: boolean }>;
@@ -106,7 +105,6 @@ function buildItem(tier: number, index: number, includeDetailGraph: boolean): Sy
     miscCost: index % 5 === 0 ? 25 : 0,
     pricingSource: `https://example.test/performance-cost-library/${tier}/${row}`,
     pricingDate: index % 13 === 0 ? null : "2026-06-22",
-    confidence: index % 7 === 0 ? null : index % 2 === 0 ? "catalog" : "quoted",
     lifecycleState: index % 31 === 0 ? "discontinued" : index % 17 === 0 ? "draft" : "available",
   };
 
@@ -150,7 +148,7 @@ function buildCardModel(items: SyntheticLibraryItem[]) {
       folder: item.folder,
       supplier: item.supplier || "No supplier",
       priceLabel: `${item.unitCost + item.miscCost}:${item.unit}`,
-      trust: `${item.pricingDate ? "dated" : "missing"}:${item.confidence ? "confidence" : "unclassified"}`,
+      freshness: item.pricingDate ? "dated" : "missing",
     }))
     .sort((a, b) => a.folder.localeCompare(b.folder) || a.title.localeCompare(b.title));
 }
@@ -166,7 +164,6 @@ function buildDenseModel(items: SyntheticLibraryItem[]) {
       cost: item.unitCost + item.miscCost,
       pricingSource: item.pricingSource,
       pricingDate: item.pricingDate ?? "",
-      confidence: item.confidence ?? "",
       lifecycleState: item.lifecycleState,
     }))
     .sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
@@ -246,7 +243,7 @@ Generated: ${metadata.generatedAt}
 Git commit: ${metadata.gitCommit}
 Command: \`${metadata.command}\`
 
-This is a deterministic local baseline for the Library plan's 100 / 500 / 5,000 / 10,000 component tiers. It measures the same tier shape as \`scripts/seed-performance-test-data.ts\`: folder, supplier, brand, pricing, confidence, lifecycle, and optional nested detail graph.
+This is a deterministic local baseline for the Library plan's 100 / 500 / 5,000 / 10,000 component tiers. It measures the same tier shape as \`scripts/seed-performance-test-data.ts\`: folder, supplier, brand, pricing, lifecycle, and optional nested detail graph.
 
 Important boundary: this artifact measures local model-building, client refilter, and JSON stringify/parse costs. It does not claim authenticated browser Core Web Vitals, React Profiler commit duration, Supabase transfer bytes, or Safari/iOS evidence. Those remain separate browser/provider gates.
 

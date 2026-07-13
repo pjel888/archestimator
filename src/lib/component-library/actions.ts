@@ -462,7 +462,7 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
       INNER JOIN projects project ON project.id = estimate.project_id
       WHERE project.workspace_id = ?
         AND row_item.source_library_item_id = ?
-        AND row_item.link_state NOT IN ('detached', 'unlinked')
+        AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
     `,
     [workspaceId, itemId],
   );
@@ -486,7 +486,7 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
           row_revision = row_revision + 1,
           updated_at = ?
       WHERE source_library_item_id = ?
-        AND link_state NOT IN ('detached', 'unlinked')
+        AND (link_state IS NULL OR link_state NOT IN ('detached', 'unlinked'))
         AND estimate_id IN (
           SELECT estimate.id
           FROM estimates estimate
@@ -1707,6 +1707,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   if (!existing) throw new Error("Component not found in the current workspace.");
 
   const component = normalizeComponentInput(input);
+  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
   const priceOptionInputs = input.fieldContract === "opendesign-add-component"
     ? input.priceOptions.map(sanitizeOpenDesignAddComponentPriceOption)
     : input.priceOptions;
@@ -1722,6 +1723,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
           description = ?,
           category = ?,
           category_node_id = ?,
+          library_folder_id = ?,
           supplier = ?,
           supplier_id = ?,
           brand = ?,
@@ -1730,6 +1732,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
           thumbnail_path = ?,
           lifecycle_state = ?,
           current_version_number = ?,
+          metadata_json = ?,
           updated_at = ?
       WHERE id = ?
         AND workspace_id = ?
@@ -1738,15 +1741,17 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       component.name,
       component.description,
       component.category,
-      component.categoryNodeId,
+      component.categoryNodeId ?? null,
+      targetFolderId,
       component.supplier,
-      component.supplierId,
+      component.supplierId ?? null,
       component.brand,
-      component.brandId,
+      component.brandId ?? null,
       component.unit,
       component.thumbnailPath,
       component.lifecycleState,
       nextVersion,
+      jsonText(readMetadataObject(component.metadata)),
       timestamp,
       itemId,
       workspace.id,

@@ -198,9 +198,6 @@ function ComponentModalForm() {
                   <ControlField label="Unit">
                     <ControlInput defaultValue="lm" className={CONTROL_INPUT_SURFACE_CLASS} />
                   </ControlField>
-                  <ControlField label="Confidence">
-                    <ControlInput defaultValue="High" className={CONTROL_INPUT_SURFACE_CLASS} />
-                  </ControlField>
                   <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Component measurements">
                     <div className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Measurements</div>
                     <div className="mt-2 grid gap-x-2 gap-y-3 md:grid-cols-4">

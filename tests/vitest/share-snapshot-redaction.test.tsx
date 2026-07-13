@@ -35,7 +35,6 @@ describe("share snapshot redaction", () => {
       contingencyPercentage: 10,
       pricing_source: "Private supplier quote URL",
       pricingSource: "Private supplier quote label",
-      confidence: "supplier quote under NDA",
       priceHistory: [{ summary: "Private historical cost" }],
       sourceUrl: "https://supplier.example/private-quote?token=secret",
       storage_bucket: "component-library-attachments",
@@ -47,7 +46,6 @@ describe("share snapshot redaction", () => {
       lockReason: "Private cost review",
       sourceSnapshot: {
         pricing_source: "Private source snapshot URL",
-        confidence: "Internal confidence note",
         storage_path: "workspace/project/private-snapshot.pdf",
         signedUrl: "https://storage.example/private-snapshot.pdf?token=secret",
       },
@@ -87,7 +85,6 @@ describe("share snapshot redaction", () => {
     });
     expect(serialized).not.toContain("pricing_source");
     expect(serialized).not.toContain("pricingSource");
-    expect(serialized).not.toContain("confidence");
     expect(serialized).not.toContain("priceHistory");
     expect(serialized).not.toContain("sourceUrl");
     expect(serialized).not.toContain("storage_bucket");
@@ -99,7 +96,6 @@ describe("share snapshot redaction", () => {
     expect(serialized).not.toContain("lockReason");
     expect(serialized).not.toContain("sourceSnapshot");
     expect(serialized).not.toContain("Private supplier quote");
-    expect(serialized).not.toContain("Internal confidence note");
     expect(serialized).not.toContain("private-quote.pdf");
     expect(serialized).not.toContain("signature=secret");
   });
@@ -137,7 +133,6 @@ describe("share snapshot redaction", () => {
               contingencyPercentage: 10,
               pricing_source: "Legacy private quote URL",
               pricingSource: "Legacy private quote label",
-              confidence: "Legacy internal confidence",
               priceHistory: [{ summary: "Legacy private price" }],
               sourceUrl: "https://supplier.example/legacy-private-quote?token=secret",
               storage_bucket: "component-library-attachments",
@@ -149,7 +144,6 @@ describe("share snapshot redaction", () => {
               lockReason: "Legacy private lock",
               sourceSnapshot: {
                 pricing_source: "Legacy source snapshot URL",
-                confidence: "Legacy source confidence",
                 storage_path: "workspace/project/legacy-private-snapshot.pdf",
                 signedUrl: "https://storage.example/legacy-private-snapshot.pdf?token=secret",
               },
@@ -179,7 +173,6 @@ describe("share snapshot redaction", () => {
     expect(serialized).not.toContain("contingencyPercentage");
     expect(serialized).not.toContain("pricing_source");
     expect(serialized).not.toContain("pricingSource");
-    expect(serialized).not.toContain("confidence");
     expect(serialized).not.toContain("priceHistory");
     expect(serialized).not.toContain("sourceUrl");
     expect(serialized).not.toContain("storage_bucket");

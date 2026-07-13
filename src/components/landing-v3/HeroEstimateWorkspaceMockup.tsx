@@ -259,7 +259,6 @@ export function HeroEstimateWorkspaceMockup() {
           librarySuppliers={[]}
           libraryBrands={[]}
           libraryFolders={heroLibraryFolders}
-          libraryShowSourceTrustChips={false}
           libraryUseStoredPreferences={false}
           libraryEnableReusableProjectSources={false}
           surfaceVariant="glass"
@@ -353,8 +352,8 @@ function createFolder(id: string, parentId: string | null, name: string, sortOrd
 }
 
 function createRow(
-  input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "pricingDate" | "confidence"> &
-    Partial<Pick<EstimateRowItem, "pricingDate" | "confidence">>,
+  input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "pricingDate"> &
+    Partial<Pick<EstimateRowItem, "pricingDate">>,
 ): EstimateRowItem {
   const subTotal = input.itemCost * input.quantity;
   const contingencyPercentage = input.contingencyPercentage ?? 0;
@@ -367,7 +366,6 @@ function createRow(
     contingencyValue,
     totalItemCosts: subTotal + input.miscCost + contingencyValue,
     pricingDate: input.pricingDate ?? "2026-06-24",
-    confidence: input.confidence ?? "Hero demo",
     linkState: input.linkState ?? (input.source === "project" ? "unlinked" : "linked-clean"),
   };
 }

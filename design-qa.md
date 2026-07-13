@@ -288,7 +288,6 @@ verification:
 - `bun run type-check` is blocked by unrelated worktree file `src/lib/observability/with-action-errors.ts` with TS2352.
 
 final result: passed
-
 ## 2026-06-28 dashboard shell continuity QA
 
 source visual truth path:
@@ -578,5 +577,60 @@ patches made:
 - Increased the mockup parent height and moved its top edge upward to align with the top line of the hero headline.
 - Shifted the full hero visual stage downward so the mockup parent top aligns with the CTA row while preserving mockup and hero image sizes.
 - Increased the mockup parent height upward again so its top edge aligns with the bottom of the hero headline while preserving the lower edge.
+
+final result: passed
+
+## 2026-07-13 estimate material row alignment QA
+
+source visual truth path:
+- Browser comment 1 attachment in the current Codex task; the conversation artifact has no exposed filesystem path.
+
+implementation screenshot path:
+- `/tmp/archestimator-estimate-material-row-after.png`
+- `/tmp/archestimator-estimate-material-row-focus-after.png`
+
+viewport:
+- 3440x1440 display capture with the selected desktop browser showing the workshop estimate route; focused comparison crop is 1350x360.
+
+state:
+- Ground Floor expanded with the Dark Cottage Oak component visible in the first estimate row.
+
+full-view comparison evidence:
+- The estimate workspace retains its existing proportions and row density; only the material-cell internals changed.
+- The estimate row remains compact inside the existing 96px minimum-height contract.
+
+focused region comparison evidence:
+- The 56px thumbnail remains square.
+- Name, brand, and supplier align to the thumbnail's top, middle, and bottom.
+- Variant, truncated description, and unit share one lower horizontal rail.
+
+findings:
+- No actionable P0, P1, or P2 differences remain.
+- Fonts and typography: existing compact SF Pro sizing, regular/medium hierarchy, line heights, and truncation are preserved.
+- Spacing and layout rhythm: the explicit two-row, three-column grid creates stable vertical and horizontal alignment.
+- Colors and visual tokens: existing ink, secondary, and tertiary tokens remain unchanged; no decorative background or pill treatment was added.
+- Image quality and asset fidelity: the existing product image keeps its fixed square crop.
+- Copy and content: component, brand, supplier, variant, description, price, and unit content remain unchanged; the description stays within its grid track.
+
+comparison history:
+- Iteration 1: blocked at score 62 because primary metadata lacked a shared thumbnail alignment frame, secondary metadata occupied unrelated vertical positions, and description overflow weakened the row boundary.
+- Fix: replaced nested flex and absolute rails with a two-row, three-column grid, distributed primary metadata across the thumbnail height, and moved secondary metadata into one shared row.
+- Iteration 2: passed at score 96. Independent combined visual comparison found clean alignment, a stable square thumbnail, controlled description overflow, and no P0, P1, or P2 issue.
+
+primary interactions tested:
+- No interaction was required for the static alignment request; existing variant and inline-edit controls remain in the same components and were statically checked.
+
+console errors checked:
+- Direct browser-console tooling was not exposed. The page rendered without a visible runtime error, while focused ESLint and repository TypeScript checks completed successfully.
+
+implementation checklist:
+- [x] Align name, brand, and supplier to the thumbnail.
+- [x] Align variant, description, and unit horizontally.
+- [x] Keep the thumbnail square.
+- [x] Keep the description truncated.
+- [x] Preserve compact product density and existing interactions.
+
+follow-up polish:
+- P3: variant and description contrast could be increased later if small-text readability needs additional emphasis.
 
 final result: passed

@@ -185,7 +185,6 @@ CREATE TABLE cost_library_items (
   misc_cost REAL NOT NULL DEFAULT 0,
   pricing_source TEXT,
   pricing_date TEXT,
-  confidence TEXT,
   active_price_option_id TEXT,
   library_folder_id TEXT REFERENCES library_folders(id) ON DELETE SET NULL,
   lifecycle_state TEXT NOT NULL CHECK (lifecycle_state IN ('draft', 'in_review', 'in_production', 'archived')),
@@ -219,7 +218,6 @@ CREATE TABLE cost_library_item_price_options (
   currency TEXT NOT NULL DEFAULT 'PHP',
   pricing_source TEXT,
   pricing_date TEXT,
-  confidence TEXT,
   is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
   is_default INTEGER NOT NULL DEFAULT 0 CHECK (is_default IN (0, 1)),
   created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
@@ -325,7 +323,6 @@ INSERT INTO cost_library_items (
   misc_cost,
   pricing_source,
   pricing_date,
-  confidence,
   active_price_option_id,
   library_folder_id,
   lifecycle_state,
@@ -334,11 +331,11 @@ INSERT INTO cost_library_items (
   current_version_number,
   updated_at
 ) VALUES
-  ('item-alpha', 'ws-alpha', 'Alpha concrete', 'Concrete', 'm3', 100, 0, 'Seed', '2026-06-30', 'medium', 'price-default', 'folder-target', 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
-  ('item-archive-1', 'ws-alpha', 'Archive one', 'Labor', 'hr', 50, 0, 'Seed', '2026-06-30', 'medium', NULL, NULL, 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
-  ('item-archive-2', 'ws-alpha', 'Archive two', 'Labor', 'hr', 75, 0, 'Seed', '2026-06-30', 'medium', NULL, NULL, 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
-  ('item-rollback', 'ws-alpha', 'Rollback fixture', 'Material', 'ea', 20, 0, 'Seed', '2026-06-30', 'medium', NULL, NULL, 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
-  ('item-other', 'ws-other', 'Other workspace item', 'Other', 'ea', 1, 0, 'Seed', '2026-06-30', 'medium', NULL, 'folder-other', 'draft', '2026-06-30T00:00:00.000Z', 'user-other', 1, '2026-06-30T00:00:00.000Z');
+  ('item-alpha', 'ws-alpha', 'Alpha concrete', 'Concrete', 'm3', 100, 0, 'Seed', '2026-06-30', 'price-default', 'folder-target', 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
+  ('item-archive-1', 'ws-alpha', 'Archive one', 'Labor', 'hr', 50, 0, 'Seed', '2026-06-30', NULL, NULL, 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
+  ('item-archive-2', 'ws-alpha', 'Archive two', 'Labor', 'hr', 75, 0, 'Seed', '2026-06-30', NULL, NULL, 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
+  ('item-rollback', 'ws-alpha', 'Rollback fixture', 'Material', 'ea', 20, 0, 'Seed', '2026-06-30', NULL, NULL, 'draft', '2026-06-30T00:00:00.000Z', 'user-editor', 1, '2026-06-30T00:00:00.000Z'),
+  ('item-other', 'ws-other', 'Other workspace item', 'Other', 'ea', 1, 0, 'Seed', '2026-06-30', NULL, 'folder-other', 'draft', '2026-06-30T00:00:00.000Z', 'user-other', 1, '2026-06-30T00:00:00.000Z');
 
 INSERT INTO cost_library_item_versions (
   id,
@@ -366,13 +363,12 @@ INSERT INTO cost_library_item_price_options (
   currency,
   pricing_source,
   pricing_date,
-  confidence,
   is_active,
   is_default,
   created_by
 ) VALUES
-  ('price-default', 'item-alpha', 'ws-alpha', 'Default concrete', 'm3', 100, 0, 'PHP', 'Seed', '2026-06-30', 'medium', 1, 1, 'user-editor'),
-  ('price-secondary', 'item-alpha', 'ws-alpha', 'Supplier backup', 'm3', 110, 0, 'PHP', 'Seed', '2026-06-30', 'medium', 1, 0, 'user-editor');
+  ('price-default', 'item-alpha', 'ws-alpha', 'Default concrete', 'm3', 100, 0, 'PHP', 'Seed', '2026-06-30', 1, 1, 'user-editor'),
+  ('price-secondary', 'item-alpha', 'ws-alpha', 'Supplier backup', 'm3', 110, 0, 'PHP', 'Seed', '2026-06-30', 1, 0, 'user-editor');
 `;
 
 const EDITOR_GUARD_SQL = `
@@ -760,7 +756,6 @@ INSERT INTO cost_library_item_price_options (
   currency,
   pricing_source,
   pricing_date,
-  confidence,
   is_active,
   is_default,
   created_by
@@ -776,7 +771,6 @@ VALUES (
   'PHP',
   'D1 proof',
   '2026-06-30',
-  'high',
   1,
   0,
   'user-editor'
@@ -789,7 +783,6 @@ ON CONFLICT(id) DO UPDATE SET
   currency = excluded.currency,
   pricing_source = excluded.pricing_source,
   pricing_date = excluded.pricing_date,
-  confidence = excluded.confidence,
   is_active = excluded.is_active;
 
 UPDATE cost_library_item_price_options
@@ -846,7 +839,6 @@ SET active_price_option_id = 'price-d1-proof',
     misc_cost = 5,
     pricing_source = 'D1 proof',
     pricing_date = '2026-06-30',
-    confidence = 'high',
     current_version_number = current_version_number + (SELECT inserted FROM price_history_inserted),
     updated_at = '2026-06-30T01:10:00.000Z'
 WHERE id = 'item-alpha'
