@@ -54,7 +54,6 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     tags: overrides.tags ?? ["flooring", "tile"],
     pricingSource: overrides.pricingSource ?? "Supplier allowance — verify quote",
     pricingDate: overrides.pricingDate ?? "2026-05-23",
-    confidence: overrides.confidence ?? "allowance",
     notes: overrides.notes,
     metadata: overrides.metadata,
     laborUnitCost: overrides.laborUnitCost,

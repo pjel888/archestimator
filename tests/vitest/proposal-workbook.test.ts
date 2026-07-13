@@ -51,7 +51,6 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     tags: overrides.tags ?? ["flooring", "tile"],
     pricingSource: overrides.pricingSource ?? "Supplier allowance — verify quote",
     pricingDate: overrides.pricingDate ?? "2026-05-23",
-    confidence: overrides.confidence ?? "allowance",
     laborUnitCost: overrides.laborUnitCost,
     scopeStatus: overrides.scopeStatus,
   };
@@ -461,7 +460,6 @@ describe("proposal workbook generation", () => {
     });
     const joinedRemarks = remarkCells.join("\n");
     expect(joinedRemarks).not.toContain("Supplier:");
-    expect(joinedRemarks).not.toContain("Confidence:");
   });
 
   it("defangs CSV/formula injection by writing risky data cells as verbatim text (P1-T7, F-18)", async () => {

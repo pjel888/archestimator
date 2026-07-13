@@ -52,7 +52,6 @@ function makeRow(index: number): EstimateRowItem {
     tags: ["route-proof", "export"],
     pricingSource: "Route proof fixture",
     pricingDate: "2026-06-02",
-    confidence: "allowance",
   };
 }
 

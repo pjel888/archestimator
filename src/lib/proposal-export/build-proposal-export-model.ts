@@ -62,18 +62,16 @@ function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
   const supplier = normalizeWhitespace(row.supplier);
   const pricingSource = normalizeWhitespace(row.pricingSource);
   const pricingDate = normalizeWhitespace(row.pricingDate);
-  const confidence = normalizeWhitespace(row.confidence);
   const notes = normalizeWhitespace(row.notes);
 
-  // `showSupplierInRemarks` gates all internal pricing intelligence (supplier, pricing
-  // source/date, confidence) together — applyAudiencePolicy forces it off for a client
+  // `showSupplierInRemarks` gates internal pricing intelligence (supplier and pricing
+  // source/date) together — applyAudiencePolicy forces it off for a client
   // audience so none of it leaks into a client-facing bid (F-19). Free-form notes are
   // client-relevant and always kept.
   if (settings.showSupplierInRemarks) {
     if (supplier) remarks.push(`Supplier: ${supplier}`);
     if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
     if (pricingDate) remarks.push(`As of ${pricingDate}`);
-    if (confidence) remarks.push(`Confidence: ${confidence}`);
   }
   if (notes) remarks.push(notes);
 
