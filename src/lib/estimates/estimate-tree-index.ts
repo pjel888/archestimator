@@ -18,20 +18,24 @@ export type EstimateTreeNodeLocation = {
 export type EstimateTreeIndex = {
   nodesById: ReadonlyMap<string, EstimateTreeNodeLocation>;
   rowsById: ReadonlyMap<string, EstimateTreeRowLocation>;
-  projectComponentIdByRowId: ReadonlyMap<string, string>;
-  rowIdsByProjectComponentId: ReadonlyMap<string, readonly string[]>;
+  componentIdentityByRowId: ReadonlyMap<string, string>;
+  rowIdsByComponentIdentity: ReadonlyMap<string, readonly string[]>;
 };
 
-function getRowProjectComponentIdentity(item: EstimateRowItem) {
+function getRowComponentIdentity(item: EstimateRowItem) {
+  if (item.sourceLibraryItemId && item.linkState !== "detached" && item.linkState !== "unlinked") {
+    return `library:${item.sourceLibraryItemId}`;
+  }
   const itemWithSnapshot = item as EstimateRowItem & { sourceSnapshot?: unknown };
-  return getProjectComponentIdentity(item.metadata, item.id, itemWithSnapshot.sourceSnapshot);
+  const projectComponentId = getProjectComponentIdentity(item.metadata, item.id, itemWithSnapshot.sourceSnapshot);
+  return projectComponentId ? `project:${projectComponentId}` : null;
 }
 
 export function createEstimateTreeIndex(tree: EstimateTreeNode[]): EstimateTreeIndex {
   const nodesById = new Map<string, EstimateTreeNodeLocation>();
   const rowsById = new Map<string, EstimateTreeRowLocation>();
-  const projectComponentIdByRowId = new Map<string, string>();
-  const rowIdsByProjectComponentId = new Map<string, string[]>();
+  const componentIdentityByRowId = new Map<string, string>();
+  const rowIdsByComponentIdentity = new Map<string, string[]>();
 
   function visit(nodes: EstimateTreeNode[], parentPath: number[], ancestorNodes: EstimateTreeNode[], parentCode: string[]) {
     nodes.forEach((node, nodeIndex) => {
@@ -45,17 +49,17 @@ export function createEstimateTreeIndex(tree: EstimateTreeNode[]): EstimateTreeI
           nodePath,
           rowIndex,
         });
-        const componentId = getRowProjectComponentIdentity(item);
-        if (!componentId) return;
-        projectComponentIdByRowId.set(item.id, componentId);
-        const rowIds = rowIdsByProjectComponentId.get(componentId);
+        const componentIdentity = getRowComponentIdentity(item);
+        if (!componentIdentity) return;
+        componentIdentityByRowId.set(item.id, componentIdentity);
+        const rowIds = rowIdsByComponentIdentity.get(componentIdentity);
         if (rowIds) rowIds.push(item.id);
-        else rowIdsByProjectComponentId.set(componentId, [item.id]);
+        else rowIdsByComponentIdentity.set(componentIdentity, [item.id]);
       });
       if (node.children?.length) visit(node.children, nodePath, [...ancestorNodes, node], nodeCodeParts);
     });
   }
 
   visit(tree, [], [], []);
-  return { nodesById, rowsById, projectComponentIdByRowId, rowIdsByProjectComponentId };
+  return { nodesById, rowsById, componentIdentityByRowId, rowIdsByComponentIdentity };
 }

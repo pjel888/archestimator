@@ -6,7 +6,7 @@ import { flushSync } from "react-dom";
 import type { useEstimateRowMutations, EstimateRowMutationStatus, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
-import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree, patchProjectComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import type { Json } from "@/lib/types/json";
@@ -623,7 +623,7 @@ export function useEstimateRowHandlers({
         if (values.priceOptions !== undefined) serverPatch.priceOptions = values.priceOptions;
         let patchedTree = estimateTree;
         setEstimateTree((current) => {
-          patchedTree = patchProjectComponentInstanceRowsInTree(current, result.rowId, serverPatch);
+          patchedTree = patchComponentInstanceRowsInTree(current, result.rowId, serverPatch);
           return patchedTree;
         });
         const nextRows = collectEditableRows(patchedTree);

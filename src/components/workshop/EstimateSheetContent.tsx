@@ -145,6 +145,7 @@ import {
   type ExpressInsertDraft,
   type RowComponentPickerState,
 } from "./estimate-sheet/use-estimate-row-handlers";
+import { patchComponentInstanceRowsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
 import {
   type ExpressInsertDraftState,
@@ -1370,8 +1371,9 @@ export function EstimateSheetContent({
     [lazyLibrary?.brands, libraryBrands, resolvedLibraryItems, sheetCatalogueInputs.brands],
   );
   const queryClient = useQueryClient();
-  // Library mutations in the sidebar update its local state; the lazy query
-  // cache must also be marked stale or remounts re-seed from pre-mutation data.
+  // Library mutations in the sidebar update its local state and persist every
+  // linked estimate-row projection. Refresh the mounted tree as well so the
+  // current sheet converges immediately instead of waiting for navigation.
   // Non-exact invalidation on the shared prefix covers both the lite (panel) and
   // full (editor) datasets. PERF-7: refetchType "none" marks the heavy lite
   // dataset stale without eagerly refetching it while the panel is open — the
@@ -1379,6 +1381,7 @@ export function EstimateSheetContent({
   // reseeds fresh. Avoids a full-library refetch after common in-panel actions.
   const handleLibraryDataChanged = useStableCallback(() => {
     if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
+    void refetchActiveTree();
   });
   const refetchProjectComponentProjection = useStableCallback(() => {
     // Project-row mutations can alter the mounted Project tab projection. Keep
@@ -1940,7 +1943,7 @@ export function EstimateSheetContent({
     toast,
   });
   const updateComponentFromEditor = useStableCallback((item: EstimateRowItem) => {
-    updateRowItem(item.id, {
+    const values = {
       name: item.material,
       description: item.description,
       brand: item.brand ?? "",
@@ -1962,7 +1965,44 @@ export function EstimateSheetContent({
       lifecycleState: item.lifecycleState ?? null,
       lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
       notes: item.notes ?? null,
-    });
+    };
+    if (item.sourceLibraryItemId && item.linkState !== "detached" && item.linkState !== "unlinked") {
+      const patch: EstimateRowItemPatch = {
+        material: item.material,
+        description: item.description,
+        brand: item.brand ?? null,
+        supplier: item.supplier,
+        unit: item.unit,
+        itemCost: item.itemCost,
+        imageUrl: item.imageUrl ?? null,
+        sourceUrl: item.sourceUrl ?? null,
+        category: item.category,
+        categoryNodeId: item.categoryNodeId ?? null,
+        brandId: item.brandId ?? null,
+        supplierId: item.supplierId ?? null,
+        sku: item.sku ?? null,
+        priceOptionId: item.priceOptionId ?? null,
+        priceOptionLabel: item.priceOptionLabel ?? null,
+        priceOptions: item.priceOptions,
+        pricingDate: item.pricingDate ?? null,
+        pricingSource: item.pricingSource ?? null,
+        lifecycleState: item.lifecycleState ?? null,
+        lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
+        componentVersionNumber: item.componentVersionNumber ?? null,
+        notes: item.notes ?? null,
+        linkState: "linked-clean",
+      };
+      let patchedTree = estimateTree;
+      setEstimateTree((current) => {
+        patchedTree = patchComponentInstanceRowsInTree(current, item.id, patch);
+        return patchedTree;
+      });
+      setEditableRows(collectEditableRows(patchedTree));
+      handleLibraryDataChanged();
+      if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
+      return;
+    }
+    updateRowItem(item.id, values);
   });
 
   const rowMoveNodeOptions = useMemo(

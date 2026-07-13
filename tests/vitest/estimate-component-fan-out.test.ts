@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { patchProjectComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import { patchComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
 
 function row(id: string, componentId: string, material = "Original") {
   return {
@@ -39,7 +39,7 @@ const tree: EstimateTreeNode[] = [{
 
 describe("estimate project-component fan-out", () => {
   it("applies shared fields only to rows with the target component identity", () => {
-    const next = patchProjectComponentInstanceRowsInTree(tree, "row-1", {
+    const next = patchComponentInstanceRowsInTree(tree, "row-1", {
       material: "Updated component",
       quantity: 4,
     });
@@ -53,6 +53,28 @@ describe("estimate project-component fan-out", () => {
   });
 
   it("returns the original tree when no target row exists", () => {
-    expect(patchProjectComponentInstanceRowsInTree(tree, "missing-row", { material: "Ignored" })).toBe(tree);
+    expect(patchComponentInstanceRowsInTree(tree, "missing-row", { material: "Ignored" })).toBe(tree);
+  });
+
+  it("fans component fields across linked library instances while preserving instance quantities", () => {
+    const libraryTree: EstimateTreeNode[] = [{
+      ...tree[0],
+      estimateRowItems: [
+        { ...row("library-row-1", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "linked-clean", quantity: 2 },
+        { ...row("library-row-2", "unused"), source: "library", sourceLibraryItemId: "library-a", linkState: "linked-overridden", quantity: 5 },
+        { ...row("library-row-3", "unused"), source: "library", sourceLibraryItemId: "library-b", linkState: "linked-clean", quantity: 7 },
+      ],
+    }];
+
+    const next = patchComponentInstanceRowsInTree(libraryTree, "library-row-1", {
+      material: "Updated library component",
+      quantity: 3,
+    });
+
+    expect(next[0].estimateRowItems?.map((item) => ({ id: item.id, material: item.material, quantity: item.quantity }))).toEqual([
+      { id: "library-row-1", material: "Updated library component", quantity: 3 },
+      { id: "library-row-2", material: "Updated library component", quantity: 5 },
+      { id: "library-row-3", material: "Original", quantity: 7 },
+    ]);
   });
 });

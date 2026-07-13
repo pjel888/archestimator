@@ -209,7 +209,7 @@ export function patchEstimateRowItemInTree(
   return didChange ? nextTree : tree;
 }
 
-const SHARED_PROJECT_COMPONENT_PATCH_KEYS: Array<keyof EstimateRowItemPatch> = [
+const SHARED_COMPONENT_PATCH_KEYS: Array<keyof EstimateRowItemPatch> = [
   "material",
   "description",
   "brand",
@@ -240,9 +240,9 @@ function hasOwnPatchField(patch: EstimateRowItemPatch, key: keyof EstimateRowIte
   return Object.prototype.hasOwnProperty.call(patch, key);
 }
 
-export function pickSharedProjectComponentPatch(patch: EstimateRowItemPatch): EstimateRowItemPatch {
+export function pickSharedComponentPatch(patch: EstimateRowItemPatch): EstimateRowItemPatch {
   const next: EstimateRowItemPatch = {};
-  for (const key of SHARED_PROJECT_COMPONENT_PATCH_KEYS) {
+  for (const key of SHARED_COMPONENT_PATCH_KEYS) {
     if (hasOwnPatchField(patch, key)) {
       (next as Record<string, unknown>)[key] = patch[key];
     }
@@ -301,19 +301,19 @@ function patchRowsById(
   return visit(tree, []);
 }
 
-export function patchProjectComponentInstanceRowsInTree(
+export function patchComponentInstanceRowsInTree(
   tree: EstimateTreeNode[],
   rowId: string,
   patch: EstimateRowItemPatch,
   existingIndex?: EstimateTreeIndex,
 ): EstimateTreeNode[] {
   const index = existingIndex ?? createEstimateTreeIndex(tree);
-  const componentId = index.projectComponentIdByRowId.get(rowId);
-  const sharedPatch = pickSharedProjectComponentPatch(patch);
-  if (!componentId || !hasEstimateRowPatchFields(sharedPatch)) return patchRowsById(tree, new Map([[rowId, patch]]), index);
+  const componentIdentity = index.componentIdentityByRowId.get(rowId);
+  const sharedPatch = pickSharedComponentPatch(patch);
+  if (!componentIdentity || !hasEstimateRowPatchFields(sharedPatch)) return patchRowsById(tree, new Map([[rowId, patch]]), index);
 
   const patches = new Map<string, EstimateRowItemPatch>();
-  for (const instanceRowId of index.rowIdsByProjectComponentId.get(componentId) ?? []) {
+  for (const instanceRowId of index.rowIdsByComponentIdentity.get(componentIdentity) ?? []) {
     patches.set(instanceRowId, instanceRowId === rowId ? patch : sharedPatch);
   }
   return patchRowsById(tree, patches, index);
@@ -359,7 +359,7 @@ function previousPatchForRow(item: EstimateRowItem, patch: EstimateRowItemPatch)
   };
 }
 
-export function collectProjectComponentRollbackPatches(
+export function collectComponentRollbackPatches(
   tree: EstimateTreeNode[],
   rowId: string,
   patch: EstimateRowItemPatch,
@@ -369,13 +369,13 @@ export function collectProjectComponentRollbackPatches(
   const location = index.rowsById.get(rowId);
   const previousRow = location ? getEstimateRowAtLocation(tree, location.nodePath, location.rowIndex) : null;
   if (!previousRow) return undefined;
-  const componentId = index.projectComponentIdByRowId.get(rowId);
-  const sharedPatch = pickSharedProjectComponentPatch(patch);
+  const componentIdentity = index.componentIdentityByRowId.get(rowId);
+  const sharedPatch = pickSharedComponentPatch(patch);
   const patches: Record<string, EstimateRowItemPatch> = {
     [rowId]: previousPatchForRow(previousRow, patch),
   };
-  if (!componentId || !hasEstimateRowPatchFields(sharedPatch)) return patches;
-  for (const instanceRowId of index.rowIdsByProjectComponentId.get(componentId) ?? []) {
+  if (!componentIdentity || !hasEstimateRowPatchFields(sharedPatch)) return patches;
+  for (const instanceRowId of index.rowIdsByComponentIdentity.get(componentIdentity) ?? []) {
     if (instanceRowId === rowId) continue;
     const instanceLocation = index.rowsById.get(instanceRowId);
     const item = instanceLocation ? getEstimateRowAtLocation(tree, instanceLocation.nodePath, instanceLocation.rowIndex) : null;

@@ -12,6 +12,7 @@ const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
   updateCostLibraryComponent: vi.fn(),
+  updateCostLibraryComponentWithPriceOptions: vi.fn(),
   upsertCostLibraryComponentPriceOption: vi.fn(),
 }));
 
