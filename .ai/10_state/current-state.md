@@ -84,7 +84,7 @@ task-specific history. Do not linear-read the detailed history below.
 
 ### 2026-07-12 - Estimate Sheet Performance Pack Cancelled
 
-- `.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization` is cancelled as an over-engineered execution pipeline, not an implemented performance optimization. Its truthful status is `package_status=NOT_READY`, `implementation_status=INCOMPLETE`, `plan_lifecycle=ACTIVE`, `terminal_status=CANCELLED`, with no next unit or ready slice.
+- `.ai/09_archive/store/2026-07-08-plan-packs-user-closed-2026-07-12/Project-Estimate-Sheet-Performance-Optimization` is cancelled as an over-engineered execution pipeline, not an implemented performance optimization. It was archived on 2026-07-12 at owner direction. Its truthful status is `package_status=NOT_READY`, `implementation_status=INCOMPLETE`, `plan_lifecycle=ARCHIVED`, `terminal_status=CANCELLED`, with no next unit or ready slice.
 - `UNIT-001` remains verified baseline/evaluator work. Do not resume `UNIT-002` through `UNIT-011`, the broad Playwright matrix, or the hosted-D1/release pipeline from that pack.
 - Concrete shared-worktree fixes remain intact. Future performance work must start from a specific observed estimate-sheet symptom, a single cheap baseline, and only the implementation required by that measurement.
 
@@ -226,24 +226,17 @@ Stable current truth (verify against git/source before relying on a detail):
   contract. Use `bun run supermemory:search -- "<query>"` before broad,
   non-trivial, or recovery work and `bun run supermemory:add -- "<sanitized>"`
   when durable truth changes; `.ai` and current source remain authoritative.
-- Shared coding-agent skills refresh (2026-07-10 local): installed 31 skill
-  directories from `obra/superpowers`, `leonxlnx/taste-skill`, and
-  `emilkowalski/skills` into the recognized Codex, Cursor, Claude,
-  CommandCode, Vibe, GitHub, OpenCode, and `.agents` skill roots. Existing
-  destination directories were preserved instead of overwritten. Validation:
-  all target roots have the expected `SKILL.md` files; `git diff --check` and
-  `bun run validate:agents` passed. Note: repo `.codex/skills` is local-only
-  because `.codex/*` is ignored, but Codex also has user-level copies in
-  `~/.codex/skills`.
-- MengTo Agent Skills refresh (2026-07-12 local): installed all 95 upstream
-  `SKILL.md` directories from `MengTo/Skills` at commit
-  `25f872a94e3bbee85ecacba4041fa52c21cb0e44` into the recognized Codex,
-  Cursor, Claude, CommandCode, Vibe, GitHub, OpenCode, and `.agents` roots.
-  The full skill folders, including optional references, scripts, assets, and
-  metadata, were copied additively: 1,510 new copies were installed and 10
-  existing same-name directories were preserved. All 16 roots have zero
-  missing upstream manifests; `bun run validate:agents` passed. Repo-local
-  `.codex/skills` remains local-only because `.codex/*` is ignored.
+- Canonical coding-agent skill catalog (2026-07-13 local): shared upstream
+  skills now live once in `~/.agents/skills`, tracked by the v3 global Skills
+  CLI lock. `bun run skills:update` refreshes that lock, updates OMX stable in
+  plugin mode, refreshes Git plugin marketplaces and Kimi WebBridge when
+  installed, reconsolidates aliases and copied mirrors, and validates drift.
+  The repo keeps only eight
+  Archestimator-specific skill payloads in `.agents/skills`; host compatibility
+  paths are symlinks, and the obsolete project `skills-lock.json` is gone.
+  Fresh proof: `bun run validate:skills` and `bun run validate:agents` passed;
+  `codex debug prompt-input` exposed 310 skills with 310 unique resolver names
+  and zero duplicate groups.
 - Development memory safety and fast default (2026-07-10): `bun dev` now
   explicitly runs Next 16.2.10 with Turbopack; `dev:turbo` remains a compatible
   equivalent. The prior idle filesystem-cache persistence/compaction OOM stays
@@ -295,8 +288,10 @@ Stable current truth (verify against git/source before relying on a detail):
 - July 10 plan-pack closeout (2026-07-12): the seven former July 10 packs and
   the D1 recovery handoff were closed and archived at the owner's direction to
   `.ai/09_archive/store/2026-07-10-plan-packs-user-closed-2026-07-12/`. This is
-  a user-directed archive, not an implementation-completion claim; unresolved
-  recovery, staging, release, and legal evidence remains historical context.
+  a user-directed archive, not an implementation-completion claim. A fresh
+  provider-backed ordered D1 recovery rehearsal completed in 90.405 seconds
+  with disposable-target cleanup verified; the strict recovery receipt plus
+  remaining staging, release, and legal evidence remains historical context.
 - Error logging and incident evidence (2026-07-08 local): Archestimator should
   not store raw application error logs in D1 as the standard logging path.
   Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do
@@ -596,7 +591,7 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `bun run ops:check-error-handling` when an evidence artifact should be
 	  written. On 2026-07-08 the artifact-writing gate passed with 53 scanned
 	  files and zero violations, writing
-	  `.ai/03_plans/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json`.
+	  `.ai/09_archive/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json`.
 	  A later 2026-07-08 expansion converted public share deferred telemetry,
 	  component-library action errors, account-security audit failures, retention
 	  pass failures, and upload operations dashboard failures to structured
@@ -843,7 +838,7 @@ Stable current truth (verify against git/source before relying on a detail):
   evidence-backed or stale-provider CODEX threads on merged PRs 107, 108, 109,
   112, 114, 115, 118, 121, 122, and 123, GitHub GraphQL readback across merged
   PRs 106-123 returned unresolved CODEX review-thread count 0. Ledger:
-  `.ai/03_plans/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
+  `.ai/09_archive/store/2026-07-07-plan-packs-user-closed-2026-07-12/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
 - Shared-link password lockout hardening (2026-07-07 local): Aardvark flagged that the password unlock route relied only on durable 5-failure/15-minute rows after the process-local hard-lockout removal. The durable D1 limiter now keeps the same 5-failure threshold but uses a 1-hour failure counting/TTL window for `project_publication_password`, preserving module-reset-safe durable enforcement while restoring the stronger online guessing budget. Focused proof: `bunx vitest run tests/vitest/project-publication-password-lockout-route.test.ts tests/vitest/project-publication-public-repository.test.ts --maxWorkers=1` passed.
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
@@ -901,7 +896,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `admin:repo_hook` scope request, and secret scanning returned 404 disabled
   with the current token.
   Ledger:
-  `.ai/03_plans/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
+  `.ai/09_archive/store/2026-07-07-plan-packs-user-closed-2026-07-12/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
   PR106 branch `codex/fix-unpinned-npm-exec-vulnerability` was updated on
   GitHub to head `24c107c5`: the `supermemory` SDK-wrapper dependency was
   removed, `bun run supermemory:start` now uses
