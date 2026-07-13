@@ -28,6 +28,27 @@ before meaningful work, search relevant memory before broad/non-trivial work,
 and add a sanitized durable update at closeout when project truth changes.
 Supermemory is advisory; `.ai` and current source remain authoritative.
 
-`shadcn/improve` is installed globally for this machine. Do not add a duplicate
-repo-local `.agents/skills/improve/` copy unless the global skill cannot be made
-to respect Archestimator's `.ai/03_plans` routing policy.
+## Skill Catalog Ownership
+
+- `.agents/skills/` is the only project skill catalog. Keep only
+  Archestimator-specific adapters and overrides here.
+- Shared upstream skill payloads live once in `~/.agents/skills/` and are
+  tracked by `~/.agents/.skill-lock.json`. Agent-specific roots may contain
+  relative symlinks to that canonical payload when the host requires them.
+- Do not keep copied payloads in `.codex/skills/`, `.cursor/skills/`,
+  `.claude/skills/`, `.commandcode/skills/`, `.vibe/skills/`, or
+  `.github/skills/`. Project compatibility paths for Claude Code, Command Code,
+  and Mistral Vibe are symlinks to `.agents/skills/`; Codex, Cursor, and GitHub
+  Copilot resolve the project catalog directly.
+- OMX uses plugin delivery. Do not restore legacy OMX skill copies under
+  `~/.codex/skills/` or this repository.
+- Run `bun run skills:update` to update lock-managed skills and OMX, consolidate
+  aliases/mirrors, refresh Git plugin marketplaces, and validate the live
+  catalog. When Kimi WebBridge is installed, the same command updates its binary
+  and installs the skill version matching the connected extension. Run
+  `bun run validate:skills` for a read-only drift check. Host-owned plugin skills
+  remain in their host roots and use that plugin's updater.
+
+`shadcn/improve` is globally managed. Do not restore a repo-local copy unless a
+real Archestimator-specific adapter becomes necessary; project planning policy
+remains authoritative through `AGENTS.md` and `.ai`.

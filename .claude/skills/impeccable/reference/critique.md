@@ -20,7 +20,7 @@ Resolve one stable target, run two independent assessments, synthesize a design 
    - "this page" -> the current URL or source file
 2. **Compute the slug**:
    ```bash
-   node .claude/skills/impeccable/scripts/critique-storage.mjs slug "<resolved-path-or-url>"
+   node .agents/skills/impeccable/scripts/critique-storage.mjs slug "<resolved-path-or-url>"
    ```
    Keep it. If the command exits non-zero, skip persistence and trend for this run, but continue the critique.
 3. **Read `.impeccable/critique/ignore.md`** if it exists. Drop matching findings silently; it is the only prior-run input critique consumes.
@@ -58,7 +58,7 @@ Run the bundled detector and browser visualization evidence. Assessment B is man
 
 CLI scan:
 ```bash
-node .claude/skills/impeccable/scripts/detect.mjs --json [target]
+node .agents/skills/impeccable/scripts/detect.mjs --json [target]
 ```
 
 - Pass markup files/directories as `[target]`; do not pass CSS-only files.
@@ -72,7 +72,7 @@ Browser visualization is available only when the current user explicitly request
 1. Create a fresh tab and navigate.
 2. Preflight mutable injection by setting `document.title` and appending a `<script>` tag. Read-only evaluate APIs do not count.
 3. If mutation is unavailable, skip live server, browser presentation, and injection; report fallback signal.
-4. If mutation is available, start `node .claude/skills/impeccable/scripts/live-server.mjs --background`, present the browser if supported, label `[Human]`, scroll top, inject `http://localhost:PORT/detect.js`, wait 2-3 seconds, read `impeccable` console messages, then stop the live server.
+4. If mutation is available, start `node .agents/skills/impeccable/scripts/live-server.mjs --background`, present the browser if supported, label `[Human]`, scroll top, inject `http://localhost:PORT/detect.js`, wait 2-3 seconds, read `impeccable` console messages, then stop the live server.
 5. For multi-view targets, inject on 3-5 representative pages.
 
 Codex Browser note: Use the Browser skill. Do not spend a Browser attempt on `file://`. Only call `visibility.set(true)` after mutable script injection is confirmed for the `[Human]` overlay path; verify with `get()`. Use `tab.dev.logs({ filter: "impeccable" })` for console results. Its Playwright `evaluate(...)` surface is read-only; do not rely on it for mutation.
@@ -89,7 +89,7 @@ Synthesize both assessments into a single report. Do NOT simply concatenate. Wea
 
 The chat response is the primary user-facing deliverable. Present the full structured critique below in chat; do not replace it with a summary and a link. The persisted snapshot is only an archive/backlog for later commands.
 
-Codex final-answer note: `/impeccable critique` produces a report artifact, so the final chat response should intentionally exceed the usual concise close-out style. Do not title the final response "Critique Summary" unless the user explicitly asked for a summary.
+Codex final-answer note: `$impeccable critique` produces a report artifact, so the final chat response should intentionally exceed the usual concise close-out style. Do not title the final response "Critique Summary" unless the user explicitly asked for a summary.
 
 Structure your feedback as a design director would:
 
@@ -137,7 +137,7 @@ For each issue, tag with **P0-P3 severity** (see [Issue Severity below](#issue-s
 - **[P?] What**: Name the problem clearly
 - **Why it matters**: How this hurts users or undermines goals
 - **Fix**: What to do about it (be concrete)
-- **Suggested command**: Which command could address this (from: /impeccable adapt, /impeccable animate, /impeccable audit, /impeccable bolder, /impeccable clarify, /impeccable colorize, /impeccable critique, /impeccable delight, /impeccable distill, /impeccable document, /impeccable harden, /impeccable layout, /impeccable onboard, /impeccable optimize, /impeccable overdrive, /impeccable polish, /impeccable quieter, /impeccable shape, /impeccable typeset)
+- **Suggested command**: Which command could address this (from: $impeccable adapt, $impeccable animate, $impeccable audit, $impeccable bolder, $impeccable clarify, $impeccable colorize, $impeccable critique, $impeccable delight, $impeccable distill, $impeccable document, $impeccable harden, $impeccable layout, $impeccable onboard, $impeccable optimize, $impeccable overdrive, $impeccable polish, $impeccable quieter, $impeccable shape, $impeccable typeset)
 
 #### Persona Red Flags
 > *Consult the [Personas reference](#persona-based-design-testing) below.*
@@ -176,7 +176,7 @@ Codex Run Notes are final-chat only. Do not include this section in the persiste
 
 ### Persist the Snapshot
 
-Once the report above is finalized, write it to `.impeccable/critique/` so the user can refer back, and so `/impeccable polish` can pick up the priority issues without a copy-paste.
+Once the report above is finalized, write it to `.impeccable/critique/` so the user can refer back, and so `$impeccable polish` can pick up the priority issues without a copy-paste.
 
 Skip this step if the Setup slug was null (vague or root-level target).
 
@@ -187,7 +187,7 @@ Skip this step if the Setup slug was null (vague or root-level target).
 2. **Pass the structured metadata** through `IMPECCABLE_CRITIQUE_META` (JSON), then run the write command:
    ```bash
    IMPECCABLE_CRITIQUE_META='{"target":"<user phrasing>","total_score":<n>,"p0_count":<n>,"p1_count":<n>}' \
-     node .claude/skills/impeccable/scripts/critique-storage.mjs write <slug> <body-file>
+     node .agents/skills/impeccable/scripts/critique-storage.mjs write <slug> <body-file>
    ```
    The helper prints the absolute path it wrote.
 
@@ -195,7 +195,7 @@ Skip this step if the Setup slug was null (vague or root-level target).
 
 4. **Read the trend** for context:
    ```bash
-   node .claude/skills/impeccable/scripts/critique-storage.mjs trend <slug> 5
+   node .agents/skills/impeccable/scripts/critique-storage.mjs trend <slug> 5
    ```
    This returns a JSON array of the last 5 frontmatter entries (including the one you just wrote).
 
@@ -243,20 +243,20 @@ List recommended commands in priority order, based on the user's answers:
 ...
 
 **Rules for recommendations**:
-- Only recommend commands from: /impeccable adapt, /impeccable animate, /impeccable audit, /impeccable bolder, /impeccable clarify, /impeccable colorize, /impeccable critique, /impeccable delight, /impeccable distill, /impeccable document, /impeccable harden, /impeccable layout, /impeccable onboard, /impeccable optimize, /impeccable overdrive, /impeccable polish, /impeccable quieter, /impeccable shape, /impeccable typeset
+- Only recommend commands from: $impeccable adapt, $impeccable animate, $impeccable audit, $impeccable bolder, $impeccable clarify, $impeccable colorize, $impeccable critique, $impeccable delight, $impeccable distill, $impeccable document, $impeccable harden, $impeccable layout, $impeccable onboard, $impeccable optimize, $impeccable overdrive, $impeccable polish, $impeccable quieter, $impeccable shape, $impeccable typeset
 - Order by the user's stated priorities first, then by impact
 - Each item's description should carry enough context that the command knows what to focus on
 - Map each Priority Issue to the appropriate command
 - Skip commands that would address zero issues
 - If the user chose a limited scope, only include items within that scope
 - If the user marked areas as off-limits, exclude commands that would touch those areas
-- End with `/impeccable polish` as the final step if any fixes were recommended
+- End with `$impeccable polish` as the final step if any fixes were recommended
 
 After presenting the summary, tell the user:
 
 > You can ask me to run these one at a time, all at once, or in any order you prefer.
 >
-> Re-run `/impeccable critique` after fixes to see your score improve.
+> Re-run `$impeccable critique` after fixes to see your score improve.
 
 ---
 
