@@ -74,15 +74,6 @@ const accountSettings = [
 const supportSettings = [
   {
     category: "Support",
-    description: "Resume your first-project checklist without changing completed work.",
-    href: "/workshop/getting-started",
-    icon: <ChartLineUp size={15} weight="regular" aria-hidden="true" />,
-    id: "getting-started",
-    notes: ["First project checklist", "Recovery links", "No completion claims"],
-    title: "Getting Started",
-  },
-  {
-    category: "Support",
     description: "Report workflow blockers, export issues, or confusing estimating details.",
     href: "/workshop/feedback",
     icon: <EnvelopeSimple size={15} weight="regular" aria-hidden="true" />,

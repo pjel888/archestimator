@@ -7,7 +7,6 @@ import {
   Clock,
   DotsSixVertical,
   FileText,
-  Globe,
   MapPin,
   Users,
 } from "@phosphor-icons/react/dist/ssr";
@@ -22,7 +21,6 @@ import {
 } from "@/lib/projects/status";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
-import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type {
   ProjectCardEstimateSheetSummary,
   ProjectFavoriteEstimateSheetSummary,
@@ -64,7 +62,6 @@ type LiveProjectCardProps = {
   pendingInviteCount?: number;
   setupStatus?: ProjectCardSetupStatus | null;
   setupNavigationDisabled?: boolean;
-  publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
   estimateSheets?: ProjectCardEstimateSheetSummary[];
@@ -219,7 +216,6 @@ function LiveProjectCardImpl({
   pendingInviteCount = 0,
   setupStatus = null,
   setupNavigationDisabled = false,
-  publicationSummary = null,
   sharedEstimateCount = 0,
   favoriteEstimateSheets = EMPTY_FAVORITE_ESTIMATE_SHEETS,
   estimateSheets,
@@ -474,46 +470,6 @@ function LiveProjectCardImpl({
               </p>
             </div>
           </div>
-        ) : null}
-        {showMeta && !isPendingInvite ? renderProjectVitals() : null}
-      </div>
-    );
-  }
-
-  function renderProjectVitals() {
-    const hasSharedEstimates = sharedEstimateCount > 0;
-    const isPublished = publicationSummary?.status === "published";
-    if (!isPublished && !hasSharedEstimates) return null;
-
-    return (
-      <div
-        data-project-card-vitals=""
-        className={cn(
-          "flex min-w-0 flex-wrap items-center gap-1",
-          viewMode === "large" ? "mt-2" : "mt-1.5",
-        )}
-        aria-label={`Project details for ${project.name}`}
-      >
-        {isPublished ? (
-          <span className="workshop-project-card-vital workshop-project-card-vital--published">
-            <Globe size={10} weight="regular" aria-hidden="true" />
-            <span>Published</span>
-            {typeof publicationSummary?.openCount === "number" &&
-            publicationSummary.openCount > 0 ? (
-              <span className="tabular-nums">
-                {publicationSummary.openCount} views
-              </span>
-            ) : null}
-          </span>
-        ) : null}
-        {hasSharedEstimates ? (
-          <span className="workshop-project-card-vital workshop-project-card-vital--shared">
-            <FileText size={10} weight="regular" aria-hidden="true" />
-            <span className="tabular-nums">
-              {sharedEstimateCount}{" "}
-              {sharedEstimateCount === 1 ? "estimate" : "estimates"}
-            </span>
-          </span>
         ) : null}
       </div>
     );

@@ -1393,7 +1393,6 @@ const ProjectCardRow = memo(function ProjectCardRow({
       pendingInviteCount={item.pendingInviteCount}
       setupStatus={setupStatus}
       setupNavigationDisabled={setupNavigationDisabled}
-      publicationSummary={item.publicationSummary}
       sharedEstimateCount={item.sharedEstimateCount}
       favoriteEstimateSheets={item.favoriteEstimateSheets}
       estimateSheets={item.estimateSheets}

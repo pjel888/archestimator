@@ -1,7 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 
 import { ProjectChromeAsync, ProjectHeaderChromeSkeleton } from "@/components/workshop/ProjectChromeAsync";
-import { FirstEstimateChecklist } from "@/components/workshop/FirstEstimateChecklist";
 import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
 import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
@@ -12,7 +11,6 @@ import { WorkshopShellFooterSlot } from "@/components/workshop/WorkshopShellFoot
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
-import { getCurrentActivationProgress } from "@/lib/onboarding/activation-actions";
 
 type ProjectLayoutProps = {
   children: ReactNode;
@@ -50,11 +48,6 @@ async function ProjectTitleAsync({ projectId }: { projectId: string }) {
   return <ProjectTitleBlock projectId={projectId} title={title} />;
 }
 
-async function FirstEstimateChecklistAsync() {
-  const progress = await getCurrentActivationProgress();
-  return <FirstEstimateChecklist progress={progress} />;
-}
-
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
 
@@ -85,7 +78,6 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       <div className="flex h-full min-h-0 overflow-hidden">
         <ProjectMiniSidebar projectId={projectId} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <Suspense fallback={null}><FirstEstimateChecklistAsync /></Suspense>
           <div className="min-h-0 flex-1 overflow-hidden">
             <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
           </div>
