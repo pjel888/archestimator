@@ -141,28 +141,72 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
 }
 
 type UploadedEstimateImage = {
+  bucket?: string;
+  uploadSessionId?: string;
+  assetId?: string;
+  scanStatus?: string;
+  path?: string;
+  thumbnailPath?: string;
   url: string;
   thumbnailUrl?: string;
+  optimizedBytes?: number;
+  contentType?: string;
+  width?: number;
+  height?: number;
+  thumbnailWidth?: number;
+  thumbnailHeight?: number;
   imageAsset?: EstimateRowImageAssetDescriptor;
 };
 
 async function uploadEstimateReferenceImage(
   file: File,
-  options: { signal?: AbortSignal; projectId?: string; estimateId?: string; rowItemId?: string } = {},
+  options: { signal?: AbortSignal; projectId?: string; estimateId?: string; rowItemId?: string; scope?: "library" | "project" } = {},
 ): Promise<UploadedEstimateImage> {
-  if (!options.projectId || !options.estimateId) {
+  if (options.scope !== "library" && (!options.projectId || !options.estimateId)) {
     throw new Error("Project and estimate are required to upload a reference image.");
   }
   const formData = new FormData();
-  formData.set("projectId", options.projectId);
-  formData.set("estimateId", options.estimateId);
-  if (options.rowItemId) formData.set("rowItemId", options.rowItemId);
+  if (options.scope !== "library") {
+    formData.set("projectId", options.projectId ?? "");
+    formData.set("estimateId", options.estimateId ?? "");
+    if (options.rowItemId) formData.set("rowItemId", options.rowItemId);
+  }
   formData.set("file", file);
-  return postUploadFormData<UploadedEstimateImage>("/api/estimate-row-images", formData, {
-    signal: options.signal,
-    fallbackMessage: "Could not upload image.",
-    timeoutMessage: "Image upload timed out. Try again.",
-  });
+  const uploaded = await postUploadFormData<UploadedEstimateImage>(
+    options.scope === "library" ? "/api/component-library/images" : "/api/estimate-row-images",
+    formData,
+    {
+      signal: options.signal,
+      fallbackMessage: "Could not upload image.",
+      timeoutMessage: "Image upload timed out. Try again.",
+    },
+  );
+  if (uploaded.imageAsset || options.scope !== "library") return uploaded;
+  if (!uploaded.assetId || !uploaded.uploadSessionId || !uploaded.bucket || !uploaded.path || !uploaded.contentType || !uploaded.scanStatus) {
+    throw new Error("Component image upload response was incomplete.");
+  }
+  return {
+    ...uploaded,
+    imageAsset: {
+      kind: "upload-asset",
+      schemaVersion: 1,
+      assetId: uploaded.assetId,
+      uploadSessionId: uploaded.uploadSessionId,
+      bucket: uploaded.bucket,
+      path: uploaded.path,
+      thumbnailPath: uploaded.thumbnailPath ?? null,
+      url: uploaded.url,
+      thumbnailUrl: uploaded.thumbnailUrl ?? null,
+      fileName: file.name,
+      contentType: uploaded.contentType,
+      sizeBytes: uploaded.optimizedBytes ?? file.size,
+      scanStatus: uploaded.scanStatus,
+      width: uploaded.width ?? null,
+      height: uploaded.height ?? null,
+      thumbnailWidth: uploaded.thumbnailWidth ?? null,
+      thumbnailHeight: uploaded.thumbnailHeight ?? null,
+    },
+  };
 }
 
 function validateEstimateReferenceImage(file: File) {
@@ -292,7 +336,7 @@ function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVari
   if (options.length > 0) return options;
   return [{
     id: item.priceOptionId ?? "current-variant",
-    label: "V1",
+    label: "Default",
     unit: item.unit,
     unitCost: item.itemCost,
     miscCost: 0,
@@ -319,14 +363,16 @@ function MaterialVariantControl({
   const variantOptions = getMaterialVariantOptions(item);
   const activeOptionId = getActiveMaterialVariantId(item, variantOptions);
   const activeOptionIndex = Math.max(0, variantOptions.findIndex((option) => option.id === activeOptionId));
-  const variantLabel = `V${activeOptionIndex + 1}`;
+  const activeOption = variantOptions[activeOptionIndex];
+  const variantLabel = String(activeOptionIndex + 1);
+  const variantTitle = activeOption?.label ?? "Default";
   const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const controlClass =
     "inline-flex h-3.5 w-fit max-w-full min-w-0 items-center justify-start gap-0.5 self-start px-0 text-[8px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40";
 
   if (!canEditEstimate || !onSelectVariant) {
     return (
-      <span className={controlClass} title={`Variant: ${variantLabel}`}>
+      <span className={controlClass} title={`Variant: ${variantTitle}`}>
         <CaretDown size={8} weight="regular" className="shrink-0" aria-hidden="true" />
         <span className="truncate">{variantLabel}</span>
       </span>
@@ -343,7 +389,7 @@ function MaterialVariantControl({
           type="button"
           className={controlClass}
           aria-label={`Change variant for ${item.material}`}
-          title={`Variant: ${variantLabel}`}
+          title={`Variant: ${variantTitle}`}
           onClick={(event) => event.stopPropagation()}
         >
           <CaretDown size={8} weight="regular" className="shrink-0" aria-hidden="true" />
@@ -351,11 +397,11 @@ function MaterialVariantControl({
         </button>
       )}
     >
-      {variantOptions.map((option, index) => (
+      {variantOptions.map((option) => (
         <DropdownMenu.Item
           key={option.id}
           id={option.id}
-          label={`V${index + 1}`}
+          label={option.label}
           selected={option.id === activeOptionId}
           disabled={!hasSelectableVariants}
           onClick={() => onSelectVariant(option)}
@@ -440,6 +486,7 @@ function ExpressMaterialImageEditor({
   itemId,
   projectId,
   estimateId,
+  imageUploadScope,
   onActiveChange,
   onCommitImageUrl,
 }: {
@@ -451,6 +498,7 @@ function ExpressMaterialImageEditor({
   itemId: string;
   projectId?: string;
   estimateId?: string;
+  imageUploadScope: "library" | "project";
   onActiveChange: (active: boolean) => void;
   onCommitImageUrl: (nextImageUrl: string, imageAsset?: EstimateRowImageAssetDescriptor | null) => void;
 }) {
@@ -519,6 +567,7 @@ function ExpressMaterialImageEditor({
         projectId,
         estimateId,
         rowItemId: itemId,
+        scope: imageUploadScope,
       });
       if (imageUploadAttemptRef.current === attemptId) {
         onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
@@ -535,7 +584,7 @@ function ExpressMaterialImageEditor({
     } finally {
       if (imageUploadAbortRef.current === abortController) imageUploadAbortRef.current = null;
     }
-  }, [draftState, estimateId, itemId, onActiveChange, onCommitImageUrl, projectId, replaceSelectedImagePreview]);
+  }, [draftState, estimateId, imageUploadScope, itemId, onActiveChange, onCommitImageUrl, projectId, replaceSelectedImagePreview]);
 
   useEffect(() => {
     if (!selectedImage) return;
@@ -854,6 +903,7 @@ function ExpressMaterialEditor({
             itemId={item.id}
             projectId={projectId}
             estimateId={estimateId}
+            imageUploadScope={classifyEstimateRowSource(item) === "linked-library" ? "library" : "project"}
             onActiveChange={onActiveChange}
             onCommitImageUrl={(nextImageUrl, imageAsset) => {
               const normalizedImageUrl = nextImageUrl.trim();

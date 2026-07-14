@@ -54,6 +54,50 @@ type CapturedStatement = {
 
 type FakeRowItem = Record<string, D1Value | undefined>;
 
+type FakeComponentAttachment = {
+  id: string;
+  owner_scope: "project";
+  price_option_id: string;
+  item_id: null;
+  project_id: string;
+  project_component_id: string;
+  workspace_id: string;
+  upload_asset_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  attachment_kind: "pdf" | "excel";
+  metadata_json: string;
+  created_by: string;
+  review_status: "uploaded" | "approved" | "rejected" | "superseded";
+  applicable_cost_entry_id: null;
+  is_current_approved: number;
+  review_revision: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type FakeUploadAsset = {
+  id: string;
+  workspace_id: string;
+  actor_user_id: string;
+  project_id: string;
+  surface: "component-attachment";
+  target_entity_type: "project-component";
+  target_entity_id: string;
+  status: "finalized" | "removed";
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  scan_status: "pending" | "clean";
+  scan_override_expires_at: null;
+  storage_bucket: "component-attachments";
+  storage_path: string;
+  metadata_json: string;
+};
+
 function parseJsonValue(value: D1Value | undefined) {
   if (typeof value !== "string") return value;
   return JSON.parse(value);
@@ -95,8 +139,9 @@ function applyEstimateRowUpdate(database: FakeD1Database, statement: CapturedSta
     .slice(statement.sql.indexOf(" SET ") + 5, statement.sql.indexOf(" WHERE "))
     .split(",")
     .map((assignment) => assignment.trim().split(" = ")[0]);
-  const rowId = String(statement.values[statement.values.length - 2] ?? "");
-  const estimateId = String(statement.values[statement.values.length - 1] ?? "");
+  const hasRevisionGuard = statement.sql.includes("AND row_revision = ?");
+  const rowId = String(statement.values[statement.values.length - (hasRevisionGuard ? 3 : 2)] ?? "");
+  const estimateId = String(statement.values[statement.values.length - (hasRevisionGuard ? 2 : 1)] ?? "");
   const row = database.rowItems.get(rowId);
   if (!row || row.estimate_id !== estimateId) return;
   assignments.forEach((column, index) => {
@@ -125,6 +170,56 @@ function createCurrentUserContext(): CurrentUserContext {
   };
 }
 
+function makeProjectComponentVariantRow(input: {
+  id: string;
+  selectedPriceOptionId: string;
+  description: string;
+  unit: string;
+  unitCost: number;
+  quantity: number;
+  miscCost?: number;
+  rowRevision: number;
+  priceOptions: Array<Record<string, unknown>>;
+}) {
+  const selectedOption = input.priceOptions.find((option) => option.id === input.selectedPriceOptionId);
+  return {
+    id: input.id,
+    estimate_id: ESTIMATE_ID,
+    node_id: NODE_ID,
+    material: "Project cabinet",
+    description: input.description,
+    supplier: "Local shop",
+    unit: input.unit,
+    quantity: input.quantity,
+    quantity_base: null,
+    quantity_contingency_amount: null,
+    unit_cost: input.unitCost,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
+    misc_cost: input.miscCost ?? 0,
+    source_snapshot_json: JSON.stringify({
+      sourceType: "project_component",
+      sourceComponentId: "project-component-variants",
+      sourceEstimateRowId: input.id,
+      priceOptionId: input.selectedPriceOptionId,
+      priceOptionLabel: selectedOption?.label,
+      description: input.description,
+      unit: input.unit,
+      unit_cost: input.unitCost,
+      sku: selectedOption?.sku ?? null,
+      imageUrl: selectedOption?.thumbnailPath ?? null,
+      priceOptions: input.priceOptions,
+    }),
+    metadata_json: JSON.stringify({}),
+    link_state: "unlinked",
+    source_library_item_id: null,
+    sort_order: input.rowRevision * 1000,
+    row_revision: input.rowRevision,
+    created_at: "2026-07-06T00:00:00.000Z",
+    updated_at: "2026-07-06T00:00:00.000Z",
+  } satisfies FakeRowItem;
+}
+
 class FakeD1Statement<T = Record<string, unknown>> {
   values: D1Value[] = [];
 
@@ -146,6 +241,13 @@ class FakeD1Statement<T = Record<string, unknown>> {
       const estimate = this.database.estimates.get(estimateId);
       const projectCreatorUserId = this.values[3];
       return estimate && projectCreatorUserId === USER_ID ? ({ allowed: 1 } as R) : null;
+    }
+
+    if (this.sql.includes("SELECT 1 AS allowed") && this.sql.includes("FROM projects project")) {
+      const projectId = String(this.values[0] ?? "");
+      return this.database.projects.has(projectId) && this.values.includes(USER_ID)
+        ? ({ allowed: 1 } as R)
+        : null;
     }
 
     if (this.sql.includes("SELECT id, payload") && this.sql.includes("FROM estimate_sheet_events")) {
@@ -189,6 +291,18 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return project ? ({ ...project } as R) : null;
     }
 
+    if (this.sql.includes("SELECT row_item.*") && this.sql.includes("project.workspace_id")) {
+      const rowId = String(this.values[0] ?? "");
+      const estimateId = String(this.values[1] ?? "");
+      const projectId = String(this.values[2] ?? "");
+      const row = this.database.rowItems.get(rowId);
+      const estimate = this.database.estimates.get(estimateId);
+      const project = estimate ? this.database.projects.get(estimate.project_id) : null;
+      return row && row.estimate_id === estimateId && estimate?.project_id === projectId && project
+        ? ({ ...row, workspace_id: project.workspace_id } as R)
+        : null;
+    }
+
     if (this.sql.includes("FROM estimate_row_items") && this.sql.includes("WHERE estimate_id = ?")) {
       const estimateId = String(this.values[0] ?? "");
       const rowId = String(this.values[1] ?? "");
@@ -201,6 +315,31 @@ class FakeD1Statement<T = Record<string, unknown>> {
 
   async all<R = T>(): Promise<D1Result<R>> {
     this.database.allStatements.push(this);
+    if (this.sql.includes("row_item.id AS row_id") && this.sql.includes("project.id = ?")) {
+      const projectId = String(this.values[0] ?? "");
+      const sourceRowId = String(this.values[1] ?? "");
+      const componentId = String(this.values[2] ?? "");
+      const results = [...this.database.rowItems.values()]
+        .filter((row) => {
+          const estimate = this.database.estimates.get(String(row.estimate_id ?? ""));
+          return estimate?.project_id === projectId
+            && (row.id === sourceRowId || projectComponentIdentity(row) === componentId);
+        })
+        .map((row) => {
+          const sourceSnapshot = readJsonRecord(row.source_snapshot_json);
+          const metadata = readJsonRecord(row.metadata_json);
+          return {
+            row_id: row.id,
+            row_revision: row.row_revision,
+            project_id: projectId,
+            project_name: "Project",
+            estimate_id: row.estimate_id,
+            estimate_name: "Estimate",
+            selected_price_option_id: sourceSnapshot.priceOptionId ?? metadata.priceOptionId ?? null,
+          };
+        }) as R[];
+      return { results, success: true };
+    }
     if (this.sql.includes("FROM estimate_row_items row_item") && this.sql.includes("INNER JOIN estimates estimate")) {
       const projectId = String(this.values[0] ?? "");
       const excludedRowId = String(this.values[1] ?? "");
@@ -213,6 +352,22 @@ class FakeD1Statement<T = Record<string, unknown>> {
             && projectComponentIdentity(row) === componentId;
         })
         .map((row) => ({ ...row })) as R[];
+      return { results, success: true };
+    }
+    if (this.sql.includes("FROM component_variant_attachments") && this.sql.includes("owner_scope = 'project'")) {
+      const [workspaceId, projectId, componentId] = this.values.map(String);
+      const results = [...this.database.componentAttachments.values()]
+        .filter((attachment) => attachment.workspace_id === workspaceId
+          && attachment.project_id === projectId
+          && attachment.project_component_id === componentId)
+        .map((attachment) => ({ ...attachment })) as R[];
+      return { results, success: true };
+    }
+    if (this.sql.includes("FROM upload_assets") && this.sql.includes("WHERE id IN (")) {
+      const ids = new Set(this.values.map(String));
+      const results = [...this.database.uploadAssets.values()]
+        .filter((asset) => ids.has(asset.id))
+        .map((asset) => ({ ...asset })) as R[];
       return { results, success: true };
     }
     if (this.sql.includes("FROM estimate_nodes") && (this.sql.includes("WHERE estimate_id = ?") || this.sql.includes("node.estimate_id = ?"))) {
@@ -342,6 +497,58 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (this.sql.includes("INSERT INTO component_variant_attachments")) {
+      const [
+        id, priceOptionId, projectId, projectComponentId, workspaceId, uploadAssetId,
+        storageBucket, storagePath, fileName, contentType, sizeBytes, attachmentKind,
+        metadataJson, createdBy, createdAt, updatedAt,
+      ] = this.values;
+      this.database.componentAttachments.set(String(id), {
+        id: String(id),
+        owner_scope: "project",
+        price_option_id: String(priceOptionId),
+        item_id: null,
+        project_id: String(projectId),
+        project_component_id: String(projectComponentId),
+        workspace_id: String(workspaceId),
+        upload_asset_id: String(uploadAssetId),
+        storage_bucket: String(storageBucket),
+        storage_path: String(storagePath),
+        file_name: String(fileName),
+        content_type: String(contentType),
+        size_bytes: Number(sizeBytes),
+        attachment_kind: String(attachmentKind) as "pdf" | "excel",
+        metadata_json: String(metadataJson),
+        created_by: String(createdBy),
+        review_status: "uploaded",
+        applicable_cost_entry_id: null,
+        is_current_approved: 0,
+        review_revision: 1,
+        created_at: String(createdAt),
+        updated_at: String(updatedAt),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (this.sql.includes("UPDATE component_variant_attachments") && this.sql.includes("review_status = 'superseded'")) {
+      const attachmentId = String(this.values[3] ?? "");
+      const attachment = this.database.componentAttachments.get(attachmentId);
+      if (attachment) {
+        attachment.review_status = "superseded";
+        attachment.is_current_approved = 0;
+        attachment.review_revision += 1;
+        attachment.updated_at = String(this.values[2] ?? attachment.updated_at);
+      }
+      return { success: true, meta: { changes: attachment ? 1 : 0 } };
+    }
+
+    if (this.sql.includes("UPDATE upload_assets") && this.sql.includes("status = 'removed'")) {
+      const assetId = String(this.values[1] ?? "");
+      const asset = this.database.uploadAssets.get(assetId);
+      if (asset) asset.status = "removed";
+      return { success: true, meta: { changes: asset ? 1 : 0 } };
+    }
+
     return { success: true, meta: { changes: 0 } };
   }
 
@@ -366,6 +573,8 @@ class FakeD1Database implements D1DatabaseLike {
     [NODE_ID, { id: NODE_ID, estimate_id: ESTIMATE_ID, parent_id: "old-parent", sort_order: 10 }],
   ]);
   rowItems = new Map<string, FakeRowItem>();
+  componentAttachments = new Map<string, FakeComponentAttachment>();
+  uploadAssets = new Map<string, FakeUploadAsset>();
   historyEvents: FakeHistoryEvent[] = [];
 
   prepare<T = Record<string, unknown>>(sql: string) {
@@ -753,6 +962,513 @@ describe("EstimateActionsD1Client reorder history", () => {
     expect(database.historyEvents[0]).toMatchObject({
       event_type: "row_updated",
       payload: { rowId: "row-1", propagatedRowIds: ["row-2"] },
+    });
+  });
+
+  it("updates only rows selecting the edited project component variant while sharing the full graph", async () => {
+    const database = new FakeD1Database();
+    const previousPriceOptions = [
+      {
+        id: "variant-1",
+        label: "Default",
+        sku: "STD-1",
+        variantDescription: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        miscCost: 0,
+        currency: "PHP",
+        thumbnailPath: "/variant-1.webp",
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: "variant-2",
+        label: "Option 2",
+        sku: "PRM-1",
+        variantDescription: "Premium cabinet",
+        unit: "lm",
+        unitCost: 200,
+        miscCost: 0,
+        currency: "PHP",
+        thumbnailPath: "/variant-2.webp",
+        isActive: true,
+        isDefault: false,
+      },
+    ];
+    const nextPriceOptions = [
+      { ...previousPriceOptions[0], isDefault: false },
+      {
+        ...previousPriceOptions[1],
+        label: "Premium",
+        sku: "PRM-2",
+        variantDescription: "Updated premium cabinet",
+        unit: "set",
+        unitCost: 275,
+        thumbnailPath: "/variant-2-new.webp",
+        isDefault: true,
+      },
+    ];
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", makeProjectComponentVariantRow({
+        id: "row-1",
+        selectedPriceOptionId: "variant-1",
+        description: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        quantity: 2,
+        rowRevision: 1,
+        priceOptions: previousPriceOptions,
+      })],
+      ["row-2", makeProjectComponentVariantRow({
+        id: "row-2",
+        selectedPriceOptionId: "variant-1",
+        description: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        quantity: 5,
+        miscCost: 12,
+        rowRevision: 3,
+        priceOptions: previousPriceOptions,
+      })],
+      ["row-3", makeProjectComponentVariantRow({
+        id: "row-3",
+        selectedPriceOptionId: "variant-2",
+        description: "Premium cabinet",
+        unit: "lm",
+        unitCost: 200,
+        quantity: 7,
+        miscCost: 25,
+        rowRevision: 5,
+        priceOptions: previousPriceOptions,
+      })],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        material: "Project cabinet",
+        description: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-variants",
+          sourceEstimateRowId: "row-1",
+          priceOptionId: "variant-1",
+          priceOptionLabel: "Default",
+          priceOptions: nextPriceOptions,
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "project-variant-option-2-update",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.rowItems.get("row-2")).toMatchObject({
+      description: "Standard cabinet",
+      unit: "lm",
+      unit_cost: 100,
+      quantity: 5,
+      misc_cost: 12,
+      row_revision: 4,
+    });
+    expect(database.rowItems.get("row-3")).toMatchObject({
+      description: "Updated premium cabinet",
+      unit: "set",
+      unit_cost: 275,
+      quantity: 7,
+      misc_cost: 25,
+      row_revision: 6,
+    });
+    expect(readJsonRecord(database.rowItems.get("row-2")?.source_snapshot_json)).toMatchObject({
+      priceOptionId: "variant-1",
+      priceOptionLabel: "Default",
+      priceOptions: nextPriceOptions,
+    });
+    expect(readJsonRecord(database.rowItems.get("row-3")?.source_snapshot_json)).toMatchObject({
+      priceOptionId: "variant-2",
+      priceOptionLabel: "Premium",
+      description: "Updated premium cabinet",
+      unit: "set",
+      unit_cost: 275,
+      sku: "PRM-2",
+      imageUrl: "/variant-2-new.webp",
+      imageAsset: null,
+      priceOptions: nextPriceOptions,
+    });
+  });
+
+  it("persists project variant attachment ownership with the row graph and history batch", async () => {
+    const database = new FakeD1Database();
+    const attachmentId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const assetId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const priceOptions = [
+      {
+        id: "variant-1",
+        label: "Default",
+        variantDescription: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: "variant-2",
+        label: "Premium",
+        variantDescription: "Premium cabinet",
+        unit: "set",
+        unitCost: 200,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: false,
+      },
+    ];
+    const attachment = {
+      id: attachmentId,
+      assetId,
+      bucket: "component-attachments",
+      path: `${WORKSPACE_ID}/${USER_ID}/cabinet-spec.pdf`,
+      fileName: "cabinet-spec.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 2048,
+      kind: "pdf",
+      scanStatus: "clean",
+      reviewStatus: "approved",
+      isCurrentApproved: true,
+    };
+    const nextPriceOptions = [
+      { ...priceOptions[0], attachments: [attachment] },
+      priceOptions[1],
+    ];
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", makeProjectComponentVariantRow({
+        id: "row-1", selectedPriceOptionId: "variant-1", description: "Standard cabinet", unit: "lm", unitCost: 100, quantity: 2, rowRevision: 1, priceOptions,
+      })],
+      ["row-2", makeProjectComponentVariantRow({
+        id: "row-2", selectedPriceOptionId: "variant-2", description: "Premium cabinet", unit: "set", unitCost: 200, quantity: 3, rowRevision: 2, priceOptions,
+      })],
+    ]);
+    database.uploadAssets.set(assetId, {
+      id: assetId,
+      workspace_id: WORKSPACE_ID,
+      actor_user_id: USER_ID,
+      project_id: PROJECT_ID,
+      surface: "component-attachment",
+      target_entity_type: "project-component",
+      target_entity_id: "project-component-variants",
+      status: "finalized",
+      file_name: attachment.fileName,
+      content_type: attachment.contentType,
+      size_bytes: attachment.sizeBytes,
+      scan_status: "pending",
+      scan_override_expires_at: null,
+      storage_bucket: "component-attachments",
+      storage_path: attachment.path,
+      metadata_json: JSON.stringify({ projectId: PROJECT_ID, projectComponentId: "project-component-variants" }),
+    });
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        description: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-variants",
+          sourceEstimateRowId: "row-1",
+          priceOptionId: "variant-1",
+          priceOptionLabel: "Default",
+          priceOptions: nextPriceOptions,
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "project-variant-attachment-save",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.componentAttachments.get(attachmentId)).toMatchObject({
+      owner_scope: "project",
+      project_id: PROJECT_ID,
+      project_component_id: "project-component-variants",
+      price_option_id: "variant-1",
+      upload_asset_id: assetId,
+      review_status: "uploaded",
+    });
+    const savedAttachment = ((readJsonRecord(database.rowItems.get("row-1")?.source_snapshot_json).priceOptions as Array<Record<string, unknown>>)[0]?.attachments as Array<Record<string, unknown>>)[0];
+    expect(savedAttachment).toMatchObject({
+      id: attachmentId,
+      assetId,
+      scanStatus: "pending",
+      reviewStatus: "uploaded",
+      isCurrentApproved: false,
+    });
+    expect(readJsonRecord(database.rowItems.get("row-2")?.source_snapshot_json)).toMatchObject({
+      priceOptions: expect.arrayContaining([
+        expect.objectContaining({ id: "variant-1", attachments: [expect.objectContaining({ id: attachmentId })] }),
+      ]),
+    });
+    expect(database.historyEvents[0]?.changed_fields).toContain("component_variant_attachments");
+    expect(database.batchStatements.some((statement) => statement.sql.includes("project_attachment_option_membership_guard"))).toBe(true);
+    expect(database.batchStatements.some((statement) => statement.sql.includes("INSERT INTO component_variant_attachments"))).toBe(true);
+  });
+
+  it("supersedes only attachments removed from their project variant", async () => {
+    const database = new FakeD1Database();
+    const attachmentOneId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const attachmentTwoId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const assetOneId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const assetTwoId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const makeAttachment = (id: string, assetId: string, fileName: string) => ({
+      id,
+      assetId,
+      bucket: "component-attachments",
+      path: `${WORKSPACE_ID}/${USER_ID}/${fileName}`,
+      fileName,
+      contentType: "application/pdf",
+      sizeBytes: 1024,
+      kind: "pdf" as const,
+      scanStatus: "pending",
+      reviewStatus: "uploaded" as const,
+      isCurrentApproved: false,
+    });
+    const attachmentOne = makeAttachment(attachmentOneId, assetOneId, "standard.pdf");
+    const attachmentTwo = makeAttachment(attachmentTwoId, assetTwoId, "premium.pdf");
+    const priceOptions = [
+      { id: "variant-1", label: "Default", variantDescription: "Standard", unit: "lm", unitCost: 100, miscCost: 0, currency: "PHP", attachments: [attachmentOne], isActive: true, isDefault: true },
+      { id: "variant-2", label: "Premium", variantDescription: "Premium", unit: "set", unitCost: 200, miscCost: 0, currency: "PHP", attachments: [attachmentTwo], isActive: true, isDefault: false },
+    ];
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", makeProjectComponentVariantRow({ id: "row-1", selectedPriceOptionId: "variant-1", description: "Standard", unit: "lm", unitCost: 100, quantity: 1, rowRevision: 1, priceOptions })],
+      ["row-2", makeProjectComponentVariantRow({ id: "row-2", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 200, quantity: 1, rowRevision: 2, priceOptions })],
+    ]);
+    const now = "2026-07-14T00:00:00.000Z";
+    for (const [priceOptionId, attachment] of [["variant-1", attachmentOne], ["variant-2", attachmentTwo]] as const) {
+      database.componentAttachments.set(attachment.id, {
+        id: attachment.id,
+        owner_scope: "project",
+        price_option_id: priceOptionId,
+        item_id: null,
+        project_id: PROJECT_ID,
+        project_component_id: "project-component-variants",
+        workspace_id: WORKSPACE_ID,
+        upload_asset_id: attachment.assetId,
+        storage_bucket: attachment.bucket,
+        storage_path: attachment.path,
+        file_name: attachment.fileName,
+        content_type: attachment.contentType,
+        size_bytes: attachment.sizeBytes,
+        attachment_kind: attachment.kind,
+        metadata_json: JSON.stringify({ assetId: attachment.assetId, scanStatus: "pending" }),
+        created_by: USER_ID,
+        review_status: "uploaded",
+        applicable_cost_entry_id: null,
+        is_current_approved: 0,
+        review_revision: 1,
+        created_at: now,
+        updated_at: now,
+      });
+      database.uploadAssets.set(attachment.assetId, {
+        id: attachment.assetId,
+        workspace_id: WORKSPACE_ID,
+        actor_user_id: USER_ID,
+        project_id: PROJECT_ID,
+        surface: "component-attachment",
+        target_entity_type: "project-component",
+        target_entity_id: "project-component-variants",
+        status: "finalized",
+        file_name: attachment.fileName,
+        content_type: attachment.contentType,
+        size_bytes: attachment.sizeBytes,
+        scan_status: "pending",
+        scan_override_expires_at: null,
+        storage_bucket: "component-attachments",
+        storage_path: attachment.path,
+        metadata_json: JSON.stringify({ projectId: PROJECT_ID }),
+      });
+    }
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        description: "Standard",
+        unit: "lm",
+        unitCost: 100,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-variants",
+          sourceEstimateRowId: "row-1",
+          priceOptionId: "variant-1",
+          priceOptionLabel: "Default",
+          priceOptions: [
+            { ...priceOptions[0], attachments: [] },
+            priceOptions[1],
+          ],
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "project-variant-attachment-remove",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.componentAttachments.get(attachmentOneId)?.review_status).toBe("superseded");
+    expect(database.uploadAssets.get(assetOneId)?.status).toBe("removed");
+    expect(database.componentAttachments.get(attachmentTwoId)?.review_status).toBe("uploaded");
+    expect(database.uploadAssets.get(assetTwoId)?.status).toBe("finalized");
+    expect(database.historyEvents[0]?.payload).toMatchObject({
+      attachments: { createdAttachmentIds: [], supersededAttachmentIds: [attachmentOneId] },
+    });
+  });
+
+  it("moves only rows using a removed project variant to its explicit replacement", async () => {
+    const database = new FakeD1Database();
+    const previousPriceOptions = [
+      { id: "variant-1", label: "Default", variantDescription: "Standard", unit: "lm", unitCost: 100, miscCost: 0, currency: "PHP", isActive: true, isDefault: true },
+      { id: "variant-2", label: "Option 2", variantDescription: "Premium", unit: "set", unitCost: 250, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+    ];
+    const nextPriceOptions = [previousPriceOptions[0]];
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", makeProjectComponentVariantRow({
+        id: "row-1", selectedPriceOptionId: "variant-1", description: "Standard", unit: "lm", unitCost: 100, quantity: 2, rowRevision: 1, priceOptions: previousPriceOptions,
+      })],
+      ["row-2", makeProjectComponentVariantRow({
+        id: "row-2", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 250, quantity: 9, miscCost: 30, rowRevision: 3, priceOptions: previousPriceOptions,
+      })],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      removed_price_option_replacements: { "variant-2": "variant-1" },
+      row_patch: {
+        description: "Standard",
+        unit: "lm",
+        unitCost: 100,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-variants",
+          sourceEstimateRowId: "row-1",
+          priceOptionId: "variant-1",
+          priceOptionLabel: "Default",
+          priceOptions: nextPriceOptions,
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "project-variant-option-2-replaced",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.rowItems.get("row-2")).toMatchObject({
+      description: "Standard",
+      unit: "lm",
+      unit_cost: 100,
+      quantity: 9,
+      misc_cost: 30,
+      row_revision: 4,
+    });
+    expect(readJsonRecord(database.rowItems.get("row-2")?.source_snapshot_json)).toMatchObject({
+      priceOptionId: "variant-1",
+      priceOptionLabel: "Default",
+      priceOptions: nextPriceOptions,
+    });
+  });
+
+  it("rejects deleting a used project variant without an explicit replacement", async () => {
+    const database = new FakeD1Database();
+    const previousPriceOptions = [
+      { id: "variant-1", label: "Default", variantDescription: "Standard", unit: "lm", unitCost: 100, miscCost: 0, currency: "PHP", isActive: true, isDefault: true },
+      { id: "variant-2", label: "Option 2", variantDescription: "Premium", unit: "set", unitCost: 250, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+    ];
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", makeProjectComponentVariantRow({
+        id: "row-1", selectedPriceOptionId: "variant-1", description: "Standard", unit: "lm", unitCost: 100, quantity: 2, rowRevision: 1, priceOptions: previousPriceOptions,
+      })],
+      ["row-2", makeProjectComponentVariantRow({
+        id: "row-2", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 250, quantity: 9, rowRevision: 3, priceOptions: previousPriceOptions,
+      })],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        description: "Standard",
+        unit: "lm",
+        unitCost: 100,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-variants",
+          sourceEstimateRowId: "row-1",
+          priceOptionId: "variant-1",
+          priceOptionLabel: "Default",
+          priceOptions: [previousPriceOptions[0]],
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "project-variant-option-2-rejected",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe("Choose an active replacement for every used project component variant before saving.");
+    expect(database.rowItems.get("row-1")?.row_revision).toBe(1);
+    expect(database.rowItems.get("row-2")?.row_revision).toBe(3);
+    expect(database.batchStatements).toEqual([]);
+  });
+
+  it("reports project variant usage counts for the edit modal", async () => {
+    const database = new FakeD1Database();
+    const priceOptions = [
+      { id: "variant-1", label: "Default", variantDescription: "Standard", unit: "lm", unitCost: 100, miscCost: 0, currency: "PHP", isActive: true, isDefault: true },
+      { id: "variant-2", label: "Option 2", variantDescription: "Premium", unit: "set", unitCost: 250, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+    ];
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", makeProjectComponentVariantRow({
+        id: "row-1", selectedPriceOptionId: "variant-1", description: "Standard", unit: "lm", unitCost: 100, quantity: 2, rowRevision: 1, priceOptions,
+      })],
+      ["row-2", makeProjectComponentVariantRow({
+        id: "row-2", selectedPriceOptionId: "variant-1", description: "Standard", unit: "lm", unitCost: 100, quantity: 3, rowRevision: 2, priceOptions,
+      })],
+      ["row-3", makeProjectComponentVariantRow({
+        id: "row-3", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 250, quantity: 4, rowRevision: 3, priceOptions,
+      })],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("preview_estimate_component_edit_impact", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.data).toMatchObject({
+      componentKind: "project",
+      instanceCount: 3,
+      optionUsageCounts: {
+        "variant-1": 2,
+        "variant-2": 1,
+      },
     });
   });
 

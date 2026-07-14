@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { canEditEstimateInD1, isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { buildProjectComponentAttachmentDeleteRetentionStatements } from "@/lib/estimates/project-component-attachment-retention";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -1432,35 +1433,62 @@ async function deleteEstimateRowInD1(database: D1DatabaseLike, input: {
   if (!context || context.project_id !== input.projectId) throw new Error("Target estimate was not found for package Apply.");
   if (!row) throw new Error("Estimate row was not found for package Apply.");
   if (readNumber(row.row_revision) !== input.expectedRowRevision) throw new Error("estimate_sheet_row_revision_conflict");
-  await run(
-    database,
-    `
-      DELETE FROM estimate_row_items
-      WHERE id = ?
-        AND estimate_id = ?
-    `,
-    [input.targetRowId, input.estimateId],
-  );
   const payload = {
     rowId: input.targetRowId,
     nodeId: row.node_id ?? "",
     deletedRow: { id: input.targetRowId, nodeId: row.node_id },
     idempotent: false,
   };
-  await insertEstimateEvent(database, {
-    estimateId: input.estimateId,
-    workspaceId: context.workspace_id,
-    projectId: input.projectId,
-    estimateNodeId: row.node_id,
-    targetRowId: input.targetRowId,
-    eventType: "estimate_row_deleted",
-    correlationId: input.correlationId,
-    actorUserId: input.actingUserId,
-    changedFields: ["estimate_row_items"],
-    oldSnapshot: row,
-    payload,
-    metadata: { source: "ai-package-builder-apply" },
-  });
+  const eventId = randomUUID();
+  const deletedAt = nowIso();
+  await runBatch(database, [
+    ...buildProjectComponentAttachmentDeleteRetentionStatements({
+      workspaceId: context.workspace_id,
+      projectId: input.projectId,
+      sourceDeleteEventId: eventId,
+      deletedRows: [row],
+      deletedAt,
+    }),
+    {
+      sql: `
+        DELETE FROM estimate_row_items
+        WHERE id = ?
+          AND estimate_id = ?
+      `,
+      values: [input.targetRowId, input.estimateId],
+    },
+    {
+      sql: `
+        INSERT INTO estimate_sheet_events (
+          id, estimate_id, workspace_id, project_id, estimate_node_id,
+          estimate_tab_id, target_row_id, event_type, event_source,
+          correlation_id, actor_user_id, changed_fields, row_context,
+          old_snapshot, new_snapshot, payload, metadata, total_delta, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'server_action', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      values: [
+        eventId,
+        input.estimateId,
+        context.workspace_id,
+        input.projectId,
+        row.node_id,
+        null,
+        input.targetRowId,
+        "estimate_row_deleted",
+        input.correlationId,
+        input.actingUserId,
+        ["estimate_row_items"],
+        {},
+        row,
+        null,
+        payload,
+        { source: "ai-package-builder-apply" },
+        null,
+        deletedAt,
+      ],
+    },
+  ]);
   return payload;
 }
 

@@ -13,14 +13,16 @@ describe("estimate tab domain client state", () => {
 
     expect(source).toContain('tabs: (estimateId: string) => ["estimate", estimateId, "tabs"] as const');
     expect(source).toContain('tabTree: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "area-tree"] as const');
+    expect(source).toContain('tabLoadLimit: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "load-limit"] as const');
     expect(source).toContain('areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const');
   });
 
-  it("does not refetch server-seeded estimate trees on mount", () => {
+  it("uses stale-aware mount refetching for server-seeded estimate trees", () => {
     const source = readFileSync("src/hooks/use-estimate-query.ts", "utf8");
 
-    const refetchOnMountGuards = source.match(/refetchOnMount: false/g) ?? [];
+    const refetchOnMountGuards = source.match(/refetchOnMount: true/g) ?? [];
     expect(refetchOnMountGuards.length).toBeGreaterThanOrEqual(2);
+    expect(source.match(/staleTime: 30_000/g)?.length).toBeGreaterThanOrEqual(2);
     expect(source).toContain("fetchEstimateTree({ projectId, estimateId })");
     expect(source).toContain("fetchEstimateTabTree({ projectId, estimateId, tabId })");
   });

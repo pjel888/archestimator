@@ -13,11 +13,20 @@ const repositoryMocks = vi.hoisted(() => ({
   clearEstimateRouteContextProcessCache: vi.fn(),
 }));
 const cacheMocks = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
+const storageMocks = vi.hoisted(() => ({
+  uploadObject: vi.fn(),
+  removeObjects: vi.fn(),
+  downloadObject: vi.fn(),
+  createSignedReadUrl: vi.fn(),
+  getPublicUrl: vi.fn(),
+}));
+const runtimeStorageMocks = vi.hoisted(() => ({ createRuntimeUploadStorageProvider: vi.fn() }));
 
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
 vi.mock("next/cache", () => cacheMocks);
+vi.mock("@/lib/uploads/runtime-storage-provider", () => runtimeStorageMocks);
 
 type StatementRecord = {
   sql: string;
@@ -31,6 +40,10 @@ function makePromotionD1Database(options: {
   existingPayload?: Record<string, unknown> | null;
   existingLibraryItem?: { item_id: string; active_price_option_id: string | null } | null;
   sourceWorkspaceId?: string;
+  sourceSnapshot?: Record<string, unknown>;
+  sourceMetadata?: Record<string, unknown>;
+  uploadAssets?: Record<string, Record<string, unknown>>;
+  attachmentBindings?: Record<string, Record<string, unknown>>;
 } = {}) {
   const statements: StatementRecord[] = [];
   const firstStatements: StatementRecord[] = [];
@@ -51,8 +64,8 @@ function makePromotionD1Database(options: {
     misc_cost: 75,
     contingency_percentage: 0,
     adjustment_percentage: 0,
-    source_snapshot_json: "{}",
-    metadata_json: "{\"expressComponent\":{\"created\":true}}",
+    source_snapshot_json: JSON.stringify(options.sourceSnapshot ?? {}),
+    metadata_json: JSON.stringify(options.sourceMetadata ?? { expressComponent: { created: true } }),
     source_library_item_id: null,
     link_state: "detached",
     row_revision: 2,
@@ -79,6 +92,12 @@ function makePromotionD1Database(options: {
     }
     if (sql.includes("FROM cost_library_items") && sql.includes("source_estimate_row_item_id")) {
       return options.existingLibraryItem ?? null;
+    }
+    if (sql.includes("FROM upload_assets")) {
+      return options.uploadAssets?.[String(values[0])] ?? null;
+    }
+    if (sql.includes("FROM component_variant_attachments")) {
+      return options.attachmentBindings?.[String(values[0])] ?? null;
     }
     throw new Error(`Unexpected D1 first query: ${sql}`);
   };
@@ -119,6 +138,14 @@ describe("promoteEstimateRowToLibraryComponent", () => {
       role: "member",
       profile: { default_workspace_id: WORKSPACE_ID },
     });
+    runtimeStorageMocks.createRuntimeUploadStorageProvider.mockResolvedValue(storageMocks);
+    storageMocks.downloadObject.mockResolvedValue({
+      body: new Uint8Array([1, 2, 3, 4]).buffer,
+      contentType: "application/octet-stream",
+      sizeBytes: 4,
+    });
+    storageMocks.uploadObject.mockResolvedValue(undefined);
+    storageMocks.removeObjects.mockResolvedValue(undefined);
   });
 
   it("promotes an estimate row through D1 and revalidates estimate/library surfaces", async () => {
@@ -192,6 +219,190 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     );
   });
 
+  it("promotes the complete ordered variant graph without collapsing selection into the default", async () => {
+    const defaultSourceOptionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const selectedSourceOptionId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const database = makePromotionD1Database({
+      sourceSnapshot: {
+        sourceComponentId: "project-component-1",
+        priceOptionId: selectedSourceOptionId,
+        priceOptionLabel: "Option 2",
+        priceOptions: [
+          {
+            id: defaultSourceOptionId,
+            label: "Default",
+            variantDescription: "Standard vanity",
+            unit: "pc",
+            unitCost: 1200,
+            miscCost: 75,
+            currency: "PHP",
+            pricingSource: "Builder",
+            pricingDate: "2026-07-01",
+            isActive: true,
+            isDefault: true,
+            costEntries: [{
+              id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+              unitCost: 1200,
+              miscCost: 75,
+              currency: "PHP",
+              pricingDate: "2026-07-01",
+              isCurrent: true,
+            }],
+          },
+          {
+            id: selectedSourceOptionId,
+            label: "Option 2",
+            sku: "VANITY-OAK",
+            variantDescription: "Oak vanity",
+            unit: "set",
+            unitCost: 1800,
+            miscCost: 120,
+            currency: "PHP",
+            pricingSource: "Specialist",
+            pricingDate: "2026-07-02",
+            imageBucket: "project-images",
+            imagePath: "workspace/user/project-images/project/oak.webp",
+            thumbnailPath: "/api/projects/images?path=workspace%2Fuser%2Fproject-images%2Fproject%2Foak-thumb.webp",
+            imageMetadata: { assetId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" },
+            attachments: [{
+              id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+              assetId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+              bucket: "component-attachments",
+              path: "workspace/user/spec.pdf",
+              fileName: "spec.pdf",
+              contentType: "application/pdf",
+              sizeBytes: 512,
+              kind: "pdf",
+              scanStatus: "clean",
+              reviewStatus: "uploaded",
+              isCurrentApproved: false,
+            }],
+            isActive: true,
+            isDefault: false,
+          },
+        ],
+      },
+      sourceMetadata: {
+        priceOptionId: selectedSourceOptionId,
+        expressComponent: { created: true },
+      },
+      uploadAssets: {
+        "dddddddd-dddd-4ddd-8ddd-dddddddddddd": {
+          id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+          workspace_id: WORKSPACE_ID,
+          actor_user_id: USER_ID,
+          project_id: PROJECT_ID,
+          surface: "project-image",
+          target_entity_type: "project",
+          target_entity_id: PROJECT_ID,
+          status: "finalized",
+          file_name: "oak.webp",
+          content_type: "image/webp",
+          size_bytes: 4,
+          scan_status: "not_required",
+          scan_override_expires_at: null,
+          storage_bucket: "project-images",
+          storage_path: "workspace/user/project-images/project/oak.webp",
+          thumbnail_path: "workspace/user/project-images/project/oak-thumb.webp",
+          metadata_json: "{}",
+        },
+        "ffffffff-ffff-4fff-8fff-ffffffffffff": {
+          id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+          workspace_id: WORKSPACE_ID,
+          actor_user_id: USER_ID,
+          project_id: PROJECT_ID,
+          surface: "component-attachment",
+          target_entity_type: "project-component",
+          target_entity_id: "project-component-1",
+          status: "finalized",
+          file_name: "spec.pdf",
+          content_type: "application/pdf",
+          size_bytes: 512,
+          scan_status: "clean",
+          scan_override_expires_at: null,
+          storage_bucket: "component-attachments",
+          storage_path: "workspace/user/spec.pdf",
+          thumbnail_path: null,
+          metadata_json: "{}",
+        },
+      },
+      attachmentBindings: {
+        "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee": {
+          id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        },
+      },
+    });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    const result = await promoteEstimateRowToLibraryComponent({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      mutationId: "88888888-8888-4888-8888-888888888888",
+    });
+
+    const optionWrites = database.statements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"));
+    expect(optionWrites).toHaveLength(2);
+    const defaultWrite = optionWrites.find((statement) => statement.values[3] === "Default");
+    const selectedWrite = optionWrites.find((statement) => statement.values[3] === "Option 2");
+    expect(defaultWrite?.values[9]).toBe(1);
+    expect(selectedWrite?.values[9]).toBe(0);
+    expect(defaultWrite?.values[0]).not.toBe(defaultSourceOptionId);
+    expect(selectedWrite?.values[0]).not.toBe(selectedSourceOptionId);
+    expect(result.activePriceOptionId).toBe(defaultWrite?.values[0]);
+
+    const itemWrite = database.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"));
+    expect(itemWrite?.values[16]).toBe(defaultWrite?.values[0]);
+    const rowWrite = database.statements.find((statement) => statement.sql.includes("UPDATE estimate_row_items"));
+    const persistedSnapshot = JSON.parse(String(rowWrite?.values[1])) as Record<string, unknown>;
+    const persistedMetadata = JSON.parse(String(rowWrite?.values[2])) as Record<string, unknown>;
+    const persistedOptions = persistedSnapshot.priceOptions as Array<Record<string, unknown>>;
+    expect(persistedSnapshot.sourceType).toBe("library_component");
+    expect(persistedSnapshot.sourceLibraryItemId).toBe(result.itemId);
+    expect(persistedSnapshot.priceOptionId).toBe(selectedWrite?.values[0]);
+    expect(persistedMetadata.priceOptionId).toBe(selectedWrite?.values[0]);
+    expect(persistedOptions.map((option) => option.label)).toEqual(["Default", "Option 2"]);
+    expect(persistedOptions[1]).toMatchObject({
+      id: selectedWrite?.values[0],
+      sku: "VANITY-OAK",
+      variantDescription: "Oak vanity",
+      unit: "set",
+      unitCost: 1800,
+      miscCost: 120,
+    });
+    expect(persistedOptions[1]).not.toHaveProperty("imageBucket");
+    expect(persistedOptions[1]).not.toHaveProperty("imagePath");
+    expect(String(persistedOptions[1]?.thumbnailPath)).toContain("/api/component-library/images?path=");
+    expect(persistedOptions[1]).not.toHaveProperty("attachments");
+    const selectedOptionMetadata = JSON.parse(String(selectedWrite?.values[13])) as Record<string, unknown>;
+    expect(selectedOptionMetadata.attachments).toEqual([expect.objectContaining({
+      bucket: "component-attachments",
+      scanStatus: "pending",
+      reviewStatus: "uploaded",
+      isCurrentApproved: false,
+    })]);
+    expect(selectedOptionMetadata.attachments).not.toEqual([expect.objectContaining({
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      assetId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      path: "workspace/user/spec.pdf",
+    })]);
+    expect(database.statements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_variant_cost_entries"))).toHaveLength(2);
+    expect(database.statements.filter((statement) => statement.sql.includes("INSERT INTO component_variant_attachments"))).toHaveLength(1);
+    expect(database.statements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_versions"))).toHaveLength(1);
+    expect(database.statements.filter((statement) => statement.sql.includes("INSERT INTO upload_assets"))).toHaveLength(2);
+    expect(storageMocks.uploadObject).toHaveBeenCalledTimes(3);
+    expect(storageMocks.uploadObject).not.toHaveBeenCalledWith(expect.objectContaining({
+      bucket: "project-images",
+    }));
+    expect(result).toMatchObject({
+      selectedPriceOptionId: selectedWrite?.values[0],
+      versionNumber: 1,
+      omittedImageCount: 0,
+      omittedAttachmentCount: 0,
+    });
+  });
+
   it("returns the existing D1 promotion payload for a repeated mutation id", async () => {
     const database = makePromotionD1Database({
       existingPayload: {
@@ -228,14 +439,4 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 
-  it("keeps the express-named export as a compatibility alias", async () => {
-    const database = makePromotionD1Database();
-    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
-
-    const { promoteExpressRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
-    await promoteExpressRowToLibraryComponent({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID });
-
-    expect(authMocks.requireAuth).toHaveBeenCalled();
-    expect(database.batch).toHaveBeenCalledTimes(1);
-  });
 });

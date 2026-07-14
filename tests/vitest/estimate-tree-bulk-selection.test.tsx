@@ -100,7 +100,7 @@ describe("estimate tree bulk selection", () => {
     actionMocks.restoreDeletedEstimateNodes.mockReset();
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
-    actionMocks.fetchEstimateTabTree.mockResolvedValue(fixtureTree());
+    actionMocks.fetchEstimateTabTree.mockResolvedValue({ tree: fixtureTree(), loadLimitState: undefined });
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
   });
 

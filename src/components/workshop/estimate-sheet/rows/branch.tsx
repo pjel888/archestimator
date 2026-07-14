@@ -51,6 +51,7 @@ export type EstimateSheetBranchProps = {
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
   onMarkRowDirty: (rowItemId: string) => void;
+  onReconcileRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
@@ -72,6 +73,7 @@ export type EstimateSheetBranchProps = {
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
   columnResize?: EstimateTableColumnResizeConfig;
   nodeTotals?: ReadonlyMap<string, number>;
+  totalsIncomplete?: boolean;
   depth?: number;
   siblingIndex?: number;
   renderChildBranches?: boolean;
@@ -93,6 +95,7 @@ export type SheetMutationHandlers = Pick<
   | "onUpdateRowItem"
   | "onUpdateLinkedLibraryComponent"
   | "onMarkRowDirty"
+  | "onReconcileRowDirty"
   | "onOpenRowDetails"
   | "onOpenComponentEditor"
   | "onClearRowComponent"
@@ -118,14 +121,16 @@ function areAncestorPathsEqual(prev: readonly BreadcrumbNode[], next: readonly B
 
 function branchRowStateChanged(
   node: EstimateTreeNode,
-  prev: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses" | "componentSyncPendingRowIds">,
-  next: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses" | "componentSyncPendingRowIds">,
+  prev: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses" | "componentSyncPendingRowIds" | "promotingRowId" | "expressInsertDraftStates">,
+  next: Pick<EstimateSheetBranchProps, "selectedRowIds" | "rowMutationStatuses" | "componentSyncPendingRowIds" | "promotingRowId" | "expressInsertDraftStates">,
   includeDescendants: boolean,
 ): boolean {
   for (const item of node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS) {
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return true;
     if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return true;
     if (prev.componentSyncPendingRowIds?.has(item.id) !== next.componentSyncPendingRowIds?.has(item.id)) return true;
+    if ((prev.promotingRowId === item.id) !== (next.promotingRowId === item.id)) return true;
+    if (prev.expressInsertDraftStates?.[item.id] !== next.expressInsertDraftStates?.[item.id]) return true;
   }
   if (!includeDescendants) return false;
   for (const child of node.children ?? []) {
@@ -156,24 +161,23 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.onUpdateRowItem !== next.onUpdateRowItem ||
     prev.onUpdateLinkedLibraryComponent !== next.onUpdateLinkedLibraryComponent ||
     prev.onMarkRowDirty !== next.onMarkRowDirty ||
+    prev.onReconcileRowDirty !== next.onReconcileRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
-    prev.promotingRowId !== next.promotingRowId ||
-    prev.rowMutationStatuses !== next.rowMutationStatuses ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.onMoveRowItem !== next.onMoveRowItem ||
     prev.onOpenMoveRowItemDialog !== next.onOpenMoveRowItemDialog ||
     prev.onOpenReplaceComponentPicker !== next.onOpenReplaceComponentPicker ||
     prev.onOpenMoveComponentPicker !== next.onOpenMoveComponentPicker ||
-    prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
     prev.columnResize !== next.columnResize ||
+    prev.totalsIncomplete !== next.totalsIncomplete ||
     !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
   ) {
     return false;
@@ -187,6 +191,8 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.selectedRowIds !== next.selectedRowIds ||
     prev.rowMutationStatuses !== next.rowMutationStatuses ||
     prev.componentSyncPendingRowIds !== next.componentSyncPendingRowIds ||
+    prev.promotingRowId !== next.promotingRowId ||
+    prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     !prev.nodeTotals ||
     !next.nodeTotals;
   if (!needsRowStateCheck) return true;
@@ -195,7 +201,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onUpdateLinkedLibraryComponent, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onUpdateLinkedLibraryComponent, onMarkRowDirty, onReconcileRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, totalsIncomplete = false, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const editableRowStore = useEditableRowStore();
   const storedNodeTotal = useStore(editableRowStore, (state) => state.nodeTotals.get(node.id));
@@ -402,7 +408,10 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
           <div className="min-w-0 flex-1">
             <p className={nodeNameClasses(depth)} role="heading" aria-level={headingLevel}>{node.name}</p>
           </div>
-          <span className={nodeTotalClasses()}>{pesoFormatter.format(total)}</span>
+          <span className={nodeTotalClasses()} aria-label={totalsIncomplete ? `Partial loaded total ${pesoFormatter.format(total)}` : undefined}>
+            {pesoFormatter.format(total)}
+            {totalsIncomplete ? <span className="ml-1 text-[8px] text-warning">Partial</span> : null}
+          </span>
         </div>
       </div>
 
@@ -465,6 +474,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               onUpdateRowItem={onUpdateRowItem}
               onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
               onMarkRowDirty={onMarkRowDirty}
+              onReconcileRowDirty={onReconcileRowDirty}
               onOpenRowDetails={onOpenRowDetails}
               onOpenComponentEditor={onOpenComponentEditor}
               onClearRowComponent={onClearRowComponent}
@@ -526,6 +536,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 onUpdateRowItem={onUpdateRowItem}
                 onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
                 onMarkRowDirty={onMarkRowDirty}
+                onReconcileRowDirty={onReconcileRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
                 onOpenComponentEditor={onOpenComponentEditor}
                 onClearRowComponent={onClearRowComponent}
@@ -547,6 +558,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 onToggleRowsSelection={onToggleRowsSelection}
                 columnResize={columnResize}
                 nodeTotals={nodeTotals}
+                totalsIncomplete={totalsIncomplete}
                 depth={depth + 1}
                 siblingIndex={childIndex}
               />

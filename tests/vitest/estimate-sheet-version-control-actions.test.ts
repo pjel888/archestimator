@@ -238,6 +238,8 @@ function makeAtomicRowSupabase({
       if (fn === "move_estimate_row_component_with_history") {
         return {
           data: moveRpcData ?? {
+            status: "applied",
+            eventId: "move-event-1",
             sourceRowId: "source-row",
             targetRowId: "target-row",
             sourceRow: canonicalMovedRow("source-row", { material: "", rowRevision: sourceRowRevision + 1 }),
@@ -248,7 +250,7 @@ function makeAtomicRowSupabase({
       }
       if (fn === "delete_estimate_row_items_bulk_with_history") {
         return {
-          data: bulkDeleteRpcData ?? { eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 },
+          data: bulkDeleteRpcData ?? { status: "applied", eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 },
           error: bulkDeleteRpcError,
         };
       }
@@ -691,7 +693,7 @@ describe("estimate sheet version control server actions", () => {
       mutationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     });
 
-    expect(result).toEqual({ eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 });
+    expect(result).toEqual({ status: "applied", eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 });
     expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
     expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
     expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", {
@@ -703,6 +705,46 @@ describe("estimate sheet version control server actions", () => {
       correlation_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     });
     expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.anything());
+  });
+
+  it("refuses bulk delete when any selected row revision is missing", async () => {
+    const supabase = makeAtomicRowSupabase();
+    mockEstimateActionsDataStore(supabase);
+    const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
+
+    await expect(deleteEstimateRowItemsBulk({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowIds: ["source-row", "target-row"],
+      expectedRowRevisions: { "source-row": 11 },
+    })).rejects.toThrow("current revision for every selected row");
+
+    expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", expect.anything());
+  });
+
+  it("returns authoritative rows for atomic bulk-delete conflicts", async () => {
+    const supabase = makeAtomicRowSupabase({
+      bulkDeleteRpcData: {
+        status: "conflict",
+        conflictRowIds: ["target-row"],
+        authoritativeRows: [canonicalMovedRow("target-row", { material: "Authoritative Tile", rowRevision: 18 })],
+      },
+    });
+    mockEstimateActionsDataStore(supabase);
+    const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
+
+    const result = await deleteEstimateRowItemsBulk({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowIds: ["source-row", "target-row"],
+      expectedRowRevisions: { "source-row": 11, "target-row": 17 },
+    });
+
+    expect(result).toMatchObject({
+      status: "conflict",
+      conflictRowIds: ["target-row"],
+      authoritativeRows: [{ rowId: "target-row", material: "Authoritative Tile", rowRevision: 18 }],
+    });
   });
 
   it("restores deleted center rows through the row restore history RPC", async () => {
@@ -733,71 +775,6 @@ describe("estimate sheet version control server actions", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     });
-  });
-
-  it("detaches linked row items through a revision-aware history RPC", async () => {
-    const supabase = makeSupabase({
-      rpcData: {
-        rowId: "row-1",
-        row: {
-          id: "row-1",
-          nodeId: "node-1",
-          quantity: 3,
-          unitCost: 950,
-          contingencyPercentage: 0,
-          contingencyValue: 0,
-          miscCost: 300,
-          linkState: "detached",
-          rowRevision: 8,
-        },
-      },
-    });
-    mockEstimateActionsDataStore(supabase);
-    const { detachEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
-
-    const result = await detachEstimateRowItemFromLibrary({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      reason: "Client-specific finish",
-      mutationId: "99999999-9999-4999-8999-999999999999",
-    });
-
-    expect(supabase.rpc).toHaveBeenCalledWith("unlink_estimate_row_item_from_library_with_history", {
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_row_id: "row-1",
-      expected_row_revision: 7,
-      reason: "Client-specific finish",
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "99999999-9999-4999-8999-999999999999",
-    });
-    expect(result).toMatchObject({
-      rowId: "row-1",
-      linkState: "detached",
-      rowRevision: 8,
-    });
-    // Row mutations reconcile through the client query cache; revalidatePath
-    // here would refetch the whole RSC tree on every edit.
-    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it("blocks project-specific row detach when the caller cannot edit the estimate", async () => {
-    const supabase = makeSupabase({ canEditEstimate: false });
-    mockEstimateActionsDataStore(supabase);
-    const { detachEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
-
-    await expect(
-      detachEstimateRowItemFromLibrary({
-        projectId: "project-1",
-        estimateId: "estimate-1",
-        rowId: "row-1",
-        reason: "Client-specific finish",
-      }),
-    ).rejects.toThrow("Estimate edit access denied.");
-
-    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
-    expect(supabase.rpc).not.toHaveBeenCalledWith("unlink_estimate_row_item_from_library_with_history", expect.anything());
   });
 
   it("inserts library rows through the history RPC with a compact row payload", async () => {

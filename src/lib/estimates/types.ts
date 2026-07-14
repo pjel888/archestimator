@@ -31,12 +31,16 @@ export type ComponentVariantCostEntry = {
 
 export type ComponentVariantAttachment = {
   id: string;
+  assetId?: string | null;
   bucket: string;
   path: string;
   fileName: string;
   contentType: string;
   sizeBytes: number;
   kind: "pdf" | "excel";
+  scanStatus?: string | null;
+  reviewStatus?: "uploaded" | "approved" | "rejected" | "superseded";
+  isCurrentApproved?: boolean;
   metadata?: unknown;
   createdAt?: string;
 };

@@ -11,7 +11,6 @@ import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/q
 const actionMocks = vi.hoisted(() => ({
   deleteEstimateRowItem: vi.fn(),
   deleteEstimateRowItemsBulk: vi.fn(),
-  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   moveEstimateRowComponentWithHistory: vi.fn(),
@@ -267,10 +266,12 @@ describe("estimate row mutation coordinator", () => {
     vi.clearAllMocks();
   });
 
-  it("suppresses an older component move response after a newer target-row replacement settles", async () => {
+  it("serializes a target-row replacement behind an in-flight component move", async () => {
     const queryClient = makeQueryClient();
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
     const move = deferred<{
+      status: "applied";
+      eventId: string;
       sourceRow: ReturnType<typeof makeCanonicalReplaceResult>;
       targetRow: ReturnType<typeof makeCanonicalReplaceResult>;
     }>();
@@ -307,19 +308,115 @@ describe("estimate row mutation coordinator", () => {
       });
     });
 
-    await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(findCachedRow(queryClient, sinkRowId)?.material).toBe("New Sink Component"));
+    expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
 
     const moveInput = actionMocks.moveEstimateRowComponentWithHistory.mock.calls[0][0];
     await act(async () => {
       move.resolve({
+        status: "applied",
+        eventId: "move-event-1",
         sourceRow: makeCanonicalReplaceResult(cabinetRowId, moveInput.sourceLibraryItem, 8),
         targetRow: makeCanonicalReplaceResult(sinkRowId, moveInput.targetLibraryItem, 5),
       });
       await move.promise;
     });
 
-    expect(findCachedRow(queryClient, sinkRowId)?.material).toBe("New Sink Component");
+    await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(1));
+    expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: sinkRowId,
+      expectedRowRevision: 5,
+    }));
+    await waitFor(() => expect(findCachedRow(queryClient, sinkRowId)?.material).toBe("New Sink Component"));
+  });
+
+  it("serializes an immediate quantity edit behind a normal library row insert", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const insert = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(insert.promise);
+    actionMocks.updateEstimateRowItem.mockResolvedValueOnce(makeCanonicalReplaceResult(cabinetRowId, {
+      ...cabinetRow,
+      quantity: 3,
+    }, 2));
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: cabinetRowId,
+        libraryItem: cabinetRow,
+      });
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        quantity: 3,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      insert.resolve(makeCanonicalReplaceResult(cabinetRowId, cabinetRow, 1));
+      await insert.promise;
+    });
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      quantity: 3,
+      expectedRowRevision: 1,
+    }));
+  });
+
+  it("reconciles authoritative rows when an atomic bulk delete reports a revision conflict", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    actionMocks.deleteEstimateRowItemsBulk.mockResolvedValueOnce({
+      status: "conflict",
+      conflictRowIds: [cabinetRowId],
+      authoritativeRows: [makeCanonicalReplaceResult(cabinetRowId, {
+        ...cabinetRow,
+        material: "Authoritative Cabinet",
+      }, 8)],
+    });
+    const rollback = vi.fn();
+    const onError = vi.fn();
+    const onSuccess = vi.fn();
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.deleteRows({
+        projectId,
+        estimateId,
+        rowIds: [cabinetRowId],
+        rollback,
+        onError,
+        onSuccess,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.deleteEstimateRowItemsBulk).toHaveBeenCalledWith(expect.objectContaining({
+      expectedRowRevisions: { [cabinetRowId]: 7 },
+    })));
+    await waitFor(() => expect(findCachedRow(queryClient, cabinetRowId)).toMatchObject({
+      material: "Authoritative Cabinet",
+      rowRevision: 8,
+    }));
+    expect(rollback).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: "estimate_sheet_row_revision_conflict" }));
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("refetches the active tree and suppresses local success when move rows are absent from cache", async () => {

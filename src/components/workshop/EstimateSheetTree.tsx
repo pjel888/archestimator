@@ -344,7 +344,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const { toast, dismissToast } = useToast();
   const tabInitialNodes = activeTabId && activeTabId === initialTabId ? nodes : [];
   const legacyTreeQuery = useEstimateAreaTreeQuery({ projectId, estimateId, initialNodes: nodes, enabled: !activeTabId });
-  const tabTreeQuery = useEstimateTabTreeQuery({ projectId, estimateId, tabId: activeTabId, initialNodes: tabInitialNodes, enabled: Boolean(activeTabId) });
+  const tabTreeQuery = useEstimateTabTreeQuery({
+    projectId,
+    estimateId,
+    tabId: activeTabId,
+    initialNodes: tabInitialNodes,
+    initialLoadLimitState: activeTabId === initialTabId ? loadLimitState : undefined,
+    enabled: Boolean(activeTabId),
+  });
   const {
     tree: localNodes,
     setTree: setLocalNodes,
@@ -427,9 +434,9 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     [estimateId, routeNodeIdParam, selectedNodeId],
   );
   const treeSearchActive = treeSearchQuery.trim().length > 0;
-  const shouldMarkTruncatedLeavesForHydration = Boolean(
-    loadLimitState?.didExceedNodeLimit && (!activeTabId || activeTabId === initialTabId),
-  );
+  const activeLoadLimitState = activeTabId ? tabTreeQuery.loadLimitState : loadLimitState;
+  const isActiveTreePartial = Boolean(activeLoadLimitState?.didExceedNodeLimit || activeLoadLimitState?.didExceedRowItemLimit);
+  const shouldMarkTruncatedLeavesForHydration = Boolean(activeLoadLimitState?.didExceedNodeLimit);
   const treeViewNodes = useMemo(
     () => shouldMarkTruncatedLeavesForHydration ? markTerminalEstimateNodesForLazyHydration(localNodes) : localNodes,
     [localNodes, shouldMarkTruncatedLeavesForHydration],
@@ -525,7 +532,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [activeSelectedNodeId]);
 
   const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
-  const canReorderNow = !isTreeMutationSaving;
+  const canReorderNow = !isTreeMutationSaving && !isActiveTreePartial;
   const {
     armContextMenuRenameHandoff,
     attachRenameInputRef,
@@ -633,11 +640,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       if (!canEditEstimate) return VIEW_ONLY_ESTIMATE_REASON;
       if (treeSearchActive) return "Clear tree search before dragging nodes.";
       if (editingNodeId) return "Finish renaming before dragging nodes.";
+      if (isActiveTreePartial) return "Load the complete tab before moving nodes.";
       if (!canReorderNow) return "Finish the current tree save before dragging nodes.";
       if (isOptimisticEstimateNodeId(treeNode.id)) return "Wait for this new node to finish saving first.";
       return null;
     },
-    [canEditEstimate, canReorderNow, editingNodeId, treeSearchActive],
+    [canEditEstimate, canReorderNow, editingNodeId, isActiveTreePartial, treeSearchActive],
   );
 
   const handleTreeCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
@@ -704,10 +712,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [localNodes]);
 
   const openTreeMoveDialog = useCallback((node: EstimateTreeNode) => {
-    if (!canEditEstimate) return;
+    if (!canEditEstimate || !canReorderNow) return;
     setMoveTargetNode(node);
     setMoveSelection(null);
-  }, [canEditEstimate]);
+  }, [canEditEstimate, canReorderNow]);
 
   const treeMoveDestinationOptions = useMemo(() => {
     if (!moveTargetNode) return [];
@@ -795,7 +803,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             id: "move",
             label: "Move...",
             icon: <ArrowsOutCardinal size={12} weight="regular" aria-hidden="true" />,
-            disabled: !canEditEstimate || isTreeMutationSaving || treeSearchActive || nodeIsPendingCreate,
+            disabled: !canEditEstimate || !canReorderNow || treeSearchActive || nodeIsPendingCreate,
             disabledReason: editDisabledReason ?? (treeSearchActive
               ? "Clear tree search before moving areas."
               : nodeIsPendingCreate
@@ -822,7 +830,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         ],
       },
     ];
-  }, [armContextMenuRenameHandoff, beginRenameNode, canEditEstimate, contextMenuNode, handleAddTreeNode, isTreeMutationSaving, openTreeMoveDialog, setDeleteTargetNode, treeSearchActive]);
+  }, [armContextMenuRenameHandoff, beginRenameNode, canEditEstimate, canReorderNow, contextMenuNode, handleAddTreeNode, isTreeMutationSaving, openTreeMoveDialog, setDeleteTargetNode, treeSearchActive]);
 
   const renderEstimateTreeRowLabel = useCallback((treeNode: UiTreeNode) => {
     const node = (treeNode.data?.node as EstimateTreeNode | undefined) ?? findEstimateNode(localNodes, treeNode.id);

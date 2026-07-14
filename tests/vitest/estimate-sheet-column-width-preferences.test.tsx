@@ -1,8 +1,10 @@
 import type { ComponentProps } from "react";
+import { readFileSync } from "node:fs";
 
 import { act, cleanup, render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 
 const preferenceActionMocks = vi.hoisted(() => ({
   loadEstimateSheetUserPreferences: vi.fn(),
@@ -79,6 +81,7 @@ describe("estimate sheet account column width preferences", () => {
     vi.useFakeTimers();
     preferenceActionMocks.loadEstimateSheetUserPreferences.mockReturnValue(new Promise<null>(() => undefined));
     preferenceActionMocks.saveEstimateSheetUserPreferences.mockResolvedValue({ ok: true });
+    useEstimateColumnWidthsStore.setState({ widthsByEstimateId: {}, lastUsedWidths: {}, hydratedEstimateIds: {} });
     window.localStorage.setItem(
       "archestimator:estimate-column-widths:v1:estimate-column-widths",
       JSON.stringify({ version: 1, widths: { quantity: 140 } }),
@@ -98,7 +101,11 @@ describe("estimate sheet account column width preferences", () => {
   it("does not save locally hydrated widths before the account load settles", async () => {
     renderSheet();
 
-    await act(async () => undefined);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(preferenceActionMocks.loadEstimateSheetUserPreferences).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -111,8 +118,23 @@ describe("estimate sheet account column width preferences", () => {
   it("coalesces account preference loads across duplicate sheet mounts", async () => {
     renderDuplicateSheets();
 
-    await act(async () => undefined);
-
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(preferenceActionMocks.loadEstimateSheetUserPreferences).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps failed width saves retryable and advances the snapshot only after success", () => {
+    const source = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
+    const successBranch = source.indexOf("if (result.ok) {");
+    const snapshotAdvance = source.indexOf("accountColumnWidthsSnapshotRef.current = snapshot;", successBranch);
+    const retrySchedule = source.indexOf("setAccountColumnWidthsRetryRevision((revision) => revision + 1)", successBranch);
+
+    expect(successBranch).toBeGreaterThan(-1);
+    expect(snapshotAdvance).toBeGreaterThan(successBranch);
+    expect(retrySchedule).toBeGreaterThan(snapshotAdvance);
+    expect(source).toContain("Column widths couldn't save. Retrying automatically.");
   });
 });

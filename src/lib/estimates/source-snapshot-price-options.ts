@@ -109,16 +109,30 @@ function readSnapshotAttachments(value: unknown): ComponentVariantAttachment[] |
     const sizeBytes = readFiniteNumber(attachment.sizeBytes);
     const kind = attachment.kind === "pdf" || attachment.kind === "excel" ? attachment.kind : null;
     if (!id || !bucket || !path || !fileName || !contentType || sizeBytes === undefined || sizeBytes <= 0 || !kind) return [];
+    const assetId = readOptionalText(attachment.assetId);
+    const scanStatus = readOptionalText(attachment.scanStatus);
+    const reviewStatus = attachment.reviewStatus === "uploaded"
+      || attachment.reviewStatus === "approved"
+      || attachment.reviewStatus === "rejected"
+      || attachment.reviewStatus === "superseded"
+      ? attachment.reviewStatus
+      : undefined;
     const createdAt = readOptionalText(attachment.createdAt);
     const metadata = sanitizeSnapshotMetadata(attachment.metadata);
     return [{
       id,
+      ...(assetId !== undefined ? { assetId } : {}),
       bucket,
       path,
       fileName,
       contentType,
       sizeBytes,
       kind,
+      ...(scanStatus !== undefined ? { scanStatus } : {}),
+      ...(reviewStatus !== undefined ? { reviewStatus } : {}),
+      ...(typeof attachment.isCurrentApproved === "boolean"
+        ? { isCurrentApproved: attachment.isCurrentApproved }
+        : {}),
       ...(metadata !== undefined ? { metadata } : {}),
       ...(typeof createdAt === "string" ? { createdAt } : {}),
     }];
@@ -207,4 +221,16 @@ export function readEstimateRowPriceOptionsSnapshot(value: unknown): ComponentPr
 export function sanitizeEstimateRowPriceOptionsSnapshot(value: unknown): Json | undefined {
   if (!Array.isArray(value)) return undefined;
   return sanitizeSnapshotMetadata(readEstimateRowPriceOptionsSnapshot(value) ?? []);
+}
+
+export function omitEstimateRowPriceOptionAttachments(
+  value: ComponentPriceOption[] | undefined,
+): { priceOptions: ComponentPriceOption[] | undefined; omittedAttachmentCount: number } {
+  if (!value) return { priceOptions: undefined, omittedAttachmentCount: 0 };
+  let omittedAttachmentCount = 0;
+  const priceOptions = value.map((option) => {
+    omittedAttachmentCount += option.attachments?.length ?? 0;
+    return option.attachments?.length ? { ...option, attachments: [] } : option;
+  });
+  return { priceOptions, omittedAttachmentCount };
 }

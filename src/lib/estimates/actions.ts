@@ -11,7 +11,10 @@ import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjust
 import { LEGACY_BLANK_ROW_TAG, getProjectComponentIdentity, isExpressComponentRow, readEstimateRowMetadata, readExpressComponentMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata, type EstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { normalizeEstimateRowImageUrl, sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
-import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
+import {
+  omitEstimateRowPriceOptionAttachments,
+  sanitizeEstimateRowPriceOptionsSnapshot,
+} from "@/lib/estimates/source-snapshot-price-options";
 import {
   normalizeEstimateTreeNodeKind,
   selectFirstEstimateNodeIds,
@@ -172,12 +175,30 @@ type InsertEstimateTemplateIntoEstimateInput = {
   // for THIS tab (not the default one), so a non-default-tab insert returns the
   // tab the user is actually editing. Omitted for legacy (no-tab) estimates.
   targetTabId?: string;
+  unavailableSourcePolicy?: EstimateTemplateUnavailableSourcePolicy;
 };
 
-type InsertEstimateTemplateIntoEstimateResult = {
+export type EstimateTemplateUnavailableSourcePolicy = "cancel" | "use_saved_snapshot_unlinked";
+
+export type EstimateTemplateUnavailableSource = {
+  templateRowId: string;
+  material: string;
+  reason: string;
+};
+
+export type InsertEstimateTemplateRequiresConfirmationResult = {
+  status: "requires_saved_snapshot_confirmation";
+  unavailableSourceCount: number;
+  unavailableRows: EstimateTemplateUnavailableSource[];
+};
+
+type InsertEstimateTemplateInsertedResult = {
+  status: "inserted";
   tree: EstimateTreeNode[];
   insertedRootNodeIds: string[];
 };
+
+type InsertEstimateTemplateIntoEstimateResult = InsertEstimateTemplateInsertedResult | InsertEstimateTemplateRequiresConfirmationResult;
 
 type InsertEstimateTemplatesIntoEstimateInput = {
   projectId: string;
@@ -186,6 +207,7 @@ type InsertEstimateTemplatesIntoEstimateInput = {
   templateIds: string[];
   // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
   targetTabId?: string;
+  unavailableSourcePolicy?: EstimateTemplateUnavailableSourcePolicy;
 };
 
 type UpdateEstimateRowItemInput = {
@@ -210,6 +232,7 @@ type UpdateEstimateRowItemInput = {
   sourceLibraryItemId?: string | null;
   linkState?: Tables<"estimate_row_items">["link_state"];
   expectedComponentImpactFingerprint?: string;
+  removedPriceOptionReplacements?: Record<string, string>;
   mutationId?: string;
   expectedRowRevision?: number;
 };
@@ -238,15 +261,6 @@ type EstimateRowImageAssetDescriptor = {
   height?: number | null;
   thumbnailWidth?: number | null;
   thumbnailHeight?: number | null;
-};
-
-type DetachEstimateRowItemInput = {
-  projectId: string;
-  estimateId: string;
-  rowId: string;
-  reason?: string;
-  mutationId?: string;
-  expectedRowRevision?: number;
 };
 
 type UpdateEstimateSheetAdjustmentInput = {
@@ -319,9 +333,19 @@ type MoveEstimateRowComponentInput = {
 };
 
 export type MoveEstimateRowComponentResult = {
+  status: "applied";
+  eventId: string;
   sourceRow: UpdateEstimateRowItemResult;
   targetRow: UpdateEstimateRowItemResult;
 };
+
+export type EstimateRowMutationConflictResult = {
+  status: "conflict";
+  conflictRowIds: string[];
+  authoritativeRows: UpdateEstimateRowItemResult[];
+};
+
+export type MoveEstimateRowComponentActionResult = MoveEstimateRowComponentResult | EstimateRowMutationConflictResult;
 
 export type MoveEstimateRowItemUpdateInput = {
   rowId: string;
@@ -363,10 +387,13 @@ type DeleteEstimateRowItemsBulkInput = {
 };
 
 export type DeleteEstimateRowItemsBulkResult = {
+  status: "applied";
   eventId: string;
   deletedRowIds: string[];
   deletedRowCount: number;
 };
+
+export type DeleteEstimateRowItemsBulkActionResult = DeleteEstimateRowItemsBulkResult | EstimateRowMutationConflictResult;
 
 type RestoreDeletedEstimateRowsInput = {
   projectId: string;
@@ -588,6 +615,27 @@ function readInsertedRootNodeIds(value: unknown): string[] {
   return rootNodeIds.filter((id): id is string => typeof id === "string" && id.length > 0);
 }
 
+function readTemplateInsertConfirmation(value: unknown): InsertEstimateTemplateRequiresConfirmationResult | null {
+  const record = readJsonRecord(value);
+  if (record.status !== "requires_saved_snapshot_confirmation") return null;
+  const unavailableRows = Array.isArray(record.unavailableRows)
+    ? record.unavailableRows.flatMap((candidate): EstimateTemplateUnavailableSource[] => {
+        const row = readJsonRecord(candidate);
+        if (typeof row.templateRowId !== "string" || typeof row.reason !== "string") return [];
+        return [{
+          templateRowId: row.templateRowId,
+          material: typeof row.material === "string" ? row.material : "",
+          reason: row.reason,
+        }];
+      })
+    : [];
+  return {
+    status: "requires_saved_snapshot_confirmation",
+    unavailableSourceCount: Math.max(unavailableRows.length, readNumber(record.unavailableSourceCount)),
+    unavailableRows,
+  };
+}
+
 function getMutationCorrelationId(mutationId: string | undefined) {
   return mutationId && isUuid(mutationId) ? mutationId : randomUUID();
 }
@@ -676,14 +724,30 @@ function readHistoryRowResult(value: unknown) {
   } satisfies UpdateEstimateRowItemResult;
 }
 
-function readMovedRowResult(value: unknown): MoveEstimateRowComponentResult {
+function readRowMutationConflictResult(value: Record<string, unknown>): EstimateRowMutationConflictResult | null {
+  const payload = value.payload && typeof value.payload === "object" ? value.payload as Record<string, unknown> : {};
+  if ((value.status ?? payload.status) !== "conflict") return null;
+  const conflictRowIds = readBulkDeletedRowIds(value.conflictRowIds ?? payload.conflictRowIds);
+  const authoritativeRowsValue = value.authoritativeRows ?? payload.authoritativeRows;
+  const authoritativeRows = Array.isArray(authoritativeRowsValue)
+    ? authoritativeRowsValue.map((row) => readHistoryRowResult({ row }))
+    : [];
+  if (conflictRowIds.length === 0) throw new Error("Estimate row conflict result did not identify the stale rows.");
+  return { status: "conflict", conflictRowIds, authoritativeRows };
+}
+
+function readMovedRowResult(value: unknown): MoveEstimateRowComponentActionResult {
   if (!value || typeof value !== "object") throw new Error("Estimate row move RPC returned an invalid result.");
   const result = value as Record<string, unknown>;
+  const conflict = readRowMutationConflictResult(result);
+  if (conflict) return conflict;
   const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
   const sourceRow = result.sourceRow ?? payload.sourceRow;
   const targetRow = result.targetRow ?? payload.targetRow;
 
   return {
+    status: "applied",
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Estimate row move RPC did not return a history event id."),
     sourceRow: readHistoryRowResult({ row: sourceRow }),
     targetRow: readHistoryRowResult({ row: targetRow }),
   };
@@ -741,13 +805,16 @@ function readDeletedRowResult(value: unknown): DeleteEstimateRowItemResult {
   };
 }
 
-function readDeleteRowsBulkResult(value: unknown): DeleteEstimateRowItemsBulkResult {
+function readDeleteRowsBulkResult(value: unknown): DeleteEstimateRowItemsBulkActionResult {
   if (!value || typeof value !== "object") throw new Error("Bulk row delete RPC returned an invalid result.");
   const result = value as Record<string, unknown>;
+  const conflict = readRowMutationConflictResult(result);
+  if (conflict) return conflict;
   const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
   const deletedRowIds = readBulkDeletedRowIds(result.deletedRowIds ?? payload.deletedRowIds);
 
   return {
+    status: "applied",
     eventId: readStringResult(result.eventId ?? payload.eventId, "Bulk row delete RPC did not return a history event id."),
     deletedRowIds,
     deletedRowCount: readNumber(result.deletedRowCount ?? payload.deletedRowCount, deletedRowIds.length),
@@ -1383,6 +1450,7 @@ function localizeProjectComponentForTargetProject(
   }
 
   const componentId = randomUUID();
+  const localizedPriceOptions = omitEstimateRowPriceOptionAttachments(libraryItem.priceOptions).priceOptions;
   const existingMetadata = readEstimateRowMetadata(libraryItem.metadata);
   const expressComponent = readExpressComponentMetadata(existingMetadata);
   const nextMetadata = withProjectComponentProjectionMetadata({
@@ -1415,9 +1483,11 @@ function localizeProjectComponentForTargetProject(
     source: "project",
     sourceLibraryItemId: null,
     linkState: "unlinked",
+    priceOptions: localizedPriceOptions,
     metadata: nextMetadata,
     sourceSnapshot: {
       ...sourceSnapshot,
+      priceOptions: sanitizeEstimateRowPriceOptionsSnapshot(localizedPriceOptions) ?? [],
       sourceComponentId: componentId,
       sourceEstimateRowId: input.persistedRowId,
       sourceProjectId: input.targetProjectId,
@@ -2128,9 +2198,9 @@ export async function fetchEstimateEditCapability({ projectId, estimateId }: Fet
 
 export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: FetchEstimateTabTreeInput) {
   await requireAuth();
-  const { project, estimate, tab, tree } = await getEstimateTabTree(projectId, estimateId, tabId, ESTIMATE_SHEET_TREE_LOAD_LIMITS);
+  const { project, estimate, tab, tree, loadLimitState } = await getEstimateTabTree(projectId, estimateId, tabId, ESTIMATE_SHEET_TREE_LOAD_LIMITS);
   if (!project || !estimate || !tab) throw new Error("Estimate tab not found in the current project.");
-  return tree;
+  return { tree, loadLimitState };
 }
 
 // legacy "fetchEstimateSheetVersionControl" name kept for compatibility; see plan 2026-06-12 §01-17
@@ -3255,6 +3325,7 @@ export async function insertEstimateTemplateIntoEstimate({
   targetParentNodeId,
   templateId,
   targetTabId,
+  unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -3272,15 +3343,19 @@ export async function insertEstimateTemplateIntoEstimate({
     source_template_id: templateId,
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
+    unavailable_source_policy: unavailableSourcePolicy,
+    ...(targetTabId ? { target_tab_id: targetTabId } : {}),
   });
 
   if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
 
+  const confirmation = readTemplateInsertConfirmation(copyResult);
+  if (confirmation) return confirmation;
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
 
-  return { tree, insertedRootNodeIds };
+  return { status: "inserted", tree, insertedRootNodeIds };
 }
 
 /**
@@ -3288,8 +3363,8 @@ export async function insertEstimateTemplateIntoEstimate({
  * A category drop carries many template ids; dispatching one action per id ran
  * N concurrent inserts whose post-insert tree reads raced — a snapshot taken
  * before a sibling committed dropped that sibling from the view (last-writer
- * wins). Looping the RPC sequentially here (each awaits the previous, like the
- * area-wrap flow) and refreshing once means one coherent tree comes back.
+ * wins). One atomic multi-template D1 call plus one refresh returns a coherent
+ * tree without exposing a partial category insert.
  */
 export async function insertEstimateTemplatesIntoEstimate({
   projectId,
@@ -3297,6 +3372,7 @@ export async function insertEstimateTemplatesIntoEstimate({
   targetParentNodeId,
   templateIds,
   targetTabId,
+  unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplatesIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
 
@@ -3307,24 +3383,25 @@ export async function insertEstimateTemplatesIntoEstimate({
   const currentUser = await requireCurrentUserContext();
   await assertCanEditEstimate(dataStore, estimateId);
 
-  const insertedRootNodeIds: string[] = [];
-  for (const templateId of templateIds) {
-    const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_template_into_estimate_with_history", {
-      target_project_id: project.id,
-      target_estimate_id: estimateId,
-      target_parent_node_id: targetParentNodeId,
-      source_template_id: templateId,
-      acting_user_id: currentUser.userId,
-      correlation_id: randomUUID(),
-    });
-    if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
-    insertedRootNodeIds.push(...readInsertedRootNodeIds(copyResult));
-  }
+  const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_templates_into_estimate_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_parent_node_id: targetParentNodeId,
+    source_template_ids: templateIds,
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+    unavailable_source_policy: unavailableSourcePolicy,
+    ...(targetTabId ? { target_tab_id: targetTabId } : {}),
+  });
+  if (copyError) throw new Error(`Could not insert estimate templates: ${copyError.message}`);
+  const confirmation = readTemplateInsertConfirmation(copyResult);
+  if (confirmation) return confirmation;
+  const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the templates.");
 
-  return { tree, insertedRootNodeIds };
+  return { status: "inserted", tree, insertedRootNodeIds };
 }
 
 type InsertEstimateTemplateNodeIntoEstimateInput = {
@@ -3335,12 +3412,16 @@ type InsertEstimateTemplateNodeIntoEstimateInput = {
   templateNodeId: string;
   // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
   targetTabId?: string;
+  unavailableSourcePolicy?: EstimateTemplateUnavailableSourcePolicy;
 };
 
-type InsertEstimateTemplateNodeIntoEstimateResult = {
+type InsertEstimateTemplateNodeInsertedResult = {
+  status: "inserted";
   tree: EstimateTreeNode[];
   insertedRootNodeId: string;
 };
+
+type InsertEstimateTemplateNodeIntoEstimateResult = InsertEstimateTemplateNodeInsertedResult | InsertEstimateTemplateRequiresConfirmationResult;
 
 /**
  * Inserts one node of a template — a group or area inside it — and its whole
@@ -3355,6 +3436,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   templateId,
   templateNodeId,
   targetTabId,
+  unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplateNodeIntoEstimateInput): Promise<InsertEstimateTemplateNodeIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -3374,10 +3456,13 @@ export async function insertEstimateTemplateNodeIntoEstimate({
     source_template_node_id: templateNodeId,
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
+    unavailable_source_policy: unavailableSourcePolicy,
     ...(targetTabId ? { target_tab_id: targetTabId } : {}),
   });
   if (copyError) throw new Error(`Could not insert the template node: ${copyError.message}`);
 
+  const confirmation = readTemplateInsertConfirmation(copyResult);
+  if (confirmation) return confirmation;
   const copyRecord = readJsonRecord(copyResult);
   const insertedRootNodeId = typeof copyRecord.insertedRootNodeId === "string"
     ? copyRecord.insertedRootNodeId
@@ -3389,7 +3474,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template node.");
 
-  return { tree, insertedRootNodeId };
+  return { status: "inserted", tree, insertedRootNodeId };
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
@@ -3510,7 +3595,7 @@ export async function updateEstimateSheetAdjustment({
   return readEstimateSheetAdjustmentRpcResult(adjustmentResult);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
@@ -3578,6 +3663,9 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     ...(expectedComponentImpactFingerprint !== undefined
       ? { expected_component_impact_fingerprint: expectedComponentImpactFingerprint }
       : {}),
+    ...(removedPriceOptionReplacements !== undefined
+      ? { removed_price_option_replacements: removedPriceOptionReplacements }
+      : {}),
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
@@ -3624,34 +3712,6 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   return readHistoryRowResult(data);
 }
 
-export async function detachEstimateRowItemFromLibrary({
-  projectId,
-  estimateId,
-  rowId,
-  reason,
-  mutationId,
-  expectedRowRevision,
-}: DetachEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
-  await assertCanEditEstimate(dataStore, estimateId);
-  const currentUser = await requireCurrentUserContext();
-  const trimmedReason = reason?.trim() || undefined;
-  const { data, error } = await dataStore.call("unlink_estimate_row_item_from_library_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_row_id: row.id,
-    expected_row_revision: expectedRowRevision ?? row.row_revision,
-    reason: trimmedReason,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (error) throwEstimateRowMutationError(error);
-
-  const detachedRow = readHistoryRowResult(data);
-  return detachedRow;
-}
-
 export async function getEstimateComponentEditImpact({
   projectId,
   estimateId,
@@ -3694,7 +3754,7 @@ export async function moveEstimateRowComponentWithHistory({
   mutationId,
   expectedSourceRowRevision,
   expectedTargetRowRevision,
-}: MoveEstimateRowComponentInput): Promise<MoveEstimateRowComponentResult> {
+}: MoveEstimateRowComponentInput): Promise<MoveEstimateRowComponentActionResult> {
   if (sourceRowId === targetRowId) throw new Error("Source and target estimate rows must be different.");
   const sourceRow = await getValidatedEstimateRow(projectId, estimateId, sourceRowId, { requireEdit: true });
   const targetRow = await getValidatedEstimateRow(projectId, estimateId, targetRowId, { requireEdit: true });
@@ -3815,7 +3875,7 @@ export async function deleteEstimateRowItemsBulk({
   rowIds,
   mutationId,
   expectedRowRevisions,
-}: DeleteEstimateRowItemsBulkInput): Promise<DeleteEstimateRowItemsBulkResult> {
+}: DeleteEstimateRowItemsBulkInput): Promise<DeleteEstimateRowItemsBulkActionResult> {
   const normalizedRowIds = normalizeEstimateRowIdSelection(rowIds);
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -3823,20 +3883,13 @@ export async function deleteEstimateRowItemsBulk({
   const dataStore = await createEstimateActionsD1Client();
   await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const { data: rows, error: rowsError } = await dataStore
-    .from("estimate_row_items")
-    .select("id, row_revision, estimate_nodes!inner(estimates!inner(project_id))")
-    .eq("estimate_id", estimateId)
-    .eq("estimate_nodes.estimates.project_id", project.id)
-    .in("id", normalizedRowIds);
-
-  if (rowsError) throw rowsError;
-  const revisionRows = (rows ?? []) as Array<{ id: string; row_revision: number | string | null }>;
-  const rowRevisionById = new Map(revisionRows.map((row) => [row.id, row.row_revision]));
-  if (rowRevisionById.size !== normalizedRowIds.length) throw new Error("One or more estimate row items were not found in the current project.");
-  const expectedRevisionPayload = Object.fromEntries(
-    normalizedRowIds.map((rowId) => [rowId, expectedRowRevisions?.[rowId] ?? rowRevisionById.get(rowId)]),
-  );
+  const expectedRevisionPayload = Object.fromEntries(normalizedRowIds.map((rowId) => {
+    const rowRevision = expectedRowRevisions?.[rowId];
+    if (!Number.isInteger(rowRevision) || Number(rowRevision) < 1) {
+      throw new Error("Bulk row delete requires the current revision for every selected row.");
+    }
+    return [rowId, rowRevision];
+  }));
 
   const { data, error } = await dataStore.call("delete_estimate_row_items_bulk_with_history", {
     target_project_id: project.id,

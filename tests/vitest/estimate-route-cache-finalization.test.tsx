@@ -13,7 +13,6 @@ import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revisio
 const actionMocks = vi.hoisted(() => ({
   deleteEstimateRowItem: vi.fn(),
   deleteEstimateRowItemsBulk: vi.fn(),
-  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),

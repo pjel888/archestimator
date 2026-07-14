@@ -1,19 +1,18 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AddComponentModal } from "@/components/workshop/component-library-manager/AddComponentModal";
-import { EditComponentDrawer } from "@/components/workshop/library/EditComponentDrawer";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
-import type { EstimateRowItem } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
-  updateCostLibraryComponent: vi.fn(),
   updateCostLibraryComponentWithPriceOptions: vi.fn(),
-  upsertCostLibraryComponentPriceOption: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
@@ -33,28 +32,6 @@ const folders: LibraryFolderRecord[] = [{
   source_category_node_id: "category-hardware",
   folder_kind: "custom",
 }];
-
-const libraryItem: EstimateRowItem = {
-  id: "library-component-1",
-  material: "Door Stop",
-  name: "Door Stop",
-  description: "Existing master component",
-  supplier: "Acme",
-  source: "library",
-  unit: "pc",
-  itemCost: 125,
-  quantity: 1,
-  subTotal: 125,
-  contingencyPercentage: 0,
-  contingencyValue: 0,
-  miscCost: 0,
-  totalItemCosts: 125,
-  category: "Hardware",
-  pricingSource: "Fixture",
-  pricingDate: "2026-07-11",
-  componentVersionNumber: 1,
-  updatedAt: "2026-07-13T09:00:00.000Z",
-};
 
 describe("estimate component edit-surface ownership", () => {
   beforeEach(() => {
@@ -93,47 +70,33 @@ describe("estimate component edit-surface ownership", () => {
 
     await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledOnce());
     expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(expect.objectContaining({ name: "New Door Stop" }));
-    expect(actionMocks.updateCostLibraryComponent).not.toHaveBeenCalled();
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).not.toHaveBeenCalled();
   });
 
-  it("edits a library master through Edit Component Drawer without creating another component", async () => {
-    actionMocks.updateCostLibraryComponent.mockResolvedValueOnce({
-      itemId: libraryItem.id,
-      versionNumber: 2,
-      updatedAt: "2026-07-13T10:00:00.000Z",
-    });
-    const onSaved = vi.fn();
+  it("keeps the full Add/Edit modal as the only advanced Library editor", () => {
+    const reducedDrawerPath = join(process.cwd(), "src/components/workshop/library/EditComponentDrawer.tsx");
+    const managerSource = readFileSync(
+      join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"),
+      "utf8",
+    );
 
-    render(createElement(EditComponentDrawer, {
-      item: libraryItem,
-      open: true,
-      onOpenChange: vi.fn(),
-      onSaved,
-    }));
+    expect(existsSync(reducedDrawerPath)).toBe(false);
+    expect(managerSource).toContain("AddComponentModal");
+    expect(managerSource).not.toContain("EditComponentDrawer");
+  });
 
-    const drawer = await screen.findByRole("dialog", { name: "Edit component" });
-    fireEvent.change(within(drawer).getByDisplayValue("Door Stop"), { target: { value: "Door Stop Premium" } });
-    fireEvent.click(within(drawer).getByRole("button", { name: "Save changes" }));
+  it("routes both full and inline Library edits through the ordered option graph action", () => {
+    const estimateSheetSource = readFileSync(
+      join(process.cwd(), "src/components/workshop/EstimateSheetContent.tsx"),
+      "utf8",
+    );
+    const actionSource = readFileSync(
+      join(process.cwd(), "src/lib/component-library/actions.ts"),
+      "utf8",
+    );
 
-    await waitFor(() => expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
-      libraryItem.id,
-      expect.objectContaining({
-        name: "Door Stop Premium",
-        unitCost: 125,
-        miscCost: 0,
-        expectedUpdatedAt: libraryItem.updatedAt,
-        expectedVersionNumber: libraryItem.componentVersionNumber,
-      }),
-    ));
-    expect(actionMocks.updateCostLibraryComponent.mock.calls[0]?.[1]).not.toHaveProperty("priceOptions");
-    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).not.toHaveBeenCalled();
-    expect(actionMocks.upsertCostLibraryComponentPriceOption).not.toHaveBeenCalled();
-    expect(actionMocks.createCostLibraryComponent).not.toHaveBeenCalled();
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({
-      id: libraryItem.id,
-      material: "Door Stop Premium",
-      componentVersionNumber: 2,
-      updatedAt: "2026-07-13T10:00:00.000Z",
-    }));
+    expect(estimateSheetSource).toContain("updateCostLibraryComponentWithPriceOptions");
+    expect(actionSource).toContain("export async function updateCostLibraryComponentWithPriceOptions");
+    expect(actionSource).not.toMatch(/export async function updateCostLibraryComponent\(/u);
   });
 });

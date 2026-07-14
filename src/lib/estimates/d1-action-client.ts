@@ -5,9 +5,15 @@ import { createHash, randomUUID } from "node:crypto";
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { canEditEstimateInD1, canEditProjectInD1, isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1PreparedStatementLike, type D1Value } from "@/lib/cloudflare/d1";
-import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
+import { computeEstimateRowCostParts, ESTIMATE_CALCULATION_CURRENCY_SCALE } from "@/lib/estimates/estimate-row-total";
+import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 import { validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
 import { getProjectComponentIdentity } from "@/lib/estimates/express-components";
+import {
+  buildProjectComponentAttachmentDeleteRetentionStatements,
+  buildProjectComponentAttachmentRestoreRetentionStatements,
+} from "@/lib/estimates/project-component-attachment-retention";
+import { isUuid } from "@/lib/ids";
 import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
 import { validateActivationProducerIntent } from "@/lib/onboarding/activation-producer-contract";
 import type { Json } from "@/lib/types/json";
@@ -210,6 +216,7 @@ export type EstimateComponentEditImpact = {
   instanceCount: number;
   projectCount: number;
   estimateCount: number;
+  optionUsageCounts: Record<string, number>;
   affectedEstimates: EstimateComponentEditImpactEstimate[];
 };
 
@@ -248,6 +255,62 @@ type TemplateRowItemRow = {
   metadata: string | null;
 };
 
+type TemplateHeaderRow = {
+  id: string;
+  workspace_id: string;
+};
+
+type TemplateLibraryItemRow = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  supplier: string | null;
+  supplier_id: string | null;
+  brand: string | null;
+  brand_id: string | null;
+  category: string;
+  category_node_id: string | null;
+  unit: string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  pricing_source: string | null;
+  pricing_date: string | null;
+  metadata_json: string | null;
+  thumbnail_path: string | null;
+  current_version_number: number | string;
+  lifecycle_state: string;
+  updated_at: string;
+};
+
+type TemplatePriceOptionRow = {
+  id: string;
+  workspace_id: string;
+  item_id: string;
+  label: string;
+  unit: string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  currency: string;
+  supplier_id: string | null;
+  pricing_source: string | null;
+  metadata_json: string | null;
+  is_active: number | boolean;
+  is_default: number | boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type TemplateCostEntryRow = {
+  price_option_id: string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  currency: string;
+  pricing_source: string | null;
+  pricing_date: string | null;
+  source_url: string | null;
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -268,6 +331,27 @@ function placeholders(values: readonly unknown[]) {
 function readNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+const ESTIMATE_MINOR_UNIT_FACTOR = 10 ** ESTIMATE_CALCULATION_CURRENCY_SCALE;
+
+function estimateRowTotalMinorUnits(row: EstimateRowItemRow) {
+  const total = computeEstimateRowCostParts(row);
+  if (!total.ok) throw new Error(`Estimate row total is invalid (${total.code}:${total.field}).`);
+  return total.value.totalMinorUnits;
+}
+
+function minorUnitsToAmount(minorUnits: number) {
+  if (!Number.isSafeInteger(minorUnits)) throw new Error("Estimate history total is outside the supported range.");
+  return minorUnits / ESTIMATE_MINOR_UNIT_FACTOR;
+}
+
+function sumEstimateRowTotalMinorUnits(rows: readonly EstimateRowItemRow[]) {
+  return rows.reduce((total, row) => {
+    const next = total + estimateRowTotalMinorUnits(row);
+    if (!Number.isSafeInteger(next)) throw new Error("Estimate history total is outside the supported range.");
+    return next;
+  }, 0);
 }
 
 function readJson(value: unknown, fallback: Json): Json {
@@ -1046,6 +1130,7 @@ const ESTIMATE_EDIT_ACTIONS = new Set([
   "duplicate_estimate_tab_with_history",
   "insert_estimate_row_item_with_history",
   "insert_estimate_template_into_estimate_with_history",
+  "insert_estimate_templates_into_estimate_with_history",
   "insert_estimate_template_node_into_estimate_with_history",
   "move_estimate_row_component_with_history",
   "move_estimate_row_item_with_history",
@@ -1056,7 +1141,6 @@ const ESTIMATE_EDIT_ACTIONS = new Set([
   "reorder_estimate_tabs_with_history",
   "replace_estimate_row_item_with_history",
   "restore_deleted_estimate_nodes_with_history",
-  "unlink_estimate_row_item_from_library_with_history",
   "update_estimate_details_with_history",
   "update_estimate_row_item_with_history",
   "update_estimate_sheet_adjustment_with_history",
@@ -1404,7 +1488,31 @@ async function deleteEstimateTab(database: D1DatabaseLike, args: Record<string, 
   );
   const nodes = await all<{ id: string }>(database, "SELECT id FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?", [estimateId, tabId]);
   const nodeIds = nodes.map((node) => node.id);
+  const deletedRows = nodeIds.length > 0
+    ? await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(nodeIds)})`, [estimateId, ...nodeIds])
+    : [];
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const deletedAt = nowIso();
+  const history = await prepareHistoryEventInsert(database, {
+    projectId,
+    estimateId,
+    workspaceId: project.workspace_id,
+    estimateTabId: tabId,
+    eventType: "estimate_tab_deleted",
+    actorUserId: String(args.acting_user_id ?? "") || null,
+    correlationId: String(args.correlation_id ?? randomUUID()),
+    oldSnapshot: { rows: deletedRows.map(serializeRowItem) },
+    payload: { tabId, replacementTabId: replacement?.id ?? null, deletedNodeIds: nodeIds },
+  });
   const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
+  mutationStatements.push(...buildProjectComponentAttachmentDeleteRetentionStatements({
+    workspaceId: project.workspace_id,
+    projectId,
+    sourceDeleteEventId: history.eventId,
+    deletedRows,
+    deletedAt,
+  }).map((statement) => ({ sql: statement.sql, values: statement.values ?? [] })));
   if (nodeIds.length > 0) {
     mutationStatements.push(
       { sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(nodeIds)})`, values: [estimateId, ...nodeIds] },
@@ -1415,15 +1523,11 @@ async function deleteEstimateTab(database: D1DatabaseLike, args: Record<string, 
     sql: "DELETE FROM estimate_tabs WHERE id = ? AND estimate_id = ?",
     values: [tabId, estimateId],
   });
-  await runMutationWithHistory(database, mutationStatements, {
-    projectId,
-    estimateId,
-    estimateTabId: tabId,
-    eventType: "estimate_tab_deleted",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
-    payload: { tabId, replacementTabId: replacement?.id ?? null, deletedNodeIds: nodeIds },
-  });
+  if (history.statement) mutationStatements.push(
+    { sql: history.statement.sql, values: history.statement.values ?? [] },
+    { sql: history.outboxStatement.sql, values: history.outboxStatement.values ?? [] },
+  );
+  await runBatch(database, mutationStatements);
   return { estimateTabId: tabId, replacementTabId: replacement?.id ?? null };
 }
 
@@ -1614,6 +1718,7 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
   );
   const deletedNodeIdSet = new Set(deletedNodeIds);
   const fallbackNodeId = remainingNodes.find((node) => !deletedNodeIdSet.has(node.id))?.id ?? null;
+  const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
@@ -1629,7 +1734,15 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
     },
     payload: { deletedNodeIds, fallbackNodeId },
   });
-  const statements: Array<{ sql: string; values?: unknown[] }> = [];
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    ...buildProjectComponentAttachmentDeleteRetentionStatements({
+      workspaceId: project.workspace_id,
+      projectId,
+      sourceDeleteEventId: history.eventId,
+      deletedRows,
+      deletedAt,
+    }),
+  ];
   if (deletedNodeIds.length > 0) {
     statements.push(
       { sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(deletedNodeIds)})`, values: [estimateId, ...deletedNodeIds] },
@@ -1736,9 +1849,18 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
       restoredRowCount: restoredRowIds.length,
     },
   });
+  const restoredAt = nowIso();
+  const attachmentRetention = buildProjectComponentAttachmentRestoreRetentionStatements({
+    projectId,
+    sourceDeleteEventId: sourceEventId,
+    restoredRows: rowsToRestore,
+    restoredAt,
+  });
   const statements: Array<{ sql: string; values?: unknown[] }> = [
+    ...attachmentRetention.guardStatements,
     ...buildPackedInsertStatements("estimate_nodes", nodesToRestore),
     ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
+    ...attachmentRetention.releaseStatements,
   ];
   if (history.statement) statements.push(history.statement, history.outboxStatement);
   if (statements.length > D1_MAX_BATCH_STATEMENTS) {
@@ -1829,7 +1951,8 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     userId,
     workspaceId,
   }));
-  if (computeEstimateRowLineTotal(insertedRow) > 0) {
+  const insertedRowTotalMinorUnits = estimateRowTotalMinorUnits(insertedRow);
+  if (insertedRowTotalMinorUnits > 0) {
     const totalIntent = validateActivationProducerIntent({
       domainMutationId: rowId,
       estimateId,
@@ -1864,7 +1987,7 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     newSnapshot: insert.record,
     rowContext: { material: insertedRow.material, supplier: insertedRow.supplier },
     payload: { rowId },
-    totalDelta: computeEstimateRowLineTotal(insertedRow),
+    totalDelta: minorUnitsToAmount(insertedRowTotalMinorUnits),
   }, activationStatements);
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item was not created.");
@@ -1939,15 +2062,10 @@ function applyRowPatchForActivity(
 
 const SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS = new Set([
   "material",
-  "description",
   "supplier",
-  "unit",
-  "unitCost",
   "sourceSnapshot",
   "categoryNodeId",
   "supplierId",
-  "discipline",
-  "designation",
 ]);
 
 const SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS = new Set([
@@ -1958,27 +2076,27 @@ const SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS = new Set([
   "categoryPath",
   "componentVersionId",
   "componentVersionNumber",
-  "description",
-  "designation",
-  "discipline",
-  "imageAsset",
-  "imageUrl",
   "lifecycleState",
   "material",
   "notSupplierPriced",
-  "priceOptionId",
-  "priceOptionLabel",
   "priceOptions",
   "priceOptionUpdatedAt",
-  "pricingDate",
-  "pricingSource",
-  "sku",
   "source",
-  "sourceUrl",
   "supplier",
   "supplierId",
   "tags",
   "taxonomyVersion",
+]);
+
+const PROJECT_COMPONENT_VARIANT_SOURCE_SNAPSHOT_KEYS = new Set([
+  "description",
+  "imageAsset",
+  "imageUrl",
+  "priceOptionLabel",
+  "pricingDate",
+  "pricingSource",
+  "sku",
+  "sourceUrl",
   "unit",
   "unit_cost",
 ]);
@@ -2002,12 +2120,17 @@ function variantsDiffer(previous: VariantActivityIdentity | null, next: VariantA
   return previous?.id !== next?.id || previous?.label !== next?.label;
 }
 
-function pickSharedProjectComponentSourceSnapshot(value: unknown) {
+function pickSharedProjectComponentSourceSnapshot(value: unknown, includeVariantFields = false) {
   if (value === null) return null;
   const sourceSnapshot = readJsonRecord(value);
   const shared: Record<string, unknown> = {};
   for (const key of SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS) {
     if (Object.prototype.hasOwnProperty.call(sourceSnapshot, key)) shared[key] = sourceSnapshot[key];
+  }
+  if (includeVariantFields) {
+    for (const key of PROJECT_COMPONENT_VARIANT_SOURCE_SNAPSHOT_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(sourceSnapshot, key)) shared[key] = sourceSnapshot[key];
+    }
   }
   return Object.keys(shared).length > 0 ? shared : undefined;
 }
@@ -2026,13 +2149,177 @@ function pickSharedProjectComponentPatch(rowPatch: Record<string, unknown>) {
   return shared;
 }
 
-function mergeSharedSourceSnapshotIntoRow(row: EstimateRowItemRow, sourceSnapshot: unknown) {
-  if (sourceSnapshot === null) return null;
-  const sharedSourceSnapshot = pickSharedProjectComponentSourceSnapshot(sourceSnapshot);
-  if (sharedSourceSnapshot === undefined) return undefined;
+type ProjectComponentPriceOptionSnapshot = Record<string, unknown> & { id: string };
+
+const PROJECT_COMPONENT_VARIANT_OPTION_SIGNATURE_KEYS = [
+  "label",
+  "sku",
+  "variantDescription",
+  "unit",
+  "unitCost",
+  "pricingSource",
+  "pricingDate",
+  "sourceUrl",
+  "imageBucket",
+  "imagePath",
+  "thumbnailPath",
+  "imageMetadata",
+  "attachments",
+] as const;
+
+function readNonEmptyText(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readProjectComponentPriceOptions(sourceSnapshot: unknown) {
+  const priceOptions = readJsonRecord(sourceSnapshot).priceOptions;
+  if (!Array.isArray(priceOptions)) return [] as ProjectComponentPriceOptionSnapshot[];
+  return priceOptions.flatMap((candidate): ProjectComponentPriceOptionSnapshot[] => {
+    const option = readJsonRecord(candidate);
+    const id = readNonEmptyText(option.id);
+    return id ? [{ ...option, id }] : [];
+  });
+}
+
+function projectComponentPriceOptionMap(sourceSnapshot: unknown) {
+  return new Map(readProjectComponentPriceOptions(sourceSnapshot).map((option) => [option.id, option]));
+}
+
+function isSelectableProjectComponentPriceOption(option: ProjectComponentPriceOptionSnapshot | undefined) {
+  return Boolean(option && option.isActive !== false);
+}
+
+function projectComponentVariantOptionSignature(option: ProjectComponentPriceOptionSnapshot | undefined) {
+  if (!option) return "";
+  return JSON.stringify(PROJECT_COMPONENT_VARIANT_OPTION_SIGNATURE_KEYS.map((key) => option[key] ?? null));
+}
+
+function projectComponentVariantImageSignature(option: ProjectComponentPriceOptionSnapshot | undefined) {
+  if (!option) return "";
+  return JSON.stringify([
+    option.imageBucket ?? null,
+    option.imagePath ?? null,
+    option.thumbnailPath ?? null,
+    option.imageMetadata ?? null,
+  ]);
+}
+
+function readProjectComponentSelectedPriceOptionId(row: EstimateRowItemRow) {
+  const sourceSnapshot = readJsonRecord(rowSourceSnapshot(row));
+  const metadata = readJsonRecord(rowMetadata(row));
+  return readNonEmptyText(sourceSnapshot.priceOptionId) ?? readNonEmptyText(metadata.priceOptionId);
+}
+
+function readRemovedPriceOptionReplacements(value: unknown) {
+  const replacements = new Map<string, string>();
+  for (const [removedId, replacementValue] of Object.entries(readJsonRecord(value))) {
+    const normalizedRemovedId = readNonEmptyText(removedId);
+    const replacementId = readNonEmptyText(replacementValue);
+    if (normalizedRemovedId && replacementId) replacements.set(normalizedRemovedId, replacementId);
+  }
+  return replacements;
+}
+
+function projectComponentVariantSourceSnapshotPatch(
+  option: ProjectComponentPriceOptionSnapshot,
+  options: { clearImageAsset: boolean },
+) {
+  const imageUrl = readNonEmptyText(option.thumbnailPath) ?? readNonEmptyText(option.imagePath);
   return {
-    ...readJsonRecord(rowSourceSnapshot(row)),
+    description: readNonEmptyText(option.variantDescription),
+    imageUrl,
+    priceOptionLabel: readNonEmptyText(option.label),
+    pricingDate: readNonEmptyText(option.pricingDate),
+    pricingSource: readNonEmptyText(option.pricingSource),
+    sku: readNonEmptyText(option.sku),
+    sourceUrl: readNonEmptyText(option.sourceUrl),
+    unit: readNonEmptyText(option.unit) ?? "unit",
+    unit_cost: Math.max(0, readNumber(option.unitCost)),
+    ...(options.clearImageAsset ? { imageAsset: null } : {}),
+  };
+}
+
+function normalizeProjectComponentSourceRowPatch(
+  row: EstimateRowItemRow,
+  rowPatch: Record<string, unknown>,
+  replacements: Map<string, string>,
+) {
+  if (!Object.prototype.hasOwnProperty.call(rowPatch, "sourceSnapshot") || rowPatch.sourceSnapshot === null) {
+    return rowPatch;
+  }
+  const currentSourceSnapshot = readJsonRecord(rowSourceSnapshot(row));
+  const incomingSourceSnapshot = {
+    ...currentSourceSnapshot,
+    ...readJsonRecord(rowPatch.sourceSnapshot),
+  };
+  const incomingOptions = readProjectComponentPriceOptions(incomingSourceSnapshot);
+  if (incomingOptions.length === 0) return rowPatch;
+  const currentSelectedId = readProjectComponentSelectedPriceOptionId(row);
+  const incomingOptionById = new Map(incomingOptions.map((option) => [option.id, option]));
+  let selectedId = readNonEmptyText(incomingSourceSnapshot.priceOptionId) ?? currentSelectedId;
+  if (currentSelectedId && !isSelectableProjectComponentPriceOption(incomingOptionById.get(currentSelectedId))) {
+    const replacementId = replacements.get(currentSelectedId);
+    if (!replacementId || !isSelectableProjectComponentPriceOption(incomingOptionById.get(replacementId))) {
+      throw new Error("Choose an active replacement for every used project component variant before saving.");
+    }
+    selectedId = replacementId;
+  }
+  const selectedOption = selectedId ? incomingOptionById.get(selectedId) : undefined;
+  if (!isSelectableProjectComponentPriceOption(selectedOption)) {
+    throw new Error("The selected project component variant is no longer available.");
+  }
+
+  const selectedIndex = incomingOptions.findIndex((option) => option.id === selectedId);
+  const nextSelectedOption: ProjectComponentPriceOptionSnapshot = {
+    ...selectedOption!,
+    ...(Object.prototype.hasOwnProperty.call(rowPatch, "description")
+      ? { variantDescription: rowPatch.description }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(rowPatch, "unit") ? { unit: rowPatch.unit } : {}),
+    ...(Object.prototype.hasOwnProperty.call(rowPatch, "unitCost") ? { unitCost: rowPatch.unitCost } : {}),
+  };
+  const nextOptions = [...incomingOptions];
+  nextOptions[selectedIndex] = nextSelectedOption;
+  const previousSelectedOption = currentSelectedId
+    ? projectComponentPriceOptionMap(currentSourceSnapshot).get(currentSelectedId)
+    : undefined;
+  const selectionChanged = selectedId !== currentSelectedId;
+  const imageChanged = selectionChanged
+    || projectComponentVariantImageSignature(previousSelectedOption) !== projectComponentVariantImageSignature(nextSelectedOption);
+  const variantSnapshotPatch = projectComponentVariantSourceSnapshotPatch(nextSelectedOption, { clearImageAsset: imageChanged });
+  return {
+    ...rowPatch,
+    description: variantSnapshotPatch.description ?? "",
+    unit: variantSnapshotPatch.unit,
+    unitCost: variantSnapshotPatch.unit_cost,
+    sourceSnapshot: {
+      ...incomingSourceSnapshot,
+      ...variantSnapshotPatch,
+      priceOptionId: selectedId,
+      priceOptions: nextOptions,
+    },
+  };
+}
+
+function mergeSharedSourceSnapshotIntoRow(
+  row: EstimateRowItemRow,
+  sourceSnapshot: unknown,
+  selectedPriceOptionId: string | null,
+  variantOption?: ProjectComponentPriceOptionSnapshot,
+  clearImageAsset = false,
+  includeLegacyVariantFields = false,
+) {
+  if (sourceSnapshot === null) return null;
+  const sharedSourceSnapshot = pickSharedProjectComponentSourceSnapshot(sourceSnapshot, includeLegacyVariantFields);
+  if (sharedSourceSnapshot === undefined) return undefined;
+  const currentSourceSnapshot = readJsonRecord(rowSourceSnapshot(row));
+  return {
+    ...currentSourceSnapshot,
     ...sharedSourceSnapshot,
+    ...(variantOption
+      ? projectComponentVariantSourceSnapshotPatch(variantOption, { clearImageAsset })
+      : {}),
+    priceOptionId: selectedPriceOptionId,
   };
 }
 
@@ -2097,17 +2384,22 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
   rowPatch: Record<string, unknown>;
   componentId: string | null;
   expectedImpactFingerprint?: string;
+  removedPriceOptionReplacements: Map<string, string>;
 }) {
   const sharedPatch = pickSharedProjectComponentPatch(input.rowPatch);
-  const sharedColumns = updateValuesForRowPatch(sharedPatch);
-  if (sharedColumns.length === 0) return {
-    rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
+  const sourceSnapshotPatch = readJsonRecord(input.rowPatch.sourceSnapshot);
+  const hasVariantPatch = ["description", "unit", "unitCost"].some((key) => Object.prototype.hasOwnProperty.call(input.rowPatch, key))
+    || [...PROJECT_COMPONENT_VARIANT_SOURCE_SNAPSHOT_KEYS].some((key) => Object.prototype.hasOwnProperty.call(sourceSnapshotPatch, key));
+  if (Object.keys(sharedPatch).length === 0 && !hasVariantPatch) return {
+    rowIds: [] as string[], totalDeltaMinorUnits: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
     mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+    impactFingerprint: null as string | null,
   };
 
   if (!input.componentId) return {
-    rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
+    rowIds: [] as string[], totalDeltaMinorUnits: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
     mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+    impactFingerprint: null as string | null,
   };
 
   const siblingRows = await all<EstimateRowItemRow>(
@@ -2129,21 +2421,89 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
   if (input.expectedImpactFingerprint !== undefined && impactFingerprint !== input.expectedImpactFingerprint) {
     throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
   }
-  if (siblingRows.length === 0) return {
-    rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
-    mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
-  };
-
   const propagatedAt = nowIso();
   const statements: Array<{ sql: string; values?: unknown[] }> = [];
   const facts: Array<Record<string, unknown>> = [];
-  let totalDelta = 0;
+  let totalDeltaMinorUnits = 0;
+  const sourceCurrentSnapshot = readJsonRecord(rowSourceSnapshot(input.sourceRow));
+  const incomingSourceSnapshot = readJsonRecord(input.rowPatch.sourceSnapshot);
+  const currentOptionById = projectComponentPriceOptionMap(sourceCurrentSnapshot);
+  const incomingOptionById = projectComponentPriceOptionMap(incomingSourceSnapshot);
+  const hasIncomingVariantGraph = Array.isArray(incomingSourceSnapshot.priceOptions);
+  const sourceSelectedPriceOptionId = readProjectComponentSelectedPriceOptionId(input.sourceRow);
+  const changedOptionIds = new Set<string>();
+  const imageChangedOptionIds = new Set<string>();
+  if (hasIncomingVariantGraph) {
+    for (const [optionId, nextOption] of incomingOptionById) {
+      const previousOption = currentOptionById.get(optionId);
+      if (projectComponentVariantOptionSignature(previousOption) !== projectComponentVariantOptionSignature(nextOption)) {
+        changedOptionIds.add(optionId);
+      }
+      if (projectComponentVariantImageSignature(previousOption) !== projectComponentVariantImageSignature(nextOption)) {
+        imageChangedOptionIds.add(optionId);
+      }
+    }
+  }
+
+  for (const row of [input.sourceRow, ...siblingRows]) {
+    const selectedPriceOptionId = readProjectComponentSelectedPriceOptionId(row);
+    if (!selectedPriceOptionId || !hasIncomingVariantGraph) continue;
+    if (isSelectableProjectComponentPriceOption(incomingOptionById.get(selectedPriceOptionId))) continue;
+    const replacementId = input.removedPriceOptionReplacements.get(selectedPriceOptionId);
+    if (!replacementId || !isSelectableProjectComponentPriceOption(incomingOptionById.get(replacementId))) {
+      throw new Error("Choose an active replacement for every used project component variant before saving.");
+    }
+  }
 
   for (const row of siblingRows) {
     const nextRevision = readNumber(row.row_revision, 1) + 1;
-    const columns = sharedColumns.map(([column, value]) => [column, value] as [string, unknown]);
-    if (Object.prototype.hasOwnProperty.call(sharedPatch, "sourceSnapshot")) {
-      const mergedSourceSnapshot = mergeSharedSourceSnapshotIntoRow(row, sharedPatch.sourceSnapshot);
+    const rowSelectedPriceOptionId = readProjectComponentSelectedPriceOptionId(row);
+    const replacementPriceOptionId = rowSelectedPriceOptionId && hasIncomingVariantGraph
+      && !isSelectableProjectComponentPriceOption(incomingOptionById.get(rowSelectedPriceOptionId))
+      ? input.removedPriceOptionReplacements.get(rowSelectedPriceOptionId) ?? null
+      : null;
+    const nextSelectedPriceOptionId = replacementPriceOptionId ?? rowSelectedPriceOptionId;
+    const nextSelectedOption = nextSelectedPriceOptionId
+      ? incomingOptionById.get(nextSelectedPriceOptionId)
+      : undefined;
+    const selectionChanged = nextSelectedPriceOptionId !== rowSelectedPriceOptionId;
+    const includeLegacyVariantFields = !hasIncomingVariantGraph
+      && (!sourceSelectedPriceOptionId || sourceSelectedPriceOptionId === rowSelectedPriceOptionId);
+    const includeVariantFields = Boolean(
+      includeLegacyVariantFields
+      || (
+        hasIncomingVariantGraph
+        && nextSelectedOption
+        && (selectionChanged || changedOptionIds.has(nextSelectedOption.id))
+      ),
+    );
+    const siblingPatch: Record<string, unknown> = { ...sharedPatch };
+    if (includeVariantFields && nextSelectedOption) {
+      const variantSnapshotPatch = projectComponentVariantSourceSnapshotPatch(nextSelectedOption, {
+        clearImageAsset: selectionChanged || imageChangedOptionIds.has(nextSelectedOption.id),
+      });
+      siblingPatch.description = variantSnapshotPatch.description ?? "";
+      siblingPatch.unit = variantSnapshotPatch.unit;
+      siblingPatch.unitCost = variantSnapshotPatch.unit_cost;
+    } else if (includeLegacyVariantFields) {
+      for (const key of ["description", "unit", "unitCost"]) {
+        if (Object.prototype.hasOwnProperty.call(input.rowPatch, key)) siblingPatch[key] = input.rowPatch[key];
+      }
+    }
+    const columns = updateValuesForRowPatch(siblingPatch);
+    if (Object.prototype.hasOwnProperty.call(input.rowPatch, "sourceSnapshot")) {
+      const mergedSourceSnapshot = mergeSharedSourceSnapshotIntoRow(
+        row,
+        input.rowPatch.sourceSnapshot,
+        nextSelectedPriceOptionId,
+        includeVariantFields ? nextSelectedOption : undefined,
+        Boolean(
+          includeVariantFields
+          && nextSelectedOption
+          && (selectionChanged || imageChangedOptionIds.has(nextSelectedOption.id)),
+        ),
+        includeLegacyVariantFields,
+      );
       if (mergedSourceSnapshot !== undefined) {
         const sourceSnapshotIndex = columns.findIndex(([column]) => column === "source_snapshot_json");
         const sourceSnapshotColumn: [string, unknown] = ["source_snapshot_json", jsonString(mergedSourceSnapshot, null)];
@@ -2162,17 +2522,28 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
           sourceSnapshot: rowSourceSnapshot(row),
         },
         after: {
-          material: Object.prototype.hasOwnProperty.call(sharedPatch, "material") ? sharedPatch.material : row.material,
-          unitCost: Object.prototype.hasOwnProperty.call(sharedPatch, "unitCost") ? sharedPatch.unitCost : readNumber(row.unit_cost),
-          sourceSnapshot: Object.prototype.hasOwnProperty.call(sharedPatch, "sourceSnapshot")
-            ? mergeSharedSourceSnapshotIntoRow(row, sharedPatch.sourceSnapshot)
+          material: Object.prototype.hasOwnProperty.call(siblingPatch, "material") ? siblingPatch.material : row.material,
+          unitCost: Object.prototype.hasOwnProperty.call(siblingPatch, "unitCost") ? siblingPatch.unitCost : readNumber(row.unit_cost),
+          sourceSnapshot: Object.prototype.hasOwnProperty.call(input.rowPatch, "sourceSnapshot")
+            ? mergeSharedSourceSnapshotIntoRow(
+                row,
+                input.rowPatch.sourceSnapshot,
+                nextSelectedPriceOptionId,
+                includeVariantFields ? nextSelectedOption : undefined,
+                Boolean(
+                  includeVariantFields
+                  && nextSelectedOption
+                  && (selectionChanged || imageChangedOptionIds.has(nextSelectedOption.id)),
+                ),
+                includeLegacyVariantFields,
+              )
             : rowSourceSnapshot(row),
         },
       });
     }
 
-    if (Object.prototype.hasOwnProperty.call(sharedPatch, "unitCost")) {
-      totalDelta += computeEstimateRowLineTotal({ ...row, unit_cost: sharedPatch.unitCost as EstimateRowItemRow["unit_cost"] }) - computeEstimateRowLineTotal(row);
+    if (Object.prototype.hasOwnProperty.call(siblingPatch, "unitCost")) {
+      totalDeltaMinorUnits += estimateRowTotalMinorUnits({ ...row, unit_cost: siblingPatch.unitCost as EstimateRowItemRow["unit_cost"] }) - estimateRowTotalMinorUnits(row);
     }
 
     const assignments = columns.map(([column]) => `${column} = ?`);
@@ -2187,10 +2558,528 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
 
   return {
     rowIds: siblingRows.map((row) => row.id),
-    totalDelta,
+    totalDeltaMinorUnits,
     facts,
     truncatedCount: Math.max(0, siblingRows.length - facts.length),
     mutationStatements: statements,
+    impactFingerprint,
+  };
+}
+
+const PROJECT_COMPONENT_ATTACHMENT_CONTENT_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+
+type ProjectComponentAttachmentBindingRow = {
+  id: string;
+  price_option_id: string;
+  upload_asset_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number | string;
+  attachment_kind: "pdf" | "excel" | null;
+  metadata_json: string | null;
+  created_by: string | null;
+  review_status: "uploaded" | "approved" | "rejected" | "superseded";
+  is_current_approved: number | boolean;
+  review_revision: number | string;
+  created_at: string;
+};
+
+type ProjectComponentAttachmentAssetRow = {
+  id: string;
+  workspace_id: string;
+  actor_user_id: string | null;
+  project_id: string | null;
+  surface: string;
+  target_entity_type: string | null;
+  target_entity_id: string | null;
+  status: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number | string;
+  scan_status: string | null;
+  scan_override_expires_at: string | null;
+  storage_bucket: string | null;
+  storage_path: string | null;
+  metadata_json: string | null;
+};
+
+type ProjectComponentAttachmentDraft = {
+  id: string;
+  assetId: string;
+  bucket: string;
+  path: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  kind: "pdf" | "excel";
+  metadata: Record<string, unknown>;
+};
+
+function projectComponentAttachmentKind(contentType: string): "pdf" | "excel" {
+  return contentType === "application/pdf" ? "pdf" : "excel";
+}
+
+function projectComponentAttachmentScanAllowed(asset: ProjectComponentAttachmentAssetRow, timestamp: string) {
+  return asset.scan_status === "pending"
+    || asset.scan_status === "clean"
+    || (
+      asset.scan_status === "override_approved"
+      && typeof asset.scan_override_expires_at === "string"
+      && Date.parse(asset.scan_override_expires_at) > Date.parse(timestamp)
+    );
+}
+
+function projectComponentAttachmentGraphIsPresent(sourceSnapshot: unknown) {
+  return readProjectComponentPriceOptions(sourceSnapshot).some((option) => (
+    Object.prototype.hasOwnProperty.call(option, "attachments")
+  ));
+}
+
+function validateProjectComponentAttachmentDraft(
+  value: unknown,
+  seenAttachmentIds: Set<string>,
+  seenAssetIds: Set<string>,
+  seenPaths: Set<string>,
+): ProjectComponentAttachmentDraft {
+  const attachment = readJsonRecord(value);
+  const id = readNonEmptyText(attachment.id) ?? "";
+  const assetId = readNonEmptyText(attachment.assetId) ?? "";
+  const bucket = readNonEmptyText(attachment.bucket) ?? "";
+  const path = readNonEmptyText(attachment.path) ?? "";
+  const fileName = readNonEmptyText(attachment.fileName) ?? "";
+  const contentType = readNonEmptyText(attachment.contentType) ?? "";
+  const sizeBytes = readNumber(attachment.sizeBytes, Number.NaN);
+  if (!isUuid(id)) throw new Error("Refresh this project component attachment before saving.");
+  if (assetId && !isUuid(assetId)) throw new Error("A finalized upload asset is required for every project component attachment.");
+  if (bucket !== "component-attachments") throw new Error("Project component attachments must use the component attachment bucket.");
+  if (!path || path.includes("..") || path.includes("//")) throw new Error("Project component attachment path is invalid.");
+  if (!fileName) throw new Error("Project component attachment file name is required.");
+  if (!PROJECT_COMPONENT_ATTACHMENT_CONTENT_TYPES.has(contentType)) throw new Error("Project component attachments must be PDF or Excel files.");
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) throw new Error("Project component attachment size must be positive.");
+  if (seenAttachmentIds.has(id) || (assetId && seenAssetIds.has(assetId)) || seenPaths.has(path)) {
+    throw new Error("Project component attachments cannot be reused across variants.");
+  }
+  seenAttachmentIds.add(id);
+  if (assetId) seenAssetIds.add(assetId);
+  seenPaths.add(path);
+  return {
+    id,
+    assetId,
+    bucket,
+    path,
+    fileName,
+    contentType,
+    sizeBytes,
+    kind: projectComponentAttachmentKind(contentType),
+    metadata: readJsonRecord(attachment.metadata),
+  };
+}
+
+async function planProjectComponentAttachmentReconciliation(database: D1DatabaseLike, input: {
+  projectId: string;
+  estimateId: string;
+  sourceRow: EstimateRowItemRow;
+  componentId: string | null;
+  rowPatch: Record<string, unknown>;
+  actorUserId: string;
+}) {
+  const currentSourceSnapshot = rowSourceSnapshot(input.sourceRow);
+  const incomingSourceSnapshot = readJsonRecord(input.rowPatch.sourceSnapshot);
+  const hasIncomingGraph = Array.isArray(incomingSourceSnapshot.priceOptions);
+  const active = Boolean(
+    input.componentId
+    && hasIncomingGraph
+    && (
+      projectComponentAttachmentGraphIsPresent(currentSourceSnapshot)
+      || projectComponentAttachmentGraphIsPresent(incomingSourceSnapshot)
+    )
+  );
+  const emptyPlan = {
+    active: false,
+    changed: false,
+    canonicalRowPatch: input.rowPatch,
+    preSourceGuards: [] as Array<{ sql: string; values?: unknown[] }>,
+    postSourceGuards: [] as Array<{ sql: string; values?: unknown[] }>,
+    mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+    createdAttachmentIds: [] as string[],
+    supersededAttachmentIds: [] as string[],
+  };
+  if (!active || !input.componentId) return emptyPlan;
+
+  const project = await first<ProjectContextRow>(
+    database,
+    "SELECT id, workspace_id FROM projects WHERE id = ? LIMIT 1",
+    [input.projectId],
+  );
+  if (!project) throw new Error("Project component attachment scope could not be resolved.");
+
+  const incomingOptions = readProjectComponentPriceOptions(incomingSourceSnapshot);
+  const rawOptions = incomingSourceSnapshot.priceOptions as unknown[];
+  if (incomingOptions.length === 0 || incomingOptions.length !== rawOptions.length || incomingOptions.length > 50) {
+    throw new Error("Project component variants are invalid.");
+  }
+  const optionIds = new Set<string>();
+  let defaultOptionCount = 0;
+  for (const option of incomingOptions) {
+    if (optionIds.has(option.id)) throw new Error("Project component variant identities must be unique.");
+    optionIds.add(option.id);
+    if (option.isDefault === true && option.isActive !== false) defaultOptionCount += 1;
+  }
+  if (defaultOptionCount !== 1) throw new Error("Exactly one active default project component variant is required.");
+
+  const existingBindings = await all<ProjectComponentAttachmentBindingRow>(
+    database,
+    `
+      SELECT id, price_option_id, upload_asset_id, storage_bucket, storage_path,
+        file_name, content_type, size_bytes, attachment_kind, metadata_json,
+        created_by, review_status, is_current_approved, review_revision, created_at
+      FROM component_variant_attachments
+      WHERE owner_scope = 'project'
+        AND workspace_id = ?
+        AND project_id = ?
+        AND project_component_id = ?
+    `,
+    [project.workspace_id, input.projectId, input.componentId],
+  );
+  const bindingById = new Map(existingBindings.map((binding) => [binding.id, binding]));
+  const seenAttachmentIds = new Set<string>();
+  const seenAssetIds = new Set<string>();
+  const seenPaths = new Set<string>();
+  const draftsByOptionId = new Map<string, ProjectComponentAttachmentDraft[]>();
+  for (const option of incomingOptions) {
+    if (option.attachments !== undefined && !Array.isArray(option.attachments)) {
+      throw new Error("Project component variant attachments are invalid.");
+    }
+    const drafts = (Array.isArray(option.attachments) ? option.attachments : []).map((attachment) => (
+      validateProjectComponentAttachmentDraft(attachment, seenAttachmentIds, seenAssetIds, seenPaths)
+    ));
+    draftsByOptionId.set(option.id, drafts);
+  }
+
+  const assetIds = new Set<string>();
+  for (const drafts of draftsByOptionId.values()) {
+    for (const draft of drafts) {
+      const binding = bindingById.get(draft.id);
+      const assetId = binding?.upload_asset_id ?? draft.assetId;
+      if (assetId) assetIds.add(assetId);
+    }
+  }
+  const assets = assetIds.size > 0
+    ? await all<ProjectComponentAttachmentAssetRow>(
+        database,
+        `
+          SELECT id, workspace_id, actor_user_id, project_id, surface,
+            target_entity_type, target_entity_id, status, file_name, content_type,
+            size_bytes, scan_status, scan_override_expires_at, storage_bucket,
+            storage_path, metadata_json
+          FROM upload_assets
+          WHERE id IN (${placeholders([...assetIds])})
+        `,
+        [...assetIds],
+      )
+    : [];
+  const assetById = new Map(assets.map((asset) => [asset.id, asset]));
+  const timestamp = nowIso();
+  const retainedAttachmentIds = new Set<string>();
+  const createdAttachmentIds: string[] = [];
+  const preSourceGuards: Array<{ sql: string; values?: unknown[] }> = [{
+    sql: `
+      SELECT CASE WHEN EXISTS (
+        SELECT 1
+        FROM estimate_row_items
+        WHERE id = ?
+          AND estimate_id = ?
+          AND row_revision = ?
+      ) THEN 1 ELSE json('') END AS project_attachment_source_revision_guard
+    `,
+    values: [input.sourceRow.id, input.estimateId, readNumber(input.sourceRow.row_revision, 1)],
+  }];
+  const postSourceGuards: Array<{ sql: string; values?: unknown[] }> = [];
+  const mutationStatements: Array<{ sql: string; values?: unknown[] }> = [];
+
+  const canonicalOptions = incomingOptions.map((option) => {
+    const canonicalAttachments = (draftsByOptionId.get(option.id) ?? []).map((draft) => {
+      const binding = bindingById.get(draft.id);
+      if (binding && binding.review_status === "superseded") {
+        throw new Error("A superseded project component attachment cannot be restored by reusing its identity.");
+      }
+      const assetId = binding?.upload_asset_id ?? draft.assetId;
+      const asset = assetById.get(assetId);
+      const assetProjectId = asset
+        ? (asset.project_id ?? readNonEmptyText(readJsonRecord(asset.metadata_json).projectId))
+        : null;
+      if (
+        !asset
+        || asset.workspace_id !== project.workspace_id
+        || asset.surface !== "component-attachment"
+        || asset.status !== "finalized"
+        || asset.target_entity_type !== "project-component"
+        || asset.target_entity_id !== input.componentId
+        || assetProjectId !== input.projectId
+        || asset.storage_bucket !== draft.bucket
+        || asset.storage_path !== draft.path
+        || asset.file_name !== draft.fileName
+        || asset.content_type !== draft.contentType
+        || readNumber(asset.size_bytes) !== draft.sizeBytes
+        || !projectComponentAttachmentScanAllowed(asset, timestamp)
+      ) {
+        throw new Error("Project component attachment ownership could not be verified.");
+      }
+      if (!binding && asset.actor_user_id !== input.actorUserId) {
+        throw new Error("Project component attachment must be finalized by the current editor.");
+      }
+      if (
+        binding
+        && (
+          binding.price_option_id !== option.id
+          || binding.storage_bucket !== draft.bucket
+          || binding.storage_path !== draft.path
+          || binding.file_name !== draft.fileName
+          || binding.content_type !== draft.contentType
+          || readNumber(binding.size_bytes) !== draft.sizeBytes
+          || binding.attachment_kind !== draft.kind
+          || (draft.assetId && draft.assetId !== binding.upload_asset_id)
+        )
+      ) {
+        throw new Error("Project component attachment identity does not match its saved variant.");
+      }
+
+      retainedAttachmentIds.add(draft.id);
+      postSourceGuards.push({
+        sql: `
+          SELECT CASE WHEN EXISTS (
+            SELECT 1
+            FROM estimate_row_items row_item,
+              json_each(json_extract(row_item.source_snapshot_json, '$.priceOptions')) price_option,
+              json_each(json_extract(price_option.value, '$.attachments')) attachment
+            WHERE row_item.id = ?
+              AND row_item.estimate_id = ?
+              AND json_extract(price_option.value, '$.id') = ?
+              AND json_extract(attachment.value, '$.id') = ?
+          ) THEN 1 ELSE json('') END AS project_attachment_option_membership_guard
+        `,
+        values: [input.sourceRow.id, input.estimateId, option.id, draft.id],
+      });
+
+      if (binding) {
+        preSourceGuards.push({
+          sql: `
+            SELECT CASE WHEN EXISTS (
+              SELECT 1
+              FROM component_variant_attachments attachment
+              INNER JOIN upload_assets asset ON asset.id = attachment.upload_asset_id
+              WHERE attachment.id = ?
+                AND attachment.owner_scope = 'project'
+                AND attachment.workspace_id = ?
+                AND attachment.project_id = ?
+                AND attachment.project_component_id = ?
+                AND attachment.price_option_id = ?
+                AND attachment.review_revision = ?
+                AND attachment.review_status <> 'superseded'
+                AND asset.status = 'finalized'
+            ) THEN 1 ELSE json('') END AS existing_project_attachment_guard
+          `,
+          values: [
+            binding.id,
+            project.workspace_id,
+            input.projectId,
+            input.componentId,
+            option.id,
+            readNumber(binding.review_revision, 1),
+          ],
+        });
+      } else {
+        if (!draft.assetId) throw new Error("A finalized upload asset is required for every new project component attachment.");
+        createdAttachmentIds.push(draft.id);
+        preSourceGuards.push({
+          sql: `
+            SELECT CASE WHEN EXISTS (
+              SELECT 1
+              FROM upload_assets
+              WHERE id = ?
+                AND workspace_id = ?
+                AND actor_user_id = ?
+                AND surface = 'component-attachment'
+                AND target_entity_type = 'project-component'
+                AND target_entity_id = ?
+                AND COALESCE(project_id, json_extract(metadata_json, '$.projectId')) = ?
+                AND status = 'finalized'
+                AND storage_bucket = ?
+                AND storage_path = ?
+                AND file_name = ?
+                AND content_type = ?
+                AND size_bytes = ?
+                AND (
+                  scan_status IN ('pending', 'clean')
+                  OR (
+                    scan_status = 'override_approved'
+                    AND datetime(scan_override_expires_at) > datetime(?)
+                  )
+                )
+            ) THEN 1 ELSE json('') END AS new_project_attachment_guard
+          `,
+          values: [
+            draft.assetId,
+            project.workspace_id,
+            input.actorUserId,
+            input.componentId,
+            input.projectId,
+            draft.bucket,
+            draft.path,
+            draft.fileName,
+            draft.contentType,
+            draft.sizeBytes,
+            timestamp,
+          ],
+        });
+        mutationStatements.push({
+          sql: `
+            INSERT INTO component_variant_attachments (
+              id, owner_scope, price_option_id, item_id, project_id,
+              project_component_id, workspace_id, upload_asset_id, storage_bucket,
+              storage_path, file_name, content_type, size_bytes, attachment_kind,
+              metadata_json, created_by, review_status, applicable_cost_entry_id,
+              is_current_approved, review_revision, created_at, updated_at
+            )
+            VALUES (?, 'project', ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uploaded', NULL, 0, 1, ?, ?)
+          `,
+          values: [
+            draft.id,
+            option.id,
+            input.projectId,
+            input.componentId,
+            project.workspace_id,
+            draft.assetId,
+            draft.bucket,
+            draft.path,
+            draft.fileName,
+            draft.contentType,
+            draft.sizeBytes,
+            draft.kind,
+            jsonString({ ...draft.metadata, assetId: draft.assetId, scanStatus: asset.scan_status }),
+            input.actorUserId,
+            timestamp,
+            timestamp,
+          ],
+        });
+      }
+
+      const bindingMetadata = binding ? readJsonRecord(binding.metadata_json) : draft.metadata;
+      return {
+        id: draft.id,
+        assetId,
+        bucket: draft.bucket,
+        path: draft.path,
+        fileName: draft.fileName,
+        contentType: draft.contentType,
+        sizeBytes: draft.sizeBytes,
+        kind: draft.kind,
+        scanStatus: asset.scan_status,
+        reviewStatus: binding?.review_status ?? "uploaded",
+        isCurrentApproved: binding ? Number(binding.is_current_approved) === 1 : false,
+        metadata: { ...bindingMetadata, assetId, scanStatus: asset.scan_status },
+        createdAt: binding?.created_at ?? timestamp,
+      };
+    });
+    return { ...option, attachments: canonicalAttachments };
+  });
+
+  const staleBindings = existingBindings.filter((binding) => (
+    binding.review_status !== "superseded" && !retainedAttachmentIds.has(binding.id)
+  ));
+  for (const binding of staleBindings) {
+    mutationStatements.push({
+      sql: `
+        UPDATE component_variant_attachments
+        SET review_status = 'superseded',
+            is_current_approved = 0,
+            reviewed_by = ?,
+            reviewed_at = ?,
+            review_note = 'Removed from project component variant',
+            review_revision = review_revision + 1,
+            updated_at = ?
+        WHERE id = ?
+          AND owner_scope = 'project'
+          AND workspace_id = ?
+          AND project_id = ?
+          AND project_component_id = ?
+          AND review_revision = ?
+          AND review_status <> 'superseded'
+      `,
+      values: [
+        input.actorUserId,
+        timestamp,
+        timestamp,
+        binding.id,
+        project.workspace_id,
+        input.projectId,
+        input.componentId,
+        readNumber(binding.review_revision, 1),
+      ],
+    }, {
+      sql: `
+        UPDATE upload_assets
+        SET status = 'removed',
+            updated_at = ?
+        WHERE id = ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM component_variant_attachments
+            WHERE upload_asset_id = ?
+              AND review_status <> 'superseded'
+          )
+      `,
+      values: [timestamp, binding.upload_asset_id, binding.upload_asset_id],
+    });
+  }
+
+  return {
+    active: true,
+    changed: createdAttachmentIds.length > 0 || staleBindings.length > 0,
+    canonicalRowPatch: {
+      ...input.rowPatch,
+      sourceSnapshot: {
+        ...incomingSourceSnapshot,
+        priceOptions: canonicalOptions,
+      },
+    },
+    preSourceGuards,
+    postSourceGuards,
+    mutationStatements,
+    createdAttachmentIds,
+    supersededAttachmentIds: staleBindings.map((binding) => binding.id),
+  };
+}
+
+function planRowPatchMutation(
+  row: EstimateRowItemRow,
+  estimateId: string,
+  rowPatch: Record<string, unknown>,
+  expectedRowRevision: number,
+) {
+  if (readNumber(row.row_revision, 1) !== expectedRowRevision) throw new Error("Estimate row revision conflict.");
+  const effectiveRowPatch = mergeSourceSnapshotPatchIntoRow(row, rowPatch);
+  const columns = updateValuesForRowPatch(effectiveRowPatch);
+  if (columns.length === 0) return null;
+  const nextRevision = expectedRowRevision + 1;
+  const assignments = columns.map(([column]) => `${column} = ?`);
+  const values = columns.map(([, value]) => value);
+  assignments.push("row_revision = ?", "updated_at = ?");
+  values.push(nextRevision, nowIso(), row.id, estimateId, expectedRowRevision);
+  return {
+    columns,
+    effectiveRowPatch,
+    statement: {
+      sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ? AND row_revision = ?`,
+      values,
+    },
+    updated: applyRowPatchForActivity(row, effectiveRowPatch, nextRevision),
   };
 }
 
@@ -2214,23 +3103,36 @@ async function patchRowItem(
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
-  if (readNumber(row.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
-  const effectiveRowPatch = mergeSourceSnapshotPatchIntoRow(row, rowPatch);
-  const columns = updateValuesForRowPatch(effectiveRowPatch);
-  if (columns.length === 0) return rowItemHistoryResult(row);
-  const nextRevision = readNumber(row.row_revision, 1) + 1;
-  const assignments = columns.map(([column]) => `${column} = ?`);
-  const values = columns.map(([, value]) => value);
-  assignments.push("row_revision = ?", "updated_at = ?");
-  values.push(nextRevision, nowIso(), rowId, estimateId, expected);
-  const updated = applyRowPatchForActivity(row, effectiveRowPatch, nextRevision);
+  const removedPriceOptionReplacements = readRemovedPriceOptionReplacements(args.removed_price_option_replacements);
+  const normalizedRowPatch = eventType === "row_updated" && !row.source_library_item_id
+    ? normalizeProjectComponentSourceRowPatch(row, rowPatch, removedPriceOptionReplacements)
+    : rowPatch;
   const componentId = getProjectComponentIdentity(rowMetadata(row), null, rowSourceSnapshot(row));
+  const attachmentPlan = eventType === "row_updated" && !row.source_library_item_id
+    ? await planProjectComponentAttachmentReconciliation(database, {
+        projectId,
+        estimateId,
+        sourceRow: row,
+        componentId,
+        rowPatch: normalizedRowPatch,
+        actorUserId: currentUser.userId,
+      })
+    : {
+      active: false,
+      changed: false,
+      canonicalRowPatch: normalizedRowPatch,
+      preSourceGuards: [] as Array<{ sql: string; values?: unknown[] }>,
+      postSourceGuards: [] as Array<{ sql: string; values?: unknown[] }>,
+      mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+      createdAttachmentIds: [] as string[],
+      supersededAttachmentIds: [] as string[],
+    };
+  const rowPatchPlan = planRowPatchMutation(row, estimateId, attachmentPlan.canonicalRowPatch, expected);
+  if (!rowPatchPlan) return rowItemHistoryResult(row);
+  const { columns, effectiveRowPatch, statement, updated } = rowPatchPlan;
   const expectedImpactFingerprint = typeof args.expected_component_impact_fingerprint === "string"
     ? args.expected_component_impact_fingerprint
     : undefined;
-  if (expectedImpactFingerprint !== undefined && !database.batch) {
-    throw new Error("Atomic component impact validation is unavailable.");
-  }
   const propagation = eventType === "row_updated" && !row.source_library_item_id
     ? await propagateProjectComponentRowPatch(database, {
         projectId,
@@ -2238,15 +3140,18 @@ async function patchRowItem(
         rowPatch: effectiveRowPatch,
         componentId,
         expectedImpactFingerprint,
+        removedPriceOptionReplacements,
       })
     : {
       rowIds: [] as string[],
-      totalDelta: 0,
+      totalDeltaMinorUnits: 0,
       facts: [] as Array<Record<string, unknown>>,
       truncatedCount: 0,
       mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
+      impactFingerprint: null as string | null,
     };
-  if (propagation.rowIds.length > 0) {
+  if (!database.batch) throw new Error("Atomic estimate row mutation is unavailable.");
+  if (propagation.rowIds.length > 0 || attachmentPlan.active) {
     const canEditProject = await canEditProjectInD1(database, projectId, currentUser);
     if (!canEditProject) throw new Error("Project edit access is required to update a component used across estimates.");
   }
@@ -2254,17 +3159,20 @@ async function patchRowItem(
   const nextVariant = getVariantActivityIdentity(updated);
   const changedFields = columns.map(([column]) => column);
   if (variantsDiffer(previousVariant, nextVariant)) changedFields.push("variant_changed");
+  if (attachmentPlan.changed) changedFields.push("component_variant_attachments");
+  const persistedImpactFingerprint = expectedImpactFingerprint ?? propagation.impactFingerprint;
   const mutationStatements = [
-    ...(expectedImpactFingerprint !== undefined ? [buildProjectComponentImpactGuardStatement({
+    buildRowRevisionGuardStatement(estimateId, [{ rowId, rowRevision: expected }]),
+    ...(persistedImpactFingerprint ? [buildProjectComponentImpactGuardStatement({
       projectId,
       sourceRowId: rowId,
       componentId,
-      expectedFingerprint: expectedImpactFingerprint,
+      expectedFingerprint: persistedImpactFingerprint,
     })] : []),
-    {
-      sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ? AND row_revision = ?`,
-      values,
-    },
+    ...attachmentPlan.preSourceGuards,
+    statement,
+    ...attachmentPlan.postSourceGuards,
+    ...attachmentPlan.mutationStatements,
     ...propagation.mutationStatements,
   ];
   if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
@@ -2291,26 +3199,158 @@ async function patchRowItem(
         propagatedRowCount: propagation.rowIds.length,
         propagatedRowFacts: propagation.facts,
         propagatedRowFactsTruncated: propagation.truncatedCount,
+        attachments: attachmentPlan.active ? {
+          createdAttachmentIds: attachmentPlan.createdAttachmentIds,
+          supersededAttachmentIds: attachmentPlan.supersededAttachmentIds,
+        } : null,
       },
-      totalDelta: computeEstimateRowLineTotal(updated) - computeEstimateRowLineTotal(row) + propagation.totalDelta,
+      totalDelta: minorUnitsToAmount(estimateRowTotalMinorUnits(updated) - estimateRowTotalMinorUnits(row) + propagation.totalDeltaMinorUnits),
     });
   } catch (error) {
-    if (expectedImpactFingerprint !== undefined) {
+    if (persistedImpactFingerprint) {
       const currentImpactRows = await readProjectComponentImpactRevisionRows(database, {
         projectId,
         sourceRowId: rowId,
         componentId,
       });
-      if (buildComponentImpactFingerprint(currentImpactRows) !== expectedImpactFingerprint) {
+      if (buildComponentImpactFingerprint(currentImpactRows) !== persistedImpactFingerprint) {
         throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
       }
+    }
+    const authoritativeRow = await readRowById(database, estimateId, rowId);
+    if (!authoritativeRow || readNumber(authoritativeRow.row_revision, 1) !== expected) {
+      throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
     }
     throw error;
   }
   return rowItemHistoryResult(updated, eventId);
 }
 
+type ExpectedRowRevision = { rowId: string; rowRevision: number };
+
+function buildRowRevisionGuardStatement(estimateId: string, expectedRows: readonly ExpectedRowRevision[]) {
+  if (expectedRows.length === 0) throw new Error("At least one row revision is required.");
+  return {
+    sql: `
+      SELECT CASE WHEN (
+        SELECT COUNT(*)
+        FROM estimate_row_items
+        WHERE estimate_id = ?
+          AND (${expectedRows.map(() => "(id = ? AND row_revision = ?)").join(" OR ")})
+      ) = ? THEN 1 ELSE json_extract(?, '$') END AS revision_guard
+    `,
+    values: [
+      estimateId,
+      ...expectedRows.flatMap((row) => [row.rowId, row.rowRevision]),
+      expectedRows.length,
+      ESTIMATE_ROW_REVISION_CONFLICT_CODE,
+    ],
+  };
+}
+
+function rowRevisionConflictResult(rows: readonly EstimateRowItemRow[], expectedRows: readonly ExpectedRowRevision[]) {
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+  return {
+    status: "conflict" as const,
+    conflictRowIds: expectedRows
+      .filter((expected) => readNumber(rowById.get(expected.rowId)?.row_revision, 0) !== expected.rowRevision)
+      .map((expected) => expected.rowId),
+    authoritativeRows: rows.map((row) => rowItemHistoryResult(row).row),
+  };
+}
+
+function hasRowRevisionConflict(rows: readonly EstimateRowItemRow[], expectedRows: readonly ExpectedRowRevision[]) {
+  return rowRevisionConflictResult(rows, expectedRows).conflictRowIds.length > 0;
+}
+
+async function moveRowComponent(database: D1DatabaseLike, args: Record<string, unknown>) {
+  if (!database.batch) throw new Error("Atomic estimate row component moves are unavailable.");
+  const projectId = String(args.target_project_id ?? "");
+  const estimateId = String(args.target_estimate_id ?? "");
+  const sourceRowId = String(args.source_row_id ?? "");
+  const targetRowId = String(args.target_row_id ?? "");
+  if (!sourceRowId || !targetRowId || sourceRowId === targetRowId) throw new Error("Source and target estimate rows must be different.");
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (existingEvent) {
+    const payload = readJsonRecord(existingEvent.payload);
+    if (!payload.sourceRow || !payload.targetRow) throw new Error("Idempotent estimate row move event is incomplete.");
+    return {
+      status: "applied" as const,
+      eventId: existingEvent.id,
+      sourceRow: payload.sourceRow,
+      targetRow: payload.targetRow,
+      payload: { ...payload, eventId: existingEvent.id, status: "applied" },
+    };
+  }
+
+  const expectedRows: ExpectedRowRevision[] = [
+    { rowId: sourceRowId, rowRevision: readNumber(args.expected_source_row_revision) },
+    { rowId: targetRowId, rowRevision: readNumber(args.expected_target_row_revision) },
+  ];
+  if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
+    throw new Error("Component move requires the current revision for both rows.");
+  }
+  const currentRows = await all<EstimateRowItemRow>(
+    database,
+    `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
+    [estimateId, sourceRowId, targetRowId],
+  );
+  if (hasRowRevisionConflict(currentRows, expectedRows)) return rowRevisionConflictResult(currentRows, expectedRows);
+  const rowById = new Map(currentRows.map((row) => [row.id, row]));
+  const sourceRow = rowById.get(sourceRowId);
+  const targetRow = rowById.get(targetRowId);
+  if (!sourceRow || !targetRow) return rowRevisionConflictResult(currentRows, expectedRows);
+  const sourcePlan = planRowPatchMutation(sourceRow, estimateId, readJsonRecord(args.source_replacement_payload), expectedRows[0].rowRevision);
+  const targetPlan = planRowPatchMutation(targetRow, estimateId, readJsonRecord(args.target_replacement_payload), expectedRows[1].rowRevision);
+  if (!sourcePlan || !targetPlan) throw new Error("Component move did not produce both row replacements.");
+  const sourceResult = rowItemHistoryResult(sourcePlan.updated).row;
+  const targetResult = rowItemHistoryResult(targetPlan.updated).row;
+  let eventId: string;
+  try {
+    eventId = await runMutationWithHistory(database, [
+      buildRowRevisionGuardStatement(estimateId, expectedRows),
+      sourcePlan.statement,
+      targetPlan.statement,
+    ], {
+      projectId,
+      estimateId,
+      estimateNodeId: targetPlan.updated.node_id,
+      targetRowId,
+      eventType: "row_component_moved",
+      actorUserId: String(args.acting_user_id ?? "") || null,
+      correlationId,
+      changedFields: Array.from(new Set([...sourcePlan.columns, ...targetPlan.columns].map(([column]) => column))),
+      oldSnapshot: { sourceRow: serializeRowItem(sourceRow), targetRow: serializeRowItem(targetRow) },
+      newSnapshot: { sourceRow: serializeRowItem(sourcePlan.updated), targetRow: serializeRowItem(targetPlan.updated) },
+      payload: { sourceRow: sourceResult, targetRow: targetResult },
+      totalDelta: minorUnitsToAmount(
+        estimateRowTotalMinorUnits(sourcePlan.updated)
+          + estimateRowTotalMinorUnits(targetPlan.updated)
+          - estimateRowTotalMinorUnits(sourceRow)
+          - estimateRowTotalMinorUnits(targetRow),
+      ),
+    });
+  } catch (error) {
+    const authoritativeRows = await all<EstimateRowItemRow>(
+      database,
+      `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
+      [estimateId, sourceRowId, targetRowId],
+    );
+    if (hasRowRevisionConflict(authoritativeRows, expectedRows)) return rowRevisionConflictResult(authoritativeRows, expectedRows);
+    throw error;
+  }
+  return {
+    status: "applied" as const,
+    eventId,
+    sourceRow: sourceResult,
+    targetRow: targetResult,
+    payload: { status: "applied", eventId, sourceRow: sourceResult, targetRow: targetResult },
+  };
+}
+
 async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unknown>) {
+  if (!database.batch) throw new Error("Atomic estimate row deletion is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
@@ -2333,12 +3373,13 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
   if (readNumber(row.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
-  const eventId = await runMutationWithHistory(database, [{
-    sql: "DELETE FROM estimate_row_items WHERE id = ? AND estimate_id = ?",
-    values: [rowId, estimateId],
-  }], {
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const deletedAt = nowIso();
+  const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
+    workspaceId: project.workspace_id,
     estimateNodeId: row.node_id,
     targetRowId: rowId,
     eventType: "row_deleted",
@@ -2347,42 +3388,81 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
     oldSnapshot: row,
     rowContext: { material: row.material, supplier: row.supplier },
     payload: { rowId, deletedRow: rowItemHistoryResult(row).row },
-    totalDelta: -computeEstimateRowLineTotal(row),
+    totalDelta: minorUnitsToAmount(-estimateRowTotalMinorUnits(row)),
   });
-  return { eventId, rowId, deletedRow: rowItemHistoryResult(row).row, payload: { rowId, deletedRow: rowItemHistoryResult(row).row } };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    buildRowRevisionGuardStatement(estimateId, [{ rowId, rowRevision: expected }]),
+    ...buildProjectComponentAttachmentDeleteRetentionStatements({
+      workspaceId: project.workspace_id,
+      projectId,
+      sourceDeleteEventId: history.eventId,
+      deletedRows: [row],
+      deletedAt,
+    }),
+    {
+      sql: "DELETE FROM estimate_row_items WHERE id = ? AND estimate_id = ? AND row_revision = ?",
+      values: [rowId, estimateId, expected],
+    },
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  try {
+    await runBatch(database, statements);
+  } catch (error) {
+    const authoritativeRow = await readRowById(database, estimateId, rowId);
+    if (!authoritativeRow || readNumber(authoritativeRow.row_revision, 1) !== expected) {
+      throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
+    }
+    throw error;
+  }
+  return { eventId: history.eventId, rowId, deletedRow: rowItemHistoryResult(row).row, payload: { rowId, deletedRow: rowItemHistoryResult(row).row } };
 }
 
 async function moveRowItem(database: D1DatabaseLike, args: Record<string, unknown>) {
+  if (!database.batch) throw new Error("Atomic estimate row reorganization is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const updates = Array.isArray(args.move_updates) ? args.move_updates as Array<Record<string, unknown>> : [];
   const rows: Array<{ rowId: string; nodeId: string; sortOrder: number; rowRevision: number }> = [];
+  const expectedRows: ExpectedRowRevision[] = [];
   const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
   for (const update of updates) {
     const rowId = String(update.rowId ?? "");
     const current = await readRowById(database, estimateId, rowId);
     if (!current) throw new Error("Estimate row item not found in the current project.");
     const expected = readNumber(update.expectedRowRevision);
-    if (expected && readNumber(current.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
+    if (!Number.isInteger(expected) || expected < 1) throw new Error("Row reorganization requires the current revision for every affected row.");
+    if (readNumber(current.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
     const nextRevision = readNumber(current.row_revision, 1) + 1;
     const nodeId = String(update.nodeId ?? "");
     const sortOrder = readNumber(update.sortOrder);
     mutationStatements.push({
-      sql: "UPDATE estimate_row_items SET node_id = ?, sort_order = ?, row_revision = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-      values: [nodeId, sortOrder, nextRevision, nowIso(), rowId, estimateId],
+      sql: "UPDATE estimate_row_items SET node_id = ?, sort_order = ?, row_revision = ?, updated_at = ? WHERE id = ? AND estimate_id = ? AND row_revision = ?",
+      values: [nodeId, sortOrder, nextRevision, nowIso(), rowId, estimateId, expected],
     });
+    expectedRows.push({ rowId, rowRevision: expected });
     rows.push({ rowId, nodeId, sortOrder, rowRevision: nextRevision });
   }
-  const eventId = await runMutationWithHistory(database, mutationStatements, {
-    projectId,
-    estimateId,
-    estimateNodeId: String(args.target_node_id ?? "") || null,
-    targetRowId: String(args.moved_row_id ?? "") || null,
-    eventType: "rows_moved",
-    actorUserId: null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
-    payload: { rows, updatedRowCount: rows.length },
-  });
+  let eventId: string;
+  try {
+    eventId = await runMutationWithHistory(database, [buildRowRevisionGuardStatement(estimateId, expectedRows), ...mutationStatements], {
+      projectId,
+      estimateId,
+      estimateNodeId: String(args.target_node_id ?? "") || null,
+      targetRowId: String(args.moved_row_id ?? "") || null,
+      eventType: "rows_moved",
+      actorUserId: null,
+      correlationId: String(args.correlation_id ?? randomUUID()),
+      payload: { rows, updatedRowCount: rows.length },
+    });
+  } catch (error) {
+    const authoritativeRows = await all<EstimateRowItemRow>(
+      database,
+      `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
+      [estimateId, ...expectedRows.map((row) => row.rowId)],
+    );
+    if (hasRowRevisionConflict(authoritativeRows, expectedRows)) throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
+    throw error;
+  }
   return { eventId, updatedRowCount: rows.length, rows, payload: { eventId, updatedRowCount: rows.length, rows } };
 }
 
@@ -2426,26 +3506,79 @@ async function updateSheetAdjustment(database: D1DatabaseLike, args: Record<stri
 }
 
 async function deleteRowsBulk(database: D1DatabaseLike, args: Record<string, unknown>) {
+  if (!database.batch) throw new Error("Atomic bulk estimate row deletion is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowIds = Array.isArray(args.target_row_ids) ? args.target_row_ids.filter((id): id is string => typeof id === "string") : [];
   if (rowIds.length === 0) throw new Error("Select at least one estimate row.");
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (existingEvent) {
+    const payload = readJsonRecord(existingEvent.payload);
+    const deletedRowIds = Array.isArray(payload.deletedRowIds)
+      ? payload.deletedRowIds.filter((rowId): rowId is string => typeof rowId === "string")
+      : [];
+    if (deletedRowIds.length === 0) throw new Error("Idempotent bulk row delete event is incomplete.");
+    return {
+      status: "applied" as const,
+      eventId: existingEvent.id,
+      deletedRowIds,
+      deletedRowCount: deletedRowIds.length,
+      payload: { ...payload, eventId: existingEvent.id, status: "applied" },
+    };
+  }
+  const expectedRevisionRecord = readJsonRecord(args.expected_row_revisions);
+  const expectedRows = rowIds.map((rowId) => ({ rowId, rowRevision: readNumber(expectedRevisionRecord[rowId]) }));
+  if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
+    throw new Error("Bulk row delete requires the current revision for every selected row.");
+  }
   const rows = await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`, [estimateId, ...rowIds]);
-  if (rows.length !== rowIds.length) throw new Error("One or more estimate row items were not found in the current project.");
-  const eventId = await runMutationWithHistory(database, [{
-    sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`,
-    values: [estimateId, ...rowIds],
-  }], {
+  if (hasRowRevisionConflict(rows, expectedRows)) return rowRevisionConflictResult(rows, expectedRows);
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const deletedAt = nowIso();
+  const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
+    workspaceId: project.workspace_id,
     eventType: "rows_deleted",
     actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
+    correlationId,
     oldSnapshot: { rows: rows.map(serializeRowItem) },
     payload: { deletedRowIds: rowIds, deletedRowCount: rowIds.length },
-    totalDelta: -sumEstimateRowLineTotals(rows),
+    totalDelta: minorUnitsToAmount(-sumEstimateRowTotalMinorUnits(rows)),
   });
-  return { eventId, deletedRowIds: rowIds, deletedRowCount: rowIds.length, payload: { eventId, deletedRowIds: rowIds, deletedRowCount: rowIds.length } };
+  let eventId: string;
+  try {
+    const statements: Array<{ sql: string; values?: unknown[] }> = [
+      buildRowRevisionGuardStatement(estimateId, expectedRows),
+      ...buildProjectComponentAttachmentDeleteRetentionStatements({
+        workspaceId: project.workspace_id,
+        projectId,
+        sourceDeleteEventId: history.eventId,
+        deletedRows: rows,
+        deletedAt,
+      }),
+      {
+        sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND (${expectedRows.map(() => "(id = ? AND row_revision = ?)").join(" OR ")})`,
+        values: [estimateId, ...expectedRows.flatMap((row) => [row.rowId, row.rowRevision])],
+      },
+    ];
+    if (history.statement) statements.push(history.statement, history.outboxStatement);
+    await runBatch(database, statements);
+    eventId = history.eventId;
+  } catch (error) {
+    const authoritativeRows = await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`, [estimateId, ...rowIds]);
+    if (hasRowRevisionConflict(authoritativeRows, expectedRows)) return rowRevisionConflictResult(authoritativeRows, expectedRows);
+    throw error;
+  }
+  return {
+    status: "applied" as const,
+    eventId,
+    deletedRowIds: rowIds,
+    deletedRowCount: rowIds.length,
+    payload: { status: "applied", eventId, deletedRowIds: rowIds, deletedRowCount: rowIds.length },
+  };
 }
 
 async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record<string, unknown>) {
@@ -2561,9 +3694,19 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
       restoredRowIds,
       restoredRowCount: restoredRowIds.length,
     },
+    totalDelta: minorUnitsToAmount(sumEstimateRowTotalMinorUnits(rowsToRestore as EstimateRowItemRow[])),
+  });
+  const restoredAt = nowIso();
+  const attachmentRetention = buildProjectComponentAttachmentRestoreRetentionStatements({
+    projectId,
+    sourceDeleteEventId: sourceEventId,
+    restoredRows: rowsToRestore,
+    restoredAt,
   });
   const statements: Array<{ sql: string; values?: unknown[] }> = [
+    ...attachmentRetention.guardStatements,
     ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
+    ...attachmentRetention.releaseStatements,
   ];
   if (history.statement) statements.push(history.statement, history.outboxStatement);
   if (statements.length > D1_MAX_BATCH_STATEMENTS) {
@@ -2579,27 +3722,229 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
   };
 }
 
+function readTemplateSnapshotText(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function readTemplateSnapshotBoolean(value: unknown) {
+  return value === true || value === 1;
+}
+
+function buildCurrentTemplatePriceOptionSnapshot(
+  option: TemplatePriceOptionRow,
+  currentCostEntry: TemplateCostEntryRow | undefined,
+) {
+  const metadata = readJsonRecord(option.metadata_json);
+  return {
+    id: option.id,
+    label: option.label,
+    sku: readTemplateSnapshotText(metadata, "sku"),
+    variantDescription: readTemplateSnapshotText(metadata, "variantDescription"),
+    variantSortOrder: readNumber(metadata.variantSortOrder),
+    unit: option.unit,
+    unitCost: readNumber(currentCostEntry?.unit_cost ?? option.unit_cost),
+    miscCost: readNumber(currentCostEntry?.misc_cost ?? option.misc_cost),
+    currency: currentCostEntry?.currency ?? option.currency ?? "PHP",
+    pricingSource: currentCostEntry?.pricing_source ?? option.pricing_source,
+    pricingDate: currentCostEntry?.pricing_date ?? readTemplateSnapshotText(metadata, "pricingDate"),
+    sourceUrl: currentCostEntry?.source_url ?? readTemplateSnapshotText(metadata, "sourceUrl"),
+    supplierId: option.supplier_id,
+    thumbnailPath: readTemplateSnapshotText(metadata, "thumbnailPath"),
+    isActive: readTemplateSnapshotBoolean(option.is_active),
+    isDefault: readTemplateSnapshotBoolean(option.is_default),
+    createdAt: option.created_at,
+    updatedAt: option.updated_at,
+  };
+}
+
+function buildCurrentTemplateSourceSnapshot(input: {
+  savedSnapshot: Record<string, unknown>;
+  item: TemplateLibraryItemRow;
+  selectedOption: TemplatePriceOptionRow;
+  currentCostEntry?: TemplateCostEntryRow;
+  activeOptions: TemplatePriceOptionRow[];
+  currentCostEntryByOptionId: ReadonlyMap<string, TemplateCostEntryRow>;
+}) {
+  const itemMetadata = readJsonRecord(input.item.metadata_json);
+  const selectedOptionSnapshot = buildCurrentTemplatePriceOptionSnapshot(input.selectedOption, input.currentCostEntry);
+  return {
+    ...input.savedSnapshot,
+    source: "library",
+    sourceType: "library_component",
+    sourceComponentId: input.item.id,
+    sourceLibraryItemId: input.item.id,
+    sourceUpdatedAt: input.item.updated_at,
+    category: input.item.category,
+    categoryNodeId: input.item.category_node_id,
+    brand: input.item.brand,
+    brandId: input.item.brand_id,
+    supplier: input.item.supplier,
+    supplierId: input.selectedOption.supplier_id ?? input.item.supplier_id,
+    componentVersionNumber: readNumber(input.item.current_version_number),
+    lifecycleState: input.item.lifecycle_state,
+    priceOptionId: input.selectedOption.id,
+    priceOptionLabel: input.selectedOption.label,
+    priceOptions: input.activeOptions.slice(0, 50).map((option) => buildCurrentTemplatePriceOptionSnapshot(
+      option,
+      input.currentCostEntryByOptionId.get(option.id),
+    )),
+    pricingDate: selectedOptionSnapshot.pricingDate ?? input.item.pricing_date,
+    pricingSource: selectedOptionSnapshot.pricingSource ?? input.item.pricing_source,
+    sourceUrl: selectedOptionSnapshot.sourceUrl,
+    imageUrl: selectedOptionSnapshot.thumbnailPath ?? input.item.thumbnail_path,
+    tags: Array.isArray(itemMetadata.tags) ? itemMetadata.tags : [],
+    unit: selectedOptionSnapshot.unit,
+    unit_cost: selectedOptionSnapshot.unitCost,
+    misc_cost: selectedOptionSnapshot.miscCost,
+    currency: selectedOptionSnapshot.currency,
+    templateSourceResolution: "current_library_component",
+  };
+}
+
+function buildSavedTemplateSourceSnapshot(row: TemplateRowItemRow, reason: string) {
+  const savedSnapshot = readJsonRecord(row.source_snapshot);
+  return {
+    ...savedSnapshot,
+    source: "project",
+    sourceType: "template_saved_snapshot",
+    sourceComponentId: null,
+    sourceLibraryItemId: null,
+    savedSourceLibraryItemId: row.source_library_item_id,
+    templateSourceResolution: "saved_snapshot_unlinked",
+    templateSourceUnavailableReason: reason,
+  };
+}
+
 async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, unknown>, sourceRootNodeId?: string | null) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
-  const templateId = String(args.source_template_id ?? "");
   const targetParentNodeId = String(args.target_parent_node_id ?? "");
+  const requestedTemplateIds = Array.isArray(args.source_template_ids)
+    ? args.source_template_ids.filter((value): value is string => typeof value === "string" && value.length > 0)
+    : [String(args.source_template_id ?? "")].filter(Boolean);
+  const templateIds = [...new Set(requestedTemplateIds)];
+  if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
+  if (sourceRootNodeId && templateIds.length !== 1) throw new Error("A template subtree insert requires exactly one template.");
+
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const parentNode = await readNodeById(database, estimateId, targetParentNodeId);
-  const targetTabId = typeof args.target_tab_id === "string" ? args.target_tab_id : parentNode?.estimate_tab_id ?? null;
-  const templateNodes = await all<TemplateNodeRow>(database, "SELECT * FROM estimate_template_nodes WHERE template_id = ? ORDER BY sort_order ASC", [templateId]);
-  const templateRows = await all<TemplateRowItemRow>(database, "SELECT * FROM estimate_template_row_items WHERE template_id = ? ORDER BY sort_order ASC", [templateId]);
+  if (!parentNode) throw new Error("Estimate tree node not found in the current project.");
+  const targetTabId = typeof args.target_tab_id === "string" ? args.target_tab_id : parentNode.estimate_tab_id ?? null;
+  const templateHeaders = await all<TemplateHeaderRow>(
+    database,
+    `SELECT id, workspace_id
+     FROM estimate_templates
+     WHERE workspace_id = ?
+       AND id IN (${placeholders(templateIds)})`,
+    [estimate.workspace_id, ...templateIds],
+  );
+  if (templateHeaders.length !== templateIds.length) {
+    throw new Error("Estimate template not found in the current workspace.");
+  }
+
+  const [templateNodes, templateRows] = await Promise.all([
+    all<TemplateNodeRow>(
+      database,
+      `SELECT * FROM estimate_template_nodes
+       WHERE template_id IN (${placeholders(templateIds)})
+       ORDER BY template_id ASC, sort_order ASC`,
+      templateIds,
+    ),
+    all<TemplateRowItemRow>(
+      database,
+      `SELECT * FROM estimate_template_row_items
+       WHERE template_id IN (${placeholders(templateIds)})
+       ORDER BY template_id ASC, sort_order ASC`,
+      templateIds,
+    ),
+  ]);
+  const rootTemplateId = templateIds[0]!;
+  const rootTemplateNodes = templateNodes.filter((node) => node.template_id === rootTemplateId);
   const allowedNodeIds = sourceRootNodeId
-    ? new Set(await collectTemplateDescendantNodeIds(templateNodes, sourceRootNodeId))
+    ? new Set(await collectTemplateDescendantNodeIds(rootTemplateNodes, sourceRootNodeId))
     : new Set(templateNodes.map((node) => node.id));
+  if (sourceRootNodeId && !rootTemplateNodes.some((node) => node.id === sourceRootNodeId)) {
+    throw new Error("Estimate template node not found in the current template.");
+  }
   const nodesToCopy = templateNodes.filter((node) => allowedNodeIds.has(node.id));
+  const rowsToCopy = templateRows.filter((row) => allowedNodeIds.has(row.template_node_id));
+  const linkedSourceIds = [...new Set(rowsToCopy.flatMap((row) => row.source_library_item_id ? [row.source_library_item_id] : []))];
+  const [libraryItems, priceOptions, currentCostEntries] = linkedSourceIds.length > 0
+    ? await Promise.all([
+        all<TemplateLibraryItemRow>(
+          database,
+          `SELECT * FROM cost_library_items
+           WHERE workspace_id = ?
+             AND id IN (${placeholders(linkedSourceIds)})`,
+          [estimate.workspace_id, ...linkedSourceIds],
+        ),
+        all<TemplatePriceOptionRow>(
+          database,
+          `SELECT * FROM cost_library_item_price_options
+           WHERE workspace_id = ?
+             AND item_id IN (${placeholders(linkedSourceIds)})
+             AND is_active = 1
+           ORDER BY item_id ASC, is_default DESC, created_at ASC`,
+          [estimate.workspace_id, ...linkedSourceIds],
+        ),
+        all<TemplateCostEntryRow>(
+          database,
+          `SELECT price_option_id, unit_cost, misc_cost, currency, pricing_source, pricing_date, source_url
+           FROM cost_library_item_variant_cost_entries
+           WHERE workspace_id = ?
+             AND item_id IN (${placeholders(linkedSourceIds)})
+             AND is_current = 1
+             AND deleted_at IS NULL`,
+          [estimate.workspace_id, ...linkedSourceIds],
+        ),
+      ])
+    : [[], [], []];
+  const libraryItemById = new Map(libraryItems.map((item) => [item.id, item]));
+  const priceOptionById = new Map(priceOptions.map((option) => [option.id, option]));
+  const priceOptionsByItemId = new Map<string, TemplatePriceOptionRow[]>();
+  for (const option of priceOptions) {
+    const itemOptions = priceOptionsByItemId.get(option.item_id) ?? [];
+    itemOptions.push(option);
+    priceOptionsByItemId.set(option.item_id, itemOptions);
+  }
+  const currentCostEntryByOptionId = new Map(currentCostEntries.map((entry) => [entry.price_option_id, entry]));
+
+  const unavailableRows = rowsToCopy.flatMap((row) => {
+    if (!row.source_library_item_id) return [];
+    const savedSnapshot = readJsonRecord(row.source_snapshot);
+    const selectedPriceOptionId = readTemplateSnapshotText(savedSnapshot, "priceOptionId");
+    const item = libraryItemById.get(row.source_library_item_id);
+    let reason: string | null = null;
+    if (!item) reason = "component_not_found_in_workspace";
+    else if (item.lifecycle_state !== "available") reason = `component_${item.lifecycle_state}`;
+    else if (!selectedPriceOptionId) reason = "selected_variant_identity_missing";
+    else {
+      const option = priceOptionById.get(selectedPriceOptionId);
+      if (!option || option.item_id !== item.id) reason = "selected_variant_unavailable";
+    }
+    return reason ? [{ templateRowId: row.id, material: row.material ?? "", reason }] : [];
+  });
+  const unavailableReasonByRowId = new Map(unavailableRows.map((row) => [row.templateRowId, row.reason]));
+  const unavailableSourcePolicy = args.unavailable_source_policy === "use_saved_snapshot_unlinked"
+    ? "use_saved_snapshot_unlinked"
+    : "cancel";
+  if (unavailableRows.length > 0 && unavailableSourcePolicy === "cancel") {
+    return {
+      status: "requires_saved_snapshot_confirmation",
+      unavailableSourceCount: unavailableRows.length,
+      unavailableRows: unavailableRows.slice(0, 20),
+    };
+  }
+
   const sourceRoots = nodesToCopy.filter((node) => !node.parent_id || !allowedNodeIds.has(node.parent_id));
-  const nodeIdBySource = new Map<string, string>();
-  const insertedRootNodeIds: string[] = [];
+  const sourceRootIds = new Set(sourceRoots.map((root) => root.id));
+  const nodeIdBySource = new Map(nodesToCopy.map((node) => [node.id, randomUUID()]));
+  const insertedRootNodeIds = nodesToCopy.flatMap((node) => sourceRootIds.has(node.id) ? [nodeIdBySource.get(node.id)!] : []);
   const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
   for (const node of nodesToCopy) {
-    const nextNodeId = randomUUID();
-    nodeIdBySource.set(node.id, nextNodeId);
-    if (sourceRoots.some((root) => root.id === node.id)) insertedRootNodeIds.push(nextNodeId);
+    const nextNodeId = nodeIdBySource.get(node.id)!;
     const nodeInsert = buildInsertRecordStatement("estimate_nodes", {
       id: nextNodeId,
       estimate_id: estimateId,
@@ -2612,36 +3957,53 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
     });
     mutationStatements.push({ sql: nodeInsert.sql, values: nodeInsert.values });
   }
-  let insertedRowItemCount = 0;
-  for (const row of templateRows) {
-    if (!allowedNodeIds.has(row.template_node_id)) continue;
+  for (const row of rowsToCopy) {
     const nodeId = nodeIdBySource.get(row.template_node_id);
     if (!nodeId) continue;
+    const savedSnapshot = readJsonRecord(row.source_snapshot);
+    const unavailableReason = unavailableReasonByRowId.get(row.id);
+    const currentItem = row.source_library_item_id ? libraryItemById.get(row.source_library_item_id) : undefined;
+    const selectedPriceOptionId = readTemplateSnapshotText(savedSnapshot, "priceOptionId");
+    const selectedOption = selectedPriceOptionId ? priceOptionById.get(selectedPriceOptionId) : undefined;
+    const currentSnapshot = currentItem && selectedOption && !unavailableReason
+      ? buildCurrentTemplateSourceSnapshot({
+          savedSnapshot,
+          item: currentItem,
+          selectedOption,
+          currentCostEntry: currentCostEntryByOptionId.get(selectedOption.id),
+          activeOptions: priceOptionsByItemId.get(currentItem.id) ?? [selectedOption],
+          currentCostEntryByOptionId,
+        })
+      : null;
+    const useSavedUnlinked = Boolean(unavailableReason);
+    const effectiveCostEntry = selectedOption ? currentCostEntryByOptionId.get(selectedOption.id) : undefined;
     const rowInsert = buildInsertRecordStatement("estimate_row_items", {
       id: randomUUID(),
       estimate_id: estimateId,
       node_id: nodeId,
       sort_order: readNumber(row.sort_order),
-      source_library_item_id: row.source_library_item_id,
-      source_snapshot: readJson(row.source_snapshot, null),
-      category_node_id: row.category_node_id,
-      supplier_id: row.supplier_id,
-      material: row.material ?? "",
-      description: row.description ?? "",
-      supplier: row.supplier ?? "",
-      unit: row.unit ?? "unit",
+      source_library_item_id: currentSnapshot ? currentItem!.id : null,
+      source_snapshot_json: jsonString(
+        currentSnapshot ?? (useSavedUnlinked ? buildSavedTemplateSourceSnapshot(row, unavailableReason!) : savedSnapshot),
+        null,
+      ),
+      category_node_id: currentSnapshot ? currentItem!.category_node_id : row.category_node_id,
+      supplier_id: currentSnapshot ? selectedOption!.supplier_id ?? currentItem!.supplier_id : row.supplier_id,
+      material: currentSnapshot ? currentItem!.name : row.material ?? "",
+      description: currentSnapshot ? currentItem!.description : row.description ?? "",
+      supplier: currentSnapshot ? currentItem!.supplier ?? "" : row.supplier ?? "",
+      unit: currentSnapshot ? selectedOption!.unit : row.unit ?? "unit",
       quantity: readNumber(row.quantity),
-      unit_cost: readNumber(row.unit_cost),
-      misc_cost: readNumber(row.misc_cost),
+      unit_cost: currentSnapshot ? readNumber(effectiveCostEntry?.unit_cost ?? selectedOption!.unit_cost) : readNumber(row.unit_cost),
+      misc_cost: currentSnapshot ? readNumber(effectiveCostEntry?.misc_cost ?? selectedOption!.misc_cost) : readNumber(row.misc_cost),
       contingency_percentage: readNumber(row.contingency_percentage),
       adjustment_percentage: readNumber(row.adjustment_percentage),
       discipline: row.discipline ?? "",
       designation: row.designation ?? "",
-      link_state: row.link_state ?? "unlinked",
-      metadata: readJson(row.metadata, {}),
+      link_state: currentSnapshot ? "linked-clean" : "unlinked",
+      metadata_json: readJson(row.metadata, {}),
     });
     mutationStatements.push({ sql: rowInsert.sql, values: rowInsert.values });
-    insertedRowItemCount += 1;
   }
   if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
     throw new Error("Template insertion is too large to persist atomically with activity history.");
@@ -2649,6 +4011,7 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
   const eventId = await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
+    workspaceId: estimate.workspace_id,
     estimateNodeId: targetParentNodeId,
     estimateTabId: targetTabId,
     eventType: sourceRootNodeId ? "template_node_subtree_inserted" : "template_inserted",
@@ -2657,12 +4020,15 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
     payload: {
       inserted_root_node_ids: insertedRootNodeIds,
       inserted_node_count: nodeIdBySource.size,
-      inserted_row_item_count: insertedRowItemCount,
-      sourceTemplateId: templateId,
+      inserted_row_item_count: rowsToCopy.length,
+      sourceTemplateIds: templateIds,
+      sourceTemplateId: templateIds.length === 1 ? templateIds[0] : null,
       sourceTemplateNodeId: sourceRootNodeId ?? null,
+      savedSnapshotUnlinkedRowCount: unavailableRows.length,
     },
   });
   return {
+    status: "inserted",
     eventId,
     insertedRootNodeIds,
     inserted_root_node_ids: insertedRootNodeIds,
@@ -2737,7 +4103,6 @@ async function previewBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
 
 async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: Record<string, unknown>) {
   const projectId = String(args.target_project_id ?? "");
-  const estimateIds = Array.isArray(args.target_estimate_ids) ? args.target_estimate_ids.filter((id): id is string => typeof id === "string") : [];
   const preview = await previewBulkDeleteEstimateSheets(database, args) as Record<string, unknown>;
   if (preview.previewHash !== args.expected_preview_hash) {
     return {
@@ -2751,8 +4116,37 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
   const eligibleIds = Array.isArray(preview.eligibleIds) ? preview.eligibleIds.filter((id): id is string => typeof id === "string") : [];
   const project = await readProjectContext(database, projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
+  const deletedRows = await all<EstimateRowItemRow>(
+    database,
+    `SELECT * FROM estimate_row_items WHERE estimate_id IN (${placeholders(eligibleIds)})`,
+    eligibleIds,
+  );
+  const currentUser = await requireCurrentUserContext();
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const existingAuditEvent = await first<{ id: string }>(
+    database,
+    `
+      SELECT id
+      FROM mass_deletion_events
+      WHERE workspace_id = ?
+        AND target_type = 'estimate_sheet'
+        AND action = 'delete'
+        AND correlation_id = ?
+      LIMIT 1
+    `,
+    [project.workspace_id, correlationId],
+  );
+  const eventId = existingAuditEvent?.id ?? randomUUID();
+  const now = nowIso();
   const estimateSql = placeholders(eligibleIds);
   await runBatch(database, [
+    ...buildProjectComponentAttachmentDeleteRetentionStatements({
+      workspaceId: project.workspace_id,
+      projectId,
+      sourceDeleteEventId: eventId,
+      deletedRows,
+      deletedAt: now,
+    }),
     { sql: `DELETE FROM estimate_sheet_user_preferences WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
     { sql: `DELETE FROM estimate_sheet_access_settings WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
     { sql: `DELETE FROM estimate_sheet_members WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
@@ -2763,12 +4157,8 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
     { sql: `DELETE FROM estimate_tabs WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
     { sql: `DELETE FROM estimate_favorites WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
     { sql: `DELETE FROM estimates WHERE project_id = ? AND id IN (${estimateSql})`, values: [projectId, ...eligibleIds] },
-  ]);
-  const eventId = randomUUID();
-  const now = nowIso();
-  await run(
-    database,
-    `
+    {
+      sql: `
       INSERT INTO mass_deletion_events (
         id,
         workspace_id,
@@ -2794,25 +4184,26 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
         summary_json = excluded.summary_json,
         blocked_json = excluded.blocked_json,
         updated_at = excluded.updated_at
-    `,
-    [
-      eventId,
-      project.workspace_id,
-      (await requireCurrentUserContext()).userId,
-      "estimate_sheet",
-      "delete",
-      JSON.stringify(eligibleIds),
-      args.expected_preview_hash,
-      String(args.correlation_id ?? randomUUID()),
-      "completed",
-      JSON.stringify(preview.summary ?? {}),
-      JSON.stringify(preview.blocked ?? []),
-      "[]",
-      "{}",
-      now,
-      now,
-    ],
-  );
+      `,
+      values: [
+        eventId,
+        project.workspace_id,
+        currentUser.userId,
+        "estimate_sheet",
+        "delete",
+        JSON.stringify(eligibleIds),
+        args.expected_preview_hash,
+        correlationId,
+        "completed",
+        JSON.stringify(preview.summary ?? {}),
+        JSON.stringify(preview.blocked ?? []),
+        "[]",
+        "{}",
+        now,
+        now,
+      ],
+    },
+  ]);
   return {
     ok: true,
     targetType: "estimate_sheet",
@@ -2833,6 +4224,15 @@ type EstimateComponentEditImpactD1Row = {
   project_name: string | null;
   estimate_id: string;
   estimate_name: string | null;
+  link_state?: string | null;
+  selected_price_option_id?: string | null;
+};
+
+type EstimateComponentPriceOptionImpactD1Row = {
+  id: string;
+  updated_at: string;
+  is_active: number | boolean;
+  is_default: number | boolean;
 };
 
 const PROJECT_COMPONENT_IDENTITY_SQL = `
@@ -2860,14 +4260,45 @@ function buildComponentImpactFingerprint(rows: Array<{ row_id: string; row_revis
     .join("|");
 }
 
+function buildLibraryComponentImpactFingerprint(
+  rows: EstimateComponentEditImpactD1Row[],
+  priceOptions: EstimateComponentPriceOptionImpactD1Row[],
+) {
+  const rowFingerprint = [...rows]
+    .sort((left, right) => left.row_id.localeCompare(right.row_id))
+    .map((row) => [
+      row.row_id,
+      readNumber(row.row_revision, 1),
+      row.link_state ?? "linked-clean",
+      row.selected_price_option_id ?? "",
+    ].join(":"))
+    .join("|");
+  const optionFingerprint = [...priceOptions]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((option) => [
+      option.id,
+      option.updated_at,
+      Number(option.is_active) === 1 ? 1 : 0,
+      Number(option.is_default) === 1 ? 1 : 0,
+    ].join(":"))
+    .join("|");
+  return `rows[${rowFingerprint}]|options[${optionFingerprint}]`;
+}
+
 function buildEstimateComponentEditImpact(
   componentKind: EstimateComponentEditImpact["componentKind"],
   rows: EstimateComponentEditImpactD1Row[],
+  fingerprint = buildComponentImpactFingerprint(rows),
 ): EstimateComponentEditImpact {
   const affectedByEstimate = new Map<string, EstimateComponentEditImpactEstimate>();
   const projectIds = new Set<string>();
+  const optionUsageCounts: Record<string, number> = {};
   for (const row of rows) {
     projectIds.add(row.project_id);
+    const selectedPriceOptionId = row.selected_price_option_id?.trim();
+    if (selectedPriceOptionId) {
+      optionUsageCounts[selectedPriceOptionId] = (optionUsageCounts[selectedPriceOptionId] ?? 0) + 1;
+    }
     const existing = affectedByEstimate.get(row.estimate_id);
     if (existing) {
       existing.instanceCount += 1;
@@ -2883,10 +4314,11 @@ function buildEstimateComponentEditImpact(
   }
   return {
     componentKind,
-    fingerprint: buildComponentImpactFingerprint(rows),
+    fingerprint,
     instanceCount: rows.length,
     projectCount: projectIds.size,
     estimateCount: affectedByEstimate.size,
+    optionUsageCounts,
     affectedEstimates: [...affectedByEstimate.values()],
   };
 }
@@ -2935,7 +4367,12 @@ async function previewEstimateComponentEditImpact(
           project.id AS project_id,
           project.name AS project_name,
           estimate.id AS estimate_id,
-          estimate.name AS estimate_name
+          estimate.name AS estimate_name,
+          row_item.link_state,
+          COALESCE(
+            NULLIF(json_extract(row_item.source_snapshot_json, '$.priceOptionId'), ''),
+            NULLIF(json_extract(row_item.metadata_json, '$.priceOptionId'), '')
+          ) AS selected_price_option_id
         FROM estimate_row_items row_item
         INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
         INNER JOIN projects project ON project.id = estimate.project_id
@@ -2946,11 +4383,26 @@ async function previewEstimateComponentEditImpact(
       `,
       [sourceRow.workspace_id, linkedLibraryItemId],
     );
+    const priceOptions = await all<EstimateComponentPriceOptionImpactD1Row>(
+      database,
+      `
+        SELECT id, updated_at, is_active, is_default
+        FROM cost_library_item_price_options
+        WHERE workspace_id = ?
+          AND item_id = ?
+        ORDER BY id
+      `,
+      [sourceRow.workspace_id, linkedLibraryItemId],
+    );
     const initiatingRow = rows.find((row) => row.row_id === rowId);
     if (!initiatingRow || readNumber(initiatingRow.row_revision, 1) !== readNumber(sourceRow.row_revision, 1)) {
       throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
     }
-    return buildEstimateComponentEditImpact("library", rows);
+    return buildEstimateComponentEditImpact(
+      "library",
+      rows,
+      buildLibraryComponentImpactFingerprint(rows, priceOptions),
+    );
   }
 
   const componentId = getProjectComponentIdentity(rowMetadata(sourceRow), null, rowSourceSnapshot(sourceRow));
@@ -2963,7 +4415,11 @@ async function previewEstimateComponentEditImpact(
         project.id AS project_id,
         project.name AS project_name,
         estimate.id AS estimate_id,
-        estimate.name AS estimate_name
+        estimate.name AS estimate_name,
+        COALESCE(
+          NULLIF(json_extract(row_item.source_snapshot_json, '$.priceOptionId'), ''),
+          NULLIF(json_extract(row_item.metadata_json, '$.priceOptionId'), '')
+        ) AS selected_price_option_id
       FROM estimate_row_items row_item
       INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
       INNER JOIN projects project ON project.id = estimate.project_id
@@ -3052,30 +4508,12 @@ async function callEstimateAction<T>(
   if (name === "insert_estimate_row_item_with_history") return await insertRowItem(database, args) as T;
   if (name === "update_estimate_row_item_with_history") return await patchRowItem(database, args, "row_updated", readJsonRecord(args.row_patch), currentUser!) as T;
   if (name === "replace_estimate_row_item_with_history") return await patchRowItem(database, args, "row_replaced", readJsonRecord(args.replacement_payload), currentUser!) as T;
-  if (name === "unlink_estimate_row_item_from_library_with_history") {
-    return await patchRowItem(database, args, "row_unlinked", {
-      sourceLibraryItemId: null,
-      linkState: "detached",
-      sourceSnapshot: null,
-    }, currentUser!) as T;
-  }
   if (name === "delete_estimate_row_item_with_history") return await deleteRowItem(database, args) as T;
   if (name === "delete_estimate_row_items_bulk_with_history") return await deleteRowsBulk(database, args) as T;
   if (name === "move_estimate_row_item_with_history") return await moveRowItem(database, args) as T;
-  if (name === "move_estimate_row_component_with_history") {
-    const source = await patchRowItem(database, {
-      ...args,
-      target_row_id: args.source_row_id,
-      expected_row_revision: args.expected_source_row_revision,
-    }, "row_component_moved", readJsonRecord(args.source_replacement_payload), currentUser!);
-    const target = await patchRowItem(database, {
-      ...args,
-      target_row_id: args.target_row_id,
-      expected_row_revision: args.expected_target_row_revision,
-    }, "row_component_moved", readJsonRecord(args.target_replacement_payload), currentUser!);
-    return { sourceRow: source.row, targetRow: target.row, payload: { sourceRow: source.row, targetRow: target.row } } as T;
-  }
+  if (name === "move_estimate_row_component_with_history") return await moveRowComponent(database, args) as T;
   if (name === "insert_estimate_template_into_estimate_with_history") return await copyTemplateNodes(database, args) as T;
+  if (name === "insert_estimate_templates_into_estimate_with_history") return await copyTemplateNodes(database, args) as T;
   if (name === "insert_estimate_template_node_into_estimate_with_history") return await copyTemplateNodes(database, args, String(args.source_template_node_id ?? "")) as T;
   if (name === "update_estimate_sheet_adjustment_with_history") return await updateSheetAdjustment(database, args) as T;
   if (name === "preview_bulk_delete_estimate_sheets") return await previewBulkDeleteEstimateSheets(database, args) as T;

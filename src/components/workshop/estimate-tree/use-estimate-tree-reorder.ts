@@ -63,11 +63,8 @@ export function useEstimateTreeReorder({
   if (lastAcceptedPropSignatureRef.current === null) {
     lastAcceptedPropSignatureRef.current = getEstimateTreeContentSignature(nodes);
   }
-  const lastObservedPropSignatureRef = useRef<string>(null!);
-  if (lastObservedPropSignatureRef.current === null) {
-    lastObservedPropSignatureRef.current = getEstimateTreeContentSignature(nodes);
-  }
-  const lastObservedPropNodesRef = useRef(nodes);
+  const lastObservedPropSignatureRef = useRef<string | null>(null);
+  const lastObservedPropNodesRef = useRef<EstimateTreeNode[] | null>(null);
   const stalePropSignatureToIgnoreRef = useRef<string | null>(null);
   const pendingPropNodesRef = useRef<EstimateTreeNode[] | null>(null);
 
@@ -172,14 +169,12 @@ export function useEstimateTreeReorder({
           updates: freshResult.plan.updates,
           targetTabId: activeTabId,
         });
-        if (getLocalTreeRevision() === optimisticRevision) {
-          setLocalNodes((currentNodes) =>
-            mergeEstimateTreeStructureWithCachedNodes({
-              structureNodes: confirmed.tree,
-              cachedNodes: currentNodes,
-            }),
-          );
-        }
+        setLocalNodes((currentNodes) =>
+          mergeEstimateTreeStructureWithCachedNodes({
+            structureNodes: confirmed.tree,
+            cachedNodes: currentNodes,
+          }),
+        );
         setReorderStatus({ state: "saved", message: "Tree order saved" });
       } catch (error) {
         if (optimisticRevision === null) {

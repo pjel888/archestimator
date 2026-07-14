@@ -2,13 +2,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { fetchEstimateEditCapability, fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } from "@/lib/estimates/actions";
-import type { EstimateTabSummary } from "@/lib/estimates/types";
+import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+
+const EMPTY_ESTIMATE_TREE_NODES: EstimateTreeNode[] = [];
 
 export const estimateQueryKeys = {
   detail: (estimateId: string) => ["estimate", estimateId] as const,
   tabs: (estimateId: string) => ["estimate", estimateId, "tabs"] as const,
   editCapability: (estimateId: string) => ["estimate", estimateId, "edit-capability"] as const,
   tabTree: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "area-tree"] as const,
+  tabLoadLimit: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "load-limit"] as const,
   // legacy areaTree key kept for compatibility; see plan 2026-06-12 §01-17
   areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const,
 };
@@ -34,9 +37,9 @@ export function useEstimateAreaTreeQuery({
     queryFn: () => (projectId && estimateId ? fetchEstimateTree({ projectId, estimateId }) : Promise.resolve(initialNodes)),
     initialData: initialNodes,
     enabled: enabled && Boolean(projectId && estimateId),
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnWindowFocus,
-    staleTime: 5 * 60_000,
+    staleTime: 30_000,
   });
   const tree = data ?? initialNodes;
   const getTreeRevision = useCallback(() => queryClient.getQueryData<number>(revisionKey) ?? 0, [queryClient, revisionKey]);
@@ -78,6 +81,7 @@ export function useEstimateTabTreeQuery({
   estimateId,
   tabId,
   initialNodes,
+  initialLoadLimitState,
   refetchOnWindowFocus = false,
   enabled = true,
 }: {
@@ -85,21 +89,34 @@ export function useEstimateTabTreeQuery({
   estimateId?: string;
   tabId?: string;
   initialNodes?: EstimateTreeNode[];
+  initialLoadLimitState?: EstimateTreeLoadLimitState;
   refetchOnWindowFocus?: boolean;
   enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => estimateQueryKeys.tabTree(estimateId ?? "local-estimate", tabId ?? "local-tab"), [estimateId, tabId]);
+  const loadLimitQueryKey = useMemo(() => estimateQueryKeys.tabLoadLimit(estimateId ?? "local-estimate", tabId ?? "local-tab"), [estimateId, tabId]);
   const revisionKey = useMemo(() => [...queryKey, "revision"] as const, [queryKey]);
-  const fallbackInitialNodes = initialNodes ?? [];
+  const fallbackInitialNodes = initialNodes?.length ? initialNodes : EMPTY_ESTIMATE_TREE_NODES;
   const { data, ...query } = useQuery({
     queryKey,
-    queryFn: () => (projectId && estimateId && tabId ? fetchEstimateTabTree({ projectId, estimateId, tabId }) : Promise.resolve(fallbackInitialNodes)),
+    queryFn: async () => {
+      if (!projectId || !estimateId || !tabId) return fallbackInitialNodes;
+      const snapshot = await fetchEstimateTabTree({ projectId, estimateId, tabId });
+      queryClient.setQueryData<EstimateTreeLoadLimitState | null>(loadLimitQueryKey, snapshot.loadLimitState ?? null);
+      return snapshot.tree;
+    },
     initialData: initialNodes,
     enabled: enabled && Boolean(projectId && estimateId && tabId),
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnWindowFocus,
-    staleTime: 5 * 60_000,
+    staleTime: 30_000,
+  });
+  const { data: loadLimitState } = useQuery<EstimateTreeLoadLimitState | null>({
+    queryKey: loadLimitQueryKey,
+    queryFn: () => Promise.resolve(initialLoadLimitState ?? null),
+    initialData: initialLoadLimitState,
+    enabled: false,
   });
   const tree = data ?? fallbackInitialNodes;
   const getTreeRevision = useCallback(() => queryClient.getQueryData<number>(revisionKey) ?? 0, [queryClient, revisionKey]);
@@ -133,7 +150,7 @@ export function useEstimateTabTreeQuery({
     return queryClient.getQueryData<EstimateTreeNode[]>(queryKey) ?? tree;
   }, [queryClient, queryKey, tree]);
 
-  return { ...query, data: tree, tree, queryKey, setTree, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
+  return { ...query, data: tree, tree, loadLimitState: loadLimitState ?? undefined, queryKey, setTree, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
 }
 
 export function useEstimateTabsQuery({

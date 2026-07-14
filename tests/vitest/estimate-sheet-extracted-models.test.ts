@@ -10,6 +10,7 @@ import {
 import {
   appendTemplateNodesToParent,
   cloneTemplateNodesForEstimate,
+  reconcileAuthoritativeInsertedRoots,
 } from "@/components/workshop/estimate-sheet/template-insertion-model";
 import { getInitialEditableRow } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
@@ -129,6 +130,44 @@ describe("estimate sheet extracted models", () => {
     expect(next[0]).not.toBe(existing[0]);
     expect(next[0].children?.[0].children).toEqual(inserted);
     expect(existing[0].children?.[0].children).toEqual([]);
+  });
+
+  it("reconciles authoritative inserted roots without discarding later local structure", () => {
+    const current = [node({
+      id: "root",
+      kind: "group",
+      children: [node({
+        id: "target",
+        children: [
+          node({ id: "existing", name: "Existing" }),
+          node({ id: "optimistic", name: "Optimistic" }),
+          node({ id: "later-local", name: "Later local" }),
+        ],
+      })],
+    })];
+    const authoritative = [node({
+      id: "root",
+      kind: "group",
+      children: [node({
+        id: "target",
+        children: [node({ id: "existing", name: "Existing" }), node({ id: "server-root", name: "Server root" })],
+      })],
+    })];
+
+    const reconciled = reconcileAuthoritativeInsertedRoots({
+      currentTree: current,
+      authoritativeTree: authoritative,
+      targetParentNodeId: "target",
+      authoritativeRootNodeIds: ["server-root"],
+      optimisticRootNodeIds: ["optimistic"],
+    });
+
+    expect(reconciled[0].children?.[0].children?.map((child) => child.id)).toEqual([
+      "existing",
+      "server-root",
+      "later-local",
+    ]);
+    expect(reconciled[0].children?.[0].children?.[1].name).toBe("Server root");
   });
 
   it("builds stable activity scopes from stored direct-only choices", () => {

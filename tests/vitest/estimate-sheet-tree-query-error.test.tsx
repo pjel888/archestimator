@@ -10,7 +10,6 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   deleteEstimateRowItem: vi.fn(),
-  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
@@ -76,7 +75,7 @@ describe("estimate sheet tree query errors", () => {
   it("shows a retryable tab-tree error instead of successful empty-tab copy", async () => {
     actionMocks.fetchEstimateTabTree
       .mockRejectedValueOnce(new Error("Tab API down"))
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce({ tree: [], loadLimitState: undefined });
 
     renderAlternateTab();
 

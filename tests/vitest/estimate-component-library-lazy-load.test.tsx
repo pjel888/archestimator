@@ -44,4 +44,10 @@ describe("estimate component-library lazy-load boundary", () => {
   it("keeps component thumbnail uploads scoped to the active project", () => {
     expect(estimateRightSidebarSource).toContain("imageUploadProjectId={projectId ?? null}");
   });
+
+  it("hands the canonical project component identity to the estimate component editor", () => {
+    expect(estimateSheetContentSource).toContain("getProjectComponentIdentity(item.metadata, item.id, itemWithSnapshot.sourceSnapshot)");
+    expect(estimateSheetContentSource).toContain('componentEditScope={isLinkedLibraryComponentRow(componentEditorRow.item) ? "library" : "project"}');
+    expect(estimateSheetContentSource).toContain("projectComponentId={getProjectComponentEditorIdentity(componentEditorRow.item)}");
+  });
 });

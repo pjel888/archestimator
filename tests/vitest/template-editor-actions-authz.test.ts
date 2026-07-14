@@ -50,6 +50,19 @@ class FakeD1Statement {
         name: "Editor-safe template",
       } as T;
     }
+    if (this.sql.includes("FROM estimate_template_nodes")) {
+      return {
+        id: nodeId,
+        template_id: templateId,
+        parent_id: null,
+        kind: "area",
+        name: "Living",
+        sort_order: 0,
+        metadata: "{}",
+        created_at: "2026-07-01T00:00:00.000Z",
+        updated_at: "2026-07-01T00:00:00.000Z",
+      } as T;
+    }
     if (this.sql.includes("FROM estimate_template_row_items")) {
       return this.database.row as T;
     }
@@ -183,6 +196,64 @@ describe("template editor server action authorization", () => {
     expect(database.executedStatements[rowUpdateIndex].values[0]).toBe("Updated row");
     expect(database.executedStatements[rowUpdateIndex].values.at(-2)).toBe(rowId);
     expect(database.executedStatements[rowUpdateIndex].values.at(-1)).toBe(templateId);
+  });
+
+  it("persists referenced component and selected variant identity in template row snapshots", async () => {
+    const database = new FakeD1Database(true);
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const actions = await import("@/lib/component-library/template-editor-actions");
+    const componentId = "00000000-0000-4000-8000-000000000006";
+    const priceOptionId = "00000000-0000-4000-8000-000000000007";
+
+    await actions.addEstimateTemplateRowItems({
+      templateId,
+      nodeId,
+      libraryItems: [{
+        id: componentId,
+        material: "Current sofa",
+        name: "Current sofa",
+        description: "Two-seat sofa",
+        supplier: "Supplier",
+        source: "library",
+        unit: "pc",
+        itemCost: 12_500,
+        quantity: 1,
+        subTotal: 12_500,
+        miscCost: 500,
+        totalItemCosts: 13_000,
+        category: "Furniture",
+        sourceLibraryItemId: componentId,
+        linkState: "linked-clean",
+        componentVersionNumber: 4,
+        priceOptionId,
+        priceOptionLabel: "Blue",
+        priceOptions: [{
+          id: priceOptionId,
+          label: "Blue",
+          unit: "pc",
+          unitCost: 12_500,
+          miscCost: 500,
+          currency: "PHP",
+          isActive: true,
+          isDefault: true,
+        }],
+        lifecycleState: "available",
+        pricingSource: "Supplier catalog",
+        pricingDate: "2026-07-14",
+      }],
+    });
+
+    const insert = database.executedStatements.find((statement) => statement.sql.includes("INSERT INTO estimate_template_row_items"));
+    expect(insert?.values[4]).toBe(componentId);
+    expect(JSON.parse(String(insert?.values[5]))).toMatchObject({
+      sourceLibraryItemId: componentId,
+      sourceComponentId: componentId,
+      componentVersionNumber: 4,
+      lifecycleState: "available",
+      priceOptionId,
+      priceOptionLabel: "Blue",
+      priceOptions: [expect.objectContaining({ id: priceOptionId, label: "Blue" })],
+    });
   });
 });
 

@@ -10,7 +10,6 @@ import type { Json } from "@/lib/types/json";
 import {
   deleteEstimateRowItem,
   deleteEstimateRowItemsBulk,
-  detachEstimateRowItemFromLibrary,
   fetchEstimateTabTree,
   fetchEstimateTree,
   insertEstimateRowItemFromLibrary,
@@ -20,7 +19,10 @@ import {
   restoreDeletedEstimateRows,
   updateEstimateRowItem,
   type DeleteEstimateRowItemResult,
+  type DeleteEstimateRowItemsBulkActionResult,
   type DeleteEstimateRowItemsBulkResult,
+  type EstimateRowMutationConflictResult,
+  type MoveEstimateRowComponentActionResult,
   type MoveEstimateRowComponentResult,
   type MoveEstimateRowItemUpdateInput,
   type MoveEstimateRowItemWithHistoryResult,
@@ -45,7 +47,7 @@ import {
 import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { recordEstimateMutationEvent, type EstimateMutationOperation } from "@/lib/estimates/estimate-mutation-telemetry";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
-import type { EstimateRowUpdateBroadcastFields } from "./use-estimate-row-update-broadcast";
+import { EstimateRowRevisionConflictError } from "@/lib/estimates/row-revision-conflict";
 import { estimateQueryKeys } from "./use-estimate-query";
 
 export type EstimateSaveState = "idle" | "dirty" | "saving" | "saved" | "failed";
@@ -187,16 +189,6 @@ type MoveEstimateRowItemInput = SharedMutationInput & {
   onError?: (error: Error) => void;
 };
 
-type DetachEstimateRowInput = SharedMutationInput & {
-  rowId: string;
-  mutationId?: string;
-  expectedRowRevision?: number;
-  reason?: string;
-  rollback?: () => void;
-  onSuccess?: (result: UpdateEstimateRowItemResult) => void;
-  onError?: (error: Error) => void;
-};
-
 type PromoteEstimateRowInput = SharedMutationInput & {
   rowId: string;
   libraryFolderId?: string | null;
@@ -227,12 +219,21 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   sourceLibraryItemId?: string | null;
   linkState?: EstimateRowItem["linkState"];
   expectedComponentImpactFingerprint?: string;
+  removedPriceOptionReplacements?: Record<string, string>;
   mutationId?: string;
   expectedRowRevision?: number;
   rollback?: () => void;
   onSuccess?: (result: UpdateEstimateRowItemResult) => void;
   onError?: (error: Error) => void;
 };
+
+function isVariantScopedProjectComponentInput(input: UpdateEstimateRowInput) {
+  return input.description !== undefined
+    || input.unit !== undefined
+    || input.unitCost !== undefined
+    || input.priceOptions !== undefined
+    || input.removedPriceOptionReplacements !== undefined;
+}
 
 type UpdateMutationContext = {
   operationIds: Record<string, number>;
@@ -365,20 +366,16 @@ function isLocalizingComponentInput(input: UpdateEstimateRowInput) {
   return input.sourceLibraryItemId === null && input.linkState === "unlinked";
 }
 
-function toDetachedRowPatch(result: UpdateEstimateRowItemResult): EstimateRowItemPatch {
-  return {
-    source: "project",
-    sourceLibraryItemId: null,
-    linkState: result.linkState,
-    rowRevision: result.rowRevision,
-  };
-}
-
 function toPromotedRowPatch(result: PromoteEstimateRowToLibraryComponentResult): EstimateRowItemPatch {
+  const authoritativePatch = result.rowPatch && typeof result.rowPatch === "object" && !Array.isArray(result.rowPatch)
+    ? result.rowPatch as unknown as EstimateRowItemPatch
+    : {};
   return {
+    ...authoritativePatch,
     source: "library",
     sourceLibraryItemId: result.itemId,
     linkState: "linked-clean",
+    ...(typeof result.rowRevision === "number" ? { rowRevision: result.rowRevision } : {}),
   };
 }
 
@@ -399,6 +396,7 @@ function deferSaveStateTransition(callback: () => void) {
 function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: EstimateRowMutationError | null) => void) {
   const [saveState, setSaveState] = useState<EstimateSaveState>("idle");
   const [activeMutationCount, setActiveMutationCount] = useState(0);
+  const activeMutationCountRef = useRef(0);
   const [rowMutationError, setRowMutationError] = useState<EstimateRowMutationError | null>(null);
   // Keep the latest change-listener without re-creating the transition setters
   // (which are dependencies of every React Query mutation options below).
@@ -416,7 +414,11 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
   }, [rowMutationError, transitionTo]);
 
   const markSaving = useCallback(() => {
-    setActiveMutationCount((count) => count + 1);
+    setActiveMutationCount((count) => {
+      const nextCount = count + 1;
+      activeMutationCountRef.current = nextCount;
+      return nextCount;
+    });
     setRowMutationError(null);
     transitionTo("saving", null);
   }, [transitionTo]);
@@ -424,6 +426,7 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
   const markSaved = useCallback(() => {
     setActiveMutationCount((count) => {
       const nextCount = Math.max(0, count - 1);
+      activeMutationCountRef.current = nextCount;
       if (nextCount > 0) return nextCount;
       deferSaveStateTransition(() => transitionTo("saved", null));
       return nextCount;
@@ -433,6 +436,7 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
   const markFailed = useCallback((error?: Error, input?: { rowId?: string }) => {
     setActiveMutationCount((count) => {
       const nextCount = Math.max(0, count - 1);
+      activeMutationCountRef.current = nextCount;
       if (nextCount === 0) {
         const nextError = error ? toEstimateRowMutationError(error, input) : rowMutationError;
         deferSaveStateTransition(() => {
@@ -445,8 +449,13 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
   }, [rowMutationError, transitionTo]);
 
   const clearRowMutationError = useCallback(() => setRowMutationError(null), []);
+  const markRowClean = useCallback(() => {
+    if (activeMutationCountRef.current > 0) return;
+    setRowMutationError(null);
+    transitionTo("idle", null);
+  }, [transitionTo]);
 
-  return { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError };
+  return { saveState, activeMutationCount, rowMutationError, markRowDirty, markRowClean, markSaving, markSaved, markFailed, clearRowMutationError };
 }
 
 function withoutClientCallbacks<T extends { onError?: unknown; onSuccess?: unknown; rollback?: () => void }>(input: T): Omit<T, "onError" | "onSuccess" | "rollback"> {
@@ -530,12 +539,12 @@ export function useEstimateRowMutations(
   workspaceId?: string,
   projectId?: string,
   onSaveStateChange?: (state: EstimateSaveState, error: EstimateRowMutationError | null) => void,
-  broadcastRowUpdate?: (fields: EstimateRowUpdateBroadcastFields) => void,
 ) {
   const queryClient = useQueryClient();
-  const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
+  const { saveState, activeMutationCount, rowMutationError, markRowDirty, markRowClean, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
   const rowOperationIdsRef = useRef<Record<string, number>>({});
-  const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
+  const estimateMutationQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const queuedRowMutationCountsRef = useRef<Record<string, number>>({});
   const escalatedPendingMutationKeysRef = useRef<Set<string>>(new Set());
   const [rowMutationStatuses, setRowMutationStatuses] = useState<EstimateRowMutationStatusMap>({});
   const rowMutationStatusesRef = useRef(rowMutationStatuses);
@@ -796,8 +805,24 @@ export function useEstimateRowMutations(
   }, [estimateId, projectId]);
 
   const hasPendingRowMutation = useCallback((rowIds: readonly string[]) =>
-    rowIds.some((rowId) => Boolean(rowUpdateQueuesRef.current[rowId]) || rowMutationStatusesRef.current[rowId]?.phase === "pending"),
+    rowIds.some((rowId) => (queuedRowMutationCountsRef.current[rowId] ?? 0) > 0 || rowMutationStatusesRef.current[rowId]?.phase === "pending"),
   []);
+
+  function reconcileAuthoritativeRows(input: SharedMutationInput, conflict: EstimateRowMutationConflictResult) {
+    const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+    queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) => {
+      if (!currentTree) return currentTree;
+      return conflict.authoritativeRows.reduce(
+        (tree, row) => patchEstimateRowItemInTree(tree, row.rowId, estimateRowMutationResultToPatch(row)),
+        currentTree,
+      );
+    });
+    for (const row of conflict.authoritativeRows) {
+      patchProjectComponentProjectionCaches(row.rowId, estimateRowMutationResultToPatch(row), input.projectId);
+    }
+    void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
+    if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "active" });
+  }
 
   const insertMutation = useMutation({
     networkMode: ROW_MUTATION_NETWORK_MODE,
@@ -927,7 +952,16 @@ export function useEstimateRowMutations(
       markSaving();
       return beginScopedRowMutation([input.sourceRowId, input.targetRowId], "Moving component", "move_component", input.mutationId);
     },
-    onSuccess: (result: MoveEstimateRowComponentResult, input, context) => {
+    onSuccess: (result: MoveEstimateRowComponentActionResult, input, context) => {
+      if (result.status === "conflict") {
+        input.rollback?.();
+        reconcileAuthoritativeRows(input, result);
+        const conflictError = new EstimateRowRevisionConflictError();
+        input.onError?.(conflictError);
+        finishScopedRowMutation(context, conflictError);
+        markFailed(conflictError, { rowId: result.conflictRowIds[0] });
+        return;
+      }
       markSaved();
       finishScopedRowMutation(context);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
@@ -998,9 +1032,13 @@ export function useEstimateRowMutations(
       }
 
       try {
-        const recoveredTree = estimateTabId
-          ? await fetchEstimateTabTree({ projectId: input.projectId, estimateId: input.estimateId, tabId: estimateTabId })
-          : await fetchEstimateTree({ projectId: input.projectId, estimateId: input.estimateId });
+        let recoveredTree: EstimateTreeNode[];
+        if (estimateTabId) {
+          const recoveredSnapshot = await fetchEstimateTabTree({ projectId: input.projectId, estimateId: input.estimateId, tabId: estimateTabId });
+          recoveredTree = recoveredSnapshot.tree;
+        } else {
+          recoveredTree = await fetchEstimateTree({ projectId: input.projectId, estimateId: input.estimateId });
+        }
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, recoveredTree);
         markSaved();
         finishScopedRowMutation(context);
@@ -1041,7 +1079,16 @@ export function useEstimateRowMutations(
       markSaving();
       return beginScopedRowMutation(input.rowIds, "Deleting rows", "delete_rows", input.mutationId);
     },
-    onSuccess: (result: DeleteEstimateRowItemsBulkResult, input, context) => {
+    onSuccess: (result: DeleteEstimateRowItemsBulkActionResult, input, context) => {
+      if (result.status === "conflict") {
+        input.rollback?.();
+        reconcileAuthoritativeRows(input, result);
+        const conflictError = new EstimateRowRevisionConflictError();
+        input.onError?.(conflictError);
+        finishScopedRowMutation(context, conflictError);
+        markFailed(conflictError, { rowId: result.conflictRowIds[0] });
+        return;
+      }
       markSaved();
       finishScopedRowMutation(context);
       input.onSuccess?.(result);
@@ -1084,87 +1131,6 @@ export function useEstimateRowMutations(
       finishScopedRowMutation(context, error);
       markFailed(error);
       invalidateTreeAfterMutationError(error, context?.operation ?? "restore_rows");
-    },
-  });
-
-  const detachMutation = useMutation({
-    networkMode: ROW_MUTATION_NETWORK_MODE,
-    mutationFn: (input: DetachEstimateRowInput) => {
-      assertBrowserOnline();
-      return runEstimateRowServerAction(() => detachEstimateRowItemFromLibrary(withoutClientCallbacks(input)));
-    },
-    onMutate: async (input): Promise<UpdateMutationContext> => {
-      markSaving();
-      const scopedMutation = beginScopedRowMutation([input.rowId], "Making project component", "detach_row", input.mutationId);
-      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
-      await queryClient.cancelQueries({ queryKey });
-      const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
-      const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
-      const previousPatch = previousRow
-        ? {
-            source: previousRow.source,
-            sourceLibraryItemId: previousRow.sourceLibraryItemId,
-            linkState: previousRow.linkState,
-            rowRevision: previousRow.rowRevision,
-          }
-        : undefined;
-      if (previousTree) {
-        queryClient.setQueryData<EstimateTreeNode[]>(
-          queryKey,
-          patchEstimateRowItemInTree(previousTree, input.rowId, {
-            source: "project",
-            sourceLibraryItemId: null,
-            linkState: "detached",
-          }),
-        );
-      }
-      patchProjectComponentProjectionCaches(input.rowId, {
-        source: "project",
-        sourceLibraryItemId: null,
-        linkState: "detached",
-      }, input.projectId);
-      return { ...scopedMutation, previousPatch };
-    },
-    onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
-      markSaved();
-      finishScopedRowMutation(context);
-      if (!isLatestScopedRow(input.rowId, context)) return;
-      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
-      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toDetachedRowPatch(result)) : currentTree,
-      );
-      patchProjectComponentProjectionCaches(result.rowId, toDetachedRowPatch(result), input.projectId);
-      invalidateProjectComponentProjectionCaches("detach_row_success", context?.operation ?? "detach_row", input.projectId);
-      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
-      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
-      broadcastRowUpdate?.({
-        rowId: result.rowId,
-        rowRevision: result.rowRevision,
-        quantity: result.quantity,
-        quantityBase: result.quantityBase ?? null,
-        quantityContingencyAmount: result.quantityBase === null || result.quantityBase === undefined ? null : result.quantityContingencyAmount ?? 0,
-        contingencyPercentage: result.contingencyPercentage,
-      });
-      input.onSuccess?.(result);
-    },
-    onError: (_error: Error, input, context) => {
-      if (!isLatestScopedRow(input.rowId, context)) {
-        markSaved();
-        return;
-      }
-      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
-      if (context?.previousPatch) {
-        queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-          currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
-        );
-        patchProjectComponentProjectionCaches(input.rowId, context.previousPatch, input.projectId);
-      } else input.rollback?.();
-      input.onError?.(_error);
-      finishScopedRowMutation(context, _error);
-      markFailed(_error, input);
-      const refetchType = isRowRevisionConflictError(_error) ? "active" : "none";
-      void queryClient.invalidateQueries({ queryKey, refetchType });
-      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
     },
   });
 
@@ -1226,6 +1192,7 @@ export function useEstimateRowMutations(
       const optimisticPatch = toOptimisticRowPatch(input);
       const cachedTreeIndex = cachedTree ? createEstimateTreeIndex(cachedTree) : undefined;
       const localizingComponent = isLocalizingComponentInput(input);
+      const variantScopedComponentUpdate = !localizingComponent && isVariantScopedProjectComponentInput(input);
       const componentSync = !localizingComponent && hasEstimateRowPatchFields(pickSharedComponentPatch(optimisticPatch));
       const affectedRowIds = componentSync && cachedTreeIndex
         ? getEstimateComponentInstanceRowIds(cachedTreeIndex, input.rowId)
@@ -1243,14 +1210,14 @@ export function useEstimateRowMutations(
       const collectedPreviousPatches = previousTree
         ? collectComponentRollbackPatches(previousTree, input.rowId, optimisticPatch, previousTreeIndex)
         : undefined;
-      const previousPatches = localizingComponent && collectedPreviousPatches?.[input.rowId]
+      const previousPatches = (localizingComponent || variantScopedComponentUpdate) && collectedPreviousPatches?.[input.rowId]
         ? { [input.rowId]: collectedPreviousPatches[input.rowId] }
         : collectedPreviousPatches;
       const previousPatch = previousPatches?.[input.rowId];
       if (previousTree) {
         queryClient.setQueryData<EstimateTreeNode[]>(
           queryKey,
-          localizingComponent
+          localizingComponent || variantScopedComponentUpdate
             ? patchEstimateRowItemInTree(previousTree, input.rowId, optimisticPatch)
             : patchComponentInstanceRowsInTree(previousTree, input.rowId, optimisticPatch, previousTreeIndex),
         );
@@ -1264,16 +1231,20 @@ export function useEstimateRowMutations(
       if (!isLatestScopedRow(input.rowId, context)) return;
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       const serverPatch = toServerRowPatch(result, input);
+      const variantScopedComponentUpdate = !isLocalizingComponentInput(input) && isVariantScopedProjectComponentInput(input);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree
-          ? isLocalizingComponentInput(input)
+          ? isLocalizingComponentInput(input) || variantScopedComponentUpdate
             ? patchEstimateRowItemInTree(currentTree, result.rowId, serverPatch)
             : patchComponentInstanceRowsInTree(currentTree, result.rowId, serverPatch)
           : currentTree,
       );
       patchProjectComponentProjectionCaches(result.rowId, serverPatch, input.projectId);
       invalidateProjectComponentProjectionCaches("update_row_success", context?.operation ?? "update_row", input.projectId);
-      const refetchType = context?.previousPatches && Object.keys(context.previousPatches).length > 1 ? "active" : "none";
+      const refetchType = variantScopedComponentUpdate
+        || (context?.previousPatches && Object.keys(context.previousPatches).length > 1)
+        ? "active"
+        : "none";
       void queryClient.invalidateQueries({ queryKey, refetchType });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
       input.onSuccess?.(result);
@@ -1341,21 +1312,35 @@ export function useEstimateRowMutations(
   }
 
   function withDeleteRowsMutationIdentity(input: DeleteEstimateRowsInput): DeleteEstimateRowsInput {
+    const expectedRowRevisions = input.rowIds.reduce<Record<string, number>>((revisions, rowId) => {
+      const rowRevision = input.expectedRowRevisions?.[rowId] ?? getCachedRowRevision(rowId);
+      if (typeof rowRevision === "number" && Number.isInteger(rowRevision) && rowRevision > 0) revisions[rowId] = rowRevision;
+      return revisions;
+    }, {});
     return {
       ...input,
       mutationId: input.mutationId ?? createMutationId(),
+      expectedRowRevisions,
     };
   }
 
-  function enqueueRowMutation<T extends { rowId: string }>(rowId: string, run: () => Promise<T | unknown>) {
-    const previousUpdate = rowUpdateQueuesRef.current[rowId] ?? Promise.resolve();
-    const nextUpdate = previousUpdate
+  function enqueueEstimateMutation(rowIds: readonly string[], run: () => Promise<unknown>) {
+    const queuedRowIds = Array.from(new Set(rowIds));
+    for (const rowId of queuedRowIds) {
+      queuedRowMutationCountsRef.current[rowId] = (queuedRowMutationCountsRef.current[rowId] ?? 0) + 1;
+    }
+    const nextUpdate = estimateMutationQueueRef.current
       .catch(() => undefined)
       .then(run);
-    rowUpdateQueuesRef.current[rowId] = nextUpdate;
-    void nextUpdate.catch(() => undefined).then(() => {
-      if (rowUpdateQueuesRef.current[rowId] === nextUpdate) delete rowUpdateQueuesRef.current[rowId];
-    });
+    estimateMutationQueueRef.current = nextUpdate;
+    const cleanup = () => {
+      for (const rowId of queuedRowIds) {
+        const nextCount = (queuedRowMutationCountsRef.current[rowId] ?? 1) - 1;
+        if (nextCount > 0) queuedRowMutationCountsRef.current[rowId] = nextCount;
+        else delete queuedRowMutationCountsRef.current[rowId];
+      }
+    };
+    void nextUpdate.then(cleanup, cleanup);
   }
 
   function enqueueRowUpdate(input: UpdateEstimateRowInput) {
@@ -1374,7 +1359,7 @@ export function useEstimateRowMutations(
       markFailed(offlineError, normalizedInput);
       return;
     }
-    enqueueRowMutation(input.rowId, () => updateMutation.mutateAsync(withMutationIdentity(input)));
+    enqueueEstimateMutation([input.rowId], () => updateMutation.mutateAsync(withMutationIdentity(input)));
   }
 
   return {
@@ -1385,22 +1370,22 @@ export function useEstimateRowMutations(
     hasPendingRowMutation,
     clearRowMutationError,
     markRowDirty,
+    markRowClean,
     fetchTree: fetchEstimateTree,
-    insertRow: (input: InsertEstimateRowInput) => insertMutation.mutate(withInsertMutationIdentity(input)),
-    replaceRow: (input: ReplaceEstimateRowInput) => enqueueRowMutation(input.rowId, () => replaceMutation.mutateAsync(withMutationIdentity(input))),
-    moveRows: (input: MoveEstimateRowsInput) => moveMutation.mutate(withMoveMutationIdentity(input)),
-    moveRowItem: (input: MoveEstimateRowItemInput) => moveRowItemMutation.mutate(withMoveRowItemMutationIdentity(input)),
-    detachRow: (input: DetachEstimateRowInput) => enqueueRowMutation(input.rowId, () => detachMutation.mutateAsync(withMutationIdentity(input))),
-    promoteRow: (input: PromoteEstimateRowInput) => enqueueRowMutation(input.rowId, () => promoteMutation.mutateAsync({
+    insertRow: (input: InsertEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => insertMutation.mutateAsync(withInsertMutationIdentity(input))),
+    replaceRow: (input: ReplaceEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => replaceMutation.mutateAsync(withMutationIdentity(input))),
+    moveRows: (input: MoveEstimateRowsInput) => enqueueEstimateMutation([input.sourceRowId, input.targetRowId], () => moveMutation.mutateAsync(withMoveMutationIdentity(input))),
+    moveRowItem: (input: MoveEstimateRowItemInput) => enqueueEstimateMutation(input.updates.map((update) => update.rowId), () => moveRowItemMutation.mutateAsync(withMoveRowItemMutationIdentity(input))),
+    promoteRow: (input: PromoteEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => promoteMutation.mutateAsync({
       ...input,
       mutationId: input.mutationId ?? createMutationId(),
     })),
-    deleteRow: (input: DeleteEstimateRowInput) => enqueueRowMutation(input.rowId, () => deleteMutation.mutateAsync(withMutationIdentity(input))),
-    deleteRows: (input: DeleteEstimateRowsInput) => deleteRowsMutation.mutate(withDeleteRowsMutationIdentity(input)),
-    restoreDeletedRows: (input: RestoreDeletedRowsInput) => restoreDeletedRowsMutation.mutate({
+    deleteRow: (input: DeleteEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => deleteMutation.mutateAsync(withMutationIdentity(input))),
+    deleteRows: (input: DeleteEstimateRowsInput) => enqueueEstimateMutation(input.rowIds, () => deleteRowsMutation.mutateAsync(withDeleteRowsMutationIdentity(input))),
+    restoreDeletedRows: (input: RestoreDeletedRowsInput) => enqueueEstimateMutation(input.rowIds ?? [], () => restoreDeletedRowsMutation.mutateAsync({
       ...input,
       mutationId: input.mutationId ?? createMutationId(),
-    }),
+    })),
     updateRow: enqueueRowUpdate,
   };
 }

@@ -18,8 +18,8 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   deleteEstimateRowItem: vi.fn(),
-  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  getEstimateComponentEditImpact: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
   insertEstimateTemplateNodeIntoEstimate: vi.fn(),
@@ -537,9 +537,9 @@ describe("estimate sheet library insertion persistence", () => {
     delete process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED;
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
-    actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
-    actionMocks.insertEstimateTemplateNodeIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
-    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeIds: [] });
+    actionMocks.insertEstimateTemplateNodeIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeId: groupNodeId });
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeIds: [] });
     actionMocks.moveEstimateRowComponentWithHistory.mockResolvedValue({
       sourceRow: makeCanonicalReplaceResult(cabinetRowId, {
         ...nodesWithRow[0].estimateRowItems![0],
@@ -586,17 +586,6 @@ describe("estimate sheet library insertion persistence", () => {
       contingencyValue: 0,
       miscCost: 10,
       linkState: "linked-overridden",
-      rowRevision: 8,
-    });
-    actionMocks.detachEstimateRowItemFromLibrary.mockResolvedValue({
-      rowId: cabinetRowId,
-      nodeId: targetNodeId,
-      quantity: 2,
-      itemCost: 100,
-      contingencyPercentage: 0,
-      contingencyValue: 0,
-      miscCost: 10,
-      linkState: "detached",
       rowRevision: 8,
     });
     actionMocks.replaceEstimateRowItemWithLibrary.mockImplementation(({ rowId, libraryItem }: { rowId: string; libraryItem: EstimateRowItem }) =>
@@ -783,6 +772,126 @@ describe("estimate sheet library insertion persistence", () => {
         pricingDate: "2026-07-08",
       }),
     }));
+  });
+
+  it("keeps a newly added project component variant after save and reopen", async () => {
+    const user = userEvent.setup();
+    const save = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
+    const variantPriceOptions: NonNullable<EstimateRowItem["priceOptions"]> = [
+      {
+        id: "variant-standard",
+        label: "Default",
+        unit: "lm",
+        unitCost: 100,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: true,
+      },
+    ];
+    const projectVariantNodes: EstimateTreeNode[] = [{
+      ...nodesWithRow[0],
+      estimateRowItems: [{
+        ...nodesWithRow[0].estimateRowItems![0],
+        priceOptionId: "variant-standard",
+        priceOptionLabel: "Default",
+        priceOptions: variantPriceOptions,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: projectedComponentId,
+          sourceEstimateRowId: cabinetRowId,
+          priceOptionId: "variant-standard",
+          priceOptionLabel: "Default",
+          priceOptions: variantPriceOptions,
+        },
+      }],
+    }];
+    actionMocks.getEstimateComponentEditImpact.mockResolvedValue({
+      componentKind: "project",
+      fingerprint: "project-component-impact",
+      instanceCount: 1,
+      projectCount: 1,
+      estimateCount: 1,
+      optionUsageCounts: { "variant-standard": 1 },
+      affectedEstimates: [{
+        projectId,
+        projectName: "Modern Bungalow",
+        estimateId,
+        estimateName: "Main Estimate",
+        instanceCount: 1,
+      }],
+    });
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(save.promise);
+    renderPersistedEstimateSheet(projectVariantNodes);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    await user.click(within(kitchenSection).getByRole("button", { name: "Edit component Kitchen Cabinet" }));
+    const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
+    await user.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
+    const variantDrawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
+    const addVariantButtons = within(variantDrawer).getAllByRole("button", { name: "Add variant" });
+    await user.click(addVariantButtons[addVariantButtons.length - 1]);
+    const variantCost = within(variantDrawer).getByLabelText("Variant unit cost");
+    await user.type(variantCost, "250");
+    await user.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("dialog", { name: "Edit Component" })).toBeInTheDocument();
+    const updateInput = actionMocks.updateEstimateRowItem.mock.calls[0][0];
+    expect(updateInput.expectedComponentImpactFingerprint).toBe("project-component-impact");
+    expect(updateInput.sourceSnapshot.priceOptions).toEqual([
+      expect.objectContaining({ id: "variant-standard", label: "Default" }),
+      expect.objectContaining({ label: "Option 2", unitCost: 250 }),
+    ]);
+    actionMocks.fetchEstimateTree.mockResolvedValue([{
+      ...projectVariantNodes[0],
+      estimateRowItems: [{
+        ...projectVariantNodes[0].estimateRowItems![0],
+        priceOptions: updateInput.sourceSnapshot.priceOptions,
+        sourceSnapshot: {
+          ...projectVariantNodes[0].estimateRowItems![0].sourceSnapshot,
+          ...updateInput.sourceSnapshot,
+        },
+        rowRevision: 8,
+      }],
+    }]);
+
+    await act(async () => {
+      save.resolve({
+        rowId: cabinetRowId,
+        nodeId: targetNodeId,
+        material: "Kitchen Cabinet",
+        description: "Base cabinet",
+        supplier: "Local supplier",
+        unit: "lm",
+        quantity: 2,
+        quantityBase: null,
+        quantityContingencyAmount: null,
+        itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        adjustmentPercentage: 0,
+        adjustmentValue: 0,
+        miscCost: 10,
+        sourceLibraryItemId: null,
+        sourceSnapshot: {
+          ...projectVariantNodes[0].estimateRowItems![0].sourceSnapshot,
+          ...updateInput.sourceSnapshot,
+        },
+        metadata: {},
+        linkState: "unlinked",
+        rowRevision: 8,
+      });
+      await save.promise;
+    });
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit Component" })).not.toBeInTheDocument());
+    await user.click(within(kitchenSection).getByRole("button", { name: "Edit component Kitchen Cabinet" }));
+    const reopenedDialog = await screen.findByRole("dialog", { name: "Edit Component" });
+    await user.click(within(reopenedDialog).getByRole("button", { name: "Open variants panel" }));
+    const reopenedDrawer = within(reopenedDialog).getByRole("dialog", { name: "Manage variants" });
+    expect(within(reopenedDrawer).getByRole("button", { name: "Open Option 2" })).toBeInTheDocument();
+    expect(within(reopenedDrawer).getByRole("button", { name: /^Option 2PHP/u })).toBeInTheDocument();
   });
 
   it("keeps linked library variant menu selections on the library replacement path", async () => {
@@ -1233,7 +1342,11 @@ describe("estimate sheet library insertion persistence", () => {
         children: [...nodesWithGroup[0].children!, starterTemplate.nodes[0]],
       },
     ];
-    actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: insertedTree });
+    actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({
+      status: "inserted",
+      tree: insertedTree,
+      insertedRootNodeIds: [starterTemplate.nodes[0].id],
+    });
 
     render(
       <QueryClientProvider client={makeQueryClient()}>
@@ -1261,6 +1374,7 @@ describe("estimate sheet library insertion persistence", () => {
       estimateId,
       targetParentNodeId: groupNodeId,
       templateId: starterTemplate.id,
+      unavailableSourcePolicy: "cancel",
     });
     expect(await screen.findByLabelText("Interior Fit-Out")).toBeInTheDocument();
   });
@@ -1296,8 +1410,51 @@ describe("estimate sheet library insertion persistence", () => {
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).not.toHaveProperty("template");
   });
 
+  it("requires explicit confirmation before using saved template values", async () => {
+    actionMocks.insertEstimateTemplateIntoEstimate
+      .mockResolvedValueOnce({
+        status: "requires_saved_snapshot_confirmation",
+        unavailableSourceCount: 1,
+        unavailableRows: [{ templateRowId: "template-row", material: "Saved component", reason: "selected_variant_unavailable" }],
+      })
+      .mockResolvedValueOnce({
+        status: "inserted",
+        tree: nodesWithGroup,
+        insertedRootNodeIds: [],
+      });
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          canEditEstimate={true}
+          renderSidebar={false}
+          libraryTemplates={[starterTemplate]}
+        />
+      </QueryClientProvider>,
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: { targetParentNodeId: groupNodeId, templateIds: [starterTemplate.id] },
+      }));
+    });
+
+    const confirmation = await screen.findByRole("dialog", { name: "Use saved template values?" });
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Insert saved values" }));
+    await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(2));
+    expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      unavailableSourcePolicy: "cancel",
+    }));
+    expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      unavailableSourcePolicy: "use_saved_snapshot_unlinked",
+    }));
+  });
+
   it("batches template drop events with multiple template ids into one action call", async () => {
-    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeIds: [] });
     render(
       <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent
@@ -1395,6 +1552,17 @@ describe("estimate sheet library insertion persistence", () => {
   });
 
   it("makes a linked component project-specific without clearing row values", async () => {
+    actionMocks.updateEstimateRowItem.mockResolvedValue({
+      rowId: cabinetRowId,
+      nodeId: targetNodeId,
+      quantity: 2,
+      itemCost: 100,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 10,
+      linkState: "unlinked",
+      rowRevision: 8,
+    });
     const user = userEvent.setup();
     renderPersistedEstimateSheet(nodesWithLinkedRow);
 
@@ -1405,18 +1573,20 @@ describe("estimate sheet library insertion persistence", () => {
     await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet a Project Component" }));
     const firstDialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(firstDialog).getByRole("button", { name: "Cancel" }));
-    expect(actionMocks.detachEstimateRowItemFromLibrary).not.toHaveBeenCalled();
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
 
     await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet a Project Component" }));
     const dialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(dialog).getByRole("button", { name: "Make Project Component" }));
 
-    await waitFor(() => expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
-    expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       projectId,
       estimateId,
       rowId: cabinetRowId,
       expectedRowRevision: 7,
+      sourceLibraryItemId: null,
+      linkState: "unlinked",
       mutationId: expect.any(String),
     }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make Project Component" })).not.toBeInTheDocument());
@@ -1444,6 +1614,17 @@ describe("estimate sheet library insertion persistence", () => {
   });
 
   it("keeps duplicate linked rows independently eligible for project-specific detach", async () => {
+    actionMocks.updateEstimateRowItem.mockResolvedValue({
+      rowId: cabinetRowId,
+      nodeId: targetNodeId,
+      quantity: 2,
+      itemCost: 100,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 10,
+      linkState: "unlinked",
+      rowRevision: 8,
+    });
     const user = userEvent.setup();
     renderPersistedEstimateSheet(nodesWithDuplicateLinkedRows);
 
@@ -1454,10 +1635,12 @@ describe("estimate sheet library insertion persistence", () => {
     const dialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(dialog).getByRole("button", { name: "Make Project Component" }));
 
-    await waitFor(() => expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
-    expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       rowId: cabinetRowId,
       expectedRowRevision: 7,
+      sourceLibraryItemId: null,
+      linkState: "unlinked",
     }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make Project Component" })).not.toBeInTheDocument());
     expect(within(kitchenSection).getByText("Project Component")).toBeInTheDocument();

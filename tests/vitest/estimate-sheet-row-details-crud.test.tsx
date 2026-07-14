@@ -12,8 +12,8 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   deleteEstimateRowItem: vi.fn(),
-  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  getEstimateComponentEditImpact: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
   renameEstimateNode: vi.fn(),
@@ -186,6 +186,15 @@ describe("estimate sheet row details and CRUD entry points", () => {
     vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "off");
     actionMocks.deleteEstimateRowItem.mockResolvedValue(undefined);
+    actionMocks.getEstimateComponentEditImpact.mockResolvedValue({
+      projectId,
+      componentId: "project-component-test",
+      instanceCount: 1,
+      estimateCount: 1,
+      affectedEstimates: [{ estimateId, estimateName: "Estimate", projectId, projectName: "Project", rowCount: 1 }],
+      optionUsageCounts: {},
+      fingerprint: "project-component-impact",
+    });
     actionMocks.updateEstimateRowItem.mockImplementation((input: Record<string, unknown>) => {
       const base = input.rowId === expressRowId ? emptyExpressRow : projectSpecificRow;
       return Promise.resolve(updateResult(input, base));

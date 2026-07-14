@@ -71,3 +71,68 @@ export function appendTemplateNodesToParent(
     };
   });
 }
+
+function findNodeChildren(nodes: EstimateTreeNode[], nodeId: string): EstimateTreeNode[] | null {
+  for (const node of nodes) {
+    if (node.id === nodeId) return node.children ?? [];
+    const nestedChildren = findNodeChildren(node.children ?? [], nodeId);
+    if (nestedChildren) return nestedChildren;
+  }
+  return null;
+}
+
+function removeNodesById(nodes: EstimateTreeNode[], nodeIds: ReadonlySet<string>): EstimateTreeNode[] {
+  let didChange = false;
+  const nextNodes: EstimateTreeNode[] = [];
+  for (const node of nodes) {
+    if (nodeIds.has(node.id)) {
+      didChange = true;
+      continue;
+    }
+    const nextChildren = removeNodesById(node.children ?? [], nodeIds);
+    if (nextChildren !== node.children && (node.children?.length ?? 0) > 0) {
+      didChange = true;
+      nextNodes.push({ ...node, children: nextChildren });
+    } else {
+      nextNodes.push(node);
+    }
+  }
+  return didChange ? nextNodes : nodes;
+}
+
+export function reconcileAuthoritativeInsertedRoots({
+  currentTree,
+  authoritativeTree,
+  targetParentNodeId,
+  authoritativeRootNodeIds,
+  optimisticRootNodeIds = [],
+}: {
+  currentTree: EstimateTreeNode[];
+  authoritativeTree: EstimateTreeNode[];
+  targetParentNodeId: string;
+  authoritativeRootNodeIds: readonly string[];
+  optimisticRootNodeIds?: readonly string[];
+}): EstimateTreeNode[] {
+  const authoritativeIds = new Set(authoritativeRootNodeIds);
+  const authoritativeRoots = (findNodeChildren(authoritativeTree, targetParentNodeId) ?? [])
+    .filter((node) => authoritativeIds.has(node.id));
+  if (authoritativeRoots.length !== authoritativeIds.size) return authoritativeTree;
+
+  const replaceIds = new Set([...optimisticRootNodeIds, ...authoritativeRootNodeIds]);
+  const currentTargetChildren = findNodeChildren(currentTree, targetParentNodeId) ?? [];
+  const matchedInsertionIndex = currentTargetChildren.findIndex((node) => replaceIds.has(node.id));
+  const cleanedTree = removeNodesById(currentTree, replaceIds);
+  let didInsert = false;
+  const reconciledTree = cleanedTree.map(function reconcileNode(node): EstimateTreeNode {
+    if (node.id === targetParentNodeId) {
+      didInsert = true;
+      const children = [...(node.children ?? [])];
+      const insertionIndex = matchedInsertionIndex >= 0 ? matchedInsertionIndex : children.length;
+      children.splice(Math.min(insertionIndex, children.length), 0, ...authoritativeRoots);
+      return { ...node, children };
+    }
+    const children = node.children?.map(reconcileNode);
+    return children ? { ...node, children } : node;
+  });
+  return didInsert ? reconciledTree : authoritativeTree;
+}

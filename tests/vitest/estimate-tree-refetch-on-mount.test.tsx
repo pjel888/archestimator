@@ -3,9 +3,10 @@
  *
  * BACKGROUND
  * A perf change set the two server-seeded estimate tree query hooks in
- * `src/hooks/use-estimate-query.ts` to `refetchOnMount: false`
+ * `src/hooks/use-estimate-query.ts` to stale-aware mount refetching
  * (`useEstimateAreaTreeQuery` and `useEstimateTabTreeQuery`). The client therefore
- * no longer refetches the tree on mount. Freshness now depends on:
+ * keeps freshly server-seeded data without a duplicate request, then refetches
+ * stale cache entries on revisit. Freshness also depends on:
  *   (a) the route re-supplying fresh server-rendered `nodes` props on every
  *       navigation, which `EstimateSheetTree` reconciles into the TanStack Query
  *       cache via `syncLocalNodesFromProps`, and
@@ -23,9 +24,8 @@
  *     to the route), the rendered tree reflects the NEW nodes, NOT the stale
  *     seeded snapshot that initialised the query cache. This is the mechanism
  *     that compensates for `refetchOnMount: false`.
- *  2. SECONDARY — config guard: both tree hooks pass `refetchOnMount: false` to
- *     `useQuery`. An accidental flip to `true` (which would change the freshness
- *     contract and the meaning of test #1) is caught here.
+ *  2. SECONDARY — config guard: both tree hooks pass `refetchOnMount: true` with
+ *     a short stale window so revisits cannot indefinitely retain old cache data.
  *
  * WHAT THIS FILE DOES NOT PROVE
  *  - It does NOT exercise a full real-router mutate -> navigate-away ->
@@ -158,7 +158,7 @@ describe("estimate tree freshness — prop-sync reconciliation (PRIMARY)", () =>
     // queryFn must NOT need to run for the seeded data to render. Stub anyway so
     // an accidental fetch resolves rather than throwing.
     actionMocks.fetchEstimateTree.mockResolvedValue(SEEDED_TREE);
-    actionMocks.fetchEstimateTabTree.mockResolvedValue([]);
+    actionMocks.fetchEstimateTabTree.mockResolvedValue({ tree: [], loadLimitState: undefined });
   });
 
   afterEach(() => {
@@ -218,7 +218,7 @@ describe("estimate tree freshness — hook config guard (SECONDARY)", () => {
     reactQueryCapture.armed = true;
     reactQueryCapture.options.length = 0;
     actionMocks.fetchEstimateTree.mockResolvedValue(SEEDED_TREE);
-    actionMocks.fetchEstimateTabTree.mockResolvedValue([]);
+    actionMocks.fetchEstimateTabTree.mockResolvedValue({ tree: [], loadLimitState: undefined });
   });
 
   afterEach(() => {
@@ -227,7 +227,7 @@ describe("estimate tree freshness — hook config guard (SECONDARY)", () => {
     vi.clearAllMocks();
   });
 
-  it("useEstimateAreaTreeQuery configures refetchOnMount:false", async () => {
+  it("useEstimateAreaTreeQuery configures stale-aware mount refetching", async () => {
     const { renderHook } = await import("@testing-library/react");
 
     renderHook(
@@ -243,10 +243,11 @@ describe("estimate tree freshness — hook config guard (SECONDARY)", () => {
     // The tree query is the one seeded with initialData.
     const treeOptions = reactQueryCapture.options.find((opts) => "initialData" in opts);
     expect(treeOptions).toBeDefined();
-    expect(treeOptions).toHaveProperty("refetchOnMount", false);
+    expect(treeOptions).toHaveProperty("refetchOnMount", true);
+    expect(treeOptions).toHaveProperty("staleTime", 30_000);
   });
 
-  it("useEstimateTabTreeQuery configures refetchOnMount:false", async () => {
+  it("useEstimateTabTreeQuery configures stale-aware mount refetching", async () => {
     const { renderHook } = await import("@testing-library/react");
 
     renderHook(
@@ -262,6 +263,7 @@ describe("estimate tree freshness — hook config guard (SECONDARY)", () => {
 
     const treeOptions = reactQueryCapture.options.find((opts) => "initialData" in opts);
     expect(treeOptions).toBeDefined();
-    expect(treeOptions).toHaveProperty("refetchOnMount", false);
+    expect(treeOptions).toHaveProperty("refetchOnMount", true);
+    expect(treeOptions).toHaveProperty("staleTime", 30_000);
   });
 });

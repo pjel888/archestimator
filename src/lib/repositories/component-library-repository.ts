@@ -11,12 +11,12 @@ import {
   estimateTemplates,
   summarizeEstimateTemplate,
   type EstimateTemplate,
+  type EstimateTemplateSummary,
 } from "@/lib/component-library/estimate-templates";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import {
   buildComponentCategoryTreeFromRows,
   componentCategoryTree,
-  componentCategoryTaxonomyVersion,
   findComponentCategoryPath,
   type ComponentLibraryCategoryRow,
   type ComponentLibraryTaxonomyNode,
@@ -237,6 +237,7 @@ type ComponentVariantAttachmentRow = {
   price_option_id: string | null;
   item_id: string | null;
   workspace_id: string;
+  upload_asset_id: string | null;
   storage_bucket: string;
   storage_path: string;
   file_name: string;
@@ -244,6 +245,8 @@ type ComponentVariantAttachmentRow = {
   size_bytes: number | string;
   attachment_kind: "pdf" | "excel" | string | null;
   metadata_json: Json | string;
+  review_status: "uploaded" | "approved" | "rejected" | "superseded";
+  is_current_approved: number | boolean;
   created_at: string;
 };
 
@@ -254,9 +257,22 @@ type BuildEstimateTemplatesInput = {
 };
 type LibraryTemplatesSeedPayload = BuildEstimateTemplatesInput;
 
+type EstimateTemplateNodeSummaryRow = {
+  template_id: string;
+  group_count: number | string;
+  area_count: number | string;
+};
+
+type EstimateTemplateCostSummaryRow = {
+  template_id: string;
+  row_count: number | string;
+  total: number | string;
+};
+
 const COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE = 1000;
 export const SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100;
+export const ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS =
   "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
 
@@ -560,12 +576,16 @@ function normalizeCostEntry(row: ComponentVariantCostEntryRow): ComponentVariant
 function normalizeAttachment(row: ComponentVariantAttachmentRow): ComponentVariantAttachment {
   return {
     id: row.id,
+    assetId: row.upload_asset_id,
     bucket: row.storage_bucket,
     path: row.storage_path,
     fileName: row.file_name,
     contentType: row.content_type,
     sizeBytes: Number(row.size_bytes),
     kind: row.attachment_kind === "pdf" ? "pdf" : "excel",
+    scanStatus: readString(readMetadataRecord(row.metadata_json).scanStatus) ?? null,
+    reviewStatus: row.review_status,
+    isCurrentApproved: readBoolean(row.is_current_approved),
     metadata: readMetadataRecord(row.metadata_json),
     createdAt: row.created_at,
   };
@@ -835,7 +855,7 @@ function buildComponentRowsLibraryDataset({
 
   const attachmentsByPriceOptionId = new Map<string, ComponentVariantAttachment[]>();
   for (const row of attachmentRows) {
-    if (!row.price_option_id) continue;
+    if (!row.price_option_id || row.review_status === "rejected" || row.review_status === "superseded") continue;
     const attachments = attachmentsByPriceOptionId.get(row.price_option_id) ?? [];
     attachments.push(normalizeAttachment(row));
     attachmentsByPriceOptionId.set(row.price_option_id, attachments);
@@ -1058,6 +1078,37 @@ export function buildEstimateTemplatesFromRows(input: BuildEstimateTemplatesInpu
     });
 }
 
+export function buildEstimateTemplateSummariesFromRows(input: {
+  templates: EstimateTemplateRow[];
+  nodeSummaries: EstimateTemplateNodeSummaryRow[];
+  costSummaries: EstimateTemplateCostSummaryRow[];
+}): EstimateTemplate[] {
+  const nodeSummaryByTemplateId = new Map(input.nodeSummaries.map((row) => [row.template_id, row]));
+  const costSummaryByTemplateId = new Map(input.costSummaries.map((row) => [row.template_id, row]));
+
+  return [...input.templates].sort(compareSortOrder).map((template) => {
+    const nodeSummary = nodeSummaryByTemplateId.get(template.id);
+    const costSummary = costSummaryByTemplateId.get(template.id);
+    const summary: EstimateTemplateSummary = {
+      groupCount: Number(nodeSummary?.group_count ?? 0),
+      areaCount: Number(nodeSummary?.area_count ?? 0),
+      rowCount: Number(costSummary?.row_count ?? 0),
+      total: Number(costSummary?.total ?? 0),
+    };
+    return {
+      id: template.id,
+      workspaceId: template.workspace_id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      nodes: [],
+      summary,
+      updatedAt: template.updated_at,
+      sortOrder: template.sort_order,
+    };
+  });
+}
+
 export function getTemplateTableFallbackTemplates({ isTemplateTableMissing }: { isTemplateTableMissing: boolean }): EstimateTemplate[] {
   return isTemplateTableMissing ? estimateTemplates : [];
 }
@@ -1241,18 +1292,19 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
         isBoundedItemPage
           ? collectComponentLibraryRowsForSelectedItems<ComponentVariantAttachmentRow>(
               database,
-              "cost_library_item_variant_attachments",
+              "component_variant_attachments",
               loadedItemIds,
               "ORDER BY created_at DESC",
-              " AND workspace_id = ?",
+              " AND workspace_id = ? AND owner_scope = 'library'",
               [workspaceId],
             )
           : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantAttachmentRow>(
               database,
-              "cost_library_item_variant_attachments",
+              "component_variant_attachments",
               workspaceId,
               loadedItemIds,
               "ORDER BY created_at DESC",
+              " AND owner_scope = 'library'",
             ),
       ])
     : [
@@ -1330,6 +1382,58 @@ async function loadCurrentWorkspaceEstimateTemplatesAppPath({
   return libraryTemplates;
 }
 
+async function loadCurrentWorkspaceEstimateTemplateSummaries({
+  database,
+  workspaceId,
+  limit = ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT,
+}: {
+  database: D1DatabaseLike;
+  workspaceId: string;
+  limit?: number;
+}): Promise<EstimateTemplate[]> {
+  const boundedLimit = Math.max(1, Math.min(Math.trunc(limit), ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT));
+  const templates = await all<EstimateTemplateRow>(
+    database,
+    `SELECT *
+     FROM estimate_templates
+     WHERE workspace_id = ?
+     ORDER BY sort_order ASC, name ASC
+     LIMIT ?`,
+    [workspaceId, boundedLimit],
+  );
+  if (templates.length === 0) return [];
+
+  const templateIds = templates.map((template) => template.id);
+  const [nodeSummaries, costSummaries] = await Promise.all([
+    all<EstimateTemplateNodeSummaryRow>(
+      database,
+      `SELECT template_id,
+              SUM(CASE WHEN kind = 'group' THEN 1 ELSE 0 END) AS group_count,
+              SUM(CASE WHEN kind = 'area' THEN 1 ELSE 0 END) AS area_count
+       FROM estimate_template_nodes
+       WHERE template_id IN (${placeholders(templateIds)})
+       GROUP BY template_id`,
+      templateIds,
+    ),
+    all<EstimateTemplateCostSummaryRow>(
+      database,
+      `SELECT template_id,
+              COUNT(*) AS row_count,
+              COALESCE(SUM(
+                (quantity * unit_cost)
+                + misc_cost
+                + ((quantity * unit_cost) * COALESCE(adjustment_percentage, contingency_percentage, 0) / 100.0)
+              ), 0) AS total
+       FROM estimate_template_row_items
+       WHERE template_id IN (${placeholders(templateIds)})
+       GROUP BY template_id`,
+      templateIds,
+    ),
+  ]);
+
+  return buildEstimateTemplateSummariesFromRows({ templates, nodeSummaries, costSummaries });
+}
+
 async function loadCurrentWorkspaceEstimateTemplates({
   database,
   workspaceId,
@@ -1373,7 +1477,7 @@ export async function getCurrentWorkspaceEstimateTemplatesSeed(): Promise<Curren
   const { workspace, profile } = await ensureDefaultWorkspace();
   const database = await requireComponentLibraryRepositoryD1Database();
   return {
-    templates: await loadCurrentWorkspaceEstimateTemplates({ database, workspaceId: workspace.id }),
+    templates: await loadCurrentWorkspaceEstimateTemplateSummaries({ database, workspaceId: workspace.id }),
     userId: profile.id,
     workspaceId: workspace.id,
   };
@@ -1961,7 +2065,7 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
   const database = await requireComponentLibraryRepositoryD1Database();
   const [componentRows, templates] = await Promise.all([
     loadCurrentWorkspaceComponentRowsLibrary({ database, workspaceId: workspace.id }),
-    loadCurrentWorkspaceEstimateTemplates({ database, workspaceId: workspace.id }),
+    loadCurrentWorkspaceEstimateTemplateSummaries({ database, workspaceId: workspace.id }),
   ]);
 
   return {
@@ -1990,7 +2094,7 @@ export async function getCurrentWorkspaceComponentLibraryLite(): Promise<Compone
       includeDetailGraph: false,
       itemLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
     }),
-    loadCurrentWorkspaceEstimateTemplates({ database, workspaceId: workspace.id }),
+    loadCurrentWorkspaceEstimateTemplateSummaries({ database, workspaceId: workspace.id }),
   ]);
 
   return {
@@ -2012,5 +2116,3 @@ export const fallbackComponentLibraryDataset: ComponentLibraryDataset = {
   ...fallbackComponentRowsLibraryDataset,
   templates: [],
 };
-
-const componentLibraryDatasetVersion = componentCategoryTaxonomyVersion;

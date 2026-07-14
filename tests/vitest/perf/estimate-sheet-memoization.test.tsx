@@ -23,7 +23,6 @@ const routerMock = vi.hoisted(() => ({
 
 const actionMocks = vi.hoisted(() => ({
   deleteEstimateRowItem: vi.fn(),
-  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateSheetVersionControl: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),

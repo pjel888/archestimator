@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useEffectEvent, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import {
@@ -19,6 +19,7 @@ import { collectEditableRows, type EditableRowValue } from "./rows/editable-row-
 import {
   appendTemplateNodesToParent,
   cloneTemplateNodesForEstimate,
+  reconcileAuthoritativeInsertedRoots,
 } from "./template-insertion-model";
 
 type EstimateTreeUpdater = (updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => number;
@@ -28,6 +29,30 @@ type RestoreEstimateState = (
   expectedRevision?: number,
 ) => void;
 type Toast = (input: { tone?: "neutral" | "loading" | "success" | "error"; message: string }) => string;
+
+function useSavedTemplateSnapshotConfirmation() {
+  const resolverRef = useRef<((confirmed: boolean) => void) | null>(null);
+  const [unavailableSourceCount, setUnavailableSourceCount] = useState<number | null>(null);
+
+  const requestConfirmation = useCallback((count: number) => new Promise<boolean>((resolve) => {
+    resolverRef.current?.(false);
+    resolverRef.current = resolve;
+    setUnavailableSourceCount(count);
+  }), []);
+  const resolveConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = resolverRef.current;
+    resolverRef.current = null;
+    setUnavailableSourceCount(null);
+    resolve?.(confirmed);
+  }, []);
+
+  useEffect(() => () => {
+    resolverRef.current?.(false);
+    resolverRef.current = null;
+  }, []);
+
+  return { unavailableSourceCount, requestConfirmation, resolveConfirmation };
+}
 
 type UseEstimateTemplateInsertionInput = {
   canEditEstimate: boolean;
@@ -53,17 +78,19 @@ export function useEstimateTemplateInsertion({
   estimateId,
   dataTabId,
   estimateTree,
-  editableRows,
   templateById,
   templateTargetParentNode,
   setEstimateTree,
   setEditableRows,
   setSelectedNodeId,
-  getEstimateTreeRevision,
-  restoreEstimateState,
   recordReadOnlyLibraryMutationAttempt,
   toast,
 }: UseEstimateTemplateInsertionInput) {
+  const {
+    unavailableSourceCount: templateSnapshotUnavailableSourceCount,
+    requestConfirmation: requestTemplateSnapshotConfirmation,
+    resolveConfirmation: resolveTemplateSnapshotConfirmation,
+  } = useSavedTemplateSnapshotConfirmation();
   const insertTemplateIntoParent = useStableCallback(
     (targetParentNodeId: string, template: EstimateTemplate) => {
       if (!canEditEstimate) {
@@ -74,37 +101,43 @@ export function useEstimateTemplateInsertion({
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
 
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(template.nodes);
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
       setSelectedNodeId(targetParentNodeId);
 
       if (projectId && estimateId) {
-        insertEstimateTemplateIntoEstimate({
+        const persist = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateIntoEstimate({
           projectId,
           estimateId,
           targetParentNodeId,
           templateId: template.id,
           targetTabId: dataTabId,
-        })
+          unavailableSourcePolicy,
+        });
+        persist("cancel")
+          .then(async (result) => {
+            if (result.status !== "requires_saved_snapshot_confirmation") return result;
+            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) return null;
+            return persist("use_saved_snapshot_unlinked");
+          })
           .then((result) => {
-            // INS-1: only reconcile when no later optimistic update superseded
-            // ours, so a concurrent insert's stale snapshot can't clobber newer
-            // state. INS-4: setEstimateTree bumps the editable-rows skip ref so
-            // the server tree doesn't overwrite an in-flight cell edit.
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+            if (!result || result.status !== "inserted") return;
+            setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
+              currentTree,
+              authoritativeTree: result.tree,
+              targetParentNodeId,
+              authoritativeRootNodeIds: result.insertedRootNodeIds,
+            }));
+            setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
           })
           .catch((error: unknown) => {
             console.error("[estimate] template insert failed", error);
             toast({ tone: "error", message: "Couldn't insert the template. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
           });
+        return true;
       }
 
+      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(template.nodes);
+      setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...collectEditableRows(optimisticTemplateNodes) }));
       return true;
     },
   );
@@ -125,33 +158,43 @@ export function useEstimateTemplateInsertion({
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
 
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
       setSelectedNodeId(targetParentNodeId);
 
       if (projectId && estimateId) {
-        insertEstimateTemplatesIntoEstimate({
+        const persist = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplatesIntoEstimate({
           projectId,
           estimateId,
           targetParentNodeId,
           templateIds: templates.map((template) => template.id),
           targetTabId: dataTabId,
-        })
+          unavailableSourcePolicy,
+        });
+        persist("cancel")
+          .then(async (result) => {
+            if (result.status !== "requires_saved_snapshot_confirmation") return result;
+            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) return null;
+            return persist("use_saved_snapshot_unlinked");
+          })
           .then((result) => {
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+            if (!result || result.status !== "inserted") return;
+            setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
+              currentTree,
+              authoritativeTree: result.tree,
+              targetParentNodeId,
+              authoritativeRootNodeIds: result.insertedRootNodeIds,
+            }));
+            setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
           })
           .catch((error: unknown) => {
             console.error("[estimate] template batch insert failed", error);
             toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
           });
+        return true;
       }
 
+      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
+      setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...collectEditableRows(optimisticTemplateNodes) }));
       return true;
     },
   );
@@ -189,36 +232,44 @@ export function useEstimateTemplateInsertion({
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
 
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
       setSelectedNodeId(targetParentNodeId);
 
       if (projectId && estimateId) {
-        insertEstimateTemplateNodeIntoEstimate({
+        const persist = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateNodeIntoEstimate({
           projectId,
           estimateId,
           targetParentNodeId,
           templateId: template.id,
           templateNodeId: templateNode.id,
           targetTabId: dataTabId,
-        })
+          unavailableSourcePolicy,
+        });
+        persist("cancel")
+          .then(async (result) => {
+            if (result.status !== "requires_saved_snapshot_confirmation") return result;
+            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) return null;
+            return persist("use_saved_snapshot_unlinked");
+          })
           .then((result) => {
-            // INS-1/INS-4: reconcile only when our optimistic revision still
-            // stands, and via setEstimateTree so in-flight edits survive.
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+            if (!result || result.status !== "inserted") return;
+            setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
+              currentTree,
+              authoritativeTree: result.tree,
+              targetParentNodeId,
+              authoritativeRootNodeIds: [result.insertedRootNodeId],
+            }));
+            setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
           })
           .catch((error: unknown) => {
             console.error("[estimate] template node insert failed", error);
             toast({ tone: "error", message: "Couldn't insert the template. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
           });
+        return true;
       }
 
+      const optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
+      setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...collectEditableRows(optimisticTemplateNodes) }));
       return true;
     },
   );
@@ -275,5 +326,7 @@ export function useEstimateTemplateInsertion({
     insertTemplatesIntoParentById,
     insertTemplateNodeIntoParentById,
     insertTemplateNodeIntoSelectedGroup,
+    templateSnapshotUnavailableSourceCount,
+    resolveTemplateSnapshotConfirmation,
   };
 }

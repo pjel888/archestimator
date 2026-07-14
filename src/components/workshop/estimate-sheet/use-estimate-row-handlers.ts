@@ -15,7 +15,10 @@ import {
   withProjectComponentProjectionMetadata,
 } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
-import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
+import {
+  omitEstimateRowPriceOptionAttachments,
+  sanitizeEstimateRowPriceOptionsSnapshot,
+} from "@/lib/estimates/source-snapshot-price-options";
 import type { Json } from "@/lib/types/json";
 
 import { findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -57,7 +60,10 @@ type Toast = (input: {
 
 type CommitRowItemUpdateOptions = {
   expectedComponentImpactFingerprint?: string;
+  removedPriceOptionReplacements?: Record<string, string>;
   makeProjectSpecific?: boolean;
+  onPersisted?: () => void;
+  onPersistenceError?: (error: Error) => void;
 };
 
 function readJsonObject(value: unknown): Record<string, Json | undefined> {
@@ -104,6 +110,7 @@ type UseEstimateRowHandlersInput = {
   rowComponentPicker: RowComponentPickerState | null;
   projectSpecificRowItem: EstimateRowItem | null;
   markRowDirtyNow: EstimateRowMutations["markRowDirty"];
+  markRowCleanNow: EstimateRowMutations["markRowClean"];
   insertRow: EstimateRowMutations["insertRow"];
   replaceRow: EstimateRowMutations["replaceRow"];
   moveRows: EstimateRowMutations["moveRows"];
@@ -401,6 +408,7 @@ export function useEstimateRowHandlers({
   rowComponentPicker,
   projectSpecificRowItem,
   markRowDirtyNow,
+  markRowCleanNow,
   insertRow,
   replaceRow,
   moveRows,
@@ -448,6 +456,20 @@ export function useEstimateRowHandlers({
   const markRowDirty = useStableCallback(() => {
     saveStateRef.current = "dirty";
     markRowDirtyNow();
+  });
+  const reconcileRowDirty = useStableCallback(() => {
+    queueMicrotask(() => {
+      if (saveStateRef.current === "saving") return;
+      if (Object.keys(expressInsertDraftsRef.current).length > 0) return;
+      const baselineRows = collectEditableRows(estimateTree);
+      const currentRows = getEditableRows();
+      const currentRowIds = Object.keys(currentRows);
+      const isClean = currentRowIds.length === Object.keys(baselineRows).length
+        && currentRowIds.every((rowId) => baselineRows[rowId] && editableRowsEqual(currentRows[rowId], baselineRows[rowId]));
+      if (!isClean) return;
+      saveStateRef.current = "idle";
+      markRowCleanNow();
+    });
   });
 
   useEffect(() => {
@@ -542,8 +564,12 @@ export function useEstimateRowHandlers({
     if (expressFieldNames.length > 0) {
       recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
     }
-    const priceOptionsSnapshot = values.priceOptions !== undefined
-      ? sanitizeEstimateRowPriceOptionsSnapshot(values.priceOptions)
+    const projectSpecificPriceOptionCopy = options.makeProjectSpecific
+      ? omitEstimateRowPriceOptionAttachments(values.priceOptions ?? currentRowItem?.priceOptions)
+      : { priceOptions: values.priceOptions, omittedAttachmentCount: 0 };
+    const priceOptionsForPersistence = projectSpecificPriceOptionCopy.priceOptions;
+    const priceOptionsSnapshot = priceOptionsForPersistence !== undefined
+      ? sanitizeEstimateRowPriceOptionsSnapshot(priceOptionsForPersistence)
       : undefined;
     let sourceSnapshotPatch: Record<string, Json | undefined> | undefined = values.name !== undefined
       || values.description !== undefined
@@ -561,7 +587,7 @@ export function useEstimateRowHandlers({
       || values.sku !== undefined
       || values.priceOptionId !== undefined
       || values.priceOptionLabel !== undefined
-      || values.priceOptions !== undefined
+      || priceOptionsForPersistence !== undefined
       || values.pricingDate !== undefined
       || values.pricingSource !== undefined
       || values.lifecycleState !== undefined
@@ -584,7 +610,7 @@ export function useEstimateRowHandlers({
           ...(values.sku !== undefined ? { sku: nullableTrimmedText(values.sku) } : {}),
           ...(values.priceOptionId !== undefined ? { priceOptionId: nullableTrimmedText(values.priceOptionId) } : {}),
           ...(values.priceOptionLabel !== undefined ? { priceOptionLabel: nullableTrimmedText(values.priceOptionLabel) } : {}),
-          ...(values.priceOptions !== undefined ? { priceOptions: priceOptionsSnapshot ?? [] } : {}),
+          ...(priceOptionsForPersistence !== undefined ? { priceOptions: priceOptionsSnapshot ?? [] } : {}),
           ...(values.pricingDate !== undefined ? { pricingDate: nullableTrimmedText(values.pricingDate) } : {}),
           ...(values.pricingSource !== undefined ? { pricingSource: nullableTrimmedText(values.pricingSource) } : {}),
           ...(values.lifecycleState !== undefined ? { lifecycleState: values.lifecycleState ?? null } : {}),
@@ -674,6 +700,9 @@ export function useEstimateRowHandlers({
       ...(options.expectedComponentImpactFingerprint !== undefined
         ? { expectedComponentImpactFingerprint: options.expectedComponentImpactFingerprint }
         : {}),
+      ...(options.removedPriceOptionReplacements !== undefined
+        ? { removedPriceOptionReplacements: options.removedPriceOptionReplacements }
+        : {}),
       ...(shouldPromoteLegacyBlankToExpress ? {
         metadata: withExpressComponentMetadata(currentRowItem?.metadata, {
           id: rowItemId,
@@ -684,10 +713,15 @@ export function useEstimateRowHandlers({
       } : {}),
       onSuccess: (result) => {
         const serverPatch = estimateRowMutationResultToPatch(result);
-        if (values.priceOptions !== undefined) serverPatch.priceOptions = values.priceOptions;
+        if (priceOptionsForPersistence !== undefined) serverPatch.priceOptions = priceOptionsForPersistence;
+        const variantScopedComponentUpdate = values.description !== undefined
+          || values.unit !== undefined
+          || values.unitCost !== undefined
+          || values.priceOptions !== undefined
+          || options.removedPriceOptionReplacements !== undefined;
         let patchedTree = estimateTree;
         setEstimateTree((current) => {
-          patchedTree = options.makeProjectSpecific
+          patchedTree = options.makeProjectSpecific || variantScopedComponentUpdate
             ? patchEstimateRowItemInTree(current, result.rowId, serverPatch)
             : patchComponentInstanceRowsInTree(current, result.rowId, serverPatch);
           return patchedTree;
@@ -696,10 +730,18 @@ export function useEstimateRowHandlers({
         const activeExpressRowId = getActiveExpressEditorRowId();
         setEditableRows((currentRows) => mergeSyncedEditableRows(currentRows, nextRows, rowMutationStatuses, activeExpressRowId, previousRows));
         if (options.makeProjectSpecific) {
-          toast({ tone: "success", message: "Project component created and updated for this estimate." });
+          const omittedAttachmentCount = projectSpecificPriceOptionCopy.omittedAttachmentCount;
+          toast({
+            tone: "success",
+            message: omittedAttachmentCount > 0
+              ? `Project component created. ${omittedAttachmentCount} Library attachment${omittedAttachmentCount === 1 ? " was" : "s were"} left with the Library component.`
+              : "Project component created and updated for this estimate.",
+          });
         }
+        options.onPersisted?.();
       },
       onError: (error) => {
+        options.onPersistenceError?.(error);
         if (/offline/i.test(error.message)) return;
         setEditableRows((currentRows) => {
           const currentRow = currentRows[rowItemId];
@@ -1384,6 +1426,7 @@ export function useEstimateRowHandlers({
     insertIntoSelectedNode,
     insertLibraryItem,
     markRowDirty,
+    reconcileRowDirty,
     moveFromComponentPicker,
     moveRowComponent,
     moveRowItemToNode,

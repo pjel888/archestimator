@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { FilterPopover } from "@/components/ui/overlays/popover";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { dispatchProjectTotalChange } from "@/components/workshop/project-total-events";
@@ -17,12 +18,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "zustand";
 
 import { useEstimateRowMutations, type EstimateRowMutationError, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
-import { useEstimateRowUpdateBroadcast } from "@/hooks/use-estimate-row-update-broadcast";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
 import {
+  loadCostLibraryComponentEditorDetail,
   loadProjectComponentLibraryLite,
-  updateCostLibraryComponent,
+  updateCostLibraryComponentWithPriceOptions,
+  type ComponentPriceOptionInput,
   type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
 import { isUuid } from "@/lib/ids";
@@ -41,7 +43,7 @@ import {
 } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
-import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
+import { getProjectComponentIdentity, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
@@ -51,6 +53,7 @@ import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-fla
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand, ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
+import type { Json } from "@/lib/types/json";
 import { useToast } from "@/components/ui/toast";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
@@ -146,6 +149,7 @@ import {
   parseNonNegativeEditableNumber,
   type EditableRowValue,
 } from "./estimate-sheet/rows/editable-row-model";
+import { reconcileAuthoritativeInsertedRoots } from "./estimate-sheet/template-insertion-model";
 import { createEditableRowStore, EditableRowStoreContext } from "./estimate-sheet/rows/editable-row-store";
 import {
   DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS,
@@ -158,7 +162,7 @@ import {
   type ExpressInsertDraft,
   type RowComponentPickerState,
 } from "./estimate-sheet/use-estimate-row-handlers";
-import { applyEstimateRowItemPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { applyEstimateRowItemPatch, patchEstimateRowItemsInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
 import {
   type ExpressInsertDraftState,
@@ -168,13 +172,109 @@ import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
 
-function updateActiveLibraryPriceOption(item: EstimateRowItem, unit: string, unitCost: number) {
-  const options = item.priceOptions;
-  if (!options?.length) return options;
-  const activeId = item.priceOptionId
-    ?? options.find((option) => option.isDefault)?.id
-    ?? options[0]?.id;
-  return options.map((option) => option.id === activeId ? { ...option, unit, unitCost } : option);
+function readComponentLibraryImageStoragePath(value: string) {
+  if (!value.startsWith("/api/component-library/images?")) return null;
+  try {
+    const url = new URL(value, "https://archestimator.local");
+    if (url.pathname !== "/api/component-library/images" || [...url.searchParams.keys()].some((key) => key !== "path")) return null;
+    return url.searchParams.get("path")?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildInlineLibraryPriceOptions(
+  item: EstimateRowItem,
+  values: Partial<EditableRowValue>,
+  targetPriceOptionId: string,
+  targetUnit: string,
+  targetUnitCost: number,
+  targetDescription: string,
+): ComponentPriceOptionInput[] {
+  if (!item.priceOptions?.length) throw new Error("Refresh this library component before editing it inline.");
+  return item.priceOptions.map((option, index) => {
+    const isTarget = option.id === targetPriceOptionId;
+    const imageChanged = isTarget && values.imageUrl !== undefined;
+    const imageAsset = imageChanged ? values.imageAsset ?? null : null;
+    const imageUrl = imageChanged ? (values.imageUrl ?? "").trim() : "";
+    const brokeredImagePath = imageChanged && imageUrl ? readComponentLibraryImageStoragePath(imageUrl) : null;
+    if (imageChanged && imageUrl && !imageAsset && !brokeredImagePath) {
+      throw new Error("Library component images must use component-owned storage.");
+    }
+    const imagePath = imageChanged ? imageAsset?.path ?? brokeredImagePath : option.imagePath;
+    const thumbnailPath = imageChanged
+      ? imageAsset?.thumbnailPath ?? imageAsset?.path ?? brokeredImagePath
+      : option.thumbnailPath;
+    const imageMetadata = imageChanged
+      ? imageAsset
+        ? {
+            assetId: imageAsset.assetId,
+            uploadSessionId: imageAsset.uploadSessionId,
+            scanStatus: imageAsset.scanStatus,
+            thumbnailStoragePath: imageAsset.thumbnailPath ?? null,
+            width: imageAsset.width ?? null,
+            height: imageAsset.height ?? null,
+          }
+        : {}
+      : option.imageMetadata as Json | undefined;
+    return {
+      id: option.id,
+      label: option.label,
+      sku: option.sku,
+      variantDescription: isTarget ? targetDescription : option.variantDescription ?? undefined,
+      variantSortOrder: option.variantSortOrder ?? index + 1,
+      unit: isTarget ? targetUnit : option.unit,
+      unitCost: isTarget ? targetUnitCost : option.unitCost,
+      miscCost: option.miscCost,
+      currency: option.currency,
+      pricingSource: option.pricingSource ?? undefined,
+      pricingDate: option.pricingDate ?? undefined,
+      sourceUrl: isTarget && values.sourceUrl !== undefined ? values.sourceUrl.trim() : option.sourceUrl ?? undefined,
+      notes: option.notes ?? undefined,
+      supplierId: option.supplierId,
+      activeCostEntryId: option.activeCostEntryId,
+      costEntries: option.costEntries?.map((entry) => ({
+        id: entry.id,
+        unitCost: isTarget && entry.isCurrent ? targetUnitCost : entry.unitCost,
+        miscCost: entry.miscCost,
+        currency: entry.currency,
+        pricingSource: entry.pricingSource ?? undefined,
+        pricingDate: entry.pricingDate,
+        sourceUrl: entry.sourceUrl ?? undefined,
+        notes: entry.notes ?? undefined,
+        isCurrent: entry.isCurrent,
+        deletedAt: null,
+      })),
+      packageQuantity: option.packageQuantity,
+      packageUnit: option.packageUnit,
+      dimensionLength: option.dimensionLength,
+      dimensionWidth: option.dimensionWidth,
+      dimensionHeight: option.dimensionHeight,
+      dimensionUnit: option.dimensionUnit,
+      mass: option.mass,
+      massUnit: option.massUnit,
+      imageBucket: imageChanged ? imageAsset?.bucket ?? (imagePath ? "component-images" : null) : option.imageBucket,
+      imagePath: imagePath ?? null,
+      thumbnailPath: thumbnailPath ?? null,
+      imageMetadata,
+      attachments: option.attachments?.map((attachment) => ({
+        id: attachment.id,
+        assetId: attachment.assetId,
+        bucket: attachment.bucket,
+        path: attachment.path,
+        fileName: attachment.fileName,
+        contentType: attachment.contentType,
+        sizeBytes: attachment.sizeBytes,
+        kind: attachment.kind,
+        scanStatus: attachment.scanStatus,
+        metadata: attachment.metadata as Json | undefined,
+      })),
+      variantMetadata: option.variantMetadata as Json | undefined,
+      isActive: option.isActive,
+      isDefault: option.isDefault,
+      changeReason: "Edited inline from an estimate row",
+    };
+  });
 }
 
 function useNativeModalDialog(onClose: () => void) {
@@ -552,6 +652,12 @@ function isProjectComponentRow(item: EstimateRowItem) {
   return isExpressComponentRow(item)
     || item.linkState === "detached"
     || Boolean(readProjectComponentProjectionMetadata(item.metadata));
+}
+
+function getProjectComponentEditorIdentity(item: EstimateRowItem) {
+  if (isLinkedLibraryComponentRow(item)) return null;
+  const itemWithSnapshot = item as EstimateRowItem & { sourceSnapshot?: unknown };
+  return getProjectComponentIdentity(item.metadata, item.id, itemWithSnapshot.sourceSnapshot);
 }
 
 function hasSharedComponentEdit(values: Partial<EditableRowValue>) {
@@ -1046,12 +1152,12 @@ export function EstimateSheetContent({
     },
     [estimateId, projectId, workspaceId],
   );
-  const broadcastRowUpdate = useEstimateRowUpdateBroadcast({ estimateId, tabId: dataTabId });
   const {
     saveState,
     rowMutationStatuses,
     hasPendingRowMutation,
     markRowDirty: markRowDirtyNow,
+    markRowClean: markRowCleanNow,
     insertRow,
     replaceRow,
     moveRows,
@@ -1067,7 +1173,6 @@ export function EstimateSheetContent({
     workspaceId,
     projectId,
     notifySaveState,
-    broadcastRowUpdate,
   );
   const rowSaveStatusMessage =
     saveState === "saving"
@@ -1090,13 +1195,13 @@ export function EstimateSheetContent({
     estimateId,
     tabId: dataTabId,
     initialNodes: tabInitialNodes,
+    initialLoadLimitState: dataTabId === initialTabId ? loadLimitState : undefined,
     enabled: Boolean(dataTabId),
   });
   const activeTreeQuery = dataTabId ? tabTreeQuery : legacyTreeQuery;
-  const activeInitialLoadLimitState = dataTabId === initialTabId ? loadLimitState : undefined;
-  const didTruncateInitialTree =
-    Boolean(activeInitialLoadLimitState?.didExceedNodeLimit || activeInitialLoadLimitState?.didExceedRowItemLimit);
-  const canMoveRowItems = !didTruncateInitialTree;
+  const activeLoadLimitState = dataTabId ? tabTreeQuery.loadLimitState : loadLimitState;
+  const isActiveTreePartial = Boolean(activeLoadLimitState?.didExceedNodeLimit || activeLoadLimitState?.didExceedRowItemLimit);
+  const canMoveRowItems = !isActiveTreePartial;
   const {
     refetch: refetchActiveTree,
     tree: estimateTree,
@@ -1108,8 +1213,10 @@ export function EstimateSheetContent({
   const skipEditableRowsSyncRef = useRef(0);
   const accountColumnWidthsSnapshotRef = useRef<string | null>(null);
   const accountColumnWidthsDirtyRef = useRef(false);
+  const accountColumnWidthsSaveAttemptRef = useRef(0);
   const committedEstimateColumnWidthsRef = useRef(EMPTY_ESTIMATE_COLUMN_WIDTHS);
   const [accountColumnWidthsLoadedEstimateId, setAccountColumnWidthsLoadedEstimateId] = useState<string | null>(null);
+  const [accountColumnWidthsRetryRevision, setAccountColumnWidthsRetryRevision] = useState(0);
   const [contentState, dispatchContentState] = useReducer(
     estimateSheetContentReducer,
     nodes,
@@ -1146,7 +1253,14 @@ export function EstimateSheetContent({
   } = contentState;
   const [sourcesDrawerOpen, setSourcesDrawerOpen] = useState(false);
   const [rowMoveDialog, setRowMoveDialog] = useState<RowMoveDialogState | null>(null);
-  const [componentEditor, setComponentEditor] = useState<{ rowItemId: string; opener: HTMLElement | null } | null>(null);
+  const [componentEditor, setComponentEditor] = useState<{
+    rowItemId: string;
+    opener: HTMLElement | null;
+    editingItem: EstimateRowItem;
+    impactFingerprint: string;
+    optionUsageCounts: Record<string, number>;
+  } | null>(null);
+  const componentEditorRequestIdRef = useRef(0);
   const [pendingSharedComponentEdit, setPendingSharedComponentEdit] = useState<PendingSharedComponentEdit | null>(null);
   const [componentEditorPendingRowIds, setComponentEditorPendingRowIds] = useState<ReadonlySet<string>>(() => new Set());
   const [editableRowStore] = useState(() => createEditableRowStore(editableRows, estimateTree));
@@ -1278,6 +1392,8 @@ export function EstimateSheetContent({
     if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
     accountColumnWidthsSnapshotRef.current = null;
     accountColumnWidthsDirtyRef.current = false;
+    accountColumnWidthsSaveAttemptRef.current += 1;
+    dismissToast("estimate-column-width-save");
     let cancelled = false;
     void loadEstimateSheetAccountPreferences(estimateId)
       .then((preferences) => {
@@ -1305,7 +1421,7 @@ export function EstimateSheetContent({
     return () => {
       cancelled = true;
     };
-  }, [commitEstimateColumnWidths, estimateColumnResizeEnabled, estimateId]);
+  }, [commitEstimateColumnWidths, dismissToast, estimateColumnResizeEnabled, estimateId]);
 
   useEffect(() => {
     if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
@@ -1313,19 +1429,42 @@ export function EstimateSheetContent({
     if (accountColumnWidthsSnapshotRef.current === null) return undefined;
     const snapshot = JSON.stringify(committedEstimateColumnWidths);
     if (accountColumnWidthsSnapshotRef.current === snapshot) return undefined;
-    accountColumnWidthsSnapshotRef.current = snapshot;
     const timer = window.setTimeout(() => {
+      const saveAttempt = accountColumnWidthsSaveAttemptRef.current + 1;
+      accountColumnWidthsSaveAttemptRef.current = saveAttempt;
       void saveEstimateSheetAccountPreferences({
         estimateId,
         columnWidths: committedEstimateColumnWidths,
       })
         .then((result) => {
-          if (result.ok) accountColumnWidthsDirtyRef.current = false;
+          if (saveAttempt !== accountColumnWidthsSaveAttemptRef.current) return;
+          if (result.ok) {
+            accountColumnWidthsSnapshotRef.current = snapshot;
+            accountColumnWidthsDirtyRef.current = false;
+            dismissToast("estimate-column-width-save");
+            return;
+          }
+          accountColumnWidthsDirtyRef.current = true;
+          toast({
+            id: "estimate-column-width-save",
+            tone: "warning",
+            message: "Column widths couldn't save. Retrying automatically.",
+          });
+          window.setTimeout(() => setAccountColumnWidthsRetryRevision((revision) => revision + 1), 2_000);
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (saveAttempt !== accountColumnWidthsSaveAttemptRef.current) return;
+          accountColumnWidthsDirtyRef.current = true;
+          toast({
+            id: "estimate-column-width-save",
+            tone: "warning",
+            message: "Column widths couldn't save. Retrying automatically.",
+          });
+          window.setTimeout(() => setAccountColumnWidthsRetryRevision((revision) => revision + 1), 2_000);
+        });
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [accountColumnWidthsLoadedEstimateId, committedEstimateColumnWidths, estimateColumnResizeEnabled, estimateId]);
+  }, [accountColumnWidthsLoadedEstimateId, accountColumnWidthsRetryRevision, committedEstimateColumnWidths, dismissToast, estimateColumnResizeEnabled, estimateId, toast]);
 
   const expressInsertDraftStates = useMemo<Record<string, ExpressInsertDraftState>>(
     () => Object.fromEntries(Object.entries(expressInsertDrafts).map(([rowId, draft]) => [rowId, draft.status])),
@@ -1788,17 +1927,56 @@ export function EstimateSheetContent({
     setRowComponentPicker({ mode: "move", rowItemId, opener });
     setRowComponentPickerQuery("");
   }, [setRowComponentPicker, setRowComponentPickerQuery]);
-  const openComponentEditor = useStableCallback((rowItemId: string, opener: HTMLElement) => {
+  const openComponentEditor = useStableCallback(async (rowItemId: string, opener: HTMLElement) => {
     const item = findEstimateRowItem(estimateTree, rowItemId);
     if (!item) return;
     const linkedSharedComponent = Boolean(item.sourceLibraryItemId)
       && item.linkState !== "detached"
       && item.linkState !== "unlinked";
     if (linkedSharedComponent && !canManageLibrary) return;
-    setComponentEditor({ rowItemId, opener });
+    const requestId = componentEditorRequestIdRef.current + 1;
+    componentEditorRequestIdRef.current = requestId;
+    try {
+      if (linkedSharedComponent && item.sourceLibraryItemId) {
+        const detail = await loadCostLibraryComponentEditorDetail(item.sourceLibraryItemId);
+        if (componentEditorRequestIdRef.current !== requestId) return;
+        setComponentEditor({
+          rowItemId,
+          opener,
+          editingItem: {
+            ...detail.component,
+            id: item.id,
+            priceOptionId: item.priceOptionId ?? detail.component.priceOptionId,
+            priceOptionLabel: item.priceOptionLabel ?? detail.component.priceOptionLabel,
+            linkState: item.linkState,
+          },
+          impactFingerprint: detail.expectedComponentImpactFingerprint,
+          optionUsageCounts: detail.optionUsageCounts,
+        });
+        return;
+      }
+      if (!projectId || !estimateId) return;
+      const impact = await getEstimateComponentEditImpact({ projectId, estimateId, rowId: item.id });
+      if (componentEditorRequestIdRef.current !== requestId) return;
+      setComponentEditor({
+        rowItemId,
+        opener,
+        editingItem: item,
+        impactFingerprint: impact.fingerprint,
+        optionUsageCounts: impact.optionUsageCounts,
+      });
+    } catch (error) {
+      if (componentEditorRequestIdRef.current !== requestId) return;
+      toast({
+        id: `component-editor-open-error:${rowItemId}`,
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not open the component editor.",
+      });
+    }
   });
   const closeComponentEditor = useCallback(() => {
     const opener = componentEditor?.opener;
+    componentEditorRequestIdRef.current += 1;
     setComponentEditor(null);
     window.requestAnimationFrame(() => opener?.focus());
   }, [componentEditor?.opener]);
@@ -1961,6 +2139,7 @@ export function EstimateSheetContent({
     insertIntoSelectedNode,
     insertLibraryItem,
     markRowDirty,
+    reconcileRowDirty,
     moveFromComponentPicker,
     moveRowComponent,
     moveRowItemToNode,
@@ -1987,6 +2166,7 @@ export function EstimateSheetContent({
     rowComponentPicker,
     projectSpecificRowItem: projectSpecificRow?.item ?? null,
     markRowDirtyNow,
+    markRowCleanNow,
     insertRow,
     replaceRow,
     moveRows,
@@ -2011,7 +2191,11 @@ export function EstimateSheetContent({
     recordReadOnlyLibraryMutationAttempt,
     toast,
   });
-  const updateComponentFromEditor = useStableCallback((item: EstimateRowItem, instanceSync?: LibraryComponentInstanceSyncResult) => {
+  const updateComponentFromEditor = useStableCallback(async (
+    item: EstimateRowItem,
+    instanceSync?: LibraryComponentInstanceSyncResult,
+    context?: { removedPriceOptionReplacements: Record<string, string> },
+  ) => {
     const values = {
       name: item.material,
       description: item.description,
@@ -2036,50 +2220,21 @@ export function EstimateSheetContent({
       notes: item.notes ?? null,
     };
     if (item.sourceLibraryItemId && item.linkState !== "detached" && item.linkState !== "unlinked") {
-      const patch: EstimateRowItemPatch = {
-        material: item.material,
-        description: item.description,
-        brand: item.brand ?? null,
-        supplier: item.supplier,
-        unit: item.unit,
-        itemCost: item.itemCost,
-        imageUrl: item.imageUrl ?? null,
-        sourceUrl: item.sourceUrl ?? null,
-        category: item.category,
-        categoryNodeId: item.categoryNodeId ?? null,
-        brandId: item.brandId ?? null,
-        supplierId: item.supplierId ?? null,
-        sku: item.sku ?? null,
-        priceOptionId: item.priceOptionId ?? null,
-        priceOptionLabel: item.priceOptionLabel ?? null,
-        priceOptions: item.priceOptions,
-        pricingDate: item.pricingDate ?? null,
-        pricingSource: item.pricingSource ?? null,
-        lifecycleState: item.lifecycleState ?? null,
-        lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
-        componentVersionNumber: item.componentVersionNumber ?? null,
-        notes: item.notes ?? null,
-        updatedAt: item.updatedAt ?? null,
-        linkState: "linked-clean",
-      };
       if (workspaceId && item.sourceLibraryItemId) {
         queryClient.setQueryData<ComponentLibraryDataset>(lazyLibraryQueryKey, (current) => current ? {
           ...current,
           libraryItems: current.libraryItems.map((libraryItem) => (
             libraryItem.id === item.sourceLibraryItemId
-              ? { ...applyEstimateRowItemPatch(libraryItem, patch), id: libraryItem.id }
+              ? { ...item, id: libraryItem.id }
               : libraryItem
           )),
         } : current);
       }
       let patchedTree = estimateTree;
       setEstimateTree((current) => {
-        patchedTree = patchComponentInstanceRowsInTree(current, item.id, patch);
-        if (instanceSync && Object.keys(instanceSync.rowRevisions).length > 0) {
-          patchedTree = patchEstimateRowItemsInTree(
-            patchedTree,
-            Object.fromEntries(Object.entries(instanceSync.rowRevisions).map(([rowId, rowRevision]) => [rowId, { rowRevision }])),
-          );
+        patchedTree = current;
+        if (instanceSync && Object.keys(instanceSync.rowPatches).length > 0) {
+          patchedTree = patchEstimateRowItemsInTree(patchedTree, instanceSync.rowPatches);
         }
         return patchedTree;
       });
@@ -2088,7 +2243,19 @@ export function EstimateSheetContent({
       if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
       return;
     }
-    updateRowItem(item.id, values);
+    if (!projectId || !estimateId) throw new Error("This project component is not attached to an estimate.");
+    await new Promise<void>((resolve, reject) => {
+      updateRowItem(item.id, values, {
+        ...(componentEditor?.impactFingerprint
+          ? { expectedComponentImpactFingerprint: componentEditor.impactFingerprint }
+          : {}),
+        ...(context && Object.keys(context.removedPriceOptionReplacements).length > 0
+          ? { removedPriceOptionReplacements: context.removedPriceOptionReplacements }
+          : {}),
+        onPersisted: resolve,
+        onPersistenceError: reject,
+      });
+    });
   });
 
   const commitLinkedLibraryComponentInline = useStableCallback(async (
@@ -2104,7 +2271,8 @@ export function EstimateSheetContent({
 
     const expectedUpdatedAt = item.updatedAt?.trim();
     const expectedVersionNumber = item.componentVersionNumber;
-    if (!expectedUpdatedAt || !expectedVersionNumber) {
+    const targetPriceOptionId = item.priceOptionId?.trim();
+    if (!expectedUpdatedAt || !expectedVersionNumber || !targetPriceOptionId) {
       editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
       toast({
         id: `library-inline-edit-stale:${item.id}`,
@@ -2129,27 +2297,52 @@ export function EstimateSheetContent({
     const supplierId = supplierOptionId && isUuid(supplierOptionId)
       ? supplierOptionId
       : supplier === item.supplier.trim() ? item.supplierId ?? null : null;
+    const sourceSnapshot = (item as EstimateRowItem & { sourceSnapshot?: unknown }).sourceSnapshot;
+    const componentDescription = sourceSnapshot
+      && typeof sourceSnapshot === "object"
+      && !Array.isArray(sourceSnapshot)
+      && typeof (sourceSnapshot as Record<string, unknown>).componentDescription === "string"
+      ? String((sourceSnapshot as Record<string, unknown>).componentDescription)
+      : item.description;
+    const priceOptions = buildInlineLibraryPriceOptions(
+      item,
+      values,
+      targetPriceOptionId,
+      unit,
+      unitCost,
+      description,
+    );
+    const defaultPriceOption = priceOptions.find((option) => option.isDefault) ?? priceOptions[0];
+    if (!defaultPriceOption) {
+      editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
+      toast({
+        id: `library-inline-edit-stale:${item.id}`,
+        tone: "error",
+        message: "Refresh this library component before editing it inline.",
+      });
+      return;
+    }
 
     handleComponentEditorPendingChange(item, true);
     try {
-      const result = await updateCostLibraryComponent(libraryItemId, {
+      const result = await updateCostLibraryComponentWithPriceOptions(libraryItemId, {
         name,
-        description,
+        description: componentDescription,
         category: item.category,
         categoryNodeId: item.categoryNodeId ?? null,
         supplier,
         supplierId,
         brand,
         brandId,
-        unit,
-        unitCost,
-        thumbnailPath: values.imageUrl === undefined ? undefined : imageUrl || null,
+        unit: defaultPriceOption.unit,
+        thumbnailPath: defaultPriceOption.thumbnailPath ?? defaultPriceOption.imagePath ?? null,
         libraryFolderId: item.libraryFolderId ?? null,
         lifecycleState: item.lifecycleState ?? "available",
         changeReason: "Edited inline from an estimate row",
         expectedUpdatedAt,
         expectedVersionNumber,
         expectedComponentImpactFingerprint,
+        priceOptions,
       });
       const updatedItem = applyEstimateRowItemPatch(item, {
         material: name,
@@ -2167,7 +2360,7 @@ export function EstimateSheetContent({
         sku: item.sku ?? null,
         priceOptionId: item.priceOptionId ?? null,
         priceOptionLabel: item.priceOptionLabel ?? null,
-        priceOptions: updateActiveLibraryPriceOption(item, unit, unitCost),
+        priceOptions: result.component.priceOptions ?? item.priceOptions,
         pricingDate: item.pricingDate ?? null,
         pricingSource: item.pricingSource ?? null,
         lifecycleState: item.lifecycleState ?? null,
@@ -2326,6 +2519,8 @@ export function EstimateSheetContent({
     insertTemplatesIntoParentById,
     insertTemplateNodeIntoParentById,
     insertTemplateNodeIntoSelectedGroup,
+    templateSnapshotUnavailableSourceCount,
+    resolveTemplateSnapshotConfirmation,
   } = useEstimateTemplateInsertion({
     canEditEstimate,
     projectId,
@@ -2357,8 +2552,6 @@ export function EstimateSheetContent({
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
       if (!projectId || !estimateId) return false;
-      const projectSourceRequestRevision = getEstimateTreeRevision();
-
       try {
         const result = await insertProjectSourceIntoEstimate({
           targetProjectId: projectId,
@@ -2373,7 +2566,12 @@ export function EstimateSheetContent({
         // the tree doesn't clobber an in-flight cell edit. Bulk source inserts
         // are serialized by the sidebar, so every returned tree builds on the
         // previous confirmed insert.
-        if (getEstimateTreeRevision() === projectSourceRequestRevision) setEstimateTree(() => result.tree);
+        setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
+          currentTree,
+          authoritativeTree: result.tree,
+          targetParentNodeId,
+          authoritativeRootNodeIds: result.insertedRootNodeIds,
+        }));
         return true;
       } catch (error: unknown) {
         console.error("[estimate] project source insert failed", error);
@@ -2575,7 +2773,10 @@ export function EstimateSheetContent({
       {componentEditor && componentEditorRow ? (
         <AddComponentModal
           open
-          editingItem={componentEditorRow.item}
+          editingItem={componentEditor.editingItem}
+          expectedComponentImpactFingerprint={componentEditor.impactFingerprint}
+          optionUsageCounts={componentEditor.optionUsageCounts}
+          componentEditScope={isLinkedLibraryComponentRow(componentEditorRow.item) ? "library" : "project"}
           folders={libraryFolders ?? lazyLibrary?.libraryFolders ?? []}
           categoryTree={libraryCategoryTree ?? lazyLibrary?.categoryTree ?? []}
           suppliers={librarySuppliers ?? lazyLibrary?.suppliers ?? []}
@@ -2583,6 +2784,7 @@ export function EstimateSheetContent({
           libraryItems={componentEditorLibraryItems}
           selectedFolderId={null}
           imageUploadProjectId={projectId ?? null}
+          projectComponentId={getProjectComponentEditorIdentity(componentEditorRow.item)}
           onOpenChange={(open) => {
             if (!open) closeComponentEditor();
           }}
@@ -3010,9 +3212,9 @@ export function EstimateSheetContent({
         >
           {rowSaveStatusMessage}
         </output>
-        {didTruncateInitialTree ? (
+        {isActiveTreePartial ? (
           <output className="mx-2 mt-2 rounded-xs border border-warningSoft bg-warningSoft/40 px-2 py-1.5 text-[10px] leading-4 text-warning">
-            This sheet view loaded the first {activeInitialLoadLimitState?.maxNodeCount?.toLocaleString() ?? "available"} nodes and {activeInitialLoadLimitState?.maxRowItemCount?.toLocaleString() ?? "available"} rows. Proposal exports use separate full-data limits.
+            This tab is partial: {activeLoadLimitState?.fetchedNodeCount.toLocaleString() ?? "available"} nodes and {activeLoadLimitState?.fetchedRowItemCount.toLocaleString() ?? "available"} rows are loaded. Totals are loaded-data totals, and move actions stay disabled until the complete tab is available.
           </output>
         ) : null}
         {activeTreeErrorMessage ? (
@@ -3065,6 +3267,7 @@ export function EstimateSheetContent({
                         onUpdateRowItem={updateRowItemWithSharedImpact}
                         onUpdateLinkedLibraryComponent={updateLinkedLibraryComponentInline}
                         onMarkRowDirty={markRowDirty}
+                        onReconcileRowDirty={reconcileRowDirty}
                         onOpenRowDetails={openRowDetails}
                         onOpenComponentEditor={openComponentEditor}
                         onClearRowComponent={clearRowComponent}
@@ -3086,6 +3289,7 @@ export function EstimateSheetContent({
                         onToggleRowsSelection={toggleRowsSelection}
                         columnResize={estimateColumnResizeConfig}
                         nodeTotals={displayedNodeTotals}
+                        totalsIncomplete={isActiveTreePartial}
                       />
                     </EstimateSheetExpansionContext.Provider>
                   </EditableRowStoreContext.Provider>
@@ -3146,6 +3350,20 @@ export function EstimateSheetContent({
           </>
         )}
       </section>
+      <ConfirmDialog
+        open={templateSnapshotUnavailableSourceCount !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) resolveTemplateSnapshotConfirmation(false);
+        }}
+        title="Use saved template values?"
+        description={`${templateSnapshotUnavailableSourceCount ?? 0} template source ${templateSnapshotUnavailableSourceCount === 1 ? "is" : "are"} unavailable with the saved variant. The saved values can be inserted as unlinked project-specific rows.`}
+        confirmLabel="Insert saved values"
+        cancelLabel="Cancel insert"
+        tone="warning"
+        initialFocus="cancel"
+        onConfirm={() => resolveTemplateSnapshotConfirmation(true)}
+        onCancel={() => resolveTemplateSnapshotConfirmation(false)}
+      />
       {renderSidebar ? (
         shouldLoadLibraryLazily && !librarySidebarCanHydrate ? (
           <ComponentLibrarySidebarFallback isError={false} />

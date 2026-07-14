@@ -297,6 +297,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
       targetParentNodePath: ["Interior Fit-Out"],
     });
     estimateActionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({
+      status: "inserted",
       tree: [],
       insertedRootNodeIds: ["inserted-1"],
     });
@@ -335,6 +336,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
         estimateId: "estimate-1",
         targetParentNodeId: "node-root-group",
         templateId: "template-condo",
+        unavailableSourcePolicy: "cancel",
       });
     });
     expect(await screen.findByText("Inserted into Main Estimate.")).toBeInTheDocument();

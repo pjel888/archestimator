@@ -86,6 +86,7 @@ export type EstimateRowItemsTableProps = {
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
   onMarkRowDirty: (rowItemId: string) => void;
+  onReconcileRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
@@ -143,19 +144,17 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onUpdateRowItem !== next.onUpdateRowItem ||
     prev.onUpdateLinkedLibraryComponent !== next.onUpdateLinkedLibraryComponent ||
     prev.onMarkRowDirty !== next.onMarkRowDirty ||
+    prev.onReconcileRowDirty !== next.onReconcileRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
-    prev.promotingRowId !== next.promotingRowId ||
-    prev.rowMutationStatuses !== next.rowMutationStatuses ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.onMoveRowItem !== next.onMoveRowItem ||
     prev.onOpenMoveRowItemDialog !== next.onOpenMoveRowItemDialog ||
     prev.onOpenReplaceComponentPicker !== next.onOpenReplaceComponentPicker ||
     prev.onOpenMoveComponentPicker !== next.onOpenMoveComponentPicker ||
-    prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
@@ -168,6 +167,8 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return false;
     if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return false;
     if (prev.componentSyncPendingRowIds?.has(item.id) !== next.componentSyncPendingRowIds?.has(item.id)) return false;
+    if ((prev.promotingRowId === item.id) !== (next.promotingRowId === item.id)) return false;
+    if (prev.expressInsertDraftStates?.[item.id] !== next.expressInsertDraftStates?.[item.id]) return false;
   }
   return true;
 }
@@ -279,6 +280,7 @@ type EstimateRowItemTableRowProps = {
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
   onMarkRowDirty: (rowItemId: string) => void;
+  onReconcileRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
@@ -322,6 +324,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onUpdateRowItem,
   onUpdateLinkedLibraryComponent,
   onMarkRowDirty,
+  onReconcileRowDirty,
   onOpenRowDetails,
   onOpenComponentEditor,
   onClearRowComponent,
@@ -490,7 +493,10 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     if (values.imageUrl !== undefined && nextValues.imageUrl !== (item.imageUrl ?? "")) patch.imageUrl = nextValues.imageUrl;
     if (values.imageAsset !== undefined) patch.imageAsset = values.imageAsset;
     if (values.sourceUrl !== undefined && nextValues.sourceUrl !== (item.sourceUrl ?? "")) patch.sourceUrl = nextValues.sourceUrl;
-    if (Object.keys(patch).length === 0) return;
+    if (Object.keys(patch).length === 0) {
+      onReconcileRowDirty(item.id);
+      return;
+    }
     if (isLinkedSharedComponent && onUpdateLinkedLibraryComponent) {
       void onUpdateLinkedLibraryComponent(item, patch);
       return;
@@ -518,7 +524,10 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     const didQuantityChange = nextAmounts.quantity !== computedItem.storedQuantity
       || nextAmounts.quantityBase !== computedItem.storedQuantityBase
       || nextAmounts.quantityContingencyAmount !== computedItem.storedQuantityContingencyAmount;
-    if (!didQuantityChange) return;
+    if (!didQuantityChange) {
+      onReconcileRowDirty(computedItem.id);
+      return;
+    }
     onUpdateRowItem(computedItem.id, {
       quantity: String(nextAmounts.quantity),
       quantityExpression: nextRow.quantityExpression,
@@ -562,7 +571,10 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     editableRowStore.getState().updateRow(computedItem, {
       adjustmentPercentage: nextAdjustmentPercentage,
     });
-    if (parseEditableAdjustmentPercentage(nextAdjustmentPercentage) === computedItem.storedAdjustmentPercentage) return;
+    if (parseEditableAdjustmentPercentage(nextAdjustmentPercentage) === computedItem.storedAdjustmentPercentage) {
+      onReconcileRowDirty(computedItem.id);
+      return;
+    }
     onUpdateRowItem(computedItem.id, {
       adjustmentPercentage: nextAdjustmentPercentage,
     });
@@ -575,6 +587,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         contingencyMode: "contingency",
         contingencyPercentage: "0",
       });
+      onReconcileRowDirty(computedItem.id);
       return;
     }
     const baseQuantityValue = computedItem.editableQuantityBase || computedItem.editableQuantity;
@@ -712,6 +725,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             const initialRow = getInitialEditableRow(item);
             editableRowStore.getState().updateRow(item, { [field]: initialRow[field] });
             onExpressEditorActiveChange(computedItem.id, false);
+            onReconcileRowDirty(computedItem.id);
           }}
           onReplaceDragOver={() => setReplaceTargetRowId(computedItem.id)}
           onReplaceDragLeave={() => setReplaceTargetRowId((current) => (current === computedItem.id ? "" : current))}
@@ -786,6 +800,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                 contingencyMode: initialRow.contingencyMode,
                 contingencyPercentage: initialRow.contingencyPercentage,
               });
+              onReconcileRowDirty(computedItem.id);
               return;
             }
             updateQuantityFields(parsed.patch);
@@ -948,6 +963,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onBlur={() => {
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 3 ? null : current));
             if (computedItem.miscCost !== computedItem.storedMiscCost) onUpdateRowItem(computedItem.id, { miscCost: computedItem.editableMiscCost });
+            else onReconcileRowDirty(computedItem.id);
           }}
           onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 3, rowIds, onRequestFocusByRowId)}
           data-estimate-row-index={rowIndex}
@@ -1030,6 +1046,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onUpdateRowItem,
   onUpdateLinkedLibraryComponent,
   onMarkRowDirty,
+  onReconcileRowDirty,
   onOpenRowDetails,
   onOpenComponentEditor,
   onClearRowComponent,
@@ -1304,6 +1321,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onUpdateRowItem={onUpdateRowItem}
                 onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
                 onMarkRowDirty={onMarkRowDirty}
+                onReconcileRowDirty={onReconcileRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
                 onOpenComponentEditor={onOpenComponentEditor}
                 onClearRowComponent={onClearRowComponent}
