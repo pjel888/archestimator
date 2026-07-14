@@ -182,6 +182,21 @@ These must be re-read immediately before implementation because repository state
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 - [Atlassian incident response](https://www.atlassian.com/incident-management/incident-response)
 
+### Communication, notification, and delivery
+
+- [Intercom message rules](https://www.intercom.com/help/en/articles/5296455-message-rules-when-how-and-to-whom-should-a-message-be-sent)
+- [Intercom audience rules](https://www.intercom.com/help/en/articles/14654636-audience-rules-in-intercom)
+- [Atlassian Statuspage create an incident](https://support.atlassian.com/statuspage/docs/create-an-incident/)
+- [Atlassian Statuspage notification event triggers](https://support.atlassian.com/statuspage/docs/notification-event-triggers/)
+- [Atlassian Statuspage subscriber controls](https://support.atlassian.com/statuspage/docs/enable-subscribers/)
+- [Cloudflare Queues delivery guarantees](https://developers.cloudflare.com/queues/reference/delivery-guarantees/)
+- [Cloudflare Queues batching and retries](https://developers.cloudflare.com/queues/configuration/batching-retries/)
+- [Cloudflare Queues dead-letter queues](https://developers.cloudflare.com/queues/configuration/dead-letter-queues/)
+- [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+- [Gmail sender guidelines](https://support.google.com/mail/answer/81126)
+- [Gmail sender-guideline FAQ](https://support.google.com/mail/answer/14229414)
+- [WAI-ARIA live regions](https://www.w3.org/TR/wai-aria/#aria-live)
+
 ### PRD structure
 
 - [Atlassian product requirements template](https://www.atlassian.com/software/confluence/templates/product-requirements)

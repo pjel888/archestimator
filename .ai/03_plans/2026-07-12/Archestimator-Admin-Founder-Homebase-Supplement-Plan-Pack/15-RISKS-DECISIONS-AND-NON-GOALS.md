@@ -42,6 +42,15 @@
 | RISK-036 | Raw logs/provider payloads leak secrets or PII | P0 | provider-native storage, allowlisted summaries, redaction, sensitive-read audit, retention |
 | RISK-037 | Provider adapter failure silently freezes founder metrics | P0 | source-as-of, last success/failure, lag, stale state, actionable reconciliation |
 | RISK-038 | Privacy requests are missed | P0 | durable owner/status/due date, Action Inbox escalation, canonical export/delete workflow |
+| RISK-039 | Wrong or accidentally broadened audience receives a message | P0 | fixed snapshot, explicit exclusions, exact counts/sample, high-impact confirmation for all-active/modal/mandatory |
+| RISK-040 | UI calls materialization/provider acceptance “sent” or “delivered” | P0 | named denominators and separate accepted/materialized/provider/seen/read/acknowledged states |
+| RISK-041 | Crash, retry, or at-least-once queue delivery creates duplicates or partial publish | P0 | atomic D1 command, stable command/run/recipient/provider idempotency, reconciliation |
+| RISK-042 | Draft content or audience becomes stale after a linked release/incident/source changes | P0 | source revision linkage, stale state, refresh-or-waive decision before publish |
+| RISK-043 | Mandatory notice override bypasses preferences for ordinary product messaging | P0 | narrow allowlisted classes, founder justification, capability, fresh auth, audit |
+| RISK-044 | Email authentication/reputation/suppression failure harms delivery or domain trust | P0 | keep channel disabled until SPF/DKIM/DMARC, unsubscribe, suppression, provider health, thresholds, reconciliation |
+| RISK-045 | Release, incident, support, or signal workflow auto-sends without founder review | P0 | source entry points only create drafts; explicit ready/publish action owns sending |
+| RISK-046 | Retraction/correction deletes evidence or fails to converge recipient state | P0 | append-only revisions/runs, supersession links, supported-channel convergence, preserved interaction history |
+| RISK-047 | Recipient fan-out exceeds bounded D1/Worker limits | P1 | preflight count, bounded batches, D1 issue state first, activate Queue only on measured need |
 
 ## 2. Decisions to preserve from the predecessor
 
@@ -72,6 +81,8 @@
 | DEC-AUTO-018 | The Admin shell is full-width, grouped by founder job, and preserves existing routes during migration. |
 | DEC-AUTO-019 | Existing workshop tools are linked first, then migrated without two mutation owners. |
 | DEC-AUTO-020 | New schema is added only by an activated vertical slice; generic workflow/CRM/dashboard abstractions are rejected. |
+| DEC-AUTO-021 | Notification Manager is the single publish owner; releases, incidents, Entity 360, support, and signals create drafts and never auto-send. |
+| DEC-AUTO-022 | MVP audiences are fixed snapshots and in-app is the only assumed channel; external channels remain unavailable until their consent, provider, suppression, evidence, and reconciliation contracts exist. |
 
 ## 4. Recommended owner defaults
 

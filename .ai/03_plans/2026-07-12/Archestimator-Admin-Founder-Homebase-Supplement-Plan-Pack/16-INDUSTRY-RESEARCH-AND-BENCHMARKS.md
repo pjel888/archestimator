@@ -398,7 +398,42 @@ The founder does not need a team rota product. The workflow still needs durable 
 
 - [Atlassian incident response](https://www.atlassian.com/incident-management/incident-response)
 
-## 12. Pattern comparison
+## 12. Communication and notification management
+
+### Observed patterns
+
+- Intercom separates when, where, audience, fixed versus dynamic membership, preview/simulation, scheduling, and exclusion logic; negative audience rules are a known source of accidental over-targeting.
+- Atlassian Statuspage links incident/maintenance state, affected components, templates, subscriber preferences, and an explicit per-update choice to notify.
+- Cloudflare Queues provides at-least-once delivery: duplicate processing is possible, batch acknowledgement matters, retry/DLQ behavior is finite, and durable idempotency/reconciliation must live outside the queue.
+- Cloudflare Cron is UTC and configuration propagation is not an exact per-message scheduler; one periodic due-work sweep is the appropriate primitive.
+- Gmail sender guidance requires authenticated domains, unsubscribe/suppression handling, low complaint rates, monitored responses/reputation, and gradual volume increases.
+- WAI-ARIA treats polite announcements as the default and warns that assertive live updates can interrupt or disorient users.
+
+### Archestimator adaptation
+
+- use fixed, frozen audiences for one-time founder communications;
+- require exact eligible/excluded preview and explicit high-impact confirmation;
+- create source-linked drafts from releases/incidents/customer context but never auto-publish;
+- keep D1 authoritative and add a Queue only after measured fan-out requires it;
+- name accepted/materialized/provider/seen/read/acknowledged states separately;
+- keep email disabled until sender authentication, consent, suppression, provider events, and reconciliation are real;
+- reserve modal/assertive interruption for imperative notices.
+
+### Sources
+
+- [Intercom message rules](https://www.intercom.com/help/en/articles/5296455-message-rules-when-how-and-to-whom-should-a-message-be-sent)
+- [Intercom audience rules](https://www.intercom.com/help/en/articles/14654636-audience-rules-in-intercom)
+- [Atlassian Statuspage create an incident](https://support.atlassian.com/statuspage/docs/create-an-incident/)
+- [Atlassian Statuspage notification event triggers](https://support.atlassian.com/statuspage/docs/notification-event-triggers/)
+- [Atlassian Statuspage subscriber controls](https://support.atlassian.com/statuspage/docs/enable-subscribers/)
+- [Cloudflare Queues delivery guarantees](https://developers.cloudflare.com/queues/reference/delivery-guarantees/)
+- [Cloudflare Queues batching and retries](https://developers.cloudflare.com/queues/configuration/batching-retries/)
+- [Cloudflare Queues dead-letter queues](https://developers.cloudflare.com/queues/configuration/dead-letter-queues/)
+- [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+- [Gmail sender guidelines](https://support.google.com/mail/answer/81126)
+- [WAI-ARIA live regions](https://www.w3.org/TR/wai-aria/#aria-live)
+
+## 13. Pattern comparison
 
 | Product/system | Strong pattern | Archestimator application |
 |---|---|---|
@@ -412,8 +447,9 @@ The founder does not need a team rota product. The workflow still needs durable 
 | Vercel | Deployment/commit/resource/rollback context | Release Center |
 | Atlassian PRD | Objectives/metrics/assumptions/stories | Planning quality |
 | Atlassian incidents | Durable response lifecycle | Incident workflow |
+| Intercom/Statuspage | Audience, schedule, source-linked communication, preferences | Notification Manager |
 
-## 13. What Archestimator should not copy
+## 14. What Archestimator should not copy
 
 ### Stripe
 
@@ -433,7 +469,7 @@ Do not build a statistical experimentation platform before instrumentation matur
 
 ### Intercom
 
-Do not build team routing, omnichannel, or enterprise SLAs for one operator.
+Do not build team routing, dynamic journeys, omnichannel orchestration, or enterprise SLAs for one operator.
 
 ### Google SRE
 
@@ -443,7 +479,7 @@ Do not overbuild monitoring; keep high-signal and simple.
 
 Do not implement deployment execution before provider integration and safeguards.
 
-## 14. Strategic differentiation
+## 15. Strategic differentiation
 
 Most admin systems are horizontal.
 

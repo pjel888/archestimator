@@ -67,7 +67,7 @@ The manifest groups the detailed `FH-*` requirements into executable slices with
 | REQ-007 Operations/data quality | UNIT-007 / F6 | FH-031–039, FH-051, FH-064, FH-067–068 |
 | REQ-008 Project/estimate/publication 360 | UNIT-008 / F7 | FH-016–019 |
 | REQ-009 Analytics/cadence/cost | UNIT-009 / F8 | FH-038, FH-040–044, FH-061–066 |
-| REQ-010 Communications MVP | UNIT-010 / F9 | FH-045–047 |
+| REQ-010 Communication and Notification Manager MVP | UNIT-010 / F9 | FH-045–047, FH-069–078 |
 | REQ-011 Conditional scale/AI/providers | UNIT-011 / F10 | FH-048–049, FH-057 |
 
 | ID | Requirement | Source | Primary slice |
@@ -140,6 +140,16 @@ The manifest groups the detailed `FH-*` requirements into executable slices with
 | FH-066 | Traffic-to-signup/activation attribution is privacy-safe and certainty-labeled | Analytics/privacy | F8 |
 | FH-067 | Runtime errors distinguish invocation status, HTTP outcome, log evidence, release, and affected customer | Cloudflare/OWASP research | F5/F6 |
 | FH-068 | Privacy requests have durable owner, status, due date, and canonical export/delete workflow | Governance requirement | F3/F6 |
+| FH-069 | Release, incident/maintenance/security, Entity 360, support, and signal workflows create source-linked drafts and never auto-publish | Founder safety | F4/F5/F6/F9 |
+| FH-070 | Message class, channel, surface, interruptiveness, and mandatory-notice policy are explicit | Product/accessibility/safety | F9 |
+| FH-071 | Composer, preview, test-to-self, and UI/action/schema validation use one immutable revision contract | Current defect/reliability | F9 |
+| FH-072 | Preview and publish share one fixed audience snapshot with canonical identity, exact eligible/excluded counts, and reasons | Intercom/safety | F9 |
+| FH-073 | Draft/ready/scheduled/publishing/published/partial/failed/cancelled/expired/retracted/superseded lifecycle supports one future publish and explicit misfire policy | Operator workflow | F9 |
+| FH-074 | Accepted, materialized, provider, failed, retried, reconciled, seen, read, dismissed, and acknowledged states and denominators stay distinct | Truth contract | F9 |
+| FH-075 | Cancel, retract, correct, and replace preserve immutable content, audience, recipient, interaction, and audit evidence | Recovery | F9 |
+| FH-076 | Preferences, consent, unsubscribe/suppression, and narrow mandatory overrides are enforceable and auditable | Customer trust | F9 |
+| FH-077 | Partial, failed, stuck, stale-source, overdue scheduled, reconciliation, and correction obligations project into the Action Inbox | Founder operations | F2/F9 |
+| FH-078 | Email remains unavailable until provider authentication, domain/reputation health, suppression, delivery events, and reconciliation exist | Gmail/provider boundary | F6/F9 |
 
 ## 5. Conflicts and resolutions
 
@@ -148,7 +158,7 @@ The manifest groups the detailed `FH-*` requirements into executable slices with
 Existing plan: major central mission.  
 Supplement: valuable but not founder core.
 
-**Resolution:** retain deep design; move full recurrence/scheduler after Home, customers, releases, operations. Implement one-time targeted outreach first.
+**Resolution:** retain durable semantics; move recurrence/dynamic enrollment/journeys after Home, customers, releases, and operations. Implement the source-linked, fixed-audience, one-time Notification Manager in `19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md` first.
 
 ### Conflict: information architecture
 
@@ -213,6 +223,7 @@ Repo policy: minimum durable artifacts.
 - [x] Traffic/acquisition capability and privacy limits added.
 - [x] Provider integration health, error/log truth, and privacy-request operations added.
 - [x] Notification program reprioritized without losing durable semantics.
+- [x] Communication/Notification Manager lifecycle, source entry points, audience safety, channel truth, correction, and Action Inbox integration made explicit.
 - [x] AI deferred/read-only.
 - [x] Fragmented tools migration staged.
 - [x] One implementation plan (`13-IMPLEMENTATION-ROADMAP.md`).

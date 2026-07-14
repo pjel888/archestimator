@@ -148,6 +148,12 @@
       "role": "entrypoint",
       "path": "README.md",
       "sha256": "649a25af8eb467a14e149f65de7e7615baeceaa929febf7681ca9c04955d6ff9"
+    },
+    {
+      "id": "ART-023",
+      "role": "supporting",
+      "path": "19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ],
   "sources": [
@@ -914,6 +920,69 @@
         "AC-004",
         "AC-007"
       ]
+    },
+    {
+      "id": "RISK-039",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-010"],
+      "criterion_ids": ["AC-010"]
+    },
+    {
+      "id": "RISK-040",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-010"],
+      "criterion_ids": ["AC-010"]
+    },
+    {
+      "id": "RISK-041",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-010"],
+      "criterion_ids": ["AC-010"]
+    },
+    {
+      "id": "RISK-042",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-006", "UNIT-007", "UNIT-010"],
+      "criterion_ids": ["AC-006", "AC-007", "AC-010"]
+    },
+    {
+      "id": "RISK-043",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-010"],
+      "criterion_ids": ["AC-010"]
+    },
+    {
+      "id": "RISK-044",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-007", "UNIT-010"],
+      "criterion_ids": ["AC-007", "AC-010"]
+    },
+    {
+      "id": "RISK-045",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-005", "UNIT-006", "UNIT-007", "UNIT-010"],
+      "criterion_ids": ["AC-005", "AC-006", "AC-007", "AC-010"]
+    },
+    {
+      "id": "RISK-046",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-010"],
+      "criterion_ids": ["AC-010"]
+    },
+    {
+      "id": "RISK-047",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": ["UNIT-010"],
+      "criterion_ids": ["AC-010"]
     }
   ],
   "criteria": [
@@ -1348,6 +1417,7 @@
         "RISK-026",
         "RISK-027",
         "RISK-030",
+        "RISK-045",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1372,6 +1442,8 @@
         "RISK-018",
         "RISK-027",
         "RISK-030",
+        "RISK-042",
+        "RISK-045",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1402,6 +1474,9 @@
         "RISK-036",
         "RISK-037",
         "RISK-038",
+        "RISK-042",
+        "RISK-044",
+        "RISK-045",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1466,7 +1541,9 @@
       "artifact_path": "13-IMPLEMENTATION-ROADMAP.md",
       "depends_on": [
         "UNIT-004",
-        "UNIT-005"
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
       ],
       "requirement_ids": [
         "REQ-010"
@@ -1475,6 +1552,15 @@
         "RISK-017",
         "RISK-018",
         "RISK-030",
+        "RISK-039",
+        "RISK-040",
+        "RISK-041",
+        "RISK-042",
+        "RISK-043",
+        "RISK-044",
+        "RISK-045",
+        "RISK-046",
+        "RISK-047",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1723,6 +1809,18 @@
         "REQ-010",
         "REQ-011"
       ]
+    },
+    {
+      "id": "DEC-AUTO-021",
+      "status": "ACTIVE",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "affected_ids": ["REQ-005", "REQ-006", "REQ-007", "REQ-010"]
+    },
+    {
+      "id": "DEC-AUTO-022",
+      "status": "ACTIVE",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "affected_ids": ["REQ-007", "REQ-010", "REQ-011"]
     }
   ],
   "authorization_boundaries": [],
@@ -1771,7 +1869,9 @@
         "DEC-AUTO-017",
         "DEC-AUTO-018",
         "DEC-AUTO-019",
-        "DEC-AUTO-020"
+        "DEC-AUTO-020",
+        "DEC-AUTO-021",
+        "DEC-AUTO-022"
       ],
       "source_revision": "5ee7960897518fdaa505ec9766cb5c0763335032",
       "valid_until": null

@@ -92,3 +92,14 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Test requirement:** NOT_REQUIRED
 - **Evidence:** source/diff inspection, GitNexus concept queries, official documentation, plan-pack validator, planning-prompt validator, GitNexus change detection, and diff whitespace review
 - **Result:** existing 11-unit DAG preserved; `UNIT-001` remains the only dependency-closed ready slice after manifest refresh
+
+## PLAN-020 — 2026-07-14 — COMMUNICATION/NOTIFICATION MANAGER EXPANSION COMPLETE
+
+- **State:** COMPLETE
+- **Scope:** planning artifacts only; current notification schema/actions/user surfaces, archived predecessor semantics, cross-domain Admin workflows, and official delivery/communication/accessibility research
+- **Current-source findings:** existing system is an immediate all-active in-app broadcast foundation; added the `200` versus `120` title mismatch, hidden `release_version`, non-atomic fan-out, visibility-window versus schedule distinction, and in-app-only channel boundary
+- **Product result:** one binding manager contract now covers source-linked drafts, message classes/channels, fixed audience snapshots, preview/test, immediate/one-time scheduling, truthful denominators, Action Inbox issues, preferences, retraction/correction/replacement, and provider/email gates
+- **Lean boundary:** no recurrence, dynamic enrollment, journey builder, new Queue binding, push/SMS, multi-operator approval, or marketing automation platform
+- **Test requirement:** NOT_REQUIRED
+- **Evidence:** current source/diff inspection, GitNexus concept query/change detection, official Cloudflare/Intercom/Atlassian/Gmail/WAI sources, plan-pack validator, planning-prompt validator, and diff whitespace review
+- **Result:** UNIT-010 expanded without adding a unit or moving advanced communications ahead of founder core

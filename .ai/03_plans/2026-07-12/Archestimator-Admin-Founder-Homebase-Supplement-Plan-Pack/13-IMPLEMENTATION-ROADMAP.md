@@ -388,23 +388,24 @@ A safe foundation for everything else.
 - acquisition source/landing/referrer and privacy-boundary review;
 - integration-health transition and stale-value behavior review.
 
-## 13. Slice F9 / UNIT-010 — Communications MVP
+## 13. Slice F9 / UNIT-010 — Communication and Notification Manager MVP
 
 ### Reprioritized from existing Units 007–010
 
 ### Deliver
 
-- draft;
-- audience preview/count;
-- specific user/account/cohort targeting;
-- one-time immediate or simple future send;
-- preview;
-- idempotent publish;
-- run/delivery history;
-- delivery issues;
-- retract/replace where channel supports it;
-- audit;
-- User 360 outreach action.
+- manual and source-linked drafts from Release Center, incident/maintenance/security, User/Account 360, support, and feedback signals, with no auto-publish;
+- message class, purpose, source, title/body/action, release version, severity, surface/channel, mandatory classification, visibility/expiry, and template-revision contract;
+- exact rendering preview and test-to-self;
+- fixed audience snapshot with exact intended/eligible/excluded counts, exclusions by reason, and specific user/account/cohort/affected-user/all-active targeting;
+- one-time immediate or simple future publish with UTC plus IANA/local intent and explicit misfire policy;
+- atomic D1-authoritative revision/audience/run/audit/outbox command and stable command/run/recipient idempotency;
+- truthful accepted/materialized/provider/seen/read/dismissed/acknowledged denominators;
+- Drafts, Scheduled, Published, Issues, Templates, and All History views;
+- delivery/reconciliation issues projected into the Action Inbox;
+- cancel, retract, correct, and replace with preserved evidence;
+- preferences/consent and narrowly audited mandatory-notice override;
+- email channel visibly unavailable until provider authentication, suppression, delivery-event, unsubscribe, reputation, and reconciliation contracts exist.
 
 ### Explicitly defer
 
@@ -432,11 +433,18 @@ The reduced MVP must remain forward-compatible with the predecessor's durable mo
 
 - no all-users accidental send;
 - exact eligible count;
-- audience snapshot;
+- preview and publish use the same frozen audience and immutable revision;
 - duplicate publish safe;
-- delivery/materialization semantics honest;
+- delivery/materialization/interaction semantics honest;
 - failure queue actionable;
 - preferences/consent respected.
+- source changes create stale drafts rather than silent content drift;
+- release/incident/User360/support/signal entry points create drafts, never auto-send;
+- title and content constraints are identical in UI, action, and D1;
+- cancel/retract/correct/replace preserve audit and recipient history;
+- no recurring-series, dynamic-enrollment, generalized queue, or journey platform is introduced.
+
+The detailed feature and stop contract is `19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md`.
 
 ## 14. Slice F10 / UNIT-011 — Advanced Scale and AI
 
