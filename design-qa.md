@@ -634,3 +634,43 @@ follow-up polish:
 - P3: variant and description contrast could be increased later if small-text readability needs additional emphasis.
 
 final result: passed
+
+# Design QA — Library Component Inline Editing
+
+## Scope
+
+- Route: `http://localhost:3000/workshop/projects/5807fe5d-cbec-4fef-ad9c-c1bd1910691a/estimates/e336648f-2151-48c9-9653-d91892cb9aa4`
+- Viewport: `2410 × 1324`
+- Reference: the existing project-component `ExpressMaterialEditor` in the same estimate table.
+- Implementation: linked library rows reuse that exact inline editor and visual contract.
+- User follow-up reference: `codex-clipboard-04836af3-527c-40a1-a4de-98b3ecc83a19.png` exposed a remaining cost-axis mismatch in the prior capture.
+
+## Visual Review
+
+- Library and project rows use the same image, name, brand, supplier, cost, description, and unit grid.
+- Name typography matches at `12px` with weight `500`; cost typography matches at `10px`.
+- The component cost now anchors to the full material-cell midpoint instead of the upper 56px metadata rail, matching the row-centered numeric columns.
+- The inline editor does not shift the row height or numeric columns and adds no modal, panel, or warning chrome.
+- No broken layout, incorrect alignment, cropped content, or visual P0/P1/P2 issue remains.
+
+## Interaction Review
+
+- The `Pergo Flooring` library name field accepted a staged edit and reverted safely with Escape before blur.
+- The secondary row action opened the standard `Edit Component` modal and closed without submitting.
+- No data-changing submission was performed during browser QA.
+- The canonical library save path uses revision guards and propagates updates to linked estimate rows.
+
+## Browser Evidence
+
+- The earlier accepted screenshots were invalidated and removed after the user-provided image revealed the 12px vertical-axis mismatch.
+- Fresh browser automation was not run because visual/browser testing requires explicit authorization for the current task; verification used the shared row geometry plus focused TypeScript, ESLint, and diff checks.
+
+## Severity Review
+
+- P0: none
+- P1: none
+- P2: none
+
+## Final Result
+
+source-verified; visual recheck not run
