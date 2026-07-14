@@ -31,6 +31,8 @@ import { isProjectComponentProjectionItem } from "./buildLibraryTree";
 import { getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";
 
+const LIBRARY_TREE_NODE_DRAG_MIME_TYPE = "application/x-archestimator-library-tree-node";
+
 function getComponentIconColorClass(item: EstimateRowItem) {
   return isProjectComponentProjectionItem(item) ? "text-[#AAB6E8]" : "text-[#E8B99D]";
 }
@@ -46,6 +48,7 @@ function createFolderActionGroups({
   onToggle,
   onCreateComponent,
   onRename,
+  onDelete,
 }: {
   hasChildren: boolean;
   expanded: boolean;
@@ -53,6 +56,7 @@ function createFolderActionGroups({
   onToggle: () => void;
   onCreateComponent?: () => void;
   onRename?: () => void;
+  onDelete?: () => void;
 }): ActionMenuGroup[] {
   return [
     ...(onCreateComponent
@@ -96,6 +100,12 @@ function createFolderActionGroups({
           : []),
       ],
     },
+    ...(onDelete
+      ? [{
+          id: "folder-danger",
+          items: [{ id: "delete", label: "Delete", icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onDelete }],
+        }]
+      : []),
   ];
 }
 
@@ -415,10 +425,12 @@ export function LibraryTree({
   itemDestructiveActionLabel = "Delete",
   onCreateComponent,
   onFolderRename,
+  onFolderDelete,
   addDisabled,
   addLabel,
   showItemAddAction,
   onItemDragStart,
+  onItemMoveToFolder,
   showThumbnails = false,
   editingNodeId,
   editingNodeValue = "",
@@ -447,8 +459,10 @@ export function LibraryTree({
   const suppressNextContextMenuCloseAutoFocusRef = useRef(false);
   const pendingContextMenuRenameNodeIdRef = useRef<string | null>(null);
 
-  const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
-  const uiNodes = useMemo(() => toUiNodes(nodes, reorderEnabled), [nodes, reorderEnabled]);
+  const folderReorderEnabled = Boolean(onReorder) && !reorderDisabled;
+  const itemMoveEnabled = Boolean(onItemMoveToFolder) && !reorderDisabled;
+  const internalDropEnabled = folderReorderEnabled || itemMoveEnabled;
+  const uiNodes = useMemo(() => toUiNodes(nodes, folderReorderEnabled), [nodes, folderReorderEnabled]);
   const parentByNodeId = useMemo(() => buildParentMap(nodes), [nodes]);
   const nodeById = useMemo(() => buildNodeMap(nodes), [nodes]);
   const searchActive = searchQuery.trim().length > 0;
@@ -482,39 +496,61 @@ export function LibraryTree({
 
   const handleNodeDragStart = useCallback(
     (nodeId: string, event: DragEvent<HTMLElement>) => {
-      if (!onItemDragStart) return;
       const item = nodeById.get(nodeId)?.item;
-      if (item) onItemDragStart(event, item);
+      if (item) {
+        onItemDragStart?.(event, item);
+        if (itemMoveEnabled) event.dataTransfer.effectAllowed = "copyMove";
+      }
     },
-    [nodeById, onItemDragStart],
+    [itemMoveEnabled, nodeById, onItemDragStart],
   );
 
   const handleCanDrag = useCallback(
     (node: UiTreeNode) => {
-      if (getLibraryNode(node)?.item) return Boolean(onItemDragStart) || reorderEnabled;
-      return reorderEnabled;
+      if (getLibraryNode(node)?.item) return Boolean(onItemDragStart) || itemMoveEnabled;
+      return folderReorderEnabled;
     },
-    [onItemDragStart, reorderEnabled],
+    [folderReorderEnabled, itemMoveEnabled, onItemDragStart],
   );
 
-  const handleCanReorderDrop = useCallback(
+  const handleCanTreeDrop = useCallback(
     (draggedId: string, targetId: string, position: TreeDropPosition) => {
-      if (!reorderEnabled) return false;
       const dragged = nodeById.get(draggedId);
       const target = nodeById.get(targetId);
-      if (!dragged || !target || dragged.item || target.item) return false;
+      if (!dragged || !target) return false;
+      if (dragged.item) {
+        const targetFolderId = target.item || position !== "inside"
+          ? parentByNodeId.get(targetId)
+          : targetId;
+        return itemMoveEnabled
+          && targetFolderId !== undefined
+          && (dragged.item.libraryFolderId ?? null) !== targetFolderId;
+      }
+      if (!folderReorderEnabled || target.item) return false;
       if (position === "inside") return folderNestingEnabled;
       return parentByNodeId.get(draggedId) === parentByNodeId.get(targetId);
     },
-    [folderNestingEnabled, nodeById, parentByNodeId, reorderEnabled],
+    [folderNestingEnabled, folderReorderEnabled, itemMoveEnabled, nodeById, parentByNodeId],
   );
 
-  const handleReorderDrop = useCallback(
+  const handleTreeDrop = useCallback(
     (draggedId: string, targetId: string, position: TreeDropPosition) => {
-      if (!reorderEnabled || (position === "inside" && !folderNestingEnabled)) return;
+      const dragged = nodeById.get(draggedId);
+      if (!dragged) return;
+      if (dragged.item) {
+        const target = nodeById.get(targetId);
+        if (!target) return;
+        const targetFolderId = target.item || position !== "inside"
+          ? parentByNodeId.get(targetId)
+          : targetId;
+        if (!itemMoveEnabled || targetFolderId === undefined) return;
+        void onItemMoveToFolder?.(dragged.item, targetFolderId);
+        return;
+      }
+      if (!folderReorderEnabled || (position === "inside" && !folderNestingEnabled)) return;
       onReorder?.(draggedId, targetId, position);
     },
-    [folderNestingEnabled, onReorder, reorderEnabled],
+    [folderNestingEnabled, folderReorderEnabled, itemMoveEnabled, nodeById, onItemMoveToFolder, onReorder, parentByNodeId],
   );
 
   const handleTreeContextMenu = useCallback((nodeId: string) => {
@@ -555,11 +591,12 @@ export function LibraryTree({
       expanded: effectiveExpandedIds.includes(contextNode.id),
       onSelect: () => (onSelect ?? onToggle)(contextNode.id),
       onToggle: () => onToggle(contextNode.id),
-      onCreateComponent,
+      onCreateComponent: onCreateComponent ? () => onCreateComponent(contextNode.id) : undefined,
       // onRename fires only when the menu item is clicked (an event handler);
       // startFolderRenameFromContextMenu is a useStableCallback whose ref
       // mutation runs at click time, not during render.
       onRename: onFolderRename ? () => startFolderRenameFromContextMenu(contextNode.id) : undefined,
+      onDelete: onFolderDelete ? () => onFolderDelete(contextNode.id) : undefined,
     });
   }, [
     addDisabled,
@@ -569,6 +606,7 @@ export function LibraryTree({
     effectiveExpandedIds,
     nodeById,
     onCreateComponent,
+    onFolderDelete,
     onItemAdd,
     onItemDelete,
     onItemDuplicate,
@@ -656,10 +694,11 @@ export function LibraryTree({
             }
             currentId={selectable ? selectedNodeId : undefined}
             railsPinned={contextMenuOpen}
-            draggable={Boolean(onItemDragStart) || reorderEnabled}
+            draggable={Boolean(onItemDragStart) || internalDropEnabled}
+            dragDataType={LIBRARY_TREE_NODE_DRAG_MIME_TYPE}
             canDrag={handleCanDrag}
-            canDrop={handleCanReorderDrop}
-            onDrop={reorderEnabled ? handleReorderDrop : undefined}
+            canDrop={handleCanTreeDrop}
+            onDrop={internalDropEnabled ? handleTreeDrop : undefined}
             onNodeDragStart={handleNodeDragStart}
             onRowClick={handleRowClick}
             onRowDoubleClick={handleRowDoubleClick}

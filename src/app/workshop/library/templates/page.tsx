@@ -1,6 +1,10 @@
 import { TemplatesBrowsePageClient } from "@/components/workshop/library/templates-browse/TemplatesBrowsePageClient";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
-import { getCurrentWorkspaceEstimateTemplatesSeed } from "@/lib/repositories/component-library-repository";
+import {
+  getCurrentWorkspaceComponentRowsLibrary,
+  getCurrentWorkspaceEstimateTemplatesSeed,
+  SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
+} from "@/lib/repositories/component-library-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 
 type LibraryTemplatesPageProps = {
@@ -8,10 +12,16 @@ type LibraryTemplatesPageProps = {
 };
 
 async function TemplatesBrowseData() {
-  const { templates, userId, workspaceId } = await withPerfTraceRequest("workshop.library.templates", () =>
-    traced("library.templates.seed", () => getCurrentWorkspaceEstimateTemplatesSeed()),
+  const [{ templates, userId, workspaceId }, componentLibrary] = await withPerfTraceRequest("workshop.library.templates", () =>
+    Promise.all([
+      traced("library.templates.seed", () => getCurrentWorkspaceEstimateTemplatesSeed()),
+      traced("library.templates.components", () => getCurrentWorkspaceComponentRowsLibrary({
+        includeDetailGraph: false,
+        itemLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
+      })),
+    ]),
   );
-  return <TemplatesBrowsePageClient templates={templates} queryScope={{ userId, workspaceId }} />;
+  return <TemplatesBrowsePageClient templates={templates} componentLibrary={componentLibrary} queryScope={{ userId, workspaceId }} />;
 }
 
 export default async function LibraryTemplatesPage({ searchParams }: LibraryTemplatesPageProps) {

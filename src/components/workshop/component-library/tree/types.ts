@@ -34,12 +34,16 @@ export type LibraryTreeProps = {
   onItemDelete?: (item: EstimateRowItem) => void;
   itemDestructiveActionLabel?: string;
   /** Context-menu create on folder rows (opens the add-component flow). */
-  onCreateComponent?: () => void;
+  onCreateComponent?: (folderId: string) => void;
   /** Context-menu rename on editable folder rows. */
   onFolderRename?: (nodeId: string) => void;
+  /** Context-menu delete on editable folder rows. */
+  onFolderDelete?: (nodeId: string) => void;
   addDisabled?: boolean;
   addLabel?: string;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;
+  /** Moves a library component into a folder through an intra-tree drop. */
+  onItemMoveToFolder?: (item: EstimateRowItem, targetFolderId: string | null) => Promise<void> | void;
   /** Shows fixed-size decorative thumbnails for component leaf rows only. */
   showThumbnails?: boolean;
   editingNodeId?: string | null;

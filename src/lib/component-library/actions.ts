@@ -326,6 +326,7 @@ export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
 export type UpdateCostLibraryComponentInput = CostLibraryComponentInput & {
   expectedUpdatedAt: string;
   expectedVersionNumber: number;
+  expectedComponentImpactFingerprint?: string;
 };
 
 export type UpdateCostLibraryComponentWithPriceOptionsInput = CreateCostLibraryComponentInput & {
@@ -414,24 +415,60 @@ function projectLibraryPriceOptions(rows: LibraryPriceOptionProjectionD1Row[]) {
 
 type LinkedEstimateRowTarget = {
   row_id: string;
+  row_revision: number | string;
   project_id: string;
   estimate_id: string;
 };
+
+const STALE_COMPONENT_IMPACT_ERROR = "Component usage changed while this edit was open. Review the latest impact and try again.";
+
+function buildLinkedEstimateRowsRevisionFingerprint(rows: LinkedEstimateRowTarget[]) {
+  return [...rows]
+    .sort((left, right) => left.row_id.localeCompare(right.row_id))
+    .map((row) => `${row.row_id}:${numberValue(row.row_revision, 1)}`)
+    .join("|");
+}
 
 async function listLinkedEstimateRowTargets(database: D1DatabaseLike, workspaceId: string, itemId: string) {
   return all<LinkedEstimateRowTarget>(
     database,
     `
-      SELECT row_item.id AS row_id, project.id AS project_id, estimate.id AS estimate_id
+      SELECT row_item.id AS row_id, row_item.row_revision, project.id AS project_id, estimate.id AS estimate_id
       FROM estimate_row_items row_item
       INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
       INNER JOIN projects project ON project.id = estimate.project_id
       WHERE project.workspace_id = ?
         AND row_item.source_library_item_id = ?
         AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
+      ORDER BY row_item.id
     `,
     [workspaceId, itemId],
   );
+}
+
+function buildLinkedEstimateRowsRevisionGuardStatement(input: {
+  workspaceId: string;
+  itemId: string;
+  expectedFingerprint: string;
+}) {
+  return {
+    sql: `
+      SELECT CASE WHEN COALESCE((
+        SELECT GROUP_CONCAT(component_revision, '|')
+        FROM (
+          SELECT row_item.id || ':' || CAST(row_item.row_revision AS TEXT) AS component_revision
+          FROM estimate_row_items row_item
+          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+          INNER JOIN projects project ON project.id = estimate.project_id
+          WHERE project.workspace_id = ?
+            AND row_item.source_library_item_id = ?
+            AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
+          ORDER BY row_item.id
+        )
+      ), '') = ? THEN 1 ELSE json('') END AS component_impact_guard
+    `,
+    values: [input.workspaceId, input.itemId, input.expectedFingerprint] as D1Value[],
+  };
 }
 
 function buildLinkedEstimateRowsSyncStatement(input: {
@@ -1037,7 +1074,7 @@ function readComponentInputForCreate(input: CreateCostLibraryComponentInput): Co
     brandId: input.brandId,
     unit: input.unit,
     thumbnailPath: input.thumbnailPath,
-    libraryFolderId: input.fieldContract === "opendesign-add-component" ? null : input.libraryFolderId,
+    libraryFolderId: input.libraryFolderId,
     lifecycleState: input.lifecycleState,
     effectiveAt: input.effectiveAt,
     changeReason: input.changeReason,
@@ -1322,15 +1359,32 @@ async function runComponentRevisionGuardedBatch(
     itemId: string;
     expectedUpdatedAt: string;
     expectedVersionNumber: number;
+    expectedComponentImpactFingerprint?: string;
   },
 ) {
+  const guardStatements = [
+    buildComponentRevisionGuardStatement(input),
+    ...(input.expectedComponentImpactFingerprint !== undefined
+      ? [buildLinkedEstimateRowsRevisionGuardStatement({
+          workspaceId: input.workspaceId,
+          itemId: input.itemId,
+          expectedFingerprint: input.expectedComponentImpactFingerprint,
+        })]
+      : []),
+  ];
   try {
-    const [, ...results] = await runAtomicBatch(database, [buildComponentRevisionGuardStatement(input), ...statements]);
-    return results;
+    const results = await runAtomicBatch(database, [...guardStatements, ...statements]);
+    return results.slice(guardStatements.length);
   } catch (error) {
     const current = await readComponentItem(database, input.workspaceId, input.itemId);
     if (current) {
       assertExpectedComponentRevision(current, input.expectedUpdatedAt, input.expectedVersionNumber);
+    }
+    if (input.expectedComponentImpactFingerprint !== undefined) {
+      const currentLinkedRows = await listLinkedEstimateRowTargets(database, input.workspaceId, input.itemId);
+      if (buildLinkedEstimateRowsRevisionFingerprint(currentLinkedRows) !== input.expectedComponentImpactFingerprint) {
+        throw new Error(STALE_COMPONENT_IMPACT_ERROR);
+      }
     }
     throw error;
   }
@@ -1852,6 +1906,12 @@ export async function updateCostLibraryComponent(itemId: string, input: UpdateCo
     : option);
   const activePriceOption = priceOptions.find((option) => option.id === currentActivePriceOption?.id) ?? priceOptions[0];
   const affectedRows = await listLinkedEstimateRowTargets(database, workspace.id, itemId);
+  if (
+    input.expectedComponentImpactFingerprint !== undefined
+    && buildLinkedEstimateRowsRevisionFingerprint(affectedRows) !== input.expectedComponentImpactFingerprint
+  ) {
+    throw new Error(STALE_COMPONENT_IMPACT_ERROR);
+  }
   const sourceSnapshot = {
     brand: component.brand,
     brandId: component.brandId,
@@ -2027,6 +2087,7 @@ export async function updateCostLibraryComponent(itemId: string, input: UpdateCo
     itemId,
     expectedUpdatedAt: input.expectedUpdatedAt,
     expectedVersionNumber: input.expectedVersionNumber,
+    expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
   });
   const instanceSync = syncStatementIndex >= 0
     ? buildLibraryComponentInstanceSyncResult(

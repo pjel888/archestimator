@@ -16,6 +16,7 @@ import {
 } from "@/lib/component-library/query-keys";
 import { loadCurrentWorkspaceEstimateTemplates } from "@/lib/component-library/actions";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import type { ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 
 const TemplatesBrowseManager = dynamic(
@@ -61,10 +62,11 @@ function TemplatesBrowseFallback() {
 
 type TemplatesBrowsePageClientProps = {
   templates?: EstimateTemplate[];
+  componentLibrary?: ComponentRowsLibraryDataset;
   queryScope?: WorkspaceEstimateTemplatesQueryScope;
 };
 
-export function TemplatesBrowsePageClient({ templates, queryScope }: TemplatesBrowsePageClientProps = {}) {
+export function TemplatesBrowsePageClient({ templates, componentLibrary, queryScope }: TemplatesBrowsePageClientProps = {}) {
   const queryClient = useQueryClient();
   const queryUserId = queryScope?.userId;
   const queryWorkspaceId = queryScope?.workspaceId;
@@ -99,6 +101,7 @@ export function TemplatesBrowsePageClient({ templates, queryScope }: TemplatesBr
     <LibrarySurfaceVariantProvider variant="glass">
       <TemplatesBrowseManager
         templates={data ?? templates}
+        libraryData={componentLibrary}
         onTemplatesMutated={onTemplatesMutated}
         onTemplatesInvalidated={onTemplatesInvalidated}
       />

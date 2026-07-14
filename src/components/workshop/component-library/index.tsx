@@ -20,15 +20,20 @@ import {
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import {
+  createCostLibraryComponent,
   createLibraryFolder,
+  deleteLibraryFolder,
   deleteEstimateTemplate,
   executeBulkArchiveLibraryComponents,
+  loadCostLibraryComponentRowDetail,
+  moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
   recordComponentLibraryTelemetryEvent,
   renameEstimateTemplate,
   renameLibraryFolder,
   reorderLibraryFolders,
   type ComponentLibraryUserPreferences,
+  type ComponentPriceOptionInput,
 } from "@/lib/component-library/actions";
 import { setLibraryTelemetrySink } from "@/lib/component-library/library-telemetry";
 import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
@@ -56,7 +61,7 @@ import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
 import { estimateSurfaceClass } from "../estimate-surface-class";
 import { useEstimateSurfaceVariant } from "../estimate-surface-variant";
-import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
+import { findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
 import { LIBRARY_ITEM_DRAG_MIME_TYPE, dispatchAddLibraryItemEvent } from "../estimate-sheet/rows/constants";
 import { ResizableSidePanel } from "../ResizableSidePanel";
@@ -157,6 +162,7 @@ function getArchiveActionIssueMessage(
 // fresh array each render, which would make the U10 prop-reconciliation guard
 // (`syncedTemplatesProp !== templates`) fire every render → infinite re-render.
 const EMPTY_TEMPLATE_PROP: EstimateTemplate[] = [];
+const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
 
 // The single create-component modal, shared with the Components page: the
 // estimate sidebar must not grow its own variant of this form.
@@ -710,6 +716,10 @@ function reusableProjectSourceKey(source: ReusableEstimateSource) {
   return `project-node:${source.nodeId}`;
 }
 
+function isReusableSourceFromProject(source: ReusableEstimateSource, projectId: string | undefined) {
+  return Boolean(projectId) && source.kind !== "custom-template" && source.projectId === projectId;
+}
+
 function mergeReusableProjectSources(
   currentSources: ReusableEstimateSource[],
   incomingSources: ReusableEstimateSource[],
@@ -822,7 +832,7 @@ function useEstimateRightSidebarContent({
   templateTargetName,
   canInsertTemplate: canInsertTemplateProp,
   nodes,
-  initialLibraryItems = estimateLibraryItems,
+  initialLibraryItems = EMPTY_LIBRARY_ITEMS,
   templates = EMPTY_TEMPLATE_PROP,
   projectSources = EMPTY_REUSABLE_PROJECT_SOURCES,
   onInsertProjectSource,
@@ -1038,14 +1048,26 @@ function useEstimateRightSidebarContent({
   const syncedLibraryFoldersRef = useRef(libraryFolders);
   const [archiveComponentPending, setArchiveComponentPending] = useState(false);
   const [archiveComponentError, setArchiveComponentError] = useState("");
+  const [componentModalItem, setComponentModalItem] = useState<EstimateRowItem | null>(null);
+  const [addComponentFolderId, setAddComponentFolderId] = useState<string | null>(null);
+  const [duplicateComponentPendingId, setDuplicateComponentPendingId] = useState<string | null>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<LibraryFolderRecord | null>(null);
+  const [deleteFolderPending, setDeleteFolderPending] = useState(false);
+  const [deleteFolderError, setDeleteFolderError] = useState("");
   const closeBulkDeleteConfirmDialog = useCallback(() => setBulkDeleteConfirmOpen(false), [setBulkDeleteConfirmOpen]);
   const closeRenameTemplateDialog = useCallback(() => setRenameTemplateTarget(null), [setRenameTemplateTarget]);
   const closeDeleteTemplateDialog = useCallback(() => setDeleteTemplateTarget(null), [setDeleteTemplateTarget]);
   const closeDeleteComponentDialog = useCallback(() => setDeleteCandidate(null), [setDeleteCandidate]);
+  const closeDeleteFolderDialog = useCallback(() => {
+    if (deleteFolderPending) return;
+    setDeleteFolderTarget(null);
+    setDeleteFolderError("");
+  }, [deleteFolderPending]);
   const bulkDeleteConfirmDialogRef = useNativeSidebarDialog(closeBulkDeleteConfirmDialog);
   const renameTemplateDialogRef = useNativeSidebarDialog(closeRenameTemplateDialog);
   const deleteTemplateDialogRef = useNativeSidebarDialog(closeDeleteTemplateDialog);
   const deleteComponentDialogRef = useNativeSidebarDialog(closeDeleteComponentDialog);
+  const deleteFolderDialogRef = useNativeSidebarDialog(closeDeleteFolderDialog);
   const selectedTargetNode = useMemo(() => {
     if (!nodes?.length || !activeSelectedNodeId) return null;
     return resolveEstimateWorkspaceSelection({
@@ -1190,9 +1212,13 @@ function useEstimateRightSidebarContent({
       retryProjectSourcesLoadRef.current = null;
     };
   }, [loadProjectSources]);
+  const availableProjectSources = useMemo(
+    () => loadedProjectSources.filter((source) => !isReusableSourceFromProject(source, projectId)),
+    [loadedProjectSources, projectId],
+  );
   const hasLoadedProjectSources = useMemo(
-    () => loadedProjectSources.some((source) => source.kind !== "custom-template"),
-    [loadedProjectSources],
+    () => availableProjectSources.some((source) => source.kind !== "custom-template"),
+    [availableProjectSources],
   );
   const effectiveTemplateSourceFilter = templateSourceFilter === "projects" && !projectSourcesLoading && !hasLoadedProjectSources
     ? "all"
@@ -1557,12 +1583,14 @@ function useEstimateRightSidebarContent({
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
-  // Always browse ALL projects' sources (the all/current-project scope toggle
-  // was removed); no per-project filtering.
-  const visibleProjectSources = enableReusableProjectSources ? loadedProjectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
+  // The current project already has a dedicated Project tab, so Templates only
+  // offers reusable sources from other projects.
+  const visibleProjectSources = enableReusableProjectSources ? availableProjectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
   const visibleProjectSourceSearchResults = useMemo(
-    () => (projectSourceSearchQuery ? projectSourceSearchResults : []),
-    [projectSourceSearchQuery, projectSourceSearchResults],
+    () => (projectSourceSearchQuery
+      ? projectSourceSearchResults.filter((source) => !isReusableSourceFromProject(source, projectId))
+      : []),
+    [projectId, projectSourceSearchQuery, projectSourceSearchResults],
   );
   const searchableProjectSources = useMemo(
     () => projectSourceSearchQuery && visibleProjectSourceSearchResults.length > 0
@@ -1587,8 +1615,8 @@ function useEstimateRightSidebarContent({
     [effectiveTemplateSourceFilter, searchableProjectSources],
   );
   const loadedProjectSourceIndex = useMemo(
-    () => buildReusableProjectSourceIndex(loadedProjectSources),
-    [loadedProjectSources],
+    () => buildReusableProjectSourceIndex(availableProjectSources),
+    [availableProjectSources],
   );
   const templatesSelectionNodes = useMemo(
     () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources, visibleCustomTemplateGroups),
@@ -1947,6 +1975,52 @@ function useEstimateRightSidebarContent({
     setViewModeMenuOpen,
   ]);
 
+  const requestDeleteFolder = useCallback((folderId: string) => {
+    const folder = localLibraryFolders.find((entry) => entry.id === folderId);
+    if (!folder || isProjectComponentFolderRecord(folder) || folder.folder_kind !== "custom") return;
+    setDeleteFolderError("");
+    setDeleteFolderTarget(folder);
+  }, [localLibraryFolders]);
+
+  const confirmDeleteFolder = useCallback(async () => {
+    if (!deleteFolderTarget || deleteFolderPending) return;
+    const folder = deleteFolderTarget;
+    setDeleteFolderPending(true);
+    setDeleteFolderError("");
+    try {
+      await deleteLibraryFolder(folder.id);
+      setLocalLibraryFolders((folders) => folders.flatMap((entry) => {
+        if (entry.id === folder.id) return [];
+        return [{ ...entry, parent_id: entry.parent_id === folder.id ? folder.parent_id : entry.parent_id }];
+      }));
+      setLibraryItems((items) => items.map((item) => (
+        item.libraryFolderId === folder.id ? { ...item, libraryFolderId: undefined } : item
+      )));
+      setExpandedNodeIdsByViewMode((current) => ({
+        ...current,
+        default: current.default.filter((id) => id !== folder.id),
+      }));
+      if (editingFolderId === folder.id) cancelInlineFolderEdit();
+      setDeleteFolderTarget(null);
+      setLastActionMessage(`Folder "${folder.name}" deleted.`);
+      onLibraryDataChanged?.();
+    } catch (error) {
+      setDeleteFolderError(error instanceof Error ? error.message : "Could not delete the folder.");
+    } finally {
+      setDeleteFolderPending(false);
+    }
+  }, [
+    cancelInlineFolderEdit,
+    deleteFolderPending,
+    deleteFolderTarget,
+    editingFolderId,
+    onLibraryDataChanged,
+    setExpandedNodeIdsByViewMode,
+    setLastActionMessage,
+    setLibraryItems,
+    setLocalLibraryFolders,
+  ]);
+
   const addTemplate = useCallback(
     (template: EstimateTemplate) => {
       if (!canInsertTemplate) {
@@ -2107,8 +2181,29 @@ function useEstimateRightSidebarContent({
     [persistFavorites, setLastActionMessage, setLibraryItems],
   );
 
-  const startNewComponent = useCallback(() => {
+  const startNewComponent = useCallback((folderId: string | null = null) => {
+    setComponentModalItem(null);
+    setAddComponentFolderId(folderId);
     setAddComponentOpen(true);
+  }, [setAddComponentOpen]);
+
+  const startNewComponentFromTree = useCallback((folderId: string) => {
+    if (componentViewMode !== "default") {
+      startNewComponent();
+      return;
+    }
+    const targetFolder = localLibraryFolders.find((folder) => (
+      folder.id === folderId && !isProjectComponentFolderRecord(folder)
+    ));
+    if (!targetFolder) return;
+    startNewComponent(targetFolder.id);
+  }, [componentViewMode, localLibraryFolders, startNewComponent]);
+
+  const handleComponentModalOpenChange = useCallback((open: boolean) => {
+    setAddComponentOpen(open);
+    if (open) return;
+    setComponentModalItem(null);
+    setAddComponentFolderId(null);
   }, [setAddComponentOpen]);
 
   const startNewTemplate = useCallback(() => {
@@ -2169,6 +2264,124 @@ function useEstimateRightSidebarContent({
     setLastActionMessage(`${getComponentName(item)} created in the component library.`);
     onLibraryDataChanged?.();
   }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems, setPreviewItemId, setPreviewProjectSourceKey]);
+
+  const handleComponentUpdated = useCallback((item: EstimateRowItem) => {
+    setLibraryItems((items) => items.map((entry) => (entry.id === item.id ? { ...entry, ...item } : entry)));
+    setPreviewItemId(item.id);
+    setPreviewProjectSourceKey(null);
+    setLastActionMessage(`${getComponentName(item)} updated.`);
+    onLibraryDataChanged?.();
+  }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems, setPreviewItemId, setPreviewProjectSourceKey]);
+
+  const startEditComponent = useCallback((item: EstimateRowItem) => {
+    toast({ tone: "loading", message: `Opening ${getComponentName(item)}…` });
+    void loadCostLibraryComponentRowDetail(item.sourceLibraryItemId ?? item.id)
+      .then((detail) => {
+        if (!detail) throw new Error("Component details are unavailable.");
+        setComponentModalItem(detail);
+        setAddComponentFolderId(detail.libraryFolderId ?? null);
+        setAddComponentOpen(true);
+      })
+      .catch((error) => {
+        toast({ tone: "error", message: error instanceof Error ? error.message : "Could not open the component editor." });
+      });
+  }, [setAddComponentOpen, toast]);
+
+  const duplicateComponent = useCallback((item: EstimateRowItem) => {
+    if (duplicateComponentPendingId) return;
+    const sourceItemId = item.sourceLibraryItemId ?? item.id;
+    setDuplicateComponentPendingId(item.id);
+    toast({ tone: "loading", message: `Duplicating ${getComponentName(item)}…` });
+    void loadCostLibraryComponentRowDetail(sourceItemId)
+      .then(async (detail) => {
+        if (!detail) throw new Error("Component details are unavailable.");
+        const copyName = `${getComponentName(detail)} copy`;
+        const activeOptions = detail.priceOptions?.filter((option) => option.isActive) ?? [];
+        const priceOptions: ComponentPriceOptionInput[] = activeOptions.length > 0
+          ? activeOptions.map((option, index) => ({
+              label: option.label,
+              sku: option.sku,
+              variantDescription: option.variantDescription ?? undefined,
+              variantSortOrder: option.variantSortOrder ?? index + 1,
+              unit: option.unit,
+              unitCost: option.unitCost,
+              miscCost: option.miscCost,
+              currency: option.currency,
+              pricingSource: option.pricingSource ?? undefined,
+              pricingDate: option.pricingDate ?? undefined,
+              sourceUrl: option.sourceUrl ?? undefined,
+              notes: option.notes ?? undefined,
+              supplierId: option.supplierId,
+              packageQuantity: option.packageQuantity,
+              packageUnit: option.packageUnit,
+              dimensionLength: option.dimensionLength,
+              dimensionWidth: option.dimensionWidth,
+              dimensionHeight: option.dimensionHeight,
+              dimensionUnit: option.dimensionUnit,
+              mass: option.mass,
+              massUnit: option.massUnit,
+              imageBucket: option.imageBucket,
+              imagePath: option.imagePath,
+              thumbnailPath: option.thumbnailPath,
+              attachments: option.attachments?.map((attachment) => ({
+                bucket: attachment.bucket,
+                path: attachment.path,
+                fileName: attachment.fileName,
+                contentType: attachment.contentType,
+                sizeBytes: attachment.sizeBytes,
+                kind: attachment.kind,
+              })),
+              isDefault: option.isDefault,
+              isActive: true,
+            }))
+          : [{
+              label: detail.priceOptionLabel || "V1",
+              unit: detail.unit,
+              unitCost: detail.itemCost,
+              miscCost: detail.miscCost,
+              currency: detail.currency || "PHP",
+              pricingSource: detail.pricingSource,
+              pricingDate: detail.pricingDate,
+              isDefault: true,
+              isActive: true,
+            }];
+        const result = await createCostLibraryComponent({
+          name: copyName,
+          description: detail.description,
+          category: detail.category,
+          categoryNodeId: detail.categoryNodeId ?? null,
+          supplier: detail.supplier || null,
+          supplierId: detail.supplierId ?? null,
+          brand: detail.brand || null,
+          brandId: detail.brandId ?? null,
+          unit: detail.unit,
+          thumbnailPath: detail.imageUrl ?? null,
+          libraryFolderId: detail.libraryFolderId ?? null,
+          lifecycleState: detail.lifecycleState ?? "available",
+          effectiveAt: detail.pricingDate || undefined,
+          changeReason: "Duplicated from the workshop library",
+          priceOptions,
+        });
+        handleComponentCreated({
+          ...detail,
+          id: result.itemId,
+          sourceLibraryItemId: result.itemId,
+          name: copyName,
+          material: copyName,
+          componentVersionNumber: result.versionNumber,
+          priceOptionId: result.activePriceOptionId,
+          priceOptions: undefined,
+          history: [],
+          createdAt: result.createdAt,
+          updatedAt: result.updatedAt,
+          isFavorite: false,
+        });
+      })
+      .catch((error) => {
+        toast({ tone: "error", message: error instanceof Error ? error.message : "Could not duplicate the component." });
+      })
+      .finally(() => setDuplicateComponentPendingId(null));
+  }, [duplicateComponentPendingId, handleComponentCreated, toast]);
 
   const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
     setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
@@ -2442,6 +2655,29 @@ function useEstimateRightSidebarContent({
       treeNodes,
     ],
   );
+
+  const handleLibraryItemMove = useCallback((item: EstimateRowItem, targetFolderId: string | null) => {
+    if (componentViewMode !== "default" || (item.libraryFolderId ?? null) === targetFolderId) return;
+    const previousFolderId = item.libraryFolderId;
+    const nextFolderId = targetFolderId ?? undefined;
+    setLibraryItems((items) => items.map((entry) => (
+      entry.id === item.id ? { ...entry, libraryFolderId: nextFolderId } : entry
+    )));
+
+    void moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId })
+      .then(() => {
+        onLibraryDataChanged?.();
+        setLastActionMessage(targetFolderId ? `${getComponentName(item)} moved.` : `${getComponentName(item)} moved to the top level.`);
+      })
+      .catch(() => {
+        setLibraryItems((items) => items.map((entry) => (
+          entry.id === item.id && entry.libraryFolderId === nextFolderId
+            ? { ...entry, libraryFolderId: previousFolderId }
+            : entry
+        )));
+        setLastActionMessage("Could not move the component. You may not have permission to manage library folders.");
+      });
+  }, [componentViewMode, onLibraryDataChanged, setLastActionMessage, setLibraryItems]);
 
   const handleBulkAddSelected = useCallback(() => {
     if (bulkSelectedItems.length === 0) return;
@@ -2827,7 +3063,7 @@ function useEstimateRightSidebarContent({
                   <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending} className={ADD_BUTTON_CLASSNAME}>
                     <FolderSimple size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
-                  <ToolbarIconButton label="Add Component" onClick={startNewComponent} className={ADD_BUTTON_CLASSNAME}>
+                  <ToolbarIconButton label="Add Component" onClick={() => startNewComponent()} className={ADD_BUTTON_CLASSNAME}>
                     <Package size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                 </>
@@ -2914,19 +3150,21 @@ function useEstimateRightSidebarContent({
                   setPreviewProjectSourceKey(null);
                   setPreviewItemId(itemId);
                 }}
-                onItemEdit={undefined}
-                onItemDuplicate={undefined}
+                onItemEdit={isLibraryTab ? startEditComponent : undefined}
+                onItemDuplicate={isLibraryTab ? duplicateComponent : undefined}
                 onItemToggleFavorite={isLibraryTab ? toggleFavorite : undefined}
                 onItemDelete={isLibraryTab ? (item) => {
                   setArchiveComponentError("");
                   setDeleteCandidate(item);
                 } : undefined}
                 itemDestructiveActionLabel="Archive"
-                onCreateComponent={isLibraryTab ? startNewComponent : undefined}
+                onCreateComponent={isLibraryTab ? startNewComponentFromTree : undefined}
                 onFolderRename={isLibraryTab && componentViewMode === "default" ? renameFolder : undefined}
+                onFolderDelete={isLibraryTab && componentViewMode === "default" ? requestDeleteFolder : undefined}
                 addDisabled={!canInsert}
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
+                onItemMoveToFolder={isLibraryTab && componentViewMode === "default" ? handleLibraryItemMove : undefined}
                 showThumbnails
                 editingNodeId={editingFolderId}
                 editingNodeValue={editingFolderName}
@@ -2997,8 +3235,8 @@ function useEstimateRightSidebarContent({
             item={previewItem}
             onClose={() => setPreviewItemId(null)}
             onAdd={(quantity) => addComponent(previewItem, quantity ?? insertQuantity)}
-            onEdit={undefined}
-            onDuplicate={undefined}
+            onEdit={isLibraryTab ? () => startEditComponent(previewItem) : undefined}
+            onDuplicate={isLibraryTab ? () => duplicateComponent(previewItem) : undefined}
             onFavorite={isLibraryTab ? () => toggleFavorite(previewItem) : undefined}
             onDelete={isLibraryTab ? () => {
               setArchiveComponentError("");
@@ -3036,10 +3274,12 @@ function useEstimateRightSidebarContent({
             suppliers={suppliers}
             brands={brands}
             libraryItems={reusableLibraryItems}
-            selectedFolderId={null}
+            selectedFolderId={componentModalItem?.libraryFolderId ?? addComponentFolderId}
+            editingItem={componentModalItem}
             imageUploadProjectId={projectId ?? null}
-            onOpenChange={setAddComponentOpen}
+            onOpenChange={handleComponentModalOpenChange}
             onComponentCreated={handleComponentCreated}
+            onComponentUpdated={handleComponentUpdated}
             catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-sidebar"}
           />
         ) : null}
@@ -3109,6 +3349,36 @@ function useEstimateRightSidebarContent({
               </div>
             </div>
           </Modal>
+        ) : null}
+
+        {/* Delete folder confirmation */}
+        {deleteFolderTarget ? (
+          <dialog
+            ref={deleteFolderDialogRef}
+            role="alertdialog"
+            aria-label="Delete library folder"
+            className="z-40 m-auto w-full max-w-72 border border-hairline bg-white p-3 text-ink shadow-xl outline-none backdrop:bg-black/25"
+            onCancel={(event) => {
+              event.preventDefault();
+              closeDeleteFolderDialog();
+            }}
+          >
+            <h3 className="text-[11px] font-medium text-ink">Delete folder?</h3>
+            <p className="mt-1 text-[9px] leading-4 text-tertiary">
+              Delete {deleteFolderTarget.name}. Components in it become unfiled, and nested folders move up one level.
+            </p>
+            {deleteFolderError ? (
+              <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">{deleteFolderError}</p>
+            ) : null}
+            <div className="mt-3 flex justify-end gap-1">
+              <Button variant="secondary" size="sm" className="h-6 min-h-6 text-[9px]" disabled={deleteFolderPending} onClick={closeDeleteFolderDialog}>
+                Keep folder
+              </Button>
+              <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" disabled={deleteFolderPending} onClick={() => void confirmDeleteFolder()}>
+                {deleteFolderPending ? "Deleting…" : "Delete folder"}
+              </Button>
+            </div>
+          </dialog>
         ) : null}
 
         {/* Bulk archive confirmation */}

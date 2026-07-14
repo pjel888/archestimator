@@ -47,6 +47,7 @@ import {
   renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
+import type { ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
 import { cn } from "@/lib/ui/cn";
 
@@ -549,6 +550,7 @@ function TemplatesBrowseTreePanel({
 
 export type TemplatesBrowseManagerProps = {
   templates?: EstimateTemplate[];
+  libraryData?: ComponentRowsLibraryDataset;
   // Library Optimization Plan P0 T4: TemplatesBrowsePageClient owns the warm
   // TanStack Query cache and passes this so mutations patch that cache instead of
   // router.refresh() (which re-ran the whole server segment). No-op default keeps
@@ -750,6 +752,7 @@ function templatesBrowseManagerReducer(
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function TemplatesBrowseManager({
   templates = [],
+  libraryData,
   onTemplatesMutated = noopTemplatesMutated,
   onTemplatesInvalidated = noopTemplatesInvalidated,
 }: TemplatesBrowseManagerProps = {}) {
@@ -1089,6 +1092,11 @@ export function TemplatesBrowseManager({
             <EstimateRightSidebar
               visibleTabs={["components", "project"]}
               initialActiveTab="components"
+              initialLibraryItems={libraryData?.libraryItems}
+              categoryTree={libraryData?.categoryTree}
+              suppliers={libraryData?.suppliers}
+              brands={libraryData?.brands}
+              libraryFolders={libraryData?.libraryFolders}
               templates={[]}
               enableReusableProjectSources={false}
               useStoredPreferences={false}

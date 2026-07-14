@@ -5,7 +5,7 @@ import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
-import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
+import type { EstimateRowItem } from "../estimate-tree-data";
 import {
   getComponentName,
   getComponentPrice,
@@ -28,6 +28,8 @@ type OpenCommandPaletteProps = Omit<CommandPaletteProps, "open"> & {
   items: EstimateRowItem[];
 };
 
+const EMPTY_COMMAND_PALETTE_ITEMS: EstimateRowItem[] = [];
+
 function stalenessClass(tone: ReturnType<typeof getStalenessTone>) {
   if (tone === "danger") return "text-danger";
   if (tone === "warning") return "text-warning";
@@ -37,7 +39,7 @@ function stalenessClass(tone: ReturnType<typeof getStalenessTone>) {
 
 export function CommandPalette({
   open,
-  items = estimateLibraryItems,
+  items = EMPTY_COMMAND_PALETTE_ITEMS,
   canInsert,
   targetLabel,
   onClose,
