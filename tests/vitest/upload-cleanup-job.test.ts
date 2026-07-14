@@ -267,8 +267,9 @@ describe("upload cleanup job runner", () => {
     expect(result.operationalSnapshot.status).toBe("blocked");
   });
 
-  it("maps persisted deleted assets and expired sessions into cleanup records", async () => {
+  it("maps persisted deleted or removed assets and expired sessions into cleanup records", async () => {
     const database = new FakeD1Database();
+    const removedAssetId = "77777777-7777-4777-8777-777777777777";
     database.assetRows = [{
       id: ASSET_ID,
       upload_session_id: SESSION_ID,
@@ -279,6 +280,17 @@ describe("upload cleanup job runner", () => {
       storage_path: ATTACHMENT_PATH,
       thumbnail_path: null,
       status: "deleted",
+      updated_at: "2026-05-01T00:00:00.000Z",
+    }, {
+      id: removedAssetId,
+      upload_session_id: SESSION_ID,
+      workspace_id: WORKSPACE_ID,
+      actor_user_id: USER_ID,
+      surface: "component-attachment",
+      storage_bucket: "component-attachments",
+      storage_path: `${WORKSPACE_ID}/${USER_ID}/removed.pdf`,
+      thumbnail_path: null,
+      status: "removed",
       updated_at: "2026-05-01T00:00:00.000Z",
     }];
     database.sessionRows = [{
@@ -297,7 +309,7 @@ describe("upload cleanup job runner", () => {
     const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
     expect(assetStatement?.sql).toContain("SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at");
-    expect(assetStatement?.values).toEqual(["deleted", "2026-05-28T03:10:00.000Z", 25]);
+    expect(assetStatement?.values).toEqual(["deleted", "removed", "2026-05-28T03:10:00.000Z", 25]);
     expect(sessionStatement?.sql).toContain("SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at");
     expect(sessionStatement?.values).toEqual([
       "reserved",
@@ -312,6 +324,11 @@ describe("upload cleanup job runner", () => {
         assetId: ASSET_ID,
         uploadAssetId: ASSET_ID,
         uploadSessionId: SESSION_ID,
+        status: "deleted",
+      }),
+      expect.objectContaining({
+        assetId: removedAssetId,
+        uploadAssetId: removedAssetId,
         status: "deleted",
       }),
       expect.objectContaining({

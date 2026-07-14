@@ -77,7 +77,6 @@ function openComponentViewMenu() {
 }
 
 const actionMocks = vi.hoisted(() => ({
-  changeCostLibraryComponentLifecycleState: vi.fn(),
   createCostLibraryComponent: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
   createLibraryFolder: vi.fn(),
@@ -90,7 +89,6 @@ const actionMocks = vi.hoisted(() => ({
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
-  upsertCostLibraryComponentPriceOption: vi.fn(),
 }));
 
 const navigationMocks = vi.hoisted(() => {
@@ -260,10 +258,8 @@ describe("workshop library consolidation UI", () => {
     actionMocks.loadCostLibraryComponentRowDetail.mockReset();
     actionMocks.moveCostLibraryComponentToFolder.mockReset();
     actionMocks.previewBulkArchiveLibraryComponents.mockReset();
-    actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
     actionMocks.renameLibraryFolder.mockReset();
     actionMocks.reorderLibraryFolders.mockReset();
-    actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
     actionMocks.reorderLibraryFolders.mockResolvedValue(undefined);
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 0, estimateRowCount: 0 });
     actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValue(null);
@@ -432,7 +428,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(displayMode).getByRole("button", { name: "Cards" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(within(displayMode).getByRole("button", { name: "Dense" }));
 
-    expect(window.localStorage.getItem("archestimator_component_library_display_mode_v1")).toBe("dense");
+    expect(window.localStorage.getItem("archestimator_component_library_display_mode")).toBe("dense");
     const table = screen.getByRole("table", { name: "All Components dense component table" });
     expect(table).toHaveAttribute("data-library-virtualization-source", "WORKSHOP_VIRTUALIZATION_FLAGS");
     for (const column of ["Name", "Folder", "Brand", "Supplier", "Cost", "Pricing source", "Pricing date", "Lifecycle", "Usage", "Actions"]) {
@@ -550,6 +546,11 @@ describe("workshop library consolidation UI", () => {
       itemId: "new-component-id",
       activePriceOptionId: "new-price-id",
       versionNumber: 1,
+      component: {
+        ...sharedLibraryItems[0],
+        id: "new-component-id",
+        sourceLibraryItemId: "new-component-id",
+      },
     });
 
     renderLibraryShell(
@@ -627,11 +628,11 @@ describe("workshop library consolidation UI", () => {
     const variantsPanel = await within(dialog).findByRole("dialog", { name: "Manage variants" });
     expect(within(variantsPanel).getByLabelText("Variant manager")).toBeInTheDocument();
     expect(within(variantsPanel).getByText("No variants yet.")).toBeInTheDocument();
-    expect(within(variantsPanel).queryByRole("button", { name: "Open V1" })).not.toBeInTheDocument();
+    expect(within(variantsPanel).queryByRole("button", { name: "Open Default" })).not.toBeInTheDocument();
     const defaultVariantAction = within(variantsPanel).getByRole("button", { name: "Default" });
     expect(defaultVariantAction).toBeDisabled();
     clickDrawerAddVariant(variantsPanel);
-    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open Default" })).toHaveAttribute("aria-pressed", "true"));
     const defaultVariantActionAfterAdd = within(variantsPanel).getByRole("button", { name: "Default" });
     expect(defaultVariantActionAfterAdd).toHaveAttribute("aria-pressed", "true");
     expect(defaultVariantActionAfterAdd).not.toBeDisabled();
@@ -654,7 +655,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.change(equivalentUnitInput, { target: { value: "pieces" } });
     expect(equivalentUnitInput).toHaveValue("pieces");
     clickDrawerAddVariant(variantsPanel);
-    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V2" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open Option 2" })).toHaveAttribute("aria-pressed", "true"));
     const variantTwoEditor = within(variantsPanel).getByLabelText("Variant editor");
     fireEvent.change(within(variantTwoEditor).getByLabelText("Variant Name"), { target: { value: "Variant 2" } });
     expect(within(variantsPanel).getByRole("button", { name: "Delete variant" })).toBeInTheDocument();
@@ -665,7 +666,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.change(variantTwoUnitCombobox, { target: { value: "tile-box" } });
     fireEvent.click(screen.getByRole("option", { name: 'Add unit "tile-box"' }));
     expect(variantTwoUnitCombobox).toHaveValue("tile-box");
-    fireEvent.click(within(variantsPanel).getByRole("button", { name: "Open V1" }));
+    fireEvent.click(within(variantsPanel).getByRole("button", { name: "Open Variant 1" }));
     const brandCombobox = within(dialog).getByRole("combobox", { name: "Brand" });
     fireEvent.change(brandCombobox, { target: { value: "Acme Hardware" } });
     const supplierCombobox = within(dialog).getByRole("combobox", { name: "Supplier" });
@@ -700,7 +701,6 @@ describe("workshop library consolidation UI", () => {
         brand: "Acme Hardware",
         brandId: null,
         lifecycleState: "in_production",
-        metadata: {},
         priceOptions: [
           expect.objectContaining({
             label: "Variant 1",

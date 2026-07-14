@@ -28,6 +28,7 @@ export {
   getAllNodeIds,
   collectComponentIds,
   applyLibraryTreeOrder,
+  findLibraryNodeOrder,
   findLibrarySiblingOrder,
   LIBRARY_TREE_ROOT_ORDER_KEY,
 } from "./helpers";

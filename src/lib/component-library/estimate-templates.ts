@@ -7,6 +7,8 @@ export type EstimateTemplate = {
   description: string;
   category: string;
   nodes: EstimateTreeNode[];
+  /** Aggregate facts supplied by bounded list reads when `nodes` is not hydrated. */
+  summary?: EstimateTemplateSummary;
   /** ISO timestamp of the last template write; optional because seed/fixture templates predate the column mapping. */
   updatedAt?: string;
   /** Stored sibling order within the workspace template list. */
@@ -371,6 +373,7 @@ export const estimateTemplates: EstimateTemplate[] = [
 ];
 
 export function summarizeEstimateTemplate(template: EstimateTemplate): EstimateTemplateSummary {
+  if (template.summary) return template.summary;
   const summary: EstimateTemplateSummary = {
     groupCount: 0,
     areaCount: 0,

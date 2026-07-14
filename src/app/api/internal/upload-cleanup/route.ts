@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { expireProjectComponentAttachmentRetentionHolds } from "@/lib/estimates/project-component-attachment-retention";
 import { logAppError } from "@/lib/observability/logger";
 import {
   buildUploadCleanupOperationalSnapshot,
@@ -119,6 +120,7 @@ async function handleUploadCleanupJob(request: Request) {
     const db = await getCloudflareD1Database();
     if (!db) return jsonError("Upload cleanup job database is not configured.", 503);
 
+    if (!dryRun) await expireProjectComponentAttachmentRetentionHolds(db, { limit });
     const records = await listUploadCleanupJobRecords(db, { limit });
     if (dryRun) return jsonOk(summarizeUploadCleanupDryRun(records, limit));
     const storageProvider = await createRuntimeUploadStorageProvider();

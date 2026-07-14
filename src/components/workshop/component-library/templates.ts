@@ -191,6 +191,7 @@ export function toTemplateTreeItemId(templateId: string) {
 }
 
 export function summarizeEstimateTemplate(template: EstimateTemplate) {
+  if (template.summary) return template.summary;
   const summary = {
     groupCount: 0,
     areaCount: 0,

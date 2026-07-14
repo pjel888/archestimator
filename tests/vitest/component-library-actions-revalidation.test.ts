@@ -20,16 +20,28 @@ const authzMocks = vi.hoisted(() => ({
   isWorkspaceEditorInD1: vi.fn(),
   isWorkspaceMemberInD1: vi.fn(),
 }));
+const componentRepositoryMocks = vi.hoisted(() => ({
+  getCurrentWorkspaceComponentRowDetail: vi.fn(),
+}));
 
 vi.mock("next/cache", () => cacheMocks);
 vi.mock("@/lib/auth/session", () => ({ requireCurrentUserContext: authMocks.requireCurrentUserContext }));
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
+vi.mock("@/lib/repositories/component-library-repository", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/repositories/component-library-repository")>();
+  return {
+    ...actual,
+    getCurrentWorkspaceComponentRowDetail: componentRepositoryMocks.getCurrentWorkspaceComponentRowDetail,
+  };
+});
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
 const TEMPLATE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const COMPONENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const PRICE_OPTION_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const SECOND_PRICE_OPTION_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
 function createD1Fixture(options: {
   firstResults?: unknown[];
@@ -50,7 +62,9 @@ function createD1Fixture(options: {
           all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
           run: vi.fn(async () => ({
             success: true,
-            meta: { changes: 1 },
+            meta: { changes: sql.includes("UPDATE estimate_row_items")
+              ? options.linkedRowRevisionResults?.length ?? 0
+              : 1 },
             results: sql.includes("UPDATE estimate_row_items") ? options.linkedRowRevisionResults ?? [] : [],
           })),
         };
@@ -76,6 +90,36 @@ beforeEach(() => {
   authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
   authzMocks.canEditEstimateInD1.mockResolvedValue(true);
   authzMocks.isWorkspaceMemberInD1.mockResolvedValue(true);
+  componentRepositoryMocks.getCurrentWorkspaceComponentRowDetail.mockImplementation(async (itemId: string) => ({
+    id: itemId,
+    material: "Authoritative component",
+    description: "",
+    supplier: "",
+    source: "library",
+    unit: "box",
+    itemCost: 100,
+    quantity: 1,
+    subTotal: 100,
+    miscCost: 0,
+    totalItemCosts: 100,
+    category: "General",
+    pricingSource: "",
+    pricingDate: "",
+    sourceLibraryItemId: itemId,
+    linkState: "linked-clean",
+    componentVersionNumber: 2,
+    priceOptionId: PRICE_OPTION_ID,
+    priceOptions: [{
+      id: PRICE_OPTION_ID,
+      label: "Default",
+      unit: "box",
+      unitCost: 100,
+      miscCost: 0,
+      currency: "PHP",
+      isActive: true,
+      isDefault: true,
+    }],
+  }));
 });
 
 afterEach(() => {
@@ -171,7 +215,7 @@ describe("library component instance reconciliation", () => {
           unit_cost: 100,
           misc_cost: 0,
           current_version_number: 1,
-          active_price_option_id: "price-1",
+          active_price_option_id: PRICE_OPTION_ID,
           pricing_source: "Supplier A",
           pricing_date: "2026-07-01",
           thumbnail_path: "/original.webp",
@@ -194,7 +238,7 @@ describe("library component instance reconciliation", () => {
           misc_cost: 0,
           lifecycle_state: "available",
           current_version_number: 2,
-          active_price_option_id: "price-1",
+          active_price_option_id: PRICE_OPTION_ID,
           pricing_source: "Supplier A",
           pricing_date: "2026-07-13",
           thumbnail_path: "/oak.webp",
@@ -203,8 +247,8 @@ describe("library component instance reconciliation", () => {
       ],
       allResults: [
         [{
-          id: "price-1",
-          label: "V1",
+          id: PRICE_OPTION_ID,
+          label: "Default",
           unit: "box",
           unit_cost: 2500.5,
           misc_cost: 0,
@@ -213,14 +257,45 @@ describe("library component instance reconciliation", () => {
           is_default: 1,
           pricing_source: "Supplier A",
           metadata_json: JSON.stringify({ pricingDate: "2026-07-13", thumbnailPath: "/oak.webp" }),
+          updated_at: "2026-07-13T09:00:00.000Z",
+        }, {
+          id: SECOND_PRICE_OPTION_ID,
+          label: "Premium",
+          unit: "set",
+          unit_cost: 500,
+          misc_cost: 0,
+          currency: "PHP",
+          is_active: 1,
+          is_default: 0,
+          pricing_source: "Supplier B",
+          metadata_json: JSON.stringify({ pricingDate: "2026-07-12", variantDescription: "Premium finish" }),
+          updated_at: "2026-07-13T09:00:00.000Z",
         }],
-        [{ row_id: "row-1", project_id: "project-1", estimate_id: "estimate-1" }],
+        [{
+          row_id: "row-1",
+          row_revision: 3,
+          project_id: "project-1",
+          estimate_id: "estimate-1",
+          link_state: "linked-clean",
+          selected_price_option_id: PRICE_OPTION_ID,
+          source_snapshot_json: "{}",
+          metadata_json: "{}",
+        }, {
+          row_id: "row-2",
+          row_revision: 7,
+          project_id: "project-1",
+          estimate_id: "estimate-1",
+          link_state: "linked-overridden",
+          selected_price_option_id: SECOND_PRICE_OPTION_ID,
+          source_snapshot_json: "{}",
+          metadata_json: "{}",
+        }],
       ],
-      linkedRowRevisionResults: [{ id: "row-1", row_revision: 4 }],
+      linkedRowRevisionResults: [{ id: "row-1", row_revision: 4 }, { id: "row-2", row_revision: 8 }],
     });
-    const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
+    const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
 
-    const result = await updateCostLibraryComponent(COMPONENT_ID, {
+    const result = await updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
       name: "Updated Oak",
       description: "Updated description",
       category: "Flooring",
@@ -230,24 +305,70 @@ describe("library component instance reconciliation", () => {
       brand: "Pergo",
       brandId: "brand-pergo",
       unit: "box",
+      thumbnailPath: "/original.webp",
       lifecycleState: "available",
       expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
       expectedVersionNumber: 1,
+      expectedComponentImpactFingerprint: `rows[row-1:3:linked-clean:${PRICE_OPTION_ID}|row-2:7:linked-overridden:${SECOND_PRICE_OPTION_ID}]|options[${PRICE_OPTION_ID}:2026-07-13T09:00:00.000Z:1:1|${SECOND_PRICE_OPTION_ID}:2026-07-13T09:00:00.000Z:1:0]`,
+      priceOptions: [{
+        id: PRICE_OPTION_ID,
+        label: "Default",
+        unit: "box",
+        unitCost: 2500.5,
+        pricingSource: "Supplier A",
+        pricingDate: "2026-07-13",
+        thumbnailPath: "/oak.webp",
+        isActive: true,
+        isDefault: true,
+      }, {
+        id: SECOND_PRICE_OPTION_ID,
+        label: "Premium",
+        unit: "set",
+        unitCost: 500,
+        pricingSource: "Supplier B",
+        pricingDate: "2026-07-12",
+        variantDescription: "Premium finish",
+        isActive: true,
+        isDefault: false,
+      }],
     });
 
     const linkedRowUpdate = database.statements.find((statement) =>
       statement.sql.includes("UPDATE estimate_row_items") && statement.sql.includes("source_library_item_id"),
     );
     expect(linkedRowUpdate).toBeDefined();
-    expect(linkedRowUpdate?.sql).toContain("link_state = 'linked-clean'");
+    expect(linkedRowUpdate?.sql).not.toContain("SET link_state =");
     expect(linkedRowUpdate?.sql).toContain("row_revision = row_revision + 1");
-    expect(linkedRowUpdate?.sql).toContain("link_state IS NULL OR link_state NOT IN ('detached', 'unlinked')");
+    expect(linkedRowUpdate?.sql).toContain("link_state IS NULL OR link_state IN ('linked-clean', 'linked-overridden')");
     expect(linkedRowUpdate?.sql).toContain("project.workspace_id = ?");
     expect(linkedRowUpdate?.sql).not.toContain("quantity =");
     expect(linkedRowUpdate?.sql).not.toContain("misc_cost =");
     expect(linkedRowUpdate?.sql).not.toContain("contingency_percentage =");
     expect(linkedRowUpdate?.sql).not.toContain("adjustment_percentage =");
     expect(linkedRowUpdate?.values).toContain(COMPONENT_ID);
+    const linkedRowPlans = JSON.parse(String(linkedRowUpdate?.values[0])) as Array<{
+      rowId: string;
+      isOverridden: boolean;
+      unit: string;
+      unitCost: number;
+      sourceSnapshot: { priceOptionId?: string };
+    }>;
+    expect(linkedRowPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        rowId: "row-1",
+        isOverridden: false,
+        unit: "box",
+        unitCost: 2500.5,
+        sourceSnapshot: expect.objectContaining({ priceOptionId: PRICE_OPTION_ID }),
+      }),
+      expect.objectContaining({
+        rowId: "row-2",
+        isOverridden: true,
+        unit: "set",
+        unitCost: 500,
+        sourceSnapshot: expect.objectContaining({ priceOptionId: SECOND_PRICE_OPTION_ID }),
+      }),
+    ]));
     expect(database.batch).toHaveBeenCalledTimes(1);
     const revisionGuard = database.statements.find((statement) => statement.sql.includes("WHEN updated_at = ? AND current_version_number = ?"));
     expect(revisionGuard?.values).toEqual([
@@ -258,8 +379,8 @@ describe("library component instance reconciliation", () => {
     ]);
     expect(database.statements.find((statement) => statement.sql.includes("cost_library_item_versions"))?.sql).not.toContain("OR IGNORE");
     expect(database.statements.some((statement) => statement.sql.includes("UPDATE cost_library_item_variant_cost_entries"))).toBe(true);
-    expect(database.statements.some((statement) => statement.sql.includes("id NOT IN"))).toBe(false);
-    expect(database.statements.find((statement) => statement.sql.includes("UPDATE cost_library_item_price_options"))?.sql).toContain("json_patch");
+    expect(database.statements.some((statement) => statement.sql.includes("id NOT IN"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("ON CONFLICT(id) DO UPDATE"))).toBe(true);
     const componentUpdate = database.statements.find((statement) =>
       statement.sql.includes("UPDATE cost_library_items") && statement.sql.includes("SET name = ?"),
     );
@@ -269,8 +390,8 @@ describe("library component instance reconciliation", () => {
       itemId: COMPONENT_ID,
       versionNumber: 2,
       updatedAt: expect.any(String),
-      updatedRowCount: 1,
-      rowRevisions: { "row-1": 4 },
+      updatedRowCount: 2,
+      rowRevisions: { "row-1": 4, "row-2": 8 },
       affectedEstimates: [{ projectId: "project-1", estimateId: "estimate-1" }],
     });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
@@ -286,11 +407,35 @@ describe("library component instance reconciliation", () => {
         unit_cost: 100,
         misc_cost: 0,
         current_version_number: 1,
-        active_price_option_id: "price-1",
+        active_price_option_id: PRICE_OPTION_ID,
         lifecycle_state: "available",
         updated_at: "2026-07-13T09:00:00.000Z",
       }],
-      allResults: [[{ row_id: "row-1", project_id: "project-1", estimate_id: "estimate-1" }]],
+      allResults: [
+        [{
+          id: PRICE_OPTION_ID,
+          label: "Default",
+          unit: "box",
+          unit_cost: 100,
+          misc_cost: 0,
+          currency: "PHP",
+          is_active: 1,
+          is_default: 1,
+          pricing_source: null,
+          metadata_json: "{}",
+          updated_at: "2026-07-13T09:00:00.000Z",
+        }],
+        [{
+          row_id: "row-1",
+          row_revision: 5,
+          project_id: "project-1",
+          estimate_id: "estimate-1",
+          link_state: "linked-clean",
+          selected_price_option_id: PRICE_OPTION_ID,
+          source_snapshot_json: "{}",
+          metadata_json: "{}",
+        }],
+      ],
       linkedRowRevisionResults: [{ id: "row-1", row_revision: 6 }],
     });
     const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
@@ -305,9 +450,10 @@ describe("library component instance reconciliation", () => {
       lifecycleState: "available",
       expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
       expectedVersionNumber: 1,
+      expectedComponentImpactFingerprint: `rows[row-1:5:linked-clean:${PRICE_OPTION_ID}]|options[${PRICE_OPTION_ID}:2026-07-13T09:00:00.000Z:1:1]`,
       priceOptions: [{
-        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        label: "V1",
+        id: PRICE_OPTION_ID,
+        label: "Default",
         unit: "box",
         unitCost: 2500.5,
         miscCost: 25,
@@ -339,7 +485,7 @@ describe("library component instance reconciliation", () => {
         unit_cost: 100,
         misc_cost: 0,
         current_version_number: 1,
-        active_price_option_id: "price-1",
+        active_price_option_id: PRICE_OPTION_ID,
         pricing_source: null,
         pricing_date: null,
         lifecycle_state: "available",
@@ -348,14 +494,22 @@ describe("library component instance reconciliation", () => {
       allResults: [[], []],
       batchFailureAt: 0,
     });
-    const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
+    const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
 
-    await expect(updateCostLibraryComponent(COMPONENT_ID, {
+    await expect(updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
       name: "Should roll back",
       unit: "box",
       category: "Flooring",
       expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
       expectedVersionNumber: 1,
+      expectedComponentImpactFingerprint: "rows[]|options[]",
+      priceOptions: [{
+        label: "Default",
+        unit: "box",
+        unitCost: 100,
+        isActive: true,
+        isDefault: true,
+      }],
     })).rejects.toThrow(/batch failed/);
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
@@ -370,7 +524,7 @@ describe("library component instance reconciliation", () => {
         unit_cost: 100,
         misc_cost: 0,
         current_version_number: 2,
-        active_price_option_id: "price-1",
+        active_price_option_id: PRICE_OPTION_ID,
         pricing_source: null,
         pricing_date: null,
         thumbnail_path: null,
@@ -379,14 +533,23 @@ describe("library component instance reconciliation", () => {
         updated_at: "2026-07-13T10:00:00.000Z",
       }],
     });
-    const { updateCostLibraryComponent } = await import("@/lib/component-library/actions");
+    const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
 
-    await expect(updateCostLibraryComponent(COMPONENT_ID, {
+    await expect(updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
       name: "Stale edit",
       unit: "box",
       category: "Flooring",
       expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
       expectedVersionNumber: 1,
+      expectedComponentImpactFingerprint: "rows[]|options[]",
+      priceOptions: [{
+        id: PRICE_OPTION_ID,
+        label: "Default",
+        unit: "box",
+        unitCost: 100,
+        isActive: true,
+        isDefault: true,
+      }],
     })).rejects.toThrow(/changed after you opened it/i);
     expect(database.batch).not.toHaveBeenCalled();
   });

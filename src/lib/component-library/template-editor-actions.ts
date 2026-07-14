@@ -11,6 +11,8 @@ import {
   type D1Value,
 } from "@/lib/cloudflare/d1";
 import type { EstimateRowItem, EstimateRowLinkState } from "@/lib/estimates/types";
+import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
+import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/types/json";
@@ -640,12 +642,43 @@ function buildTemplateRowInsert(input: {
   libraryItem: EstimateRowItem;
 }): TemplateRowInsert {
   const item = input.libraryItem;
+  const sourceLibraryItemId = item.sourceLibraryItemId ?? (item.source === "library" ? item.id : null);
+  const priceOptions = sanitizeEstimateRowPriceOptionsSnapshot(item.priceOptions ?? []);
+  const sourceSnapshot = sanitizeEstimateRowSourceSnapshot({
+    source: item.source,
+    sourceType: sourceLibraryItemId ? "library_component" : null,
+    sourceComponentId: sourceLibraryItemId,
+    sourceLibraryItemId,
+    sourceUpdatedAt: item.updatedAt ?? null,
+    category: item.category,
+    categoryNodeId: item.categoryNodeId ?? null,
+    categoryPath: item.categoryPath ?? [],
+    brand: item.brand ?? null,
+    brandId: item.brandId ?? null,
+    supplier: item.supplier ?? null,
+    supplierId: item.supplierId ?? null,
+    componentVersionId: item.componentVersionId ?? null,
+    componentVersionNumber: item.componentVersionNumber ?? null,
+    lifecycleState: item.lifecycleState ?? null,
+    priceOptionId: item.priceOptionId ?? null,
+    priceOptionLabel: item.priceOptionLabel ?? null,
+    priceOptions: priceOptions ?? [],
+    pricingDate: item.pricingDate,
+    pricingSource: item.pricingSource,
+    sourceUrl: item.sourceUrl ?? null,
+    imageUrl: item.imageUrl ?? null,
+    tags: item.tags ?? [],
+    unit: item.unit,
+    unit_cost: item.itemCost,
+    misc_cost: item.miscCost,
+    currency: item.currency ?? "PHP",
+  }) as Json;
   return {
     template_id: input.templateId,
     template_node_id: input.nodeId,
     sort_order: input.sortOrder,
-    source_library_item_id: item.sourceLibraryItemId ?? (item.source === "library" ? item.id : null),
-    source_snapshot: null,
+    source_library_item_id: sourceLibraryItemId,
+    source_snapshot: sourceSnapshot,
     category_node_id: item.categoryNodeId ?? null,
     supplier_id: item.supplierId ?? null,
     material: item.name?.trim() || item.material,
@@ -659,7 +692,7 @@ function buildTemplateRowInsert(input: {
     adjustment_percentage: item.adjustmentPercentage ?? item.contingencyPercentage ?? 0,
     discipline: item.discipline ?? "",
     designation: item.designation ?? "",
-    link_state: item.sourceLibraryItemId || item.source === "library" ? "linked-clean" : "unlinked",
+    link_state: sourceLibraryItemId ? "linked-clean" : "unlinked",
     metadata: {},
   };
 }

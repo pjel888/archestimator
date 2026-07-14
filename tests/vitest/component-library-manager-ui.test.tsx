@@ -813,20 +813,20 @@ describe("component library manager UI", () => {
     const drawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
     expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
     clickDrawerAddVariant(drawer);
-    await waitFor(() => expect(within(drawer).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(within(drawer).getByRole("button", { name: "Open Default" })).toHaveAttribute("aria-pressed", "true"));
     expect(within(drawer).getByLabelText("Variant Name")).toBeInTheDocument();
     expect(within(drawer).getByLabelText("Variant Description")).toBeInTheDocument();
     expect(within(drawer).getByLabelText("SKU / Reference")).toBeInTheDocument();
     expect(within(drawer).getByLabelText("Variant unit cost")).toBeInTheDocument();
     const variantUnit = within(drawer).getByRole("combobox", { name: "Variant unit" });
     expect(variantUnit).toBeInTheDocument();
-    expect(within(drawer).queryByLabelText("Equivalent quantity")).not.toBeInTheDocument();
-    expect(within(drawer).queryByRole("combobox", { name: "Equivalent unit" })).not.toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Equivalent quantity")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Equivalent unit")).toBeInTheDocument();
 
     fireEvent.change(variantUnit, { target: { value: "box" } });
 
     expect(within(drawer).getByLabelText("Equivalent quantity")).toBeInTheDocument();
-    expect(within(drawer).getByRole("combobox", { name: "Equivalent unit" })).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Equivalent unit")).toBeInTheDocument();
     expect(within(drawer).getByLabelText("Upload attachment")).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Cost Manager" })).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Misc cost")).not.toBeInTheDocument();
@@ -919,20 +919,20 @@ describe("component library manager UI", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
     const drawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
     clickDrawerAddVariant(drawer);
-    await waitFor(() => expect(within(drawer).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true"));
-    fireEvent.change(within(drawer).getByRole("combobox", { name: "Variant unit" }), {
-      target: { value: "box" },
+    await waitFor(() => expect(within(drawer).getByRole("button", { name: "Open Default" })).toHaveAttribute("aria-pressed", "true"));
+    const variantUnitInput = within(drawer).getByRole("combobox", { name: "Variant unit" });
+    fireEvent.focus(variantUnitInput);
+    fireEvent.change(variantUnitInput, {
+      target: { value: "" },
     });
-    const equivalentUnitInput = within(drawer).getByRole("combobox", { name: "Equivalent unit" });
-    fireEvent.focus(equivalentUnitInput);
 
-    const equivalentUnitOptions = screen.getByRole("listbox", { name: "Equivalent unit options" });
-    expect(equivalentUnitOptions.parentElement).toBe(document.body);
-    expect(equivalentUnitOptions).toHaveClass("fixed", "z-[1050]");
-    expect(within(equivalentUnitOptions).getByText("Code")).toBeInTheDocument();
-    expect(within(equivalentUnitOptions).getByText("Meaning")).toBeInTheDocument();
-    expect(equivalentUnitOptions.querySelector('[data-combobox-option-code="pieces"]')).toHaveTextContent("pieces");
-    expect(equivalentUnitOptions.querySelector('[data-combobox-option-meaning="Count"]')).toHaveTextContent("Count");
+    const variantUnitOptions = screen.getByRole("listbox", { name: "Variant unit options" });
+    expect(variantUnitOptions.parentElement).toBe(document.body);
+    expect(variantUnitOptions).toHaveClass("fixed", "z-[1050]");
+    expect(within(variantUnitOptions).getByText("Code")).toBeInTheDocument();
+    expect(within(variantUnitOptions).getByText("Meaning")).toBeInTheDocument();
+    expect(variantUnitOptions.querySelector('[data-combobox-option-code="pc"]')).toHaveTextContent("pc");
+    expect(variantUnitOptions.querySelector('[data-combobox-option-meaning="Piece"]')).toHaveTextContent("Piece");
   });
 
   it("removes collection dropdown behavior instead of hiding it", async () => {

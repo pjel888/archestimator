@@ -313,7 +313,7 @@ function countSyntheticRows(): SyntheticCleanupCounts {
     ) OR actor_user_id IN (
       SELECT id FROM "user" WHERE email LIKE ${sqlValue(emailLike)}
     );
-    SELECT COUNT(*) AS attachments FROM cost_library_item_variant_attachments WHERE storage_bucket = ${sqlValue(R2_LOGICAL_BUCKET)} AND (file_name LIKE ${sqlValue(nameLike)} OR storage_path LIKE ${sqlValue(pathLike)});
+    SELECT COUNT(*) AS attachments FROM component_variant_attachments WHERE storage_bucket = ${sqlValue(R2_LOGICAL_BUCKET)} AND (file_name LIKE ${sqlValue(nameLike)} OR storage_path LIKE ${sqlValue(pathLike)});
   `;
   const results = d1Execute(sql, "count hosted upload UI synthetic rows");
   return {
@@ -347,7 +347,7 @@ function listStaleUploadPaths() {
     WHERE storage_bucket = ${sqlValue(R2_LOGICAL_BUCKET)}
       AND (file_name LIKE ${sqlValue(nameLike)} OR storage_path LIKE ${sqlValue(pathLike)})
     UNION
-    SELECT storage_path AS storagePath FROM cost_library_item_variant_attachments
+    SELECT storage_path AS storagePath FROM component_variant_attachments
     WHERE storage_bucket = ${sqlValue(R2_LOGICAL_BUCKET)}
       AND (file_name LIKE ${sqlValue(nameLike)} OR storage_path LIKE ${sqlValue(pathLike)});
   `;
@@ -371,7 +371,7 @@ function cleanupSyntheticRows(label = "cleanup hosted upload UI synthetic rows")
     )
     OR actor_user_id IN (SELECT id FROM "user" WHERE email LIKE ${sqlValue(emailLike)});
 
-    DELETE FROM cost_library_item_variant_attachments
+    DELETE FROM component_variant_attachments
     WHERE storage_bucket = ${sqlValue(R2_LOGICAL_BUCKET)}
       AND (file_name LIKE ${sqlValue(nameLike)} OR storage_path LIKE ${sqlValue(pathLike)} OR created_by IN (SELECT id FROM "user" WHERE email LIKE ${sqlValue(emailLike)}));
 
@@ -417,7 +417,7 @@ function cleanupExactRows(input: {
        OR (${conditions.assetId ? `upload_asset_id = ${sqlValue(conditions.assetId)}` : "0"})
        OR (${conditions.userId ? `actor_user_id = ${sqlValue(conditions.userId)}` : "0"});
 
-    DELETE FROM cost_library_item_variant_attachments
+    DELETE FROM component_variant_attachments
     WHERE (${conditions.path ? `storage_path = ${sqlValue(conditions.path)}` : "0"})
        OR (${conditions.fileName ? `file_name = ${sqlValue(conditions.fileName)}` : "0"})
        OR (${conditions.userId ? `created_by = ${sqlValue(conditions.userId)}` : "0"});
@@ -782,7 +782,7 @@ function readD1UploadRecord(upload: UploadApiBody, fixtureChecksum: string): D1U
       AND storage_path = ${sqlValue(upload.path ?? null)};
 
     SELECT COUNT(*) AS attachmentRows
-    FROM cost_library_item_variant_attachments
+    FROM component_variant_attachments
     WHERE storage_bucket = ${sqlValue(R2_LOGICAL_BUCKET)}
       AND storage_path = ${sqlValue(upload.path ?? null)};
 

@@ -143,6 +143,34 @@ function parseMetadataJson(value: string | null): Json {
   }
 }
 
+function metadataObject(value: Json) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, Json | undefined>
+    : {};
+}
+
+function metadataString(value: Json, key: string) {
+  const candidate = metadataObject(value)[key];
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null;
+}
+
+function finalizedSessionMetadata(
+  session: UploadSessionForFinalize,
+  metadata: Record<string, Json | undefined> | undefined,
+  providerEtag: string | null,
+) {
+  const sessionMetadata = metadataObject(session.metadata);
+  const projectId = metadataString(session.metadata, "projectId");
+  const projectComponentId = metadataString(session.metadata, "projectComponentId");
+  return JSON.stringify({
+    ...sessionMetadata,
+    ...(metadata ?? {}),
+    providerEtag,
+    ...(projectId ? { projectId } : {}),
+    ...(projectComponentId ? { projectComponentId } : {}),
+  });
+}
+
 function mergeMetadataJson(
   left: Json,
   right: Record<string, Json | undefined> | undefined,
@@ -428,6 +456,45 @@ export async function readUploadSessionForFinalize(
   };
 }
 
+export async function readUploadSessionForActor(
+  db: D1DatabaseLike,
+  input: { uploadSessionId: string; actorUserId: string },
+): Promise<UploadSessionForFinalize | null> {
+  const row = await db
+    .prepare<UploadSessionForFinalizeRow>(
+      `
+        SELECT
+          id,
+          workspace_id,
+          actor_user_id,
+          surface,
+          target_entity_type,
+          target_entity_id,
+          storage_bucket,
+          storage_path,
+          file_name,
+          content_type,
+          size_bytes,
+          checksum_sha256,
+          status,
+          expires_at,
+          metadata_json
+        FROM upload_sessions
+        WHERE id = ?
+          AND actor_user_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(input.uploadSessionId, input.actorUserId)
+    .first<UploadSessionForFinalizeRow>();
+
+  if (!row) return null;
+  return {
+    ...row,
+    metadata: parseMetadataJson(row.metadata_json),
+  };
+}
+
 async function readExistingUploadAsset(db: D1DatabaseLike, uploadSessionId: string) {
   return db
     .prepare<ExistingUploadAssetRow>(
@@ -486,10 +553,11 @@ export async function finalizeUploadSessionAsset(
 
   const now = new Date().toISOString();
   const assetId = randomUUID();
-  const mergedMetadataJson = mergeMetadataJson(session.metadata, input.metadata, {
-    providerEtag: observedEtag,
-  });
+  const mergedMetadataJson = finalizedSessionMetadata(session, input.metadata, observedEtag);
   const finalChecksum = expectedChecksum ?? observedChecksum;
+  const projectId = session.target_entity_type === "project-component"
+    ? metadataString(session.metadata, "projectId")
+    : null;
   const updateResult = await db
     .prepare(
       `
@@ -525,8 +593,12 @@ export async function finalizeUploadSessionAsset(
           id,
           workspace_id,
           actor_user_id,
+          project_id,
+          estimate_id,
           upload_session_id,
           surface,
+          target_entity_type,
+          target_entity_id,
           status,
           file_name,
           content_type,
@@ -540,15 +612,18 @@ export async function finalizeUploadSessionAsset(
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, 'finalized', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+        VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, 'finalized', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
       `,
     )
     .bind(
       assetId,
       session.workspace_id,
       session.actor_user_id,
+      projectId,
       session.id,
       session.surface,
+      session.target_entity_type,
+      session.target_entity_id,
       session.file_name,
       session.content_type,
       session.size_bytes,

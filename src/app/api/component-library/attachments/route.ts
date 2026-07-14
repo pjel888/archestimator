@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
-import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
+import { canAccessProjectInD1, canEditProjectInD1, isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { logAppError } from "@/lib/observability/logger";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
@@ -122,7 +122,12 @@ function isOwnedAttachmentPath(path: string, workspaceId: string, userId: string
 
 type AttachmentDownloadRow = {
   id: string;
+  owner_scope: "library" | "project";
+  item_id: string | null;
+  project_id: string | null;
+  project_component_id: string | null;
   workspace_id: string;
+  upload_asset_id: string | null;
   storage_bucket: string;
   storage_path: string;
   file_name: string;
@@ -147,13 +152,23 @@ type UploadAssetScanRow = {
 type AttachmentDownloadLookupResult = {
   attachment: AttachmentDownloadRow | null;
   lookupFailed: boolean;
-  unavailableReason?: "not_approved";
 };
 
 type AttachmentCleanupRow = {
   storage_path: string | null;
   review_status?: string | null;
   is_current_approved?: boolean | number | null;
+};
+
+type AttachmentCleanupAssetRow = {
+  id: string;
+  storage_path: string;
+};
+
+type AttachmentUploadTarget = {
+  ownerScope: "library" | "project";
+  projectId: string | null;
+  projectComponentId: string | null;
 };
 
 function readStoragePaths(value: unknown) {
@@ -205,8 +220,38 @@ async function canManageLibrary(db: D1DatabaseLike, workspaceId: string, current
   }
 }
 
+function readAttachmentUploadTarget(projectIdValue: unknown, projectComponentIdValue: unknown): AttachmentUploadTarget | null {
+  const projectId = typeof projectIdValue === "string" ? projectIdValue.trim() : "";
+  const projectComponentId = typeof projectComponentIdValue === "string" ? projectComponentIdValue.trim() : "";
+  if (!projectId && !projectComponentId) {
+    return { ownerScope: "library", projectId: null, projectComponentId: null };
+  }
+  if (!isUuid(projectId) || !isUuid(projectComponentId)) return null;
+  return { ownerScope: "project", projectId, projectComponentId };
+}
+
+async function canManageAttachmentTarget(
+  db: D1DatabaseLike,
+  workspaceId: string,
+  currentUser: CurrentUserContext,
+  target: AttachmentUploadTarget,
+) {
+  if (target.ownerScope === "library") return canManageLibrary(db, workspaceId, currentUser);
+  const project = await d1First<{ id: string }>(
+    db,
+    "SELECT id FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",
+    [target.projectId!, workspaceId],
+  ).catch(() => null);
+  return Boolean(project && await canEditProjectInD1(db, target.projectId!, currentUser));
+}
+
 function readApprovedFlag(value: unknown) {
   return value === true || value === 1;
+}
+
+function isAttachmentReviewStateReadable(attachment: AttachmentDownloadRow) {
+  return attachment.review_status === "uploaded"
+    || (attachment.review_status === "approved" && readApprovedFlag(attachment.is_current_approved));
 }
 
 function placeholders(values: readonly unknown[]) {
@@ -237,8 +282,22 @@ async function readAttachmentDownloadRecord(
     data = await d1First<AttachmentDownloadRow>(
       db,
       `
-        SELECT id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved
-        FROM cost_library_item_variant_attachments
+        SELECT
+          id,
+          owner_scope,
+          item_id,
+          project_id,
+          project_component_id,
+          workspace_id,
+          upload_asset_id,
+          storage_bucket,
+          storage_path,
+          file_name,
+          content_type,
+          size_bytes,
+          review_status,
+          is_current_approved
+        FROM component_variant_attachments
         WHERE id = ?
           AND workspace_id = ?
         LIMIT 1
@@ -257,11 +316,14 @@ async function readAttachmentDownloadRecord(
   }
 
   if (!data) return { attachment: null, lookupFailed: false };
-  if (data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET || !ALLOWED_MIME_TYPES.has(data.content_type)) {
+  if (
+    (data.owner_scope === "library" && (!data.item_id || data.project_id || data.project_component_id))
+    || (data.owner_scope === "project" && (!data.project_id || !data.project_component_id || data.item_id))
+  ) {
     return { attachment: null, lookupFailed: false };
   }
-  if (data.review_status !== "approved" || !readApprovedFlag(data.is_current_approved)) {
-    return { attachment: null, lookupFailed: false, unavailableReason: "not_approved" };
+  if (data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET || !ALLOWED_MIME_TYPES.has(data.content_type)) {
+    return { attachment: null, lookupFailed: false };
   }
   return { attachment: data, lookupFailed: false };
 }
@@ -275,12 +337,13 @@ async function readCleanUploadAsset(db: D1DatabaseLike, attachment: AttachmentDo
       `
         SELECT id, upload_session_id, workspace_id, surface, storage_bucket, storage_path, status, scan_status, scan_override_expires_at
         FROM upload_assets
-        WHERE workspace_id = ?
+        WHERE id = ?
+          AND workspace_id = ?
           AND storage_bucket = ?
           AND storage_path = ?
         LIMIT 1
       `,
-      [attachment.workspace_id, COMPONENT_ATTACHMENT_BUCKET, attachment.storage_path],
+      [attachment.upload_asset_id ?? "", attachment.workspace_id, COMPONENT_ATTACHMENT_BUCKET, attachment.storage_path],
     );
   } catch (error) {
     logAppError(error, {
@@ -374,11 +437,53 @@ async function readAttachmentRowsForDelete(db: D1DatabaseLike, workspaceId: stri
     db,
     `
       SELECT storage_path, review_status, is_current_approved
-      FROM cost_library_item_variant_attachments
+      FROM component_variant_attachments
       WHERE workspace_id = ?
         AND storage_path IN (${placeholders(paths)})
     `,
     [workspaceId, ...paths.map(d1Value)],
+  );
+}
+
+async function readDraftAttachmentAssetsForDelete(
+  db: D1DatabaseLike,
+  input: {
+    workspaceId: string;
+    actorUserId: string;
+    paths: string[];
+    target: AttachmentUploadTarget;
+  },
+) {
+  if (input.paths.length === 0) return [];
+  const targetClause = input.target.ownerScope === "project"
+    ? `AND target_entity_type = 'project-component'
+       AND target_entity_id = ?
+       AND json_extract(metadata_json, '$.projectId') = ?`
+    : `AND target_entity_type = 'component-library'
+       AND target_entity_id IS NULL`;
+  const targetValues = input.target.ownerScope === "project"
+    ? [input.target.projectComponentId!, input.target.projectId!]
+    : [];
+  return d1All<AttachmentCleanupAssetRow>(
+    db,
+    `
+      SELECT id, storage_path
+      FROM upload_assets
+      WHERE workspace_id = ?
+        AND actor_user_id = ?
+        AND surface = 'component-attachment'
+        AND storage_bucket = ?
+        AND storage_path IN (${placeholders(input.paths)})
+        AND status IN ('pending', 'finalized')
+        ${targetClause}
+    `,
+    [
+      input.workspaceId,
+      input.actorUserId,
+      COMPONENT_ATTACHMENT_BUCKET,
+      ...input.paths.map(d1Value),
+      ...targetValues,
+    ],
   );
 }
 
@@ -390,20 +495,20 @@ export async function GET(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const metadataDb = await getCloudflareD1Database();
   if (!metadataDb) return uploadMetadataUnavailableResponse();
-  if (!(await canManageLibrary(metadataDb, workspace.id, currentUser))) {
-    return jsonError("Only workspace editors/admins can manage the library.", 403, {
-      "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL,
-    });
-  }
 
   const {
     attachment,
     lookupFailed: attachmentLookupFailed,
-    unavailableReason: attachmentUnavailableReason,
   } = await readAttachmentDownloadRecord(metadataDb, attachmentId, workspace.id);
   if (attachmentLookupFailed) return jsonError("Could not verify attachment.", 500, { "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL });
-  if (attachmentUnavailableReason === "not_approved") return privateAttachmentUnavailable("Attachment is not available until approval is complete.");
   if (!attachment) return privateAttachmentNotFound();
+  const canAccessAttachment = attachment.owner_scope === "project"
+    ? await canAccessProjectInD1(metadataDb, attachment.project_id!, currentUser)
+    : await canManageLibrary(metadataDb, workspace.id, currentUser);
+  if (!canAccessAttachment) return privateAttachmentNotFound();
+  if (!isAttachmentReviewStateReadable(attachment)) {
+    return privateAttachmentUnavailable("Attachment is not available in its current review state.");
+  }
 
   const { uploadAsset, lookupFailed: uploadAssetLookupFailed } = await readCleanUploadAsset(metadataDb, attachment);
   if (uploadAssetLookupFailed) {
@@ -438,8 +543,14 @@ export async function POST(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const uploadMetadataDb = await getCloudflareD1Database();
   if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
-  if (!(await canManageLibrary(uploadMetadataDb, workspace.id, currentUser))) {
-    return jsonError("Only workspace editors/admins can manage the library.", 403);
+
+  const formData = await request.formData();
+  const uploadTarget = readAttachmentUploadTarget(formData.get("projectId"), formData.get("projectComponentId"));
+  if (!uploadTarget) return jsonError("Project component upload target is invalid.");
+  if (!(await canManageAttachmentTarget(uploadMetadataDb, workspace.id, currentUser, uploadTarget))) {
+    return jsonError(uploadTarget.ownerScope === "project"
+      ? "Project edit access is required to upload this attachment."
+      : "Only workspace editors/admins can manage the library.", 403);
   }
 
   const admission = reserveUploadAdmission({ surface: "component-attachment", workspaceId: workspace.id, userId: currentUser.userId, request });
@@ -448,7 +559,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
     const file = formData.get("file");
     if (!(file instanceof File)) return jsonError("Attachment file is required.");
     if (file.size <= 0) return jsonError("Attachment file is empty.");
@@ -485,8 +595,8 @@ export async function POST(request: Request) {
         workspaceId: workspace.id,
         actorUserId: currentUser.userId,
         surface: "component-attachment",
-        targetEntityType: "component-library",
-        targetEntityId: null,
+        targetEntityType: uploadTarget.ownerScope === "project" ? "project-component" : "component-library",
+        targetEntityId: uploadTarget.projectComponentId,
         bucket: COMPONENT_ATTACHMENT_BUCKET,
         path,
         fileName: file.name,
@@ -496,6 +606,8 @@ export async function POST(request: Request) {
         scanStatus: "pending",
         metadata: {
           attachmentKind: extension === "pdf" ? "pdf" : "excel",
+          ...(uploadTarget.projectId ? { projectId: uploadTarget.projectId } : {}),
+          ...(uploadTarget.projectComponentId ? { projectComponentId: uploadTarget.projectComponentId } : {}),
         },
       });
 
@@ -534,11 +646,16 @@ export async function DELETE(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const metadataDb = await getCloudflareD1Database();
   if (!metadataDb) return uploadMetadataUnavailableResponse();
-  if (!(await canManageLibrary(metadataDb, workspace.id, currentUser))) {
-    return jsonError("Only workspace editors/admins can manage the library.", 403);
-  }
 
   const body = await request.json().catch(() => null);
+  const bodyRecord = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {};
+  const uploadTarget = readAttachmentUploadTarget(bodyRecord.projectId, bodyRecord.projectComponentId);
+  if (!uploadTarget) return jsonError("Project component upload target is invalid.");
+  if (!(await canManageAttachmentTarget(metadataDb, workspace.id, currentUser, uploadTarget))) {
+    return jsonError(uploadTarget.ownerScope === "project"
+      ? "Project edit access is required to remove this attachment."
+      : "Only workspace editors/admins can manage the library.", 403);
+  }
   const paths = readStoragePaths(body).filter((path) => isOwnedAttachmentPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");
 
@@ -557,16 +674,55 @@ export async function DELETE(request: Request) {
     return jsonError("Could not verify attachment review state.", 500);
   }
 
-  const reviewedAttachment = attachmentRows.find((row) => readApprovedFlag(row.is_current_approved) || (row.review_status && row.review_status !== "uploaded"));
-  if (reviewedAttachment) {
-    return jsonError("Reviewed Library attachments cannot be removed from draft cleanup.", 409);
+  if (attachmentRows.length > 0) {
+    return jsonError("Persisted component attachments cannot be removed from draft cleanup.", 409);
+  }
+
+  const draftAssets = await readDraftAttachmentAssetsForDelete(metadataDb, {
+    workspaceId: workspace.id,
+    actorUserId: currentUser.userId,
+    paths,
+    target: uploadTarget,
+  }).catch(() => null);
+  if (!draftAssets) return jsonError("Could not verify removable attachment uploads.", 500);
+  const removablePaths = [...new Set(draftAssets.map((asset) => asset.storage_path))];
+  const removableAssetIds = [...new Set(draftAssets.map((asset) => asset.id))];
+  if (removablePaths.length === 0 || removableAssetIds.length === 0) {
+    return jsonError("No removable attachment uploads were found.", 404);
+  }
+
+  try {
+    await metadataDb.prepare(
+      `
+        UPDATE upload_assets
+        SET status = 'removed',
+            updated_at = ?
+        WHERE id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+          AND workspace_id = ?
+          AND status IN ('pending', 'finalized')
+      `,
+    ).bind(
+      new Date().toISOString(),
+      JSON.stringify(removableAssetIds),
+      workspace.id,
+    ).run();
+  } catch (error) {
+    logAppError(error, {
+      event: "component_attachment_cleanup_metadata_error",
+      action: "mark_component_attachment_upload_removed",
+      context: {
+        route: "/api/component-library/attachments",
+        requested_path_count: paths.length,
+      },
+    });
+    return jsonError("Could not update attachment cleanup state.", 500);
   }
 
   const storageProvider = await createRuntimeUploadStorageProvider();
   try {
-    await storageProvider.removeObjects(COMPONENT_ATTACHMENT_BUCKET, paths);
+    await storageProvider.removeObjects(COMPONENT_ATTACHMENT_BUCKET, removablePaths);
   } catch {
     return jsonError("Could not remove uploaded attachment.", 500);
   }
-  return NextResponse.json({ removedPaths: paths });
+  return NextResponse.json({ removedPaths: removablePaths });
 }

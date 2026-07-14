@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 import {
   listEstimateInsertTargets,
@@ -143,6 +144,8 @@ export function InsertIntoEstimatePicker(props: InsertIntoEstimatePickerProps) {
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted }: InsertIntoEstimatePickerProps) {
   const [pickerState, dispatchPicker] = useReducer(insertPickerReducer, getInitialInsertPickerState());
+  const snapshotConfirmationResolverRef = useRef<((confirmed: boolean) => void) | null>(null);
+  const [snapshotUnavailableSourceCount, setSnapshotUnavailableSourceCount] = useState<number | null>(null);
   const {
     targets,
     selectedProjectId,
@@ -168,6 +171,23 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
   useEffect(() => {
     fetchTargets();
   }, [fetchTargets]);
+
+  useEffect(() => () => {
+    snapshotConfirmationResolverRef.current?.(false);
+    snapshotConfirmationResolverRef.current = null;
+  }, []);
+
+  const requestSnapshotConfirmation = useCallback((count: number) => new Promise<boolean>((resolve) => {
+    snapshotConfirmationResolverRef.current?.(false);
+    snapshotConfirmationResolverRef.current = resolve;
+    setSnapshotUnavailableSourceCount(count);
+  }), []);
+  const resolveSnapshotConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = snapshotConfirmationResolverRef.current;
+    snapshotConfirmationResolverRef.current = null;
+    setSnapshotUnavailableSourceCount(null);
+    resolve?.(confirmed);
+  }, []);
 
   const retryLoadTargets = useCallback(() => {
     dispatchPicker({ type: "targets:loading" });
@@ -278,12 +298,19 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
         key: selectedTargetKey,
         resolution: { state: "resolved", target: resolvedTarget },
       });
-      await insertEstimateTemplateIntoEstimate({
+      const insert = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateIntoEstimate({
         projectId: selectedProject.id,
         estimateId: selectedEstimate.id,
         targetParentNodeId: resolvedTarget.targetParentNodeId,
         templateId: template.id,
+        unavailableSourcePolicy,
       });
+      let result = await insert("cancel");
+      if (result.status === "requires_saved_snapshot_confirmation") {
+        if (!await requestSnapshotConfirmation(result.unavailableSourceCount)) return;
+        result = await insert("use_saved_snapshot_unlinked");
+      }
+      if (result.status !== "inserted") return;
       onInserted(selectedEstimate.name);
       onOpenChange(false);
     } catch (error) {
@@ -299,12 +326,14 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     selectedProject,
     selectedTargetKey,
     template.id,
+    requestSnapshotConfirmation,
   ]);
 
   const canSubmit = targetResolution.state === "resolved" && !pending;
 
   return (
-    <Modal
+    <>
+      <Modal
       open={open}
       title="Insert into estimate"
       description={`Choose the estimate that receives "${template.name}".`}
@@ -407,6 +436,21 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
           </Button>
         </div>
       </div>
-    </Modal>
+      </Modal>
+      <ConfirmDialog
+        open={snapshotUnavailableSourceCount !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) resolveSnapshotConfirmation(false);
+        }}
+        title="Use saved template values?"
+        description={`${snapshotUnavailableSourceCount ?? 0} template source ${snapshotUnavailableSourceCount === 1 ? "is" : "are"} unavailable with the saved variant. The saved values can be inserted as unlinked project-specific rows.`}
+        confirmLabel="Insert saved values"
+        cancelLabel="Cancel insert"
+        tone="warning"
+        initialFocus="cancel"
+        onConfirm={() => resolveSnapshotConfirmation(true)}
+        onCancel={() => resolveSnapshotConfirmation(false)}
+      />
+    </>
   );
 }

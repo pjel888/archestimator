@@ -9,6 +9,12 @@ const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
 }));
 
+const authzMocks = vi.hoisted(() => ({
+  canEditProjectInD1: vi.fn(),
+  isWorkspaceEditorInD1: vi.fn(),
+  readProjectFromD1: vi.fn(),
+}));
+
 const workspaceMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
 }));
@@ -22,6 +28,7 @@ const d1Mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/session", () => authMocks);
+vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 vi.mock("@opennextjs/cloudflare", () => cloudflareMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
@@ -29,6 +36,9 @@ vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 const SESSION_ID = "33333333-3333-4333-8333-333333333333";
+const PROJECT_ID = "44444444-4444-4444-8444-444444444444";
+const PROJECT_COMPONENT_ID = "55555555-5555-4555-8555-555555555555";
+const PROJECT_WORKSPACE_ID = "66666666-6666-4666-8666-666666666666";
 
 function createJsonRequest(body: Record<string, unknown>) {
   return new Request("http://localhost/api/component-library/attachments/direct-upload", {
@@ -148,21 +158,24 @@ class FakeD1Statement {
         id: this.values[0],
         workspace_id: this.values[1],
         actor_user_id: this.values[2],
-        upload_session_id: this.values[3],
-        surface: this.values[4],
-        file_name: this.values[5],
-        content_type: this.values[6],
-        size_bytes: this.values[7],
-        checksum_sha256: this.values[8],
-        scan_status: this.values[9],
-        storage_bucket: this.values[10],
-        storage_path: this.values[11],
-        metadata_json: this.values[12],
+        project_id: this.values[3],
+        upload_session_id: this.values[4],
+        surface: this.values[5],
+        target_entity_type: this.values[6],
+        target_entity_id: this.values[7],
+        file_name: this.values[8],
+        content_type: this.values[9],
+        size_bytes: this.values[10],
+        checksum_sha256: this.values[11],
+        scan_status: this.values[12],
+        storage_bucket: this.values[13],
+        storage_path: this.values[14],
+        metadata_json: this.values[15],
       });
       this.database.existingAssetRow = {
         id: this.values[0],
-        upload_session_id: this.values[3],
-        scan_status: this.values[9],
+        upload_session_id: this.values[4],
+        scan_status: this.values[12],
       };
       return { success: true, meta: { changes: 1 } };
     }
@@ -279,6 +292,9 @@ beforeEach(() => {
     profile: { id: USER_ID },
   });
   authMocks.requireCurrentUserContext.mockResolvedValue({ userId: USER_ID });
+  authzMocks.canEditProjectInD1.mockResolvedValue(true);
+  authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
+  authzMocks.readProjectFromD1.mockResolvedValue({ id: PROJECT_ID, workspace_id: PROJECT_WORKSPACE_ID });
   mockUploadMetadataD1();
 });
 
@@ -336,6 +352,53 @@ describe("component attachment signed direct-upload route", () => {
     expect(JSON.stringify(database.insertedSessions)).not.toContain("secret-token");
     expect(JSON.stringify(database.insertedSessions)).not.toContain("signedUrl");
     expect(JSON.stringify(database.insertedSessions)).not.toContain("uploadUrl");
+  });
+
+  it("keeps library direct-upload creation restricted to workspace editors", async () => {
+    const database = mockUploadMetadataD1();
+    authzMocks.isWorkspaceEditorInD1.mockResolvedValue(false);
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "create",
+      fileName: "Library Spec.PDF",
+      contentType: "application/pdf",
+      sizeBytes: 24 * 1024 * 1024,
+    }));
+
+    expect(response.status).toBe(403);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(database, WORKSPACE_ID, { userId: USER_ID });
+    expect(database.insertedSessions).toEqual([]);
+  });
+
+  it("derives a project attachment workspace server-side and reserves an immutable project target", async () => {
+    const database = mockUploadMetadataD1();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "create",
+      workspaceId: WORKSPACE_ID,
+      projectId: PROJECT_ID,
+      projectComponentId: PROJECT_COMPONENT_ID,
+      fileName: "Project Spec.PDF",
+      contentType: "application/pdf",
+      sizeBytes: 24 * 1024 * 1024,
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      path: expect.stringMatching(new RegExp(`^${PROJECT_WORKSPACE_ID}/${USER_ID}/project-spec-`)),
+    });
+    expect(authzMocks.readProjectFromD1).toHaveBeenCalledWith(database, PROJECT_ID);
+    expect(authzMocks.canEditProjectInD1).toHaveBeenCalledWith(database, PROJECT_ID, { userId: USER_ID });
+    expect(workspaceMocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
+    expect(database.insertedSessions).toEqual([expect.objectContaining({
+      workspace_id: PROJECT_WORKSPACE_ID,
+      target_entity_type: "project-component",
+      target_entity_id: PROJECT_COMPONENT_ID,
+      metadata_json: expect.stringContaining(PROJECT_ID),
+    })]);
+    expect(JSON.stringify(database.insertedSessions)).not.toContain(`\"workspaceId\":\"${WORKSPACE_ID}\"`);
   });
 
   it("uploads a reserved single-part session body to Cloudflare R2 through the same-origin PUT URL", async () => {
@@ -614,6 +677,75 @@ describe("component attachment signed direct-upload route", () => {
       upload_session_id: SESSION_ID,
       metadata_json: expect.stringContaining("providerFinalizeProof"),
     })]);
+  });
+
+  it("authorizes finalization from the immutable session target and copies project ownership to the asset", async () => {
+    const storagePath = `${PROJECT_WORKSPACE_ID}/${USER_ID}/project-spec.pdf`;
+    const database = mockUploadMetadataD1({
+      sessionRow: uploadSessionRow({
+        workspace_id: PROJECT_WORKSPACE_ID,
+        target_entity_type: "project-component",
+        target_entity_id: PROJECT_COMPONENT_ID,
+        storage_path: storagePath,
+        metadata_json: JSON.stringify({
+          provider: "cloudflare-r2",
+          uploadMode: "signed_single_part",
+          projectId: PROJECT_ID,
+          projectComponentId: PROJECT_COMPONENT_ID,
+        }),
+      }),
+    });
+    mockR2Storage();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "finalize",
+      uploadSessionId: SESSION_ID,
+      projectId: "77777777-7777-4777-8777-777777777777",
+      projectComponentId: "88888888-8888-4888-8888-888888888888",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(authzMocks.canEditProjectInD1).toHaveBeenCalledWith(database, PROJECT_ID, { userId: USER_ID });
+    expect(workspaceMocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
+    expect(database.insertedAssets).toEqual([expect.objectContaining({
+      workspace_id: PROJECT_WORKSPACE_ID,
+      project_id: PROJECT_ID,
+      target_entity_type: "project-component",
+      target_entity_id: PROJECT_COMPONENT_ID,
+      storage_path: storagePath,
+      metadata_json: expect.stringContaining(PROJECT_COMPONENT_ID),
+    })]);
+    expect(JSON.stringify(database.insertedAssets)).not.toContain("77777777-7777-4777-8777-777777777777");
+    expect(JSON.stringify(database.insertedAssets)).not.toContain("88888888-8888-4888-8888-888888888888");
+  });
+
+  it("blocks project-target finalization when current project edit access is gone", async () => {
+    const database = mockUploadMetadataD1({
+      sessionRow: uploadSessionRow({
+        workspace_id: PROJECT_WORKSPACE_ID,
+        target_entity_type: "project-component",
+        target_entity_id: PROJECT_COMPONENT_ID,
+        metadata_json: JSON.stringify({
+          provider: "cloudflare-r2",
+          uploadMode: "signed_single_part",
+          projectId: PROJECT_ID,
+          projectComponentId: PROJECT_COMPONENT_ID,
+        }),
+      }),
+    });
+    authzMocks.canEditProjectInD1.mockResolvedValue(false);
+    const r2 = mockR2Storage();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "finalize",
+      uploadSessionId: SESSION_ID,
+    }));
+
+    expect(response.status).toBe(403);
+    expect(r2.head).not.toHaveBeenCalled();
+    expect(database.insertedAssets).toEqual([]);
   });
 
   it("refuses legacy provider direct-upload sessions after switching the route to Cloudflare R2", async () => {

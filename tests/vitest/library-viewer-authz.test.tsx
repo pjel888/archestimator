@@ -23,12 +23,22 @@ const authzMocks = vi.hoisted(() => ({
 const cacheMocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
 }));
+const componentRepositoryMocks = vi.hoisted(() => ({
+  getCurrentWorkspaceComponentRowDetail: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("next/cache", () => cacheMocks);
+vi.mock("@/lib/repositories/component-library-repository", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/repositories/component-library-repository")>();
+  return {
+    ...actual,
+    getCurrentWorkspaceComponentRowDetail: componentRepositoryMocks.getCurrentWorkspaceComponentRowDetail,
+  };
+});
 
 const WORKSPACE_ID = "00000000-0000-4000-8000-000000000001";
 const USER_ID = "00000000-0000-4000-8000-000000000002";
@@ -127,6 +137,24 @@ beforeEach(() => {
   authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
   authzMocks.canEditEstimateInD1.mockResolvedValue(true);
   authzMocks.isWorkspaceMemberInD1.mockResolvedValue(true);
+  componentRepositoryMocks.getCurrentWorkspaceComponentRowDetail.mockImplementation(async (itemId: string) => ({
+    id: itemId,
+    material: "Authoritative component",
+    description: "",
+    supplier: "",
+    source: "library",
+    unit: "unit",
+    itemCost: 12.34,
+    quantity: 1,
+    subTotal: 12.34,
+    miscCost: 0,
+    totalItemCosts: 12.34,
+    category: "Hardware",
+    pricingSource: "",
+    pricingDate: "",
+    sourceLibraryItemId: itemId,
+    linkState: "linked-clean",
+  }));
 });
 
 describe("library viewer mutation authorization", () => {
@@ -137,9 +165,13 @@ describe("library viewer mutation authorization", () => {
 
     const libraryMutationAttempts = [
       () => actions.createCostLibraryComponent(validComponentInput),
-      () => actions.updateCostLibraryComponent(COMPONENT_ID, validComponentInput),
-      () => actions.upsertCostLibraryComponentPriceOption(COMPONENT_ID, validComponentInput.priceOptions[0]),
-      () => actions.changeCostLibraryComponentLifecycleState({ itemId: COMPONENT_ID, lifecycleState: "archived" }),
+      () => actions.updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
+        ...validComponentInput,
+        expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+        expectedVersionNumber: 1,
+        expectedComponentImpactFingerprint: "component-impact-fingerprint",
+      }),
+      () => actions.duplicateCostLibraryComponent({ itemId: COMPONENT_ID }),
       () => actions.executeBulkArchiveLibraryComponents({ itemIds: [COMPONENT_ID], expectedPreviewHash: "hash" }),
       () => actions.createEstimateTemplate({ name: "Viewer Template" }),
       () => actions.renameEstimateTemplate({ templateId: TEMPLATE_ID, name: "Viewer Rename" }),
@@ -292,12 +324,11 @@ describe("library viewer mutation authorization", () => {
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("sanitizes non-OpenDesign fields before creating a component through D1", async () => {
+  it("preserves supported component and variant fields while normalizing empty IDs", async () => {
     const d1 = createD1Fixture({
       firstResults: [
         { count: 0 },
-        null,
-        null,
+        { id: FOLDER_ID },
       ],
     });
     const actions = await import("@/lib/component-library/actions");
@@ -355,7 +386,7 @@ describe("library viewer mutation authorization", () => {
     expect(componentInsert?.values[2]).toBe("OpenDesign Component");
     expect(componentInsert?.values[4]).toBe("Hardware");
     expect(componentInsert?.values[5]).toBeNull();
-    expect(componentInsert?.values[6]).toBeNull();
+    expect(componentInsert?.values[6]).toBe(FOLDER_ID);
     expect(componentInsert?.values[8]).toBeNull();
     expect(componentInsert?.values[10]).toBeNull();
 
@@ -364,13 +395,19 @@ describe("library viewer mutation authorization", () => {
     expect(d1.statements.filter((statement) => statement.sql.includes("SELECT metadata_json"))).toHaveLength(0);
     expect(priceOptionInserts[0]?.values[3]).toBe("V1");
     expect(priceOptionInserts[0]?.values[5]).toBe(12.34);
-    expect(priceOptionInserts[0]?.values[6]).toBe(0);
+    expect(priceOptionInserts[0]?.values[6]).toBe(99);
     expect(priceOptionInserts[0]?.values[11]).toBeNull();
-    expect(priceOptionInserts[0]?.values[12]).toBeNull();
+    expect(priceOptionInserts[0]?.values[12]).toBe("Supplier quote");
     expect(JSON.parse(String(priceOptionInserts[0]?.values[13]))).toEqual(expect.objectContaining({
-      packageQuantity: null,
-      packageUnit: null,
-      variantMetadata: {},
+      packageQuantity: 1,
+      packageUnit: "unit",
+      dimensionLength: 1,
+      dimensionWidth: 2,
+      dimensionHeight: 3,
+      dimensionUnit: "m",
+      mass: 4,
+      massUnit: "kg",
+      variantMetadata: { legacy: true },
     }));
     expect(JSON.parse(String(priceOptionInserts[1]?.values[13]))).toEqual(expect.objectContaining({
       packageQuantity: 12,

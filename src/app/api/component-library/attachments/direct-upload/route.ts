@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
+import { canEditProjectInD1, isWorkspaceEditorInD1, readProjectFromD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { logAppError } from "@/lib/observability/logger";
@@ -10,8 +11,9 @@ import {
   finalizeUploadSessionAsset,
   isUploadSessionCapacityExceededError,
   readActiveUploadSessionCapacity,
-  readUploadSessionForFinalize,
+  readUploadSessionForActor,
   recordPendingUploadSession,
+  type UploadSessionForFinalize,
 } from "@/lib/uploads/direct-upload-records";
 import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
 import { reportUploadAdmissionRejected } from "@/lib/uploads/operational-telemetry";
@@ -45,6 +47,15 @@ const EXTENSION_BY_MIME_TYPE = new Map([
   ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
 ]);
 
+type AttachmentUploadTarget = {
+  ownerScope: "library" | "project";
+  workspaceId: string;
+  targetEntityType: "component-library" | "project-component";
+  targetEntityId: string | null;
+  projectId: string | null;
+  projectComponentId: string | null;
+};
+
 function jsonError(message: string, status = 400, headers?: HeadersInit) {
   return NextResponse.json({ error: message }, { status, headers });
 }
@@ -73,6 +84,123 @@ function storageProviderFromSessionMetadata(metadata: unknown) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
   const provider = (metadata as { provider?: unknown }).provider;
   return typeof provider === "string" ? provider : null;
+}
+
+function stringFromSessionMetadata(metadata: unknown, key: string) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function optionalUuid(value: unknown) {
+  if (value === undefined || value === null || value === "") return { valid: true, value: null } as const;
+  if (typeof value !== "string") return { valid: false, value: null } as const;
+  const normalized = value.trim();
+  if (!normalized) return { valid: true, value: null } as const;
+  return isUuid(normalized)
+    ? { valid: true, value: normalized } as const
+    : { valid: false, value: null } as const;
+}
+
+function readRequestedProjectTarget(body: Record<string, unknown> | null) {
+  const projectId = optionalUuid(body?.projectId);
+  const projectComponentId = optionalUuid(body?.projectComponentId);
+  if (!projectId.valid || !projectComponentId.valid) return null;
+  if (Boolean(projectId.value) !== Boolean(projectComponentId.value)) return null;
+  return {
+    projectId: projectId.value,
+    projectComponentId: projectComponentId.value,
+  };
+}
+
+async function resolveCreateUploadTarget(
+  db: D1DatabaseLike,
+  currentUser: CurrentUserContext,
+  body: Record<string, unknown> | null,
+): Promise<{ target: AttachmentUploadTarget; response?: never } | { target?: never; response: Response }> {
+  const requestedTarget = readRequestedProjectTarget(body);
+  if (!requestedTarget) {
+    return { response: jsonError("Project component upload target is invalid.") };
+  }
+
+  if (!requestedTarget.projectId || !requestedTarget.projectComponentId) {
+    const { workspace } = await ensureDefaultWorkspace();
+    const canManageLibrary = await isWorkspaceEditorInD1(db, workspace.id, currentUser);
+    if (!canManageLibrary) {
+      return { response: jsonError("Only workspace editors/admins can manage the library.", 403) };
+    }
+    return {
+      target: {
+        ownerScope: "library",
+        workspaceId: workspace.id,
+        targetEntityType: "component-library",
+        targetEntityId: null,
+        projectId: null,
+        projectComponentId: null,
+      },
+    };
+  }
+
+  const project = await readProjectFromD1(db, requestedTarget.projectId).catch(() => null);
+  const canEditProject = project
+    ? await canEditProjectInD1(db, requestedTarget.projectId, currentUser)
+    : false;
+  if (!project || !canEditProject) {
+    return { response: jsonError("Project edit access is required to upload this attachment.", 403) };
+  }
+
+  return {
+    target: {
+      ownerScope: "project",
+      workspaceId: project.workspace_id,
+      targetEntityType: "project-component",
+      targetEntityId: requestedTarget.projectComponentId,
+      projectId: requestedTarget.projectId,
+      projectComponentId: requestedTarget.projectComponentId,
+    },
+  };
+}
+
+function readSessionUploadTarget(session: UploadSessionForFinalize): AttachmentUploadTarget | null {
+  if (session.target_entity_type === "component-library") {
+    if (session.target_entity_id?.trim()) return null;
+    return {
+      ownerScope: "library",
+      workspaceId: session.workspace_id,
+      targetEntityType: "component-library",
+      targetEntityId: null,
+      projectId: null,
+      projectComponentId: null,
+    };
+  }
+
+  if (session.target_entity_type !== "project-component") return null;
+  const projectId = stringFromSessionMetadata(session.metadata, "projectId");
+  const projectComponentId = session.target_entity_id?.trim() ?? "";
+  const metadataProjectComponentId = stringFromSessionMetadata(session.metadata, "projectComponentId");
+  if (!projectId || !isUuid(projectId) || !isUuid(projectComponentId)) return null;
+  if (metadataProjectComponentId && metadataProjectComponentId !== projectComponentId) return null;
+  return {
+    ownerScope: "project",
+    workspaceId: session.workspace_id,
+    targetEntityType: "project-component",
+    targetEntityId: projectComponentId,
+    projectId,
+    projectComponentId,
+  };
+}
+
+async function canManageUploadTarget(
+  db: D1DatabaseLike,
+  currentUser: CurrentUserContext,
+  target: AttachmentUploadTarget,
+) {
+  if (target.ownerScope === "library") {
+    return isWorkspaceEditorInD1(db, target.workspaceId, currentUser);
+  }
+  const project = await readProjectFromD1(db, target.projectId!).catch(() => null);
+  if (!project || project.workspace_id !== target.workspaceId) return false;
+  return canEditProjectInD1(db, target.projectId!, currentUser);
 }
 
 async function readJsonBody(request: Request) {
@@ -194,48 +322,54 @@ async function recordPendingDirectUploadSession(
 
 async function createSignedUpload(
   request: Request,
-  workspaceId: string,
-  userId: string,
+  currentUser: CurrentUserContext,
   body: Record<string, unknown> | null,
 ) {
+  const userId = currentUser.userId;
+  const fileName = typeof body?.fileName === "string" ? body.fileName.trim() : "";
+  const contentType = typeof body?.contentType === "string" ? body.contentType.trim() : "";
+  const sizeBytes = readSizeBytes(body?.sizeBytes);
+  const checksumSha256 = normalizeChecksumSha256(body?.checksumSha256);
+
+  if (!fileName) return jsonError("Attachment file name is required.");
+  if (!ALLOWED_MIME_TYPES.has(contentType)) return jsonError("Use a PDF, XLS, or XLSX attachment.");
+  if (sizeBytes === null) return jsonError("Attachment size is required.");
+  if (checksumSha256 && typeof checksumSha256 === "object") return jsonError(checksumSha256.error);
+
+  const strategy = chooseUploadSessionStrategy({
+    surface: "component-attachment",
+    sizeBytes,
+    multipartThresholdBytes: MULTIPART_THRESHOLD_BYTES,
+  });
+  if (strategy.kind === "server_mediated") {
+    return jsonError("Use the standard attachment upload for files up to 20 MB.", 409);
+  }
+  if (strategy.kind === "rejected") {
+    return jsonError("Attachment upload is too large or missing required size information.", 413);
+  }
+
+  if (!isCloudflareR2RuntimeSelected()) {
+    return directUploadStorageProviderUnsupportedResponse();
+  }
+  if (strategy.kind === "multipart_resumable") {
+    return jsonError("Resumable attachment uploads need Cloudflare R2 multipart support before they can be enabled.", 501);
+  }
+
+  const extension = EXTENSION_BY_MIME_TYPE.get(contentType);
+  if (!extension) return jsonError("Use a PDF, XLS, or XLSX attachment.");
+
+  const db = await openUploadMetadataDatabase();
+  if (!db) return directUploadMetadataUnavailableResponse();
+  const targetResult = await resolveCreateUploadTarget(db, currentUser, body);
+  if (!targetResult.target) return targetResult.response;
+  const target = targetResult.target;
+  const workspaceId = target.workspaceId;
   const admission = reserveUploadAdmission({ surface: "component-attachment", workspaceId, userId, request });
   if (!admission.allowed) {
     return jsonError(admission.message, 429, { "Retry-After": String(admission.retryAfter) });
   }
 
   try {
-    const fileName = typeof body?.fileName === "string" ? body.fileName.trim() : "";
-    const contentType = typeof body?.contentType === "string" ? body.contentType.trim() : "";
-    const sizeBytes = readSizeBytes(body?.sizeBytes);
-    const checksumSha256 = normalizeChecksumSha256(body?.checksumSha256);
-
-    if (!fileName) return jsonError("Attachment file name is required.");
-    if (!ALLOWED_MIME_TYPES.has(contentType)) return jsonError("Use a PDF, XLS, or XLSX attachment.");
-    if (sizeBytes === null) return jsonError("Attachment size is required.");
-    if (checksumSha256 && typeof checksumSha256 === "object") return jsonError(checksumSha256.error);
-
-    const strategy = chooseUploadSessionStrategy({
-      surface: "component-attachment",
-      sizeBytes,
-      multipartThresholdBytes: MULTIPART_THRESHOLD_BYTES,
-    });
-    if (strategy.kind === "server_mediated") {
-      return jsonError("Use the standard attachment upload for files up to 20 MB.", 409);
-    }
-    if (strategy.kind === "rejected") {
-      return jsonError("Attachment upload is too large or missing required size information.", 413);
-    }
-
-    if (!isCloudflareR2RuntimeSelected()) {
-      return directUploadStorageProviderUnsupportedResponse();
-    }
-    if (strategy.kind === "multipart_resumable") {
-      return jsonError("Resumable attachment uploads need Cloudflare R2 multipart support before they can be enabled.", 501);
-    }
-
-    const extension = EXTENSION_BY_MIME_TYPE.get(contentType);
-    if (!extension) return jsonError("Use a PDF, XLS, or XLSX attachment.");
-
     const path = buildUploadObjectKey({
       surface: "component-attachment",
       workspaceId,
@@ -243,9 +377,6 @@ async function createSignedUpload(
       fileName,
       extension,
     });
-    const db = await openUploadMetadataDatabase();
-    if (!db) return directUploadMetadataUnavailableResponse();
-
     const durableCapacity = await checkDurableDirectUploadCapacity(db, { workspaceId, userId });
     if (!durableCapacity.allowed) {
       return durableCapacity.response;
@@ -256,8 +387,8 @@ async function createSignedUpload(
       workspaceId,
       actorUserId: userId,
       surface: "component-attachment",
-      targetEntityType: "component-library",
-      targetEntityId: null,
+      targetEntityType: target.targetEntityType,
+      targetEntityId: target.targetEntityId,
       bucket: COMPONENT_ATTACHMENT_BUCKET,
       path,
       fileName,
@@ -269,6 +400,8 @@ async function createSignedUpload(
         provider: CLOUDFLARE_R2_PROVIDER,
         uploadMode: "signed_single_part",
         route: "component-attachment-direct-upload",
+        ...(target.projectId ? { projectId: target.projectId } : {}),
+        ...(target.projectComponentId ? { projectComponentId: target.projectComponentId } : {}),
       },
     });
     if (!pendingSessionResult.ok) return pendingSessionResult.response;
@@ -296,18 +429,27 @@ async function createSignedUpload(
   }
 }
 
-async function finalizeSignedUpload(workspaceId: string, userId: string, body: Record<string, unknown> | null) {
+async function finalizeSignedUpload(currentUser: CurrentUserContext, body: Record<string, unknown> | null) {
   const uploadSessionId = typeof body?.uploadSessionId === "string" ? body.uploadSessionId.trim() : "";
   if (!isUuid(uploadSessionId)) return jsonError("Upload session is required.");
 
   const db = await openUploadMetadataDatabase();
   if (!db) return directUploadMetadataUnavailableResponse();
 
-  const session = await readUploadSessionForFinalize(db, { uploadSessionId, workspaceId, actorUserId: userId });
+  const session = await readUploadSessionForActor(db, { uploadSessionId, actorUserId: currentUser.userId });
   if (!session) return jsonError("Upload session could not be found.", 404);
   if (session.surface !== "component-attachment" || session.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET) {
     return jsonError("Upload session does not match component attachments.", 409);
   }
+  const uploadTarget = readSessionUploadTarget(session);
+  if (!uploadTarget) return jsonError("Upload session target is invalid.", 409);
+  if (!(await canManageUploadTarget(db, currentUser, uploadTarget))) {
+    return jsonError(uploadTarget.ownerScope === "project"
+      ? "Project edit access is required to upload this attachment."
+      : "Only workspace editors/admins can manage the library.", 403);
+  }
+  const workspaceId = session.workspace_id;
+  const userId = currentUser.userId;
   if (session.status === "failed" || session.status === "expired" || session.status === "deleted") {
     return jsonError("Upload session is no longer active.", 409);
   }
@@ -413,7 +555,7 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
   });
 }
 
-async function uploadToCloudflareR2(request: Request, workspaceId: string, userId: string) {
+async function uploadToCloudflareR2(request: Request, currentUser: CurrentUserContext) {
   if (!isCloudflareR2RuntimeSelected()) {
     return directUploadStorageProviderUnsupportedResponse();
   }
@@ -424,10 +566,17 @@ async function uploadToCloudflareR2(request: Request, workspaceId: string, userI
   const db = await openUploadMetadataDatabase();
   if (!db) return directUploadMetadataUnavailableResponse();
 
-  const session = await readUploadSessionForFinalize(db, { uploadSessionId, workspaceId, actorUserId: userId });
+  const session = await readUploadSessionForActor(db, { uploadSessionId, actorUserId: currentUser.userId });
   if (!session) return jsonError("Upload session could not be found.", 404);
   if (session.surface !== "component-attachment" || session.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET) {
     return jsonError("Upload session does not match component attachments.", 409);
+  }
+  const uploadTarget = readSessionUploadTarget(session);
+  if (!uploadTarget) return jsonError("Upload session target is invalid.", 409);
+  if (!(await canManageUploadTarget(db, currentUser, uploadTarget))) {
+    return jsonError(uploadTarget.ownerScope === "project"
+      ? "Project edit access is required to upload this attachment."
+      : "Only workspace editors/admins can manage the library.", 403);
   }
   if (storageProviderFromSessionMetadata(session.metadata) !== CLOUDFLARE_R2_PROVIDER) {
     return directUploadStorageProviderUnsupportedResponse();
@@ -481,24 +630,14 @@ async function uploadToCloudflareR2(request: Request, workspaceId: string, userI
 }
 
 export async function POST(request: Request) {
-  const [workspaceBootstrap, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const { workspace, profile } = workspaceBootstrap;
-  if (profile?.id && profile.id !== currentUser.userId) {
-    return jsonError("Only workspace editors/admins can manage the library.", 403);
-  }
-
+  const currentUser = await requireCurrentUserContext();
   const body = await readJsonBody(request);
-  if (body?.action === "create") return createSignedUpload(request, workspace.id, currentUser.userId, body);
-  if (body?.action === "finalize") return finalizeSignedUpload(workspace.id, currentUser.userId, body);
+  if (body?.action === "create") return createSignedUpload(request, currentUser, body);
+  if (body?.action === "finalize") return finalizeSignedUpload(currentUser, body);
   return jsonError("Unsupported direct upload action.");
 }
 
 export async function PUT(request: Request) {
-  const [workspaceBootstrap, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const { workspace, profile } = workspaceBootstrap;
-  if (profile?.id && profile.id !== currentUser.userId) {
-    return jsonError("Only workspace editors/admins can manage the library.", 403);
-  }
-
-  return uploadToCloudflareR2(request, workspace.id, currentUser.userId);
+  const currentUser = await requireCurrentUserContext();
+  return uploadToCloudflareR2(request, currentUser);
 }

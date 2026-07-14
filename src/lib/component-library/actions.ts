@@ -28,6 +28,7 @@ import {
 import { getProjectComponentRowsLibrary } from "@/lib/component-library/project-component-projection";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import type { EstimateRowItem } from "@/lib/estimates/types";
+import type { EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import {
   ensureDefaultWorkspace,
   listCurrentWorkspaceProjects,
@@ -55,7 +56,6 @@ import {
 } from "./quick-add-validation";
 import { recordLibraryEvent, sanitizeLibraryTelemetryRecord, type LibraryTelemetryRecord } from "./library-telemetry";
 import { readComponentSourceUrlInput } from "./source-url";
-import { unitUsesContentConversion } from "./unit-options";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 type CurrentUserForD1 = Awaited<ReturnType<typeof requireCurrentUserContext>>;
@@ -94,28 +94,6 @@ type ComponentItemD1Row = {
   updated_at: string;
 };
 
-type LibraryComponentProjectionD1Row = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  category_node_id: string | null;
-  supplier: string | null;
-  supplier_id: string | null;
-  brand: string | null;
-  brand_id: string | null;
-  unit: string;
-  unit_cost: number | string | null;
-  misc_cost: number | string | null;
-  lifecycle_state: ComponentLifecycleState | string;
-  current_version_number: number | string | null;
-  active_price_option_id: string | null;
-  pricing_source: string | null;
-  pricing_date: string | null;
-  thumbnail_path: string | null;
-  updated_at: string;
-};
-
 type LibraryPriceOptionProjectionD1Row = {
   id: string;
   label: string;
@@ -127,12 +105,20 @@ type LibraryPriceOptionProjectionD1Row = {
   is_default: number | boolean;
   pricing_source: string | null;
   metadata_json: string | null;
+  updated_at: string;
 };
 
 export type LibraryComponentInstanceSyncResult = {
   affectedEstimates: Array<{ projectId: string; estimateId: string }>;
   rowRevisions: Record<string, number>;
+  rowPatches: Record<string, EstimateRowItemPatch>;
   updatedRowCount: number;
+};
+
+export type CostLibraryComponentEditorDetail = {
+  component: EstimateRowItem;
+  expectedComponentImpactFingerprint: string;
+  optionUsageCounts: Record<string, number>;
 };
 
 function nowIso() {
@@ -286,12 +272,14 @@ export type ComponentVariantCostEntryInput = {
 
 export type ComponentVariantAttachmentInput = {
   id?: string;
+  assetId?: string | null;
   bucket: string;
   path: string;
   fileName: string;
   contentType: string;
   sizeBytes: number;
   kind?: "pdf" | "excel";
+  scanStatus?: string | null;
   metadata?: Json;
 };
 
@@ -319,23 +307,17 @@ export type CostLibraryComponentInput = {
 };
 
 export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
-  fieldContract?: "opendesign-add-component";
   priceOptions: ComponentPriceOptionInput[];
-};
-
-export type UpdateCostLibraryComponentInput = CostLibraryComponentInput & {
-  expectedUpdatedAt: string;
-  expectedVersionNumber: number;
-  expectedComponentImpactFingerprint?: string;
 };
 
 export type UpdateCostLibraryComponentWithPriceOptionsInput = CreateCostLibraryComponentInput & {
   expectedUpdatedAt: string;
   expectedVersionNumber: number;
+  expectedComponentImpactFingerprint: string;
+  removedPriceOptionReplacements?: Record<string, string>;
 };
 
 export type SaveCostLibraryComponentDraftInput = {
-  fieldContract?: "opendesign-add-component";
   title?: string | null;
   draft: unknown;
 };
@@ -393,47 +375,103 @@ function readBoolean(value: unknown) {
   return value === true || value === 1 || value === "1";
 }
 
-function projectLibraryPriceOptions(rows: LibraryPriceOptionProjectionD1Row[]) {
-  return rows.map((row) => {
-    const metadata = readJsonRecord(row.metadata_json);
-    return {
-      ...metadata,
-      id: row.id,
-      label: row.label,
-      unit: row.unit,
-      unitCost: numberValue(row.unit_cost),
-      miscCost: numberValue(row.misc_cost),
-      currency: row.currency,
-      isActive: readBoolean(row.is_active),
-      isDefault: readBoolean(row.is_default),
-      pricingSource: row.pricing_source ?? (typeof metadata.pricingSource === "string" ? metadata.pricingSource : null),
-      pricingDate: typeof metadata.pricingDate === "string" ? metadata.pricingDate : null,
-      thumbnailPath: typeof metadata.thumbnailPath === "string" ? metadata.thumbnailPath : null,
-    };
-  });
-}
-
 type LinkedEstimateRowTarget = {
   row_id: string;
   row_revision: number | string;
   project_id: string;
   estimate_id: string;
+  link_state: string | null;
+  selected_price_option_id: string | null;
+  source_snapshot_json: string | null;
+  metadata_json: string | null;
+};
+
+type ComponentPriceOptionImpactRow = {
+  id: string;
+  updated_at: string;
+  is_active: number | boolean;
+  is_default: number | boolean;
+};
+
+type LibraryComponentSyncOption = {
+  id: string;
+  label: string;
+  variantDescription: string;
+  sku: string | null;
+  unit: string;
+  unitCost: number;
+  miscCost: number;
+  currency: string;
+  pricingSource: string | null;
+  pricingDate: string | null;
+  sourceUrl: string | null;
+  thumbnailPath: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+  snapshot: Record<string, Json | undefined>;
+};
+
+type LinkedEstimateRowSyncPlan = {
+  rowId: string;
+  expectedRowRevision: number;
+  projectId: string;
+  estimateId: string;
+  isOverridden: boolean;
+  material: string;
+  description: string;
+  supplier: string | null;
+  supplierId: string | null;
+  unit: string;
+  unitCost: number;
+  categoryNodeId: string | null;
+  sourceSnapshot: Record<string, Json | undefined>;
+  metadata: Record<string, Json | undefined>;
+  patch: EstimateRowItemPatch;
 };
 
 const STALE_COMPONENT_IMPACT_ERROR = "Component usage changed while this edit was open. Review the latest impact and try again.";
 
-function buildLinkedEstimateRowsRevisionFingerprint(rows: LinkedEstimateRowTarget[]) {
-  return [...rows]
+function buildLinkedEstimateRowsRevisionFingerprint(
+  rows: LinkedEstimateRowTarget[],
+  priceOptions: ComponentPriceOptionImpactRow[],
+) {
+  const rowFingerprint = [...rows]
     .sort((left, right) => left.row_id.localeCompare(right.row_id))
-    .map((row) => `${row.row_id}:${numberValue(row.row_revision, 1)}`)
+    .map((row) => [
+      row.row_id,
+      numberValue(row.row_revision, 1),
+      row.link_state ?? "linked-clean",
+      row.selected_price_option_id ?? "",
+    ].join(":"))
     .join("|");
+  const optionFingerprint = [...priceOptions]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((option) => [
+      option.id,
+      option.updated_at,
+      boolInt(readBoolean(option.is_active)),
+      boolInt(readBoolean(option.is_default)),
+    ].join(":"))
+    .join("|");
+  return `rows[${rowFingerprint}]|options[${optionFingerprint}]`;
 }
 
 async function listLinkedEstimateRowTargets(database: D1DatabaseLike, workspaceId: string, itemId: string) {
   return all<LinkedEstimateRowTarget>(
     database,
     `
-      SELECT row_item.id AS row_id, row_item.row_revision, project.id AS project_id, estimate.id AS estimate_id
+      SELECT
+        row_item.id AS row_id,
+        row_item.row_revision,
+        project.id AS project_id,
+        estimate.id AS estimate_id,
+        row_item.link_state,
+        COALESCE(
+          NULLIF(json_extract(row_item.source_snapshot_json, '$.priceOptionId'), ''),
+          NULLIF(json_extract(row_item.metadata_json, '$.priceOptionId'), '')
+        ) AS selected_price_option_id,
+        row_item.source_snapshot_json,
+        row_item.metadata_json
       FROM estimate_row_items row_item
       INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
       INNER JOIN projects project ON project.id = estimate.project_id
@@ -446,6 +484,20 @@ async function listLinkedEstimateRowTargets(database: D1DatabaseLike, workspaceI
   );
 }
 
+async function listComponentPriceOptionImpactRows(database: D1DatabaseLike, workspaceId: string, itemId: string) {
+  return all<ComponentPriceOptionImpactRow>(
+    database,
+    `
+      SELECT id, updated_at, is_active, is_default
+      FROM cost_library_item_price_options
+      WHERE workspace_id = ?
+        AND item_id = ?
+      ORDER BY id
+    `,
+    [workspaceId, itemId],
+  );
+}
+
 function buildLinkedEstimateRowsRevisionGuardStatement(input: {
   workspaceId: string;
   itemId: string;
@@ -453,10 +505,19 @@ function buildLinkedEstimateRowsRevisionGuardStatement(input: {
 }) {
   return {
     sql: `
-      SELECT CASE WHEN COALESCE((
+      SELECT CASE WHEN (
+        'rows[' || COALESCE((
         SELECT GROUP_CONCAT(component_revision, '|')
         FROM (
-          SELECT row_item.id || ':' || CAST(row_item.row_revision AS TEXT) AS component_revision
+          SELECT
+            row_item.id || ':' ||
+            CAST(row_item.row_revision AS TEXT) || ':' ||
+            COALESCE(row_item.link_state, 'linked-clean') || ':' ||
+            COALESCE(
+              NULLIF(json_extract(row_item.source_snapshot_json, '$.priceOptionId'), ''),
+              NULLIF(json_extract(row_item.metadata_json, '$.priceOptionId'), ''),
+              ''
+            ) AS component_revision
           FROM estimate_row_items row_item
           INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
           INNER JOIN projects project ON project.id = estimate.project_id
@@ -465,43 +526,103 @@ function buildLinkedEstimateRowsRevisionGuardStatement(input: {
             AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
           ORDER BY row_item.id
         )
-      ), '') = ? THEN 1 ELSE json('') END AS component_impact_guard
+      ), '') || ']|options[' || COALESCE((
+        SELECT GROUP_CONCAT(option_revision, '|')
+        FROM (
+          SELECT
+            option_row.id || ':' || option_row.updated_at || ':' ||
+            CAST(option_row.is_active AS TEXT) || ':' || CAST(option_row.is_default AS TEXT) AS option_revision
+          FROM cost_library_item_price_options option_row
+          WHERE option_row.workspace_id = ?
+            AND option_row.item_id = ?
+          ORDER BY option_row.id
+        )
+      ), '') || ']'
+      ) = ? THEN 1 ELSE json('') END AS component_impact_guard
     `,
-    values: [input.workspaceId, input.itemId, input.expectedFingerprint] as D1Value[],
+    values: [
+      input.workspaceId,
+      input.itemId,
+      input.workspaceId,
+      input.itemId,
+      input.expectedFingerprint,
+    ] as D1Value[],
   };
 }
 
 function buildLinkedEstimateRowsSyncStatement(input: {
   workspaceId: string;
   itemId: string;
-  material: string;
-  description: string;
-  supplier: string | null;
-  supplierId: string | null;
-  unit: string;
-  unitCost: number;
-  categoryNodeId: string | null;
-  sourceSnapshot: Record<string, unknown>;
-  metadata: Record<string, unknown>;
+  rowPlans: LinkedEstimateRowSyncPlan[];
   updatedAt: string;
 }) {
+  const serializedPlans = input.rowPlans.map((plan) => ({
+    rowId: plan.rowId,
+    expectedRowRevision: plan.expectedRowRevision,
+    isOverridden: plan.isOverridden,
+    material: plan.material,
+    description: plan.description,
+    supplier: plan.supplier,
+    supplierId: plan.supplierId,
+    unit: plan.unit,
+    unitCost: plan.unitCost,
+    categoryNodeId: plan.categoryNodeId,
+    sourceSnapshot: plan.sourceSnapshot,
+    metadata: plan.metadata,
+  }));
   return {
     sql: `
+      WITH sync_rows AS (
+        SELECT value AS sync_row
+        FROM json_each(?)
+      )
       UPDATE estimate_row_items
-      SET material = ?,
-          description = ?,
-          supplier = ?,
-          supplier_id = ?,
-          unit = ?,
-          unit_cost = ?,
-          category_node_id = ?,
-          source_snapshot_json = json_patch(COALESCE(source_snapshot_json, '{}'), ?),
-          metadata_json = json_patch(COALESCE(metadata_json, '{}'), ?),
-          link_state = 'linked-clean',
+      SET material = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN material
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.material')
+          END,
+          description = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN description
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.description')
+          END,
+          supplier = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN supplier
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.supplier')
+          END,
+          supplier_id = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN supplier_id
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.supplierId')
+          END,
+          unit = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN unit
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.unit')
+          END,
+          unit_cost = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN unit_cost
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.unitCost')
+          END,
+          category_node_id = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN category_node_id
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.categoryNodeId')
+          END,
+          source_snapshot_json = json_extract(
+            (SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id),
+            '$.sourceSnapshot'
+          ),
+          metadata_json = json_extract(
+            (SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id),
+            '$.metadata'
+          ),
           row_revision = row_revision + 1,
           updated_at = ?
       WHERE source_library_item_id = ?
-        AND (link_state IS NULL OR link_state NOT IN ('detached', 'unlinked'))
+        AND (link_state IS NULL OR link_state IN ('linked-clean', 'linked-overridden'))
+        AND EXISTS (
+          SELECT 1
+          FROM sync_rows
+          WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id
+            AND json_extract(sync_row, '$.expectedRowRevision') = estimate_row_items.row_revision
+        )
         AND estimate_id IN (
           SELECT estimate.id
           FROM estimates estimate
@@ -511,15 +632,7 @@ function buildLinkedEstimateRowsSyncStatement(input: {
       RETURNING id, row_revision
     `,
     values: [
-      input.material,
-      input.description,
-      input.supplier,
-      input.supplierId,
-      input.unit,
-      input.unitCost,
-      input.categoryNodeId,
-      jsonText(input.sourceSnapshot),
-      jsonText(input.metadata),
+      jsonText(serializedPlans, []),
       input.updatedAt,
       input.itemId,
       input.workspaceId,
@@ -527,21 +640,201 @@ function buildLinkedEstimateRowsSyncStatement(input: {
   };
 }
 
+function buildLibraryComponentSyncOption(input: {
+  id: string;
+  label: string;
+  unit: string;
+  unitCost: number;
+  miscCost: number;
+  currency: string;
+  isActive: boolean;
+  isDefault: boolean;
+  pricingSource: string | null;
+  pricingDate: string | null;
+  thumbnailPath: string | null;
+  snapshot: Record<string, unknown>;
+}): LibraryComponentSyncOption {
+  const snapshot = readJsonRecord(input.snapshot);
+  const rowSafeSnapshot = { ...snapshot };
+  delete rowSafeSnapshot.attachments;
+  delete rowSafeSnapshot.imageBucket;
+  delete rowSafeSnapshot.imageMetadata;
+  delete rowSafeSnapshot.imagePath;
+  return {
+    id: input.id,
+    label: input.label,
+    variantDescription: typeof snapshot.variantDescription === "string" ? snapshot.variantDescription : "",
+    sku: typeof snapshot.sku === "string" ? snapshot.sku : null,
+    unit: input.unit,
+    unitCost: input.unitCost,
+    miscCost: input.miscCost,
+    currency: input.currency,
+    pricingSource: input.pricingSource,
+    pricingDate: input.pricingDate,
+    sourceUrl: typeof snapshot.sourceUrl === "string" ? snapshot.sourceUrl : null,
+    thumbnailPath: input.thumbnailPath,
+    isActive: input.isActive,
+    isDefault: input.isDefault,
+    snapshot: { ...rowSafeSnapshot, id: input.id },
+  };
+}
+
+function buildLinkedEstimateRowSyncPlans(input: {
+  rows: LinkedEstimateRowTarget[];
+  itemId: string;
+  material: string;
+  componentDescription: string;
+  category: string;
+  categoryNodeId: string | null;
+  brand: string | null;
+  brandId: string | null;
+  supplier: string | null;
+  supplierId: string | null;
+  lifecycleState: ComponentLifecycleState;
+  componentVersionNumber: number;
+  componentThumbnailPath: string | null;
+  priceOptions: LibraryComponentSyncOption[];
+  defaultPriceOptionId: string;
+  removedPriceOptionReplacements?: Record<string, string>;
+  updatedAt: string;
+}) {
+  const activeOptions = input.priceOptions.filter((option) => option.isActive);
+  const optionById = new Map(activeOptions.map((option) => [option.id, option]));
+  const defaultOption = optionById.get(input.defaultPriceOptionId)
+    ?? activeOptions.find((option) => option.isDefault)
+    ?? activeOptions[0];
+  if (!defaultOption) throw new Error("At least one active component variant is required.");
+  const catalogue = activeOptions.map((option) => option.snapshot);
+  const plans: LinkedEstimateRowSyncPlan[] = [];
+
+  for (const row of input.rows) {
+    if (row.link_state && !["linked-clean", "linked-overridden"].includes(row.link_state)) continue;
+    const previousSelectedId = row.selected_price_option_id;
+    const replacementId = previousSelectedId
+      ? input.removedPriceOptionReplacements?.[previousSelectedId]
+      : undefined;
+    const selectedOption = (previousSelectedId ? optionById.get(previousSelectedId) : null)
+      ?? (replacementId ? optionById.get(replacementId) : null)
+      ?? (!previousSelectedId ? defaultOption : null);
+    if (!selectedOption) {
+      throw new Error(`Variant ${previousSelectedId ?? "selection"} is still used by an estimate row. Choose an explicit replacement before deleting it.`);
+    }
+    if (replacementId && replacementId === previousSelectedId) {
+      throw new Error("A deleted variant must be replaced with a different active variant.");
+    }
+
+    const rowDescription = selectedOption.variantDescription || input.componentDescription;
+    const imageUrl = selectedOption.thumbnailPath || input.componentThumbnailPath;
+    const sourceSnapshotPatch = {
+      brand: input.brand,
+      brandId: input.brandId,
+      category: input.category,
+      categoryNodeId: input.categoryNodeId,
+      componentDescription: input.componentDescription,
+      componentVersionNumber: input.componentVersionNumber,
+      description: rowDescription,
+      imageUrl,
+      lifecycleState: input.lifecycleState,
+      material: input.material,
+      priceOptionId: selectedOption.id,
+      priceOptionLabel: selectedOption.label,
+      priceOptions: catalogue,
+      pricingDate: selectedOption.pricingDate,
+      pricingSource: selectedOption.pricingSource,
+      sku: selectedOption.sku,
+      sourceComponentId: input.itemId,
+      sourceLibraryItemId: input.itemId,
+      sourceType: "library_component",
+      sourceUpdatedAt: input.updatedAt,
+      sourceUrl: selectedOption.sourceUrl,
+      supplier: input.supplier,
+      supplierId: input.supplierId,
+      unit: selectedOption.unit,
+      unit_cost: selectedOption.unitCost,
+    };
+    const metadataPatch = {
+      brandId: input.brandId,
+      categoryNodeId: input.categoryNodeId,
+      componentVersionNumber: input.componentVersionNumber,
+      priceOptionId: selectedOption.id,
+      sourceComponentId: input.itemId,
+      supplierId: input.supplierId,
+    };
+    const sourceSnapshot = { ...readJsonRecord(row.source_snapshot_json), ...sourceSnapshotPatch };
+    const metadata = { ...readJsonRecord(row.metadata_json), ...metadataPatch };
+    const isOverridden = row.link_state === "linked-overridden";
+    const patch: EstimateRowItemPatch = {
+      rowRevision: numberValue(row.row_revision, 1) + 1,
+      sourceSnapshot,
+      metadata,
+      priceOptionId: selectedOption.id,
+      priceOptionLabel: selectedOption.label,
+      priceOptions: catalogue as EstimateRowItem["priceOptions"],
+      componentVersionNumber: input.componentVersionNumber,
+      updatedAt: input.updatedAt,
+      ...(isOverridden ? {} : {
+        material: input.material,
+        description: rowDescription,
+        brand: input.brand,
+        supplier: input.supplier ?? "",
+        unit: selectedOption.unit,
+        itemCost: selectedOption.unitCost,
+        imageUrl,
+        sourceUrl: selectedOption.sourceUrl,
+        category: input.category,
+        categoryNodeId: input.categoryNodeId,
+        brandId: input.brandId,
+        supplierId: input.supplierId,
+        sku: selectedOption.sku,
+        pricingDate: selectedOption.pricingDate,
+        pricingSource: selectedOption.pricingSource,
+        lifecycleState: input.lifecycleState,
+      }),
+    };
+    plans.push({
+      rowId: row.row_id,
+      expectedRowRevision: numberValue(row.row_revision, 1),
+      projectId: row.project_id,
+      estimateId: row.estimate_id,
+      isOverridden,
+      material: input.material,
+      description: rowDescription,
+      supplier: input.supplier,
+      supplierId: input.supplierId,
+      unit: selectedOption.unit,
+      unitCost: selectedOption.unitCost,
+      categoryNodeId: input.categoryNodeId,
+      sourceSnapshot,
+      metadata,
+      patch,
+    });
+  }
+  return plans;
+}
+
+function emptyLibraryComponentInstanceSyncResult(): LibraryComponentInstanceSyncResult {
+  return { affectedEstimates: [], rowRevisions: {}, rowPatches: {}, updatedRowCount: 0 };
+}
+
 function buildLibraryComponentInstanceSyncResult(
-  affectedRows: LinkedEstimateRowTarget[],
+  rowPlans: LinkedEstimateRowSyncPlan[],
   result: D1Result<{ id: string; row_revision: number | string }>,
 ): LibraryComponentInstanceSyncResult {
   const affectedEstimateKeys = new Set<string>();
   const affectedEstimates: LibraryComponentInstanceSyncResult["affectedEstimates"] = [];
-  for (const row of affectedRows) {
-    const key = `${row.project_id}:${row.estimate_id}`;
+  for (const row of rowPlans) {
+    const key = `${row.projectId}:${row.estimateId}`;
     if (affectedEstimateKeys.has(key)) continue;
     affectedEstimateKeys.add(key);
-    affectedEstimates.push({ projectId: row.project_id, estimateId: row.estimate_id });
+    affectedEstimates.push({ projectId: row.projectId, estimateId: row.estimateId });
   }
+  const rowRevisions = Object.fromEntries((result.results ?? []).map((row) => [row.id, numberValue(row.row_revision)]));
   return {
     affectedEstimates,
-    rowRevisions: Object.fromEntries((result.results ?? []).map((row) => [row.id, numberValue(row.row_revision)])),
+    rowRevisions,
+    rowPatches: Object.fromEntries(rowPlans
+      .filter((plan) => rowRevisions[plan.rowId] !== undefined)
+      .map((plan) => [plan.rowId, { ...plan.patch, rowRevision: rowRevisions[plan.rowId] }])),
     updatedRowCount: result.meta?.changes ?? 0,
   };
 }
@@ -549,117 +842,6 @@ function buildLibraryComponentInstanceSyncResult(
 function revalidateLinkedEstimateRows(rows: LinkedEstimateRowTarget[]) {
   const paths = new Set(rows.map((row) => `/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`));
   for (const path of paths) revalidatePath(path);
-}
-
-async function reconcileLinkedEstimateRowsForLibraryComponent(
-  database: D1DatabaseLike,
-  workspaceId: string,
-  itemId: string,
-): Promise<LibraryComponentInstanceSyncResult> {
-  const component = await first<LibraryComponentProjectionD1Row>(
-    database,
-    `
-      SELECT id, name, description, category, category_node_id, supplier, supplier_id,
-        brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state,
-        current_version_number, active_price_option_id, pricing_source, pricing_date,
-        thumbnail_path, updated_at
-      FROM cost_library_items
-      WHERE id = ?
-        AND workspace_id = ?
-      LIMIT 1
-    `,
-    [itemId, workspaceId],
-  );
-  if (!component) throw new Error("Component not found in the current workspace.");
-
-  const priceOptionRows = await all<LibraryPriceOptionProjectionD1Row>(
-    database,
-    `
-      SELECT id, label, unit, unit_cost, misc_cost, currency, is_active, is_default,
-        pricing_source, metadata_json
-      FROM cost_library_item_price_options
-      WHERE item_id = ?
-        AND workspace_id = ?
-        AND is_active = 1
-      ORDER BY is_default DESC, updated_at DESC, id ASC
-    `,
-    [itemId, workspaceId],
-  );
-  const priceOptions = projectLibraryPriceOptions(priceOptionRows);
-  const activePriceOption = priceOptions.find((option) => option.id === component.active_price_option_id)
-    ?? priceOptions.find((option) => option.isDefault)
-    ?? priceOptions[0];
-  const unit = typeof activePriceOption?.unit === "string" ? activePriceOption.unit : component.unit;
-  const unitCost = typeof activePriceOption?.unitCost === "number" ? activePriceOption.unitCost : numberValue(component.unit_cost);
-  const pricingSource = typeof activePriceOption?.pricingSource === "string"
-    ? activePriceOption.pricingSource
-    : component.pricing_source;
-  const pricingDate = typeof activePriceOption?.pricingDate === "string"
-    ? activePriceOption.pricingDate
-    : component.pricing_date;
-  const imageUrl = typeof activePriceOption?.thumbnailPath === "string" && activePriceOption.thumbnailPath
-    ? activePriceOption.thumbnailPath
-    : component.thumbnail_path;
-  const snapshotPatch = {
-    brand: component.brand,
-    brandId: component.brand_id,
-    category: component.category,
-    categoryNodeId: component.category_node_id,
-    componentVersionNumber: numberValue(component.current_version_number, 1),
-    description: component.description,
-    imageUrl,
-    lifecycleState: component.lifecycle_state,
-    material: component.name,
-    priceOptionId: activePriceOption?.id ?? null,
-    priceOptionLabel: activePriceOption?.label ?? null,
-    priceOptions,
-    pricingDate,
-    pricingSource,
-    sourceComponentId: itemId,
-    sourceLibraryItemId: itemId,
-    sourceType: "library_component",
-    sourceUpdatedAt: component.updated_at,
-    supplier: component.supplier,
-    supplierId: component.supplier_id,
-    unit,
-    unit_cost: unitCost,
-  };
-  const metadataPatch = {
-    brandId: component.brand_id,
-    categoryNodeId: component.category_node_id,
-    componentVersionNumber: numberValue(component.current_version_number, 1),
-    priceOptionId: activePriceOption?.id ?? null,
-    sourceComponentId: itemId,
-    supplierId: component.supplier_id,
-  };
-  const affectedRows = await listLinkedEstimateRowTargets(database, workspaceId, itemId);
-  if (affectedRows.length === 0) return { affectedEstimates: [], rowRevisions: {}, updatedRowCount: 0 };
-
-  const statement = buildLinkedEstimateRowsSyncStatement({
-    workspaceId,
-    itemId,
-    material: component.name,
-    description: component.description,
-    supplier: component.supplier,
-    supplierId: component.supplier_id,
-    unit,
-    unitCost,
-    categoryNodeId: component.category_node_id,
-    sourceSnapshot: snapshotPatch,
-    metadata: metadataPatch,
-    updatedAt: component.updated_at,
-  });
-  const result = await run<{ id: string; row_revision: number | string }>(
-    database,
-    statement.sql,
-    statement.values,
-  );
-  revalidateLinkedEstimateRows(affectedRows);
-  return buildLibraryComponentInstanceSyncResult(affectedRows, result);
-}
-
-function getMassDeletionCorrelationId(correlationId: string | undefined) {
-  return correlationId && isUuid(correlationId) ? correlationId : randomUUID();
 }
 
 function readFolderName(name: string) {
@@ -1008,6 +1190,13 @@ function validatePriceOptions(priceOptions: ComponentPriceOptionInput[]) {
     for (const attachment of option.attachments ?? []) {
       readRequiredComponentText(attachment.path, "Attachment path");
       readRequiredComponentText(attachment.fileName, "Attachment file name");
+      if (attachment.bucket !== "component-attachments") {
+        throw new Error("Variant attachments must use the component attachment bucket.");
+      }
+      if (attachment.id && !isUuid(attachment.id)) throw new Error("Refresh this attachment before saving the component.");
+      if (!attachment.id && (!attachment.assetId || !isUuid(attachment.assetId))) {
+        throw new Error("A finalized upload asset is required for every new variant attachment.");
+      }
       if (!isSupportedVariantAttachmentContentType(attachment.contentType)) {
         throw new Error("Variant attachments must be PDF or Excel files.");
       }
@@ -1135,11 +1324,14 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
       }];
   const attachments = (input.attachments ?? []).map((attachment) => ({
     ...attachment,
+    id: attachment.id?.trim() || undefined,
+    assetId: attachment.assetId?.trim() || null,
     bucket: attachment.bucket.trim(),
     path: attachment.path.trim(),
     fileName: attachment.fileName.trim(),
     contentType: attachment.contentType.trim(),
     kind: attachment.kind ?? (attachment.contentType === "application/pdf" ? "pdf" : "excel"),
+    scanStatus: attachment.scanStatus?.trim() || null,
     metadata: attachment.metadata ?? {},
   }));
 
@@ -1178,33 +1370,6 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     isDefault: input.isDefault ?? false,
     effectiveAt: input.effectiveAt || new Date().toISOString(),
     changeReason: input.changeReason ?? "",
-  };
-}
-
-function sanitizeOpenDesignAddComponentPriceOption(input: ComponentPriceOptionInput): ComponentPriceOptionInput {
-  return {
-    id: input.id,
-    label: input.label,
-    sku: input.sku,
-    variantDescription: input.variantDescription,
-    variantSortOrder: input.variantSortOrder,
-    unit: input.unit,
-    unitCost: input.unitCost,
-    currency: input.currency,
-    supplierId: input.supplierId,
-    ...(unitUsesContentConversion(input.unit) ? {
-      packageQuantity: input.packageQuantity,
-      packageUnit: input.packageUnit,
-    } : {}),
-    imageBucket: input.imageBucket,
-    imagePath: input.imagePath,
-    thumbnailPath: input.thumbnailPath,
-    imageMetadata: input.imageMetadata,
-    attachments: input.attachments,
-    isDefault: input.isDefault,
-    isActive: input.isActive,
-    changeReason: input.changeReason,
-    effectiveAt: input.effectiveAt,
   };
 }
 
@@ -1291,6 +1456,7 @@ function priceOptionSnapshot(priceOption: ReturnType<typeof normalizePriceOption
     imagePath: priceOption.imagePath,
     thumbnailPath: priceOption.thumbnailPath,
     imageMetadata: priceOption.imageMetadata,
+    attachments: priceOption.attachments,
     variantMetadata: priceOption.variantMetadata,
     isActive: priceOption.isActive,
     isDefault: priceOption.isDefault,
@@ -1381,8 +1547,11 @@ async function runComponentRevisionGuardedBatch(
       assertExpectedComponentRevision(current, input.expectedUpdatedAt, input.expectedVersionNumber);
     }
     if (input.expectedComponentImpactFingerprint !== undefined) {
-      const currentLinkedRows = await listLinkedEstimateRowTargets(database, input.workspaceId, input.itemId);
-      if (buildLinkedEstimateRowsRevisionFingerprint(currentLinkedRows) !== input.expectedComponentImpactFingerprint) {
+      const [currentLinkedRows, currentPriceOptions] = await Promise.all([
+        listLinkedEstimateRowTargets(database, input.workspaceId, input.itemId),
+        listComponentPriceOptionImpactRows(database, input.workspaceId, input.itemId),
+      ]);
+      if (buildLinkedEstimateRowsRevisionFingerprint(currentLinkedRows, currentPriceOptions) !== input.expectedComponentImpactFingerprint) {
         throw new Error(STALE_COMPONENT_IMPACT_ERROR);
       }
     }
@@ -1408,41 +1577,6 @@ async function assertLibraryFolderInWorkspace(database: D1DatabaseLike, workspac
   return folder.id;
 }
 
-async function insertComponentVersion(database: D1DatabaseLike, input: {
-  itemId: string;
-  workspaceId: string;
-  versionNumber: number;
-  snapshot: Record<string, unknown>;
-  summary: string;
-  reason: string;
-  effectiveAt: string;
-  userId: string;
-}) {
-  const timestamp = nowIso();
-  await run(
-    database,
-    `
-      INSERT INTO cost_library_item_versions (
-        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
-        change_reason, effective_at, created_by, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      randomUUID(),
-      input.itemId,
-      input.workspaceId,
-      input.versionNumber,
-      jsonText(input.snapshot),
-      input.summary,
-      input.reason,
-      input.effectiveAt,
-      input.userId,
-      timestamp,
-    ],
-  );
-}
-
 type ComponentPriceOptionWriteInput = {
   workspaceId: string;
   itemId: string;
@@ -1459,8 +1593,92 @@ function buildComponentPriceOptionWritePlan(
   const priceOptionId = options.priceOptionId
     ?? (input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID());
   const timestamp = options.timestamp ?? nowIso();
-  const metadata = priceOptionSnapshot({ ...input.priceOption, id: priceOptionId });
+  const costEntries = input.priceOption.costEntries
+    .filter((candidate) => candidate.deletedAt === null)
+    .map((entry) => ({
+      ...entry,
+      id: entry.clientId && isUuid(entry.clientId) ? entry.clientId : randomUUID(),
+    }));
+  const currentCostEntry = costEntries.find((entry) => entry.isCurrent) ?? costEntries[0];
+  const attachments = input.priceOption.attachments.map((attachment) => ({
+    ...attachment,
+    id: attachment.id && isUuid(attachment.id) ? attachment.id : randomUUID(),
+    isExisting: Boolean(attachment.id && isUuid(attachment.id)),
+  }));
+  const persistedPriceOption = {
+    ...input.priceOption,
+    id: priceOptionId,
+    activeCostEntryId: currentCostEntry?.id ?? null,
+    attachments: attachments.map(({ isExisting, ...attachment }) => {
+      void isExisting;
+      return attachment;
+    }),
+  };
+  const metadata = priceOptionSnapshot(persistedPriceOption);
+  const guardStatements: Array<{ sql: string; values: D1Value[] }> = [{
+    sql: `
+      SELECT CASE WHEN NOT EXISTS (
+        SELECT 1
+        FROM cost_library_item_price_options
+        WHERE id = ?
+          AND (item_id <> ? OR workspace_id <> ?)
+      ) THEN 1 ELSE json('') END AS price_option_ownership_guard
+    `,
+    values: [priceOptionId, input.itemId, input.workspaceId],
+  }];
   const statements: Array<{ sql: string; values: D1Value[] }> = [];
+
+  if (input.priceOption.imagePath) {
+    const imageMetadata = readMetadataObject(input.priceOption.imageMetadata);
+    const imageAssetId = typeof imageMetadata.assetId === "string" && isUuid(imageMetadata.assetId)
+      ? imageMetadata.assetId
+      : "";
+    guardStatements.push({
+      sql: `
+        SELECT CASE WHEN EXISTS (
+          SELECT 1
+          FROM cost_library_item_price_options
+          WHERE id = ?
+            AND item_id = ?
+            AND workspace_id = ?
+            AND json_extract(metadata_json, '$.imagePath') = ?
+        ) OR EXISTS (
+          SELECT 1
+          FROM upload_assets
+          WHERE id = ?
+            AND workspace_id = ?
+            AND surface = 'component-image'
+            AND status = 'finalized'
+            AND scan_status = 'not_required'
+            AND storage_bucket = ?
+            AND storage_path = ?
+        ) THEN 1 ELSE json('') END AS component_image_ownership_guard
+      `,
+      values: [
+        priceOptionId,
+        input.itemId,
+        input.workspaceId,
+        input.priceOption.imagePath,
+        imageAssetId,
+        input.workspaceId,
+        input.priceOption.imageBucket ?? "component-images",
+        input.priceOption.imagePath,
+      ],
+    });
+    statements.push({
+      sql: `
+        UPDATE upload_assets
+        SET target_entity_type = 'cost-library-component',
+            target_entity_id = ?,
+            updated_at = ?
+        WHERE id = ?
+          AND workspace_id = ?
+          AND surface = 'component-image'
+          AND status = 'finalized'
+      `,
+      values: [input.itemId, timestamp, imageAssetId, input.workspaceId],
+    });
+  }
 
   if (input.priceOption.isDefault) {
     statements.push({
@@ -1495,6 +1713,8 @@ function buildComponentPriceOptionWritePlan(
         supplier_id = excluded.supplier_id,
         pricing_source = excluded.pricing_source,
         metadata_json = excluded.metadata_json
+      WHERE cost_library_item_price_options.item_id = excluded.item_id
+        AND cost_library_item_price_options.workspace_id = excluded.workspace_id
     `,
     values: [
       priceOptionId,
@@ -1515,7 +1735,31 @@ function buildComponentPriceOptionWritePlan(
     ],
   });
 
-  for (const entry of input.priceOption.costEntries.filter((candidate) => candidate.deletedAt === null)) {
+  statements.push({
+    sql: `
+      UPDATE cost_library_item_variant_cost_entries
+      SET is_current = 0,
+          updated_at = ?
+      WHERE workspace_id = ?
+        AND item_id = ?
+        AND price_option_id = ?
+        AND deleted_at IS NULL
+    `,
+    values: [timestamp, input.workspaceId, input.itemId, priceOptionId],
+  });
+
+  for (const entry of costEntries) {
+    guardStatements.push({
+      sql: `
+        SELECT CASE WHEN NOT EXISTS (
+          SELECT 1
+          FROM cost_library_item_variant_cost_entries
+          WHERE id = ?
+            AND (workspace_id <> ? OR item_id <> ? OR price_option_id <> ?)
+        ) THEN 1 ELSE json('') END AS component_cost_entry_ownership_guard
+      `,
+      values: [entry.id, input.workspaceId, input.itemId, priceOptionId],
+    });
     statements.push({
       sql: `
         INSERT INTO cost_library_item_variant_cost_entries (
@@ -1536,9 +1780,12 @@ function buildComponentPriceOptionWritePlan(
           deleted_at = excluded.deleted_at,
           metadata_json = excluded.metadata_json,
           updated_at = excluded.updated_at
+        WHERE cost_library_item_variant_cost_entries.workspace_id = excluded.workspace_id
+          AND cost_library_item_variant_cost_entries.item_id = excluded.item_id
+          AND cost_library_item_variant_cost_entries.price_option_id = excluded.price_option_id
       `,
       values: [
-        entry.clientId && isUuid(entry.clientId) ? entry.clientId : randomUUID(),
+        entry.id,
         input.workspaceId,
         input.itemId,
         priceOptionId,
@@ -1557,6 +1804,207 @@ function buildComponentPriceOptionWritePlan(
       ],
     });
   }
+
+  const retainedAttachmentIds = attachments.map((attachment) => attachment.id);
+  for (const attachment of attachments) {
+    if (attachment.bucket !== "component-attachments") {
+      throw new Error("Variant attachments must use the component attachment bucket.");
+    }
+    if (attachment.isExisting) {
+      guardStatements.push({
+        sql: `
+          SELECT CASE WHEN EXISTS (
+            SELECT 1
+            FROM component_variant_attachments attachment
+            INNER JOIN upload_assets asset ON asset.id = attachment.upload_asset_id
+            WHERE attachment.id = ?
+              AND attachment.owner_scope = 'library'
+              AND attachment.workspace_id = ?
+              AND attachment.item_id = ?
+              AND attachment.price_option_id = ?
+              AND attachment.storage_bucket = ?
+              AND attachment.storage_path = ?
+              AND asset.workspace_id = attachment.workspace_id
+              AND asset.surface = 'component-attachment'
+              AND asset.status = 'finalized'
+              AND asset.storage_bucket = attachment.storage_bucket
+              AND asset.storage_path = attachment.storage_path
+              AND (
+                asset.scan_status IN ('pending', 'clean')
+                OR (
+                  asset.scan_status = 'override_approved'
+                  AND datetime(asset.scan_override_expires_at) > datetime(?)
+                )
+              )
+          ) THEN 1 ELSE json('') END AS existing_component_attachment_guard
+        `,
+        values: [
+          attachment.id,
+          input.workspaceId,
+          input.itemId,
+          priceOptionId,
+          attachment.bucket,
+          attachment.path,
+          timestamp,
+        ],
+      });
+      statements.push({
+        sql: `
+          UPDATE component_variant_attachments
+          SET file_name = ?,
+              content_type = ?,
+              size_bytes = ?,
+              attachment_kind = ?,
+              metadata_json = json_patch(?, json_object(
+                'assetId', upload_asset_id,
+                'scanStatus', (
+                  SELECT scan_status FROM upload_assets WHERE id = upload_asset_id
+                )
+              )),
+              applicable_cost_entry_id = ?,
+              updated_at = ?
+          WHERE id = ?
+            AND owner_scope = 'library'
+            AND workspace_id = ?
+            AND item_id = ?
+            AND price_option_id = ?
+        `,
+        values: [
+          attachment.fileName,
+          attachment.contentType,
+          attachment.sizeBytes,
+          attachment.kind,
+          jsonText(attachment.metadata),
+          currentCostEntry?.id ?? null,
+          timestamp,
+          attachment.id,
+          input.workspaceId,
+          input.itemId,
+          priceOptionId,
+        ],
+      });
+      continue;
+    }
+
+    if (!attachment.assetId || !isUuid(attachment.assetId)) {
+      throw new Error("A finalized upload asset is required for every new variant attachment.");
+    }
+    guardStatements.push({
+      sql: `
+        SELECT CASE WHEN EXISTS (
+          SELECT 1
+          FROM upload_assets
+          WHERE id = ?
+            AND workspace_id = ?
+            AND surface = 'component-attachment'
+            AND status = 'finalized'
+            AND storage_bucket = ?
+            AND storage_path = ?
+            AND file_name = ?
+            AND content_type = ?
+            AND size_bytes = ?
+            AND (
+              scan_status IN ('pending', 'clean')
+              OR (
+                scan_status = 'override_approved'
+                AND datetime(scan_override_expires_at) > datetime(?)
+              )
+            )
+        ) THEN 1 ELSE json('') END AS new_component_attachment_guard
+      `,
+      values: [
+        attachment.assetId,
+        input.workspaceId,
+        attachment.bucket,
+        attachment.path,
+        attachment.fileName,
+        attachment.contentType,
+        attachment.sizeBytes,
+        timestamp,
+      ],
+    });
+    statements.push({
+      sql: `
+        INSERT INTO component_variant_attachments (
+          id, owner_scope, price_option_id, item_id, workspace_id, upload_asset_id,
+          storage_bucket, storage_path, file_name, content_type, size_bytes,
+          attachment_kind, metadata_json, created_by, review_status,
+          applicable_cost_entry_id, is_current_approved, review_revision,
+          created_at, updated_at
+        )
+        VALUES (?, 'library', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, json_patch(?, json_object(
+          'assetId', ?,
+          'scanStatus', (SELECT scan_status FROM upload_assets WHERE id = ?)
+        )), ?, 'uploaded', ?, 0, 1, ?, ?)
+      `,
+      values: [
+        attachment.id,
+        priceOptionId,
+        input.itemId,
+        input.workspaceId,
+        attachment.assetId,
+        attachment.bucket,
+        attachment.path,
+        attachment.fileName,
+        attachment.contentType,
+        attachment.sizeBytes,
+        attachment.kind,
+        jsonText(attachment.metadata),
+        attachment.assetId,
+        attachment.assetId,
+        input.userId,
+        currentCostEntry?.id ?? null,
+        timestamp,
+        timestamp,
+      ],
+    });
+  }
+
+  statements.push({
+    sql: `
+      UPDATE upload_assets
+      SET status = 'removed',
+          updated_at = ?
+      WHERE id IN (
+        SELECT upload_asset_id
+        FROM component_variant_attachments
+        WHERE workspace_id = ?
+          AND owner_scope = 'library'
+          AND item_id = ?
+          AND price_option_id = ?
+          AND upload_asset_id IS NOT NULL
+          AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+          AND review_status <> 'superseded'
+      )
+    `,
+    values: [timestamp, input.workspaceId, input.itemId, priceOptionId, jsonText(retainedAttachmentIds, [])],
+  }, {
+    sql: `
+      UPDATE component_variant_attachments
+      SET review_status = 'superseded',
+          is_current_approved = 0,
+          reviewed_by = ?,
+          reviewed_at = ?,
+          review_note = 'Removed from component variant',
+          review_revision = review_revision + 1,
+          updated_at = ?
+      WHERE workspace_id = ?
+        AND owner_scope = 'library'
+        AND item_id = ?
+        AND price_option_id = ?
+        AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+        AND review_status <> 'superseded'
+    `,
+    values: [
+      input.userId,
+      timestamp,
+      timestamp,
+      input.workspaceId,
+      input.itemId,
+      priceOptionId,
+      jsonText(retainedAttachmentIds, []),
+    ],
+  });
 
   if (input.writeHistory) {
     statements.push({
@@ -1597,32 +2045,9 @@ function buildComponentPriceOptionWritePlan(
       thumbnailPath: input.priceOption.thumbnailPath,
       snapshot: metadata,
     },
+    guardStatements,
     statements,
   };
-}
-
-async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: ComponentPriceOptionWriteInput) {
-  const priceOptionId = input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID();
-  const oldSnapshotRow = input.writeHistory
-    ? await first<{ metadata_json: string | null }>(
-      database,
-      `
-        SELECT metadata_json
-        FROM cost_library_item_price_options
-        WHERE id = ?
-          AND item_id = ?
-          AND workspace_id = ?
-        LIMIT 1
-      `,
-      [priceOptionId, input.itemId, input.workspaceId],
-    )
-    : null;
-  const plan = buildComponentPriceOptionWritePlan(input, {
-    oldSnapshotJson: oldSnapshotRow?.metadata_json,
-    priceOptionId,
-  });
-  await runBatch(database, plan.statements);
-  return plan.persisted;
 }
 
 // Lazy estimate-sheet path: the sheet renders without the library dataset and
@@ -1679,19 +2104,136 @@ export async function loadCostLibraryComponentRowDetail(itemId: string): Promise
   return getCurrentWorkspaceComponentRowDetail(itemId);
 }
 
+export async function loadCostLibraryComponentEditorDetail(itemId: string): Promise<CostLibraryComponentEditorDetail> {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
+  const [component, linkedRows, priceOptions] = await Promise.all([
+    getCurrentWorkspaceComponentRowDetail(itemId),
+    listLinkedEstimateRowTargets(database, workspace.id, itemId),
+    listComponentPriceOptionImpactRows(database, workspace.id, itemId),
+  ]);
+  if (!component) throw new Error("Component not found in the current workspace.");
+  const optionUsageCounts: Record<string, number> = {};
+  for (const row of linkedRows) {
+    if (!row.selected_price_option_id) continue;
+    optionUsageCounts[row.selected_price_option_id] = (optionUsageCounts[row.selected_price_option_id] ?? 0) + 1;
+  }
+  return {
+    component,
+    expectedComponentImpactFingerprint: buildLinkedEstimateRowsRevisionFingerprint(linkedRows, priceOptions),
+    optionUsageCounts,
+  };
+}
+
 // Library Optimization Plan P0 T3: client-callable loader for the Templates browse tab.
 export async function loadCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
   await requireCurrentUserContext();
   return getCurrentWorkspaceEstimateTemplates();
 }
 
+export async function duplicateCostLibraryComponent(input: { itemId: string }) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser, "duplicate_component");
+  if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
+
+  const source = await getCurrentWorkspaceComponentRowDetail(input.itemId);
+  if (!source || source.sourceLibraryItemId !== input.itemId) {
+    throw new Error("Component not found in the current workspace.");
+  }
+
+  const activeOptions = source.priceOptions?.filter((option) => option.isActive) ?? [];
+  const omittedAttachmentCount = activeOptions.reduce(
+    (count, option) => count + (option.attachments?.length ?? 0),
+    0,
+  );
+  const priceOptions: ComponentPriceOptionInput[] = activeOptions.length > 0
+    ? activeOptions.map((option, index) => ({
+        label: option.label,
+        sku: option.sku,
+        variantDescription: option.variantDescription ?? undefined,
+        variantSortOrder: option.variantSortOrder ?? index + 1,
+        unit: option.unit,
+        unitCost: option.unitCost,
+        miscCost: option.miscCost,
+        currency: option.currency,
+        pricingSource: option.pricingSource ?? undefined,
+        pricingDate: option.pricingDate ?? undefined,
+        sourceUrl: option.sourceUrl ?? undefined,
+        notes: option.notes ?? undefined,
+        supplierId: option.supplierId,
+        costEntries: option.costEntries?.map((entry) => ({
+          unitCost: entry.unitCost,
+          miscCost: entry.miscCost,
+          currency: entry.currency,
+          pricingSource: entry.pricingSource ?? undefined,
+          pricingDate: entry.pricingDate || undefined,
+          sourceUrl: entry.sourceUrl ?? undefined,
+          notes: entry.notes ?? undefined,
+          isCurrent: entry.isCurrent,
+          deletedAt: null,
+        })),
+        packageQuantity: option.packageQuantity,
+        packageUnit: option.packageUnit,
+        dimensionLength: option.dimensionLength,
+        dimensionWidth: option.dimensionWidth,
+        dimensionHeight: option.dimensionHeight,
+        dimensionUnit: option.dimensionUnit,
+        mass: option.mass,
+        massUnit: option.massUnit,
+        imageBucket: option.imageBucket,
+        imagePath: option.imagePath,
+        thumbnailPath: option.thumbnailPath,
+        imageMetadata: readJsonValue(option.imageMetadata),
+        attachments: [],
+        variantMetadata: readJsonValue(option.variantMetadata),
+        isDefault: option.isDefault,
+        isActive: true,
+        effectiveAt: option.pricingDate || source.pricingDate || undefined,
+        changeReason: "Duplicated from the workshop library",
+      }))
+    : [{
+        label: source.priceOptionLabel || "Default",
+        unit: source.unit,
+        unitCost: source.itemCost,
+        miscCost: source.miscCost,
+        currency: source.currency || "PHP",
+        pricingSource: source.pricingSource,
+        pricingDate: source.pricingDate,
+        isDefault: true,
+        isActive: true,
+        effectiveAt: source.pricingDate || undefined,
+        changeReason: "Duplicated from the workshop library",
+      }];
+
+  const result = await createCostLibraryComponent({
+    name: `${source.name?.trim() || source.material} copy`,
+    description: source.description,
+    category: source.category?.trim() || "Component",
+    categoryNodeId: source.categoryNodeId ?? null,
+    supplier: source.supplier || null,
+    supplierId: source.supplierId ?? null,
+    brand: source.brand || null,
+    brandId: source.brandId ?? null,
+    unit: source.unit,
+    thumbnailPath: source.imageUrl ?? null,
+    libraryFolderId: source.libraryFolderId ?? null,
+    lifecycleState: source.lifecycleState ?? "available",
+    effectiveAt: source.pricingDate || undefined,
+    changeReason: "Duplicated from the workshop library",
+    metadata: { duplicatedFrom: source.id },
+    priceOptions,
+  });
+  return { ...result, omittedAttachmentCount };
+}
+
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
-  const priceOptionInputs = input.fieldContract === "opendesign-add-component"
-    ? input.priceOptions.map(sanitizeOpenDesignAddComponentPriceOption)
-    : input.priceOptions;
+  const priceOptionInputs = input.priceOptions;
   validatePriceOptions(priceOptionInputs);
   const componentInput = readComponentInputForCreate(input);
   const component = normalizeComponentInput({
@@ -1746,8 +2288,10 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   const persistedPriceOptions = priceOptionPlans.map((plan) => plan.persisted);
   const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
   if (!activePriceOption) throw new Error("At least one active component variant is required.");
-  const statements: Array<{ sql: string; values: D1Value[] }> = [{
-    sql: `
+  const statements: Array<{ sql: string; values: D1Value[] }> = [
+    ...priceOptionPlans.flatMap((plan) => plan.guardStatements),
+    {
+      sql: `
       INSERT INTO cost_library_items (
         id, workspace_id, name, description, category, category_node_id,
         library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost,
@@ -1783,7 +2327,8 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       timestamp,
       timestamp,
     ],
-  }];
+    },
+  ];
   for (const plan of priceOptionPlans) statements.push(...plan.statements);
   statements.push({
     sql: `
@@ -1807,6 +2352,8 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     ],
   });
   await runAtomicBatch(database, statements);
+  const persistedComponent = await getCurrentWorkspaceComponentRowDetail(itemId);
+  if (!persistedComponent) throw new Error("Component was saved but could not be reloaded.");
   revalidateLibraryRoutes();
   return {
     itemId,
@@ -1815,6 +2362,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
     createdAt: timestamp,
     updatedAt: timestamp,
+    component: persistedComponent,
   };
 }
 
@@ -1822,10 +2370,6 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser, "save_component_draft");
-  if (input.fieldContract !== "opendesign-add-component") {
-    throw new Error("Unsupported component draft contract.");
-  }
-
   const title = readOptionalComponentText(input.title, "Draft title", QUICK_ADD_TEXT_LIMITS.name) ?? "Untitled component";
   const timestamp = nowIso();
   const draftJson = readComponentDraftJson(input.draft);
@@ -1861,250 +2405,6 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
   return { draftId, savedAt: timestamp };
 }
 
-export async function updateCostLibraryComponent(itemId: string, input: UpdateCostLibraryComponentInput) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const database = await requireComponentLibraryActionsD1Database();
-  await assertCanManageLibrary(database, workspace.id, currentUser);
-  if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
-  const component = normalizeComponentInput(input);
-  const existing = await readComponentItem(database, workspace.id, itemId);
-  if (!existing) throw new Error("Component not found in the current workspace.");
-  assertExpectedComponentRevision(existing, input.expectedUpdatedAt, input.expectedVersionNumber);
-  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
-  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
-  const timestamp = nowIso();
-  const priceOptionRows = await all<LibraryPriceOptionProjectionD1Row>(
-    database,
-    `
-      SELECT id, label, unit, unit_cost, misc_cost, currency, is_active, is_default,
-        pricing_source, metadata_json
-      FROM cost_library_item_price_options
-      WHERE item_id = ?
-        AND workspace_id = ?
-        AND is_active = 1
-      ORDER BY is_default DESC, updated_at DESC, id ASC
-    `,
-    [itemId, workspace.id],
-  );
-  const currentPriceOptions = projectLibraryPriceOptions(priceOptionRows);
-  const currentActivePriceOption = currentPriceOptions.find((option) => option.id === existing.active_price_option_id)
-    ?? currentPriceOptions.find((option) => option.isDefault)
-    ?? currentPriceOptions[0];
-  const unitCost = input.unitCost ?? currentActivePriceOption?.unitCost ?? numberValue(existing.unit_cost);
-  const miscCost = input.miscCost ?? currentActivePriceOption?.miscCost ?? numberValue(existing.misc_cost);
-  const pricingSource = input.pricingSource !== undefined
-    ? input.pricingSource
-    : currentActivePriceOption?.pricingSource ?? existing.pricing_source;
-  const pricingDate = input.pricingDate !== undefined
-    ? input.pricingDate
-    : currentActivePriceOption?.pricingDate ?? existing.pricing_date;
-  const thumbnailPath = input.thumbnailPath === undefined ? existing.thumbnail_path : component.thumbnailPath;
-  const metadataJson = input.metadata === undefined ? existing.metadata_json ?? "{}" : jsonText(readMetadataObject(component.metadata));
-  const versionComponent = { ...component, thumbnailPath };
-  const priceOptions = currentPriceOptions.map((option) => option.id === currentActivePriceOption?.id
-    ? { ...option, unit: component.unit, unitCost, miscCost, pricingSource, pricingDate }
-    : option);
-  const activePriceOption = priceOptions.find((option) => option.id === currentActivePriceOption?.id) ?? priceOptions[0];
-  const affectedRows = await listLinkedEstimateRowTargets(database, workspace.id, itemId);
-  if (
-    input.expectedComponentImpactFingerprint !== undefined
-    && buildLinkedEstimateRowsRevisionFingerprint(affectedRows) !== input.expectedComponentImpactFingerprint
-  ) {
-    throw new Error(STALE_COMPONENT_IMPACT_ERROR);
-  }
-  const sourceSnapshot = {
-    brand: component.brand,
-    brandId: component.brandId,
-    category: component.category,
-    categoryNodeId: component.categoryNodeId,
-    componentVersionNumber: nextVersion,
-    description: component.description,
-    imageUrl: activePriceOption?.thumbnailPath || thumbnailPath,
-    lifecycleState: component.lifecycleState,
-    material: component.name,
-    priceOptionId: activePriceOption?.id ?? null,
-    priceOptionLabel: activePriceOption?.label ?? null,
-    priceOptions,
-    pricingDate,
-    pricingSource,
-    sourceComponentId: itemId,
-    sourceLibraryItemId: itemId,
-    sourceType: "library_component",
-    sourceUpdatedAt: timestamp,
-    supplier: component.supplier,
-    supplierId: component.supplierId,
-    unit: component.unit,
-    unit_cost: unitCost,
-  };
-  const metadataPatch = {
-    brandId: component.brandId,
-    categoryNodeId: component.categoryNodeId,
-    componentVersionNumber: nextVersion,
-    priceOptionId: activePriceOption?.id ?? null,
-    sourceComponentId: itemId,
-    supplierId: component.supplierId,
-  };
-  const statements: Array<{ sql: string; values: D1Value[] }> = [{
-    sql: `
-      UPDATE cost_library_items
-      SET name = ?,
-          description = ?,
-          category = ?,
-          category_node_id = ?,
-          library_folder_id = ?,
-          supplier = ?,
-          supplier_id = ?,
-          brand = ?,
-          brand_id = ?,
-          unit = ?,
-          unit_cost = ?,
-          misc_cost = ?,
-          pricing_source = ?,
-          pricing_date = ?,
-          thumbnail_path = ?,
-          lifecycle_state = ?,
-          current_version_number = ?,
-          metadata_json = ?,
-          updated_at = ?
-      WHERE id = ?
-        AND workspace_id = ?
-    `,
-    values: [
-      component.name,
-      component.description,
-      component.category,
-      component.categoryNodeId ?? null,
-      targetFolderId,
-      component.supplier,
-      component.supplierId ?? null,
-      component.brand,
-      component.brandId ?? null,
-      component.unit,
-      unitCost,
-      miscCost,
-      pricingSource,
-      pricingDate,
-      thumbnailPath,
-      component.lifecycleState,
-      nextVersion,
-      metadataJson,
-      timestamp,
-      itemId,
-      workspace.id,
-    ],
-  }];
-  if (activePriceOption) {
-    statements.push({
-      sql: `
-        UPDATE cost_library_item_price_options
-        SET unit = ?,
-            unit_cost = ?,
-            misc_cost = ?,
-            pricing_source = ?,
-            metadata_json = json_patch(COALESCE(metadata_json, '{}'), ?),
-            updated_at = ?
-        WHERE id = ?
-          AND item_id = ?
-          AND workspace_id = ?
-      `,
-      values: [
-        component.unit,
-        unitCost,
-        miscCost,
-        pricingSource,
-        jsonText({ pricingDate, pricingSource, unit: component.unit, unitCost, miscCost }),
-        timestamp,
-        activePriceOption.id,
-        itemId,
-        workspace.id,
-      ],
-    }, {
-      sql: `
-        UPDATE cost_library_item_variant_cost_entries
-        SET unit_cost = ?,
-            misc_cost = ?,
-            pricing_source = ?,
-            pricing_date = ?,
-            updated_at = ?
-        WHERE price_option_id = ?
-          AND item_id = ?
-          AND workspace_id = ?
-          AND is_current = 1
-          AND deleted_at IS NULL
-      `,
-      values: [
-        unitCost,
-        miscCost,
-        pricingSource,
-        pricingDate,
-        timestamp,
-        activePriceOption.id,
-        itemId,
-        workspace.id,
-      ],
-    });
-  }
-  statements.push({
-    sql: `
-      INSERT INTO cost_library_item_versions (
-        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
-        change_reason, effective_at, created_by, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    values: [
-      randomUUID(),
-      itemId,
-      workspace.id,
-      nextVersion,
-      jsonText(componentSnapshot(versionComponent, { priceOptions })),
-      "Component updated",
-      component.changeReason,
-      component.effectiveAt,
-      currentUser.userId,
-      timestamp,
-    ],
-  });
-  const syncStatementIndex = affectedRows.length > 0 ? statements.length : -1;
-  if (affectedRows.length > 0) {
-    statements.push(buildLinkedEstimateRowsSyncStatement({
-      workspaceId: workspace.id,
-      itemId,
-      material: component.name,
-      description: component.description,
-      supplier: component.supplier,
-      supplierId: component.supplierId,
-      unit: component.unit,
-      unitCost,
-      categoryNodeId: component.categoryNodeId,
-      sourceSnapshot,
-      metadata: metadataPatch,
-      updatedAt: timestamp,
-    }));
-  }
-  const results = await runComponentRevisionGuardedBatch(database, statements, {
-    workspaceId: workspace.id,
-    itemId,
-    expectedUpdatedAt: input.expectedUpdatedAt,
-    expectedVersionNumber: input.expectedVersionNumber,
-    expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
-  });
-  const instanceSync = syncStatementIndex >= 0
-    ? buildLibraryComponentInstanceSyncResult(
-        affectedRows,
-        results[syncStatementIndex] as D1Result<{ id: string; row_revision: number | string }>,
-      )
-    : { affectedEstimates: [], rowRevisions: {}, updatedRowCount: 0 };
-  revalidateLinkedEstimateRows(affectedRows);
-  revalidateLibraryRoutes();
-  return {
-    itemId,
-    versionNumber: nextVersion,
-    updatedAt: timestamp,
-    ...instanceSync,
-  };
-}
-
 export async function updateCostLibraryComponentWithPriceOptions(itemId: string, input: UpdateCostLibraryComponentWithPriceOptionsInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
@@ -2114,12 +2414,40 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   if (!existing) throw new Error("Component not found in the current workspace.");
   assertExpectedComponentRevision(existing, input.expectedUpdatedAt, input.expectedVersionNumber);
 
+  const [existingPriceOptionRows, affectedRows] = await Promise.all([
+    all<LibraryPriceOptionProjectionD1Row>(
+      database,
+      `
+        SELECT id, label, unit, unit_cost, misc_cost, currency, is_active, is_default,
+          pricing_source, metadata_json, updated_at
+        FROM cost_library_item_price_options
+        WHERE item_id = ?
+          AND workspace_id = ?
+        ORDER BY id
+      `,
+      [itemId, workspace.id],
+    ),
+    listLinkedEstimateRowTargets(database, workspace.id, itemId),
+  ]);
+  const currentImpactFingerprint = buildLinkedEstimateRowsRevisionFingerprint(affectedRows, existingPriceOptionRows);
+  if (currentImpactFingerprint !== input.expectedComponentImpactFingerprint) {
+    throw new Error(STALE_COMPONENT_IMPACT_ERROR);
+  }
+
   const component = normalizeComponentInput(input);
   const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
-  const priceOptionInputs = input.fieldContract === "opendesign-add-component"
-    ? input.priceOptions.map(sanitizeOpenDesignAddComponentPriceOption)
-    : input.priceOptions;
+  const metadataJson = input.metadata === undefined
+    ? existing.metadata_json ?? "{}"
+    : jsonText(readMetadataObject(component.metadata));
+  const priceOptionInputs = input.priceOptions;
   validatePriceOptions(priceOptionInputs);
+  const existingPriceOptionIds = new Set(existingPriceOptionRows.map((option) => option.id));
+  for (const priceOption of priceOptionInputs) {
+    if (!priceOption.id) continue;
+    if (!isUuid(priceOption.id) || !existingPriceOptionIds.has(priceOption.id)) {
+      throw new Error("A submitted component variant no longer belongs to this component. Refresh and try again.");
+    }
+  }
   const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
   const nextVersion = numberValue(existing.current_version_number, 1) + 1;
   const timestamp = nowIso();
@@ -2135,42 +2463,60 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
   if (!activePriceOption) throw new Error("At least one active component variant is required.");
   const retainedPriceOptionIds = persistedPriceOptions.map((option) => option.id);
-  const affectedRows = await listLinkedEstimateRowTargets(database, workspace.id, itemId);
-  const sourcePriceOptions = persistedPriceOptions.map((option) => ({ ...option.snapshot, id: option.id }));
-  const sourceSnapshot = {
-    brand: component.brand,
-    brandId: component.brandId,
+  const retainedPriceOptionIdSet = new Set(retainedPriceOptionIds);
+  const retainedImageAssetIds = priceOptions.flatMap((option) => {
+    const imageMetadata = readMetadataObject(option.imageMetadata);
+    const assetId = imageMetadata.assetId;
+    return typeof assetId === "string" && isUuid(assetId) ? [assetId] : [];
+  });
+  const removedPriceOptionIds = new Set(existingPriceOptionRows
+    .filter((option) => readBoolean(option.is_active) && !retainedPriceOptionIdSet.has(option.id))
+    .map((option) => option.id));
+  const removedPriceOptionReplacements = input.removedPriceOptionReplacements ?? {};
+  for (const [removedId, replacementId] of Object.entries(removedPriceOptionReplacements)) {
+    if (!removedPriceOptionIds.has(removedId)) throw new Error("A variant replacement targets a variant that is not being deleted.");
+    if (!isUuid(replacementId) || !retainedPriceOptionIdSet.has(replacementId) || replacementId === removedId) {
+      throw new Error("A deleted variant must be replaced with a different active variant from this component.");
+    }
+  }
+  const syncOptions = persistedPriceOptions.map((option) => buildLibraryComponentSyncOption({
+    id: option.id,
+    label: option.label,
+    unit: option.unit,
+    unitCost: option.unitCost,
+    miscCost: option.miscCost,
+    currency: typeof option.snapshot.currency === "string" ? option.snapshot.currency : "PHP",
+    isActive: option.isActive,
+    isDefault: option.isDefault,
+    pricingSource: option.pricingSource,
+    pricingDate: option.pricingDate,
+    thumbnailPath: option.thumbnailPath,
+    snapshot: option.snapshot,
+  }));
+  const sourcePriceOptions = syncOptions.map((option) => option.snapshot);
+  const rowPlans = buildLinkedEstimateRowSyncPlans({
+    rows: affectedRows,
+    itemId,
+    material: component.name,
+    componentDescription: component.description,
     category: component.category,
     categoryNodeId: component.categoryNodeId,
-    componentVersionNumber: nextVersion,
-    description: component.description,
-    imageUrl: activePriceOption.thumbnailPath || component.thumbnailPath,
-    lifecycleState: component.lifecycleState,
-    material: component.name,
-    priceOptionId: activePriceOption.id,
-    priceOptionLabel: activePriceOption.label,
-    priceOptions: sourcePriceOptions,
-    pricingDate: activePriceOption.pricingDate,
-    pricingSource: activePriceOption.pricingSource,
-    sourceComponentId: itemId,
-    sourceLibraryItemId: itemId,
-    sourceType: "library_component",
-    sourceUpdatedAt: timestamp,
+    brand: component.brand,
+    brandId: component.brandId,
     supplier: component.supplier,
     supplierId: component.supplierId,
-    unit: activePriceOption.unit,
-    unit_cost: activePriceOption.unitCost,
-  };
-  const metadataPatch = {
-    brandId: component.brandId,
-    categoryNodeId: component.categoryNodeId,
+    lifecycleState: component.lifecycleState,
     componentVersionNumber: nextVersion,
-    priceOptionId: activePriceOption.id,
-    sourceComponentId: itemId,
-    supplierId: component.supplierId,
-  };
-  const statements: Array<{ sql: string; values: D1Value[] }> = [{
-    sql: `
+    componentThumbnailPath: component.thumbnailPath,
+    priceOptions: syncOptions,
+    defaultPriceOptionId: activePriceOption.id,
+    removedPriceOptionReplacements,
+    updatedAt: timestamp,
+  });
+  const statements: Array<{ sql: string; values: D1Value[] }> = [
+    ...priceOptionPlans.flatMap((plan) => plan.guardStatements),
+    {
+      sql: `
       UPDATE cost_library_items
       SET name = ?,
           description = ?,
@@ -2190,27 +2536,107 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       WHERE id = ?
         AND workspace_id = ?
     `,
-    values: [
-      component.name,
-      component.description,
-      component.category,
-      component.categoryNodeId ?? null,
-      targetFolderId,
-      component.supplier,
-      component.supplierId ?? null,
-      component.brand,
-      component.brandId ?? null,
-      component.unit,
-      component.thumbnailPath,
-      component.lifecycleState,
-      nextVersion,
-      jsonText(readMetadataObject(component.metadata)),
-      timestamp,
-      itemId,
-      workspace.id,
-    ],
-  }];
+      values: [
+        component.name,
+        component.description,
+        component.category,
+        component.categoryNodeId ?? null,
+        targetFolderId,
+        component.supplier,
+        component.supplierId ?? null,
+        component.brand,
+        component.brandId ?? null,
+        component.unit,
+        component.thumbnailPath,
+        component.lifecycleState,
+        nextVersion,
+        metadataJson,
+        timestamp,
+        itemId,
+        workspace.id,
+      ],
+    },
+    {
+      sql: `
+        UPDATE upload_assets
+        SET status = 'removed',
+            updated_at = ?
+        WHERE workspace_id = ?
+          AND surface = 'component-image'
+          AND status = 'finalized'
+          AND id IN (
+            SELECT json_extract(metadata_json, '$.imageMetadata.assetId')
+            FROM cost_library_item_price_options
+            WHERE workspace_id = ?
+              AND item_id = ?
+              AND json_type(metadata_json, '$.imageMetadata.assetId') = 'text'
+          )
+          AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+          AND NOT EXISTS (
+            SELECT 1
+            FROM cost_library_item_price_options retained_option
+            WHERE retained_option.workspace_id = ?
+              AND retained_option.item_id <> ?
+              AND json_extract(retained_option.metadata_json, '$.imageMetadata.assetId') = upload_assets.id
+          )
+      `,
+      values: [
+        timestamp,
+        workspace.id,
+        workspace.id,
+        itemId,
+        jsonText(retainedImageAssetIds, []),
+        workspace.id,
+        itemId,
+      ],
+    },
+  ];
   for (const plan of priceOptionPlans) statements.push(...plan.statements);
+  if (removedPriceOptionIds.size > 0) {
+    const removedPriceOptionIdsJson = jsonText([...removedPriceOptionIds], []);
+    statements.push({
+      sql: `
+        UPDATE upload_assets
+        SET status = 'removed',
+            updated_at = ?
+        WHERE id IN (
+          SELECT upload_asset_id
+          FROM component_variant_attachments
+          WHERE workspace_id = ?
+            AND owner_scope = 'library'
+            AND item_id = ?
+            AND price_option_id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+            AND upload_asset_id IS NOT NULL
+            AND review_status <> 'superseded'
+        )
+      `,
+      values: [timestamp, workspace.id, itemId, removedPriceOptionIdsJson],
+    }, {
+      sql: `
+        UPDATE component_variant_attachments
+        SET review_status = 'superseded',
+            is_current_approved = 0,
+            reviewed_by = ?,
+            reviewed_at = ?,
+            review_note = 'Variant removed from component',
+            review_revision = review_revision + 1,
+            updated_at = ?
+        WHERE workspace_id = ?
+          AND owner_scope = 'library'
+          AND item_id = ?
+          AND price_option_id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+          AND review_status <> 'superseded'
+      `,
+      values: [
+        currentUser.userId,
+        timestamp,
+        timestamp,
+        workspace.id,
+        itemId,
+        removedPriceOptionIdsJson,
+      ],
+    });
+  }
   statements.push({
     sql: `
         UPDATE cost_library_item_price_options
@@ -2219,9 +2645,9 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
             updated_at = ?
         WHERE item_id = ?
           AND workspace_id = ?
-          AND id NOT IN (${placeholders(retainedPriceOptionIds)})
+          AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
       `,
-    values: [timestamp, itemId, workspace.id, ...retainedPriceOptionIds],
+    values: [timestamp, itemId, workspace.id, jsonText(retainedPriceOptionIds, [])],
   }, {
     sql: `
       UPDATE cost_library_items
@@ -2267,20 +2693,12 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
       timestamp,
     ],
   });
-  const syncStatementIndex = affectedRows.length > 0 ? statements.length : -1;
-  if (affectedRows.length > 0) {
+  const syncStatementIndex = rowPlans.length > 0 ? statements.length : -1;
+  if (rowPlans.length > 0) {
     statements.push(buildLinkedEstimateRowsSyncStatement({
       workspaceId: workspace.id,
       itemId,
-      material: component.name,
-      description: component.description,
-      supplier: component.supplier,
-      supplierId: component.supplierId,
-      unit: activePriceOption.unit,
-      unitCost: activePriceOption.unitCost,
-      categoryNodeId: component.categoryNodeId,
-      sourceSnapshot,
-      metadata: metadataPatch,
+      rowPlans,
       updatedAt: timestamp,
     }));
   }
@@ -2289,14 +2707,17 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     itemId,
     expectedUpdatedAt: input.expectedUpdatedAt,
     expectedVersionNumber: input.expectedVersionNumber,
+    expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
   });
   const instanceSync = syncStatementIndex >= 0
     ? buildLibraryComponentInstanceSyncResult(
-        affectedRows,
+        rowPlans,
         results[syncStatementIndex] as D1Result<{ id: string; row_revision: number | string }>,
       )
-    : { affectedEstimates: [], rowRevisions: {}, updatedRowCount: 0 };
+    : emptyLibraryComponentInstanceSyncResult();
   revalidateLinkedEstimateRows(affectedRows);
+  const persistedComponent = await getCurrentWorkspaceComponentRowDetail(itemId);
+  if (!persistedComponent) throw new Error("Component was saved but could not be reloaded.");
   revalidateLibraryRoutes();
   return {
     itemId,
@@ -2304,151 +2725,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     activePriceOptionId: activePriceOption.id,
     priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
     updatedAt: timestamp,
-    ...instanceSync,
-  };
-}
-
-export async function upsertCostLibraryComponentPriceOption(itemId: string, input: ComponentPriceOptionInput) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const database = await requireComponentLibraryActionsD1Database();
-  await assertCanManageLibrary(database, workspace.id, currentUser);
-  if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
-  const existing = await readComponentItem(database, workspace.id, itemId);
-  if (!existing) throw new Error("Component not found in the current workspace.");
-  const priceOption = normalizePriceOptionInput(input);
-  const persisted = await upsertComponentPriceOptionInD1(database, {
-    workspaceId: workspace.id,
-    itemId,
-    priceOption,
-    userId: currentUser.userId,
-    effectiveAt: priceOption.effectiveAt,
-    writeHistory: true,
-  });
-  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
-  const itemPatch = priceOption.isDefault || priceOption.isActive
-    ? {
-        activePriceOptionId: persisted.id,
-        unit: priceOption.unit,
-        unitCost: priceOption.unitCost,
-        miscCost: priceOption.miscCost,
-        pricingSource: priceOption.pricingSource,
-        pricingDate: priceOption.pricingDate,
-      }
-    : { activePriceOptionId: existing.active_price_option_id };
-  await run(
-    database,
-    `
-      UPDATE cost_library_items
-      SET active_price_option_id = COALESCE(?, active_price_option_id),
-          unit = COALESCE(?, unit),
-          unit_cost = COALESCE(?, unit_cost),
-          misc_cost = COALESCE(?, misc_cost),
-          pricing_source = COALESCE(?, pricing_source),
-          pricing_date = COALESCE(?, pricing_date),
-          current_version_number = ?,
-          updated_at = ?
-      WHERE id = ?
-        AND workspace_id = ?
-    `,
-    [
-      itemPatch.activePriceOptionId ?? null,
-      "unit" in itemPatch ? itemPatch.unit ?? null : null,
-      "unitCost" in itemPatch ? itemPatch.unitCost ?? null : null,
-      "miscCost" in itemPatch ? itemPatch.miscCost ?? null : null,
-      "pricingSource" in itemPatch ? itemPatch.pricingSource ?? null : null,
-      "pricingDate" in itemPatch ? itemPatch.pricingDate ?? null : null,
-      nextVersion,
-      nowIso(),
-      itemId,
-      workspace.id,
-    ],
-  );
-  await insertComponentVersion(database, {
-    itemId,
-    workspaceId: workspace.id,
-    versionNumber: nextVersion,
-    snapshot: { priceOption: priceOptionSnapshot({ ...priceOption, id: persisted.id }) },
-    summary: "Price option changed",
-    reason: priceOption.changeReason,
-    effectiveAt: priceOption.effectiveAt,
-    userId: currentUser.userId,
-  });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
-  revalidateLibraryRoutes();
-  return {
-    itemId,
-    priceOptionId: persisted.id,
-    versionNumber: nextVersion,
-    ...instanceSync,
-  };
-}
-
-export async function changeCostLibraryComponentLifecycleState(input: {
-  itemId: string;
-  lifecycleState: ComponentLifecycleState;
-  changeReason?: string;
-  effectiveAt?: string;
-}) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const database = await requireComponentLibraryActionsD1Database();
-  await assertCanManageLibrary(database, workspace.id, currentUser);
-  if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
-  const existing = await readComponentItem(database, workspace.id, input.itemId);
-  if (!existing) throw new Error("Component not found in the current workspace.");
-  const effectiveAt = input.effectiveAt ?? new Date().toISOString();
-  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
-  await run(
-    database,
-    `
-      UPDATE cost_library_items
-      SET lifecycle_state = ?,
-          lifecycle_state_changed_at = ?,
-          lifecycle_state_changed_by = ?,
-          current_version_number = ?,
-          updated_at = ?
-      WHERE id = ?
-        AND workspace_id = ?
-    `,
-    [input.lifecycleState, effectiveAt, currentUser.userId, nextVersion, nowIso(), input.itemId, workspace.id],
-  );
-  await run(
-    database,
-    `
-      INSERT OR IGNORE INTO cost_library_item_state_history (
-        id, item_id, workspace_id, from_state, to_state, operation_key,
-        effective_at, change_reason, created_by, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      randomUUID(),
-      input.itemId,
-      workspace.id,
-      String(existing.lifecycle_state),
-      input.lifecycleState,
-      `${input.itemId}:${input.lifecycleState}:${effectiveAt}`,
-      effectiveAt,
-      input.changeReason ?? "",
-      currentUser.userId,
-      nowIso(),
-    ],
-  );
-  await insertComponentVersion(database, {
-    itemId: input.itemId,
-    workspaceId: workspace.id,
-    versionNumber: nextVersion,
-    snapshot: { lifecycleState: input.lifecycleState },
-    summary: "Lifecycle state changed",
-    reason: input.changeReason ?? "",
-    effectiveAt,
-    userId: currentUser.userId,
-  });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, input.itemId);
-  revalidateLibraryRoutes();
-  return {
-    itemId: input.itemId,
-    versionNumber: nextVersion,
-    lifecycleState: input.lifecycleState,
+    component: persistedComponent,
     ...instanceSync,
   };
 }
@@ -2731,6 +3008,20 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
         )
     `,
     values: [timestamp, ...deletedIds, workspace.id],
+  }, {
+    sql: `
+      UPDATE upload_assets
+      SET status = 'removed',
+          updated_at = ?
+      WHERE id IN (
+        SELECT attachment.upload_asset_id
+        FROM component_variant_attachments attachment
+        WHERE attachment.owner_scope = 'library'
+          AND attachment.workspace_id = ?
+          AND attachment.item_id IN (${placeholders(deletedIds)})
+      )
+    `,
+    values: [timestamp, workspace.id, ...deletedIds],
   }, {
     sql: `
       DELETE FROM cost_library_items

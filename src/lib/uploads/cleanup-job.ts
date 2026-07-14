@@ -465,13 +465,13 @@ export async function listUploadCleanupJobRecords(
         `
           SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at
           FROM upload_assets
-          WHERE status = ?
+          WHERE status IN (?, ?)
             AND updated_at <= ?
           ORDER BY updated_at ASC
           LIMIT ?
         `,
       )
-      .bind("deleted", cutoffs.deletedAssetsBefore, limit)
+      .bind("deleted", "removed", cutoffs.deletedAssetsBefore, limit)
       .all<UploadAssetCleanupRow>(),
     db
       .prepare<UploadSessionCleanupRow>(

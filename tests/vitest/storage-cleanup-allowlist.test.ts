@@ -37,4 +37,30 @@ describe("mass deletion storage cleanup allowlist", () => {
     expect(result.allowed).toEqual([{ bucket: "project-images", path: "workspace-1/project-images/project-1.webp" }]);
     expect(result.rejected).toHaveLength(1);
   });
+
+  it("allows project-owned attachments only with the matching workspace scope", () => {
+    const target = {
+      bucket: "component-attachments",
+      path: "workspace-1/attachments/spec.pdf",
+    };
+
+    expect(splitAllowedStorageCleanupTargets([target], { kind: "project" })).toEqual({
+      allowed: [],
+      rejected: [target],
+    });
+    expect(splitAllowedStorageCleanupTargets([target], {
+      kind: "project",
+      workspaceId: "workspace-2",
+    })).toEqual({
+      allowed: [],
+      rejected: [target],
+    });
+    expect(splitAllowedStorageCleanupTargets([target], {
+      kind: "project",
+      workspaceId: "workspace-1",
+    })).toEqual({
+      allowed: [target],
+      rejected: [],
+    });
+  });
 });

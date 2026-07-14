@@ -105,3 +105,18 @@ export function findLibrarySiblingOrder(
   }
   return null;
 }
+
+export function findLibraryNodeOrder(
+  nodes: LibraryTreeNode[],
+  nodeId: string,
+  parentKey: string = LIBRARY_TREE_ROOT_ORDER_KEY,
+): { parentKey: string; siblingIds: string[] } | null {
+  const siblingIds = nodes.map((node) => node.id);
+  if (siblingIds.includes(nodeId)) return { parentKey, siblingIds };
+  for (const node of nodes) {
+    if (!node.children?.length) continue;
+    const found = findLibraryNodeOrder(node.children, nodeId, node.id);
+    if (found) return found;
+  }
+  return null;
+}

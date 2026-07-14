@@ -59,6 +59,9 @@ function metadataStringValue(
 }
 
 function projectIdForAsset(input: RecordUploadAssetInput) {
+  if (input.surface === "component-attachment" && input.targetEntityType === "project-component") {
+    return metadataStringValue(input.metadata, "projectId");
+  }
   if (input.surface !== "project-image") return null;
   if (input.targetEntityType === "project") {
     return targetEntityValue(input.targetEntityId);

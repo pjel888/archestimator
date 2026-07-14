@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { estimateTemplates } from "@/lib/component-library/estimate-templates";
 import {
+  buildEstimateTemplateSummariesFromRows,
   buildEstimateTemplatesFromRows,
+  ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT,
   fallbackComponentLibraryDataset,
   fallbackComponentRowsLibraryDataset,
   getCurrentWorkspaceComponentLibrary,
@@ -56,9 +58,35 @@ describe("component-library template repository helpers", () => {
     expect(getCurrentWorkspaceComponentRowsLibrary.toString()).not.toContain("estimate_templates");
     const combinedHelperSource = getCurrentWorkspaceComponentLibrary.toString();
     expect(combinedHelperSource).toContain("ensureDefaultWorkspace");
-    expect(combinedHelperSource).toContain("loadCurrentWorkspaceEstimateTemplates");
+    expect(combinedHelperSource).toContain("loadCurrentWorkspaceEstimateTemplateSummaries");
     expect(combinedHelperSource).not.toContain("getCurrentWorkspaceComponentRowsLibrary");
     expect(combinedHelperSource).not.toContain("getCurrentWorkspaceEstimateTemplates");
+  });
+
+  it("builds graph-free bounded template summaries from aggregate rows", () => {
+    expect(ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT).toBe(50);
+    const templates = buildEstimateTemplateSummariesFromRows({
+      templates: [{
+        id: "template-1",
+        workspace_id: "workspace-1",
+        name: "Apartment Starter",
+        description: "Starter rooms",
+        category: "Residential",
+        sort_order: 10,
+        metadata: {},
+        created_by: null,
+        created_at: "2026-07-14T00:00:00.000Z",
+        updated_at: "2026-07-14T00:00:00.000Z",
+      }],
+      nodeSummaries: [{ template_id: "template-1", group_count: 2, area_count: 3 }],
+      costSummaries: [{ template_id: "template-1", row_count: 8, total: 125_500 }],
+    });
+
+    expect(templates).toEqual([expect.objectContaining({
+      id: "template-1",
+      nodes: [],
+      summary: { groupCount: 2, areaCount: 3, rowCount: 8, total: 125_500 },
+    })]);
   });
 
   it("uses static templates only when the persisted template table is missing", () => {

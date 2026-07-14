@@ -20,12 +20,12 @@ import {
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import {
-  createCostLibraryComponent,
   createLibraryFolder,
   deleteLibraryFolder,
   deleteEstimateTemplate,
+  duplicateCostLibraryComponent,
   executeBulkArchiveLibraryComponents,
-  loadCostLibraryComponentRowDetail,
+  loadCostLibraryComponentEditorDetail,
   moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
   recordComponentLibraryTelemetryEvent,
@@ -33,7 +33,6 @@ import {
   renameLibraryFolder,
   reorderLibraryFolders,
   type ComponentLibraryUserPreferences,
-  type ComponentPriceOptionInput,
 } from "@/lib/component-library/actions";
 import { setLibraryTelemetrySink } from "@/lib/component-library/library-telemetry";
 import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
@@ -80,9 +79,11 @@ import {
   CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
   PROJECT_SOURCE_DRAG_MIME_TYPE,
+  toTemplateTreeItemId,
   type CreateEstimateTemplateFromNodeEventDetail,
   type EstimateTemplate,
 } from "./templates";
+import { loadCurrentWorkspaceEstimateTemplateGraph } from "@/lib/component-library/template-browse-actions";
 import {
   hydrateSidebarLibraryItems,
   isEstimateLibraryTab,
@@ -116,6 +117,7 @@ import { loadComponentLibraryAccountPreferences, saveComponentLibraryAccountPref
 import {
   applyLibraryTreeOrder,
   filterTree,
+  findLibraryNodeOrder,
   findLibrarySiblingOrder,
   findNode,
   getAllNodeIds,
@@ -174,6 +176,7 @@ import {
   defaultForm,
   getComponentName,
   getComponentPrice,
+  isLibraryComponentInsertable,
   isFormDirty,
   LIBRARY_FAVORITES_KEY,
   LIBRARY_PREFS_KEY,
@@ -183,6 +186,7 @@ import {
   readJsonStorage,
   safeSetJsonStorage,
 } from "./helpers";
+import { enqueuePerItemMutation } from "./per-item-mutation-queue";
 
 const DEFAULT_LIBRARY_TREE_TABS: readonly EstimateLibraryTab[] = ["components", "project", "templates"];
 const PUBLIC_LIBRARY_TREE_TABS: readonly EstimateLibraryTab[] = ["components", "templates"];
@@ -1039,6 +1043,13 @@ function useEstimateRightSidebarContent({
   const editItemIdRef = useRef<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const projectSourceSearchRequestIdRef = useRef(0);
+  const componentEditorRequestIdRef = useRef(0);
+  const componentFolderMoveQueueRef = useRef(new Map<string, Promise<void>>());
+  const componentFolderMoveGenerationRef = useRef(new Map<string, number>());
+  const confirmedComponentFolderRef = useRef(new Map<string, string | null>());
+  const projectEstimateLoadInFlightRef = useRef(new Set<string>());
+  const estimateOutlineLoadInFlightRef = useRef(new Set<string>());
+  const templateGraphRequestIdRef = useRef(0);
   const treeHeaderRef = useRef<HTMLDivElement>(null);
   const libraryToolsRef = useRef<HTMLDivElement>(null);
   const libraryPrefsHydratedRef = useRef(!useStoredPreferences);
@@ -1049,6 +1060,8 @@ function useEstimateRightSidebarContent({
   const [archiveComponentPending, setArchiveComponentPending] = useState(false);
   const [archiveComponentError, setArchiveComponentError] = useState("");
   const [componentModalItem, setComponentModalItem] = useState<EstimateRowItem | null>(null);
+  const [componentModalImpactFingerprint, setComponentModalImpactFingerprint] = useState("");
+  const [componentModalOptionUsageCounts, setComponentModalOptionUsageCounts] = useState<Record<string, number>>({});
   const [addComponentFolderId, setAddComponentFolderId] = useState<string | null>(null);
   const [duplicateComponentPendingId, setDuplicateComponentPendingId] = useState<string | null>(null);
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<LibraryFolderRecord | null>(null);
@@ -1682,6 +1695,10 @@ function useEstimateRightSidebarContent({
     }
     return items;
   }, [bulkSelectedNodeIds, treeNodes]);
+  const bulkSelectedInsertableItems = useMemo(
+    () => bulkSelectedItems.filter(isLibraryComponentInsertable),
+    [bulkSelectedItems],
+  );
 
   // Cascade selections resolve to top-most insertable units: whole
   // templates, group/area subtrees, and bare component rows.
@@ -1744,8 +1761,13 @@ function useEstimateRightSidebarContent({
         return false;
       }
       if (!itemsToInsert.length) return false;
+      const insertableItems = itemsToInsert.filter(isLibraryComponentInsertable);
+      if (!insertableItems.length) {
+        setLastActionMessage("Only available components can be added to an estimate.");
+        return false;
+      }
 
-      const insertedItems = itemsToInsert.filter((item) => {
+      const insertedItems = insertableItems.filter((item) => {
         const insertItem = { ...item, quantity: Math.max(1, item.quantity) };
         return onInsertComponent
           ? onInsertComponent(insertItem) !== false
@@ -1753,11 +1775,11 @@ function useEstimateRightSidebarContent({
       });
 
       if (!insertedItems.length) {
-        setLastActionMessage(`${itemsToInsert.length === 1 ? getComponentName(itemsToInsert[0]) : "Selected components"} was not inserted. Select an Area and try again.`);
+        setLastActionMessage(`${insertableItems.length === 1 ? getComponentName(insertableItems[0]) : "Selected components"} was not inserted. Select an Area and try again.`);
         return false;
       }
 
-      const recentSourceIds = Array.from(new Set(sourceItems.map((item) => item.id)));
+      const recentSourceIds = Array.from(new Set(sourceItems.filter(isLibraryComponentInsertable).map((item) => item.id)));
       setRecentIds((current) => {
         const recents = [...recentSourceIds, ...current.filter((id) => !recentSourceIds.includes(id))].slice(0, 12);
         safeSetJsonStorage(LIBRARY_RECENTS_KEY, recents);
@@ -2182,7 +2204,10 @@ function useEstimateRightSidebarContent({
   );
 
   const startNewComponent = useCallback((folderId: string | null = null) => {
+    componentEditorRequestIdRef.current += 1;
     setComponentModalItem(null);
+    setComponentModalImpactFingerprint("");
+    setComponentModalOptionUsageCounts({});
     setAddComponentFolderId(folderId);
     setAddComponentOpen(true);
   }, [setAddComponentOpen]);
@@ -2202,7 +2227,10 @@ function useEstimateRightSidebarContent({
   const handleComponentModalOpenChange = useCallback((open: boolean) => {
     setAddComponentOpen(open);
     if (open) return;
+    componentEditorRequestIdRef.current += 1;
     setComponentModalItem(null);
+    setComponentModalImpactFingerprint("");
+    setComponentModalOptionUsageCounts({});
     setAddComponentFolderId(null);
   }, [setAddComponentOpen]);
 
@@ -2274,15 +2302,20 @@ function useEstimateRightSidebarContent({
   }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems, setPreviewItemId, setPreviewProjectSourceKey]);
 
   const startEditComponent = useCallback((item: EstimateRowItem) => {
+    const requestId = componentEditorRequestIdRef.current + 1;
+    componentEditorRequestIdRef.current = requestId;
     toast({ tone: "loading", message: `Opening ${getComponentName(item)}…` });
-    void loadCostLibraryComponentRowDetail(item.sourceLibraryItemId ?? item.id)
+    void loadCostLibraryComponentEditorDetail(item.sourceLibraryItemId ?? item.id)
       .then((detail) => {
-        if (!detail) throw new Error("Component details are unavailable.");
-        setComponentModalItem(detail);
-        setAddComponentFolderId(detail.libraryFolderId ?? null);
+        if (componentEditorRequestIdRef.current !== requestId) return;
+        setComponentModalItem(detail.component);
+        setComponentModalImpactFingerprint(detail.expectedComponentImpactFingerprint);
+        setComponentModalOptionUsageCounts(detail.optionUsageCounts);
+        setAddComponentFolderId(detail.component.libraryFolderId ?? null);
         setAddComponentOpen(true);
       })
       .catch((error) => {
+        if (componentEditorRequestIdRef.current !== requestId) return;
         toast({ tone: "error", message: error instanceof Error ? error.message : "Could not open the component editor." });
       });
   }, [setAddComponentOpen, toast]);
@@ -2292,90 +2325,15 @@ function useEstimateRightSidebarContent({
     const sourceItemId = item.sourceLibraryItemId ?? item.id;
     setDuplicateComponentPendingId(item.id);
     toast({ tone: "loading", message: `Duplicating ${getComponentName(item)}…` });
-    void loadCostLibraryComponentRowDetail(sourceItemId)
-      .then(async (detail) => {
-        if (!detail) throw new Error("Component details are unavailable.");
-        const copyName = `${getComponentName(detail)} copy`;
-        const activeOptions = detail.priceOptions?.filter((option) => option.isActive) ?? [];
-        const priceOptions: ComponentPriceOptionInput[] = activeOptions.length > 0
-          ? activeOptions.map((option, index) => ({
-              label: option.label,
-              sku: option.sku,
-              variantDescription: option.variantDescription ?? undefined,
-              variantSortOrder: option.variantSortOrder ?? index + 1,
-              unit: option.unit,
-              unitCost: option.unitCost,
-              miscCost: option.miscCost,
-              currency: option.currency,
-              pricingSource: option.pricingSource ?? undefined,
-              pricingDate: option.pricingDate ?? undefined,
-              sourceUrl: option.sourceUrl ?? undefined,
-              notes: option.notes ?? undefined,
-              supplierId: option.supplierId,
-              packageQuantity: option.packageQuantity,
-              packageUnit: option.packageUnit,
-              dimensionLength: option.dimensionLength,
-              dimensionWidth: option.dimensionWidth,
-              dimensionHeight: option.dimensionHeight,
-              dimensionUnit: option.dimensionUnit,
-              mass: option.mass,
-              massUnit: option.massUnit,
-              imageBucket: option.imageBucket,
-              imagePath: option.imagePath,
-              thumbnailPath: option.thumbnailPath,
-              attachments: option.attachments?.map((attachment) => ({
-                bucket: attachment.bucket,
-                path: attachment.path,
-                fileName: attachment.fileName,
-                contentType: attachment.contentType,
-                sizeBytes: attachment.sizeBytes,
-                kind: attachment.kind,
-              })),
-              isDefault: option.isDefault,
-              isActive: true,
-            }))
-          : [{
-              label: detail.priceOptionLabel || "V1",
-              unit: detail.unit,
-              unitCost: detail.itemCost,
-              miscCost: detail.miscCost,
-              currency: detail.currency || "PHP",
-              pricingSource: detail.pricingSource,
-              pricingDate: detail.pricingDate,
-              isDefault: true,
-              isActive: true,
-            }];
-        const result = await createCostLibraryComponent({
-          name: copyName,
-          description: detail.description,
-          category: detail.category,
-          categoryNodeId: detail.categoryNodeId ?? null,
-          supplier: detail.supplier || null,
-          supplierId: detail.supplierId ?? null,
-          brand: detail.brand || null,
-          brandId: detail.brandId ?? null,
-          unit: detail.unit,
-          thumbnailPath: detail.imageUrl ?? null,
-          libraryFolderId: detail.libraryFolderId ?? null,
-          lifecycleState: detail.lifecycleState ?? "available",
-          effectiveAt: detail.pricingDate || undefined,
-          changeReason: "Duplicated from the workshop library",
-          priceOptions,
-        });
-        handleComponentCreated({
-          ...detail,
-          id: result.itemId,
-          sourceLibraryItemId: result.itemId,
-          name: copyName,
-          material: copyName,
-          componentVersionNumber: result.versionNumber,
-          priceOptionId: result.activePriceOptionId,
-          priceOptions: undefined,
-          history: [],
-          createdAt: result.createdAt,
-          updatedAt: result.updatedAt,
-          isFavorite: false,
-        });
+    void duplicateCostLibraryComponent({ itemId: sourceItemId })
+      .then((result) => {
+        handleComponentCreated(result.component);
+        if (result.omittedAttachmentCount > 0) {
+          toast({
+            tone: "neutral",
+            message: `Duplicated without ${result.omittedAttachmentCount} attachment${result.omittedAttachmentCount === 1 ? "" : "s"}; the originals remain on the source component.`,
+          });
+        }
       })
       .catch((error) => {
         toast({ tone: "error", message: error instanceof Error ? error.message : "Could not duplicate the component." });
@@ -2585,7 +2543,7 @@ function useEstimateRightSidebarContent({
           targetParentId = targetId;
           targetIndex = reorderableFolders.filter((folder) => folder.parent_id === targetId).length;
         } else {
-          const siblingInfo = findLibrarySiblingOrder(treeNodes, draggedId, targetId);
+          const siblingInfo = findLibraryNodeOrder(treeNodes, targetId);
           if (!siblingInfo) return;
           const withoutDragged = siblingInfo.siblingIds.filter((id) => id !== draggedId);
           const targetSiblingIndex = withoutDragged.indexOf(targetId);
@@ -2658,31 +2616,52 @@ function useEstimateRightSidebarContent({
 
   const handleLibraryItemMove = useCallback((item: EstimateRowItem, targetFolderId: string | null) => {
     if (componentViewMode !== "default" || (item.libraryFolderId ?? null) === targetFolderId) return;
-    const previousFolderId = item.libraryFolderId;
+    const previousFolderId = item.libraryFolderId ?? null;
     const nextFolderId = targetFolderId ?? undefined;
+    if (!confirmedComponentFolderRef.current.has(item.id)) {
+      confirmedComponentFolderRef.current.set(item.id, previousFolderId);
+    }
+    const generation = (componentFolderMoveGenerationRef.current.get(item.id) ?? 0) + 1;
+    componentFolderMoveGenerationRef.current.set(item.id, generation);
     setLibraryItems((items) => items.map((entry) => (
       entry.id === item.id ? { ...entry, libraryFolderId: nextFolderId } : entry
     )));
 
-    void moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId })
-      .then(() => {
+    const pending = enqueuePerItemMutation(componentFolderMoveQueueRef.current, item.id, async () => {
+      try {
+        await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
+        confirmedComponentFolderRef.current.set(item.id, targetFolderId);
         onLibraryDataChanged?.();
-        setLastActionMessage(targetFolderId ? `${getComponentName(item)} moved.` : `${getComponentName(item)} moved to the top level.`);
-      })
-      .catch(() => {
+        if (componentFolderMoveGenerationRef.current.get(item.id) === generation) {
+          setLastActionMessage(targetFolderId ? `${getComponentName(item)} moved.` : `${getComponentName(item)} moved to the top level.`);
+        }
+      } catch (error) {
+        if (componentFolderMoveGenerationRef.current.get(item.id) !== generation) throw error;
+        const confirmedFolderId = confirmedComponentFolderRef.current.get(item.id) ?? null;
         setLibraryItems((items) => items.map((entry) => (
           entry.id === item.id && entry.libraryFolderId === nextFolderId
-            ? { ...entry, libraryFolderId: previousFolderId }
+            ? { ...entry, libraryFolderId: confirmedFolderId ?? undefined }
             : entry
         )));
         setLastActionMessage("Could not move the component. You may not have permission to manage library folders.");
-      });
+        throw error;
+      }
+    });
+    void pending.catch(() => undefined).finally(() => {
+      if (
+        componentFolderMoveGenerationRef.current.get(item.id) === generation
+        && !componentFolderMoveQueueRef.current.has(item.id)
+      ) {
+        componentFolderMoveGenerationRef.current.delete(item.id);
+        confirmedComponentFolderRef.current.delete(item.id);
+      }
+    });
   }, [componentViewMode, onLibraryDataChanged, setLastActionMessage, setLibraryItems]);
 
   const handleBulkAddSelected = useCallback(() => {
-    if (bulkSelectedItems.length === 0) return;
-    if (insertLibraryItems(bulkSelectedItems)) clearBulkSelection();
-  }, [bulkSelectedItems, clearBulkSelection, insertLibraryItems]);
+    if (bulkSelectedInsertableItems.length === 0) return;
+    if (insertLibraryItems(bulkSelectedInsertableItems)) clearBulkSelection();
+  }, [bulkSelectedInsertableItems, clearBulkSelection, insertLibraryItems]);
 
   const handleBulkAddSelectedTemplates = useCallback(async () => {
     const { templates: checkedTemplates, templateNodes, items } = bulkTemplateUnits;
@@ -2791,8 +2770,10 @@ function useEstimateRightSidebarContent({
   const ensureProjectEstimatesLoaded = useCallback((projectId: string) => {
     if (loadedProjectSourceIndex.projectIdsWithEstimates.has(projectId)) return;
     if (getProjectEstimateLoadedProjectIds().has(projectId)) return;
+    if (projectEstimateLoadInFlightRef.current.has(projectId)) return;
     if (projectEstimateLoadingProjectIds.includes(projectId)) return;
 
+    projectEstimateLoadInFlightRef.current.add(projectId);
     setProjectEstimateLoadingProjectIds((current) =>
       current.includes(projectId) ? current : [...current, projectId],
     );
@@ -2808,6 +2789,7 @@ function useEstimateRightSidebarContent({
         toast({ tone: "error", message: toUserSourceError("estimates") });
       })
       .finally(() => {
+        projectEstimateLoadInFlightRef.current.delete(projectId);
         setProjectEstimateLoadingProjectIds((current) => current.filter((id) => id !== projectId));
       });
   }, [
@@ -2821,8 +2803,10 @@ function useEstimateRightSidebarContent({
 
   const ensureEstimateOutlineLoaded = useCallback((source: { projectId: string; estimateId: string }) => {
     if (loadedProjectSourceIndex.estimateIdsWithOutline.has(source.estimateId)) return;
+    if (estimateOutlineLoadInFlightRef.current.has(source.estimateId)) return;
     if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
 
+    estimateOutlineLoadInFlightRef.current.add(source.estimateId);
     setProjectOutlineLoadingEstimateIds((current) =>
       current.includes(source.estimateId) ? current : [...current, source.estimateId],
     );
@@ -2835,6 +2819,7 @@ function useEstimateRightSidebarContent({
         toast({ tone: "error", message: toUserSourceError("outline") });
       })
       .finally(() => {
+        estimateOutlineLoadInFlightRef.current.delete(source.estimateId);
         setProjectOutlineLoadingEstimateIds((current) => current.filter((id) => id !== source.estimateId));
       });
   }, [
@@ -2862,6 +2847,37 @@ function useEstimateRightSidebarContent({
     setTemplatesExpandedIds((current) =>
       current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
     );
+    const template = templateList.find((entry) => toTemplateTreeItemId(entry.id) === nodeId);
+    if (template) {
+      if (isExpanded) {
+        templateGraphRequestIdRef.current += 1;
+        if (template.summary && template.nodes.length > 0) {
+          setTemplateList((current) => current.map((entry) => (
+            entry.id === template.id ? { ...entry, nodes: [] } : entry
+          )));
+        }
+        return;
+      }
+      if (template.nodes.length > 0) return;
+
+      const requestId = templateGraphRequestIdRef.current + 1;
+      templateGraphRequestIdRef.current = requestId;
+      loadCurrentWorkspaceEstimateTemplateGraph(template.id)
+        .then((graph) => {
+          if (templateGraphRequestIdRef.current !== requestId) return;
+          setTemplateList((current) => current.map((entry) => {
+            if (entry.id === graph.id) return { ...graph, summary: entry.summary ?? graph.summary };
+            return entry.summary && entry.nodes.length > 0 ? { ...entry, nodes: [] } : entry;
+          }));
+        })
+        .catch((error: unknown) => {
+          if (templateGraphRequestIdRef.current !== requestId) return;
+          console.error("[templates] template graph load failed", error);
+          toast({ tone: "error", message: "Could not load the estimate template." });
+        });
+      return;
+    }
+
     if (isExpanded) return;
 
     const projectSource = loadedProjectSourceIndex.projectsByTreeNodeId.get(nodeId);
@@ -2876,11 +2892,14 @@ function useEstimateRightSidebarContent({
     ensureProjectEstimatesLoaded,
     loadedProjectSourceIndex,
     setTemplatesExpandedIds,
+    setTemplateList,
+    templateList,
     templatesExpandedIds,
+    toast,
   ]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
-    if (!item) return;
+    if (!item || !isLibraryComponentInsertable(item)) return;
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(item));
     event.dataTransfer.setData("text/plain", getComponentName(item));
@@ -3165,6 +3184,7 @@ function useEstimateRightSidebarContent({
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
                 onItemMoveToFolder={isLibraryTab && componentViewMode === "default" ? handleLibraryItemMove : undefined}
+                isItemAddDisabled={(item) => !isLibraryComponentInsertable(item)}
                 showThumbnails
                 editingNodeId={editingFolderId}
                 editingNodeValue={editingFolderName}
@@ -3207,7 +3227,7 @@ function useEstimateRightSidebarContent({
                   {
                     label: "Add selected components",
                     icon: <Plus size={12} weight="regular" />,
-                    disabled: !canInsert || bulkSelectedItems.length === 0,
+                    disabled: !canInsert || bulkSelectedInsertableItems.length === 0,
                     onClick: handleBulkAddSelected,
                   },
                   ...(isLibraryTab
@@ -3243,8 +3263,8 @@ function useEstimateRightSidebarContent({
               setDeleteCandidate(previewItem);
             } : undefined}
             deleteLabel="Archive"
-            addDisabled={!canInsert}
-            addLabel={targetLabel}
+            addDisabled={!canInsert || !isLibraryComponentInsertable(previewItem)}
+            addLabel={isLibraryComponentInsertable(previewItem) ? targetLabel : "Only available components can be added"}
             insertQuantity={insertQuantity}
             onInsertQuantityChange={setInsertQuantity}
           />
@@ -3276,6 +3296,8 @@ function useEstimateRightSidebarContent({
             libraryItems={reusableLibraryItems}
             selectedFolderId={componentModalItem?.libraryFolderId ?? addComponentFolderId}
             editingItem={componentModalItem}
+            expectedComponentImpactFingerprint={componentModalImpactFingerprint || undefined}
+            optionUsageCounts={componentModalOptionUsageCounts}
             imageUploadProjectId={projectId ?? null}
             onOpenChange={handleComponentModalOpenChange}
             onComponentCreated={handleComponentCreated}
@@ -3547,7 +3569,7 @@ function useEstimateRightSidebarContent({
       <ResizableSidePanel
         side="right"
         ariaLabel="Sources"
-        storageKey="estimate_component_library_width_v2"
+        storageKey="estimate_component_library_width"
         defaultWidth={560}
         minWidth={360}
         maxWidth={560}

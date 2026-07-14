@@ -3,7 +3,10 @@
 import Image from "next/image";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import {
+  CaretDown,
+  CaretUp,
   Dna,
+  DownloadSimple,
   ImageSquare,
   Money,
   Package,
@@ -57,6 +60,7 @@ import {
 } from "./library-folder-tree-shared";
 
 type VariantImageDraft = {
+  assetId?: string;
   bucket: string;
   path: string;
   thumbnailPath: string;
@@ -131,6 +135,9 @@ type ImageUploadState =
 
 type UploadedComponentImage = {
   bucket?: string;
+  uploadSessionId?: string;
+  assetId?: string;
+  scanStatus?: string;
   url: string;
   thumbnailUrl: string;
   path: string;
@@ -152,10 +159,18 @@ type AddComponentModalProps = {
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
   editingItem?: EstimateRowItem | null;
+  expectedComponentImpactFingerprint?: string;
+  optionUsageCounts?: Record<string, number>;
+  componentEditScope?: "library" | "project";
   imageUploadProjectId?: string | null;
+  projectComponentId?: string | null;
   onOpenChange: (open: boolean) => void;
   onComponentCreated: (item: EstimateRowItem) => void;
-  onComponentUpdated?: (item: EstimateRowItem, instanceSync?: LibraryComponentInstanceSyncResult) => void | Promise<void>;
+  onComponentUpdated?: (
+    item: EstimateRowItem,
+    instanceSync?: LibraryComponentInstanceSyncResult,
+    context?: { removedPriceOptionReplacements: Record<string, string> },
+  ) => void | Promise<void>;
   onComponentUpdatePendingChange?: (item: EstimateRowItem, pending: boolean) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
@@ -167,11 +182,17 @@ type AddComponentModalProps = {
 
 type AddComponentModalTab = "component" | "activity";
 type VariantDrawerView = "manager" | "variant";
+type PendingVariantRemoval = {
+  variantId: string;
+  label: string;
+  usageCount: number;
+  replacementPriceOptionId: string;
+};
 
 const MAX_CLIENT_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
 const CLIENT_IMAGE_EDGE = 1600;
 const CLIENT_IMAGE_QUALITY = 0.82;
-const DEFAULT_VARIANT_LABEL = "V1";
+const DEFAULT_VARIANT_LABEL = "Default";
 const ALLOWED_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const accountingNumberFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
@@ -208,7 +229,7 @@ const OPENDESIGN_RAIL_SHADOW_CLASS =
 const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
   "shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const LOCAL_CATALOGUE_OPTION_PREFIX = "local-catalogue-option";
-const ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX = "archestimator:add-component-catalogue-options:v1";
+const ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX = "archestimator:add-component-catalogue-options";
 const LOCAL_CATALOGUE_OPTION_LIMIT = 80;
 const CATALOGUE_OPTION_KINDS: CatalogueOptionKind[] = ["category", "supplier", "brand"];
 
@@ -389,6 +410,7 @@ function getAttachmentKind(contentType: string): "pdf" | "excel" {
 function buildImageMetadata(image: VariantImageDraft | null): Json {
   if (!image) return {};
   return {
+    assetId: image.assetId ?? null,
     thumbnailStoragePath: image.thumbnailStoragePath,
     width: image.width ?? null,
     height: image.height ?? null,
@@ -417,6 +439,7 @@ function isUsableUploadResponse(value: UploadedComponentImage): value is Uploade
 
 function toVariantImageDraft(value: UploadedComponentImage): VariantImageDraft {
   return {
+    assetId: value.assetId,
     bucket: value.bucket ?? "component-images",
     path: value.path,
     thumbnailPath: value.thumbnailUrl,
@@ -433,7 +456,7 @@ function toVariantImageDraft(value: UploadedComponentImage): VariantImageDraft {
 function makeVariantDraft(index: number, overrides: Partial<VariantDraft> = {}): VariantDraft {
   return {
     id: crypto.randomUUID(),
-    label: index === 1 ? DEFAULT_VARIANT_LABEL : `V${index}`,
+    label: index === 1 ? DEFAULT_VARIANT_LABEL : `Option ${index}`,
     description: "",
     sku: "",
     unitCost: "",
@@ -460,8 +483,9 @@ function getDraftImageSnapshot(image: VariantImageDraft | null) {
 }
 
 function hasMeaningfulVariantValue(variant: VariantDraft, index: number) {
+  const generatedLabel = index === 0 ? DEFAULT_VARIANT_LABEL : `Option ${index + 1}`;
   return Boolean(
-    (variant.label.trim() && variant.label.trim() !== `V${index + 1}`)
+    (variant.label.trim() && variant.label.trim() !== generatedLabel)
       || variant.description.trim()
       || variant.sku.trim()
       || variant.unitCost.trim()
@@ -535,12 +559,13 @@ function compareExistingPriceOptions(left: ExistingPriceOption, right: ExistingP
 function toExistingVariantAttachmentDraft(attachment: NonNullable<ExistingPriceOption["attachments"]>[number]): VariantAttachmentDraft {
   return {
     id: attachment.id,
+    assetId: attachment.assetId ?? undefined,
     bucket: attachment.bucket,
     path: attachment.path,
     fileName: attachment.fileName,
     contentType: attachment.contentType,
     sizeBytes: attachment.sizeBytes,
-    scanStatus: null,
+    scanStatus: attachment.scanStatus ?? null,
   };
 }
 
@@ -553,15 +578,15 @@ function toVariantDraftFromPriceOption(
   const imageSource = option.thumbnailPath ?? option.imagePath ?? (isSelected ? input.editingItem.imageUrl : null);
   return makeVariantDraft(index + 1, {
     id: option.id,
-    label: option.label || (index === 0 ? DEFAULT_VARIANT_LABEL : `V${index + 1}`),
+    label: option.label || (index === 0 ? DEFAULT_VARIANT_LABEL : `Option ${index + 1}`),
     description: option.variantDescription ?? (isSelected ? input.editingItem.description : ""),
     sku: option.sku ?? "",
     unitCost: formatAccountingMoney(String(option.unitCost)),
     unit: option.unit || input.editingItem.unit || "unit",
     packageQuantity: option.packageQuantity === null || option.packageQuantity === undefined ? "" : String(option.packageQuantity),
     packageUnit: option.packageUnit ?? "",
-    isDefault: Boolean(isSelected),
-    image: toExistingVariantImageDraft(imageSource),
+    isDefault: Boolean(option.isDefault),
+    image: toExistingVariantImageDraft(imageSource, option),
     attachments: option.attachments?.map(toExistingVariantAttachmentDraft) ?? [],
   });
 }
@@ -589,7 +614,7 @@ function getInitialDraft({
     const variants = priceOptionDrafts.length > 0
       ? priceOptionDrafts.map((variant, index) => ({
           ...variant,
-          isDefault: selectedPriceOptionId ? variant.id === selectedPriceOptionId : variant.isDefault || index === 0,
+          isDefault: variant.isDefault || (!priceOptionDrafts.some((candidate) => candidate.isDefault) && index === 0),
         }))
       : [
           makeVariantDraft(1, {
@@ -641,14 +666,21 @@ function getInitialDraft({
   };
 }
 
-function toExistingVariantImageDraft(imageUrl: string | null | undefined): VariantImageDraft | null {
+function toExistingVariantImageDraft(
+  imageUrl: string | null | undefined,
+  option?: ExistingPriceOption,
+): VariantImageDraft | null {
   const resolvedUrl = resolveExistingComponentImageUrl(imageUrl);
   if (!resolvedUrl) return null;
+  const imageMetadata = option?.imageMetadata && typeof option.imageMetadata === "object" && !Array.isArray(option.imageMetadata)
+    ? option.imageMetadata as Record<string, unknown>
+    : {};
   return {
-    bucket: "",
-    path: "",
+    assetId: typeof imageMetadata.assetId === "string" ? imageMetadata.assetId : undefined,
+    bucket: option?.imageBucket ?? "",
+    path: option?.imagePath ?? "",
     thumbnailPath: resolvedUrl,
-    thumbnailStoragePath: "",
+    thumbnailStoragePath: typeof imageMetadata.thumbnailStoragePath === "string" ? imageMetadata.thumbnailStoragePath : "",
     url: resolvedUrl,
     thumbnailUrl: resolvedUrl,
   };
@@ -729,13 +761,21 @@ async function removeComponentImageUpload(image: VariantImageDraft | null | unde
   }).catch(() => undefined);
 }
 
-async function removeComponentAttachmentUpload(attachment: VariantAttachmentDraft | null | undefined) {
+async function removeComponentAttachmentUpload(
+  attachment: VariantAttachmentDraft | null | undefined,
+  target: { projectId?: string | null; projectComponentId?: string | null } = {},
+) {
   const paths = getAttachmentStoragePaths(attachment);
   if (paths.length === 0) return;
+  const projectId = target.projectId?.trim() ?? "";
+  const projectComponentId = target.projectComponentId?.trim() ?? "";
   await fetch("/api/component-library/attachments", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paths }),
+    body: JSON.stringify({
+      paths,
+      ...(projectId && projectComponentId ? { projectId, projectComponentId } : {}),
+    }),
   }).catch(() => undefined);
 }
 
@@ -778,7 +818,11 @@ function OpenAddComponentModal({
   selectedSupplierId,
   selectedBrandId,
   editingItem,
+  expectedComponentImpactFingerprint,
+  optionUsageCounts = {},
+  componentEditScope = "library",
   imageUploadProjectId,
+  projectComponentId,
   onOpenChange,
   onComponentCreated,
   onComponentUpdated,
@@ -786,6 +830,10 @@ function OpenAddComponentModal({
   catalogueOptionsStorageScope,
 }: AddComponentModalProps) {
   const isEditing = Boolean(editingItem);
+  const projectImageUploadId = componentEditScope === "project" ? imageUploadProjectId : null;
+  const projectAttachmentUploadTarget = projectImageUploadId && projectComponentId
+    ? { projectId: projectImageUploadId, projectComponentId }
+    : null;
   const [draft, setDraft] = useState(() => getInitialDraft({
     selectedSupplierId,
     selectedBrandId,
@@ -794,7 +842,13 @@ function OpenAddComponentModal({
     editingItem,
   }));
   const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
-  const [activeVariantId, setActiveVariantId] = useState(() => draft.variants.find((variant) => variant.isDefault)?.id ?? draft.variants[0]?.id ?? "");
+  const [activeVariantId, setActiveVariantId] = useState(() => {
+    const selectedPriceOptionId = editingItem ? getSelectedEditingPriceOptionId(editingItem) : null;
+    return draft.variants.find((variant) => variant.id === selectedPriceOptionId)?.id
+      ?? draft.variants.find((variant) => variant.isDefault)?.id
+      ?? draft.variants[0]?.id
+      ?? "";
+  });
   const [variantModeEnabled, setVariantModeEnabled] = useState(() => (editingItem?.priceOptions?.length ?? 0) > 1);
   const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
   const [variantDrawerView, setVariantDrawerView] = useState<VariantDrawerView>("manager");
@@ -803,6 +857,8 @@ function OpenAddComponentModal({
   const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
   const [attachmentUpload, setAttachmentUpload] = useState<ImageUploadState>({ state: "idle" });
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [pendingVariantRemoval, setPendingVariantRemoval] = useState<PendingVariantRemoval | null>(null);
+  const [removedPriceOptionReplacements, setRemovedPriceOptionReplacements] = useState<Record<string, string>>({});
   const [draftSaveError, setDraftSaveError] = useState("");
   const [duplicateCheckReady, setDuplicateCheckReady] = useState(false);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
@@ -823,6 +879,12 @@ function OpenAddComponentModal({
   const catalogueOptionsStorageKey = useMemo(
     () => getCatalogueOptionsStorageKey(catalogueOptionsStorageScope),
     [catalogueOptionsStorageScope],
+  );
+  const persistedAttachmentIds = useMemo(
+    () => new Set((editingItem?.priceOptions ?? []).flatMap((option) => (
+      option.attachments ?? []
+    ).map((attachment) => attachment.id))),
+    [editingItem],
   );
   const [localCatalogueOptions, setLocalCatalogueOptions] = useState<LocalCatalogueOptionsState>(
     () => readLocalCatalogueOptionsState(catalogueOptionsStorageKey),
@@ -934,7 +996,7 @@ function OpenAddComponentModal({
     if (draft.variants.length === 0) messages.push("At least one variant is required.");
     if (draft.variants.filter((variant) => variant.isDefault).length !== 1) messages.push("Exactly one default variant is required.");
     for (const [index, variant] of draft.variants.entries()) {
-      const label = variant.label.trim() || `V${index + 1}`;
+      const label = variant.label.trim() || (index === 0 ? DEFAULT_VARIANT_LABEL : `Option ${index + 1}`);
       if (!variant.label.trim()) messages.push(`${label} name is required.`);
       if (!variant.unit.trim()) messages.push(`${label} unit is required.`);
       if (!Number.isFinite(parseMoney(variant.unitCost)) || parseMoney(variant.unitCost) < 0) {
@@ -1100,13 +1162,6 @@ function OpenAddComponentModal({
 
   function addVariant() {
     markDirty();
-    if (!variantModeEnabled && defaultVariant) {
-      setVariantModeEnabled(true);
-      setActiveVariantId(defaultVariant.id);
-      setVariantDrawerOpen(true);
-      setVariantDrawerView("variant");
-      return;
-    }
     const nextVariant = makeVariantDraft(draft.variants.length + 1, {
       unit: defaultVariant?.unit ?? "unit",
     });
@@ -1117,27 +1172,70 @@ function OpenAddComponentModal({
     setVariantDrawerView("variant");
   }
 
-  function removeActiveVariant() {
-    if (!activeVariant) return;
+  function moveVariant(variantId: string, direction: -1 | 1) {
+    markDirty();
+    setDraft((current) => {
+      const currentIndex = current.variants.findIndex((variant) => variant.id === variantId);
+      const nextIndex = currentIndex + direction;
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= current.variants.length) return current;
+      const variants = [...current.variants];
+      const [variant] = variants.splice(currentIndex, 1);
+      variants.splice(nextIndex, 0, variant);
+      return { ...current, variants };
+    });
+  }
+
+  function applyVariantRemoval(variant: VariantDraft, replacementPriceOptionId?: string) {
     markDirty();
     if (variantModeEnabled && draft.variants.length === 1) {
       setVariantModeEnabled(false);
       setVariantDrawerView("manager");
       return;
     }
-    const removedImage = draft.sharedImageForAllVariants ? null : activeVariant.image;
-    const removedAttachments = activeVariant.attachments;
-    const removedIndex = draft.variants.findIndex((variant) => variant.id === activeVariant.id);
-    const nextVariants = draft.variants.filter((variant) => variant.id !== activeVariant.id);
+    const isPersistedVariant = Boolean(editingItem?.priceOptions?.some((option) => option.id === variant.id));
+    const removedImage = draft.sharedImageForAllVariants ? null : variant.image;
+    const removedAttachments = variant.attachments;
+    const removedIndex = draft.variants.findIndex((candidate) => candidate.id === variant.id);
+    const nextVariants = draft.variants.filter((candidate) => candidate.id !== variant.id);
     const ensuredVariants = nextVariants.some((variant) => variant.isDefault)
       ? nextVariants
       : nextVariants.map((variant, index) => ({ ...variant, isDefault: index === 0 }));
     const nextActive = ensuredVariants[Math.max(0, Math.min(removedIndex, ensuredVariants.length - 1))];
     setDraft((current) => ({ ...current, variants: ensuredVariants }));
     setActiveVariantId(nextActive?.id ?? "");
-    if (!nextActive) setVariantDrawerView("manager");
-    if (removedImage) void removeComponentImageUpload(removedImage);
-    for (const attachment of removedAttachments) void removeComponentAttachmentUpload(attachment);
+    if (ensuredVariants.length <= 1) {
+      setVariantModeEnabled(false);
+      setVariantDrawerView("manager");
+    } else if (!nextActive) {
+      setVariantDrawerView("manager");
+    }
+    if (replacementPriceOptionId) {
+      setRemovedPriceOptionReplacements((current) => ({ ...current, [variant.id]: replacementPriceOptionId }));
+    }
+    if (!isPersistedVariant) {
+      if (removedImage) void removeComponentImageUpload(removedImage);
+      if (componentEditScope !== "project" || projectAttachmentUploadTarget) {
+        for (const attachment of removedAttachments) {
+          void removeComponentAttachmentUpload(attachment, projectAttachmentUploadTarget ?? {});
+        }
+      }
+    }
+  }
+
+  function removeActiveVariant() {
+    if (!activeVariant) return;
+    const usageCount = optionUsageCounts[activeVariant.id] ?? 0;
+    const isPersistedVariant = Boolean(editingItem?.priceOptions?.some((option) => option.id === activeVariant.id));
+    if (isPersistedVariant && usageCount > 0) {
+      setPendingVariantRemoval({
+        variantId: activeVariant.id,
+        label: activeVariant.label,
+        usageCount,
+        replacementPriceOptionId: "",
+      });
+      return;
+    }
+    applyVariantRemoval(activeVariant);
   }
 
   function setActiveVariantAsDefault() {
@@ -1150,8 +1248,18 @@ function OpenAddComponentModal({
   }
 
   function cleanupUploadedDraftAssets() {
-    for (const image of collectDraftImages(draftRef.current)) void removeComponentImageUpload(image);
-    for (const attachment of collectDraftAttachments(draftRef.current)) void removeComponentAttachmentUpload(attachment);
+    const initialImagePaths = new Set(collectDraftImages(initialDraftRef.current).flatMap(getImageStoragePaths));
+    const initialAttachmentPaths = new Set(collectDraftAttachments(initialDraftRef.current).flatMap(getAttachmentStoragePaths));
+    for (const image of collectDraftImages(draftRef.current)) {
+      if (getImageStoragePaths(image).some((path) => !initialImagePaths.has(path))) void removeComponentImageUpload(image);
+    }
+    for (const attachment of collectDraftAttachments(draftRef.current)) {
+      if (getAttachmentStoragePaths(attachment).some((path) => !initialAttachmentPaths.has(path))) {
+        if (componentEditScope !== "project" || projectAttachmentUploadTarget) {
+          void removeComponentAttachmentUpload(attachment, projectAttachmentUploadTarget ?? {});
+        }
+      }
+    }
   }
 
   function requestClose(openValue: boolean) {
@@ -1175,7 +1283,6 @@ function OpenAddComponentModal({
     const defaultVariantImage = getVariantImage(draft, fallbackVariant);
     const defaultThumbnailPath = defaultVariantImage?.thumbnailUrl || defaultVariantImage?.thumbnailPath || null;
     return {
-      fieldContract: "opendesign-add-component",
       name: draft.name,
       description: fallbackVariant.description,
       category: draft.category.trim(),
@@ -1190,17 +1297,32 @@ function OpenAddComponentModal({
       lifecycleState: draft.lifecycleState,
       effectiveAt: draft.effectiveAt,
       changeReason: draft.changeReason,
-      metadata: {},
       priceOptions: draft.variants.map((variant, index) => {
         const variantImage = getVariantImage(draft, variant);
+        const existingOption = editingItem?.priceOptions?.find((option) => option.id === variant.id);
+        const persistedVariantId = existingOption ? variant.id : undefined;
+        const unitCost = parseAccountingMoney(variant.unitCost);
         return {
+          id: persistedVariantId,
           label: variant.label,
           sku: variant.sku || null,
           variantDescription: variant.description,
           variantSortOrder: index + 1,
           unit: variant.unit || fallbackVariant.unit || "unit",
-          unitCost: parseAccountingMoney(variant.unitCost),
+          unitCost,
           currency: "PHP",
+          activeCostEntryId: existingOption?.activeCostEntryId ?? null,
+          costEntries: [{
+            id: existingOption?.activeCostEntryId ?? undefined,
+            unitCost,
+            miscCost: existingOption?.miscCost ?? 0,
+            currency: existingOption?.currency ?? "PHP",
+            pricingSource: existingOption?.pricingSource ?? undefined,
+            pricingDate: existingOption?.pricingDate ?? draft.effectiveAt,
+            sourceUrl: existingOption?.sourceUrl ?? undefined,
+            notes: existingOption?.notes ?? undefined,
+            isCurrent: true,
+          }],
           supplierId: draft.supplierId || null,
           packageQuantity: readOptionalPositiveNumber(variant.packageQuantity),
           packageUnit: variant.packageUnit || null,
@@ -1209,12 +1331,17 @@ function OpenAddComponentModal({
           thumbnailPath: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || null,
           imageMetadata: buildImageMetadata(variantImage),
           attachments: variant.attachments.map((attachment) => ({
+            id: existingOption?.attachments?.some((candidate) => candidate.id === attachment.id)
+              ? attachment.id
+              : undefined,
+            assetId: attachment.assetId ?? null,
             bucket: attachment.bucket,
             path: attachment.path,
             fileName: attachment.fileName,
             contentType: attachment.contentType,
             sizeBytes: attachment.sizeBytes,
             kind: getAttachmentKind(attachment.contentType),
+            scanStatus: attachment.scanStatus ?? null,
           })),
           isDefault: variant.isDefault,
           isActive: true,
@@ -1241,7 +1368,6 @@ function OpenAddComponentModal({
       setDraftSaveError("");
       try {
         await saveCostLibraryComponentDraft({
-          fieldContract: "opendesign-add-component",
           title: draft.name,
           draft: {
             form: draft,
@@ -1306,7 +1432,7 @@ function OpenAddComponentModal({
     try {
       const uploadFile = await resizeImageForUpload(file).catch(() => file);
       setImageUpload({ state: "uploading", message: "Uploading image..." });
-      const uploadedImage = await uploadComponentImage(uploadFile, { projectId: imageUploadProjectId });
+      const uploadedImage = await uploadComponentImage(uploadFile, { projectId: projectImageUploadId });
       if (!isUsableUploadResponse(uploadedImage)) throw new Error("Image upload response was incomplete.");
       const imageDraft = toVariantImageDraft(uploadedImage);
       if (draft.sharedImageForAllVariants) {
@@ -1315,7 +1441,14 @@ function OpenAddComponentModal({
         updateVariant(uploadVariant.id, { image: imageDraft });
         if (uploadVariant.isDefault) updateDraft({ thumbnailPath: imageDraft.thumbnailUrl || imageDraft.url });
       }
-      if (previousImage && previousImage.path !== imageDraft.path) void removeComponentImageUpload(previousImage);
+      const initialImagePaths = new Set(collectDraftImages(initialDraftRef.current).flatMap(getImageStoragePaths));
+      if (
+        previousImage
+        && previousImage.path !== imageDraft.path
+        && getImageStoragePaths(previousImage).some((path) => !initialImagePaths.has(path))
+      ) {
+        void removeComponentImageUpload(previousImage);
+      }
       setImageUpload({
         state: "uploaded",
         message: `Stored WebP thumbnail (${formatBytes(uploadedImage.originalBytes)} -> ${formatBytes(uploadedImage.optimizedBytes)}).`,
@@ -1338,12 +1471,16 @@ function OpenAddComponentModal({
     markDirty();
     setAttachmentUpload({ state: "uploading", message: "Uploading attachment..." });
     try {
-      const uploaded = await uploadComponentAttachment(file);
+      if (componentEditScope === "project" && !projectAttachmentUploadTarget) {
+        throw new Error("Refresh this project component before uploading attachments.");
+      }
+      const attachmentId = crypto.randomUUID();
+      const uploaded = await uploadComponentAttachment(file, projectAttachmentUploadTarget ?? {});
       updateActiveVariant({
         attachments: [
           ...activeVariant.attachments,
           {
-            id: crypto.randomUUID(),
+            id: attachmentId,
             bucket: uploaded.bucket,
             path: uploaded.path,
             fileName: uploaded.fileName,
@@ -1367,7 +1504,12 @@ function OpenAddComponentModal({
     updateActiveVariant({
       attachments: activeVariant.attachments.filter((attachment) => attachment.id !== attachmentId),
     });
-    if (removedAttachment) void removeComponentAttachmentUpload(removedAttachment);
+    const initialAttachmentPaths = new Set(collectDraftAttachments(initialDraftRef.current).flatMap(getAttachmentStoragePaths));
+    if (removedAttachment && getAttachmentStoragePaths(removedAttachment).some((path) => !initialAttachmentPaths.has(path))) {
+      if (componentEditScope !== "project" || projectAttachmentUploadTarget) {
+        void removeComponentAttachmentUpload(removedAttachment, projectAttachmentUploadTarget ?? {});
+      }
+    }
   }
 
   function setSharedImageMode(checked: boolean) {
@@ -1415,116 +1557,17 @@ function OpenAddComponentModal({
     });
   }
 
-  function buildOptimisticItem(result: {
-    itemId: string;
-    versionNumber: number;
-    activePriceOptionId: string;
-    priceOptions?: Array<{ id: string; label: string; isDefault: boolean }>;
-    createdAt: string;
-    updatedAt: string;
-  }): EstimateRowItem {
-    const variant = defaultVariant;
-    const variantImage = getVariantImage(draft, variant);
-    const itemCost = parseAccountingMoney(variant?.unitCost ?? "0");
-    const supplierName = selectedSupplier?.name ?? draft.supplierName;
-    const brandName = selectedBrand?.name ?? draft.brand;
-    const category = draft.category.trim();
-    const persistedOptions = result.priceOptions ?? [];
-    const priceOptions = draft.variants.map((entry, index) => {
-      const persistedOption = persistedOptions.find((option) => option.label === entry.label) ?? (entry.isDefault && result.activePriceOptionId
-        ? { id: result.activePriceOptionId, label: entry.label, isDefault: true }
-        : null);
-      const image = getVariantImage(draft, entry);
-      return {
-        id: persistedOption?.id ?? `optimistic-${entry.id}`,
-        label: entry.label,
-        sku: entry.sku || null,
-        variantDescription: entry.description,
-        variantSortOrder: index + 1,
-        unit: entry.unit,
-        unitCost: parseAccountingMoney(entry.unitCost),
-        miscCost: 0,
-        currency: "PHP",
-        pricingSource: null,
-        pricingDate: today(),
-        sourceUrl: null,
-        notes: null,
-        supplierId: draft.supplierId || null,
-        packageQuantity: readOptionalPositiveNumber(entry.packageQuantity),
-        packageUnit: entry.packageUnit || null,
-        imageBucket: image?.bucket,
-        imagePath: image?.path,
-        thumbnailPath: image?.thumbnailUrl || image?.thumbnailPath,
-        imageMetadata: buildImageMetadata(image),
-        attachments: entry.attachments.map((attachment) => ({
-          id: attachment.id,
-          bucket: attachment.bucket,
-          path: attachment.path,
-          fileName: attachment.fileName,
-          contentType: attachment.contentType,
-          sizeBytes: attachment.sizeBytes,
-          kind: getAttachmentKind(attachment.contentType),
-        })),
-        variantMetadata: {},
-        isActive: true,
-        isDefault: entry.isDefault,
-      };
-    });
-
-    return {
-      id: result.itemId,
-      material: draft.name.trim(),
-      name: draft.name.trim(),
-      description: variant?.description ?? "",
-      supplier: supplierName,
-      supplierId: draft.supplierId || undefined,
-      source: "library",
-      unit: variant?.unit || "unit",
-      itemCost,
-      price: itemCost,
-      currency: "PHP",
-      quantity: 1,
-      subTotal: itemCost,
-      miscCost: 0,
-      miscCostDefault: 0,
-      totalItemCosts: itemCost,
-      imageUrl: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || draft.thumbnailPath || undefined,
-      category,
-      categoryNodeId: draft.categoryNodeId || undefined,
-      libraryFolderId: editingItem?.libraryFolderId ?? selectedFolderId ?? undefined,
-      categoryPath: undefined,
-      brand: brandName || undefined,
-      brandId: draft.brandId || undefined,
-      sku: variant?.sku || undefined,
-      sourceLibraryItemId: result.itemId,
-      componentVersionNumber: result.versionNumber,
-      priceOptionId: result.activePriceOptionId,
-      priceOptionLabel: variant?.label,
-      priceOptions,
-      lifecycleState: draft.lifecycleState,
-      lifecycleStateChangedAt: draft.effectiveAt,
-      history: [{
-        id: `optimistic-${result.itemId}`,
-        type: "version",
-        label: `v${result.versionNumber}`,
-        summary: "Component created",
-        effectiveAt: draft.effectiveAt,
-        createdAt: result.createdAt,
-        versionNumber: result.versionNumber,
-      }],
-      notes: draft.changeReason,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-      pricingSource: supplierName || "Component library",
-      pricingDate: today(),
-      isCustom: true,
-    };
-  }
-
   function buildEditedItem(): EstimateRowItem {
     const currentItem = editingItem;
     if (!currentItem) throw new Error("A component is required for editing.");
-    const variant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
+    const currentSelectedPriceOptionId = getSelectedEditingPriceOptionId(currentItem);
+    const selectedPriceOptionId = currentSelectedPriceOptionId
+      ? removedPriceOptionReplacements[currentSelectedPriceOptionId] ?? currentSelectedPriceOptionId
+      : null;
+    const variant = draft.variants.find((entry) => entry.id === selectedPriceOptionId)
+      ?? defaultVariant
+      ?? draft.variants[0]
+      ?? makeVariantDraft(1);
     const variantImage = getVariantImage(draft, variant);
     const existingPriceOptionsById = new Map((currentItem?.priceOptions ?? []).map((option) => [option.id, option]));
     const editedPriceOptions = draft.variants.map((entry, index): ExistingPriceOption => {
@@ -1556,16 +1599,18 @@ function OpenAddComponentModal({
         imageMetadata: buildImageMetadata(image),
         attachments: entry.attachments.map((attachment) => ({
           id: attachment.id,
+          assetId: attachment.assetId ?? null,
           bucket: attachment.bucket,
           path: attachment.path,
           fileName: attachment.fileName,
           contentType: attachment.contentType,
           sizeBytes: attachment.sizeBytes,
           kind: getAttachmentKind(attachment.contentType),
+          scanStatus: attachment.scanStatus ?? null,
         })),
         variantMetadata: existingOption?.variantMetadata ?? {},
         isActive: true,
-        isDefault: entry.id === variant.id,
+        isDefault: entry.isDefault,
         createdAt: existingOption?.createdAt,
         updatedAt: existingOption?.updatedAt,
       };
@@ -1634,30 +1679,24 @@ function OpenAddComponentModal({
           let instanceSync: LibraryComponentInstanceSyncResult | undefined;
           const sourceLibraryItemId = editingItem?.sourceLibraryItemId
             ?? (editingItem?.source === "library" ? editingItem.id : null);
-          if (sourceLibraryItemId) {
-            if (!editingItem?.updatedAt || !editingItem.componentVersionNumber) {
+          if (componentEditScope === "library" && sourceLibraryItemId) {
+            if (!editingItem?.updatedAt || !editingItem.componentVersionNumber || !expectedComponentImpactFingerprint) {
               throw new Error("Refresh this component before editing it.");
             }
             const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, {
               ...payload,
               expectedUpdatedAt: editingItem.updatedAt,
               expectedVersionNumber: editingItem.componentVersionNumber,
+              expectedComponentImpactFingerprint,
+              removedPriceOptionReplacements,
             });
             instanceSync = result;
-            editedItem = {
-              ...editedItem,
-              source: "library",
-              sourceLibraryItemId,
-              linkState: "linked-clean",
-              componentVersionNumber: result.versionNumber,
-              priceOptionId: result.activePriceOptionId,
-              updatedAt: result.updatedAt,
-            };
+            editedItem = result.component;
           }
-          await onComponentUpdated?.(editedItem, instanceSync);
+          await onComponentUpdated?.(editedItem, instanceSync, { removedPriceOptionReplacements });
         } else {
           const result = await createCostLibraryComponent(payload);
-          onComponentCreated(buildOptimisticItem(result));
+          onComponentCreated(result.component);
         }
         dirtyRef.current = false;
         onOpenChange(false);
@@ -2131,11 +2170,12 @@ function OpenAddComponentModal({
                 {visibleVariants.map((variant, index) => {
                   const isActive = activeVariant?.id === variant.id && variantDrawerView === "variant";
                   const isLast = index === visibleVariants.length - 1;
+                  const fallbackLabel = index === 0 ? DEFAULT_VARIANT_LABEL : `Option ${index + 1}`;
                   return (
                     <button
                       key={variant.id}
                       type="button"
-                      aria-label={`Open V${index + 1}`}
+                      aria-label={`Open ${variant.label || fallbackLabel}`}
                       aria-pressed={isActive}
                       onClick={() => {
                         setActiveVariantId(variant.id);
@@ -2149,7 +2189,7 @@ function OpenAddComponentModal({
                         isLast && "rounded-br-[3px]",
                       )}
                     >
-                      V{index + 1}
+                      {variant.isDefault ? "D" : index + 1}
                     </button>
                   );
                 })}
@@ -2164,23 +2204,50 @@ function OpenAddComponentModal({
                       No variants yet.
                     </div>
                   ) : null}
-                  {visibleVariants.map((variant, index) => (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveVariantId(variant.id);
-                        setVariantDrawerView("variant");
-                      }}
-                      className="grid min-h-[34px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.05)] px-2 py-1.5 text-left transition hover:bg-[rgba(61,61,61,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-[10px] font-medium text-ink">{variant.label || `V${index + 1}`}</span>
-                        <span className="mt-0.5 block truncate text-[9px] font-medium text-tertiary">PHP {formatAccountingMoney(variant.unitCost || "0")} / {getUnitDisplayLabel(variant.unit) || variant.unit}</span>
-                      </span>
-                      {variant.isDefault ? <span className="h-[18px] rounded-full bg-[color-mix(in_srgb,#F24405_10%,white)] px-[7px] text-[9px] font-medium leading-[18px] text-[#c63804]">Default</span> : null}
-                    </button>
-                  ))}
+                  {visibleVariants.map((variant, index) => {
+                    const label = variant.label || (index === 0 ? DEFAULT_VARIANT_LABEL : `Option ${index + 1}`);
+                    return (
+                      <div
+                        key={variant.id}
+                        className="grid min-h-[34px] grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-[3px] bg-[rgba(61,61,61,0.05)] px-1 py-1"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveVariantId(variant.id);
+                            setVariantDrawerView("variant");
+                          }}
+                          className="grid min-h-8 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[3px] px-1 text-left transition hover:bg-[rgba(61,61,61,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-[10px] font-medium text-ink">{label}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-medium text-tertiary">PHP {formatAccountingMoney(variant.unitCost || "0")} / {getUnitDisplayLabel(variant.unit) || variant.unit}</span>
+                          </span>
+                          {variant.isDefault ? <span className="h-[18px] rounded-full bg-[color-mix(in_srgb,#F24405_10%,white)] px-[7px] text-[9px] font-medium leading-[18px] text-[#c63804]">Default</span> : null}
+                        </button>
+                        <span className="grid grid-cols-2 gap-px" aria-label={`Reorder ${label}`}>
+                          <button
+                            type="button"
+                            aria-label={`Move ${label} up`}
+                            disabled={index === 0}
+                            onClick={() => moveVariant(variant.id, -1)}
+                            className="grid size-6 place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <CaretUp size={10} weight="regular" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Move ${label} down`}
+                            disabled={index === visibleVariants.length - 1}
+                            onClick={() => moveVariant(variant.id, 1)}
+                            className="grid size-6 place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <CaretDown size={10} weight="regular" aria-hidden="true" />
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
                   <Button type="button" variant="secondary" size="sm" onClick={addVariant} className="mt-1 rounded-[6px]">
                     <Plus size={12} weight="regular" aria-hidden="true" />
                     Add variant
@@ -2374,14 +2441,27 @@ function OpenAddComponentModal({
                             <span className="truncate text-[9.5px] font-medium leading-[1.25] text-ink">{attachment.fileName}</span>
                             <span className="truncate font-mono text-[8.5px] leading-[1.25] text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
                           </div>
-                          <button
-                            type="button"
-                            aria-label={`Remove attachment ${attachment.fileName}`}
-                            onClick={() => removeAttachment(attachment.id)}
-                            className="absolute right-[5px] top-[5px] grid size-5 place-items-center rounded-full border-0 bg-white/74 p-0 text-tertiary opacity-0 transition hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger group-hover:opacity-100"
-                          >
-                            <X size={11} weight="bold" aria-hidden="true" />
-                          </button>
+                          <div className="absolute right-[5px] top-[5px] flex items-center gap-1">
+                            {persistedAttachmentIds.has(attachment.id) ? (
+                              <a
+                                href={`/api/component-library/attachments?id=${encodeURIComponent(attachment.id)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Download attachment ${attachment.fileName}`}
+                                className="grid size-5 place-items-center rounded-full bg-white/74 text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                              >
+                                <DownloadSimple size={11} weight="bold" aria-hidden="true" />
+                              </a>
+                            ) : null}
+                            <button
+                              type="button"
+                              aria-label={`Remove attachment ${attachment.fileName}`}
+                              onClick={() => removeAttachment(attachment.id)}
+                              className="grid size-5 place-items-center rounded-full border-0 bg-white/74 p-0 text-tertiary opacity-0 transition hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger group-hover:opacity-100"
+                            >
+                              <X size={11} weight="bold" aria-hidden="true" />
+                            </button>
+                          </div>
                         </li>
                       )) : (
                         <li className="grid min-h-[72px] min-w-full place-items-center rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 text-center text-[9.5px] leading-[1.35] text-tertiary">
@@ -2415,6 +2495,56 @@ function OpenAddComponentModal({
             </footer>
           </aside>
         </div>
+      </Modal>
+      <Modal
+        open={Boolean(pendingVariantRemoval)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setPendingVariantRemoval(null);
+        }}
+        title="Replace variant before deleting"
+        description={pendingVariantRemoval
+          ? `${pendingVariantRemoval.label || "This variant"} is selected by ${pendingVariantRemoval.usageCount} estimate row${pendingVariantRemoval.usageCount === 1 ? "" : "s"}. Choose where only those rows should move.`
+          : undefined}
+        size="sm"
+        closeLabel="Close variant replacement dialog"
+        footer={pendingVariantRemoval ? (
+          <div className="flex w-full items-center justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setPendingVariantRemoval(null)}>
+              Keep variant
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={!pendingVariantRemoval.replacementPriceOptionId}
+              onClick={() => {
+                const variant = draft.variants.find((candidate) => candidate.id === pendingVariantRemoval.variantId);
+                if (!variant || !pendingVariantRemoval.replacementPriceOptionId) return;
+                applyVariantRemoval(variant, pendingVariantRemoval.replacementPriceOptionId);
+                setPendingVariantRemoval(null);
+              }}
+            >
+              Replace and delete
+            </Button>
+          </div>
+        ) : undefined}
+      >
+        {pendingVariantRemoval ? (
+          <ControlField label="Replacement variant" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
+            <DropdownSelect
+              aria-label="Replacement variant"
+              placeholder="Choose a replacement"
+              value={pendingVariantRemoval.replacementPriceOptionId}
+              options={draft.variants
+                .filter((variant) => variant.id !== pendingVariantRemoval.variantId)
+                .map((variant) => ({ value: variant.id, label: variant.label }))}
+              onValueChange={(replacementPriceOptionId) => setPendingVariantRemoval((current) => current
+                ? { ...current, replacementPriceOptionId }
+                : current)}
+              className={OPENDESIGN_INPUT_CLASS}
+            />
+          </ControlField>
+        ) : null}
       </Modal>
       <Modal
         open={discardDialogOpen}

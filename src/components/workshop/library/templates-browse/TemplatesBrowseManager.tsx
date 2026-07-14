@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowSquareOut,
@@ -47,6 +47,7 @@ import {
   renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
+import { loadCurrentWorkspaceEstimateTemplateGraph } from "@/lib/component-library/template-browse-actions";
 import type { ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
 import { cn } from "@/lib/ui/cn";
@@ -761,6 +762,8 @@ export function TemplatesBrowseManager({
   // Mutations patch the route shell's warm query cache (T4). No-op when bare.
   const syncTemplatesCache = onTemplatesMutated;
   const [state, dispatch] = useReducer(templatesBrowseManagerReducer, templates, createInitialTemplatesBrowseManagerState);
+  const [selectedTemplateGraph, setSelectedTemplateGraph] = useState<EstimateTemplate | null>(null);
+  const selectedTemplateGraphRequestIdRef = useRef(0);
   const {
     templateState,
     selectedCategory,
@@ -794,7 +797,10 @@ export function TemplatesBrowseManager({
     () => (selectedCategory ? localTemplates.filter((template) => template.category === selectedCategory) : localTemplates),
     [localTemplates, selectedCategory],
   );
-  const selectedTemplate = localTemplates.find((template) => template.id === selectedTemplateId) ?? null;
+  const selectedTemplateSummary = localTemplates.find((template) => template.id === selectedTemplateId) ?? null;
+  const selectedTemplate = selectedTemplateGraph?.id === selectedTemplateId
+    ? selectedTemplateGraph
+    : selectedTemplateSummary;
   const scopeLabel = selectedCategory ?? "All Templates";
 
   const setItems = useCallback((updater: (items: EstimateTemplate[]) => EstimateTemplate[]) => {
@@ -802,19 +808,51 @@ export function TemplatesBrowseManager({
   }, [localTemplates, templates]);
 
   const selectAll = useCallback(() => {
+    selectedTemplateGraphRequestIdRef.current += 1;
+    setSelectedTemplateGraph(null);
     dispatch({ type: "allSelected" });
   }, []);
 
   const selectCategory = useCallback((category: string) => {
+    selectedTemplateGraphRequestIdRef.current += 1;
+    setSelectedTemplateGraph(null);
     dispatch({ type: "categorySelected", category });
   }, []);
 
   const selectTemplate = useCallback((templateId: string) => {
     dispatch({ type: "templateSelected", templateId });
-  }, []);
+    const template = localTemplates.find((entry) => entry.id === templateId);
+    const requestId = selectedTemplateGraphRequestIdRef.current + 1;
+    selectedTemplateGraphRequestIdRef.current = requestId;
+    if (!template) {
+      setSelectedTemplateGraph(null);
+      return;
+    }
+    if (template.nodes.length > 0 || (
+      (template.summary?.groupCount ?? 0) === 0
+      && (template.summary?.areaCount ?? 0) === 0
+      && (template.summary?.rowCount ?? 0) === 0
+    )) {
+      setSelectedTemplateGraph(template);
+      return;
+    }
+    setSelectedTemplateGraph(null);
+    loadCurrentWorkspaceEstimateTemplateGraph(templateId)
+      .then((graph) => {
+        if (selectedTemplateGraphRequestIdRef.current !== requestId) return;
+        setSelectedTemplateGraph({ ...graph, summary: template.summary ?? graph.summary });
+      })
+      .catch((error: unknown) => {
+        if (selectedTemplateGraphRequestIdRef.current !== requestId) return;
+        console.error("[templates] selected template graph load failed", error);
+        dispatch({ type: "statusChanged", status: { state: "error", message: "Could not load the estimate template." } });
+      });
+  }, [localTemplates]);
 
   const closePreview = useCallback(() => {
     const templateId = selectedTemplateId;
+    selectedTemplateGraphRequestIdRef.current += 1;
+    setSelectedTemplateGraph(null);
     dispatch({ type: "templateSelected", templateId: null });
     if (templateId) {
       requestAnimationFrame(() => {

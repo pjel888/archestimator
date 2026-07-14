@@ -40,6 +40,7 @@ export type LibraryTreeProps = {
   /** Context-menu delete on editable folder rows. */
   onFolderDelete?: (nodeId: string) => void;
   addDisabled?: boolean;
+  isItemAddDisabled?: (item: EstimateRowItem) => boolean;
   addLabel?: string;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;
   /** Moves a library component into a folder through an intra-tree drop. */

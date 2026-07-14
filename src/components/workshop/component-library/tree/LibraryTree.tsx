@@ -427,6 +427,7 @@ export function LibraryTree({
   onFolderRename,
   onFolderDelete,
   addDisabled,
+  isItemAddDisabled,
   addLabel,
   showItemAddAction,
   onItemDragStart,
@@ -473,6 +474,10 @@ export function LibraryTree({
     [searchActive, nodes, expandedNodeIds],
   );
   const canShowAddAction = showItemAddAction ?? Boolean(onItemAdd);
+  const itemAddIsDisabled = useCallback(
+    (item: EstimateRowItem) => Boolean(addDisabled || isItemAddDisabled?.(item)),
+    [addDisabled, isItemAddDisabled],
+  );
 
   const handleRowClick = useCallback(
     (nodeId: string, node: UiTreeNode) => {
@@ -488,10 +493,10 @@ export function LibraryTree({
   const handleRowDoubleClick = useCallback(
     (nodeId: string, node: UiTreeNode) => {
       const item = getLibraryNode(node)?.item;
-      if (!item || !canShowAddAction || addDisabled) return;
+      if (!item || !canShowAddAction || itemAddIsDisabled(item)) return;
       onItemAdd?.(item);
     },
-    [addDisabled, canShowAddAction, onItemAdd],
+    [canShowAddAction, itemAddIsDisabled, onItemAdd],
   );
 
   const handleNodeDragStart = useCallback(
@@ -528,7 +533,7 @@ export function LibraryTree({
       }
       if (!folderReorderEnabled || target.item) return false;
       if (position === "inside") return folderNestingEnabled;
-      return parentByNodeId.get(draggedId) === parentByNodeId.get(targetId);
+      return folderNestingEnabled || parentByNodeId.get(draggedId) === parentByNodeId.get(targetId);
     },
     [folderNestingEnabled, folderReorderEnabled, itemMoveEnabled, nodeById, parentByNodeId],
   );
@@ -553,6 +558,20 @@ export function LibraryTree({
     [folderNestingEnabled, folderReorderEnabled, itemMoveEnabled, nodeById, onItemMoveToFolder, onReorder, parentByNodeId],
   );
 
+  const resolveRootDropTarget = useCallback(
+    (edge: "top" | "bottom", draggedId: string, rootNodes: readonly UiTreeNode[]) => {
+      const dragged = nodeById.get(draggedId);
+      if (!dragged) return null;
+      const compatibleNodes = dragged.item
+        ? rootNodes
+        : rootNodes.filter((node) => !getLibraryNode(node)?.item);
+      const target = edge === "top" ? compatibleNodes[0] : compatibleNodes[compatibleNodes.length - 1];
+      const position: TreeDropPosition = edge === "top" ? "before" : "after";
+      return target ? { id: target.id, position } : null;
+    },
+    [nodeById],
+  );
+
   const handleTreeContextMenu = useCallback((nodeId: string) => {
     setContextMenuNodeId(nodeId);
   }, []);
@@ -575,7 +594,7 @@ export function LibraryTree({
       const item = contextNode.item;
       return createItemActionGroups({
         item,
-        addDisabled,
+        addDisabled: itemAddIsDisabled(item),
         addLabel,
         onAdd: canShowAddAction ? () => onItemAdd?.(item) : undefined,
         onPreview: () => onItemPreview?.(contextNode.id),
@@ -599,7 +618,6 @@ export function LibraryTree({
       onDelete: onFolderDelete ? () => onFolderDelete(contextNode.id) : undefined,
     });
   }, [
-    addDisabled,
     addLabel,
     canShowAddAction,
     contextMenuNodeId,
@@ -614,6 +632,7 @@ export function LibraryTree({
     onItemPreview,
     onItemToggleFavorite,
     itemDestructiveActionLabel,
+    itemAddIsDisabled,
     onSelect,
     onFolderRename,
     startFolderRenameFromContextMenu,
@@ -639,7 +658,7 @@ export function LibraryTree({
       return (
         <LibraryItemRowContent
           item={item}
-          addDisabled={addDisabled}
+          addDisabled={itemAddIsDisabled(item)}
           addLabel={addLabel}
           showAddAction={canShowAddAction}
           showThumbnail={showThumbnails}
@@ -649,7 +668,6 @@ export function LibraryTree({
       );
     },
     [
-      addDisabled,
       addLabel,
       canShowAddAction,
       editingNodeId,
@@ -658,6 +676,7 @@ export function LibraryTree({
       onEditingNodeCommit,
       onEditingNodeValueChange,
       onItemAdd,
+      itemAddIsDisabled,
       showThumbnails,
       sourceScopeLabel,
     ],
@@ -698,7 +717,9 @@ export function LibraryTree({
             dragDataType={LIBRARY_TREE_NODE_DRAG_MIME_TYPE}
             canDrag={handleCanDrag}
             canDrop={handleCanTreeDrop}
+            fallbackToInsideOnRejectedBand
             onDrop={internalDropEnabled ? handleTreeDrop : undefined}
+            rootDropZones={internalDropEnabled ? { edges: ["bottom"], resolveTarget: resolveRootDropTarget } : undefined}
             onNodeDragStart={handleNodeDragStart}
             onRowClick={handleRowClick}
             onRowDoubleClick={handleRowDoubleClick}

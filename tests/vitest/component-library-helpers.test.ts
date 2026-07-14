@@ -126,7 +126,7 @@ describe("component library helpers", () => {
   });
 
   it("falls back when stored library preferences are invalid", () => {
-    window.localStorage.setItem("archestimator_component_library_preferences_v1", "{not-json");
+    window.localStorage.setItem("archestimator_component_library_preferences", "{not-json");
     expect(readLibraryPreferences()).toEqual({});
   });
 
@@ -208,10 +208,10 @@ describe("component library helpers", () => {
     });
   });
 
-  it("exports a versioned library payload with bundles", () => {
+  it("exports a library payload with bundles", () => {
     const bundles = createDefaultLibraryBundles(items);
     const exported = JSON.parse(exportLibraryItemsToJson(items, bundles)) as { schema: string; items: EstimateRowItem[]; bundles: typeof bundles };
-    expect(exported.schema).toBe("archestimator.component-library.v1");
+    expect(exported.schema).toBe("archestimator.component-library");
     expect(exported.items).toHaveLength(items.length);
     expect(exported.bundles.length).toBeGreaterThan(0);
   });
@@ -296,6 +296,18 @@ describe("library tree sibling ordering", () => {
     const { findLibrarySiblingOrder } = await import("@/components/workshop/component-library/tree");
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "c")).toEqual({ parentKey: "root", siblingIds: ["a", "b", "c"] });
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "root")).toBeNull();
+  });
+
+  it("locates a target sibling order independently of the dragged node parent", async () => {
+    const { findLibraryNodeOrder } = await import("@/components/workshop/component-library/tree");
+    expect(findLibraryNodeOrder(orderFixtureNodes, "root")).toEqual({
+      parentKey: "__root__",
+      siblingIds: ["root"],
+    });
+    expect(findLibraryNodeOrder(orderFixtureNodes, "c")).toEqual({
+      parentKey: "root",
+      siblingIds: ["a", "b", "c"],
+    });
   });
 
   it("builds supplier and brand trees from indexed id/name matches without duplicate rows", async () => {
@@ -443,5 +455,18 @@ describe("library tree sibling ordering", () => {
       folder_kind: "custom" as const,
     })));
     expect(getLibraryItemsForFolderNode(managerFolders[0], [projectItem, ordinaryUsedItem, ...items]).map((item) => item.id)).toEqual(["express-row-1"]);
+  });
+});
+
+describe("component insertability", () => {
+  it("limits estimate insertion to available components without hiding management states", async () => {
+    const { isLibraryComponentInsertable } = await import("@/components/workshop/component-library/helpers");
+
+    expect(isLibraryComponentInsertable({ lifecycleState: undefined })).toBe(true);
+    expect(isLibraryComponentInsertable({ lifecycleState: "available" })).toBe(true);
+    expect(isLibraryComponentInsertable({ lifecycleState: "draft" })).toBe(false);
+    expect(isLibraryComponentInsertable({ lifecycleState: "in_production" })).toBe(false);
+    expect(isLibraryComponentInsertable({ lifecycleState: "discontinued" })).toBe(false);
+    expect(isLibraryComponentInsertable({ lifecycleState: "archived" })).toBe(false);
   });
 });

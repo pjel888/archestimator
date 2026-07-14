@@ -314,10 +314,68 @@ export async function DELETE(request: Request) {
   if (!(await canManageLibrary(workspace.id, currentUser))) {
     return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
+  const metadataDb = await getCloudflareD1Database();
+  if (!metadataDb) return uploadMetadataUnavailableResponse();
 
   const body = await request.json().catch(() => null);
   const paths = readStoragePaths(body).filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable image paths were provided.");
+  const pathsJson = JSON.stringify(paths);
+
+  try {
+    const persistedReference = await metadataDb.prepare<{ persisted_reference: number }>(
+      `
+        SELECT 1 AS persisted_reference
+        FROM cost_library_item_price_options
+        WHERE workspace_id = ?
+          AND (
+            json_extract(metadata_json, '$.imagePath') IN (
+              SELECT CAST(value AS TEXT) FROM json_each(?)
+            )
+            OR json_extract(metadata_json, '$.imageMetadata.thumbnailStoragePath') IN (
+              SELECT CAST(value AS TEXT) FROM json_each(?)
+            )
+          )
+        LIMIT 1
+      `,
+    ).bind(workspace.id, pathsJson, pathsJson).first<{ persisted_reference: number }>();
+    if (persistedReference) {
+      return jsonError("Persisted component images cannot be removed from draft cleanup.", 409);
+    }
+    await metadataDb.prepare(
+      `
+        UPDATE upload_assets
+        SET status = 'removed',
+            updated_at = ?
+        WHERE workspace_id = ?
+          AND actor_user_id = ?
+          AND surface = 'component-image'
+          AND storage_bucket = ?
+          AND (
+            storage_path IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+            OR thumbnail_path IN (SELECT CAST(value AS TEXT) FROM json_each(?))
+          )
+          AND status IN ('pending', 'finalized')
+      `,
+    ).bind(
+      new Date().toISOString(),
+      workspace.id,
+      currentUser.userId,
+      COMPONENT_IMAGE_BUCKET,
+      pathsJson,
+      pathsJson,
+    ).run();
+  } catch (error) {
+    logAppError(error, {
+      event: "component_image_cleanup_metadata_error",
+      action: "mark_component_image_upload_removed",
+      context: {
+        route: COMPONENT_IMAGE_ROUTE,
+        requested_path_count: paths.length,
+      },
+    });
+    return jsonError("Could not update image cleanup state.", 500);
+  }
 
   const storageProvider = await createRuntimeUploadStorageProvider();
   try {

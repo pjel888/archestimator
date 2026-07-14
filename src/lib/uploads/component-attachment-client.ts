@@ -33,11 +33,13 @@ type TusResumableCreateResponse = UploadedComponentAttachment & {
   requiresFinalizeRpc?: boolean;
 };
 
-type UploadComponentAttachmentOptions = {
+export type UploadComponentAttachmentOptions = {
   fetchImpl?: typeof fetch;
   serverMediatedMaxBytes?: number;
   signedDirectMaxBytes?: number;
   resumableMaxBytes?: number;
+  projectId?: string | null;
+  projectComponentId?: string | null;
 };
 
 type AttachmentValidationResult =
@@ -76,6 +78,16 @@ function getFileExtension(name: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function attachmentTargetPayload(options: UploadComponentAttachmentOptions) {
+  const projectId = options.projectId?.trim() ?? "";
+  const projectComponentId = options.projectComponentId?.trim() ?? "";
+  if (!projectId && !projectComponentId) return {};
+  if (!projectId || !projectComponentId) {
+    throw new Error("Project attachment uploads require project and component identifiers.");
+  }
+  return { projectId, projectComponentId };
 }
 
 async function readJsonRecord(response: Response) {
@@ -171,9 +183,14 @@ export function validateComponentAttachmentFile(
 async function uploadServerMediatedAttachment(
   file: File,
   fetchImpl: typeof fetch,
+  target: ReturnType<typeof attachmentTargetPayload>,
 ): Promise<UploadedComponentAttachment> {
   const formData = new FormData();
   formData.set("file", file);
+  if (target.projectId && target.projectComponentId) {
+    formData.set("projectId", target.projectId);
+    formData.set("projectComponentId", target.projectComponentId);
+  }
   const response = await fetchImpl(COMPONENT_ATTACHMENT_UPLOAD_ROUTE, {
     method: "POST",
     body: formData,
@@ -208,6 +225,7 @@ async function uploadSignedDirectAttachment(
   file: File,
   fetchImpl: typeof fetch,
   contentType: string,
+  target: ReturnType<typeof attachmentTargetPayload>,
 ): Promise<UploadedComponentAttachment> {
   const createResponse = await fetchImpl(COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE, {
     method: "POST",
@@ -217,6 +235,7 @@ async function uploadSignedDirectAttachment(
       fileName: file.name,
       contentType,
       sizeBytes: file.size,
+      ...target,
     }),
   });
   if (!createResponse.ok) {
@@ -246,6 +265,7 @@ async function uploadTusResumableAttachment(
   file: File,
   fetchImpl: typeof fetch,
   contentType: string,
+  target: ReturnType<typeof attachmentTargetPayload>,
 ): Promise<UploadedComponentAttachment> {
   const createResponse = await fetchImpl(COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE, {
     method: "POST",
@@ -255,6 +275,7 @@ async function uploadTusResumableAttachment(
       fileName: file.name,
       contentType,
       sizeBytes: file.size,
+      ...target,
     }),
   });
   if (!createResponse.ok) {
@@ -313,12 +334,13 @@ export async function uploadComponentAttachment(
   if (!validation.ok) throw new Error(validation.message);
 
   const fetchImpl = options.fetchImpl ?? fetch;
+  const target = attachmentTargetPayload(options);
   if (validation.uploadMode === "server_mediated") {
-    return uploadServerMediatedAttachment(file, fetchImpl);
+    return uploadServerMediatedAttachment(file, fetchImpl, target);
   }
   if (validation.uploadMode === "tus_resumable") {
-    return uploadTusResumableAttachment(file, fetchImpl, validation.contentType);
+    return uploadTusResumableAttachment(file, fetchImpl, validation.contentType, target);
   }
 
-  return uploadSignedDirectAttachment(file, fetchImpl, validation.contentType);
+  return uploadSignedDirectAttachment(file, fetchImpl, validation.contentType, target);
 }

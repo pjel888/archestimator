@@ -19,6 +19,9 @@ function jsonResponse(body: Record<string, unknown>, init: ResponseInit = {}) {
   });
 }
 
+const PROJECT_ID = "44444444-4444-4444-8444-444444444444";
+const PROJECT_COMPONENT_ID = "55555555-5555-4555-8555-555555555555";
+
 describe("component attachment client upload transport", () => {
   it("keeps files within the server-mediated cap on the existing FormData route", async () => {
     const file = new File(["%PDF-1.7\nsmall"], "spec.pdf", { type: "application/pdf" });
@@ -34,6 +37,8 @@ describe("component attachment client upload transport", () => {
       fetchImpl: fetchMock as unknown as typeof fetch,
       serverMediatedMaxBytes: 20,
       signedDirectMaxBytes: 64,
+      projectId: PROJECT_ID,
+      projectComponentId: PROJECT_COMPONENT_ID,
     });
 
     expect(uploaded).toMatchObject({
@@ -50,6 +55,8 @@ describe("component attachment client upload transport", () => {
     }));
     const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
     expect(body.get("file")).toBe(file);
+    expect(body.get("projectId")).toBe(PROJECT_ID);
+    expect(body.get("projectComponentId")).toBe(PROJECT_COMPONENT_ID);
     expect(fetchMock).not.toHaveBeenCalledWith(
       COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE,
       expect.anything(),
@@ -101,6 +108,8 @@ describe("component attachment client upload transport", () => {
       fetchImpl: fetchMock as unknown as typeof fetch,
       serverMediatedMaxBytes: 5,
       signedDirectMaxBytes: 64,
+      projectId: PROJECT_ID,
+      projectComponentId: PROJECT_COMPONENT_ID,
     });
 
     expect(uploaded).toMatchObject({
@@ -120,6 +129,8 @@ describe("component attachment client upload transport", () => {
       fileName: "takeoff.xlsx",
       contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       sizeBytes: file.size,
+      projectId: PROJECT_ID,
+      projectComponentId: PROJECT_COMPONENT_ID,
     });
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://storage.example/upload/sign/component-attachments/path?token=secret");
     expect(fetchMock.mock.calls[1]?.[1]).toEqual(expect.objectContaining({
@@ -197,6 +208,8 @@ describe("component attachment client upload transport", () => {
       serverMediatedMaxBytes: 5,
       signedDirectMaxBytes: 10,
       resumableMaxBytes: 100,
+      projectId: PROJECT_ID,
+      projectComponentId: PROJECT_COMPONENT_ID,
     });
 
     expect(uploaded).toMatchObject({
@@ -216,6 +229,8 @@ describe("component attachment client upload transport", () => {
       fileName: "large.pdf",
       contentType: "application/pdf",
       sizeBytes: file.size,
+      projectId: PROJECT_ID,
+      projectComponentId: PROJECT_COMPONENT_ID,
     });
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://storage.example/storage/v1/upload/resumable/sign");
     expect(fetchMock.mock.calls[1]?.[1]).toEqual(expect.objectContaining({
@@ -261,6 +276,17 @@ describe("component attachment client upload transport", () => {
       signedDirectMaxBytes: 10,
       resumableMaxBytes: 10,
     })).rejects.toThrow("Choose an attachment no larger than 512 MB.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a partial project target before making an upload request", async () => {
+    const file = new File(["%PDF-1.7\nsmall"], "spec.pdf", { type: "application/pdf" });
+    const fetchMock = vi.fn();
+
+    await expect(uploadComponentAttachment(file, {
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      projectId: PROJECT_ID,
+    })).rejects.toThrow("Project attachment uploads require project and component identifiers.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

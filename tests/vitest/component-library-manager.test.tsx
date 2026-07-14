@@ -13,15 +13,16 @@ const actionMocks = vi.hoisted(() => ({
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
   deleteLibraryFoldersBulk: vi.fn(),
+  duplicateCostLibraryComponent: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
   getCostLibraryComponentUsage: vi.fn(),
+  loadCostLibraryComponentEditorDetail: vi.fn(),
   loadCostLibraryComponentRowDetail: vi.fn(),
   moveCostLibraryComponentToFolder: vi.fn(),
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
-  updateCostLibraryComponent: vi.fn(),
-  upsertCostLibraryComponentPriceOption: vi.fn(),
+  updateCostLibraryComponentWithPriceOptions: vi.fn(),
 }));
 
 const navigationMocks = vi.hoisted(() => {
@@ -39,7 +40,7 @@ const navigationMocks = vi.hoisted(() => {
 });
 
 const promotionMocks = vi.hoisted(() => ({
-  promoteExpressRowToLibraryComponent: vi.fn(),
+  promoteEstimateRowToLibraryComponent: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
@@ -171,6 +172,26 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 2, estimateRowCount: 6 });
     actionMocks.loadCostLibraryComponentRowDetail.mockReset();
     actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValue(null);
+    actionMocks.loadCostLibraryComponentEditorDetail.mockReset();
+    actionMocks.loadCostLibraryComponentEditorDetail.mockResolvedValue({
+      component: fixtureItems[0],
+      expectedComponentImpactFingerprint: "impact-fresh",
+      optionUsageCounts: {},
+    });
+    actionMocks.duplicateCostLibraryComponent.mockReset();
+    actionMocks.duplicateCostLibraryComponent.mockResolvedValue({
+      component: {
+        ...fixtureItems[0],
+        id: "item-copy",
+        sourceLibraryItemId: "item-copy",
+        name: "Fresh Tile copy",
+        material: "Fresh Tile copy",
+        priceOptionId: "price-copy",
+        componentVersionNumber: 1,
+        createdAt: "2026-07-13T09:30:00.000Z",
+        updatedAt: "2026-07-13T09:30:00.000Z",
+      },
+    });
     actionMocks.createCostLibraryComponent.mockReset();
     actionMocks.createCostLibraryComponent.mockResolvedValue({
       itemId: "item-copy",
@@ -179,14 +200,23 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
       createdAt: "2026-07-13T09:30:00.000Z",
       updatedAt: "2026-07-13T09:30:00.000Z",
     });
-    actionMocks.updateCostLibraryComponent.mockReset();
-    actionMocks.updateCostLibraryComponent.mockResolvedValue({
-      itemId: "item-fresh",
-      versionNumber: 2,
-      updatedAt: "2026-07-13T10:00:00.000Z",
-    });
-    actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
-    promotionMocks.promoteExpressRowToLibraryComponent.mockReset();
+    actionMocks.updateCostLibraryComponentWithPriceOptions.mockReset();
+    actionMocks.updateCostLibraryComponentWithPriceOptions.mockImplementation(
+      async (itemId: string, input: { name: string; expectedVersionNumber: number }) => ({
+        component: {
+          ...fixtureItems.find((item) => item.id === itemId),
+          id: itemId,
+          name: input.name,
+          material: input.name,
+          componentVersionNumber: input.expectedVersionNumber + 1,
+          updatedAt: "2026-07-13T10:00:00.000Z",
+        },
+        instanceCount: 0,
+        updatedInstanceCount: 0,
+        affectedRows: [],
+      }),
+    );
+    promotionMocks.promoteEstimateRowToLibraryComponent.mockReset();
   });
 
   it("hosts the folder tree panel before the sheet (tree on the left)", async () => {
@@ -358,24 +388,38 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
     fireEvent.click(within(dock).getByRole("button", { name: "Edit component" }));
 
-    const drawer = await screen.findByRole("dialog", { name: "Edit component" });
+    const drawer = await screen.findByRole("dialog", { name: "Edit Component" });
     const nameInput = within(drawer).getByDisplayValue("Fresh Tile");
     fireEvent.change(nameInput, { target: { value: "Fresh Tile Premium" } });
-    fireEvent.click(within(drawer).getByRole("button", { name: "Save changes" }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Save Component" }));
 
     await waitFor(() => {
-      expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
+      expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledWith(
         "item-fresh",
         expect.objectContaining({ name: "Fresh Tile Premium" }),
       );
     });
-    expect(actionMocks.upsertCostLibraryComponentPriceOption).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByText("Component updated.")).toBeInTheDocument();
     });
   });
 
   it("keeps a duplicated component immediately editable with its server revision", async () => {
+    actionMocks.loadCostLibraryComponentEditorDetail.mockResolvedValue({
+      component: {
+        ...fixtureItems[0],
+        id: "item-copy",
+        sourceLibraryItemId: "item-copy",
+        name: "Fresh Tile copy",
+        material: "Fresh Tile copy",
+        priceOptionId: "price-copy",
+        componentVersionNumber: 1,
+        createdAt: "2026-07-13T09:30:00.000Z",
+        updatedAt: "2026-07-13T09:30:00.000Z",
+      },
+      expectedComponentImpactFingerprint: "impact-copy",
+      optionUsageCounts: {},
+    });
     renderManager();
     await waitForSheet();
 
@@ -385,11 +429,11 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
 
     const copyDock = await screen.findByRole("region", { name: "Component details for Fresh Tile copy" });
     fireEvent.click(within(copyDock).getByRole("button", { name: "Edit component" }));
-    const drawer = await screen.findByRole("dialog", { name: "Edit component" });
-    fireEvent.click(within(drawer).getByRole("button", { name: "Save changes" }));
+    const drawer = await screen.findByRole("dialog", { name: "Edit Component" });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Save Component" }));
 
     await waitFor(() => {
-      expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
+      expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledWith(
         "item-copy",
         expect.objectContaining({
           expectedUpdatedAt: "2026-07-13T09:30:00.000Z",
@@ -410,7 +454,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(await screen.findByText('1 of 3 match "Stale"')).toBeInTheDocument();
   });
   it("promotes project express components from the Project catalogue card", async () => {
-    promotionMocks.promoteExpressRowToLibraryComponent.mockResolvedValue({
+    promotionMocks.promoteEstimateRowToLibraryComponent.mockResolvedValue({
       rowId: "project-row-1",
       itemId: "library-item-1",
     });
@@ -461,7 +505,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     fireEvent.click(screen.getByRole("button", { name: "Promote Express Vanity to library" }));
 
     await waitFor(() => {
-      expect(promotionMocks.promoteExpressRowToLibraryComponent).toHaveBeenCalledWith({
+      expect(promotionMocks.promoteEstimateRowToLibraryComponent).toHaveBeenCalledWith({
         projectId: "project-1",
         estimateId: "estimate-1",
         rowId: "project-row-1",
@@ -472,7 +516,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
   });
 
   it("promotes detached project-specific components from the Project catalogue card", async () => {
-    promotionMocks.promoteExpressRowToLibraryComponent.mockResolvedValue({
+    promotionMocks.promoteEstimateRowToLibraryComponent.mockResolvedValue({
       rowId: "detached-row-1",
       itemId: "library-item-2",
     });
@@ -523,7 +567,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     fireEvent.click(screen.getByRole("button", { name: "Promote Custom Closet to library" }));
 
     await waitFor(() => {
-      expect(promotionMocks.promoteExpressRowToLibraryComponent).toHaveBeenCalledWith({
+      expect(promotionMocks.promoteEstimateRowToLibraryComponent).toHaveBeenCalledWith({
         projectId: "project-1",
         estimateId: "estimate-1",
         rowId: "detached-row-1",

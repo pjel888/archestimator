@@ -34,6 +34,10 @@ export function getComponentPrice(item: EstimateRowItem) {
   return item.price ?? item.itemCost;
 }
 
+export function isLibraryComponentInsertable(item: Pick<EstimateRowItem, "lifecycleState">) {
+  return (item.lifecycleState ?? "available") === "available";
+}
+
 export function getComponentDiscipline(item: EstimateRowItem) {
   if (item.discipline) return item.discipline;
   const category = (item.category ?? "").toLowerCase();
@@ -463,7 +467,7 @@ export function parseLibraryJson(text: string): LibraryImportResult {
 export function exportLibraryItemsToJson(items: EstimateRowItem[], bundles: LibraryBundle[] = []) {
   return JSON.stringify(
     {
-      schema: "archestimator.component-library.v1",
+      schema: "archestimator.component-library",
       exportedAt: new Date().toISOString(),
       items,
       bundles,
@@ -650,10 +654,10 @@ export const defaultForm: NewComponentForm = {
   notes: "",
 };
 
-export const LIBRARY_PREFS_KEY = "archestimator_component_library_preferences_v1";
-export const LIBRARY_FAVORITES_KEY = "archestimator_component_library_favorites_v1";
-export const LIBRARY_RECENTS_KEY = "archestimator_component_library_recents_v1";
-export const LIBRARY_TREE_ORDER_KEY = "archestimator_component_library_tree_order_v1";
+export const LIBRARY_PREFS_KEY = "archestimator_component_library_preferences";
+export const LIBRARY_FAVORITES_KEY = "archestimator_component_library_favorites";
+export const LIBRARY_RECENTS_KEY = "archestimator_component_library_recents";
+export const LIBRARY_TREE_ORDER_KEY = "archestimator_component_library_tree_order";
 
 export function readLibraryPreferences() {
   return readJsonStorage<{ viewMode?: "compact" | "detailed" | "grid"; groupBy?: LibraryGroupBy; sortMode?: LibrarySortMode }>(LIBRARY_PREFS_KEY, {});

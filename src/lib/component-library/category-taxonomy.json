@@ -1,7 +1,5 @@
 {
-  "$schema": "https://archestimator.local/schemas/component-category-taxonomy.v2.json",
-  "schemaVersion": 2,
-  "version": "2026-07-07-empty-preload",
+  "$schema": "https://archestimator.local/schemas/component-category-taxonomy.json",
   "status": "draft",
   "scope": "workshop-component-library",
   "intent": "Do not preload component categories; user and project data should define categories explicitly.",

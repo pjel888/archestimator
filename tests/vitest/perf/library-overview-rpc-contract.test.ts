@@ -370,7 +370,7 @@ class FakeComponentLibraryD1Database {
     if (sql.includes("FROM cost_library_item_versions")) return [];
     if (sql.includes("FROM cost_library_item_price_history")) return [];
     if (sql.includes("FROM cost_library_item_state_history")) return [];
-    if (sql.includes("FROM cost_library_item_variant_attachments")) return [];
+    if (sql.includes("FROM component_variant_attachments")) return [];
     if (sql.includes("FROM cost_library_items") && sql.includes("lifecycle_state = 'discontinued'")) {
       return this.payload.discontinuedRows as T[];
     }

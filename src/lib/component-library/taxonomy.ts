@@ -1,4 +1,4 @@
-import taxonomyJson from "./category-taxonomy.v2.json";
+import taxonomyJson from "./category-taxonomy.json";
 
 export type ComponentLibraryTaxonomyNode = {
   id: string;
@@ -38,7 +38,6 @@ type RawBrowseSection = {
 };
 
 type RawTaxonomy = {
-  version: string;
   categories: RawTaxonomyNode[];
   views: {
     primaryBrowseSections: RawBrowseSection[];
@@ -111,8 +110,6 @@ export const componentCategoryTree: ComponentLibraryTaxonomyNode[] = componentTa
     .filter((category): category is RawTaxonomyNode => Boolean(category))
     .map((category) => buildTaxonomyNode(category, `section-${section.id}`)),
 }));
-
-export const componentCategoryTaxonomyVersion = componentTaxonomy.version;
 
 function readStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];

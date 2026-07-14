@@ -117,6 +117,7 @@ describe("InsertIntoEstimatePicker", () => {
       targetParentNodePath: ["Interior Fit-Out"],
     });
     estimateActionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({
+      status: "inserted",
       tree: [],
       insertedRootNodeIds: ["inserted-1"],
     });
@@ -145,8 +146,63 @@ describe("InsertIntoEstimatePicker", () => {
         estimateId: "estimate-1",
         targetParentNodeId: "node-root-group",
         templateId: "template-condo",
+        unavailableSourcePolicy: "cancel",
       });
     });
+  });
+
+  it("inserts saved values as unlinked rows only after explicit confirmation", async () => {
+    estimateActionMocks.insertEstimateTemplateIntoEstimate
+      .mockResolvedValueOnce({
+        status: "requires_saved_snapshot_confirmation",
+        unavailableSourceCount: 1,
+        unavailableRows: [{ templateRowId: "row-panel", reason: "selected_variant_unavailable" }],
+      })
+      .mockResolvedValueOnce({ status: "inserted", tree: [], insertedRootNodeIds: ["inserted-1"] });
+    renderPicker();
+
+    const dialog = await chooseOnlyTarget();
+    await within(dialog).findByText("Target group: Interior Fit-Out");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Insert template" }));
+
+    const confirmation = await screen.findByRole("dialog", { name: "Use saved template values?" });
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Insert saved values" }));
+    expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      unavailableSourcePolicy: "cancel",
+    }));
+    await waitFor(() => {
+      expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        unavailableSourcePolicy: "use_saved_snapshot_unlinked",
+      }));
+    });
+  });
+
+  it("cancels cleanly when saved snapshot insertion is declined", async () => {
+    const onInserted = vi.fn();
+    const onOpenChange = vi.fn();
+    estimateActionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({
+      status: "requires_saved_snapshot_confirmation",
+      unavailableSourceCount: 1,
+      unavailableRows: [{ templateRowId: "row-panel", reason: "source_component_unavailable" }],
+    });
+    render(
+      <InsertIntoEstimatePicker
+        open
+        onOpenChange={onOpenChange}
+        template={makeTemplate()}
+        onInserted={onInserted}
+      />,
+    );
+
+    const dialog = await chooseOnlyTarget();
+    await within(dialog).findByText("Target group: Interior Fit-Out");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Insert template" }));
+
+    const confirmation = await screen.findByRole("dialog", { name: "Use saved template values?" });
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Cancel insert" }));
+    await waitFor(() => expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
+    expect(onInserted).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 
   it("blocks a stale target when the submit-time resolver no longer returns a parent node", async () => {

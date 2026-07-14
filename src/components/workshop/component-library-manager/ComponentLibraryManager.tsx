@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef, useTransition } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -27,17 +27,19 @@ import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import {
-  createCostLibraryComponent,
   createLibraryFolder,
   deleteLibraryFolder,
+  duplicateCostLibraryComponent,
   executeBulkArchiveLibraryComponents,
   executeBulkDeleteLibraryComponents,
+  loadCostLibraryComponentEditorDetail,
   loadCostLibraryComponentRowDetail,
   moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
   previewBulkDeleteLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
+import { enqueuePerItemMutation } from "@/components/workshop/component-library/per-item-mutation-queue";
 import {
   buildComponentRouteStateHref,
   COMPONENT_ROUTE_PARAM,
@@ -46,7 +48,7 @@ import {
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
-import { promoteExpressRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
+import { promoteEstimateRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
 import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import {
@@ -116,19 +118,12 @@ const ComponentInspectorDock = dynamic(
   },
 );
 
-const EditComponentDrawer = dynamic(
-  () => import("@/components/workshop/library/EditComponentDrawer").then((module) => module.EditComponentDrawer),
-  {
-    loading: () => null,
-  },
-);
-
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
 const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
 const CATALOGUE_CARD_SHELL_CLASS =
   "flex min-h-[236px] flex-col overflow-hidden rounded-xs border text-left";
-const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode_v1";
+const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode";
 const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
 const LIBRARY_GLASS_DIVIDER_CLASS = "border-[color:var(--glass-border)]";
 const LIBRARY_GLASS_CONTROL_CLASS =
@@ -278,6 +273,7 @@ function componentLibrarySheetReducer(
 
 type SheetStatus =
   | { state: "idle" }
+  | { state: "loading"; message: string }
   | { state: "saving"; message: string }
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
@@ -326,7 +322,6 @@ type ComponentLibraryManagerState = {
   folderTextPromptValue: string;
   deleteFolderTarget: { folderId: string; currentName: string } | null;
   componentRouteStateVersion: number;
-  editDrawerOpen: boolean;
 };
 
 type ComponentLibraryManagerInit = {
@@ -358,7 +353,6 @@ type ComponentLibraryManagerAction =
   | { type: "folderTextPromptValueChanged"; value: StateUpdater<string> }
   | { type: "deleteFolderTargetChanged"; value: StateUpdater<{ folderId: string; currentName: string } | null> }
   | { type: "componentRouteStateVersionBumped" }
-  | { type: "editDrawerOpenChanged"; value: StateUpdater<boolean> };
 
 function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
   return typeof value === "function" ? (value as (current: T) => T)(current) : value;
@@ -395,7 +389,6 @@ function createInitialComponentLibraryManagerState({
     folderTextPromptValue: "",
     deleteFolderTarget: null,
     componentRouteStateVersion: 0,
-    editDrawerOpen: false,
   };
 }
 
@@ -450,8 +443,6 @@ function componentLibraryManagerReducer(
       return { ...state, deleteFolderTarget: resolveStateUpdater(state.deleteFolderTarget, action.value) };
     case "componentRouteStateVersionBumped":
       return { ...state, componentRouteStateVersion: state.componentRouteStateVersion + 1 };
-    case "editDrawerOpenChanged":
-      return { ...state, editDrawerOpen: resolveStateUpdater(state.editDrawerOpen, action.value) };
     default:
       return state;
   }
@@ -2097,6 +2088,10 @@ export function ComponentLibraryManager({
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
   const handledAddComponentRouteRequestRef = useRef<string | null>(null);
+  const componentEditorRequestIdRef = useRef(0);
+  const componentFolderMoveQueueRef = useRef(new Map<string, Promise<void>>());
+  const componentFolderMoveGenerationRef = useRef(new Map<string, number>());
+  const confirmedComponentFolderRef = useRef(new Map<string, string | null>());
   const detailHydratedItemIdsRef = useRef<Set<string> | null>(null);
   if (detailHydratedItemIdsRef.current === null) detailHydratedItemIdsRef.current = new Set<string>();
   const normalizedPropFolders = useMemo(
@@ -2141,7 +2136,6 @@ export function ComponentLibraryManager({
     folderTextPrompt,
     folderTextPromptValue,
     deleteFolderTarget,
-    editDrawerOpen,
   } = managerState;
   const setLocalFolders = (value: StateUpdater<LibraryFolderRecord[]>) =>
     dispatchManager({ type: "localFoldersChanged", value });
@@ -2187,8 +2181,6 @@ export function ComponentLibraryManager({
     dispatchManager({ type: "folderTextPromptValueChanged", value });
   const setDeleteFolderTarget = (value: StateUpdater<{ folderId: string; currentName: string } | null>) =>
     dispatchManager({ type: "deleteFolderTargetChanged", value });
-  const setEditDrawerOpen = (value: StateUpdater<boolean>) =>
-    dispatchManager({ type: "editDrawerOpenChanged", value });
   // Reorder + any external folder edit goes through here so the warm query cache
   // (T4) stays coherent with localFolders. The same functional updater is applied
   // independently to both — they start equal, so they stay equal.
@@ -2205,6 +2197,9 @@ export function ComponentLibraryManager({
   };
   const [isTreeMutationPending, startTreeMutation] = useTransition();
   const [isDuplicatePending, startDuplicateTransition] = useTransition();
+  const [componentModalItem, setComponentModalItem] = useState<EstimateRowItem | null>(null);
+  const [componentModalImpactFingerprint, setComponentModalImpactFingerprint] = useState("");
+  const [componentModalOptionUsageCounts, setComponentModalOptionUsageCounts] = useState<Record<string, number>>({});
 
   const localLibraryItems = libraryItemState.source === libraryItems ? libraryItemState.items : libraryItems;
   function updateLocalLibraryItems(updater: (items: EstimateRowItem[]) => EstimateRowItem[]) {
@@ -2284,6 +2279,10 @@ export function ComponentLibraryManager({
       sessionAddId: quickAddSessionRef.current.id,
       entry: "button",
     });
+    componentEditorRequestIdRef.current += 1;
+    setComponentModalItem(null);
+    setComponentModalImpactFingerprint("");
+    setComponentModalOptionUsageCounts({});
     setAddComponentOpen(true);
   }
 
@@ -2322,6 +2321,10 @@ export function ComponentLibraryManager({
   function setAddComponentOpenWithFocus(open: boolean) {
     setAddComponentOpen(open);
     if (!open) {
+      componentEditorRequestIdRef.current += 1;
+      setComponentModalItem(null);
+      setComponentModalImpactFingerprint("");
+      setComponentModalOptionUsageCounts({});
       restoreAddComponentTriggerFocus();
     }
   }
@@ -2433,12 +2436,13 @@ export function ComponentLibraryManager({
   }, [componentRouteSearchParamsKey, pathname, routeComponentId, routeComponentIsValid, workspaceId]);
 
   function inspectComponent(itemId: string) {
+    componentEditorRequestIdRef.current += 1;
     writeComponentRouteState(itemId, "push");
   }
 
   function closeInspector() {
     const itemId = inspectorItemId;
-    setEditDrawerOpen(false);
+    componentEditorRequestIdRef.current += 1;
     writeComponentRouteState(null);
     if (itemId) {
       requestAnimationFrame(() => {
@@ -2449,10 +2453,35 @@ export function ComponentLibraryManager({
     }
   }
 
-  function handleComponentEdited(patch: Partial<EstimateRowItem> & { id: string }) {
-    updateLocalLibraryItems((items) => items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)));
+  function handleComponentEdited(item: EstimateRowItem) {
+    updateLocalLibraryItems((items) => items.map((entry) => (entry.id === item.id ? item : entry)));
     setSheetStatus({ state: "saved", message: "Component updated." });
-    syncLibraryItemsCache((items) => items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)));
+    syncLibraryItemsCache((items) => items.map((entry) => (entry.id === item.id ? item : entry)));
+  }
+
+  function openInspectorComponentEditor() {
+    if (!canManageLibrary) {
+      denyLibraryManagement();
+      return;
+    }
+    const item = inspectorItem;
+    if (!item) return;
+    const requestId = componentEditorRequestIdRef.current + 1;
+    componentEditorRequestIdRef.current = requestId;
+    setSheetStatus({ state: "loading", message: `Opening ${item.name?.trim() || item.material}…` });
+    void loadCostLibraryComponentEditorDetail(item.sourceLibraryItemId ?? item.id)
+      .then((detail) => {
+        if (componentEditorRequestIdRef.current !== requestId) return;
+        setComponentModalItem(detail.component);
+        setComponentModalImpactFingerprint(detail.expectedComponentImpactFingerprint);
+        setComponentModalOptionUsageCounts(detail.optionUsageCounts);
+        setAddComponentOpen(true);
+        setSheetStatus({ state: "idle" });
+      })
+      .catch((error) => {
+        if (componentEditorRequestIdRef.current !== requestId) return;
+        setSheetStatus({ state: "error", message: error instanceof Error ? error.message : "Could not open the component editor." });
+      });
   }
 
   function duplicateInspectorComponent() {
@@ -2462,50 +2491,17 @@ export function ComponentLibraryManager({
     }
     const source = inspectorItem;
     if (!source) return;
-    const copyName = `${source.name?.trim() || source.material} copy`;
     startDuplicateTransition(async () => {
       try {
-        const result = await createCostLibraryComponent({
-          name: copyName,
-          description: source.description,
-          category: source.category?.trim() || "Component",
-          categoryNodeId: source.categoryNodeId ?? null,
-          supplier: source.supplier || null,
-          supplierId: source.supplierId ?? null,
-          brand: source.brand || null,
-          brandId: source.brandId ?? null,
-          unit: source.unit,
-          libraryFolderId: source.libraryFolderId ?? null,
-          lifecycleState: source.lifecycleState ?? "available",
-          priceOptions: [
-            {
-              label: copyName,
-              unit: source.unit,
-              unitCost: source.itemCost,
-              miscCost: source.miscCost,
-              pricingSource: source.pricingSource || undefined,
-              pricingDate: source.pricingDate || undefined,
-              isDefault: true,
-            },
-          ],
-        });
-        const duplicatedItemId = result.itemId;
-        if (!duplicatedItemId) throw new Error("Duplicate did not return a component ID.");
-        const duplicated: EstimateRowItem = {
-          ...source,
-          id: duplicatedItemId,
-          name: copyName,
-          material: copyName,
-          isCustom: true,
-          history: [],
-          priceOptions: undefined,
-          componentVersionNumber: result.versionNumber,
-          priceOptionId: result.activePriceOptionId,
-          createdAt: result.createdAt,
-          updatedAt: result.updatedAt,
-        };
-        handleComponentCreated(duplicated);
-        writeComponentRouteState(duplicatedItemId);
+        const result = await duplicateCostLibraryComponent({ itemId: source.sourceLibraryItemId ?? source.id });
+        handleComponentCreated(result.component);
+        writeComponentRouteState(result.component.id);
+        if (result.omittedAttachmentCount > 0) {
+          setSheetStatus({
+            state: "saved",
+            message: `Duplicated without ${result.omittedAttachmentCount} attachment${result.omittedAttachmentCount === 1 ? "" : "s"}; originals remain on the source component.`,
+          });
+        }
       } catch (error) {
         setSheetStatus({
           state: "error",
@@ -2544,7 +2540,7 @@ export function ComponentLibraryManager({
     setPromotingItemId(item.id);
     setSheetStatus({ state: "saving", message: `Promoting ${getComponentName(item)} to the workspace library...` });
     try {
-      await promoteExpressRowToLibraryComponent({
+      await promoteEstimateRowToLibraryComponent({
         projectId: targetProjectId,
         estimateId: targetEstimateId,
         rowId: item.id,
@@ -2863,23 +2859,48 @@ export function ComponentLibraryManager({
       return;
     }
     if (item.libraryFolderId === targetFolderId) return;
-    const previousItem = item;
+    const previousFolderId = item.libraryFolderId ?? null;
+    if (!confirmedComponentFolderRef.current.has(item.id)) {
+      confirmedComponentFolderRef.current.set(item.id, previousFolderId);
+    }
+    const generation = (componentFolderMoveGenerationRef.current.get(item.id) ?? 0) + 1;
+    componentFolderMoveGenerationRef.current.set(item.id, generation);
 
     updateLocalLibraryItems((items) =>
       items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
     );
 
     try {
-      await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
-      setSelectedFolderId(targetFolderId);
-      syncLibraryItemsCache((items) =>
-        items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
-      );
-    } catch (error) {
-      updateLocalLibraryItems((items) =>
-        items.map((entry) => (entry.id === previousItem.id ? previousItem : entry)),
-      );
-      throw error;
+      await enqueuePerItemMutation(componentFolderMoveQueueRef.current, item.id, async () => {
+        try {
+          await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
+          confirmedComponentFolderRef.current.set(item.id, targetFolderId);
+          setSelectedFolderId(targetFolderId);
+          syncLibraryItemsCache((items) =>
+            items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
+          );
+        } catch (error) {
+          if (componentFolderMoveGenerationRef.current.get(item.id) === generation) {
+            const confirmedFolderId = confirmedComponentFolderRef.current.get(item.id) ?? null;
+            updateLocalLibraryItems((items) =>
+              items.map((entry) => (
+                entry.id === item.id && entry.libraryFolderId === targetFolderId
+                  ? { ...entry, libraryFolderId: confirmedFolderId ?? undefined }
+                  : entry
+              )),
+            );
+          }
+          throw error;
+        }
+      });
+    } finally {
+      if (
+        componentFolderMoveGenerationRef.current.get(item.id) === generation
+        && !componentFolderMoveQueueRef.current.has(item.id)
+      ) {
+        componentFolderMoveGenerationRef.current.delete(item.id);
+        confirmedComponentFolderRef.current.delete(item.id);
+      }
     }
   }
 
@@ -2955,7 +2976,7 @@ export function ComponentLibraryManager({
             <ComponentInspectorDock
               item={inspectorItem}
               onClose={closeInspector}
-              onEdit={() => setEditDrawerOpen(true)}
+              onEdit={openInspectorComponentEditor}
               onDuplicate={duplicateInspectorComponent}
               onArchive={() => openArchiveComponentPreview([inspectorItem.id])}
               onDelete={() => openDeleteComponentPreview([inspectorItem.id])}
@@ -2982,24 +3003,20 @@ export function ComponentLibraryManager({
           brands={brands}
           libraryItems={localLibraryItems}
           selectedFolderId={effectiveSelectedFolderId}
+          editingItem={componentModalItem}
+          expectedComponentImpactFingerprint={componentModalImpactFingerprint || undefined}
+          optionUsageCounts={componentModalOptionUsageCounts}
           selectedSupplierId={selectedSupplierIdForModal}
           selectedBrandId={selectedBrandIdForModal}
           onOpenChange={setAddComponentOpenWithFocus}
           onComponentCreated={handleComponentCreated}
+          onComponentUpdated={handleComponentEdited}
           catalogueOptionsStorageScope={workspaceId}
           onCreateFolder={createFolder}
           onRenameFolder={renameFolder}
           onDeleteFolder={deleteFolder}
           reorderStatus={reorderStatus}
           treeMutationPending={isTreeMutationPending}
-        />
-      ) : null}
-      {canManageLibrary && inspectorItem ? (
-        <EditComponentDrawer
-          item={inspectorItem}
-          open={editDrawerOpen}
-          onOpenChange={setEditDrawerOpen}
-          onSaved={handleComponentEdited}
         />
       ) : null}
       {canManageLibrary && deleteFolderTarget ? (

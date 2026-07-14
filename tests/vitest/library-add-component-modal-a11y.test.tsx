@@ -74,7 +74,7 @@ const brandDuplicateRows: EstimateRowItem[] = [
     brand: "Hinge Co",
   },
 ];
-const catalogueOptionsStoragePrefix = "archestimator:add-component-catalogue-options:v1";
+const catalogueOptionsStoragePrefix = "archestimator:add-component-catalogue-options";
 
 function makeAddModalProps(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
   return {
@@ -88,6 +88,7 @@ function makeAddModalProps(overrides: Partial<ComponentProps<typeof AddComponent
     catalogueOptionsStorageScope: "catalogue-options-default-test-scope",
     onOpenChange: vi.fn(),
     onComponentCreated: vi.fn(),
+    expectedComponentImpactFingerprint: "component-impact-fingerprint",
     ...overrides,
   };
 }
@@ -222,16 +223,37 @@ describe("AddComponentModal OpenDesign field contract", () => {
       versionNumber: 1,
       createdAt: "2026-07-13T10:00:00.000Z",
       updatedAt: "2026-07-13T10:00:00.000Z",
+      component: {
+        ...duplicateRows[0],
+        id: "component-created",
+        sourceLibraryItemId: "component-created",
+        priceOptionId: "price-created",
+        priceOptionLabel: "Default",
+        componentVersionNumber: 1,
+        createdAt: "2026-07-13T10:00:00.000Z",
+        updatedAt: "2026-07-13T10:00:00.000Z",
+      },
     });
-    actionMocks.updateCostLibraryComponentWithPriceOptions.mockResolvedValue({
-      itemId: "component-created",
-      activePriceOptionId: "price-created",
+    actionMocks.updateCostLibraryComponentWithPriceOptions.mockImplementation(async (itemId, input) => ({
+      itemId,
+      activePriceOptionId: input.priceOptions[0]?.id ?? "price-created",
       versionNumber: 2,
       updatedAt: "2026-07-13T11:00:00.000Z",
       affectedEstimates: [],
       rowRevisions: {},
+      rowPatches: {},
       updatedRowCount: 0,
-    });
+      component: {
+        ...makeEditingItem(),
+        id: itemId,
+        source: "library",
+        sourceLibraryItemId: itemId,
+        imageUrl: input.thumbnailPath ?? undefined,
+        priceOptions: input.priceOptions,
+        componentVersionNumber: 2,
+        updatedAt: "2026-07-13T11:00:00.000Z",
+      },
+    }));
     actionMocks.saveCostLibraryComponentDraft.mockResolvedValue({
       draftId: "component-draft-1",
       savedAt: "2026-07-06T00:00:00.000Z",
@@ -518,7 +540,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(JSON.stringify(storedScopeB)).not.toContain("Scope A Category");
   });
 
-  it("submits a field-contract payload without retired price/source fields", async () => {
+  it("submits the canonical component graph payload", async () => {
     const props = renderAddModal();
     const dialog = await getAddDialog();
     fillValidQuickAdd(dialog);
@@ -527,30 +549,32 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));
     expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(expect.objectContaining({
-      fieldContract: "opendesign-add-component",
       name: "Door Stop",
       category: "Hardware",
       unit: "unit",
       supplier: "Acme",
       priceOptions: [
         expect.objectContaining({
-          label: "V1",
+          label: "Default",
           unit: "unit",
           unitCost: 123.46,
           currency: "PHP",
           isDefault: true,
+          costEntries: [
+            expect.objectContaining({
+              unitCost: 123.46,
+              currency: "PHP",
+              isCurrent: true,
+            }),
+          ],
+          attachments: [],
         }),
       ],
     }));
     const payload = actionMocks.createCostLibraryComponent.mock.calls[0][0];
-    expect(payload).not.toHaveProperty("libraryFolderId");
-    expect(payload.priceOptions[0]).not.toHaveProperty("pricingDate");
-    expect(payload.priceOptions[0]).not.toHaveProperty("pricingSource");
-    expect(payload.priceOptions[0]).not.toHaveProperty("sourceUrl");
-    expect(payload.priceOptions[0]).not.toHaveProperty("notes");
-    expect(payload.priceOptions[0]).not.toHaveProperty("miscCost");
+    expect(payload.libraryFolderId).toBeNull();
+    expect(payload).not.toHaveProperty("metadata");
     expect(payload.priceOptions[0]).not.toHaveProperty("dimensionLength");
-    expect(payload.priceOptions[0]).not.toHaveProperty("costEntries");
     await waitFor(() => expect(props.onComponentCreated).toHaveBeenCalledTimes(1));
     const createdItem = props.onComponentCreated.mock.calls[0][0] as EstimateRowItem;
     expect(createdItem.category).toBe("Hardware");
@@ -598,17 +622,17 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     expect(within(drawer).getByLabelText("Variant manager")).toBeInTheDocument();
     expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
-    expect(within(drawer).queryByRole("button", { name: "Open V1" })).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole("button", { name: "Open Default" })).not.toBeInTheDocument();
     expect(within(drawer).getByRole("button", { name: "Default" })).toBeDisabled();
 
     clickAddVariant(drawer);
 
     expect(within(drawer).getByLabelText("Variant editor")).toBeInTheDocument();
-    expect(within(drawer).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(drawer).getByRole("button", { name: "Open Default" })).toHaveAttribute("aria-pressed", "true");
 
     fireEvent.click(within(drawer).getByRole("button", { name: "Delete variant" }));
 
-    await waitFor(() => expect(within(drawer).queryByRole("button", { name: "Open V1" })).not.toBeInTheDocument());
+    await waitFor(() => expect(within(drawer).queryByRole("button", { name: "Open Default" })).not.toBeInTheDocument());
     expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Variant editor")).not.toBeInTheDocument();
     expect(within(drawer).getByRole("button", { name: "Default" })).toBeDisabled();
@@ -642,6 +666,66 @@ describe("AddComponentModal OpenDesign field contract", () => {
     await screen.findByText("Stored spec.pdf (2 KB).");
     expect(within(drawer).getByText("spec.pdf")).toBeInTheDocument();
     expect(within(drawer).getByRole("button", { name: "Remove attachment spec.pdf" })).toBeInTheDocument();
+    expect(within(drawer).queryByRole("link", { name: "Download attachment spec.pdf" })).not.toBeInTheDocument();
+  });
+
+  it("offers a brokered download control for persisted variant attachments", async () => {
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    renderAddModal({
+      editingItem: makeEditingItem({
+        priceOptionId: "option-default",
+        priceOptions: [
+          {
+            id: "option-default",
+            label: "Default",
+            variantSortOrder: 0,
+            unit: "unit",
+            unitCost: 2500,
+            miscCost: 0,
+            currency: "PHP",
+            isActive: true,
+            isDefault: true,
+            attachments: [
+              {
+                id: attachmentId,
+                assetId: "22222222-2222-4222-8222-222222222222",
+                bucket: "component-attachments",
+                path: "workspace-1/user-1/spec.pdf",
+                fileName: "spec.pdf",
+                contentType: "application/pdf",
+                sizeBytes: 2048,
+                kind: "pdf",
+                scanStatus: "clean",
+                reviewStatus: "uploaded",
+                isCurrentApproved: false,
+              },
+            ],
+          },
+          {
+            id: "option-alternate",
+            label: "Alternate",
+            variantSortOrder: 1,
+            unit: "unit",
+            unitCost: 2600,
+            miscCost: 0,
+            currency: "PHP",
+            isActive: true,
+            isDefault: false,
+            attachments: [],
+          },
+        ],
+      }),
+      onComponentUpdated: vi.fn(),
+    });
+
+    const dialog = await getEditDialog();
+    const drawer = openVariantManager(dialog);
+    fireEvent.click(within(drawer).getByRole("button", { name: "Open Default" }));
+
+    expect(within(drawer).getByRole("link", { name: "Download attachment spec.pdf" })).toHaveAttribute(
+      "href",
+      `/api/component-library/attachments?id=${attachmentId}`,
+    );
   });
 
   it("keeps Activity fields because they exist in the OpenDesign component", async () => {
@@ -799,14 +883,137 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(updatedItem.updatedAt).toBe("2026-07-13T11:00:00.000Z");
   });
 
-  it("creates the first variant when a thumbnail is selected before variants exist", async () => {
+  it("persists a newly added Library variant through save and reopen", async () => {
+    const defaultOptionId = "11111111-1111-4111-8111-111111111111";
+    const persistedOptionId = "22222222-2222-4222-8222-222222222222";
+    const editingItem = makeEditingItem({
+      id: "component-created",
+      source: "library",
+      sourceLibraryItemId: "component-created",
+      priceOptionId: defaultOptionId,
+      priceOptionLabel: "Default",
+      priceOptions: [
+        {
+          id: defaultOptionId,
+          label: "Default",
+          unit: "unit",
+          unitCost: 2500,
+          miscCost: 0,
+          currency: "PHP",
+          isActive: true,
+          isDefault: true,
+        },
+      ],
+    });
+    actionMocks.updateCostLibraryComponentWithPriceOptions.mockImplementationOnce(async (itemId, input) => {
+      const persistedPriceOptions = input.priceOptions.map((option, index) => ({
+        ...option,
+        id: option.id ?? persistedOptionId,
+        miscCost: option.costEntries?.[0]?.miscCost ?? 0,
+        currency: option.costEntries?.[0]?.currency ?? "PHP",
+        isActive: true,
+        isDefault: index === 0,
+      }));
+      return {
+        itemId,
+        activePriceOptionId: defaultOptionId,
+        versionNumber: 2,
+        updatedAt: "2026-07-13T11:00:00.000Z",
+        affectedEstimates: [],
+        rowRevisions: {},
+        rowPatches: {},
+        updatedRowCount: 0,
+        component: {
+          ...editingItem,
+          priceOptions: persistedPriceOptions,
+          componentVersionNumber: 2,
+          updatedAt: "2026-07-13T11:00:00.000Z",
+        },
+      };
+    });
+    const onComponentUpdated = vi.fn();
+    const initialRender = render(
+      <AddComponentModal
+        {...makeAddModalProps({ editingItem, onComponentUpdated })}
+      />,
+    );
+    const dialog = await getEditDialog();
+    const drawer = openVariantManager(dialog);
+
+    clickAddVariant(drawer);
+    fireEvent.change(within(drawer).getByLabelText("Variant unit cost"), { target: { value: "375" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(1));
+    const payload = actionMocks.updateCostLibraryComponentWithPriceOptions.mock.calls[0][1];
+    expect(payload.priceOptions).toHaveLength(2);
+    expect(payload.priceOptions[1]).toMatchObject({
+      id: undefined,
+      label: "Option 2",
+      unitCost: 375,
+      isDefault: false,
+    });
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    const persistedItem = onComponentUpdated.mock.calls[0][0] as EstimateRowItem;
+    expect(persistedItem.priceOptions?.[1]).toMatchObject({
+      id: persistedOptionId,
+      label: "Option 2",
+      unitCost: 375,
+    });
+
+    initialRender.unmount();
+    renderAddModal({ editingItem: persistedItem, onComponentUpdated: vi.fn() });
+    const reopenedDialog = await getEditDialog();
+    const reopenedDrawer = openVariantManager(reopenedDialog);
+    expect(within(reopenedDrawer).getByRole("button", { name: "Open Option 2" })).toBeInTheDocument();
+    expect(within(reopenedDrawer).getByRole("button", { name: /^Option 2PHP/u })).toBeInTheDocument();
+  });
+
+  it("reorders variants without changing their stable IDs or explicit default", async () => {
+    const defaultOptionId = "11111111-1111-4111-8111-111111111111";
+    const secondOptionId = "22222222-2222-4222-8222-222222222222";
+    const thirdOptionId = "33333333-3333-4333-8333-333333333333";
+    renderAddModal({
+      editingItem: makeEditingItem({
+        id: "component-created",
+        source: "library",
+        sourceLibraryItemId: "component-created",
+        priceOptionId: secondOptionId,
+        priceOptionLabel: "Option 2",
+        priceOptions: [
+          { id: defaultOptionId, label: "Default", unit: "unit", unitCost: 2500, miscCost: 0, currency: "PHP", isActive: true, isDefault: true },
+          { id: secondOptionId, label: "Option 2", unit: "unit", unitCost: 2600, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+          { id: thirdOptionId, label: "Option 3", unit: "unit", unitCost: 2700, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+        ],
+      }),
+      onComponentUpdated: vi.fn(),
+    });
+    const dialog = await getEditDialog();
+    const drawer = openVariantManager(dialog);
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Move Option 3 up" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(1));
+    const payload = actionMocks.updateCostLibraryComponentWithPriceOptions.mock.calls[0][1];
+    expect(payload.priceOptions.map((option: { id?: string }) => option.id)).toEqual([
+      defaultOptionId,
+      thirdOptionId,
+      secondOptionId,
+    ]);
+    expect(payload.priceOptions.find((option: { id?: string }) => option.id === defaultOptionId)?.isDefault).toBe(true);
+    expect(payload.priceOptions.find((option: { id?: string }) => option.id === secondOptionId)?.isDefault).toBe(false);
+    expect(payload.priceOptions.find((option: { id?: string }) => option.id === thirdOptionId)?.isDefault).toBe(false);
+  });
+
+  it("uses component-owned storage when a Library component is created from a project surface", async () => {
     const projectImageProjectId = "22222222-2222-4222-8222-222222222222";
-    const thumbnailUrl = "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak-thumb.webp";
+    const thumbnailUrl = "/api/component-library/images?path=workspace-1/user-1/component-images/oak-thumb.webp";
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      bucket: "project-images",
-      path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak.webp",
-      thumbnailPath: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak-thumb.webp",
-      url: "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/oak.webp",
+      bucket: "component-images",
+      path: "workspace-1/user-1/component-images/oak.webp",
+      thumbnailPath: "workspace-1/user-1/component-images/oak-thumb.webp",
+      url: "/api/component-library/images?path=workspace-1/user-1/component-images/oak.webp",
       thumbnailUrl,
       originalBytes: 16,
       optimizedBytes: 12,
@@ -847,7 +1054,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     await screen.findByText(/Stored WebP thumbnail/);
     expect(createObjectUrlMock).toHaveBeenCalledWith(file);
     expect(selectedFiles).toHaveLength(0);
-    expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenCalledWith("/api/component-library/images", expect.objectContaining({ method: "POST" }));
     expect(within(dialog).getByAltText("Component thumbnail preview")).toBeInTheDocument();
     const updatedDrawer = openVariantManager(dialog);
     expect(within(updatedDrawer).getByText("No variants yet.")).toBeInTheDocument();
@@ -873,8 +1080,13 @@ describe("AddComponentModal OpenDesign field contract", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
     renderAddModal({
-      editingItem: makeEditingItem(),
+      editingItem: makeEditingItem({
+        source: "project",
+        sourceLibraryItemId: null,
+      }),
+      componentEditScope: "project",
       imageUploadProjectId: projectImageProjectId,
+      projectComponentId: "33333333-3333-4333-8333-333333333333",
       onComponentUpdated,
     });
     const dialog = await getEditDialog();
@@ -895,6 +1107,78 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const updatedItem = onComponentUpdated.mock.calls[0][0] as EstimateRowItem;
     expect(updatedItem.imageUrl).toBe(thumbnailUrl);
     expect(updatedItem.priceOptions?.[0]?.thumbnailPath).toBe(thumbnailUrl);
+  });
+
+  it("binds project component attachment uploads to the edited project component", async () => {
+    const projectId = "22222222-2222-4222-8222-222222222222";
+    const projectComponentId = "77777777-7777-4777-8777-777777777777";
+    const estimateRowId = "66666666-6666-4666-8666-666666666666";
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      bucket: "component-attachments",
+      path: `${projectId}/user-1/spec.pdf`,
+      fileName: "spec.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 2048,
+      uploadSessionId: "88888888-8888-4888-8888-888888888888",
+      assetId: "99999999-9999-4999-8999-999999999999",
+      scanStatus: "pending",
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderAddModal({
+      editingItem: makeEditingItem({
+        id: estimateRowId,
+        source: "project",
+        sourceLibraryItemId: null,
+      }),
+      componentEditScope: "project",
+      imageUploadProjectId: projectId,
+      projectComponentId,
+    });
+
+    const dialog = await getEditDialog();
+    const drawer = openVariantDrawer(dialog);
+    fireEvent.change(within(drawer).getByLabelText("Upload attachment"), {
+      target: { files: [new File(["%PDF-1.7"], "spec.pdf", { type: "application/pdf" })] },
+    });
+
+    await screen.findByText("Stored spec.pdf (2 KB).");
+    const formData = fetchMock.mock.calls[0][1]?.body as FormData;
+    expect(formData.get("projectId")).toBe(projectId);
+    expect(formData.get("projectComponentId")).toBe(projectComponentId);
+    expect(formData.get("projectComponentId")).not.toBe(estimateRowId);
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Remove attachment spec.pdf" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const deleteRequest = fetchMock.mock.calls[1][1];
+    expect(deleteRequest?.method).toBe("DELETE");
+    expect(JSON.parse(String(deleteRequest?.body))).toMatchObject({
+      projectId,
+      projectComponentId,
+    });
+  });
+
+  it("keeps detached project edits out of the Library update path", async () => {
+    const onComponentUpdated = vi.fn();
+    renderAddModal({
+      editingItem: makeEditingItem({
+        source: "project",
+        sourceLibraryItemId: "historical-library-component",
+        linkState: "detached",
+      }),
+      componentEditScope: "project",
+      imageUploadProjectId: "22222222-2222-4222-8222-222222222222",
+      projectComponentId: "77777777-7777-4777-8777-777777777777",
+      onComponentUpdated,
+    });
+
+    const dialog = await getEditDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).not.toHaveBeenCalled();
   });
 
   it("normalizes duplicate identity whitespace and supports brand-only matches", async () => {

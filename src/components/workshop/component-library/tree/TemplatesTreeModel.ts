@@ -248,7 +248,10 @@ function buildTemplateCategoryTreeNodes(templates: EstimateTemplate[], customTem
         id: toTemplateTreeItemId(template.id),
         label: template.name,
         ariaLabel: `${template.name} estimate template`,
-        isLeaf: template.nodes.length === 0,
+        isLeaf: template.nodes.length === 0
+          && (template.summary?.groupCount ?? 0) === 0
+          && (template.summary?.areaCount ?? 0) === 0
+          && (template.summary?.rowCount ?? 0) === 0,
         icon: templateRootIcon(template),
         children: template.nodes.map((node) => toTemplateInnerUiNodes(template, node)),
         data: { templatesNode: { type: "template", template } satisfies TemplatesTreeDatum },

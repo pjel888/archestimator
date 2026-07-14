@@ -62,6 +62,10 @@ class FakeD1Database {
     this.statements.push(statement);
     return statement;
   }
+
+  async batch(statements: FakeD1Statement[]) {
+    return statements.map(() => ({ success: true, meta: { changes: 0 } }));
+  }
 }
 
 function createCleanupDatabase() {
@@ -129,9 +133,9 @@ describe("internal upload cleanup route", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("SELECT id, upload_session_id"));
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
-    expect(assetStatement?.values[2]).toBe(5);
+    expect(assetStatement?.values.at(-1)).toBe(5);
     expect(sessionStatement?.values[5]).toBe(5);
     expect(r2.delete).toHaveBeenCalledWith(`component-attachments/${ATTACHMENT_PATH}`);
     expect(database.runStatements).toHaveLength(2);
@@ -214,9 +218,9 @@ describe("internal upload cleanup route", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("SELECT id, upload_session_id"));
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
-    expect(assetStatement?.values[2]).toBe(5);
+    expect(assetStatement?.values.at(-1)).toBe(5);
     expect(sessionStatement?.values[5]).toBe(5);
     expect(database.runStatements).toEqual([]);
     expect(body).toMatchObject({
@@ -257,8 +261,8 @@ describe("internal upload cleanup route", () => {
     const response = await GET(createRequest("cron-secret", 1));
 
     expect(response.status).toBe(200);
-    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
-    expect(assetStatement?.values[2]).toBe(1);
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("SELECT id, upload_session_id"));
+    expect(assetStatement?.values.at(-1)).toBe(1);
   });
 
   it("emits cleanup telemetry from the cron route path", async () => {

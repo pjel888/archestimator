@@ -49,7 +49,7 @@ export function isAllowedComponentAttachmentCleanupTarget(target: StorageCleanup
 export function splitAllowedStorageCleanupTargets(
   targets: readonly StorageCleanupTarget[] | undefined,
   options:
-    | { kind: "project" }
+    | { kind: "project"; workspaceId?: string }
     | { kind: "component"; workspaceId: string },
 ) {
   const allowed: StorageCleanupTarget[] = [];
@@ -58,6 +58,9 @@ export function splitAllowedStorageCleanupTargets(
   for (const target of dedupeTargets([...(targets ?? [])])) {
     const accepted = options.kind === "project"
       ? isAllowedProjectImageCleanupTarget(target)
+        || (options.workspaceId
+          ? isAllowedComponentAttachmentCleanupTarget(target, options.workspaceId)
+          : false)
       : isAllowedComponentImageCleanupTarget(target, options.workspaceId)
         || isAllowedComponentAttachmentCleanupTarget(target, options.workspaceId);
 
@@ -72,7 +75,7 @@ export async function cleanupStorageTargets(
   storageProvider: Pick<UploadStorageProvider, "removeObjects">,
   targets: readonly StorageCleanupTarget[] | undefined,
   options:
-    | { kind: "project" }
+    | { kind: "project"; workspaceId?: string }
     | { kind: "component"; workspaceId: string },
 ): Promise<StorageCleanupReport> {
   const { allowed, rejected } = splitAllowedStorageCleanupTargets(targets, options);

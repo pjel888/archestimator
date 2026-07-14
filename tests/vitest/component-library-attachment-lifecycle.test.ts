@@ -12,7 +12,7 @@ function latestMigration(suffix: string) {
 }
 
 const migration = latestMigration("_library_trust_governance.sql");
-const d1AttachmentMigration = readFileSync(join(process.cwd(), "migrations/0022_component_attachment_metadata.sql"), "utf8");
+const d1AttachmentMigration = readFileSync(join(process.cwd(), "migrations/0076_component_attachment_ownership.sql"), "utf8");
 const attachmentRoute = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
 const uploadLifecycleProofRouter = readFileSync(join(process.cwd(), "src/lib/cloudflare/upload-lifecycle-proof-router.ts"), "utf8");
 
@@ -63,36 +63,38 @@ describe("component library attachment lifecycle governance", () => {
   });
 
   it("blocks draft storage cleanup from deleting reviewed persisted attachments", () => {
-    const lookupIndex = attachmentRoute.indexOf("FROM cost_library_item_variant_attachments");
-    const removeIndex = attachmentRoute.indexOf("removeObjects(COMPONENT_ATTACHMENT_BUCKET, paths)");
+    const lookupIndex = attachmentRoute.indexOf("FROM component_variant_attachments");
+    const removeIndex = attachmentRoute.indexOf("removeObjects(COMPONENT_ATTACHMENT_BUCKET, removablePaths)");
 
     expect(lookupIndex).toBeGreaterThanOrEqual(0);
     expect(removeIndex).toBeGreaterThan(lookupIndex);
     expect(attachmentRoute).toContain("SELECT storage_path, review_status, is_current_approved");
-    expect(attachmentRoute).toContain("readApprovedFlag(row.is_current_approved)");
-    expect(attachmentRoute).toContain('row.review_status && row.review_status !== "uploaded"');
-    expect(attachmentRoute).toContain("Reviewed Library attachments cannot be removed from draft cleanup.");
+    expect(attachmentRoute).toContain("Persisted component attachments cannot be removed from draft cleanup.");
     expect(attachmentRoute).toContain("Could not verify attachment review state.");
   });
 
-  it("requires approved current attachments before private download brokering", () => {
-    expect(attachmentRoute).toContain("SELECT id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved");
-    expect(attachmentRoute).toContain('data.review_status !== "approved"');
-    expect(attachmentRoute).toContain("!readApprovedFlag(data.is_current_approved)");
-    expect(attachmentRoute).toContain('privateAttachmentUnavailable("Attachment is not available until approval is complete.")');
+  it("allows newly saved uploaded attachments through the private scan-validated broker", () => {
+    expect(attachmentRoute).toContain("owner_scope");
+    expect(attachmentRoute).toContain("upload_asset_id");
+    expect(attachmentRoute).toContain('attachment.review_status === "uploaded"');
+    expect(attachmentRoute).toContain('attachment.review_status === "approved" && readApprovedFlag(attachment.is_current_approved)');
+    expect(attachmentRoute).toContain("!isAttachmentReviewStateReadable(attachment)");
+    expect(attachmentRoute).toContain('privateAttachmentUnavailable("Attachment is not available in its current review state.")');
     expect(attachmentRoute).toContain("decideUploadScanGate");
     expect(attachmentRoute).toContain("scan_override_expires_at");
     expect(attachmentRoute).toContain('"download_url_issued"');
   });
 
   it("keeps active D1 attachment metadata aligned with attachment governance", () => {
-    expect(d1AttachmentMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_variant_attachments");
+    expect(d1AttachmentMigration).toContain("CREATE TABLE component_variant_attachments");
+    expect(d1AttachmentMigration).toContain("owner_scope TEXT NOT NULL");
+    expect(d1AttachmentMigration).toContain("upload_asset_id TEXT NOT NULL UNIQUE");
     expect(d1AttachmentMigration).toContain("review_status TEXT NOT NULL DEFAULT 'uploaded'");
     expect(d1AttachmentMigration).toContain("review_status IN ('uploaded', 'approved', 'rejected', 'superseded')");
     expect(d1AttachmentMigration).toContain("applicable_cost_entry_id TEXT");
     expect(d1AttachmentMigration).toContain("is_current_approved INTEGER NOT NULL DEFAULT 0");
     expect(d1AttachmentMigration).toContain("review_revision INTEGER NOT NULL DEFAULT 1");
-    expect(uploadLifecycleProofRouter).toContain("INSERT INTO cost_library_item_variant_attachments");
+    expect(uploadLifecycleProofRouter).toContain("INSERT INTO component_variant_attachments");
     expect(uploadLifecycleProofRouter).toContain("review_status");
     expect(uploadLifecycleProofRouter).toContain("is_current_approved");
   });

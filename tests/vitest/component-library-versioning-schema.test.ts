@@ -96,14 +96,13 @@ describe("component library item versioning schema", () => {
     expect(migration).toContain("'Initial version backfill'");
   });
 
-  it("wires repository, actions, types, and focused UI surfaces to the versioned contract", () => {
+  it("wires repository, actions, types, and focused UI surfaces to the component graph contract", () => {
     expect(repository).toContain("cost_library_item_price_options");
     expect(repository).toContain("cost_library_item_versions");
     expect(repository).toContain("cost_library_item_price_history");
     expect(repository).toContain("cost_library_item_state_history");
     expect(actions).toContain("createCostLibraryComponent");
-    expect(actions).toContain("upsertCostLibraryComponentPriceOption");
-    expect(actions).toContain("changeCostLibraryComponentLifecycleState");
+    expect(actions).toContain("updateCostLibraryComponentWithPriceOptions");
     expect(manager).toContain("data-component-catalogue-card-id");
     expect(manager).toContain("Cost /");
     expect(manager).not.toContain("Pricing option for");
@@ -116,7 +115,7 @@ describe("component library item versioning schema", () => {
     expect(addModal).toContain('aria-label="Activity"');
     expect(addModal).toContain("Component lifecycle");
     expect(addModal).toContain("Manage variants");
-    expect(addModal).toContain('const DEFAULT_VARIANT_LABEL = "V1"');
+    expect(addModal).toContain('const DEFAULT_VARIANT_LABEL = "Default"');
     expect(addModal).toContain("Add variant");
     expect(addModal).toContain("aria-label=\"Unit cost\"");
     expect(d1PromotionMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_price_options");
@@ -144,7 +143,6 @@ describe("component library item versioning schema", () => {
     expect(actions).toContain("LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES = 64 * 1024");
     expect(actions).toContain("discardOlderActiveComponentDraftsBeforeInsert");
     expect(actions).toContain("AND id IN (");
-    expect(actions).not.toContain("AND id NOT IN (");
     expect(actions).toContain("readComponentDraftJson(input.draft)");
     expect(actions).toContain("cost_library_component_drafts");
     expect(actions).toContain("INSERT INTO cost_library_component_drafts");
@@ -185,7 +183,9 @@ describe("component library item versioning schema", () => {
     expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_options to authenticated");
     expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_history to authenticated");
     expect(priceAuditGrantMigration).toContain("grant execute on function public.upsert_cost_library_component_price_option(uuid, uuid, jsonb) to authenticated");
-    expect(actions).toContain("upsertComponentPriceOptionInD1");
+    expect(actions).toContain("buildComponentPriceOptionWritePlan");
+    expect(actions).toContain("updateCostLibraryComponentWithPriceOptions");
+    expect(actions).toContain("runAtomicBatch");
     expect(actions).toContain("INSERT INTO cost_library_item_price_options");
     expect(actions).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
     expect(actions).not.toContain('supabase.rpc("upsert_cost_library_component_price_option"');
@@ -228,7 +228,7 @@ describe("component library item versioning schema", () => {
     expect(addModal).not.toContain("label=\"Kind\"");
     expect(addModal).toContain("label=\"SKU / Reference\"");
     expect(addModal).toContain("setActiveVariantAsDefault");
-    expect(addModal).toContain("aria-pressed={activeVariant?.isDefault ?? false}");
+    expect(addModal).toContain("aria-pressed={variantModeEnabled && (activeVariant?.isDefault ?? false)}");
     expect(repository).toContain("sku?: string | null;");
     expect(addModal).toContain("sku: variant.sku || null");
     expect(repository).not.toContain("component_kind");
