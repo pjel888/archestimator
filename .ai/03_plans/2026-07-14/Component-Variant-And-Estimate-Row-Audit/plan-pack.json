@@ -1,0 +1,1880 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-14-estimate-component-shared-review",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "baseline": {
+    "head": "ad2187d23881b490009c45dd283d9ced82c12b10",
+    "scoped_status_sha256": "c95125543ec15637854f08e34a9a1a28aa2c1cd1693bc765d4e0d556fb32b147",
+    "scoped_diff_sha256": "dbe7c7a82c145e75cc6d17c741b0c01b47ba7eca9ec637301347ad2bd97d087c"
+  },
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "331e1a1ce1409fd41928ae24448e1189ee96a222c6effe51926e38a40d5be408"
+    },
+    {
+      "id": "ART-002",
+      "role": "evidence",
+      "path": "01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md",
+      "sha256": "6468b752709384d14f38f5e35627d26cd14bd6a886e10e09bf20749470e7622b"
+    },
+    {
+      "id": "ART-003",
+      "role": "supporting",
+      "path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "sha256": "c494ddd219b1d2abb76e8e7457ae1e7bb85d412c514649b42bc5fbc267c25a4c"
+    },
+    {
+      "id": "ART-004",
+      "role": "evidence",
+      "path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "sha256": "12a4b70bcaa465ed8dafa17526cbbe584f51e1303910cdaa831bbc188994348a"
+    },
+    {
+      "id": "ART-005",
+      "role": "supporting",
+      "path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md",
+      "sha256": "c17f8c04a5c146ae82df9fcc4be3d32667a2136d08d0a172a545273db858e2a6"
+    },
+    {
+      "id": "ART-006",
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "ae941a7cb8d9bb48c24426504fcc9e4cc7b4ce76961269a61ea28091168dd4eb"
+    },
+    {
+      "id": "ART-007",
+      "role": "evidence",
+      "path": "TRACEABILITY.md",
+      "sha256": "aefacd746fdd9e8b10bda036f0a23cbdb9819a8ddc0f92fba2668a6e3b87b9e3"
+    },
+    {
+      "id": "ART-008",
+      "role": "recovery",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "f7787d1f857a521c0ea727c11dd5e2674d5817165095689e6c2c59cc76671769"
+    },
+    {
+      "id": "ART-009",
+      "role": "evidence",
+      "path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
+      "sha256": "51c0dc8b0388ae64ddbd42f326ca91d9995b0b78f3d55a9a57bc943fb0f5cfd4"
+    },
+    {
+      "id": "ART-010",
+      "role": "evidence",
+      "path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
+      "sha256": "dd0cf91ac6d86dd8b36dbd07ceb23105cb05f8b1f40f376854126ef4597bf059"
+    },
+    {
+      "id": "ART-011",
+      "role": "supporting",
+      "path": "07-BETA-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
+      "sha256": "3e442bd3c79dc8e755880f873d19c5a28393bdf5fca07a766652694ed619dd25"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "SEC-001",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "SEC-001",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "SEC-001",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "SEC-001",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "SEC-001",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-006",
+      "status": "CURRENT",
+      "artifact_path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
+      "affected_ids": [
+        "UX-001",
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018"
+      ]
+    },
+    {
+      "id": "SRC-007",
+      "status": "CURRENT",
+      "artifact_path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
+      "affected_ids": [
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "SRC-008",
+      "status": "CURRENT",
+      "artifact_path": "07-BETA-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
+      "affected_ids": [
+        "UX-001",
+        "OPS-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-009",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-008",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-014"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-015"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-016"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-006",
+        "SRC-008"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-017"
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-006",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-018"
+      ]
+    },
+    {
+      "id": "REQ-016",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-006",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-019"
+      ]
+    },
+    {
+      "id": "REQ-017",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-006",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-020"
+      ]
+    },
+    {
+      "id": "REQ-018",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-006",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-021"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-022"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "source_ids": [
+        "SRC-008"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-023"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-008",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-003",
+        "AC-016"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007",
+        "AC-008",
+        "AC-016"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-012",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-012",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-011",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-009",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-011",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010",
+        "AC-013",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "RISK-012",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-014",
+        "AC-016"
+      ]
+    },
+    {
+      "id": "RISK-013",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "AC-013",
+        "AC-014",
+        "AC-015",
+        "AC-016"
+      ]
+    },
+    {
+      "id": "RISK-014",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-017",
+        "AC-018"
+      ]
+    },
+    {
+      "id": "RISK-015",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-018",
+        "AC-019"
+      ]
+    },
+    {
+      "id": "RISK-016",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-019",
+        "AC-020"
+      ]
+    },
+    {
+      "id": "RISK-017",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-018",
+        "AC-021"
+      ]
+    },
+    {
+      "id": "RISK-018",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-018",
+        "AC-022"
+      ]
+    },
+    {
+      "id": "RISK-019",
+      "status": "OPEN",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-017",
+        "AC-023"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-010",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-011",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-012",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-012"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-013",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-013"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-014",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-014"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-015",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-016",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-017",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-018",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-015"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-019",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-016"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-020",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-017"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-021",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "REQ-018"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-022",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-023",
+      "status": "N/A",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "This planning-only run defines implementation acceptance without executing product tests.",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-001",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-008",
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "DATA-001",
+        "OPS-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-013",
+        "RISK-014",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017",
+        "RISK-019"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-017",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-004",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-017",
+        "REQ-018",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-012",
+        "RISK-013",
+        "RISK-017"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-005",
+        "REQ-008",
+        "REQ-015",
+        "DATA-001",
+        "OPS-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-013",
+        "RISK-018"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "REQ-008",
+        "REQ-015",
+        "REQ-018",
+        "OPS-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-006",
+        "RISK-013",
+        "RISK-014",
+        "RISK-017",
+        "RISK-019"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-007",
+        "SEC-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-006",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-005",
+        "REQ-007",
+        "REQ-009",
+        "REQ-010",
+        "OPS-001",
+        "SEC-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-010",
+        "RISK-011",
+        "RISK-013",
+        "RISK-019"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-012",
+        "REQ-014",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-007",
+        "RISK-008",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "requirement_ids": [
+        "REQ-011",
+        "REQ-014",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-009",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "requirement_ids": [
+        "REQ-013",
+        "REQ-014",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-011",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "UX-001",
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "DATA-001",
+        "OPS-001",
+        "SEC-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-012",
+        "RISK-013",
+        "RISK-019"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "affected_ids": [
+        "REQ-009",
+        "REQ-011",
+        "UNIT-007",
+        "UNIT-009"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "affected_ids": [
+        "REQ-005",
+        "UNIT-001"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "affected_ids": [
+        "REQ-004",
+        "UNIT-001"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "affected_ids": [
+        "REQ-006",
+        "UNIT-001"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "affected_ids": [
+        "REQ-007",
+        "UNIT-006"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "affected_ids": [
+        "REQ-009",
+        "REQ-011",
+        "UNIT-007",
+        "UNIT-009"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "affected_ids": [
+        "REQ-013",
+        "UNIT-010"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "affected_ids": [
+        "UNIT-011"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "affected_ids": [
+        "UX-001",
+        "REQ-015",
+        "REQ-018",
+        "UNIT-001",
+        "UNIT-005"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-011"
+      ],
+      "status": "ACTIVE",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md",
+      "sha256": "6468b752709384d14f38f5e35627d26cd14bd6a886e10e09bf20749470e7622b",
+      "claim_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "SEC-001",
+        "PERF-001"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "sha256": "12a4b70bcaa465ed8dafa17526cbbe584f51e1303910cdaa831bbc188994348a",
+      "claim_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010",
+        "RISK-011",
+        "RISK-012",
+        "RISK-013",
+        "RISK-014",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017",
+        "RISK-018",
+        "RISK-019"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md",
+      "sha256": "c17f8c04a5c146ae82df9fcc4be3d32667a2136d08d0a172a545273db858e2a6",
+      "claim_ids": [
+        "DEC-AUTO-001",
+        "DEC-AUTO-002",
+        "DEC-AUTO-003",
+        "DEC-AUTO-004",
+        "DEC-AUTO-005",
+        "DEC-AUTO-006",
+        "DEC-AUTO-007",
+        "DEC-AUTO-008",
+        "DEC-AUTO-009",
+        "DEC-AUTO-010"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "ae941a7cb8d9bb48c24426504fcc9e4cc7b4ce76961269a61ea28091168dd4eb",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "artifact_path": "TRACEABILITY.md",
+      "sha256": "aefacd746fdd9e8b10bda036f0a23cbdb9819a8ddc0f92fba2668a6e3b87b9e3",
+      "claim_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "AC-013",
+        "AC-014",
+        "AC-015",
+        "AC-016",
+        "AC-017",
+        "AC-018",
+        "AC-019",
+        "AC-020",
+        "AC-021",
+        "AC-022",
+        "AC-023"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "artifact_path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
+      "sha256": "51c0dc8b0388ae64ddbd42f326ca91d9995b0b78f3d55a9a57bc943fb0f5cfd4",
+      "claim_ids": [
+        "UX-001",
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "RISK-014",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "artifact_path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
+      "sha256": "dd0cf91ac6d86dd8b36dbd07ceb23105cb05f8b1f40f376854126ef4597bf059",
+      "claim_ids": [
+        "REQ-015",
+        "REQ-016",
+        "REQ-017",
+        "REQ-018",
+        "DATA-001",
+        "RISK-018"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "artifact_path": "07-BETA-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
+      "sha256": "3e442bd3c79dc8e755880f873d19c5a28393bdf5fca07a766652694ed619dd25",
+      "claim_ids": [
+        "UX-001",
+        "OPS-001",
+        "RISK-019"
+      ],
+      "status": "PASS",
+      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ]
+    }
+  ],
+  "stale_triggers": [
+    "estimate-row-or-tree-contract-change",
+    "component-library-or-variant-contract-change",
+    "publication-or-client-portal-contract-change",
+    "recipient-session-or-notification-change",
+    "planning-suite-change",
+    "scoped-working-tree-drift"
+  ],
+  "next_unit": "UNIT-001",
+  "updated_at": "2026-07-14T00:00:00.000Z",
+  "manifest_sha256": "8f16247ce9fc79c0273f19ae44e5094f9da5bf4478f5a446868fc46639768c84"
+}
