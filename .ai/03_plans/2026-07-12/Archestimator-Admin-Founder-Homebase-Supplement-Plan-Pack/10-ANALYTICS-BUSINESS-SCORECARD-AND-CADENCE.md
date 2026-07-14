@@ -204,6 +204,7 @@ The founder scorecard includes:
 - customer blockers;
 - data-quality findings;
 - release state;
+- communications scheduled on time, partial/failed/stuck runs, oldest reconciliation issue, and provider suppression/reputation state when an external channel exists;
 - support backlog;
 - cost/capacity.
 

@@ -273,8 +273,10 @@ The existing plan dedicates four large units to a complete campaign platform.
 
 Reprioritize:
 
-- MVP communications: safe targeted outreach, templates, send history, delivery failure, audit.
+- MVP communications: source-linked draft, fixed audience preview, exact rendering, one immediate/future publish, truthful run history, delivery reconciliation, preferences, correction/retraction, and audit.
 - Later: recurring series, complex schedule revisions, digest orchestration, advanced cohort enrollment, multi-operator approvals.
+
+The Release Center, incident/maintenance detail, User/Account 360, support, and feedback signals may prefill drafts, but never auto-publish. `19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md` is the binding feature contract.
 
 ### DEC-014 — Full-width, desktop-first, keyboard-fast
 

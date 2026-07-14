@@ -102,10 +102,10 @@ Operations
   Cost & Capacity
 
 Communications
-  Outreach
-  Campaigns
+  Notification Manager
+  Drafts & Scheduled
+  Published & Issues
   Templates
-  Delivery Issues
 
 Governance
   Feature Flags
@@ -139,6 +139,7 @@ Existing routes remain valid during rollout. The navigation model changes before
 | `16-INDUSTRY-RESEARCH-AND-BENCHMARKS.md` | Stripe, Linear, Sentry, PostHog, Intercom, SRE, Cloudflare, Vercel |
 | `17-CONSOLIDATION-MAP-AND-TRACEABILITY.md` | Exact merger map with the existing Admin plan |
 | `18-SOURCE-REGISTRY.md` | Repository and external source registry |
+| `19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md` | Authoritative communication lifecycle, audience, delivery, correction, and cross-domain contract |
 | `LOOP_LEDGER.md` | Lean append-only execution log |
 | `PACK-MANIFEST.md` | Human-readable package inventory and authority map |
 | `plan-pack.json` | Machine-readable status, traceability, hashes, DAG, and readiness |
@@ -169,6 +170,7 @@ The first coherent release contains:
 - support and feedback triage;
 - production health and incident summary;
 - release-readiness summary;
+- one-time Notification Manager with source-linked drafts, frozen audience preview, scheduling, truthful history, and correction/retraction;
 - data-quality findings;
 - provider integration health and reconciliation exceptions;
 - aggregate traffic/acquisition movement with explicit capability/privacy limits;
@@ -201,5 +203,6 @@ The Founder Homebase succeeds when Philip can begin the day in `/admin` and, wit
 - understand traffic/acquisition movement and the current financial-data boundary;
 - record a follow-up or decision;
 - leave with an empty or intentionally snoozed action inbox.
+- communicate releases, incidents, maintenance, security/account actions, and customer updates without accidental audience expansion or false delivery claims.
 
 The success metric is not “number of admin pages implemented.” It is **reduced founder operating latency and fewer missed obligations**.

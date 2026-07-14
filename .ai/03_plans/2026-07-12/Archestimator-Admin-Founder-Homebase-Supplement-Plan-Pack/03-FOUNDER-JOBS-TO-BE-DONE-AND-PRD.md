@@ -127,9 +127,12 @@ Create a single, trustworthy founder workspace that minimizes time from signal t
 
 ### Communications
 
-- As founder, I can send a safe one-time targeted message with preview and history.
-- As founder, I can see delivery/materialization failures.
-- As founder, I can draft a follow-up from User 360 or a feedback signal.
+- As founder, I can create a manual or source-linked draft without sending it.
+- As founder, I can preview the exact content, channel/surface, frozen eligible audience, and exclusions before an immediate or one-time future publish.
+- As founder, I can distinguish accepted, materialized, provider-delivered, seen, read, acknowledged, dismissed, failed, and reconciled states.
+- As founder, I can cancel, retract, correct, or replace while preserving history.
+- As founder, I can draft from Release Center, incident/maintenance, security/account events, User/Account 360, support, or a feedback signal without any source auto-publishing.
+- As founder, I can see partial, stuck, stale-source, and delivery/reconciliation issues in the Action Inbox.
 
 ## 4. Success metrics
 

@@ -182,7 +182,7 @@ Each event declares:
 
 ### Actions
 
-- compose outreach;
+- compose source-linked outreach with the exact user/account preselected, audience preview required, and no auto-publish;
 - add note/follow-up;
 - open account/workspace/project;
 - revoke session;

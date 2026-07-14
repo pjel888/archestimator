@@ -77,7 +77,11 @@ Avoid broad test expansion for every dashboard card.
 - recipient count;
 - preferences/consent;
 - duplicate publish;
-- honest delivery status.
+- honest accepted/materialized/provider/seen/read/acknowledged status;
+- source revision freshness and no auto-publish;
+- immediate/one-time schedule misfire behavior;
+- cancel/retract/correct/replace evidence preservation;
+- email visibly unavailable until authentication, suppression, provider event, and reconciliation contracts exist.
 
 ## 4. Evidence proportionality
 

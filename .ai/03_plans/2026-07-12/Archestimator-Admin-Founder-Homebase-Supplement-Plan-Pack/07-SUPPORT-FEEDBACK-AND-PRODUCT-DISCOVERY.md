@@ -341,8 +341,8 @@ When linked work ships:
 
 1. release record references signal/theme;
 2. signal moves to “Shipped — follow-up required”;
-3. founder drafts customer update;
-4. update sent/recorded;
+3. founder creates a source-linked customer-update draft with linked reporters or an explicit cohort as the fixed audience;
+4. founder previews and publishes through Notification Manager; no signal or release event auto-sends;
 5. `closedLoopAt` set;
 6. theme impact reviewed after interval.
 

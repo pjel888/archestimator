@@ -476,6 +476,8 @@ Examples:
 
 Email/provider delivery is never held inside the transaction. Use outbox/job state.
 
+For UNIT-010 the D1-authoritative transaction freezes the immutable communication revision, audience revision/snapshot, exact denominators, stable run idempotency key, audit event, and bounded in-app materialization or outbox work. Existing notification definitions/deliveries are extended, not replaced. Provider attempts, if later enabled, remain outside the transaction and reconcile back to the authoritative run/recipient ledger.
+
 ## 14. Provider snapshots
 
 Scheduled collector:

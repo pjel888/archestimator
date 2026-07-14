@@ -120,6 +120,7 @@ Examples:
 support:<conversationId>:waiting_on_admin
 incident:<incidentId>:open
 release:<releaseId>:check:<checkKey>
+notification:<runId>:<issueType>
 user:<userId>:activation_stalled
 publication:<publicationId>:decision:<responseId>
 data_quality:<checkKey>:<entityId>
@@ -225,6 +226,7 @@ Examples:
 - create release;
 - open Cloudflare logs;
 - draft outreach.
+- review stale/scheduled communication, reconcile a partial/stuck run, or issue a correction.
 
 ## 9. Home Today view
 

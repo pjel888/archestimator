@@ -181,6 +181,8 @@ MVP may map to current states with supplemental events.
 
 No complex on-call rotation is needed for one operator.
 
+“Start customer communication” creates an incident-, maintenance-, or security-linked draft with current status, impact, affected identities/components, and resolution/action guidance. The founder explicitly chooses whether to publish each update. A changed incident state marks an unpublished draft stale; published warnings and resolutions retain their source timeline and may be corrected or superseded without deleting evidence.
+
 ## 6. Operational jobs
 
 A normalized job read model should cover:

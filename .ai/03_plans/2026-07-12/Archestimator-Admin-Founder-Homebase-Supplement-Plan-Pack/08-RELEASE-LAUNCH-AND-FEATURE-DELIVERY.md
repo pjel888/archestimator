@@ -312,6 +312,8 @@ Release record generates:
 
 AI can draft from commits/PRs/signals, but founder approves.
 
+The customer-facing draft opens in Notification Manager with release ID/version, change summary, known limitations, action link, and affected cohort prefilled. Release readiness records `not_required`, `draft`, `ready`, `scheduled`, `published`, `partial`, `failed`, or `waived_with_reason`; it never equates a provider acceptance or in-app materialization with customer receipt. Source changes mark the draft stale, and corrections/supersession link back to the release.
+
 ## 15. Launch center
 
 For a major launch, aggregate:

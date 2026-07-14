@@ -175,6 +175,9 @@ Existing schema already provides (do **not** rebuild): `notification_definitions
 
 Material defects/gaps:
 
+- composer/action validation allows a `200`-character title while the D1 CHECK limit is `120`;
+- `release_version` exists in the action/schema but the composer does not expose it;
+- current recipient surfaces are in-app notification center/toast/modal only; email, push, and SMS are not notification-manager channels;
 - no preview or recipient count before send;
 - no targeted audience;
 - no draft/history/status or version lineage;
@@ -186,6 +189,8 @@ Material defects/gaps:
 - no delivery issue queue;
 - no read/dismiss metrics;
 - current success wording can overstate downstream delivery.
+
+The target repair is specified in `19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md`. It extends the existing schema/inbox foundation rather than creating a parallel campaign or delivery system.
 
 ### `/admin/flags`
 

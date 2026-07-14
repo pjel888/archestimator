@@ -50,10 +50,12 @@ These routes may begin as sections or filtered views in `/admin/review`; do not 
 
 ### Communications
 
-- **Outreach** — `/admin/outreach`
-- **Campaigns** — `/admin/notifications`
+- **Notification Manager** — `/admin/notifications` with Drafts, Scheduled, Published, Issues, Templates, and All History views
+- **Outreach** — `/admin/outreach` becomes an alias/deep link into a prefiltered targeted-draft view
 - **Templates** — `/admin/communications/templates`
 - **Delivery Issues** — `/admin/communications/delivery`
+
+The manager is the single publish owner. Release, incident/maintenance, User/Account 360, support, and signal routes create source-linked drafts and return to their source context; they do not implement parallel send actions.
 
 ### Governance
 
