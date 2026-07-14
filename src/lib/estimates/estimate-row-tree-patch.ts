@@ -53,6 +53,7 @@ type EstimateRowMutationResultPatchInput = {
   contingencyPercentage: number;
   adjustmentPercentage: number;
   miscCost: number;
+  sourceLibraryItemId: string | null;
   sourceSnapshot: Json | null;
   metadata: Json;
   linkState: EstimateRowItem["linkState"];
@@ -118,6 +119,8 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     notes: readSnapshotString(result.sourceSnapshot, "notes"),
     componentVersionNumber: readSnapshotNumber(result.sourceSnapshot, "componentVersionNumber") ?? undefined,
     metadata: result.metadata as EstimateRowItem["metadata"],
+    sourceLibraryItemId: result.sourceLibraryItemId,
+    source: result.sourceLibraryItemId ? "library" : "project",
     linkState: result.linkState,
     rowRevision: result.rowRevision,
   };

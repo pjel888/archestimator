@@ -188,6 +188,7 @@ type RowHistoryResult = {
     adjustmentPercentage: number;
     adjustmentValue: number;
     miscCost: number;
+    sourceLibraryItemId: string | null;
     sourceSnapshot: Json | null;
     metadata: Json;
     linkState: string;
@@ -205,6 +206,7 @@ export type EstimateComponentEditImpactEstimate = {
 
 export type EstimateComponentEditImpact = {
   componentKind: "library" | "project";
+  fingerprint: string;
   instanceCount: number;
   projectCount: number;
   estimateCount: number;
@@ -330,6 +332,7 @@ function rowItemHistoryResult(row: EstimateRowItemRow, eventId?: string): RowHis
       adjustmentPercentage,
       adjustmentValue: (base * adjustmentPercentage) / 100,
       miscCost: readNumber(row.misc_cost),
+      sourceLibraryItemId: row.source_library_item_id ?? null,
       sourceSnapshot: rowSourceSnapshot(row),
       metadata: rowMetadata(row),
       linkState: rowLinkState(row.link_state),
@@ -2045,10 +2048,55 @@ function mergeSourceSnapshotPatchIntoRow(row: EstimateRowItemRow, rowPatch: Reco
   };
 }
 
+function buildProjectComponentImpactGuardStatement(input: {
+  projectId: string;
+  sourceRowId: string;
+  componentId: string | null;
+  expectedFingerprint: string;
+}) {
+  return {
+    sql: `
+      SELECT CASE WHEN COALESCE((
+        SELECT GROUP_CONCAT(component_revision, '|')
+        FROM (
+          SELECT row_item.id || ':' || CAST(row_item.row_revision AS TEXT) AS component_revision
+          FROM estimate_row_items row_item
+          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+          WHERE estimate.project_id = ?
+            AND (row_item.id = ? OR ${PROJECT_COMPONENT_IDENTITY_SQL} = ?)
+          ORDER BY row_item.id
+        )
+      ), '') = ? THEN 1 ELSE json('') END AS component_impact_guard
+    `,
+    values: [input.projectId, input.sourceRowId, input.componentId, input.expectedFingerprint],
+  };
+}
+
+async function readProjectComponentImpactRevisionRows(database: D1DatabaseLike, input: {
+  projectId: string;
+  sourceRowId: string;
+  componentId: string | null;
+}) {
+  return all<{ row_id: string; row_revision: number | string }>(
+    database,
+    `
+      SELECT row_item.id AS row_id, row_item.row_revision
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      WHERE estimate.project_id = ?
+        AND (row_item.id = ? OR ${PROJECT_COMPONENT_IDENTITY_SQL} = ?)
+      ORDER BY row_item.id
+    `,
+    [input.projectId, input.sourceRowId, input.componentId],
+  );
+}
+
 async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input: {
   projectId: string;
   sourceRow: EstimateRowItemRow;
   rowPatch: Record<string, unknown>;
+  componentId: string | null;
+  expectedImpactFingerprint?: string;
 }) {
   const sharedPatch = pickSharedProjectComponentPatch(input.rowPatch);
   const sharedColumns = updateValuesForRowPatch(sharedPatch);
@@ -2057,8 +2105,7 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
     mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
   };
 
-  const componentId = getProjectComponentIdentity(rowMetadata(input.sourceRow), null, rowSourceSnapshot(input.sourceRow));
-  if (!componentId) return {
+  if (!input.componentId) return {
     rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
     mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
   };
@@ -2071,22 +2118,17 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
       INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
       WHERE estimate.project_id = ?
         AND row_item.id <> ?
-        AND COALESCE(
-          CASE
-            WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
-            THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceComponentId'), '')
-          END,
-          CASE
-            WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
-            THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceEstimateRowId'), '')
-          END,
-          NULLIF(json_extract(row_item.metadata_json, '$.projectComponentProjection.componentId'), ''),
-          NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.componentId'), ''),
-          NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.id'), '')
-        ) = ?
+        AND ${PROJECT_COMPONENT_IDENTITY_SQL} = ?
     `,
-    [input.projectId, input.sourceRow.id, componentId],
+    [input.projectId, input.sourceRow.id, input.componentId],
   );
+  const impactFingerprint = buildComponentImpactFingerprint([
+    { row_id: input.sourceRow.id, row_revision: readNumber(input.sourceRow.row_revision, 1) },
+    ...siblingRows.map((row) => ({ row_id: row.id, row_revision: readNumber(row.row_revision, 1) })),
+  ]);
+  if (input.expectedImpactFingerprint !== undefined && impactFingerprint !== input.expectedImpactFingerprint) {
+    throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
+  }
   if (siblingRows.length === 0) return {
     rowIds: [] as string[], totalDelta: 0, facts: [] as Array<Record<string, unknown>>, truncatedCount: 0,
     mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
@@ -2136,9 +2178,9 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
     const assignments = columns.map(([column]) => `${column} = ?`);
     const values = columns.map(([, value]) => value);
     assignments.push("row_revision = ?", "updated_at = ?");
-    values.push(nextRevision, propagatedAt, row.id, row.estimate_id);
+    values.push(nextRevision, propagatedAt, row.id, row.estimate_id, readNumber(row.row_revision, 1));
     statements.push({
-      sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`,
+      sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ? AND row_revision = ?`,
       values,
     });
   }
@@ -2152,7 +2194,13 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
   };
 }
 
-async function patchRowItem(database: D1DatabaseLike, args: Record<string, unknown>, eventType: string, rowPatch: Record<string, unknown>) {
+async function patchRowItem(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  eventType: string,
+  rowPatch: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
@@ -2174,10 +2222,23 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   const assignments = columns.map(([column]) => `${column} = ?`);
   const values = columns.map(([, value]) => value);
   assignments.push("row_revision = ?", "updated_at = ?");
-  values.push(nextRevision, nowIso(), rowId, estimateId);
+  values.push(nextRevision, nowIso(), rowId, estimateId, expected);
   const updated = applyRowPatchForActivity(row, effectiveRowPatch, nextRevision);
-  const propagation = eventType === "row_updated"
-    ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch: effectiveRowPatch })
+  const componentId = getProjectComponentIdentity(rowMetadata(row), null, rowSourceSnapshot(row));
+  const expectedImpactFingerprint = typeof args.expected_component_impact_fingerprint === "string"
+    ? args.expected_component_impact_fingerprint
+    : undefined;
+  if (expectedImpactFingerprint !== undefined && !database.batch) {
+    throw new Error("Atomic component impact validation is unavailable.");
+  }
+  const propagation = eventType === "row_updated" && !row.source_library_item_id
+    ? await propagateProjectComponentRowPatch(database, {
+        projectId,
+        sourceRow: row,
+        rowPatch: effectiveRowPatch,
+        componentId,
+        expectedImpactFingerprint,
+      })
     : {
       rowIds: [] as string[],
       totalDelta: 0,
@@ -2185,39 +2246,67 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
       truncatedCount: 0,
       mutationStatements: [] as Array<{ sql: string; values?: unknown[] }>,
     };
+  if (propagation.rowIds.length > 0) {
+    const canEditProject = await canEditProjectInD1(database, projectId, currentUser);
+    if (!canEditProject) throw new Error("Project edit access is required to update a component used across estimates.");
+  }
   const previousVariant = getVariantActivityIdentity(row);
   const nextVariant = getVariantActivityIdentity(updated);
   const changedFields = columns.map(([column]) => column);
   if (variantsDiffer(previousVariant, nextVariant)) changedFields.push("variant_changed");
-  const mutationStatements = [{
-    sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`,
-    values,
-  }, ...propagation.mutationStatements];
+  const mutationStatements = [
+    ...(expectedImpactFingerprint !== undefined ? [buildProjectComponentImpactGuardStatement({
+      projectId,
+      sourceRowId: rowId,
+      componentId,
+      expectedFingerprint: expectedImpactFingerprint,
+    })] : []),
+    {
+      sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ? AND row_revision = ?`,
+      values,
+    },
+    ...propagation.mutationStatements,
+  ];
   if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
     throw new Error("Component propagation is too large to persist atomically with activity history.");
   }
-  const eventId = await runMutationWithHistory(database, mutationStatements, {
-    projectId,
-    estimateId,
-    estimateNodeId: updated.node_id,
-    targetRowId: rowId,
-    eventType,
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId,
-    changedFields,
-    oldSnapshot: row,
-    newSnapshot: updated,
-    rowContext: { material: updated.material, supplier: updated.supplier },
-    payload: {
-      rowId,
-      variant: variantsDiffer(previousVariant, nextVariant) ? { previous: previousVariant, next: nextVariant } : null,
-      propagatedRowIds: propagation.rowIds,
-      propagatedRowCount: propagation.rowIds.length,
-      propagatedRowFacts: propagation.facts,
-      propagatedRowFactsTruncated: propagation.truncatedCount,
-    },
-    totalDelta: computeEstimateRowLineTotal(updated) - computeEstimateRowLineTotal(row) + propagation.totalDelta,
-  });
+  let eventId: string;
+  try {
+    eventId = await runMutationWithHistory(database, mutationStatements, {
+      projectId,
+      estimateId,
+      estimateNodeId: updated.node_id,
+      targetRowId: rowId,
+      eventType,
+      actorUserId: String(args.acting_user_id ?? "") || null,
+      correlationId,
+      changedFields,
+      oldSnapshot: row,
+      newSnapshot: updated,
+      rowContext: { material: updated.material, supplier: updated.supplier },
+      payload: {
+        rowId,
+        variant: variantsDiffer(previousVariant, nextVariant) ? { previous: previousVariant, next: nextVariant } : null,
+        propagatedRowIds: propagation.rowIds,
+        propagatedRowCount: propagation.rowIds.length,
+        propagatedRowFacts: propagation.facts,
+        propagatedRowFactsTruncated: propagation.truncatedCount,
+      },
+      totalDelta: computeEstimateRowLineTotal(updated) - computeEstimateRowLineTotal(row) + propagation.totalDelta,
+    });
+  } catch (error) {
+    if (expectedImpactFingerprint !== undefined) {
+      const currentImpactRows = await readProjectComponentImpactRevisionRows(database, {
+        projectId,
+        sourceRowId: rowId,
+        componentId,
+      });
+      if (buildComponentImpactFingerprint(currentImpactRows) !== expectedImpactFingerprint) {
+        throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
+      }
+    }
+    throw error;
+  }
   return rowItemHistoryResult(updated, eventId);
 }
 
@@ -2738,36 +2827,67 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
 }
 
 type EstimateComponentEditImpactD1Row = {
+  row_id: string;
+  row_revision: number | string;
   project_id: string;
   project_name: string | null;
   estimate_id: string;
   estimate_name: string | null;
-  instance_count: number | string;
 };
 
-type EstimateComponentEditImpactSummaryD1Row = {
-  instance_count: number | string;
-  project_count: number | string;
-  estimate_count: number | string;
-};
+const PROJECT_COMPONENT_IDENTITY_SQL = `
+  COALESCE(
+    CASE
+      WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+      THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceComponentId'), '')
+    END,
+    CASE
+      WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+      THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceEstimateRowId'), '')
+    END,
+    NULLIF(json_extract(row_item.metadata_json, '$.projectComponentProjection.componentId'), ''),
+    NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.componentId'), ''),
+    NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.id'), '')
+  )
+`;
+
+const COMPONENT_IMPACT_CONFLICT_MESSAGE = "Component usage changed while this edit was open. Review the latest impact and try again.";
+
+function buildComponentImpactFingerprint(rows: Array<{ row_id: string; row_revision: number | string }>) {
+  return [...rows]
+    .sort((left, right) => left.row_id.localeCompare(right.row_id))
+    .map((row) => `${row.row_id}:${readNumber(row.row_revision, 1)}`)
+    .join("|");
+}
 
 function buildEstimateComponentEditImpact(
   componentKind: EstimateComponentEditImpact["componentKind"],
-  summary: EstimateComponentEditImpactSummaryD1Row | null,
   rows: EstimateComponentEditImpactD1Row[],
 ): EstimateComponentEditImpact {
-  return {
-    componentKind,
-    instanceCount: readNumber(summary?.instance_count),
-    projectCount: readNumber(summary?.project_count),
-    estimateCount: readNumber(summary?.estimate_count),
-    affectedEstimates: rows.map((row) => ({
+  const affectedByEstimate = new Map<string, EstimateComponentEditImpactEstimate>();
+  const projectIds = new Set<string>();
+  for (const row of rows) {
+    projectIds.add(row.project_id);
+    const existing = affectedByEstimate.get(row.estimate_id);
+    if (existing) {
+      existing.instanceCount += 1;
+      continue;
+    }
+    affectedByEstimate.set(row.estimate_id, {
       projectId: row.project_id,
       projectName: row.project_name?.trim() || "Untitled project",
       estimateId: row.estimate_id,
       estimateName: row.estimate_name?.trim() || "Untitled estimate",
-      instanceCount: readNumber(row.instance_count),
-    })),
+      instanceCount: 1,
+    });
+  }
+  return {
+    componentKind,
+    fingerprint: buildComponentImpactFingerprint(rows),
+    instanceCount: rows.length,
+    projectCount: projectIds.size,
+    estimateCount: affectedByEstimate.size,
+    affectedEstimates: [...affectedByEstimate.values()],
   };
 }
 
@@ -2806,127 +2926,62 @@ async function previewEstimateComponentEditImpact(
   if (linkedLibraryItemId) {
     const canManageLibrary = await isWorkspaceEditorInD1(database, sourceRow.workspace_id, currentUser);
     if (!canManageLibrary) throw new Error("Only workspace editors/admins can inspect shared library usage.");
-    const [summary, rows] = await Promise.all([
-      first<EstimateComponentEditImpactSummaryD1Row>(
-        database,
-        `
-          SELECT
-            COUNT(*) AS instance_count,
-            COUNT(DISTINCT project.id) AS project_count,
-            COUNT(DISTINCT estimate.id) AS estimate_count
-          FROM estimate_row_items row_item
-          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-          INNER JOIN projects project ON project.id = estimate.project_id
-          WHERE project.workspace_id = (SELECT workspace_id FROM projects WHERE id = ?)
-            AND row_item.source_library_item_id = ?
-            AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
-        `,
-        [projectId, linkedLibraryItemId],
-      ),
-      all<EstimateComponentEditImpactD1Row>(
-        database,
-        `
-          SELECT
-            project.id AS project_id,
-            project.name AS project_name,
-            estimate.id AS estimate_id,
-            estimate.name AS estimate_name,
-            COUNT(*) AS instance_count
-          FROM estimate_row_items row_item
-          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-          INNER JOIN projects project ON project.id = estimate.project_id
-          WHERE project.workspace_id = (SELECT workspace_id FROM projects WHERE id = ?)
-            AND row_item.source_library_item_id = ?
-            AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
-          GROUP BY project.id, project.name, estimate.id, estimate.name
-          ORDER BY project.name COLLATE NOCASE, estimate.name COLLATE NOCASE, estimate.id
-          LIMIT 8
-        `,
-        [projectId, linkedLibraryItemId],
-      ),
-    ]);
-    return buildEstimateComponentEditImpact("library", summary, rows);
+    const rows = await all<EstimateComponentEditImpactD1Row>(
+      database,
+      `
+        SELECT
+          row_item.id AS row_id,
+          row_item.row_revision,
+          project.id AS project_id,
+          project.name AS project_name,
+          estimate.id AS estimate_id,
+          estimate.name AS estimate_name
+        FROM estimate_row_items row_item
+        INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+        INNER JOIN projects project ON project.id = estimate.project_id
+        WHERE project.workspace_id = ?
+          AND row_item.source_library_item_id = ?
+          AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
+        ORDER BY project.name COLLATE NOCASE, estimate.name COLLATE NOCASE, estimate.id, row_item.id
+      `,
+      [sourceRow.workspace_id, linkedLibraryItemId],
+    );
+    const initiatingRow = rows.find((row) => row.row_id === rowId);
+    if (!initiatingRow || readNumber(initiatingRow.row_revision, 1) !== readNumber(sourceRow.row_revision, 1)) {
+      throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
+    }
+    return buildEstimateComponentEditImpact("library", rows);
   }
 
   const componentId = getProjectComponentIdentity(rowMetadata(sourceRow), null, rowSourceSnapshot(sourceRow));
-  if (!componentId) {
-    const sourceEstimate = await first<EstimateComponentEditImpactD1Row>(
-      database,
-      `
-        SELECT
-          project.id AS project_id,
-          project.name AS project_name,
-          estimate.id AS estimate_id,
-          estimate.name AS estimate_name,
-          1 AS instance_count
-        FROM estimates estimate
-        INNER JOIN projects project ON project.id = estimate.project_id
-        WHERE estimate.id = ?
-          AND project.id = ?
-        LIMIT 1
-      `,
-      [estimateId, projectId],
-    );
-    return buildEstimateComponentEditImpact("project", {
-      instance_count: 1,
-      project_count: 1,
-      estimate_count: 1,
-    }, sourceEstimate ? [sourceEstimate] : []);
+  const rows = await all<EstimateComponentEditImpactD1Row>(
+    database,
+    `
+      SELECT
+        row_item.id AS row_id,
+        row_item.row_revision,
+        project.id AS project_id,
+        project.name AS project_name,
+        estimate.id AS estimate_id,
+        estimate.name AS estimate_name
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      INNER JOIN projects project ON project.id = estimate.project_id
+      WHERE project.id = ?
+        AND (row_item.id = ? OR ${PROJECT_COMPONENT_IDENTITY_SQL} = ?)
+      ORDER BY estimate.name COLLATE NOCASE, estimate.id, row_item.id
+    `,
+    [projectId, rowId, componentId],
+  );
+  const initiatingRow = rows.find((row) => row.row_id === rowId);
+  if (!initiatingRow || readNumber(initiatingRow.row_revision, 1) !== readNumber(sourceRow.row_revision, 1)) {
+    throw new Error(COMPONENT_IMPACT_CONFLICT_MESSAGE);
   }
-
-  const componentIdentitySql = `
-    COALESCE(
-      CASE
-        WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
-        THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceComponentId'), '')
-      END,
-      CASE
-        WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
-        THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceEstimateRowId'), '')
-      END,
-      NULLIF(json_extract(row_item.metadata_json, '$.projectComponentProjection.componentId'), ''),
-      NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.componentId'), ''),
-      NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.id'), '')
-    )
-  `;
-  const [summary, rows] = await Promise.all([
-    first<EstimateComponentEditImpactSummaryD1Row>(
-      database,
-      `
-        SELECT
-          COUNT(*) AS instance_count,
-          COUNT(DISTINCT project.id) AS project_count,
-          COUNT(DISTINCT estimate.id) AS estimate_count
-        FROM estimate_row_items row_item
-        INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-        INNER JOIN projects project ON project.id = estimate.project_id
-        WHERE project.id = ?
-          AND (row_item.id = ? OR ${componentIdentitySql} = ?)
-      `,
-      [projectId, rowId, componentId],
-    ),
-    all<EstimateComponentEditImpactD1Row>(
-      database,
-      `
-        SELECT
-          project.id AS project_id,
-          project.name AS project_name,
-          estimate.id AS estimate_id,
-          estimate.name AS estimate_name,
-          COUNT(*) AS instance_count
-        FROM estimate_row_items row_item
-        INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-        INNER JOIN projects project ON project.id = estimate.project_id
-        WHERE project.id = ?
-          AND (row_item.id = ? OR ${componentIdentitySql} = ?)
-        GROUP BY project.id, project.name, estimate.id, estimate.name
-        ORDER BY estimate.name COLLATE NOCASE, estimate.id
-        LIMIT 8
-      `,
-      [projectId, rowId, componentId],
-    ),
-  ]);
-  return buildEstimateComponentEditImpact("project", summary, rows);
+  if (rows.length > 1) {
+    const canEditProject = await canEditProjectInD1(database, projectId, currentUser);
+    if (!canEditProject) throw new Error("Project edit access is required to update a component used across estimates.");
+  }
+  return buildEstimateComponentEditImpact("project", rows);
 }
 
 async function callEstimateAction<T>(
@@ -2995,14 +3050,14 @@ async function callEstimateAction<T>(
   if (name === "reorder_estimate_nodes_with_history") return await reorderEstimateNodes(database, args) as T;
   if (name === "delete_estimate_node_with_history" || name === "delete_estimate_nodes_bulk_with_history") return await deleteEstimateNodes(database, args) as T;
   if (name === "insert_estimate_row_item_with_history") return await insertRowItem(database, args) as T;
-  if (name === "update_estimate_row_item_with_history") return await patchRowItem(database, args, "row_updated", readJsonRecord(args.row_patch)) as T;
-  if (name === "replace_estimate_row_item_with_history") return await patchRowItem(database, args, "row_replaced", readJsonRecord(args.replacement_payload)) as T;
+  if (name === "update_estimate_row_item_with_history") return await patchRowItem(database, args, "row_updated", readJsonRecord(args.row_patch), currentUser!) as T;
+  if (name === "replace_estimate_row_item_with_history") return await patchRowItem(database, args, "row_replaced", readJsonRecord(args.replacement_payload), currentUser!) as T;
   if (name === "unlink_estimate_row_item_from_library_with_history") {
     return await patchRowItem(database, args, "row_unlinked", {
       sourceLibraryItemId: null,
       linkState: "detached",
       sourceSnapshot: null,
-    }) as T;
+    }, currentUser!) as T;
   }
   if (name === "delete_estimate_row_item_with_history") return await deleteRowItem(database, args) as T;
   if (name === "delete_estimate_row_items_bulk_with_history") return await deleteRowsBulk(database, args) as T;
@@ -3012,12 +3067,12 @@ async function callEstimateAction<T>(
       ...args,
       target_row_id: args.source_row_id,
       expected_row_revision: args.expected_source_row_revision,
-    }, "row_component_moved", readJsonRecord(args.source_replacement_payload));
+    }, "row_component_moved", readJsonRecord(args.source_replacement_payload), currentUser!);
     const target = await patchRowItem(database, {
       ...args,
       target_row_id: args.target_row_id,
       expected_row_revision: args.expected_target_row_revision,
-    }, "row_component_moved", readJsonRecord(args.target_replacement_payload));
+    }, "row_component_moved", readJsonRecord(args.target_replacement_payload), currentUser!);
     return { sourceRow: source.row, targetRow: target.row, payload: { sourceRow: source.row, targetRow: target.row } } as T;
   }
   if (name === "insert_estimate_template_into_estimate_with_history") return await copyTemplateNodes(database, args) as T;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useReducer, useRef, useState, type CSSProperties, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, DotsThreeVertical, ImageSquare, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, ImageSquare, PencilSimple, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -280,7 +280,15 @@ function EstimateMaterialCardSyncSkeleton() {
 }
 
 function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVariantOption[] {
-  const options = (item.priceOptions ?? []).filter((option) => option.isActive);
+  const options = (item.priceOptions ?? [])
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => option.isActive)
+    .sort((left, right) => {
+      const leftOrder = typeof left.option.variantSortOrder === "number" ? left.option.variantSortOrder : left.index + 1;
+      const rightOrder = typeof right.option.variantSortOrder === "number" ? right.option.variantSortOrder : right.index + 1;
+      return leftOrder - rightOrder || left.index - right.index;
+    })
+    .map(({ option }) => option);
   if (options.length > 0) return options;
   return [{
     id: item.priceOptionId ?? "current-variant",
@@ -1247,7 +1255,7 @@ export function EstimateMaterialCell({
                 onOpenComponentEditor(event.currentTarget);
               }}
             >
-              <DotsThreeVertical size={11} weight="regular" aria-hidden="true" />
+              <PencilSimple size={11} weight="regular" aria-hidden="true" />
             </Button>
           </ActionTooltip>
         ) : null}

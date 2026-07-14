@@ -224,6 +224,9 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   sourceSnapshot?: Json | null;
   metadata?: EstimateRowItem["metadata"];
   priceOptions?: EstimateRowItem["priceOptions"];
+  sourceLibraryItemId?: string | null;
+  linkState?: EstimateRowItem["linkState"];
+  expectedComponentImpactFingerprint?: string;
   mutationId?: string;
   expectedRowRevision?: number;
   rollback?: () => void;
@@ -306,6 +309,11 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
     } : {}),
     ...(input.metadata !== undefined ? { metadata: input.metadata as EstimateRowItem["metadata"] } : {}),
     ...(input.priceOptions !== undefined ? { priceOptions: input.priceOptions } : {}),
+    ...(input.sourceLibraryItemId !== undefined ? {
+      sourceLibraryItemId: input.sourceLibraryItemId,
+      source: input.sourceLibraryItemId ? "library" : "project",
+    } : {}),
+    ...(input.linkState !== undefined ? { linkState: input.linkState } : {}),
   };
 }
 
@@ -345,7 +353,16 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
     } : {}),
     ...(input.metadata !== undefined ? { metadata: result.metadata as EstimateRowItem["metadata"] } : {}),
     ...(input.priceOptions !== undefined ? { priceOptions: input.priceOptions } : {}),
+    ...(input.sourceLibraryItemId !== undefined ? {
+      sourceLibraryItemId: result.sourceLibraryItemId,
+      source: result.sourceLibraryItemId ? "library" : "project",
+    } : {}),
+    ...(input.linkState !== undefined ? { linkState: result.linkState } : {}),
   };
+}
+
+function isLocalizingComponentInput(input: UpdateEstimateRowInput) {
+  return input.sourceLibraryItemId === null && input.linkState === "unlinked";
 }
 
 function toDetachedRowPatch(result: UpdateEstimateRowItemResult): EstimateRowItemPatch {
@@ -1208,7 +1225,8 @@ export function useEstimateRowMutations(
       const cachedTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
       const optimisticPatch = toOptimisticRowPatch(input);
       const cachedTreeIndex = cachedTree ? createEstimateTreeIndex(cachedTree) : undefined;
-      const componentSync = hasEstimateRowPatchFields(pickSharedComponentPatch(optimisticPatch));
+      const localizingComponent = isLocalizingComponentInput(input);
+      const componentSync = !localizingComponent && hasEstimateRowPatchFields(pickSharedComponentPatch(optimisticPatch));
       const affectedRowIds = componentSync && cachedTreeIndex
         ? getEstimateComponentInstanceRowIds(cachedTreeIndex, input.rowId)
         : [input.rowId];
@@ -1222,14 +1240,19 @@ export function useEstimateRowMutations(
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
       const previousTreeIndex = previousTree ? createEstimateTreeIndex(previousTree) : undefined;
-      const previousPatches = previousTree
+      const collectedPreviousPatches = previousTree
         ? collectComponentRollbackPatches(previousTree, input.rowId, optimisticPatch, previousTreeIndex)
         : undefined;
+      const previousPatches = localizingComponent && collectedPreviousPatches?.[input.rowId]
+        ? { [input.rowId]: collectedPreviousPatches[input.rowId] }
+        : collectedPreviousPatches;
       const previousPatch = previousPatches?.[input.rowId];
       if (previousTree) {
         queryClient.setQueryData<EstimateTreeNode[]>(
           queryKey,
-          patchComponentInstanceRowsInTree(previousTree, input.rowId, optimisticPatch, previousTreeIndex),
+          localizingComponent
+            ? patchEstimateRowItemInTree(previousTree, input.rowId, optimisticPatch)
+            : patchComponentInstanceRowsInTree(previousTree, input.rowId, optimisticPatch, previousTreeIndex),
         );
       }
       patchProjectComponentProjectionCaches(input.rowId, optimisticPatch, input.projectId);
@@ -1242,7 +1265,11 @@ export function useEstimateRowMutations(
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       const serverPatch = toServerRowPatch(result, input);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-        currentTree ? patchComponentInstanceRowsInTree(currentTree, result.rowId, serverPatch) : currentTree,
+        currentTree
+          ? isLocalizingComponentInput(input)
+            ? patchEstimateRowItemInTree(currentTree, result.rowId, serverPatch)
+            : patchComponentInstanceRowsInTree(currentTree, result.rowId, serverPatch)
+          : currentTree,
       );
       patchProjectComponentProjectionCaches(result.rowId, serverPatch, input.projectId);
       invalidateProjectComponentProjectionCaches("update_row_success", context?.operation ?? "update_row", input.projectId);

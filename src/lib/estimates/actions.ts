@@ -207,6 +207,9 @@ type UpdateEstimateRowItemInput = {
   miscCost?: number;
   sourceSnapshot?: Json | null;
   metadata?: Json;
+  sourceLibraryItemId?: string | null;
+  linkState?: Tables<"estimate_row_items">["link_state"];
+  expectedComponentImpactFingerprint?: string;
   mutationId?: string;
   expectedRowRevision?: number;
 };
@@ -271,6 +274,7 @@ export type UpdateEstimateRowItemResult = {
   adjustmentPercentage: number;
   adjustmentValue: number;
   miscCost: number;
+  sourceLibraryItemId: string | null;
   sourceSnapshot: Json | null;
   metadata: Json;
   linkState: Tables<"estimate_row_items">["link_state"];
@@ -621,6 +625,7 @@ type EstimateHistoryRowRpcResult = {
     adjustmentPercentage?: unknown;
     adjustmentValue?: unknown;
     miscCost?: unknown;
+    sourceLibraryItemId?: unknown;
     sourceSnapshot?: unknown;
     metadata?: unknown;
     linkState?: unknown;
@@ -663,6 +668,7 @@ function readHistoryRowResult(value: unknown) {
     adjustmentPercentage: readNumber(row.adjustmentPercentage),
     adjustmentValue: readNumber(row.adjustmentValue),
     miscCost: readNumber(row.miscCost),
+    sourceLibraryItemId: typeof row.sourceLibraryItemId === "string" ? row.sourceLibraryItemId : null,
     sourceSnapshot: readJsonValue(row.sourceSnapshot, null) as Json | null,
     metadata: readJsonValue(row.metadata, {}),
     linkState: row.linkState as Tables<"estimate_row_items">["link_state"],
@@ -1376,6 +1382,7 @@ function localizeProjectComponentForTargetProject(
     return libraryItem;
   }
 
+  const componentId = randomUUID();
   const existingMetadata = readEstimateRowMetadata(libraryItem.metadata);
   const expressComponent = readExpressComponentMetadata(existingMetadata);
   const nextMetadata = withProjectComponentProjectionMetadata({
@@ -1384,12 +1391,12 @@ function localizeProjectComponentForTargetProject(
       expressComponent: {
         ...expressComponent,
         id: input.persistedRowId,
-        componentId: input.persistedRowId,
+        componentId,
       },
     } : {}),
   }, {
     ...projection,
-    componentId: input.persistedRowId,
+    componentId,
     projectId: input.targetProjectId,
     projectName: input.targetProjectName,
     estimateId: input.targetEstimateId,
@@ -1411,7 +1418,7 @@ function localizeProjectComponentForTargetProject(
     metadata: nextMetadata,
     sourceSnapshot: {
       ...sourceSnapshot,
-      sourceComponentId: input.persistedRowId,
+      sourceComponentId: componentId,
       sourceEstimateRowId: input.persistedRowId,
       sourceProjectId: input.targetProjectId,
       sourceType: "project_component",
@@ -3503,7 +3510,7 @@ export async function updateEstimateSheetAdjustment({
   return readEstimateSheetAdjustmentRpcResult(adjustmentResult);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
@@ -3557,7 +3564,9 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     ...(miscCost !== undefined ? { miscCost } : {}),
     ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
     ...(metadata !== undefined ? { metadata } : {}),
-    ...(row.source_library_item_id ? { linkState: "linked-overridden" } : {}),
+    ...(sourceLibraryItemId !== undefined ? { sourceLibraryItemId } : {}),
+    ...(linkState !== undefined ? { linkState } : {}),
+    ...(row.source_library_item_id && linkState === undefined ? { linkState: "linked-overridden" } : {}),
   };
 
   const { data, error } = await dataStore.call("update_estimate_row_item_with_history", {
@@ -3566,6 +3575,9 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     target_row_id: row.id,
     expected_row_revision: expectedRowRevision ?? row.row_revision,
     row_patch: rowPatch,
+    ...(expectedComponentImpactFingerprint !== undefined
+      ? { expected_component_impact_fingerprint: expectedComponentImpactFingerprint }
+      : {}),
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
