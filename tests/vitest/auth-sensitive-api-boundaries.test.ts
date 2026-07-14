@@ -269,22 +269,30 @@ class FakeD1Database {
     }
 
     if (
-      sql.includes("FROM cost_library_item_variant_attachments") &&
+      sql.includes("FROM component_variant_attachments") &&
       sql.includes("WHERE id = ?")
     ) {
       if (this.attachmentLookupError) throw this.attachmentLookupError;
       if (!this.attachmentLookupRow) return null;
       if (this.attachmentLookupRow.id !== values[0]) return null;
       if (this.attachmentLookupRow.workspace_id !== values[1]) return null;
-      return this.attachmentLookupRow;
+      return {
+        owner_scope: "library",
+        item_id: "library-item-1",
+        project_id: null,
+        project_component_id: null,
+        upload_asset_id: this.uploadAssetLookupRow?.id ?? null,
+        ...this.attachmentLookupRow,
+      };
     }
 
     if (sql.includes("FROM upload_assets")) {
       if (this.uploadAssetLookupError) throw this.uploadAssetLookupError;
       if (!this.uploadAssetLookupRow) return null;
-      if (this.uploadAssetLookupRow.workspace_id !== values[0]) return null;
-      if (this.uploadAssetLookupRow.storage_bucket !== values[1]) return null;
-      if (this.uploadAssetLookupRow.storage_path !== values[2]) return null;
+      if (this.uploadAssetLookupRow.id !== values[0]) return null;
+      if (this.uploadAssetLookupRow.workspace_id !== values[1]) return null;
+      if (this.uploadAssetLookupRow.storage_bucket !== values[2]) return null;
+      if (this.uploadAssetLookupRow.storage_path !== values[3]) return null;
       return this.uploadAssetLookupRow;
     }
 
@@ -292,8 +300,21 @@ class FakeD1Database {
   }
 
   all(sql: string, _values: unknown[]) {
-    if (sql.includes("FROM cost_library_item_variant_attachments")) {
+    if (sql.includes("FROM component_variant_attachments")) {
       return { results: this.attachmentRows, success: true };
+    }
+
+    if (sql.includes("FROM upload_assets")) {
+      const storagePaths = _values.slice(3).filter((value): value is string => (
+        typeof value === "string" && value.startsWith(`${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/`)
+      ));
+      return {
+        results: storagePaths.map((storagePath, index) => ({
+          id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+          storage_path: storagePath,
+        })),
+        success: true,
+      };
     }
 
     return { results: [], success: true };
@@ -748,7 +769,7 @@ describe("sensitive API auth boundaries", () => {
     expect(request.formData).not.toHaveBeenCalled();
   });
 
-  it("rejects component attachment uploads before parsing bodies when the user cannot manage the library", async () => {
+  it("rejects component attachment uploads after parsing the target when the user cannot manage the library", async () => {
     const storage = mockStorageClient();
     const server = mockServerRpc({ canManageLibrary: false });
     const request = createUnparsedFormRequest();
@@ -768,7 +789,7 @@ describe("sensitive API auth boundaries", () => {
       ),
     ).toHaveLength(1);
     expect(server.rpc).not.toHaveBeenCalled();
-    expect(request.formData).not.toHaveBeenCalled();
+    expect(request.formData).toHaveBeenCalledOnce();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
   });
@@ -799,10 +820,9 @@ describe("sensitive API auth boundaries", () => {
         error: "Could not store attachment.",
       });
       expect(storage.upload).toHaveBeenCalledOnce();
-      expect(consoleError).toHaveBeenCalledWith(
-        "Component attachment upload failed",
-        expect.objectContaining({ message: "storage bucket internals leaked" }),
-      );
+      expect(consoleError).toHaveBeenCalledOnce();
+      expect(String(consoleError.mock.calls[0]?.[0])).toContain("component_attachment_upload_error");
+      expect(String(consoleError.mock.calls[0]?.[0])).not.toContain("storage bucket internals leaked");
     } finally {
       consoleError.mockRestore();
     }
@@ -1729,7 +1749,7 @@ describe("sensitive API auth boundaries", () => {
     expect(
       d1PreparedStatements(
         storage.d1,
-        /FROM cost_library_item_variant_attachments/,
+        /FROM component_variant_attachments/,
       ),
     ).toHaveLength(0);
     expect(storage.remove).not.toHaveBeenCalled();
@@ -1755,12 +1775,12 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({
       error:
-        "Reviewed Library attachments cannot be removed from draft cleanup.",
+        "Persisted component attachments cannot be removed from draft cleanup.",
     });
     expect(
       d1PreparedStatements(
         storage.d1,
-        /FROM cost_library_item_variant_attachments/,
+        /FROM component_variant_attachments/,
       ),
     ).toHaveLength(1);
     expect(storage.remove).not.toHaveBeenCalled();
@@ -1811,7 +1831,7 @@ describe("sensitive API auth boundaries", () => {
     expect(
       d1PreparedStatements(
         storage.d1,
-        /FROM cost_library_item_variant_attachments/,
+        /FROM component_variant_attachments/,
       ),
     ).toHaveLength(0);
     expect(storage.download).not.toHaveBeenCalled();
@@ -1862,7 +1882,7 @@ describe("sensitive API auth boundaries", () => {
     expect(
       d1PreparedStatements(
         storage.d1,
-        /FROM cost_library_item_variant_attachments/,
+        /FROM component_variant_attachments/,
       ),
     ).toHaveLength(1);
     expect(d1PreparedStatements(storage.d1, /FROM upload_assets/)).toHaveLength(
@@ -1875,11 +1895,11 @@ describe("sensitive API auth boundaries", () => {
   });
 
   it.each([
-    ["uploaded draft", "uploaded", false],
     ["approved but not current", "approved", false],
     ["rejected", "rejected", false],
+    ["superseded", "superseded", false],
   ])(
-    "refuses component attachment downloads until attachment review is approved/current for %s",
+    "refuses component attachment downloads for unreadable review state %s",
     async (_caseName, reviewStatus, isCurrentApproved) => {
       const attachmentId = "11111111-1111-4111-8111-111111111111";
       const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
@@ -1920,12 +1940,12 @@ describe("sensitive API auth boundaries", () => {
         "private, no-cache, no-store, max-age=0, must-revalidate",
       );
       await expect(response.json()).resolves.toEqual({
-        error: "Attachment is not available until approval is complete.",
+        error: "Attachment is not available in its current review state.",
       });
       expect(
         d1PreparedStatements(
           storage.d1,
-          /FROM cost_library_item_variant_attachments/,
+          /FROM component_variant_attachments/,
         ),
       ).toHaveLength(1);
       expect(
@@ -1989,6 +2009,17 @@ describe("sensitive API auth boundaries", () => {
         workspace_id: DEFAULT_WORKSPACE_ID,
         scan_status: "clean",
         status: "reserved",
+        surface: "component-attachment",
+        storage_bucket: "component-attachments",
+        storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`,
+      },
+    ],
+    [
+      "removed",
+      {
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        scan_status: "clean",
+        status: "removed",
         surface: "component-attachment",
         storage_bucket: "component-attachments",
         storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`,
@@ -2151,7 +2182,7 @@ describe("sensitive API auth boundaries", () => {
     }
   });
 
-  it("audits and serves component attachment downloads only after scan-clean finalization", async () => {
+  it("audits and serves newly saved uploaded attachments after scan-clean finalization", async () => {
     const attachmentId = "11111111-1111-4111-8111-111111111111";
     const assetId = "22222222-2222-4222-8222-222222222222";
     const sessionId = "33333333-3333-4333-8333-333333333333";
@@ -2166,8 +2197,8 @@ describe("sensitive API auth boundaries", () => {
         file_name: "spec.pdf",
         content_type: "application/pdf",
         size_bytes: 8,
-        review_status: "approved",
-        is_current_approved: true,
+        review_status: "uploaded",
+        is_current_approved: false,
       },
       uploadAssetLookupRow: {
         id: assetId,

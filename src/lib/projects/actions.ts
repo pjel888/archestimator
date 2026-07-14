@@ -384,6 +384,23 @@ function createProjectStorageTargets(rows: ProjectD1Row[]) {
   return [...targets.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
 
+async function readProjectAttachmentStorageTargets(
+  database: D1DatabaseLike,
+  projectIds: string[],
+) {
+  if (projectIds.length === 0) return [];
+  return all<{ bucket: string; path: string }>(
+    database,
+    `
+      SELECT storage_bucket AS bucket, storage_path AS path
+      FROM component_variant_attachments
+      WHERE owner_scope = 'project'
+        AND project_id IN (${placeholders(projectIds)})
+    `,
+    projectIds,
+  );
+}
+
 async function readProjectsForDeletePreview(
   database: D1DatabaseLike,
   ids: string[],
@@ -489,7 +506,11 @@ async function previewBulkDeleteProjectsInD1(
       message:
         "This project has an active published shared link that will be revoked upon deletion.",
     }));
-  const storageTargets = createProjectStorageTargets(eligibleRows);
+  const storageTargets = [...new Map([
+    ...createProjectStorageTargets(eligibleRows),
+    ...await readProjectAttachmentStorageTargets(database, eligibleIds),
+  ].map((target) => [`${target.bucket}:${target.path}`, target])).values()]
+    .sort((left, right) => left.path.localeCompare(right.path));
   const estimateCountRow =
     eligibleIds.length > 0
       ? await first<{ count: number }>(
@@ -502,6 +523,9 @@ async function previewBulkDeleteProjectsInD1(
     requestedCount: sortedIds.length,
     eligibleCount: eligibleIds.length,
     blockedCount: blocked.length,
+    storageWorkspaceId: eligibleWorkspaceIds.length === 1
+      ? eligibleWorkspaceIds[0]
+      : null,
     warningsCount: activePublicationWarnings.length,
     estimateCount: Number(estimateCountRow?.count ?? 0),
     storageTargetCount: storageTargets.length,
@@ -721,6 +745,20 @@ async function executeBulkDeleteProjectsInD1(options: {
         now,
         now,
       ],
+    },
+    {
+      sql: `
+        UPDATE upload_assets
+        SET status = 'removed',
+            updated_at = ?
+        WHERE id IN (
+          SELECT upload_asset_id
+          FROM component_variant_attachments
+          WHERE owner_scope = 'project'
+            AND project_id IN (${eligibleSql})
+        )
+      `,
+      values: [now, ...eligibleIds],
     },
     {
       sql: `UPDATE upload_assets SET project_id = NULL, updated_at = ? WHERE project_id IN (${eligibleSql})`,
@@ -989,10 +1027,13 @@ export async function executeBulkDeleteProjects(
 
   if (result.ok) {
     const storageProvider = await createRuntimeUploadStorageProvider();
+    const storageWorkspaceId = typeof result.summary.storageWorkspaceId === "string"
+      ? result.summary.storageWorkspaceId
+      : undefined;
     const storageCleanup = await cleanupStorageTargets(
       storageProvider,
       result.storageTargets,
-      { kind: "project" },
+      { kind: "project", workspaceId: storageWorkspaceId },
     );
     result.storageCleanup = storageCleanup;
     if (result.auditEventId) {

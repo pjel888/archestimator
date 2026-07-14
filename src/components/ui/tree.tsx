@@ -216,6 +216,11 @@ export type TreeRootDropZonesOption =
       edges?: readonly TreeRootDropEdge[];
       className?: (edge: TreeRootDropEdge, active: boolean) => string;
       render?: (edge: TreeRootDropEdge, active: boolean) => ReactNode;
+      resolveTarget?: (
+        edge: TreeRootDropEdge,
+        draggedId: string,
+        nodes: readonly TreeNode[],
+      ) => { id: string; position: TreeDropPosition } | null;
     };
 
 export interface TreeExternalDropOptions {
@@ -323,6 +328,8 @@ export interface TreeProps {
    * existing consumers keep folder-only containment.
    */
   allowInsideOnLeaves?: boolean;
+  /** Retry a rejected before/after band as containment on folder rows. */
+  fallbackToInsideOnRejectedBand?: boolean;
   /** Extra MIME type stamped on drag data, for cross-surface drop targeting. */
   dragDataType?: string;
   /**
@@ -334,8 +341,8 @@ export interface TreeProps {
   externalDrop?: TreeExternalDropOptions;
   /**
    * Drop zones above/below the rows for moving nodes before the first or
-   * after the last root item. Maps to `onDrop(draggedId, firstOrLastRootId,
-   * "before" | "after")`. Only rendered while `draggable`.
+   * after the last compatible root item. Use `resolveTarget` when node types
+   * need different root anchors. Only rendered while `draggable`.
    */
   rootDropZones?: TreeRootDropZonesOption;
   className?: string;
@@ -763,6 +770,7 @@ export function Tree({
       selectable = false,
       expandable = true,
       allowInsideOnLeaves = false,
+      fallbackToInsideOnRejectedBand = false,
       dragDataType,
       externalDrop,
       rootDropZones,
@@ -1063,6 +1071,33 @@ export function Tree({
       [allowInsideOnLeaves]
     );
 
+    const resolveAllowedDropIntent = useCallback(
+      (flat: FlatNode, event: DragEvent<HTMLElement>, draggedId: string) => {
+        const intent = resolveDropIntent(flat, event);
+        const dropDisabledReason = getDropDisabledReason(draggedId, intent.id, intent.position);
+        if (!dropDisabledReason) return { intent, dropDisabledReason: null };
+
+        if (
+          fallbackToInsideOnRejectedBand
+          && intent.position !== "inside"
+          && (flat.isFolder || allowInsideOnLeaves)
+        ) {
+          const insideIntent = { id: flat.id, position: "inside" as const };
+          const insideDropDisabledReason = getDropDisabledReason(
+            draggedId,
+            insideIntent.id,
+            insideIntent.position,
+          );
+          if (!insideDropDisabledReason) {
+            return { intent: insideIntent, dropDisabledReason: null };
+          }
+        }
+
+        return { intent, dropDisabledReason };
+      },
+      [allowInsideOnLeaves, fallbackToInsideOnRejectedBand, getDropDisabledReason, resolveDropIntent],
+    );
+
     const isDropIntentForRow = useCallback(
       (intent: { id: string; position: TreeDropPosition } | null, flat: FlatNode) => {
         if (!intent) return false;
@@ -1102,8 +1137,7 @@ export function Tree({
         if (!draggable || !onDrop) return;
         const draggedId = readDraggedId(event);
         if (!draggedId) return;
-        const intent = resolveDropIntent(flat, event);
-        const dropDisabledReason = getDropDisabledReason(draggedId, intent.id, intent.position);
+        const { intent, dropDisabledReason } = resolveAllowedDropIntent(flat, event, draggedId);
         if (dropDisabledReason) {
           dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
           dispatchTreeState({
@@ -1123,7 +1157,7 @@ export function Tree({
         dispatchTreeState({ type: "setInvalidDropTarget", value: null });
         dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
       },
-      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, getDropDisabledReason, isDropIntentForRow, allowInsideOnLeaves, invalidDropFeedback]
+      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveAllowedDropIntent, resolveExternalDropIntent, isDropIntentForRow, allowInsideOnLeaves, invalidDropFeedback]
     );
 
     const handleDragLeave = useCallback(
@@ -1159,7 +1193,9 @@ export function Tree({
         const draggedId = readDraggedId(event);
         const intent = isDropIntentForRow(dropTarget, flat) && dropTarget
           ? dropTarget
-          : resolveDropIntent(flat, event);
+          : draggedId
+            ? resolveAllowedDropIntent(flat, event, draggedId).intent
+            : resolveDropIntent(flat, event);
         clearDragState();
         if (!draggedId || !isDropAllowed(draggedId, intent.id, intent.position) || !onDrop) return;
         onDrop(draggedId, intent.id, intent.position);
@@ -1169,7 +1205,7 @@ export function Tree({
           handleToggle(flat.id);
         }
       },
-      [readDraggedId, readExternalDragTypes, externalDrop, resolveExternalDropIntent, dropTarget, isDropIntentForRow, resolveDropIntent, clearDragState, isDropAllowed, onDrop, handleToggle]
+      [readDraggedId, readExternalDragTypes, externalDrop, resolveExternalDropIntent, dropTarget, isDropIntentForRow, resolveAllowedDropIntent, resolveDropIntent, clearDragState, isDropAllowed, onDrop, handleToggle]
     );
 
     const handleDragEnd = useCallback(
@@ -1191,7 +1227,10 @@ export function Tree({
     );
 
     const resolveRootEdgeTarget = useCallback(
-      (edge: TreeRootDropEdge): { id: string; position: TreeDropPosition } | null => {
+      (edge: TreeRootDropEdge, draggedId: string): { id: string; position: TreeDropPosition } | null => {
+        if (typeof rootDropZones === "object" && rootDropZones.resolveTarget) {
+          return rootDropZones.resolveTarget(edge, draggedId, nodes);
+        }
         if (edge === "top") {
           const first = nodes[0];
           return first ? { id: first.id, position: "before" } : null;
@@ -1199,14 +1238,14 @@ export function Tree({
         const last = nodes[nodes.length - 1];
         return last ? { id: last.id, position: "after" } : null;
       },
-      [nodes]
+      [nodes, rootDropZones]
     );
 
     const handleRootEdgeDragOver = useCallback(
       (edge: TreeRootDropEdge, event: DragEvent<HTMLElement>) => {
         if (!onDrop) return;
         const draggedId = readDraggedId(event);
-        const target = resolveRootEdgeTarget(edge);
+        const target = draggedId ? resolveRootEdgeTarget(edge, draggedId) : null;
         if (!draggedId || !target || !isDropAllowed(draggedId, target.id, target.position)) {
           dispatchTreeState({ type: "setActiveRootDropEdge", value: (current) => (current === edge ? null : current) });
           return;
@@ -1224,7 +1263,7 @@ export function Tree({
     const handleRootEdgeDrop = useCallback(
       (edge: TreeRootDropEdge, event: DragEvent<HTMLElement>) => {
         const draggedId = readDraggedId(event);
-        const target = resolveRootEdgeTarget(edge);
+        const target = draggedId ? resolveRootEdgeTarget(edge, draggedId) : null;
         clearDragState();
         if (!draggedId || !target || !isDropAllowed(draggedId, target.id, target.position) || !onDrop) return;
         event.preventDefault();

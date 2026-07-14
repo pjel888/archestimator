@@ -352,6 +352,33 @@ describe("ui tree", () => {
     expect(onDrop).toHaveBeenCalledWith("c", "a", "after");
   });
 
+  it("falls back to an inside drop when the pointer band is not allowed", () => {
+    const onDrop = vi.fn();
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        draggable
+        fallbackToInsideOnRejectedBand
+        canDrop={(_draggedId, targetId, position) => targetId === "a" && position === "inside"}
+        onDrop={onDrop}
+      />,
+    );
+
+    const dataTransfer = mockDataTransfer();
+    const alpha = row("a");
+    setRowRect(alpha, 0, 28);
+
+    dispatchDragEvent(row("c"), "dragstart", { dataTransfer });
+    dispatchDragEvent(alpha, "dragover", { dataTransfer, clientY: 2 });
+
+    expect(alpha).toHaveAttribute("data-tree-drop-state", "valid");
+    expect(alpha).toHaveAttribute("data-tree-drop-position", "inside");
+
+    dispatchDragEvent(alpha, "drop", { dataTransfer, clientY: 2 });
+    expect(onDrop).toHaveBeenCalledWith("c", "a", "inside");
+  });
+
   it("expands a collapsed folder after a drop inside it so the moved node stays visible", () => {
     function Harness() {
       const [nodes, setNodes] = useState(sampleNodes());

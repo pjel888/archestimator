@@ -114,6 +114,15 @@ class FakeD1Statement {
         success: true,
       };
     }
+    if (this.sql.includes("FROM component_variant_attachments")) {
+      const projectIds = new Set(this.values.map(String));
+      return {
+        results: this.database.attachmentTargets
+          .filter((row) => projectIds.has(row.project_id))
+          .map((row) => ({ bucket: row.bucket, path: row.path })) as T[],
+        success: true,
+      };
+    }
     return { results: [] as T[], success: true };
   }
 
@@ -149,6 +158,7 @@ class FakeD1Database {
     },
   ];
   estimates = [{ id: ESTIMATE_ID, project_id: PROJECT_ID }];
+  attachmentTargets: Array<{ project_id: string; bucket: string; path: string }> = [];
   publications = [
     {
       id: PUBLICATION_ID,
@@ -379,6 +389,34 @@ describe("project bulk deletion D1 actions", () => {
     expect(executed.deletedIds).toEqual([]);
     expect(database.batchStatements).toEqual([]);
     expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it("includes project component attachments in deletion cleanup and removes their assets atomically", async () => {
+    const database = new FakeD1Database();
+    const attachmentPath = `${WORKSPACE_ID}/${USER_ID}/cabinet-spec.pdf`;
+    database.attachmentTargets = [{
+      project_id: PROJECT_ID,
+      bucket: "component-attachments",
+      path: attachmentPath,
+    }];
+    const removeObjects = vi.fn(async () => undefined);
+    createRuntimeUploadStorageProvider.mockResolvedValue({ removeObjects });
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({ projectIds: [PROJECT_ID] });
+    const executed = await executeBulkDeleteProjects({
+      projectIds: [PROJECT_ID],
+      expectedPreviewHash: preview.previewHash ?? "",
+    });
+
+    expect(preview.storageTargets).toContainEqual({ bucket: "component-attachments", path: attachmentPath });
+    expect(executed.ok).toBe(true);
+    expect(database.batchStatements.some((statement) => (
+      statement.sql.includes("UPDATE upload_assets")
+      && statement.sql.includes("status = 'removed'")
+      && statement.sql.includes("component_variant_attachments")
+    ))).toBe(true);
+    expect(removeObjects).toHaveBeenCalledWith("component-attachments", [attachmentPath]);
   });
 
   it("executes project deletion through a D1 batch and rejects stale previews", async () => {

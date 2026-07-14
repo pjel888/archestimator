@@ -78,6 +78,8 @@ type ScheduledControllerLike = {
   cron: string;
 };
 
+const CLIENT_PORTAL_NOTIFICATION_DISPATCH_CRON = "*/5 * * * *";
+
 type OpenNextWorker = {
   fetch(request: Request, env: CloudflareWorkerEnv, ctx: ExecutionContextLike): Promise<Response> | Response;
 };
@@ -197,6 +199,33 @@ export default {
   scheduled(controller: ScheduledControllerLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
     const startedAt = new Date().toISOString();
     const cronName = controller.cron;
+
+    if (cronName === CLIENT_PORTAL_NOTIFICATION_DISPATCH_CRON) {
+      ctx.waitUntil(
+        enqueuePendingClientPortalNotifications(env).then((summary) => {
+          console.log("Client Portal notification outbox enqueue completed", JSON.stringify(summary));
+          return recordCronRunEvent({
+            cronName: `client-portal-notifications:${cronName}`,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            status: "ok",
+            summaryJson: JSON.stringify(summary),
+            errorClass: null,
+          });
+        }).catch((error) => {
+          console.error("Client Portal notification outbox enqueue failed", error);
+          return recordCronRunEvent({
+            cronName: `client-portal-notifications:${cronName}`,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            status: "error",
+            summaryJson: null,
+            errorClass: error instanceof Error ? error.name : "unknown",
+          });
+        }),
+      );
+      return;
+    }
 
     ctx.waitUntil(
       runCloudflareScheduledUploadJobs({

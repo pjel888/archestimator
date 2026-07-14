@@ -24,7 +24,7 @@ describe("project dashboard center-column UI governance", () => {
     expect(estimateCenterColumnBoundaryVars).toContain('"--estimate-library-panel-width": "560px"');
     expect(estimateCenterColumnBoundaryVars).toContain('"--project-mini-sidebar-width": "104px"');
     expect(workshopPageShell).toContain("getSidePanelWidthCssVariables");
-    expect(sidePanelWidths).toContain("estimate_component_library_width_v2");
+    expect(sidePanelWidths).toContain("estimate_component_library_width");
     expect(sidePanelWidths).toContain("defaultWidth: 560");
     expect(sidePanelWidths).toContain("component_library_tree_width");
     expect(resizableSidePanel).toContain("document.cookie");
