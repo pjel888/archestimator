@@ -260,6 +260,8 @@ error_code TEXT
 
 Store compact aggregate data, not raw provider logs.
 
+Do not create custom subscription/payment/invoice tables merely to make the dashboard look ready. Until a billing system is selected, define read DTOs and explicit unavailable states. After selection, the billing domain/provider remains authoritative; Admin may cache only bounded operational summaries and mapping/reconciliation state required for founder workflows.
+
 ## 6. Tables not recommended initially
 
 Do not add:
@@ -495,6 +497,23 @@ Requirements:
 - retention;
 - no raw secrets;
 - no Home blocking fetch.
+
+Every provider adapter returns both data and integration health. Pull/webhook success, local freshness, and domain reconciliation are separate signals. Failed or delayed adapters must not replace the last known value with zero.
+
+```ts
+type AdminProviderRead<T> = {
+  data: T | null;
+  status: "not_configured" | "ok" | "partial" | "stale" | "unavailable";
+  sourceAsOf: string | null;
+  collectedAt: string | null;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  lagSeconds: number | null;
+  warnings: AdminWarning[];
+};
+```
+
+Financial adapters additionally expose definition version, source currency, account/workspace mapping status, webhook delivery state, and reconciliation cutoff. Traffic adapters expose only aggregate or consent-approved dimensions and must not persist raw IP, full user agent, session token, or unrestricted query strings.
 
 ## 15. Home query performance
 

@@ -88,6 +88,8 @@ Product
   Estimates
   Publications / Client Portals
   Product Analytics
+  Acquisition & Traffic
+  Business & Financials
   Feature Delivery
 
 Operations
@@ -149,6 +151,7 @@ The completed consolidation uses these precedence rules:
 2. This pack governs founder-facing product hierarchy, action prioritization, cross-domain workflows, daily operating cadence, search, entity navigation, release management, customer success, product discovery, data quality, cost, capacity, and implementation priority.
 3. Resolve conflicts in favor of the **smallest founder-useful release**, not the broadest theoretical control plane.
 4. Advanced recurring campaigns, multi-operator assignment systems, and optional provider integrations cannot block the Founder Homebase MVP.
+5. Financial and traffic readiness is core, but unavailable provider data remains explicitly unavailable; Admin never fabricates billing, revenue, attribution, or provider health.
 
 The archived predecessor is historical provenance, not a second execution authority. If wording conflicts, `13-IMPLEMENTATION-ROADMAP.md`, `17-CONSOLIDATION-MAP-AND-TRACEABILITY.md`, and `plan-pack.json` govern.
 
@@ -167,6 +170,10 @@ The first coherent release contains:
 - production health and incident summary;
 - release-readiness summary;
 - data-quality findings;
+- provider integration health and reconciliation exceptions;
+- aggregate traffic/acquisition movement with explicit capability/privacy limits;
+- financial-readiness cards that remain unavailable until a real source is connected;
+- privacy requests with durable owner/status/due date;
 - recent/pinned entities;
 - direct links to existing upload, scan, feedback, allowlist, Cloudflare, and GitHub operations;
 - simple, audited notes and follow-ups.
@@ -191,6 +198,7 @@ The Founder Homebase succeeds when Philip can begin the day in `/admin` and, wit
 - take or launch the next safe action;
 - know whether production and the next release are healthy;
 - see the product funnel and customer movement;
+- understand traffic/acquisition movement and the current financial-data boundary;
 - record a follow-up or decision;
 - leave with an empty or intentionally snoozed action inbox.
 

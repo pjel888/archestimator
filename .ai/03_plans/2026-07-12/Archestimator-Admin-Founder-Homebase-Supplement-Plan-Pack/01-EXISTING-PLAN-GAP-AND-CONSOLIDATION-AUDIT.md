@@ -286,7 +286,7 @@ Defer from the first consolidated release:
 - multi-admin assignment/workload balancing;
 - provider analytics APIs without demonstrated need;
 - AI autonomous actions;
-- custom billing/revenue operations;
+- custom payment, accounting, tax, or revenue-recognition operations beyond the provider read-adapter boundary;
 - broad data warehouse.
 
 ## 8. Consolidated priority reset

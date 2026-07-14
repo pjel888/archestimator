@@ -49,6 +49,8 @@ The Admin should reduce noise, not centralize every raw log.
 - analytics aggregation;
 - backups/recovery operations.
 
+The current `wrangler.jsonc` already binds DLQs for upload jobs and client-portal notifications. Admin must read backlog/age/delivery evidence when an authorized provider source exists; it must not plan a second queue system or describe configured DLQs as observed healthy.
+
 ### Data Quality
 
 - open findings;
@@ -543,6 +545,26 @@ Cleanup must follow retention/legal policy.
 - last success/error;
 - action items on failure.
 
+Every activated provider adapter also exposes one normalized integration-health record:
+
+```ts
+type AdminIntegrationHealth = {
+  provider: string;
+  capability: "traffic" | "billing" | "logs" | "metrics" | "deployments" | "email" | "queue";
+  mode: "link_only" | "pull" | "webhook" | "hybrid";
+  status: "not_configured" | "healthy" | "delayed" | "degraded" | "failed" | "disabled";
+  sourceAsOf: string | null;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  lagSeconds: number | null;
+  pendingCount: number | null;
+  failedCount: number | null;
+  reconcileAction: string | null;
+};
+```
+
+Webhook receipt, provider acceptance, local materialization, and user-visible outcome are distinct states. A provider failure creates an Action Inbox item only when the founder has a concrete next action.
+
 ### P2
 
 - deeper query and controlled operations.
@@ -570,11 +592,14 @@ MVP:
 
 - actionable operational summary;
 - incident create/update;
-- jobs/cron aggregation;
+- jobs/cron/DLQ aggregation;
+- Workers invocation-error and log-freshness summary with exact Cloudflare deep links;
+- provider integration-health states for every activated adapter;
 - existing upload/scan links;
 - deterministic data-quality checks;
 - dry-run repairs for a small allowlist;
 - backup/restore freshness;
+- privacy-request queue and overdue-state visibility;
 - local cost/capacity with provider links.
 
 Later:

@@ -1,6 +1,6 @@
 # 16 — Industry Research and Benchmarks
 
-**Research date:** 2026-07-12  
+**Research date:** 2026-07-14
 **Method:** official product documentation and primary engineering/operations guidance. Patterns are adapted to Archestimator’s one-founder context rather than copied wholesale.
 
 ## 1. Executive synthesis
@@ -17,6 +17,10 @@ World-class operational products converge on a small set of patterns:
 8. **Monitoring should be simple, actionable, high-signal, and tied to user-visible symptoms.**
 9. **A good PRD defines objectives, success metrics, assumptions, user stories, scope, and open questions.**
 10. **Provider dashboards remain specialized systems; an internal homebase summarizes and links to them.**
+11. **Financial dashboards require explicit metric definitions and drill-down to source changes; cash, recurring revenue, and recognized revenue are not interchangeable.**
+12. **Webhook delivery and local reconciliation are separate operational states.**
+13. **Traffic, runtime metrics, invocation errors, HTTP outcomes, and application logs answer different questions and must not be collapsed into one “healthy” badge.**
+14. **Security/administrative logs must capture attributable actions while excluding secrets, tokens, payment data, and unnecessary personal data.**
 
 ## 2. Stripe Dashboard
 
@@ -33,7 +37,9 @@ Stripe’s Dashboard:
 - makes search URLs bookmarkable;
 - provides customer detail linked to payments/subscriptions/invoices/quotes;
 - separates business operations from Workbench integration health;
-- Workbench exposes API/webhook usage, errors, logs, and related resources.
+- Workbench exposes API/webhook usage, errors, logs, event-delivery attempts, retries, and related resources;
+- Billing analytics defines MRR, active subscribers, churn, trial conversion, and customer-level recurring-revenue changes;
+- financial reports separate payments, refunds, disputes, gross/net amounts, and revenue-recognition concerns.
 
 ### Archestimator adaptation
 
@@ -69,10 +75,17 @@ Build connected Entity 360 pages.
 
 Admin summarizes integration/operational health and links to Cloudflare/GitHub/provider detail. It does not copy raw logs.
 
+#### Future financial boundary
+
+Use Stripe as a benchmark, not a preselected dependency. Before a provider exists, define unavailable states, canonical account mapping, metric definitions, event-delivery health, and reconciliation. After selection, deep-link to the provider for payment mutation and detailed financial reports; Admin owns only founder summary and actionable exceptions.
+
 ### Sources
 
 - [Stripe Dashboard basics](https://docs.stripe.com/dashboard/basics)
 - [Stripe Dashboard search](https://docs.stripe.com/dashboard/search)
+- [Stripe Billing analytics](https://docs.stripe.com/billing/subscriptions/analytics)
+- [Stripe reporting](https://docs.stripe.com/stripe-reports)
+- [Stripe event destinations and delivery retries](https://docs.stripe.com/workbench/event-destinations)
 
 ## 3. Linear Triage and Inbox
 
@@ -261,13 +274,21 @@ Only urgent, actionable, user-impacting events interrupt. Lower priority finding
 
 Cloudflare Workers provides:
 
-- logs;
+- Workers Logs for invocation logs, custom logs, errors, and uncaught exceptions;
 - real-time logs;
 - Tail Workers/Logpush;
-- traces across Worker requests and bindings;
+- request metrics that distinguish invocation status from HTTP status;
 - built-in request/error/CPU/wall-time/duration metrics;
 - query builder;
 - OpenTelemetry export.
+
+Related Cloudflare sources provide:
+
+- Web Analytics landing path, referrer host, device/browser/country, and performance data without cross-customer user tracking;
+- no Web Analytics custom events or UTM query parameters at the current documented capability level;
+- D1 reads/writes, rows, bytes, query latency, storage, and 31-day analytics retention;
+- Queue backlog/retry/DLQ semantics, including deletion after retry exhaustion when no DLQ exists;
+- Analytics Engine for optional high-cardinality custom analytics, which is not currently bound in `wrangler.jsonc`.
 
 ### Archestimator adaptation
 
@@ -276,11 +297,23 @@ Cloudflare Workers provides:
 - link to exact provider investigation;
 - capture compact snapshots only when needed;
 - do not ingest all logs into D1;
-- use request/error/CPU/duration for cost/capacity and release health.
+- use request/error/CPU/duration for cost/capacity and release health;
+- show invocation status, HTTP outcome, log freshness/sampling, and deep links separately;
+- use aggregate Web Analytics for traffic/performance and first-party events for product conversion;
+- do not claim UTM/custom-event capability that Cloudflare Web Analytics does not provide;
+- treat configured DLQs and full-sampling logs as configuration evidence until backlog/delivery/readability is observed.
 
 ### Source
 
-- [Cloudflare Workers Observability](https://developers.cloudflare.com/workers/observability/)
+- [Cloudflare Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/)
+- [Cloudflare Workers metrics and analytics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/)
+- [Cloudflare Web Analytics dimensions](https://developers.cloudflare.com/web-analytics/data-metrics/dimensions/)
+- [Cloudflare Web Analytics data collection](https://developers.cloudflare.com/web-analytics/data-metrics/data-origin-and-collection/)
+- [Cloudflare Web Analytics FAQ](https://developers.cloudflare.com/web-analytics/faq/)
+- [Cloudflare D1 metrics and analytics](https://developers.cloudflare.com/d1/observability/metrics-analytics/)
+- [Cloudflare Queues dead-letter queues](https://developers.cloudflare.com/queues/configuration/dead-letter-queues/)
+- [Cloudflare Workers Analytics Engine](https://developers.cloudflare.com/analytics/analytics-engine/)
+- [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
 
 ## 9. Vercel Deployment UX as a release benchmark
 
@@ -384,7 +417,7 @@ The founder does not need a team rota product. The workflow still needs durable 
 
 ### Stripe
 
-Do not add financial/billing pages before a billing system exists.
+Do not build a billing/accounting system before a provider exists. Do define the Admin read contract, unavailable states, metric semantics, mapping, integration health, and reconciliation now so the future source can connect without redesigning the homebase.
 
 ### Linear
 

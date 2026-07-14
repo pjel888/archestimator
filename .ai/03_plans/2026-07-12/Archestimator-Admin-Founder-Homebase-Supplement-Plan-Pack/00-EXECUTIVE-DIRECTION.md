@@ -375,7 +375,9 @@ Every surface must justify itself by:
 - AI operator;
 - multi-operator workload management;
 - client/customer account inbox;
-- billing/revenue once a system exists.
+- provider-specific billing mutations, accounting, tax, and revenue recognition once a system exists.
+
+Financial-readiness contracts, truthful unavailable states, and a reserved business scorecard belong in P1 so a future provider can connect without redesigning the Admin homebase.
 
 ## 7. Non-negotiable outcomes
 

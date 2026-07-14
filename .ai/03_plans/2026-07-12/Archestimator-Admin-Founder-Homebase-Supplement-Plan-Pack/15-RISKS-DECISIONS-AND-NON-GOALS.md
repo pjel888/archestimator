@@ -36,6 +36,12 @@
 | RISK-030 | Audit/event tables grow without retention | P1 | retention/aggregation/cleanup policy |
 | RISK-031 | Cross-pack consolidation produces two ledgers | P1 | closed by one canonical implementation plan, ledger, and manifest; predecessor archived |
 | RISK-032 | Plan becomes another exhaustive blocker | P1 | deliver vertical founder slices, conditional later phases |
+| RISK-033 | Financial metrics use inconsistent definitions | P0 | provider-linked definitions, version MRR/churn/active-subscriber semantics, separate cash from revenue |
+| RISK-034 | Billing webhook success is mistaken for reconciled state | P0 | event-delivery health, idempotency, periodic source reconciliation, explicit lag/cutoff |
+| RISK-035 | Traffic attribution violates privacy or overstates certainty | P0 | aggregate first, consent-compatible joins, bounded retention, label probabilistic attribution |
+| RISK-036 | Raw logs/provider payloads leak secrets or PII | P0 | provider-native storage, allowlisted summaries, redaction, sensitive-read audit, retention |
+| RISK-037 | Provider adapter failure silently freezes founder metrics | P0 | source-as-of, last success/failure, lag, stale state, actionable reconciliation |
+| RISK-038 | Privacy requests are missed | P0 | durable owner/status/due date, Action Inbox escalation, canonical export/delete workflow |
 
 ## 2. Decisions to preserve from the predecessor
 
@@ -49,7 +55,7 @@
 | DEC-AUTO-006 | Provider and production claims require source-matched provider evidence; local evidence never substitutes. |
 | DEC-AUTO-007 | Notification definition/version, audience, occurrence, run, recipient, retry, retraction, replacement, preference, and denominator semantics remain durable even when delivery is phased. |
 | DEC-AUTO-008 | Existing domain repositories remain the sole mutation owners; Admin composes reads and founder workflow state. |
-| DEC-AUTO-009 | Billing/revenue remains excluded until a system is selected. |
+| DEC-AUTO-009 | No billing provider is assumed. Financial visibility and provider-integration readiness are in scope now; provider-specific billing mutations, accounting, tax, and revenue recognition wait for a selected system. |
 | DEC-AUTO-010 | Tests, builds-as-gates, browser automation, and broad QA remain user-gated and claim-specific. |
 
 ## 3. Consolidated product decisions
@@ -86,6 +92,8 @@
 | Notification MVP | one-time, targeted, previewed |
 | Campaign recurrence | later |
 | Billing metrics | not instrumented |
+| Financial readiness | define unavailable states, mappings, metric definitions, integration health, and reconciliation before provider activation |
+| Traffic analytics | aggregate first; first-party product events own conversion; no invented UTM/custom-event capability |
 | Provider API | link-out until approved credentials/benefit |
 
 ## 5. Explicit non-goals
@@ -116,7 +124,7 @@ No complex visual workflows or multichannel journey builder.
 
 ### Not a billing platform
 
-Until billing is selected and implemented.
+Admin summarizes provider-owned customer/subscription/invoice/payment state after selection; it does not become the payment, invoicing, tax, or accounting system.
 
 ### Not an autonomous operations agent
 
@@ -130,7 +138,7 @@ Approved modules and saved filters only.
 
 Create a separate plan only when:
 
-- billing/payments selected;
+- payment acceptance, tax, accounting, or revenue-recognition implementation beyond the Admin read-adapter boundary;
 - external customer accounts/admin needed;
 - multiple support/admin operators;
 - recurring campaign demand proven;
@@ -151,6 +159,7 @@ Stop adding Founder Homebase scope when:
 - production/release/data integrity are visible;
 - follow-ups durable;
 - founder scorecard and weekly review work;
+- traffic/acquisition and financial readiness are truthful, source-linked, and reconciliation-aware;
 - next unmet need is advanced scale, not missing daily operation.
 
 ## 8. Consolidation decisions the final merger must make

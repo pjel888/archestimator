@@ -225,6 +225,7 @@ A safe foundation for everything else.
 - customer context pane;
 - internal notes;
 - saved replies;
+- pending/uncertain reply reconciliation queue and safe retry ownership;
 - signal annotations;
 - accept/duplicate/decline/snooze;
 - themes;
@@ -246,7 +247,8 @@ A safe foundation for everything else.
 
 - distinct internal-note and customer-reply action/repository paths;
 - waiting/unread, duplicate/theme, and close-loop transition tables;
-- stable client-message idempotency contract and affected-row proof.
+- stable client-message idempotency contract and affected-row proof;
+- pending/uncertain delivery query, claim, retry, and terminal-state transition review.
 
 ## 9. Slice F5 / UNIT-006 — Release Center and Feature Delivery
 
@@ -286,12 +288,16 @@ A safe foundation for everything else.
 - health maturity labels;
 - incident create/update/timeline;
 - jobs/queues/outbox status;
+- configured DLQ backlog/age and replay disposition;
+- Workers invocation-status/error summary, log freshness/sampling state, and exact provider deep links;
+- activated-provider integration-health registry;
 - data-quality check registry;
 - initial identity/membership/publication/job checks;
 - data-quality finding UI;
 - dry-run repair framework;
 - backup/restore freshness;
 - existing upload/scan integration;
+- privacy-request intake/status/owner/due-date surface;
 - provider links.
 
 ### Acceptance
@@ -302,7 +308,9 @@ A safe foundation for everything else.
 - finding evidence and source revision;
 - dry-run before apply;
 - repair bounded/idempotent/audited;
-- provider unavailability labeled.
+- provider unavailability labeled;
+- webhook/pull success, local freshness, and domain reconciliation remain distinct;
+- privacy requests cannot disappear into a navigation placeholder.
 
 ### Default non-test evidence
 
@@ -339,7 +347,7 @@ A safe foundation for everything else.
 - diagnostic rule and minimized DTO inspection;
 - bounded query/pagination plan.
 
-## 12. Slice F8 / UNIT-009 — Analytics, Weekly Review, Cost, and Capacity
+## 12. Slice F8 / UNIT-009 — Analytics, Traffic, Financial Readiness, Weekly Review, Cost, and Capacity
 
 ### Deliver
 
@@ -347,7 +355,11 @@ A safe foundation for everything else.
 - activation/funnel;
 - retained activated cohorts;
 - publication/client-review metrics;
+- aggregate landing/referrer/traffic baseline and acquisition-to-activation bridge with explicit attribution limits;
 - 7/30-day founder scorecard;
+- commercial/financial scorecard with unavailable states before provider selection;
+- provider-owned billing read adapter contract for customers, subscriptions, invoices, failed payments, refunds, disputes, and recurring-revenue movement;
+- billing/analytics integration health, event-delivery lag, replay, and periodic reconciliation contract;
 - weekly review;
 - checkpoint/snapshot;
 - local cost/capacity;
@@ -361,13 +373,20 @@ A safe foundation for everything else.
 - bot/admin activity excluded as defined;
 - weekly snapshot definition version;
 - cost source labeled;
-- missing instrumentation creates explicit backlog.
+- missing instrumentation creates explicit backlog;
+- unavailable financial metrics never render as zero or estimated provider truth;
+- MRR/churn/active-subscriber definitions are versioned and source-linked;
+- traffic dimensions respect provider capability and privacy/consent boundaries;
+- provider connection, readability, freshness, and reconciliation are distinct statuses.
 
 ### Default non-test evidence
 
 - metric definition, dedupe, funnel, and cohort-cutoff contracts;
 - snapshot definition/version and source-status inspection;
-- cost/capacity source, threshold, and as-of review.
+- cost/capacity source, threshold, and as-of review;
+- financial definition/provider-mapping/reconciliation contract review;
+- acquisition source/landing/referrer and privacy-boundary review;
+- integration-health transition and stale-value behavior review.
 
 ## 13. Slice F9 / UNIT-010 — Communications MVP
 
@@ -430,7 +449,7 @@ Conditional:
 - AI operator;
 - multi-operator assignments;
 - customer portal account archive;
-- billing/revenue.
+- provider-specific payment, subscription mutation, accounting, tax, and revenue-recognition operations.
 
 Each requires its own measured need and success criterion.
 

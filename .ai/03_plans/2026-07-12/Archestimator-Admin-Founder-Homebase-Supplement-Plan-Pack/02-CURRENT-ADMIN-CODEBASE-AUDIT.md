@@ -41,9 +41,14 @@ Implemented:
 - binding-presence checks (existence only);
 - open incident count;
 - 30-day signup count from `profiles`;
-- four overview cards;
+- four legacy overview cards;
 - one-point signup chart;
-- external analytics links.
+- external analytics links;
+- aggregate-only beta operating cards for activation milestones, open feedback, open support, and incidents;
+- per-field availability/source/as-of semantics;
+- platform-admin authorization before beta operating reads.
+
+The beta operating layer is a useful truthful-read foundation, not the planned Founder Homebase. It composes bounded aggregates from `activation-cohort-repository.ts`, `feedback-aggregate.ts`, `support-aggregate.ts`, and `beta-operating-overview.ts` without an Action Inbox or durable founder workflow state.
 
 Note: `listRecentSignups()` exists in `users-repository.ts` but is **not** rendered by `src/app/admin/page.tsx`, so the home page does not currently show a recent-signups list.
 
@@ -60,7 +65,10 @@ Material gaps:
 - no recent/pinned entities;
 - no last-visit/change summary;
 - no data-quality status;
-- no capacity or cost.
+- no capacity or cost;
+- no acquisition/traffic summary beyond provider links;
+- no billing, subscription, cash, or revenue source;
+- no provider integration-health summary for webhooks, sync lag, or reconciliation failures.
 
 ### `/admin/users`
 
@@ -148,6 +156,7 @@ Material gaps:
 - no canned replies;
 - no action-inbox integration;
 - two-column layout is fixed and narrow;
+- retry ownership now uses a D1 claim before resending a failed reply and exposes `delivery_pending`/`delivery_uncertain`, but there is no operator reconciliation queue for messages left pending or uncertain;
 - one generated client message ID changes with reply state rather than being explicitly created per send attempt.
 
 ### `/admin/notifications`
@@ -244,6 +253,8 @@ Material gaps:
 - stored row type currently includes user-agent data that should not be generally exposed;
 - provider capabilities are not read.
 
+Current provider truth includes persisted Workers invocation/custom logs at full head sampling in `wrangler.jsonc`, plus configured DLQs for both bound queues. The route does not yet summarize Workers invocation statuses versus HTTP failures, log freshness/sampling, DLQ backlog, or delivery/replay health.
+
 ### `/admin/analytics`
 
 Implemented:
@@ -259,7 +270,10 @@ Material gaps:
 - no publications/client decisions;
 - no customer health;
 - no support/feedback;
-- configured does not mean data is readable or correct.
+- configured does not mean data is readable or correct;
+- no landing-page/referrer/acquisition view;
+- no privacy-safe bridge from traffic source to signup/activation;
+- no commercial or financial source contract.
 
 ## 2. Existing reusable foundations
 
@@ -281,7 +295,11 @@ The current code already supplies valuable primitives:
 - scan override review;
 - publication/shared-link activity and recipient decisions;
 - project/estimate/activity repositories;
-- Cloudflare bindings and operational scripts.
+- Cloudflare bindings and operational scripts;
+- beta operating overview/read-model adapters and activation cohort query;
+- full-sampling Workers Logs configuration and two bound queue DLQs;
+- client-portal analytics events and recipient activity;
+- support reply retry claiming plus pending/uncertain delivery states.
 
 The correct plan composes these before inventing replacements.
 
@@ -408,7 +426,12 @@ The consolidated plan must keep P0 remediation for:
 - maintenance-mode enforcement or removal;
 - placeholder Admin APIs;
 - misleading health/configuration claims;
-- cross-source identity reconciliation.
+- cross-source identity reconciliation;
+- support delivery reconciliation for pending/uncertain replies;
+- provider integration health (last success, lag, webhook/delivery failures, replay/reconcile state);
+- acquisition/traffic source truth and privacy-safe funnel attribution;
+- financial-readiness contracts that remain unavailable until a real billing source is selected;
+- a durable privacy-request queue rather than navigation-only intent.
 
 ## 9. Codebase conclusion
 

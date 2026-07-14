@@ -64,9 +64,9 @@ The manifest groups the detailed `FH-*` requirements into executable slices with
 | REQ-004 Customer success/360 | UNIT-004 / F3 | FH-010–015 |
 | REQ-005 Support/signals | UNIT-005 / F4 | FH-020–024 |
 | REQ-006 Release/feature delivery | UNIT-006 / F5 | FH-024–030 |
-| REQ-007 Operations/data quality | UNIT-007 / F6 | FH-031–039, FH-051 |
+| REQ-007 Operations/data quality | UNIT-007 / F6 | FH-031–039, FH-051, FH-064, FH-067–068 |
 | REQ-008 Project/estimate/publication 360 | UNIT-008 / F7 | FH-016–019 |
-| REQ-009 Analytics/cadence/cost | UNIT-009 / F8 | FH-038, FH-040–044 |
+| REQ-009 Analytics/cadence/cost | UNIT-009 / F8 | FH-038, FH-040–044, FH-061–066 |
 | REQ-010 Communications MVP | UNIT-010 / F9 | FH-045–047 |
 | REQ-011 Conditional scale/AI/providers | UNIT-011 / F10 | FH-048–049, FH-057 |
 
@@ -132,6 +132,14 @@ The manifest groups the detailed `FH-*` requirements into executable slices with
 | FH-058 | One consolidated ledger | Repo planning discipline | Execution |
 | FH-059 | Tests/browser are user-gated | Repo policy | Quality |
 | FH-060 | No duplicate domain mutation owners | Architecture | All |
+| FH-061 | Financial scorecard is integration-ready before a provider exists | Founder requirement | F8 |
+| FH-062 | Billing customer/subscription/invoice/payment state maps to canonical accounts | Stripe research/future integration | F8 |
+| FH-063 | Failed payments, refunds, disputes, and recurring-revenue movement are actionable when connected | Financial operations | F8 |
+| FH-064 | Provider pull/webhook delivery, freshness, lag, replay, and reconciliation are visible | Integration operations | F6/F8 |
+| FH-065 | Landing path/referrer/traffic movement is visible without pretending provider capabilities | Cloudflare Web Analytics research | F8 |
+| FH-066 | Traffic-to-signup/activation attribution is privacy-safe and certainty-labeled | Analytics/privacy | F8 |
+| FH-067 | Runtime errors distinguish invocation status, HTTP outcome, log evidence, release, and affected customer | Cloudflare/OWASP research | F5/F6 |
+| FH-068 | Privacy requests have durable owner, status, due date, and canonical export/delete workflow | Governance requirement | F3/F6 |
 
 ## 5. Conflicts and resolutions
 
@@ -201,6 +209,9 @@ Repo policy: minimum durable artifacts.
 - [x] Data Quality/Repair added.
 - [x] Cost/Capacity added.
 - [x] Founder scorecard/cadence added.
+- [x] Financial-readiness and provider reconciliation added without inventing a billing platform.
+- [x] Traffic/acquisition capability and privacy limits added.
+- [x] Provider integration health, error/log truth, and privacy-request operations added.
 - [x] Notification program reprioritized without losing durable semantics.
 - [x] AI deferred/read-only.
 - [x] Fragmented tools migration staged.

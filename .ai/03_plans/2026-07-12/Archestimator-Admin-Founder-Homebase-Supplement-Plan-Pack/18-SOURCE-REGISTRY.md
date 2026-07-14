@@ -4,7 +4,9 @@
 
 **Repository:** `pjel888/archestimator`  
 **Branch audited:** local `main` worktree; current source remains authoritative  
-**Audit date:** 2026-07-12
+**Audit date:** 2026-07-14
+
+**Observed source revision:** `5ee7960897518fdaa505ec9766cb5c0763335032`
 
 The user-supplied predecessor was archived after consolidation at:
 
@@ -100,6 +102,11 @@ Key repository rules applied:
 ### Analytics
 
 - `src/app/admin/analytics/page.tsx`
+- `src/lib/admin/activation-cohort-repository.ts`
+- `src/lib/admin/beta-operating-overview.ts`
+- `src/lib/admin/feedback-aggregate.ts`
+- `src/lib/admin/support-aggregate.ts`
+- `src/components/admin/BetaOperatingOverview.tsx`
 
 ## 5. Fragmented current operator tools
 
@@ -136,6 +143,9 @@ These must be re-read immediately before implementation because repository state
 
 - [Stripe Dashboard basics](https://docs.stripe.com/dashboard/basics)
 - [Stripe Dashboard search](https://docs.stripe.com/dashboard/search)
+- [Stripe Billing analytics](https://docs.stripe.com/billing/subscriptions/analytics)
+- [Stripe reporting](https://docs.stripe.com/stripe-reports)
+- [Stripe event destinations](https://docs.stripe.com/workbench/event-destinations)
 
 ### Triage/inbox
 
@@ -146,6 +156,14 @@ These must be re-read immediately before implementation because repository state
 
 - [Sentry product walkthroughs](https://docs.sentry.io/product/)
 - [Cloudflare Workers Observability](https://developers.cloudflare.com/workers/observability/)
+- [Cloudflare Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/)
+- [Cloudflare Workers metrics and analytics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/)
+- [Cloudflare D1 metrics and analytics](https://developers.cloudflare.com/d1/observability/metrics-analytics/)
+- [Cloudflare Queues dead-letter queues](https://developers.cloudflare.com/queues/configuration/dead-letter-queues/)
+- [Cloudflare Web Analytics dimensions](https://developers.cloudflare.com/web-analytics/data-metrics/dimensions/)
+- [Cloudflare Web Analytics data collection](https://developers.cloudflare.com/web-analytics/data-metrics/data-origin-and-collection/)
+- [Cloudflare Web Analytics FAQ](https://developers.cloudflare.com/web-analytics/faq/)
+- [Cloudflare Workers Analytics Engine](https://developers.cloudflare.com/analytics/analytics-engine/)
 - [Vercel deployments](https://vercel.com/docs/deployments)
 - [Vercel Observability](https://vercel.com/docs/observability)
 
@@ -181,6 +199,9 @@ These must be re-read immediately before implementation because repository state
 - browser interaction audit;
 - current hosted Admin proof;
 - current D1 row/query counts;
+- current billing/subscription/revenue data (no source exists in the repository);
+- current traffic/referrer/acquisition values from provider APIs;
+- live Workers Logs, invocation metrics, or DLQ backlog reads;
 - provider API usage/cost data;
 - current GitHub Actions/deployment state inside the application;
 - data-quality check execution;

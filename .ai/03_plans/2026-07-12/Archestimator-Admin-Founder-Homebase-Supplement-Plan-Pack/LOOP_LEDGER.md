@@ -67,7 +67,7 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Files owned:**
 - **Schema/migration:**
 - **Security risk:**
-- **Test requirement:** NOT_REQUIRED / TARGETED / BROADER / TEST_TASK
+- **Test requirement:** NOT_REQUIRED / TEST_PROPOSAL / TEST_TASK
 - **Test trigger:** NONE / MVP_CRITICAL_INVARIANT / CHEAPEST_DECISIVE_EXISTING_TEST / EXPLICIT_TEST_TASK
 - **Test proposal:** named risk + exact command, only when applicable; never self-authorizes execution
 - **Evidence:**
@@ -81,3 +81,14 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - Stable execution IDs are `UNIT-001` through `UNIT-011`; F-names remain human-readable labels.
 - Do not duplicate requirements across manifests.
 - Do not convert every supporting document into an execution gate.
+
+## PLAN-019 — 2026-07-14 — FOUNDER BUSINESS/OPERATIONS READINESS RECONCILIATION COMPLETE
+
+- **State:** COMPLETE
+- **Scope:** planning artifacts only; current `/admin`/support/observability foundations, official Stripe/Cloudflare/OWASP research, and F6/F8 readiness boundaries
+- **Current-source repairs:** recorded beta operating aggregates, support retry-claim and pending/uncertain states, Workers Logs configuration, and bound queue DLQs; retained unresolved F0 defects
+- **Product repairs:** financial integration readiness, acquisition/traffic truth, provider integration health, error/log reconciliation, and durable privacy requests added without selecting a provider or creating a second billing/analytics/observability system
+- **Contract repair:** removed legacy `TARGETED|BROADER` values from the 2026-07-12 execution template
+- **Test requirement:** NOT_REQUIRED
+- **Evidence:** source/diff inspection, GitNexus concept queries, official documentation, plan-pack validator, planning-prompt validator, GitNexus change detection, and diff whitespace review
+- **Result:** existing 11-unit DAG preserved; `UNIT-001` remains the only dependency-closed ready slice after manifest refresh

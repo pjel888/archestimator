@@ -284,7 +284,7 @@ Complex configuration and bulk operations may require desktop.
 | One primary operator for the near term | Optimize UI and defaults for one founder |
 | Current D1/domain data is sufficient for an MVP | Compose existing sources before adding providers |
 | Early users need high-touch support | Prioritize customer context and follow-ups |
-| Billing is not selected | Exclude billing mutation; reserve scorecard slot |
+| Billing is not selected | Exclude billing mutation; define the read-adapter, metric definitions, integration health, reconciliation, and truthful unavailable scorecard state |
 | Cloudflare remains active runtime | Use Cloudflare source links and future credentialed summaries |
 | GitHub is source for code/release context | Link/import through bounded integration |
 | Product instrumentation is incomplete | Display “not instrumented” and create event backlog |
@@ -310,7 +310,7 @@ Complex configuration and bulk operations may require desktop.
 ## 8. Out of scope for the consolidated MVP
 
 - full CRM pipeline;
-- invoicing/subscriptions/revenue recognition;
+- payment acceptance, subscription mutation, invoicing, accounting, tax, and revenue-recognition implementation;
 - arbitrary BI/query builder;
 - direct database console;
 - autonomous agentic operations;

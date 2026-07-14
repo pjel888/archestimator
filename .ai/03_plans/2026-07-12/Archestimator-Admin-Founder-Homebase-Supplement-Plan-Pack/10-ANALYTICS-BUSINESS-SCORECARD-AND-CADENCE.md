@@ -4,7 +4,7 @@
 
 Turn activity data into a small set of decisions.
 
-The current Analytics route is a provider link page. The existing plan lists funnels but does not define the founder’s operating scorecard or review cadence.
+The current Analytics route is a provider link page, while Home now has a narrow aggregate-only beta operating layer. Neither surface yet provides a canonical acquisition funnel, financial-readiness contract, or provider integration-health view.
 
 ## 2. Metric hierarchy
 
@@ -16,7 +16,9 @@ The current Analytics route is a provider link page. The existing plan lists fun
 - recipient engagement and decisions;
 - active design partners;
 - customer blockers;
-- operating cost and capacity.
+- operating cost and capacity;
+- acquisition traffic and qualified signup conversion;
+- commercial/financial outcomes when a real source exists.
 
 ### Level 2 — Funnel
 
@@ -64,7 +66,7 @@ type AdminMetricDefinition = {
   name: string;
   description: string;
   sourceEvents: string[];
-  subject: "user" | "account" | "workspace" | "project" | "estimate" | "publication" | "recipient";
+  subject: "visitor" | "user" | "account" | "workspace" | "project" | "estimate" | "publication" | "recipient" | "billing_customer" | "subscription" | "invoice";
   numerator: string;
   denominator: string | null;
   window: string;
@@ -170,11 +172,11 @@ This is a core product differentiator and should appear in founder metrics.
 - unresolved data-quality findings;
 - release incident rate.
 
-## 10. Business scorecard
+## 10. Business, acquisition, and financial scorecard
 
-Billing/revenue is excluded until a real system exists.
+No billing provider or accounting source exists in the current repository. The plan must distinguish **integration readiness** from **financial data availability** instead of excluding the domain.
 
-The founder scorecard can still include:
+The founder scorecard includes:
 
 ### Customer
 
@@ -209,11 +211,49 @@ The founder scorecard can still include:
 
 - active prospects/design partners;
 - paid customers — unavailable until billing;
-- MRR/revenue — not instrumented;
+- MRR, new/expansion/contraction/churned MRR — unavailable until billing;
+- active/trialing/past-due/canceled subscriptions — unavailable until billing;
+- invoices due/overdue, failed payments, refunds, and disputes — unavailable until billing;
+- gross cash collected and net revenue remain distinct;
 - founder-entered runway/budget — optional and clearly manual;
 - expected infrastructure cost.
 
 Do not fabricate zeros for unavailable financial metrics. Show “Not instrumented.”
+
+### Financial integration contract
+
+When a billing source is selected, Admin consumes a provider-owned read adapter rather than becoming the billing system:
+
+- provider customer ↔ canonical Archestimator account/workspace mapping;
+- subscription lifecycle and current entitlement summary;
+- invoice/payment/refund/dispute state;
+- metric-definition version for MRR, churn, active subscriber, and revenue;
+- webhook/event-delivery health, replay, and periodic reconciliation;
+- source currency and multi-currency limitation;
+- provider/source deep link for every actionable exception;
+- no card, bank, secret, or unrestricted raw provider payload stored in Admin.
+
+Revenue recognition, tax, general ledger, invoicing, and payment mutation remain provider/accounting responsibilities.
+
+### Traffic and acquisition contract
+
+The founder needs a privacy-safe path from external interest to product value:
+
+```text
+visit → qualified landing session → signup → profile provision → activation → retained professional use → publication/decision
+```
+
+Initial traffic dimensions:
+
+- host and landing path;
+- referrer host/source category;
+- campaign attribution only when the selected source actually provides it;
+- country/device/browser at aggregate level;
+- Core Web Vitals by landing path;
+- bot/admin/health-check exclusions;
+- consent/privacy mode and data-retention status.
+
+Cloudflare Web Analytics is suitable for aggregate page/performance truth but does not currently provide custom events or UTM query parameters. Product conversion therefore stays in first-party events, and any cross-source attribution must be explicit, consent-compatible, bounded, and labeled probabilistic when it is not a deterministic join.
 
 ## 11. Metric views
 
@@ -301,13 +341,19 @@ Sections:
    - cost/capacity;
    - restore/recovery.
 
-5. **Decisions**
+5. **Acquisition and Business**
+   - traffic and qualified signup movement;
+   - activation by available source/cohort;
+   - billing exceptions and recurring-revenue movement when connected;
+   - manual runway/budget freshness.
+
+6. **Decisions**
    - keep/change/stop;
    - flags to remove;
    - experiments/research;
    - next week focus.
 
-6. **Snapshot**
+7. **Snapshot**
    - immutable or versioned weekly summary;
    - optional founder notes.
 
@@ -380,9 +426,12 @@ Use external systems for specialized analysis:
 Admin should:
 
 - show configured/connected/readable state separately;
+- show integration health, source-as-of, last success, lag, and failure/reconciliation state;
 - link to exact report;
 - summarize first-party critical metrics;
 - never imply link availability equals data quality.
+
+Use provider-native systems for raw logs, traffic exploration, billing operations, and detailed reports. Admin owns the cross-domain summary, mapping state, actionable exceptions, and deep links.
 
 ## 19. Metric governance
 
@@ -403,9 +452,12 @@ Changing an activation definition creates a new version. Do not rewrite historic
 MVP:
 
 - canonical funnel definitions;
+- aggregate acquisition/traffic baseline with truthful provider capability limits;
 - customer attention metrics;
 - 7/30-day scorecard;
 - publication/client-review metrics;
+- financial-readiness DTO and unavailable states;
+- activated-provider integration-health status;
 - weekly review route;
 - checkpoint and notes;
 - “not instrumented” states.
@@ -415,5 +467,5 @@ Later:
 - external product analytics ingestion;
 - experiment statistics;
 - custom dashboards;
-- revenue/billing;
+- provider-specific billing mutations, accounting, tax, and revenue recognition;
 - predictive churn.

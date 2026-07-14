@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "18b79a47da1fd947d4eb9854275e03ad4e5a3f3c",
-    "scoped_status_sha256": "998951a92d230e596233173b2609ce908bf8163c36d553887dd251f212efeea1",
-    "scoped_diff_sha256": "e4843539b4044d5db1d02b57460386759388e66b04c14789acbc56be84233685"
+    "head": "5ee7960897518fdaa505ec9766cb5c0763335032",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "canonical_execution_artifact": "13-IMPLEMENTATION-ROADMAP.md",
   "artifacts": [
@@ -21,31 +21,31 @@
       "id": "ART-001",
       "role": "supporting",
       "path": "00-EXECUTIVE-DIRECTION.md",
-      "sha256": "434b25885015c15a6e69f545bfd9e6eab5e063ea0065fb5647747a05dfc695b5"
+      "sha256": "8d4df8130aebe4ddbb6aa210531b7eb48b9fe134071d93502beaf1c0f3fe95ed"
     },
     {
       "id": "ART-002",
       "role": "supporting",
       "path": "01-EXISTING-PLAN-GAP-AND-CONSOLIDATION-AUDIT.md",
-      "sha256": "f5b1e963199b9f1b185008d518fa83f96d2d5c30df96728db7d3d80bd341977a"
+      "sha256": "b2efa53f40f51899557830fb51e8510451f050bb609791a66a37b151e11bc051"
     },
     {
       "id": "ART-003",
       "role": "supporting",
       "path": "02-CURRENT-ADMIN-CODEBASE-AUDIT.md",
-      "sha256": "ffe6f4083836425bad2da70c32bb32cab0d3cf7530b26fcad64eebbaacd500d8"
+      "sha256": "29d3bc2b97461f57d84ca726b2f3b6a2a391bc314c8e1ae41c3c6b30a60baebe"
     },
     {
       "id": "ART-004",
       "role": "supporting",
       "path": "03-FOUNDER-JOBS-TO-BE-DONE-AND-PRD.md",
-      "sha256": "5ccaf1813ee21ad29a573ef76828259929d5b4aa65b6957e32be9d1c267a2e47"
+      "sha256": "98e8de2a02b187f23a589ba2f0f436447735bc9a45885d8fe369c6198ceeb058"
     },
     {
       "id": "ART-005",
       "role": "supporting",
       "path": "04-INFORMATION-ARCHITECTURE-UX-AND-NAVIGATION.md",
-      "sha256": "853f5a029a3f673b8c914d3f55db9c81ea9aa82a966f3668ecad221a96d958d8"
+      "sha256": "41a033620f263f14c6077c3891d7462b463f55e1e60724c19974aa7e925d13ab"
     },
     {
       "id": "ART-006",
@@ -75,13 +75,13 @@
       "id": "ART-010",
       "role": "supporting",
       "path": "09-OPERATIONS-DATA-QUALITY-COST-AND-CAPACITY.md",
-      "sha256": "9eb7c6436dec4eb9a833cb47f2bca5dede15e695de16a96ebeb9ffb1cc13ee78"
+      "sha256": "58af4e50f83e3ae7d23a83499bc24df65ccdb4832e150031916e35e5cb0cb241"
     },
     {
       "id": "ART-011",
       "role": "supporting",
       "path": "10-ANALYTICS-BUSINESS-SCORECARD-AND-CADENCE.md",
-      "sha256": "0a1eddbb436f5b94fbfea1782031b9672bb7319fbdb4997108b7f0e43f9025ca"
+      "sha256": "70afa8e4b5f8be5031067bdfa9f503c481d48fb4a893fe1777cdd9955de01abf"
     },
     {
       "id": "ART-012",
@@ -93,13 +93,13 @@
       "id": "ART-013",
       "role": "supporting",
       "path": "12-DATA-MODEL-API-SECURITY-AND-ARCHITECTURE.md",
-      "sha256": "bcd73f4fe7d8d78f1536ad887f02c2d96ae1b1b83ae5126d801ade405825480b"
+      "sha256": "75f8bda463650b9d850c1156a9e0c7447991ee5e7c64361f42a61133f4c1ce0d"
     },
     {
       "id": "ART-014",
       "role": "canonical-execution",
       "path": "13-IMPLEMENTATION-ROADMAP.md",
-      "sha256": "00f5a0b9614e21a9e4d5612d5f5f95d85396fc820f3f8e185f4a3cf1f4501418"
+      "sha256": "81425b14074407fec00dee8fb238e881d00775ac321a3f0737789531d45ea5c6"
     },
     {
       "id": "ART-015",
@@ -111,43 +111,43 @@
       "id": "ART-016",
       "role": "supporting",
       "path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "sha256": "4b05747c61c357d3281a86dcfa5e7db8ca9d0a22966d47051b9f8d97e0d28148"
+      "sha256": "947b8726bfa0f0e573ba0dcd40eb919ac1935a9d70e98a7664a173ff1653eb84"
     },
     {
       "id": "ART-017",
       "role": "supporting",
       "path": "16-INDUSTRY-RESEARCH-AND-BENCHMARKS.md",
-      "sha256": "3750e10e012994f6c0a0694f34235a5efffa26df8cba655c6297082c87ec1bf8"
+      "sha256": "10cd515beb7b371e35e699e6f6bfef6f77e8f5559f6e04138ff4f2d26a5b3a2e"
     },
     {
       "id": "ART-018",
       "role": "evidence",
       "path": "17-CONSOLIDATION-MAP-AND-TRACEABILITY.md",
-      "sha256": "069285260d66c2ac706b461e4da785d94e191c0d1d242d156d16ee5f0179d739"
+      "sha256": "e1fc4cff05febb029c769f42912b88ec4a3625cb7e672ecc131015ef9b02c222"
     },
     {
       "id": "ART-019",
       "role": "supporting",
       "path": "18-SOURCE-REGISTRY.md",
-      "sha256": "ea5e00f999a08a8da45e278624853119ea958a43e06a6230c11dbc40b6b2693a"
+      "sha256": "386d946764f619654019edbe75371d15d66254b25ecb3c6798282030a84f032d"
     },
     {
       "id": "ART-020",
       "role": "coordination",
       "path": "LOOP_LEDGER.md",
-      "sha256": "89274cf90ba733f4b93232ee6198f2b23f2a2c3667c0aa95978819e677b7ff98"
+      "sha256": "20dd1a1c3cf69348050c51544947b9c0c3d7c9815332833defa2433db51d905d"
     },
     {
       "id": "ART-021",
       "role": "supporting",
       "path": "PACK-MANIFEST.md",
-      "sha256": "9e4745398baf032a8793f9a1c045090a9816a50a226987dbcfa3170c4bf8b6a4"
+      "sha256": "76368a08ade63611bad598f4052f947b8e44e098c7618994b9355443a2da5eb1"
     },
     {
       "id": "ART-022",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "2d41b091572e726ad75a8ad1d135727dc7a0883e9fa34f08809260250bdd7f6e"
+      "sha256": "649a25af8eb467a14e149f65de7e7615baeceaa929febf7681ca9c04955d6ff9"
     }
   ],
   "sources": [
@@ -842,6 +842,78 @@
         "AC-010",
         "AC-011"
       ]
+    },
+    {
+      "id": "RISK-033",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-034",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-035",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-036",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-007",
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-037",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-007",
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-038",
+      "status": "OPEN",
+      "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-007"
+      ]
     }
   ],
   "criteria": [
@@ -1250,6 +1322,7 @@
         "RISK-020",
         "RISK-021",
         "RISK-027",
+        "RISK-038",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1326,6 +1399,9 @@
         "RISK-027",
         "RISK-029",
         "RISK-030",
+        "RISK-036",
+        "RISK-037",
+        "RISK-038",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1373,6 +1449,11 @@
         "RISK-021",
         "RISK-024",
         "RISK-029",
+        "RISK-033",
+        "RISK-034",
+        "RISK-035",
+        "RISK-036",
+        "RISK-037",
         "RISK-032"
       ],
       "evidence_ids": [
@@ -1658,7 +1739,7 @@
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "17-CONSOLIDATION-MAP-AND-TRACEABILITY.md",
-      "sha256": "069285260d66c2ac706b461e4da785d94e191c0d1d242d156d16ee5f0179d739",
+      "sha256": "e1fc4cff05febb029c769f42912b88ec4a3625cb7e672ecc131015ef9b02c222",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -1692,7 +1773,7 @@
         "DEC-AUTO-019",
         "DEC-AUTO-020"
       ],
-      "source_revision": "18b79a47da1fd947d4eb9854275e03ad4e5a3f3c",
+      "source_revision": "5ee7960897518fdaa505ec9766cb5c0763335032",
       "valid_until": null
     },
     {
@@ -1731,7 +1812,7 @@
         "GATE-OPS-001",
         "GATE-VERIFY-001"
       ],
-      "source_revision": "18b79a47da1fd947d4eb9854275e03ad4e5a3f3c",
+      "source_revision": "5ee7960897518fdaa505ec9766cb5c0763335032",
       "valid_until": null
     }
   ],
@@ -1747,5 +1828,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-14T00:00:00.000Z",
-  "manifest_sha256": "e592cff1f85190afa9d568d92c64bd5434aff7742fe3b37a515fdb6218d8c49d"
+  "manifest_sha256": "d52d7ceb31f3c750586d2c0da1e57e580293122b87c4bdc1d87d82e3d49692f8"
 }

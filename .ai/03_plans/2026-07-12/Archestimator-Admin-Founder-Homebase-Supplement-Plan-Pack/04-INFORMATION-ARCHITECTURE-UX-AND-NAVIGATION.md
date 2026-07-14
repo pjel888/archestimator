@@ -30,6 +30,14 @@ The current flat route list organizes by implemented page. The target navigation
 - **Product Analytics** — `/admin/product-analytics`
 - **Feature Delivery** — `/admin/features`
 
+### Business
+
+- **Acquisition & Traffic** — `/admin/acquisition`
+- **Financials** — `/admin/financials`
+- **Integration Health** — `/admin/integrations`
+
+These routes may begin as sections or filtered views in `/admin/review`; do not create empty destination pages before a useful read model exists.
+
 ### Operations
 
 - **Health** — `/admin/operations`
@@ -81,6 +89,9 @@ Create:
 - `/admin/signals`
 - `/admin/releases`
 - `/admin/data-quality`
+- `/admin/acquisition`
+- `/admin/financials`
+- `/admin/integrations`
 
 ### Stage C — Entity routes
 

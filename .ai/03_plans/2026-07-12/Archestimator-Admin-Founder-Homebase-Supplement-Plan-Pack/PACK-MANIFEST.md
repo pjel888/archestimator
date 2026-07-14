@@ -15,6 +15,7 @@ This is the canonical consolidated Admin plan pack. It combines the predecessor'
 
 - Current Admin defects, identity semantics, privileged-action safety, User 360, notification durability, support, flags, audit, privacy, retention, migrations, overlaps, and provider-proof boundaries are retained.
 - Founder Home, search, Action Inbox, customer success, broader Entity 360, support/signals, releases, data quality, cost/capacity, analytics, and founder cadence define the product priority.
+- Financial readiness, traffic/acquisition, provider integration health, error/log reconciliation, and privacy-request operations are explicit inside the existing F6/F8 units; no billing or observability backend is invented.
 - One-time targeted communications remain in the core roadmap; recurrence, generalized campaign scale, optional providers, and AI remain conditional.
 - Existing domain repositories remain canonical mutation owners.
 - New schema is vertical-slice-only; generic workflow, dashboard-builder, CRM, and provider-copy abstractions are rejected.
