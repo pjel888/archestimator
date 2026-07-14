@@ -47,7 +47,7 @@ Append-only execution record for `PLAN-2026-07-14-estimate-component-shared-revi
 `READY_SLICE = SLICE-001`  
 `STOP = all UNIT-001 acceptance bullets evidenced or unit remains incomplete`
 
-## 2026-07-14 — Add/Edit Modal, CRUD, Variant Scope, And Beta Cleanup Expansion
+## 2026-07-14 — Add/Edit Modal, CRUD, Variant Scope, And Pre-Release Cleanup Expansion
 
 ### User concern integrated
 
@@ -55,7 +55,7 @@ Append-only execution record for `PLAN-2026-07-14-estimate-component-shared-revi
 - prove component information transfers into rows without losing selected variants or row-local values;
 - make an edit to one variant update only instances using that variant;
 - include the complete Add/Edit modal PRD and Cloudflare component schema; and
-- remove V1/V2 product/compatibility overhead and add explicit feature-path cleanup.
+- remove product-version and compatibility overhead and add explicit pre-release feature-path cleanup.
 
 ### Findings integrated
 
@@ -65,18 +65,87 @@ Append-only execution record for `PLAN-2026-07-14-estimate-component-shared-revi
 - Components page inspector uses a reduced parallel editor;
 - attachment inputs are accepted but not bound by the authoritative option write;
 - duplicate/read-back behavior differs by surface and can present optimistic partial state; and
-- beta cleanup must distinguish necessary revision controls from unnecessary compatibility paths.
+- pre-release cleanup must distinguish necessary revision controls from unnecessary compatibility paths.
 
 ### Artifacts added
 
 - `05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md`
 - `06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md`
-- `07-BETA-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md`
+- `07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md`
 
 ### Resume marker
 
 `NEXT = UNIT-001`  
 `STOP = one canonical Add/Edit/CRUD path plus option-scoped Library/Project fan-out is evidenced, or UNIT-001 remains incomplete`
+
+## 2026-07-14 — Current-Path Implementation Reconciliation
+
+**Status:** `NARRATIVE_RECONCILED`
+**Mode:** implementation audit and plan-pack reconciliation
+**Scope:** narrative artifacts only; `plan-pack.json` owned by the pack integrator
+
+### Exact user reproduction closed in source
+
+- editing a Project component, adding a variant, saving, and reopening now retains the new option;
+- the original modal branch enabled variant mode and opened the drawer but returned before appending a `VariantDraft`;
+- `AddComponentModal.addVariant` now appends a stable-ID draft immediately;
+- the full ordered option graph is sent through `updateEstimateRowItem`, persisted by the guarded D1 graph action, and reconciled under the stable Project `sourceComponentId`;
+- `tests/vitest/estimate-sheet-library-insert.test.tsx` contains the exact case `keeps a newly added project component variant after save and reopen`.
+
+### Implemented component lanes reconciled
+
+- one full Add/Edit modal now owns Library and Project editing; the reduced `EditComponentDrawer` is deleted;
+- Library save uses `updateCostLibraryComponentWithPriceOptions` and `buildLinkedEstimateRowSyncPlans` preserves per-row option selection and visible overrides;
+- Project save uses `updateEstimateRowItem`; same-project instances derive option fields from their own selected option and retain row-local values;
+- adding/defaulting/reordering an option never reselects unrelated instances;
+- deleting an in-use option requires explicit replacement;
+- detached Project rows remain on the Project path even with historical Library metadata;
+- insert, selection, Make Project Specific, promotion, detach, duplicate, archive, and delete now have one documented identity/ownership rule;
+- Library deletion detaches dependent estimate/template references and preserves saved estimate meaning.
+
+### Storage and issued-review lanes reconciled
+
+- migration `0076` gives each attachment one exclusive Library or Project option owner and immutable upload asset;
+- migration `0079` adds explicit Project attachment retention holds;
+- D1 `ARCH_DB` owns metadata/authorization and R2 `ARCH_UPLOADS_R2` owns binaries;
+- publication emits opaque component/option and row receipts and filters unsafe private broker paths;
+- issued review exposes distinct Component and Row discussion targets;
+- owner replies use the publisher discussion and notification queue path.
+
+### Evidence read
+
+- modal implementation suite: 30 focused tests passed;
+- exact Project variant save/reopen slice: 3 focused tests passed;
+- Project and Library fan-out, option replacement, attachment graph, promotion, and migration evidence is present;
+- focused Client Portal implementation slice: 20 tests passed;
+- publication snapshot suite: 10/10 passed after current expectation reconciliation;
+- TypeScript type checking and targeted ESLint passed in implementation lanes;
+- no browser automation, screenshot, visual QA, deployment, or hosted-provider proof was performed.
+
+### Narrative artifacts reconciled
+
+- `README.md`;
+- `01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md`;
+- `05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md`;
+- `06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md`;
+- `07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md`;
+- `08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md`;
+- `TRACEABILITY.md`;
+- `IMPLEMENTATION_PLAN.md`;
+- `LOOP_LEDGER.md`.
+
+### Remaining boundary
+
+- release status remains `NOT_EVALUATED`;
+- browser/visual proof remains `NOT_RUN`;
+- hosted D1/R2/Queue/Email proof remains `NOT_EVALUATED`;
+- `plan-pack.json` status, artifact list, and hashes remain for the pack integrator.
+
+### Resume marker
+
+`NEXT = PACK_INTEGRATOR_RECONCILES_MANIFEST`
+`IMPLEMENTATION = PRESENT_IN_CURRENT_WORKTREE`
+`STOP = no stale pre-implementation claim, no stale cleanup filename, and all requested current-path concerns mapped to source/evidence`
 
 ## Execution Entry Template
 
@@ -95,3 +164,29 @@ Next unit/stop condition:
 ```
 
 Do not edit or delete earlier entries. Add a new entry for every implementation/resume handoff.
+
+## 2026-07-14 — Final Implementation And Manifest Reconciliation
+
+**Status:** `COMPLETE`
+**Mode:** implementation, focused verification, and pack integration
+**Scope:** component/variant path, Estimate row CRUD, Cloudflare ownership, issued review, and canonical manifest
+
+### Work performed
+
+- closed the exact Project Add Variant -> Save -> Reopen defect and added equivalent Library modal persistence proof;
+- verified option-scoped Library and Project fan-out while preserving other selections, overrides, and row-local values;
+- put single-row delete and row reorganization revision guards inside their final D1 mutation/history batches;
+- removed residual component-path product-version storage/schema names without adding fallbacks or compatibility paths;
+- reconciled all implementation units, criteria, evidence receipts, artifact hashes, and manifest lifecycle fields.
+
+### Evidence boundary
+
+- focused authorized tests, TypeScript checking, targeted lint, plan-pack validation, and planning-prompt validation are local evidence;
+- browser/visual, hosted D1/R2/Queue/Email, deployment, and full-release proof remain `NOT_EVALUATED`;
+- no compatibility version, feature flag, or duplicate editor path was introduced.
+
+### Stop marker
+
+`NEXT = NONE_FOR_LOCAL_IMPLEMENTATION`
+`IMPLEMENTATION = COMPLETE_IN_CURRENT_WORKTREE`
+`STOP = exact repro, CRUD atomicity, Library/Project variant scope, Estimate transfer, Cloudflare ownership, issued review, and canonical pack are locally evidenced`

@@ -1,159 +1,117 @@
-# Estimate Sheet, Component Interoperability, And Shared Review Plan Pack
+# Component Variants, Estimate Rows, And Issued Review
 
-**Package:** `PLAN-2026-07-14-estimate-component-shared-review`  
-**Suite:** `2026-07-12`  
-**Run scope:** `PLAN_ONLY`  
-**Package status:** `IMPLEMENTATION_READY`  
-**Implementation status:** `NOT_STARTED`  
-**Release status:** `NOT_EVALUATED`  
-**Exact next unit:** `UNIT-001`
+**Package posture:** implementation reconciliation
+**Current implementation:** `IMPLEMENTED_IN_WORKTREE`
+**Release status:** `NOT_EVALUATED`
+**Browser/visual proof:** `NOT_RUN`
 
-## Readiness Answer
+## Outcome
 
-With the modal/CRUD, Cloudflare schema, and beta-cleanup appendices added, this pack is sufficient to direct a proper implementation. Before those additions it identified selected-variant propagation risk but did not fully force one editor authority, every Library/Project/Estimate-row CRUD transition, attachment relational repair, authoritative read-back, or deletion of superseded feature paths.
+The current worktree implements the single pre-release component path needed to resolve the reported Project-component variant defect and its downstream data-integrity risks.
 
-“Regression” in this pack means preserving a current beta invariant while another defect is repaired. It does **not** authorize backward-compatibility layers, V1/V2 product paths, duplicate editors, feature-flag rollout, or support for hypothetical released clients.
+The exact reported reproduction was:
 
-## Target Result
+1. edit a Project component;
+2. add a variant;
+3. save;
+4. reopen Edit Component; and
+5. observe that the new variant is missing.
 
-Deliver one first-user MVP in which:
+The root UI defect was concrete: the first **Add variant** action in a single-option draft only enabled variant mode and returned. It did not append a second variant. The current modal always appends the new stable-ID option, submits the complete ordered component graph, waits for persistence, reconciles authoritative row data, and can reopen with the saved option present.
 
-1. estimate area branches, tabs, rows, totals, and mutations stay correct under edits, moves, inserts, deletes, partial loading, and concurrent writes;
-2. Library, Project, and Templates components interoperate without losing component identity, selected variants, images, attachments, row overrides, or project boundaries;
-3. an issued estimate is immutable, client-safe, full width, financially reconcilable, and reviewable by estimate, area branch, row, and component; and
-4. a real recipient can receive access, authenticate through password changes, discuss only authorized issued content, and approve, decline, or request changes under the issued decision policy.
+This is not a compatibility or release-version project. Archestimator is alpha-stage and pre-release. The implementation uses direct replacement and fix-forward cleanup: one full modal, one complete graph payload per save, owner-specific atomic D1 actions, and no product `V1`/`V2` path.
 
-The stop condition is not “the modal saves” or “the shared page renders.” The stop condition is a verified producer-to-consumer contract from private estimate authoring through immutable issue creation, recipient review, discussion, formal decision, audit, and notification.
+## What Is Implemented
 
-## Why The Previous Audit Was Replaced
+### One editor and one graph save
 
-The previous folder was not a valid implementation-ready plan pack:
+- `src/components/workshop/component-library-manager/AddComponentModal.tsx` is the full Add/Edit authority for Library and Project components.
+- `src/components/workshop/library/EditComponentDrawer.tsx` is deleted; the reduced editor is no longer an active path.
+- Each save submits one complete component plus ordered variant graph.
+- Library ownership commits through `updateCostLibraryComponentWithPriceOptions` in one guarded D1 batch.
+- Project ownership commits through `updateEstimateRowItem` and the D1 `update_estimate_row_item_with_history` action in one guarded component-instance batch.
+- Create and Library update reread complete authoritative detail before returning success; Project update refetches/reconciles the authoritative estimate tree before the modal closes.
 
-- it intentionally omitted `plan-pack.json`;
-- it reduced implementation to variant attachment persistence;
-- it excluded Templates and shared-review interoperability;
-- it described dirty-working-tree behavior as if it existed at immutable `HEAD`;
-- it claimed shared inline propagation was sound even though an edit opened from a row using `Option 2` can update the component default and collapse linked rows back to that option; and
-- its proposed attachment upsert could transfer an existing blob path from an original component to a duplicate.
+### Library and Project behavior
 
-Those defects are removed rather than preserved as historical ceremony. The useful schema and attachment evidence is incorporated into the new current-state and interoperability documents.
+- Library component identity remains `cost_library_items.id`.
+- Library variant identity remains `cost_library_item_price_options.id`.
+- Project component identity remains the project-scoped `sourceComponentId` stored in estimate-row snapshot/metadata; it is not the estimate row ID and does not require a new master table.
+- Detached Project components with historical `sourceLibraryItemId` values stay on the Project path and do not mutate the Library source.
+- Component-level fields fan out within the owning Library/workspace or Project scope.
+- Variant-derived fields update only rows selecting that stable variant ID.
+- Existing rows keep their selected option when options are added, reordered, or a different option becomes default.
+- Quantity, contingency, adjustment, miscellaneous cost, designation, discipline, row identity, and row placement remain row-owned.
+- A used variant cannot be deleted without an explicit active replacement; only rows selecting the deleted option move to that replacement.
 
-## Baseline And Evidence Boundary
+### Estimate-row transfer
 
-- Immutable Git baseline: `ad2187d23881b490009c45dd283d9ced82c12b10`.
-- Current source of truth: the shared dirty worktree observed on `2026-07-14`.
-- GitNexus index: useful for baseline call graphs, but stale relative to dirty source; every dirty-only claim is labeled as working-tree evidence.
-- The scoped worktree already contains concurrent changes in estimate, component-library, and mutation files. Implementation must reread shared files and preserve unfamiliar work.
-- This planning run changed only this plan-pack folder.
-- No product tests, builds, browser automation, screenshots, or visual QA were requested or run.
+- Insert resolves the default option once, then persists the selected `priceOptionId` and the complete bounded option catalogue.
+- Variant selection updates the same row through the normal row mutation path; it is not a component replacement.
+- Replace, move, make-project-specific/detach, promotion, and deletion preserve their explicit row-identity and row-local-value policies.
+- Making a Library row project-specific clears its Library link, creates a fresh Project component identity, copies the option graph, and omits Library-owned attachments instead of stealing ownership.
+- Promotion writes the complete ordered option graph and preserves the selected option rather than collapsing to the default.
+- Deleting a Library master detaches linked estimate/template rows while leaving their current estimate values intact.
 
-## MVP Surfaces
+### D1, R2, and attachments
 
-### Private estimate-authoring path
+- Active component metadata uses D1 tables for components, price options, cost entries, versions/history, uploads, and estimate rows.
+- `migrations/0076_component_attachment_ownership.sql` replaces the Library-only attachment relation with `component_variant_attachments`, an exclusive Library-or-Project owner tuple bound to one immutable `upload_assets.id`.
+- Project attachment upload, delete, and cleanup use the stable Project component ID, not an initiating estimate row ID.
+- `migrations/0079_project_component_attachment_retention.sql` adds restore-window holds for the last live Project-component instance.
+- R2 objects remain behind the bound `ARCH_UPLOADS_R2` service and private broker routes; raw private broker `?path=` values are removed from issued/public projections.
+- Migration files and code are present locally. Hosted D1 migration state and hosted R2 behavior are not claimed.
 
-1. **Area Branches** — estimate tabs, group/area hierarchy, expansion, selection, row counts, branch totals, DnD, and partial-load state.
-2. **Estimate Sheet Content** — row insert/edit/move/delete/restore, calculations, history, optimistic state, save state, cache reconciliation, and scoped mutation feedback.
-3. **Component Tabs** — Library, Project, and Templates browsing, create/edit/duplicate/move/archive, variant selection, image/attachment ownership, drag/drop, and insertion semantics.
+### Issued/public review
 
-### Client review path
+- Issued rows now carry opaque issue-local component/variant anchors plus component version, selected variant label, row revision, and link state.
+- Raw Library/Project IDs, private asset paths, attachment metadata, and internal source snapshots are not emitted to recipients.
+- Client Portal estimate rows expose separate **Component** and **Row** discussion targets.
+- Target resolution validates the opaque ID against immutable issued content and derives labels server-side.
+- Owner replies write client-safe activity, deduplicate active subscribers and mentions, enqueue recipient outbox notifications, and use owner-reply wording in queued email.
 
-1. build a consistent immutable issue from the same estimate tree and row/component identities;
-2. expose only client-safe issued fields and opaque public IDs;
-3. show totals by estimate, tab, and area branch with exact reconciliation;
-4. allow comments on issued area branches, rows, and components;
-5. enforce issue/section membership for every discussion target;
-6. support recipient delivery, password and credential invalidation, section-scoped visibility, decisions, receipts, activity, and notifications.
+## Evidence Boundary
 
-## Highest-Priority Truths
+Current source evidence includes:
 
-### Launch blockers
+- `src/components/workshop/component-library-manager/AddComponentModal.tsx`
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `src/lib/component-library/actions.ts`
+- `src/lib/estimates/d1-action-client.ts`
+- `src/lib/estimates/source-snapshot-price-options.ts`
+- `src/lib/estimates/express-promotion-actions.ts`
+- `src/app/api/component-library/attachments/route.ts`
+- `src/app/api/component-library/attachments/direct-upload/route.ts`
+- `src/lib/publication/snapshot.ts`
+- `src/lib/client-portal/estimate-browser.ts`
+- `src/lib/client-portal/issued-target-resolver.ts`
+- `src/lib/client-portal/publisher-discussion-service.ts`
 
-- Recipient invitations generate a bootstrap token but current notification rows cannot deliver it; current queue IDs are rejected by the queue filter.
-- Recipient verification writes only a cookie and does not make the recipient mutation-eligible.
-- A personalized recipient session is not bound to the portal password credential version.
-- Thread list/message reads do not reapply issue-section visibility policy.
+Focused automated evidence already produced during implementation includes the modal suite, the exact Project save/reopen scenario, Project variant fan-out/replacement cases, attachment ownership cases, and focused publication/Client Portal cases. `bun run type-check` and targeted lint checks were also reported passing for the changed implementation slices. The detailed receipts are in `TRACEABILITY.md`.
 
-### Data-integrity blockers
+No Playwright/browser automation, screenshots, Storybook, or visual QA were run. No hosted deployment, hosted migration, or production-data proof is claimed. Release status therefore remains `NOT_EVALUATED`.
 
-- Library inline edit does not target the initiating row's selected price option and blanket propagation overwrites every linked row with the default option.
-- Add/Edit modal draft initialization confuses the initiating row's selected option with the component default.
-- Project component fan-out treats variant selection and variant-derived fields as component-wide facts.
-- the Components page still has a reduced `EditComponentDrawer` that cannot preserve the full variant/media graph.
-- `linked-overridden` rows are included in automatic library synchronization and are reset to `linked-clean`.
-- shared-library inline images originate from an estimate-row upload surface rather than component-owned storage.
-- variant attachments are validated and carried by UI payloads but are not written by the price-option persistence plan.
-- component moves are persisted as two independent writes; target failure can leave only the source committed.
-- immediate edits can race normal library/project inserts.
-- bulk delete does not enforce the client's expected row revisions.
-- secondary-tab truncation is not surfaced to the UI and can make displayed totals incomplete.
+## Pack Map
 
-### Issued-review blockers
+1. `01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md` — implemented private-to-issued data path and source evidence.
+2. `02-MVP-REQUIREMENTS-AND-INVARIANTS.md` — accepted product and domain requirements.
+3. `03-FINDINGS-RISK-SECURITY-PERFORMANCE.md` — original audit findings and risk register.
+4. `04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md` — target integration contracts.
+5. `05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md` — exact modal defect, implemented Library/Project behavior, CRUD, transfer, and fan-out.
+6. `06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md` — current D1/R2/Queue schema and ownership boundaries.
+7. `07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md` — one-path cleanup and no product-version ceremony.
+8. `08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md` — user-visible and architectural before/after.
+9. `IMPLEMENTATION_PLAN.md` — implemented unit map, evidence, and remaining release boundary.
+10. `TRACEABILITY.md` — requirement-to-source/test/evidence receipts.
+11. `LOOP_LEDGER.md` — planning and implementation reconciliation history.
 
-- publication reads can produce a torn issue because estimates, rows, nodes, and tabs have no consistency fence;
-- random public-ID namespaces make semantic no-op republish hashes unstable;
-- issued rows lose component, variant, component-version, link-state, and row-revision identity;
-- Client Portal discussion writes accept client-provided target IDs and labels without issue membership validation;
-- legacy shared links support only proposal/estimate/row targets; Client Portal supports area targets but neither supports issued component targets;
-- formal decisions do not fully evaluate required-approver policy or transition issue status;
-- financial section source and grouping configuration can be ignored or silently substituted.
+## Remaining Gaps
 
-## Working Contracts To Preserve
+- Hosted D1 migrations `0076` through `0079` are not verified as applied.
+- Real-browser interaction and visual behavior are not evaluated.
+- Hosted R2 upload/download/cleanup and Queue/Email delivery are not evaluated by this documentation pass.
+- The full release decision remains outside this local implementation reconciliation.
 
-- Project components remain project-scoped projections over estimate rows; no new project-component master table is required.
-- Foreign-project drops are re-homed to a fresh project component identity.
-- Make-project-specific is one atomic row mutation in the dirty worktree and must remain so.
-- Estimate and public snapshots use canonical money calculation and public rows expose totals rather than private unit/misc rates.
-- Issued Client Portal payloads are immutable and hash-addressed.
-- Legacy publication public IDs are opaque and recipient comment routes already use origin, access, password, rate-limit, sanitization, and stale-view guards.
-- Component Library list/detail loading is already split so unbounded history/attachment graphs hydrate on demand.
-- Row-level loading must remain scoped to affected material/component cells with no numeric-column layout shift.
-- Qty remains the active field after a project component is dropped into the sheet.
+## Stop Condition
 
-## Pack Reading Order
-
-1. `README.md` — target, boundary, and stop condition.
-2. `01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md` — live producer/consumer map and corrected repository truth.
-3. `02-MVP-REQUIREMENTS-AND-INVARIANTS.md` — requirements and non-negotiable domain behavior.
-4. `03-FINDINGS-RISK-SECURITY-PERFORMANCE.md` — ranked defects and risk ownership.
-5. `04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md` — identity, mutation, template, issue, discussion, and decision design.
-6. `05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md` — complete Add/Edit modal, Library/Project component, CRUD, row-transfer, and variant-scoped fan-out authority.
-7. `06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md` — exact component-related D1/R2/Queue schema, ownership, migration, and cleanup contract.
-8. `07-BETA-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md` — direct-replacement cleanup and no-compatibility mandate.
-9. `IMPLEMENTATION_PLAN.md` — canonical dependency DAG, file ownership, proof, recovery, and exact next unit.
-10. `TRACEABILITY.md` — requirement-to-unit-to-evidence coverage and criterion challenge.
-11. `LOOP_LEDGER.md` — append-only execution/resume record.
-
-## Cross-Pack Ownership
-
-- This pack is the integration authority for Estimate Sheet producer behavior, component/variant identity, and the issued-review consumer contract.
-- `.ai/03_plans/2026-07-12/Workshop-Library-Audit/` retains standalone library-page work not required by these two MVP paths, such as unrelated AI/promotion/export administration.
-- `.ai/03_plans/2026-07-13/Shared-Link-Page/` remains presentation-history evidence only. Its `COMPLETE` implementation claim does not close the newly evidenced recipient, target-membership, issued-component, decision, financial-scope, or scale gaps.
-- The archived July 12 Client Portal audit is not reactivated. Relevant unresolved evidence is absorbed here because the current user request explicitly requires secure interoperability across both paths.
-
-## Execution Posture
-
-- Start with `UNIT-001`; do not jump to attachment persistence before selected-variant propagation is safe.
-- Use one writer per shared file family. Parallelize only disjoint estimate, recipient-access, and publication lanes described in `IMPLEMENTATION_PLAN.md`.
-- Use current working-tree source, not old pack prose, when they disagree.
-- Run GitNexus impact before changing any indexed symbol. `buildLinkedEstimateRowsSyncStatement` is already assessed HIGH risk and requires an explicit blast-radius warning in the implementation handoff.
-- Automated product tests remain `NOT_REQUIRED` until the user explicitly authorizes them. This pack does not carry a speculative regression-suite workstream.
-- Static source, TypeScript/LSP, lint, D1 dry-run/schema validation, focused runtime diagnostics, and plan validators are the default evidence surfaces.
-
-## Definition Of Done
-
-The pack may be marked complete only when all of the following are evidenced:
-
-- every `REQ-*`, `UX-*`, `DATA-*`, `OPS-*`, `SEC-*`, and `PERF-*` criterion is reconciled against current source;
-- one full Add/Edit modal and one canonical mutation contract own every advanced component edit;
-- no linked row changes selected variants or local overrides implicitly;
-- all multi-row writes either commit completely or fail without partial persistence;
-- every visible tab/branch total is complete or the surface is explicitly read-only/incomplete;
-- templates insert with explicit current-source versus saved-snapshot behavior;
-- issued component anchors are opaque, immutable, and valid only inside their issue;
-- recipients can receive and redeem access, password/credential rotations revoke stale sessions, and hidden-section discussions stay hidden;
-- discussion targets and labels are derived from the issued payload server-side;
-- required-approver rules drive an atomic issue decision state and receipts;
-- public financial views reconcile exactly to the issued total;
-- notification/activity delivery has the correct audience and recoverable outbox state;
-- the active related packs no longer contradict this completion state; and
-- `validate:plan-pack`, `validate:planning-prompts`, `git diff --check`, and final change-scope review pass.
+This implementation reconciliation is complete when the pack and manifest describe the implemented single path without claiming hosted or browser proof, every core component/variant transition maps to source and focused evidence, and remaining release gaps are explicit rather than hidden behind pre-implementation planning language.

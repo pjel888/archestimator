@@ -276,4 +276,4 @@ These are planning budgets, not already-proven measurements:
 
 `NOT_REQUIRED` for this planning run and for package readiness. No automated product test, build, browser, screenshot, or visual QA is authorized by the current request.
 
-The implementation plan uses current-beta acceptance scenarios, not a compatibility or broad regression-suite workstream. If source/static/D1 evidence cannot prove a material invariant, the executor records the exact evidence gap without creating or running tests unless the user creates a separate test task.
+The implementation plan uses current pre-release acceptance scenarios, not a compatibility or broad regression-suite workstream. For this implementation task, the user explicitly authorized focused automated verification of the affected component, variant, Estimate row, attachment, and publication contracts; broader release testing remains outside scope.

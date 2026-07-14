@@ -1,357 +1,324 @@
 # Cloudflare Component Data And Storage Schema
 
-## Scope
+## Authority And Status
 
-This appendix records the current Cloudflare bindings and the complete component-related D1/R2/Queue data path required by the Add/Edit Component, Library component, Project component, variant, upload, and Estimate Sheet row contracts.
+`wrangler.jsonc` is the executable Cloudflare binding source. `migrations/` is the active D1 migration chain. `supabase/migrations/` is historical provider-exit material and is not part of this implementation.
 
-It does not authorize changes to legacy Supabase infrastructure or unrelated Cloudflare projects. `wrangler.jsonc` remains executable provider truth.
+This document records the local implemented schema. It does **not** claim that new migrations are applied to hosted D1 or that hosted R2/Queue/Email behavior has been evaluated.
 
-## Bound Cloudflare Resources
+## Bound Resources Used By This Feature
 
-| Resource | Binding/name | Component responsibility |
+| Resource | Binding | Component-path responsibility |
 | --- | --- | --- |
-| Worker | `archestimator-proof` | application and API runtime |
-| D1 | `ARCH_DB` / `archestimator-proof-db` | component, variant, row, upload, history metadata |
-| R2 | `ARCH_UPLOADS_R2` / `archestimator-proof-uploads` | component images and private attachments |
-| Images | `IMAGES` | image optimization pipeline where used |
-| Queue | `UPLOAD_JOBS_QUEUE` / `archestimator-upload-jobs` | attachment scan/finalization jobs |
-| Queue | `CLIENT_PORTAL_NOTIFICATIONS_QUEUE` | downstream issued-review notifications; not component persistence |
-| Durable Objects | `COLLAB_ROOMS`, `GLOBAL_PRESENCE`, `SUPPORT_INBOX` | unrelated to component persistence |
-| Email | `EMAIL` | unrelated to component persistence |
+| D1 | `ARCH_DB` | component, variant, cost, upload metadata, estimate receipts, publication/discussion state |
+| R2 | `ARCH_UPLOADS_R2` | component images, Project images, component attachments, large issued assets where used |
+| Queue | `UPLOAD_JOBS_QUEUE` | upload lifecycle/cleanup/scan work |
+| Queue | `CLIENT_PORTAL_NOTIFICATIONS_QUEUE` | recipient/owner notification outbox delivery |
+| Email | `EMAIL` | queued Client Portal notification delivery |
 
-`compatibility_date`, `nodejs_compat`, numbered D1 migration files, and Durable Object migration tags such as `v1`/`v2-admin-dashboard` are Cloudflare operational controls. They are not product V1/V2 compatibility promises and must not be renamed or deleted as UI cleanup.
+No additional Cloudflare resource is required for the implemented component graph.
 
-## Logical Relationship Map
+## Canonical Identity Graph
 
 ```text
-workspaces
-  ├─ library_folders
-  ├─ component_suppliers
-  ├─ component_brands
-  ├─ cost_library_items
-  │    ├─ cost_library_item_price_options
-  │    │    ├─ cost_library_item_variant_cost_entries
-  │    │    ├─ cost_library_item_price_history
-  │    │    └─ cost_library_item_variant_attachments
-  │    ├─ cost_library_item_versions
-  │    └─ cost_library_item_state_history
-  ├─ cost_library_component_drafts
-  ├─ upload_sessions
-  ├─ upload_assets
-  │    └─ upload_events
-  └─ projects
-       └─ estimates
-            └─ estimate_row_items
-                 ├─ Library instance: source_library_item_id + selected option snapshot
-                 └─ Project component: project component ID + option graph in JSON
+workspace
+  -> cost_library_items (Library component)
+       -> cost_library_item_price_options (variant)
+            -> cost_library_item_variant_cost_entries (cost history/current cost)
+            -> component_variant_attachments [owner_scope=library]
+                 -> upload_assets -> R2 object
+       -> cost_library_item_versions
+       -> linked estimate/template rows
+
+project
+  -> estimate_row_items.source_snapshot_json/metadata_json (Project component graph)
+       -> stable sourceComponentId
+       -> ordered priceOptions[] and selected priceOptionId
+       -> component_variant_attachments [owner_scope=project]
+            -> upload_assets -> R2 object
+       -> project_component_attachment_retention_holds
 ```
 
-R2 ownership is joined through `upload_sessions`/`upload_assets` and the component/variant descriptors or attachment binding table. A bare public URL is not authoritative ownership.
+Project components intentionally do not add a master table. Their stable identity and bounded option graph live in estimate-row source receipts; the D1 row action keeps same-component instances consistent inside one project.
 
-## Current D1 Component Schema
+## Library Component Tables
 
 ### `component_category_nodes`
 
-Source: `migrations/0026_component_promotion_support.sql`.
-
-Columns:
-
-- `id` primary key;
-- `parent_id` self-reference, `ON DELETE SET NULL`;
-- `label`, `node_type`, `sort_order`, optional `code`;
-- `metadata` valid JSON object; and
-- `created_at`, `updated_at`.
-
-Index: parent/sort/label.
+Taxonomy hierarchy: `id`, parent, label/type, sort order, code, JSON metadata, timestamps.
 
 ### `library_folders`
 
-Columns:
-
-- `id`, `workspace_id`, `parent_id`;
-- `name`, `sort_order`;
-- optional `source_category_node_id`;
-- `folder_kind` in `taxonomy|custom`;
-- `created_by`, `created_at`, `updated_at`; and
-- unique workspace/parent/name.
-
-Index: workspace/parent/sort/name.
+Workspace-scoped component organization: `workspace_id`, parent folder, name, sort order, optional taxonomy relation, folder kind, creator, timestamps.
 
 ### `cost_library_items`
 
-Current columns after migrations `0026`, `0028`, and `0075`:
+Library component master:
 
-- identity/ownership: `id`, `workspace_id`, `created_by`;
-- catalogue: `name`, `description`, `category`, `category_node_id`, `library_folder_id`;
-- supplier/brand: `supplier`, `supplier_id`, `brand`, `brand_id`;
-- active display/cost projection: `unit`, `unit_cost`, `misc_cost`, `active_price_option_id`;
-- lifecycle: `lifecycle_state`, `lifecycle_state_changed_at`, `lifecycle_state_changed_by`;
-- pricing/media: `pricing_source`, `pricing_date`, `thumbnail_path`;
-- revision/audit: `current_version_number`, `source_estimate_row_item_id`, `metadata_json`, `created_at`, `updated_at`.
+- `id`, `workspace_id`;
+- name, description, category/category node;
+- folder, supplier/supplier ID, brand/brand ID;
+- current unit/cost summary and active price option;
+- lifecycle state and lifecycle-change audit;
+- `current_version_number`;
+- pricing date/source, thumbnail path;
+- source promotion row receipt;
+- JSON metadata, creator, timestamps.
 
-The removed `confidence` column is not part of the current product contract.
-
-Indexes/constraints:
-
-- workspace/lifecycle/updated;
-- workspace/folder/name;
-- source estimate row when present;
-- unique workspace/source row;
-- lifecycle values are constrained to `draft|in_production|available|discontinued|archived`.
+Migration `0075` removes obsolete component-confidence columns. Confidence is not part of the current component contract.
 
 ### `cost_library_item_price_options`
 
-Current columns after `0026` and `0075`:
+Variant identity and searchable current summary:
 
-- `id`, `workspace_id`, `item_id` with component cascade;
-- `label`, `unit`, `unit_cost`, `misc_cost`, `currency`;
-- `is_active`, `is_default`;
-- `supplier_id`, `pricing_source`;
-- `metadata_json`;
-- `created_at`, `updated_at`.
+- `id`, `workspace_id`, `item_id`;
+- label, unit, unit/misc cost, currency;
+- active/default flags;
+- supplier/pricing source;
+- JSON metadata containing the remaining variant descriptor fields;
+- timestamps;
+- unique composite `(workspace_id, item_id, id)` used by attachment ownership.
 
-Indexes: item/active/default and workspace/updated.
-
-Variant metadata currently carries fields that do not have first-class columns, including SKU, description, sort order, pricing date/source URL/notes, package/dimensions/mass, image bucket/path/thumbnail/metadata, variant metadata, and active cost entry ID.
+The application graph projects metadata into SKU, description, sort order, pricing date/source URL/notes, package/dimensions/mass, image bucket/path/thumbnail/metadata, variant metadata, and active cost-entry identity.
 
 ### `cost_library_item_variant_cost_entries`
 
-Current columns after `0028` and `0075`:
+Variant cost records:
 
-- `id`, `workspace_id`, `item_id`, `price_option_id`;
-- `unit_cost`, `misc_cost`, `currency`;
-- `pricing_source`, `pricing_date`, `source_url`, `notes`;
-- `is_current`, `deleted_at`, `metadata_json`;
-- `created_at`, `updated_at`.
+- `workspace_id`, `item_id`, `price_option_id`;
+- unit/misc cost, currency;
+- pricing source/date/source URL/notes;
+- current/deleted state and JSON metadata;
+- timestamps;
+- composite ownership uniqueness.
 
-All item/option/workspace relations cascade. Index: option/current/deleted. The action layer must enforce exactly one non-deleted current entry per active option inside the save transaction.
-
-### `cost_library_item_variant_attachments`
-
-Source: `migrations/0022_component_attachment_metadata.sql`.
-
-Columns:
-
-- identity/link: `id`, nullable `price_option_id`, nullable `item_id`, `workspace_id`;
-- storage: fixed `storage_bucket='component-attachments'`, unique `storage_path`;
-- file: `file_name`, allowed PDF/Excel `content_type`, positive `size_bytes`, `attachment_kind`;
-- metadata/audit: `metadata_json`, `created_by`, `created_at`, `updated_at`;
-- review: `review_status`, `applicable_cost_entry_id`, `is_current_approved`, `reviewed_by`, `reviewed_at`, `review_note`, `review_revision`;
-- supersession: `superseded_by` self-reference.
-
-Indexes: workspace/path, workspace/review/current, price option/created, item/created.
-
-**Schema defect:** `price_option_id` and `item_id` are plain text with no foreign keys because this table was created before the component tables. The schema permits orphan or cross-item attachment bindings. This must be repaired by a direct table rebuild to the current target shape, not by adding a second compatibility table.
+The graph action enforces one current non-deleted cost entry for each active submitted variant.
 
 ### `cost_library_item_versions`
 
-Columns: `id`, `item_id`, `workspace_id`, `version_number`, `snapshot_json`, `change_summary`, `change_reason`, `effective_at`, `created_by`, `created_at`.
+Immutable component snapshots and revision history: item/workspace, monotonically increasing `version_number`, full component/price-option snapshot, summary/reason/effective time/actor.
 
-Constraints: unique item/version; index item/version descending.
+This number is an internal data revision and concurrency receipt. It is not a product API version.
 
-`version_number` is an internal optimistic-concurrency/audit revision. It is not a released product API version.
+### `cost_library_item_price_history` and `cost_library_item_state_history`
 
-### `cost_library_item_price_history`
-
-Columns: `id`, `price_option_id`, `item_id`, `workspace_id`, `operation_key`, `old_snapshot`, `new_snapshot`, `change_reason`, `effective_at`, `created_by`, `created_at`.
-
-Constraint: unique item/operation key. Index: item/created.
-
-### `cost_library_item_state_history`
-
-Columns: `id`, `item_id`, `workspace_id`, `from_state`, `to_state`, `operation_key`, `effective_at`, `change_reason`, `created_by`, `created_at`.
-
-Constraint: unique item/operation key. Index: item/created.
+Idempotent operation-key histories for option pricing and lifecycle changes.
 
 ### `component_suppliers` and `component_brands`
 
-Each contains `id`, `workspace_id`, `name`, `normalized_name`, `sort_order`, `metadata_json`, `created_at`, `updated_at`, with unique workspace/normalized name and workspace sort indexes.
+Workspace-scoped normalized catalogue identities used by component input and filtering.
 
 ### `cost_library_component_drafts`
 
-Columns: `id`, `workspace_id`, `created_by`, `title`, `draft_json`, `status`, `converted_item_id`, `created_at`, `updated_at`, `converted_at`, `discarded_at`.
+Bounded active modal drafts with workspace/creator, title, JSON payload, status, and timestamps. Draft persistence is separate from component save.
 
-Constraints/triggers:
+## Attachment Ownership Migration
 
-- status in `active|converted|discarded`;
-- valid JSON object;
-- maximum 65,536-byte draft JSON;
-- maximum 100 active drafts per workspace; and
-- indexes by workspace/status and workspace/creator.
+### Previous shape
 
-## Upload Metadata Schema
+`cost_library_item_variant_attachments` was Library-only and lacked an immutable upload-asset foreign key. Ownership relied too heavily on repeated path/metadata values.
+
+### Current target shape: `component_variant_attachments`
+
+`migrations/0076_component_attachment_ownership.sql` performs a fail-closed preflight, copies every valid Library row, verifies row counts/foreign keys, replaces the old table, and creates owner-specific indexes.
+
+Core columns:
+
+- `id`;
+- `owner_scope`: `library` or `project`;
+- `price_option_id`;
+- Library owner: `item_id`;
+- Project owner: `project_id`, `project_component_id`;
+- `workspace_id`;
+- unique, non-null `upload_asset_id` referencing `upload_assets` with `ON DELETE RESTRICT`;
+- `storage_bucket`, unique `storage_path`, name, MIME, size, kind;
+- JSON metadata;
+- review state/current-approved state and review audit;
+- optional Library cost-entry applicability;
+- supersession relation/revision;
+- timestamps.
+
+Owner checks are exclusive:
+
+```text
+library => item_id present; project_id/project_component_id absent
+project => item_id absent; project_id/project_component_id present
+```
+
+Library rows also carry a composite foreign key to `(workspace_id, item_id, price_option_id)`. Project rows carry `(project_id, workspace_id)` ownership and the application D1 action validates that `price_option_id` belongs to the submitted Project component graph.
+
+### Migration preflight
+
+Migration `0076` aborts if any old attachment has:
+
+- missing/blank item or option identity;
+- unknown workspace;
+- option outside the same item/workspace;
+- zero or multiple matching finalized upload assets;
+- cost entry outside the same owner tuple; or
+- invalid supersession target.
+
+This is intentionally fix-forward and destructive only after current data passes the audit. It is not a dual-write compatibility migration.
+
+## Upload Metadata Tables
 
 ### `upload_sessions`
 
-Columns:
+Reservation/finalization record:
 
-- `id`, `workspace_id`, `actor_user_id`;
-- `surface` in `project-image|component-image|component-attachment`;
-- target entity type/ID;
-- storage bucket/path;
-- file name/type/size/checksum;
-- status in `reserved|pending|finalized|failed|expired|deleted|aborted`;
-- expiry, metadata JSON, created/updated timestamps.
+- workspace/actor;
+- surface: `project-image`, `component-image`, or `component-attachment`;
+- target type/ID;
+- storage bucket/path, file descriptor/checksum;
+- lifecycle state and expiry;
+- JSON metadata and timestamps.
 
-Indexes: workspace/created and active admission capacity.
+Project-component attachment sessions carry `projectId` and stable `projectComponentId` in metadata/target identity.
 
 ### `upload_assets`
 
-Columns:
+Durable immutable upload receipt:
 
-- identity/ownership: `id`, `workspace_id`, actor, optional project/estimate, upload session;
-- surface/target fields;
-- status in `reserved|pending|finalized|deleted|removed|failed|aborted`;
-- file name/type/size/checksum;
-- scan status/provider/result/timestamp;
-- scan override actor/reason/expiry/checksum;
+- workspace/actor and optional project/estimate;
+- session/surface/target identity;
+- finalized/deleted/removed/failure state;
+- file descriptor/checksum;
+- scan state/provider/result and override audit;
 - storage bucket/path/thumbnail;
-- metadata JSON and timestamps.
+- JSON metadata and timestamps.
 
-Indexes: scan override queue, workspace/created, project/created.
+Every persisted component attachment binds exactly one finalized asset ID. A path alone is not authoritative ownership.
 
 ### `upload_events`
 
-Columns: `id`, upload session/asset, workspace/actor, `event_type`, `metadata_json`, `created_at`.
+Append-only upload/session/asset audit events used by lifecycle and delivery proof.
 
-Indexes: asset/created and workspace/created.
+## R2 Object Contracts
 
-## Estimate Row Storage Contract
+### Images
 
-The current `estimate_row_items` shape is rebuilt in `migrations/0073_estimate_calculation_input_constraints.sql`.
+- Library component images are component/workspace owned.
+- Project component images are project owned.
+- The modal persists descriptors and upload asset identity, not an arbitrary public URL.
+- Private authoring uses authenticated broker routes.
+- Issued projection drops local broker URLs containing raw `path` query values.
+- Already public `/component-thumbnails/...` URLs remain usable.
 
-Component-relevant columns:
+### Attachments
 
-- identity/location: `id`, `estimate_id`, `node_id`, `sort_order`;
-- visible component values: `material`, `description`, `supplier`, `supplier_id`, `unit`, `unit_cost`;
-- row-owned values: quantity fields, contingency, adjustment, miscellaneous cost, discipline, designation;
-- source receipt: `source_library_item_id`, `link_state`, `source_snapshot_json`, `metadata_json`, `category_node_id`;
-- concurrency: `row_revision`, `created_at`, `updated_at`.
+- logical bucket name is `component-attachments` behind `ARCH_UPLOADS_R2`;
+- supported first-user types are PDF, XLS, XLSX;
+- object path must be non-empty, normalized, unique, and free of traversal/double-separator forms;
+- new metadata is written only from a finalized upload asset;
+- download requires permission, readable review state, finalized matching upload asset, and a passing scan gate;
+- draft cleanup rejects persisted attachment paths;
+- delete/supersede marks metadata/assets before asynchronous/object cleanup as appropriate.
 
-Indexes: estimate/sort, node, and partial source Library item.
-
-### Library instance JSON receipt
-
-The bounded source snapshot must include:
-
-- component ID/type/version/update timestamp;
-- selected option ID/label;
-- active option summaries required by the row selector;
-- component fields and selected option-derived values;
-- lifecycle/category/supplier/brand/media receipt; and
-- no private attachment URL or raw cross-tenant storage secret.
-
-### Project component JSON authority
-
-Project component identity is stored in source/metadata JSON and shared by its instances inside one project. Its option graph must contain stable option IDs and one explicit default. Each row still stores its own selected option ID.
-
-## R2 And Upload Policies
-
-### Component images
-
-- logical bucket: `component-images` in `ARCH_UPLOADS_R2`;
-- maximum 12 MiB and 24 million pixels;
-- JPEG/PNG/WebP/AVIF;
-- scan not required;
-- component/workspace-owned path; and
-- saved descriptor includes bucket/path/thumbnail, not only a public URL.
-
-### Component attachments
-
-- logical bucket: `component-attachments` in `ARCH_UPLOADS_R2`;
-- maximum 20 MiB;
-- PDF/XLS/XLSX only;
-- private/brokered download;
-- malware scan required through `UPLOAD_JOBS_QUEUE`; and
-- cannot become usable component metadata before the clean or authorized override state.
-
-## Required Upload-to-Variant State Machine
+## Upload And Attachment State Machine
 
 ```text
 reserve session
-  -> write R2 object
-  -> finalize upload asset
-  -> queue/complete scan when required
-  -> save component transaction binds asset/path to item + option
-  -> authoritative detail read exposes safe metadata
+  -> upload R2 bytes
+  -> finalize upload_assets row
+  -> attach asset to one Library/Project variant in graph transaction
+  -> uploaded/readable through private scan broker
+  -> optional approved/rejected/superseded review transition
+  -> removal/cleanup after ownership and restore-window checks
 ```
 
-Failure paths:
+Failure ordering:
 
-- modal discard before save: remove newly owned object and mark asset/session aborted/removed;
-- failed component save: retain only a short cleanup grace period, then remove unclaimed object;
-- variant replacement: bind new object, then remove/supersede prior binding after successful transaction;
-- variant delete: block if in use, then remove/supersede attachment bindings and queue object cleanup;
-- component delete: detach Estimate rows first, then remove component-owned metadata/objects according to retention policy;
-- expired session/orphan asset: existing cleanup job removes unclaimed storage safely.
+- uploaded but unsaved: draft cleanup may remove the asset/object;
+- saved/persisted: draft cleanup must return conflict and cannot delete it;
+- Project last-instance delete: retention hold preserves attachment metadata through restore window;
+- Project restore: row and hold release happen in one batch;
+- retention expiry: only supersede/remove when no live instance exists;
+- Library source delete: owned attachment assets are marked removed before source deletion in the same atomic batch.
 
-## Confirmed Schema/Write Gaps
+## Estimate Row Storage
 
-1. Attachment `item_id`/`price_option_id` lack foreign keys and same-item/workspace enforcement.
-2. Component create/update action plans never write attachment binding rows.
-3. `active_price_option_id` is not a declared foreign key and must be validated transactionally.
-4. D1 does not itself enforce one default active option or one current cost entry; action and/or targeted unique indexes must do so.
-5. linked Estimate rows have no relational `price_option_id` column; selection lives in JSON, so all fan-out queries must extract/validate it consistently.
-6. Library row fan-out currently writes one active/default option to every row.
-7. Project component option authority is duplicated in row snapshots without a deterministic merge/update contract.
-8. optimistic UI objects can diverge from saved D1 identities and attachment bindings.
+`estimate_row_items` stores the row-owned calculation columns plus:
 
-## Fix-Forward Schema Plan
+- `source_library_item_id`;
+- `link_state`;
+- `row_revision`;
+- `source_snapshot_json`;
+- `metadata_json`;
+- category/supplier relations and timestamps.
 
-### Migration A — Attachment relational repair
+### Library receipt
 
-Rebuild `cost_library_item_variant_attachments` once with:
+The source snapshot contains a bounded component/option catalogue and the row's selected option, component version, source update receipt, safe image projection, and source identity. Library attachment ownership is not copied into row snapshots used for fan-out/publication.
 
-- `item_id NOT NULL REFERENCES cost_library_items(id) ON DELETE CASCADE`;
-- `price_option_id NOT NULL REFERENCES cost_library_item_price_options(id) ON DELETE CASCADE`;
-- optional `upload_asset_id REFERENCES upload_assets(id) ON DELETE SET NULL`;
-- same existing review/storage constraints and indexes; and
-- a guarded data copy that rejects or quarantines orphan/mismatched rows before swap.
+### Project receipt
 
-The save action additionally verifies the option belongs to the item and workspace. SQLite cannot express that whole composite invariant with the current primary keys alone.
+The source snapshot/metadata contains:
 
-### Migration B — Database invariants
+- `sourceType: "project_component"`;
+- stable `sourceComponentId`;
+- source row/project receipt;
+- selected `priceOptionId` and label;
+- complete bounded sanitized `priceOptions` graph;
+- Project attachment descriptors bound to stable Project ownership; and
+- component-derived fields required for row rendering/calculation.
 
-Prefer targeted unique indexes where current data permits:
+The authoritative D1 action updates all same-project instances by stable component ID and preserves each row's selected option and local calculation fields.
 
-- one active default option per item/workspace;
-- one non-deleted current cost entry per option; and
-- one current approved attachment per option/cost-entry scope when the product rule requires it.
+## Project Attachment Retention
 
-If SQLite partial-index limitations or existing data prevent a direct index, keep a single transaction validator; do not create shadow compatibility columns.
+`migrations/0079_project_component_attachment_retention.sql` creates `project_component_attachment_retention_holds` keyed by source delete event and attachment. It records workspace/project/component ownership, asset identity, restore expiry, release time/reason, and indexes unreleased expiry.
 
-### Migration C — Optional row selection column only if justified
+Release reasons are `restored`, `expired`, or `live_instance`. This supports undo without making Project attachments immortal.
 
-The preferred lean path is to keep selected option identity in the existing bounded source snapshot and centralize JSON extraction. Add a first-class `selected_price_option_id` row column only if query/constraint requirements cannot be met cleanly. Do not duplicate it merely for convenience.
+## Issued Projection And Client Portal Tables
 
-## Pre-Migration Data Audit
+### Component/variant discussion target support
 
-The implementation unit must inspect and reconcile:
+`migrations/0077_client_portal_component_discussion_targets.sql` rebuilds thread/message/read/subscription/mention tables with:
 
-- items with zero active variants;
-- items with zero or multiple active defaults;
-- options whose `item_id`/`workspace_id` mismatch;
-- current cost entry count per option;
-- attachment rows with missing/mismatched item/option/upload asset;
-- attachment storage paths referenced by more than one intended owner;
-- Library-linked rows whose selected option is absent/inactive;
-- rows whose snapshot component ID disagrees with `source_library_item_id`;
-- Project component groups with divergent option graphs/defaults; and
-- unclaimed component R2 assets outside the cleanup grace period.
+- target kinds including `estimate`, `estimate_tab`, `area_group`, `row`, and `component`;
+- issue/section target indexes;
+- message visibility and idempotency constraints; and
+- client-visible message indexes.
 
-Repairs are fix-forward and scoped to the bound `ARCH_DB`/`ARCH_UPLOADS_R2`. No legacy Supabase mutation is part of this pack.
+### Bounded estimate projection
 
-## Transaction And Read-Back Invariants
+`migrations/0078_client_portal_estimate_row_projection.sql` adds:
 
-- Component, option, cost, attachment, version, and linked-row writes succeed or fail together.
-- Every update checks expected component version/update timestamp plus the current affected-row fingerprint.
-- Option IDs survive rename/reorder.
-- Default changes never change an existing row's selected option.
-- Linked row reconciliation resolves values from that row's selected option.
-- Project reconciliation is limited to one project and one logical component identity.
-- API results return authoritative IDs/revisions or perform an immediate authoritative detail read.
-- R2 deletion never precedes the successful D1 mutation that removes the last valid reference.
+- `client_portal_issue_estimate_projections`: section, payload hash, summary, row count;
+- `client_portal_issue_estimate_rows`: issued estimate/tab/row identity, branch membership, search text, immutable row JSON, and page index.
 
-## Beta Simplification Boundary
+These tables store public/issued receipts, never live Library IDs or private attachment paths.
 
-Keep numbered D1 migrations, component/row revisions, issue content revisions, and Cloudflare migration tags because they are operational ordering and concurrency controls. Remove user-facing/product V1/V2 language, duplicate editors, dual payload contracts, fallbacks, and unused legacy adapters after current data is proven clean.
+### Notification delivery
+
+Owner/recipient discussion and decision events write outbox rows in D1. `CLIENT_PORTAL_NOTIFICATIONS_QUEUE` receives opaque outbox IDs; the consumer leases the row, delivers through `EMAIL`, and acknowledges/retries/dead-letters without placing raw invite/token material in queue payloads.
+
+## Transaction Invariants
+
+1. One component save submits one complete graph.
+2. Component, option, current cost, attachment, asset, version, and linked-row changes commit together or fail together.
+3. Library save is guarded by component revision and linked-impact fingerprint.
+4. Project save is guarded by row revision and Project-component impact fingerprint.
+5. Selected option is preserved per row unless that exact option is explicitly removed with a replacement.
+6. Row-local calculation inputs never fan out.
+7. Authoritative detail/tree read-back precedes success reconciliation.
+8. Attachments never transfer ownership by copying an ID/path into a different owner graph.
+
+## Local Evidence
+
+- migration ownership/preflight: `tests/vitest/component-attachment-ownership-migration.test.ts`
+- private attachment lifecycle/scan broker: `tests/vitest/component-library-attachment-lifecycle.test.ts`
+- upload client targets: `tests/vitest/upload-component-attachment-client.test.ts`
+- Project variant attachment graph: `tests/vitest/estimate-actions-d1-reorder-history.test.ts`
+- Project last-instance retention: `tests/vitest/project-component-attachment-retention.test.ts`
+- promotion graph: `tests/vitest/express-promotion-action.test.ts`
+- public image redaction/receipts: `tests/vitest/project-publication-snapshot.test.ts`
+- Client Portal projection/targets/notifications: focused Client Portal test files listed in `TRACEABILITY.md`
+
+## Remaining Provider Boundary
+
+- Migrations `0076`–`0079` are present locally but hosted application is `NOT_EVALUATED`.
+- Hosted R2 object existence/cleanup and scan-provider behavior are `NOT_EVALUATED`.
+- Hosted Queue/Email delivery is `NOT_EVALUATED`.
+- No deployment or production mutation is claimed by this pack reconciliation.
