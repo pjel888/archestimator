@@ -6,6 +6,20 @@
 > **read-only audit** of `/workshop/library` and everything it touches. No code,
 > migrations, config, or provider state was changed to produce this pack.
 
+> ## ⚠️ READ BEFORE ACTING — audit is partially stale (reconciled 2026-07-14)
+>
+> Source moved after the 2026-07-12 audit (commits `837251941`, `973e15cc4`,
+> `9ee7f9a30`, `ad2187d23`, …). **3 of the 16 headline P1s are already FIXED in
+> current source** (BUG-VA-02, BUG-DOM-01, BUG-DOM-04) and BUG-DOM-05 is
+> half-fixed; BUG-DOM-28's "flag-gated off" claim is stale (no flag exists).
+> **Do not implement from `02`/`03` line numbers blindly.** For
+> implementation-readiness, per-finding recommended actions, the executable unit
+> DAG, and the anti-over-engineering contract, read
+> **[`09-IMPLEMENTATION-READY-RECONCILIATION.md`](09-IMPLEMENTATION-READY-RECONCILIATION.md)**
+> first — it reconciles every P1 against HEAD `ad2187d23` with current file:line
+> evidence. The authoritative P1 implementation queue is 9 OPEN / 3 FIXED /
+> 1 PARTIAL / 3 DEFERRED, not the "16 P1" headline below.
+
 ## Outcome (what this pack delivers)
 
 A comprehensive, evidence-grounded audit of the `/workshop/library` surface that
@@ -43,6 +57,7 @@ cross-reference.
 | `06-TEMPLATES-SURFACE.md` | deep-dive | Templates browse + editor + insert-into-estimate + the stale-link blindness defect |
 | `07-DOMAIN-AND-INDUSTRY-STANDARDS.md` | deep-dive | Money/float precision, UOM/content-conversion, estimate↔library link, archive lifecycle, concurrency/locking, audit-trail completeness, telemetry — the **industry-standard domain** gaps |
 | `08-SCALABILITY-AND-OPERATIONS.md` | deep-dive | Search-at-scale (no FTS5), pagination/unbounded reads, observability, i18n/localization, multi-user cache staleness, bulk-op safety, data export/portability — the **startup-scalability** gaps |
+| **`09-IMPLEMENTATION-READY-RECONCILIATION.md`** | **implementation-ready** | **Drift reconciliation vs HEAD + executable unit DAG (U1–U6) + per-finding recommended actions + anti-over-engineering/anti-over-testing contract. Authoritative for implementation; read first.** |
 
 No `plan-pack.json` manifest is emitted because this is an **audit-only** pack
 (no implementation units, gates, or status tuple to enforce). Emitting a
@@ -82,6 +97,13 @@ the canonical next step (see `03` §"Turning this into implementation work").
 - Mutating D1, R2, Git, or any provider.
 
 ## Status snapshot (2026-07-12)
+
+> **Implementation-readiness updated 2026-07-14** in
+> `09-IMPLEMENTATION-READY-RECONCILIATION.md`: reconciled against HEAD
+> `ad2187d23` → **9 P1 OPEN (units U1–U6) · 3 FIXED (VA-02, DOM-01, DOM-04) ·
+> 1 PARTIAL (DOM-05) · 3 DEFERRED (SEC-04, OPS-14, SEC-09 — latent)**. The
+> counts below are the audit-time (2026-07-12) values and over-count relative to
+> the reconciled queue; trust `09` for implementation scope.
 
 | Field | Value | Notes |
 |---|---|---|
@@ -161,7 +183,8 @@ Critical round-trip contract (resolved in 04 §3):
 
 ## Resume pointer
 
-- **Start here for bugs:** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity.
+- **🚧 Start here for implementation (authoritative):** `09-IMPLEMENTATION-READY-RECONCILIATION.md` — drift table + unit DAG (U1–U6) + recommended actions + guardrails. Reconciled 2026-07-14 vs HEAD `ad2187d23`.
+- **Start here for bugs (raw register, partially stale — verify line numbers):** `02-BUG-AND-RISK-REGISTER.md` — sorted by severity.
 - **Start here for architecture:** `01-CURRENT-STATE-MAP.md`.
 - **Start here for the component/variant value stream:** `04-VARIANT-AND-COMPONENT-FLOW.md`.
 - **Start here for UX/UI/design:** `05-UX-UI-DESIGN-ANALYSIS.md`.
@@ -265,9 +288,16 @@ authorize the matching testing/visual/load surface and this pack will extend.
 
 **The audit pack is COMPLETE against this criterion:**
 
-1. **All 11 P1 defects have file:line source evidence** (verified: every P1
+> **P1 count note (2026-07-14):** the audit iterated to "v12" and the P1 tally
+> drifted across sections — "11 P1" here, "16 P1" in the status table. The
+> **implementation-authoritative** count is in `09`: **9 OPEN / 3 FIXED / 1
+> PARTIAL / 3 DEFERRED** vs current HEAD. Treat the numbers in this section as
+> audit-time provenance, not as the implementation queue.
+
+1. **All P1 defects have file:line source evidence** (verified: every P1
    entry in `02` cites at least one `src/` or `migrations/` path with a line
-   number) and a recommended fix surface. ✅
+   number) and a recommended fix surface. ✅ (Reconciled + drift-corrected in
+   `09`.)
 2. **All P2/P3 defects are filed with evidence and a recommended surface.** ✅
 3. **Every dimension in the coverage matrix has been investigated to
    source-evidenced depth** (20 ✅ items above), including the estimating-domain
