@@ -1,3 +1,49 @@
+## 2026-07-14 shared component inline editing and compact variant labels QA
+
+source visual truth path:
+- `/var/folders/xg/_lqq86w138vctk9_ll6g8h840000gn/T/codex-clipboard-a2d1cf41-897b-4ad9-88f2-c5a3929bc533.png`
+- The source screenshot shows estimate-row variants competing with material content because a custom variant name is rendered in the compact control. The requested target is the existing dense-row convention: `V1`, `V2`, and so on.
+
+implementation screenshot path:
+- blocked: the chosen authenticated surface is the Codex in-app browser, and the bundled browser client fails before capture with `TypeError: Cannot redefine property: process` from `browser-client.mjs:33:22`.
+- I did not switch to Playwright, Chrome, or another browser because Product Design browser-choice rules require the user's selected browser.
+
+viewport: authenticated in-app browser desktop estimate route.
+
+state: `/workshop/projects/5807fe5d-cbec-4fef-ad9c-c1bd1910691a/estimates/e336648f-2151-48c9-9653-d91892cb9aa4`, estimate rows containing linked/shared component variants plus the shared-edit impact dialog source state.
+
+full-view comparison evidence:
+- unavailable: the implementation could not be captured from the selected browser, so no full-view visual comparison was performed.
+
+focused region comparison evidence:
+- Source region: the material cell in the provided screenshot, where the second row shows the human variant name instead of a compact ordinal.
+- Current renderer evidence: `MaterialVariantControl` derives its visible trigger and every dropdown item from the active option index (`V1`, `V2`, etc.); the persisted human label remains data only and is not rendered by this estimate-row control.
+- A rendered focused-region comparison remains unavailable because of the browser client failure above.
+
+findings:
+- [P2] Rendered visual proof is unavailable.
+  Location: authenticated estimate-sheet material cells and shared-edit dialog.
+  Evidence: the source screenshot is available, but the selected in-app browser cannot be captured because its bundled client fails during initialization.
+  Impact: QA cannot honestly claim a visual pass for alignment, typography, spacing, dropdown state, or modal layout.
+  Fix: restore the bundled in-app browser client, then capture the same route/state and compare it with the supplied screenshot at the same viewport.
+
+comparison history:
+- Earlier source finding: a custom variant name occupied the compact row variant slot.
+- Fix present in the current implementation: both the closed trigger and open menu use ordinal `V#` labels derived from option order.
+- Post-fix visual evidence: blocked by the in-app browser client initialization error; no visual pass is claimed.
+
+patches made:
+- Kept human variant names in persisted component data while restricting estimate-row presentation to compact ordinal labels.
+- Added exact multi-instance impact confirmation, atomic stale-impact guards, project-specific library conversion, and fresh cross-project component identity in the surrounding shared-edit flow.
+
+verification:
+- `bun run type-check` passed.
+- Focused ESLint passed with zero errors; nine unrelated/pre-existing warnings remain in the checked files.
+- Scoped `git diff --check` passed.
+- No product test suite or alternate browser automation was run.
+
+final result: blocked
+
 ## 2026-07-11 publisher workspace remake QA
 
 source visual truth path:
