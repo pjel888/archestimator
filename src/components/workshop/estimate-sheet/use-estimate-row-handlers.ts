@@ -14,6 +14,7 @@ import {
   withExpressComponentMetadata,
 } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
+import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import type { Json } from "@/lib/types/json";
 
 import { findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -526,6 +527,9 @@ export function useEstimateRowHandlers({
     if (expressFieldNames.length > 0) {
       recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
     }
+    const priceOptionsSnapshot = values.priceOptions !== undefined
+      ? sanitizeEstimateRowPriceOptionsSnapshot(values.priceOptions)
+      : undefined;
     const sourceSnapshotPatch = values.name !== undefined
       || values.description !== undefined
       || values.supplier !== undefined
@@ -542,6 +546,7 @@ export function useEstimateRowHandlers({
       || values.sku !== undefined
       || values.priceOptionId !== undefined
       || values.priceOptionLabel !== undefined
+      || values.priceOptions !== undefined
       || values.pricingDate !== undefined
       || values.pricingSource !== undefined
       || values.lifecycleState !== undefined
@@ -564,6 +569,7 @@ export function useEstimateRowHandlers({
           ...(values.sku !== undefined ? { sku: nullableTrimmedText(values.sku) } : {}),
           ...(values.priceOptionId !== undefined ? { priceOptionId: nullableTrimmedText(values.priceOptionId) } : {}),
           ...(values.priceOptionLabel !== undefined ? { priceOptionLabel: nullableTrimmedText(values.priceOptionLabel) } : {}),
+          ...(values.priceOptions !== undefined ? { priceOptions: priceOptionsSnapshot ?? [] } : {}),
           ...(values.pricingDate !== undefined ? { pricingDate: nullableTrimmedText(values.pricingDate) } : {}),
           ...(values.pricingSource !== undefined ? { pricingSource: nullableTrimmedText(values.pricingSource) } : {}),
           ...(values.lifecycleState !== undefined ? { lifecycleState: values.lifecycleState ?? null } : {}),

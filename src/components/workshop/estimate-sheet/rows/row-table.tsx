@@ -73,6 +73,7 @@ function getVariantImageUrl(option: MaterialVariantOption, fallbackImageUrl?: st
 
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
+  canManageLibrary?: boolean;
   items: EstimateRowItem[];
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
@@ -83,6 +84,7 @@ export type EstimateRowItemsTableProps = {
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
+  onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
@@ -129,6 +131,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
   if (
     prev.items !== next.items ||
     prev.canEditEstimate !== next.canEditEstimate ||
+    prev.canManageLibrary !== next.canManageLibrary ||
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
     prev.targetNodeId !== next.targetNodeId ||
@@ -138,6 +141,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onReplaceRowItem !== next.onReplaceRowItem ||
     prev.onDeleteRowItem !== next.onDeleteRowItem ||
     prev.onUpdateRowItem !== next.onUpdateRowItem ||
+    prev.onUpdateLinkedLibraryComponent !== next.onUpdateLinkedLibraryComponent ||
     prev.onMarkRowDirty !== next.onMarkRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
@@ -258,6 +262,7 @@ function getEstimateRowDropEdge(event: DragEvent<HTMLTableRowElement>) {
 
 type EstimateRowItemTableRowProps = {
   canEditEstimate: boolean;
+  canManageLibrary: boolean;
   item: EstimateRowItem;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
@@ -272,6 +277,7 @@ type EstimateRowItemTableRowProps = {
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
+  onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
@@ -299,6 +305,7 @@ type EstimateRowItemTableRowProps = {
 
 const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   canEditEstimate,
+  canManageLibrary,
   item,
   brandOptions,
   supplierOptions,
@@ -313,6 +320,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onReplaceRowItem,
   onDeleteRowItem,
   onUpdateRowItem,
+  onUpdateLinkedLibraryComponent,
   onMarkRowDirty,
   onOpenRowDetails,
   onOpenComponentEditor,
@@ -340,7 +348,12 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   reportEstimateRowItemRender(item.id);
   const editableRowStore = useEditableRowStore();
   const storedEditableRow = useStore(editableRowStore, (state) => state.rows[item.id]);
-  const isInlineEditableComponentRow = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
+  const isLinkedSharedComponent = Boolean(item.sourceLibraryItemId)
+    && item.linkState !== "detached"
+    && item.linkState !== "unlinked";
+  const isInlineEditableComponentRow = isExpressComponentRow(item)
+    || isBlankEstimateRowItem(item)
+    || (isLinkedSharedComponent && canManageLibrary && Boolean(onUpdateLinkedLibraryComponent));
   const computedItem = useMemo(() => {
     const resolvedEditableRow = storedEditableRow ?? getInitialEditableRow(item);
     const amountEditableRow = isInlineEditableComponentRow ? resolvedEditableRow : { ...resolvedEditableRow, unitCost: String(item.itemCost) };
@@ -461,7 +474,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   function updateExpressEditableRow(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
     editableRowStore.getState().updateRow(item, values);
-    onMarkRowDirty(item.id);
+    if (!isLinkedSharedComponent) onMarkRowDirty(item.id);
   }
 
   function commitExpressFields(values: Partial<EditableRowValue>) {
@@ -477,7 +490,12 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     if (values.imageUrl !== undefined && nextValues.imageUrl !== (item.imageUrl ?? "")) patch.imageUrl = nextValues.imageUrl;
     if (values.imageAsset !== undefined) patch.imageAsset = values.imageAsset;
     if (values.sourceUrl !== undefined && nextValues.sourceUrl !== (item.sourceUrl ?? "")) patch.sourceUrl = nextValues.sourceUrl;
-    if (Object.keys(patch).length > 0) onUpdateRowItem(item.id, patch);
+    if (Object.keys(patch).length === 0) return;
+    if (isLinkedSharedComponent && onUpdateLinkedLibraryComponent) {
+      void onUpdateLinkedLibraryComponent(item, patch);
+      return;
+    }
+    onUpdateRowItem(item.id, patch);
   }
 
   function updateQuantityFields(values: Partial<EditableRowValue>) {
@@ -678,6 +696,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td className="min-w-0 border-r border-hairline">
         <EstimateMaterialCell
           canEditEstimate={canEditEstimate}
+          canManageLibrary={canManageLibrary}
           componentSyncPending={componentSyncPending || Boolean(rowMutationStatus?.phase === "pending" && rowMutationStatus.componentSync)}
           item={computedItem}
           editableRow={resolvedEditableRow}
@@ -998,6 +1017,7 @@ function handleTableDragOver(event: DragEvent) {
 
 export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   canEditEstimate = true,
+  canManageLibrary = false,
   items,
   brandOptions,
   supplierOptions,
@@ -1008,6 +1028,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onReplaceRowItem,
   onDeleteRowItem,
   onUpdateRowItem,
+  onUpdateLinkedLibraryComponent,
   onMarkRowDirty,
   onOpenRowDetails,
   onOpenComponentEditor,
@@ -1265,6 +1286,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               <EstimateRowItemTableRow
                 key={item.id}
                 canEditEstimate={canEditEstimate}
+                canManageLibrary={canManageLibrary}
                 item={item}
                 brandOptions={brandOptions}
                 supplierOptions={supplierOptions}
@@ -1280,6 +1302,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
                 onUpdateRowItem={onUpdateRowItem}
+                onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
                 onMarkRowDirty={onMarkRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
                 onOpenComponentEditor={onOpenComponentEditor}

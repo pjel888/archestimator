@@ -1,5 +1,6 @@
 import { classifyEstimateRowSource, getProjectComponentIdentity, isExpressComponentProjectFolderEnabled, readEstimateRowMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
+import { readEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import { canAccessWholeProjectInD1 } from "@/lib/authz/d1-access";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
@@ -269,6 +270,7 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     componentVersionNumber: typeof sourceSnapshot.componentVersionNumber === "number" ? sourceSnapshot.componentVersionNumber : undefined,
     priceOptionId: typeof sourceSnapshot.priceOptionId === "string" ? sourceSnapshot.priceOptionId : undefined,
     priceOptionLabel: typeof sourceSnapshot.priceOptionLabel === "string" ? sourceSnapshot.priceOptionLabel : undefined,
+    priceOptions: readEstimateRowPriceOptionsSnapshot(sourceSnapshot.priceOptions),
     lifecycleState: typeof sourceSnapshot.lifecycleState === "string" ? sourceSnapshot.lifecycleState as EstimateRowItem["lifecycleState"] : undefined,
     sourceUrl: typeof sourceSnapshot.sourceUrl === "string" ? sourceSnapshot.sourceUrl : undefined,
     pricingSource: typeof sourceSnapshot.pricingSource === "string" ? sourceSnapshot.pricingSource : "Project estimate row",

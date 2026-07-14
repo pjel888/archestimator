@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { EstimateSheetRouteSkeleton } from "@/components/workshop/EstimateSheetRouteSkeleton";
+import { requireCurrentUserContext } from "@/lib/auth/session";
+import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import type { EstimateSheetAdjustment } from "@/lib/estimates/types";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
@@ -25,6 +28,7 @@ type EstimateWorkspaceResolvedProps = {
   tab: EstimateRouteContext["tab"];
   tabs: EstimateRouteContext["tabs"];
   prefetchedCanEditEstimate: EstimateRouteContext["canEditEstimate"];
+  canManageLibrary: boolean;
   loadLimitState: EstimateRouteContext["loadLimitState"];
   sheetAdjustment?: EstimateSheetAdjustment;
   proposalExportMetadata: {
@@ -39,6 +43,15 @@ type EstimateWorkspaceResolvedProps = {
     currency: string;
   };
 };
+
+async function resolveLibraryManagementCapability(workspaceId: string) {
+  const [currentUser, database] = await Promise.all([
+    requireCurrentUserContext(),
+    getCloudflareD1Database(),
+  ]);
+  if (!database) return false;
+  return isWorkspaceEditorInD1(database, workspaceId, currentUser);
+}
 
 function readEstimateVersionLabel(metadata: Json): string {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "V1";
@@ -72,9 +85,12 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
   const { project, estimate, selectedNodeId, tree, tab, tabs, canEditEstimate: prefetchedCanEditEstimate, loadLimitState, sheetAdjustment } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
-  const resolvedCanEditEstimate = prefetchedCanEditEstimate === true
-    ? true
-    : await traced("estimate-sheet.edit-capability", () => resolveEstimateEditCapability(estimate.id));
+  const [resolvedCanEditEstimate, canManageLibrary] = await Promise.all([
+    prefetchedCanEditEstimate === true
+      ? Promise.resolve(true)
+      : traced("estimate-sheet.edit-capability", () => resolveEstimateEditCapability(estimate.id)),
+    traced("estimate-sheet.library-management-capability", () => resolveLibraryManagementCapability(project.workspace_id)),
+  ]);
 
   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
   const proposalExportMetadata = {
@@ -98,6 +114,7 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
       tab={tab}
       tabs={tabs}
       prefetchedCanEditEstimate={resolvedCanEditEstimate}
+      canManageLibrary={canManageLibrary}
       loadLimitState={loadLimitState}
       sheetAdjustment={sheetAdjustment}
       proposalExportMetadata={proposalExportMetadata}
@@ -113,6 +130,7 @@ function EstimateWorkspaceResolved({
   tab,
   tabs,
   prefetchedCanEditEstimate,
+  canManageLibrary,
   loadLimitState,
   sheetAdjustment,
   proposalExportMetadata,
@@ -138,6 +156,7 @@ function EstimateWorkspaceResolved({
       loadLimitState={loadLimitState}
       sheetAdjustment={sheetAdjustment}
       canEditEstimate={prefetchedCanEditEstimate === true}
+      canManageLibrary={canManageLibrary}
       proposalExportMetadata={proposalExportMetadata}
       surfaceVariant="glass"
     />

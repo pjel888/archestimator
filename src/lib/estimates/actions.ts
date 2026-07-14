@@ -11,6 +11,7 @@ import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjust
 import { LEGACY_BLANK_ROW_TAG, getProjectComponentIdentity, isExpressComponentRow, readEstimateRowMetadata, readExpressComponentMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata, type EstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { normalizeEstimateRowImageUrl, sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
+import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import {
   normalizeEstimateTreeNodeKind,
   selectFirstEstimateNodeIds,
@@ -40,7 +41,11 @@ import {
 } from "@/lib/mass-deletion/bulk-action";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getCurrentWorkspaceProjectForEstimate, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
-import { createEstimateActionsD1Client, type EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import {
+  createEstimateActionsD1Client,
+  type EstimateActionsD1Client,
+  type EstimateComponentEditImpact,
+} from "@/lib/estimates/d1-action-client";
 import type { EstimateRow as EstimateDatabaseRow, ProjectRow as ProjectDatabaseRow } from "@/lib/types/database";
 import type { Json } from "@/lib/types/json";
 
@@ -205,6 +210,14 @@ type UpdateEstimateRowItemInput = {
   mutationId?: string;
   expectedRowRevision?: number;
 };
+
+type GetEstimateComponentEditImpactInput = {
+  projectId: string;
+  estimateId: string;
+  rowId: string;
+};
+
+export type { EstimateComponentEditImpact } from "@/lib/estimates/d1-action-client";
 
 type EstimateRowImageAssetDescriptor = {
   kind: "upload-asset";
@@ -1347,6 +1360,65 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
   }) as Json;
 }
 
+function localizeProjectComponentForTargetProject(
+  libraryItem: EstimateRowItem,
+  input: {
+    targetProjectId: string;
+    targetProjectName: string;
+    targetEstimateId: string;
+    targetNodeId: string;
+    targetNodeName: string | null;
+    persistedRowId: string;
+  },
+): EstimateRowItem {
+  const projection = readProjectComponentProjectionMetadata(libraryItem.metadata);
+  if (libraryItem.source !== "project" || !projection || projection.projectId === input.targetProjectId) {
+    return libraryItem;
+  }
+
+  const existingMetadata = readEstimateRowMetadata(libraryItem.metadata);
+  const expressComponent = readExpressComponentMetadata(existingMetadata);
+  const nextMetadata = withProjectComponentProjectionMetadata({
+    ...existingMetadata,
+    ...(expressComponent ? {
+      expressComponent: {
+        ...expressComponent,
+        id: input.persistedRowId,
+        componentId: input.persistedRowId,
+      },
+    } : {}),
+  }, {
+    ...projection,
+    componentId: input.persistedRowId,
+    projectId: input.targetProjectId,
+    projectName: input.targetProjectName,
+    estimateId: input.targetEstimateId,
+    estimateName: null,
+    nodeId: input.targetNodeId,
+    nodeName: input.targetNodeName,
+    sourceRowId: input.persistedRowId,
+    instanceRowIds: [input.persistedRowId],
+    instanceCount: 1,
+  });
+  const sourceSnapshot = readJsonObject((libraryItem as EstimateRowItem & { sourceSnapshot?: unknown }).sourceSnapshot);
+
+  return {
+    ...libraryItem,
+    id: input.persistedRowId,
+    source: "project",
+    sourceLibraryItemId: null,
+    linkState: "unlinked",
+    metadata: nextMetadata,
+    sourceSnapshot: {
+      ...sourceSnapshot,
+      sourceComponentId: input.persistedRowId,
+      sourceEstimateRowId: input.persistedRowId,
+      sourceProjectId: input.targetProjectId,
+      sourceType: "project_component",
+    },
+  } as EstimateRowItem;
+}
+
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -1391,6 +1463,7 @@ const SOURCE_SNAPSHOT_ALLOWED_KEYS = new Set([
   "notSupplierPriced",
   "priceOptionId",
   "priceOptionLabel",
+  "priceOptions",
   "priceOptionUpdatedAt",
   "pricingDate",
   "pricingSource",
@@ -1497,6 +1570,11 @@ function sanitizeEstimateRowSourceSnapshotForPersistence(value: unknown): Json |
     if (key === "categoryPath" || key === "tags") {
       const values = sanitizeSourceSnapshotStringArray(rawValue);
       if (values !== undefined) sanitized[key] = values;
+      continue;
+    }
+    if (key === "priceOptions") {
+      const priceOptions = sanitizeEstimateRowPriceOptionsSnapshot(rawValue);
+      if (priceOptions !== undefined) sanitized.priceOptions = priceOptions;
       continue;
     }
     if (key === "componentVersionNumber" || key === "unit_cost" || key === "contingency_percentage" || key === "adjustment_percentage" || key === "misc_cost") {
@@ -3320,33 +3398,42 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   // enforces the existence/orphan invariant server-side.
   const { data: targetNode, error: nodeError } = await dataStore
     .from("estimate_nodes")
-    .select("id, estimate_id, kind, estimates!inner(project_id)")
+    .select("id, estimate_id, kind, name, estimates!inner(project_id)")
     .eq("id", targetNodeId)
     .eq("estimate_id", estimateId)
     .eq("estimates.project_id", project.id)
-    .maybeSingle<Pick<ValidatedEstimateNodeRow, "id" | "estimate_id" | "kind">>();
+    .maybeSingle<Pick<ValidatedEstimateNodeRow, "id" | "estimate_id" | "kind"> & { name: string }>();
 
   if (nodeError) throw nodeError;
   if (!targetNode) throw new Error("Target estimate node not found in the current project.");
 
   await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
 
-  const quantity = libraryItem.quantity ?? 1;
-  const quantityBase = libraryItem.quantityBase ?? null;
-  const quantityContingencyAmount = quantityBase === null ? null : libraryItem.quantityContingencyAmount ?? 0;
+  const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
+  const persistedLibraryItem = localizeProjectComponentForTargetProject(libraryItem, {
+    targetProjectId: project.id,
+    targetProjectName: project.name,
+    targetEstimateId: estimateId,
+    targetNodeId,
+    targetNodeName: targetNode.name,
+    persistedRowId,
+  });
+
+  const quantity = persistedLibraryItem.quantity ?? 1;
+  const quantityBase = persistedLibraryItem.quantityBase ?? null;
+  const quantityContingencyAmount = quantityBase === null ? null : persistedLibraryItem.quantityContingencyAmount ?? 0;
   assertValidEstimateRowCalculationInput({
     quantity,
     quantity_base: quantityBase,
     quantity_contingency_amount: quantityContingencyAmount,
-    unit_cost: libraryItem.itemCost,
-    contingency_percentage: libraryItem.contingencyPercentage ?? 0,
-    adjustment_percentage: libraryItem.adjustmentPercentage ?? 0,
-    misc_cost: libraryItem.miscCost,
+    unit_cost: persistedLibraryItem.itemCost,
+    contingency_percentage: persistedLibraryItem.contingencyPercentage ?? 0,
+    adjustment_percentage: persistedLibraryItem.adjustmentPercentage ?? 0,
+    misc_cost: persistedLibraryItem.miscCost,
     currency_code: project.currency_code,
   });
-  const sourceSnapshot = getSourceSnapshot(libraryItem);
-  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
-  const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
+  const sourceSnapshot = getSourceSnapshot(persistedLibraryItem);
+  const sourceLibraryItemId = getSourceLibraryItemId(persistedLibraryItem);
 
   const { data: insertData, error: insertError } = await dataStore.call("insert_estimate_row_item_with_history", {
     target_project_id: project.id,
@@ -3356,22 +3443,22 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       id: persistedRowId,
       sourceLibraryItemId,
       sourceSnapshot,
-      categoryNodeId: libraryItem.categoryNodeId ?? null,
-      supplierId: libraryItem.supplierId ?? null,
-      material: libraryItem.material,
-      description: libraryItem.description,
-      supplier: libraryItem.supplier,
-      unit: libraryItem.unit,
+      categoryNodeId: persistedLibraryItem.categoryNodeId ?? null,
+      supplierId: persistedLibraryItem.supplierId ?? null,
+      material: persistedLibraryItem.material,
+      description: persistedLibraryItem.description,
+      supplier: persistedLibraryItem.supplier,
+      unit: persistedLibraryItem.unit,
       quantity,
       quantityBase,
       quantityContingencyAmount,
-      unitCost: libraryItem.itemCost,
-      contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
-      adjustmentPercentage: libraryItem.adjustmentPercentage ?? 0,
-      miscCost: libraryItem.miscCost,
-      discipline: libraryItem.discipline,
-      designation: libraryItem.designation,
-      metadata: getEstimateRowMetadata(libraryItem),
+      unitCost: persistedLibraryItem.itemCost,
+      contingencyPercentage: persistedLibraryItem.contingencyPercentage ?? 0,
+      adjustmentPercentage: persistedLibraryItem.adjustmentPercentage ?? 0,
+      miscCost: persistedLibraryItem.miscCost,
+      discipline: persistedLibraryItem.discipline,
+      designation: persistedLibraryItem.designation,
+      metadata: getEstimateRowMetadata(persistedLibraryItem),
       linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
     },
     acting_user_id: currentUser.userId,
@@ -3492,7 +3579,15 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
-  const replacementPayload = buildEstimateRowReplacementPayload(libraryItem);
+  const persistedLibraryItem = localizeProjectComponentForTargetProject(libraryItem, {
+    targetProjectId: project.id,
+    targetProjectName: project.name,
+    targetEstimateId: estimateId,
+    targetNodeId: row.node_id,
+    targetNodeName: null,
+    persistedRowId: row.id,
+  });
+  const replacementPayload = buildEstimateRowReplacementPayload(persistedLibraryItem);
   assertValidEstimateRowCalculationInput({
     quantity: replacementPayload.quantity,
     quantity_base: replacementPayload.quantityBase,
@@ -3543,6 +3638,23 @@ export async function detachEstimateRowItemFromLibrary({
 
   const detachedRow = readHistoryRowResult(data);
   return detachedRow;
+}
+
+export async function getEstimateComponentEditImpact({
+  projectId,
+  estimateId,
+  rowId,
+}: GetEstimateComponentEditImpactInput): Promise<EstimateComponentEditImpact> {
+  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  await assertCanEditEstimate(dataStore, estimateId);
+  const { data, error } = await dataStore.call<EstimateComponentEditImpact>("preview_estimate_component_edit_impact", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_row_id: row.id,
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Could not determine where this component is used.");
+  return data;
 }
 
 export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput): Promise<DeleteEstimateRowItemResult> {

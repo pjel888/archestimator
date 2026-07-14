@@ -11,11 +11,12 @@ import {
   type AppPlatformRole,
 } from "@/lib/auth/roles";
 import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
-import type { ComponentPriceOption, EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
+import { readEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
@@ -3519,40 +3520,6 @@ async function readOptionalEstimateSheetAdjustment(
   }
 }
 
-function readSnapshotPriceOptions(value: unknown): ComponentPriceOption[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-
-  const options = value.flatMap((candidate): ComponentPriceOption[] => {
-    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return [];
-    const option = candidate as Record<string, unknown>;
-    const id = typeof option.id === "string" ? option.id : "";
-    const label = typeof option.label === "string" ? option.label : "";
-    const unit = typeof option.unit === "string" ? option.unit : "";
-    const unitCost = typeof option.unitCost === "number" && Number.isFinite(option.unitCost) ? option.unitCost : Number.NaN;
-    const miscCost = typeof option.miscCost === "number" && Number.isFinite(option.miscCost) ? option.miscCost : Number.NaN;
-    const currency = typeof option.currency === "string" ? option.currency : "";
-    if (!id || !label || !unit || !currency || !Number.isFinite(unitCost) || !Number.isFinite(miscCost)) return [];
-
-    return [{
-      id,
-      label,
-      unit,
-      unitCost,
-      miscCost,
-      currency,
-      isActive: option.isActive === true,
-      isDefault: option.isDefault === true,
-      ...(typeof option.sku === "string" ? { sku: option.sku } : {}),
-      ...(typeof option.variantDescription === "string" ? { variantDescription: option.variantDescription } : {}),
-      ...(typeof option.pricingSource === "string" ? { pricingSource: option.pricingSource } : {}),
-      ...(typeof option.pricingDate === "string" ? { pricingDate: option.pricingDate } : {}),
-      ...(typeof option.thumbnailPath === "string" ? { thumbnailPath: option.thumbnailPath } : {}),
-    }];
-  });
-
-  return options.length > 0 ? options : undefined;
-}
-
 function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const quantity = Number(row.quantity);
   const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
@@ -3568,7 +3535,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
   const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const sourceSnapshot = readJsonRecord(row.source_snapshot);
-  const priceOptions = readSnapshotPriceOptions(sourceSnapshot.priceOptions);
+  const priceOptions = readEstimateRowPriceOptionsSnapshot(sourceSnapshot.priceOptions);
   const metadata = readJsonRecord(row.metadata);
   const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
     ? sourceSnapshot.category

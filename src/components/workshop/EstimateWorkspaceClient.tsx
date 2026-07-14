@@ -78,6 +78,8 @@ type EstimateWorkspaceClientProps = {
   sheetAdjustment?: EstimateSheetAdjustment;
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
   canEditEstimate?: boolean;
+  /** Server-resolved shared library management capability. */
+  canManageLibrary?: boolean;
   collaborationUserId?: string | null;
   collaborationDisplayName?: string | null;
   proposalExportMetadata?: ProposalExportMetadata;
@@ -116,6 +118,7 @@ export function EstimateWorkspaceClient({
   loadLimitState,
   sheetAdjustment,
   canEditEstimate = false,
+  canManageLibrary = false,
   collaborationUserId,
   collaborationDisplayName,
   proposalExportMetadata,
@@ -220,6 +223,7 @@ export function EstimateWorkspaceClient({
         loadLimitState={loadLimitState}
         sheetAdjustment={sheetAdjustment}
         canEditEstimate={resolvedCanEditEstimate}
+        canManageLibrary={canManageLibrary}
         initialTabId={activeTabId ?? undefined}
         disableRouteSync={disableRouteSync}
         onActiveTabChange={setActiveTabId}

@@ -3,7 +3,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
-import { canEditEstimateInD1, canEditProjectInD1 } from "@/lib/authz/d1-access";
+import { canEditEstimateInD1, canEditProjectInD1, isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1PreparedStatementLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
@@ -193,6 +193,22 @@ type RowHistoryResult = {
     linkState: string;
     rowRevision: number;
   };
+};
+
+export type EstimateComponentEditImpactEstimate = {
+  projectId: string;
+  projectName: string;
+  estimateId: string;
+  estimateName: string;
+  instanceCount: number;
+};
+
+export type EstimateComponentEditImpact = {
+  componentKind: "library" | "project";
+  instanceCount: number;
+  projectCount: number;
+  estimateCount: number;
+  affectedEstimates: EstimateComponentEditImpactEstimate[];
 };
 
 type TemplateNodeRow = {
@@ -1030,6 +1046,7 @@ const ESTIMATE_EDIT_ACTIONS = new Set([
   "insert_estimate_template_node_into_estimate_with_history",
   "move_estimate_row_component_with_history",
   "move_estimate_row_item_with_history",
+  "preview_estimate_component_edit_impact",
   "rename_estimate_node_with_history",
   "rename_estimate_tab_with_history",
   "reorder_estimate_nodes_with_history",
@@ -1948,6 +1965,7 @@ const SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS = new Set([
   "notSupplierPriced",
   "priceOptionId",
   "priceOptionLabel",
+  "priceOptions",
   "priceOptionUpdatedAt",
   "pricingDate",
   "pricingSource",
@@ -2719,6 +2737,198 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
   };
 }
 
+type EstimateComponentEditImpactD1Row = {
+  project_id: string;
+  project_name: string | null;
+  estimate_id: string;
+  estimate_name: string | null;
+  instance_count: number | string;
+};
+
+type EstimateComponentEditImpactSummaryD1Row = {
+  instance_count: number | string;
+  project_count: number | string;
+  estimate_count: number | string;
+};
+
+function buildEstimateComponentEditImpact(
+  componentKind: EstimateComponentEditImpact["componentKind"],
+  summary: EstimateComponentEditImpactSummaryD1Row | null,
+  rows: EstimateComponentEditImpactD1Row[],
+): EstimateComponentEditImpact {
+  return {
+    componentKind,
+    instanceCount: readNumber(summary?.instance_count),
+    projectCount: readNumber(summary?.project_count),
+    estimateCount: readNumber(summary?.estimate_count),
+    affectedEstimates: rows.map((row) => ({
+      projectId: row.project_id,
+      projectName: row.project_name?.trim() || "Untitled project",
+      estimateId: row.estimate_id,
+      estimateName: row.estimate_name?.trim() || "Untitled estimate",
+      instanceCount: readNumber(row.instance_count),
+    })),
+  };
+}
+
+async function previewEstimateComponentEditImpact(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
+  const projectId = String(args.target_project_id ?? "");
+  const estimateId = String(args.target_estimate_id ?? "");
+  const rowId = String(args.target_row_id ?? "");
+  const sourceRow = await first<EstimateRowItemRow & { workspace_id: string }>(
+    database,
+    `
+      SELECT row_item.*, row_item.source_snapshot_json, row_item.metadata_json, project.workspace_id
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      INNER JOIN projects project ON project.id = estimate.project_id
+      WHERE row_item.id = ?
+        AND row_item.estimate_id = ?
+        AND project.id = ?
+      LIMIT 1
+    `,
+    [rowId, estimateId, projectId],
+  );
+  if (!sourceRow) throw new Error("Estimate row item not found in the current project.");
+
+  const sourceLinkState = typeof sourceRow.link_state === "string" ? sourceRow.link_state : null;
+  const linkedLibraryItemId = typeof sourceRow.source_library_item_id === "string"
+    && sourceRow.source_library_item_id.length > 0
+    && sourceLinkState !== "detached"
+    && sourceLinkState !== "unlinked"
+    ? sourceRow.source_library_item_id
+    : null;
+
+  if (linkedLibraryItemId) {
+    const canManageLibrary = await isWorkspaceEditorInD1(database, sourceRow.workspace_id, currentUser);
+    if (!canManageLibrary) throw new Error("Only workspace editors/admins can inspect shared library usage.");
+    const [summary, rows] = await Promise.all([
+      first<EstimateComponentEditImpactSummaryD1Row>(
+        database,
+        `
+          SELECT
+            COUNT(*) AS instance_count,
+            COUNT(DISTINCT project.id) AS project_count,
+            COUNT(DISTINCT estimate.id) AS estimate_count
+          FROM estimate_row_items row_item
+          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+          INNER JOIN projects project ON project.id = estimate.project_id
+          WHERE project.workspace_id = (SELECT workspace_id FROM projects WHERE id = ?)
+            AND row_item.source_library_item_id = ?
+            AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
+        `,
+        [projectId, linkedLibraryItemId],
+      ),
+      all<EstimateComponentEditImpactD1Row>(
+        database,
+        `
+          SELECT
+            project.id AS project_id,
+            project.name AS project_name,
+            estimate.id AS estimate_id,
+            estimate.name AS estimate_name,
+            COUNT(*) AS instance_count
+          FROM estimate_row_items row_item
+          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+          INNER JOIN projects project ON project.id = estimate.project_id
+          WHERE project.workspace_id = (SELECT workspace_id FROM projects WHERE id = ?)
+            AND row_item.source_library_item_id = ?
+            AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
+          GROUP BY project.id, project.name, estimate.id, estimate.name
+          ORDER BY project.name COLLATE NOCASE, estimate.name COLLATE NOCASE, estimate.id
+          LIMIT 8
+        `,
+        [projectId, linkedLibraryItemId],
+      ),
+    ]);
+    return buildEstimateComponentEditImpact("library", summary, rows);
+  }
+
+  const componentId = getProjectComponentIdentity(rowMetadata(sourceRow), null, rowSourceSnapshot(sourceRow));
+  if (!componentId) {
+    const sourceEstimate = await first<EstimateComponentEditImpactD1Row>(
+      database,
+      `
+        SELECT
+          project.id AS project_id,
+          project.name AS project_name,
+          estimate.id AS estimate_id,
+          estimate.name AS estimate_name,
+          1 AS instance_count
+        FROM estimates estimate
+        INNER JOIN projects project ON project.id = estimate.project_id
+        WHERE estimate.id = ?
+          AND project.id = ?
+        LIMIT 1
+      `,
+      [estimateId, projectId],
+    );
+    return buildEstimateComponentEditImpact("project", {
+      instance_count: 1,
+      project_count: 1,
+      estimate_count: 1,
+    }, sourceEstimate ? [sourceEstimate] : []);
+  }
+
+  const componentIdentitySql = `
+    COALESCE(
+      CASE
+        WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+        THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceComponentId'), '')
+      END,
+      CASE
+        WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+        THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceEstimateRowId'), '')
+      END,
+      NULLIF(json_extract(row_item.metadata_json, '$.projectComponentProjection.componentId'), ''),
+      NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.componentId'), ''),
+      NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.id'), '')
+    )
+  `;
+  const [summary, rows] = await Promise.all([
+    first<EstimateComponentEditImpactSummaryD1Row>(
+      database,
+      `
+        SELECT
+          COUNT(*) AS instance_count,
+          COUNT(DISTINCT project.id) AS project_count,
+          COUNT(DISTINCT estimate.id) AS estimate_count
+        FROM estimate_row_items row_item
+        INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+        INNER JOIN projects project ON project.id = estimate.project_id
+        WHERE project.id = ?
+          AND (row_item.id = ? OR ${componentIdentitySql} = ?)
+      `,
+      [projectId, rowId, componentId],
+    ),
+    all<EstimateComponentEditImpactD1Row>(
+      database,
+      `
+        SELECT
+          project.id AS project_id,
+          project.name AS project_name,
+          estimate.id AS estimate_id,
+          estimate.name AS estimate_name,
+          COUNT(*) AS instance_count
+        FROM estimate_row_items row_item
+        INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+        INNER JOIN projects project ON project.id = estimate.project_id
+        WHERE project.id = ?
+          AND (row_item.id = ? OR ${componentIdentitySql} = ?)
+        GROUP BY project.id, project.name, estimate.id, estimate.name
+        ORDER BY estimate.name COLLATE NOCASE, estimate.id
+        LIMIT 8
+      `,
+      [projectId, rowId, componentId],
+    ),
+  ]);
+  return buildEstimateComponentEditImpact("project", summary, rows);
+}
+
 async function callEstimateAction<T>(
   database: D1DatabaseLike,
   name: string,
@@ -2769,6 +2979,9 @@ async function callEstimateAction<T>(
     if (!currentUser) throw new Error("Estimate edit access denied.");
     const allowed = await canEditEstimateInD1(database, String(args.target_estimate_id ?? ""), currentUser);
     if (!allowed) throw new Error("Estimate edit access denied.");
+  }
+  if (name === "preview_estimate_component_edit_impact") {
+    return await previewEstimateComponentEditImpact(database, args, currentUser!) as T;
   }
   if (name === "update_estimate_details_with_history") return await updateEstimateDetails(database, args) as T;
   if (name === "create_estimate_tab_with_history") return await createEstimateTab(database, args) as T;

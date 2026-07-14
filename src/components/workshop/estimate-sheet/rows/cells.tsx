@@ -238,14 +238,14 @@ function EstimateMaterialCardFrame({
   unit: ReactNode;
 }) {
   return (
-    <div className="grid h-full min-h-0 grid-cols-[56px_minmax(0,1fr)_112px] grid-rows-[56px_16px] gap-x-2 gap-y-1">
+    <div className="relative grid h-full min-h-0 grid-cols-[56px_minmax(0,1fr)_112px] grid-rows-[56px_16px] gap-x-2 gap-y-1">
       <div className="col-start-1 row-start-1 min-w-0">{image}</div>
       <div className="col-start-2 row-start-1 flex h-14 min-w-0 flex-col justify-between overflow-hidden pr-16">
         {name}
         {brand}
         {supplier}
       </div>
-      <div className="col-start-3 row-start-1 flex min-w-0 items-center justify-end">{cost}</div>
+      <div className="absolute top-1/2 right-0 flex w-[112px] -translate-y-1/2 items-center justify-end">{cost}</div>
       <div className="col-start-1 row-start-2 flex min-w-0 items-center">{variant}</div>
       <div className="col-start-2 row-start-2 min-w-0 overflow-hidden">{description}</div>
       <div className="col-start-3 row-start-2 flex min-w-0 items-center justify-end" data-estimate-material-unit-slot="true">
@@ -279,16 +279,12 @@ function EstimateMaterialCardSyncSkeleton() {
   );
 }
 
-function getMaterialVariantLabel(item: EstimateMaterialCardItem) {
-  return item.priceOptionLabel?.trim() || item.priceOptions?.find((option) => option.isDefault && option.isActive)?.label?.trim() || "Variant 1";
-}
-
 function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVariantOption[] {
   const options = (item.priceOptions ?? []).filter((option) => option.isActive);
   if (options.length > 0) return options;
   return [{
     id: item.priceOptionId ?? "current-variant",
-    label: getMaterialVariantLabel(item),
+    label: "V1",
     unit: item.unit,
     unitCost: item.itemCost,
     miscCost: 0,
@@ -296,6 +292,11 @@ function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVari
     isActive: true,
     isDefault: true,
   }];
+}
+
+function getActiveMaterialVariantId(item: EstimateMaterialCardItem, options: MaterialVariantOption[]) {
+  if (item.priceOptionId && options.some((option) => option.id === item.priceOptionId)) return item.priceOptionId;
+  return options.find((option) => option.isDefault)?.id ?? options[0]?.id;
 }
 
 function MaterialVariantControl({
@@ -307,10 +308,11 @@ function MaterialVariantControl({
   canEditEstimate: boolean;
   onSelectVariant?: (option: MaterialVariantOption) => void;
 }) {
-  const variantLabel = getMaterialVariantLabel(item);
-  const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const variantOptions = getMaterialVariantOptions(item);
-  const activeOptionId = item.priceOptionId ?? variantOptions.find((option) => option.label === variantLabel)?.id ?? variantOptions[0]?.id;
+  const activeOptionId = getActiveMaterialVariantId(item, variantOptions);
+  const activeOptionIndex = Math.max(0, variantOptions.findIndex((option) => option.id === activeOptionId));
+  const variantLabel = `V${activeOptionIndex + 1}`;
+  const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const controlClass =
     "inline-flex h-3.5 w-fit max-w-full min-w-0 items-center justify-start gap-0.5 self-start px-0 text-[8px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40";
 
@@ -341,11 +343,11 @@ function MaterialVariantControl({
         </button>
       )}
     >
-      {variantOptions.map((option) => (
+      {variantOptions.map((option, index) => (
         <DropdownMenu.Item
           key={option.id}
           id={option.id}
-          label={option.label || "Variant"}
+          label={`V${index + 1}`}
           selected={option.id === activeOptionId}
           disabled={!hasSelectableVariants}
           onClick={() => onSelectVariant(option)}
@@ -749,6 +751,7 @@ function ExpressMaterialEditor({
   onCommit,
   onRevert,
   onActiveChange,
+  onSelectVariant,
   draftState,
   onRetryDraft,
   onDeleteDraft,
@@ -763,6 +766,7 @@ function ExpressMaterialEditor({
   onCommit: (values: Partial<EditableRowValue>) => void;
   onRevert: (field: ExpressEditableField) => void;
   onActiveChange: (active: boolean) => void;
+  onSelectVariant?: (option: MaterialVariantOption) => void;
   draftState?: ExpressInsertDraftState;
   onRetryDraft: () => void;
   onDeleteDraft: () => void;
@@ -919,6 +923,9 @@ function ExpressMaterialEditor({
             inputClassName={cn(catalogueMetaInputClass, "!text-[10px] font-normal leading-3 text-tertiary")}
           />
         )}
+        variant={onSelectVariant ? (
+          <MaterialVariantControl item={item} canEditEstimate onSelectVariant={onSelectVariant} />
+        ) : undefined}
         cost={(
           <div className={MATERIAL_COST_SLOT_CLASS}>
             <MoneyInput
@@ -992,6 +999,7 @@ function ExpressMaterialEditor({
 
 export function EstimateMaterialCell({
   canEditEstimate = true,
+  canManageLibrary = false,
   componentSyncPending = false,
   item,
   editableRow,
@@ -1021,6 +1029,7 @@ export function EstimateMaterialCell({
   onDeleteExpressDraft,
 }: {
   canEditEstimate?: boolean;
+  canManageLibrary?: boolean;
   componentSyncPending?: boolean;
   item: EstimateRowItem;
   editableRow: EditableRowValue;
@@ -1095,11 +1104,21 @@ export function EstimateMaterialCell({
 
   const showProjectSpecificAction = canEditEstimate && canMakeProjectSpecific(item);
   const showPromoteAction = canEditEstimate && canPromoteEstimateRowToLibrary(item);
-  const showInlineComponentEditor = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
+  const linkedSharedComponent = Boolean(item.sourceLibraryItemId)
+    && item.linkState !== "detached"
+    && item.linkState !== "unlinked";
+  const showInlineComponentEditor = isExpressComponentRow(item)
+    || isBlankEstimateRowItem(item)
+    || (linkedSharedComponent && canManageLibrary);
+  const showInlineVariantControl = linkedSharedComponent || isExpressComponentRow(item);
   const componentLabel = showInlineComponentEditor ? (editableRow.name || "Project Component") : (item.material || "component");
   const sourceTone = getComponentSourceTone(item);
   const sourceLabel = getComponentSourceLabel(sourceTone);
   const componentInteractionEnabled = canEditEstimate && !componentSyncPending;
+  const canOpenComponentEditor = componentInteractionEnabled
+    && Boolean(onOpenComponentEditor)
+    && (!linkedSharedComponent || canManageLibrary);
+  const componentEditorLabel = linkedSharedComponent ? "Edit shared library component" : "Edit component";
 
   return (
     <div
@@ -1215,14 +1234,14 @@ export function EstimateMaterialCell({
             </Button>
           </ActionTooltip>
         ) : null}
-        {canEditEstimate && onOpenComponentEditor ? (
-          <ActionTooltip label="Edit component">
+        {canOpenComponentEditor && onOpenComponentEditor ? (
+          <ActionTooltip label={componentEditorLabel}>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
               className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-              aria-label={`Edit component ${componentLabel}`}
+              aria-label={`${componentEditorLabel} ${componentLabel}`}
               onClick={(event: MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 onOpenComponentEditor(event.currentTarget);
@@ -1263,6 +1282,7 @@ export function EstimateMaterialCell({
             onCommit={onExpressFieldCommit}
             onRevert={onExpressFieldRevert}
             onActiveChange={onExpressEditorActiveChange}
+            onSelectVariant={showInlineVariantControl ? onSelectVariant : undefined}
             draftState={expressDraftState}
             onRetryDraft={onRetryExpressDraft}
             onDeleteDraft={onDeleteExpressDraft}

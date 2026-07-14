@@ -20,17 +20,28 @@ import { useEstimateRowMutations, type EstimateRowMutationError, type EstimateSa
 import { useEstimateRowUpdateBroadcast } from "@/hooks/use-estimate-row-update-broadcast";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
-import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
+import {
+  loadProjectComponentLibraryLite,
+  updateCostLibraryComponent,
+  type LibraryComponentInstanceSyncResult,
+} from "@/lib/component-library/actions";
+import { isUuid } from "@/lib/ids";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
-import { restoreDeletedEstimateNodes, restoreDeletedEstimateRows, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import {
+  getEstimateComponentEditImpact,
+  restoreDeletedEstimateNodes,
+  restoreDeletedEstimateRows,
+  type EstimateComponentEditImpact,
+  type EstimateSheetVersionControlData,
+} from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
-import { isExpressComponentRow } from "@/lib/estimates/express-components";
+import { isExpressComponentRow, readEstimateRowMetadata, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
@@ -76,7 +87,7 @@ import {
 } from "./estimate-sheet-render-probe";
 import { createEstimateTreeIndex, getEstimateComponentInstanceRowIds } from "@/lib/estimates/estimate-tree-index";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
-import { buildComponentCatalogueComboboxOptions } from "./component-catalogue-combobox-options";
+import { buildComponentCatalogueComboboxOptions, getSelectedComponentCatalogueOptionId } from "./component-catalogue-combobox-options";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
 import { loadEstimateSheetAccountPreferences, saveEstimateSheetAccountPreferences } from "./estimate-sheet/account-preferences-client";
@@ -131,6 +142,8 @@ import {
   computeEditableRowTotal,
   computeNodeTotals,
   flattenEstimateRows,
+  getInitialEditableRow,
+  parseNonNegativeEditableNumber,
   type EditableRowValue,
 } from "./estimate-sheet/rows/editable-row-model";
 import { createEditableRowStore, EditableRowStoreContext } from "./estimate-sheet/rows/editable-row-store";
@@ -146,7 +159,6 @@ import {
   type RowComponentPickerState,
 } from "./estimate-sheet/use-estimate-row-handlers";
 import { applyEstimateRowItemPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemsInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
-import type { LibraryComponentInstanceSyncResult } from "@/lib/component-library/actions";
 import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
 import {
   type ExpressInsertDraftState,
@@ -155,6 +167,15 @@ import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-br
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
+
+function updateActiveLibraryPriceOption(item: EstimateRowItem, unit: string, unitCost: number) {
+  const options = item.priceOptions;
+  if (!options?.length) return options;
+  const activeId = item.priceOptionId
+    ?? options.find((option) => option.isDefault)?.id
+    ?? options[0]?.id;
+  return options.map((option) => option.id === activeId ? { ...option, unit, unitCost } : option);
+}
 
 function useNativeModalDialog(onClose: () => void) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -205,6 +226,8 @@ type EstimateSheetContentProps = {
   dataTabId?: string;
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
   canEditEstimate?: boolean;
+  /** Server-resolved shared library management capability. */
+  canManageLibrary?: boolean;
   initialTabId?: string;
   disableRouteSync?: boolean;
   onActiveTabChange?: (tabId: string) => void;
@@ -488,6 +511,12 @@ type RowMoveDialogState = {
   position: string;
 };
 
+type PendingSharedComponentEdit = {
+  item: EstimateRowItem;
+  values: Partial<EditableRowValue>;
+  impact: EstimateComponentEditImpact;
+};
+
 type RowMoveNodeOption = {
   id: string;
   name: string;
@@ -501,6 +530,33 @@ const EMPTY_COMPONENT_CATALOGUE_INPUTS: ReturnType<typeof collectEstimateTreeCom
   brands: [],
 };
 const EMPTY_ROW_MOVE_NODE_OPTIONS: RowMoveNodeOption[] = [];
+const SHARED_COMPONENT_EDIT_FIELDS = new Set<keyof EditableRowValue>([
+  "name",
+  "description",
+  "brand",
+  "supplier",
+  "unit",
+  "unitCost",
+  "imageUrl",
+  "sourceUrl",
+]);
+
+function isLinkedLibraryComponentRow(item: EstimateRowItem) {
+  return Boolean(item.sourceLibraryItemId)
+    && item.linkState !== "detached"
+    && item.linkState !== "unlinked";
+}
+
+function isProjectComponentRow(item: EstimateRowItem) {
+  if (isLinkedLibraryComponentRow(item)) return false;
+  return isExpressComponentRow(item)
+    || item.linkState === "detached"
+    || Boolean(readProjectComponentProjectionMetadata(item.metadata));
+}
+
+function hasSharedComponentEdit(values: Partial<EditableRowValue>) {
+  return Object.keys(values).some((field) => SHARED_COMPONENT_EDIT_FIELDS.has(field as keyof EditableRowValue));
+}
 
 type EstimateSheetContentState = {
   editableRows: Record<string, EditableRowValue>;
@@ -929,6 +985,7 @@ export function EstimateSheetContent({
   sheetAdjustment,
   dataTabId,
   canEditEstimate = false,
+  canManageLibrary = false,
   initialTabId,
   disableRouteSync = false,
   onActiveTabChange,
@@ -1091,6 +1148,7 @@ export function EstimateSheetContent({
   const [sourcesDrawerOpen, setSourcesDrawerOpen] = useState(false);
   const [rowMoveDialog, setRowMoveDialog] = useState<RowMoveDialogState | null>(null);
   const [componentEditor, setComponentEditor] = useState<{ rowItemId: string; opener: HTMLElement | null } | null>(null);
+  const [pendingSharedComponentEdit, setPendingSharedComponentEdit] = useState<PendingSharedComponentEdit | null>(null);
   const [componentEditorPendingRowIds, setComponentEditorPendingRowIds] = useState<ReadonlySet<string>>(() => new Set());
   const [editableRowStore] = useState(() => createEditableRowStore(editableRows, estimateTree));
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
@@ -1731,9 +1789,15 @@ export function EstimateSheetContent({
     setRowComponentPicker({ mode: "move", rowItemId, opener });
     setRowComponentPickerQuery("");
   }, [setRowComponentPicker, setRowComponentPickerQuery]);
-  const openComponentEditor = useCallback((rowItemId: string, opener: HTMLElement) => {
+  const openComponentEditor = useStableCallback((rowItemId: string, opener: HTMLElement) => {
+    const item = findEstimateRowItem(estimateTree, rowItemId);
+    if (!item) return;
+    const linkedSharedComponent = Boolean(item.sourceLibraryItemId)
+      && item.linkState !== "detached"
+      && item.linkState !== "unlinked";
+    if (linkedSharedComponent && !canManageLibrary) return;
     setComponentEditor({ rowItemId, opener });
-  }, []);
+  });
   const closeComponentEditor = useCallback(() => {
     const opener = componentEditor?.opener;
     setComponentEditor(null);
@@ -2027,6 +2091,258 @@ export function EstimateSheetContent({
       return;
     }
     updateRowItem(item.id, values);
+  });
+
+  const commitLinkedLibraryComponentInline = useStableCallback(async (item: EstimateRowItem, values: Partial<EditableRowValue>) => {
+    const libraryItemId = item.sourceLibraryItemId;
+    const linkedSharedComponent = Boolean(libraryItemId)
+      && item.linkState !== "detached"
+      && item.linkState !== "unlinked";
+    if (!canManageLibrary || !libraryItemId || !linkedSharedComponent) return;
+
+    const expectedUpdatedAt = item.updatedAt?.trim();
+    const expectedVersionNumber = item.componentVersionNumber;
+    if (!expectedUpdatedAt || !expectedVersionNumber) {
+      editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
+      toast({
+        id: `library-inline-edit-stale:${item.id}`,
+        tone: "error",
+        message: "Refresh this library component before editing it inline.",
+      });
+      return;
+    }
+
+    const name = (values.name ?? item.material).trim();
+    const description = (values.description ?? item.description).trim();
+    const brand = (values.brand ?? item.brand ?? "").trim();
+    const supplier = (values.supplier ?? item.supplier).trim();
+    const unit = (values.unit ?? item.unit).trim();
+    const unitCost = parseNonNegativeEditableNumber(values.unitCost ?? String(item.itemCost));
+    const imageUrl = (values.imageUrl ?? item.imageUrl ?? "").trim();
+    const brandOptionId = getSelectedComponentCatalogueOptionId(brand, resolvedBrandOptions);
+    const supplierOptionId = getSelectedComponentCatalogueOptionId(supplier, resolvedSupplierOptions);
+    const brandId = brandOptionId && isUuid(brandOptionId)
+      ? brandOptionId
+      : brand === (item.brand ?? "").trim() ? item.brandId ?? null : null;
+    const supplierId = supplierOptionId && isUuid(supplierOptionId)
+      ? supplierOptionId
+      : supplier === item.supplier.trim() ? item.supplierId ?? null : null;
+
+    handleComponentEditorPendingChange(item, true);
+    try {
+      const result = await updateCostLibraryComponent(libraryItemId, {
+        name,
+        description,
+        category: item.category,
+        categoryNodeId: item.categoryNodeId ?? null,
+        supplier,
+        supplierId,
+        brand,
+        brandId,
+        unit,
+        unitCost,
+        thumbnailPath: values.imageUrl === undefined ? undefined : imageUrl || null,
+        libraryFolderId: item.libraryFolderId ?? null,
+        lifecycleState: item.lifecycleState ?? "available",
+        changeReason: "Edited inline from an estimate row",
+        expectedUpdatedAt,
+        expectedVersionNumber,
+      });
+      const updatedItem = applyEstimateRowItemPatch(item, {
+        material: name,
+        description,
+        brand: brand || null,
+        supplier,
+        unit,
+        itemCost: unitCost,
+        imageUrl: imageUrl || null,
+        sourceUrl: item.sourceUrl ?? null,
+        category: item.category,
+        categoryNodeId: item.categoryNodeId ?? null,
+        brandId,
+        supplierId,
+        sku: item.sku ?? null,
+        priceOptionId: item.priceOptionId ?? null,
+        priceOptionLabel: item.priceOptionLabel ?? null,
+        priceOptions: updateActiveLibraryPriceOption(item, unit, unitCost),
+        pricingDate: item.pricingDate ?? null,
+        pricingSource: item.pricingSource ?? null,
+        lifecycleState: item.lifecycleState ?? null,
+        lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
+        componentVersionNumber: result.versionNumber,
+        notes: item.notes ?? null,
+        updatedAt: result.updatedAt,
+        linkState: "linked-clean",
+      });
+      updateComponentFromEditor({ ...updatedItem, name, price: unitCost }, result);
+      toast({
+        id: `library-inline-edit-success:${libraryItemId}:${result.updatedAt}`,
+        tone: "success",
+        message: result.updatedRowCount === 1
+          ? "Library component updated in 1 linked row."
+          : `Library component updated in ${result.updatedRowCount} linked rows.`,
+      });
+    } catch (error) {
+      editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
+      toast({
+        id: `library-inline-edit-error:${item.id}`,
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not update the library component.",
+      });
+    } finally {
+      handleComponentEditorPendingChange(item, false);
+    }
+  });
+
+  const requestSharedComponentInlineUpdate = useStableCallback(async (item: EstimateRowItem, values: Partial<EditableRowValue>) => {
+    if (!projectId || !estimateId) return;
+    handleComponentEditorPendingChange(item, true);
+    try {
+      const impact = await getEstimateComponentEditImpact({ projectId, estimateId, rowId: item.id });
+      if (impact.instanceCount <= 1) {
+        if (isLinkedLibraryComponentRow(item)) await commitLinkedLibraryComponentInline(item, values);
+        else updateRowItem(item.id, values);
+        return;
+      }
+      setPendingSharedComponentEdit({ item, values, impact });
+    } catch (error) {
+      editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
+      toast({
+        id: `component-inline-impact-error:${item.id}`,
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not determine where this component is used.",
+      });
+    } finally {
+      handleComponentEditorPendingChange(item, false);
+    }
+  });
+
+  const updateRowItemWithSharedImpact = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
+    const item = findEstimateRowItem(estimateTree, rowItemId);
+    if (item && hasSharedComponentEdit(values) && isProjectComponentRow(item)) {
+      void requestSharedComponentInlineUpdate(item, values);
+      return;
+    }
+    updateRowItem(rowItemId, values);
+  });
+
+  const updateLinkedLibraryComponentInline = useStableCallback((item: EstimateRowItem, values: Partial<EditableRowValue>) => {
+    void requestSharedComponentInlineUpdate(item, values);
+  });
+
+  const cancelSharedComponentEdit = useStableCallback(() => {
+    if (pendingSharedComponentEdit) {
+      editableRowStore.getState().updateRow(
+        pendingSharedComponentEdit.item,
+        getInitialEditableRow(pendingSharedComponentEdit.item),
+      );
+    }
+    setPendingSharedComponentEdit(null);
+  });
+
+  const confirmSharedComponentEdit = useStableCallback(() => {
+    const pendingEdit = pendingSharedComponentEdit;
+    if (!pendingEdit) return;
+    setPendingSharedComponentEdit(null);
+    if (pendingEdit.impact.componentKind === "library") {
+      void commitLinkedLibraryComponentInline(pendingEdit.item, pendingEdit.values);
+      return;
+    }
+    updateRowItem(pendingEdit.item.id, pendingEdit.values);
+  });
+
+  const makePendingLibraryEditProjectSpecific = useStableCallback(() => {
+    const pendingEdit = pendingSharedComponentEdit;
+    if (!pendingEdit || pendingEdit.impact.componentKind !== "library" || !projectId || !estimateId) return;
+    const { item, values } = pendingEdit;
+    const previousTree = estimateTree;
+    const previousRows = editableRowStore.getState().rows;
+    const rollbackRevision = getEstimateTreeRevision();
+    setPendingSharedComponentEdit(null);
+    detachRow({
+      projectId,
+      estimateId,
+      rowId: item.id,
+      reason: "Made project-specific while editing a shared library component",
+      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      onSuccess: (result) => {
+        const name = values.name ?? item.material;
+        const description = values.description ?? item.description;
+        const brand = values.brand ?? item.brand ?? "";
+        const supplier = values.supplier ?? item.supplier;
+        const unit = values.unit ?? item.unit;
+        const unitCost = parseNonNegativeEditableNumber(values.unitCost ?? String(item.itemCost));
+        const imageUrl = values.imageUrl ?? item.imageUrl ?? "";
+        const sourceUrl = values.sourceUrl ?? item.sourceUrl ?? "";
+        const brandOptionId = getSelectedComponentCatalogueOptionId(brand, resolvedBrandOptions);
+        const supplierOptionId = getSelectedComponentCatalogueOptionId(supplier, resolvedSupplierOptions);
+        const brandId = brandOptionId && isUuid(brandOptionId)
+          ? brandOptionId
+          : brand === (item.brand ?? "").trim() ? item.brandId ?? null : null;
+        const supplierId = supplierOptionId && isUuid(supplierOptionId)
+          ? supplierOptionId
+          : supplier === item.supplier.trim() ? item.supplierId ?? null : null;
+        updateRow({
+          projectId,
+          estimateId,
+          rowId: item.id,
+          material: name,
+          description,
+          supplier,
+          supplierId,
+          unit,
+          unitCost,
+          categoryNodeId: item.categoryNodeId ?? null,
+          expectedRowRevision: result.rowRevision,
+          metadata: {
+            ...readEstimateRowMetadata(item.metadata),
+            brandId,
+            supplierId,
+            sourceComponentId: null,
+          },
+          sourceSnapshot: {
+            material: name,
+            description,
+            brand,
+            supplier,
+            unit,
+            unit_cost: unitCost,
+            imageUrl: imageUrl || null,
+            sourceUrl: sourceUrl || null,
+            category: item.category,
+            categoryNodeId: item.categoryNodeId ?? null,
+            brandId,
+            supplierId,
+            sourceComponentId: item.id,
+            sourceEstimateRowId: item.id,
+            sourceProjectId: projectId,
+            sourceType: "project_component",
+          },
+          onSuccess: () => {
+            toast({
+              id: `component-project-specific-success:${item.id}`,
+              tone: "success",
+              message: "Project component created and updated for this estimate.",
+            });
+          },
+          onError: (error) => {
+            toast({
+              id: `component-project-specific-update-error:${item.id}`,
+              tone: "error",
+              message: error.message || "Component is project-specific, but the pending edit could not be saved.",
+            });
+          },
+        });
+      },
+      onError: (error) => {
+        editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
+        toast({
+          id: `component-project-specific-error:${item.id}`,
+          tone: "error",
+          message: error.message || "Could not make this component project-specific.",
+        });
+      },
+    });
   });
 
   const rowMoveNodeOptions = useMemo(
@@ -2526,6 +2842,75 @@ export function EstimateSheetContent({
           </div>
         </Modal>
       ) : null}
+      {pendingSharedComponentEdit ? (
+        <Modal
+          open
+          title="Update shared component?"
+          description="This edit changes every linked instance of the component."
+          size="sm"
+          closeLabel="Cancel shared component edit"
+          onOpenChange={(open) => {
+            if (!open) cancelSharedComponentEdit();
+          }}
+          location={pendingSharedComponentEdit.impact.componentKind === "library" ? "Library component" : "Project component"}
+          footer={(
+            <>
+              <Button type="button" variant="secondary" size="sm" onClick={cancelSharedComponentEdit}>
+                Cancel
+              </Button>
+              {pendingSharedComponentEdit.impact.componentKind === "library" ? (
+                <Button type="button" variant="secondary" size="sm" onClick={makePendingLibraryEditProjectSpecific}>
+                  Make project-specific
+                </Button>
+              ) : null}
+              <Button type="button" variant="primary" size="sm" onClick={confirmSharedComponentEdit}>
+                Update all {pendingSharedComponentEdit.impact.instanceCount} instances
+              </Button>
+            </>
+          )}
+        >
+          <div className="grid gap-3 text-[10px] leading-4">
+            <div className="rounded-xs border border-hairline bg-surfaceMuted p-2">
+              <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Component</p>
+              <p className="mt-0.5 truncate text-[11px] font-medium text-ink">
+                {pendingSharedComponentEdit.item.material || "Untitled component"}
+              </p>
+            </div>
+            <p className="text-secondary">
+              Used in <span className="font-medium text-ink">{pendingSharedComponentEdit.impact.instanceCount} estimate rows</span>
+              {` across ${pendingSharedComponentEdit.impact.projectCount} ${pendingSharedComponentEdit.impact.projectCount === 1 ? "project" : "projects"} and ${pendingSharedComponentEdit.impact.estimateCount} ${pendingSharedComponentEdit.impact.estimateCount === 1 ? "estimate" : "estimates"}.`}
+            </p>
+            <div className="overflow-hidden rounded-xs border border-hairline bg-white">
+              <p className="border-b border-hairline bg-surfaceMuted px-2 py-1 text-[8px] font-medium uppercase tracking-normal text-tertiary">
+                Affected estimates
+              </p>
+              <ul className="divide-y divide-hairline" aria-label="Affected estimates">
+                {pendingSharedComponentEdit.impact.affectedEstimates.map((affectedEstimate) => (
+                  <li key={affectedEstimate.estimateId} className="flex items-center justify-between gap-3 px-2 py-1.5">
+                    <span className="min-w-0 truncate text-secondary">
+                      <span className="font-medium text-ink">{affectedEstimate.projectName}</span>
+                      {` / ${affectedEstimate.estimateName}`}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-tertiary">
+                      {affectedEstimate.instanceCount} {affectedEstimate.instanceCount === 1 ? "row" : "rows"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {pendingSharedComponentEdit.impact.estimateCount > pendingSharedComponentEdit.impact.affectedEstimates.length ? (
+                <p className="border-t border-hairline px-2 py-1.5 text-tertiary">
+                  +{pendingSharedComponentEdit.impact.estimateCount - pendingSharedComponentEdit.impact.affectedEstimates.length} more estimates
+                </p>
+              ) : null}
+            </div>
+            {pendingSharedComponentEdit.impact.componentKind === "library" ? (
+              <p className="text-tertiary">
+                Make project-specific creates a component from this row and leaves the shared library component unchanged.
+              </p>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
       {projectSpecificRow ? (
         <dialog
           ref={projectSpecificDialogRef}
@@ -2748,6 +3133,7 @@ export function EstimateSheetContent({
                         nodeCode={selectedNodePresentation.nodeCode}
                         ancestorPath={selectedNodePresentation.ancestorPath}
                         canEditEstimate={canEditEstimate}
+                        canManageLibrary={canManageLibrary}
                         brandOptions={resolvedBrandOptions}
                         supplierOptions={resolvedSupplierOptions}
                         projectId={projectId}
@@ -2758,7 +3144,8 @@ export function EstimateSheetContent({
                         onAddBlankRow={insertBlankRow}
                         onReplaceRowItem={replaceRowItem}
                         onDeleteRowItem={deleteRowItem}
-                        onUpdateRowItem={updateRowItem}
+                        onUpdateRowItem={updateRowItemWithSharedImpact}
+                        onUpdateLinkedLibraryComponent={updateLinkedLibraryComponentInline}
                         onMarkRowDirty={markRowDirty}
                         onOpenRowDetails={openRowDetails}
                         onOpenComponentEditor={openComponentEditor}

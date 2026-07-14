@@ -37,6 +37,7 @@ export type EstimateSheetBranchProps = {
   nodeCode: string;
   ancestorPath: BreadcrumbNode[];
   canEditEstimate?: boolean;
+  canManageLibrary?: boolean;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
@@ -48,6 +49,7 @@ export type EstimateSheetBranchProps = {
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
+  onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
@@ -89,6 +91,7 @@ export type SheetMutationHandlers = Pick<
   | "onReplaceRowItem"
   | "onDeleteRowItem"
   | "onUpdateRowItem"
+  | "onUpdateLinkedLibraryComponent"
   | "onMarkRowDirty"
   | "onOpenRowDetails"
   | "onOpenComponentEditor"
@@ -138,6 +141,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
     prev.canEditEstimate !== next.canEditEstimate ||
+    prev.canManageLibrary !== next.canManageLibrary ||
     prev.depth !== next.depth ||
     prev.siblingIndex !== next.siblingIndex ||
     prev.renderChildBranches !== next.renderChildBranches ||
@@ -150,6 +154,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.onReplaceRowItem !== next.onReplaceRowItem ||
     prev.onDeleteRowItem !== next.onDeleteRowItem ||
     prev.onUpdateRowItem !== next.onUpdateRowItem ||
+    prev.onUpdateLinkedLibraryComponent !== next.onUpdateLinkedLibraryComponent ||
     prev.onMarkRowDirty !== next.onMarkRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
@@ -190,7 +195,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onUpdateLinkedLibraryComponent, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const editableRowStore = useEditableRowStore();
   const storedNodeTotal = useStore(editableRowStore, (state) => state.nodeTotals.get(node.id));
@@ -447,6 +452,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
           <div className={showBreadcrumbs ? "-mt-2" : undefined}>
             <EstimateRowItemsTable
               canEditEstimate={canEditEstimate}
+              canManageLibrary={canManageLibrary}
               items={estimateRowItems}
               brandOptions={brandOptions}
               supplierOptions={supplierOptions}
@@ -457,6 +463,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               onReplaceRowItem={onReplaceRowItem}
               onDeleteRowItem={onDeleteRowItem}
               onUpdateRowItem={onUpdateRowItem}
+              onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
               onMarkRowDirty={onMarkRowDirty}
               onOpenRowDetails={onOpenRowDetails}
               onOpenComponentEditor={onOpenComponentEditor}
@@ -505,6 +512,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 nodeCode={childCode}
                 ancestorPath={childAncestorPath}
                 canEditEstimate={canEditEstimate}
+                canManageLibrary={canManageLibrary}
                 brandOptions={brandOptions}
                 supplierOptions={supplierOptions}
                 projectId={projectId}
@@ -516,6 +524,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
                 onUpdateRowItem={onUpdateRowItem}
+                onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
                 onMarkRowDirty={onMarkRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
                 onOpenComponentEditor={onOpenComponentEditor}
