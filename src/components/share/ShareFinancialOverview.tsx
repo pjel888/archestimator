@@ -1,4 +1,6 @@
+import { CostDonutChart } from "@/components/charts/CostDonutChart";
 import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
+import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
 import { getBestShareTree } from "@/lib/share/reconstruct-share-tree";
 
 type ShareFinancialOverviewProps = {
@@ -10,6 +12,10 @@ const moneyFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const percentFormatter = new Intl.NumberFormat("en-PH", {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
 
 function formatMoney(value: number, currencyCode: string) {
   return `${currencyCode} ${moneyFormatter.format(value)}`;
@@ -18,6 +24,8 @@ function formatMoney(value: number, currencyCode: string) {
 export default function ShareFinancialOverview({ currencyCode, estimates }: ShareFinancialOverviewProps) {
   const total = estimates.reduce((sum, estimate) => sum + estimate.totalCost, 0);
   const rowCount = estimates.reduce((sum, estimate) => sum + estimate.rowCount, 0);
+  const disciplineBuckets = aggregateRowsByDiscipline(estimates.flatMap((estimate) => estimate.rows));
+  const disciplineBreakdownId = "share-financial-discipline-breakdown";
   const areasByLabel = new Map<string, { label: string; total: number; rowCount: number }>();
 
   for (const estimate of estimates) {
@@ -51,6 +59,37 @@ export default function ShareFinancialOverview({ currencyCode, estimates }: Shar
           <p className="mt-1 text-[18px] font-medium leading-[24px] tabular-nums text-ink">{rowCount}</p>
         </div>
       </div>
+
+      {disciplineBuckets.length > 0 ? (
+        <div className="mx-auto grid w-full max-w-[560px] gap-3 sm:grid-cols-[190px_minmax(0,1fr)] sm:items-center" data-share-cost-breakdown>
+          <CostDonutChart
+            buckets={disciplineBuckets}
+            total={total}
+            currencyCode={currencyCode}
+            label="Issued estimate cost breakdown"
+            compact
+            hideCallouts
+            describedById={disciplineBreakdownId}
+          />
+          <ul
+            id={disciplineBreakdownId}
+            aria-label="Issued estimate cost breakdown"
+            className="grid gap-1 rounded-xs border border-hairline bg-white p-2 text-[12px] leading-[16px] tracking-normal"
+            data-share-cost-breakdown-list
+          >
+            {disciplineBuckets.map((bucket) => (
+              <li key={bucket.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-0.5">
+                <span className="flex min-w-0 items-center gap-1.5 text-ink">
+                  <span aria-hidden="true" className="size-2 flex-none rounded-xs" style={{ backgroundColor: bucket.color }} />
+                  <span className="truncate">{bucket.label}</span>
+                </span>
+                <span className="text-right tabular-nums text-secondary">{percentFormatter.format(Number.isFinite(bucket.share) ? bucket.share : 0)}</span>
+                <span className="col-start-2 text-right tabular-nums text-ink">{formatMoney(bucket.total, currencyCode)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
         <div className="border border-hairline bg-white p-3">
