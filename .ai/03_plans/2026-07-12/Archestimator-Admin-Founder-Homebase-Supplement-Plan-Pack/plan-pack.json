@@ -11,7 +11,7 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "5ee7960897518fdaa505ec9766cb5c0763335032",
+    "head": "de6a41959e5bed9d05646880b0ac9854a0ffd521",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "supporting",
       "path": "00-EXECUTIVE-DIRECTION.md",
-      "sha256": "8d4df8130aebe4ddbb6aa210531b7eb48b9fe134071d93502beaf1c0f3fe95ed"
+      "sha256": "1e2dc9edcaf5d68735e860f56445b2a6b6376cc25c7b1d4b734a297fba8dba41"
     },
     {
       "id": "ART-002",
@@ -33,55 +33,55 @@
       "id": "ART-003",
       "role": "supporting",
       "path": "02-CURRENT-ADMIN-CODEBASE-AUDIT.md",
-      "sha256": "29d3bc2b97461f57d84ca726b2f3b6a2a391bc314c8e1ae41c3c6b30a60baebe"
+      "sha256": "10becb69d54fc86d7e11b77c337fa3bb0988879a97188f70206eb86319de12cc"
     },
     {
       "id": "ART-004",
       "role": "supporting",
       "path": "03-FOUNDER-JOBS-TO-BE-DONE-AND-PRD.md",
-      "sha256": "98e8de2a02b187f23a589ba2f0f436447735bc9a45885d8fe369c6198ceeb058"
+      "sha256": "30e2ae77952f1ab8167334a92309dd81650a59b8274717c3939782140468614e"
     },
     {
       "id": "ART-005",
       "role": "supporting",
       "path": "04-INFORMATION-ARCHITECTURE-UX-AND-NAVIGATION.md",
-      "sha256": "41a033620f263f14c6077c3891d7462b463f55e1e60724c19974aa7e925d13ab"
+      "sha256": "8b2fedde725890cd88271155240da4c8fe6d288828fbd5283818d956102e4801"
     },
     {
       "id": "ART-006",
       "role": "supporting",
       "path": "05-COMMAND-CENTER-ACTION-INBOX-AND-SEARCH.md",
-      "sha256": "c92f38d6ceb6bf0aa183799da5700ad8df53c8d0bdc4c02a56bdf16af7c3dcc1"
+      "sha256": "4f0b127a2a1f65c855191d86f9e76fddc4e2c51596a6bbe56c89220482dbd9f9"
     },
     {
       "id": "ART-007",
       "role": "supporting",
       "path": "06-CUSTOMER-SUCCESS-AND-ENTITY-360.md",
-      "sha256": "49feb2d34e6cb40d82a07fe24993d01e39e0cab2c1ba15ac5e3395d4fb80cf0e"
+      "sha256": "fabcbceaf6d9a749df33de000e16b6365ddd71a3530757f542bf61eec95c0ca0"
     },
     {
       "id": "ART-008",
       "role": "supporting",
       "path": "07-SUPPORT-FEEDBACK-AND-PRODUCT-DISCOVERY.md",
-      "sha256": "408cac495681c6ed006ffa318870690849a8c60f9e11327d03a8f37b4ac506d2"
+      "sha256": "ef8b56b1c31b4fe85fe55ba6bb7435cdf072756b444be137c7c3f118df6d235b"
     },
     {
       "id": "ART-009",
       "role": "supporting",
       "path": "08-RELEASE-LAUNCH-AND-FEATURE-DELIVERY.md",
-      "sha256": "ef337c106a42733c2e828e609bc2cd1c24e80d361e17bc496c207a5047e041b8"
+      "sha256": "f3d56f4000a81d659ccf382e2b987bf8e573f8631e9b9917f6637585bb0200cf"
     },
     {
       "id": "ART-010",
       "role": "supporting",
       "path": "09-OPERATIONS-DATA-QUALITY-COST-AND-CAPACITY.md",
-      "sha256": "58af4e50f83e3ae7d23a83499bc24df65ccdb4832e150031916e35e5cb0cb241"
+      "sha256": "5f383c8f22bac887ca3bf2540f39d7307dc9dfd4f69332beea47b032a36a8bb4"
     },
     {
       "id": "ART-011",
       "role": "supporting",
       "path": "10-ANALYTICS-BUSINESS-SCORECARD-AND-CADENCE.md",
-      "sha256": "70afa8e4b5f8be5031067bdfa9f503c481d48fb4a893fe1777cdd9955de01abf"
+      "sha256": "a74c03985f48eefbfc2e7ec8bd950dcbf7c4caed4b8ff36bb6b1547381913ba3"
     },
     {
       "id": "ART-012",
@@ -93,67 +93,67 @@
       "id": "ART-013",
       "role": "supporting",
       "path": "12-DATA-MODEL-API-SECURITY-AND-ARCHITECTURE.md",
-      "sha256": "75f8bda463650b9d850c1156a9e0c7447991ee5e7c64361f42a61133f4c1ce0d"
+      "sha256": "7ebd415fd0bb1983b07626cb8b3d15813435d3d301092d6b1cf3f0c9118e0689"
     },
     {
       "id": "ART-014",
       "role": "canonical-execution",
       "path": "13-IMPLEMENTATION-ROADMAP.md",
-      "sha256": "81425b14074407fec00dee8fb238e881d00775ac321a3f0737789531d45ea5c6"
+      "sha256": "022708b08ee41af62ff245c26aace689699aa5380bd5913e88967ac11bbfe778"
     },
     {
       "id": "ART-015",
       "role": "supporting",
       "path": "14-QUALITY-RELEASE-AND-OPERATIONS.md",
-      "sha256": "2a0946fc4a51c19b81908189de64a350897e3ef03d561a26f90ebc77c9427b66"
+      "sha256": "b1ea3eb49c4022064dbfccb74cdf37879a27b34d18e8bf6cd144fc07cbb9bdb1"
     },
     {
       "id": "ART-016",
       "role": "supporting",
       "path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "sha256": "947b8726bfa0f0e573ba0dcd40eb919ac1935a9d70e98a7664a173ff1653eb84"
+      "sha256": "5094fce7caf57a46a2b596ceffaecebcf6795f17c0550a2dd60c61965db86b65"
     },
     {
       "id": "ART-017",
       "role": "supporting",
       "path": "16-INDUSTRY-RESEARCH-AND-BENCHMARKS.md",
-      "sha256": "10cd515beb7b371e35e699e6f6bfef6f77e8f5559f6e04138ff4f2d26a5b3a2e"
+      "sha256": "a6105fffd123b187df79c9d81edc5d72101798da4915991d92e0407a8b2f8f43"
     },
     {
       "id": "ART-018",
       "role": "evidence",
       "path": "17-CONSOLIDATION-MAP-AND-TRACEABILITY.md",
-      "sha256": "e1fc4cff05febb029c769f42912b88ec4a3625cb7e672ecc131015ef9b02c222"
+      "sha256": "c7806ce3220d18a4c4ab1a0cef9dbfd371222482c949ea4b910f9221e9b66fbf"
     },
     {
       "id": "ART-019",
       "role": "supporting",
       "path": "18-SOURCE-REGISTRY.md",
-      "sha256": "386d946764f619654019edbe75371d15d66254b25ecb3c6798282030a84f032d"
+      "sha256": "119e05191bebe7e53dc4b0259d75bd234a05facc937d571f34826d8eb96c37d5"
     },
     {
       "id": "ART-020",
       "role": "coordination",
       "path": "LOOP_LEDGER.md",
-      "sha256": "20dd1a1c3cf69348050c51544947b9c0c3d7c9815332833defa2433db51d905d"
+      "sha256": "2b371bf87c2e227ae5beff5c22b3c0e6cb3c60494c0993d62c746e56b6438874"
     },
     {
       "id": "ART-021",
       "role": "supporting",
       "path": "PACK-MANIFEST.md",
-      "sha256": "76368a08ade63611bad598f4052f947b8e44e098c7618994b9355443a2da5eb1"
+      "sha256": "58f34b5a4a30a3896f714080676b248098316caf5c8fda77c139c7ddef50aa76"
     },
     {
       "id": "ART-022",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "649a25af8eb467a14e149f65de7e7615baeceaa929febf7681ca9c04955d6ff9"
+      "sha256": "b3ad1e7a47b92c183979abc591c14353dd81b47766aab8e7ec202a3c9a3eb7a7"
     },
     {
       "id": "ART-023",
       "role": "supporting",
       "path": "19-COMMUNICATIONS-AND-NOTIFICATION-MANAGER.md",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "sha256": "607040d04057fa70e43e806717d65a10f83994b4fe8e6161911a40c08b42b48c"
     }
   ],
   "sources": [
@@ -925,64 +925,112 @@
       "id": "RISK-039",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-010"],
-      "criterion_ids": ["AC-010"]
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-040",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-010"],
-      "criterion_ids": ["AC-010"]
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-041",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-010"],
-      "criterion_ids": ["AC-010"]
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-042",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-006", "UNIT-007", "UNIT-010"],
-      "criterion_ids": ["AC-006", "AC-007", "AC-010"]
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-007",
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-043",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-010"],
-      "criterion_ids": ["AC-010"]
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-044",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-007", "UNIT-010"],
-      "criterion_ids": ["AC-007", "AC-010"]
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-007",
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-045",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-005", "UNIT-006", "UNIT-007", "UNIT-010"],
-      "criterion_ids": ["AC-005", "AC-006", "AC-007", "AC-010"]
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-046",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-010"],
-      "criterion_ids": ["AC-010"]
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
     },
     {
       "id": "RISK-047",
       "status": "OPEN",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "unit_ids": ["UNIT-010"],
-      "criterion_ids": ["AC-010"]
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
     }
   ],
   "criteria": [
@@ -1814,13 +1862,22 @@
       "id": "DEC-AUTO-021",
       "status": "ACTIVE",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "affected_ids": ["REQ-005", "REQ-006", "REQ-007", "REQ-010"]
+      "affected_ids": [
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-010"
+      ]
     },
     {
       "id": "DEC-AUTO-022",
       "status": "ACTIVE",
       "artifact_path": "15-RISKS-DECISIONS-AND-NON-GOALS.md",
-      "affected_ids": ["REQ-007", "REQ-010", "REQ-011"]
+      "affected_ids": [
+        "REQ-007",
+        "REQ-010",
+        "REQ-011"
+      ]
     }
   ],
   "authorization_boundaries": [],
@@ -1837,7 +1894,7 @@
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "17-CONSOLIDATION-MAP-AND-TRACEABILITY.md",
-      "sha256": "e1fc4cff05febb029c769f42912b88ec4a3625cb7e672ecc131015ef9b02c222",
+      "sha256": "c7806ce3220d18a4c4ab1a0cef9dbfd371222482c949ea4b910f9221e9b66fbf",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -1873,14 +1930,14 @@
         "DEC-AUTO-021",
         "DEC-AUTO-022"
       ],
-      "source_revision": "5ee7960897518fdaa505ec9766cb5c0763335032",
+      "source_revision": "de6a41959e5bed9d05646880b0ac9854a0ffd521",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "14-QUALITY-RELEASE-AND-OPERATIONS.md",
-      "sha256": "2a0946fc4a51c19b81908189de64a350897e3ef03d561a26f90ebc77c9427b66",
+      "sha256": "b1ea3eb49c4022064dbfccb74cdf37879a27b34d18e8bf6cd144fc07cbb9bdb1",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -1912,7 +1969,7 @@
         "GATE-OPS-001",
         "GATE-VERIFY-001"
       ],
-      "source_revision": "5ee7960897518fdaa505ec9766cb5c0763335032",
+      "source_revision": "de6a41959e5bed9d05646880b0ac9854a0ffd521",
       "valid_until": null
     }
   ],
@@ -1928,5 +1985,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-14T00:00:00.000Z",
-  "manifest_sha256": "d52d7ceb31f3c750586d2c0da1e57e580293122b87c4bdc1d87d82e3d49692f8"
+  "manifest_sha256": "7d5f8f77f8dfef9177779bd92e1cbda9136a06a4b636d4c6a651165d95155f9c"
 }
