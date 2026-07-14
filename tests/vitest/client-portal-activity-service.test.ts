@@ -78,7 +78,11 @@ describe("client portal activity service", () => {
       { id: "audit_1", issue_id: "issue_1", actor_type: "recipient", event_type: "thread_created", metadata_json: "{}", occurred_at: "2026-07-12T00:00:00.000Z" },
       { id: "audit_2", issue_id: "issue_1", actor_type: "system", event_type: "authorization_denied", metadata_json: "{}", occurred_at: "2026-07-12T00:01:00.000Z" },
     ]);
-    await expect(listClientPortalClientSafeActivity({ actor: recipient, database, portalId: "portal_1" })).resolves.toEqual([{ id: "audit_1", issueId: "issue_1", eventType: "thread_created", occurredAt: "2026-07-12T00:00:00.000Z" }]);
+    await expect(listClientPortalClientSafeActivity({ actor: recipient, database, issueId: "issue_1", portalId: "portal_1" })).resolves.toEqual({
+      activities: [{ id: "audit_1", issueId: "issue_1", eventType: "thread_created", occurredAt: "2026-07-12T00:00:00.000Z", title: "Discussion started" }],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   it("builds recipient next actions from delivery, view, thread, and decision state", async () => {
@@ -110,6 +114,25 @@ describe("client portal activity service", () => {
       nextAction: "decision_pending",
       recipientId: "recipient_1",
     })]);
+  });
+
+  it("projects the latest invite delivery state instead of a historical aggregate", async () => {
+    const statements: string[] = [];
+    const database: D1DatabaseLike = {
+      prepare(sql: string): D1PreparedStatementLike {
+        statements.push(sql);
+        const statement: D1PreparedStatementLike = {
+          bind() { return statement; },
+          async first<T>() { return sql.includes("FROM client_portals") ? { current_issue_id: "issue_1", id: "portal_1", project_id: "project_1", status: "live", workspace_id: "workspace_1" } as T : null; },
+          async all<T>() { return { results: [{ decision_submitted_at: null, delivery_state: "dead", display_name: "Avery Client", first_viewed_at: null, id: "recipient_1", last_reminder_at: null, last_viewed_at: null, open_thread_count: 0, required_approver: 0, role_template: "reviewer", section_view_count: 0, status: "active", unsubscribed: 0, verification_state: "unverified", waiting_on_owner_count: 0 }], success: true } as D1Result<T>; },
+          async run<T>() { return { success: true } as D1Result<T>; },
+        };
+        return statement;
+      },
+    };
+
+    await expect(listClientPortalRecipientNextActions({ actor: manager, database, portalId: "portal_1" })).resolves.toEqual([expect.objectContaining({ deliveryState: "dead", nextAction: "fix_delivery" })]);
+    expect(statements.some((sql) => sql.includes("ORDER BY latest.created_at DESC") && sql.includes("portal.recipient.resent"))).toBe(true);
   });
 
   it("keeps security events in the owner audit projection only", async () => {

@@ -3,7 +3,7 @@ import "server-only";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { CLIENT_PORTAL_DISCUSSION_TARGET_KINDS, type ClientPortalDiscussionTargetKind } from "@/lib/client-portal/contracts";
 import { CLIENT_PORTAL_NO_STORE_HEADERS, readClientPortalRecipientSession, requiresClientPortalPassword } from "@/lib/client-portal/public-repository";
-import { createClientPortalRecipientThread, editClientPortalRecipientMessage, listClientPortalRecipientThreadMessages, listClientPortalRecipientThreads, markClientPortalRecipientThreadRead, replyToClientPortalThread, setClientPortalRecipientThreadStatus, tombstoneClientPortalRecipientMessage } from "@/lib/client-portal/thread-repository";
+import { ClientPortalThreadError, createClientPortalRecipientThread, editClientPortalRecipientMessage, listClientPortalRecipientThreadMessages, listClientPortalRecipientThreads, markClientPortalRecipientThreadRead, replyToClientPortalThread, setClientPortalRecipientThreadStatus, tombstoneClientPortalRecipientMessage } from "@/lib/client-portal/thread-repository";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
 import { checkClientPortalThreadRateLimit, checkClientPortalThreadReadRateLimit } from "@/lib/publication/public-repository";
@@ -42,10 +42,28 @@ async function recipientReadRequest(request: Request, token: string) {
 
 function idempotencyKey(request: Request) { return request.headers.get("idempotency-key")?.trim() ?? ""; }
 
+function discussionPage(request: Request) {
+  const searchParams = new URL(request.url).searchParams;
+  const rawLimit = searchParams.get("limit");
+  return {
+    cursor: searchParams.get("cursor"),
+    limit: rawLimit === null ? undefined : Number(rawLimit),
+  };
+}
+
 function mentionedRecipientIds(value: unknown) {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) return null;
   return value;
+}
+
+function threadError(error: unknown) {
+  if (!(error instanceof ClientPortalThreadError)) return unavailable();
+  if (error.code === "client_portal_invalid_input") return invalid(error.message);
+  if (error.code === "client_portal_thread_conflict") return Response.json({ error: error.message }, { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  if (error.code === "client_portal_thread_denied") return Response.json({ error: error.message }, { status: 403, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  if (error.code === "client_portal_thread_stale") return Response.json({ error: error.message }, { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  return unavailable();
 }
 
 export async function createClientPortalThreadResponse(request: Request, token: string) {
@@ -58,32 +76,34 @@ export async function createClientPortalThreadResponse(request: Request, token: 
   const mentions = mentionedRecipientIds(body.value.mentionedRecipientIds);
   if (!mentions) return invalid("Discussion mentions are invalid.");
   const targetRecord = target as Record<string, unknown>;
-  if (typeof body.value.issueId !== "string" || typeof body.value.subject !== "string" || typeof body.value.body !== "string" || typeof targetRecord.kind !== "string" || typeof targetRecord.label !== "string") return invalid("Discussion request is invalid.");
+  if (typeof body.value.issueId !== "string" || typeof body.value.subject !== "string" || typeof body.value.body !== "string" || typeof targetRecord.kind !== "string") return invalid("Discussion request is invalid.");
   if (!CLIENT_PORTAL_DISCUSSION_TARGET_KINDS.includes(targetRecord.kind as ClientPortalDiscussionTargetKind)) return invalid("Discussion target is invalid.");
   try {
     const thread = await createClientPortalRecipientThread({
       actor: context.actor, database: context.database, portalId: context.actor.portalId, issueId: body.value.issueId,
       sectionId: typeof body.value.sectionId === "string" ? body.value.sectionId : null, idempotencyKey: idempotencyKey(request), mentionedRecipientIds: mentions, subject: body.value.subject, body: body.value.body,
-      target: { kind: targetRecord.kind as ClientPortalDiscussionTargetKind, publicId: typeof targetRecord.publicId === "string" ? targetRecord.publicId : null, label: targetRecord.label, secondaryLabel: typeof targetRecord.secondaryLabel === "string" ? targetRecord.secondaryLabel : null },
+      target: { kind: targetRecord.kind as ClientPortalDiscussionTargetKind, publicId: typeof targetRecord.publicId === "string" ? targetRecord.publicId : null },
     });
     return Response.json({ thread }, { status: 201, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return threadError(error); }
 }
 
 export async function listClientPortalThreadsResponse(request: Request, token: string) {
   const context = await recipientReadRequest(request, token); if ("error" in context) return context.error;
   const rateLimit = await readRateLimit(context.actor); if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
-  const threads = await listClientPortalRecipientThreads({ actor: context.actor, database: context.database, portalId: context.actor.portalId });
-  return Response.json({ threads }, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  try {
+    const page = await listClientPortalRecipientThreads({ actor: context.actor, database: context.database, portalId: context.actor.portalId, ...discussionPage(request) });
+    return Response.json(page, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  } catch (error) { return threadError(error); }
 }
 
 export async function listClientPortalThreadMessagesResponse(request: Request, token: string, threadId: string) {
   const context = await recipientReadRequest(request, token); if ("error" in context) return context.error;
   const rateLimit = await readRateLimit(context.actor); if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
   try {
-    const messages = await listClientPortalRecipientThreadMessages({ actor: context.actor, database: context.database, portalId: context.actor.portalId, threadId });
-    return Response.json({ messages }, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+    const page = await listClientPortalRecipientThreadMessages({ actor: context.actor, database: context.database, portalId: context.actor.portalId, threadId, ...discussionPage(request) });
+    return Response.json(page, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  } catch (error) { return threadError(error); }
 }
 
 export async function markClientPortalThreadReadResponse(request: Request, token: string, threadId: string) {
@@ -92,7 +112,7 @@ export async function markClientPortalThreadReadResponse(request: Request, token
   try {
     await markClientPortalRecipientThreadRead({ actor: context.actor, database: context.database, portalId: context.actor.portalId, threadId });
     return new Response(null, { status: 204, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return threadError(error); }
 }
 
 export async function editClientPortalMessageResponse(request: Request, token: string, messageId: string) {
@@ -104,7 +124,7 @@ export async function editClientPortalMessageResponse(request: Request, token: s
   try {
     await editClientPortalRecipientMessage({ actor: context.actor, database: context.database, portalId: context.actor.portalId, messageId, body: body.value.body });
     return new Response(null, { status: 204, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return threadError(error); }
 }
 
 export async function tombstoneClientPortalMessageResponse(request: Request, token: string, messageId: string) {
@@ -113,7 +133,7 @@ export async function tombstoneClientPortalMessageResponse(request: Request, tok
   try {
     await tombstoneClientPortalRecipientMessage({ actor: context.actor, database: context.database, portalId: context.actor.portalId, messageId });
     return new Response(null, { status: 204, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return threadError(error); }
 }
 
 export async function replyClientPortalThreadResponse(request: Request, token: string, threadId: string) {
@@ -127,7 +147,7 @@ export async function replyClientPortalThreadResponse(request: Request, token: s
   try {
     const result = await replyToClientPortalThread({ actor: context.actor, database: context.database, portalId: context.actor.portalId, threadId, idempotencyKey: idempotencyKey(request), mentionedRecipientIds: mentions, body: body.value.body });
     return Response.json({ threadId: result.id, replayed: result.replayed }, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return threadError(error); }
 }
 
 export async function updateClientPortalThreadStatusResponse(request: Request, token: string, threadId: string) {

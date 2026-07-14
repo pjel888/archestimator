@@ -66,9 +66,17 @@ export type PublicationSnapshotTreeNode = {
 
 export type PublicationSnapshotRow = {
   id: string;
+  componentAnchor?: string | null;
+  variantAnchor?: string | null;
+  componentVersionNumber?: number | null;
+  variantLabel?: string | null;
+  rowRevision?: number;
+  linkState?: "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
   description: string;
   designation: string;
   discipline: string;
+  category?: string | null;
+  supplier?: string | null;
   material: string;
   quantity: number;
   unit: string;
@@ -92,6 +100,7 @@ export type PublicationSnapshotEstimateTab = {
   isDefault: boolean;
   rowCount: number;
   totalCost: number;
+  totalCostMinorUnits?: number;
   /**
    * Compact snapshots (schema v1.3+) store tab membership as row IDs while
    * preserving estimate-level rows for legacy consumers. Legacy v1.2 snapshots
@@ -109,6 +118,7 @@ export type PublicationSnapshotEstimate = {
   updatedAt: string | null;
   rowCount: number;
   totalCost: number;
+  totalCostMinorUnits?: number;
   rows: PublicationSnapshotRow[];
   // Actual estimate node tree (groups + areas) from the workshop.
   // Added in snapshot schema v1.1 (additive; absent in older snapshots).
@@ -153,5 +163,6 @@ export type ProjectPublicationSnapshot = {
   estimateCount: number;
   rowCount: number;
   totalCost: number;
+  totalCostMinorUnits?: number;
   estimates: PublicationSnapshotEstimate[];
 };

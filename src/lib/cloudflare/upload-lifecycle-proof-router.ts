@@ -121,7 +121,7 @@ async function proofStoragePaths(db: D1DatabaseLike) {
       UNION
       SELECT storage_path FROM upload_assets WHERE id LIKE ? OR upload_session_id LIKE ? OR workspace_id LIKE ? OR actor_user_id LIKE ? OR storage_path LIKE ?
       UNION
-      SELECT storage_path FROM cost_library_item_variant_attachments WHERE id LIKE ? OR workspace_id LIKE ? OR storage_path LIKE ?
+      SELECT storage_path FROM component_variant_attachments WHERE id LIKE ? OR workspace_id LIKE ? OR storage_path LIKE ?
     `,
     [
       idLike, idLike, idLike, idLike,
@@ -145,7 +145,7 @@ async function countProofRows(db: D1DatabaseLike): Promise<CleanupCounts> {
         (SELECT COUNT(*) FROM upload_sessions WHERE id LIKE ? OR workspace_id LIKE ? OR actor_user_id LIKE ? OR storage_path LIKE ?) AS uploadSessions,
         (SELECT COUNT(*) FROM upload_assets WHERE id LIKE ? OR upload_session_id LIKE ? OR workspace_id LIKE ? OR actor_user_id LIKE ? OR storage_path LIKE ?) AS uploadAssets,
         (SELECT COUNT(*) FROM upload_events WHERE upload_session_id LIKE ? OR upload_asset_id LIKE ? OR workspace_id LIKE ? OR actor_user_id LIKE ?) AS uploadEvents,
-        (SELECT COUNT(*) FROM cost_library_item_variant_attachments WHERE id LIKE ? OR workspace_id LIKE ? OR storage_path LIKE ? OR created_by LIKE ?) AS attachments
+        (SELECT COUNT(*) FROM component_variant_attachments WHERE id LIKE ? OR workspace_id LIKE ? OR storage_path LIKE ? OR created_by LIKE ?) AS attachments
     `,
     [
       idLike, idLike, idLike,
@@ -192,7 +192,7 @@ async function cleanupProofRows(db: D1DatabaseLike, storageProvider?: Awaited<Re
   await runStatement(
     db,
     `
-      DELETE FROM cost_library_item_variant_attachments
+      DELETE FROM component_variant_attachments
       WHERE id LIKE ?
         OR workspace_id LIKE ?
         OR storage_path LIKE ?
@@ -232,6 +232,7 @@ async function seedWorkspaceFixture(db: D1DatabaseLike, runId: string) {
   const now = nowIso();
   const workspaceId = proofId("workspace", runId);
   const userId = proofId("user", runId);
+  const projectId = proofId("project", runId);
   const email = proofEmail("user", runId);
 
   await runStatement(
@@ -249,14 +250,22 @@ async function seedWorkspaceFixture(db: D1DatabaseLike, runId: string) {
     "INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) VALUES (?, ?, 'owner', ?, ?)",
     [workspaceId, userId, now, now],
   );
+  await runStatement(
+    db,
+    "INSERT INTO projects (id, workspace_id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    [projectId, workspaceId, "Codex Upload Proof Project", userId, now, now],
+  );
 
-  return { workspaceId, userId };
+  return { workspaceId, userId, projectId };
 }
 
 async function insertApprovedAttachment(db: D1DatabaseLike, input: {
   attachmentId: string;
   workspaceId: string;
   userId: string;
+  projectId: string;
+  projectComponentId: string;
+  uploadAssetId: string;
   path: string;
   fileName: string;
   sizeBytes: number;
@@ -265,18 +274,23 @@ async function insertApprovedAttachment(db: D1DatabaseLike, input: {
   await runStatement(
     db,
     `
-      INSERT INTO cost_library_item_variant_attachments (
-        id, price_option_id, item_id, workspace_id, storage_bucket, storage_path,
+      INSERT INTO component_variant_attachments (
+        id, owner_scope, price_option_id, item_id, project_id, project_component_id,
+        workspace_id, upload_asset_id, storage_bucket, storage_path,
         file_name, content_type, size_bytes, attachment_kind, metadata_json,
         created_by, review_status, applicable_cost_entry_id, is_current_approved,
         reviewed_by, reviewed_at, review_note, superseded_by, review_revision,
         created_at, updated_at
       )
-      VALUES (?, NULL, NULL, ?, ?, ?, ?, ?, ?, 'pdf', ?, ?, 'approved', NULL, 1, ?, ?, 'Cloudflare upload lifecycle proof', NULL, 1, ?, ?)
+      VALUES (?, 'project', ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pdf', ?, ?, 'approved', NULL, 1, ?, ?, 'Cloudflare upload lifecycle proof', NULL, 1, ?, ?)
     `,
     [
       input.attachmentId,
+      proofId("option", input.attachmentId),
+      input.projectId,
+      input.projectComponentId,
       input.workspaceId,
+      input.uploadAssetId,
       COMPONENT_ATTACHMENT_BUCKET,
       input.path,
       input.fileName,
@@ -330,6 +344,8 @@ async function readScanReadback(db: D1DatabaseLike, assetId: string) {
 async function readAttachmentEligibility(db: D1DatabaseLike, attachmentId: string, path: string) {
   const row = await firstRow<{
     attachment_id: string;
+    binding_upload_asset_id: string;
+    matched_upload_asset_id: string;
     review_status: string;
     is_current_approved: number;
     asset_status: string;
@@ -339,17 +355,20 @@ async function readAttachmentEligibility(db: D1DatabaseLike, attachmentId: strin
     `
       SELECT
         a.id AS attachment_id,
+        a.upload_asset_id AS binding_upload_asset_id,
+        u.id AS matched_upload_asset_id,
         a.review_status,
         a.is_current_approved,
         u.status AS asset_status,
         u.scan_status
-      FROM cost_library_item_variant_attachments a
+      FROM component_variant_attachments a
       JOIN upload_assets u
-        ON u.workspace_id = a.workspace_id
-       AND u.storage_bucket = a.storage_bucket
-       AND u.storage_path = a.storage_path
+        ON u.id = a.upload_asset_id
       WHERE a.id = ?
         AND a.storage_path = ?
+        AND u.workspace_id = a.workspace_id
+        AND u.storage_bucket = a.storage_bucket
+        AND u.storage_path = a.storage_path
       LIMIT 1
     `,
     [attachmentId, path],
@@ -357,6 +376,8 @@ async function readAttachmentEligibility(db: D1DatabaseLike, attachmentId: strin
 
   return {
     attachmentPresent: Boolean(row?.attachment_id),
+    uploadAssetBindingMatches: Boolean(row?.binding_upload_asset_id)
+      && row?.binding_upload_asset_id === row?.matched_upload_asset_id,
     approved: row?.review_status === "approved" && row?.is_current_approved === 1,
     finalizedCleanAssetPresent: row?.asset_status === "finalized" && row?.scan_status === "clean",
   };
@@ -402,8 +423,8 @@ async function runHostedUploadLifecycleProof(db: D1DatabaseLike, r2: CloudflareR
       workspaceId: seeded.workspaceId,
       actorUserId: seeded.userId,
       surface: "component-attachment",
-      targetEntityType: "component-library",
-      targetEntityId: null,
+      targetEntityType: "project-component",
+      targetEntityId: fixture.attachmentId,
       bucket: COMPONENT_ATTACHMENT_BUCKET,
       path,
       fileName: fixture.fileName,
@@ -414,6 +435,7 @@ async function runHostedUploadLifecycleProof(db: D1DatabaseLike, r2: CloudflareR
       metadata: {
         proof: "cloudflare-upload-lifecycle-proof",
         objectPathHash: pathHash,
+        projectId: seeded.projectId,
       },
     });
 
@@ -434,6 +456,9 @@ async function runHostedUploadLifecycleProof(db: D1DatabaseLike, r2: CloudflareR
       attachmentId: fixture.attachmentId,
       workspaceId: seeded.workspaceId,
       userId: seeded.userId,
+      projectId: seeded.projectId,
+      projectComponentId: fixture.attachmentId,
+      uploadAssetId: uploadRecord.assetId,
       path,
       fileName: fixture.fileName,
       sizeBytes: PDF_BYTES.byteLength,
@@ -484,6 +509,7 @@ async function runHostedUploadLifecycleProof(db: D1DatabaseLike, r2: CloudflareR
       },
       attachmentDownloadEligibility: {
         passed: attachmentEligibility.attachmentPresent
+          && attachmentEligibility.uploadAssetBindingMatches
           && attachmentEligibility.approved
           && attachmentEligibility.finalizedCleanAssetPresent
           && downloadedAfterScanBytes.byteLength === PDF_BYTES.byteLength

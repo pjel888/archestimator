@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
-import { computeEstimateRowCostParts, ESTIMATE_CALCULATION_VERSION } from "@/lib/estimates/estimate-row-total";
+import { normalizeIssuedPublicationImageUrl } from "@/lib/publication/image-url";
+import { computeEstimateRowCostParts, ESTIMATE_CALCULATION_CURRENCY_SCALE, ESTIMATE_CALCULATION_VERSION } from "@/lib/estimates/estimate-row-total";
 import type {
   ProjectPublicationLocationVisibility,
   ProjectPublicationSnapshot,
@@ -27,9 +27,17 @@ type SnapshotProjectInput = {
 
 type SnapshotRowInput = {
   id: string;
+  componentId?: string | null;
+  variantId?: string | null;
+  componentVersionNumber?: number | null;
+  variantLabel?: string | null;
+  rowRevision?: number | null;
+  linkState?: "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached" | null;
   description: string;
   designation: string;
   discipline: string;
+  categoryLabel?: string | null;
+  supplierLabel?: string | null;
   material: string;
   quantity: number;
   quantityBase?: number | null;
@@ -73,9 +81,10 @@ type SnapshotEstimateInput = {
   tabs?: SnapshotTabInput[];
 };
 
-type PublicationIdKind = "project" | "estimate" | "row" | "node" | "tab";
+type PublicationIdKind = "project" | "estimate" | "row" | "node" | "tab" | "component" | "variant";
 type InternalProjectPublicationSnapshot = ProjectPublicationSnapshot & {
   _privateIdNamespace?: string;
+  _privateOpaqueAllIds?: boolean;
 };
 
 const PUBLIC_ID_PREFIX: Record<PublicationIdKind, string> = {
@@ -84,6 +93,8 @@ const PUBLIC_ID_PREFIX: Record<PublicationIdKind, string> = {
   row: "row",
   node: "node",
   tab: "tab",
+  component: "cmp",
+  variant: "var",
 };
 const CANONICAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GPS_COORDINATE_PATTERN = /[-+]?(?:[0-8]?\d(?:\.\d{3,})?|90(?:\.0+)?)\s*,\s*[-+]?(?:1[0-7]\d(?:\.\d{3,})?|[0-9]?\d(?:\.\d{3,})?|180(?:\.0+)?)/;
@@ -149,12 +160,14 @@ function createOpaqueSnapshotId(kind: PublicationIdKind, rawId: string, namespac
 
 export function createPublicationSnapshotIdMaps(snapshot: ProjectPublicationSnapshot) {
   const namespace = readSnapshotIdNamespace(snapshot);
+  const opaqueAllIds = (snapshot as InternalProjectPublicationSnapshot)._privateOpaqueAllIds === true;
   const rawToPublic = new Map<string, string>();
   const publicToRaw = new Map<string, string>();
 
   function add(kind: PublicationIdKind, value: string | null | undefined) {
-    if (!isCanonicalUuid(value)) return;
-    const raw = value.toLowerCase();
+    const normalized = value?.trim();
+    if (!normalized || (!opaqueAllIds && !isCanonicalUuid(normalized))) return;
+    const raw = normalized.toLowerCase();
     if (rawToPublic.has(raw)) return;
     const publicId = createOpaqueSnapshotId(kind, raw, namespace);
     rawToPublic.set(raw, publicId);
@@ -204,6 +217,22 @@ function toFiniteNumber(value: number) {
   return Number.isFinite(value) ? value : 0;
 }
 
+const MINOR_UNIT_FACTOR = 10 ** ESTIMATE_CALCULATION_CURRENCY_SCALE;
+
+function minorUnitsToAmount(value: number) {
+  if (!Number.isSafeInteger(value)) throw new Error("Cannot publish a total outside the supported minor-unit range.");
+  return value / MINOR_UNIT_FACTOR;
+}
+
+function sumMinorUnits(rows: readonly PublicationSnapshotRow[]) {
+  return rows.reduce((total, row) => {
+    if (!Number.isSafeInteger(row.rowTotalMinorUnits)) throw new Error("Cannot publish a row without canonical minor-unit totals.");
+    const next = total + Number(row.rowTotalMinorUnits);
+    if (!Number.isSafeInteger(next)) throw new Error("Cannot publish a total outside the supported minor-unit range.");
+    return next;
+  }, 0);
+}
+
 function calculateRowCostParts(row: SnapshotRowInput, currencyCode: string) {
   const contingencyPercentage = toFiniteNumber(row.contingencyPercentage);
   const legacyAdjustmentPercentage = row.quantityBase === null || row.quantityBase === undefined ? contingencyPercentage : 0;
@@ -219,15 +248,23 @@ function calculateRowCostParts(row: SnapshotRowInput, currencyCode: string) {
   });
 }
 
-function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, tabId?: string | null): PublicationSnapshotRow {
+function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, idNamespace: string, tabId?: string | null): PublicationSnapshotRow {
   const costParts = calculateRowCostParts(row, currencyCode);
   if (!costParts.ok) throw new Error("Cannot publish an estimate row with invalid calculation input.");
 
   const snapshotRow: PublicationSnapshotRow = {
     id: row.id,
+    componentAnchor: row.componentId ? createOpaqueSnapshotId("component", row.componentId, idNamespace) : null,
+    variantAnchor: row.variantId ? createOpaqueSnapshotId("variant", row.variantId, idNamespace) : null,
+    componentVersionNumber: Number.isSafeInteger(row.componentVersionNumber) && Number(row.componentVersionNumber) >= 0 ? Number(row.componentVersionNumber) : null,
+    variantLabel: row.variantLabel?.trim() || null,
+    rowRevision: Number.isSafeInteger(row.rowRevision) && Number(row.rowRevision) >= 0 ? Number(row.rowRevision) : 0,
+    linkState: row.linkState ?? "unlinked",
     description: row.description,
     designation: row.designation,
     discipline: row.discipline,
+    category: row.categoryLabel?.trim() || null,
+    supplier: row.supplierLabel?.trim() || null,
     material: row.material,
     quantity: toFiniteNumber(row.quantity),
     unit: row.unit,
@@ -238,7 +275,7 @@ function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, tabId?: s
     currencyCode: costParts.value.currencyCode,
     scopeStatus: row.scopeStatus ?? "included",
     // P9 additive (undefined/null if absent in source_snapshot at publish)
-    imageUrl: normalizePublicationImageUrl(row.imageUrl),
+    imageUrl: normalizeIssuedPublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
   };
   if (tabId) snapshotRow.tabId = tabId;
@@ -269,9 +306,17 @@ function sanitizeSnapshotRow(
     quantity: toFiniteNumber(Number(row.quantity)),
     unit: row.unit,
     rowTotal: toFiniteNumber(Number(row.rowTotal)),
-    imageUrl: normalizePublicationImageUrl(row.imageUrl),
+    imageUrl: normalizeIssuedPublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ? mapPublicSnapshotId(idMaps, "node", row.nodeId) : null,
   };
+  if (typeof row.componentAnchor === "string" && /^cmp_[A-Za-z0-9_-]{20}$/.test(row.componentAnchor)) snapshotRow.componentAnchor = row.componentAnchor;
+  if (typeof row.variantAnchor === "string" && /^var_[A-Za-z0-9_-]{20}$/.test(row.variantAnchor)) snapshotRow.variantAnchor = row.variantAnchor;
+  if (Number.isSafeInteger(row.componentVersionNumber) && Number(row.componentVersionNumber) >= 0) snapshotRow.componentVersionNumber = Number(row.componentVersionNumber);
+  if (typeof row.variantLabel === "string" && row.variantLabel.trim()) snapshotRow.variantLabel = row.variantLabel.trim();
+  if (typeof row.category === "string" && row.category.trim()) snapshotRow.category = row.category.trim();
+  if (typeof row.supplier === "string" && row.supplier.trim()) snapshotRow.supplier = row.supplier.trim();
+  if (Number.isSafeInteger(row.rowRevision) && Number(row.rowRevision) >= 0) snapshotRow.rowRevision = Number(row.rowRevision);
+  if (row.linkState === "unlinked" || row.linkState === "linked-clean" || row.linkState === "linked-overridden" || row.linkState === "source-changed" || row.linkState === "detached") snapshotRow.linkState = row.linkState;
   if (row.tabId) snapshotRow.tabId = mapPublicSnapshotId(idMaps, "tab", row.tabId);
   if (Number.isSafeInteger(row.rowTotalMinorUnits)) snapshotRow.rowTotalMinorUnits = row.rowTotalMinorUnits;
   if (row.calculationVersion === ESTIMATE_CALCULATION_VERSION) snapshotRow.calculationVersion = row.calculationVersion;
@@ -334,7 +379,9 @@ function sanitizeSnapshotTreeNodes(
 export function sanitizeProjectPublicationSnapshotForPublicRead(snapshot: ProjectPublicationSnapshot): ProjectPublicationSnapshot {
   const idMaps = createPublicationSnapshotIdMaps(snapshot);
   const internalSnapshot = snapshot as InternalProjectPublicationSnapshot;
-  const { _privateIdNamespace: _privateIdNamespace, ...snapshotWithoutPrivate } = internalSnapshot;
+  const snapshotWithoutPrivate = { ...internalSnapshot };
+  delete snapshotWithoutPrivate._privateIdNamespace;
+  delete snapshotWithoutPrivate._privateOpaqueAllIds;
   const locationVisibility = normalizeProjectPublicationLocationVisibility(snapshot.project.locationVisibility);
   const project =
     "coverImageUrl" in snapshot.project
@@ -343,7 +390,7 @@ export function sanitizeProjectPublicationSnapshotForPublicRead(snapshot: Projec
           id: mapPublicSnapshotId(idMaps, "project", snapshot.project.id),
           location: sanitizeProjectPublicationLocation(snapshot.project.location, locationVisibility),
           locationVisibility,
-          coverImageUrl: normalizePublicationImageUrl(snapshot.project.coverImageUrl),
+          coverImageUrl: normalizeIssuedPublicationImageUrl(snapshot.project.coverImageUrl),
         }
       : {
           ...snapshot.project,
@@ -422,19 +469,21 @@ function buildSnapshotEstimateTab({
   rows: PublicationSnapshotRow[];
   nodes: SnapshotNodeInput[];
 }): PublicationSnapshotEstimateTab {
+  const totalCostMinorUnits = sumMinorUnits(rows);
   return {
     id: tab.id,
     name: tab.name,
     sortOrder: tab.sortOrder,
     isDefault: tab.isDefault,
     rowCount: rows.length,
-    totalCost: rows.reduce((total, row) => total + row.rowTotal, 0),
+    totalCost: minorUnitsToAmount(totalCostMinorUnits),
+    totalCostMinorUnits,
     rowIds: rows.map((row) => row.id),
     treeNodes: nodes.length > 0 ? buildSnapshotTreeNodes(nodes) : undefined,
   };
 }
 
-function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: string): PublicationSnapshotEstimate {
+function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: string, idNamespace: string): PublicationSnapshotEstimate {
   const sortedTabs = sortSnapshotTabs(estimate.tabs ?? []);
   const defaultTabId = findDefaultTabId(sortedTabs);
   const sourceNodes = estimate.nodes ?? [];
@@ -444,11 +493,11 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: st
   const nodeTabMap = buildNodeTabMap(nodes);
   const rows = estimate.rows.flatMap((row) => {
     if (row.scopeStatus && row.scopeStatus !== "included") return [];
-    if (!hasActiveTabs) return [buildSnapshotRow(row, currencyCode, row.nodeId ? nodeTabMap.get(row.nodeId) : null)];
-    if (!row.nodeId) return defaultTabId ? [buildSnapshotRow(row, currencyCode, defaultTabId)] : [];
+    if (!hasActiveTabs) return [buildSnapshotRow(row, currencyCode, idNamespace, row.nodeId ? nodeTabMap.get(row.nodeId) : null)];
+    if (!row.nodeId) return defaultTabId ? [buildSnapshotRow(row, currencyCode, idNamespace, defaultTabId)] : [];
     if (!nodeTabMap.has(row.nodeId)) return [];
     const tabId = nodeTabMap.get(row.nodeId) ?? defaultTabId;
-    return tabId ? [buildSnapshotRow(row, currencyCode, tabId)] : [];
+    return tabId ? [buildSnapshotRow(row, currencyCode, idNamespace, tabId)] : [];
   });
   const tabRows = new Map<string, PublicationSnapshotRow[]>();
   const tabNodes = new Map<string, SnapshotNodeInput[]>();
@@ -483,13 +532,15 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: st
         )
       : undefined;
 
+  const totalCostMinorUnits = sumMinorUnits(rows);
   return {
     id: estimate.id,
     name: estimate.name,
     sheetCode: estimate.sheetCode,
     updatedAt: estimate.updatedAt,
     rowCount: rows.length,
-    totalCost: rows.reduce((total, row) => total + row.rowTotal, 0),
+    totalCost: minorUnitsToAmount(totalCostMinorUnits),
+    totalCostMinorUnits,
     rows,
     treeNodes: nodes.length > 0 ? buildSnapshotTreeNodes(nodes) : undefined,
     tabs,
@@ -498,14 +549,18 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: st
 
 export function buildProjectPublicationSnapshot({
   generatedAt,
+  idNamespace,
   project,
   estimates,
 }: {
   generatedAt: string;
+  idNamespace?: string;
   project: SnapshotProjectInput;
   estimates: SnapshotEstimateInput[];
 }): ProjectPublicationSnapshot {
-  const snapshotEstimates = estimates.map((estimate) => buildSnapshotEstimate(estimate, project.currencyCode));
+  const explicitIdNamespace = idNamespace?.trim();
+  const privateIdNamespace = explicitIdNamespace || randomBytes(16).toString("base64url");
+  const snapshotEstimates = estimates.map((estimate) => buildSnapshotEstimate(estimate, project.currencyCode, privateIdNamespace));
   const locationVisibility = normalizeProjectPublicationLocationVisibility(project.locationVisibility);
   const senderName = project.senderName?.trim();
   const snapshotProject =
@@ -516,7 +571,7 @@ export function buildProjectPublicationSnapshot({
           showArchestimatorBranding: project.showArchestimatorBranding !== false,
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
-          coverImageUrl: normalizePublicationImageUrl(project.coverImageUrl),
+          coverImageUrl: normalizeIssuedPublicationImageUrl(project.coverImageUrl),
         }
       : {
           ...project,
@@ -527,14 +582,21 @@ export function buildProjectPublicationSnapshot({
         };
   const schemaVersion = 1.4;
 
+  const totalCostMinorUnits = snapshotEstimates.reduce((total, estimate) => {
+    const next = total + (estimate.totalCostMinorUnits ?? 0);
+    if (!Number.isSafeInteger(next)) throw new Error("Cannot publish a total outside the supported minor-unit range.");
+    return next;
+  }, 0);
   return {
-    _privateIdNamespace: randomBytes(16).toString("base64url"),
+    _privateIdNamespace: privateIdNamespace,
+    _privateOpaqueAllIds: Boolean(explicitIdNamespace),
     schemaVersion,
     generatedAt,
     project: snapshotProject,
     estimateCount: snapshotEstimates.length,
     rowCount: snapshotEstimates.reduce((total, estimate) => total + estimate.rowCount, 0),
-    totalCost: snapshotEstimates.reduce((total, estimate) => total + estimate.totalCost, 0),
+    totalCost: minorUnitsToAmount(totalCostMinorUnits),
+    totalCostMinorUnits,
     estimates: snapshotEstimates,
   } as ProjectPublicationSnapshot;
 }

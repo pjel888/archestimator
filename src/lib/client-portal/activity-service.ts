@@ -6,7 +6,7 @@ import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/clo
 import { evaluateClientPortalPolicy, type ClientPortalActor, type ClientPortalInternalActor } from "@/lib/client-portal/policy";
 
 const ANALYTICS_EVENTS = new Set(["viewed", "section_viewed", "thread_opened", "thread_created", "decision_started", "decision_submitted"]);
-const CLIENT_SAFE_AUDIT_EVENTS = new Set(["issue_issued", "issue_superseded", "thread_created", "message_created", "thread_resolved", "thread_reopened", "decision_submitted"]);
+const CLIENT_SAFE_AUDIT_EVENTS = ["issue_issued", "issue_superseded", "thread_created", "message_created", "thread_resolved", "thread_reopened", "decision_submitted", "issue_decision_status_updated"] as const;
 const REMINDER_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1_000;
 
 type PortalRow = { current_issue_id: string | null; id: string; project_id: string; status: "draft" | "ready" | "live" | "access_off" | "archived"; workspace_id: string };
@@ -14,7 +14,7 @@ type AuditRow = { actor_type: "internal_user" | "recipient" | "system"; event_ty
 type OwnerAuditRow = AuditRow & { actor_id: string | null };
 type RecipientSummaryRow = {
   decision_submitted_at: string | null;
-  delivery_state: "delivered" | "failed" | "pending" | null;
+  delivery_state: "dead" | "delivered" | "pending" | "processing" | null;
   display_name: string | null;
   first_viewed_at: string | null;
   id: string;
@@ -59,6 +59,33 @@ function safeMetadata(value: string) {
   }
 }
 
+function activityTitle(eventType: string) {
+  switch (eventType) {
+    case "issue_issued": return "Issue published";
+    case "issue_superseded": return "Issue superseded";
+    case "thread_created": return "Discussion started";
+    case "message_created": return "Discussion updated";
+    case "thread_resolved": return "Discussion resolved";
+    case "thread_reopened": return "Discussion reopened";
+    case "decision_submitted": return "Decision submitted";
+    case "issue_decision_status_updated": return "Issue decision updated";
+    default: return "Client Portal updated";
+  }
+}
+
+function encodeActivityCursor(row: Pick<AuditRow, "id" | "occurred_at">) {
+  return `${row.occurred_at}|${row.id}`;
+}
+
+function parseActivityCursor(value: string | null | undefined) {
+  if (!value || value.length > 220) return null;
+  const separator = value.indexOf("|");
+  if (separator <= 0) return null;
+  const occurredAt = value.slice(0, separator);
+  const id = value.slice(separator + 1);
+  return Number.isFinite(Date.parse(occurredAt)) && id.trim() ? { id, occurredAt } : null;
+}
+
 function reminderInCooldown(lastReminderAt: string | null, now: Date) {
   if (!lastReminderAt) return false;
   const sentAt = Date.parse(lastReminderAt);
@@ -68,7 +95,7 @@ function reminderInCooldown(lastReminderAt: string | null, now: Date) {
 function recipientNextAction(recipient: RecipientSummaryRow, now: Date) {
   if (recipient.status === "revoked" || recipient.status === "expired" || recipient.unsubscribed) return "no_action";
   if (recipient.status !== "active") return "send_invitation";
-  if (recipient.delivery_state === "failed") return "fix_delivery";
+  if (recipient.delivery_state === "dead") return "fix_delivery";
   if (recipient.verification_state !== "verified") return "verify_access";
   if (recipient.waiting_on_owner_count > 0) return "reply";
   if (recipient.required_approver && !recipient.decision_submitted_at) return "decision_pending";
@@ -89,11 +116,25 @@ export async function recordClientPortalAnalyticsEvent({ actor, database, eventT
   return { recorded: true };
 }
 
-export async function listClientPortalClientSafeActivity({ actor, database, portalId }: { actor: ClientPortalActor; database: D1DatabaseLike; portalId: string }) {
+export async function listClientPortalClientSafeActivity({ actor, cursor, database, issueId, limit = 25, portalId }: { actor: ClientPortalActor; cursor?: string | null; database: D1DatabaseLike; issueId: string; limit?: number; portalId: string }) {
   const portal = await portalFor(database, portalId);
   if (!evaluateClientPortalPolicy({ actor, action: "portal:view", portal: { id: portal.id, workspaceId: portal.workspace_id, projectId: portal.project_id, status: portal.status, allowAnonymousView: false } }).allowed) throw new ClientPortalActivityError("client_portal_activity_denied", "Client Portal activity is unavailable.");
-  const rows = await all<AuditRow>(database, "SELECT id, issue_id, actor_type, event_type, metadata_json, occurred_at, visibility FROM client_portal_audit_events WHERE portal_id = ? AND visibility = 'client_safe' ORDER BY occurred_at DESC, id DESC LIMIT 100", [portal.id]);
-  return rows.filter((row) => CLIENT_SAFE_AUDIT_EVENTS.has(row.event_type)).map((row) => ({ eventType: row.event_type, id: row.id, issueId: row.issue_id, occurredAt: row.occurred_at }));
+  const boundedLimit = Math.max(1, Math.min(50, Math.floor(limit)));
+  const parsedCursor = parseActivityCursor(cursor);
+  const placeholders = CLIENT_SAFE_AUDIT_EVENTS.map(() => "?").join(", ");
+  const cursorClause = parsedCursor ? "AND (occurred_at < ? OR (occurred_at = ? AND id < ?))" : "";
+  const values: D1Value[] = [portal.id, issueId, ...CLIENT_SAFE_AUDIT_EVENTS];
+  if (parsedCursor) values.push(parsedCursor.occurredAt, parsedCursor.occurredAt, parsedCursor.id);
+  values.push(boundedLimit + 1);
+  const rows = await all<AuditRow>(database, `SELECT id, issue_id, actor_type, event_type, metadata_json, occurred_at, visibility FROM client_portal_audit_events WHERE portal_id = ? AND issue_id = ? AND visibility = 'client_safe' AND event_type IN (${placeholders}) ${cursorClause} ORDER BY occurred_at DESC, id DESC LIMIT ?`, values);
+  const safeRows = rows.filter((row) => CLIENT_SAFE_AUDIT_EVENTS.includes(row.event_type as (typeof CLIENT_SAFE_AUDIT_EVENTS)[number]));
+  const hasMore = safeRows.length > boundedLimit;
+  const page = safeRows.slice(0, boundedLimit);
+  return {
+    activities: page.map((row) => ({ eventType: row.event_type, id: row.id, issueId: row.issue_id, occurredAt: row.occurred_at, title: activityTitle(row.event_type) })),
+    hasMore,
+    nextCursor: hasMore && page.length ? encodeActivityCursor(page[page.length - 1]!) : null,
+  };
 }
 
 export async function listClientPortalOwnerAudit({ actor, database, limit = 100, portalId }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; limit?: number; portalId: string }) {
@@ -113,14 +154,13 @@ export async function listClientPortalRecipientNextActions({ actor, database, po
       COUNT(DISTINCT CASE WHEN t.status = 'open' THEN t.id END) AS open_thread_count,
       COUNT(DISTINCT CASE WHEN t.waiting_state = 'waiting_on_owner' THEN t.id END) AS waiting_on_owner_count,
       MAX(CASE WHEN d.voided_at IS NULL THEN d.submitted_at END) AS decision_submitted_at,
-      MAX(CASE WHEN o.event_type = 'portal.recipient.reminded' AND o.state = 'delivered' THEN o.delivered_at ELSE NULL END) AS last_reminder_at,
-      CASE WHEN MAX(CASE WHEN o.state = 'dead' THEN 1 ELSE 0 END) = 1 THEN 'failed' WHEN MAX(CASE WHEN o.state = 'delivered' THEN 1 ELSE 0 END) = 1 THEN 'delivered' WHEN MAX(CASE WHEN o.id IS NOT NULL THEN 1 ELSE 0 END) = 1 THEN 'pending' ELSE NULL END AS delivery_state,
+      (SELECT MAX(reminder.delivered_at) FROM client_portal_notification_outbox reminder WHERE reminder.portal_id = r.portal_id AND reminder.recipient_id = r.id AND reminder.event_type = 'portal.recipient.reminded' AND reminder.state = 'delivered') AS last_reminder_at,
+      (SELECT latest.state FROM client_portal_notification_outbox latest WHERE latest.portal_id = r.portal_id AND latest.recipient_id = r.id AND latest.event_type IN ('portal.recipient.invited', 'portal.recipient.resent') ORDER BY latest.created_at DESC, latest.id DESC LIMIT 1) AS delivery_state,
       MAX(CASE WHEN ae.event_type IN ('portal.recipient.unsubscribed', 'recipient_unsubscribed') THEN 1 ELSE 0 END) AS unsubscribed
     FROM client_portal_recipients r
     LEFT JOIN client_portal_analytics_events a ON a.recipient_id = r.id AND a.portal_id = r.portal_id
     LEFT JOIN client_portal_threads t ON t.portal_id = r.portal_id AND t.created_by_actor_type = 'recipient' AND t.created_by_actor_id = r.id
     LEFT JOIN client_portal_decisions d ON d.portal_id = r.portal_id AND d.recipient_id = r.id AND d.issue_id IS ?
-    LEFT JOIN client_portal_notification_outbox o ON o.portal_id = r.portal_id AND o.recipient_id = r.id
     LEFT JOIN client_portal_audit_events ae ON ae.portal_id = r.portal_id AND instr(ae.metadata_json, '"recipientId":"' || r.id || '"') > 0
     WHERE r.portal_id = ?
     GROUP BY r.id, r.display_name, r.role_template, r.status, r.verification_state, r.is_required_approver

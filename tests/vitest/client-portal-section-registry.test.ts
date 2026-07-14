@@ -35,6 +35,11 @@ describe("client portal section registry", () => {
     );
   });
 
+  it("validates explicit per-section estimate data scope", () => {
+    expect(parseClientPortalSectionDraft({ ...estimateBrowserDraft, dataScope: { selectedEstimateIds: ["estimate_1"] } })).toMatchObject({ dataScope: { selectedEstimateIds: ["estimate_1"] } });
+    expect(() => parseClientPortalSectionDraft({ ...estimateBrowserDraft, dataScope: { rawSql: "SELECT *" } })).toThrow("dataScope.rawSql is not allowed");
+  });
+
   it("serializes only the versioned public manifest and safe issued payload", () => {
     const section = buildClientPortalPublicSection(parseClientPortalSectionDraft(estimateBrowserDraft), "hash_123", {
       description: "Floor finish",

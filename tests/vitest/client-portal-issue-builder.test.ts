@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
+import { buildClientPortalEstimateBrowserPayload } from "@/lib/client-portal/estimate-browser";
 import { publishClientPortalIssue } from "@/lib/client-portal/issue-builder";
 
 type CapturedStatement = { sql: string; values: D1Value[] };
 
-function createDatabase(options: { existingIssue?: { content_hash: string; id: string; issue_number: number; status: "issued"; version_label: string } } = {}) {
+function createDatabase(options: { activeRecipientIds?: string[]; existingIssue?: { content_hash: string; id: string; issue_number: number; status: "issued"; version_label: string } } = {}) {
   const statements: CapturedStatement[] = [];
-  const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready", current_issue_id: null };
+  const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready", current_issue_id: options.existingIssue?.id ?? null };
   const draftRows = [{
     id: "section_draft_1",
     section_key: "estimate-browser",
@@ -18,6 +19,7 @@ function createDatabase(options: { existingIssue?: { content_hash: string; id: s
     enabled: 1,
     layout_mode: "wide",
     visibility_policy_json: JSON.stringify({}),
+    data_scope_json: JSON.stringify({ selectedEstimateIds: ["estimate_1"] }),
     field_policy_json: JSON.stringify({ visibleFields: ["description", "row_total"] }),
     interaction_policy_json: JSON.stringify({ commentable: true }),
     print_policy_json: JSON.stringify({ downloadable: true }),
@@ -42,7 +44,9 @@ function createDatabase(options: { existingIssue?: { content_hash: string; id: s
         async all<T>() {
           const result: D1Result<T> = sql.includes("FROM client_portal_sections")
             ? { success: true, results: draftRows as T[] }
-            : { success: true, results: [] };
+            : sql.includes("FROM client_portal_recipients")
+              ? { success: true, results: (options.activeRecipientIds ?? []).map((id) => ({ id })) as T[] }
+              : { success: true, results: [] };
           return result;
         },
         async run<T>() {
@@ -75,6 +79,9 @@ const source = {
   projectSnapshot: { name: "Kitchen Remodel", code: "AE-100" },
   selectedEstimateIds: ["estimate_1"],
   decisionPolicySnapshot: { requiredApprovals: 1 },
+  projectionSchemaVersion: 2,
+  semanticHash: "a".repeat(64),
+  totalCostMinorUnits: 120_000,
   assumptions: ["Permit allowance excluded"],
   exclusions: ["Sales tax"],
 };
@@ -118,5 +125,62 @@ describe("client portal issue builder", () => {
 
     expect(issue).toMatchObject({ issueId: "issue_existing", issueNumber: 4, reusedExistingIssue: true });
     expect(statements.some((statement) => statement.sql === "__batch__")).toBe(false);
+  });
+
+  it("computes the issue content hash before random delivery identity", async () => {
+    const first = await publishClientPortalIssue({
+      actor,
+      database: createDatabase().database,
+      idempotencyKey: "publish_first",
+      portalId: "portal_1",
+      source,
+      buildSectionPayload: async () => ({ id: `row_${crypto.randomUUID()}`, row_total: 1200 }),
+    });
+    const second = await publishClientPortalIssue({
+      actor,
+      database: createDatabase().database,
+      idempotencyKey: "publish_second",
+      portalId: "portal_1",
+      source,
+      buildSectionPayload: async () => ({ id: `row_${crypto.randomUUID()}`, row_total: 1200 }),
+    });
+
+    expect(second.contentHash).toBe(first.contentHash);
+  });
+
+  it("writes issue delivery intents with queue-compatible outbox identifiers", async () => {
+    const { database, statements } = createDatabase({ activeRecipientIds: ["recipient_1"] });
+    await publishClientPortalIssue({ actor, database, idempotencyKey: "publish_delivery", portalId: "portal_1", source, buildSectionPayload: async () => ({ description: "Floor finish", row_total: 1200 }) });
+
+    const delivery = statements.find((statement) => statement.sql.includes("INSERT INTO client_portal_notification_outbox"));
+    expect(delivery?.values[0]).toMatch(/^outbox_[a-zA-Z0-9-]{8,}$/);
+    expect(delivery?.values[3]).toBe("recipient_1");
+  });
+
+  it("atomically materializes large estimate rows into packed D1 projection inserts", async () => {
+    const rows = Array.from({ length: 251 }, (_, index) => ({
+      id: `row_${index}`,
+      description: `Projected row ${index}`,
+      designation: `Area / Group ${index % 5}`,
+      discipline: "Build",
+      material: "",
+      quantity: 1,
+      unit: "ea",
+      rowTotal: 1,
+    }));
+    const payload = buildClientPortalEstimateBrowserPayload({
+      currencyCode: "USD",
+      estimates: [{ id: "estimate_1", name: "Main", sheetCode: "A-100", updatedAt: null, rowCount: rows.length, totalCost: rows.length, rows }],
+    });
+    const { database, statements } = createDatabase();
+
+    await publishClientPortalIssue({ actor, database, idempotencyKey: "publish_projection", portalId: "portal_1", source, buildSectionPayload: async () => payload });
+
+    const summaryInsert = statements.find((statement) => statement.sql.includes("INSERT INTO client_portal_issue_estimate_projections"));
+    const rowInserts = statements.filter((statement) => statement.sql.includes("INSERT INTO client_portal_issue_estimate_rows"));
+    expect(summaryInsert?.values[3]).toBe(251);
+    expect(rowInserts).toHaveLength(7);
+    expect(rowInserts[0]?.values).toContain("row_0");
+    expect(rowInserts.at(-1)?.values).toContain("row_250");
   });
 });

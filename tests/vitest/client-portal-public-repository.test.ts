@@ -13,7 +13,8 @@ vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(async () => ({ env: { ARCH_UPLOADS_R2: mocks.r2 } })),
 }));
 
-import { getClientPortalManifest, getClientPortalSection } from "@/lib/client-portal/public-repository";
+import { buildClientPortalEstimateBrowserPayload, summarizeClientPortalEstimateBrowserPayload } from "@/lib/client-portal/estimate-browser";
+import { getClientPortalIssuedEstimateRowsPage, getClientPortalManifest, getClientPortalSection } from "@/lib/client-portal/public-repository";
 
 type QueryRecord = { sql: string; values: unknown[] };
 
@@ -56,6 +57,7 @@ function section(overrides: Record<string, unknown> = {}) {
     payload_json: JSON.stringify({ amount: 1200, margin: 300, unit_cost: 20 }),
     r2_object_key: null,
     payload_hash: "f9e5779e3418d0cdc4de71fc757a6c75a099ed3030b70edcf818ba4d6776835f",
+    payload_bytes: 65,
     schema_version: 1,
     layout_mode: "wide",
     policy_snapshot_json: JSON.stringify({
@@ -77,6 +79,8 @@ class FakeD1Database {
 
   constructor(
     private readonly options: {
+      projection?: { row_count: number; summary_json: string };
+      projectionRows?: Array<{ row_json: string; sort_order: number }>;
       section?: ReturnType<typeof section>;
       sections?: ReturnType<typeof section>[];
     } = {},
@@ -92,12 +96,16 @@ class FakeD1Database {
           first: async () => {
             if (sql.includes("FROM client_portals")) return portal;
             if (sql.includes("FROM client_portal_issues")) return issue;
+            if (sql.includes("FROM client_portal_issue_estimate_projections")) return this.options.projection ?? null;
+            if (sql.includes("count(*) AS total FROM client_portal_issue_estimate_rows")) return { total: this.options.projectionRows?.length ?? 0 };
             if (sql.includes("FROM client_portal_issue_sections")) return this.options.section ?? null;
             return null;
           },
           all: async () => ({
             success: true,
-            results: sql.includes("FROM client_portal_issue_sections") ? this.options.sections ?? [] : [],
+            results: sql.includes("FROM client_portal_issue_estimate_rows")
+              ? this.options.projectionRows ?? []
+              : sql.includes("FROM client_portal_issue_sections") ? this.options.sections ?? [] : [],
           }),
         };
       },
@@ -159,5 +167,39 @@ describe("client portal public repository", () => {
 
     expect(result?.section.payload).toEqual({ amount: 1200 });
     expect(get).toHaveBeenCalledWith("client-portals/issue_public_1/costs.json");
+  });
+
+  it("reads large estimate summaries and pages from the immutable D1 projection without loading section JSON", async () => {
+    const payload = buildClientPortalEstimateBrowserPayload({
+      currencyCode: "USD",
+      estimates: [{
+        id: "estimate_1", name: "Main", sheetCode: "A-100", updatedAt: null, rowCount: 2, totalCost: 30,
+        rows: [
+          { id: "row_1", description: "Wall", designation: "Shell / Walls", discipline: "Build", material: "", quantity: 1, unit: "ea", rowTotal: 10 },
+          { id: "row_2", description: "Floor", designation: "Shell / Floors", discipline: "Build", material: "", quantity: 2, unit: "ea", rowTotal: 20 },
+        ],
+      }],
+    });
+    const summary = summarizeClientPortalEstimateBrowserPayload(payload);
+    const estimateSection = section({
+      kind: "estimate_browser",
+      payload_bytes: 300_000,
+      payload_hash: "a".repeat(64),
+      payload_json: JSON.stringify(payload),
+    });
+    const database = new FakeD1Database({
+      section: estimateSection,
+      projection: { row_count: 2, summary_json: JSON.stringify(summary) },
+      projectionRows: payload.estimates[0]!.tabs[0]!.rows.map((row, sort_order) => ({ row_json: JSON.stringify(row), sort_order })),
+    });
+    mocks.database = database;
+
+    const sectionResult = await getClientPortalSection(token, "section_public_1", undefined, recipient);
+    const page = await getClientPortalIssuedEstimateRowsPage(token, "section_public_1", { estimateId: "estimate_1", tabId: "estimate_1", limit: 1 }, undefined, recipient);
+
+    expect(sectionResult?.section.payload).toMatchObject({ paging: { mode: "server" }, estimates: [{ tabs: [{ rows: [] }] }] });
+    expect(page).toMatchObject({ hasMore: true, rows: [{ id: "row_1" }], totalRows: 2 });
+    expect(database.queries.some((query) => query.sql.startsWith("SELECT payload_json FROM"))).toBe(false);
+    expect(database.queries.some((query) => query.sql.includes("client_portal_issue_estimate_rows") && query.sql.includes("LIMIT ?"))).toBe(true);
   });
 });

@@ -5,6 +5,13 @@ import { createHash, randomUUID } from "node:crypto";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
 import { createIssuedClientPortalBrandSnapshot } from "@/lib/client-portal/brand";
 import { buildClientPortalIssuedBrandSnapshot } from "@/lib/client-portal/brand-service";
+import {
+  buildClientPortalEstimateBrowserRowProjection,
+  requiresClientPortalEstimateBrowserServerPaging,
+  summarizeClientPortalEstimateBrowserPayload,
+  type ClientPortalEstimateBrowserPayload,
+} from "@/lib/client-portal/estimate-browser";
+import { ESTIMATE_CALCULATION_CURRENCY_SCALE } from "@/lib/estimates/estimate-row-total";
 import { type ClientPortalInternalActor, evaluateClientPortalPolicy } from "@/lib/client-portal/policy";
 import {
   CLIENT_PORTAL_SECTION_REGISTRY,
@@ -42,6 +49,7 @@ type DraftSectionRow = {
   sort_order: number;
   enabled: number;
   layout_mode: string;
+  data_scope_json: string;
   visibility_policy_json: string;
   field_policy_json: string;
   interaction_policy_json: string;
@@ -50,6 +58,9 @@ type DraftSectionRow = {
 };
 
 type JsonRecord = Record<string, unknown>;
+
+const CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE = 40;
+const D1_MAX_BATCH_STATEMENTS = 1_000;
 
 export type ClientPortalIssueSource = {
   currencyCode: string;
@@ -60,7 +71,10 @@ export type ClientPortalIssueSource = {
     name: string;
   };
   selectedEstimateIds: readonly string[];
+  semanticHash: string;
   totalCost: number;
+  totalCostMinorUnits: number;
+  projectionSchemaVersion: number;
   assumptions: readonly string[];
 };
 
@@ -87,6 +101,7 @@ export type ClientPortalIssueBuildInput = {
   idempotencyKey: string;
   portalId: string;
   source: ClientPortalIssueSource;
+  assertSourceCurrent?: () => Promise<void>;
   stagePayload?: (input: {
     draft: ClientPortalSectionDraft;
     payload: ClientPortalPublicValue;
@@ -164,6 +179,18 @@ function requireSource(source: ClientPortalIssueSource) {
   }
   const duplicate = source.selectedEstimateIds.some((id, index) => source.selectedEstimateIds.indexOf(id) !== index || !id.trim());
   if (duplicate) throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Selected estimate IDs must be unique non-empty strings.");
+  if (!/^[a-f0-9]{64}$/.test(source.semanticHash)) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue semanticHash must be a lowercase SHA-256 digest.");
+  }
+  if (!Number.isSafeInteger(source.totalCostMinorUnits) || source.totalCostMinorUnits < 0) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue totalCostMinorUnits must be a non-negative safe integer.");
+  }
+  if (source.totalCost !== source.totalCostMinorUnits / (10 ** ESTIMATE_CALCULATION_CURRENCY_SCALE)) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue totalCost must reconcile with totalCostMinorUnits.");
+  }
+  if (!Number.isSafeInteger(source.projectionSchemaVersion) || source.projectionSchemaVersion < 1) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue projectionSchemaVersion must be a positive integer.");
+  }
 }
 
 function toSectionDraft(row: DraftSectionRow): { draft: ClientPortalSectionDraft; policySnapshot: JsonRecord; sectionKey: string } {
@@ -198,6 +225,7 @@ function toSectionDraft(row: DraftSectionRow): { draft: ClientPortalSectionDraft
       visibleFields: stringArray(fieldPolicy.visibleFields),
       commentable: typeof interactionPolicy.commentable === "boolean" ? interactionPolicy.commentable : registryEntry.defaultCommentable,
       downloadable: typeof printPolicy.downloadable === "boolean" ? printPolicy.downloadable : registryEntry.defaultDownloadable,
+      dataScope: parseJsonRecord(row.data_scope_json, `data scope for ${row.section_key}`),
       config: parseJsonRecord(row.config_json, `config for ${row.section_key}`),
     }),
   };
@@ -205,6 +233,22 @@ function toSectionDraft(row: DraftSectionRow): { draft: ClientPortalSectionDraft
 
 function statement(database: D1DatabaseLike, sql: string, values: D1Value[]): D1PreparedStatementLike {
   return database.prepare(sql).bind(...values);
+}
+
+function packedInsertStatements(database: D1DatabaseLike, table: string, columns: readonly string[], rows: readonly D1Value[][]) {
+  const statements: D1PreparedStatementLike[] = [];
+  const rowPlaceholder = `(${columns.map(() => "?").join(", ")})`;
+  for (let index = 0; index < rows.length; index += CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE) {
+    const chunk = rows.slice(index, index + CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE);
+    statements.push(statement(database, `INSERT INTO ${table} (${columns.join(", ")}) VALUES ${chunk.map(() => rowPlaceholder).join(", ")}`, chunk.flat()));
+  }
+  return statements;
+}
+
+function estimateBrowserPayload(value: ClientPortalPublicValue): ClientPortalEstimateBrowserPayload | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const payload = value as unknown as ClientPortalEstimateBrowserPayload;
+  return payload.schemaVersion === 1 && Array.isArray(payload.estimates) && Number.isInteger(payload.totalRowCount) ? payload : null;
 }
 
 async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]): Promise<T | null> {
@@ -257,7 +301,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   const rows = await all<DraftSectionRow>(
     input.database,
     `SELECT id, section_key, kind, title, description, sort_order, enabled, layout_mode,
-            visibility_policy_json, field_policy_json, interaction_policy_json, print_policy_json, config_json
+            visibility_policy_json, data_scope_json, field_policy_json, interaction_policy_json, print_policy_json, config_json
      FROM client_portal_sections
      WHERE portal_id = ? AND enabled = 1
      ORDER BY sort_order ASC, section_key ASC`,
@@ -272,6 +316,30 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     [portal.id, input.idempotencyKey],
   );
   if (priorIdempotencyIssue) return sameIssue(priorIdempotencyIssue);
+
+  const contentHash = sha256(canonicalJson({
+    portalId: portal.id,
+    brandSnapshot,
+    source: input.source,
+    sections: draftedSections.map(({ draft, policySnapshot, sectionKey }) => ({ draft, policySnapshot, sectionKey })),
+    validThrough: input.validThrough ?? null,
+    versionLabel: input.versionLabel?.trim() || null,
+  }));
+  const priorSameIssue = portal.current_issue_id
+    ? await first<IssueRow>(
+        input.database,
+        `SELECT id, issue_number, version_label, content_hash, status
+         FROM client_portal_issues
+         WHERE id = ? AND portal_id = ? AND content_hash = ?
+           AND status IN ('issued', 'under_review', 'changes_requested')
+         LIMIT 1`,
+        [portal.current_issue_id, portal.id, contentHash],
+      )
+    : null;
+  if (priorSameIssue) {
+    await input.assertSourceCurrent?.();
+    return sameIssue(priorSameIssue);
+  }
 
   const issuedSections: Array<{ manifest: ClientPortalPublicSectionManifest; policySnapshot: JsonRecord; sectionKey: string; storage: ClientPortalIssuePayloadReference }> = [];
   for (const { draft, policySnapshot, sectionKey } of draftedSections) {
@@ -294,23 +362,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     }
     issuedSections.push({ manifest: publicSection, policySnapshot, sectionKey, storage });
   }
-
-  const contentHash = sha256(canonicalJson({
-    portalId: portal.id,
-    source: input.source,
-    sections: issuedSections.map(({ manifest, sectionKey }) => ({
-      kind: manifest.kind,
-      payloadHash: manifest.payloadHash,
-      sectionKey,
-      title: manifest.title,
-    })),
-  }));
-  const priorSameIssue = await first<IssueRow>(
-    input.database,
-    "SELECT id, issue_number, version_label, content_hash, status FROM client_portal_issues WHERE portal_id = ? AND content_hash = ? LIMIT 1",
-    [portal.id, contentHash],
-  );
-  if (priorSameIssue) return sameIssue(priorSameIssue);
+  await input.assertSourceCurrent?.();
 
   const latestIssue = await first<IssueRow>(
     input.database,
@@ -392,6 +444,34 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         ],
       ),
     );
+    const browser = section.manifest.kind === "estimate_browser" ? estimateBrowserPayload(section.manifest.payload) : null;
+    if (browser && requiresClientPortalEstimateBrowserServerPaging(browser, section.storage.payloadBytes)) {
+      const summary = summarizeClientPortalEstimateBrowserPayload(browser);
+      const projectedRows = buildClientPortalEstimateBrowserRowProjection(browser);
+      statements.push(
+        statement(
+          input.database,
+          "INSERT INTO client_portal_issue_estimate_projections (section_id, payload_hash, summary_json, row_count, created_at) VALUES (?, ?, ?, ?, ?)",
+          [manifestSection.id, section.storage.payloadHash, canonicalJson(summary), projectedRows.length, issuedAt],
+        ),
+        ...packedInsertStatements(
+          input.database,
+          "client_portal_issue_estimate_rows",
+          ["section_id", "payload_hash", "estimate_id", "tab_id", "sort_order", "row_id", "branch_ids_json", "search_text", "row_json"],
+          projectedRows.map((projection) => [
+            manifestSection.id,
+            section.storage.payloadHash,
+            projection.estimateId,
+            projection.tabId,
+            projection.sortOrder,
+            projection.row.id,
+            canonicalJson(projection.branchIds),
+            projection.searchText,
+            canonicalJson(projection.row),
+          ]),
+        ),
+      );
+    }
   }
 
   if (latestIssue && latestIssue.status !== "superseded") {
@@ -418,9 +498,13 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         `INSERT INTO client_portal_notification_outbox
           (id, portal_id, issue_id, recipient_id, event_type, idempotency_key, payload_json, state, attempt_count, next_attempt_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'issue_issued', ?, ?, 'pending', 0, ?, ?, ?)`,
-        [randomUUID(), portal.id, issueId, recipient.id, `issue:${contentHash}:issued:${recipient.id}`, JSON.stringify({ issueId, issueNumber, recipientId: recipient.id }), issuedAt, issuedAt, issuedAt],
+        [`outbox_${randomUUID()}`, portal.id, issueId, recipient.id, `issue:${contentHash}:issued:${recipient.id}`, JSON.stringify({ issueId, issueNumber, recipientId: recipient.id }), issuedAt, issuedAt, issuedAt],
       ),
     );
+  }
+
+  if (statements.length > D1_MAX_BATCH_STATEMENTS) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Client Portal issue projection exceeds the atomic D1 statement budget.");
   }
 
   try {

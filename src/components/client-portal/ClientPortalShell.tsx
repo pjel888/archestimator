@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Image from "next/image";
 
-import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import { Button } from "@/components/ui/button";
+import { ClientPortalActivitySection } from "@/components/client-portal/ClientPortalActivitySection";
 import { ClientPortalDecisionSection } from "@/components/client-portal/ClientPortalDecisionSection";
 import { ClientPortalDiscussionSection } from "@/components/client-portal/ClientPortalDiscussionSection";
 import { ClientPortalFinancialSection } from "@/components/client-portal/ClientPortalFinancialSection";
@@ -50,7 +50,7 @@ type ClientPortalSection = {
 
 type AccessState = "loading" | "ready" | "password" | "unavailable";
 type PortalView = "overview" | "estimate" | "financials" | "discussion" | "decision";
-type DiscussionTarget = { kind: "estimate" | "estimate_tab" | "area_group" | "row"; publicId: string; label: string; secondaryLabel: string | null; sectionId: string };
+type DiscussionTarget = { kind: "estimate" | "estimate_tab" | "area_group" | "row" | "component"; publicId: string; label: string; secondaryLabel: string | null; sectionId: string };
 
 const PORTAL_VIEW_LABELS: Record<PortalView, string> = {
   overview: "Overview",
@@ -112,6 +112,47 @@ function ClientPortalPayload({ payload }: { payload: unknown }) {
   );
 }
 
+function ClientPortalPasswordForm({ onUnlocked, token }: { onUnlocked: () => void; token: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const response = await fetch(routePath(token, "/password"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...createPublicationCsrfHeaders() },
+      body: JSON.stringify({ password }),
+    }).catch(() => null);
+    setSubmitting(false);
+    if (response?.status === 204) {
+      onUnlocked();
+      return;
+    }
+    const body = await response?.json().catch(() => null) as { error?: unknown } | null;
+    setError(typeof body?.error === "string" ? body.error : "Unable to unlock this Client Portal.");
+  }
+
+  return (
+    <form className="mt-4 space-y-3" onSubmit={submit}>
+      <label className="block text-[12px] font-medium text-secondary" htmlFor="client-portal-password">Portal password</label>
+      <input
+        id="client-portal-password"
+        autoComplete="current-password"
+        className="w-full rounded-md border border-hairline bg-white px-3 py-2 text-[14px] text-ink outline-none focus:border-ink"
+        onChange={(event) => setPassword(event.target.value)}
+        required
+        type="password"
+        value={password}
+      />
+      {error ? <p className="text-[12px] text-destructive" role="alert">{error}</p> : null}
+      <Button disabled={submitting} type="submit">{submitting ? "Unlocking…" : "Unlock portal"}</Button>
+    </form>
+  );
+}
+
 export function ClientPortalShell({ token, recipientToken }: { token: string; recipientToken?: string }) {
   const [access, setAccess] = useState<AccessState>("loading");
   const [manifest, setManifest] = useState<ClientPortalManifest | null>(null);
@@ -120,17 +161,27 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   const [sectionState, setSectionState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
   const [contextOpen, setContextOpen] = useState(false);
   const [discussionTarget, setDiscussionTarget] = useState<DiscussionTarget | null>(null);
+  const [unlockVersion, setUnlockVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
 
     async function load() {
       if (recipientToken) {
-        await fetch(routePath(token, "/verify"), {
+        const verificationResponse = await fetch(routePath(token, "/verify"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...createPublicationCsrfHeaders() },
           body: JSON.stringify({ verificationToken: recipientToken }),
-        });
+        }).catch(() => null);
+        if (!active) return;
+        if (verificationResponse?.status === 423) {
+          setAccess("password");
+          return;
+        }
+        if (!verificationResponse?.ok) {
+          setAccess("unavailable");
+          return;
+        }
         window.history.replaceState(null, "", `/share/${encodeURIComponent(token)}`);
       }
 
@@ -154,7 +205,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
 
     void load();
     return () => { active = false; };
-  }, [recipientToken, token]);
+  }, [recipientToken, token, unlockVersion]);
 
   useEffect(() => {
     function syncHash() {
@@ -220,7 +271,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
           <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Client Portal</p>
           <h1 className="mt-2 text-[20px] font-medium tracking-tight">Enter portal password</h1>
           <p className="mt-2 text-[13px] leading-5 text-secondary">This issued portal is password protected.</p>
-          <ProjectPublicationPasswordForm token={token} />
+          <ClientPortalPasswordForm onUnlocked={() => { setAccess("loading"); setUnlockVersion((version) => version + 1); }} token={token} />
         </section>
       </main>
     );
@@ -302,14 +353,16 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
             {sectionState === "loading" ? <p aria-live="polite" className="text-[13px] text-secondary">Loading issued section…</p> : null}
             {sectionState === "unavailable" ? <p role="alert" className="text-[13px] text-secondary">This issued section is unavailable.</p> : null}
             {sectionState === "ready" && section ? section.section.kind === "estimate_browser"
-              ? <EstimateBrowserSection payload={section.section.payload} onDiscussTarget={manifest.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? (target) => discussEstimateTarget(target, section.section.id) : undefined} />
+              ? <EstimateBrowserSection payload={section.section.payload} sectionId={section.section.id} token={token} onDiscussTarget={manifest.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? (target) => discussEstimateTarget(target, section.section.id) : undefined} />
               : isFinancialSection(section.section.kind)
                 ? <ClientPortalFinancialSection kind={section.section.kind} payload={section.section.payload} />
                 : section.section.kind === "discussion"
                   ? <ClientPortalDiscussionSection capabilities={manifest.capabilities} composeTarget={discussionTarget} issueId={manifest.issue.id} projectName={manifest.project.name} sectionId={section.section.id} token={token} />
-                  : section.section.kind === "decision"
-                    ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} />
-                    : <ClientPortalPayload payload={section.section.payload} /> : null}
+                  : section.section.kind === "activity"
+                    ? <ClientPortalActivitySection payload={section.section.payload} sectionId={section.section.id} token={token} />
+                    : section.section.kind === "decision"
+                      ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} />
+                      : <ClientPortalPayload payload={section.section.payload} /> : null}
           </div>
         </section>
 
@@ -325,6 +378,8 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
       </div>
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-hairline bg-white/95 px-4 py-2 backdrop-blur lg:hidden">
         <Button size="sm" variant="ghost" className="!min-w-0" onClick={() => setContextOpen(true)}>Review context</Button>
+        {manifest.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? <Button size="sm" variant="secondary" onClick={() => selectView("discussion")}>Discuss</Button> : null}
+        {(manifest.capabilities.includes("decision:submit_review") || manifest.capabilities.includes("decision:submit_formal")) && manifest.sections.some((item) => item.kind === "decision") ? <Button size="sm" variant="secondary" onClick={() => selectView("decision")}>Decision</Button> : null}
         <Button size="sm" variant="secondary" onClick={() => window.print()}>Print issue</Button>
       </div>
       {contextOpen ? (

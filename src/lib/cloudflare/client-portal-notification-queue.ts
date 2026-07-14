@@ -1,4 +1,6 @@
 import { sendCloudflareEmail } from "@/lib/email/cloudflare-email-client";
+import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
+import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
 
 export const CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME = "archestimator-client-portal-notifications";
 export const CLIENT_PORTAL_NOTIFICATION_QUEUE_BINDING = "CLIENT_PORTAL_NOTIFICATIONS_QUEUE";
@@ -19,9 +21,15 @@ export type ClientPortalNotificationQueueEnv = Record<string, unknown> & {
   ARCHESTIMATOR_EMAIL_PROVIDER?: string;
   CLOUDFLARE_EMAIL_FROM?: string;
   CLOUDFLARE_EMAIL_REPLY_TO?: string;
+  ARCHESTIMATOR_ALLOWED_APP_ORIGINS?: string;
+  ARCHESTIMATOR_PUBLICATION_TOKEN_SECRET?: string;
+  NEXT_PUBLIC_APP_URL?: string;
+  NEXT_PUBLIC_SITE_URL?: string;
+  NODE_ENV?: string;
+  PUBLICATION_TOKEN_ENCRYPTION_SECRET?: string;
 };
 
-type DeliveryRow = { attempt_count: number; event_type: string; id: string; recipient_email: string | null; recipient_id: string | null; project_name: string | null };
+type DeliveryRow = { attempt_count: number; event_type: string; id: string; payload_json: string; recipient_email: string | null; recipient_id: string | null; project_name: string | null };
 
 function message(value: unknown): value is ClientPortalNotificationMessage {
   return Boolean(value && typeof value === "object" && (value as { version?: unknown }).version === 1 && typeof (value as { outboxId?: unknown }).outboxId === "string" && /^outbox_[a-zA-Z0-9-]{8,}$/.test((value as { outboxId: string }).outboxId));
@@ -32,11 +40,57 @@ function retryAt(attempt: number, now: Date) {
 }
 
 function subject(row: DeliveryRow) {
-  return row.event_type === "portal.recipient.reminded" ? `Reminder: ${row.project_name ?? "Client Portal"}` : `Client Portal update: ${row.project_name ?? "project"}`;
+  if (row.event_type === "portal.recipient.reminded") return `Reminder: ${row.project_name ?? "Client Portal"}`;
+  if (row.event_type === "decision_submitted") return `Client decision: ${row.project_name ?? "project"}`;
+  if (row.event_type === "thread_created" || row.event_type === "message_created") return `Client discussion: ${row.project_name ?? "project"}`;
+  return `Client Portal update: ${row.project_name ?? "project"}`;
 }
 
-function body(row: DeliveryRow) {
-  return row.event_type === "portal.recipient.reminded" ? "A Client Portal review is awaiting your attention." : "There is a new Client Portal update for your review.";
+function stringEnv(env: ClientPortalNotificationQueueEnv, key: string) {
+  const value = env[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function nodeEnv(env: ClientPortalNotificationQueueEnv) {
+  const value = stringEnv(env, "NODE_ENV");
+  return value === "development" || value === "production" || value === "test" ? value : undefined;
+}
+
+function encryptionSecret(env: ClientPortalNotificationQueueEnv) {
+  return stringEnv(env, "PUBLICATION_TOKEN_ENCRYPTION_SECRET")
+    ?? stringEnv(env, "ARCHESTIMATOR_PUBLICATION_TOKEN_SECRET")
+    ?? readPublicationTokenEncryptionSecret();
+}
+
+function deliveryBody(row: DeliveryRow, env: ClientPortalNotificationQueueEnv) {
+  const payload = JSON.parse(row.payload_json) as Record<string, unknown>;
+  const encryptedStableToken = payload.encryptedStableToken;
+  if (typeof encryptedStableToken !== "string") {
+    if (row.event_type === "portal.recipient.reminded") return "A Client Portal review is awaiting your attention.";
+    if (row.event_type === "decision_submitted") return "A recipient submitted an issue-wide Client Portal decision.";
+    if (row.event_type === "thread_created" || row.event_type === "message_created") return row.recipient_id
+      ? "The project team added a Client Portal discussion message."
+      : "A recipient added a Client Portal discussion message.";
+    if (row.event_type !== "portal.recipient.invited" && row.event_type !== "portal.recipient.resent") return "There is a new Client Portal update for your review.";
+    throw new Error("Missing encrypted Client Portal stable token.");
+  }
+
+  const secret = encryptionSecret(env);
+  const stableToken = decryptPublicationToken(encryptedStableToken, secret);
+  const encryptedBootstrapToken = payload.encryptedBootstrapToken;
+  if (typeof encryptedBootstrapToken !== "string") throw new Error("Missing encrypted Client Portal bootstrap token.");
+  const bootstrapToken = decryptPublicationToken(encryptedBootstrapToken, secret);
+  const links = buildSharedLinkRecipientEmailLinks({
+    env: {
+      ARCHESTIMATOR_ALLOWED_APP_ORIGINS: stringEnv(env, "ARCHESTIMATOR_ALLOWED_APP_ORIGINS"),
+      NEXT_PUBLIC_APP_URL: stringEnv(env, "NEXT_PUBLIC_APP_URL"),
+      NEXT_PUBLIC_SITE_URL: stringEnv(env, "NEXT_PUBLIC_SITE_URL"),
+      NODE_ENV: nodeEnv(env),
+    },
+    linkBase: `/share/${encodeURIComponent(stableToken)}`,
+    rawToken: bootstrapToken,
+  });
+  return `There is a new Client Portal update for your review.\n\nOpen Client Portal: ${links.recipientLink}`;
 }
 
 export async function enqueuePendingClientPortalNotifications(env: ClientPortalNotificationQueueEnv, now = new Date()) {
@@ -58,17 +112,24 @@ async function processMessage(database: D1Database, env: ClientPortalNotificatio
   const claim = await database.prepare("UPDATE client_portal_notification_outbox SET state = 'processing', lease_token = ?, lease_expires_at = ?, updated_at = ? WHERE id = ? AND ((state = 'pending' AND next_attempt_at <= ?) OR (state = 'processing' AND lease_expires_at <= ?))").bind(leaseToken, leaseExpiresAt, now.toISOString(), value.outboxId, now.toISOString(), now.toISOString()).run();
   if (claim.success === false) throw new Error("Client Portal notification outbox lease failed.");
   if ((claim.meta?.changes ?? 0) === 0) return "duplicate" as const;
-  const row = await database.prepare("SELECT o.id, o.event_type, o.recipient_id, o.attempt_count, r.email_normalized AS recipient_email, p.name AS project_name FROM client_portal_notification_outbox o LEFT JOIN client_portal_recipients r ON r.id = o.recipient_id LEFT JOIN client_portals cp ON cp.id = o.portal_id LEFT JOIN projects p ON p.id = cp.project_id WHERE o.id = ? AND o.lease_token = ? LIMIT 1").bind(value.outboxId, leaseToken).all<DeliveryRow>();
+  const row = await database.prepare("SELECT o.id, o.event_type, o.recipient_id, o.attempt_count, o.payload_json, COALESCE(r.email_normalized, owner.email) AS recipient_email, p.name AS project_name FROM client_portal_notification_outbox o LEFT JOIN client_portal_recipients r ON r.id = o.recipient_id LEFT JOIN client_portals cp ON cp.id = o.portal_id LEFT JOIN profiles owner ON owner.id = cp.created_by LEFT JOIN projects p ON p.id = cp.project_id WHERE o.id = ? AND o.lease_token = ? LIMIT 1").bind(value.outboxId, leaseToken).all<DeliveryRow>();
   if (row.success === false || !row.results?.[0]) throw new Error("Client Portal notification outbox row is unavailable.");
   const delivery = row.results[0];
   if (!delivery.recipient_email) {
     await database.prepare("UPDATE client_portal_notification_outbox SET state = 'dead', last_error_code = 'recipient_unavailable', lease_token = NULL, lease_expires_at = NULL, updated_at = ? WHERE id = ? AND lease_token = ?").bind(new Date().toISOString(), delivery.id, leaseToken).run();
     return "dead" as const;
   }
-  const email = await sendCloudflareEmail({ to: delivery.recipient_email, subject: subject(delivery), text: body(delivery) }, { binding: env.EMAIL, context: { env }, env: env as Record<string, string | undefined> });
+  let text: string;
+  try {
+    text = deliveryBody(delivery, env);
+  } catch {
+    await database.prepare("UPDATE client_portal_notification_outbox SET state = 'dead', last_error_code = 'invalid_delivery_payload', lease_token = NULL, lease_expires_at = NULL, updated_at = ? WHERE id = ? AND lease_token = ?").bind(new Date().toISOString(), delivery.id, leaseToken).run();
+    return "dead" as const;
+  }
+  const email = await sendCloudflareEmail({ to: delivery.recipient_email, subject: subject(delivery), text }, { binding: env.EMAIL, context: { env }, env: env as Record<string, string | undefined> });
   if (email.ok) {
     const deliveredAt = new Date().toISOString();
-    await database.prepare("UPDATE client_portal_notification_outbox SET state = 'delivered', delivered_at = ?, lease_token = NULL, lease_expires_at = NULL, last_error_code = NULL, updated_at = ? WHERE id = ? AND lease_token = ?").bind(deliveredAt, deliveredAt, delivery.id, leaseToken).run();
+    await database.prepare("UPDATE client_portal_notification_outbox SET state = 'delivered', payload_json = json_remove(payload_json, '$.encryptedBootstrapToken', '$.encryptedStableToken'), delivered_at = ?, lease_token = NULL, lease_expires_at = NULL, last_error_code = NULL, updated_at = ? WHERE id = ? AND lease_token = ?").bind(deliveredAt, deliveredAt, delivery.id, leaseToken).run();
     return "delivered" as const;
   }
   const attempts = delivery.attempt_count + 1;

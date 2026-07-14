@@ -5,7 +5,7 @@ import { addClientPortalInternalNote, carryForwardClientPortalThread, replyToCli
 
 type CapturedStatement = { sql: string; values: D1Value[] };
 
-function createDatabase() {
+function createDatabase(options: { activeMentionIds?: string[]; subscribedRecipientIds?: string[]; targetPresent?: boolean } = {}) {
   const statements: CapturedStatement[] = [];
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -15,10 +15,15 @@ function createDatabase() {
         async first<T>() {
           if (sql.includes("FROM client_portals")) return { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "live", current_issue_id: "issue_2" } as T;
           if (sql.includes("FROM client_portal_threads")) return { id: "thread_1", issue_id: "issue_1", section_key: "section_1", target_kind: "row", target_public_id: "row_1", target_label: "Floor finish", target_secondary_label: null, subject: "Confirm basis", status: "open", waiting_state: "waiting_on_owner", assignee_user_id: null, created_by_actor_id: "recipient_1", created_at: "2026-07-12T00:00:00.000Z", updated_at: "2026-07-12T00:00:00.000Z" } as T;
-          if (sql.includes("FROM client_portal_issues")) return { id: "issue_2", status: "issued" } as T;
+          if (sql.includes("FROM client_portal_issues")) return { id: "issue_2", status: "issued", version_label: "Issue 2" } as T;
           return null;
         },
-        async all<T>() { return { success: true, results: [] } as D1Result<T>; },
+        async all<T>() {
+          if (options.targetPresent && sql.includes("client_portal_issue_sections")) return { success: true, results: [{ id: "section_2", section_key: "estimate", kind: "estimate_browser", title: "Estimate", payload_storage: "d1_json", payload_json: JSON.stringify({ estimates: [{ id: "estimate_1", name: "Main estimate", tabs: [{ id: "tab_1", name: "Base", rows: [{ id: "row_1", description: "Floor finish" }] }] }] }) }] } as D1Result<T>;
+          if (sql.includes("FROM client_portal_thread_subscriptions")) return { success: true, results: (options.subscribedRecipientIds ?? []).map((id) => ({ id })) } as D1Result<T>;
+          if (sql.includes("FROM client_portal_recipients WHERE")) return { success: true, results: (options.activeMentionIds ?? []).map((id) => ({ id })) } as D1Result<T>;
+          return { success: true, results: [] } as D1Result<T>;
+        },
         async run<T>() { return { success: true } as D1Result<T>; },
       };
       return prepared;
@@ -48,6 +53,33 @@ describe("publisher client portal discussions", () => {
     expect(serialized).toContain("waiting_on_client");
   });
 
+  it("notifies each active subscriber or mention once for an owner reply", async () => {
+    const { database, statements } = createDatabase({
+      activeMentionIds: ["recipient_2", "recipient_3"],
+      subscribedRecipientIds: ["recipient_1", "recipient_2"],
+    });
+    await replyToClientPortalThreadAsOwner({
+      actor,
+      database,
+      portalId: "portal_1",
+      threadId: "thread_1",
+      idempotencyKey: "reply_notify_1",
+      body: "The issued finish is included.",
+      mentionedRecipientIds: ["recipient_2", "recipient_3"],
+    });
+
+    const notifications = statements.filter((captured) => captured.sql.includes("INSERT INTO client_portal_notification_outbox"));
+    expect(notifications).toHaveLength(3);
+    expect(notifications.map((captured) => captured.values[3])).toEqual(["recipient_1", "recipient_2", "recipient_3"]);
+    expect(notifications.every((captured) => captured.sql.includes("'message_created'") && captured.sql.includes("ON CONFLICT"))).toBe(true);
+    expect(notifications.map((captured) => JSON.parse(String(captured.values[5])))).toEqual([
+      expect.objectContaining({ audience: "recipient", recipientId: "recipient_1" }),
+      expect.objectContaining({ audience: "recipient", recipientId: "recipient_2" }),
+      expect.objectContaining({ audience: "recipient", recipientId: "recipient_3" }),
+    ]);
+    expect(JSON.stringify(statements)).toContain("'message_created', 'client_safe'");
+  });
+
   it("carries a discussion forward without mutating its historic target", async () => {
     const { database, statements } = createDatabase();
     await carryForwardClientPortalThread({ actor, database, portalId: "portal_1", sourceThreadId: "thread_1", targetIssueId: "issue_2" });
@@ -55,5 +87,14 @@ describe("publisher client portal discussions", () => {
     expect(serialized).toContain("carried_forward_from_thread_id");
     expect(serialized).toContain("closed_by_supersession");
     expect(serialized).toContain("requires_revalidation");
+  });
+
+  it("re-resolves a semantic issued target before opening a carried-forward thread", async () => {
+    const { database, statements } = createDatabase({ targetPresent: true });
+    const result = await carryForwardClientPortalThread({ actor, database, portalId: "portal_1", sourceThreadId: "thread_1", targetIssueId: "issue_2" });
+    expect(result.revalidated).toBe(true);
+    const serialized = JSON.stringify(statements);
+    expect(serialized).toContain("section_2");
+    expect(serialized).toContain("waiting_on_owner");
   });
 });

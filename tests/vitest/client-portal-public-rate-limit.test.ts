@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   decisionRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
   decisionReadRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
+  getManifest: vi.fn(),
   passwordRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
   publicReadRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
+  requiresPassword: vi.fn(async () => false),
   sessionRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
   threadRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
   threadReadRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
@@ -63,11 +65,11 @@ vi.mock("@/lib/client-portal/public-repository", () => ({
     "X-Robots-Tag": "noindex, nofollow",
   },
   getClientPortalBrandAsset: vi.fn(),
-  getClientPortalManifest: vi.fn(),
+  getClientPortalManifest: mocks.getManifest,
   getClientPortalSection: vi.fn(),
   hasClientPortalPasswordSession: vi.fn(),
   readClientPortalRecipientSession: vi.fn(async () => recipientActor),
-  requiresClientPortalPassword: vi.fn(async () => false),
+  requiresClientPortalPassword: mocks.requiresPassword,
   resolveClientPortalRecipientActor: vi.fn(),
   verifyClientPortalPassword: vi.fn(),
 }));
@@ -97,6 +99,17 @@ describe("Client Portal public rate limits", () => {
     expect(mocks.publicReadRateLimit).toHaveBeenCalledWith(expect.objectContaining({ route: "manifest" }));
     expect(mocks.publicReadRateLimit).toHaveBeenCalledWith(expect.objectContaining({ route: "section" }));
     expect(mocks.publicReadRateLimit).toHaveBeenCalledWith(expect.objectContaining({ route: "asset" }));
+  });
+
+  it("requires the portal password even when a recipient session cookie exists", async () => {
+    mocks.publicReadRateLimit.mockResolvedValueOnce({ allowed: true as const });
+    mocks.requiresPassword.mockResolvedValueOnce(true);
+
+    const response = await clientPortalManifestResponse(new Request(request.url), "a".repeat(43));
+
+    expect(response.status).toBe(423);
+    expect(await response.json()).toMatchObject({ passwordRequired: true });
+    expect(mocks.getManifest).not.toHaveBeenCalled();
   });
 
   it("rejects password and recipient-session attempts before credential work", async () => {

@@ -49,6 +49,7 @@ function stringArray(value: unknown) {
 
 function toDraft(row: {
   config_json: string;
+  data_scope_json: string;
   description: string | null;
   enabled: number;
   field_policy_json: string;
@@ -72,6 +73,7 @@ function toDraft(row: {
     visibleFields: stringArray(parseRecord(row.field_policy_json).visibleFields),
     commentable: parseRecord(row.interaction_policy_json).commentable !== false,
     downloadable: parseRecord(row.print_policy_json).downloadable === true,
+    dataScope: parseRecord(row.data_scope_json),
     config: parseRecord(row.config_json),
   });
 }
@@ -144,6 +146,7 @@ export async function createClientPortalSection({ actor, database, kind, portalI
     visibleFields: [],
     commentable: registry.defaultCommentable,
     downloadable: registry.defaultDownloadable,
+    dataScope: {},
     config: {},
   });
   await saveClientPortalSectionDraft({ actor, database, draft, portalId });
@@ -173,7 +176,7 @@ export async function saveClientPortalSectionDraft({ actor, database, draft: raw
   const draft = parseClientPortalSectionDraft(rawDraft);
   const existing = await database.prepare<{ id: string }>("SELECT id FROM client_portal_sections WHERE portal_id = ? AND id = ? LIMIT 1").bind(portal.id, draft.id).first<{ id: string }>();
   const timestamp = new Date().toISOString();
-  const values = [draft.kind, draft.title.trim(), draft.description, draft.sortOrder, Number(draft.enabled), draft.layoutMode, JSON.stringify({}), JSON.stringify({}), JSON.stringify({ visibleFields: draft.visibleFields }), JSON.stringify({ commentable: draft.commentable }), JSON.stringify({ downloadable: draft.downloadable }), JSON.stringify(draft.config), timestamp];
+  const values = [draft.kind, draft.title.trim(), draft.description, draft.sortOrder, Number(draft.enabled), draft.layoutMode, JSON.stringify({}), JSON.stringify(draft.dataScope ?? {}), JSON.stringify({ visibleFields: draft.visibleFields }), JSON.stringify({ commentable: draft.commentable }), JSON.stringify({ downloadable: draft.downloadable }), JSON.stringify(draft.config), timestamp];
   const result = existing
     ? await statement(database, `UPDATE client_portal_sections SET kind = ?, title = ?, description = ?, sort_order = ?, enabled = ?, layout_mode = ?, visibility_policy_json = ?, data_scope_json = ?, field_policy_json = ?, interaction_policy_json = ?, print_policy_json = ?, config_json = ?, updated_at = ? WHERE id = ? AND portal_id = ?`, [...values, draft.id, portal.id]).run()
     : await statement(database, `INSERT INTO client_portal_sections (id, portal_id, section_key, kind, title, description, sort_order, enabled, layout_mode, visibility_policy_json, data_scope_json, field_policy_json, interaction_policy_json, print_policy_json, config_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [draft.id, portal.id, draft.id, ...values, timestamp]).run();
@@ -204,7 +207,7 @@ export async function loadClientPortalComposer({ actor, database, portalId }: { 
   if (!portal) throw new ClientPortalComposerError("client_portal_composer_not_found", "Client Portal was not found.");
   authorizeConfigure(actor, portal);
   const [sections, recipients, sources, unresolvedThreads] = await Promise.all([
-    database.prepare<{ config_json: string; description: string | null; enabled: number; field_policy_json: string; id: string; interaction_policy_json: string; kind: string; layout_mode: string; print_policy_json: string; sort_order: number; title: string }>("SELECT id, kind, title, description, sort_order, enabled, layout_mode, field_policy_json, interaction_policy_json, print_policy_json, config_json FROM client_portal_sections WHERE portal_id = ? ORDER BY sort_order ASC, id ASC").bind(portal.id).all(),
+    database.prepare<{ config_json: string; data_scope_json: string; description: string | null; enabled: number; field_policy_json: string; id: string; interaction_policy_json: string; kind: string; layout_mode: string; print_policy_json: string; sort_order: number; title: string }>("SELECT id, kind, title, description, sort_order, enabled, layout_mode, data_scope_json, field_policy_json, interaction_policy_json, print_policy_json, config_json FROM client_portal_sections WHERE portal_id = ? ORDER BY sort_order ASC, id ASC").bind(portal.id).all(),
     database.prepare<{ count: number }>("SELECT COUNT(*) AS count FROM client_portal_recipients WHERE portal_id = ? AND status IN ('active', 'invited')").bind(portal.id).first<{ count: number }>(),
     database.prepare<{ id: string; name: string; sheet_code: string | null }>("SELECT id, name, sheet_code FROM estimates WHERE project_id = ? ORDER BY updated_at DESC, id DESC LIMIT 100").bind(portal.project_id).all(),
     database.prepare<{ id: string; issue_label: string; subject: string }>(`SELECT t.id, i.version_label AS issue_label, t.subject

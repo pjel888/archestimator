@@ -73,3 +73,9 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
 
   return null;
 }
+
+export function normalizeIssuedPublicationImageUrl(value: unknown): string | null {
+  const imageUrl = normalizePublicationImageUrl(value);
+  if (!imageUrl || LOCAL_BROKERED_IMAGE_ROUTE_PATTERN.test(imageUrl)) return null;
+  return imageUrl;
+}

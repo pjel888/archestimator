@@ -5,9 +5,10 @@ import { randomUUID } from "node:crypto";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
 import { CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES, type ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
 import { evaluateClientPortalPolicy, type ClientPortalInternalActor } from "@/lib/client-portal/policy";
-import { createPublicationToken, hashPublicationToken, readPublicationTokenHashSecret } from "@/lib/publication/security";
+import { createPublicationToken, encryptPublicationToken, hashPublicationToken, readPublicationTokenEncryptionSecret, readPublicationTokenHashSecret } from "@/lib/publication/security";
 
 type PortalRow = {
+  encrypted_stable_token: string;
   id: string;
   workspace_id: string;
   project_id: string;
@@ -36,7 +37,8 @@ export type ClientPortalRecipientLifecycleInput = {
 };
 
 export type ClientPortalRecipientCredentialResult = {
-  bootstrapToken: string;
+  deliveryState: "pending";
+  outboxId: string;
   recipientId: string;
   recipientCredentialVersion: number;
 };
@@ -94,7 +96,7 @@ function validateRecipient(input: ClientPortalRecipientInput) {
 async function resolvePortal(input: Pick<ClientPortalRecipientLifecycleInput, "actor" | "database" | "portalId">, action: "recipient:invite" | "recipient:update_role" | "recipient:revoke" | "recipient:remind") {
   const portal = await first<PortalRow>(
     input.database,
-    "SELECT id, workspace_id, project_id, status FROM client_portals WHERE id = ? LIMIT 1",
+    "SELECT id, workspace_id, project_id, status, encrypted_stable_token FROM client_portals WHERE id = ? LIMIT 1",
     [input.portalId],
   );
   if (!portal) throw new ClientPortalRecipientError("client_portal_not_found", "Client Portal was not found.");
@@ -133,6 +135,8 @@ function queueAuditAndNotification({
   database,
   eventType,
   metadata,
+  outboxId = `outbox_${randomUUID()}`,
+  payload = {},
   portal,
   recipientId,
   timestamp,
@@ -141,6 +145,8 @@ function queueAuditAndNotification({
   database: D1DatabaseLike;
   eventType: string;
   metadata: Record<string, boolean | number | string>;
+  outboxId?: string;
+  payload?: Record<string, boolean | number | string>;
   portal: PortalRow;
   recipientId: string;
   timestamp: string;
@@ -159,7 +165,7 @@ function queueAuditAndNotification({
       `INSERT INTO client_portal_notification_outbox
         (id, portal_id, issue_id, recipient_id, event_type, idempotency_key, payload_json, state, attempt_count, next_attempt_at, created_at, updated_at)
        VALUES (?, ?, NULL, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)`,
-      [randomUUID(), portal.id, recipientId, eventType, idempotencyKey, JSON.stringify({ recipientId }), timestamp, timestamp, timestamp],
+      [outboxId, portal.id, recipientId, eventType, idempotencyKey, JSON.stringify({ recipientId, ...payload }), timestamp, timestamp, timestamp],
     ),
   ];
 }
@@ -195,13 +201,16 @@ async function rotateCredential({
     : recipient.recipient_credential_version + 1;
   const bootstrapToken = createPublicationToken();
   const credentialId = `credential_${randomUUID()}`;
+  const outboxId = `outbox_${randomUUID()}`;
+  const expiresAt = new Date(Date.parse(timestamp) + 7 * 24 * 60 * 60 * 1_000).toISOString();
 
   await runBatch(database, [
     ...beforeStatements,
     statement(
       database,
       `UPDATE client_portal_recipients
-       SET status = 'active', recipient_credential_version = ?, revoked_at = NULL, updated_at = ?
+       SET status = 'active', verification_state = 'unverified', last_verified_at = NULL,
+           recipient_credential_version = ?, revoked_at = NULL, updated_at = ?
        WHERE id = ? AND portal_id = ?`,
       [recipientCredentialVersion, timestamp, recipient.id, portal.id],
     ),
@@ -216,21 +225,27 @@ async function rotateCredential({
       database,
       `INSERT INTO client_portal_recipient_credentials
         (id, recipient_id, token_hash, status, expires_at, created_at, revoked_at)
-       VALUES (?, ?, ?, 'active', NULL, ?, NULL)`,
-      [credentialId, recipient.id, hashPublicationToken(bootstrapToken, readPublicationTokenHashSecret()), timestamp],
+       VALUES (?, ?, ?, 'active', ?, ?, NULL)`,
+      [credentialId, recipient.id, hashPublicationToken(bootstrapToken, readPublicationTokenHashSecret()), expiresAt, timestamp],
     ),
     ...queueAuditAndNotification({
       actorId: actor.userId,
       database,
       eventType,
-      metadata: { recipientCredentialVersion },
+      metadata: { recipientCredentialVersion, recipientId: recipient.id },
+      outboxId,
+      payload: {
+        encryptedBootstrapToken: encryptPublicationToken(bootstrapToken, readPublicationTokenEncryptionSecret()),
+        encryptedStableToken: portal.encrypted_stable_token,
+        recipientCredentialVersion,
+      },
       portal,
       recipientId: recipient.id,
       timestamp,
     }),
   ]);
 
-  return { bootstrapToken, recipientId: recipient.id, recipientCredentialVersion };
+  return { deliveryState: "pending", outboxId, recipientId: recipient.id, recipientCredentialVersion };
 }
 
 export async function inviteClientPortalRecipient(input: ClientPortalRecipientLifecycleInput): Promise<ClientPortalRecipientCredentialResult> {

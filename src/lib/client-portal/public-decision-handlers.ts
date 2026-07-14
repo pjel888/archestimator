@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
-import { submitClientPortalDecision, summarizeClientPortalDecisions } from "@/lib/client-portal/decision-service";
+import { ClientPortalDecisionError, submitClientPortalDecision, summarizeClientPortalDecisions } from "@/lib/client-portal/decision-service";
 import { CLIENT_PORTAL_NO_STORE_HEADERS, readClientPortalRecipientSession, requiresClientPortalPassword } from "@/lib/client-portal/public-repository";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
@@ -9,6 +9,14 @@ import { checkClientPortalDecisionRateLimit, checkClientPortalDecisionReadRateLi
 
 function unavailable() { return Response.json({ error: "Client Portal decision unavailable." }, { status: 404, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }
 function rateLimited(message: string, retryAfter: number) { return Response.json({ error: message }, { status: 429, headers: { ...CLIENT_PORTAL_NO_STORE_HEADERS, "Retry-After": String(retryAfter) } }); }
+
+function decisionError(error: unknown) {
+  if (!(error instanceof ClientPortalDecisionError)) return unavailable();
+  const status = error.code === "client_portal_decision_denied" ? 403
+    : error.code === "client_portal_decision_duplicate" || error.code === "client_portal_decision_stale" ? 409
+      : error.code === "client_portal_decision_invalid" ? 400 : 404;
+  return Response.json({ error: error.message }, { status, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+}
 
 async function recipientContext(request: Request, token: string, requiresPost: boolean) {
   if (requiresPost) {
@@ -33,7 +41,7 @@ export async function submitClientPortalDecisionResponse(request: Request, token
   try {
     const receipt = await submitClientPortalDecision({ actor: context.actor, database: context.database, portalId: context.actor.portalId, issueId: body.value.issueId, decision: body.value.decision, expectedIssueContentHash: body.value.expectedIssueContentHash, idempotencyKey: request.headers.get("idempotency-key")?.trim() ?? "", note: body.value.note, signerName: body.value.signerName });
     return Response.json({ receipt }, { status: receipt.replayed ? 200 : 201, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return decisionError(error); }
 }
 
 export async function clientPortalDecisionSummaryResponse(request: Request, token: string) {
@@ -45,5 +53,5 @@ export async function clientPortalDecisionSummaryResponse(request: Request, toke
   try {
     const summary = await summarizeClientPortalDecisions({ actor: context.actor, database: context.database, portalId: context.actor.portalId, issueId });
     return Response.json({ summary }, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  } catch { return unavailable(); }
+  } catch (error) { return decisionError(error); }
 }

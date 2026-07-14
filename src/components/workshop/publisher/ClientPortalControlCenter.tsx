@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ClientPortalComposer } from "@/components/workshop/publisher/ClientPortalComposer";
+import { ClientPortalAccessSettings } from "@/components/workshop/publisher/ClientPortalAccessSettings";
 import { ClientPortalRecipientManager } from "@/components/workshop/publisher/ClientPortalRecipientManager";
 import type { ClientPortalComposerData } from "@/lib/client-portal/composer-contracts";
 import type { ClientPortalControlCenterTab, loadClientPortalControlCenter } from "@/lib/client-portal/control-center-service";
@@ -53,7 +54,7 @@ export function ClientPortalControlCenter({ composer, data, tab }: { composer?: 
       {tab === "decisions" ? <Card title="Current decisions"><ul className="space-y-2">{data.decisions.map((decision, index) => <li key={`${decision.submitted_at}-${index}`} className="flex justify-between gap-3 border-b border-hairline pb-2 text-sm"><span>{decision.signer_name ?? "Recipient"}</span><span>{decision.decision.replaceAll("_", " ")} · {date(decision.submitted_at)}</span></li>)}{!data.decisions.length ? <li className="text-sm text-secondary">No current decisions recorded.</li> : null}</ul></Card> : null}
       {tab === "activity" ? <Card title="Owner audit"><ul className="space-y-2">{data.audit.map((event) => <li key={event.id} className="flex justify-between gap-3 border-b border-hairline pb-2 text-sm"><span>{event.eventType.replaceAll("_", " ")}</span><span className="text-xs text-secondary">{date(event.occurredAt)} · {event.visibility}</span></li>)}</ul></Card> : null}
       {tab === "versions" ? <Card title="Issued versions"><ul className="space-y-2">{data.issues.map((issue) => <li key={issue.id} className="flex justify-between gap-3 border-b border-hairline pb-2 text-sm"><span>{issue.version_label}</span><span className="text-xs text-secondary">#{issue.issue_number} · {issue.status} · {date(issue.issued_at)}</span></li>)}</ul></Card> : null}
-      {tab === "settings" ? <Card title="Access and settings"><pre className="overflow-auto rounded-md bg-surface p-3 text-xs text-secondary">{JSON.stringify(data.accessPolicy, null, 2)}</pre></Card> : null}
+      {tab === "settings" ? <Card title="Access and settings"><ClientPortalAccessSettings accessEnabled={data.portal.status !== "access_off"} passwordEnabled={data.portal.passwordEnabled} portalId={data.portal.id} projectId={data.portal.projectId} /></Card> : null}
     </div>
   );
 }

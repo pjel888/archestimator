@@ -33,10 +33,11 @@ describe("Cloudflare scheduled upload jobs", () => {
     const vercelConfig = readJson<VercelConfig>("vercel.json");
 
     expect(wranglerConfig.main).toBe("worker.ts");
-    expect(wranglerConfig.triggers?.crons).toEqual([
+    expect(wranglerConfig.triggers?.crons).toEqual(expect.arrayContaining([
+      "*/5 * * * *",
       CLOUDFLARE_UPLOAD_CLEANUP_CRON,
       CLOUDFLARE_UPLOAD_SCAN_CRON,
-    ]);
+    ]));
     expect(vercelConfig.crons?.find((cron) => cron.path === "/api/internal/upload-cleanup")?.schedule)
       .toBe(CLOUDFLARE_UPLOAD_CLEANUP_CRON);
     expect(vercelConfig.crons?.find((cron) => cron.path === "/api/internal/upload-scan")?.schedule)
@@ -49,6 +50,8 @@ describe("Cloudflare scheduled upload jobs", () => {
     expect(source).toContain('import generatedOpenNextWorker from "./.open-next/worker.js";');
     expect(source).toContain("scheduled(controller");
     expect(source).toContain("runCloudflareScheduledUploadJobs");
+    expect(source).toContain('CLIENT_PORTAL_NOTIFICATION_DISPATCH_CRON = "*/5 * * * *"');
+    expect(source).toContain("enqueuePendingClientPortalNotifications(env)");
     expect(source).toContain("queue(batch");
     expect(source).toContain("runCloudflareUploadJobQueueBatch");
     expect(source).toContain("openNextWorker.fetch(request, env, ctx)");

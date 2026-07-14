@@ -52,12 +52,21 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       location: "Quezon City",
       locationVisibility: "locality",
       currencyCode: "PHP",
+      showArchestimatorBranding: true,
     });
     expect(snapshot.estimates[0]?.rows[0]).toEqual({
       id: "row-1",
+      componentAnchor: null,
+      variantAnchor: null,
+      componentVersionNumber: null,
+      variantLabel: null,
+      rowRevision: 0,
+      linkState: "unlinked",
       description: "Concrete works",
       designation: "CW-01",
       discipline: "Structural",
+      category: null,
+      supplier: null,
       material: "Concrete",
       quantity: 2,
       unit: "cu.m",
@@ -138,6 +147,53 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(JSON.stringify(sanitized)).not.toContain("unitCost");
     expect(JSON.stringify(sanitized)).not.toContain("miscCost");
     expect(JSON.stringify(sanitized)).not.toContain("contingencyPercentage");
+  });
+
+  it("emits stable issue-local component and variant receipts without raw source IDs", () => {
+    const componentId = "11111111-1111-4111-8111-111111111111";
+    const variantId = "22222222-2222-4222-8222-222222222222";
+    const snapshot = sanitizeProjectPublicationSnapshotForPublicRead(buildProjectPublicationSnapshot({
+      generatedAt: "2026-07-14T00:00:00.000Z",
+      idNamespace: "semantic-issue-namespace",
+      project: { id: "project-1", name: "Receipts", projectCode: null, clientName: null, location: null, currencyCode: "PHP" },
+      estimates: [{
+        id: "estimate-1",
+        name: "Receipts",
+        sheetCode: "R-001",
+        updatedAt: null,
+        rows: ["row-1", "row-2"].map((id) => ({
+          id,
+          componentId,
+          variantId,
+          componentVersionNumber: 4,
+          variantLabel: "V2",
+          rowRevision: 9,
+          linkState: "linked-clean" as const,
+          description: "",
+          designation: "",
+          discipline: "Finishes",
+          categoryLabel: "Flooring",
+          supplierLabel: "Approved supplier",
+          material: "Tile",
+          quantity: 1,
+          unit: "ea",
+          unitCost: 10.005,
+          miscCost: 0,
+          contingencyPercentage: 0,
+        })),
+      }],
+    }));
+
+    const [first, second] = snapshot.estimates[0]!.rows;
+    expect(first).toMatchObject({ componentVersionNumber: 4, variantLabel: "V2", rowRevision: 9, linkState: "linked-clean", category: "Flooring", supplier: "Approved supplier", rowTotalMinorUnits: 1001 });
+    expect(first?.componentAnchor).toMatch(/^cmp_[A-Za-z0-9_-]{20}$/);
+    expect(first?.variantAnchor).toMatch(/^var_[A-Za-z0-9_-]{20}$/);
+    expect(second?.componentAnchor).toBe(first?.componentAnchor);
+    expect(second?.variantAnchor).toBe(first?.variantAnchor);
+    expect(snapshot.totalCostMinorUnits).toBe(2002);
+    expect(snapshot.totalCost).toBe(20.02);
+    expect(JSON.stringify(snapshot)).not.toContain(componentId);
+    expect(JSON.stringify(snapshot)).not.toContain(variantId);
   });
 
   it("uses the included proposal basis and retains only safe canonical calculation provenance", () => {
@@ -590,6 +646,32 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
                 contingencyPercentage: 0,
                 imageUrl: "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/project-images/project-1/cover.webp",
               },
+              {
+                id: "private-project-broker-row",
+                description: "Private project broker thumbnail",
+                designation: "G",
+                discipline: "Architectural",
+                material: "Project broker",
+                quantity: 1,
+                unit: "pc",
+                unitCost: 1,
+                miscCost: 0,
+                contingencyPercentage: 0,
+                imageUrl: "/api/projects/images?path=11111111-1111-4111-8111-111111111111/owner/project-images/22222222-2222-4222-8222-222222222222/cover.webp",
+              },
+              {
+                id: "private-library-broker-row",
+                description: "Private library broker thumbnail",
+                designation: "H",
+                discipline: "Architectural",
+                material: "Library broker",
+                quantity: 1,
+                unit: "pc",
+                unitCost: 1,
+                miscCost: 0,
+                contingencyPercentage: 0,
+                imageUrl: "/api/component-library/images?path=workspace/user/components/private.webp",
+              },
             ],
           },
         ],
@@ -602,6 +684,10 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       expect(snapshot.estimates[0]?.rows[3]?.imageUrl).toBeNull();
       expect(snapshot.estimates[0]?.rows[4]?.imageUrl).toBeNull();
       expect(snapshot.estimates[0]?.rows[5]?.imageUrl).toBeNull();
+      expect(snapshot.estimates[0]?.rows[6]?.imageUrl).toBeNull();
+      expect(snapshot.estimates[0]?.rows[7]?.imageUrl).toBeNull();
+      expect(JSON.stringify(snapshot)).not.toContain("11111111-1111-4111-8111-111111111111");
+      expect(JSON.stringify(snapshot)).not.toContain("workspace/user/components/private.webp");
 
       const unsafeCoverSnapshot = buildProjectPublicationSnapshot({
         generatedAt: "2026-05-27T00:00:00.000Z",
@@ -626,11 +712,29 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
           clientName: "Client Family",
           location: "Quezon City",
           currencyCode: "PHP",
-          coverImageUrl: "/api/projects/images?path=workspace/user/project-images/project-1/cover.webp",
+          coverImageUrl: "/api/projects/images?path=11111111-1111-4111-8111-111111111111/owner/project-images/22222222-2222-4222-8222-222222222222/cover.webp",
         },
         estimates: [],
       });
       expect(privateProjectCoverSnapshot.project.coverImageUrl).toBeNull();
+
+      const sanitizedLegacySnapshot = sanitizeProjectPublicationSnapshotForPublicRead({
+        ...snapshot,
+        project: {
+          ...snapshot.project,
+          coverImageUrl: "/api/projects/images?path=11111111-1111-4111-8111-111111111111/owner/project-images/22222222-2222-4222-8222-222222222222/cover.webp",
+        },
+        estimates: snapshot.estimates.map((estimate, estimateIndex) => estimateIndex === 0 ? {
+          ...estimate,
+          rows: estimate.rows.map((row, rowIndex) => rowIndex === 0 ? {
+            ...row,
+            imageUrl: "/api/component-library/images?path=workspace/user/components/private.webp",
+          } : row),
+        } : estimate),
+      });
+      expect(sanitizedLegacySnapshot.project.coverImageUrl).toBeNull();
+      expect(sanitizedLegacySnapshot.estimates[0]?.rows[0]?.imageUrl).toBeNull();
+      expect(JSON.stringify(sanitizedLegacySnapshot)).not.toContain("?path=");
     } finally {
       if (originalSupabaseUrl === undefined) {
         delete process.env.NEXT_PUBLIC_SUPABASE_URL;

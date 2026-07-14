@@ -20,6 +20,7 @@ export const CLIENT_PORTAL_DISCUSSION_TARGET_KINDS = [
   "estimate_tab",
   "area_group",
   "row",
+  "component",
   "chart",
   "chart_bucket",
   "comparison_row",
@@ -88,6 +89,7 @@ export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
     "thread:reply",
     "thread:resolve",
     "thread:reopen",
+    "decision:view",
     "decision:submit_review",
   ],
   approver: [
@@ -99,6 +101,7 @@ export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
     "thread:reply",
     "thread:resolve",
     "thread:reopen",
+    "decision:view",
     "decision:submit_review",
     "decision:submit_formal",
   ],

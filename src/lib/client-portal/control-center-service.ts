@@ -6,10 +6,12 @@ import { evaluateClientPortalPolicy, type ClientPortalInternalActor } from "@/li
 import { listPublisherDiscussionThreads } from "@/lib/client-portal/publisher-discussion-service";
 
 type PortalRow = {
+  access_credential_version: number;
   access_policy_json: string;
   current_issue_id: string | null;
   id: string;
   name: string;
+  password_hash: string | null;
   project_id: string;
   status: "draft" | "ready" | "live" | "access_off" | "archived";
   workspace_id: string;
@@ -27,7 +29,7 @@ function parseObject(value: string) {
 }
 
 async function portalFor(database: D1DatabaseLike, portalId: string) {
-  return database.prepare<PortalRow>("SELECT id, workspace_id, project_id, name, status, current_issue_id, access_policy_json FROM client_portals WHERE id = ? LIMIT 1").bind(portalId).first<PortalRow>();
+  return database.prepare<PortalRow>("SELECT id, workspace_id, project_id, name, status, current_issue_id, password_hash, access_credential_version, access_policy_json FROM client_portals WHERE id = ? LIMIT 1").bind(portalId).first<PortalRow>();
 }
 
 export async function loadClientPortalControlCenter({ actor, database, portalId, tab }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; portalId: string; tab: ClientPortalControlCenterTab }) {
@@ -70,7 +72,7 @@ export async function loadClientPortalControlCenter({ actor, database, portalId,
     decisions: decisions.results ?? [],
     discussions,
     issues: issues.results ?? [],
-    portal: { currentIssueId: portal.current_issue_id, id: portal.id, name: portal.name, projectId: portal.project_id, status: portal.status },
+    portal: { accessCredentialVersion: portal.access_credential_version, currentIssueId: portal.current_issue_id, id: portal.id, name: portal.name, passwordEnabled: Boolean(portal.password_hash), projectId: portal.project_id, status: portal.status },
     recipients,
     sections: sections.results ?? [],
     sourceFreshness: sourceFreshness?.source_updated_at ?? null,

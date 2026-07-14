@@ -3,7 +3,6 @@ import { CLIENT_PORTAL_SECTION_KINDS, type ClientPortalSectionKind } from "@/lib
 export const CLIENT_PORTAL_SECTION_DRAFT_SCHEMA_VERSION = 1 as const;
 export const CLIENT_PORTAL_SECTION_PUBLIC_SCHEMA_VERSION = 1 as const;
 
-const CLIENT_PORTAL_LAYOUT_MODES = ["standard", "wide", "split", "rail"] as const;
 const CLIENT_PORTAL_FORBIDDEN_ISSUED_FIELDS = new Set([
   "margin",
   "internal_markup",
@@ -17,8 +16,9 @@ const CLIENT_PORTAL_FORBIDDEN_ISSUED_FIELDS = new Set([
 ]);
 const CLIENT_PORTAL_CONTROLLED_ISSUED_FIELDS = new Set(["supplier", "unit_cost", "misc_cost", "adjustment_detail"]);
 
-export type ClientPortalLayoutMode = (typeof CLIENT_PORTAL_LAYOUT_MODES)[number];
+export type ClientPortalLayoutMode = "standard" | "wide" | "split" | "rail";
 export type ClientPortalPublicValue = string | number | boolean | null | ClientPortalPublicValue[] | { [key: string]: ClientPortalPublicValue };
+export type ClientPortalSectionDataScope = { selectedEstimateIds?: string[] };
 
 type ClientPortalSectionConfigByKind = {
   overview: { showProjectDates?: boolean; showPreparedFor?: boolean; showIssueTotal?: boolean };
@@ -45,6 +45,7 @@ export type ClientPortalSectionDraftByKind = {
     visibleFields: string[];
     commentable: boolean;
     downloadable: boolean;
+    dataScope?: ClientPortalSectionDataScope;
     config: ClientPortalSectionConfigByKind[Kind];
   };
 }[ClientPortalSectionKind];
@@ -193,10 +194,19 @@ function validateConfig(kind: ClientPortalSectionKind, value: unknown): ClientPo
   }
 }
 
+function validateDataScope(value: unknown): ClientPortalSectionDataScope {
+  if (value === undefined) return {};
+  if (!isRecord(value)) throw new ClientPortalSectionValidationError("dataScope must be an object");
+  for (const key of Object.keys(value)) {
+    if (key !== "selectedEstimateIds") throw new ClientPortalSectionValidationError(`dataScope.${key} is not allowed`);
+  }
+  return { selectedEstimateIds: value.selectedEstimateIds === undefined ? undefined : requireStringArray(value.selectedEstimateIds, "dataScope.selectedEstimateIds") };
+}
+
 export function parseClientPortalSectionDraft(value: unknown): ClientPortalSectionDraft {
   if (!isRecord(value)) throw new ClientPortalSectionValidationError("section draft must be an object");
 
-  const allowedKeys = new Set(["schemaVersion", "id", "kind", "title", "description", "sortOrder", "enabled", "layoutMode", "visibleFields", "commentable", "downloadable", "config"]);
+  const allowedKeys = new Set(["schemaVersion", "id", "kind", "title", "description", "sortOrder", "enabled", "layoutMode", "visibleFields", "commentable", "downloadable", "dataScope", "config"]);
   for (const key of Object.keys(value)) {
     if (!allowedKeys.has(key)) throw new ClientPortalSectionValidationError(`section draft field ${key} is not allowed`);
   }
@@ -225,6 +235,7 @@ export function parseClientPortalSectionDraft(value: unknown): ClientPortalSecti
     visibleFields: requireStringArray(value.visibleFields, "visibleFields"),
     commentable: requireBoolean(value.commentable, "commentable"),
     downloadable: requireBoolean(value.downloadable, "downloadable"),
+    dataScope: validateDataScope(value.dataScope),
     config: validateConfig(kind, value.config),
   } as ClientPortalSectionDraft;
 }

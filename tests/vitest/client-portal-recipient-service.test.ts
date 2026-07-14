@@ -11,7 +11,7 @@ type CapturedStatement = { sql: string; values: D1Value[] };
 
 function createDatabase(options: { existingRecipient?: { id: string; recipient_credential_version: number; status: "active" | "revoked" } } = {}) {
   const statements: CapturedStatement[] = [];
-  const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready" };
+  const portal = { encrypted_stable_token: "aes-256-gcm-v1:stable", id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready" };
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
       let values: D1Value[] = [];
@@ -63,14 +63,18 @@ describe("client portal recipient service", () => {
       recipient: { email: "Client@example.com", displayName: "Client Reviewer", roleTemplate: "approver", isRequiredApprover: true },
     });
 
+    expect(result).toMatchObject({ deliveryState: "pending", recipientCredentialVersion: 1 });
     expect(result.recipientId).toMatch(/^recipient_/);
-    expect(result.bootstrapToken).toHaveLength(43);
+    expect(result.outboxId).toMatch(/^outbox_/);
     expect(statements.some((entry) => entry.sql.includes("INSERT INTO client_portal_recipients"))).toBe(true);
     expect(statements.some((entry) => entry.sql.includes("INSERT INTO client_portal_recipient_credentials"))).toBe(true);
     const serialized = JSON.stringify(statements);
     expect(serialized).toContain("portal.recipient.invited");
     expect(serialized).toContain("hmac-sha256-v1:");
-    expect(serialized).not.toContain(result.bootstrapToken);
+    expect(serialized).toContain("aes-256-gcm-v1:");
+    expect(serialized).toContain("encryptedBootstrapToken");
+    expect(serialized).toContain("expires_at");
+    expect(result).not.toHaveProperty("bootstrapToken");
   });
 
   it("rotates existing credentials without replacing the recipient identity", async () => {
