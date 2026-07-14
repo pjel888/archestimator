@@ -1,6 +1,7 @@
 # Archestimator Admin Founder Homebase and Control Plane
 
 **Plan date:** 2026-07-12  
+**Verified against current source:** 2026-07-14  
 **Repository:** `pjel888/archestimator`  
 **Target:** `/admin/**`  
 **Superseded predecessor:** `.ai/09_archive/store/2026-07-12-Admin-Feature-Improvement-superseded`  

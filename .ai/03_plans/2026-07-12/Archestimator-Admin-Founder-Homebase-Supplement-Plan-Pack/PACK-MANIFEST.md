@@ -1,6 +1,7 @@
 # Human-Readable Pack Manifest
 
 **Consolidated:** 2026-07-12  
+**Verified against current source:** 2026-07-14 (F0 defects, admin shell, schema baseline confirmed; accuracy repairs applied)  
 **Machine-readable authority:** `plan-pack.json`  
 **Canonical execution artifact:** `13-IMPLEMENTATION-ROADMAP.md`  
 **Durable state:** `LOOP_LEDGER.md`  

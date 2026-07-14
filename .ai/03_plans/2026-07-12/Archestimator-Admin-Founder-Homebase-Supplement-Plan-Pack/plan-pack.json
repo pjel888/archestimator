@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "suite_version": "2026-07-11",
+  "suite_version": "2026-07-12",
   "package_id": "PLAN-2026-07-12-admin-founder-homebase-control-plane",
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
@@ -33,7 +33,7 @@
       "id": "ART-003",
       "role": "supporting",
       "path": "02-CURRENT-ADMIN-CODEBASE-AUDIT.md",
-      "sha256": "55238f99e5ea4a86e6d6b01f7d688689cb7606aebcf14ec7731c96a2fbc31691"
+      "sha256": "ffe6f4083836425bad2da70c32bb32cab0d3cf7530b26fcad64eebbaacd500d8"
     },
     {
       "id": "ART-004",
@@ -99,7 +99,7 @@
       "id": "ART-014",
       "role": "canonical-execution",
       "path": "13-IMPLEMENTATION-ROADMAP.md",
-      "sha256": "9bb56de3e6ff2c53260d9d73bc0a2a2497629d59038c8591968a8f55a507110b"
+      "sha256": "00f5a0b9614e21a9e4d5612d5f5f95d85396fc820f3f8e185f4a3cf1f4501418"
     },
     {
       "id": "ART-015",
@@ -135,19 +135,19 @@
       "id": "ART-020",
       "role": "coordination",
       "path": "LOOP_LEDGER.md",
-      "sha256": "82bf0e1063a117b8bad98fbe38a7df5c453e089ed4f8ba6fe2b13cdd3508e30e"
+      "sha256": "89274cf90ba733f4b93232ee6198f2b23f2a2c3667c0aa95978819e677b7ff98"
     },
     {
       "id": "ART-021",
       "role": "supporting",
       "path": "PACK-MANIFEST.md",
-      "sha256": "92e76b641af84014ca0bb003564042fc5e94a65c7438f669c11e6f181cd9738f"
+      "sha256": "9e4745398baf032a8793f9a1c045090a9816a50a226987dbcfa3170c4bf8b6a4"
     },
     {
       "id": "ART-022",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "26d8cf6349702cb4a07ae25ce6476296dfae13bfa0803cc666736557fd7b77db"
+      "sha256": "2d41b091572e726ad75a8ad1d135727dc7a0883e9fa34f08809260250bdd7f6e"
     }
   ],
   "sources": [
@@ -1746,6 +1746,6 @@
     "archived-predecessor-reference-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-12T20:00:00.000Z",
-  "manifest_sha256": "1e767782c71d1a40062f9000876a24b215e22646bd6f504730c6ef774bc1460a"
+  "updated_at": "2026-07-14T00:00:00.000Z",
+  "manifest_sha256": "e592cff1f85190afa9d568d92c64bd5434aff7742fe3b37a515fdb6218d8c49d"
 }

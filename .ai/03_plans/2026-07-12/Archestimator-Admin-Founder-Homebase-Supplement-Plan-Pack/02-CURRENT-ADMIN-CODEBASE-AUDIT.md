@@ -37,14 +37,15 @@ The baseline is a planning snapshot, not implementation or test authority. Stale
 
 Implemented:
 
-- D1 health query;
-- binding-presence checks;
+- D1 health query (`SELECT 1`);
+- binding-presence checks (existence only);
 - open incident count;
 - 30-day signup count from `profiles`;
-- recent signups;
 - four overview cards;
 - one-point signup chart;
 - external analytics links.
+
+Note: `listRecentSignups()` exists in `users-repository.ts` but is **not** rendered by `src/app/admin/page.tsx`, so the home page does not currently show a recent-signups list.
 
 Material gaps:
 
@@ -161,15 +162,17 @@ Implemented:
 - immediate all-active-profile materialization;
 - audit.
 
+Existing schema already provides (do **not** rebuild): `notification_definitions.dedupe_key UNIQUE`, `notification_definitions.starts_at`/`expires_at` active window, and `notification_deliveries UNIQUE(notification_id, user_id)` (definitions in `migrations/0009_notifications.sql`).
+
 Material defects/gaps:
 
 - no preview or recipient count before send;
 - no targeted audience;
-- no draft/history;
-- no schedule;
-- no idempotency;
-- definition and delivery are not atomic with audit;
-- validation does not enforce typed kind/severity/surface;
+- no draft/history/status or version lineage;
+- no scheduled send-at or recurrence (the existing `starts_at`/`expires_at` is an active window, not a future send time);
+- no per-send/per-delivery idempotency key for safe retry (the existing `dedupe_key` dedups a definition, and the per-user UNIQUE protects materialization, but there is no request/outbox idempotency token for fan-out retries);
+- definition, delivery, and audit are three separate `.run()` calls — not atomic (partial state on mid-sequence failure);
+- validation does not enforce typed kind/severity/surface (free strings);
 - no cancel/retract/replacement;
 - no delivery issue queue;
 - no read/dismiss metrics;
@@ -269,7 +272,7 @@ The current code already supplies valuable primitives:
 - support conversation/message persistence;
 - current corporate-account domain;
 - feature-flag cache and update action;
-- incidents table/repository;
+- incidents table/repository (`operational_incidents` + `operational_incident_events`, migration `0040`); read/list only in `src/lib/admin/incidents-repository.ts` — no declare/insert mutation action exists yet;
 - cron/ops/client-error/web-vital events;
 - notification definition/delivery tables;
 - current workshop access allowlist;

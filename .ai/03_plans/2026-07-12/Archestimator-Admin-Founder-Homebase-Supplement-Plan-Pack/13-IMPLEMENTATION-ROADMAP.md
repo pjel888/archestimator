@@ -62,29 +62,48 @@ Do not execute all slices in parallel.
 
 ### Source
 
-Absorb existing plan Units 001–006.
+Verified against current source on 2026-07-14. The predecessor Units 001–006 are archived at `.ai/09_archive/store/2026-07-12-Admin-Feature-Improvement-superseded`; this slice is self-contained so no archive read is required to start.
+
+### Verified current-source defects (implement exactly these — no speculative expansion)
+
+| # | Defect | Evidence (file:line) | Smallest fix |
+|---|---|---|---|
+| F0-1 | searched-user SQL binding order | `src/lib/admin/users-repository.ts:74-127` — `WHERE` placeholder order does not match the bind order around the session subquery `now`/`search`/`search` | reorder binds to match placeholder position |
+| F0-2 | affected-row verification absent | `src/lib/admin/users-repository.ts:216-240` `setUserAccountStatus` discards `.run()` result; `user-actions.ts:25-30` treats it as success unconditionally | assert `meta.changes`/affected rows; return a `no-op/no-target` result when 0 |
+| F0-3 | protected founder/admin floor not enforced | `src/lib/admin/user-actions.ts:23` blocks only `self_target`; no target role/founder check | add target role/CEO floor check before mutation |
+| F0-4 | fake audit UI | `src/app/admin/audit/page.tsx:10` placeholder copy over a real repo (`audit-repository.ts:124-171`) | render real `listAuditEvents`; keep sensitive-read redaction |
+| F0-5 | user activity semantics | `src/lib/admin/users-repository.ts:180-207` `listAdminUserActivity` reads `admin_audit_events WHERE actor_user_id=?` | relabel as admin-audit activity; product activity is F3 |
+| F0-6 | notification atomicity/typed validation | `notification-actions.ts` — three separate `.run()` calls; severity/surface free strings | batch/transaction the definition+delivery+audit; enforce typed kind/severity/surface enum |
+| F0-7 | placeholder Admin APIs | `src/app/api/admin/users/route.ts` and `src/app/api/admin/metrics/signups/route.ts` return hardcoded `{degraded:true, …}` stubs | wire to repositories or remove the routes |
+| F0-8 | misleading health/config claims | `health-probes.ts:49` (`SELECT 1`), `:64-73` (binding existence only); `analytics/page.tsx:7-32` env-var presence | label as Level 0/1; do not call it healthy/configured-readable |
+| F0-9 | maintenance mode not enforced | `AdminMaintenanceModeToggle.tsx` + `README.md` — no workshop mutation boundary consumer | enforce at the mutation boundary or remove the flag |
+| F0-10 | identity reconciliation | `users-repository.ts:142-166` `countSignups` counts `profiles.created_at`, not canonical Better Auth user | distinguish profile-provision vs canonical signup; do not relabel |
+
+Out of scope for F0 (deliberately deferred to avoid over-engineering): cursor pagination of `/admin/users` (F3), a real product-activity timeline (F3), client-side filtering removal (F3), and any of the new read-model/repository structure (F1+).
 
 ### Deliver
 
-- reconcile current route/repository/migration/test inventory;
-- fix searched-user binding;
-- verify affected rows;
-- protect founder/admin floor;
-- canonical identity semantics;
-- User 360 base;
-- safe status/session actions;
-- real audit UI foundation;
-- placeholder Admin API disposition;
-- exact capability checks.
+- fix F0-1 through F0-10 above;
+- exact server capability checks per high-risk action (reason, idempotency, audit, fresh-auth policy);
+- canonical identity semantics labels (DEC-AUTO-001/002);
+- real audit UI foundation (F0-4) and placeholder API disposition (F0-7).
+
+### Non-deliver (stops here)
+
+No new tables, no new routes, no Action Inbox, no search, no shell changes. Those begin at UNIT-002.
 
 ### Acceptance
 
-- no fake success;
-- no fake product activity;
-- no last-admin/founder lockout;
-- current list/detail truthful;
-- high-risk actions have reason/idempotency/audit/fresh-auth policy;
-- source and plan agree.
+- no fake success (F0-2);
+- no fake product activity label (F0-5, F0-10);
+- no last-admin/founder lockout (F0-3);
+- current list/detail truthful (F0-1, F0-7);
+- high-risk actions have reason/idempotency/audit/fresh-auth policy (F0-2, F0-3, F0-6);
+- source and plan agree (all items map to verified file:line above).
+
+### Default non-test evidence
+
+Source/diff review of each file:line above; affected-row postcondition review for F0-2; transition/batch review for F0-6. No test is authorized unless Philip requests it.
 
 ### Founder value
 

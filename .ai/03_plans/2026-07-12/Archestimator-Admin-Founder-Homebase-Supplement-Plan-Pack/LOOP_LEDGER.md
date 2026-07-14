@@ -29,7 +29,23 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Tests/build/browser/provider actions:** None
 - **Next decision:** Execute `UNIT-001` only after a fresh scoped-baseline audit
 
-### 2026-07-12 — Consolidation verification and archive receipt
+### 2026-07-14 — Improve-plan-pack verification and accuracy repair
+
+- **State:** COMPLETE
+- **Scope:** Verify pack claims against current source; remove over-engineering/over-testing risk; repair accuracy; refresh readiness
+- **Method:** Read-only source verification of F0 defects, admin shell structure, schema baseline, and reusable foundations via independent parallel agents
+- **Findings:** All 10 P0 defects VERIFIED present (exact file:line recorded in `13-IMPLEMENTATION-ROADMAP.md` UNIT-001). All 5 reusable foundations EXIST. All 18 proposed tables are NEW/non-colliding (safe as migrations 0076+). DAG acyclic; UNIT-001 dependency-closed.
+- **Material repairs:**
+  - `suite_version` bumped `2026-07-11` → `2026-07-12` to match current Frontier-Planning-Kernel/Plan-Pack-Schema
+  - `02-CURRENT-ADMIN-CODEBASE-AUDIT.md` notification idempotency/schedule claim corrected: existing `dedupe_key` UNIQUE, per-user delivery UNIQUE, and `starts_at`/`expires_at` active window already exist — narrowed to the true gap (per-send idempotency key + scheduled send-at/recurrence). Prevents an implementer from rebuilding existing machinery.
+  - `02` recent-signups claim corrected (function exists but is unused by home page)
+  - `02` incidents foundation clarified as `operational_incidents`/`operational_incident_events` (migration 0040), read-only repo, no declare mutation yet
+  - `13-IMPLEMENTATION-ROADMAP.md` UNIT-001 made self-contained: replaced "absorb archived Units 001–006" with a verified file:line defect table (F0-1…F0-10), explicit non-deliverables, and per-item non-test evidence. UNIT-001 is now pick-up-able without reading the archive.
+- **Over-engineering posture:** confirmed disciplined — generic workflow/CRM/dashboard abstractions rejected, vertical-slice-only schema, tests user-gated with `NOT_REQUIRED` default, advanced campaigns deferred to F10. No added ceremony.
+- **Implementation performed:** None (planning artifacts only)
+- **Tests/build/browser/provider actions:** None
+- **Result:** Pack remains `CONDITIONALLY_READY`; UNIT-001 is the dependency-closed ready slice, now with verified current-source grounding
+- **Next decision:** Begin UNIT-001; the F0 defect table is the work list
 
 - **State:** COMPLETE
 - **Active-pack validation:** `bun run validate:plan-pack -- --write <pack>` and the subsequent read-only validation passed
