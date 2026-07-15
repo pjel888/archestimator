@@ -3,7 +3,7 @@
 ## Audit scope
 
 - Surface: `/admin/estimate-system`
-- Before capture: `.ai/03_plans/2026-07-15/estimate-system-map-before.png`
+- Before capture: `.ai/03_plans/2026-07-15/Estimate-System-Map/estimate-system-map-before.png`
 - Audit mode: focused UX and information-architecture audit
 
 ## User goal
@@ -44,10 +44,10 @@ The replacement uses three progressively disclosed views:
 
 Final evidence:
 
-- Product: `.ai/03_plans/2026-07-15/estimate-system-map-final-product.png`
-- Variant feature: `.ai/03_plans/2026-07-15/estimate-system-map-feature-variant.png`
-- Estimate page: `.ai/03_plans/2026-07-15/estimate-system-map-page-estimate.png`
-- Compact layout: `.ai/03_plans/2026-07-15/estimate-system-map-final-compact.png`
+- Product: `.ai/03_plans/2026-07-15/Estimate-System-Map/estimate-system-map-final-product.png`
+- Variant feature: `.ai/03_plans/2026-07-15/Estimate-System-Map/estimate-system-map-feature-variant.png`
+- Estimate page: `.ai/03_plans/2026-07-15/Estimate-System-Map/estimate-system-map-page-estimate.png`
+- Compact layout: `.ai/03_plans/2026-07-15/Estimate-System-Map/estimate-system-map-final-compact.png`
 
 ## Result
 

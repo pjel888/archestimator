@@ -15,7 +15,7 @@ import {
 
 type EstimateSystemGraphProps = Readonly<{
   documentation: EstimateSystemDocumentation;
-  view: EstimateSystemView;
+  view: Exclude<EstimateSystemView, "ux">;
   feature: EstimateSystemFeature | null;
   page: EstimateSystemPage | null;
   onOpenFeature: (featureId: string) => void;
@@ -245,12 +245,16 @@ export function EstimateSystemGraph(props: EstimateSystemGraphProps) {
     );
   }
 
-  return (
-    <PageMap
-      documentation={props.documentation}
-      page={props.page}
-      onOpenFeature={props.onOpenFeature}
-      onOpenPage={props.onOpenPage}
-    />
-  );
+  if (props.view === "pages") {
+    return (
+      <PageMap
+        documentation={props.documentation}
+        page={props.page}
+        onOpenFeature={props.onOpenFeature}
+        onOpenPage={props.onOpenPage}
+      />
+    );
+  }
+
+  return null;
 }

@@ -1,4 +1,4 @@
-export const ESTIMATE_SYSTEM_VIEWS = ["product", "features", "pages"] as const;
+export const ESTIMATE_SYSTEM_VIEWS = ["product", "features", "pages", "ux"] as const;
 
 export type EstimateSystemView = (typeof ESTIMATE_SYSTEM_VIEWS)[number];
 
@@ -66,6 +66,98 @@ export type EstimateSystemPage = Readonly<{
   sources: readonly EstimateSystemSource[];
 }>;
 
+export type EstimateSystemPersonaGroup = "internal" | "external" | "operational";
+
+export type EstimateSystemPersona = Readonly<{
+  id: string;
+  title: string;
+  group: EstimateSystemPersonaGroup;
+  evidenceConfidence: "high" | "medium";
+  accessPath: string;
+  summary: string;
+  contexts: readonly string[];
+  jobs: readonly string[];
+  behaviors: readonly string[];
+  needs: readonly string[];
+  constraints: readonly string[];
+  successSignal: string;
+  unresolvedAssumptions: readonly string[];
+  featureIds: readonly string[];
+  pageIds: readonly string[];
+  sources: readonly EstimateSystemSource[];
+}>;
+
+export type EstimateSystemExperienceState = "current" | "partial";
+
+export type EstimateSystemCurrentExperienceStep = Readonly<{
+  id: string;
+  state: "current";
+  actorPersonaId: string;
+  featureId: string;
+  featureStepId: string;
+}>;
+
+export type EstimateSystemPartialExperienceStep = Readonly<{
+  id: string;
+  state: "partial";
+  actorPersonaId: string;
+  title: string;
+  description: string;
+  result: string;
+  pageId?: string;
+  featureIds: readonly string[];
+}>;
+
+export type EstimateSystemExperienceStep =
+  | EstimateSystemCurrentExperienceStep
+  | EstimateSystemPartialExperienceStep;
+
+export type EstimateSystemExperiencePath = Readonly<{
+  id: string;
+  title: string;
+  summary: string;
+  status: EstimateSystemExperienceState;
+  primaryPersonaId: string;
+  supportingPersonaIds: readonly string[];
+  trigger: string;
+  outcome: string;
+  steps: readonly EstimateSystemExperienceStep[];
+  sources: readonly EstimateSystemSource[];
+}>;
+
+export type EstimateSystemIntersection = Readonly<{
+  id: string;
+  title: string;
+  summary: string;
+  kind: "handoff" | "support" | "feedback";
+  status: EstimateSystemExperienceState;
+  fromPathId: string;
+  fromStepId: string;
+  toPathId: string;
+  toStepId: string;
+  responsiblePersonaId: string;
+  condition: string;
+  result: string;
+  pageId?: string;
+  featureIds: readonly string[];
+}>;
+
+export type EstimateSystemExperienceMap = Readonly<{
+  corePathIds: readonly string[];
+  supportPathIds: readonly string[];
+  partialReturnPathId: string;
+}>;
+
+export type EstimateSystemResolvedExperienceStep = Readonly<{
+  state: EstimateSystemExperienceState;
+  actorPersonaId: string;
+  title: string;
+  description: string;
+  result?: string;
+  pageId?: string;
+  featureIds: readonly string[];
+}>;
+
 export type EstimateSystemDocumentation = Readonly<{
   version: string;
   lastVerified: string;
@@ -80,11 +172,18 @@ export type EstimateSystemDocumentation = Readonly<{
   areas: readonly EstimateSystemArea[];
   features: readonly EstimateSystemFeature[];
   pages: readonly EstimateSystemPage[];
+  personas: readonly EstimateSystemPersona[];
+  experiencePaths: readonly EstimateSystemExperiencePath[];
+  experienceMap: EstimateSystemExperienceMap;
+  intersections: readonly EstimateSystemIntersection[];
   integrity: Readonly<{
     ok: true;
     areaCount: number;
     featureCount: number;
     pageCount: number;
+    personaCount: number;
+    experiencePathCount: number;
+    intersectionCount: number;
   }>;
 }>;
 
@@ -144,10 +243,17 @@ export function defineEstimateSystemDocumentation(
   assertUniqueIds(input.features, "feature");
   assertUniqueIds(input.pages, "page");
   assertUniqueIds(input.journey.steps, "journey step");
+  assertUniqueIds(input.personas, "persona");
+  assertUniqueIds(input.experiencePaths, "experience path");
+  assertUniqueIds(input.experiencePaths.flatMap((path) => path.steps), "experience path step");
+  assertUniqueIds(input.intersections, "intersection");
 
   const areaIds = new Set(input.areas.map((area) => area.id));
   const featureIds = new Set(input.features.map((feature) => feature.id));
   const pageIds = new Set(input.pages.map((page) => page.id));
+  const personaIds = new Set(input.personas.map((persona) => persona.id));
+  const experiencePathIds = new Set(input.experiencePaths.map((path) => path.id));
+  const experiencePathsById = new Map(input.experiencePaths.map((path) => [path.id, path]));
 
   assertReferences("Product journey", input.journey.supportingAreaIds, areaIds, "area");
   for (const step of input.journey.steps) {
@@ -179,6 +285,157 @@ export function defineEstimateSystemDocumentation(
     assertReferences(`Page ${page.id}`, page.nextPageIds, pageIds, "page");
   }
 
+  for (const persona of input.personas) {
+    assertReferences(`Persona ${persona.id}`, persona.featureIds, featureIds, "feature");
+    assertReferences(`Persona ${persona.id}`, persona.pageIds, pageIds, "page");
+  }
+
+  for (const path of input.experiencePaths) {
+    if (path.steps.length < 2 || path.steps.length > 7) {
+      throw new Error(`Experience path ${path.id} must contain between 2 and 7 steps`);
+    }
+    assertReferences(`Experience path ${path.id}`, [path.primaryPersonaId], personaIds, "persona");
+    assertReferences(`Experience path ${path.id}`, path.supportingPersonaIds, personaIds, "persona");
+
+    const partialSteps = path.steps.filter((step) => step.state === "partial");
+    if (path.status === "current" && partialSteps.length > 0) {
+      throw new Error(`Current experience path ${path.id} contains a partial step`);
+    }
+    if (path.status === "partial" && partialSteps.length === 0) {
+      throw new Error(`Partial experience path ${path.id} requires at least one partial step`);
+    }
+
+    for (const step of path.steps) {
+      assertReferences(`Experience path step ${step.id}`, [step.actorPersonaId], personaIds, "persona");
+      if (step.state === "current") {
+        assertReferences(`Experience path step ${step.id}`, [step.featureId], featureIds, "feature");
+        const feature = input.features.find((candidate) => candidate.id === step.featureId);
+        const featureStep = feature?.steps.find((candidate) => candidate.id === step.featureStepId);
+        if (!featureStep) {
+          throw new Error(`Experience path step ${step.id} references missing feature step: ${step.featureStepId}`);
+        }
+        if (!featureStep.pageId) {
+          throw new Error(`Experience path step ${step.id} references a feature step without a page`);
+        }
+      } else {
+        if (!step.title.trim() || !step.description.trim() || !step.result.trim()) {
+          throw new Error(`Partial experience path step ${step.id} requires title, description, and result`);
+        }
+        assertReferences(
+          `Experience path step ${step.id}`,
+          step.pageId ? [step.pageId] : [],
+          pageIds,
+          "page",
+        );
+        assertReferences(`Experience path step ${step.id}`, step.featureIds, featureIds, "feature");
+      }
+    }
+  }
+
+  for (const intersection of input.intersections) {
+    if (intersection.fromPathId === intersection.toPathId) {
+      throw new Error(`Intersection ${intersection.id} cannot connect a path to itself`);
+    }
+    assertReferences(
+      `Intersection ${intersection.id}`,
+      [intersection.fromPathId, intersection.toPathId],
+      experiencePathIds,
+      "experience path",
+    );
+    assertReferences(
+      `Intersection ${intersection.id}`,
+      [intersection.responsiblePersonaId],
+      personaIds,
+      "persona",
+    );
+    assertReferences(
+      `Intersection ${intersection.id}`,
+      intersection.pageId ? [intersection.pageId] : [],
+      pageIds,
+      "page",
+    );
+    assertReferences(`Intersection ${intersection.id}`, intersection.featureIds, featureIds, "feature");
+
+    const fromStep = experiencePathsById
+      .get(intersection.fromPathId)
+      ?.steps.find((step) => step.id === intersection.fromStepId);
+    const toStep = experiencePathsById
+      .get(intersection.toPathId)
+      ?.steps.find((step) => step.id === intersection.toStepId);
+    if (!fromStep) {
+      throw new Error(`Intersection ${intersection.id} references missing from step: ${intersection.fromStepId}`);
+    }
+    if (!toStep) {
+      throw new Error(`Intersection ${intersection.id} references missing to step: ${intersection.toStepId}`);
+    }
+    const touchesPartialStep = fromStep.state === "partial" || toStep.state === "partial";
+    if (intersection.status === "current" && touchesPartialStep) {
+      throw new Error(`Current intersection ${intersection.id} touches a partial step`);
+    }
+    if (intersection.status === "partial" && !touchesPartialStep) {
+      throw new Error(`Partial intersection ${intersection.id} requires a partial endpoint`);
+    }
+  }
+
+  const mappedPathIds = [
+    ...input.experienceMap.corePathIds,
+    ...input.experienceMap.supportPathIds,
+    input.experienceMap.partialReturnPathId,
+  ];
+  assertReferences("Experience map", mappedPathIds, experiencePathIds, "experience path");
+  if (new Set(mappedPathIds).size !== mappedPathIds.length) {
+    throw new Error("Experience map cannot repeat a path");
+  }
+  if (mappedPathIds.length !== input.experiencePaths.length) {
+    throw new Error("Experience map must classify every experience path exactly once");
+  }
+  if (input.experienceMap.corePathIds.length < 2) {
+    throw new Error("Experience map requires at least two core paths");
+  }
+
+  for (const pathId of [...input.experienceMap.corePathIds, ...input.experienceMap.supportPathIds]) {
+    if (experiencePathsById.get(pathId)?.status !== "current") {
+      throw new Error(`Experience map current path is not current: ${pathId}`);
+    }
+  }
+  if (experiencePathsById.get(input.experienceMap.partialReturnPathId)?.status !== "partial") {
+    throw new Error(`Experience map partial return path is not partial: ${input.experienceMap.partialReturnPathId}`);
+  }
+
+  for (let index = 0; index < input.experienceMap.corePathIds.length - 1; index += 1) {
+    const fromPathId = input.experienceMap.corePathIds[index];
+    const toPathId = input.experienceMap.corePathIds[index + 1];
+    const hasDirectedIntersection = input.intersections.some(
+      (intersection) => intersection.fromPathId === fromPathId && intersection.toPathId === toPathId,
+    );
+    if (!hasDirectedIntersection) {
+      throw new Error(`Experience map core handoff is missing: ${fromPathId} -> ${toPathId}`);
+    }
+  }
+
+  const corePathIds = new Set(input.experienceMap.corePathIds);
+  for (const supportPathId of input.experienceMap.supportPathIds) {
+    const connectsToCore = input.intersections.some(
+      (intersection) =>
+        (intersection.fromPathId === supportPathId && corePathIds.has(intersection.toPathId))
+        || (intersection.toPathId === supportPathId && corePathIds.has(intersection.fromPathId)),
+    );
+    if (!connectsToCore) {
+      throw new Error(`Experience map support path is disconnected from the core chain: ${supportPathId}`);
+    }
+  }
+
+  const partialReturnPathId = input.experienceMap.partialReturnPathId;
+  const hasCoreEntryToPartialReturn = input.intersections.some(
+    (intersection) => corePathIds.has(intersection.fromPathId) && intersection.toPathId === partialReturnPathId,
+  );
+  const hasPartialReturnToCore = input.intersections.some(
+    (intersection) => intersection.fromPathId === partialReturnPathId && corePathIds.has(intersection.toPathId),
+  );
+  if (!hasCoreEntryToPartialReturn || !hasPartialReturnToCore) {
+    throw new Error(`Experience map partial return path lacks a directed core return loop: ${partialReturnPathId}`);
+  }
+
   assertReciprocalFeaturePageReferences(input.features, input.pages);
 
   return {
@@ -188,6 +445,9 @@ export function defineEstimateSystemDocumentation(
       areaCount: input.areas.length,
       featureCount: input.features.length,
       pageCount: input.pages.length,
+      personaCount: input.personas.length,
+      experiencePathCount: input.experiencePaths.length,
+      intersectionCount: input.intersections.length,
     },
   };
 }
@@ -211,4 +471,49 @@ export function findEstimateSystemPage(
   pageId: string,
 ) {
   return documentation.pages.find((page) => page.id === pageId) ?? null;
+}
+
+export function findEstimateSystemPersona(
+  documentation: EstimateSystemDocumentation,
+  personaId: string,
+) {
+  return documentation.personas.find((persona) => persona.id === personaId) ?? null;
+}
+
+export function findEstimateSystemExperiencePath(
+  documentation: EstimateSystemDocumentation,
+  pathId: string,
+) {
+  return documentation.experiencePaths.find((path) => path.id === pathId) ?? null;
+}
+
+export function resolveEstimateSystemExperienceStep(
+  documentation: EstimateSystemDocumentation,
+  step: EstimateSystemExperienceStep,
+): EstimateSystemResolvedExperienceStep | null {
+  if (step.state === "partial") {
+    return {
+      state: step.state,
+      actorPersonaId: step.actorPersonaId,
+      title: step.title,
+      description: step.description,
+      result: step.result,
+      pageId: step.pageId,
+      featureIds: step.featureIds,
+    };
+  }
+
+  const feature = findEstimateSystemFeature(documentation, step.featureId);
+  const featureStep = feature?.steps.find((candidate) => candidate.id === step.featureStepId);
+  if (!feature || !featureStep) return null;
+
+  return {
+    state: step.state,
+    actorPersonaId: step.actorPersonaId,
+    title: featureStep.title,
+    description: featureStep.description,
+    result: featureStep.result,
+    pageId: featureStep.pageId,
+    featureIds: [feature.id],
+  };
 }

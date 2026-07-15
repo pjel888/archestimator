@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { EstimateSystemGraph } from "./EstimateSystemGraph";
+import { EstimateSystemUx, type EstimateSystemUxMode } from "./EstimateSystemUx";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchInput } from "@/components/ui/search-input";
 import { Tabs } from "@/components/ui/tabs";
 import {
+  ESTIMATE_SYSTEM_VIEWS,
   findEstimateSystemArea,
   findEstimateSystemFeature,
   findEstimateSystemPage,
@@ -27,6 +29,7 @@ const VIEW_TABS = [
   { id: "product", label: "Product" },
   { id: "features", label: "Features" },
   { id: "pages", label: "Pages" },
+  { id: "ux", label: "UX" },
 ] as const;
 
 function SourceNotes({ sources }: { sources: readonly EstimateSystemSource[] }) {
@@ -196,10 +199,23 @@ function PageDetails({ documentation, page }: { documentation: EstimateSystemDoc
 export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
   const [view, setView] = useState<EstimateSystemView>("product");
   const [query, setQuery] = useState("");
+  const [uxQuery, setUxQuery] = useState("");
+  const [uxMode, setUxMode] = useState<EstimateSystemUxMode>("journey");
+  const [selectedPersonaId, setSelectedPersonaId] = useState(
+    documentation.personas.find((persona) => persona.id === "estimator")?.id ?? documentation.personas[0]?.id ?? "",
+  );
+  const [selectedExperiencePathId, setSelectedExperiencePathId] = useState(
+    documentation.experiencePaths.find((path) => path.id === "build-and-price-estimate")?.id
+      ?? documentation.experiencePaths[0]?.id
+      ?? "",
+  );
   const [selectedFeatureId, setSelectedFeatureId] = useState(documentation.features[0]?.id ?? "");
   const [selectedPageId, setSelectedPageId] = useState(
     documentation.pages.find((page) => page.id === "estimate-workspace")?.id ?? documentation.pages[0]?.id ?? "",
   );
+  const contentHeadingRef = useRef<HTMLHeadingElement>(null);
+  const focusDestinationRef = useRef(false);
+  const [navigationStatus, setNavigationStatus] = useState("");
 
   const selectedFeature = findEstimateSystemFeature(documentation, selectedFeatureId);
   const selectedPage = findEstimateSystemPage(documentation, selectedPageId);
@@ -220,34 +236,49 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
   );
 
   function changeView(nextView: string) {
-    if (nextView !== "product" && nextView !== "features" && nextView !== "pages") return;
-    setView(nextView);
+    if (!ESTIMATE_SYSTEM_VIEWS.includes(nextView as EstimateSystemView)) return;
+    setView(nextView as EstimateSystemView);
     setQuery("");
   }
 
   function openFeature(featureId: string) {
+    const feature = findEstimateSystemFeature(documentation, featureId);
+    focusDestinationRef.current = true;
     setSelectedFeatureId(featureId);
     setView("features");
     setQuery("");
+    setNavigationStatus(`Opened feature documentation: ${feature?.title ?? featureId}.`);
   }
 
   function openPage(pageId: string) {
+    const page = findEstimateSystemPage(documentation, pageId);
+    focusDestinationRef.current = true;
     setSelectedPageId(pageId);
     setView("pages");
     setQuery("");
+    setNavigationStatus(`Opened page documentation: ${page?.title ?? pageId}.`);
   }
+
+  useEffect(() => {
+    if (!focusDestinationRef.current) return;
+    focusDestinationRef.current = false;
+    contentHeadingRef.current?.focus();
+  }, [selectedFeatureId, selectedPageId, view]);
 
   const heading = view === "product"
     ? documentation.journey.title
     : view === "features"
       ? selectedFeature?.title ?? "Feature"
-      : selectedPage?.title ?? "Page";
+      : view === "pages"
+        ? selectedPage?.title ?? "Page"
+        : "Users, paths, and intersections";
   const summary = view === "product"
     ? documentation.journey.summary
     : view === "features"
       ? selectedFeature?.summary ?? ""
-      : selectedPage?.summary ?? "";
-
+      : view === "pages"
+        ? selectedPage?.summary ?? ""
+        : "Understand who uses the product, the ordered path they follow, and where work changes hands.";
   return (
     <div className="flex min-h-0 flex-col gap-3">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -270,7 +301,9 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
               ? documentation.integrity.featureCount
               : tab.id === "pages"
                 ? documentation.integrity.pageCount
-                : documentation.integrity.areaCount,
+                : tab.id === "ux"
+                  ? documentation.integrity.experiencePathCount
+                  : documentation.integrity.areaCount,
         }))}
         activeId={view}
         onChange={changeView}
@@ -278,9 +311,11 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
         idBase="estimate-system-view"
         controlsPanels={false}
         getTabButtonProps={() => ({
-          className: "focus-visible:bg-surfaceMuted focus-visible:ring-0 focus-visible:ring-offset-0",
+          className: "focus-visible:bg-surfaceMuted",
         })}
       />
+
+      <p className="sr-only" role="status" aria-live="polite">{navigationStatus}</p>
 
       <div
         id={`estimate-system-view-panel-${view}`}
@@ -289,7 +324,23 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
         tabIndex={0}
         className="grid min-h-[560px] overflow-hidden rounded-xs border border-hairline bg-surface lg:grid-cols-[230px_minmax(0,1fr)]"
       >
-        <aside className="flex min-h-0 flex-col border-b border-hairline bg-surfaceMuted/25 lg:border-b-0 lg:border-r" aria-label="Documentation index">
+        {view === "ux" ? (
+          <EstimateSystemUx
+            documentation={documentation}
+            mode={uxMode}
+            query={uxQuery}
+            selectedPathId={selectedExperiencePathId}
+            selectedPersonaId={selectedPersonaId}
+            onModeChange={setUxMode}
+            onQueryChange={setUxQuery}
+            onSelectPath={setSelectedExperiencePathId}
+            onSelectPersona={setSelectedPersonaId}
+            onOpenFeature={openFeature}
+            onOpenPage={openPage}
+          />
+        ) : (
+          <>
+            <aside className="flex min-h-0 flex-col border-b border-hairline bg-surfaceMuted/25 lg:border-b-0 lg:border-r" aria-label="Documentation index">
           <div className="border-b border-hairline px-2.5 py-2">
             <p className="text-[9px] font-medium text-ink">
               {view === "product" ? "Product areas" : view === "features" ? "Feature index" : "Page index"}
@@ -355,16 +406,22 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
               </div>
             )}
           </ScrollArea>
-        </aside>
+            </aside>
 
-        <ScrollArea className="min-h-0" scrollShadows>
-          <main className="space-y-4 p-3 lg:p-4" aria-live="polite">
+            <ScrollArea className="min-h-0" scrollShadows>
+              <main className="space-y-4 p-3 lg:p-4">
             <header className="flex flex-col gap-2 border-b border-hairline pb-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-3xl">
                 <p className="text-[8px] font-medium uppercase text-tertiary">
                   {view === "product" ? "Product journey" : view === "features" ? "Feature flow" : "Page record"}
                 </p>
-                <h2 className="mt-0.5 text-[12px] font-medium leading-5 text-ink">{heading}</h2>
+                <h2
+                  ref={contentHeadingRef}
+                  tabIndex={-1}
+                  className="mt-0.5 text-[12px] font-medium leading-5 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                >
+                  {heading}
+                </h2>
                 <p className="mt-0.5 text-[9px] leading-4 text-secondary">{summary}</p>
               </div>
               {view === "pages" && selectedPage ? (
@@ -384,7 +441,7 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
             />
 
             {view === "product" ? (
-              <section className="grid divide-y divide-hairline border-y border-hairline sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              <section className="grid divide-y divide-hairline border-y border-hairline sm:grid-cols-4 sm:divide-x sm:divide-y-0">
                 <div className="py-2 sm:pr-3">
                   <h3 className="text-[9px] font-medium text-ink">Product</h3>
                   <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use this view to understand the main journey and product areas.</p>
@@ -397,6 +454,10 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
                   <h3 className="text-[9px] font-medium text-ink">Pages</h3>
                   <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use page records to understand where work lives and what connects next.</p>
                 </div>
+                <div className="py-2 sm:pl-3">
+                  <h3 className="text-[9px] font-medium text-ink">UX</h3>
+                  <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use UX paths to understand users, ordered work, and cross-flow handoffs.</p>
+                </div>
               </section>
             ) : view === "features" && selectedFeature ? (
               <FeatureDetails
@@ -408,8 +469,10 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
             ) : view === "pages" && selectedPage ? (
               <PageDetails documentation={documentation} page={selectedPage} />
             ) : null}
-          </main>
-        </ScrollArea>
+              </main>
+            </ScrollArea>
+          </>
+        )}
       </div>
     </div>
   );
