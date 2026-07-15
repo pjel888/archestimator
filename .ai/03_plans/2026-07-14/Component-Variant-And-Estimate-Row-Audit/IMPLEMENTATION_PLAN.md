@@ -24,15 +24,19 @@ This plan does not treat source presence, a green plan validator, local D1 behav
 3. **Variants:** selected variant is row-owned; editing a variant definition is shared and scoped by component identity plus stable variant ID.
 4. **Permanent Library delete:** archive preserves references; typed permanent delete removes the Library component and dependent Estimate/Template rows, is explicitly irreversible, and emits atomic audit receipts. The interactive path refuses above `MAX_PERMANENT_DELETE_DEPENDENTS = 400` combined dependent rows and offers Archive; larger destruction is a separately authorized maintenance task. It never degrades into silent detach.
 5. **Templates:** this pack owns the complete detached-blueprint lifecycle: save/create, bounded browse/detail, category/header CRUD, editor node/row CRUD, composition, selected-variant/source trust, and Estimate/Project-source insertion. The absorbed duplicate pack is no longer a parallel authority.
-6. **Publication:** this pack owns authoring-to-issued field, tree, totals, and privacy parity. Recipient sessions, discussions, decisions, notifications, and full Client Portal presentation remain auxiliary.
+6. **Publication:** this pack owns authoring-to-issued field, tree, totals, and privacy parity. A forward migration adds monotonic `projects.publication_source_revision`; every issue-visible authoring mutation increments it in the same D1 batch, publication reads capture it, and issue/publication persistence commits only while that exact revision still matches. Recipient sessions, discussions, decisions, notifications, and full Client Portal presentation remain auxiliary.
 7. **Provider scope:** only resources bound to this repository in `wrangler.jsonc` are in scope. No legacy Supabase, unrelated Cloudflare project, deployment, paid add-on, or unbound resource is included.
 8. **Source/link state:** `linked-clean`, `linked-overridden`, and `source-changed` require a valid source identity; `unlinked` requires `NULL`; `detached` retains historical source identity for provenance but is excluded from live Library ownership and fan-out.
 9. **Revision:** every active row begins at revision `1`; no writer may create revision `0`, and no reader may hide persisted drift by clamping it.
-10. **Intent identity:** retry identity is separate from source/target identity. One user intent mutates once; an intentional second copy/duplicate uses a new intent ID.
+10. **Intent identity:** retry identity is separate from source/target identity. One user intent mutates once; an intentional second copy/duplicate uses a new intent ID. A client latch keyed by action plus source object retains that intent through ambiguous outcomes and releases only after authoritative terminal reconciliation.
 11. **Targets:** Template and reusable Project sources use the current any-selected-node contract, with estimate/tab derived authoritatively from that node.
 12. **Copy failure:** Template and reusable Project insertion is all-or-nothing per user intent; an invalid or unavailable source rejects the whole intent before mutation.
-13. **Inline editing:** Area, tab, folder, project-group, Template, and Template-category rename keeps the parent surface and geometry stable; Enter saves, Escape cancels, blur deduplicates, pointer exit never saves, and focus does not auto-select the whole value.
+13. **Inline editing:** Area, tab, folder, project-group, Template, and Template-category rename keeps the parent surface and geometry stable; Enter saves, Escape cancels, blur deduplicates, pointer exit never saves, and focus does not auto-select the whole value. Every single-line Estimate Sheet input uses the same Enter-save rule; only a true multiline `textarea` keeps Enter for a newline and uses `Mod+Enter` to save.
 14. **Dense controls:** toolbar/source filters use compact transparent triggers, form selects may remain boxed, floating menus stay opaque and accessible, and loaded source-family toggles do not fetch or remount the outer Estimate Sheet.
+15. **Insert ceiling:** one Template/category/Project-source intent uses one hard D1 batch with at most `D1_MAX_BATCH_STATEMENTS = 1000`, counting every guard, order, node, row, event, outbox, and receipt statement. Over-limit selections fail before ID allocation or mutation and are never chunked.
+16. **Pricing provenance:** `recorded` means a direct explicit price resolution, `inherited_snapshot` means a detached copy of an explicit upstream value, `synthesized_fallback` means compatibility-only synthesis, and `missing` means no authoritative provenance. Duplicate/restore preserves the persisted value; the field remains private and is never silently dropped or exposed publicly.
+17. **Template truth:** production Template reads never substitute hard-coded seed data for missing D1 tables; missing schema is an explicit unavailable/migration state, and seeds remain named development fixtures only. The uncalled Template-row reorder export is removed rather than advertised as a supported interaction.
+18. **Template activity:** committed Template header/category/editor intents write one bounded actor/workspace/resource receipt to `component_library_telemetry_events` in the same D1 batch; this operational receipt is distinct from Estimate history and is not a compliance ledger.
 
 ## Execution Rules
 
@@ -43,7 +47,7 @@ This plan does not treat source presence, a green plan validator, local D1 behav
 - Keep optimistic UI reversible until authoritative success. Destructive operations must validate impact before mutating and must not chunk into partially committed states.
 - A correlation/history uniqueness check is not mutation idempotency unless it prevents every mutation statement from replaying or returns a stored receipt before mutation planning.
 - Do not fix a race with another preflight read or client-only validation. Put freshness, topology, and intent guards in the authoritative D1 boundary.
-- The current plan refresh includes one read-only live-route baseline recorded in artifact `13`. Future product tests, implementation-phase browser automation, screenshots, and visual QA remain proposals until explicitly authorized for the active implementation task. Static review, LSP/type evidence, scoped lint, profiler/network receipts, D1 integrity queries, and provider receipts are separate evidence.
+- The current plan refresh includes one read-only live-route baseline recorded in artifact `13`. Required implementation evidence is limited to source/static/diff checks, D1 integrity and mutation receipts, provider receipts within standing authority, and deterministic read-back. Automated tests, browser automation, screenshots, visual QA, React Profiler, and browser-network capture remain `TEST_PROPOSAL` evidence until explicitly authorized; their absence cannot block a unit's local implementation completion, but the corresponding browser/release claim remains `FAIL` or `NOT_EVALUATED`.
 - No unit may claim completion from a source diff alone. The evidence named by that unit must be collected at the environment level it claims.
 
 ## Dependency Graph
@@ -103,7 +107,8 @@ Establish a reproducible starting point without absorbing concurrent work or tre
 5. Record exact reproduction state for the `source_snapshot_json` NOT NULL incident and any remaining user-visible failure without claiming a product test.
 6. Store proof-class receipts with method, expected/actual signal, environment, source paths, source/diff fingerprint, observation time, and result; broad evidence cannot close unrelated claims.
 7. Freeze the expected local D1 integrity queries and the local/preview/hosted evidence ladder before implementation starts.
-8. Freeze artifact `13`'s observed rename/filter baseline, shared primitive owners, current deferred/bounded/virtualized strengths, and canonical performance-budget reference without copying numeric thresholds.
+8. Freeze artifact `13`'s observed rename/filter baseline, shared primitive owners, current deferred/bounded/virtualized strengths, and its exact local budgets: direct intent `<100ms` target/`<200ms` ceiling, zero unrelated visible-row rerenders, zero loaded-filter requests or outer-sheet remounts, zero-pixel geometry delta, and `0 KB` intended dependency/bundle impact.
+9. Build the complete registry of issue-visible authoring writers that must increment `projects.publication_source_revision`; include row, tab/tree, adjustment/total, component/variant fan-out, Template/Project-source insertion, and any project metadata consumed by publication. A writer absent from this registry blocks `UNIT-007` rather than becoming an implicit exception.
 
 ### Acceptance
 
@@ -140,18 +145,18 @@ Make row insert/update/replace/move/duplicate/delete/restore and inline commit s
 2. Enforce the fixed source/link-state matrix in every insert/patch/replace/duplicate/detach writer: linked states require ID, unlinked requires `NULL`, and detached retains historical ID while leaving live Library ownership/fan-out; add a CHECK only after current data is reconciled.
 3. Validate move and restore destinations inside the authoritative D1 boundary: same workspace, project, estimate, accepted destination kind/tab state, and non-archived target.
 4. Update source and destination ordering, actor attribution, history, and cache reconciliation as one mutation; reject cross-tab and stale/partial-tree destinations atomically.
-5. Replace duplicate's generic-insert magic branch with a dedicated D1 operation that validates source revision and target, copies the complete persisted contract including pricing provenance, assigns authoritative order/revision `1`, writes `row_duplicated`, and returns one receipt; use a synchronous click latch so pre-render double activation cannot create two intents.
+5. Replace duplicate's generic-insert magic branch with a dedicated D1 operation that validates source revision and target, copies the complete persisted contract including pricing provenance, assigns authoritative order/revision `1`, writes `row_duplicated`, and returns one receipt. Acquire a synchronous latch keyed `duplicate-row:${sourceRowId}` before allocating the intent ID; retain that ID through timeout/unknown outcomes, retry/reconcile with the same ID, and release only after authoritative success, explicit non-committed rejection, or reconciliation proves no commit. A deliberate later duplicate starts only after terminal release and receives a new ID.
 6. Bind replace to expected target-row revision plus Library item, selected option, current-cost, and lifecycle fingerprint in the same commit or fail with a refreshable conflict.
 7. Keep `source_snapshot_json` object-shaped for blank, Library, duplicate, replace, restore, Template, and Project-source paths.
-8. Preserve Enter as commit through the shared prevent/stop/blur helper, Escape as revert, and blur as one de-duplicated commit across every input class; decide multiline fields explicitly.
+8. Preserve Enter as commit through the shared prevent/stop/blur helper, Escape as revert, and blur as one de-duplicated commit across every single-line input class. A true multiline `textarea` keeps Enter as newline and uses `Mod+Enter` for the same commit path; no single-line Estimate Sheet field may use Enter for row navigation or line insertion.
 9. Reconcile optimistic state from authoritative results; loading must be row-scoped or component+variant-scoped, never globally applied to unrelated rows.
 
 ### Acceptance
 
 - Invalid move/restore targets change no row, order, history, total, or cache projection.
-- Duplicate copies every row-owned field, pricing provenance, and selected-source receipt from one persisted revision, creates one new revision-1 row/event per intent, blocks accidental pre-render double activation, and never emits a null snapshot.
+- Duplicate copies every row-owned field, pricing provenance, and selected-source receipt from one persisted revision, creates one new revision-1 row/event per intent, blocks accidental pre-render double activation, safely reconciles ambiguous outcomes with the retained intent ID, and never emits a null snapshot.
 - Replace cannot commit against a changed source or stale row.
-- Enter commits once and never navigates to another row; Escape restores the last authoritative value.
+- Enter commits once and never navigates to another row; Escape restores the last authoritative value; only true multiline fields accept an Enter newline and save with `Mod+Enter`.
 - Single and bulk delete remain revision-qualified and their restore path cannot create orphan rows.
 - No active row remains below revision `1`, no writer creates revision `0`, and every accepted source/link pair has the same meaning in writers and readers.
 
@@ -227,10 +232,13 @@ Finish Library/Project/express component lifecycle, active-variant editing, prom
 5. Mark attachment/upload metadata before object cleanup, retain objects still referenced elsewhere, and enqueue/retry only safe post-commit cleanup.
 6. Keep the existing promotion uniqueness constraint; guard expected row revision, recover the canonical winner on uniqueness conflict, emit the normal outbox, and durably reconcile loser-owned copied objects.
 7. Preserve current shared component fan-out and active-variant stable-ID pending scope unless current-route evidence disproves it; never broaden to all component instances.
-8. As a non-blocking P2 tail, add account/workspace-scoped idempotent set/unset that atomically changes only `favorite_item_ids_json` in the existing preference row, preserves other aggregate settings, returns authoritative state, and exposes pending/error/retry; do not add a favorites table.
-9. Add child-folder creation to the shared tree and make folder create/reorder one authoritative atomic server mutation that rejects cycles, missing parents, stale placement, and partial sibling shifts.
-10. Delete the source-proven unreachable reduced `NewComponentForm`, dead state/refs/helpers, and local-only save/discard path.
-11. Align Library-folder, project-group, and Manage Groups inline rename with artifact `13`: remove filled edit treatments and mouse-leave commit, preserve parent geometry, keep focus visible, and use the same Enter/Escape/deduplicated-blur contract.
+8. Add child-folder creation to the shared tree and make folder create/reorder one authoritative atomic server mutation that rejects cycles, missing parents, stale placement, and partial sibling shifts.
+9. Delete the source-proven unreachable reduced `NewComponentForm`, dead state/refs/helpers, and local-only save/discard path.
+10. Align Library-folder, project-group, and Manage Groups inline rename with artifact `13`: remove filled edit treatments and mouse-leave commit, preserve parent geometry, keep focus visible, and use the same Enter/Escape/deduplicated-blur contract.
+
+### Auxiliary tail
+
+After the core lifecycle acceptance is met, implement `UX-003`/`AC-018`: account/workspace-scoped idempotent favorite set/unset that atomically changes only `favorite_item_ids_json` in the existing preference row, preserves all other aggregate settings, returns authoritative state, and exposes item-scoped pending/error/retry. Do not add a favorites table. This auxiliary tail may ship with `UNIT-004` but does not gate its core completion or the MVP release decision.
 
 ### Acceptance
 
@@ -239,8 +247,9 @@ Finish Library/Project/express component lifecycle, active-variant editing, prom
 - Concurrent promotion yields one Library component and one authoritative row link; the loser returns the canonical winner and leaves no untracked copied objects.
 - Shared edits and skeletons affect exactly the intended component or component+variant instances.
 - Component duplicate creates fresh component/variant identities and does not transfer attachment ownership.
-- The P2 favorite tail, when completed, merges concurrent item operations without overwriting unrelated preferences; Library folder mutations cannot persist cycles or partial sibling order. Favorite completion does not block the destructive/component core gate.
+- Library folder mutations cannot persist cycles or partial sibling order.
 - Folder and project-group rename never saves from pointer exit, never repaints the parent surface, and never shifts sibling/action geometry on entry or completion.
+- When the auxiliary favorite tail is implemented, concurrent set/unset operations merge without overwriting unrelated preferences and reconcile only the affected item.
 
 ### Evidence and recovery
 
@@ -266,10 +275,10 @@ Make Template/category/node and reusable Project source insertion target-correct
 
 1. Use the current any-selected-node target contract in disabled copy, click insertion, drag/drop, command paths, and server validation; keep historical Area/Group semantics out of this local target rule.
 2. Authoritatively derive target tab/estimate from the target parent; remove or reject any caller-supplied mismatch.
-3. Pass one stable client intent ID. Return the existing mutation receipt before ID generation or copy statements on retry; an intentional second copy uses a new intent ID.
+3. Pass one stable client intent ID. Return the existing committed receipt before source loading, ID generation, or copy statements on retry; an intentional second copy uses a new intent ID.
 4. Allocate fresh tab/node/row identities, preserve parent topology and deterministic order, and localize source receipts/selected variants according to the accepted copy contract.
-5. Resolve and validate the complete source set—workspace/project access, lifecycle, bounded payload, and partial-tree conditions—before mutation; if any source is invalid or unavailable, reject the entire user intent without inserting a partial subtree.
-6. Return one authoritative copy receipt for cache replacement, history, totals, and per-source failure messaging.
+5. Resolve and validate the complete source set—workspace/project access, lifecycle, bounded payload, and partial-tree conditions—before allocating destination IDs. Compute the exact D1 statement count from that resolved graph, including guards, order shifts, nodes, rows, one history event, one outbox event, and one committed receipt. If the count exceeds `D1_MAX_BATCH_STATEMENTS = 1000`, return `selection_too_large` before ID allocation or mutation and instruct the user to narrow the selection; never chunk or partially succeed.
+6. Allocate fresh identities only after the ceiling check, then execute the entire user intent in one hard D1 batch and return one authoritative copy receipt for cache replacement, history, totals, and source-set messaging.
 7. Keep the browser-event bridge but centralize a versioned command envelope containing target estimate/tab/node, source kind/identity, intent ID, and acceptance callback; one listener must claim or reject the command.
 8. Expose one lightweight target-scoped pending affordance while the authoritative insert runs. Do not clone the full Template subtree optimistically or place unrelated Template/component instances into loading state.
 9. Preserve exact saved selected-option identity, current-price re-resolution, bounded active-option snapshots, and explicit saved-snapshot-unlinked confirmation; never substitute the default option silently.
@@ -282,6 +291,7 @@ Make Template/category/node and reusable Project source insertion target-correct
 - Target parent, tab, project, estimate, and workspace always agree.
 - Every copied identity is fresh; topology, row snapshots, selected variants, and order survive authoritative reload.
 - Mixed/unavailable sources are all-or-nothing per user intent: any invalid source rejects the whole intent before mutation and nothing silently duplicates.
+- Every accepted intent uses one batch of at most `1000` statements inclusive; an over-limit intent allocates no destination IDs, writes nothing, returns `selection_too_large`, and is never chunked.
 - The right-sidebar copy names the same target concept used by the action, and Project-source insertion no longer contradicts the server's target-kind rule.
 - Unhandled or multiply claimed browser commands cannot report success or start duplicate mutations.
 - The target shows immediate pending feedback that clears on success/failure without changing the authoritative reconcile path or unrelated instances.
@@ -290,7 +300,8 @@ Make Template/category/node and reusable Project source insertion target-correct
 
 ### Evidence and recovery
 
-- Required: copy receipt, duplicate-correlation read-back, topology/source fingerprint comparison, history/cache receipt, scoped static evidence, filter network receipt, and continuity/focus/geometry receipt.
+- Required without test authorization: copy receipt, duplicate-correlation read-back, exact statement-count receipt, over-limit zero-write receipt, topology/source fingerprint comparison, history/cache receipt, and scoped static evidence.
+- Proposed when browser evidence is explicitly authorized: loaded-filter network capture plus continuity/focus/geometry walkthrough.
 - Proposed when explicitly authorized: retry/idempotency and mixed-source insertion tests because the critical invariant cannot be proved by UI inspection alone.
 - Recovery: reject before mutation when source/target is invalid; after a committed success, reconcile from the returned destination subtree rather than replaying the request.
 
@@ -343,33 +354,37 @@ Make legacy share and Client Portal issuance consume one explicit authoring fiel
 
 - `src/lib/publication/actions.ts`
 - `src/lib/publication/snapshot.ts`
-- Client Portal issue/source mapping reached from Estimate Sheet publish
+- `src/lib/client-portal/publish-service.ts`
+- `src/lib/client-portal/issue-builder.ts`
+- the forward migration that adds `projects.publication_source_revision`
+- every issue-visible authoring writer registered by `UNIT-001`
 - public share model/types only where authoring fields or privacy filters differ
 
 ### Work
 
 1. Define one private authoring row projection containing material/component display, description, supplier/category, unit/cost inputs, selected variant receipt, component/link receipt, row revision, public asset descriptors from `UNIT-006`, and minor-unit totals.
-2. Make legacy and Client Portal source readers populate that private shape from one accepted source fingerprint using a bounded read/reread fence, then map through separate explicit channel-safe public serializers.
-3. Preserve active-tab/tree inclusion rules and deterministic Area/row order; omit excluded content deliberately.
-4. Replace internal component/variant/row IDs and private R2/upload paths with issue-local opaque anchors/public asset descriptors; remove unused internal receipts from client rows.
-5. Enforce supplier/category visibility at the section/group builder so a controlled field cannot reappear through a generic derived label.
-6. Derive deterministic opaque anchors and a semantic content hash from accepted authoring meaning, excluding random token/delivery/issue IDs; keep legacy republish/rotate/revoke semantics explicit and fail/retry when the source fingerprint changes during projection.
-7. Make legacy replacement/pointer updates atomic or preserve the prior valid publication until the replacement is complete.
-8. Reconcile authoring totals with issued totals and represent stale/reissue state after later authoring changes.
-9. Do not absorb recipient session, invitation, discussion, decision, notification, or financial-presentation implementation.
+2. Add monotonic `projects.publication_source_revision INTEGER NOT NULL DEFAULT 1`. Every registered issue-visible authoring mutation increments it in the same authoritative D1 batch as its data change; no client callback or post-commit best effort may own the increment.
+3. Make legacy and Client Portal source readers capture that revision before loading, populate the private shape, reread the same revision after loading, and map through separate explicit channel-safe public serializers. A reread mismatch retries within the existing bounded policy or returns `source-changed`.
+4. Persist a replacement publication/issue through one transactional D1 batch whose header insert is an `INSERT ... SELECT` guarded by workspace/project ownership and the captured revision. Every child row and active-pointer statement is conditional on that header existing. Inspect the guarded header result; zero inserted rows means the entire batch produced no issue, child, or pointer and returns `source-changed`. This commit-time fence, not the pre-commit reread, closes the final race.
+5. Preserve active-tab/tree inclusion rules and deterministic Area/row order; omit excluded content deliberately.
+6. Replace internal component/variant/row IDs and private R2/upload paths with issue-local opaque anchors/public asset descriptors; remove unused internal receipts from client rows.
+7. Enforce supplier/category visibility at the section/group builder so a controlled field cannot reappear through a generic derived label.
+8. Derive deterministic opaque anchors and a semantic content hash from accepted authoring meaning, excluding random token/delivery/issue IDs; keep legacy republish/rotate/revoke semantics explicit and fail/retry when the source fingerprint changes during projection.
+9. Reconcile authoring totals with issued totals and represent stale/reissue state by comparing the issue's captured revision with the current project revision after later authoring changes.
+10. Do not absorb recipient session, invitation, discussion, decision, notification, or financial-presentation implementation.
 
 ### Acceptance
 
 - The same accepted source fingerprint yields equivalent legacy and Client Portal row/tree/component/variant/totals meaning through one private projection and channel-appropriate public fields.
-- Repeated unchanged-source builds yield the same semantic hash and opaque anchors; a mid-read source change retries or fails as source-changed without issuing mixed authoring revisions.
+- Repeated unchanged-source builds yield the same semantic hash and opaque anchors; a mid-read or post-reread/pre-commit source change retries or fails as `source-changed` without issuing any mixed-revision header, child, or active pointer.
 - No private D1 identity, source snapshot, broker path, or unapproved attachment metadata crosses the public boundary.
 - Hidden supplier/category values cannot reappear as unrestricted derived group labels.
 - Later authoring edits do not mutate an immutable issued Client Portal snapshot.
-- Publication failure cannot partially replace the active issue/publication pointer.
+- Every issue-visible writer increments one project publication revision in the same commit, and publication failure cannot create orphan issue rows or partially replace the active issue/publication pointer.
 
 ### Evidence and recovery
 
-- Required: field-level source/snapshot diff, content hash/fingerprint receipt, privacy field audit, totals comparison, and scoped static evidence.
+- Required: writer-registry completeness receipt, revision increment/read-back, forced post-reread revision-change zero-write receipt, field-level source/snapshot diff, content hash/fingerprint receipt, privacy field audit, totals comparison, and scoped static evidence.
 - Proposed when explicitly authorized: one focused authoring-to-issued parity test because this critical invariant spans two readers and cheaper source review is insufficient to prove equivalent output.
 - Recovery: retain the prior valid publication/issue pointer until the replacement snapshot is fully built and accepted.
 
@@ -395,11 +410,11 @@ Make Template save/create, bounded browse, header/category lifecycle, editor nod
 
 1. Replace the separate Template header insert plus node/row batch and compensating delete with one hard D1 batch containing header, nodes, and rows. Preserve post-commit read-back and cache revalidation.
 2. Preserve detached by-value ownership: Template edits/deletes never mutate inserted Estimate rows, every duplicate/composition/insert identity is fresh, and attachments are not silently transferred.
-3. Preserve bounded summary browse and selected graph hydration. Prove the active migration state, then remove the hard-coded fallback or label it as explicit synthetic/demo data rather than user-owned Templates.
-4. Reconcile header/category/node/row/composition actions into one authoritative editor path. Validate workspace ownership, hierarchy, cycle/order, and all-or-nothing composition server-side; wire the row reorder action or delete unreachable capability.
+3. Preserve bounded summary browse and selected graph hydration. After migration preflight, delete `getTemplateTableFallbackTemplates` from production repository paths and return an explicit Template-schema-unavailable/migration state when the active table is absent; keep seed templates only in named development fixtures.
+4. Reconcile header/category/node/row/composition actions into one authoritative editor path. Validate workspace ownership, hierarchy, cycle/order, and all-or-nothing composition server-side. Delete the uncalled `reorderEstimateTemplateRowItems` export and stop advertising Template-row reorder until a real route intent exists; do not add a second editor path.
 5. Make Template save and insert use one explicit contingency invariant so legacy contingency cannot be resurrected by one side of the round trip.
-6. Decide `pricing_provenance_origin` once across Estimate duplicate, Template save/insert/composition, Project-source insert, health readers, and issued projection. Populate it consistently or remove it from every authoritative contract; do not apply an isolated cosmetic read deletion.
-7. Define Template-library activity/audit semantics separately from Estimate insertion history. Implement only the chosen bounded receipt and make header/category/editor cache reconciliation explicit.
+6. Apply the fixed `pricing_provenance_origin` contract across Estimate duplicate/restore, Template save/insert/composition, Project-source insert, health readers, and issued projection: direct explicit resolution is `recorded`; detached copy of explicit upstream provenance is `inherited_snapshot`; compatibility synthesis is `synthesized_fallback`; absent/legacy provenance is `missing`. Pure duplicate/restore preserves the persisted marker. Keep it private and remove no authoritative read in isolation.
+7. Record one bounded operational activity row in existing `component_library_telemetry_events` for each committed Template header/category/editor intent, with actor, workspace, template/resource ID, action, intent/correlation ID, and non-sensitive result metadata in the same D1 batch. Do not emit fake Estimate history or treat this telemetry receipt as compliance audit; make cache reconciliation explicit.
 8. Preserve `UNIT-005`'s exact selected-option/current-price/unavailable-source contract and the fixed source/link-state matrix. Do not substitute a default variant or write a null destination snapshot.
 9. Keep current hand-written guards unless a concrete missed boundary is demonstrated; do not add zod or speculative D1 constraints for style parity.
 10. Apply artifact `13`'s stable-surface rename and menu-purpose rules to Template names, categories, and editor groups/Areas; reuse the existing dropdown/context-menu substrate and do not introduce a parallel control system.
@@ -408,9 +423,10 @@ Make Template save/create, bounded browse, header/category lifecycle, editor nod
 
 - A failed save leaves no Template header, node, or row; successful save reads back one complete detached graph.
 - Browse remains bounded and selected hydration cannot overwrite a newer edit with stale detail.
-- Rename, duplicate, delete, category, node, row, reorder, and composition actions are workspace-scoped, topology-valid, cache-complete, and leave previously inserted Estimate rows unchanged.
+- Rename, duplicate, delete, category, node, row, and composition actions are workspace-scoped, topology-valid, cache-complete, and leave previously inserted Estimate rows unchanged; no unreachable row-reorder API remains.
 - Template save/insert round-trips quantity, costs, adjustment, source/link state, exact selected variant, snapshots, and the accepted contingency/provenance contract without silent defaulting.
-- Missing Template tables do not masquerade synthetic fixtures as user-owned Templates.
+- Missing Template tables return an explicit unavailable/migration state and never masquerade synthetic fixtures as user-owned Templates.
+- Every committed Template lifecycle intent has exactly one bounded same-batch operational receipt; Estimate history remains reserved for Estimate mutations.
 - No action, requirement, finding, source unit, or evidence claim from the absorbed Template pack is orphaned after the source folder is removed.
 - Template/category/editor rename and source filtering preserve surface geometry, focus, scroll/expansion, and detached Template semantics without persistent selected-option fills.
 
