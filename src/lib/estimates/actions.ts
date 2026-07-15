@@ -214,6 +214,7 @@ type UpdateEstimateRowItemInput = {
   projectId: string;
   estimateId: string;
   rowId: string;
+  componentMutationIntent?: "variant-selection";
   material?: string;
   description?: string;
   supplier?: string;
@@ -3595,7 +3596,7 @@ export async function updateEstimateSheetAdjustment({
   return readEstimateSheetAdjustmentRpcResult(adjustmentResult);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, componentMutationIntent, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
@@ -3660,6 +3661,9 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     target_row_id: row.id,
     expected_row_revision: expectedRowRevision ?? row.row_revision,
     row_patch: rowPatch,
+    ...(componentMutationIntent !== undefined
+      ? { component_mutation_intent: componentMutationIntent }
+      : {}),
     ...(expectedComponentImpactFingerprint !== undefined
       ? { expected_component_impact_fingerprint: expectedComponentImpactFingerprint }
       : {}),

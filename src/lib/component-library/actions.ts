@@ -1483,14 +1483,12 @@ const STALE_COMPONENT_REVISION_ERROR = "This component changed after you opened 
 
 function assertExpectedComponentRevision(
   existing: ComponentItemD1Row,
-  expectedUpdatedAt: string,
+  _expectedUpdatedAt: string,
   expectedVersionNumber: number,
 ) {
   if (
-    !expectedUpdatedAt
-    || !Number.isInteger(expectedVersionNumber)
+    !Number.isInteger(expectedVersionNumber)
     || expectedVersionNumber < 1
-    || existing.updated_at !== expectedUpdatedAt
     || numberValue(existing.current_version_number, 1) !== expectedVersionNumber
   ) {
     throw new Error(STALE_COMPONENT_REVISION_ERROR);
@@ -1507,13 +1505,13 @@ function buildComponentRevisionGuardStatement(input: {
     sql: `
       UPDATE cost_library_items
       SET current_version_number = CASE
-        WHEN updated_at = ? AND current_version_number = ? THEN current_version_number
+        WHEN current_version_number = ? THEN current_version_number
         ELSE 0
       END
       WHERE id = ?
         AND workspace_id = ?
     `,
-    values: [input.expectedUpdatedAt, input.expectedVersionNumber, input.itemId, input.workspaceId] as D1Value[],
+    values: [input.expectedVersionNumber, input.itemId, input.workspaceId] as D1Value[],
   };
 }
 

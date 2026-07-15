@@ -208,6 +208,7 @@ export type EstimateComponentEditImpactEstimate = {
   estimateId: string;
   estimateName: string;
   instanceCount: number;
+  optionUsageCounts: Record<string, number>;
 };
 
 export type EstimateComponentEditImpact = {
@@ -2301,6 +2302,41 @@ function normalizeProjectComponentSourceRowPatch(
   };
 }
 
+function normalizeProjectComponentVariantSelectionRowPatch(
+  row: EstimateRowItemRow,
+  rowPatch: Record<string, unknown>,
+) {
+  const currentSourceSnapshot = readJsonRecord(rowSourceSnapshot(row));
+  const selectedId = readNonEmptyText(readJsonRecord(rowPatch.sourceSnapshot).priceOptionId);
+  if (!selectedId) throw new Error("Choose a project component variant before saving.");
+
+  const optionById = projectComponentPriceOptionMap(currentSourceSnapshot);
+  const selectedOption = optionById.get(selectedId);
+  if (!isSelectableProjectComponentPriceOption(selectedOption)) {
+    throw new Error("The selected project component variant is no longer available.");
+  }
+
+  const previousSelectedId = readProjectComponentSelectedPriceOptionId(row);
+  const previousSelectedOption = previousSelectedId ? optionById.get(previousSelectedId) : undefined;
+  const imageChanged = previousSelectedId !== selectedId
+    || projectComponentVariantImageSignature(previousSelectedOption) !== projectComponentVariantImageSignature(selectedOption);
+  const variantSnapshotPatch = projectComponentVariantSourceSnapshotPatch(selectedOption!, { clearImageAsset: imageChanged });
+  return {
+    description: variantSnapshotPatch.description ?? "",
+    unit: variantSnapshotPatch.unit,
+    unitCost: variantSnapshotPatch.unit_cost,
+    sourceSnapshot: {
+      ...currentSourceSnapshot,
+      ...variantSnapshotPatch,
+      priceOptionId: selectedId,
+    },
+    metadata: {
+      ...readJsonRecord(rowMetadata(row)),
+      priceOptionId: selectedId,
+    },
+  };
+}
+
 function mergeSharedSourceSnapshotIntoRow(
   row: EstimateRowItemRow,
   sourceSnapshot: unknown,
@@ -3104,11 +3140,23 @@ async function patchRowItem(
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
   const removedPriceOptionReplacements = readRemovedPriceOptionReplacements(args.removed_price_option_replacements);
-  const normalizedRowPatch = eventType === "row_updated" && !row.source_library_item_id
-    ? normalizeProjectComponentSourceRowPatch(row, rowPatch, removedPriceOptionReplacements)
-    : rowPatch;
+  const componentMutationIntent = typeof args.component_mutation_intent === "string"
+    ? args.component_mutation_intent
+    : null;
+  if (componentMutationIntent && componentMutationIntent !== "variant-selection") {
+    throw new Error("Unsupported component mutation intent.");
+  }
+  const selectingProjectComponentVariant = componentMutationIntent === "variant-selection";
+  if (selectingProjectComponentVariant && (eventType !== "row_updated" || row.source_library_item_id)) {
+    throw new Error("Variant selection is only available for project component rows.");
+  }
+  const normalizedRowPatch = selectingProjectComponentVariant
+    ? normalizeProjectComponentVariantSelectionRowPatch(row, rowPatch)
+    : eventType === "row_updated" && !row.source_library_item_id
+      ? normalizeProjectComponentSourceRowPatch(row, rowPatch, removedPriceOptionReplacements)
+      : rowPatch;
   const componentId = getProjectComponentIdentity(rowMetadata(row), null, rowSourceSnapshot(row));
-  const attachmentPlan = eventType === "row_updated" && !row.source_library_item_id
+  const attachmentPlan = eventType === "row_updated" && !row.source_library_item_id && !selectingProjectComponentVariant
     ? await planProjectComponentAttachmentReconciliation(database, {
         projectId,
         estimateId,
@@ -3130,10 +3178,10 @@ async function patchRowItem(
   const rowPatchPlan = planRowPatchMutation(row, estimateId, attachmentPlan.canonicalRowPatch, expected);
   if (!rowPatchPlan) return rowItemHistoryResult(row);
   const { columns, effectiveRowPatch, statement, updated } = rowPatchPlan;
-  const expectedImpactFingerprint = typeof args.expected_component_impact_fingerprint === "string"
+  const expectedImpactFingerprint = !selectingProjectComponentVariant && typeof args.expected_component_impact_fingerprint === "string"
     ? args.expected_component_impact_fingerprint
     : undefined;
-  const propagation = eventType === "row_updated" && !row.source_library_item_id
+  const propagation = eventType === "row_updated" && !row.source_library_item_id && !selectingProjectComponentVariant
     ? await propagateProjectComponentRowPatch(database, {
         projectId,
         sourceRow: row,
@@ -4302,6 +4350,9 @@ function buildEstimateComponentEditImpact(
     const existing = affectedByEstimate.get(row.estimate_id);
     if (existing) {
       existing.instanceCount += 1;
+      if (selectedPriceOptionId) {
+        existing.optionUsageCounts[selectedPriceOptionId] = (existing.optionUsageCounts[selectedPriceOptionId] ?? 0) + 1;
+      }
       continue;
     }
     affectedByEstimate.set(row.estimate_id, {
@@ -4310,6 +4361,7 @@ function buildEstimateComponentEditImpact(
       estimateId: row.estimate_id,
       estimateName: row.estimate_name?.trim() || "Untitled estimate",
       instanceCount: 1,
+      optionUsageCounts: selectedPriceOptionId ? { [selectedPriceOptionId]: 1 } : {},
     });
   }
   return {

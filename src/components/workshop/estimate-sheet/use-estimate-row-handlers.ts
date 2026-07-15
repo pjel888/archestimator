@@ -59,6 +59,7 @@ type Toast = (input: {
 }) => string;
 
 type CommitRowItemUpdateOptions = {
+  componentMutationIntent?: "variant-selection";
   expectedComponentImpactFingerprint?: string;
   removedPriceOptionReplacements?: Record<string, string>;
   makeProjectSpecific?: boolean;
@@ -697,6 +698,9 @@ export function useEstimateRowHandlers({
       ...(shouldPatchAdjustment && nextAmounts ? { adjustmentPercentage: nextAmounts.adjustmentPercentage } : {}),
       ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
       ...(options.makeProjectSpecific ? { sourceLibraryItemId: null, linkState: "unlinked" as const } : {}),
+      ...(options.componentMutationIntent !== undefined
+        ? { componentMutationIntent: options.componentMutationIntent }
+        : {}),
       ...(options.expectedComponentImpactFingerprint !== undefined
         ? { expectedComponentImpactFingerprint: options.expectedComponentImpactFingerprint }
         : {}),
@@ -714,7 +718,8 @@ export function useEstimateRowHandlers({
       onSuccess: (result) => {
         const serverPatch = estimateRowMutationResultToPatch(result);
         if (priceOptionsForPersistence !== undefined) serverPatch.priceOptions = priceOptionsForPersistence;
-        const variantScopedComponentUpdate = values.description !== undefined
+        const variantScopedComponentUpdate = options.componentMutationIntent === "variant-selection"
+          || values.description !== undefined
           || values.unit !== undefined
           || values.unitCost !== undefined
           || values.priceOptions !== undefined

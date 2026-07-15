@@ -615,6 +615,16 @@ type PendingSharedComponentEdit = {
   item: EstimateRowItem;
   values: Partial<EditableRowValue>;
   impact: EstimateComponentEditImpact;
+  scope: SharedComponentEditScope;
+};
+
+type SharedComponentEditScope = {
+  kind: "component" | "variant";
+  instanceCount: number;
+  projectCount: number;
+  estimateCount: number;
+  affectedEstimates: EstimateComponentEditImpact["affectedEstimates"];
+  variantLabel?: string;
 };
 
 type RowMoveNodeOption = {
@@ -640,6 +650,11 @@ const SHARED_COMPONENT_EDIT_FIELDS = new Set<keyof EditableRowValue>([
   "imageUrl",
   "sourceUrl",
 ]);
+const PROJECT_COMPONENT_LEVEL_EDIT_FIELDS = new Set<keyof EditableRowValue>([
+  "name",
+  "brand",
+  "supplier",
+]);
 
 function isLinkedLibraryComponentRow(item: EstimateRowItem) {
   return Boolean(item.sourceLibraryItemId)
@@ -662,6 +677,40 @@ function getProjectComponentEditorIdentity(item: EstimateRowItem) {
 
 function hasSharedComponentEdit(values: Partial<EditableRowValue>) {
   return Object.keys(values).some((field) => SHARED_COMPONENT_EDIT_FIELDS.has(field as keyof EditableRowValue));
+}
+
+function getSharedComponentEditScope(
+  item: EstimateRowItem,
+  values: Partial<EditableRowValue>,
+  impact: EstimateComponentEditImpact,
+): SharedComponentEditScope {
+  const componentScope: SharedComponentEditScope = {
+    kind: "component",
+    instanceCount: impact.instanceCount,
+    projectCount: impact.projectCount,
+    estimateCount: impact.estimateCount,
+    affectedEstimates: impact.affectedEstimates,
+  };
+  const selectedOptionId = item.priceOptionId?.trim();
+  const hasComponentLevelEdit = Object.keys(values).some((field) =>
+    PROJECT_COMPONENT_LEVEL_EDIT_FIELDS.has(field as keyof EditableRowValue));
+  const variantInstanceCount = selectedOptionId ? impact.optionUsageCounts[selectedOptionId] ?? 0 : 0;
+  if (impact.componentKind !== "project" || !selectedOptionId || hasComponentLevelEdit || variantInstanceCount === 0) {
+    return componentScope;
+  }
+
+  const affectedEstimates = impact.affectedEstimates.flatMap((affectedEstimate) => {
+    const instanceCount = affectedEstimate.optionUsageCounts[selectedOptionId] ?? 0;
+    return instanceCount > 0 ? [{ ...affectedEstimate, instanceCount }] : [];
+  });
+  return {
+    kind: "variant",
+    instanceCount: variantInstanceCount,
+    projectCount: new Set(affectedEstimates.map((affectedEstimate) => affectedEstimate.projectId)).size,
+    estimateCount: affectedEstimates.length,
+    affectedEstimates,
+    variantLabel: item.priceOptionLabel?.trim() || selectedOptionId,
+  };
 }
 
 type EstimateSheetContentState = {
@@ -1262,6 +1311,7 @@ export function EstimateSheetContent({
   } | null>(null);
   const componentEditorRequestIdRef = useRef(0);
   const [pendingSharedComponentEdit, setPendingSharedComponentEdit] = useState<PendingSharedComponentEdit | null>(null);
+  const pendingSharedComponentEditRowIdsRef = useRef(new Set<string>());
   const [componentEditorPendingRowIds, setComponentEditorPendingRowIds] = useState<ReadonlySet<string>>(() => new Set());
   const [editableRowStore] = useState(() => createEditableRowStore(editableRows, estimateTree));
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
@@ -1654,9 +1704,14 @@ export function EstimateSheetContent({
     [activeSelectedNodeId, estimateTree],
   );
   const estimateTreeIndex = useMemo(() => createEstimateTreeIndex(estimateTree), [estimateTree]);
-  const handleComponentEditorPendingChange = useStableCallback((item: EstimateRowItem, pending: boolean) => {
+  const handleComponentEditorPendingChange = useStableCallback((item: EstimateRowItem, pending: boolean, variantScoped = false) => {
+    const selectedOptionId = item.priceOptionId?.trim();
+    const pendingRowIds = variantScoped && selectedOptionId
+      ? getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id).filter((rowId) =>
+          findEstimateRowItem(estimateTree, rowId)?.priceOptionId?.trim() === selectedOptionId)
+      : getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id);
     setComponentEditorPendingRowIds(
-      pending ? new Set(getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id)) : new Set(),
+      pending ? new Set(pendingRowIds) : new Set(),
     );
   });
   const selectedNodePresentation = useMemo(() => {
@@ -2392,10 +2447,17 @@ export function EstimateSheetContent({
 
   const requestSharedComponentInlineUpdate = useStableCallback(async (item: EstimateRowItem, values: Partial<EditableRowValue>) => {
     if (!projectId || !estimateId) return;
-    handleComponentEditorPendingChange(item, true);
+    if (pendingSharedComponentEditRowIdsRef.current.has(item.id)) return;
+    pendingSharedComponentEditRowIdsRef.current.add(item.id);
+    const variantScoped = isProjectComponentRow(item)
+      && Boolean(item.priceOptionId?.trim())
+      && !Object.keys(values).some((field) => PROJECT_COMPONENT_LEVEL_EDIT_FIELDS.has(field as keyof EditableRowValue));
+    handleComponentEditorPendingChange(item, true, variantScoped);
+    let awaitingConfirmation = false;
     try {
       const impact = await getEstimateComponentEditImpact({ projectId, estimateId, rowId: item.id });
-      if (impact.instanceCount <= 1) {
+      const scope = getSharedComponentEditScope(item, values, impact);
+      if (scope.instanceCount <= 1) {
         if (isLinkedLibraryComponentRow(item)) {
           await commitLinkedLibraryComponentInline(item, values, impact.fingerprint);
         } else {
@@ -2403,7 +2465,8 @@ export function EstimateSheetContent({
         }
         return;
       }
-      setPendingSharedComponentEdit({ item, values, impact });
+      awaitingConfirmation = true;
+      setPendingSharedComponentEdit({ item, values, impact, scope });
     } catch (error) {
       editableRowStore.getState().updateRow(item, getInitialEditableRow(item));
       toast({
@@ -2412,12 +2475,17 @@ export function EstimateSheetContent({
         message: error instanceof Error ? error.message : "Could not determine where this component is used.",
       });
     } finally {
+      if (!awaitingConfirmation) pendingSharedComponentEditRowIdsRef.current.delete(item.id);
       handleComponentEditorPendingChange(item, false);
     }
   });
 
   const updateRowItemWithSharedImpact = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
     const item = findEstimateRowItem(estimateTree, rowItemId);
+    if (item && isProjectComponentRow(item) && values.priceOptionId !== undefined) {
+      updateRowItem(rowItemId, values, { componentMutationIntent: "variant-selection" });
+      return;
+    }
     if (item && hasSharedComponentEdit(values) && isProjectComponentRow(item)) {
       void requestSharedComponentInlineUpdate(item, values);
       return;
@@ -2431,6 +2499,7 @@ export function EstimateSheetContent({
 
   const cancelSharedComponentEdit = useStableCallback(() => {
     if (pendingSharedComponentEdit) {
+      pendingSharedComponentEditRowIdsRef.current.delete(pendingSharedComponentEdit.item.id);
       editableRowStore.getState().updateRow(
         pendingSharedComponentEdit.item,
         getInitialEditableRow(pendingSharedComponentEdit.item),
@@ -2444,12 +2513,14 @@ export function EstimateSheetContent({
     if (!pendingEdit) return;
     setPendingSharedComponentEdit(null);
     if (pendingEdit.impact.componentKind === "library") {
-      void commitLinkedLibraryComponentInline(pendingEdit.item, pendingEdit.values, pendingEdit.impact.fingerprint);
+      void commitLinkedLibraryComponentInline(pendingEdit.item, pendingEdit.values, pendingEdit.impact.fingerprint)
+        .finally(() => pendingSharedComponentEditRowIdsRef.current.delete(pendingEdit.item.id));
       return;
     }
     updateRowItem(pendingEdit.item.id, pendingEdit.values, {
       expectedComponentImpactFingerprint: pendingEdit.impact.fingerprint,
     });
+    pendingSharedComponentEditRowIdsRef.current.delete(pendingEdit.item.id);
   });
 
   const makePendingLibraryEditProjectSpecific = useStableCallback(() => {
@@ -2459,6 +2530,7 @@ export function EstimateSheetContent({
     updateRowItem(pendingEdit.item.id, pendingEdit.values, {
       makeProjectSpecific: true,
     });
+    pendingSharedComponentEditRowIdsRef.current.delete(pendingEdit.item.id);
   });
 
   const rowMoveNodeOptions = useMemo(
@@ -2970,8 +3042,10 @@ export function EstimateSheetContent({
       {pendingSharedComponentEdit ? (
         <Modal
           open
-          title="Update shared component?"
-          description="This edit changes every linked instance of the component."
+          title={pendingSharedComponentEdit.scope.kind === "variant" ? "Update shared variant?" : "Update shared component?"}
+          description={pendingSharedComponentEdit.scope.kind === "variant"
+            ? "This edit changes every row using this variant."
+            : "This edit changes every linked instance of the component."}
           size="sm"
           closeLabel="Cancel shared component edit"
           onOpenChange={(open) => {
@@ -2989,7 +3063,7 @@ export function EstimateSheetContent({
                 </Button>
               ) : null}
               <Button type="button" variant="primary" size="sm" onClick={confirmSharedComponentEdit}>
-                Update all {pendingSharedComponentEdit.impact.instanceCount} instances
+                Update all {pendingSharedComponentEdit.scope.instanceCount} {pendingSharedComponentEdit.scope.kind === "variant" ? "rows" : "instances"}
               </Button>
             </>
           )}
@@ -3000,17 +3074,22 @@ export function EstimateSheetContent({
               <p className="mt-0.5 truncate text-[11px] font-medium text-ink">
                 {pendingSharedComponentEdit.item.material || "Untitled component"}
               </p>
+              {pendingSharedComponentEdit.scope.variantLabel ? (
+                <p className="mt-0.5 truncate text-[10px] text-secondary">
+                  Variant: {pendingSharedComponentEdit.scope.variantLabel}
+                </p>
+              ) : null}
             </div>
             <p className="text-secondary">
-              Used in <span className="font-medium text-ink">{pendingSharedComponentEdit.impact.instanceCount} estimate rows</span>
-              {` across ${pendingSharedComponentEdit.impact.projectCount} ${pendingSharedComponentEdit.impact.projectCount === 1 ? "project" : "projects"} and ${pendingSharedComponentEdit.impact.estimateCount} ${pendingSharedComponentEdit.impact.estimateCount === 1 ? "estimate" : "estimates"}.`}
+              Used in <span className="font-medium text-ink">{pendingSharedComponentEdit.scope.instanceCount} estimate rows</span>
+              {` across ${pendingSharedComponentEdit.scope.projectCount} ${pendingSharedComponentEdit.scope.projectCount === 1 ? "project" : "projects"} and ${pendingSharedComponentEdit.scope.estimateCount} ${pendingSharedComponentEdit.scope.estimateCount === 1 ? "estimate" : "estimates"}.`}
             </p>
             <div className="overflow-hidden rounded-xs border border-hairline bg-white">
               <p className="border-b border-hairline bg-surfaceMuted px-2 py-1 text-[8px] font-medium uppercase tracking-normal text-tertiary">
                 Affected estimates
               </p>
               <ul className="divide-y divide-hairline" aria-label="Affected estimates">
-                {pendingSharedComponentEdit.impact.affectedEstimates.map((affectedEstimate) => (
+                {pendingSharedComponentEdit.scope.affectedEstimates.map((affectedEstimate) => (
                   <li key={affectedEstimate.estimateId} className="flex items-center justify-between gap-3 px-2 py-1.5">
                     <span className="min-w-0 truncate text-secondary">
                       <span className="font-medium text-ink">{affectedEstimate.projectName}</span>

@@ -352,6 +352,13 @@ function getActiveMaterialVariantId(item: EstimateMaterialCardItem, options: Mat
   return options.find((option) => option.isDefault)?.id ?? options[0]?.id;
 }
 
+function getActiveMaterialVariantLabel(item: EstimateMaterialCardItem) {
+  const variantOptions = getMaterialVariantOptions(item);
+  if (variantOptions.length < 2) return null;
+  const activeOptionId = getActiveMaterialVariantId(item, variantOptions);
+  return variantOptions.find((option) => option.id === activeOptionId)?.label.trim() || null;
+}
+
 function MaterialVariantControl({
   item,
   canEditEstimate,
@@ -422,6 +429,7 @@ function EstimateMaterialCardContent({
   onSelectVariant?: (option: MaterialVariantOption) => void;
 }) {
   const brand = item.brand?.trim();
+  const activeVariantLabel = getActiveMaterialVariantLabel(item);
   return (
     <EstimateMaterialCardFrame
       image={(
@@ -431,7 +439,19 @@ function EstimateMaterialCardContent({
           aria-label={`${item.material} reference image`}
         />
       )}
-      name={<p className="truncate text-left text-[11px] font-medium leading-4 text-ink">{item.material}</p>}
+      name={(
+        <p className="flex min-w-0 items-baseline gap-1 text-left text-[11px] leading-4">
+          <span className="min-w-0 flex-1 truncate font-medium text-ink">{item.material}</span>
+          {activeVariantLabel ? (
+            <>
+              <span className="shrink-0 font-normal text-tertiary" aria-hidden="true">·</span>
+              <span className="max-w-[40%] shrink truncate font-normal text-secondary" title={activeVariantLabel}>
+                {activeVariantLabel}
+              </span>
+            </>
+          ) : null}
+        </p>
+      )}
       brand={brand ? (
         <p className="truncate text-left text-[10px] font-medium leading-3 text-secondary" title={brand}>{brand}</p>
       ) : null}
@@ -831,6 +851,7 @@ function ExpressMaterialEditor({
 }) {
   const commitField = (field: ExpressEditableField, value: string) => onCommit({ [field]: value });
   const editorLabel = editableRow.name || item.material || "Project Component";
+  const activeVariantLabel = getActiveMaterialVariantLabel(item);
   const editableBrand = editableRow.brand ?? "";
   const imageUrl = editableRow.imageUrl.trim();
   const imageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
@@ -915,22 +936,32 @@ function ExpressMaterialEditor({
           />
         )}
         name={(
-          <ControlInput
-            type="text"
-            value={editableRow.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-            onFocus={() => onActiveChange(true)}
-            onBlur={(event) => {
-              commitField("name", event.currentTarget.value);
-              onActiveChange(false);
-            }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "name", onCommit: () => commitField("name", event.currentTarget.value), onRevert })}
-            data-estimate-row-id={item.id}
-            data-express-field="name"
-            aria-label="Component name"
-            placeholder="Component name"
-            className={cn(cardInputClass, "!text-[12px] font-medium leading-4 text-ink placeholder:text-ink")}
-          />
+          <div className="flex min-w-0 items-baseline gap-1">
+            <ControlInput
+              type="text"
+              value={editableRow.name}
+              onChange={(event) => onChange({ name: event.target.value })}
+              onFocus={() => onActiveChange(true)}
+              onBlur={(event) => {
+                commitField("name", event.currentTarget.value);
+                onActiveChange(false);
+              }}
+              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "name", onCommit: () => commitField("name", event.currentTarget.value), onRevert })}
+              data-estimate-row-id={item.id}
+              data-express-field="name"
+              aria-label={activeVariantLabel ? `Component name, active variant ${activeVariantLabel}` : "Component name"}
+              placeholder="Component name"
+              className={cn(cardInputClass, "min-w-0 flex-1 !text-[12px] font-medium leading-4 text-ink placeholder:text-ink")}
+            />
+            {activeVariantLabel ? (
+              <>
+                <span className="shrink-0 text-[12px] font-normal leading-4 text-tertiary" aria-hidden="true">·</span>
+                <span className="max-w-[40%] shrink truncate text-[12px] font-normal leading-4 text-secondary" title={activeVariantLabel}>
+                  {activeVariantLabel}
+                </span>
+              </>
+            ) : null}
+          </div>
         )}
         brand={(
           <CreatableCombobox

@@ -200,6 +200,7 @@ type PromoteEstimateRowInput = SharedMutationInput & {
 
 type UpdateEstimateRowInput = SharedMutationInput & {
   rowId: string;
+  componentMutationIntent?: "variant-selection";
   material?: string;
   description?: string;
   supplier?: string;
@@ -228,11 +229,26 @@ type UpdateEstimateRowInput = SharedMutationInput & {
 };
 
 function isVariantScopedProjectComponentInput(input: UpdateEstimateRowInput) {
-  return input.description !== undefined
+  return input.componentMutationIntent === "variant-selection"
+    || input.description !== undefined
     || input.unit !== undefined
     || input.unitCost !== undefined
     || input.priceOptions !== undefined
     || input.removedPriceOptionReplacements !== undefined;
+}
+
+function getEstimateComponentVariantInstanceRowIds(
+  tree: EstimateTreeNode[],
+  treeIndex: ReturnType<typeof createEstimateTreeIndex>,
+  sourceRowId: string,
+) {
+  const selectedPriceOptionId = findEstimateRowItemInTree(tree, sourceRowId)?.priceOptionId?.trim();
+  if (!selectedPriceOptionId) return [sourceRowId];
+
+  const matchingRowIds = getEstimateComponentInstanceRowIds(treeIndex, sourceRowId).filter((rowId) => (
+    findEstimateRowItemInTree(tree, rowId)?.priceOptionId?.trim() === selectedPriceOptionId
+  ));
+  return matchingRowIds.length > 0 ? matchingRowIds : [sourceRowId];
 }
 
 type UpdateMutationContext = {
@@ -1192,14 +1208,21 @@ export function useEstimateRowMutations(
       const optimisticPatch = toOptimisticRowPatch(input);
       const cachedTreeIndex = cachedTree ? createEstimateTreeIndex(cachedTree) : undefined;
       const localizingComponent = isLocalizingComponentInput(input);
+      const selectingVariant = input.componentMutationIntent === "variant-selection";
       const variantScopedComponentUpdate = !localizingComponent && isVariantScopedProjectComponentInput(input);
-      const componentSync = !localizingComponent && hasEstimateRowPatchFields(pickSharedComponentPatch(optimisticPatch));
-      const affectedRowIds = componentSync && cachedTreeIndex
-        ? getEstimateComponentInstanceRowIds(cachedTreeIndex, input.rowId)
+      const componentSync = !localizingComponent
+        && !selectingVariant
+        && hasEstimateRowPatchFields(pickSharedComponentPatch(optimisticPatch));
+      const affectedRowIds = componentSync && cachedTree && cachedTreeIndex
+        ? variantScopedComponentUpdate
+          ? getEstimateComponentVariantInstanceRowIds(cachedTree, cachedTreeIndex, input.rowId)
+          : getEstimateComponentInstanceRowIds(cachedTreeIndex, input.rowId)
         : [input.rowId];
       const scopedMutation = beginScopedRowMutation(
         affectedRowIds,
-        componentSync ? "Updating linked component" : "Saving row changes",
+        componentSync
+          ? variantScopedComponentUpdate ? "Updating linked variant" : "Updating linked component"
+          : "Saving row changes",
         "update_row",
         input.mutationId,
         { componentSync },
