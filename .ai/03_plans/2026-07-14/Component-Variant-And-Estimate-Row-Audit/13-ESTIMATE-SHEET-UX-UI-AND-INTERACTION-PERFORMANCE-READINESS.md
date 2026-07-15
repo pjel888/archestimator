@@ -188,7 +188,15 @@ Do not flatten all four purposes into one visual variant. Consistency means the 
 
 ## Interaction-Performance Contract
 
-Numeric performance budgets remain owned by `.ai/01_roadmap/27-performance-budget-and-regression-gates.md`; this artifact does not fork them.
+The roadmap remains the global owner, but implementation cannot depend on an unrelated document lookup. This slice freezes the exact local budgets below; any later roadmap tightening supersedes them only through an explicit plan refresh.
+
+| Interaction | Target | Hard ceiling / invariant | Regression signal |
+| --- | --- | --- | --- |
+| Single-line rename/input direct intent | `<100ms` perceived response | `<200ms` beta ceiling | delayed caret/commit feedback or a new debounce on direct intent |
+| One rename keystroke | edited row/direct owner only | `0` unrelated visible-row material rerenders | shared renderer identity or draft prop invalidates sibling rows |
+| Loaded source-family toggle | `<100ms` target, `<200ms` ceiling | `0` new network requests and `0` outer Estimate Sheet remounts | query invocation, remount key, lost sheet state, or whole-sheet loading |
+| Edit/filter geometry | immediate and stable | `0px` row/tab/header width or height delta | width/height/padding/border/grid-track/row-position change |
+| Dependency/bundle impact | `0 KB` intended | no new dependency | any dependency or measurable main-route bundle growth requires separate owner review |
 
 ### Preserve current strengths
 
@@ -209,27 +217,33 @@ Numeric performance budgets remain owned by `.ai/01_roadmap/27-performance-budge
 7. **Do not virtualize by instinct.** Existing thresholds remain until route measurement demonstrates a different boundary. No new dependency or list rewrite is part of this pass.
 8. **Keep pending object-scoped.** Rename and Template/source operations show progress only on the affected editor, target node, or source list; no whole-sheet skeleton or opacity wash.
 
-### Required evidence
+### Required implementation evidence without test authorization
+
+- Source/static ownership receipt showing rename draft state is local to the edited row/direct owner and loaded source-family selection does not invoke a query path or outer-sheet remount key.
+- Class/style and DOM-ownership receipt showing edit entry/exit preserves the same parent row/tab/header container and changes no width/height/padding/border/grid-track contract.
+- Dependency/diff receipt showing no new package and `0 KB` intended critical-route bundle impact.
+- Authoritative mutation/read-back receipts from owning units; no UI state may claim success before its object-scoped mutation settles.
+
+### Proposed browser evidence when explicitly authorized
 
 - React Profiler or equivalent render-count receipt for one Area rename keystroke, showing only the edited row/direct owner changes materially.
-- Network receipt for each Templates source-family toggle after summaries are loaded, showing no new request.
-- Before/editing/saving/error/after screenshots or visual-state capture for Area, tab, folder/group, and Templates filter/menu.
+- Network capture for each Templates source-family toggle after summaries are loaded, showing no new request.
+- Before/editing/saving/error/after visual-state capture for Area, tab, folder/group, and Templates filter/menu.
 - Layout geometry comparison for edit entry/exit showing stable row/tab/header bounds.
 - Keyboard/focus walkthrough for F2/context-menu rename, Enter, Escape, blur de-duplication, menu open/close, and source-filter selection.
-- Existing performance-budget report referenced from its canonical owner; no copied thresholds in this artifact.
 
-These are implementation-phase proof requirements. The current planning turn collected only the baseline live-route and source evidence described above.
+The current planning turn collected only the baseline live-route and source evidence described above. Missing proposed browser evidence leaves browser/release proof unevaluated but does not block source/D1 implementation completion.
 
 ## Unit Ownership
 
 | Unit | Added UX/UI/performance responsibility |
 | --- | --- |
-| `UNIT-001` | Freeze the observed rename/filter baseline, shared primitive owners, and current render/loading strengths before implementation. |
+| `UNIT-001` | Freeze the observed rename/filter baseline, shared primitive owners, current render/loading strengths, and the exact local budgets above before implementation. |
 | `UNIT-003` | Apply stable-surface rename to Estimate Tree Areas and tabs; isolate the active rename row from sibling tree-row rendering. |
 | `UNIT-004` | Apply the same rename behavior to Library folders and project/group surfaces touched by the Estimate workflow; remove mouse-leave commit. |
 | `UNIT-005` | Replace the Templates source-family boxed field with the compact transparent trigger, unify labels, preserve target-scoped pending, and prove local/no-fetch filtering. |
 | `UNIT-009` | Apply the filter/menu and inline rename contract to Template/category/editor lifecycle without changing detached Template semantics. |
-| `UNIT-008` | Run the integrated visual, focus, geometry, render-scope, network, and reduced-motion evidence pass and make the truthful release decision. |
+| `UNIT-008` | Reconcile required source/static/D1 proof; run visual, focus, geometry, render-scope, network, and reduced-motion evidence only when explicitly authorized, then make the truthful implementation/release decision. |
 
 `UNIT-002`, `UNIT-006`, and `UNIT-007` do not gain new UI work unless their existing mutation/loading/publication changes touch one of the shared primitives above.
 
@@ -238,9 +252,9 @@ These are implementation-phase proof requirements. The current planning turn col
 | Criterion | Pass condition | Evidence owner |
 | --- | --- | --- |
 | `AC-016` / `UX-002` | Dense inline rename preserves the parent surface and geometry; Enter saves, Escape cancels, blur deduplicates, pointer exit does not save, full-value auto-selection is removed, focus remains visible, and Templates source filtering uses the compact transparent trigger with consistent labels and an opaque accessible menu. | `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-009`, integrated by `UNIT-008` |
-| `AC-017` / `PERF-002` | One rename draft does not invalidate unrelated visible rows; loaded source-family toggles make no new request or outer-sheet remount; edit/filter transitions preserve geometry, scroll, expansion, selection, and focus; existing deferred/bounded/virtualized paths remain intact. | `UNIT-003`, `UNIT-005`, `UNIT-009`, integrated by `UNIT-008` |
+| `AC-017` / `PERF-002` | One rename draft does not invalidate unrelated visible rows; loaded source-family toggles make no new request or outer-sheet remount; edit/filter transitions preserve geometry, scroll, expansion, selection, and focus; exact latency/rerender/network/geometry/dependency budgets above hold; existing deferred/bounded/virtualized paths remain intact. | `UNIT-003`, `UNIT-005`, `UNIT-009`, integrated by `UNIT-008` |
 
-Both criteria remain `FAIL` until implementation and the named evidence exist. This planning artifact is collected evidence for readiness only.
+Both criteria remain `FAIL` until implementation and their decisive evidence exists. Source/static evidence can close implementation ownership claims; browser-only claims stay `FAIL` or `NOT_EVALUATED` until explicitly authorized. This planning artifact is collected evidence for readiness only.
 
 ## Stop Condition
 

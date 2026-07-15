@@ -115,24 +115,25 @@ The canonical route is `/workshop/library/templates/[templateId]`. It supports:
 
 - template header lifecycle outside the editor: rename, duplicate, delete, category move, and category rename;
 - node create, rename, move, subtree delete, and structural drag/reorder;
-- row add from Library, allowance creation, field edit, remove, and reorder;
+- row add from Library, allowance creation, field edit, and remove;
 - template-into-template composition by value with fresh IDs and self-insert rejection; and
 - optimistic local editing followed by authoritative server action and route refresh/rollback.
 
-The editor must not imply a Project-source insertion capability it does not support. Its Project source placeholder remains truthful until a dedicated, target-valid composition contract exists. The currently exported row reorder action must either be wired through the canonical editor flow or removed as unreachable capability; no second editor path is added.
+The editor must not imply a Project-source insertion capability it does not support. Its Project source placeholder remains truthful until a dedicated, target-valid composition contract exists. `reorderEstimateTemplateRowItems` has no current route caller and is removed as unreachable capability; Template-row reorder is not advertised until a real UI intent and authoritative ordering contract exist. No second editor path is added.
 
 ### Insert into an estimate
 
 1. A branch section, its trailing template drop zone, or the Estimate Tree inside-drop route accepts the typed template payload.
 2. The client resolves one authoritative destination node and one stable user-intent ID.
 3. The server derives estimate/tab/workspace from the destination node; caller hints cannot contradict it.
-4. The server loads all selected template headers/nodes/rows and validates the complete source set before mutation.
+4. Before destination ID allocation, the server returns an existing committed receipt for a replay, then loads all selected template headers/nodes/rows and validates the complete source set.
 5. Component and selected-variant receipts are re-resolved against current Library state.
 6. Any unavailable source first returns one bounded confirmation result; accepted saved-snapshot fallback becomes explicitly unlinked.
 7. All destination IDs are fresh and all roots/children preserve deterministic topology/order.
-8. One atomic D1 batch writes nodes, rows, history, and outbox.
-9. A replay of the same intent returns the prior committed receipt before generating IDs or statements; a deliberate second copy uses a new intent ID.
-10. The client reconciles the authoritative inserted roots. While waiting, it shows a lightweight target-scoped pending affordance rather than cloning the full subtree optimistically.
+8. The server computes the exact statement count from the validated graph, including every guard, order shift, node, row, history, outbox, and committed-receipt statement. A count above `D1_MAX_BATCH_STATEMENTS = 1000` returns `selection_too_large` before ID allocation or mutation; the intent is never chunked.
+9. One atomic D1 batch of at most `1000` statements writes the complete intent.
+10. A replay of the same intent returns the prior committed receipt before generating IDs or statements; a deliberate second copy uses a new intent ID.
+11. The client reconciles the authoritative inserted roots. While waiting, it shows a lightweight target-scoped pending affordance rather than cloning the full subtree optimistically.
 
 Category insertion is one all-or-nothing intent. It must not become an unbounded serial partial-success loop.
 
@@ -160,9 +161,15 @@ Reusable Project sources share the sidebar and destination contract but remain a
 ### Integrated field decisions
 
 1. Template save and insert use one explicit contingency invariant. The current save-zeroes/insert-copies asymmetry is removed; legacy contingency cannot silently reappear.
-2. `pricing_provenance_origin` is resolved once across Estimate duplicate, Template save/insert/composition, Project-source insert, health readers, and issued projection. The absorbed pack's isolated recommendation to remove the read is **superseded**: first decide the system-wide field contract, then either populate it consistently or remove it from every authoritative reader/projection. A one-file cosmetic deletion is not an acceptable fix.
+2. `pricing_provenance_origin` uses the existing constrained vocabulary across Estimate duplicate/restore, Template save/insert/composition, Project-source insert, health readers, and issued projection: `recorded` for a direct explicit resolution, `inherited_snapshot` for a detached copy of explicit upstream provenance, `synthesized_fallback` for compatibility-only synthesis, and `missing` for absent/legacy provenance. Pure duplicate/restore preserves the persisted marker. The field stays private and no authoritative read is removed in isolation.
 3. `source_snapshot_json` remains object-shaped on destination Estimate rows and is never written as `NULL`.
 4. Selected variant remains row-owned after insertion; later shared definition edits use component plus stable option ID.
+
+### Template availability and activity
+
+- Production Template reads never substitute `estimateTemplates` seed data when D1 Template tables are absent. Missing schema returns an explicit unavailable/migration state; seeds remain named development fixtures only.
+- Every committed Template header/category/editor intent writes exactly one bounded same-batch operational receipt to existing `component_library_telemetry_events` with actor, workspace, template/resource identity, action, intent/correlation, and non-sensitive result metadata.
+- This receipt is operational telemetry for Template lifecycle reconciliation, not Estimate history and not a compliance audit log.
 
 ## Retained Strengths
 
