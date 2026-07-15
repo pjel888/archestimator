@@ -1,13 +1,20 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { createRef } from "react";
+import { createRef, type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { createEditableRowStore, EditableRowStoreContext } from "@/components/workshop/estimate-sheet/rows/editable-row-store";
 import { EstimateRowItemsTable } from "@/components/workshop/estimate-sheet/rows/row-table";
-import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import { ESTIMATE_COLUMN_TEMPLATE, RESIZABLE_ESTIMATE_COLUMN_IDS } from "@/lib/estimate-sheet/column-model";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 const noop = vi.fn();
+
+function renderRowTable(ui: ReactElement) {
+  const editableRowStore = createEditableRowStore({}, []);
+  return render(<EditableRowStoreContext.Provider value={editableRowStore}>{ui}</EditableRowStoreContext.Provider>);
+}
 
 function makeRows(count: number, prefix = "virtual"): EstimateRowItem[] {
   const base = estimateLibraryItems[0];
@@ -34,7 +41,7 @@ function rect(top: number, height: number) {
 
 describe("estimate row table virtualization", () => {
   it("uses the shared column template without changing row DOM contracts", () => {
-    const { container } = render(
+    const { container } = renderRowTable(
       <EstimateRowItemsTable
         items={makeRows(2, "template")}
         editableRows={{}}
@@ -72,7 +79,7 @@ describe("estimate row table virtualization", () => {
     const rows = makeRows(1, "readonly");
     const rowLabel = rows[0]?.material ?? "readonly Row 1";
 
-    render(
+    renderRowTable(
       <EstimateRowItemsTable
         canEditEstimate={false}
         items={rows}
@@ -109,7 +116,7 @@ describe("estimate row table virtualization", () => {
     expect(screen.queryByRole("button", { name: `Delete component ${rowLabel}` })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Drag component ${rowLabel}` })).not.toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: `Open row details for ${rowLabel}` })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Open row details for ${rowLabel}` })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: `Open row activity for ${rowLabel}` })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Edit component ${rowLabel}` })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: `${rowLabel} quantity` })).toBeDisabled();
@@ -127,7 +134,7 @@ describe("estimate row table virtualization", () => {
       unit: "box",
     };
 
-    const { container } = render(
+    const { container } = renderRowTable(
       <EstimateRowItemsTable
         items={[row]}
         editableRows={{}}
@@ -168,7 +175,7 @@ describe("estimate row table virtualization", () => {
     const onCommitWidths = vi.fn();
     const onResetWidths = vi.fn();
 
-    render(
+    renderRowTable(
       <EstimateRowItemsTable
         items={makeRows(2, "resize")}
         editableRows={{}}
@@ -206,7 +213,7 @@ describe("estimate row table virtualization", () => {
   });
 
   it("mounts a bounded row window when row virtualization is enabled", async () => {
-    const { container } = render(
+    const { container } = renderRowTable(
       <EstimateRowItemsTable
         items={makeRows(120)}
         editableRows={{}}
@@ -247,7 +254,7 @@ describe("estimate row table virtualization", () => {
       source: "project",
     };
 
-    const { container } = render(
+    const { container } = renderRowTable(
       <EstimateRowItemsTable
         items={rows}
         editableRows={{}}
@@ -288,7 +295,7 @@ describe("estimate row table virtualization", () => {
       source: "project",
     };
 
-    const { container } = render(
+    const { container } = renderRowTable(
       <EstimateRowItemsTable
         items={rows}
         editableRows={{}}
@@ -334,7 +341,7 @@ describe("estimate row table virtualization", () => {
     };
 
     try {
-      const { container } = render(
+      const { container } = renderRowTable(
         <div data-testid="shared-row-scroller" style={{ height: 240, overflowY: "auto" }}>
           <EstimateRowItemsTable
             items={makeRows(120, "first")}

@@ -10,6 +10,8 @@ const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
 const USER_ID = "33333333-3333-4333-8333-333333333333";
 const ESTIMATE_ID = "44444444-4444-4444-8444-444444444444";
+const TAB_ID = "55555555-5555-4555-8555-555555555555";
+const DUPLICATED_ROW_ID = "66666666-6666-4666-8666-666666666669";
 
 type Row = Record<string, D1Value | undefined>;
 type Event = {
@@ -22,6 +24,12 @@ type Event = {
   payload: unknown;
   old_snapshot: unknown;
   new_snapshot?: unknown;
+};
+type Receipt = {
+  actor_user_id: string;
+  request_fingerprint: string;
+  result_json: string;
+  status: string;
 };
 
 function parseJson(value: unknown) {
@@ -53,6 +61,9 @@ class Statement<T = Record<string, unknown>> {
 
   async first<R = T>(): Promise<R | null> {
     if (this.sql.includes("SELECT 1 AS allowed")) return { allowed: 1 } as R;
+    if (this.sql.includes("FROM estimate_mutation_receipts")) {
+      return (this.database.receipts.get(this.database.receiptKey(this.values[0], this.values[1], this.values[2])) ?? null) as R | null;
+    }
     if (this.sql.includes("SELECT id, payload") && this.sql.includes("correlation_id")) {
       const event = this.database.events.find((candidate) => candidate.estimate_id === this.values[0] && candidate.correlation_id === this.values[1]);
       return event ? { id: event.id, payload: JSON.stringify(event.payload) } as R : null;
@@ -76,6 +87,12 @@ class Statement<T = Record<string, unknown>> {
         ? { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: WORKSPACE_ID } as R
         : null;
     }
+    if (this.sql.includes("SELECT MAX(sort_order) AS max_sort_order")) {
+      const sortOrders = [...this.database.rows.values()]
+        .filter((row) => row.estimate_id === this.values[0] && row.node_id === this.values[1])
+        .map((row) => Number(row.sort_order ?? 0));
+      return { max_sort_order: sortOrders.length > 0 ? Math.max(...sortOrders) : null } as R;
+    }
     if (this.sql.includes("FROM estimate_row_items") && this.sql.includes("WHERE estimate_id = ?")) {
       const row = this.database.rows.get(String(this.values[1]));
       return row?.estimate_id === this.values[0] ? { ...row } as R : null;
@@ -84,6 +101,20 @@ class Statement<T = Record<string, unknown>> {
   }
 
   async all<R = T>(): Promise<D1Result<R>> {
+    if (this.sql.includes("FROM estimate_nodes node") && this.sql.includes("node.id IN")) {
+      const ids = new Set(this.values.slice(1).map(String));
+      return {
+        success: true,
+        results: [...this.database.nodes.values()]
+          .filter((node) => node.estimate_id === this.values[0] && ids.has(String(node.id)))
+          .map((node) => ({
+            id: node.id,
+            estimate_tab_id: node.estimate_tab_id,
+            kind: node.kind,
+            archived_at: null,
+          })) as R[],
+      };
+    }
     if (this.sql.includes("FROM estimate_row_items") && this.sql.includes("id IN")) {
       const ids = new Set(this.values.slice(1).map(String));
       return { success: true, results: [...this.database.rows.values()].filter((row) => row.estimate_id === this.values[0] && ids.has(String(row.id))).map((row) => ({ ...row })) as R[] };
@@ -106,6 +137,14 @@ class Statement<T = Record<string, unknown>> {
         event_type: String(values[7]), correlation_id: String(values[9]), old_snapshot: parseJson(values[13]), new_snapshot: parseJson(values[14]), payload: parseJson(values[15]),
       });
     }
+    if (this.sql.includes("INSERT INTO estimate_mutation_receipts")) {
+      this.database.receipts.set(this.database.receiptKey(this.values[1], this.values[2], this.values[3]), {
+        actor_user_id: String(this.values[4]),
+        request_fingerprint: String(this.values[7]),
+        result_json: String(this.values[8]),
+        status: "committed",
+      });
+    }
     return { success: true, meta: { changes: 1 } };
   }
 
@@ -116,9 +155,20 @@ class Statement<T = Record<string, unknown>> {
 
 class RestoreDatabase implements D1DatabaseLike {
   rows = new Map<string, Row>();
+  nodes = new Map<string, Row>([["node-1", {
+    id: "node-1",
+    estimate_id: ESTIMATE_ID,
+    estimate_tab_id: TAB_ID,
+    kind: "area",
+  }]]);
   events: Event[] = [];
+  receipts = new Map<string, Receipt>();
   batchCount = 0;
   failNextBatch = false;
+
+  receiptKey(workspaceId: unknown, commandKind: unknown, intentId: unknown) {
+    return `${String(workspaceId)}:${String(commandKind)}:${String(intentId)}`;
+  }
 
   prepare<T = Record<string, unknown>>(sql: string) {
     return new Statement<T>(this, sql);
@@ -176,7 +226,67 @@ function restore(client: EstimateActionsD1Client, correlationId = "restore-corre
     target_row_ids: rowIds,
     acting_user_id: USER_ID,
     correlation_id: correlationId,
+    target_active_tab_id: TAB_ID,
   });
+}
+
+function duplicate(
+  client: EstimateActionsD1Client,
+  options: {
+    correlationId?: string;
+    duplicatedRowId?: string;
+    sourceRowId?: string;
+    expectedSourceRowRevision?: number;
+    targetNodeId?: string;
+    activeTabId?: string;
+  } = {},
+) {
+  return client.call("duplicate_estimate_row_item_with_history", {
+    target_project_id: PROJECT_ID,
+    target_estimate_id: ESTIMATE_ID,
+    source_row_id: options.sourceRowId ?? "row-source",
+    expected_source_row_revision: options.expectedSourceRowRevision ?? 4,
+    target_node_id: options.targetNodeId ?? "node-1",
+    duplicated_row_id: options.duplicatedRowId ?? DUPLICATED_ROW_ID,
+    acting_user_id: USER_ID,
+    correlation_id: options.correlationId ?? "duplicate-correlation",
+    target_active_tab_id: options.activeTabId ?? TAB_ID,
+  });
+}
+
+function duplicateSourceRow(): Row {
+  return {
+    id: "row-source",
+    estimate_id: ESTIMATE_ID,
+    node_id: "node-1",
+    description: "Premium cabinet finish",
+    designation: "CAB-01",
+    discipline: "Architectural",
+    material: "Kitchen Cabinet",
+    supplier: "Local supplier",
+    supplier_id: "supplier-1",
+    quantity: 2.5,
+    quantity_base: 2,
+    quantity_contingency_amount: 0.5,
+    unit: "lm",
+    unit_cost: 1250,
+    misc_cost: 75,
+    contingency_percentage: 5,
+    adjustment_percentage: -2,
+    source_snapshot_json: JSON.stringify({
+      priceOptionId: "option-premium",
+      priceOptionLabel: "Premium",
+      sourceLibraryItemId: "library-component-1",
+      sourceType: "library_component",
+    }),
+    sort_order: 3000,
+    row_revision: 4,
+    category_node_id: "category-cabinetry",
+    source_library_item_id: "library-component-1",
+    link_state: "linked-overridden",
+    metadata_json: JSON.stringify({ category: "Cabinetry", sku: "CAB-PREMIUM" }),
+    pricing_provenance_origin: "inherited_snapshot",
+  };
 }
 
 describe("EstimateActionsD1Client row restore history", () => {
@@ -229,5 +339,98 @@ describe("EstimateActionsD1Client row restore history", () => {
     expect(result.error?.message).toBe("Cloudflare D1 estimate action batch failed.");
     expect(database.rows).toHaveLength(0);
     expect(database.events).toHaveLength(1);
+  });
+});
+
+describe("EstimateActionsD1Client row duplicate history", () => {
+  it("copies every persisted row-owned value into one revision-one row, event, and receipt", async () => {
+    const database = new RestoreDatabase();
+    database.rows.set("row-source", duplicateSourceRow());
+    const client = new EstimateActionsD1Client(database, user());
+
+    const first = await duplicate(client, { correlationId: "duplicate-idempotent" });
+    const replay = await duplicate(client, { correlationId: "duplicate-idempotent" });
+
+    expect(first.error).toBeNull();
+    expect(first.data).toMatchObject({
+      sourceRowId: "row-source",
+      rowId: DUPLICATED_ROW_ID,
+      row: {
+        id: DUPLICATED_ROW_ID,
+        nodeId: "node-1",
+        material: "Kitchen Cabinet",
+        description: "Premium cabinet finish",
+        supplier: "Local supplier",
+        quantity: 2.5,
+        quantityBase: 2,
+        quantityContingencyAmount: 0.5,
+        unit: "lm",
+        unitCost: 1250,
+        miscCost: 75,
+        contingencyPercentage: 5,
+        adjustmentPercentage: -2,
+        sourceLibraryItemId: "library-component-1",
+        sourceSnapshot: {
+          priceOptionId: "option-premium",
+          priceOptionLabel: "Premium",
+          sourceLibraryItemId: "library-component-1",
+          sourceType: "library_component",
+        },
+        metadata: { category: "Cabinetry", sku: "CAB-PREMIUM" },
+        linkState: "linked-overridden",
+        rowRevision: 1,
+      },
+    });
+    expect(database.rows.get(DUPLICATED_ROW_ID)).toMatchObject({
+      designation: "CAB-01",
+      discipline: "Architectural",
+      supplier_id: "supplier-1",
+      category_node_id: "category-cabinetry",
+      pricing_provenance_origin: "inherited_snapshot",
+      row_revision: 1,
+      sort_order: 4000,
+    });
+    expect(parseJson(database.rows.get(DUPLICATED_ROW_ID)?.source_snapshot_json)).toEqual({
+      priceOptionId: "option-premium",
+      priceOptionLabel: "Premium",
+      sourceLibraryItemId: "library-component-1",
+      sourceType: "library_component",
+    });
+    expect(parseJson(database.rows.get(DUPLICATED_ROW_ID)?.metadata_json)).toEqual({ category: "Cabinetry", sku: "CAB-PREMIUM" });
+    expect(database.events.filter((event) => event.event_type === "row_duplicated")).toHaveLength(1);
+    expect(database.receipts.has(`${WORKSPACE_ID}:estimate.row.duplicate:duplicate-idempotent`)).toBe(true);
+    expect(replay).toEqual(first);
+    expect(database.batchCount).toBe(1);
+  });
+
+  it("rejects stale source, invalid target, and changed replay payloads before another write", async () => {
+    const staleDatabase = new RestoreDatabase();
+    staleDatabase.rows.set("row-source", duplicateSourceRow());
+    const stale = await duplicate(new EstimateActionsD1Client(staleDatabase, user()), { expectedSourceRowRevision: 3 });
+    expect(stale.data).toBeNull();
+    expect(stale.error?.message).toBe("estimate_sheet_row_revision_conflict");
+    expect(staleDatabase.batchCount).toBe(0);
+
+    const invalidTargetDatabase = new RestoreDatabase();
+    invalidTargetDatabase.rows.set("row-source", { ...duplicateSourceRow(), node_id: "node-missing" });
+    const invalidTarget = await duplicate(new EstimateActionsD1Client(invalidTargetDatabase, user()), { targetNodeId: "node-missing" });
+    expect(invalidTarget.data).toBeNull();
+    expect(invalidTargetDatabase.batchCount).toBe(0);
+    expect(invalidTargetDatabase.events).toHaveLength(0);
+
+    const replayDatabase = new RestoreDatabase();
+    replayDatabase.rows.set("row-source", duplicateSourceRow());
+    const replayClient = new EstimateActionsD1Client(replayDatabase, user());
+    const committed = await duplicate(replayClient, { correlationId: "duplicate-mismatch" });
+    const mismatch = await duplicate(replayClient, {
+      correlationId: "duplicate-mismatch",
+      duplicatedRowId: "66666666-6666-4666-8666-666666666670",
+    });
+    expect(committed.error).toBeNull();
+    expect(mismatch.data).toBeNull();
+    expect(mismatch.error?.message).toBe("This action changed after it was submitted. Retry it as a new action.");
+    expect(replayDatabase.batchCount).toBe(1);
+    expect(replayDatabase.events.filter((event) => event.event_type === "row_duplicated")).toHaveLength(1);
+    expect(replayDatabase.rows.has("66666666-6666-4666-8666-666666666670")).toBe(false);
   });
 });

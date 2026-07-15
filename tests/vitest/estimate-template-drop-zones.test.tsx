@@ -11,7 +11,8 @@ import {
   ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
   LIBRARY_ITEM_DRAG_MIME_TYPE,
 } from "@/components/workshop/estimate-sheet/rows/constants";
-import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 import {
   beginEstimateWorkshopDrag,
   endEstimateWorkshopDrag,

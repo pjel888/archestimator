@@ -110,7 +110,13 @@ function renderLibrary(element: ReactNode) {
 }
 
 async function waitForLibraryWorkspace() {
-  await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
+  await screen.findByRole("button", { name: /Organize by:/ }, { timeout: 10_000 });
+}
+
+function componentSheetSummary() {
+  const summary = document.querySelector('[data-component-sheet-summary="true"]');
+  if (!(summary instanceof HTMLElement)) throw new Error("Component sheet summary not found");
+  return summary;
 }
 
 function queryComponentInspectButton(componentId: string) {
@@ -125,7 +131,7 @@ beforeEach(() => {
 });
 
 describe("Library applied filters", () => {
-  it("renders removable applied-filter chips, clear-all, count strip, and the glass shell", async () => {
+  it("renders removable applied-filter chips, clear-all, toolbar summary, and the glass shell", async () => {
     renderLibrary(
       <LibraryPageClient
         categoryTree={categoryTree}
@@ -144,13 +150,18 @@ describe("Library applied filters", () => {
     expect(workspace).toHaveClass("estimate-glass-well");
     expect(document.querySelector('[data-component-library-tree-panel="true"]')).toHaveClass("estimate-glass-rail");
     expect(document.querySelector('[data-component-library-sheet="true"]')).toHaveClass("estimate-glass-paper");
+    expect(document.querySelector('[data-component-sheet-context-strip="true"]')).toBeNull();
+    const tools = screen.getByLabelText("Component table tools");
+    expect(within(tools).getByRole("combobox", { name: "View components" })).toBeInTheDocument();
+    expect(within(tools).getByRole("combobox", { name: "Sort components by" })).toBeInTheDocument();
+    expect(within(tools).getByRole("combobox", { name: "Component sort order" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Filter components" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Tile Supplier" }));
 
     const appliedFilters = screen.getByLabelText("Applied component filters");
     expect(within(appliedFilters).getByText("Supplier: Tile Supplier")).toBeInTheDocument();
-    expect(document.querySelector('[data-component-sheet-context-strip="true"]')).toHaveTextContent("All Components · 1 shown · 3 in scope");
+    expect(componentSheetSummary()).toHaveTextContent("All Components · 1 loaded shown · 3 loaded in scope");
     expect(queryComponentInspectButton("component-alpha")).toBeInTheDocument();
     expect(queryComponentInspectButton("component-beta")).not.toBeInTheDocument();
 
@@ -158,7 +169,7 @@ describe("Library applied filters", () => {
 
     await waitFor(() => expect(screen.queryByLabelText("Applied component filters")).not.toBeInTheDocument());
     expect(queryComponentInspectButton("component-beta")).toBeInTheDocument();
-    expect(document.querySelector('[data-component-sheet-context-strip="true"]')).toHaveTextContent("All Components · 3 components");
+    expect(componentSheetSummary()).toHaveTextContent("All Components · 3 components");
   });
 
   it("hydrates overview deep-link filters and clears all active facets", async () => {

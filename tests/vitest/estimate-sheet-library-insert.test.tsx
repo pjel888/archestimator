@@ -4,10 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
 import { REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
 import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
+import { handleExpressFieldKeyDown } from "@/components/workshop/estimate-sheet/rows/cells";
 import { ToastProvider } from "@/components/ui/toast";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
@@ -19,6 +20,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteEstimateNode: vi.fn(),
   deleteEstimateRowItem: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  fetchEstimateSheetVersionControl: vi.fn(),
   getEstimateComponentEditImpact: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
@@ -48,6 +50,23 @@ const livingNodeId = "55555555-5555-4555-8555-555555555562";
 const cabinetRowId = "66666666-6666-4666-8666-666666666661";
 const sinkRowId = "66666666-6666-4666-8666-666666666662";
 const vanityRowId = "66666666-6666-4666-8666-666666666663";
+
+const libraryItemFixture: EstimateRowItem = {
+  id: "lib-sofa",
+  material: "HEMLINGBY Loveseat",
+  description: "IKEA Philippines loveseat",
+  supplier: "IKEA Philippines",
+  source: "library",
+  unit: "pc",
+  itemCost: 7_999,
+  quantity: 1,
+  subTotal: 7_999,
+  miscCost: 1_200,
+  totalItemCosts: 9_199,
+  category: "Furniture",
+  pricingSource: "Test fixture",
+  pricingDate: "2026-05-22",
+};
 
 const nodes: EstimateTreeNode[] = [
   {
@@ -536,6 +555,14 @@ describe("estimate sheet library insertion persistence", () => {
     vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "off");
     delete process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED;
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [],
+      rowEvents: [],
+      nodeEvents: [],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeIds: [] });
     actionMocks.insertEstimateTemplateNodeIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeId: groupNodeId });
@@ -600,7 +627,7 @@ describe("estimate sheet library insertion persistence", () => {
 
   it("sends a UUID row id when a component library item is inserted", async () => {
     renderPersistedEstimateSheet();
-    const libraryItem = estimateLibraryItems[0];
+    const libraryItem = libraryItemFixture;
 
     await act(async () => {
       window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, { detail: libraryItem }));
@@ -615,7 +642,7 @@ describe("estimate sheet library insertion persistence", () => {
 
   it("uses the add-library event target node instead of the selected insertion node", async () => {
     renderPersistedEstimateSheet(nodesWithRowsInSeparateAreas);
-    const libraryItem = estimateLibraryItems[0];
+    const libraryItem = libraryItemFixture;
     const accepted = vi.fn();
 
     await act(async () => {
@@ -676,7 +703,7 @@ describe("estimate sheet library insertion persistence", () => {
     await act(async () => {
       dispatchResult = window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, {
         cancelable: true,
-        detail: { libraryItem: estimateLibraryItems[0], onAccepted: accepted },
+        detail: { libraryItem: libraryItemFixture, onAccepted: accepted },
       }));
     });
 
@@ -751,10 +778,10 @@ describe("estimate sheet library insertion persistence", () => {
     const componentCell = screen.getByLabelText("Kitchen Cabinet replaceable estimate component");
     expect(within(componentCell).getByText("Base cabinet")).toBeInTheDocument();
     const trigger = within(componentCell).getByRole("button", { name: "Change variant for Kitchen Cabinet" });
-    expect(trigger).toHaveTextContent("Variant 1");
+    expect(trigger).toHaveTextContent("V-1");
 
     await user.click(trigger);
-    await user.click(await screen.findByRole("menuitem", { name: "Premium" }));
+    await user.click(await screen.findByRole("menuitem", { name: "V-2 — Premium" }));
 
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
     expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
@@ -890,7 +917,7 @@ describe("estimate sheet library insertion persistence", () => {
     const reopenedDialog = await screen.findByRole("dialog", { name: "Edit Component" });
     await user.click(within(reopenedDialog).getByRole("button", { name: "Open variants panel" }));
     const reopenedDrawer = within(reopenedDialog).getByRole("dialog", { name: "Manage variants" });
-    expect(within(reopenedDrawer).getByRole("button", { name: "Open Option 2" })).toBeInTheDocument();
+    expect(within(reopenedDrawer).getByRole("button", { name: "Open V-2 — Option 2" })).toBeInTheDocument();
     expect(within(reopenedDrawer).getByRole("button", { name: /^Option 2PHP/u })).toBeInTheDocument();
   });
 
@@ -939,7 +966,7 @@ describe("estimate sheet library insertion persistence", () => {
     const trigger = within(componentCell).getByRole("button", { name: "Change variant for Kitchen Cabinet" });
 
     await user.click(trigger);
-    await user.click(await screen.findByRole("menuitem", { name: "Premium" }));
+    await user.click(await screen.findByRole("menuitem", { name: "V-2 — Premium" }));
 
     await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(1));
     expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
@@ -958,6 +985,120 @@ describe("estimate sheet library insertion persistence", () => {
       pricingSource: "Variant schedule",
       pricingDate: "2026-07-08",
     });
+  });
+
+  it("maps Enter, multiline Enter, Mod+Enter, and Escape to the estimate field contract", () => {
+    const onRevert = vi.fn();
+    const makeEvent = (tagName: "INPUT" | "TEXTAREA", input: { key: string; metaKey?: boolean; ctrlKey?: boolean }) => {
+      const blur = vi.fn();
+      const preventDefault = vi.fn();
+      const stopPropagation = vi.fn();
+      return {
+        blur,
+        preventDefault,
+        stopPropagation,
+        event: {
+          ...input,
+          metaKey: input.metaKey ?? false,
+          ctrlKey: input.ctrlKey ?? false,
+          currentTarget: { tagName, blur },
+          preventDefault,
+          stopPropagation,
+        } as Parameters<typeof handleExpressFieldKeyDown>[0],
+      };
+    };
+
+    const singleLineEnter = makeEvent("INPUT", { key: "Enter" });
+    handleExpressFieldKeyDown(singleLineEnter.event, { field: "name", onRevert });
+    expect(singleLineEnter.preventDefault).toHaveBeenCalledOnce();
+    expect(singleLineEnter.stopPropagation).toHaveBeenCalledOnce();
+    expect(singleLineEnter.blur).toHaveBeenCalledOnce();
+
+    const multilineEnter = makeEvent("TEXTAREA", { key: "Enter" });
+    handleExpressFieldKeyDown(multilineEnter.event, { field: "description", onRevert });
+    expect(multilineEnter.preventDefault).not.toHaveBeenCalled();
+    expect(multilineEnter.stopPropagation).toHaveBeenCalledOnce();
+    expect(multilineEnter.blur).not.toHaveBeenCalled();
+
+    const modifiedEnter = makeEvent("TEXTAREA", { key: "Enter", metaKey: true });
+    handleExpressFieldKeyDown(modifiedEnter.event, { field: "description", onRevert });
+    expect(modifiedEnter.preventDefault).toHaveBeenCalledOnce();
+    expect(modifiedEnter.stopPropagation).toHaveBeenCalledOnce();
+    expect(modifiedEnter.blur).toHaveBeenCalledOnce();
+
+    const escape = makeEvent("INPUT", { key: "Escape" });
+    handleExpressFieldKeyDown(escape.event, { field: "name", onRevert });
+    expect(escape.preventDefault).toHaveBeenCalledOnce();
+    expect(escape.stopPropagation).toHaveBeenCalledOnce();
+    expect(escape.blur).not.toHaveBeenCalled();
+    expect(onRevert).toHaveBeenCalledOnce();
+    expect(onRevert).toHaveBeenCalledWith("name");
+  });
+
+  it("latches rapid duplicate activations to one pending row intent", async () => {
+    const duplicate = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateRowItemFromLibrary>>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(duplicate.promise);
+    renderPersistedEstimateSheet(nodesWithRow);
+
+    const duplicateButton = screen.getByRole("button", { name: "Duplicate row item Kitchen Cabinet" });
+    fireEvent.click(duplicateButton);
+    fireEvent.click(duplicateButton);
+
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    const input = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    expect(input).toMatchObject({
+      projectId,
+      estimateId,
+      targetNodeId,
+      mutationId: expect.any(String),
+      libraryItem: expect.objectContaining({
+        id: cabinetRowId,
+        duplicateSourceRowId: cabinetRowId,
+        rowRevision: 7,
+      }),
+    });
+    expect(input.rowId).not.toBe(cabinetRowId);
+
+    await act(async () => {
+      duplicate.resolve(undefined);
+      await duplicate.promise;
+    });
+  });
+
+  it("reuses duplicate identity after ambiguity and releases it after explicit rejection", async () => {
+    actionMocks.insertEstimateRowItemFromLibrary
+      .mockRejectedValueOnce(new Error("Network timeout"))
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("Permission denied"))
+      .mockResolvedValueOnce(undefined);
+    renderPersistedEstimateSheet(nodesWithRow);
+
+    const sourceDuplicateButton = () => screen.getAllByRole("button", { name: "Duplicate row item Kitchen Cabinet" })[0];
+    fireEvent.click(sourceDuplicateButton());
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    const ambiguousInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(2));
+
+    fireEvent.click(sourceDuplicateButton());
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
+    const ambiguityRetryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[1][0];
+    expect(ambiguityRetryInput.rowId).toBe(ambiguousInput.rowId);
+    expect(ambiguityRetryInput.mutationId).toBe(ambiguousInput.mutationId);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(sourceDuplicateButton());
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(3));
+    const rejectedInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[2][0];
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(3));
+
+    fireEvent.click(sourceDuplicateButton());
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(4));
+    const deliberateRetryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[3][0];
+    expect(deliberateRetryInput.rowId).not.toBe(rejectedInput.rowId);
+    expect(deliberateRetryInput.mutationId).not.toBe(rejectedInput.mutationId);
   });
 
   it("still renders and persists an editable express row when the legacy flag is disabled", async () => {
@@ -1652,12 +1793,12 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithOverriddenLinkedRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    await user.click(within(kitchenSection).getByRole("button", { name: "Open row details for Kitchen Cabinet" }));
+    await user.click(within(kitchenSection).getByRole("button", { name: "Open row activity for Kitchen Cabinet" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
     expect(within(dialog).queryByRole("tab", { name: "Component" })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("rolls back a failed quantity save without rendering spreadsheet save pills", async () => {

@@ -40,24 +40,23 @@ describe("library component route-state authorization contract", () => {
     ).toBe("/workshop/library/components?brand=none&freshness=stale");
   });
 
-  it("only opens route-state ids that already exist in the loaded workspace library", () => {
+  it("resolves unloaded route-state ids before treating them as inaccessible", () => {
     const source = readSource("src/components/workshop/component-library-manager/ComponentLibraryManager.tsx");
     const routeIdIndex = source.indexOf("const routeComponentId = addComponentSearchParams?.get(COMPONENT_ROUTE_PARAM) ?? null;");
-    const loadedLibraryGuardIndex = source.indexOf("localLibraryItems.some((entry) => entry.id === routeComponentId)");
-    const derivedInspectorIndex = source.indexOf(
-      "const inspectorItemId = routeComponentIsValid ? routeComponentId : null;",
-      loadedLibraryGuardIndex,
-    );
+    const loadedLibraryGuardIndex = source.indexOf("localLibraryItems.find((entry) => entry.id === routeComponentId)");
+    const directLookupIndex = source.indexOf("loadCostLibraryComponentRowDetail(itemId)", loadedLibraryGuardIndex);
+    const notFoundIndex = source.indexOf('state: "not-found"', directLookupIndex);
     const authzDeniedTelemetryIndex = source.indexOf(
       'recordLibraryEvent("route_state_authz_denied"',
-      derivedInspectorIndex,
+      notFoundIndex,
     );
     const stripInvalidRouteStateIndex = source.indexOf("componentId: null", authzDeniedTelemetryIndex);
 
     expect(routeIdIndex).toBeGreaterThan(-1);
     expect(loadedLibraryGuardIndex).toBeGreaterThan(routeIdIndex);
-    expect(derivedInspectorIndex).toBeGreaterThan(loadedLibraryGuardIndex);
-    expect(authzDeniedTelemetryIndex).toBeGreaterThan(derivedInspectorIndex);
+    expect(directLookupIndex).toBeGreaterThan(loadedLibraryGuardIndex);
+    expect(notFoundIndex).toBeGreaterThan(directLookupIndex);
+    expect(authzDeniedTelemetryIndex).toBeGreaterThan(notFoundIndex);
     expect(stripInvalidRouteStateIndex).toBeGreaterThan(authzDeniedTelemetryIndex);
     expect(source).not.toContain("loadCostLibraryComponent(");
     expect(source).not.toContain("getCostLibraryComponent(");

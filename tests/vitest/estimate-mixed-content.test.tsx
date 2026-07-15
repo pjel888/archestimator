@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUserContext: vi.fn(async () => null) }));

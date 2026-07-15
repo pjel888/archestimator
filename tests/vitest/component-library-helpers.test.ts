@@ -24,8 +24,9 @@ import {
   sortComponents,
 } from "@/components/workshop/component-library/helpers";
 import { getComponentImageUrl as getActivityComponentImageUrl } from "@/components/workshop/estimate-sheet/activity-history-model";
-import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 const base = {
   source: "library" as const,

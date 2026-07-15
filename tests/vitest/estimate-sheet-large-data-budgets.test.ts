@@ -19,8 +19,9 @@ describe("estimate sheet large-data budgets", () => {
     expect(actions).toContain("getProjectEstimateTreeByEstimate(projectId, estimateId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
     expect(actions).toContain("getEstimateTabTree(projectId, estimateId, tabId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
     expect(workspaceClient).toContain("loadLimitState={loadLimitState}");
-    expect(sheetContent).toContain("didTruncateInitialTree");
-    expect(sheetContent).toContain("Proposal exports use separate full-data limits.");
+    expect(sheetContent).toContain("const isActiveTreePartial = Boolean(activeLoadLimitState?.didExceedNodeLimit || activeLoadLimitState?.didExceedRowItemLimit);");
+    expect(sheetContent).toContain("This tab is partial:");
+    expect(sheetContent).toContain("move actions stay disabled until the complete tab is available.");
   });
 
   it("caps reusable project-source search fan-out before materializing estimate trees", () => {

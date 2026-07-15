@@ -7,6 +7,7 @@ import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/drag-types";
 import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
+import type { EstimateExternalDropEnvelope } from "@/components/workshop/estimate-sheet/events";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { ToastProvider } from "@/components/ui/toast";
@@ -426,9 +427,9 @@ describe("estimate sheet tree drag/drop", () => {
       });
 
       expect(onAddLibraryItem).toHaveBeenCalledTimes(1);
-      const event = onAddLibraryItem.mock.calls[0]?.[0] as CustomEvent;
-      expect(event.detail.targetNodeId).toBe("kitchen");
-      expect(event.detail.libraryItem).toMatchObject({
+      const event = onAddLibraryItem.mock.calls[0]?.[0] as CustomEvent<EstimateExternalDropEnvelope<{ libraryItem: EstimateRowItem }>>;
+      expect(event.detail.target.nodeId).toBe("kitchen");
+      expect(event.detail.payload.libraryItem).toMatchObject({
         id: "project-component-row",
         material: "Project Component",
         source: "project",
@@ -483,7 +484,7 @@ describe("estimate sheet tree drag/drop", () => {
       ],
     });
     await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree()));
-    expect(screen.getByRole("status")).toHaveTextContent("Saving tree order");
+    expect(treeNodeDragHandle("kitchen")).toHaveAttribute("data-tree-drag-disabled-reason", "Finish the current tree save before dragging nodes.");
     expect(toastViewport()).not.toHaveTextContent("Saving tree order");
     expect(routerMock.push).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
@@ -493,7 +494,7 @@ describe("estimate sheet tree drag/drop", () => {
       await pending.promise;
     });
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    await waitFor(() => expect(treeNodeDragHandle("kitchen")).toHaveAttribute("draggable", "true"));
     expect(toastViewport()).not.toHaveTextContent("Tree order saved");
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]);
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree());
@@ -562,7 +563,7 @@ describe("estimate sheet tree drag/drop", () => {
       pending.resolve({ tree: [{ ...root, children: [siteWorksNode, groundFloorNode] }] });
       await pending.promise;
     });
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    await waitFor(() => expect(treeNodeDragHandle("site-works")).toHaveAttribute("draggable", "true"));
     expect(renderedIds()).toEqual(["project-scope", "site-works", "front-yard", "ground-floor", "kitchen", "living"]);
   });
 
@@ -607,7 +608,7 @@ describe("estimate sheet tree drag/drop", () => {
       await dropOnto("site-works", "ground-floor");
     });
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedGroupReparentTree()));
     // "Inside" drops append after the existing children — the dropped group
     // does not jump above area siblings.
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
@@ -633,7 +634,7 @@ describe("estimate sheet tree drag/drop", () => {
       await dropOnto("kitchen", "site-works");
     });
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree()));
     rerenderTree(fixtureTree());
 
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]);
@@ -679,7 +680,8 @@ describe("estimate sheet tree drag/drop", () => {
     await act(async () => {
       await dropOnto("kitchen", "site-works");
     });
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saving tree order"));
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(treeNodeDragHandle("kitchen")).toHaveAttribute("data-tree-drag-disabled-reason", "Finish the current tree save before dragging nodes.");
 
     // Single "Add Area"; ground-floor (a group) is selected → an area child.
     await act(async () => {

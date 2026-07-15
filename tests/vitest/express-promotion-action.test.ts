@@ -44,9 +44,13 @@ function makePromotionD1Database(options: {
   sourceMetadata?: Record<string, unknown>;
   uploadAssets?: Record<string, Record<string, unknown>>;
   attachmentBindings?: Record<string, Record<string, unknown>>;
+  winnerAfterBatchFailure?: { item_id: string; active_price_option_id: string | null };
 } = {}) {
   const statements: StatementRecord[] = [];
   const firstStatements: StatementRecord[] = [];
+  let batchAttempted = false;
+  let cleanupEventCreated = false;
+  let cleanupEventStatus = "storage_cleanup_pending";
   const sourceWorkspaceId = options.sourceWorkspaceId ?? WORKSPACE_ID;
   const sourceRow = {
     project_id: PROJECT_ID,
@@ -77,7 +81,19 @@ function makePromotionD1Database(options: {
       return options.existingPayload ? { payload: JSON.stringify(options.existingPayload) } : null;
     }
     if (sql.includes("FROM projects project") && sql.includes("JOIN estimate_row_items row_item")) {
-      return values[0] === PROJECT_ID && values[1] === ESTIMATE_ID && values[2] === ROW_ID ? sourceRow : null;
+      if (values[0] !== PROJECT_ID || values[1] !== ESTIMATE_ID || values[2] !== ROW_ID) return null;
+      return batchAttempted && options.winnerAfterBatchFailure
+        ? {
+            ...sourceRow,
+            source_library_item_id: options.winnerAfterBatchFailure.item_id,
+            source_snapshot_json: JSON.stringify({
+              ...options.sourceSnapshot,
+              priceOptionId: options.winnerAfterBatchFailure.active_price_option_id,
+            }),
+            link_state: "linked-clean",
+            row_revision: 3,
+          }
+        : sourceRow;
     }
     if (sql.includes("LEFT JOIN estimate_sheet_access_settings")) {
       return options.canEditEstimate === false ? null : { allowed: 1 };
@@ -91,7 +107,13 @@ function makePromotionD1Database(options: {
       return options.folderExists === false ? null : { id: FOLDER_ID };
     }
     if (sql.includes("FROM cost_library_items") && sql.includes("source_estimate_row_item_id")) {
-      return options.existingLibraryItem ?? null;
+      return options.existingLibraryItem
+        ?? (batchAttempted ? options.winnerAfterBatchFailure ?? null : null);
+    }
+    if (sql.includes("FROM mass_deletion_events") && sql.includes("SELECT id, status")) {
+      return cleanupEventCreated
+        ? { id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", status: cleanupEventStatus }
+        : null;
     }
     if (sql.includes("FROM upload_assets")) {
       return options.uploadAssets?.[String(values[0])] ?? null;
@@ -107,6 +129,8 @@ function makePromotionD1Database(options: {
     all: vi.fn(async () => ({ success: true, results: [] })),
     run: vi.fn(async () => {
       statements.push({ sql, values });
+      if (sql.includes("INSERT INTO mass_deletion_events")) cleanupEventCreated = true;
+      if (sql.includes("UPDATE mass_deletion_events") && values[0]) cleanupEventStatus = String(values[0]);
       return { success: true };
     }),
   });
@@ -117,6 +141,10 @@ function makePromotionD1Database(options: {
       ...makeBoundStatement(sql, []),
     })),
     batch: vi.fn(async (batchStatements: Array<{ run: () => Promise<{ success?: boolean }> }>) => {
+      batchAttempted = true;
+      if (options.winnerAfterBatchFailure) {
+        return batchStatements.map((_, index) => ({ success: index !== 0 }));
+      }
       const results = [];
       for (const statement of batchStatements) results.push(await statement.run());
       return results;
@@ -156,6 +184,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     const result = await promoteEstimateRowToLibraryComponent({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
+      expectedRowRevision: 2,
       rowId: ROW_ID,
       libraryFolderId: FOLDER_ID,
       mutationId: "88888888-8888-4888-8888-888888888888",
@@ -165,6 +194,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(result.itemId).toMatch(/[0-9a-f-]{36}/);
     expect(result.activePriceOptionId).toMatch(/[0-9a-f-]{36}/);
     expect(database.batch).toHaveBeenCalledTimes(1);
+    expect(database.statements[0]?.sql).toContain("promotion_row_revision_guard");
     expect(database.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"))?.values).toEqual(
       expect.arrayContaining([WORKSPACE_ID, "Custom vanity", ROW_ID, USER_ID]),
     );
@@ -183,6 +213,24 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(repositoryMocks.clearEstimateRouteContextProcessCache).toHaveBeenCalledWith(PROJECT_ID);
   });
 
+  it("rejects a stale expected row revision before copying or writing", async () => {
+    const database = makePromotionD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    await expect(promoteEstimateRowToLibraryComponent({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      expectedRowRevision: 1,
+      rowId: ROW_ID,
+      mutationId: "99999999-9999-4999-8999-999999999999",
+    })).rejects.toThrow(/row changed/i);
+
+    expect(database.batch).not.toHaveBeenCalled();
+    expect(storageMocks.downloadObject).not.toHaveBeenCalled();
+    expect(storageMocks.uploadObject).not.toHaveBeenCalled();
+  });
+
   it("promotes shared-project rows into the source project workspace library instead of the user's default workspace", async () => {
     const sourceWorkspaceId = "shared-project-workspace";
     authMocks.requireCurrentUserContext.mockResolvedValue({
@@ -197,6 +245,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     const result = await promoteEstimateRowToLibraryComponent({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
+      expectedRowRevision: 2,
       rowId: ROW_ID,
       libraryFolderId: FOLDER_ID,
       mutationId: "88888888-8888-4888-8888-888888888888",
@@ -338,6 +387,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     const result = await promoteEstimateRowToLibraryComponent({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
+      expectedRowRevision: 2,
       rowId: ROW_ID,
       mutationId: "88888888-8888-4888-8888-888888888888",
     });
@@ -417,6 +467,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     const result = await promoteEstimateRowToLibraryComponent({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
+      expectedRowRevision: 2,
       rowId: ROW_ID,
       mutationId: "88888888-8888-4888-8888-888888888888",
     });
@@ -430,12 +481,93 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(database.batch).not.toHaveBeenCalled();
   });
 
+  it("recovers the canonical uniqueness winner and durably cleans the loser copy", async () => {
+    const sourceOptionId = "12121212-1212-4212-8212-121212121212";
+    const sourceAssetId = "13131313-1313-4313-8313-131313131313";
+    const winner = {
+      item_id: "14141414-1414-4414-8414-141414141414",
+      active_price_option_id: "15151515-1515-4515-8515-151515151515",
+    };
+    const database = makePromotionD1Database({
+      winnerAfterBatchFailure: winner,
+      sourceSnapshot: {
+        priceOptionId: sourceOptionId,
+        priceOptions: [{
+          id: sourceOptionId,
+          label: "Default",
+          unit: "pc",
+          unitCost: 1200,
+          miscCost: 75,
+          currency: "PHP",
+          imageBucket: "project-images",
+          imagePath: `${WORKSPACE_ID}/user/project-images/project/source.webp`,
+          imageMetadata: { assetId: sourceAssetId },
+          isActive: true,
+          isDefault: true,
+        }],
+      },
+      uploadAssets: {
+        [sourceAssetId]: {
+          id: sourceAssetId,
+          workspace_id: WORKSPACE_ID,
+          actor_user_id: USER_ID,
+          project_id: PROJECT_ID,
+          surface: "project-image",
+          target_entity_type: "project",
+          target_entity_id: PROJECT_ID,
+          status: "finalized",
+          file_name: "source.webp",
+          content_type: "image/webp",
+          size_bytes: 4,
+          scan_status: "not_required",
+          scan_override_expires_at: null,
+          storage_bucket: "project-images",
+          storage_path: `${WORKSPACE_ID}/user/project-images/project/source.webp`,
+          thumbnail_path: null,
+          metadata_json: "{}",
+        },
+      },
+    });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    const result = await promoteEstimateRowToLibraryComponent({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      expectedRowRevision: 2,
+      rowId: ROW_ID,
+      mutationId: "16161616-1616-4616-8616-161616161616",
+    });
+
+    expect(result).toMatchObject({
+      itemId: winner.item_id,
+      activePriceOptionId: winner.active_price_option_id,
+      rowRevision: 3,
+      idempotent: true,
+    });
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    expect(database.statements.some((statement) => statement.sql.includes("INSERT INTO mass_deletion_events"))).toBe(true);
+    expect(database.statements.some((statement) => (
+      statement.sql.includes("UPDATE mass_deletion_events")
+      && statement.values[0] === "storage_cleanup_completed"
+    ))).toBe(true);
+    expect(storageMocks.removeObjects).toHaveBeenCalledWith(
+      "component-images",
+      expect.arrayContaining([expect.any(String)]),
+    );
+  });
+
   it("is feature-flag gated before D1 access", async () => {
     process.env.EXPRESS_COMPONENT_PROMOTION_ENABLED = "false";
     d1Mocks.getCloudflareD1Database.mockResolvedValue(makePromotionD1Database());
 
     const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
-    await expect(promoteEstimateRowToLibraryComponent({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID })).rejects.toThrow(/disabled/i);
+    await expect(promoteEstimateRowToLibraryComponent({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      expectedRowRevision: 2,
+      rowId: ROW_ID,
+    })).rejects.toThrow(/disabled/i);
     expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetVirtualBranchList } from "@/components/workshop/estimate-sheet/rows/virtual-branch-list";
+import { createEditableRowStore, EditableRowStoreContext } from "@/components/workshop/estimate-sheet/rows/editable-row-store";
 import { EstimateSheetExpansionContext } from "@/components/workshop/estimate-sheet/rows/expansion";
 import type { EditableRowValue } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
@@ -32,32 +33,36 @@ describe("estimate branch virtualization", () => {
     function Harness() {
       const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
       const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>({});
+      const [branchTree] = useState(() => makeBranchTree(120));
+      const [editableRowStore] = useState(() => createEditableRowStore({}, [branchTree]));
       return (
-        <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
-          <EstimateSheetVirtualBranchList
-            node={makeBranchTree(120)}
-            nodeCode="01"
-            ancestorPath={[]}
-            editableRows={editableRows}
-            setEditableRows={setEditableRows}
-            onInsertLibraryItem={noop}
-            onInsertTemplates={noop}
-            onInsertTemplateNode={noop}
-            onAddBlankRow={noop}
-            onReplaceRowItem={noop}
-            onDeleteRowItem={noop}
-            onUpdateRowItem={noop}
-            onMarkRowDirty={noop}
-            onOpenRowDetails={noop}
-            onClearRowComponent={noop}
-            onRequestProjectSpecific={noop}
-            onMoveRowComponent={noop}
-            selectedRowIds={new Set()}
-            onToggleRowSelection={noop}
-            onToggleRowsSelection={noop}
-            virtualization={{ enabled: true, minSections: 1, estimateSectionHeight: 96, overscan: 2 }}
-          />
-        </EstimateSheetExpansionContext.Provider>
+        <EditableRowStoreContext.Provider value={editableRowStore}>
+          <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
+            <EstimateSheetVirtualBranchList
+              node={branchTree}
+              nodeCode="01"
+              ancestorPath={[]}
+              editableRows={editableRows}
+              setEditableRows={setEditableRows}
+              onInsertLibraryItem={noop}
+              onInsertTemplates={noop}
+              onInsertTemplateNode={noop}
+              onAddBlankRow={noop}
+              onReplaceRowItem={noop}
+              onDeleteRowItem={noop}
+              onUpdateRowItem={noop}
+              onMarkRowDirty={noop}
+              onOpenRowDetails={noop}
+              onClearRowComponent={noop}
+              onRequestProjectSpecific={noop}
+              onMoveRowComponent={noop}
+              selectedRowIds={new Set()}
+              onToggleRowSelection={noop}
+              onToggleRowsSelection={noop}
+              virtualization={{ enabled: true, minSections: 1, estimateSectionHeight: 96, overscan: 2 }}
+            />
+          </EstimateSheetExpansionContext.Provider>
+        </EditableRowStoreContext.Provider>
       );
     }
 

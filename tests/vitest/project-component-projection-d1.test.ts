@@ -59,6 +59,32 @@ class FakeD1Statement {
 
   async all() {
     if (this.sql.includes("FROM estimate_row_items row_items")) {
+      const identities = this.database.projectComponentIdentities();
+      if (this.sql.includes("COUNT(*) AS count") && this.sql.includes("grouped_components")) {
+        return { results: [{ count: identities.length }] };
+      }
+      if (this.sql.includes("SELECT component_id, MAX(component_row_created_at) AS component_created_at")) {
+        const cursorId = this.sql.includes("HAVING MAX(component_row_created_at)")
+          ? String(this.values.at(-2))
+          : null;
+        const visibleIdentities = cursorId
+          ? identities.filter((identity) => identity.component_id > cursorId)
+          : identities;
+        return { results: visibleIdentities.slice(0, Number(this.values.at(-1))) };
+      }
+      if (this.sql.includes("ORDER BY row_items.updated_at DESC") && this.sql.includes(" IN (")) {
+        const selectedIds = new Set(this.values.slice(4).map(String));
+        return {
+          results: this.database.rowItems.filter((value) => {
+            if (!value || typeof value !== "object") return false;
+            const row = value as Record<string, unknown>;
+            const metadata = typeof row.metadata_json === "string"
+              ? JSON.parse(row.metadata_json) as { expressComponent?: { id?: string } }
+              : {};
+            return selectedIds.has(metadata.expressComponent?.id ?? String(row.id));
+          }),
+        };
+      }
       return { results: this.database.rowItems };
     }
     throw new Error(`Unexpected D1 all query: ${this.sql}`);
@@ -76,12 +102,71 @@ class FakeProjectComponentProjectionD1Database {
   prepare(sql: string) {
     return new FakeD1Statement(this, sql);
   }
+
+  projectComponentIdentities() {
+    const latestByComponentId = new Map<string, string>();
+    for (const value of this.rowItems) {
+      if (!value || typeof value !== "object") continue;
+      const row = value as Record<string, unknown>;
+      const metadata = typeof row.metadata_json === "string"
+        ? JSON.parse(row.metadata_json) as { expressComponent?: { id?: string } }
+        : {};
+      const componentId = metadata.expressComponent?.id ?? String(row.id);
+      const createdAt = String(row.created_at ?? "1970-01-01T00:00:00.000Z");
+      const current = latestByComponentId.get(componentId);
+      if (!current || createdAt > current) latestByComponentId.set(componentId, createdAt);
+    }
+    return [...latestByComponentId.entries()]
+      .map(([component_id, component_created_at]) => ({ component_id, component_created_at }))
+      .sort((left, right) =>
+        right.component_created_at.localeCompare(left.component_created_at)
+        || left.component_id.localeCompare(right.component_id),
+      );
+  }
 }
 
 function findPrepared(database: FakeProjectComponentProjectionD1Database, pattern: RegExp) {
   const statement = database.prepared.find((entry) => pattern.test(entry.sql));
   if (!statement) throw new Error(`No prepared D1 statement matched ${pattern}`);
   return statement;
+}
+
+function projectComponentId(index: number) {
+  return `project-component-${String(index).padStart(3, "0")}`;
+}
+
+function projectComponentRow(index: number) {
+  const id = projectComponentId(index);
+  return {
+    id: `row-${String(index).padStart(3, "0")}`,
+    material: `Project component ${index}`,
+    description: "Project-only catalogue fixture",
+    supplier: "Project supplier",
+    supplier_id: null,
+    unit: "piece",
+    unit_cost: index,
+    quantity: 1,
+    quantity_base: null,
+    quantity_contingency_amount: null,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
+    misc_cost: 0,
+    row_revision: 1,
+    category_node_id: null,
+    discipline: "Unspecified",
+    designation: "",
+    source_library_item_id: null,
+    link_state: "unlinked",
+    source_snapshot_json: "{}",
+    metadata_json: JSON.stringify(withExpressComponentMetadata({}, { id })),
+    created_at: "2026-07-15T00:00:00.000Z",
+    updated_at: "2026-07-15T00:00:00.000Z",
+    node_id: "node-1",
+    node_name: "Ground Floor",
+    estimate_id: "estimate-1",
+    estimate_name: "ES-001",
+    estimate_project_id: "project-1",
+  };
 }
 
 beforeEach(() => {
@@ -256,5 +341,81 @@ describe("project component projection D1 repository", () => {
       },
     });
     expect(result.libraryItems.filter((item) => item.source === "project")).toHaveLength(1);
+  });
+
+  it("pages all project components beyond the legacy raw-row cap with a frozen keyset total", async () => {
+    const database = new FakeProjectComponentProjectionD1Database();
+    database.rowItems = Array.from({ length: 105 }, (_, index) => projectComponentRow(index + 1));
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const {
+      PROJECT_COMPONENT_ROWS_PAGE_SIZE,
+      getProjectOnlyComponentRowsLibraryPage,
+    } = await import("@/lib/component-library/project-component-projection");
+    const firstPage = await getProjectOnlyComponentRowsLibraryPage("project-1");
+    if (!firstPage.nextCursor) throw new Error("Expected the first project component page to continue");
+    const secondPage = await getProjectOnlyComponentRowsLibraryPage("project-1", firstPage.nextCursor);
+    if (!secondPage.nextCursor) throw new Error("Expected the second project component page to continue");
+    const thirdPage = await getProjectOnlyComponentRowsLibraryPage("project-1", secondPage.nextCursor);
+
+    expect(PROJECT_COMPONENT_ROWS_PAGE_SIZE).toBe(50);
+    expect(firstPage).toMatchObject({
+      isPartial: true,
+      loadedComponentCount: 50,
+      totalComponentCount: 105,
+      hasMore: true,
+      nextCursor: {
+        createdAt: "2026-07-15T00:00:00.000Z",
+        id: projectComponentId(50),
+        snapshotTotalCount: 105,
+      },
+    });
+    expect(secondPage).toMatchObject({
+      isPartial: true,
+      loadedComponentCount: 50,
+      totalComponentCount: 105,
+      hasMore: true,
+      nextCursor: {
+        createdAt: "2026-07-15T00:00:00.000Z",
+        id: projectComponentId(100),
+        snapshotAt: firstPage.nextCursor.snapshotAt,
+        snapshotTotalCount: 105,
+      },
+    });
+    expect(thirdPage).toMatchObject({
+      isPartial: false,
+      loadedComponentCount: 5,
+      totalComponentCount: 105,
+      hasMore: false,
+      nextCursor: null,
+    });
+    expect([
+      ...firstPage.libraryItems,
+      ...secondPage.libraryItems,
+      ...thirdPage.libraryItems,
+    ].map((item) => item.id)).toEqual(
+      Array.from({ length: 105 }, (_, index) => projectComponentId(index + 1)),
+    );
+    expect(componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary).toHaveBeenCalledTimes(3);
+    expect(componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary).toHaveBeenCalledWith({
+      includeDetailGraph: false,
+      itemIds: [],
+    });
+
+    const identityQueries = database.prepared.filter((statement) =>
+      statement.sql.includes("SELECT component_id, MAX(component_row_created_at) AS component_created_at"),
+    );
+    const countQueries = database.prepared.filter((statement) =>
+      statement.sql.includes("COUNT(*) AS count") && statement.sql.includes("grouped_components"),
+    );
+    const detailQueries = database.prepared.filter((statement) =>
+      statement.sql.includes("ORDER BY row_items.updated_at DESC") && statement.sql.includes(" IN ("),
+    );
+    expect(identityQueries).toHaveLength(3);
+    expect(identityQueries.every((statement) => statement.values.at(-1) === 51)).toBe(true);
+    expect(identityQueries.every((statement) => !statement.sql.includes("OFFSET"))).toBe(true);
+    expect(countQueries).toHaveLength(1);
+    expect(detailQueries).toHaveLength(3);
+    expect(detailQueries.every((statement) => !statement.sql.includes("LIMIT"))).toBe(true);
   });
 });

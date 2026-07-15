@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 import { EstimateMaterialCell } from "@/components/workshop/estimate-sheet/rows/cells";
-import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
 import { withExpressComponentMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 afterEach(() => {
   vi.unstubAllGlobals();

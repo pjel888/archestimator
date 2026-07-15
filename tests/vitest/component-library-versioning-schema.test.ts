@@ -123,7 +123,7 @@ describe("component library item versioning schema", () => {
     expect(d1ActionSupportMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_versions");
   });
 
-  it("adds D1 component drafts for the Add Component close-warning save path", () => {
+  it("keeps the D1 draft schema without advertising an unrecoverable Add Component save path", () => {
     expect(d1ComponentDraftsMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_component_drafts");
     expect(d1ComponentDraftsMigration).toContain("workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE");
     expect(d1ComponentDraftsMigration).toContain("draft_json TEXT NOT NULL DEFAULT '{}'");
@@ -146,8 +146,9 @@ describe("component library item versioning schema", () => {
     expect(actions).toContain("readComponentDraftJson(input.draft)");
     expect(actions).toContain("cost_library_component_drafts");
     expect(actions).toContain("INSERT INTO cost_library_component_drafts");
-    expect(addModal).toContain("Save component draft?");
-    expect(addModal).toContain("saveCostLibraryComponentDraft");
+    expect(addModal).toContain("Discard unsaved component?");
+    expect(addModal).not.toContain("saveCostLibraryComponentDraft");
+    expect(addModal).not.toContain("Save to drafts");
   });
 
   it("extends price options into component variants without replacing component identity", () => {

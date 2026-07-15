@@ -23,6 +23,19 @@ type FakeEstimateRow = {
   project_id: string;
 };
 
+type FakeTabRow = {
+  id: string;
+  estimate_id: string;
+  name: string;
+  sort_order: number;
+  is_default: number | boolean;
+  metadata?: string | null;
+  archived_at: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type FakeNodeRow = {
   id: string;
   estimate_id: string;
@@ -31,6 +44,16 @@ type FakeNodeRow = {
   kind?: string;
   name?: string;
   sort_order: number;
+  metadata_json?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type FakeMutationReceipt = {
+  actor_user_id: string;
+  request_fingerprint: string;
+  result_json: string;
+  status: "committed";
 };
 
 type FakeHistoryEvent = {
@@ -236,6 +259,15 @@ class FakeD1Statement<T = Record<string, unknown>> {
   async first<R = T>(): Promise<R | null> {
     this.database.firstStatements.push(this);
 
+    if (this.sql.includes("FROM estimate_mutation_receipts")) {
+      const receipt = this.database.mutationReceipts.get(this.database.mutationReceiptKey(
+        String(this.values[0] ?? ""),
+        String(this.values[1] ?? ""),
+        String(this.values[2] ?? ""),
+      ));
+      return receipt ? ({ ...receipt } as R) : null;
+    }
+
     if (this.sql.includes("SELECT 1 AS allowed") && this.sql.includes("FROM estimates estimate")) {
       const estimateId = String(this.values[0] ?? "");
       const estimate = this.database.estimates.get(estimateId);
@@ -285,6 +317,21 @@ class FakeD1Statement<T = Record<string, unknown>> {
         : null;
     }
 
+    if (this.sql.includes("SELECT *") && this.sql.includes("FROM estimate_tabs")) {
+      const estimateId = String(this.values[0] ?? "");
+      const tabId = String(this.values[1] ?? "");
+      const tab = this.database.tabs.get(tabId);
+      return tab && tab.estimate_id === estimateId ? ({ ...tab } as R) : null;
+    }
+
+    if (this.sql.includes("SELECT MAX(sort_order) AS max_sort_order FROM estimate_tabs")) {
+      const estimateId = String(this.values[0] ?? "");
+      const sortOrders = [...this.database.tabs.values()]
+        .filter((tab) => tab.estimate_id === estimateId)
+        .map((tab) => tab.sort_order);
+      return ({ max_sort_order: sortOrders.length > 0 ? Math.max(...sortOrders) : null } as R);
+    }
+
     if (this.sql.includes("SELECT id, workspace_id") && this.sql.includes("FROM projects")) {
       const projectId = String(this.values[0] ?? "");
       const project = this.database.projects.get(projectId);
@@ -315,6 +362,23 @@ class FakeD1Statement<T = Record<string, unknown>> {
 
   async all<R = T>(): Promise<D1Result<R>> {
     this.database.allStatements.push(this);
+    if (this.sql.includes("FROM estimate_tabs") && this.sql.includes("id IN (")) {
+      const estimateId = String(this.values[0] ?? "");
+      const ids = new Set(this.values.slice(1).map(String));
+      const results = [...this.database.tabs.values()]
+        .filter((tab) => tab.estimate_id === estimateId && ids.has(tab.id))
+        .map((tab) => ({ ...tab })) as R[];
+      return { results, success: true };
+    }
+    if (this.sql.includes("SELECT * FROM estimate_nodes") && this.sql.includes("estimate_tab_id = ?")) {
+      const estimateId = String(this.values[0] ?? "");
+      const tabId = String(this.values[1] ?? "");
+      const results = [...this.database.nodes.values()]
+        .filter((node) => node.estimate_id === estimateId && node.estimate_tab_id === tabId)
+        .sort((left, right) => left.sort_order - right.sort_order || left.id.localeCompare(right.id))
+        .map((node) => ({ ...node })) as R[];
+      return { results, success: true };
+    }
     if (this.sql.includes("row_item.id AS row_id") && this.sql.includes("project.id = ?")) {
       const projectId = String(this.values[0] ?? "");
       const sourceRowId = String(this.values[1] ?? "");
@@ -401,6 +465,24 @@ class FakeD1Statement<T = Record<string, unknown>> {
   }
 
   applyMutation(): D1Result<T> {
+    if (this.sql.includes("INSERT INTO estimate_mutation_receipts")) {
+      const [
+        , workspaceId, commandKind, intentId, actorUserId,
+        , , requestFingerprint, resultJson,
+      ] = this.values;
+      this.database.mutationReceipts.set(this.database.mutationReceiptKey(
+        String(workspaceId),
+        String(commandKind),
+        String(intentId),
+      ), {
+        actor_user_id: String(actorUserId),
+        request_fingerprint: String(requestFingerprint),
+        result_json: String(resultJson),
+        status: "committed",
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (this.sql.includes("INSERT INTO estimate_sheet_events")) {
       const [
         id,
@@ -436,6 +518,24 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (this.sql.startsWith("INSERT INTO estimate_tabs")) {
+      const columns = this.sql.slice(this.sql.indexOf("(") + 1, this.sql.indexOf(")")).split(",").map((column) => column.trim());
+      const record = Object.fromEntries(columns.map((column, index) => [column, this.values[index]]));
+      this.database.tabs.set(String(record.id), {
+        id: String(record.id),
+        estimate_id: String(record.estimate_id),
+        name: String(record.name),
+        sort_order: Number(record.sort_order),
+        is_default: Boolean(record.is_default),
+        metadata: record.metadata === null ? null : String(record.metadata),
+        archived_at: null,
+        created_by: record.created_by === null ? null : String(record.created_by),
+        created_at: String(record.created_at),
+        updated_at: String(record.updated_at),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (this.sql.startsWith("DELETE FROM estimate_row_items")) {
       const estimateId = String(this.values[0] ?? "");
       const nodeIds = new Set(this.values.slice(1).map(String));
@@ -465,7 +565,12 @@ class FakeD1Statement<T = Record<string, unknown>> {
           estimate_id: String(record.estimate_id),
           estimate_tab_id: record.estimate_tab_id === null ? null : String(record.estimate_tab_id),
           parent_id: record.parent_id === null ? null : String(record.parent_id),
+          kind: record.kind === undefined ? undefined : String(record.kind),
+          name: record.name === undefined ? undefined : String(record.name),
           sort_order: Number(record.sort_order),
+          metadata_json: record.metadata_json === null || record.metadata_json === undefined ? null : String(record.metadata_json),
+          created_at: record.created_at === undefined ? undefined : String(record.created_at),
+          updated_at: record.updated_at === undefined ? undefined : String(record.updated_at),
         });
       }
       return { success: true, meta: { changes: rowCount } };
@@ -569,6 +674,20 @@ class FakeD1Database implements D1DatabaseLike {
   estimates = new Map<string, FakeEstimateRow>([
     [ESTIMATE_ID, { id: ESTIMATE_ID, project_id: PROJECT_ID }],
   ]);
+  tabs = new Map<string, FakeTabRow>([
+    ["tab-a", {
+      id: "tab-a",
+      estimate_id: ESTIMATE_ID,
+      name: "Page 001",
+      sort_order: 0,
+      is_default: 1,
+      metadata: "{}",
+      archived_at: null,
+      created_by: USER_ID,
+      created_at: "2026-07-06T00:00:00.000Z",
+      updated_at: "2026-07-06T00:00:00.000Z",
+    }],
+  ]);
   nodes = new Map<string, FakeNodeRow>([
     [NODE_ID, { id: NODE_ID, estimate_id: ESTIMATE_ID, parent_id: "old-parent", sort_order: 10 }],
   ]);
@@ -576,6 +695,39 @@ class FakeD1Database implements D1DatabaseLike {
   componentAttachments = new Map<string, FakeComponentAttachment>();
   uploadAssets = new Map<string, FakeUploadAsset>();
   historyEvents: FakeHistoryEvent[] = [];
+  mutationReceipts = new Map<string, FakeMutationReceipt>();
+  beforeNextBatch: (() => void) | null = null;
+
+  mutationReceiptKey(workspaceId: string, commandKind: string, intentId: string) {
+    return `${workspaceId}:${commandKind}:${intentId}`;
+  }
+
+  duplicateSourceGuardPasses(statement: FakeD1Statement) {
+    const values = statement.values;
+    const estimateId = String(values[0] ?? "");
+    const sourceTabId = String(values[1] ?? "");
+    const tab = this.tabs.get(sourceTabId);
+    const nodes = [...this.nodes.values()].filter((node) => (
+      node.estimate_id === estimateId && node.estimate_tab_id === sourceTabId
+    ));
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    const rows = [...this.rowItems.values()].filter((row) => (
+      row.estimate_id === estimateId && nodeIds.has(String(row.node_id ?? ""))
+    ));
+    const maxNodeUpdatedAt = nodes.reduce((latest, node) => String(node.updated_at ?? "") > latest ? String(node.updated_at ?? "") : latest, "");
+    const maxRowUpdatedAt = rows.reduce((latest, row) => String(row.updated_at ?? "") > latest ? String(row.updated_at ?? "") : latest, "");
+    const rowRevisionTotal = rows.reduce((total, row) => total + Number(row.row_revision ?? 1), 0);
+    const tabSortOrders = [...this.tabs.values()].filter((candidate) => candidate.estimate_id === estimateId).map((candidate) => candidate.sort_order);
+    const maxTabSortOrder = tabSortOrders.length > 0 ? Math.max(...tabSortOrders) : -1000;
+    return tab?.estimate_id === estimateId
+      && tab.updated_at === values[2]
+      && nodes.length === Number(values[5])
+      && maxNodeUpdatedAt === values[8]
+      && rows.length === Number(values[11])
+      && maxRowUpdatedAt === values[14]
+      && rowRevisionTotal === Number(values[17])
+      && maxTabSortOrder === Number(values[19]);
+  }
 
   prepare<T = Record<string, unknown>>(sql: string) {
     return new FakeD1Statement<T>(this, sql);
@@ -584,8 +736,81 @@ class FakeD1Database implements D1DatabaseLike {
   async batch<T = Record<string, unknown>>(statements: Array<D1PreparedStatementLike<T>>): Promise<Array<D1Result<T>>> {
     const fakeStatements = statements as Array<FakeD1Statement<T>>;
     this.batchStatements.push(...fakeStatements);
+    const beforeBatch = this.beforeNextBatch;
+    this.beforeNextBatch = null;
+    beforeBatch?.();
+    const failedSourceGuard = fakeStatements.find((statement) => (
+      statement.sql.includes("estimate_tab_duplicate_source_guard")
+      && !this.duplicateSourceGuardPasses(statement as FakeD1Statement)
+    ));
+    if (failedSourceGuard) return fakeStatements.map(() => ({ success: false }));
     return fakeStatements.map((statement) => statement.applyMutation());
   }
+}
+
+function seedDeepSourceTab(database: FakeD1Database) {
+  const sourceTimestamp = "2026-07-01T00:00:00.000Z";
+  database.tabs.set("tab-source", {
+    id: "tab-source",
+    estimate_id: ESTIMATE_ID,
+    name: "Irregular Source",
+    sort_order: 1000,
+    is_default: 0,
+    metadata: JSON.stringify({ paper: "A3" }),
+    archived_at: null,
+    created_by: USER_ID,
+    created_at: sourceTimestamp,
+    updated_at: sourceTimestamp,
+  });
+  database.nodes = new Map<string, FakeNodeRow>([
+    ["a-child", { id: "a-child", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-source", parent_id: "root-a", kind: "area", name: "A Child", sort_order: 500, metadata_json: "{}", created_at: sourceTimestamp, updated_at: sourceTimestamp }],
+    ["root-b", { id: "root-b", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-source", parent_id: null, kind: "area", name: "Root B", sort_order: 1000, metadata_json: "{}", created_at: sourceTimestamp, updated_at: sourceTimestamp }],
+    ["a-grandchild", { id: "a-grandchild", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-source", parent_id: "a-child", kind: "area", name: "A Grandchild", sort_order: 250, metadata_json: "{}", created_at: sourceTimestamp, updated_at: sourceTimestamp }],
+    ["root-a", { id: "root-a", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-source", parent_id: null, kind: "area", name: "Root A", sort_order: 2000, metadata_json: "{}", created_at: sourceTimestamp, updated_at: sourceTimestamp }],
+    ["b-child", { id: "b-child", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-source", parent_id: "root-b", kind: "area", name: "B Child", sort_order: 2000, metadata_json: "{}", created_at: sourceTimestamp, updated_at: sourceTimestamp }],
+  ]);
+  database.rowItems = new Map<string, FakeRowItem>([
+    ["row-root-a", makeDuplicateSourceRow("row-root-a", "root-a", "Root A material", 2000, 9, sourceTimestamp)],
+    ["row-a-grandchild", makeDuplicateSourceRow("row-a-grandchild", "a-grandchild", "Grandchild material", 1000, 4, sourceTimestamp)],
+    ["row-b-child", makeDuplicateSourceRow("row-b-child", "b-child", "B child material", 500, 2, sourceTimestamp)],
+  ]);
+}
+
+function makeDuplicateSourceRow(
+  id: string,
+  nodeId: string,
+  material: string,
+  sortOrder: number,
+  rowRevision: number,
+  timestamp: string,
+) {
+  return {
+    id,
+    estimate_id: ESTIMATE_ID,
+    node_id: nodeId,
+    material,
+    description: `${material} description`,
+    designation: null,
+    discipline: null,
+    supplier: "Source supplier",
+    supplier_id: null,
+    unit: "unit",
+    quantity: 2,
+    quantity_base: null,
+    quantity_contingency_amount: null,
+    unit_cost: 125,
+    misc_cost: 5,
+    contingency_percentage: 3,
+    adjustment_percentage: 0,
+    source_snapshot_json: JSON.stringify({ sourceType: "express_component", sourceEstimateRowId: id }),
+    metadata_json: JSON.stringify({ sourceRow: id }),
+    source_library_item_id: null,
+    link_state: "unlinked",
+    sort_order: sortOrder,
+    row_revision: rowRevision,
+    created_at: timestamp,
+    updated_at: timestamp,
+  } satisfies FakeRowItem;
 }
 
 describe("EstimateActionsD1Client reorder history", () => {
@@ -1756,5 +1981,112 @@ describe("EstimateActionsD1Client reorder history", () => {
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Estimate history event workspace could not be resolved.");
     expect(database.historyEvents).toEqual([]);
+  });
+
+  it("duplicates a deep irregular tab with fresh identities and replays one committed receipt", async () => {
+    const database = new FakeD1Database();
+    seedDeepSourceTab(database);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+    const args = {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      source_tab_id: "tab-source",
+      next_name: "Irregular Copy",
+      acting_user_id: USER_ID,
+      correlation_id: "duplicate-tab-intent-1",
+    };
+
+    const firstResult = await client.call<{
+      estimateTabId: string;
+      sourceFingerprint: string;
+      copiedNodeCount: number;
+      copiedRowCount: number;
+      eventId: string;
+    }>("duplicate_estimate_tab_with_history", args);
+
+    expect(firstResult.error).toBeNull();
+    expect(firstResult.data).toMatchObject({ copiedNodeCount: 5, copiedRowCount: 3 });
+    expect(firstResult.data?.sourceFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    const copiedTabId = firstResult.data!.estimateTabId;
+    const copiedTab = database.tabs.get(copiedTabId);
+    expect(copiedTab).toMatchObject({ name: "Irregular Copy", sort_order: 2000, is_default: false });
+
+    const copiedNodes = [...database.nodes.values()].filter((node) => node.estimate_tab_id === copiedTabId);
+    const copiedByName = new Map(copiedNodes.map((node) => [node.name, node]));
+    expect(copiedNodes).toHaveLength(5);
+    expect(copiedByName.get("A Child")?.parent_id).toBe(copiedByName.get("Root A")?.id);
+    expect(copiedByName.get("A Grandchild")?.parent_id).toBe(copiedByName.get("A Child")?.id);
+    expect(copiedByName.get("B Child")?.parent_id).toBe(copiedByName.get("Root B")?.id);
+    expect(copiedNodes.every((node) => !["a-child", "a-grandchild", "b-child", "root-a", "root-b"].includes(node.id))).toBe(true);
+
+    const copiedRows = [...database.rowItems.values()].filter((row) => (
+      copiedNodes.some((node) => node.id === row.node_id)
+    ));
+    expect(copiedRows).toHaveLength(3);
+    expect(copiedRows.every((row) => row.row_revision === 1)).toBe(true);
+    expect(copiedRows.every((row) => row.created_at === row.updated_at && row.created_at !== "2026-07-01T00:00:00.000Z")).toBe(true);
+    expect(copiedRows.map((row) => readJsonRecord(row.source_snapshot_json))).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceEstimateRowId: "row-root-a" }),
+      expect.objectContaining({ sourceEstimateRowId: "row-a-grandchild" }),
+      expect.objectContaining({ sourceEstimateRowId: "row-b-child" }),
+    ]));
+    expect(database.historyEvents).toHaveLength(1);
+    expect(database.mutationReceipts.size).toBe(1);
+    const batchStatementCount = database.batchStatements.length;
+
+    const replayResult = await client.call<typeof firstResult.data>("duplicate_estimate_tab_with_history", args);
+
+    expect(replayResult).toEqual(firstResult);
+    expect(database.tabs.size).toBe(3);
+    expect(database.historyEvents).toHaveLength(1);
+    expect(database.mutationReceipts.size).toBe(1);
+    expect(database.batchStatements).toHaveLength(batchStatementCount);
+  });
+
+  it("rejects source drift atomically before a duplicated tab is written", async () => {
+    const database = new FakeD1Database();
+    seedDeepSourceTab(database);
+    database.beforeNextBatch = () => {
+      const sourceRow = database.rowItems.get("row-root-a");
+      if (sourceRow) sourceRow.updated_at = "2026-07-15T00:00:00.000Z";
+    };
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("duplicate_estimate_tab_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      source_tab_id: "tab-source",
+      acting_user_id: USER_ID,
+      correlation_id: "duplicate-tab-source-race",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe("Cloudflare D1 estimate action batch failed.");
+    expect(database.tabs.size).toBe(2);
+    expect(database.nodes.size).toBe(5);
+    expect(database.rowItems.size).toBe(3);
+    expect(database.historyEvents).toHaveLength(0);
+    expect(database.mutationReceipts.size).toBe(0);
+  });
+
+  it("rejects a copied tab whose parent graph escapes the source tab", async () => {
+    const database = new FakeD1Database();
+    seedDeepSourceTab(database);
+    database.nodes.get("a-child")!.parent_id = "outside-tab";
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("duplicate_estimate_tab_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      source_tab_id: "tab-source",
+      acting_user_id: USER_ID,
+      correlation_id: "duplicate-tab-invalid-parent",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe("Estimate tab contains a node whose parent is outside the source tab.");
+    expect(database.batchStatements).toHaveLength(0);
+    expect(database.historyEvents).toHaveLength(0);
+    expect(database.mutationReceipts.size).toBe(0);
   });
 });

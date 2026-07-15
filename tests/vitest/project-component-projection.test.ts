@@ -9,7 +9,9 @@ import {
   projectEstimateRowToLibraryItem,
   type ProjectComponentProjectionRow,
 } from "@/lib/component-library/project-component-projection";
+import { toProjectOnlyComponentRowsLibrary } from "@/lib/component-library/project-component-dataset";
 import { readProjectComponentProjectionMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import type { ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 
 const estimateRowImageAsset = {
   kind: "upload-asset",
@@ -179,25 +181,88 @@ describe("project component projection", () => {
     })).toMatchObject({ projectId: "project-1", classification: "express" });
   });
 
-  it("keeps projection support while the project Components route stays deleted", () => {
+  it("filters the composed picker dataset to the selected project's owned projections", () => {
+    const projectOneItem = projectEstimateRowToLibraryItem(row(), "project-1", "Casa Miguel");
+    const projectTwoItem = projectEstimateRowToLibraryItem(row({
+      id: "row-2",
+      metadata: withExpressComponentMetadata({}, { id: "express-row-2" }),
+      estimate_nodes: {
+        id: "node-2",
+        name: "Lobby",
+        estimates: { id: "estimate-2", name: "Lobby works", project_id: "project-2" },
+      },
+    }), "project-2", "North Studio");
+    if (!projectOneItem || !projectTwoItem) throw new Error("Project projection fixture failed");
+
+    const projectOneRoot = getProjectComponentsFolderId("project-1");
+    const projectOneEstimate = getProjectEstimateComponentsFolderId("project-1", "estimate-1");
+    const projectTwoRoot = getProjectComponentsFolderId("project-2");
+    const dataset = {
+      workspaceId: "workspace-1",
+      categoryTree: [],
+      suppliers: [],
+      brands: [],
+      libraryFolders: [
+        { id: projectOneRoot },
+        { id: projectOneEstimate },
+        { id: projectTwoRoot },
+        { id: "shared-library-folder" },
+      ],
+      libraryItems: [
+        projectOneItem,
+        projectTwoItem,
+        { id: "shared-row", source: "library", libraryFolderId: "shared-library-folder" },
+        {
+          ...projectTwoItem,
+          id: "spoofed-project-row",
+          libraryFolderId: projectOneEstimate,
+        },
+      ],
+      isPartial: true,
+      loadedComponentCount: 4,
+      totalComponentCount: 4,
+    } as unknown as ComponentRowsLibraryDataset;
+
+    const filtered = toProjectOnlyComponentRowsLibrary(dataset, "project-1");
+
+    expect(filtered.libraryItems.map((item) => item.id)).toEqual([projectOneItem.id]);
+    expect(filtered.libraryFolders.map((folder) => folder.id)).toEqual([projectOneRoot, projectOneEstimate]);
+    expect(filtered).toMatchObject({
+      isPartial: false,
+      loadedComponentCount: 1,
+      totalComponentCount: 1,
+    });
+  });
+
+  it("keeps the dedicated project route deleted while the workspace source tab loads project-only projections", () => {
     const projectRoutePath = join(process.cwd(), "src/app/workshop/projects/[projectId]/components/page.tsx");
     const sidebar = readFileSync(join(process.cwd(), "src/components/workshop/ProjectMiniSidebar.tsx"), "utf8");
     const estimateSidebar = readFileSync(join(process.cwd(), "src/components/workshop/component-library/index.tsx"), "utf8");
     const workspaceRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/components/page.tsx"), "utf8");
+    const libraryRoute = readFileSync(join(process.cwd(), "src/components/workshop/library/LibraryComponentsRoute.tsx"), "utf8");
     const libraryPage = readFileSync(join(process.cwd(), "src/components/workshop/LibraryPageClient.tsx"), "utf8");
+    const libraryActions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
     const projection = readFileSync(join(process.cwd(), "src/lib/component-library/project-component-projection.ts"), "utf8");
 
     expect(existsSync(projectRoutePath)).toBe(false);
     expect(workspaceRoute).not.toContain("getProjectComponentRowsLibrary");
-    expect(libraryPage).toContain("projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary()");
+    expect(libraryRoute).toContain("getProjectOnlyComponentRowsLibraryPage(selectedProject.project.id)");
+    expect(libraryRoute).not.toContain("toProjectOnlyComponentRowsLibrary");
+    expect(libraryRoute).toContain("canManageLibrary && isExpressComponentPromotionEnabled()");
+    expect(libraryPage).toContain("loadProjectOnlyComponentRowsLibrary(projectId)");
+    expect(libraryPage).toContain("loadProjectOnlyComponentRowsLibrary(projectId, componentRowsPage.nextCursor)");
+    expect(libraryPage).toContain("loadProjectComponentRowsLibrary(projectId)");
+    expect(libraryActions).toContain("getProjectOnlyComponentRowsLibraryPage(projectId, cursor)");
     expect(projection).toContain("if (!project) return fallbackComponentRowsLibraryDataset");
     expect(projection).toContain("options: ProjectComponentRowsLibraryOptions = {}");
     expect(projection).toContain("includeDetailGraph: options.includeDetailGraph");
     expect(projection).toContain("itemLimit: options.itemLimit");
     expect(projection).toContain("projectRowLimit?: number");
+    expect(projection).toContain("export const PROJECT_COMPONENT_ROWS_PAGE_SIZE = 50");
+    expect(projection).toContain("export async function getProjectOnlyComponentRowsLibraryPage(");
     expect(projection).toContain("getCloudflareD1Database");
     expect(projection).toContain("FROM estimate_row_items row_items");
-    expect(projection).toContain("WHERE estimates.project_id = ?");
+    expect(projection).toContain("estimates.project_id = ?");
     expect(projection).not.toMatch(/createSupabaseServerClient|@\/lib\/supabase/);
     expect(getProjectComponentsFolderId("project-1")).toBe("project-components-project-1");
     expect(getProjectEstimateComponentsFolderId("project-1", "estimate-1")).toBe("project-components-project-1-estimate-estimate-1");

@@ -9,6 +9,7 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
+  findCurrentWorkspaceCostLibraryComponentDuplicate: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
   updateCostLibraryComponentWithPriceOptions: vi.fn(),
 }));
@@ -217,6 +218,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate.mockReset().mockResolvedValue(null);
     actionMocks.createCostLibraryComponent.mockResolvedValue({
       itemId: "component-created",
       activePriceOptionId: "price-created",
@@ -347,7 +349,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Door Stop" } });
     fireEvent.click(screen.getByRole("button", { name: "Close add component modal" }));
 
-    expect(await screen.findByRole("dialog", { name: "Save component draft?" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Discard unsaved component?" })).toBeInTheDocument();
     expect(nativeConfirm).not.toHaveBeenCalled();
     expect(props.onOpenChange).not.toHaveBeenCalledWith(false);
 
@@ -364,7 +366,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Close add component modal" }));
 
     expect(props.onOpenChange).toHaveBeenCalledWith(false);
-    expect(screen.queryByRole("dialog", { name: "Save component draft?" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Discard unsaved component?" })).not.toBeInTheDocument();
   });
 
   it("warns only while a meaningful value remains in the draft", async () => {
@@ -376,7 +378,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.change(name, { target: { value: "   " } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Close add component modal" }));
 
-    expect(screen.queryByRole("dialog", { name: "Save component draft?" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Discard unsaved component?" })).not.toBeInTheDocument();
   });
 
   it("keeps the draft open after a failed create and preserves OpenDesign fields", async () => {
@@ -424,8 +426,8 @@ describe("AddComponentModal OpenDesign field contract", () => {
     await createCatalogueOption(dialog, "Brand", "Saved Brand Line");
 
     fireEvent.click(screen.getByRole("button", { name: "Close add component modal" }));
-    const saveDialog = await screen.findByRole("dialog", { name: "Save component draft?" });
-    fireEvent.click(within(saveDialog).getByRole("button", { name: "Discard draft" }));
+    const discardDialog = await screen.findByRole("dialog", { name: "Discard unsaved component?" });
+    fireEvent.click(within(discardDialog).getByRole("button", { name: "Discard changes" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: "Open add component" }));
@@ -622,17 +624,17 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     expect(within(drawer).getByLabelText("Variant manager")).toBeInTheDocument();
     expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
-    expect(within(drawer).queryByRole("button", { name: "Open Default" })).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole("button", { name: "Open V-1 — Default" })).not.toBeInTheDocument();
     expect(within(drawer).getByRole("button", { name: "Default" })).toBeDisabled();
 
     clickAddVariant(drawer);
 
     expect(within(drawer).getByLabelText("Variant editor")).toBeInTheDocument();
-    expect(within(drawer).getByRole("button", { name: "Open Default" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(drawer).getByRole("button", { name: "Open V-1 — Default" })).toHaveAttribute("aria-pressed", "true");
 
     fireEvent.click(within(drawer).getByRole("button", { name: "Delete variant" }));
 
-    await waitFor(() => expect(within(drawer).queryByRole("button", { name: "Open Default" })).not.toBeInTheDocument());
+    await waitFor(() => expect(within(drawer).queryByRole("button", { name: "Open V-1 — Default" })).not.toBeInTheDocument());
     expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Variant editor")).not.toBeInTheDocument();
     expect(within(drawer).getByRole("button", { name: "Default" })).toBeDisabled();
@@ -720,7 +722,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     const dialog = await getEditDialog();
     const drawer = openVariantManager(dialog);
-    fireEvent.click(within(drawer).getByRole("button", { name: "Open Default" }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Open V-1 — Default" }));
 
     expect(within(drawer).getByRole("link", { name: "Download attachment spec.pdf" })).toHaveAttribute(
       "href",
@@ -741,7 +743,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(within(activityPanel).getByLabelText("Change note")).toBeInTheDocument();
   });
 
-  it("shows a non-blocking duplicate warning after the name blur check", async () => {
+  it("shows a non-blocking duplicate warning as identity fields change without requiring name blur", async () => {
     renderAddModal({ libraryItems: duplicateRows });
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
@@ -750,11 +752,44 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     const name = within(form).getByLabelText("Name");
     fireEvent.change(name, { target: { value: "Door Hinge" } });
-    fireEvent.blur(name);
 
     await screen.findByText('A component named "Door Hinge" already exists.');
     fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
     expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
+  });
+
+  it("uses the workspace-wide server preflight and requires explicit create-anyway acknowledgement", async () => {
+    actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate.mockResolvedValue({
+      itemId: "component-outside-loaded-page",
+      name: "Door Stop",
+      category: "Hardware",
+      supplier: "Acme",
+      brand: null,
+    });
+    renderAddModal({ libraryItems: [] });
+    const dialog = await getAddDialog();
+    fillValidQuickAdd(dialog);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
+
+    await screen.findByText('A component named "Door Stop" already exists.');
+    expect(actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate).toHaveBeenCalledWith({
+      name: "Door Stop",
+      category: "Hardware",
+      supplier: "Acme",
+      brand: null,
+    });
+    expect(actionMocks.createCostLibraryComponent).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create anyway" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
+
+    await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));
+    expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(expect.objectContaining({
+      allowDuplicate: true,
+      intentId: expect.any(String),
+      name: "Door Stop",
+    }));
   });
 
   it("keeps a duplicate acknowledgement when a catalogue input reports its current value", async () => {
@@ -876,11 +911,37 @@ describe("AddComponentModal OpenDesign field contract", () => {
       expect.objectContaining({
         expectedUpdatedAt: "2026-07-13T10:00:00.000Z",
         expectedVersionNumber: 1,
+        intentId: expect.any(String),
       }),
     );
     const updatedItem = onComponentUpdated.mock.calls[0][0] as EstimateRowItem;
     expect(updatedItem.componentVersionNumber).toBe(2);
     expect(updatedItem.updatedAt).toBe("2026-07-13T11:00:00.000Z");
+  });
+
+  it("reuses the retained update intent when an unchanged save is retried", async () => {
+    actionMocks.updateCostLibraryComponentWithPriceOptions.mockRejectedValueOnce(new Error("Connection interrupted."));
+    const onComponentUpdated = vi.fn();
+    renderAddModal({
+      editingItem: makeEditingItem({
+        id: "component-created",
+        source: "library",
+        sourceLibraryItemId: "component-created",
+      }),
+      onComponentUpdated,
+    });
+    const dialog = await getEditDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+    await within(dialog).findByText("Connection interrupted.");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(2);
+    const firstIntentId = actionMocks.updateCostLibraryComponentWithPriceOptions.mock.calls[0]?.[1]?.intentId;
+    const secondIntentId = actionMocks.updateCostLibraryComponentWithPriceOptions.mock.calls[1]?.[1]?.intentId;
+    expect(firstIntentId).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(secondIntentId).toBe(firstIntentId);
   });
 
   it("persists a newly added Library variant through save and reopen", async () => {
@@ -965,7 +1026,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     renderAddModal({ editingItem: persistedItem, onComponentUpdated: vi.fn() });
     const reopenedDialog = await getEditDialog();
     const reopenedDrawer = openVariantManager(reopenedDialog);
-    expect(within(reopenedDrawer).getByRole("button", { name: "Open Option 2" })).toBeInTheDocument();
+    expect(within(reopenedDrawer).getByRole("button", { name: "Open V-2 — Option 2" })).toBeInTheDocument();
     expect(within(reopenedDrawer).getByRole("button", { name: /^Option 2PHP/u })).toBeInTheDocument();
   });
 
@@ -1004,6 +1065,71 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(payload.priceOptions.find((option: { id?: string }) => option.id === defaultOptionId)?.isDefault).toBe(true);
     expect(payload.priceOptions.find((option: { id?: string }) => option.id === secondOptionId)?.isDefault).toBe(false);
     expect(payload.priceOptions.find((option: { id?: string }) => option.id === thirdOptionId)?.isDefault).toBe(false);
+  });
+
+  it("reports pending only for the project variant edited in the full component editor", async () => {
+    const defaultOptionId = "11111111-1111-4111-8111-111111111111";
+    const secondOptionId = "22222222-2222-4222-8222-222222222222";
+    const editingItem = makeEditingItem({
+      source: "project",
+      sourceLibraryItemId: null,
+      priceOptionId: defaultOptionId,
+      priceOptionLabel: "Default",
+      priceOptions: [
+        { id: defaultOptionId, label: "Default", variantDescription: "Standard", unit: "unit", unitCost: 2500, miscCost: 0, currency: "PHP", isActive: true, isDefault: true },
+        { id: secondOptionId, label: "Option 2", variantDescription: "Premium", unit: "unit", unitCost: 2750, miscCost: 0, currency: "PHP", isActive: true, isDefault: false },
+      ],
+    });
+    const onComponentUpdatePendingChange = vi.fn();
+    const onComponentUpdated = vi.fn().mockResolvedValue(undefined);
+    renderAddModal({
+      editingItem,
+      componentEditScope: "project",
+      onComponentUpdated,
+      onComponentUpdatePendingChange,
+    });
+
+    const dialog = await getEditDialog();
+    const drawer = openVariantManager(dialog);
+    fireEvent.click(within(drawer).getByRole("button", { name: "Open V-2 — Option 2" }));
+    fireEvent.change(within(drawer).getByLabelText("Variant Name"), { target: { value: "Premium" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    expect(onComponentUpdatePendingChange.mock.calls[0]).toEqual([
+      editingItem,
+      true,
+      { kind: "variants", priceOptionIds: [secondOptionId] },
+    ]);
+    await waitFor(() => expect(onComponentUpdatePendingChange).toHaveBeenLastCalledWith(
+      editingItem,
+      false,
+      { kind: "variants", priceOptionIds: [secondOptionId] },
+    ));
+  });
+
+  it("reports component-wide pending when the component identity changes", async () => {
+    const editingItem = makeEditingItem({
+      source: "project",
+      sourceLibraryItemId: null,
+    });
+    const onComponentUpdatePendingChange = vi.fn();
+    renderAddModal({
+      editingItem,
+      componentEditScope: "project",
+      onComponentUpdated: vi.fn().mockResolvedValue(undefined),
+      onComponentUpdatePendingChange,
+    });
+
+    const dialog = await getEditDialog();
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Updated shared component" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdatePendingChange).toHaveBeenCalledWith(
+      editingItem,
+      true,
+      { kind: "component" },
+    ));
   });
 
   it("uses component-owned storage when a Library component is created from a project surface", async () => {

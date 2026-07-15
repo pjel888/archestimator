@@ -62,8 +62,8 @@ function dispatchDragEvent(
 }
 
 async function waitForLibraryWorkspace() {
-  // The tablists are retired; the dynamic tree surface's view-mode toggle is the stable anchor.
-  await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
+  // The tablists are retired; the dynamic tree surface's organization toggle is the stable anchor.
+  await screen.findByRole("button", { name: /Organize by:/ }, { timeout: 10_000 });
 }
 
 function clickDrawerAddVariant(drawer: HTMLElement) {
@@ -71,8 +71,8 @@ function clickDrawerAddVariant(drawer: HTMLElement) {
   fireEvent.click(addVariantButtons[addVariantButtons.length - 1]);
 }
 
-function openComponentViewMenu() {
-  fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
+function openComponentOrganizationMenu() {
+  fireEvent.click(screen.getByRole("button", { name: /Organize by:/ }));
   return screen.getByRole("menu", { name: "Component view mode" });
 }
 
@@ -83,6 +83,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteLibraryFolder: vi.fn(),
   deleteLibraryFoldersBulk: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
+  findCurrentWorkspaceCostLibraryComponentDuplicate: vi.fn(),
   getCostLibraryComponentUsage: vi.fn(),
   loadCostLibraryComponentRowDetail: vi.fn(),
   moveCostLibraryComponentToFolder: vi.fn(),
@@ -254,6 +255,8 @@ describe("workshop library consolidation UI", () => {
     actionMocks.deleteLibraryFolder.mockReset();
     actionMocks.deleteLibraryFoldersBulk.mockReset();
     actionMocks.executeBulkArchiveLibraryComponents.mockReset();
+    actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate.mockReset();
+    actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate.mockResolvedValue(null);
     actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.loadCostLibraryComponentRowDetail.mockReset();
     actionMocks.moveCostLibraryComponentToFolder.mockReset();
@@ -292,10 +295,10 @@ describe("workshop library consolidation UI", () => {
     expect(libraryRoute).not.toContain("LibraryComponentsRoute");
     expect(componentsSubRoute).toContain("LibraryComponentsRoute");
     expect(componentsSharedRoute).toContain("LibraryPageClient");
-    expect(componentsSharedRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
-    expect(componentsSharedRoute).toContain("includeDetailGraph: false");
+    expect(componentsSharedRoute).toContain("getCurrentWorkspaceComponentRowsLibraryPage");
+    expect(componentsSharedRoute).not.toContain("itemLimit");
     expect(componentsSharedRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
-    expect(componentActions).toContain("getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false })");
+    expect(componentActions).toContain("return getCurrentWorkspaceComponentRowsLibraryPage(cursor);");
     expect(componentActions).toContain("getCurrentWorkspaceComponentRowDetail(itemId)");
     expect(libraryRoute).not.toContain("templates=");
     expect(libraryLayout).toContain('breadcrumbs={["Library"]}');
@@ -365,12 +368,12 @@ describe("workshop library consolidation UI", () => {
     expect(nextConfig).toContain('{ pathname: "/api/projects/images" }');
     expect(nextConfig).not.toContain('hostname: "**"');
     const componentLibraryManager = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
-    expect(componentLibraryManager).toContain("function isNextImageSafeComponentSource");
-    expect(componentLibraryManager).toContain('if (src.startsWith("/")) return true;');
-    expect(componentLibraryManager).toContain("unoptimized");
+    expect(componentLibraryManager).toContain("function shouldBypassComponentImageOptimization");
+    expect(componentLibraryManager).toContain('return src.startsWith("/api/") || !src.startsWith("/");');
+    expect(componentLibraryManager).toContain("unoptimized={shouldBypassComponentImageOptimization(imageUrl)}");
   });
 
-  it("renders the components scope as a context strip without manager tablists and with direct folder scoped rows", async () => {
+  it("renders the components scope in the single toolbar row without manager tablists", async () => {
     renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -388,16 +391,22 @@ describe("workshop library consolidation UI", () => {
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
-    const contextStrip = document.querySelector('[data-component-sheet-context-strip="true"]');
-    expect(contextStrip).not.toBeNull();
-    expect(contextStrip).toHaveTextContent("All Components · 3 components");
-    expect(contextStrip).toHaveTextContent("Sorted by folder order");
+    expect(document.querySelector('[data-component-sheet-context-strip="true"]')).toBeNull();
+    const tools = screen.getByLabelText("Component table tools");
+    expect(within(tools).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
+    expect(within(tools).getByRole("combobox", { name: "View components" })).toBeInTheDocument();
+    expect(within(tools).getByRole("combobox", { name: "Sort components by" })).toBeInTheDocument();
+    expect(within(tools).getByRole("combobox", { name: "Component sort order" })).toBeInTheDocument();
+    expect(within(tools).getByText("All Components · 3 components · 3 loaded")).toHaveAttribute(
+      "data-component-sheet-summary",
+      "true",
+    );
 
-    const viewMode = openComponentViewMenu();
-    expect(screen.getByText("View By")).toBeInTheDocument();
-    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
+    const viewMode = openComponentOrganizationMenu();
+    expect(screen.getByText("Organize by")).toBeInTheDocument();
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Folders" })).toHaveAttribute("aria-checked", "true");
     expect(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" })).toHaveAttribute("aria-checked", "false");
-    expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Brands" })).toHaveAttribute("aria-checked", "false");
 
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
@@ -406,7 +415,7 @@ describe("workshop library consolidation UI", () => {
     expect(screen.getAllByText("Database Steel Frame").length).toBeGreaterThan(1);
   });
 
-  it("gates the persisted dense component table behind the library dense-mode flag with card action parity", async () => {
+  it("gates the persisted dense component table behind the shared toolbar view control with card action parity", async () => {
     vi.stubEnv("NEXT_PUBLIC_LIBRARY_DENSE_MODE", "1");
     renderLibraryShell(
       <LibraryPageClient
@@ -424,9 +433,13 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const displayMode = screen.getByRole("group", { name: "Component display mode" });
-    expect(within(displayMode).getByRole("button", { name: "Cards" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(displayMode).getByRole("button", { name: "Dense" }));
+    const tools = screen.getByLabelText("Component table tools");
+    const displayMode = within(tools).getByRole("combobox", { name: "View components" });
+    expect(displayMode).toHaveAttribute("title", "View: Cards");
+    fireEvent.click(displayMode);
+    fireEvent.click(screen.getByRole("option", { name: "Dense table" }));
+    expect(within(tools).getByRole("combobox", { name: "Sort components by" })).toBeInTheDocument();
+    expect(within(tools).getByRole("combobox", { name: "Component sort order" })).toBeInTheDocument();
 
     expect(window.localStorage.getItem("archestimator_component_library_display_mode")).toBe("dense");
     const table = screen.getByRole("table", { name: "All Components dense component table" });
@@ -441,7 +454,6 @@ describe("workshop library consolidation UI", () => {
     expect(within(steelRow).getByText("Database Brand")).toBeInTheDocument();
     expect(steelRow).toHaveTextContent("₱1,200.00 / pc");
     expect(within(steelRow).getByText("2026-05-22")).toBeInTheDocument();
-    expect(within(steelRow).getByText("Verified source")).toBeInTheDocument();
     expect(within(steelRow).getByText("Available")).toBeInTheDocument();
     const detailButtons = within(steelRow).getAllByRole("button", { name: "View details for Database Steel Frame" });
     expect(detailButtons[0]).toHaveAttribute(
@@ -449,7 +461,7 @@ describe("workshop library consolidation UI", () => {
       "db-library-steel-frame",
     );
 
-    expect(within(steelRow).getByRole("checkbox", { name: "Select Database Steel Frame for archive" })).toBeInTheDocument();
+    expect(within(steelRow).getByRole("checkbox", { name: "Select Database Steel Frame" })).toBeInTheDocument();
     fireEvent.keyDown(steelRow, { key: " " });
     expect(screen.getByRole("button", { name: "Archive selected" })).not.toBeDisabled();
     fireEvent.keyDown(within(table).getByRole("row", { name: /Database Steel Frame/ }), { key: "Enter" });
@@ -504,7 +516,7 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const viewMode = openComponentViewMenu();
+    const viewMode = openComponentOrganizationMenu();
     fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
     const addFolderButton = screen.getByRole("button", { name: "Add library folder" });
@@ -516,7 +528,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.click(within(createFolderDialog).getByRole("button", { name: "Create folder" }));
 
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Supplier Review Folder", { placement: "top" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "View by: Default" })).toHaveAttribute("aria-pressed", "false"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Organize by: Folders" })).toHaveAttribute("aria-pressed", "false"));
     expect(screen.getByRole("treeitem", { name: "Supplier Review Folder" })).toHaveAttribute("aria-current", "page");
   });
 
@@ -565,10 +577,10 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    // The sheet's create action now keeps a visible "Add component" label.
+    // The canonical create action stays the same compact orange icon button.
     const addComponentButton = screen.getByRole("button", { name: "Add component" });
-    expect(addComponentButton).toHaveTextContent("Add component");
-    expect(addComponentButton).not.toHaveClass("size-6");
+    expect(addComponentButton).not.toHaveTextContent("Add component");
+    expect(addComponentButton).toHaveClass("size-6", "bg-orange-100", "text-orange-700");
     fireEvent.click(addComponentButton);
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
@@ -628,11 +640,11 @@ describe("workshop library consolidation UI", () => {
     const variantsPanel = await within(dialog).findByRole("dialog", { name: "Manage variants" });
     expect(within(variantsPanel).getByLabelText("Variant manager")).toBeInTheDocument();
     expect(within(variantsPanel).getByText("No variants yet.")).toBeInTheDocument();
-    expect(within(variantsPanel).queryByRole("button", { name: "Open Default" })).not.toBeInTheDocument();
+    expect(within(variantsPanel).queryByRole("button", { name: "Open V-1 — Default" })).not.toBeInTheDocument();
     const defaultVariantAction = within(variantsPanel).getByRole("button", { name: "Default" });
     expect(defaultVariantAction).toBeDisabled();
     clickDrawerAddVariant(variantsPanel);
-    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open Default" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V-1 — Default" })).toHaveAttribute("aria-pressed", "true"));
     const defaultVariantActionAfterAdd = within(variantsPanel).getByRole("button", { name: "Default" });
     expect(defaultVariantActionAfterAdd).toHaveAttribute("aria-pressed", "true");
     expect(defaultVariantActionAfterAdd).not.toBeDisabled();
@@ -655,7 +667,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.change(equivalentUnitInput, { target: { value: "pieces" } });
     expect(equivalentUnitInput).toHaveValue("pieces");
     clickDrawerAddVariant(variantsPanel);
-    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open Option 2" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V-2 — Option 2" })).toHaveAttribute("aria-pressed", "true"));
     const variantTwoEditor = within(variantsPanel).getByLabelText("Variant editor");
     fireEvent.change(within(variantTwoEditor).getByLabelText("Variant Name"), { target: { value: "Variant 2" } });
     expect(within(variantsPanel).getByRole("button", { name: "Delete variant" })).toBeInTheDocument();
@@ -666,7 +678,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.change(variantTwoUnitCombobox, { target: { value: "tile-box" } });
     fireEvent.click(screen.getByRole("option", { name: 'Add unit "tile-box"' }));
     expect(variantTwoUnitCombobox).toHaveValue("tile-box");
-    fireEvent.click(within(variantsPanel).getByRole("button", { name: "Open Variant 1" }));
+    fireEvent.click(within(variantsPanel).getByRole("button", { name: "Open V-1 — Variant 1" }));
     const brandCombobox = within(dialog).getByRole("combobox", { name: "Brand" });
     fireEvent.change(brandCombobox, { target: { value: "Acme Hardware" } });
     const supplierCombobox = within(dialog).getByRole("combobox", { name: "Supplier" });
@@ -754,8 +766,8 @@ describe("workshop library consolidation UI", () => {
     await waitForLibraryWorkspace();
 
     const sheet = screen.getByLabelText("Component table");
-    const branch = within(sheet).getByLabelText("Fabrication component catalogue branch");
-    const card = branch.querySelector('[data-component-catalogue-card-id="db-library-steel-frame"]');
+    const grid = within(sheet).getByLabelText("All Components component catalogue grid");
+    const card = grid.querySelector('[data-component-catalogue-card-id="db-library-steel-frame"]');
     expect(card).not.toBeNull();
     const cardElement = card as HTMLElement;
     const cardName = within(cardElement).getByText("Database Steel Frame");
@@ -768,6 +780,8 @@ describe("workshop library consolidation UI", () => {
     expect(cardBrand.compareDocumentPosition(cardSupplier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(card as HTMLElement).getByText("₱1,200.00")).toBeInTheDocument();
     expect(within(card as HTMLElement).getByText("Cost / pc")).toBeInTheDocument();
+    expect(within(card as HTMLElement).getByText("Fabrication")).toBeInTheDocument();
+    expect(within(sheet).queryByLabelText(/component catalogue branch/)).not.toBeInTheDocument();
     expect(within(sheet).queryByText("History / v1")).not.toBeInTheDocument();
     expect(within(sheet).queryByText("Available")).not.toBeInTheDocument();
     expect(within(sheet).queryByLabelText("Pricing option for Database Steel Frame")).not.toBeInTheDocument();
@@ -788,10 +802,10 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const viewMode = openComponentViewMenu();
+    const viewMode = openComponentOrganizationMenu();
     fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
-    expect(screen.getByRole("button", { name: "View by: Suppliers" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Organize by: Suppliers" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
 

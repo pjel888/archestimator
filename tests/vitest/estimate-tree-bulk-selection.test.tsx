@@ -274,12 +274,13 @@ describe("estimate tree bulk selection", () => {
     fireEvent.click(within(screen.getByRole("dialog", { name: "Delete 1 selected Area" })).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument());
 
+    actionMocks.fetchEstimateTabTree.mockResolvedValue({ tree: confirmedTree, loadLimitState: undefined });
     await user.click(await screen.findByRole("button", { name: "Undo" }));
 
     await waitFor(() => expect(actionMocks.restoreDeletedEstimateNodes).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't restore the deleted Areas. Try again.");
     expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument();
-    expect(screen.queryByText("1 Area restored.")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 Area and 0 cost rows restored.")).not.toBeInTheDocument();
   });
 
   it("bulk delete deduplicates parent and child selections before calling the server", async () => {

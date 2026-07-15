@@ -6,7 +6,8 @@ import { EstimateSheetBranch } from "@/components/workshop/estimate-sheet/rows/b
 import { EstimateSheetExpansionContext } from "@/components/workshop/estimate-sheet/rows/expansion";
 import { EstimateSurfaceVariantProvider, type EstimateSurfaceVariant } from "@/components/workshop/estimate-surface-variant";
 import type { EditableRowValue } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
-import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 const noop = vi.fn();
 

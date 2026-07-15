@@ -44,6 +44,7 @@ const DEFAULT_WORKSPACE_ID = "workspace-1";
 const DEFAULT_USER_ID = "user-1";
 const PRIVATE_NO_STORE =
   "private, no-cache, no-store, max-age=0, must-revalidate";
+const PRIVATE_REVALIDATE = "private, no-cache, max-age=0, must-revalidate";
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWP4////fwAJ+wP9CNHoHgAAAABJRU5ErkJggg==",
   "base64",
@@ -355,10 +356,16 @@ function createR2StorageBridge(storageFrom: ReturnType<typeof vi.fn>) {
       const arrayBuffer = await body.arrayBuffer();
       return {
         size: arrayBuffer.byteLength,
+        etag: "mock-private-image-etag",
         httpMetadata: { contentType: body.type || null },
         arrayBuffer: async () => arrayBuffer,
       };
     }),
+    head: vi.fn(async () => ({
+      size: 5,
+      etag: "mock-private-image-etag",
+      httpMetadata: { contentType: "image/webp" },
+    })),
     delete: vi.fn(async (keys: string | string[]) => {
       const keyList = Array.isArray(keys) ? keys : [keys];
       const pathsByBucket = new Map<string, string[]>();
@@ -1559,9 +1566,46 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_REVALIDATE);
+    expect(response.headers.get("etag")).toMatch(/^"[A-Za-z0-9_-]+"$/);
     expect(storage.from).toHaveBeenCalledWith("component-images");
     expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
+  it("revalidates component images only after workspace authorization", async () => {
+    const storage = mockStorageClient();
+    const path = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/component.webp`;
+    const url = `http://localhost/api/component-library/images?path=${encodeURIComponent(path)}`;
+    const { GET } = await import("@/app/api/component-library/images/route");
+
+    const initialResponse = await GET(new Request(url));
+    const entityTag = initialResponse.headers.get("etag");
+    expect(entityTag).toBeTruthy();
+
+    const revalidatedResponse = await GET(
+      new Request(url, { headers: { "If-None-Match": entityTag! } }),
+    );
+
+    expect(revalidatedResponse.status).toBe(304);
+    expect(revalidatedResponse.headers.get("cache-control")).toBe(
+      PRIVATE_REVALIDATE,
+    );
+    expect(revalidatedResponse.headers.get("etag")).toBe(entityTag);
+    expect(authMocks.requireCurrentUserContext).toHaveBeenCalledTimes(2);
+    expect(workspaceMocks.ensureDefaultWorkspace).toHaveBeenCalledTimes(2);
+    expect(storage.r2.head).toHaveBeenCalledWith(`component-images/${path}`);
+    expect(storage.r2.get).toHaveBeenCalledTimes(1);
+
+    workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({
+      workspace: { id: "workspace-2" },
+    });
+    const deniedResponse = await GET(
+      new Request(url, { headers: { "If-None-Match": entityTag! } }),
+    );
+
+    expect(deniedResponse.status).toBe(404);
+    expect(deniedResponse.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(storage.r2.head).toHaveBeenCalledTimes(1);
   });
 
   it("serves component images from R2 when the Cloudflare storage provider is selected", async () => {
@@ -2544,7 +2588,8 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_REVALIDATE);
+    expect(response.headers.get("etag")).toMatch(/^"[A-Za-z0-9_-]+"$/);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
     ).toHaveLength(1);
@@ -2575,7 +2620,7 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_REVALIDATE);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
     ).toHaveLength(1);
@@ -2608,7 +2653,7 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_REVALIDATE);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
     ).toHaveLength(1);
@@ -2623,6 +2668,51 @@ describe("sensitive API auth boundaries", () => {
     ).toHaveLength(1);
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
+  it("revalidates project images only after authenticated D1 access", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const ownerUserId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
+    const url = `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`;
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup({
+      id: projectId,
+      workspace_id: workspaceId,
+    });
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const initialResponse = await GET(new Request(url));
+    const entityTag = initialResponse.headers.get("etag");
+    expect(entityTag).toBeTruthy();
+
+    const revalidatedResponse = await GET(
+      new Request(url, { headers: { "If-None-Match": entityTag! } }),
+    );
+
+    expect(revalidatedResponse.status).toBe(304);
+    expect(revalidatedResponse.headers.get("cache-control")).toBe(
+      PRIVATE_REVALIDATE,
+    );
+    expect(revalidatedResponse.headers.get("etag")).toBe(entityTag);
+    expect(
+      d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
+    ).toHaveLength(2);
+    expect(
+      d1PreparedStatements(projectLookup.d1, /FROM projects project/),
+    ).toHaveLength(2);
+    expect(storage.r2.head).toHaveBeenCalledWith(`project-images/${path}`);
+    expect(storage.r2.get).toHaveBeenCalledTimes(1);
+
+    projectLookup.d1.projectAccessById.set(projectId, false);
+    const deniedResponse = await GET(
+      new Request(url, { headers: { "If-None-Match": entityTag! } }),
+    );
+
+    expect(deniedResponse.status).toBe(404);
+    expect(deniedResponse.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(storage.r2.head).toHaveBeenCalledTimes(1);
   });
 
   it("denies private project image downloads when the user lacks project access", async () => {

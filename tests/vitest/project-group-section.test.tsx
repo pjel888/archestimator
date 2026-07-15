@@ -314,7 +314,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renames editable group labels inline on Enter and mouse leave", async () => {
+  it("renames editable group labels on Enter or blur but never on pointer exit", async () => {
     const user = userEvent.setup();
     const onRenameGroup = vi.fn();
     render(
@@ -339,9 +339,11 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     expect(enterInput).toHaveFocus();
     expect(enterInput).toHaveClass("bg-transparent", "border-0");
     expect(enterInput).not.toHaveClass("bg-white/75");
+    expect(enterInput).toHaveProperty("selectionStart", "Pipeline".length);
     await user.clear(enterInput);
     await user.type(enterInput, "Roadmap{Enter}");
     expect(onRenameGroup).toHaveBeenCalledWith("g1", "Roadmap");
+    expect(onRenameGroup).toHaveBeenCalledTimes(1);
 
     await user.click(
       screen.getByRole("button", { name: "Rename Pipeline group" }),
@@ -352,7 +354,10 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     await user.clear(hoverInput);
     await user.type(hoverInput, "Backlog");
     fireEvent.mouseLeave(hoverInput);
+    expect(onRenameGroup).toHaveBeenCalledTimes(1);
+    fireEvent.blur(hoverInput);
     expect(onRenameGroup).toHaveBeenLastCalledWith("g1", "Backlog");
+    expect(onRenameGroup).toHaveBeenCalledTimes(2);
   });
 
   it("shows drag and action affordances on editable flags and keeps virtual buckets inert", async () => {

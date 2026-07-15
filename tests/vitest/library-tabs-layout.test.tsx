@@ -80,6 +80,12 @@ describe("LibraryTabsLayoutClient", () => {
     expect(componentsTab).toHaveAttribute("href", "/workshop/library/components");
     expect(templatesTab).toHaveAttribute("aria-selected", "false");
     expect(templatesTab).toHaveAttribute("href", "/workshop/library/templates");
+    expect(screen.getByRole("button", { name: "Add component" })).toHaveClass(
+      "size-6",
+      "bg-orange-100",
+      "text-orange-700",
+      "cursor-pointer",
+    );
   });
 
   it("lists Overview as the first tab", () => {
@@ -98,6 +104,7 @@ describe("LibraryTabsLayoutClient", () => {
 
     expect(screen.getByRole("tab", { name: /Components/ })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Overview/ })).toHaveAttribute("aria-selected", "false");
+    expect(screen.queryByRole("button", { name: "Add component" })).not.toBeInTheDocument();
   });
 
   it("marks Templates active on the templates browse route", () => {

@@ -240,8 +240,8 @@ describe("ui tree", () => {
     fireEvent.keyDown(row("a"), { key: "ArrowDown" });
 
     await waitFor(() => expect(row("b")).toHaveFocus());
-    expect(row("a")).toHaveClass("border-l-focus");
-    expect(row("b")).not.toHaveClass("border-l-focus");
+    expect(row("a")).toHaveClass("border-l-dividerSibling");
+    expect(row("b")).not.toHaveClass("border-l-dividerSibling");
   });
 
   it("supports typeahead and complete left/right tree navigation", async () => {

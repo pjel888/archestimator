@@ -33,8 +33,12 @@ describe("estimate row atomic D1 contracts", () => {
     expect(moveSource).toContain("buildRowRevisionGuardStatement(estimateId, expectedRows)");
     expect(moveSource).toContain("sourcePlan.statement");
     expect(moveSource).toContain("targetPlan.statement");
-    expect(moveSource.match(/runMutationWithHistory\(/g)).toHaveLength(1);
-    expect(dispatchSource).toContain('return await moveRowComponent(database, args) as T');
+    expect(moveSource).toContain('"estimate.row.component-move"');
+    expect(moveSource).toContain("buildProjectPublicationRevisionStatement(intent)");
+    expect(moveSource).toContain("buildEstimateMutationReceiptStatement(intent");
+    expect(moveSource).toContain("await runBatch(database, statements)");
+    expect(moveSource).not.toContain("runMutationWithHistory(");
+    expect(dispatchSource).toContain('return await moveRowComponent(database, args, currentUser!) as T');
     expect(dispatchSource).not.toContain('"row_component_moved", readJsonRecord');
   });
 
@@ -64,7 +68,10 @@ describe("estimate row atomic D1 contracts", () => {
     expect(moveSource).toContain('if (!database.batch) throw new Error("Atomic estimate row reorganization is unavailable.")');
     expect(moveSource).toContain("Row reorganization requires the current revision for every affected row.");
     expect(moveSource).toContain("WHERE id = ? AND estimate_id = ? AND row_revision = ?");
-    expect(moveSource).toContain("[buildRowRevisionGuardStatement(estimateId, expectedRows), ...mutationStatements]");
+    expect(moveSource).toContain("buildRowRevisionGuardStatement(estimateId, expectedRows)");
+    expect(moveSource).toContain("...mutationStatements");
+    expect(moveSource).toContain("buildEstimateMutationReceiptStatement(intent");
+    expect(moveSource).toContain("buildProjectPublicationRevisionStatement(intent)");
     expect(moveSource).toContain("hasRowRevisionConflict(authoritativeRows, expectedRows)");
   });
 
@@ -76,11 +83,13 @@ describe("estimate row atomic D1 contracts", () => {
     expect(d1ActionClient).not.toContain("sumEstimateRowLineTotals");
   });
 
-  it("serializes all row mutations through the estimate queue", () => {
+  it("serializes overlapping row mutations without blocking disjoint rows", () => {
     const coordinatorSource = sourceBetween(rowMutationHook, "function enqueueEstimateMutation", "function enqueueRowUpdate");
     const returnSource = sourceBetween(rowMutationHook, "  return {\n    saveState", "\n  };\n}");
 
-    expect(coordinatorSource).toContain("estimateMutationQueueRef.current");
+    expect(coordinatorSource).toContain("estimateMutationBarrierRef.current");
+    expect(coordinatorSource).toContain("rowMutationQueueTailsRef.current");
+    expect(coordinatorSource).toContain("Promise.all(queueDependencies");
     expect(returnSource).toContain("insertMutation.mutateAsync");
     expect(returnSource).toContain("moveMutation.mutateAsync");
     expect(returnSource).toContain("deleteRowsMutation.mutateAsync");

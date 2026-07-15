@@ -1,5 +1,6 @@
 import { createEvent, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Profiler } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
@@ -10,7 +11,10 @@ import {
   PROJECT_SOURCE_DRAG_MIME_TYPE,
 } from "@/components/workshop/component-library/templates";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
+import {
+  readEstimateExternalDropEnvelope,
+  REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT,
+} from "@/components/workshop/estimate-sheet/events";
 import { ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
@@ -23,6 +27,7 @@ const routerMock = vi.hoisted(() => ({
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
+  fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
   restoreDeletedEstimateRows: vi.fn(),
   renameEstimateNode: vi.fn(),
@@ -90,7 +95,7 @@ function fixtureTree(): EstimateTreeNode[] {
 function renderTree(
   nodes = fixtureTree(),
   selectedNodeId: string | null = "kitchen",
-  options: { canEditEstimate?: boolean } = {},
+  options: { activeTabId?: string; canEditEstimate?: boolean; initialTabId?: string } = {},
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
@@ -99,6 +104,8 @@ function renderTree(
       <EstimateSheetTree
         projectId="project-1"
         estimateId="estimate-1"
+        activeTabId={options.activeTabId}
+        initialTabId={options.initialTabId}
         projectName="Modern Bungalow"
         selectedNodeId={selectedNodeId}
         nodes={nodes}
@@ -180,6 +187,17 @@ function mockDataTransfer(types: string[] = []) {
   };
 }
 
+function acknowledgeExternalDrop<T>(event: Event) {
+  const envelope = readEstimateExternalDropEnvelope<T>((event as CustomEvent).detail, {
+    projectId: "project-1",
+    estimateId: "estimate-1",
+    tabId: null,
+  });
+  if (!envelope) throw new Error("Expected a matching estimate external-drop envelope.");
+  envelope.acknowledge({ accepted: true });
+  return envelope;
+}
+
 describe("estimate sheet tree DOM integration", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
@@ -188,10 +206,34 @@ describe("estimate sheet tree DOM integration", () => {
     routerMock.refresh.mockReset();
     actionMocks.createEstimateNode.mockReset();
     actionMocks.deleteEstimateNode.mockReset();
+    actionMocks.fetchEstimateTabTree.mockReset();
     actionMocks.fetchEstimateTree.mockReset();
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
+  });
+
+  it("hydrates a non-initial duplicated tab from the server instead of caching an empty tree", async () => {
+    const duplicatedTree = [
+      {
+        id: "copied-ground-floor",
+        name: "Copied Ground Floor",
+        kind: "group" as const,
+        total: "₱0.00",
+        children: [],
+      },
+    ];
+    actionMocks.fetchEstimateTabTree.mockResolvedValue({ tree: duplicatedTree, loadLimitState: null });
+
+    renderTree(fixtureTree(), null, { activeTabId: "tab-copy", initialTabId: "tab-main" });
+
+    expect(await screen.findByText("Copied Ground Floor")).toBeInTheDocument();
+    expect(actionMocks.fetchEstimateTabTree).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      tabId: "tab-copy",
+    });
+    expect(screen.queryByText("No areas yet")).not.toBeInTheDocument();
   });
 
   it("renders empty-state copy with an Add Area action when the tree has no areas", () => {
@@ -228,7 +270,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(alternates).toHaveAttribute("draggable", "false");
     expect(kitchen).toHaveAttribute("data-tree-drag-activation", "handle");
     expect(kitchen).toHaveAttribute("aria-current", "page");
-    expect(kitchen).toHaveClass("border-l-focus");
+    expect(kitchen).toHaveClass("border-l-dividerSibling");
     expect(kitchen).not.toHaveClass("bg-accentSoft", "bg-surfaceMuted");
 
     // The shared component's default row: compact min-h-7, 10px type, and a depth
@@ -257,6 +299,88 @@ describe("estimate sheet tree DOM integration", () => {
     expect(
       kitchenCheckbox.compareDocumentPosition(kitchenIndent) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("keeps Area rename geometry and parent styling stable, with caret-end focus and no pointer-exit save", async () => {
+    actionMocks.renameEstimateNode.mockResolvedValue({ nodeId: "kitchen", name: "Kitchen Revised" });
+    renderTree();
+    const row = treeNodeButton("kitchen");
+    const restingClassName = row.className;
+
+    row.focus();
+    fireEvent.keyDown(row, { key: "F2" });
+
+    const input = await screen.findByRole("textbox", { name: "Rename Kitchen" });
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(input.selectionStart).toBe(input.value.length);
+    expect(input.selectionEnd).toBe(input.value.length);
+    expect(input).toHaveClass("bg-transparent", "focus-visible:ring-focus");
+    expect(input).not.toBeDisabled();
+    expect(treeNodeButton("kitchen")).toBe(row);
+    expect(row.className).toBe(restingClassName);
+    expect(row).not.toHaveClass("bg-accentSoft", "bg-surfaceMuted");
+    expect(row.querySelector("[data-estimate-tree-rename-controls]")).toHaveClass("absolute", "w-10");
+
+    fireEvent.change(input, { target: { value: "Kitchen Revised" } });
+    fireEvent.pointerLeave(row);
+    expect(actionMocks.renameEstimateNode).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Rename Kitchen" })).not.toBeInTheDocument());
+    await waitFor(() => expect(row).toHaveFocus());
+    expect(row.className).toBe(restingClassName);
+    expect(actionMocks.renameEstimateNode).not.toHaveBeenCalled();
+  });
+
+  it("deduplicates Enter and blur while returning focus to the renamed Area", async () => {
+    actionMocks.renameEstimateNode.mockResolvedValue({ nodeId: "kitchen", name: "Kitchen Revised" });
+    renderTree();
+    const row = treeNodeButton("kitchen");
+
+    row.focus();
+    fireEvent.keyDown(row, { key: "F2" });
+    const input = await screen.findByRole("textbox", { name: "Rename Kitchen" });
+    fireEvent.change(input, { target: { value: "Kitchen Revised" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+
+    await waitFor(() => expect(actionMocks.renameEstimateNode).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      "kitchen",
+      "Kitchen Revised",
+    ));
+    expect(actionMocks.renameEstimateNode).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(row).toHaveFocus());
+    expect(row).toHaveTextContent("Kitchen Revised");
+  });
+
+  it("causes no React commit for an Area rename keystroke", async () => {
+    const onRender = vi.fn();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <Profiler id="estimate-tree" onRender={onRender}>
+        <QueryClientProvider client={queryClient}>
+          <EstimateSheetTree
+            projectId="project-1"
+            estimateId="estimate-1"
+            projectName="Modern Bungalow"
+            selectedNodeId="kitchen"
+            nodes={fixtureTree()}
+          />
+        </QueryClientProvider>
+      </Profiler>,
+    );
+    const row = treeNodeButton("kitchen");
+    row.focus();
+    fireEvent.keyDown(row, { key: "F2" });
+    const input = await screen.findByRole("textbox", { name: "Rename Kitchen" });
+    onRender.mockClear();
+
+    fireEvent.change(input, { target: { value: "Kitchen R" } });
+
+    expect(input).toHaveValue("Kitchen R");
+    expect(onRender).not.toHaveBeenCalled();
   });
 
   it("renders the estimate tree under the shared Estimate Tree tab", () => {
@@ -442,7 +566,7 @@ describe("estimate sheet tree DOM integration", () => {
 
     const insertEvents: Array<Record<string, unknown>> = [];
     const recordInsert = (event: Event) => {
-      insertEvents.push((event as CustomEvent<Record<string, unknown>>).detail);
+      insertEvents.push(acknowledgeExternalDrop<Record<string, unknown>>(event).payload);
     };
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
 
@@ -482,7 +606,7 @@ describe("estimate sheet tree DOM integration", () => {
 
     const insertEvents: Array<Record<string, unknown>> = [];
     const recordInsert = (event: Event) => {
-      insertEvents.push((event as CustomEvent<Record<string, unknown>>).detail);
+      insertEvents.push(acknowledgeExternalDrop<Record<string, unknown>>(event).payload);
     };
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
 
@@ -510,7 +634,7 @@ describe("estimate sheet tree DOM integration", () => {
 
   it("routes project-source drops inside the target row without invoking tree reorder", () => {
     renderTree();
-    const onInsertProjectSource = vi.fn();
+    const onInsertProjectSource = vi.fn((event: Event) => acknowledgeExternalDrop<Record<string, unknown>>(event));
     window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, onInsertProjectSource as EventListener);
     const dataTransfer = mockDataTransfer([PROJECT_SOURCE_DRAG_MIME_TYPE]);
     dataTransfer.setData(PROJECT_SOURCE_DRAG_MIME_TYPE, JSON.stringify({
@@ -529,13 +653,21 @@ describe("estimate sheet tree DOM integration", () => {
       fireDropAt(kitchen, dataTransfer, 0);
 
       expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
-      expect((onInsertProjectSource.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      expect(onInsertProjectSource.mock.results[0]?.value).toMatchObject({
+        target: {
+          projectId: "project-1",
+          estimateId: "estimate-1",
+          tabId: null,
+          nodeId: "kitchen",
+        },
+        payload: {
         targetParentNodeId: "kitchen",
         source: {
           projectId: "source-project",
           estimateId: "source-estimate",
           tabId: "source-tab",
           nodeId: "source-node",
+        },
         },
       });
       expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
@@ -546,7 +678,7 @@ describe("estimate sheet tree DOM integration", () => {
 
   it("routes estimate-row-item drops inside the target row without invoking tree reorder", () => {
     renderTree();
-    const onMoveRow = vi.fn();
+    const onMoveRow = vi.fn((event: Event) => acknowledgeExternalDrop<Record<string, unknown>>(event));
     window.addEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, onMoveRow as EventListener);
     const dataTransfer = mockDataTransfer([ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE]);
     dataTransfer.setData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE, JSON.stringify({
@@ -562,11 +694,19 @@ describe("estimate sheet tree DOM integration", () => {
       fireDropAt(kitchen, dataTransfer, 0);
 
       expect(onMoveRow).toHaveBeenCalledTimes(1);
-      expect((onMoveRow.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
-        rowItemId: "row-1",
-        targetNodeId: "kitchen",
-        targetIndex: 0,
-        targetPlacement: "end",
+      expect(onMoveRow.mock.results[0]?.value).toMatchObject({
+        target: {
+          projectId: "project-1",
+          estimateId: "estimate-1",
+          tabId: null,
+          nodeId: "kitchen",
+        },
+        payload: {
+          rowItemId: "row-1",
+          targetNodeId: "kitchen",
+          targetIndex: 0,
+          targetPlacement: "end",
+        },
       });
       expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
     } finally {

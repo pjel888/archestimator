@@ -184,7 +184,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
     expect(branchRenderCounts.get("memo-area-3") ?? 0).toBe(0);
   });
 
-  it("keeps node-total recomputation centralized while preserving visible totals", () => {
+  it("updates node totals incrementally while preserving visible totals", () => {
     const { view, clearCounts, counts } = renderSheet();
     const projectTotals: number[] = [];
     const onTotalChange = (event: Event) => projectTotals.push((event as CustomEvent<{ total: number }>).detail.total);
@@ -199,7 +199,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
 
       expect(within(input.closest("tr")!).getAllByText(/2,250\.00/).length).toBeGreaterThan(0);
       expect(projectTotals.at(-1)).toBe(5850);
-      expect(counts().nodeTotalsComputes).toBe(1);
+      expect(counts().nodeTotalsComputes).toBe(0);
     } finally {
       window.removeEventListener("archestimator:project-total-change", onTotalChange);
     }

@@ -6,8 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { resetComponentLibraryAccountPreferencesClientCacheForTests } from "@/components/workshop/component-library/account-preferences-client";
 import { LIBRARY_PREFS_KEY } from "@/components/workshop/component-library/helpers";
-import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { estimateLibraryItems } from "../fixtures/estimate-library-items";
 
 const treeRenderCounts = vi.hoisted(() => ({
   library: 0,

@@ -294,6 +294,7 @@ describe("EstimateTabStrip", () => {
     const input = await screen.findByRole("textbox", { name: "Rename Page 001 tab" });
     fireEvent.change(input, { target: { value: "Main Revised" } });
     fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
 
     await waitFor(() => {
       expect(actionMocks.renameEstimateTab).toHaveBeenCalledWith({
@@ -303,8 +304,52 @@ describe("EstimateTabStrip", () => {
         name: "Main Revised",
       });
     });
+    expect(actionMocks.renameEstimateTab).toHaveBeenCalledTimes(1);
     expect(onTabsChange).toHaveBeenCalledWith(renamedTabs);
     expect(screen.getByRole("status")).toHaveTextContent("Renamed tab to Main Revised.");
+  });
+
+  it("keeps rename geometry fixed, places the caret at the end, and cancels without pointer-exit save", async () => {
+    renderStrip({ enableLifecycleActions: true });
+    const tab = screen.getByRole("tab", { name: "Page 001" });
+    const label = tab.querySelector<HTMLElement>("[data-estimate-tab-label]");
+    if (!label) throw new Error("Missing tab label");
+    vi.spyOn(label, "getBoundingClientRect").mockReturnValue({
+      bottom: 10,
+      height: 10,
+      left: 0,
+      right: 64,
+      top: 0,
+      width: 64,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    const tabClassName = tab.className;
+
+    fireEvent.doubleClick(tab);
+    const input = await screen.findByRole("textbox", { name: "Rename Page 001 tab" });
+
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(input).toHaveStyle({ width: "64px" });
+    expect(input).not.toHaveAttribute("size");
+    expect(input.selectionStart).toBe(input.value.length);
+    expect(input.selectionEnd).toBe(input.value.length);
+
+    fireEvent.change(input, { target: { value: "A much longer tab name" } });
+    fireEvent.pointerLeave(tab);
+
+    expect(input).toHaveStyle({ width: "64px" });
+    expect(tabButton("tab-main")).toBe(tab);
+    expect(tab).toHaveClass("border-brand-orange", "text-ink");
+    expect(tab.className).toBe(tabClassName);
+    expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(screen.queryByRole("textbox", { name: "Rename Page 001 tab" })).not.toBeInTheDocument();
+    await waitFor(() => expect(tab).toHaveFocus());
+    expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
   });
 
   it("still renames a tab on double-click (regression of the previous rename path)", async () => {

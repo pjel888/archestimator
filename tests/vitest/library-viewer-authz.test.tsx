@@ -108,7 +108,9 @@ function createD1Fixture(options: {
       bind: vi.fn((...values: unknown[]) => {
         statements.push({ sql, values });
         return {
-          first: vi.fn(async () => firstResults.shift() ?? null),
+          first: vi.fn(async () => sql.includes("FROM estimate_mutation_receipts")
+            ? null
+            : firstResults.shift() ?? null),
           all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
           run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
         };
@@ -164,6 +166,12 @@ describe("library viewer mutation authorization", () => {
     const actions = await import("@/lib/component-library/actions");
 
     const libraryMutationAttempts = [
+      () => actions.findCurrentWorkspaceCostLibraryComponentDuplicate({
+        name: "Viewer Guard Component",
+        category: "Hardware",
+        supplier: "Viewer Supplier",
+        brand: null,
+      }),
       () => actions.createCostLibraryComponent(validComponentInput),
       () => actions.updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
         ...validComponentInput,

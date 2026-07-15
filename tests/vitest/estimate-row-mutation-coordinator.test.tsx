@@ -376,6 +376,43 @@ describe("estimate row mutation coordinator", () => {
     }));
   });
 
+  it("allows disjoint row mutations to run concurrently", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const cabinetSave = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem.mockImplementation((input: { rowId: string; quantity?: number }) => {
+      if (input.rowId === cabinetRowId) return cabinetSave.promise;
+      return Promise.resolve(makeCanonicalReplaceResult(sinkRowId, {
+        ...sinkRow,
+        quantity: input.quantity ?? sinkRow.quantity,
+      }, 4));
+    });
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({ projectId, estimateId, rowId: cabinetRowId, quantity: 3 });
+      result.current.updateRow({ projectId, estimateId, rowId: sinkRowId, quantity: 2 });
+    });
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(2));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: sinkRowId,
+      quantity: 2,
+    }));
+
+    await act(async () => {
+      cabinetSave.resolve(makeCanonicalReplaceResult(cabinetRowId, {
+        ...cabinetRow,
+        quantity: 3,
+      }, 2));
+      await cabinetSave.promise;
+    });
+  });
+
   it("reconciles authoritative rows when an atomic bulk delete reports a revision conflict", async () => {
     const queryClient = makeQueryClient();
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);

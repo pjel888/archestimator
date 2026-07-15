@@ -52,13 +52,22 @@ function createD1Fixture(options: {
   const firstResults = [...(options.firstResults ?? [])];
   const allResults = [...(options.allResults ?? [])];
   const statements: Array<{ sql: string; values: unknown[] }> = [];
+  let committedReceipt: {
+    actor_user_id: string;
+    request_fingerprint: string;
+    result_json: string;
+    status: string;
+  } | null = null;
   const database = {
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...values: unknown[]) => {
         statements.push({ sql, values });
         return {
           sql,
-          first: vi.fn(async () => firstResults.shift() ?? null),
+          values,
+          first: vi.fn(async () => sql.includes("FROM estimate_mutation_receipts")
+            ? committedReceipt
+            : firstResults.shift() ?? null),
           all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
           run: vi.fn(async () => ({
             success: true,
@@ -70,11 +79,23 @@ function createD1Fixture(options: {
         };
       }),
     })),
-    batch: vi.fn(async (preparedStatements: Array<{ run: () => Promise<unknown> }>) => Promise.all(
-      preparedStatements.map((statement, index) => index === options.batchFailureAt
+    batch: vi.fn(async (preparedStatements: Array<{ sql: string; values: unknown[]; run: () => Promise<unknown> }>) => {
+      const results = await Promise.all(preparedStatements.map((statement, index) => index === options.batchFailureAt
         ? { success: false, meta: { changes: 0 }, results: [] }
-        : statement.run()),
-    )),
+        : statement.run()));
+      if (results.every((result) => (result as { success?: boolean }).success !== false)) {
+        const receiptStatement = preparedStatements.find((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"));
+        if (receiptStatement) {
+          committedReceipt = {
+            actor_user_id: String(receiptStatement.values[4]),
+            request_fingerprint: String(receiptStatement.values[7]),
+            result_json: String(receiptStatement.values[8]),
+            status: "committed",
+          };
+        }
+      }
+      return results;
+    }),
     statements,
   };
   d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
@@ -175,8 +196,8 @@ describe("library component instance reconciliation", () => {
     vi.setSystemTime(new Date("2026-07-13T10:00:00.000Z"));
     const database = createD1Fixture({ firstResults: [{ count: 0 }] });
     const { createCostLibraryComponent } = await import("@/lib/component-library/actions");
-
-    const result = await createCostLibraryComponent({
+    const input = {
+      intentId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
       fieldContract: "opendesign-add-component",
       name: "Fresh Oak",
       category: "Flooring",
@@ -190,18 +211,265 @@ describe("library component instance reconciliation", () => {
         isActive: true,
         isDefault: true,
       }],
-    });
+    };
+
+    const result = await createCostLibraryComponent(input);
+    const replay = await createCostLibraryComponent(input);
 
     expect(result).toMatchObject({
       versionNumber: 1,
       createdAt: "2026-07-13T10:00:00.000Z",
       updatedAt: "2026-07-13T10:00:00.000Z",
     });
+    expect(replay).toMatchObject({
+      itemId: result.itemId,
+      activePriceOptionId: result.activePriceOptionId,
+      priceOptions: result.priceOptions,
+      versionNumber: 1,
+    });
     expect(database.batch).toHaveBeenCalledTimes(1);
     const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql?: string }>;
     expect(batchStatements.some((statement) => statement.sql?.includes("INSERT INTO cost_library_items"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql?.includes("component_duplicate_guard"))).toBe(true);
     expect(batchStatements.some((statement) => statement.sql?.includes("cost_library_item_price_options"))).toBe(true);
     expect(batchStatements.some((statement) => statement.sql?.includes("cost_library_item_versions"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql?.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
+  });
+
+  it("rejects a reused component-create intent with a different fingerprint before writing", async () => {
+    const database = createD1Fixture({ firstResults: [{ count: 0 }] });
+    const { createCostLibraryComponent } = await import("@/lib/component-library/actions");
+    const input = {
+      intentId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      name: "Fresh Oak",
+      category: "Flooring",
+      unit: "box",
+      priceOptions: [{
+        label: "V1",
+        unit: "box",
+        unitCost: 2500.5,
+        isActive: true,
+        isDefault: true,
+      }],
+    };
+
+    await createCostLibraryComponent(input);
+    await expect(createCostLibraryComponent({ ...input, name: "Changed Oak" })).rejects.toThrow(
+      "This action changed after it was submitted. Retry it as a new action.",
+    );
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
+  });
+
+  it("finds duplicate identities across the workspace with normalized supplier-or-brand matching", async () => {
+    const database = createD1Fixture({
+      allResults: [[{
+        id: COMPONENT_ID,
+        name: "Door   Hinge",
+        category: "Door Hardware",
+        supplier: null,
+        brand: "Hinge Co",
+      }]],
+    });
+    const { findCurrentWorkspaceCostLibraryComponentDuplicate } = await import("@/lib/component-library/actions");
+
+    const result = await findCurrentWorkspaceCostLibraryComponentDuplicate({
+      name: "  door hinge  ",
+      category: "Door Hardware",
+      supplier: "",
+      brand: "HINGE   CO",
+    });
+
+    expect(result).toEqual({
+      itemId: COMPONENT_ID,
+      name: "Door   Hinge",
+      category: "Door Hardware",
+      supplier: null,
+      brand: "Hinge Co",
+    });
+    const preflight = database.statements.find((statement) => statement.sql.includes("FROM cost_library_items") && statement.sql.includes("LIMIT 1"));
+    expect(preflight?.sql).toContain("lifecycle_state <> 'archived'");
+    expect(preflight?.sql).toContain("CHAR(9)");
+    expect(preflight?.values).toEqual([
+      WORKSPACE_ID,
+      "door hinge",
+      "door hardware",
+      "",
+      "",
+      "hinge co",
+      "hinge co",
+    ]);
+  });
+
+  it("blocks an unacknowledged server duplicate before any component write", async () => {
+    const database = createD1Fixture({
+      allResults: [[{
+        id: COMPONENT_ID,
+        name: "Fresh Oak",
+        category: "Flooring",
+        supplier: "Acme",
+        brand: "Pergo",
+      }]],
+    });
+    const { createCostLibraryComponent } = await import("@/lib/component-library/actions");
+
+    await expect(createCostLibraryComponent({
+      intentId: "12121212-1212-4212-8212-121212121212",
+      name: "Fresh Oak",
+      category: "Flooring",
+      supplier: "Acme",
+      brand: "Pergo",
+      unit: "box",
+      priceOptions: [{
+        label: "V1",
+        unit: "box",
+        unitCost: 2500.5,
+        isActive: true,
+        isDefault: true,
+      }],
+    })).rejects.toThrow('A component named "Fresh Oak" already exists. Choose Create anyway');
+
+    expect(database.batch).not.toHaveBeenCalled();
+    expect(database.statements.some((statement) => statement.sql.includes("INSERT INTO cost_library_items"))).toBe(false);
+  });
+
+  it("records an explicit create-anyway acknowledgement in the receipt fingerprint", async () => {
+    const database = createD1Fixture({ firstResults: [{ count: 0 }] });
+    const [{ createCostLibraryComponent }, { createMutationRequestFingerprint }] = await Promise.all([
+      import("@/lib/component-library/actions"),
+      import("@/lib/estimates/mutation-receipts"),
+    ]);
+    const input = {
+      intentId: "34343434-3434-4434-8434-343434343434",
+      allowDuplicate: true,
+      name: "Fresh Oak",
+      category: "Flooring",
+      supplier: "Acme",
+      brand: "Pergo",
+      unit: "box",
+      priceOptions: [{
+        label: "V1",
+        unit: "box",
+        unitCost: 2500.5,
+        isActive: true,
+        isDefault: true,
+      }],
+    };
+
+    await createCostLibraryComponent(input);
+
+    const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string; values: unknown[] }>;
+    expect(batchStatements.some((statement) => statement.sql.includes("component_duplicate_guard"))).toBe(false);
+    const receipt = batchStatements.find((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"));
+    const { intentId: ignoredIntentId, ...request } = input;
+    void ignoredIntentId;
+    expect(receipt?.values[7]).toBe(createMutationRequestFingerprint(request));
+  });
+
+  it("duplicates safe component metadata without copying attachment records into the new component", async () => {
+    componentRepositoryMocks.getCurrentWorkspaceComponentRowDetail.mockImplementation(async (itemId: string) => ({
+      id: itemId,
+      material: itemId === COMPONENT_ID ? "Specified door hinge" : "Specified door hinge copy",
+      name: itemId === COMPONENT_ID ? "Specified door hinge" : "Specified door hinge copy",
+      description: "Component-level description",
+      supplier: "Hardware Supplier",
+      supplierId: "supplier-1",
+      brand: "Hardware Brand",
+      brandId: "brand-1",
+      source: "library",
+      unit: "pc",
+      itemCost: 125,
+      price: 125,
+      currency: "PHP",
+      quantity: 1,
+      subTotal: 125,
+      miscCost: 5,
+      totalItemCosts: 130,
+      category: "Door Hardware",
+      categoryNodeId: "door-hardware",
+      discipline: "Architecture",
+      designation: "DH-01",
+      tags: ["hinge", "specified"],
+      sourceUrl: "https://example.com/specification",
+      notes: "Component-level installation note",
+      imageUrl: "project-scoped/component-image.webp",
+      pricingSource: "Hardware Supplier",
+      pricingDate: "2026-07-10",
+      sourceLibraryItemId: itemId,
+      lifecycleState: "available",
+      componentVersionNumber: 2,
+      priceOptionId: PRICE_OPTION_ID,
+      priceOptions: [{
+        id: PRICE_OPTION_ID,
+        label: "Default",
+        unit: "pc",
+        unitCost: 125,
+        miscCost: 5,
+        currency: "PHP",
+        imageBucket: "project-images",
+        imagePath: `${WORKSPACE_ID}/project-1/source.webp`,
+        thumbnailPath: `/api/projects/images?path=${encodeURIComponent(`${WORKSPACE_ID}/project-1/source-thumb.webp`)}`,
+        imageMetadata: {
+          assetId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          thumbnailStoragePath: `${WORKSPACE_ID}/project-1/source-thumb.webp`,
+        },
+        attachments: [{ id: "attachment-1", fileName: "supplier-quote.pdf" }],
+        isActive: true,
+        isDefault: true,
+      }, {
+        id: SECOND_PRICE_OPTION_ID,
+        label: "Component image variant",
+        unit: "pc",
+        unitCost: 150,
+        miscCost: 0,
+        currency: "PHP",
+        imageBucket: "component-images",
+        imagePath: `${WORKSPACE_ID}/user-1/source.webp`,
+        thumbnailPath: `/api/component-library/images?path=${encodeURIComponent(`${WORKSPACE_ID}/user-1/source-thumb.webp`)}`,
+        imageMetadata: {
+          assetId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          thumbnailStoragePath: `${WORKSPACE_ID}/user-1/source-thumb.webp`,
+        },
+        attachments: [],
+        isActive: true,
+        isDefault: false,
+      }],
+    }));
+    const database = createD1Fixture({ firstResults: [{ count: 0 }] });
+    const { duplicateCostLibraryComponent } = await import("@/lib/component-library/actions");
+
+    const result = await duplicateCostLibraryComponent({ itemId: COMPONENT_ID });
+
+    expect(result.omittedAttachmentCount).toBe(1);
+    expect(result.omittedImageCount).toBe(2);
+    const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string; values: unknown[] }>;
+    const itemInsert = batchStatements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"));
+    expect(itemInsert?.values[19]).toBeNull();
+    const metadata = JSON.parse(String(itemInsert?.values[20])) as Record<string, unknown>;
+    expect(metadata).toMatchObject({
+      duplicatedFrom: COMPONENT_ID,
+      discipline: "Architecture",
+      designation: "DH-01",
+      tags: ["hinge", "specified"],
+      sourceUrl: "https://example.com/specification",
+      notes: "Component-level installation note",
+      source: "library",
+      isCustom: true,
+    });
+    expect(metadata).not.toHaveProperty("imageUrl");
+    const priceOptionInserts = batchStatements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"));
+    expect(priceOptionInserts).toHaveLength(2);
+    for (const priceOptionInsert of priceOptionInserts) {
+      const priceOptionMetadata = JSON.parse(String(priceOptionInsert.values[13])) as Record<string, unknown>;
+      expect(priceOptionMetadata).toMatchObject({
+        imageBucket: null,
+        imagePath: null,
+        thumbnailPath: null,
+      });
+      expect(priceOptionMetadata.imageMetadata).toEqual({});
+    }
+    expect(batchStatements.some((statement) => statement.sql.includes("SET target_entity_type = 'cost-library-component'"))).toBe(false);
+    expect(batchStatements.some((statement) => statement.sql.includes("INSERT INTO component_variant_attachments"))).toBe(false);
   });
 
   it("persists canonical component details to every linked estimate row", async () => {
@@ -295,7 +563,8 @@ describe("library component instance reconciliation", () => {
     });
     const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
 
-    const result = await updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
+    const input = {
+      intentId: "56565656-5656-4656-8656-565656565656",
       name: "Updated Oak",
       description: "Updated description",
       category: "Flooring",
@@ -331,7 +600,9 @@ describe("library component instance reconciliation", () => {
         isActive: true,
         isDefault: false,
       }],
-    });
+    };
+    const result = await updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, input);
+    const replay = await updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, input);
 
     const linkedRowUpdate = database.statements.find((statement) =>
       statement.sql.includes("UPDATE estimate_row_items") && statement.sql.includes("source_library_item_id"),
@@ -381,6 +652,10 @@ describe("library component instance reconciliation", () => {
     expect(database.statements.some((statement) => statement.sql.includes("UPDATE cost_library_item_variant_cost_entries"))).toBe(true);
     expect(database.statements.some((statement) => statement.sql.includes("id NOT IN"))).toBe(true);
     expect(database.statements.some((statement) => statement.sql.includes("ON CONFLICT(id) DO UPDATE"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("INSERT INTO estimate_sheet_events"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("INSERT INTO activity_event_outbox"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("publication_source_revision = publication_source_revision + 1"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
     const componentUpdate = database.statements.find((statement) =>
       statement.sql.includes("UPDATE cost_library_items") && statement.sql.includes("SET name = ?"),
     );
@@ -394,7 +669,71 @@ describe("library component instance reconciliation", () => {
       rowRevisions: { "row-1": 4, "row-2": 8 },
       affectedEstimates: [{ projectId: "project-1", estimateId: "estimate-1" }],
     });
+    expect(replay).toMatchObject({
+      itemId: COMPONENT_ID,
+      versionNumber: 2,
+      updatedRowCount: 2,
+      rowRevisions: { "row-1": 4, "row-2": 8 },
+      affectedEstimates: [{ projectId: "project-1", estimateId: "estimate-1" }],
+      rowPatches: {},
+    });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
+  });
+
+  it("rejects a reused component-update intent with a different fingerprint before writing", async () => {
+    const database = createD1Fixture({
+      firstResults: [{
+        id: COMPONENT_ID,
+        workspace_id: WORKSPACE_ID,
+        name: "Original",
+        unit: "box",
+        unit_cost: 100,
+        misc_cost: 0,
+        current_version_number: 1,
+        active_price_option_id: PRICE_OPTION_ID,
+        lifecycle_state: "available",
+        updated_at: "2026-07-13T09:00:00.000Z",
+      }],
+      allResults: [[{
+        id: PRICE_OPTION_ID,
+        label: "Default",
+        unit: "box",
+        unit_cost: 100,
+        misc_cost: 0,
+        currency: "PHP",
+        is_active: 1,
+        is_default: 1,
+        pricing_source: null,
+        metadata_json: "{}",
+        updated_at: "2026-07-13T09:00:00.000Z",
+      }], []],
+    });
+    const { updateCostLibraryComponentWithPriceOptions } = await import("@/lib/component-library/actions");
+    const input = {
+      intentId: "78787878-7878-4878-8878-787878787878",
+      name: "Updated Oak",
+      category: "Flooring",
+      unit: "box",
+      expectedUpdatedAt: "2026-07-13T09:00:00.000Z",
+      expectedVersionNumber: 1,
+      expectedComponentImpactFingerprint: `rows[]|options[${PRICE_OPTION_ID}:2026-07-13T09:00:00.000Z:1:1]`,
+      priceOptions: [{
+        id: PRICE_OPTION_ID,
+        label: "Default",
+        unit: "box",
+        unitCost: 100,
+        isActive: true,
+        isDefault: true,
+      }],
+    };
+
+    await updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, input);
+    await expect(updateCostLibraryComponentWithPriceOptions(COMPONENT_ID, {
+      ...input,
+      name: "Changed after submit",
+    })).rejects.toThrow("This action changed after it was submitted. Retry it as a new action.");
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
   });
 
   it("atomically updates component variants, version history, and linked row revisions", async () => {

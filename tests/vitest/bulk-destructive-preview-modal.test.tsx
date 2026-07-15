@@ -281,7 +281,7 @@ describe("BulkDestructivePreviewModal", () => {
     expect(dialog).not.toHaveTextContent(/Ready to delete|This will delete/i);
   });
 
-  it("keeps ready archive confirmation copy recoverable", () => {
+  it("keeps ready archive confirmation copy truthful about current behavior", () => {
     render(
       <BulkDestructivePreviewModal
         open
@@ -301,7 +301,8 @@ describe("BulkDestructivePreviewModal", () => {
       target: { value: "ARCHIVE 2 COMPONENTS" },
     });
 
-    expect(dialog).toHaveTextContent("Archived components are hidden from browse and blocked from new inserts. You can restore them later.");
+    expect(dialog).toHaveTextContent("Archived components are hidden from browse and blocked from new inserts.");
+    expect(dialog).not.toHaveTextContent(/restore them later/i);
     expect(dialog).not.toHaveTextContent("This action cannot be undone.");
   });
 

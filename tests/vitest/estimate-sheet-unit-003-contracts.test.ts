@@ -47,4 +47,32 @@ describe("estimate sheet UNIT-003 truth contracts", () => {
     expect(tableGuard).not.toContain("prev.rowMutationStatuses !== next.rowMutationStatuses");
     expect(tableGuard).not.toContain("prev.promotingRowId !== next.promotingRowId");
   });
+
+  it("uses one versioned target-scoped acknowledgement envelope for external Estimate Tree drops", () => {
+    const eventsSource = read("src/components/workshop/estimate-sheet/events.ts");
+    const dropSource = read("src/components/workshop/estimate-tree/use-estimate-tree-external-drops.ts");
+    const contentSource = read("src/components/workshop/EstimateSheetContent.tsx");
+    const templateSource = read("src/components/workshop/estimate-sheet/use-estimate-template-insertion.ts");
+
+    expect(eventsSource).toContain("ESTIMATE_EXTERNAL_DROP_SCHEMA_VERSION = 1");
+    expect(eventsSource).toContain("if (claimed) return null");
+    expect(eventsSource).toContain('reason: "unhandled"');
+    expect(dropSource.match(/dispatchDrop</g)?.length).toBeGreaterThanOrEqual(4);
+    expect(contentSource.match(/readEstimateExternalDropEnvelope/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(templateSource).toContain("readEstimateExternalDropEnvelope");
+  });
+
+  it("keeps Area rename drafts in the input and reserves a stable transparent action slot", () => {
+    const treeSource = read("src/components/workshop/EstimateSheetTree.tsx");
+    const editorSource = read("src/components/workshop/estimate-tree/use-estimate-tree-rename-editor.ts");
+
+    expect(treeSource).toContain("defaultValue={editingNodeName}");
+    expect(treeSource).toContain("updateRenameDraftName(event.currentTarget.value)");
+    expect(treeSource).not.toContain("setEditingNodeName(event.currentTarget.value)");
+    expect(treeSource).toContain("data-estimate-tree-rename-controls");
+    expect(treeSource).toContain("absolute inset-y-0 right-0 flex w-10");
+    expect(treeSource).toContain("bg-transparent");
+    expect(editorSource).toContain('const renameDraftValueRef = useRef("")');
+    expect(editorSource).toContain("setEditingNodeName(renameDraftValueRef.current)");
+  });
 });

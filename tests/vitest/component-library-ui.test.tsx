@@ -6,10 +6,11 @@ import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
 import { NewTemplateModal } from "@/components/workshop/component-library/NewTemplateModal";
 import { PROJECT_SOURCE_DRAG_MIME_TYPE, type EstimateTemplate } from "@/components/workshop/component-library/templates";
-import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { useEstimateWorkshopDragState } from "@/components/workshop/estimate-workshop-drag";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 const templateActionMocks = vi.hoisted(() => ({
   createLibraryFolder: vi.fn(),
@@ -806,9 +807,14 @@ describe("component library UI", () => {
     const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
     expect(folderNameInput).toHaveValue("Furniture");
     expect(folderNameInput).toHaveFocus();
+    expect(folderNameInput).toHaveClass("border-0", "bg-transparent", "p-0");
+    expect(folderNameInput).toHaveProperty("selectionStart", "Furniture".length);
 
     await user.clear(folderNameInput);
-    await user.type(folderNameInput, "Seating{Enter}");
+    await user.type(folderNameInput, "Seating");
+    fireEvent.mouseLeave(folderNameInput);
+    expect(templateActionMocks.renameLibraryFolder).not.toHaveBeenCalled();
+    fireEvent.keyDown(folderNameInput, { key: "Enter" });
 
     await waitFor(() => expect(templateActionMocks.renameLibraryFolder).toHaveBeenCalledWith(sidebarCustomFolderId, "Seating"));
     expect(await screen.findByRole("treeitem", { name: "Seating" })).toBeInTheDocument();

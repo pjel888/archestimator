@@ -191,6 +191,8 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
         createdAt: "2026-07-13T09:30:00.000Z",
         updatedAt: "2026-07-13T09:30:00.000Z",
       },
+      omittedImageCount: 0,
+      omittedAttachmentCount: 0,
     });
     actionMocks.createCostLibraryComponent.mockReset();
     actionMocks.createCostLibraryComponent.mockResolvedValue({
@@ -272,7 +274,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
       expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
     expect(within(sheet).getByText("Discontinued Plank")).toBeInTheDocument();
-    expect(screen.getByText(/1 of 3 after filters/)).toBeInTheDocument();
+    expect(screen.getByText(/1 of 3 loaded after filters/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
     await waitFor(() => {
@@ -443,6 +445,30 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     });
   });
 
+  it("reports images and attachments omitted from a duplicate", async () => {
+    actionMocks.duplicateCostLibraryComponent.mockResolvedValue({
+      component: {
+        ...fixtureItems[0],
+        id: "item-copy",
+        sourceLibraryItemId: "item-copy",
+        name: "Fresh Tile copy",
+        material: "Fresh Tile copy",
+      },
+      omittedImageCount: 1,
+      omittedAttachmentCount: 2,
+    });
+    renderManager();
+    await waitForSheet();
+
+    fireEvent.click(getComponentNameInspectButton("item-fresh"));
+    const originalDock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
+    fireEvent.click(within(originalDock).getByRole("button", { name: "Duplicate" }));
+
+    expect(await screen.findByText(
+      "Duplicated without 1 image and 2 attachments; originals remain on the source component.",
+    )).toBeInTheDocument();
+  });
+
   it("announces search result counts in the context strip", async () => {
     renderManager();
     await waitForSheet();
@@ -451,7 +477,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     const input = await screen.findByLabelText("Search components");
     fireEvent.change(input, { target: { value: "Stale" } });
 
-    expect(await screen.findByText('1 of 3 match "Stale"')).toBeInTheDocument();
+    expect(await screen.findByText('1 of 3 loaded match "Stale"')).toBeInTheDocument();
   });
   it("promotes project express components from the Project catalogue card", async () => {
     promotionMocks.promoteEstimateRowToLibraryComponent.mockResolvedValue({
@@ -509,6 +535,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
         projectId: "project-1",
         estimateId: "estimate-1",
         rowId: "project-row-1",
+        expectedRowRevision: 1,
       });
     });
     await waitFor(() => expect(screen.queryByRole("button", { name: "Promote Express Vanity to library" })).not.toBeInTheDocument());
@@ -571,6 +598,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
         projectId: "project-1",
         estimateId: "estimate-1",
         rowId: "detached-row-1",
+        expectedRowRevision: 1,
       });
     });
     await waitFor(() => expect(screen.queryByRole("button", { name: "Promote Custom Closet to library" })).not.toBeInTheDocument());

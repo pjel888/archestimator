@@ -232,31 +232,20 @@ describe("estimate sheet row details and CRUD entry points", () => {
     expect(screen.queryByRole("dialog", { name: "Row item details" })).not.toBeInTheDocument();
   });
 
-  it("keeps row details scoped to row tabs for source-less project rows", async () => {
-    const user = userEvent.setup();
+  it("keeps duplicate and activity actions available for source-less project rows", () => {
     renderPersistedEstimateSheet([sourceLessProjectRow]);
 
-    await user.click(screen.getByRole("button", { name: "Open row details for Owner-Supplied Pendant" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).queryByRole("tab", { name: "Component" })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
-    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
-    expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
-    expect(within(dialog).queryByText("Manual estimate row")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Duplicate row item Owner-Supplied Pendant" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open row activity for Owner-Supplied Pendant" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open row details for Owner-Supplied Pendant" })).not.toBeInTheDocument();
   });
 
-  it("keeps row details scoped to row tabs for source-changed library rows", async () => {
-    const user = userEvent.setup();
+  it("keeps duplicate and activity actions available for source-changed library rows", () => {
     renderPersistedEstimateSheet([sourceChangedLibraryRow]);
 
-    await user.click(screen.getByRole("button", { name: "Open row details for Library Faucet" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).queryByRole("tab", { name: "Component" })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
-    expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
-    expect(within(dialog).queryByText("Library source changed")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Duplicate row item Library Faucet" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open row activity for Library Faucet" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open row details for Library Faucet" })).not.toBeInTheDocument();
   });
 
   it("keeps express saves, project-specific scalar edits, and row delete actions usable", async () => {

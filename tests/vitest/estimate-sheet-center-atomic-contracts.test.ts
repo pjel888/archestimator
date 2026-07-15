@@ -13,6 +13,7 @@ const rowConstants = readFileSync(join(process.cwd(), "src/components/workshop/e
 const workshopDragStore = readFileSync(join(process.cwd(), "src/components/workshop/estimate-workshop-drag.ts"), "utf8");
 const estimateSheetTree = readFileSync(join(process.cwd(), "src/components/workshop/EstimateSheetTree.tsx"), "utf8");
 const estimateSheetEvents = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/events.ts"), "utf8");
+const estimateTreeExternalDrops = readFileSync(join(process.cwd(), "src/components/workshop/estimate-tree/use-estimate-tree-external-drops.ts"), "utf8");
 const uiTree = readFileSync(join(process.cwd(), "src/components/ui/tree.tsx"), "utf8");
 
 function sourceBetween(source: string, start: string, end: string) {
@@ -73,10 +74,11 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(estimateSheetContent).toContain("const [rowMoveDialog, setRowMoveDialog]");
     expect(estimateSheetContent).toContain('title="Move row"');
     expect(estimateSheetContent).toContain("resolveRowMoveDialogTargetIndex");
-    expect(estimateSheetTree).toContain("ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE");
-    expect(estimateSheetTree).toContain("REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT");
-    expect(estimateSheetTree).toContain("targetIndex: targetNode.estimateRowItems?.length ?? 0");
-    expect(estimateSheetTree).toContain('targetPlacement: "end"');
+    expect(estimateSheetTree).toContain("useEstimateTreeExternalDrops");
+    expect(estimateTreeExternalDrops).toContain("ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE");
+    expect(estimateTreeExternalDrops).toContain("REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT");
+    expect(estimateTreeExternalDrops).toContain("targetIndex: targetNode.estimateRowItems?.length ?? 0");
+    expect(estimateTreeExternalDrops).toContain('targetPlacement: "end"');
     expect(uiTree).toContain("dropEffect?:");
     expect(uiTree).toContain('?? "copy"');
   });
@@ -96,8 +98,10 @@ describe("estimate sheet center atomic mutation contracts", () => {
       "const insertProjectSourceIntoSelectedGroup = useCallback",
     );
 
-    expect(projectSourceInsertSource).toContain("const projectSourceRequestRevision = getEstimateTreeRevision();");
-    expect(projectSourceInsertSource).toContain("if (getEstimateTreeRevision() === projectSourceRequestRevision) setEstimateTree(() => result.tree);");
+    expect(projectSourceInsertSource).toContain("setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({");
+    expect(projectSourceInsertSource).toContain("currentTree,");
+    expect(projectSourceInsertSource).toContain("authoritativeTree: result.tree,");
+    expect(projectSourceInsertSource).not.toContain("setEstimateTree(() => result.tree)");
   });
 
   it("downloads proposal exports with same-origin credentials", () => {
@@ -132,8 +136,9 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).not.toContain("absolute bottom-4");
     expect(rowTable).not.toContain("w-10 text-right");
     expect(rowTable).not.toContain("flex min-w-0 flex-col items-center justify-center gap-0.5");
-    expect(rowCells).toContain("const MATERIAL_UNIT_SLOT_CLASS =");
-    expect(rowCells).toContain("top-[calc(50%+22px)]");
+    expect(rowCells).toContain("const MATERIAL_UNIT_LABEL_CLASS =");
+    expect(rowCells).toContain('data-estimate-material-unit-slot="true"');
+    expect(rowCells).toContain("grid-cols-[56px_minmax(0,1fr)_112px]");
     expect(rowCells).toContain("!text-[10px] font-medium leading-3 text-tertiary");
     expect(rowCells).toContain("border-0 !bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink");
   });

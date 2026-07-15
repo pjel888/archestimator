@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { resetComponentLibraryAccountPreferencesClientCacheForTests } from "@/components/workshop/component-library/account-preferences-client";
-import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 const actionMocks = vi.hoisted(() => ({
   loadComponentLibraryUserPreferences: vi.fn(),

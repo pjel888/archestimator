@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
-import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { ToastProvider } from "@/components/ui/toast";
 

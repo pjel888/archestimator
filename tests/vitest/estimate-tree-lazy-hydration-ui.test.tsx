@@ -142,7 +142,7 @@ describe("estimate tree lazy branch hydration", () => {
     expect(await screen.findByText("Loaded child")).toBeInTheDocument();
   });
 
-  it("currently allows an inside drop while a partial branch is still loading", async () => {
+  it("blocks structural drag while a partial branch is still loading", async () => {
     const pendingLoad = deferred<ReturnType<typeof buildEstimateTreeSubtreePayload>>();
     const partialRoot = node({
       id: "partial-root",
@@ -163,22 +163,16 @@ describe("estimate tree lazy branch hydration", () => {
     fireEvent.click(partialRow.querySelector<HTMLElement>("button[aria-label='Expand']")!);
     expect(await screen.findByText("Loading...")).toBeInTheDocument();
 
+    expect(moverHandle).toHaveAttribute("draggable", "false");
+    expect(moverHandle).toHaveAttribute("aria-disabled", "true");
+    expect(moverHandle).toHaveAttribute("data-tree-drag-disabled-reason", "Load the complete tab before moving nodes.");
+
     const dataTransfer = mockDataTransfer();
     fireEvent.dragStart(moverHandle, { dataTransfer });
     fireEvent.dragOver(partialRow, { dataTransfer });
-    expect(partialRow).toHaveAttribute("data-tree-drop-state", "valid");
-    expect(partialRow).toHaveAttribute("data-tree-drop-position", "inside");
     fireEvent.drop(partialRow, { dataTransfer });
 
-    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith(
-      "project-1",
-      "estimate-1",
-      {
-        updates: expect.arrayContaining([
-          { id: "mover", parentId: "partial-root", sortOrder: 10 },
-        ]),
-        targetTabId: undefined,
-      },
-    ));
+    expect(partialRow).not.toHaveAttribute("data-tree-drop-state", "valid");
+    expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
   });
 });

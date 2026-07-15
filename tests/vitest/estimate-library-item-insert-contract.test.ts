@@ -11,7 +11,7 @@ import {
   readInsertEstimateTemplateEventDetail,
   readInsertProjectSourceEventDetail,
 } from "@/components/workshop/component-library/templates";
-import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 describe("estimate library item insert contract", () => {
   it("accepts canonical row-item payloads and rejects malformed library drag JSON", () => {

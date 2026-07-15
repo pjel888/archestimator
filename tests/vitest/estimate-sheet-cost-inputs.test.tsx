@@ -14,9 +14,10 @@ import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectE
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { WorkshopShell } from "@/components/workshop/WorkshopShell";
 import { WorkshopTitleHeader } from "@/components/workshop/WorkshopTitleHeader";
-import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: vi.fn(async () => null),
