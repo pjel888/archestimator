@@ -37,19 +37,19 @@ The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` fo
 | `F-003` | `P0 OPEN` | D1-safe removal claim, delayed reference-rechecked purge, terminal purge state, and retryable per-object cleanup. | `UNIT-006` |
 | `F-004` | `P0 OPEN` | Unify upload lifecycle and batch each D1 state transition with its asset/event; add repair queries and session-to-asset uniqueness. | `UNIT-006` |
 | `F-005` | `P0 OPEN` | Exact row/revision preview, atomic delete up to the explicit 400-dependent interactive ceiling, per-estimate/template events, mass-deletion receipt, idempotent retry, and durable cleanup metadata. | `UNIT-004` |
-| `F-006` | `P0 OPEN` | One private authoring projector, deterministic semantic identity, bounded source-fingerprint consistency fence, channel-safe serializers, derived-field privacy, and atomic pointer replacement. | `UNIT-007` |
+| `F-006` | `P0 OPEN` | One private projector plus monotonic project publication revision, complete same-batch writer increments, bounded read/reread, guarded zero-write issue commit, deterministic semantic identity, channel-safe serializers, and atomic pointer replacement. | `UNIT-007` |
 | `F-007` | `P0 PARTIALLY_REMEDIATED` | Proof-class evidence receipts plus executable source/diff fingerprints; keep every product criterion `FAIL` until real proof exists. | `UNIT-001`, `UNIT-008` |
 | `F-008` | `P1 OPEN` | Dedicated atomic duplicate operation with source revision, target/order, history, and receipt in one D1 boundary. | `UNIT-002` |
 | `F-009` | `P1 OPEN_REFRAMED` | Keep existing uniqueness; add expected row revision, unique-conflict winner recovery, standard outbox, and reconcilable copied-object cleanup. | `UNIT-004` |
 | `F-010` | `P1 OPEN` | Two-pass node identity/remap, source fingerprint, true retry receipt, and copied rows reset to revision `1`/copy timestamps. | `UNIT-003` |
-| `F-011` | `P1 OPEN` | Stable client intent ID, pre-mutation receipt lookup, and target tab derived exclusively from the target parent. | `UNIT-005` |
+| `F-011` | `P1 OPEN` | Stable client intent ID, committed receipt before planning, target tab derived from the parent, and one hard inclusive `<=1000`-statement batch with pre-ID over-limit rejection. | `UNIT-005` |
 | `F-012` | `P1 OPEN` | Guard target row revision plus Library item/option/current-cost fingerprint in the same replacement batch. | `UNIT-002` |
 | `F-013` | `P1 SOURCE_FIX_PRESENT_UNVERIFIED` | Preserve current stable-option-ID mutation and component+variant pending scope; add no broader loading state. | `UNIT-001`, `UNIT-004` |
-| `F-014` | `P1 SOURCE_FIX_PRESENT_UNVERIFIED` | Preserve shared Enter prevent/stop/blur behavior; verify every input class and clarify multiline behavior. | `UNIT-001`, `UNIT-002` |
+| `F-014` | `P1 SOURCE_FIX_PRESENT_UNVERIFIED` | Single-line Enter saves; true multiline textareas alone keep Enter-newline and use `Mod+Enter` save; Escape reverts and blur deduplicates. | `UNIT-001`, `UNIT-002` |
 | `F-015` | `P1 SOURCE_FIX_PRESENT_UNVERIFIED` | Keep destructive row deletion; complete `F-005`; never relax or null the snapshot invariant. | `UNIT-001`, `UNIT-004` |
-| `F-016` | `P1 PARTIAL_FIX_PRESENT` | Replace the magic generic-insert branch with the `F-008` duplicate operation, a complete persisted-field contract, and a synchronous click latch. | `UNIT-002` |
+| `F-016` | `P1 PARTIAL_FIX_PRESENT` | Replace the magic generic-insert branch with the `F-008` duplicate operation, complete persisted fields, and a source-row-keyed latch retaining one intent through ambiguous outcomes. | `UNIT-002` |
 | `F-017` | `P1 OPEN_REFRAMED` | Adopt the current any-selected-node product contract, derive target tab server-side, use exact copy, and use per-intent IDs. | `UNIT-005` |
-| `F-018` | `P2 OPEN_REFRAMED` | Add idempotent favorite set/unset against the existing account preference row, with pending/error/retry; do not add a new favorites table. | `UNIT-004` non-blocking tail |
+| `F-018` | `P2 AUXILIARY OPEN_REFRAMED` | Add idempotent favorite set/unset against the existing account preference row, with pending/error/retry; do not add a new favorites table. | `UX-003`/`AC-018`; `UNIT-004` auxiliary tail |
 | `F-019` | `P1 OPEN_REFRAMED` | Add child-folder creation and make create/reorder authoritative, cycle-safe, stale-safe, and atomic. | `UNIT-004` |
 | `F-020` | `P1 PARTIALLY_REMEDIATED` | Keep browser events but centralize a versioned, target-scoped, acknowledged command envelope with an intent ID; server validation/idempotency remain mandatory. | `UNIT-003`, `UNIT-005` |
 | `F-021` | `P2 CONFIRMED_DEAD_CODE` | Delete the reduced form, dead state/refs/helpers, and local-only save path. | `UNIT-004` |
@@ -120,10 +120,10 @@ The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` fo
 - **Direct blast radius:** legacy snapshots/tokens, Client Portal issues/sections/paged rows, component discussion anchors, privacy filtering, totals, and migration of legacy publications.
 - **Transitive blast radius:** public share pages, discussion target resolution, reissue/stale state, historical migration fidelity, recipient-visible grouping, and active publication pointer safety.
 - **Failure simulation:** identical authoring data produces different row meaning; migrated legacy issue cannot reconstruct component anchors; a hidden supplier becomes a visible group label; sequential legacy replacement can revoke the old publication before the new one succeeds. A change after the final fingerprint check can make a new immutable issue stale immediately even though its internal payload is coherent.
-- **Options:** patch only legacy mapper; one private authoring projector plus consistency/hash and channel-safe serializers; or route legacy through Client Portal. **Selected:** shared private projector and consistency fence with separate public contracts. Full channel unification changes tokens/recipient/history behavior unnecessarily.
-- **Success simulation:** both readers project one accepted private shape after a bounded fingerprint-read/reread loop; semantic hash excludes random token/delivery/issue IDs and stable opaque IDs derive from accepted semantic identity; each public serializer emits only approved/consumed fields; supplier/category derivation honors section policy; pointer changes only after complete persistence.
-- **Data/migration:** current row columns suffice. Bump projection schema/payload hash; preserve immutable historical issues and old legacy snapshots until explicit republish. Never backfill old issues from current authoring.
-- **Decisive evidence:** repeated unchanged-source builds produce the same semantic fingerprint/hash and opaque anchors; a mid-read change retries or returns source-changed; field-level same-fixture comparison, privacy-origin audit, totals equality, immutable issue identity, and replacement failure preserve the prior pointer.
+- **Options:** patch only legacy mapper; one private authoring projector plus consistency/hash and channel-safe serializers; route legacy through Client Portal; or add a commit-time revision fence. **Selected:** shared private projector, separate public contracts, and a monotonic `projects.publication_source_revision` fence. Full channel unification changes tokens/recipient/history behavior unnecessarily; another preflight read does not close the final race.
+- **Success simulation:** every issue-visible writer increments the project publication revision in the same D1 batch; both readers capture it, project one accepted private shape after bounded read/reread, and submit one issue batch whose guarded header insert requires the same revision. Every child/pointer statement depends on that header. A revision change before commit yields zero issue/header/child/pointer writes and returns `source-changed`; unchanged source yields deterministic semantic hash and opaque IDs.
+- **Data/migration:** add forward `projects.publication_source_revision INTEGER NOT NULL DEFAULT 1`; register and update every issue-visible writer before enabling the fence. Bump projection schema/payload hash; preserve immutable historical issues and old legacy snapshots until explicit republish. Never backfill old issues from current authoring.
+- **Decisive evidence:** complete writer registry, same-batch revision increment reads, repeated unchanged-source fingerprint/hash/anchor stability, forced mid-read and post-reread/pre-commit change rejection with zero new issue rows, field-level same-fixture comparison, privacy-origin audit, totals equality, immutable issue identity, and prior-pointer preservation.
 
 ### `F-007` — Stale Plan Evidence
 
@@ -196,9 +196,9 @@ The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` fo
 
 - **Root cause/status:** current dirty source centralizes Enter as prevent-default, stop-propagation, and blur; blur remains the existing commit boundary. Combobox Enter stays internal.
 - **Blast radius:** every inline text/numeric/tab/Area/component/variant input, row mutation queue, revision/history, focus, and duplicate-submit behavior.
-- **Simulation:** rapid Enter then edit is serialized by row queue; server failure rolls back/refetches. Remaining product decision: express description Enter now commits rather than inserting a newline.
-- **Options:** keep shared helper; explicit commit-and-blur callbacks; form submission. **Selected:** keep the helper and define multiline fields explicitly.
-- **Success:** Enter commits exactly once and does not select another row/newline; Escape restores authoritative value; blur after Enter does not double-submit.
+- **Simulation:** rapid Enter then edit is serialized by row queue; server failure rolls back/refetches. Single-line express descriptions save on Enter; only controls rendered as true multiline textareas keep Enter for newline.
+- **Options:** keep shared helper; explicit commit-and-blur callbacks; form submission. **Selected:** keep the helper; single-line Enter commits, true multiline uses Enter-newline plus `Mod+Enter` commit.
+- **Success:** single-line Enter commits exactly once and does not select another row or add a newline; multiline Enter adds a newline and `Mod+Enter` commits; Escape restores authoritative value; blur after either commit does not double-submit.
 - **Residual risk/evidence:** source fix is present but runtime input-class matrix was not authorized.
 
 ### `F-015` — Permanent Delete NOT NULL Incident
@@ -214,9 +214,9 @@ The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` fo
 
 - **Root cause/status:** the icon and persisted-source path exist, but duplication is encoded through magic fields on generic insert, source freshness is pre-batch, and `pricing_provenance_origin` is not copied.
 - **Blast radius:** every copied row-owned field, selected variant/link/provenance, order, revision/history, cache, totals, and publication.
-- **Simulation:** visible values look correct while provenance silently changes; rapid distinct clicks create multiple rows by design before pending UI rerenders.
-- **Options:** dedicated duplicate; strengthen generic magic branch; debounce only. **Selected:** the dedicated `F-008` operation plus a synchronous click latch for accidental pre-render double activation.
-- **Success:** one intentional click creates one fresh row with complete persisted contract and `row_duplicated` receipt; deliberate second click after completion creates another row with a new intent ID.
+- **Simulation:** visible values look correct while provenance silently changes; rapid clicks before pending rerender allocate multiple intents; a timeout releases a naive lock and a retry creates another row.
+- **Options:** dedicated duplicate; strengthen generic magic branch; debounce only. **Selected:** the dedicated `F-008` operation plus a synchronous `duplicate-row:${sourceRowId}` latch acquired before intent allocation. It retains the same intent through timeout/unknown outcomes and releases only on authoritative success, explicit non-commit, or reconciliation proving no commit.
+- **Success:** one intentional click creates one fresh row with complete persisted contract and `row_duplicated` receipt; an ambiguous retry returns/reconciles the same intent; a deliberate second click after terminal release creates another row with a new intent ID.
 - **Residual risk/evidence:** no migration. Runtime interaction and complete-field read-back remain required.
 
 ### `F-017` — Right-Sidebar Target Contract Contradiction
@@ -282,7 +282,7 @@ The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` fo
 - **Simulation:** device A favorites X and device B favorites Y; last whole-document writer erases the other operation. UI already records the local serialized state, so failed save has no retry feedback.
 - **Options:** new normalized favorites table; aggregate document CAS/merge; idempotent set/unset against the existing preference row; or device-local only. **Selected:** a narrow set/unset action that atomically changes only `favorite_item_ids_json` in the existing account/workspace row, preserves recents/tree/view fields, and returns authoritative state.
 - **Success:** concurrent operations on different items merge, repeated set/unset is idempotent, failures remain pending/retryable, and account hydration remains authoritative.
-- **Residual risk/evidence:** no new table is needed. Qualify local cache by workspace and add visible non-blocking failure/retry. This P2 tail does not block `UNIT-004`'s destructive/component core gate.
+- **Residual risk/evidence:** no new table is needed. Qualify local cache by workspace and add visible non-blocking failure/retry. This is explicit auxiliary `UX-003`/`AC-018`; it does not block `UNIT-004`'s destructive/component core gate or MVP release.
 
 ### `F-021` — Unreachable Reduced Component Editor
 
@@ -299,7 +299,7 @@ The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` fo
 2. **Repair row invariants before features:** fix revision-zero producers/backfill and source/link matrix, then move/restore/duplicate/replace.
 3. **Repair topology and intent identity:** tab duplicate, folder graph, Template/Project target resolution, Template create/editor lifecycle (`UNIT-009`), and event acknowledgement.
 4. **Repair destructive and object lifecycles:** component delete history/idempotency, Template lifecycle storage rules from `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md`, promotion, upload transactions, image purge, and reconciliation.
-5. **Repair issued projection:** shared private authoring projector, channel-safe serializers, privacy, totals, and atomic publication pointers.
-6. **Verify without substitution:** static, local D1, browser, preview, hosted, and public evidence remain separate. Missing authorized proof keeps the associated criterion `FAIL`.
+5. **Repair issued projection:** complete publication-revision writer registry, guarded commit-time fence, shared private authoring projector, channel-safe serializers, privacy, totals, and atomic publication pointers.
+6. **Verify without substitution:** static, local D1, browser, preview, hosted, and public evidence remain separate. Missing user-gated browser/test proof keeps only the associated browser/release claim `FAIL` or `NOT_EVALUATED`; it does not erase decisive source/D1 implementation evidence.
 
 No implementation unit may close an issue by adding a second editor, a compatibility layer, client-only validation, another preflight read, post-commit audit logging, or an unbounded partial-success loop. If an atomic destructive/copy operation exceeds a safe bounded statement/event ceiling, it must fail before mutation and surface the non-destructive alternative.
