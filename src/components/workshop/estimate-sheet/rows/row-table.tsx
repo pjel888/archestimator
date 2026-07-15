@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "zustand";
-import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Info, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -176,6 +176,15 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
 const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
 const ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP = "Delete row. Undo after saving can restore it.";
+const ESTIMATE_COLUMN_HELP = {
+  material: "The material or component used for this line, including its unit cost.",
+  quantity: "The total amount needed. You can enter a base quantity with a contingency amount, such as 10 + 1.",
+  contingency: "Extra quantity added to the base quantity. It changes Qty before the subtotal is calculated.",
+  subTotal: "Qty multiplied by the unit cost, before adjustment and miscellaneous cost.",
+  adjustment: "A percentage applied to the subtotal. Use a positive value to add cost or a negative value for a discount.",
+  miscCost: "An additional flat cost added after the subtotal and adjustment, such as delivery or consumables.",
+  totalItemCosts: "Subtotal plus the adjustment and miscellaneous cost.",
+} as const satisfies Partial<Record<EstimateColumnId, string>>;
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
 type ScrollMarginAction = { type: "reset" } | { type: "measure"; value: number };
@@ -237,6 +246,20 @@ function readSignedPercentageDraft(value: string) {
 function scrollMarginReducer(current: number, action: ScrollMarginAction) {
   if (action.type === "reset") return 0;
   return Math.abs(current - action.value) < 0.5 ? current : action.value;
+}
+
+function EstimateColumnHeader({ columnId, label }: { columnId: EstimateColumnId; label: string }) {
+  const helpText = ESTIMATE_COLUMN_HELP[columnId];
+  if (!helpText) return label;
+
+  return (
+    <Tooltip label={helpText} side="top" contentClassName="z-[1200] max-w-64 whitespace-normal text-center leading-3">
+      <span tabIndex={0} className="inline-flex cursor-help items-center gap-1 outline-none focus-visible:rounded-xs focus-visible:ring-1 focus-visible:ring-ink">
+        {label}
+        <Info size={11} weight="regular" aria-hidden="true" className="shrink-0 text-tertiary" />
+      </span>
+    </Tooltip>
+  );
 }
 
 function handleSelectionCheckboxKeyDown(event: KeyboardEvent<HTMLInputElement>, onToggle: () => void) {
@@ -1256,31 +1279,31 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 data-estimate-material-header-rail="true"
                 aria-hidden="true"
               />
-              Materials
+              <EstimateColumnHeader columnId="material" label="Materials" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="material" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("quantity")}>
-              Qty
+              <EstimateColumnHeader columnId="quantity" label="Qty" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="quantity" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("contingency", "text-center")}>
-              Contingency
+              <EstimateColumnHeader columnId="contingency" label="Contingency" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="contingency" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("subTotal")}>
-              Subtotal
+              <EstimateColumnHeader columnId="subTotal" label="Subtotal" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="subTotal" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("adjustment", "text-center")}>
-              Adjustment
+              <EstimateColumnHeader columnId="adjustment" label="Adjustment" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="adjustment" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("miscCost", "text-center")}>
-              Misc Cost
+              <EstimateColumnHeader columnId="miscCost" label="Misc Cost" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="miscCost" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("totalItemCosts", "text-center")}>
-              Total Item Cost
+              <EstimateColumnHeader columnId="totalItemCosts" label="Total Item Cost" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="totalItemCosts" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" aria-label="Row actions" />
