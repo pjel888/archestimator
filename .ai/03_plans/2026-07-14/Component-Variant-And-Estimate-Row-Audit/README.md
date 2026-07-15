@@ -1,7 +1,7 @@
 # Estimate Sheet MVP Feature Inventory, CRUD/Data/UI Audit, And Readiness
 
 **Canonical route:** `/workshop/projects/[projectId]/estimates/[nodeId]`
-**Package posture:** implementation-ready remediation plan with issue-by-issue fix simulations
+**Package posture:** implementation-ready remediation plan, compiled and re-audited against `Create-Implementation-Prompt.md`
 **Implementation status:** `NOT_STARTED` for the refreshed remediation DAG
 **Release status:** `NOT_READY`
 **Browser/visual proof:** `PLANNING_BASELINE_ONLY` — Area rename and Templates source-filter states were inspected read-only; implementation proof remains open
@@ -16,7 +16,7 @@ This pack is the canonical Estimate Sheet system inventory and remediation plan 
 2. **Center Estimate Sheet** — tabs, search/filter/grouping, row and component CRUD, inline editing, variants, duplicate/move/replace/delete/restore, history, totals, export handoff, and error/recovery behavior.
 3. **Right sidebar** — Library, Project, and Templates source browsing; component/folder lifecycle; archive/permanent delete; bulk actions; drag/drop; and reusable-source insertion.
 
-Secondary surfaces cover the project header, component editor, activity/export, Cloudflare storage, publication, and client review only where they consume or mutate Estimate Sheet state. The full Component Templates lifecycle is now included because the completed 2026-07-15 Template audit has been absorbed into this pack. Dense inline editing, dropdown/menu state language, and interaction-render readiness are canonical in artifact `13`.
+Secondary surfaces cover the project header, component editor, activity/export, Cloudflare storage, publication, and client review only where they consume or mutate Estimate Sheet state. The full Component Templates lifecycle is now included because the completed 2026-07-15 Template audit has been absorbed into this pack. Dense inline editing, dropdown/menu state language, and interaction-render readiness are canonical in artifact `13`. The final implementation-authoring pass resolves the commit-time publication fence, inclusive D1 statement ceiling, duplicate-latch lifecycle, multiline input rule, provenance vocabulary, Template fallback/activity policy, test-authorization boundary, and unit-to-unit transitions rather than delegating those routine choices to the executor.
 
 ## Why The Pack Was Reopened
 
@@ -75,6 +75,7 @@ The user's explicit product rule is authoritative:
 ### Auxiliary
 
 - full Add/Edit Component modal detail already captured in artifacts `05` and `06`;
+- favorite durability as `UX-003`/`AC-018`, implemented as an optional `UNIT-004` tail that does not gate the core MVP;
 - proposal export formatting;
 - collaboration/presence lifecycle; and
 - recipient access, discussions, decisions, notifications, and full Client Portal presentation.
@@ -126,7 +127,7 @@ The remediation program is complete only when:
 1. every matrix action has one current source owner and one decisive result;
 2. all P0/P1 findings are fixed, explicitly accepted, or removed by a product decision;
 3. destructive/shared mutations prove authorization, atomicity, revision/idempotency, history, cache reconciliation, and recovery/irreversibility;
-4. local D1, browser, Cloudflare provider, and public-route evidence are reported separately and truthfully;
+4. local D1, browser, Cloudflare provider, and public-route evidence are reported separately and truthfully; unauthorized browser/test proof remains `NOT_EVALUATED` rather than blocking local implementation completion or being implied as PASS;
 5. legacy and Client Portal issuance agree on authoring row/tree/component/variant meaning; and
 6. Template save/browse/editor/insert lifecycle satisfies `REQ-009` and `AC-015` without duplicate planning authority;
 7. inline rename and compact filter/menu behavior satisfy `UX-002`/`AC-016` without repainting or shifting the edited container;
