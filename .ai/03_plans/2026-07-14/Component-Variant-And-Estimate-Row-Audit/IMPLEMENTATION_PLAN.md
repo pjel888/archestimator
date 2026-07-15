@@ -442,13 +442,19 @@ Make Template save/create, bounded browse, header/category lifecycle, editor nod
 
 Reconcile every matrix action, finding, requirement, risk, evidence class, and adjacent boundary into a truthful MVP release decision.
 
+### Owned scope
+
+- `README.md`, artifacts `09` through `13`, `TRACEABILITY.md`, `LOOP_LEDGER.md`, and `plan-pack.json`
+- read-only reconciliation of product paths changed by `UNIT-002` through `UNIT-009`
+- local/provider/public receipts already produced by preceding units; no new product behavior is implemented here
+
 ### Work
 
 1. Re-run the full action inventory and mark each action `PASS`, accepted boundary, unsupported-by-design, or open gap with claim-level evidence.
 2. Confirm every P0/P1 finding and every absorbed `TPL-F-*` disposition is fixed, explicitly accepted with owner/rationale, superseded by a stronger integrated finding, or removed by a product decision; P2/P3 items must have an owner and non-misleading state.
 3. Re-run local D1 integrity and static gates after all units; compare expected changed symbols/flows through GitNexus `detect_changes()`.
-4. When explicitly authorized, verify the exact MVP route across left tree, center sheet, and right Sources sidebar: CRUD, duplicate, move/drop, delete/restore, input keys, loading/conflict/offline, totals, and reload.
-5. Under that same implementation-phase authorization, collect artifact `13`'s visual-state, focus, geometry, render-count, loaded-filter network, continuity, and reduced-motion receipts for `AC-016` and `AC-017`; do not treat the planning baseline as implementation proof.
+4. Reconcile source/static ownership, D1 receipts, authoritative read-back, provider/public receipts, and exact unresolved claims without requiring an unauthorized test or browser surface to mark local implementation complete.
+5. When explicitly authorized, verify the exact MVP route across left tree, center sheet, and right Sources sidebar and collect artifact `13`'s visual-state, focus, geometry, render-count, loaded-filter network, continuity, and reduced-motion receipts. Without that authorization, keep the corresponding browser/release claims `FAIL` or `NOT_EVALUATED`; do not block completion of otherwise proven local implementation units.
 6. Reconcile preview/hosted provider receipts from `UNIT-006` and public projection receipts from `UNIT-007`; never convert missing evidence into PASS.
 7. Refresh `README.md`, artifacts `09`/`10`/`11`/`12`/`13`, `TRACEABILITY.md`, `LOOP_LEDGER.md`, and `plan-pack.json` from actual results.
 8. Set release `READY` only if all core criteria pass with fresh evidence. Otherwise keep `NOT_READY` and name the exact next unit/finding.
@@ -457,19 +463,46 @@ Reconcile every matrix action, finding, requirement, risk, evidence class, and a
 
 - No orphan action, requirement, absorbed finding, unit, criterion, risk, decision, or evidence ID remains.
 - No criterion uses blanket evidence unrelated to its claim.
-- All environment receipts are fresh and correctly scoped.
+- All collected environment receipts are fresh and correctly scoped; uncollected user-gated evidence remains explicitly unevaluated.
 - Plan validation, scoped diff checks, and source-path checks pass, but are described only as planning/static proof.
 - Every `UI-F-*` finding is fixed or explicitly accepted, and `AC-016`/`AC-017` distinguish stable visual behavior from render/network performance proof.
 - The final status tuple is internally coherent and names either a release-ready result or one exact continuation.
 
 ### Evidence and recovery
 
-- Required: claim-level traceability, current hashes, validator receipt, scoped static/diff receipt, artifact `13`'s visual/focus/geometry/render/network receipts, provider/public receipts collected by prior units, and exact unresolved list if any.
-- Proposed when explicitly authorized: the integrated browser and critical mutation matrix; this is the final product-proof layer, not part of this planning-only refresh.
+- Required without test authorization: claim-level traceability, current hashes, validator receipt, scoped static/diff receipt, preceding units' D1/provider/public receipts, and an exact unresolved/unevaluated list.
+- Proposed when explicitly authorized: artifact `13`'s visual/focus/geometry/render/network receipts and the integrated browser/critical-mutation matrix. These are release-proof layers, not prerequisites for truthful local implementation completion.
 - Recovery: if any source changes after proof, mark dependent evidence stale and reopen the smallest affected unit.
+
+## Test Proposals — Not Authorized By This Pack
+
+These commands are exact proposals only. Do not create, repair, or run them unless the active implementation task explicitly authorizes testing. Missing proposal evidence keeps its criterion/browser release claim open; it does not convert a completed source/D1 implementation into an implementation blocker.
+
+| Risk slice | Exact proposed command |
+| --- | --- |
+| Row mutation, retry, and keyboard commit | `bun x vitest run tests/vitest/estimate-row-atomic-d1-contracts.test.ts tests/vitest/estimate-actions-d1-row-restore-history.test.ts tests/vitest/estimate-row-mutation-coordinator.test.tsx --maxWorkers=1` |
+| Component delete and promotion | `bun x vitest run tests/vitest/component-library-manager-concurrency.test.tsx tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx --maxWorkers=1` |
+| Template/Project-source insertion | `bun x vitest run tests/vitest/estimate-template-trusted-insert.test.ts tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx --maxWorkers=1` |
+| Publication revision fence and parity | `bun x vitest run tests/vitest/client-portal-publish-service.test.ts tests/vitest/client-portal-issue-builder.test.ts tests/vitest/project-publication-snapshot.test.ts tests/vitest/client-portal-estimate-browser.test.ts --maxWorkers=1` |
+| UX render isolation and continuity | `bun x vitest run tests/vitest/estimate-tree-edit.test.ts tests/vitest/estimate-sheet-sidebar-render-isolation.test.tsx tests/vitest/perf/estimate-sheet-memoization.test.tsx tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx --maxWorkers=1` |
+| Template lifecycle | `bun x vitest run tests/vitest/template-editor.test.tsx tests/vitest/templates-tree-performance.test.ts tests/vitest/component-library-templates-repository.test.ts --maxWorkers=1` |
+
+## Executor State Transitions
+
+| Completed unit | Exact next state |
+| --- | --- |
+| `UNIT-001` | Open `UNIT-002` and `UNIT-003` in parallel only after freezing the writer registry and source baseline. |
+| `UNIT-002` | Keep `UNIT-003` active if unfinished; otherwise open `UNIT-004`. |
+| `UNIT-003` | Keep `UNIT-002` active if unfinished; after both verify, open `UNIT-004`, then `UNIT-005` when `UNIT-004` is not required by its dependency set. |
+| `UNIT-004` | Open `UNIT-006`; open `UNIT-009` after `UNIT-005` also verifies. `UX-003`/`AC-018` remains an optional auxiliary tail. |
+| `UNIT-005` | Open `UNIT-009` after `UNIT-004`; preserve its receipts for `UNIT-007`. |
+| `UNIT-006` | Open `UNIT-007` only after all registered authoring writers from `UNIT-002` through `UNIT-006` are revision-aware. |
+| `UNIT-009` | If `UNIT-007` is verified, open `UNIT-008`; otherwise continue `UNIT-007`. |
+| `UNIT-007` | If `UNIT-009` is verified, open `UNIT-008`; otherwise continue `UNIT-009`. |
+| `UNIT-008` | Set implementation status from evidence; set release `READY` only when every core criterion is `PASS`, otherwise name the exact reopened unit/criterion. |
 
 ## Handoff And Stop Conditions
 
 The implementer stops a unit only when its acceptance and evidence are reconciled. A failed optional tool is not a blocker if an equivalent repository-grounded check exists. `TECH_BLOCKED` is reserved for a core result that remains impossible after materially different local approaches fail.
 
-The program ends only when all core units, including `UNIT-009`, are `VERIFIED`, all core criteria through `AC-017` have fresh claim-level evidence, the action matrix reflects the current route, full Template lifecycle, and UX/performance readiness scope, and release status is set from actual local/provider/public proof rather than source confidence.
+The implementation program ends only when all core units, including `UNIT-009`, are `VERIFIED`, all core criteria through `AC-017` have fresh claim-level evidence or a truthful user-gated `NOT_EVALUATED` release boundary, the action matrix reflects the current route, full Template lifecycle, and UX/performance readiness scope, and implementation/release status is set from actual local/provider/public proof rather than source confidence. Auxiliary `UX-003`/`AC-018` remains separately visible and does not gate the core MVP status.
