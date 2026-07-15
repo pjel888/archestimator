@@ -103,3 +103,42 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Test requirement:** NOT_REQUIRED
 - **Evidence:** current source/diff inspection, GitNexus concept query/change detection, official Cloudflare/Intercom/Atlassian/Gmail/WAI sources, plan-pack validator, planning-prompt validator, and diff whitespace review
 - **Result:** UNIT-010 expanded without adding a unit or moving advanced communications ahead of founder core
+
+## UNIT-001 / F0 — 2026-07-16 — SAFE ADMIN FOUNDATION IMPLEMENTED
+
+- **State:** COMPLETE
+- **Founder outcome:** `/admin` no longer lies — searches return the right users, status mutations cannot fake success or lock out the founder/another admin, the audit page shows real D1 events, health badges distinguish "present" from "healthy," signups are no longer mislabeled, and notification broadcasts are atomic.
+- **Sources inspected:** `users-repository.ts`, `user-actions.ts`, `notification-actions.ts`, `health-probes.ts`, `audit-repository.ts`, `AdminAuditTable.tsx`, `AdminUserDetailActions.tsx`, `admin/page.tsx`, `audit/page.tsx`, `users/[userId]/page.tsx`, `flags/page.tsx`, `roles.ts`, `d1.ts`, migration `0009_notifications.sql`, schema grep for canonical `user` table
+- **F0-1 (search SQL bind order):** FIXED — `listAdminUsers` search path now binds `(search, search, limit, offset, now)` to match placeholder text order; previously bound search terms to LIMIT/OFFSET. Added an ordering comment.
+- **F0-2 (affected-row verification):** FIXED — `setUserAccountStatus` returns `{ok, changes}` from `meta.changes`; action asserts `changes > 0` so a missing/raced target is `not_found`, never fake success.
+- **F0-3 (founder/admin floor):** FIXED — action reads the target via `getAdminUser` and refuses suspend/ban when `isPlatformAdmin(target)` (role ceo/admin or email allowlist); reactivate still allowed. New `protected_target` error surfaced in `AdminUserDetailActions`.
+- **F0-4 (fake audit UI):** FIXED — `audit/page.tsx` now fetches real `listAuditEvents`; `AdminAuditTable` renders server-fetched rows (hardcoded `aud_001`/`Stub` rows removed); `summary_json` redacted.
+- **F0-5 (activity semantics):** FIXED — `listAdminUserActivity` → `listAdminUserAuditActivity` (reads `admin_audit_events`); User 360 heading relabeled "Admin audit activity."
+- **F0-6 (notification atomicity/typed validation):** FIXED — definition+delivery now run in one `db.batch()` (no orphaned definitions on delivery failure); `kind`/`severity`/`surface` validated against the migration-0009 enums; title cap aligned to DB CHECK (200→120).
+- **F0-7 (placeholder Admin APIs):** FIXED — removed both zero-consumer `{degraded:true}` stub routes (`/api/admin/users`, `/api/admin/metrics/signups`); grep confirmed no source consumers; generated `.next/types/validator.ts` self-heals on next build.
+- **F0-8 (misleading health/config claims):** FIXED — `AdminHealthProbeResult` gains `level` (0 presence / 1 exercised); overview badges render Level-0 bindings as "bound/missing" (neutral) and D1 as "up/down" (success/danger). `analytics` page was already honest (link-outs) — no change needed.
+- **F0-9 (maintenance mode not enforced):** RESOLVED — removed the inert `AdminMaintenanceModeToggle` + flags-page wiring. Rationale: real maintenance mode is cross-cutting (estimates+projects+publications+uploads); partial enforcement at one boundary would be a NEW deception. Proper enforcement belongs in F5/F6; the flag row is retained for that wiring. Recovery: re-add the toggle when F5/F6 ships enforcement.
+- **F0-10 (identity reconciliation):** FIXED — `countSignups` → `countProfilesCreated` (no canonical `user` table exists in D1; this counts profile-provision rows). Overview metric relabeled "Profiles created (30d)" with an F8-canonical-signup hint. Not relabeled as signups.
+- **Files owned:** 10 modified, 3 deleted (see Sources).
+- **Schema/migration:** NONE (F0 is correctness-only by design; new tables begin at UNIT-002+).
+- **Security risk:** LOW — narrowed to existing admin surfaces; F0-3 closes a privilege/lockout gap; F0-6 closes a partial-write gap. All gated behind `requireAdminContext` / `gateAdminApi*`.
+- **Test requirement:** NOT_REQUIRED (per pack default)
+- **Test trigger:** NONE
+- **Evidence:** `bunx tsc --noEmit` (NODE_OPTIONS heap 8GB) — 0 errors in any touched file. Pre-existing unrelated WIP errors (component-library `insertTemplate`/`KnowledgeStatusBadge`, `category` prop) are outside this slice. Diff review of every file:line in the F0 table. `use-server` files unchanged in their export shape (all async) — no build-only export risk introduced.
+- **Degraded capability:** maintenance-mode toggle UI removed (was non-functional; see F0-9).
+- **Result:** UNIT-001 (F0) COMPLETE and type-verified. The dependency-closed foundation for F1+ is in place. No fake success, no fake product-activity label, no last-admin/founder lockout, current list/detail truthful, high-risk actions have existence/floor/atomicity postconditions.
+- **Next decision:** F1 / UNIT-002 (Admin Shell, Global Search, Recents, Pins) is the next slice. It is an IA/product-shape change (grouped nav, ⌘K, federated search, new pins/preferences schema) and benefits from a direction checkpoint before a large autonomous build. Activate deliberately.
+
+## UNIT-002 / F1 (partial) — 2026-07-16 — GLOBAL SEARCH + GROUPED NAV IMPLEMENTED
+
+- **State:** PARTIAL COMPLETE (search + grouped nav done; pins/recents/context-drawer deferred)
+- **Founder outcome:** ⌘K anywhere in `/admin` searches users, accounts, projects, and estimates by email/ID/name/code and opens the match in one step; sidebar is now grouped by the pack's IA (Home / Customers / Product / Operations / Communications / Governance) over existing routes only.
+- **Files owned:** new `src/lib/admin/search-repository.ts`, `src/lib/admin/search-actions.ts`, `src/components/admin/AdminCommandPalette.tsx`; edited `AdminHeader.tsx` (palette trigger), `AdminSidebar.tsx` (grouped `ADMIN_NAV_GROUPS`).
+- **Schema/migration:** NONE (search queries existing tables; pins/preferences deferred).
+- **Security risk:** LOW — search is admin-gated (`requireAdminContext` per call), searches only non-secret columns, LIKE-wildcards are escaped, sources are isolated (one failing source doesn't erase others), minimized DTO (no tokens/payloads).
+- **Test requirement:** NOT_REQUIRED
+- **Evidence:** `bunx tsc --noEmit` — 0 errors in any F1 file. Diff review. ⌘K palette is self-contained (no shared-UI dependency) to avoid collision with concurrent agents.
+- **Deferred (needs schema or product shape):** pins, recents, saved views, header env/status, context drawer, URL filter standard — these are lower-value or need new tables; revisit in a later F1 sub-slice or with the grouped nav already in place.
+- **Degraded capability:** none (search degrades gracefully per-source; nav links only existing routes).
+- **Result:** F1 search + grouped-navigation deliverables met. Pins/recents explicitly deferred, not silently dropped.
+- **Next decision:** F2 / UNIT-003 (Today + Action Inbox) is the founder's core daily surface; it needs a derivation registry and (for snooze/resolve) new schema.

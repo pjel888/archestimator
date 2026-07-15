@@ -10,8 +10,22 @@ export type BroadcastNotificationResult =
   | { ok: true; notificationId: string; deliveryCount: number }
   | { ok: false; error: "validation" | "d1_unavailable" | "failed" };
 
+// F0-6: mirror the notification_definitions CHECK constraints (migration 0009)
+// as typed sets so invalid values are rejected with a clean "validation" result
+// instead of relying on a DB exception surfacing as a generic "failed".
+const NOTIFICATION_KINDS = new Set([
+  "release_announcement",
+  "system_notice",
+  "collaboration",
+  "publication_activity",
+  "beta_feedback",
+  "security_notice",
+]);
+const NOTIFICATION_SEVERITIES = new Set(["info", "success", "warning", "critical"]);
+const NOTIFICATION_SURFACES = new Set(["center", "modal", "toast_and_center"]);
+
 /**
- * Creates a notification definition and delivers it to all users.
+ * Creates a notification definition and delivers it to all active users.
  * This is the admin broadcast surface for the notification system.
  */
 export async function broadcastNotification(input: {
@@ -30,12 +44,16 @@ export async function broadcastNotification(input: {
   const title = input.title.trim();
   const body = input.body.trim();
   const kind = input.kind.trim();
-  if (!title || title.length > 200) return { ok: false, error: "validation" };
+  // F0-6: title CHECK is BETWEEN 1 AND 120 (was incorrectly capped at 200 here,
+  // which let 121–200 char titles pass validation then fail the INSERT).
+  if (!title || title.length > 120) return { ok: false, error: "validation" };
   if (!body || body.length > 2000) return { ok: false, error: "validation" };
-  if (!kind) return { ok: false, error: "validation" };
+  if (!kind || !NOTIFICATION_KINDS.has(kind)) return { ok: false, error: "validation" };
 
   const severity = input.severity?.trim() || "info";
   const surface = input.surface?.trim() || "toast_and_center";
+  if (!NOTIFICATION_SEVERITIES.has(severity)) return { ok: false, error: "validation" };
+  if (!NOTIFICATION_SURFACES.has(surface)) return { ok: false, error: "validation" };
 
   // actionHref must be a /workshop path (per the notification schema constraint).
   const actionHref = input.actionHref?.trim() || null;
@@ -43,13 +61,19 @@ export async function broadcastNotification(input: {
 
   const db = await getCloudflareD1Database();
   if (!db) return { ok: false, error: "d1_unavailable" };
+  // F0-6: batch() runs the definition + delivery in a single atomic D1
+  // transaction so a delivery failure can no longer leave an orphaned
+  // definition with no deliveries. (batch is optional on the local type but
+  // always present on real D1; guard keeps it type-safe.)
+  const runInBatch = db.batch;
+  if (!runInBatch) return { ok: false, error: "d1_unavailable" };
 
   try {
     const notificationId = crypto.randomUUID();
     const now = new Date().toISOString();
 
     // Insert the notification definition.
-    await db
+    const definitionStatement = db
       .prepare(
         `
           INSERT INTO notification_definitions
@@ -76,12 +100,11 @@ export async function broadcastNotification(input: {
         admin.userId,
         now,
         now,
-      )
-      .run();
+      );
 
-    // Deliver to all users. This creates one delivery row per profile.
-    // Using INSERT ... SELECT to avoid shipping user IDs to the client.
-    const deliveryResult = await db
+    // Deliver to all active users. INSERT ... SELECT avoids shipping user IDs
+    // to the client. Batched with the definition so both land or neither does.
+    const deliveryStatement = db
       .prepare(
         `
           INSERT INTO notification_deliveries
@@ -95,8 +118,15 @@ export async function broadcastNotification(input: {
           WHERE p.account_status = 'active' OR p.account_status IS NULL
         `,
       )
-      .bind(notificationId, now, now, now)
-      .run();
+      .bind(notificationId, now, now, now);
+
+    const [definitionResult, deliveryResult] = await runInBatch([
+      definitionStatement,
+      deliveryStatement,
+    ]);
+    if (definitionResult.success === false || deliveryResult.success === false) {
+      throw new Error("notification_batch_unsuccessful");
+    }
 
     const deliveryCount = deliveryResult.meta?.changes ?? 0;
 

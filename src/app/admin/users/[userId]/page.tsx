@@ -5,7 +5,7 @@ import { AdminUserDetailActions } from "@/components/admin/AdminUserDetailAction
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { listUserCorporateAccounts } from "@/lib/admin/corporate-account-repository";
-import { getAdminUser, listAdminUserActivity } from "@/lib/admin/users-repository";
+import { getAdminUser, listAdminUserAuditActivity } from "@/lib/admin/users-repository";
 
 export default async function AdminUserDetailPage({
   params,
@@ -16,7 +16,7 @@ export default async function AdminUserDetailPage({
 
   const [userResult, activityResult, corporateResult] = await Promise.all([
     getAdminUser(userId),
-    listAdminUserActivity(userId, 50),
+    listAdminUserAuditActivity(userId, 50),
     listUserCorporateAccounts(userId),
   ]);
 
@@ -141,13 +141,16 @@ export default async function AdminUserDetailPage({
 
       <Card className="p-2">
         <h2 className="text-[11px] font-medium leading-4 text-ink">
-          Activity timeline
+          Admin audit activity
           <span className="ml-2 text-[9px] font-normal text-tertiary">
             {activities.length} event{activities.length === 1 ? "" : "s"}
           </span>
         </h2>
+        <p className="mt-1 text-[9px] leading-3 text-tertiary">
+          Admin actions only (from the audit trail); product activity arrives in a later slice.
+        </p>
         {activities.length === 0 ? (
-          <p className="mt-2 text-[10px] leading-4 text-tertiary">No recorded activity.</p>
+          <p className="mt-2 text-[10px] leading-4 text-tertiary">No recorded admin actions.</p>
         ) : (
           <ol className="mt-2 space-y-1" aria-label="User activity events">
             {activities.map((activity) => (

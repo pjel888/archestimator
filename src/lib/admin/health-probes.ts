@@ -6,6 +6,10 @@ import { emitLogRecord } from "@/lib/observability/logger";
 export type AdminHealthProbeResult = {
   name: string;
   ok: boolean;
+  // F0-8: honesty label so consumers never read "binding is present" as
+  // "binding is healthy." Level 0 = presence only (binding exists, not
+  // exercised); Level 1 = actually exercised (a real query/operation ran).
+  level: 0 | 1;
   detail: string;
 };
 
@@ -44,10 +48,15 @@ export async function runAdminHealthProbes(): Promise<AdminHealthProbeResult[]> 
   try {
     const db = await getCloudflareD1Database();
     if (!db) {
-      probes.push({ name: "d1", ok: false, detail: "ARCH_DB binding is unavailable." });
+      probes.push({ name: "d1", ok: false, level: 1, detail: "ARCH_DB binding is unavailable." });
     } else {
       await db.prepare("SELECT 1 AS ok").first<{ ok: number }>();
-      probes.push({ name: "d1", ok: true, detail: "ARCH_DB responded to a lightweight query." });
+      probes.push({
+        name: "d1",
+        ok: true,
+        level: 1,
+        detail: "ARCH_DB responded to a lightweight query (exercised).",
+      });
     }
   } catch (error) {
     emitLogRecord({
@@ -58,16 +67,20 @@ export async function runAdminHealthProbes(): Promise<AdminHealthProbeResult[]> 
         error_name: error instanceof Error ? error.name : "unknown",
       },
     });
-    probes.push({ name: "d1", ok: false, detail: "ARCH_DB query failed." });
+    probes.push({ name: "d1", ok: false, level: 1, detail: "ARCH_DB query failed." });
   }
 
   const context = await loadCloudflareBindingContext();
   for (const bindingName of OPTIONAL_BINDING_NAMES) {
+    const present = bindingPresent(context, bindingName);
     probes.push({
       name: bindingName.toLowerCase(),
-      ok: bindingPresent(context, bindingName),
-      detail: bindingPresent(context, bindingName)
-        ? `${bindingName} binding is present.`
+      ok: present,
+      // F0-8: presence only — never call this "healthy." The detail text and
+      // level both communicate that the binding was not exercised.
+      level: 0,
+      detail: present
+        ? `${bindingName} binding is present (Level 0: not exercised).`
         : `${bindingName} binding is not available in this runtime.`,
     });
   }

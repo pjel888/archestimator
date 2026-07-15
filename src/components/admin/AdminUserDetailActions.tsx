@@ -25,6 +25,7 @@ export function AdminUserDetailActions({
       if (!result.ok) {
         const messages: Record<string, string> = {
           self_target: "You cannot modify your own account.",
+          protected_target: "Platform admins and the founder cannot be suspended or banned here.",
           validation: "Invalid user ID.",
           d1_unavailable: "Database is unavailable.",
           not_found: "User not found.",

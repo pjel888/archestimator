@@ -6,9 +6,9 @@ import { listOpenIncidents } from "@/lib/admin/incidents-repository";
 import { getActivationCohortAggregateForPlatformAdmin } from "@/lib/admin/activation-cohort-repository";
 import { buildBetaOperatingOverview } from "@/lib/admin/beta-operating-overview";
 import { getFeedbackAggregateForPlatformAdmin } from "@/lib/admin/feedback-aggregate";
-import { runAdminHealthProbes } from "@/lib/admin/health-probes";
+import { runAdminHealthProbes, type AdminHealthProbeResult } from "@/lib/admin/health-probes";
 import { getSupportAggregateForPlatformAdmin } from "@/lib/admin/support-aggregate";
-import { countSignups } from "@/lib/admin/users-repository";
+import { countProfilesCreated } from "@/lib/admin/users-repository";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { BetaOperatingOverviewCards } from "@/components/admin/BetaOperatingOverview";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,26 @@ const analyticsLinks = [
   { label: "Google Analytics 4", href: "https://analytics.google.com/" },
 ];
 
+// F0-8: a Level-0 probe only proves a binding is PRESENT — render it as
+// "bound"/"missing" in a neutral tone, never as "up"/"down" (which would claim
+// health we did not verify). Level-1 probes are actually exercised → "up"/"down".
+function probeBadge(
+  probe: AdminHealthProbeResult | undefined,
+  label: string,
+): { tone: "success" | "danger" | "neutral"; text: string } {
+  if (!probe) return { tone: "neutral", text: `${label} ?` };
+  if (probe.level === 0) {
+    return probe.ok ? { tone: "neutral", text: `${label} bound` } : { tone: "danger", text: `${label} missing` };
+  }
+  return probe.ok ? { tone: "success", text: `${label} up` } : { tone: "danger", text: `${label} down` };
+}
+
 export default async function AdminOverviewPage() {
   // Fetch all independent data in parallel.
   const [healthProbes, incidentsResult, signupsResult, currentUser] = await Promise.all([
     runAdminHealthProbes(),
     listOpenIncidents(),
-    countSignups(30),
+    countProfilesCreated(30),
     getCurrentUserContext(),
   ]);
   const [activationAggregate, feedbackAggregate, supportAggregate] = await Promise.all([
@@ -84,11 +98,15 @@ export default async function AdminOverviewPage() {
   const r2Probe = healthProbes.find((p) => p.name === "arch_uploads_r2");
   const queueProbe = healthProbes.find((p) => p.name === "upload_jobs_queue");
 
+  const d1Badge = probeBadge(d1Probe, "D1");
+  const r2Badge = probeBadge(r2Probe, "R2");
+  const queueBadge = probeBadge(queueProbe, "Queue");
+
   const metrics = [
-    { label: "Signups (30d)", value: signupError ? "—" : String(signupCount), hint: signupError ?? "Counted from profiles" },
+    { label: "Profiles created (30d)", value: signupError ? "—" : String(signupCount), hint: signupError ?? "Profile rows in D1; canonical auth-signup tracking is F8" },
     { label: "Active teams", value: "—", hint: "Repository lane pending" },
     { label: "Open incidents", value: String(openIncidents.length), hint: openIncidents.length > 0 ? "Requires attention" : "All clear" },
-    { label: "Health checks", value: String(healthProbes.filter((p) => p.ok).length) + "/" + String(healthProbes.length), hint: "Live D1 + binding probes" },
+    { label: "Health checks", value: String(healthProbes.filter((p) => p.ok).length) + "/" + String(healthProbes.length), hint: "D1 exercised (L1) + bindings present (L0)" },
   ];
 
   return (
@@ -134,14 +152,14 @@ export default async function AdminOverviewPage() {
           <Card className="p-2">
             <h2 className="text-[11px] font-medium leading-4 text-ink">Health status</h2>
             <div className="mt-2 flex flex-wrap gap-1">
-              <Badge tone={d1Probe?.ok ? "success" : "danger"} size="xs" className="min-w-0 px-1">
-                D1 {d1Probe?.ok ? "up" : "down"}
+              <Badge tone={d1Badge.tone} size="xs" className="min-w-0 px-1">
+                {d1Badge.text}
               </Badge>
-              <Badge tone={r2Probe?.ok ? "success" : "danger"} size="xs" className="min-w-0 px-1">
-                R2 {r2Probe?.ok ? "up" : "down"}
+              <Badge tone={r2Badge.tone} size="xs" className="min-w-0 px-1">
+                {r2Badge.text}
               </Badge>
-              <Badge tone={queueProbe?.ok ? "success" : "danger"} size="xs" className="min-w-0 px-1">
-                Queue {queueProbe?.ok ? "up" : "down"}
+              <Badge tone={queueBadge.tone} size="xs" className="min-w-0 px-1">
+                {queueBadge.text}
               </Badge>
             </div>
             {healthProbes.some((p) => !p.ok && p.detail) && (

@@ -121,10 +121,15 @@ export async function listAdminUsers(
     );
 
     // Run count and page-rows in parallel — they are independent queries.
+    // F0-1: the usersStatement placeholder order is determined by SQL text
+    // position: the ${whereClause} `?`s sit INSIDE the paged_users CTE (before
+    // LIMIT), so the bind order must be [search, search, limit, offset, now] —
+    // not the [limit, offset, now, search, search] it previously used, which
+    // bound the search terms to LIMIT/OFFSET and produced wrong results.
     const [countRow, users] = await Promise.all([
       search ? countStatement.bind(search, search).first<CountRow>() : countStatement.first<CountRow>(),
       search
-        ? usersStatement.bind(limit, offset, now, search, search).all<AdminUserRow>()
+        ? usersStatement.bind(search, search, limit, offset, now).all<AdminUserRow>()
         : usersStatement.bind(limit, offset, now).all<AdminUserRow>(),
     ]);
 
@@ -139,7 +144,12 @@ export async function listAdminUsers(
   }
 }
 
-export async function countSignups(windowDays: number): Promise<AdminRepositoryResult<number>> {
+// F0-10: this counts `profiles.created_at` (profile-provision rows), NOT
+// canonical Better Auth signups — there is no `user` table in the D1 schema to
+// count canonical auth signups from. The name reflects what it actually
+// measures; canonical signup tracking is an F8 analytics task. Do not relabel
+// this output as "signups."
+export async function countProfilesCreated(windowDays: number): Promise<AdminRepositoryResult<number>> {
   const safeDays = clampPositiveInteger(windowDays, 30, 3650);
   const cutoff = new Date(Date.now() - safeDays * 24 * 60 * 60 * 1_000).toISOString();
 
@@ -160,8 +170,8 @@ export async function countSignups(windowDays: number): Promise<AdminRepositoryR
 
     return { data: row?.signups ?? 0, error: null };
   } catch (error) {
-    logUsersRepositoryFailure(error, "admin_users_signup_count_failed");
-    return { data: 0, error: "Signup count could not be read." };
+    logUsersRepositoryFailure(error, "admin_users_profile_count_failed");
+    return { data: 0, error: "Profile count could not be read." };
   }
 }
 
@@ -169,7 +179,9 @@ export async function listRecentSignups(limit: number): Promise<AdminRepositoryR
   return listAdminUsers({ page: 1, limit });
 }
 
-export type AdminUserActivityRow = {
+// F0-5: this reads admin_audit_events (the admin action trail), NOT product
+// activity. The name says so explicitly; a real product-activity timeline is F3.
+export type AdminUserAuditActivityRow = {
   action: string;
   target_type: string | null;
   target_id: string | null;
@@ -177,17 +189,17 @@ export type AdminUserActivityRow = {
   created_at: string;
 };
 
-export async function listAdminUserActivity(
+export async function listAdminUserAuditActivity(
   userId: string,
   limit = 50,
-): Promise<AdminRepositoryResult<AdminUserActivityRow[]>> {
+): Promise<AdminRepositoryResult<AdminUserAuditActivityRow[]>> {
   const safeLimit = clampPositiveInteger(limit, 10, 100);
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: [], error: "Cloudflare D1 is not available." };
 
     const result = await db
-      .prepare<AdminUserActivityRow>(
+      .prepare<AdminUserAuditActivityRow>(
         `
           SELECT action, target_type, target_id, summary_json, created_at
           FROM admin_audit_events
@@ -197,7 +209,7 @@ export async function listAdminUserActivity(
         `,
       )
       .bind(userId, safeLimit)
-      .all<AdminUserActivityRow>();
+      .all<AdminUserAuditActivityRow>();
 
     return { data: result.results ?? [], error: null };
   } catch (error) {
@@ -216,12 +228,16 @@ function normalizeAccountStatus(value: string): AccountStatus {
 export async function setUserAccountStatus(
   userId: string,
   status: AccountStatus,
-): Promise<AdminRepositoryResult<{ ok: boolean }>> {
+): Promise<AdminRepositoryResult<{ ok: boolean; changes: number }>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: { ok: false, changes: 0 }, error: "Cloudflare D1 is not available." };
 
-    await db
+    // F0-2: capture affected rows. SQLite counts every row matched by WHERE as
+    // changed (even for a no-op value update), so changes===0 reliably means
+    // the target profile does not exist. ok now means "a row was actually
+    // updated," never fake success.
+    const result = await db
       .prepare(
         `
           UPDATE profiles
@@ -232,10 +248,11 @@ export async function setUserAccountStatus(
       .bind(status, new Date().toISOString(), userId)
       .run();
 
-    return { data: { ok: true }, error: null };
+    const changes = result.meta?.changes ?? 0;
+    return { data: { ok: changes > 0, changes }, error: null };
   } catch (error) {
     logUsersRepositoryFailure(error, "admin_user_status_update_failed");
-    return { data: { ok: false }, error: "User status could not be updated." };
+    return { data: { ok: false, changes: 0 }, error: "User status could not be updated." };
   }
 }
 

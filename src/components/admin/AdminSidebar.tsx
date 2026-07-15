@@ -20,17 +20,44 @@ import { Button } from "@/components/ui/button";
 import { useAdminUiStore } from "@/stores/admin-ui-store";
 import { cn } from "@/lib/ui/cn";
 
-export const ADMIN_NAV_ITEMS = [
-  { href: "/admin", label: "Overview", icon: Gauge },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/accounts", label: "Accounts", icon: Buildings },
-  { href: "/admin/support", label: "Support", icon: Headset },
-  { href: "/admin/notifications", label: "Notifications", icon: Megaphone },
-  { href: "/admin/flags", label: "Flags", icon: Flag },
-  { href: "/admin/audit", label: "Audit", icon: ClipboardText },
-  { href: "/admin/observability", label: "Observability", icon: Pulse },
-  { href: "/admin/analytics", label: "Analytics", icon: ChartLine },
-  { href: "/admin/estimate-system", label: "Estimate System", icon: TreeStructure },
+// F1 (UNIT-002) grouped navigation, after the pack's information architecture.
+// Only existing routes are linked — no dead/coming-soon entries. Group headers
+// are hidden when the sidebar is collapsed (icons render flat, as before).
+export const ADMIN_NAV_GROUPS = [
+  {
+    label: "Home",
+    items: [{ href: "/admin", label: "Overview", icon: Gauge }],
+  },
+  {
+    label: "Customers",
+    items: [
+      { href: "/admin/users", label: "Users", icon: Users },
+      { href: "/admin/accounts", label: "Accounts", icon: Buildings },
+      { href: "/admin/support", label: "Support", icon: Headset },
+    ],
+  },
+  {
+    label: "Product",
+    items: [
+      { href: "/admin/estimate-system", label: "Estimate System", icon: TreeStructure },
+      { href: "/admin/analytics", label: "Analytics", icon: ChartLine },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [{ href: "/admin/observability", label: "Observability", icon: Pulse }],
+  },
+  {
+    label: "Communications",
+    items: [{ href: "/admin/notifications", label: "Notifications", icon: Megaphone }],
+  },
+  {
+    label: "Governance",
+    items: [
+      { href: "/admin/flags", label: "Flags", icon: Flag },
+      { href: "/admin/audit", label: "Audit", icon: ClipboardText },
+    ],
+  },
 ] as const;
 
 function isActivePath(pathname: string, href: string) {
@@ -68,29 +95,41 @@ export function AdminSidebar() {
         </Button>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-1.5" aria-label="Admin sections">
-        {ADMIN_NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const active = isActivePath(pathname, item.href);
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
+      <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-1.5" aria-label="Admin sections">
+        {ADMIN_NAV_GROUPS.map((group) => (
+          <div key={group.label} className="flex flex-col gap-0.5">
+            <p
               className={cn(
-                "flex h-8 items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-none transition-colors",
-                active ? "bg-surfaceMuted text-ink" : "text-secondary hover:bg-surfaceMuted hover:text-ink",
-                "max-sm:justify-center max-sm:px-0",
-                collapsed && "justify-center px-0",
+                "px-2 text-[8px] font-medium uppercase leading-3 text-tertiary",
+                "max-sm:sr-only",
+                collapsed && "sr-only",
               )}
-              title={item.label}
             >
-              <Icon size={14} weight="regular" className="shrink-0" aria-hidden="true" />
-              <span className={cn("truncate max-sm:sr-only", collapsed && "sr-only")}>{item.label}</span>
-            </Link>
-          );
-        })}
+              {group.label}
+            </p>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const active = isActivePath(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex h-8 items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-none transition-colors",
+                    active ? "bg-surfaceMuted text-ink" : "text-secondary hover:bg-surfaceMuted hover:text-ink",
+                    "max-sm:justify-center max-sm:px-0",
+                    collapsed && "justify-center px-0",
+                  )}
+                  title={item.label}
+                >
+                  <Icon size={14} weight="regular" className="shrink-0" aria-hidden="true" />
+                  <span className={cn("truncate max-sm:sr-only", collapsed && "sr-only")}>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </aside>
   );

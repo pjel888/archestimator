@@ -7,7 +7,7 @@
 **Superseded predecessor:** `.ai/09_archive/store/2026-07-12-Admin-Feature-Improvement-superseded`  
 **Purpose:** Canonical consolidated Admin implementation plan for the solo-founder operating system and the retained control-plane foundations  
 **Package status:** Conditionally ready; `UNIT-001` is the dependency-closed ready slice in `13-IMPLEMENTATION-ROADMAP.md`  
-**Implementation status:** Not started  
+**Implementation status:** UNIT-001 / F0 (Safe Admin Foundation) COMPLETE 2026-07-16 — all 10 verified current-source defects fixed and type-verified; see `LOOP_LEDGER.md`. F1–F10 (UNIT-002–011) not started.  
 **Tests, builds, browser automation, deployments, and provider mutations performed:** None
 
 ## Executive position

@@ -1,38 +1,40 @@
 "use client";
 
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
 
-type AuditRow = {
+// F0-4: rows are fetched server-side from the real audit repository
+// (listAuditEvents) and passed in as plain serializable data. The raw
+// summary_json is intentionally NOT surfaced here — it may hold PII, and the
+// table needs only structural fields.
+export type AuditRow = {
   id: string;
   actor: string;
   action: string;
   target: string;
-  status: "active" | "danger" | "review";
   occurredAt: string;
 };
 
-const rows: AuditRow[] = [
-  { id: "aud_001", actor: "admin@example.com", action: "flag.view", target: "admin_dashboard", status: "active", occurredAt: "Stub" },
-  { id: "aud_002", actor: "system", action: "metrics.read", target: "signups", status: "review", occurredAt: "Stub" },
-  { id: "aud_003", actor: "support@example.com", action: "thread.open", target: "sup_001", status: "active", occurredAt: "Stub" },
-];
+export function AdminAuditTable({ rows, error }: { rows: AuditRow[]; error?: string | null }) {
+  const columns: ColumnDef<AuditRow>[] = [
+    { id: "actor", header: "Actor", cell: (row) => row.actor },
+    { id: "action", header: "Action", cell: (row) => <span className="font-medium">{row.action}</span> },
+    { id: "target", header: "Target", cell: (row) => row.target || "—" },
+    {
+      id: "occurredAt",
+      header: "When",
+      cell: (row) => (row.occurredAt ? new Date(row.occurredAt).toLocaleString() : "—"),
+    },
+  ];
 
-const columns: ColumnDef<AuditRow>[] = [
-  { id: "actor", header: "Actor", cell: (row) => row.actor },
-  { id: "action", header: "Action", cell: (row) => <span className="font-medium">{row.action}</span> },
-  { id: "target", header: "Target", cell: (row) => row.target },
-  { id: "status", header: "Status", cell: (row) => <StatusBadge status={row.status}>{row.status}</StatusBadge> },
-  { id: "occurredAt", header: "When", cell: (row) => row.occurredAt },
-];
-
-export function AdminAuditTable() {
   return (
     <DataTable
       data={rows}
       columns={columns}
       keyExtractor={(row) => row.id}
-      emptyState={{ title: "No audit events", description: "Audit repository wiring is pending." }}
+      emptyState={{
+        title: error ? "Audit log unreadable" : "No audit events",
+        description: error ?? "No admin audit events recorded yet.",
+      }}
       className="min-h-0 flex-1 rounded-xs border border-hairline"
     />
   );

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
+import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { Badge } from "@/components/ui/badge";
 
 type AdminHeaderProps = {
@@ -26,13 +27,16 @@ export function AdminHeader({ displayName, email }: AdminHeaderProps) {
         </p>
       </div>
 
-      <Link
-        href="/workshop"
-        className="inline-flex min-h-7 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      >
-        Workshop
-        <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
-      </Link>
+      <div className="flex items-center gap-1">
+        <AdminCommandPalette />
+        <Link
+          href="/workshop"
+          className="inline-flex min-h-7 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          Workshop
+          <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+        </Link>
+      </div>
     </header>
   );
 }
