@@ -136,6 +136,7 @@
         "SEC-001",
         "UX-001",
         "UX-002",
+        "UX-003",
         "PERF-001",
         "PERF-002",
         "REQ-009"
@@ -156,6 +157,7 @@
         "DATA-002",
         "SEC-001",
         "UX-001",
+        "UX-003",
         "PERF-001",
         "OPS-001"
       ]
@@ -171,6 +173,7 @@
         "REQ-008",
         "SEC-001",
         "UX-002",
+        "UX-003",
         "PERF-002",
         "OPS-001",
         "REQ-009"
@@ -195,6 +198,7 @@
         "SEC-001",
         "UX-001",
         "UX-002",
+        "UX-003",
         "PERF-001",
         "PERF-002",
         "OPS-001"
@@ -217,6 +221,7 @@
         "DATA-002",
         "SEC-001",
         "UX-001",
+        "UX-003",
         "PERF-001",
         "OPS-001"
       ]
@@ -363,7 +368,7 @@
       "id": "REQ-006",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Library and folder lifecycle includes explicit archive, a 400-dependent interactive permanent-delete ceiling, favorite, nesting, attachment, audit, and cache semantics.",
+      "statement": "Library and folder lifecycle includes explicit archive, a 400-dependent interactive permanent-delete ceiling, nesting, attachment, audit, and cache semantics.",
       "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
@@ -385,7 +390,7 @@
       "id": "REQ-007",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Template and reusable Project source insertion is all-or-nothing per intent, any-selected-node target-valid, identity-fresh, ordered, acknowledged, and idempotent.",
+      "statement": "Template and reusable Project source insertion is all-or-nothing per intent, any-selected-node target-valid, identity-fresh, ordered, acknowledged, idempotent, and contained in one inclusive at-most-1000-statement D1 batch.",
       "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
@@ -408,7 +413,7 @@
       "id": "REQ-008",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Legacy and Client Portal issuance project equivalent authoring meaning from one accepted source fingerprint and deterministic semantic identity without leaking private state.",
+      "statement": "Legacy and Client Portal issuance project equivalent authoring meaning from one accepted project publication revision and commit-time guarded persistence without leaking private state.",
       "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-002",
@@ -428,7 +433,7 @@
       "id": "REQ-009",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Component Templates are detached, workspace-scoped blueprints whose save/create, bounded browse/detail, header/category lifecycle, editor node/row CRUD, composition, variant/source trust, and deletion are atomic, topology-valid, and non-propagating to prior Estimate copies.",
+      "statement": "Component Templates are detached workspace blueprints whose graph writes, bounded browse/detail, lifecycle, editor CRUD, composition, variant/provenance trust, explicit availability, operational receipts, and deletion are atomic, topology-valid, and non-propagating.",
       "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
@@ -450,7 +455,7 @@
       "id": "DATA-001",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "D1 mutations enforce workspace/project/estimate/tab/node/template ownership, non-null object snapshots, revisions, idempotency, atomic history/outbox, and valid recovery.",
+      "statement": "D1 mutations enforce workspace/project/estimate/tab/node/template ownership, non-null object snapshots, row and publication revisions, idempotency, atomic history/outbox/receipts, statement ceilings, and valid recovery.",
       "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-002",
@@ -567,6 +572,26 @@
       ],
       "criterion_ids": [
         "AC-016"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Favorite set and unset is account and workspace scoped, idempotent, item reconciled, and preserves unrelated preferences.",
+      "artifact_path": "TRACEABILITY.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-018"
       ]
     },
     {
@@ -862,7 +887,7 @@
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Row mutation concurrency and keyboard commit are critical invariants; cheaper non-test review is insufficient to prove race and retry behavior.",
+      "test_rationale": "The exact optional row and concurrency command is listed in IMPLEMENTATION_PLAN.md; required D1, latch-state, read-back, and static receipts remain independent of test authorization.",
       "requirement_ids": [
         "REQ-004"
       ],
@@ -913,7 +938,7 @@
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Template copy idempotency is a critical invariant; cheaper non-test inspection cannot prove concurrent retry behavior.",
+      "test_rationale": "The exact optional insertion command is listed in IMPLEMENTATION_PLAN.md; required D1 receipt, statement-count, zero-write, and authoritative read-back evidence remains independent.",
       "requirement_ids": [
         "REQ-007"
       ],
@@ -930,7 +955,7 @@
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Cross-reader publication parity is a critical invariant; cheaper non-test review is insufficient to prove equivalent output.",
+      "test_rationale": "The exact optional publication command is listed in IMPLEMENTATION_PLAN.md; required writer-registry, revision-fence, zero-write, privacy, and totals receipts remain independent.",
       "requirement_ids": [
         "REQ-008"
       ],
@@ -1049,7 +1074,7 @@
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Atomic failed-create behavior and a full Template round trip are MVP critical invariants; cheaper source and static evidence cannot prove cross-surface failure behavior.",
+      "test_rationale": "The exact optional Template lifecycle command is listed in IMPLEMENTATION_PLAN.md; required D1 graph, activity, fallback, provenance, cache, and static receipts remain independent.",
       "requirement_ids": [
         "REQ-009"
       ],
@@ -1063,9 +1088,9 @@
       "id": "AC-016",
       "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "NOT_REQUIRED",
-      "test_trigger": "NONE",
-      "test_rationale": "Direct visual-state, focus, geometry, accessibility, and source receipts are decisive for stable-surface rename and compact-filter behavior; automated regression may be proposed separately.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Required source, class, and DOM ownership receipts prove local implementation; the exact optional UX command and browser visual walkthrough require explicit authorization.",
       "requirement_ids": [
         "UX-002"
       ],
@@ -1079,15 +1104,32 @@
       "id": "AC-017",
       "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "NOT_REQUIRED",
-      "test_trigger": "NONE",
-      "test_rationale": "Direct profiler, network, geometry, and continuity receipts are decisive for this interaction-performance criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Required source, diff, dependency, and ownership receipts prove local implementation; the exact optional UX command and browser profiler/network walkthrough require explicit authorization.",
       "requirement_ids": [
         "PERF-002"
       ],
       "test_ids": [],
       "evidence_ids": [
         "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-018",
+      "status": "FAIL",
+      "artifact_path": "TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Direct preference-row before and after reads plus authoritative item-scoped reconciliation are decisive for this auxiliary criterion.",
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     }
@@ -1216,6 +1258,7 @@
         "SEC-001",
         "UX-001",
         "UX-002",
+        "UX-003",
         "PERF-001"
       ],
       "risk_ids": [
@@ -1435,7 +1478,7 @@
     {
       "id": "DEC-AUTO-004",
       "status": "ACTIVE",
-      "decision": "This pack owns authoring-to-issued parity, bounded source-fingerprint consistency, and deterministic semantic identity, but not the full recipient lifecycle.",
+      "decision": "This pack owns authoring-to-issued parity through a monotonic project publication revision, complete same-batch writer increments, bounded read and reread, guarded zero-write issue persistence, and deterministic semantic identity, but not the full recipient lifecycle.",
       "artifact_path": "README.md",
       "affected_ids": [
         "REQ-008",
@@ -1460,7 +1503,7 @@
     {
       "id": "DEC-AUTO-006",
       "status": "ACTIVE",
-      "decision": "Source, static, local D1, browser, preview, hosted, and public evidence are separate classes.",
+      "decision": "Source, static, local D1, browser, preview, hosted, and public evidence are separate classes; user-gated browser, profiler, network, screenshot, and automated-test proof cannot become a hidden local implementation blocker.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "affected_ids": [
         "OPS-001",
@@ -1498,7 +1541,7 @@
     {
       "id": "DEC-AUTO-009",
       "status": "ACTIVE",
-      "decision": "Retry identity is separate from source and target identity; one intent mutates once and a deliberate second copy uses a new intent ID.",
+      "decision": "Retry identity is separate from source and target identity; one intent mutates once, a client latch retains that intent through ambiguous outcomes, and a deliberate second copy uses a new intent ID only after terminal release.",
       "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
       "affected_ids": [
         "REQ-003",
@@ -1513,7 +1556,7 @@
     {
       "id": "DEC-AUTO-010",
       "status": "ACTIVE",
-      "decision": "Template creation commits its header, initial node, and copied rows in one hard D1 batch; compensating delete is not an atomicity substitute.",
+      "decision": "Template creation commits its header, initial node, copied rows, and operational receipt in one hard D1 batch within the inclusive 1000-statement ceiling; compensating delete is not an atomicity substitute.",
       "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
       "affected_ids": [
         "REQ-009",
@@ -1544,7 +1587,7 @@
     {
       "id": "DEC-AUTO-012",
       "status": "ACTIVE",
-      "decision": "Pricing provenance is resolved once across Estimate, Template, Project-source, health, and publication contracts; no isolated cosmetic read deletion is accepted.",
+      "decision": "Pricing provenance uses recorded, inherited_snapshot, synthesized_fallback, or missing across Estimate, Template, Project-source, health, and publication contracts; duplicate and restore preserve it, it stays private, and no isolated read deletion is accepted.",
       "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
       "affected_ids": [
         "REQ-004",
@@ -1585,7 +1628,7 @@
     {
       "id": "DEC-AUTO-015",
       "status": "ACTIVE",
-      "decision": "Preserve existing deferred search, bounded Template hydration, and thresholded virtualization while isolating rename drafts and loaded source filters; add no performance dependency without measured evidence.",
+      "decision": "Preserve existing deferred search, bounded Template hydration, and thresholded virtualization while enforcing local targets below 100ms, a 200ms ceiling, zero unrelated rerenders, requests, remounts, geometry delta, and intended bundle growth; add no performance dependency.",
       "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
       "affected_ids": [
         "PERF-002",
@@ -1595,6 +1638,44 @@
         "UNIT-009",
         "UNIT-008",
         "AC-017"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-016",
+      "status": "ACTIVE",
+      "decision": "Production Template reads return explicit schema-unavailable state instead of seed fallback, the uncalled row-reorder export is deleted, and committed lifecycle intents use existing component_library_telemetry_events as one bounded operational receipt.",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
+      "affected_ids": [
+        "REQ-009",
+        "OPS-001",
+        "UNIT-009",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-017",
+      "status": "ACTIVE",
+      "decision": "Favorite durability is auxiliary UX-003 and AC-018 work in UNIT-004 and does not gate core MVP implementation or release status.",
+      "artifact_path": "TRACEABILITY.md",
+      "affected_ids": [
+        "UX-003",
+        "UNIT-004",
+        "AC-018"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-018",
+      "status": "ACTIVE",
+      "decision": "Single-line Estimate Sheet inputs save on Enter; true multiline textareas alone use Enter for newline and Mod+Enter to save. Template and Project-source intents use one inclusive at-most-1000-statement batch and never chunk.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-004",
+        "REQ-007",
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-005",
+        "AC-004",
+        "AC-007"
       ]
     }
   ],
@@ -1609,7 +1690,8 @@
         "AC-002",
         "AC-003",
         "AC-012",
-        "AC-013"
+        "AC-013",
+        "AC-018"
       ],
       "status": "COLLECTED",
       "method": "Current route/source action inventory with artifact and scoped-worktree fingerprint comparison.",
@@ -1640,7 +1722,8 @@
         "AC-011",
         "AC-012",
         "AC-013",
-        "AC-014"
+        "AC-014",
+        "AC-018"
       ],
       "status": "COLLECTED",
       "method": "Current source, migration, binding, graph-impact, and incident review grouped by mutation boundary.",
@@ -1672,9 +1755,9 @@
         "UNIT-009"
       ],
       "status": "COLLECTED",
-      "method": "Dependency, owner-path, acceptance, evidence, and recovery review for every remediation unit.",
-      "expected_signal": "Every unit has dependency closure and one executable minimal-fix sequence.",
-      "actual_signal": "Nine units are READY as planning units after re-proof; none is implemented or product-verified.",
+      "method": "Create-Implementation-Prompt compilation plus dependency, owner-path, decision, acceptance, evidence, recovery, and next-state review for every remediation unit.",
+      "expected_signal": "Every unit has dependency closure, fixed routine decisions, one executable minimal-fix sequence, exact evidence authority, recovery, and next state.",
+      "actual_signal": "Nine units are READY as planning units after the implementation-authoring pass; core and auxiliary work are explicit and none is implemented or product-verified.",
       "environment": "PLAN_ARTIFACT",
       "observed_at": "2026-07-15T06:11:38.000Z",
       "source_paths": [
@@ -1692,12 +1775,13 @@
       "claim_ids": [
         "AC-014",
         "GATE-READINESS-001",
-        "AC-015"
+        "AC-015",
+        "AC-018"
       ],
       "status": "COLLECTED",
       "method": "Reciprocal ID/path/requirement/criterion/unit/evidence manifest review.",
       "expected_signal": "No orphan ID or invalid status tuple and every criterion remains truthful.",
-      "actual_signal": "All seventeen criteria remain FAIL; package, implementation, release, reciprocal trace, artifact hashes, and stale-to-reprove transitions pass canonical validation.",
+      "actual_signal": "All eighteen criteria remain FAIL; seventeen core criteria and auxiliary AC-018 are reciprocally traced, and package, implementation, release, artifact hashes, and stale-to-reprove transitions pass canonical validation.",
       "environment": "PLAN_ARTIFACT",
       "observed_at": "2026-07-15T06:11:38.000Z",
       "source_paths": [
@@ -1779,8 +1863,8 @@
       ],
       "status": "COLLECTED",
       "method": "Read-only live-route inspection plus current-source review of Area, tab, folder, project-group, Template filter, shared dropdown, tree-render, deferred-search, bounded-hydration, and virtualization paths.",
-      "expected_signal": "Rename and compact-filter behavior has one stable interaction contract, current strengths are preserved, each risk has an existing-unit owner, and implementation proof remains explicitly open.",
-      "actual_signal": "Nine UI/performance findings, two core requirements, two failing criteria, three decisions, six unit owners, and the required visual, focus, geometry, render, network, and continuity receipts are defined without product-code changes.",
+      "expected_signal": "Rename and compact-filter behavior has one stable interaction contract, exact local budgets, current strengths, owners, and an explicit required-versus-user-gated proof split.",
+      "actual_signal": "Nine UI/performance findings, two core requirements, two failing criteria, exact latency/rerender/network/geometry/dependency budgets, six unit owners, required static receipts, and optional browser receipts are defined without product-code changes.",
       "environment": "WORKTREE_SOURCE",
       "observed_at": "2026-07-15T06:05:54.000Z",
       "source_paths": [
