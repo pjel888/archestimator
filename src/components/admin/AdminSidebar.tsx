@@ -12,6 +12,7 @@ import {
   Megaphone,
   Pulse,
   SidebarSimple,
+  TreeStructure,
   Users,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -29,6 +30,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/audit", label: "Audit", icon: ClipboardText },
   { href: "/admin/observability", label: "Observability", icon: Pulse },
   { href: "/admin/analytics", label: "Analytics", icon: ChartLine },
+  { href: "/admin/estimate-system", label: "Estimate System", icon: TreeStructure },
 ] as const;
 
 function isActivePath(pathname: string, href: string) {

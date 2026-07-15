@@ -1,3 +1,69 @@
+# Design QA — Estimate System Guide
+
+- Source visual truth: `.ai/03_plans/2026-07-15/estimate-system-map-before.png`
+- Product direction: `PRODUCT.md`, `DESIGN.md`, and the user's Product / Feature / Page separation requirement
+- Implementation screenshots:
+  - `.ai/03_plans/2026-07-15/estimate-system-map-final-product.png`
+  - `.ai/03_plans/2026-07-15/estimate-system-map-feature-variant.png`
+  - `.ai/03_plans/2026-07-15/estimate-system-map-page-estimate.png`
+  - `.ai/03_plans/2026-07-15/estimate-system-map-final-compact.png`
+- Viewports: 1280 × 720 and 768 × 900
+- States: Product overview, selected variant feature, selected estimate page, filtered page index
+
+## Full-view comparison
+
+The previous screen is a starting-state reference rather than a pixel-fidelity target. The redesign intentionally replaces the single all-system graph with progressive disclosure. It preserves the admin shell, compact product typography, neutral palette, and read-only documentation purpose while changing the information architecture.
+
+The final Product view establishes one primary journey and one supporting Library relationship. Feature and Page detail are absent until their tabs are selected. The former filter wall, zoom controls, empty inspector, platform nodes, evidence maturity, and compatibility-era concepts are removed from the primary experience.
+
+## Focused comparison evidence
+
+- Feature detail is readable in `.ai/03_plans/2026-07-15/estimate-system-map-feature-variant.png`: one three-step flow, one outcome, one user need, and four explicit behavior rules.
+- Page detail is readable in `.ai/03_plans/2026-07-15/estimate-system-map-page-estimate.png`: route, page regions, linked features, next pages, purpose, and primary actions are visible without graph navigation.
+- Compact reflow is shown in `.ai/03_plans/2026-07-15/estimate-system-map-final-compact.png`; the index stacks above a vertical journey with no horizontal overflow.
+
+## Required fidelity surfaces
+
+- **Fonts and typography:** Uses the existing compact SF Pro product scale, regular/medium weights, zero decorative display type, and clear 8–12px hierarchy.
+- **Spacing and layout rhythm:** Uses one indexed rail and one content surface. Sections are divided by spacing and hairlines rather than nested cards.
+- **Colors and tokens:** Uses neutral product tokens, restrained orange only for the selected top-level tab, and semantic green only for the feature outcome.
+- **Image quality and assets:** No product imagery is required. Existing Phosphor arrows are used for flow direction; no custom SVG or CSS illustration substitutes were introduced.
+- **Copy and content:** Labels use current product language and real routes. Primary copy explains user outcomes rather than storage or implementation mechanics.
+- **Icons:** Direction arrows use the existing icon family and remain secondary to text labels.
+- **Accessibility:** Tabs expose selected state, the active dynamic panel is a labelled `tabpanel`, index items are buttons, flows are ordered lists, headings are hierarchical, focus states are visible, and search has explicit labels.
+- **Responsiveness:** 768px validation showed `scrollWidth === clientWidth`; all six Product areas fit in a concise two-column index above the vertical journey.
+
+## Primary interactions tested
+
+- Switch Product → Features → Pages.
+- Select the component-variant feature.
+- Follow a Page → Feature cross-link.
+- Filter pages by `portal`.
+- Enter hostile Unicode/script-like search text and recover to a valid result.
+- Select the Project Client Portals page from filtered results.
+- Confirm the active tab labels exactly one dynamic tab panel after view changes.
+- Confirm every Feature → Page relationship has the reciprocal Page → Feature relationship.
+- Check a fresh browser tab for console errors after all interactions.
+
+## Comparison history
+
+1. Initial implementation review found duplicated Product title/summary inside the diagram. The duplicate block was removed and the Product view was recaptured.
+2. Page detail exposed the internal area id `estimating`. It now renders the human label `Estimate Workspace`.
+3. A hot-reload-only missing-import error was observed in an older browser tab during the second fix. A fresh final tab loaded and completed all interactions with zero console errors.
+4. Independent code review found incomplete dynamic-tab semantics and four one-sided Feature/Page relationships. The panel is now labelled by its active tab, links are reciprocal, and the documentation validator rejects future drift.
+5. Independent product review found compact index density and an overly heavy focus edge. Compact Product areas now use a six-item grid, while focused top tabs use an opaque muted surface plus the existing active underline.
+
+## Findings
+
+- No actionable P0, P1, or P2 findings remain.
+- No horizontal overflow, console error, reciprocal-link drift, or tab-panel labelling gap remains in the validated states.
+
+## Final result
+
+passed
+
+---
+
 ## 2026-07-14 shared component inline editing and compact variant labels QA
 
 source visual truth path:
