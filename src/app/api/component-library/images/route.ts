@@ -13,6 +13,11 @@ import {
   processUploadImageToWebp,
 } from "@/lib/uploads/server-image-processing";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
+import {
+  createPrivateImageEntityTag,
+  matchesIfNoneMatch,
+  PRIVATE_IMAGE_SUCCESS_CACHE_CONTROL,
+} from "@/lib/uploads/private-image-revalidation";
 import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
 import { recordUploadAsset } from "@/lib/uploads/upload-records";
 
@@ -180,13 +185,44 @@ export async function GET(request: Request) {
   if (parsedPath.workspaceId !== workspace.id) return privateImageNotFound();
 
   const storageProvider = await createRuntimeUploadStorageProvider();
+  const ifNoneMatch = request.headers.get("if-none-match");
+  if (ifNoneMatch && storageProvider.headObject) {
+    const metadata = await storageProvider
+      .headObject(COMPONENT_IMAGE_BUCKET, parsedPath.path)
+      .catch(() => null);
+    const entityTag = metadata
+      ? createPrivateImageEntityTag(metadata)
+      : null;
+    if (entityTag && matchesIfNoneMatch(ifNoneMatch, entityTag)) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          "Cache-Control": PRIVATE_IMAGE_SUCCESS_CACHE_CONTROL,
+          ETag: entityTag,
+        },
+      });
+    }
+  }
+
   const object = await storageProvider.downloadObject(COMPONENT_IMAGE_BUCKET, parsedPath.path).catch(() => null);
   if (!object) return privateImageNotFound();
+  const entityTag = createPrivateImageEntityTag(object, object.body);
+
+  if (entityTag && matchesIfNoneMatch(ifNoneMatch, entityTag)) {
+    return new Response(null, {
+      status: 304,
+      headers: {
+        "Cache-Control": PRIVATE_IMAGE_SUCCESS_CACHE_CONTROL,
+        ETag: entityTag,
+      },
+    });
+  }
 
   return new Response(object.body, {
     headers: {
-      "Cache-Control": PRIVATE_IMAGE_ERROR_CACHE_CONTROL,
+      "Cache-Control": PRIVATE_IMAGE_SUCCESS_CACHE_CONTROL,
       "Content-Type": object.contentType ?? "image/webp",
+      ETag: entityTag,
       "X-Content-Type-Options": "nosniff",
     },
   });

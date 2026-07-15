@@ -10,6 +10,7 @@ import { assertEstimateActionRateLimit } from "@/lib/estimates/action-rate-limit
 import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { LEGACY_BLANK_ROW_TAG, getProjectComponentIdentity, isExpressComponentRow, readEstimateRowMetadata, readExpressComponentMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata, type EstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
+import { createMutationRequestFingerprint } from "@/lib/estimates/mutation-receipts";
 import { normalizeEstimateRowImageUrl, sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   omitEstimateRowPriceOptionAttachments,
@@ -161,6 +162,7 @@ type InsertEstimateRowItemFromLibraryInput = {
   projectId: string;
   estimateId: string;
   targetNodeId: string;
+  activeTabId?: string | null;
   rowId: string;
   libraryItem: EstimateRowItem;
   mutationId?: string;
@@ -176,6 +178,7 @@ type InsertEstimateTemplateIntoEstimateInput = {
   estimateId: string;
   targetParentNodeId: string;
   templateId: string;
+  intentId: string;
   // RS-1: the tab the insert targets. When set, the refreshed tree is loaded
   // for THIS tab (not the default one), so a non-default-tab insert returns the
   // tab the user is actually editing. Omitted for legacy (no-tab) estimates.
@@ -210,6 +213,7 @@ type InsertEstimateTemplatesIntoEstimateInput = {
   estimateId: string;
   targetParentNodeId: string;
   templateIds: string[];
+  intentId: string;
   // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
   targetTabId?: string;
   unavailableSourcePolicy?: EstimateTemplateUnavailableSourcePolicy;
@@ -330,6 +334,7 @@ export type DeleteEstimateRowItemResult = {
 type MoveEstimateRowComponentInput = {
   projectId: string;
   estimateId: string;
+  activeTabId?: string | null;
   sourceRowId: string;
   targetRowId: string;
   sourceLibraryItem: EstimateRowItem;
@@ -405,6 +410,7 @@ export type DeleteEstimateRowItemsBulkActionResult = DeleteEstimateRowItemsBulkR
 type RestoreDeletedEstimateRowsInput = {
   projectId: string;
   estimateId: string;
+  activeTabId?: string | null;
   sourceEventId: string;
   rowIds?: string[];
   mutationId?: string;
@@ -604,6 +610,8 @@ type DeleteEstimateNodeResult = {
   eventId: string;
   tree: EstimateTreeNode[];
   deletedNodeIds: string[];
+  deletedNodeCount: number;
+  deletedRowCount: number;
   fallbackNodeId: string | null;
 };
 
@@ -620,6 +628,12 @@ function readInsertedRootNodeIds(value: unknown): string[] {
   const rootNodeIds = (value as { inserted_root_node_ids?: unknown }).inserted_root_node_ids;
   if (!Array.isArray(rootNodeIds)) return [];
   return rootNodeIds.filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
+function readInsertedEstimateTabId(value: unknown): string | undefined {
+  const record = readJsonRecord(value);
+  const estimateTabId = record.estimateTabId ?? record.estimate_tab_id;
+  return typeof estimateTabId === "string" && estimateTabId.length > 0 ? estimateTabId : undefined;
 }
 
 function readTemplateInsertConfirmation(value: unknown): InsertEstimateTemplateRequiresConfirmationResult | null {
@@ -1017,7 +1031,7 @@ function readDeleteEstimateNodeRpcResult(
   value: unknown,
   fallbackDeletedNodeIds: string[],
   fallbackNodeId: string | null,
-): Pick<DeleteEstimateNodeResult, "eventId" | "deletedNodeIds" | "fallbackNodeId"> {
+): Pick<DeleteEstimateNodeResult, "eventId" | "deletedNodeIds" | "deletedNodeCount" | "deletedRowCount" | "fallbackNodeId"> {
   if (!value || typeof value !== "object") {
     throw new Error("Tree delete RPC returned an invalid result.");
   }
@@ -1030,6 +1044,8 @@ function readDeleteEstimateNodeRpcResult(
   return {
     eventId: readStringResult(result.eventId ?? payload.eventId, "Tree delete RPC did not return a history event id."),
     deletedNodeIds: deletedNodeIds.length ? deletedNodeIds : fallbackDeletedNodeIds,
+    deletedNodeCount: readNumber(result.deletedNodeCount ?? payload.deletedNodeCount, deletedNodeIds.length || fallbackDeletedNodeIds.length),
+    deletedRowCount: readNumber(result.deletedRowCount ?? payload.deletedRowCount),
     fallbackNodeId: typeof nextFallbackNodeId === "string" ? nextFallbackNodeId : fallbackNodeId,
   };
 }
@@ -1870,6 +1886,7 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
     designation: libraryItem.designation,
     metadata: getEstimateRowMetadata(libraryItem),
     linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
+    pricingProvenanceOrigin: sourceLibraryItemId ? "recorded" : "missing",
   };
 }
 
@@ -1878,13 +1895,23 @@ async function assertCurrentLibrarySourceForEstimateCommit(
   libraryItem: EstimateRowItem,
 ) {
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
-  if (!sourceLibraryItemId) return;
+  if (!sourceLibraryItemId) return null;
 
   const { data, error } = await dataStore
     .from("cost_library_items")
-    .select("id, updated_at, lifecycle_state")
+    .select("id, workspace_id, active_price_option_id, current_version_number, updated_at, lifecycle_state, unit, unit_cost, misc_cost")
     .eq("id", sourceLibraryItemId)
-    .maybeSingle<{ id: string; updated_at: string | null; lifecycle_state: string | null }>();
+    .maybeSingle<{
+      id: string;
+      workspace_id: string;
+      active_price_option_id: string | null;
+      current_version_number: number | string;
+      updated_at: string | null;
+      lifecycle_state: string | null;
+      unit: string;
+      unit_cost: number | string;
+      misc_cost: number | string;
+    }>();
 
   if (error) throw error;
   if (!data) {
@@ -1893,10 +1920,100 @@ async function assertCurrentLibrarySourceForEstimateCommit(
   if (data.lifecycle_state === "archived") {
     throw new Error("Library source is archived. Refresh the estimate before committing this component.");
   }
+  if (libraryItem.lifecycleState && data.lifecycle_state !== libraryItem.lifecycleState) {
+    throw new Error("Library source changed. Refresh the estimate before committing this component.");
+  }
+  if (
+    libraryItem.componentVersionNumber !== undefined
+    && Number(data.current_version_number) !== libraryItem.componentVersionNumber
+  ) {
+    throw new Error("Library source changed. Refresh the estimate before committing this component.");
+  }
   const sourceUpdatedAt = typeof data.updated_at === "string" ? data.updated_at : null;
   if (libraryItem.updatedAt && sourceUpdatedAt && sourceUpdatedAt !== libraryItem.updatedAt) {
     throw new Error("Library source changed. Refresh the estimate before committing this component.");
   }
+  const selectedOptionId = libraryItem.priceOptionId ?? data.active_price_option_id;
+  type CurrentLibraryPriceOptionRow = {
+    id: string;
+    item_id: string;
+    label: string;
+    unit: string;
+    unit_cost: number | string;
+    misc_cost: number | string;
+    is_active: number | boolean;
+    updated_at: string;
+  };
+  type CurrentLibraryVariantCostRow = {
+    id: string;
+    price_option_id: string;
+    unit_cost: number | string;
+    misc_cost: number | string;
+    updated_at: string;
+  };
+  let option: CurrentLibraryPriceOptionRow | null = null;
+  let costEntry: CurrentLibraryVariantCostRow | null = null;
+  if (selectedOptionId) {
+    const optionResult = await dataStore
+      .from("cost_library_item_price_options")
+      .select("id, item_id, label, unit, unit_cost, misc_cost, is_active, updated_at")
+      .eq("id", selectedOptionId)
+      .eq("item_id", sourceLibraryItemId)
+      .maybeSingle<CurrentLibraryPriceOptionRow>();
+    if (optionResult.error) throw optionResult.error;
+    option = optionResult.data;
+    if (!option || !(option.is_active === true || Number(option.is_active) === 1)) {
+      throw new Error("Library variant changed. Refresh the estimate before committing this component.");
+    }
+    const costResult = await dataStore
+      .from("cost_library_item_variant_cost_entries")
+      .select("id, price_option_id, unit_cost, misc_cost, updated_at")
+      .eq("price_option_id", selectedOptionId)
+      .eq("is_current", 1)
+      .is("deleted_at", null)
+      .maybeSingle<CurrentLibraryVariantCostRow>();
+    if (costResult.error) throw costResult.error;
+    costEntry = costResult.data;
+  }
+  const resolvedUnit = option?.unit ?? data.unit;
+  const resolvedUnitCost = Number(costEntry?.unit_cost ?? option?.unit_cost ?? data.unit_cost);
+  const resolvedMiscCost = Number(costEntry?.misc_cost ?? option?.misc_cost ?? data.misc_cost);
+  if (
+    libraryItem.unit !== resolvedUnit
+    || libraryItem.itemCost !== resolvedUnitCost
+    || libraryItem.miscCost !== resolvedMiscCost
+    || (libraryItem.priceOptionLabel !== undefined && option?.label !== libraryItem.priceOptionLabel)
+  ) {
+    throw new Error("Library variant pricing changed. Refresh the estimate before committing this component.");
+  }
+  const receipt = {
+    sourceLibraryItemId,
+    workspaceId: data.workspace_id,
+    itemVersion: Number(data.current_version_number),
+    itemUpdatedAt: sourceUpdatedAt,
+    lifecycleState: data.lifecycle_state,
+    itemUnit: data.unit,
+    itemUnitCost: Number(data.unit_cost),
+    itemMiscCost: Number(data.misc_cost),
+    itemActivePriceOptionId: data.active_price_option_id,
+    selectedOptionId: option?.id ?? null,
+    optionLabel: option?.label ?? null,
+    optionUnit: option?.unit ?? null,
+    optionUnitCost: option ? Number(option.unit_cost) : null,
+    optionMiscCost: option ? Number(option.misc_cost) : null,
+    optionUpdatedAt: option?.updated_at ?? null,
+    activeCostEntryId: costEntry?.id ?? null,
+    activeCostEntryUnitCost: costEntry ? Number(costEntry.unit_cost) : null,
+    activeCostEntryMiscCost: costEntry ? Number(costEntry.misc_cost) : null,
+    activeCostEntryUpdatedAt: costEntry?.updated_at ?? null,
+    resolvedUnit,
+    resolvedUnitCost,
+    resolvedMiscCost,
+  };
+  return {
+    ...receipt,
+    fingerprint: createMutationRequestFingerprint(receipt),
+  };
 }
 
 async function insertEstimateWithSheetCodeFallback(
@@ -3225,6 +3342,8 @@ export async function deleteEstimateNode(
     eventId: authoritativeDelete.eventId,
     tree,
     deletedNodeIds: authoritativeDelete.deletedNodeIds,
+    deletedNodeCount: authoritativeDelete.deletedNodeCount,
+    deletedRowCount: authoritativeDelete.deletedRowCount,
     fallbackNodeId: authoritativeDelete.fallbackNodeId,
   };
 }
@@ -3304,6 +3423,8 @@ export async function deleteEstimateNodesBulk(
     eventId: authoritativeDelete.eventId,
     tree,
     deletedNodeIds: authoritativeDelete.deletedNodeIds,
+    deletedNodeCount: authoritativeDelete.deletedNodeCount,
+    deletedRowCount: authoritativeDelete.deletedRowCount,
     fallbackNodeId: authoritativeDelete.fallbackNodeId,
   };
 }
@@ -3331,6 +3452,7 @@ export async function insertEstimateTemplateIntoEstimate({
   estimateId,
   targetParentNodeId,
   templateId,
+  intentId,
   targetTabId,
   unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
@@ -3349,7 +3471,7 @@ export async function insertEstimateTemplateIntoEstimate({
     target_parent_node_id: targetParentNodeId,
     source_template_id: templateId,
     acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
+    correlation_id: assertPersistedUuid(intentId, "Template insert intent"),
     unavailable_source_policy: unavailableSourcePolicy,
     ...(targetTabId ? { target_tab_id: targetTabId } : {}),
   });
@@ -3359,7 +3481,8 @@ export async function insertEstimateTemplateIntoEstimate({
   const confirmation = readTemplateInsertConfirmation(copyResult);
   if (confirmation) return confirmation;
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  const resolvedTargetTabId = readInsertedEstimateTabId(copyResult);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
 
   return { status: "inserted", tree, insertedRootNodeIds };
@@ -3378,6 +3501,7 @@ export async function insertEstimateTemplatesIntoEstimate({
   estimateId,
   targetParentNodeId,
   templateIds,
+  intentId,
   targetTabId,
   unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplatesIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
@@ -3396,7 +3520,7 @@ export async function insertEstimateTemplatesIntoEstimate({
     target_parent_node_id: targetParentNodeId,
     source_template_ids: templateIds,
     acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
+    correlation_id: assertPersistedUuid(intentId, "Template insert intent"),
     unavailable_source_policy: unavailableSourcePolicy,
     ...(targetTabId ? { target_tab_id: targetTabId } : {}),
   });
@@ -3405,7 +3529,8 @@ export async function insertEstimateTemplatesIntoEstimate({
   if (confirmation) return confirmation;
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  const resolvedTargetTabId = readInsertedEstimateTabId(copyResult);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the templates.");
 
   return { status: "inserted", tree, insertedRootNodeIds };
@@ -3417,6 +3542,7 @@ type InsertEstimateTemplateNodeIntoEstimateInput = {
   targetParentNodeId: string;
   templateId: string;
   templateNodeId: string;
+  intentId: string;
   // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
   targetTabId?: string;
   unavailableSourcePolicy?: EstimateTemplateUnavailableSourcePolicy;
@@ -3442,6 +3568,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   targetParentNodeId,
   templateId,
   templateNodeId,
+  intentId,
   targetTabId,
   unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplateNodeIntoEstimateInput): Promise<InsertEstimateTemplateNodeIntoEstimateResult> {
@@ -3462,7 +3589,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
     source_template_id: templateId,
     source_template_node_id: templateNodeId,
     acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
+    correlation_id: assertPersistedUuid(intentId, "Template insert intent"),
     unavailable_source_policy: unavailableSourcePolicy,
     ...(targetTabId ? { target_tab_id: targetTabId } : {}),
   });
@@ -3478,7 +3605,8 @@ export async function insertEstimateTemplateNodeIntoEstimate({
       : "";
   if (!insertedRootNodeId) throw new Error("Template node insertion did not produce a root node.");
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  const resolvedTargetTabId = readInsertedEstimateTabId(copyResult);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template node.");
 
   return { status: "inserted", tree, insertedRootNodeId };
@@ -3490,9 +3618,10 @@ function readDuplicateEstimateRowItemRequest(libraryItem: EstimateRowItem) {
   if (typeof request.duplicateSourceRowId !== "string") throw new Error("Duplicate estimate row source id is invalid.");
 
   const sourceRowId = assertPersistedUuid(request.duplicateSourceRowId, "Duplicate estimate row source");
-  if (request.duplicateSourceRowRevision === undefined) return { sourceRowId, expectedSourceRowRevision: undefined };
+  const sourceRevision = request.duplicateSourceRowRevision ?? libraryItem.rowRevision;
+  if (sourceRevision === undefined) return { sourceRowId, expectedSourceRowRevision: undefined };
 
-  const expectedSourceRowRevision = Number(request.duplicateSourceRowRevision);
+  const expectedSourceRowRevision = Number(sourceRevision);
   if (!Number.isInteger(expectedSourceRowRevision) || expectedSourceRowRevision < 1) {
     throw new Error("Duplicate estimate row source revision is invalid.");
   }
@@ -3504,6 +3633,8 @@ async function duplicateEstimateRowItemFromSource({
   estimateId,
   sourceRowId,
   expectedSourceRowRevision,
+  targetNodeId,
+  activeTabId,
   duplicatedRowId,
   mutationId,
   actingUserId,
@@ -3513,54 +3644,22 @@ async function duplicateEstimateRowItemFromSource({
   estimateId: string;
   sourceRowId: string;
   expectedSourceRowRevision?: number;
+  targetNodeId: string;
+  activeTabId?: string | null;
   duplicatedRowId: string;
   mutationId?: string;
   actingUserId: string;
   dataStore: EstimateActionsD1Client;
 }) {
-  const { data: sourceRow, error: sourceRowError } = await dataStore
-    .from("estimate_row_items")
-    .select("id, estimate_id, node_id, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, discipline, designation, metadata, link_state, row_revision, estimate_nodes!inner(id, estimates!inner(project_id))")
-    .eq("id", sourceRowId)
-    .eq("estimate_id", estimateId)
-    .eq("estimate_nodes.estimates.project_id", projectId)
-    .maybeSingle<Tables<"estimate_row_items">>();
-
-  if (sourceRowError) throw sourceRowError;
-  if (!sourceRow) throw new Error("Estimate row item to duplicate was not found in the current project.");
-  if (
-    expectedSourceRowRevision !== undefined
-    && readNumber(sourceRow.row_revision, 1) !== expectedSourceRowRevision
-  ) {
-    throw new EstimateRowRevisionConflictError();
-  }
-
-  const { data: insertData, error: insertError } = await dataStore.call("insert_estimate_row_item_with_history", {
+  if (expectedSourceRowRevision === undefined) throw new EstimateRowRevisionConflictError();
+  const { data: insertData, error: insertError } = await dataStore.call("duplicate_estimate_row_item_with_history", {
     target_project_id: projectId,
     target_estimate_id: estimateId,
-    target_node_id: sourceRow.node_id,
-    row_payload: {
-      id: assertPersistedUuid(duplicatedRowId, "Duplicated estimate row"),
-      sourceLibraryItemId: sourceRow.source_library_item_id,
-      sourceSnapshot: sourceRow.source_snapshot ?? {},
-      categoryNodeId: sourceRow.category_node_id,
-      supplierId: sourceRow.supplier_id,
-      material: sourceRow.material,
-      description: sourceRow.description,
-      supplier: sourceRow.supplier,
-      unit: sourceRow.unit,
-      quantity: sourceRow.quantity,
-      quantityBase: sourceRow.quantity_base,
-      quantityContingencyAmount: sourceRow.quantity_contingency_amount,
-      unitCost: sourceRow.unit_cost,
-      contingencyPercentage: sourceRow.contingency_percentage,
-      adjustmentPercentage: sourceRow.adjustment_percentage,
-      miscCost: sourceRow.misc_cost,
-      discipline: sourceRow.discipline,
-      designation: sourceRow.designation,
-      metadata: sourceRow.metadata ?? {},
-      linkState: sourceRow.link_state,
-    },
+    target_node_id: assertPersistedUuid(targetNodeId, "Duplicate target node"),
+    target_active_tab_id: activeTabId ? assertPersistedUuid(activeTabId, "Duplicate active tab") : null,
+    source_row_id: sourceRowId,
+    expected_source_row_revision: expectedSourceRowRevision,
+    duplicated_row_id: assertPersistedUuid(duplicatedRowId, "Duplicated estimate row"),
     acting_user_id: actingUserId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
@@ -3569,7 +3668,7 @@ async function duplicateEstimateRowItemFromSource({
   return insertData ? readHistoryRowResult(insertData) : undefined;
 }
 
-export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
+export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, activeTabId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
@@ -3583,6 +3682,8 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       estimateId,
       sourceRowId: duplicateRequest.sourceRowId,
       expectedSourceRowRevision: duplicateRequest.expectedSourceRowRevision,
+      targetNodeId,
+      activeTabId,
       duplicatedRowId: rowId,
       mutationId,
       actingUserId: currentUser.userId,
@@ -3636,6 +3737,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_node_id: targetNodeId,
+    target_active_tab_id: activeTabId ?? null,
     row_payload: {
       id: persistedRowId,
       sourceLibraryItemId,
@@ -3657,6 +3759,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       designation: persistedLibraryItem.designation,
       metadata: getEstimateRowMetadata(persistedLibraryItem),
       linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
+      pricingProvenanceOrigin: sourceLibraryItemId ? "recorded" : "missing",
     },
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
@@ -3797,7 +3900,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
+  const sourceCommitReceipt = await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
   const persistedLibraryItem = localizeProjectComponentForTargetProject(libraryItem, {
     targetProjectId: project.id,
     targetProjectName: project.name,
@@ -3823,6 +3926,7 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
     target_row_id: row.id,
     expected_row_revision: expectedRowRevision ?? row.row_revision,
     replacement_payload: replacementPayload,
+    expected_library_source_receipt: sourceCommitReceipt,
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
@@ -3866,6 +3970,7 @@ export async function deleteEstimateRowItem({ projectId, estimateId, rowId, muta
 export async function moveEstimateRowComponentWithHistory({
   projectId,
   estimateId,
+  activeTabId,
   sourceRowId,
   targetRowId,
   sourceLibraryItem,
@@ -3884,6 +3989,7 @@ export async function moveEstimateRowComponentWithHistory({
   const { data, error } = await targetRow.dataStore.call("move_estimate_row_component_with_history", {
     target_project_id: targetRow.project.id,
     target_estimate_id: estimateId,
+    target_active_tab_id: activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null,
     source_row_id: sourceRowId,
     target_row_id: targetRowId,
     expected_source_row_revision: expectedSourceRowRevision ?? sourceRow.row.row_revision,
@@ -4026,6 +4132,7 @@ export async function deleteEstimateRowItemsBulk({
 export async function restoreDeletedEstimateRows({
   projectId,
   estimateId,
+  activeTabId,
   sourceEventId,
   rowIds,
   mutationId,
@@ -4040,6 +4147,7 @@ export async function restoreDeletedEstimateRows({
   const { data, error } = await dataStore.call("restore_deleted_estimate_rows_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
+    target_active_tab_id: activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null,
     source_delete_event_id: sourceEventId,
     target_row_ids: normalizedRowIds,
     acting_user_id: currentUser.userId,

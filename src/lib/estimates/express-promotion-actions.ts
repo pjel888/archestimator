@@ -10,6 +10,8 @@ import { recordExpressComponentEvent } from "@/lib/estimates/express-components-
 import { isExpressComponentPromotionEnabled } from "@/lib/estimates/express-components";
 import { readEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import type { ComponentPriceOption, ComponentVariantCostEntry } from "@/lib/estimates/types";
+import { cleanupStorageTargets, storageCleanupReportToJson } from "@/lib/mass-deletion/storage-cleanup";
+import { recordMassDeletionStorageCleanupResultInD1 } from "@/lib/projects/d1-audit";
 import { clearEstimateRouteContextProcessCache } from "@/lib/repositories/workspace-repository";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 
@@ -18,6 +20,7 @@ type Json = string | number | boolean | null | { [key: string]: Json | undefined
 export type PromoteEstimateRowToLibraryComponentInput = {
   projectId: string;
   estimateId: string;
+  expectedRowRevision: number;
   rowId: string;
   libraryFolderId?: string | null;
   mutationId?: string;
@@ -454,6 +457,108 @@ async function removeCopiedPromotionObjects(copiedObjects: PromotionCopiedObject
   }
 }
 
+async function cleanupPromotionLoserObjectsDurably(input: {
+  actorUserId: string;
+  copiedObjects: PromotionCopiedObject[];
+  correlationId: string;
+  database: D1DatabaseLike;
+  itemId: string;
+  workspaceId: string;
+}) {
+  const storageTargets = Array.from(new Map(input.copiedObjects.map((object) => [
+    `${object.bucket}:${object.path}`,
+    { bucket: object.bucket, path: object.path },
+  ])).values());
+  if (storageTargets.length === 0) return;
+
+  const cleanupCorrelationId = `promotion-loser:${input.correlationId}:${input.itemId}`;
+  const previewHash = createHash("sha256").update(JSON.stringify(storageTargets)).digest("hex");
+  const timestamp = nowIso();
+  const proposedEventId = randomUUID();
+  await run(input.database, `
+    INSERT INTO mass_deletion_events (
+      id, workspace_id, actor_user_id, target_type, action, target_ids_json,
+      preview_hash, correlation_id, status, summary_json, blocked_json,
+      storage_targets_json, metadata_json, created_at, updated_at
+    )
+    VALUES (?, ?, ?, 'library_component', 'delete', ?, ?, ?, 'storage_cleanup_pending', ?, '[]', ?, ?, ?, ?)
+    ON CONFLICT(workspace_id, target_type, action, correlation_id) DO NOTHING
+  `, [
+    proposedEventId,
+    input.workspaceId,
+    input.actorUserId,
+    JSON.stringify([input.itemId]),
+    previewHash,
+    cleanupCorrelationId,
+    JSON.stringify({
+      requestedCount: 1,
+      eligibleCount: 0,
+      blockedCount: 0,
+      storageCleanupTargetCount: storageTargets.length,
+      promotionLoser: true,
+    }),
+    JSON.stringify(storageTargets),
+    JSON.stringify({
+      schemaVersion: "promotion_loser_cleanup.v1",
+      promotionCorrelationId: input.correlationId,
+      loserItemId: input.itemId,
+      reason: "promotion_atomic_batch_lost",
+    }),
+    timestamp,
+    timestamp,
+  ]);
+  const receipt = await first<{ id: string; status: string }>(input.database, `
+    SELECT id, status
+    FROM mass_deletion_events
+    WHERE workspace_id = ?
+      AND target_type = 'library_component'
+      AND action = 'delete'
+      AND correlation_id = ?
+    LIMIT 1
+  `, [input.workspaceId, cleanupCorrelationId]);
+  if (!receipt || receipt.status === "storage_cleanup_completed" || receipt.status === "completed") return;
+
+  let cleanupResult;
+  try {
+    const storageProvider = await createRuntimeUploadStorageProvider();
+    cleanupResult = await cleanupStorageTargets(
+      storageProvider,
+      storageTargets,
+      { kind: "component", workspaceId: input.workspaceId },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Storage cleanup failed.";
+    cleanupResult = {
+      removed: [],
+      rejected: [],
+      failed: storageTargets.map((target) => ({ ...target, message })),
+    };
+  }
+  const cleanupFailed = cleanupResult.failed.length > 0 || cleanupResult.rejected.length > 0;
+  try {
+    await recordMassDeletionStorageCleanupResultInD1(input.database, {
+      targetEventId: receipt.id,
+      cleanupResult: storageCleanupReportToJson(cleanupResult) as Record<string, Json | undefined>,
+    });
+    await run(input.database, `
+      UPDATE mass_deletion_events
+      SET status = ?, updated_at = ?
+      WHERE id = ?
+        AND workspace_id = ?
+    `, [
+      cleanupFailed ? "storage_cleanup_failed" : "storage_cleanup_completed",
+      nowIso(),
+      receipt.id,
+      input.workspaceId,
+    ]);
+  } catch (error) {
+    console.warn("[express-promotion] loser cleanup audit could not be finalized", {
+      cleanupEventId: receipt.id,
+      message: error instanceof Error ? error.message : "Unknown cleanup audit error.",
+    });
+  }
+}
+
 async function preparePromotionAssets(input: {
   database: D1DatabaseLike;
   row: PromotionSourceRow;
@@ -725,6 +830,12 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]
   return database.prepare<T>(sql).bind(...values).first<T>();
 }
 
+async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare(sql).bind(...values).run();
+  if (result.success === false) throw new Error("Cloudflare D1 component promotion write failed.");
+  return result;
+}
+
 async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: string; values?: D1Value[] }>) {
   if (statements.length === 0) return;
   if (!database.batch) {
@@ -786,6 +897,38 @@ async function readPromotedLibraryItem(database: D1DatabaseLike, input: { worksp
     `,
     [input.workspaceId, input.rowId, input.sourceLibraryItemId ?? null, input.sourceLibraryItemId ?? null],
   );
+}
+
+function readCanonicalPromotionResult(
+  row: PromotionSourceRow,
+  promotedItem: { item_id: string; active_price_option_id: string | null },
+) {
+  const sourceSnapshot = readJsonRecord(row.source_snapshot_json);
+  const selectedPriceOptionId = readText(sourceSnapshot.priceOptionId);
+  const rowRevision = readNumber(row.row_revision, 1);
+  return readPromotionResult({
+    rowId: row.row_id,
+    itemId: promotedItem.item_id,
+    activePriceOptionId: promotedItem.active_price_option_id,
+    selectedPriceOptionId,
+    rowRevision,
+    rowPatch: {
+      source: "library",
+      sourceLibraryItemId: promotedItem.item_id,
+      linkState: "linked-clean",
+      rowRevision,
+      ...(selectedPriceOptionId ? { priceOptionId: selectedPriceOptionId } : {}),
+    },
+    idempotent: true,
+  });
+}
+
+function revalidatePromotionSurfaces(projectId: string, estimateId: string) {
+  clearEstimateRouteContextProcessCache(projectId);
+  revalidatePath("/workshop/library");
+  revalidatePath("/workshop/library/components");
+  revalidatePath(`/workshop/projects/${projectId}/estimates`);
+  revalidatePath(`/workshop/projects/${projectId}/estimates/${estimateId}`);
 }
 
 async function readPromotionSourceRow(database: D1DatabaseLike, input: { projectId: string; estimateId: string; rowId: string }) {
@@ -899,10 +1042,14 @@ export async function promoteEstimateRowToLibraryComponent({
   projectId,
   estimateId,
   rowId,
+  expectedRowRevision,
   libraryFolderId = null,
   mutationId,
 }: PromoteEstimateRowToLibraryComponentInput): Promise<PromoteEstimateRowToLibraryComponentResult> {
   if (!isExpressComponentPromotionEnabled()) throw new Error("Component promotion is disabled.");
+  if (!Number.isSafeInteger(expectedRowRevision) || expectedRowRevision < 1) {
+    throw new Error("Expected row revision is invalid.");
+  }
 
   const [database, currentUser] = await Promise.all([
     requireExpressPromotionD1Database(),
@@ -915,11 +1062,7 @@ export async function promoteEstimateRowToLibraryComponent({
     const existingResult = await readExistingPromotionResult(database, estimateId, correlationId);
     if (existingResult) {
       recordExpressComponentEvent("promotion_succeeded", { projectId, estimateId, rowId, itemId: existingResult.itemId });
-      clearEstimateRouteContextProcessCache(projectId);
-      revalidatePath("/workshop/library");
-      revalidatePath("/workshop/library/components");
-      revalidatePath(`/workshop/projects/${projectId}/estimates`);
-      revalidatePath(`/workshop/projects/${projectId}/estimates/${estimateId}`);
+      revalidatePromotionSurfaces(projectId, estimateId);
       return existingResult;
     }
 
@@ -941,19 +1084,13 @@ export async function promoteEstimateRowToLibraryComponent({
       sourceLibraryItemId: row.source_library_item_id,
     });
     if (promotedItem) {
-      const result = readPromotionResult({
-        rowId,
-        itemId: promotedItem.item_id,
-        activePriceOptionId: promotedItem.active_price_option_id,
-        idempotent: true,
-      });
+      const result = readCanonicalPromotionResult(row, promotedItem);
       recordExpressComponentEvent("promotion_succeeded", { projectId, estimateId, rowId, itemId: result.itemId });
-      clearEstimateRouteContextProcessCache(projectId);
-      revalidatePath("/workshop/library");
-      revalidatePath("/workshop/library/components");
-      revalidatePath(`/workshop/projects/${projectId}/estimates`);
-      revalidatePath(`/workshop/projects/${projectId}/estimates/${estimateId}`);
+      revalidatePromotionSurfaces(projectId, estimateId);
       return result;
+    }
+    if (readNumber(row.row_revision, 1) !== expectedRowRevision) {
+      throw new Error("This row changed before promotion. Review the latest values and try again.");
     }
 
     const material = (row.material ?? "").trim() || (row.description ?? "").trim();
@@ -977,7 +1114,7 @@ export async function promoteEstimateRowToLibraryComponent({
     const costEntryIdMap = Object.fromEntries(promotedOptions.flatMap((option) => (
       option.costEntries.map((entry) => [entry.sourceId, entry.id] as const)
     )));
-    const rowRevision = readNumber(row.row_revision) + 1;
+    const rowRevision = expectedRowRevision + 1;
     const rowSafePriceOptions = promotedOptions.map(promotionRowSafePriceOption);
     const rowPatch = {
       source: "library",
@@ -1149,6 +1286,22 @@ export async function promoteEstimateRowToLibraryComponent({
     const promotionStatements = [
       {
         sql: `
+          SELECT CASE WHEN EXISTS (
+            SELECT 1
+            FROM estimate_row_items row_item
+            INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+            INNER JOIN projects project ON project.id = estimate.project_id
+            WHERE project.id = ?
+              AND estimate.id = ?
+              AND row_item.id = ?
+              AND row_item.row_revision = ?
+              AND row_item.source_library_item_id IS ?
+          ) THEN 1 ELSE json('') END AS promotion_row_revision_guard
+        `,
+        values: [projectId, estimateId, rowId, expectedRowRevision, row.source_library_item_id],
+      },
+      {
+        sql: `
           INSERT INTO cost_library_items (
             id,
             workspace_id,
@@ -1249,8 +1402,19 @@ export async function promoteEstimateRowToLibraryComponent({
               updated_at = ?
           WHERE id = ?
             AND estimate_id = ?
+            AND row_revision = ?
+            AND source_library_item_id IS ?
         `,
-        values: [itemId, sourceSnapshot, metadata, timestamp, rowId, estimateId],
+        values: [
+          itemId,
+          sourceSnapshot,
+          metadata,
+          timestamp,
+          rowId,
+          estimateId,
+          expectedRowRevision,
+          row.source_library_item_id,
+        ],
       },
       {
         sql: `
@@ -1309,17 +1473,39 @@ export async function promoteEstimateRowToLibraryComponent({
     try {
       await runBatch(database, promotionStatements);
     } catch (error) {
-      await removeCopiedPromotionObjects(assetPreparation.copiedObjects);
+      await cleanupPromotionLoserObjectsDurably({
+        actorUserId: currentUser.userId,
+        copiedObjects: assetPreparation.copiedObjects,
+        correlationId,
+        database,
+        itemId,
+        workspaceId: row.workspace_id,
+      });
+      const [winner, currentRow] = await Promise.all([
+        readPromotedLibraryItem(database, {
+          workspaceId: row.workspace_id,
+          rowId,
+          sourceLibraryItemId: row.source_library_item_id,
+        }),
+        readPromotionSourceRow(database, { projectId, estimateId, rowId }),
+      ]);
+      if (winner && currentRow) {
+        const canonicalResult = readCanonicalPromotionResult(currentRow, winner);
+        recordExpressComponentEvent("promotion_succeeded", {
+          projectId,
+          estimateId,
+          rowId,
+          itemId: canonicalResult.itemId,
+        });
+        revalidatePromotionSurfaces(projectId, estimateId);
+        return canonicalResult;
+      }
       throw error;
     }
 
     recordExpressComponentEvent("promotion_succeeded", { projectId, estimateId, rowId, itemId: result.itemId });
 
-    clearEstimateRouteContextProcessCache(projectId);
-    revalidatePath("/workshop/library");
-    revalidatePath("/workshop/library/components");
-    revalidatePath(`/workshop/projects/${projectId}/estimates`);
-    revalidatePath(`/workshop/projects/${projectId}/estimates/${estimateId}`);
+    revalidatePromotionSurfaces(projectId, estimateId);
 
     return result;
   } catch (error) {

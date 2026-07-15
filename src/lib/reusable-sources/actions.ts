@@ -1,10 +1,17 @@
 "use server";
 
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { canAccessEstimateInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { prepareHistoryEventInsert } from "@/lib/estimates/d1-action-client";
+import {
+  assertD1MutationStatementLimit,
+  buildCommittedMutationReceiptStatement,
+  createMutationRequestFingerprint,
+  readCommittedMutationReceipt,
+} from "@/lib/estimates/mutation-receipts";
 import { isUuid } from "@/lib/ids";
 import {
   getEstimateTabs,
@@ -72,6 +79,7 @@ type ReusableSourceNodeD1Row = {
   name: string;
   sort_order: number | string | null;
   metadata_json?: string | null;
+  updated_at: string;
 };
 
 type ReusableSourceRowItemD1Row = {
@@ -93,12 +101,14 @@ type ReusableSourceRowItemD1Row = {
   contingency_percentage: number | string | null;
   adjustment_percentage?: number | string | null;
   source_snapshot_json: string | null;
+  pricing_provenance_origin?: "recorded" | "inherited_snapshot" | "synthesized_fallback" | "missing" | null;
   sort_order: number | string | null;
   row_revision?: number | string | null;
   category_node_id?: string | null;
   source_library_item_id?: string | null;
   link_state?: string | null;
   metadata_json?: string | null;
+  updated_at: string;
 };
 
 type ReusableSourceEventPayload = {
@@ -112,7 +122,9 @@ type ReusableSourceEventPayload = {
   sourceRootNodeId: string | null;
   targetParentNodeId: string;
   idempotent: boolean;
-  eventId?: string;
+  eventId: string;
+  sourceFingerprint: string;
+  statementCount: number;
 };
 
 function placeholders(values: readonly unknown[]) {
@@ -505,74 +517,177 @@ async function readEstimateContext(database: D1DatabaseLike, estimateId: string)
   );
 }
 
-async function readCommittedReusableSourceEvent(database: D1DatabaseLike, estimateId: string, correlationId: string) {
+function readReusableSourceReceiptResult(value: unknown): ReusableSourceEventPayload {
+  const record = readJsonRecord(value);
+  const insertedRootNodeIds = Array.isArray(record.inserted_root_node_ids)
+    ? record.inserted_root_node_ids.filter((id): id is string => typeof id === "string" && id.length > 0)
+    : [];
+  if (
+    insertedRootNodeIds.length === 0
+    || typeof record.eventId !== "string"
+    || typeof record.sourceFingerprint !== "string"
+    || typeof record.statementCount !== "number"
+  ) {
+    throw new Error("The committed project-source mutation receipt is invalid.");
+  }
+  return {
+    inserted_root_node_ids: insertedRootNodeIds,
+    inserted_node_count: readNumber(record.inserted_node_count),
+    inserted_row_item_count: readNumber(record.inserted_row_item_count),
+    estimate_tab_id: typeof record.estimate_tab_id === "string" ? record.estimate_tab_id : null,
+    sourceProjectId: String(record.sourceProjectId ?? ""),
+    sourceEstimateId: String(record.sourceEstimateId ?? ""),
+    sourceTabId: String(record.sourceTabId ?? ""),
+    sourceRootNodeId: typeof record.sourceRootNodeId === "string" ? record.sourceRootNodeId : null,
+    targetParentNodeId: String(record.targetParentNodeId ?? ""),
+    idempotent: record.idempotent === true,
+    eventId: record.eventId,
+    sourceFingerprint: record.sourceFingerprint,
+    statementCount: record.statementCount,
+  };
+}
+
+function latestReusableSourceUpdate(rows: Array<{ updated_at?: string | null }>) {
+  return rows.reduce((latest, row) => String(row.updated_at ?? "") > latest ? String(row.updated_at ?? "") : latest, "");
+}
+
+function assertReusableSourceStatementLimit(statementCount: number) {
   try {
-    const event = await first<{ payload: string | null }>(
-      database,
-      `
-        SELECT payload
-        FROM estimate_sheet_events
-        WHERE estimate_id = ?
-          AND correlation_id = ?
-        LIMIT 1
-      `,
-      [estimateId, correlationId],
-    );
-    return event ? readJsonRecord(event.payload) : null;
-  } catch (error) {
-    if (isD1MissingTableError(error, "estimate_sheet_events")) return null;
+    assertD1MutationStatementLimit(statementCount);
+  } catch {
+    const error = new Error("selection_too_large: Narrow the project-source selection before inserting it.") as Error & {
+      code: string;
+      statementCount: number;
+    };
+    error.code = "selection_too_large";
+    error.statementCount = statementCount;
     throw error;
   }
+}
+
+function validateReusableSourceTopology(
+  sourceNodes: ReusableSourceNodeD1Row[],
+  sourceRows: ReusableSourceRowItemD1Row[],
+  input: InsertProjectSourceIntoEstimateInput,
+) {
+  const nodeById = new Map<string, ReusableSourceNodeD1Row>();
+  for (const node of sourceNodes) {
+    if (
+      nodeById.has(node.id)
+      || node.estimate_id !== input.source.estimateId
+      || node.estimate_tab_id !== input.source.tabId
+    ) {
+      throw new Error("This project source has an invalid node graph.");
+    }
+    nodeById.set(node.id, node);
+  }
+  for (const node of sourceNodes) {
+    if (node.parent_id && !nodeById.has(node.parent_id)) {
+      throw new Error("This project source contains a node whose parent is unavailable.");
+    }
+    const visited = new Set<string>();
+    let cursor: ReusableSourceNodeD1Row | undefined = node;
+    while (cursor) {
+      if (visited.has(cursor.id)) throw new Error("This project source contains a cyclic node graph.");
+      visited.add(cursor.id);
+      cursor = cursor.parent_id ? nodeById.get(cursor.parent_id) : undefined;
+    }
+  }
+  const sourceNodeIds = new Set(sourceNodes.map((node) => node.id));
+  const rowIds = new Set<string>();
+  for (const row of sourceRows) {
+    if (
+      rowIds.has(row.id)
+      || row.estimate_id !== input.source.estimateId
+      || !row.node_id
+      || !sourceNodeIds.has(row.node_id)
+    ) {
+      throw new Error("This project source contains a row without a valid source node.");
+    }
+    rowIds.add(row.id);
+  }
+}
+
+function buildReusableSourcePublicationRevisionStatement(input: {
+  projectId: string;
+  workspaceId: string;
+  estimateId: string;
+}) {
+  return {
+    sql: `
+      UPDATE projects
+      SET publication_source_revision = publication_source_revision + 1
+      WHERE id = ?
+        AND workspace_id = ?
+        AND EXISTS (
+          SELECT 1
+          FROM estimates
+          WHERE estimates.id = ?
+            AND estimates.project_id = projects.id
+        )
+    `,
+    values: [input.projectId, input.workspaceId, input.estimateId],
+  };
 }
 
 async function copyProjectSourceSubtreeInD1(
   database: D1DatabaseLike,
   input: InsertProjectSourceIntoEstimateInput,
   currentUserId: string,
-  correlationId: string,
 ): Promise<ReusableSourceEventPayload> {
-  const committed = await readCommittedReusableSourceEvent(database, input.targetEstimateId, correlationId);
-  if (committed) return { ...(committed as ReusableSourceEventPayload), idempotent: true };
-
-  const [targetEstimate, sourceEstimate] = await Promise.all([
-    readEstimateContext(database, input.targetEstimateId),
-    readEstimateContext(database, input.source.estimateId),
-  ]);
+  if (!database.batch) throw new Error("Project-source insertion requires atomic D1 batch support.");
+  const targetEstimate = await readEstimateContext(database, input.targetEstimateId);
   if (!targetEstimate || targetEstimate.project_id !== input.targetProjectId) {
     throw new Error("Estimate not found after inserting the project source.");
   }
+  const canEditTarget = await canEditEstimateInD1(database, input.targetEstimateId, { userId: currentUserId });
+  if (!canEditTarget) throw new Error("Could not insert project source: Estimate edit access denied.");
+  const receiptIdentity = {
+    workspaceId: targetEstimate.workspace_id,
+    commandKind: "estimate.project_source.copy",
+    intentId: input.intentId,
+    actorUserId: currentUserId,
+    requestFingerprint: createMutationRequestFingerprint({
+      targetProjectId: input.targetProjectId,
+      targetEstimateId: input.targetEstimateId,
+      targetParentNodeId: input.targetParentNodeId,
+      targetTabId: input.targetTabId ?? null,
+      source: input.source,
+    }),
+  };
+  const committed = await readCommittedMutationReceipt(database, receiptIdentity, readReusableSourceReceiptResult);
+  if (committed) return committed;
+
+  const sourceEstimate = await readEstimateContext(database, input.source.estimateId);
   if (!sourceEstimate) throw new Error("This project source is no longer available.");
   if (sourceEstimate.project_id !== input.source.projectId || sourceEstimate.workspace_id !== targetEstimate.workspace_id) {
     throw new Error("This project source is no longer available.");
   }
-
-  const [canEditTarget, canReadSource] = await Promise.all([
-    canEditEstimateInD1(database, input.targetEstimateId, { userId: currentUserId }),
-    canAccessEstimateInD1(database, input.source.estimateId, { userId: currentUserId }),
-  ]);
-  if (!canEditTarget) throw new Error("Could not insert project source: Estimate edit access denied.");
+  const canReadSource = await canAccessEstimateInD1(database, input.source.estimateId, { userId: currentUserId });
   if (!canReadSource) throw new Error("This project source is no longer available.");
 
   const targetParent = await first<ReusableSourceNodeD1Row>(
     database,
     `
-      SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order, metadata_json
+      SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order, metadata_json, updated_at
       FROM estimate_nodes
       WHERE id = ?
         AND estimate_id = ?
-        AND kind = 'group'
       LIMIT 1
     `,
     [input.targetParentNodeId, input.targetEstimateId],
   );
-  if (!targetParent || !targetParent.estimate_tab_id) {
-    throw new Error("Target Group Node not found in the current project.");
+  if (!targetParent) {
+    throw new Error("Target estimate node not found in the current project.");
+  }
+  if (input.targetTabId !== undefined && input.targetTabId !== targetParent.estimate_tab_id) {
+    throw new Error("Project-source target tab does not match the selected estimate node.");
   }
 
-  const sourceTab = await first<{ id: string }>(
+  const sourceTab = await first<{ id: string; updated_at: string }>(
     database,
     `
-      SELECT id
+      SELECT id, updated_at
       FROM estimate_tabs
       WHERE id = ?
         AND estimate_id = ?
@@ -586,7 +701,7 @@ async function copyProjectSourceSubtreeInD1(
   const sourceNodes = await all<ReusableSourceNodeD1Row>(
     database,
     `
-      SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order, metadata_json
+      SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order, metadata_json, updated_at
       FROM estimate_nodes
       WHERE estimate_id = ?
         AND estimate_tab_id = ?
@@ -595,6 +710,20 @@ async function copyProjectSourceSubtreeInD1(
     [input.source.estimateId, input.source.tabId],
   );
 
+  const allSourceRows = sourceNodes.length > 0
+    ? await all<ReusableSourceRowItemD1Row>(
+        database,
+        `
+          SELECT *
+          FROM estimate_row_items
+          WHERE estimate_id = ?
+            AND node_id IN (${placeholders(sourceNodes.map((node) => node.id))})
+          ORDER BY sort_order ASC, id ASC
+        `,
+        [input.source.estimateId, ...sourceNodes.map((node) => node.id)],
+      )
+    : [];
+  validateReusableSourceTopology(sourceNodes, allSourceRows, input);
   const nodeById = new Map(sourceNodes.map((node) => [node.id, node]));
   if (input.source.nodeId && !nodeById.has(input.source.nodeId)) {
     throw new Error("This project source is no longer available.");
@@ -611,25 +740,19 @@ async function copyProjectSourceSubtreeInD1(
     : sourceNodes.filter((node) => node.parent_id === null);
   const nodesToCopy: ReusableSourceNodeD1Row[] = [];
   const queue = [...roots];
+  const visitedNodeIds = new Set<string>();
   while (queue.length > 0) {
     const node = queue.shift()!;
+    if (visitedNodeIds.has(node.id)) continue;
+    visitedNodeIds.add(node.id);
     nodesToCopy.push(node);
     queue.push(...(childrenByParent.get(node.id) ?? []));
   }
   if (nodesToCopy.length === 0) throw new Error("Source has no nodes to insert.");
 
   const copiedSourceNodeIds = nodesToCopy.map((node) => node.id);
-  const sourceRows = await all<ReusableSourceRowItemD1Row>(
-    database,
-    `
-      SELECT *
-      FROM estimate_row_items
-      WHERE estimate_id = ?
-        AND node_id IN (${placeholders(copiedSourceNodeIds)})
-      ORDER BY sort_order ASC, id ASC
-    `,
-    [input.source.estimateId, ...copiedSourceNodeIds],
-  );
+  const copiedSourceNodeIdSet = new Set(copiedSourceNodeIds);
+  const sourceRows = allSourceRows.filter((row) => row.node_id && copiedSourceNodeIdSet.has(row.node_id));
 
   const sibling = await first<{ sort_order: number | string | null }>(
     database,
@@ -646,6 +769,80 @@ async function copyProjectSourceSubtreeInD1(
   const maxSiblingSortOrder = readNumber(sibling?.sort_order, 0);
   const rootIds = new Set(roots.map((node) => node.id));
   const rootRankById = new Map(roots.map((node, index) => [node.id, index + 1]));
+  const exactStatementCount = 1 + nodesToCopy.length + sourceRows.length + 1 + 1 + 1 + 1;
+  assertReusableSourceStatementLimit(exactStatementCount);
+  const sourceFingerprint = createMutationRequestFingerprint({
+    sourceTab,
+    sourceNodes,
+    sourceRows,
+    selectedSourceRootNodeId: input.source.nodeId ?? null,
+  });
+  const sourceRowRevisionTotal = sourceRows.reduce(
+    (total, row) => total + Math.max(1, Math.trunc(readNumber(row.row_revision, 1))),
+    0,
+  );
+  const sourceGuard = {
+    sql: `
+      SELECT CASE WHEN
+        EXISTS (
+          SELECT 1
+          FROM estimate_nodes
+          WHERE id = ?
+            AND estimate_id = ?
+            AND estimate_tab_id IS ?
+            AND updated_at = ?
+        )
+        AND COALESCE((
+          SELECT MAX(sort_order)
+          FROM estimate_nodes
+          WHERE estimate_id = ?
+            AND estimate_tab_id IS ?
+            AND parent_id = ?
+        ), 0) = ?
+        AND EXISTS (
+          SELECT 1
+          FROM estimate_tabs
+          WHERE id = ?
+            AND estimate_id = ?
+            AND archived_at IS NULL
+            AND updated_at = ?
+        )
+        AND (SELECT COUNT(*) FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(copiedSourceNodeIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(copiedSourceNodeIds)})), '') = ?
+        AND COALESCE((SELECT SUM(row_revision) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(copiedSourceNodeIds)})), 0) = ?
+      THEN 1 ELSE json('') END AS project_source_copy_guard
+    `,
+    values: [
+      input.targetParentNodeId,
+      input.targetEstimateId,
+      targetParent.estimate_tab_id,
+      targetParent.updated_at,
+      input.targetEstimateId,
+      targetParent.estimate_tab_id,
+      input.targetParentNodeId,
+      maxSiblingSortOrder,
+      input.source.tabId,
+      input.source.estimateId,
+      sourceTab.updated_at,
+      input.source.estimateId,
+      input.source.tabId,
+      sourceNodes.length,
+      input.source.estimateId,
+      input.source.tabId,
+      latestReusableSourceUpdate(sourceNodes),
+      input.source.estimateId,
+      ...copiedSourceNodeIds,
+      sourceRows.length,
+      input.source.estimateId,
+      ...copiedSourceNodeIds,
+      latestReusableSourceUpdate(sourceRows),
+      input.source.estimateId,
+      ...copiedSourceNodeIds,
+      sourceRowRevisionTotal,
+    ],
+  };
   const idMap = new Map(nodesToCopy.map((node) => [node.id, randomUUID()]));
   const now = new Date().toISOString();
   const provenance = {
@@ -689,10 +886,10 @@ async function copyProjectSourceSubtreeInD1(
           id, estimate_id, node_id, description, designation, discipline, material,
           supplier, supplier_id, quantity, quantity_base, quantity_contingency_amount,
           unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage,
-          source_snapshot_json, sort_order, row_revision, category_node_id,
+          source_snapshot_json, pricing_provenance_origin, sort_order, row_revision, category_node_id,
           source_library_item_id, link_state, metadata_json, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       values: [
         randomUUID(),
@@ -713,8 +910,9 @@ async function copyProjectSourceSubtreeInD1(
         readNumber(row.contingency_percentage, 0),
         readNumber(row.adjustment_percentage, 0),
         mergeJsonRecord(row.source_snapshot_json, { ...provenance, sourceRowId: row.id }),
+        row.pricing_provenance_origin ?? "inherited_snapshot",
         readNumber(row.sort_order, 0),
-        0,
+        1,
         row.category_node_id ?? null,
         row.source_library_item_id ?? null,
         row.link_state ?? "unlinked",
@@ -738,63 +936,53 @@ async function copyProjectSourceSubtreeInD1(
     targetParentNodeId: input.targetParentNodeId,
     idempotent: false,
     eventId,
+    sourceFingerprint,
+    statementCount: exactStatementCount,
   };
-
-  await runBatch(database, [
+  const history = await prepareHistoryEventInsert(database, {
+    projectId: input.targetProjectId,
+    estimateId: input.targetEstimateId,
+    workspaceId: targetEstimate.workspace_id,
+    estimateNodeId: input.targetParentNodeId,
+    estimateTabId: targetParent.estimate_tab_id,
+    eventType: "project_source_inserted",
+    actorUserId: currentUserId,
+    correlationId: input.intentId,
+    changedFields: ["project_source"],
+    payload,
+  });
+  if (!history.statement || !history.outboxStatement) {
+    throw new Error("Project-source insert intent has activity history without a committed mutation receipt.");
+  }
+  payload.eventId = history.eventId;
+  const statements = [
+    sourceGuard,
     ...nodeStatements,
     ...rowStatements,
-    {
-      sql: `
-        INSERT INTO estimate_sheet_events (
-          id, estimate_id, workspace_id, project_id, estimate_node_id, estimate_tab_id,
-          target_row_id, event_type, event_source, correlation_id, actor_user_id,
-          changed_fields, row_context, old_snapshot, new_snapshot, payload, metadata,
-          total_delta, created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      values: [
-        eventId,
-        input.targetEstimateId,
-        targetEstimate.workspace_id,
-        input.targetProjectId,
-        input.targetParentNodeId,
-        targetParent.estimate_tab_id,
-        null,
-        "project_source_inserted",
-        "server_action",
-        correlationId,
-        currentUserId,
-        JSON.stringify(["project_source"]),
-        "{}",
-        null,
-        null,
-        JSON.stringify(payload),
-        "{}",
-        0,
-        now,
-      ],
-    },
-  ]);
-
+    buildReusableSourcePublicationRevisionStatement({
+      projectId: input.targetProjectId,
+      workspaceId: targetEstimate.workspace_id,
+      estimateId: input.targetEstimateId,
+    }),
+    history.statement,
+    history.outboxStatement,
+    buildCommittedMutationReceiptStatement({
+      ...receiptIdentity,
+      resourceType: "estimate_node",
+      resourceId: payload.inserted_root_node_ids[0] ?? null,
+      result: payload,
+      timestamp: now,
+    }),
+  ];
+  assertReusableSourceStatementLimit(statements.length);
+  try {
+    await runBatch(database, statements);
+  } catch (error) {
+    const concurrentReceipt = await readCommittedMutationReceipt(database, receiptIdentity, readReusableSourceReceiptResult);
+    if (concurrentReceipt) return concurrentReceipt;
+    throw error;
+  }
   return payload;
-}
-
-// Stable per-source-unit correlation_id (doc 16, U2-2): deterministic from the
-// insert unit, so a replay of a bulk insert yields exactly the original rows (the
-// estimate_sheet_event dedup returns each unit's prior result) and distinct units
-// never collide. Formatted as a v4-shaped UUID for the `correlation_id uuid` param.
-function projectSourceInsertCorrelationId(input: InsertProjectSourceIntoEstimateInput): string {
-  const key = [
-    input.targetEstimateId,
-    input.targetParentNodeId,
-    input.source.estimateId,
-    input.source.tabId,
-    input.source.nodeId ?? "whole-tab",
-  ].join("|");
-  const hex = createHash("sha256").update(`project-source-insert:${key}`).digest("hex").slice(0, 32);
-  const variantNibble = ((parseInt(hex[16] ?? "8", 16) & 0x3) | 0x8).toString(16);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${variantNibble}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 export async function insertProjectSourceIntoEstimate(
@@ -809,6 +997,7 @@ export async function insertProjectSourceIntoEstimate(
     input.source.projectId,
     input.source.estimateId,
     input.source.tabId,
+    input.intentId,
   ];
   if (requiredIds.some((id) => !isUuid(id)) || (input.source.nodeId != null && !isUuid(input.source.nodeId))) {
     throw new Error("Invalid project-source insert request.");
@@ -819,15 +1008,14 @@ export async function insertProjectSourceIntoEstimate(
     database,
     input,
     currentUser.userId,
-    projectSourceInsertCorrelationId(input),
   );
 
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
   // RS-1: refresh the tab the user is editing (not the default tab), so a
   // non-default-tab insert returns that tab's tree. Legacy estimates pass no
   // targetTabId and fall back to the default/whole-estimate loader.
-  const { project, estimate, tree } = input.targetTabId
-    ? await getEstimateTabTree(input.targetProjectId, input.targetEstimateId, input.targetTabId)
+  const { project, estimate, tree } = copyResult.estimate_tab_id
+    ? await getEstimateTabTree(input.targetProjectId, input.targetEstimateId, copyResult.estimate_tab_id)
     : await getProjectEstimateTreeByEstimate(input.targetProjectId, input.targetEstimateId);
   if (!project || !estimate) throw new Error("Estimate not found after inserting the project source.");
   return { tree, insertedRootNodeIds };

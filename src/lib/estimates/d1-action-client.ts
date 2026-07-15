@@ -10,6 +10,12 @@ import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revisio
 import { validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
 import { getProjectComponentIdentity } from "@/lib/estimates/express-components";
 import {
+  assertD1MutationStatementLimit,
+  buildCommittedMutationReceiptStatement,
+  createMutationRequestFingerprint,
+  readCommittedMutationReceipt,
+} from "@/lib/estimates/mutation-receipts";
+import {
   buildProjectComponentAttachmentDeleteRetentionStatements,
   buildProjectComponentAttachmentRestoreRetentionStatements,
 } from "@/lib/estimates/project-component-attachment-retention";
@@ -229,6 +235,7 @@ type TemplateNodeRow = {
   name: string;
   sort_order: number | string | null;
   metadata: string | null;
+  updated_at: string;
 };
 
 type TemplateRowItemRow = {
@@ -254,11 +261,13 @@ type TemplateRowItemRow = {
   designation: string | null;
   link_state: string | null;
   metadata: string | null;
+  updated_at: string;
 };
 
 type TemplateHeaderRow = {
   id: string;
   workspace_id: string;
+  updated_at: string;
 };
 
 type TemplateLibraryItemRow = {
@@ -303,6 +312,9 @@ type TemplatePriceOptionRow = {
 };
 
 type TemplateCostEntryRow = {
+  id: string;
+  workspace_id: string;
+  item_id: string;
   price_option_id: string;
   unit_cost: number | string;
   misc_cost: number | string;
@@ -310,6 +322,7 @@ type TemplateCostEntryRow = {
   pricing_source: string | null;
   pricing_date: string | null;
   source_url: string | null;
+  updated_at: string;
 };
 
 function nowIso() {
@@ -371,6 +384,47 @@ function readJson(value: unknown, fallback: Json): Json {
 function readJsonRecord(value: unknown): Record<string, unknown> {
   const parsed = readJson(value, {});
   return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+}
+
+function readRequiredJsonRecord(value: unknown, label: string) {
+  const parsed = typeof value === "string" ? readJson(value, null) : value;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object.`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function normalizeEstimateRowJsonObject(value: unknown, label: string) {
+  if (value === null || value === undefined) return {};
+  return readRequiredJsonRecord(value, label);
+}
+
+function normalizeEstimateRowSourceLinkState(sourceLibraryItemIdValue: unknown, linkStateValue: unknown) {
+  const sourceLibraryItemId = typeof sourceLibraryItemIdValue === "string" && sourceLibraryItemIdValue.trim()
+    ? sourceLibraryItemIdValue.trim()
+    : null;
+  const linkState = typeof linkStateValue === "string" && linkStateValue.trim()
+    ? linkStateValue.trim()
+    : sourceLibraryItemId
+      ? "linked-clean"
+      : "unlinked";
+  if (linkState === "unlinked") {
+    if (sourceLibraryItemId) throw new Error("Unlinked estimate rows cannot retain a live source identity.");
+    return { sourceLibraryItemId: null, linkState };
+  }
+  if (!["linked-clean", "linked-overridden", "source-changed", "detached"].includes(linkState)) {
+    throw new Error("Estimate row link state is invalid.");
+  }
+  if (!sourceLibraryItemId) throw new Error("Linked and detached estimate rows require a source identity.");
+  return { sourceLibraryItemId, linkState };
+}
+
+function normalizeEstimateRowPricingProvenance(value: unknown) {
+  const provenance = typeof value === "string" && value.trim() ? value.trim() : "missing";
+  if (!["recorded", "inherited_snapshot", "synthesized_fallback", "missing"].includes(provenance)) {
+    throw new Error("Estimate row pricing provenance is invalid.");
+  }
+  return provenance;
 }
 
 function jsonString(value: unknown, fallback: Json = {}) {
@@ -566,6 +620,123 @@ async function readEstimateContext(database: D1DatabaseLike, estimateId: string,
   );
 }
 
+type EstimateMutationIntentContext = {
+  projectId: string;
+  estimateId: string;
+  workspaceId: string;
+  actorUserId: string;
+  commandKind: string;
+  intentId: string;
+  requestFingerprint: string;
+};
+
+function readEstimateMutationReceiptResult(value: unknown) {
+  return readRequiredJsonRecord(value, "Estimate mutation receipt result");
+}
+
+async function prepareEstimateMutationIntent(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+  commandKind: string,
+  request: unknown,
+) {
+  const projectId = String(args.target_project_id ?? "");
+  const estimateId = String(args.target_estimate_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+  const intentId = String(args.correlation_id ?? randomUUID()).trim();
+  if (!intentId) throw new Error("Estimate mutation intent is required.");
+  const context: EstimateMutationIntentContext = {
+    projectId,
+    estimateId,
+    workspaceId: estimate.workspace_id,
+    actorUserId: currentUser.userId,
+    commandKind,
+    intentId,
+    requestFingerprint: createMutationRequestFingerprint(request),
+  };
+  const committedResult = await readCommittedMutationReceipt(
+    database,
+    context,
+    readEstimateMutationReceiptResult,
+  );
+  return { context, committedResult };
+}
+
+function buildEstimateMutationReceiptStatement(
+  context: EstimateMutationIntentContext,
+  resourceType: string,
+  resourceId: string | null,
+  result: unknown,
+  timestamp: string,
+) {
+  return buildCommittedMutationReceiptStatement({
+    ...context,
+    resourceType,
+    resourceId,
+    result,
+    timestamp,
+  });
+}
+
+function buildProjectPublicationRevisionStatement(context: EstimateMutationIntentContext) {
+  return buildProjectPublicationRevisionForScope(context.projectId, context.workspaceId, context.estimateId);
+}
+
+function buildProjectPublicationRevisionForScope(projectId: string, workspaceId: string, estimateId: string) {
+  return {
+    sql: `
+      UPDATE projects
+      SET publication_source_revision = publication_source_revision + 1
+      WHERE id = ?
+        AND workspace_id = ?
+        AND EXISTS (
+          SELECT 1
+          FROM estimates
+          WHERE estimates.id = ?
+            AND estimates.project_id = projects.id
+        )
+    `,
+    values: [projectId, workspaceId, estimateId],
+  };
+}
+
+function validateCopiedEstimateTabTopology(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]) {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  for (const node of nodes) {
+    if (node.parent_id && !nodesById.has(node.parent_id)) {
+      throw new Error("Estimate tab contains a node whose parent is outside the source tab.");
+    }
+    const visited = new Set<string>();
+    let cursor: EstimateNodeRow | undefined = node;
+    while (cursor) {
+      if (visited.has(cursor.id)) throw new Error("Estimate tab contains a cyclic node graph.");
+      visited.add(cursor.id);
+      cursor = cursor.parent_id ? nodesById.get(cursor.parent_id) : undefined;
+    }
+  }
+  for (const row of rows) {
+    if (!row.node_id || !nodesById.has(row.node_id)) {
+      throw new Error("Estimate tab contains a row without a valid source node.");
+    }
+  }
+}
+
+function compareSortOrderThenId(
+  left: { id: string; sort_order: number | string | null },
+  right: { id: string; sort_order: number | string | null },
+) {
+  return readNumber(left.sort_order) - readNumber(right.sort_order) || left.id.localeCompare(right.id);
+}
+
+async function readConcurrentEstimateMutationReceipt(
+  database: D1DatabaseLike,
+  context: EstimateMutationIntentContext,
+) {
+  return readCommittedMutationReceipt(database, context, readEstimateMutationReceiptResult);
+}
+
 export async function prepareHistoryEventInsert(database: D1DatabaseLike, input: HistoryEventInput) {
   const existing = await first<{ id: string; payload: string }>(
     database,
@@ -731,11 +902,18 @@ function assignInsertDefaults(table: string, payload: Record<string, unknown>) {
     delete next.metadata;
   }
   if (table === "estimate_row_items") {
-    if (next.source_snapshot !== undefined && next.source_snapshot_json === undefined) next.source_snapshot_json = next.source_snapshot;
-    if (next.metadata !== undefined && next.metadata_json === undefined) next.metadata_json = next.metadata;
+    next.source_snapshot_json = normalizeEstimateRowJsonObject(
+      next.source_snapshot_json ?? next.source_snapshot,
+      "Estimate row source snapshot",
+    );
+    next.metadata_json = normalizeEstimateRowJsonObject(next.metadata_json ?? next.metadata, "Estimate row metadata");
+    const sourceLinkState = normalizeEstimateRowSourceLinkState(next.source_library_item_id, next.link_state);
+    next.source_library_item_id = sourceLinkState.sourceLibraryItemId;
+    next.link_state = sourceLinkState.linkState;
     delete next.source_snapshot;
     delete next.metadata;
     if (next.row_revision === undefined) next.row_revision = 1;
+    next.pricing_provenance_origin = normalizeEstimateRowPricingProvenance(next.pricing_provenance_origin);
   }
   return next;
 }
@@ -774,6 +952,7 @@ function insertColumnsForTable(table: string, payload: Record<string, unknown>) 
       "source_library_item_id",
       "link_state",
       "metadata_json",
+      "pricing_provenance_origin",
       "created_at",
       "updated_at",
     ].forEach((key) => allowed.add(key));
@@ -1128,6 +1307,7 @@ const ESTIMATE_EDIT_ACTIONS = new Set([
   "delete_estimate_row_item_with_history",
   "delete_estimate_row_items_bulk_with_history",
   "delete_estimate_tab_with_history",
+  "duplicate_estimate_row_item_with_history",
   "duplicate_estimate_tab_with_history",
   "insert_estimate_row_item_with_history",
   "insert_estimate_template_into_estimate_with_history",
@@ -1141,6 +1321,7 @@ const ESTIMATE_EDIT_ACTIONS = new Set([
   "reorder_estimate_nodes_with_history",
   "reorder_estimate_tabs_with_history",
   "replace_estimate_row_item_with_history",
+  "restore_deleted_estimate_rows_with_history",
   "restore_deleted_estimate_nodes_with_history",
   "update_estimate_details_with_history",
   "update_estimate_row_item_with_history",
@@ -1206,6 +1387,83 @@ async function readNodeById(database: D1DatabaseLike, estimateId: string, nodeId
     [estimateId, nodeId],
   );
   return node ? serializeNodeRow(node) : null;
+}
+
+type EstimateDestinationNodeRow = {
+  id: string;
+  estimate_tab_id: string | null;
+  kind: string;
+  archived_at: string | null;
+};
+
+async function validateEstimateDestinationNodes(
+  database: D1DatabaseLike,
+  estimateId: string,
+  nodeIds: readonly string[],
+  activeTabId?: string | null,
+) {
+  const uniqueNodeIds = [...new Set(nodeIds.filter(Boolean))];
+  if (uniqueNodeIds.length === 0) throw new Error("An estimate row destination is required.");
+  const nodes = await all<EstimateDestinationNodeRow>(
+    database,
+    `
+      SELECT node.id, node.estimate_tab_id, node.kind, tab.archived_at
+      FROM estimate_nodes node
+      LEFT JOIN estimate_tabs tab
+        ON tab.id = node.estimate_tab_id
+       AND tab.estimate_id = node.estimate_id
+      WHERE node.estimate_id = ?
+        AND node.id IN (${placeholders(uniqueNodeIds)})
+    `,
+    [estimateId, ...uniqueNodeIds],
+  );
+  if (nodes.length !== uniqueNodeIds.length) throw new Error("Estimate row destination was not found in the current estimate.");
+  for (const node of nodes) {
+    if (!["group", "area"].includes(node.kind)) throw new Error("Estimate row destination kind is invalid.");
+    if (node.estimate_tab_id && node.archived_at !== null) throw new Error("Estimate rows cannot be moved into an archived tab.");
+    if (activeTabId && node.estimate_tab_id !== activeTabId) throw new Error("Estimate rows cannot move across tabs.");
+  }
+  return {
+    nodes,
+    guard: {
+      sql: `
+        SELECT CASE WHEN (
+          SELECT COUNT(*)
+          FROM estimate_nodes node
+          LEFT JOIN estimate_tabs tab
+            ON tab.id = node.estimate_tab_id
+           AND tab.estimate_id = node.estimate_id
+          WHERE node.estimate_id = ?
+            AND node.id IN (${placeholders(uniqueNodeIds)})
+            AND node.kind IN ('group', 'area')
+            AND (node.estimate_tab_id IS NULL OR (tab.id IS NOT NULL AND tab.archived_at IS NULL))
+            AND (? IS NULL OR node.estimate_tab_id = ?)
+        ) = ? THEN 1 ELSE json('') END AS estimate_destination_guard
+      `,
+      values: [estimateId, ...uniqueNodeIds, activeTabId ?? null, activeTabId ?? null, uniqueNodeIds.length],
+    },
+  };
+}
+
+function buildEstimateNodeTabGuardStatement(
+  estimateId: string,
+  nodeIds: readonly string[],
+  expectedTabId: string | null,
+) {
+  const uniqueNodeIds = [...new Set(nodeIds.filter(Boolean))];
+  if (uniqueNodeIds.length === 0) throw new Error("Estimate row topology guard requires at least one node.");
+  return {
+    sql: `
+      SELECT CASE WHEN (
+        SELECT COUNT(*)
+        FROM estimate_nodes
+        WHERE estimate_id = ?
+          AND id IN (${placeholders(uniqueNodeIds)})
+          AND estimate_tab_id IS ?
+      ) = ? THEN 1 ELSE json('') END AS estimate_node_tab_guard
+    `,
+    values: [estimateId, ...uniqueNodeIds, expectedTabId, uniqueNodeIds.length],
+  };
 }
 
 async function readTabById(database: D1DatabaseLike, estimateId: string, tabId: string) {
@@ -1316,12 +1574,15 @@ async function updateEstimateDetails(database: D1DatabaseLike, args: Record<stri
 async function createEstimateTab(database: D1DatabaseLike, args: Record<string, unknown>) {
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const maxRow = await first<{ max_sort_order: number | null }>(
     database,
     "SELECT MAX(sort_order) AS max_sort_order FROM estimate_tabs WHERE estimate_id = ?",
     [estimateId],
   );
   const tabId = randomUUID();
+  const createdAt = nowIso();
   const insert = buildInsertRecordStatement("estimate_tabs", {
     id: tabId,
     estimate_id: estimateId,
@@ -1329,8 +1590,13 @@ async function createEstimateTab(database: D1DatabaseLike, args: Record<string, 
     sort_order: readNumber(maxRow?.max_sort_order, -1000) + 1000,
     is_default: false,
     created_by: args.acting_user_id ?? null,
+    created_at: createdAt,
+    updated_at: createdAt,
   });
-  await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
+  await runMutationWithHistory(database, [
+    { sql: insert.sql, values: insert.values },
+    buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId),
+  ], {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1345,14 +1611,22 @@ async function createEstimateTab(database: D1DatabaseLike, args: Record<string, 
 async function renameEstimateTab(database: D1DatabaseLike, args: Record<string, unknown>) {
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const tabId = String(args.target_tab_id ?? "");
   const tab = await readTabById(database, estimateId, tabId);
   if (!tab) throw new Error("Estimate tab not found in the current estimate.");
   const name = String(args.next_name ?? "").trim();
-  await runMutationWithHistory(database, [{
-    sql: "UPDATE estimate_tabs SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [name, nowIso(), tabId, estimateId],
-  }], {
+  if (!name) throw new Error("Estimate tab name is required.");
+  if (name === tab.name) return { estimateTabId: tabId };
+  const updatedAt = nowIso();
+  await runMutationWithHistory(database, [
+    {
+      sql: "UPDATE estimate_tabs SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ? AND updated_at = ?",
+      values: [name, updatedAt, tabId, estimateId, tab.updated_at],
+    },
+    buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId),
+  ], {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1370,11 +1644,51 @@ async function renameEstimateTab(database: D1DatabaseLike, args: Record<string, 
 async function reorderEstimateTabs(database: D1DatabaseLike, args: Record<string, unknown>) {
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
-  const updates = Array.isArray(args.sort_updates) ? args.sort_updates as Array<Record<string, unknown>> : [];
-  const mutationStatements = updates.map((update) => ({
-    sql: "UPDATE estimate_tabs SET sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [readNumber(update.sort_order), nowIso(), update.id, estimateId],
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+  const requestedUpdates = Array.isArray(args.sort_updates) ? args.sort_updates as Array<Record<string, unknown>> : [];
+  if (requestedUpdates.length === 0) throw new Error("At least one estimate tab update is required.");
+  const updates = requestedUpdates.map((update) => ({
+    id: String(update.id ?? ""),
+    sort_order: Number(update.sort_order),
   }));
+  const updateIds = new Set<string>();
+  for (const update of updates) {
+    if (!update.id) throw new Error("Estimate tab update id is required.");
+    if (updateIds.has(update.id)) throw new Error(`Duplicate estimate tab update: ${update.id}.`);
+    if (!Number.isFinite(update.sort_order) || update.sort_order < 0) throw new Error("Estimate tab sort order must be a non-negative number.");
+    updateIds.add(update.id);
+  }
+  const currentTabs = await all<Pick<EstimateTabRow, "id" | "sort_order">>(
+    database,
+    `SELECT id, sort_order FROM estimate_tabs WHERE estimate_id = ? AND id IN (${placeholders(updates)})`,
+    [estimateId, ...updates.map((update) => update.id)],
+  );
+  const currentById = new Map(currentTabs.map((tab) => [tab.id, readNumber(tab.sort_order)]));
+  const missingId = updates.find((update) => !currentById.has(update.id))?.id;
+  if (missingId) throw new Error(`Estimate tab not found in the current estimate: ${missingId}.`);
+  const changedUpdates = updates.filter((update) => currentById.get(update.id) !== update.sort_order);
+  if (changedUpdates.length === 0) return { estimateTabId: updates[0]!.id };
+  const updatedAt = nowIso();
+  const currentStateClauses = changedUpdates.map(() => "(id = ? AND sort_order = ?)").join(" OR ");
+  const mutationStatements: Array<{ sql: string; values?: unknown[] }> = [{
+    sql: `
+      SELECT CASE WHEN (
+        SELECT COUNT(*)
+        FROM estimate_tabs
+        WHERE estimate_id = ?
+          AND (${currentStateClauses})
+      ) = ? THEN 1 ELSE json('') END AS estimate_tab_reorder_guard
+    `,
+    values: [
+      estimateId,
+      ...changedUpdates.flatMap((update) => [update.id, currentById.get(update.id)!]),
+      changedUpdates.length,
+    ],
+  }, ...changedUpdates.map((update) => ({
+    sql: "UPDATE estimate_tabs SET sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
+    values: [update.sort_order, updatedAt, update.id, estimateId],
+  })), buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId)];
   await runMutationWithHistory(database, mutationStatements, {
     projectId,
     estimateId,
@@ -1382,91 +1696,217 @@ async function reorderEstimateTabs(database: D1DatabaseLike, args: Record<string
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
     changedFields: ["sort_order"],
-    payload: { updates },
+    payload: { updates: changedUpdates },
   });
-  return { estimateTabId: typeof updates[0]?.id === "string" ? updates[0].id : estimateId };
+  return { estimateTabId: changedUpdates[0]!.id };
 }
 
-async function duplicateEstimateTab(database: D1DatabaseLike, args: Record<string, unknown>) {
-  const estimateId = String(args.target_estimate_id ?? "");
-  const projectId = String(args.target_project_id ?? "");
+async function duplicateEstimateTab(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
+  if (!database.batch) throw new Error("Estimate tab duplication requires atomic D1 batch support.");
   const sourceTabId = String(args.source_tab_id ?? "");
-  const sourceTab = await readTabById(database, estimateId, sourceTabId);
+  const requestedName = typeof args.next_name === "string" && args.next_name.trim() ? args.next_name.trim() : null;
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.tab.duplicate",
+    { sourceTabId, requestedName },
+  );
+  if (committedResult) return committedResult;
+
+  const sourceTab = await readTabById(database, intent.estimateId, sourceTabId);
   if (!sourceTab) throw new Error("Estimate tab not found in the current estimate.");
-  const maxRow = await first<{ max_sort_order: number | null }>(database, "SELECT MAX(sort_order) AS max_sort_order FROM estimate_tabs WHERE estimate_id = ?", [estimateId]);
+  const sourceNodes = (await all<EstimateNodeRow>(
+    database,
+    "SELECT * FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ? ORDER BY sort_order ASC, id ASC",
+    [intent.estimateId, sourceTabId],
+  )).map(serializeNodeRow).sort(compareSortOrderThenId);
+  const sourceNodeIds = sourceNodes.map((node) => node.id);
+  const sourceRows = sourceNodeIds.length > 0
+    ? (await all<EstimateRowItemRow>(
+        database,
+        `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(sourceNodeIds)}) ORDER BY sort_order ASC, id ASC`,
+        [intent.estimateId, ...sourceNodeIds],
+      )).map(serializeRowItem).sort(compareSortOrderThenId)
+    : [];
+  validateCopiedEstimateTabTopology(sourceNodes, sourceRows);
+
+  const maximumStatementCount = 1 + sourceNodes.length + sourceRows.length + 1 + 2 + 1 + 1;
+  assertD1MutationStatementLimit(maximumStatementCount);
+  const sourceFingerprint = createMutationRequestFingerprint({
+    tab: sourceTab,
+    nodes: sourceNodes,
+    rows: sourceRows,
+  });
+  const maxRow = await first<{ max_sort_order: number | null }>(
+    database,
+    "SELECT MAX(sort_order) AS max_sort_order FROM estimate_tabs WHERE estimate_id = ?",
+    [intent.estimateId],
+  );
+  const expectedMaxTabSortOrder = readNumber(maxRow?.max_sort_order, -1000);
+  const sourceNodeUpdatedAt = sourceNodes.reduce((latest, node) => String(node.updated_at ?? "") > latest ? String(node.updated_at ?? "") : latest, "");
+  const sourceRowUpdatedAt = sourceRows.reduce((latest, row) => String(row.updated_at ?? "") > latest ? String(row.updated_at ?? "") : latest, "");
+  const sourceRowRevisionTotal = sourceRows.reduce((total, row) => total + Math.max(1, Math.trunc(readNumber(row.row_revision, 1))), 0);
+
+  const copiedAt = nowIso();
   const nextTabId = randomUUID();
-  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
+  const nodeIdBySource = new Map(sourceNodes.map((node) => [node.id, randomUUID()]));
+  const rowIdBySource = new Map(sourceRows.map((row) => [row.id, randomUUID()]));
   const tabInsert = buildInsertRecordStatement("estimate_tabs", {
     id: nextTabId,
-    estimate_id: estimateId,
-    name: typeof args.next_name === "string" && args.next_name.trim() ? args.next_name.trim() : `${sourceTab.name} Copy`,
-    sort_order: readNumber(maxRow?.max_sort_order, -1000) + 1000,
+    estimate_id: intent.estimateId,
+    name: requestedName ?? `${sourceTab.name} Copy`,
+    sort_order: expectedMaxTabSortOrder + 1000,
     is_default: false,
     metadata: sourceTab.metadata,
-    created_by: args.acting_user_id ?? null,
+    created_by: intent.actorUserId,
+    created_at: copiedAt,
+    updated_at: copiedAt,
   });
-  mutationStatements.push({ sql: tabInsert.sql, values: tabInsert.values });
-  const nodes = await all<EstimateNodeRow>(database, "SELECT * FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ? ORDER BY sort_order ASC", [estimateId, sourceTabId]);
-  const nodeIdBySource = new Map<string, string>();
-  for (const node of nodes.map(serializeNodeRow)) {
-    const nextNodeId = randomUUID();
-    nodeIdBySource.set(node.id, nextNodeId);
-    const nodeInsert = buildInsertRecordStatement("estimate_nodes", {
-      id: nextNodeId,
-      estimate_id: estimateId,
-      estimate_tab_id: nextTabId,
-      parent_id: node.parent_id ? nodeIdBySource.get(node.parent_id) ?? null : null,
-      kind: node.kind,
-      name: node.name,
-      sort_order: node.sort_order,
-      metadata_json: node.metadata,
-    });
-    mutationStatements.push({ sql: nodeInsert.sql, values: nodeInsert.values });
-  }
-  if (nodeIdBySource.size > 0) {
-    const sourceNodeIds = [...nodeIdBySource.keys()];
-    const rows = await all<EstimateRowItemRow>(
-      database,
-      `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(sourceNodeIds)}) ORDER BY sort_order ASC`,
-      [estimateId, ...sourceNodeIds],
-    );
-    for (const row of rows.map(serializeRowItem)) {
-      const nextNodeId = row.node_id ? nodeIdBySource.get(row.node_id) : null;
-      if (!nextNodeId) continue;
-      const rowInsert = buildInsertRecordStatement("estimate_row_items", {
-        ...row,
-        id: randomUUID(),
-        node_id: nextNodeId,
-        source_snapshot: row.source_snapshot,
-        metadata: row.metadata,
-      });
-      mutationStatements.push({ sql: rowInsert.sql, values: rowInsert.values });
-    }
-  }
-  if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
-    throw new Error("Estimate tab duplication is too large to persist atomically with activity history.");
-  }
-  await runMutationWithHistory(database, mutationStatements, {
-    projectId,
-    estimateId,
+  const nodeInserts = sourceNodes.map((node) => buildInsertRecordStatement("estimate_nodes", {
+    id: nodeIdBySource.get(node.id),
+    estimate_id: intent.estimateId,
+    estimate_tab_id: nextTabId,
+    parent_id: node.parent_id ? nodeIdBySource.get(node.parent_id) : null,
+    kind: node.kind,
+    name: node.name,
+    sort_order: node.sort_order,
+    metadata_json: node.metadata,
+    created_at: copiedAt,
+    updated_at: copiedAt,
+  }));
+  const rowInserts = sourceRows.map((row) => buildInsertRecordStatement("estimate_row_items", {
+    ...row,
+    id: rowIdBySource.get(row.id),
+    estimate_id: intent.estimateId,
+    node_id: nodeIdBySource.get(row.node_id!),
+    source_snapshot: row.source_snapshot,
+    metadata: row.metadata,
+    row_revision: 1,
+    created_at: copiedAt,
+    updated_at: copiedAt,
+  }));
+  const history = await prepareHistoryEventInsert(database, {
+    projectId: intent.projectId,
+    estimateId: intent.estimateId,
+    workspaceId: intent.workspaceId,
     estimateTabId: nextTabId,
     eventType: "estimate_tab_duplicated",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
-    payload: { sourceTabId, tabId: nextTabId },
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
+    payload: {
+      sourceTabId,
+      tabId: nextTabId,
+      sourceFingerprint,
+      copiedNodeCount: sourceNodes.length,
+      copiedRowCount: sourceRows.length,
+    },
   });
-  return { estimateTabId: nextTabId };
+  if (!history.statement || !history.outboxStatement) {
+    throw new Error("Estimate tab duplicate intent has history without a committed mutation receipt.");
+  }
+  const result = {
+    estimateTabId: nextTabId,
+    sourceTabId,
+    sourceFingerprint,
+    copiedNodeCount: sourceNodes.length,
+    copiedRowCount: sourceRows.length,
+    eventId: history.eventId,
+  };
+  const sourceGuard = {
+    sql: `
+      SELECT CASE WHEN
+        EXISTS (
+          SELECT 1
+          FROM estimate_tabs
+          WHERE estimate_id = ?
+            AND id = ?
+            AND updated_at = ?
+        )
+        AND (SELECT COUNT(*) FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?), '') = ?
+        AND (
+          SELECT COUNT(*)
+          FROM estimate_row_items row_item
+          JOIN estimate_nodes node
+            ON node.id = row_item.node_id
+           AND node.estimate_id = row_item.estimate_id
+          WHERE row_item.estimate_id = ?
+            AND node.estimate_tab_id = ?
+        ) = ?
+        AND COALESCE((
+          SELECT MAX(row_item.updated_at)
+          FROM estimate_row_items row_item
+          JOIN estimate_nodes node
+            ON node.id = row_item.node_id
+           AND node.estimate_id = row_item.estimate_id
+          WHERE row_item.estimate_id = ?
+            AND node.estimate_tab_id = ?
+        ), '') = ?
+        AND COALESCE((
+          SELECT SUM(row_item.row_revision)
+          FROM estimate_row_items row_item
+          JOIN estimate_nodes node
+            ON node.id = row_item.node_id
+           AND node.estimate_id = row_item.estimate_id
+          WHERE row_item.estimate_id = ?
+            AND node.estimate_tab_id = ?
+        ), 0) = ?
+        AND COALESCE((SELECT MAX(sort_order) FROM estimate_tabs WHERE estimate_id = ?), -1000) = ?
+      THEN 1 ELSE json('') END AS estimate_tab_duplicate_source_guard
+    `,
+    values: [
+      intent.estimateId, sourceTabId, sourceTab.updated_at,
+      intent.estimateId, sourceTabId, sourceNodes.length,
+      intent.estimateId, sourceTabId, sourceNodeUpdatedAt,
+      intent.estimateId, sourceTabId, sourceRows.length,
+      intent.estimateId, sourceTabId, sourceRowUpdatedAt,
+      intent.estimateId, sourceTabId, sourceRowRevisionTotal,
+      intent.estimateId, expectedMaxTabSortOrder,
+    ],
+  };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    sourceGuard,
+    { sql: tabInsert.sql, values: tabInsert.values },
+    ...nodeInserts.map((insert) => ({ sql: insert.sql, values: insert.values })),
+    ...rowInserts.map((insert) => ({ sql: insert.sql, values: insert.values })),
+    buildProjectPublicationRevisionStatement(intent),
+    history.statement,
+    history.outboxStatement,
+    buildEstimateMutationReceiptStatement(intent, "estimate_tab", nextTabId, result, copiedAt),
+  ];
+  assertD1MutationStatementLimit(statements.length);
+  try {
+    await runBatch(database, statements);
+  } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
+    throw error;
+  }
+  return result;
 }
 
 async function archiveEstimateTab(database: D1DatabaseLike, args: Record<string, unknown>) {
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const tabId = String(args.target_tab_id ?? "");
+  const tab = await readTabById(database, estimateId, tabId);
+  if (!tab) throw new Error("Estimate tab not found in the current estimate.");
+  if (tab.archived_at) return { estimateTabId: tabId };
   const archivedAt = nowIso();
-  await runMutationWithHistory(database, [{
-    sql: "UPDATE estimate_tabs SET archived_at = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [archivedAt, archivedAt, tabId, estimateId],
-  }], {
+  await runMutationWithHistory(database, [
+    {
+      sql: "UPDATE estimate_tabs SET archived_at = ?, updated_at = ? WHERE id = ? AND estimate_id = ? AND updated_at = ?",
+      values: [archivedAt, archivedAt, tabId, estimateId, tab.updated_at],
+    },
+    buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId),
+  ], {
     projectId,
     estimateId,
     estimateTabId: tabId,
@@ -1481,24 +1921,27 @@ async function archiveEstimateTab(database: D1DatabaseLike, args: Record<string,
 async function deleteEstimateTab(database: D1DatabaseLike, args: Record<string, unknown>) {
   const estimateId = String(args.target_estimate_id ?? "");
   const projectId = String(args.target_project_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const tabId = String(args.target_tab_id ?? "");
+  const tab = await readTabById(database, estimateId, tabId);
+  if (!tab) throw new Error("Estimate tab not found in the current estimate.");
   const replacement = await first<{ id: string }>(
     database,
     "SELECT id FROM estimate_tabs WHERE estimate_id = ? AND id <> ? AND archived_at IS NULL ORDER BY is_default DESC, sort_order ASC LIMIT 1",
     [estimateId, tabId],
   );
+  if (!replacement) throw new Error("At least one active estimate tab is required.");
   const nodes = await all<{ id: string }>(database, "SELECT id FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?", [estimateId, tabId]);
   const nodeIds = nodes.map((node) => node.id);
   const deletedRows = nodeIds.length > 0
     ? await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(nodeIds)})`, [estimateId, ...nodeIds])
     : [];
-  const project = await readProjectContext(database, projectId);
-  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
   const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
-    workspaceId: project.workspace_id,
+    workspaceId: estimate.workspace_id,
     estimateTabId: tabId,
     eventType: "estimate_tab_deleted",
     actorUserId: String(args.acting_user_id ?? "") || null,
@@ -1507,8 +1950,20 @@ async function deleteEstimateTab(database: D1DatabaseLike, args: Record<string, 
     payload: { tabId, replacementTabId: replacement?.id ?? null, deletedNodeIds: nodeIds },
   });
   const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
+  mutationStatements.push({
+    sql: `
+      SELECT CASE WHEN EXISTS (
+        SELECT 1
+        FROM estimate_tabs
+        WHERE id = ?
+          AND estimate_id = ?
+          AND updated_at = ?
+      ) THEN 1 ELSE json('') END AS estimate_tab_delete_guard
+    `,
+    values: [tabId, estimateId, tab.updated_at],
+  });
   mutationStatements.push(...buildProjectComponentAttachmentDeleteRetentionStatements({
-    workspaceId: project.workspace_id,
+    workspaceId: estimate.workspace_id,
     projectId,
     sourceDeleteEventId: history.eventId,
     deletedRows,
@@ -1524,27 +1979,52 @@ async function deleteEstimateTab(database: D1DatabaseLike, args: Record<string, 
     sql: "DELETE FROM estimate_tabs WHERE id = ? AND estimate_id = ?",
     values: [tabId, estimateId],
   });
+  mutationStatements.push(buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId));
   if (history.statement) mutationStatements.push(
     { sql: history.statement.sql, values: history.statement.values ?? [] },
     { sql: history.outboxStatement.sql, values: history.outboxStatement.values ?? [] },
   );
+  assertD1MutationStatementLimit(mutationStatements.length);
   await runBatch(database, mutationStatements);
-  return { estimateTabId: tabId, replacementTabId: replacement?.id ?? null };
+  return {
+    estimateTabId: tabId,
+    replacementTabId: replacement.id,
+    deletedNodeCount: nodeIds.length,
+    deletedRowCount: deletedRows.length,
+  };
 }
 
 async function createEstimateNode(database: D1DatabaseLike, args: Record<string, unknown>) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+  const requestedTabId = typeof args.target_tab_id === "string" && args.target_tab_id ? args.target_tab_id : null;
+  const parentNodeId = typeof args.parent_node_id === "string" && args.parent_node_id ? args.parent_node_id : null;
+  const parentNode = parentNodeId ? await readNodeById(database, estimateId, parentNodeId) : null;
+  if (parentNodeId && !parentNode) throw new Error("Parent estimate node not found in the current estimate.");
+  const estimateTabId = parentNode?.estimate_tab_id ?? requestedTabId;
+  if (parentNode && requestedTabId && parentNode.estimate_tab_id !== requestedTabId) {
+    throw new Error("Estimate tree nodes cannot be created across tabs.");
+  }
+  if (estimateTabId) {
+    const tab = await readTabById(database, estimateId, estimateTabId);
+    if (!tab) throw new Error("Estimate tab not found in the current estimate.");
+    if (tab.archived_at) throw new Error("Estimate tree nodes cannot be created in an archived tab.");
+  }
   const nodeId = randomUUID();
   const nodeKind = String(args.node_kind ?? "group");
+  if (!["group", "area"].includes(nodeKind)) throw new Error("Estimate tree node kind is invalid.");
+  const initialSortOrder = Number(args.initial_sort_order);
+  if (!Number.isFinite(initialSortOrder) || initialSortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative number.");
   const insert = buildInsertRecordStatement("estimate_nodes", {
     id: nodeId,
     estimate_id: estimateId,
-    estimate_tab_id: args.target_tab_id ?? null,
-    parent_id: args.parent_node_id ?? null,
+    estimate_tab_id: estimateTabId,
+    parent_id: parentNodeId,
     kind: nodeKind,
     name: args.node_name ?? "Untitled",
-    sort_order: readNumber(args.initial_sort_order),
+    sort_order: initialSortOrder,
     metadata_json: {},
   });
   const activationStatements: D1PreparedStatementLike[] = [];
@@ -1575,15 +2055,18 @@ async function createEstimateNode(database: D1DatabaseLike, args: Record<string,
       workspaceId,
     }));
   }
-  const eventId = await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
+  const eventId = await runMutationWithHistory(database, [
+    { sql: insert.sql, values: insert.values },
+    buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId),
+  ], {
     projectId,
     estimateId,
     estimateNodeId: nodeId,
-    estimateTabId: typeof args.target_tab_id === "string" ? args.target_tab_id : null,
+    estimateTabId,
     eventType: "estimate_node_created",
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
-    payload: { nodeId, name: args.node_name, kind: nodeKind, parentNodeId: args.parent_node_id ?? null },
+    payload: { nodeId, name: args.node_name, kind: nodeKind, parentNodeId, estimateTabId },
   }, activationStatements);
   return { nodeId, eventId, payload: { nodeId } };
 }
@@ -1591,14 +2074,22 @@ async function createEstimateNode(database: D1DatabaseLike, args: Record<string,
 async function renameEstimateNode(database: D1DatabaseLike, args: Record<string, unknown>) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const nodeId = String(args.target_node_id ?? "");
   const node = await readNodeById(database, estimateId, nodeId);
   if (!node) throw new Error("Estimate tree node not found in the current project.");
   const name = String(args.next_name ?? "").trim();
-  await runMutationWithHistory(database, [{
-    sql: "UPDATE estimate_nodes SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [name, nowIso(), nodeId, estimateId],
-  }], {
+  if (!name) throw new Error("Estimate tree node name is required.");
+  if (name === node.name) return { nodeId };
+  const updatedAt = nowIso();
+  await runMutationWithHistory(database, [
+    {
+      sql: "UPDATE estimate_nodes SET name = ?, updated_at = ? WHERE id = ? AND estimate_id = ? AND updated_at = ?",
+      values: [name, updatedAt, nodeId, estimateId, node.updated_at ?? null],
+    },
+    buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId),
+  ], {
     projectId,
     estimateId,
     estimateNodeId: nodeId,
@@ -1627,6 +2118,7 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
     parent_id: typeof update.parent_id === "string" && update.parent_id ? update.parent_id : null,
     sort_order: Number(update.sort_order),
   }));
+  if (moveUpdates.length === 0) throw new Error("At least one estimate tree node update is required.");
 
   const updateIds = new Set<string>();
   for (const update of moveUpdates) {
@@ -1635,9 +2127,9 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
     if (!Number.isFinite(update.sort_order) || update.sort_order < 0) throw new Error("Estimate tree node sort order must be a non-negative number.");
   }
 
-  const currentNodes = await all<Pick<EstimateNodeRow, "id" | "estimate_id" | "estimate_tab_id" | "parent_id">>(
+  const currentNodes = await all<Pick<EstimateNodeRow, "id" | "estimate_id" | "estimate_tab_id" | "parent_id" | "sort_order">>(
     database,
-    "SELECT id, estimate_id, estimate_tab_id, parent_id FROM estimate_nodes WHERE estimate_id = ?",
+    "SELECT id, estimate_id, estimate_tab_id, parent_id, sort_order FROM estimate_nodes WHERE estimate_id = ?",
     [estimateId],
   );
   const projectedTreeValidation = validateProjectedEstimateTreeReorder({
@@ -1655,6 +2147,28 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
   });
   if (!projectedTreeValidation.ok) throw new Error(projectedTreeValidation.message);
 
+  const currentById = new Map(currentNodes.map((node) => [node.id, node]));
+  const changedUpdates = moveUpdates.filter((update) => {
+    const current = currentById.get(update.id)!;
+    return current.parent_id !== update.parent_id || readNumber(current.sort_order) !== update.sort_order;
+  });
+  if (changedUpdates.length === 0) return { updatedNodeCount: 0 };
+  const affectedTabIds = [...new Set(changedUpdates.flatMap((update) => {
+    const nodeTabId = currentById.get(update.id)?.estimate_tab_id;
+    const parentTabId = update.parent_id ? currentById.get(update.parent_id)?.estimate_tab_id : nodeTabId;
+    return [nodeTabId, parentTabId].filter((tabId): tabId is string => typeof tabId === "string" && tabId.length > 0);
+  }))];
+  if (affectedTabIds.length > 0) {
+    const activeTabs = await all<Pick<EstimateTabRow, "id" | "archived_at">>(
+      database,
+      `SELECT id, archived_at FROM estimate_tabs WHERE estimate_id = ? AND id IN (${placeholders(affectedTabIds)})`,
+      [estimateId, ...affectedTabIds],
+    );
+    if (activeTabs.length !== affectedTabIds.length || activeTabs.some((tab) => tab.archived_at !== null)) {
+      throw new Error("Estimate tree nodes cannot be reordered in an archived or missing tab.");
+    }
+  }
+
   const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
@@ -1663,15 +2177,35 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
     changedFields: ["parent_id", "sort_order"],
-    payload: { updates: moveUpdates },
+    payload: { updates: changedUpdates },
   });
-  const statements: Array<{ sql: string; values?: unknown[] }> = moveUpdates.map((update) => ({
+  const currentStateClauses = changedUpdates.map(() => "(id = ? AND parent_id IS ? AND sort_order = ?)").join(" OR ");
+  const updatedAt = nowIso();
+  const statements: Array<{ sql: string; values?: unknown[] }> = [{
+    sql: `
+      SELECT CASE WHEN (
+        SELECT COUNT(*)
+        FROM estimate_nodes
+        WHERE estimate_id = ?
+          AND (${currentStateClauses})
+      ) = ? THEN 1 ELSE json('') END AS estimate_node_reorder_guard
+    `,
+    values: [
+      estimateId,
+      ...changedUpdates.flatMap((update) => {
+        const current = currentById.get(update.id)!;
+        return [update.id, current.parent_id, readNumber(current.sort_order)];
+      }),
+      changedUpdates.length,
+    ],
+  }, ...changedUpdates.map((update) => ({
     sql: "UPDATE estimate_nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [update.parent_id, update.sort_order, nowIso(), update.id, estimateId],
-  }));
+    values: [update.parent_id, update.sort_order, updatedAt, update.id, estimateId],
+  })), buildProjectPublicationRevisionForScope(projectId, project.workspace_id, estimateId)];
   if (history.statement) statements.push(history.statement, history.outboxStatement);
+  assertD1MutationStatementLimit(statements.length);
   await runBatch(database, statements);
-  return { updatedNodeCount: moveUpdates.length };
+  return { updatedNodeCount: changedUpdates.length };
 }
 
 async function collectDescendantNodeIds(database: D1DatabaseLike, estimateId: string, rootIds: string[]) {
@@ -1698,9 +2232,27 @@ async function collectDescendantNodeIds(database: D1DatabaseLike, estimateId: st
 async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string, unknown>) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
-  const rootIds = Array.isArray(args.target_node_ids)
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+  const rootIds = [...new Set((Array.isArray(args.target_node_ids)
     ? args.target_node_ids.filter((id): id is string => typeof id === "string")
-    : [String(args.target_node_id ?? "")].filter(Boolean);
+    : [String(args.target_node_id ?? "")])
+    .map((id) => id.trim())
+    .filter(Boolean))];
+  if (rootIds.length === 0) throw new Error("At least one estimate tree node is required for delete.");
+  const rootNodes = await all<Pick<EstimateNodeRow, "id" | "estimate_tab_id">>(
+    database,
+    `SELECT id, estimate_tab_id FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(rootIds)})`,
+    [estimateId, ...rootIds],
+  );
+  const rootNodeIds = new Set(rootNodes.map((node) => node.id));
+  const missingRootId = rootIds.find((rootId) => !rootNodeIds.has(rootId));
+  if (missingRootId) throw new Error(`Estimate tree node not found in the current estimate: ${missingRootId}.`);
+  const rootTabIds = new Set(rootNodes.map((node) => node.estimate_tab_id ?? null));
+  if (rootTabIds.size !== 1) throw new Error("Estimate tree nodes cannot be deleted across tabs in one action.");
+  const rootTabId = rootNodes[0]?.estimate_tab_id ?? null;
   const deletedNodeIds = await collectDescendantNodeIds(database, estimateId, rootIds);
   const deletedNodes = deletedNodeIds.length
     ? await all<EstimateNodeRow>(database, `SELECT * FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds])
@@ -1708,14 +2260,10 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
   const deletedRows = deletedNodeIds.length
     ? await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds])
     : [];
-  const project = await readProjectContext(database, projectId);
-  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
-  const estimate = await readEstimateContext(database, estimateId, projectId);
-  if (!estimate) throw new Error("Estimate not found in the current project.");
   const remainingNodes = await all<Pick<EstimateNodeRow, "id" | "sort_order">>(
     database,
-    "SELECT id, sort_order FROM estimate_nodes WHERE estimate_id = ? ORDER BY sort_order ASC, id ASC",
-    [estimateId],
+    "SELECT id, sort_order FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id IS ? ORDER BY sort_order ASC, id ASC",
+    [estimateId, rootTabId],
   );
   const deletedNodeIdSet = new Set(deletedNodeIds);
   const fallbackNodeId = remainingNodes.find((node) => !deletedNodeIdSet.has(node.id))?.id ?? null;
@@ -1733,9 +2281,34 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
       nodes: deletedNodes.map(serializeNodeRow),
       rows: deletedRows.map(serializeRowItem),
     },
-    payload: { deletedNodeIds, fallbackNodeId },
+    payload: {
+      deletedNodeIds,
+      deletedNodeCount: deletedNodeIds.length,
+      deletedRowCount: deletedRows.length,
+      fallbackNodeId,
+    },
   });
   const statements: Array<{ sql: string; values?: unknown[] }> = [
+    {
+      sql: `
+        WITH RECURSIVE subtree(id) AS (
+          SELECT id
+          FROM estimate_nodes
+          WHERE estimate_id = ?
+            AND id IN (${placeholders(rootIds)})
+          UNION
+          SELECT node.id
+          FROM estimate_nodes node
+          JOIN subtree parent ON node.parent_id = parent.id
+          WHERE node.estimate_id = ?
+        )
+        SELECT CASE WHEN
+          (SELECT COUNT(*) FROM subtree) = ?
+          AND (SELECT COUNT(*) FROM subtree WHERE id IN (${placeholders(deletedNodeIds)})) = ?
+        THEN 1 ELSE json('') END AS estimate_node_delete_topology_guard
+      `,
+      values: [estimateId, ...rootIds, estimateId, deletedNodeIds.length, ...deletedNodeIds, deletedNodeIds.length],
+    },
     ...buildProjectComponentAttachmentDeleteRetentionStatements({
       workspaceId: project.workspace_id,
       projectId,
@@ -1750,9 +2323,18 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
       { sql: `DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(deletedNodeIds)})`, values: [estimateId, ...deletedNodeIds] },
     );
   }
+  statements.push(buildProjectPublicationRevisionForScope(projectId, project.workspace_id, estimateId));
   if (history.statement) statements.push(history.statement, history.outboxStatement);
+  assertD1MutationStatementLimit(statements.length);
   await runBatch(database, statements);
-  return { eventId: history.eventId, deletedNodeIds, fallbackNodeId, payload: { deletedNodeIds, fallbackNodeId } };
+  return {
+    eventId: history.eventId,
+    deletedNodeIds,
+    deletedNodeCount: deletedNodeIds.length,
+    deletedRowCount: deletedRows.length,
+    fallbackNodeId,
+    payload: { deletedNodeIds, deletedNodeCount: deletedNodeIds.length, deletedRowCount: deletedRows.length, fallbackNodeId },
+  };
 }
 
 async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Record<string, unknown>) {
@@ -1790,8 +2372,10 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
 
   const snapshotNodeIds = new Set(snapshotNodes.map((node) => String(node.id)));
   const requestedRootIds = Array.isArray(args.target_node_ids)
-    ? args.target_node_ids.filter((id): id is string => typeof id === "string" && snapshotNodeIds.has(id))
+    ? [...new Set(args.target_node_ids.filter((id): id is string => typeof id === "string").map((id) => id.trim()).filter(Boolean))]
     : [];
+  const unknownRequestedRootId = requestedRootIds.find((id) => !snapshotNodeIds.has(id));
+  if (unknownRequestedRootId) throw new Error(`Deleted node history does not contain requested node: ${unknownRequestedRootId}.`);
   const restoredRootNodeIds = requestedRootIds.length > 0
     ? requestedRootIds
     : snapshotNodes
@@ -1815,6 +2399,32 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
   const rowsToRestore = snapshotRows.filter((row) => restoredNodeIdSet.has(String(row.node_id ?? "")));
   const restoredNodeIds = nodesToRestore.map((node) => String(node.id));
   const restoredRowIds = rowsToRestore.map((row) => String(row.id));
+  validateCopiedEstimateTabTopology(
+    nodesToRestore.map((node) => ({
+      id: String(node.id),
+      estimate_id: estimateId,
+      estimate_tab_id: typeof node.estimate_tab_id === "string" ? node.estimate_tab_id : null,
+      parent_id: typeof node.parent_id === "string" && restoredNodeIdSet.has(node.parent_id) ? node.parent_id : null,
+      kind: String(node.kind ?? "area"),
+      name: String(node.name ?? ""),
+      sort_order: readNumber(node.sort_order),
+    })),
+    rowsToRestore.map((row) => ({
+      id: String(row.id),
+      estimate_id: estimateId,
+      node_id: typeof row.node_id === "string" ? row.node_id : null,
+      description: null,
+      designation: null,
+      discipline: null,
+      material: null,
+      quantity: 0,
+      unit: null,
+      unit_cost: 0,
+      misc_cost: 0,
+      contingency_percentage: 0,
+      sort_order: readNumber(row.sort_order),
+    })),
+  );
   const collidingNodes = restoredNodeIds.length > 0
     ? await all<{ id: string }>(
         database,
@@ -1831,6 +2441,42 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
       )
     : [];
   if (collidingRows.length > 0) throw new Error("One or more estimate rows to restore already exist.");
+
+  const existingNodes = await all<Pick<EstimateNodeRow, "id" | "estimate_tab_id" | "parent_id" | "sort_order">>(
+    database,
+    "SELECT id, estimate_tab_id, parent_id, sort_order FROM estimate_nodes WHERE estimate_id = ?",
+    [estimateId],
+  );
+  const existingNodesById = new Map(existingNodes.map((node) => [node.id, node]));
+  const restoredNodesById = new Map(nodesToRestore.map((node) => [String(node.id), node]));
+  const restoreTabIds = [...new Set(nodesToRestore.flatMap((node) => (
+    typeof node.estimate_tab_id === "string" && node.estimate_tab_id ? [node.estimate_tab_id] : []
+  )))];
+  if (restoreTabIds.length > 0) {
+    const activeTabs = await all<Pick<EstimateTabRow, "id" | "archived_at">>(
+      database,
+      `SELECT id, archived_at FROM estimate_tabs WHERE estimate_id = ? AND id IN (${placeholders(restoreTabIds)})`,
+      [estimateId, ...restoreTabIds],
+    );
+    if (activeTabs.length !== restoreTabIds.length || activeTabs.some((tab) => tab.archived_at !== null)) {
+      throw new Error("Deleted estimate nodes cannot be restored into an archived or missing tab.");
+    }
+  }
+  for (const node of nodesToRestore) {
+    const nodeId = String(node.id);
+    const nodeTabId = typeof node.estimate_tab_id === "string" ? node.estimate_tab_id : null;
+    const parentId = typeof node.parent_id === "string" && node.parent_id ? node.parent_id : null;
+    const parentNode = parentId ? restoredNodesById.get(parentId) ?? existingNodesById.get(parentId) : null;
+    if (parentId && !parentNode) throw new Error(`Deleted estimate node parent is no longer available: ${nodeId}.`);
+    const parentTabId = parentNode && typeof parentNode.estimate_tab_id === "string" ? parentNode.estimate_tab_id : null;
+    if (parentNode && parentTabId !== nodeTabId) throw new Error("Deleted estimate nodes cannot be restored across tabs.");
+    const sortCollision = existingNodes.some((existingNode) => (
+      (existingNode.estimate_tab_id ?? null) === nodeTabId
+      && existingNode.parent_id === parentId
+      && readNumber(existingNode.sort_order) === readNumber(node.sort_order)
+    ));
+    if (sortCollision) throw new Error(`Estimate tree restore sort position is already occupied: ${nodeId}.`);
+  }
 
   const history = await prepareHistoryEventInsert(database, {
     projectId,
@@ -1857,16 +2503,85 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
     restoredRows: rowsToRestore,
     restoredAt,
   });
+  const collisionGuard = {
+    sql: `
+      SELECT CASE WHEN
+        (SELECT COUNT(*) FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(restoredNodeIds)})) = 0
+        ${restoredRowIds.length > 0
+          ? `AND (SELECT COUNT(*) FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(restoredRowIds)})) = 0`
+          : ""}
+      THEN 1 ELSE json('') END AS estimate_node_restore_collision_guard
+    `,
+    values: [
+      estimateId,
+      ...restoredNodeIds,
+      ...(restoredRowIds.length > 0 ? [estimateId, ...restoredRowIds] : []),
+    ],
+  };
+  const restoreGuards: Array<{ sql: string; values?: unknown[] }> = [collisionGuard];
+  if (restoreTabIds.length > 0) {
+    restoreGuards.push({
+      sql: `
+        SELECT CASE WHEN (
+          SELECT COUNT(*)
+          FROM estimate_tabs
+          WHERE estimate_id = ?
+            AND archived_at IS NULL
+            AND id IN (${placeholders(restoreTabIds)})
+        ) = ? THEN 1 ELSE json('') END AS estimate_node_restore_tab_guard
+      `,
+      values: [estimateId, ...restoreTabIds, restoreTabIds.length],
+    });
+  }
+  const externalParents = [...new Map(nodesToRestore.flatMap((node) => {
+    const parentId = typeof node.parent_id === "string" && node.parent_id ? node.parent_id : null;
+    if (!parentId || restoredNodeIdSet.has(parentId)) return [];
+    const tabId = typeof node.estimate_tab_id === "string" ? node.estimate_tab_id : null;
+    return [[`${parentId}:${tabId ?? "legacy"}`, { parentId, tabId }] as const];
+  })).values()];
+  if (externalParents.length > 0) {
+    const clauses = externalParents.map(() => "(id = ? AND estimate_tab_id IS ?)").join(" OR ");
+    restoreGuards.push({
+      sql: `
+        SELECT CASE WHEN (
+          SELECT COUNT(*)
+          FROM estimate_nodes
+          WHERE estimate_id = ?
+            AND (${clauses})
+        ) = ? THEN 1 ELSE json('') END AS estimate_node_restore_parent_guard
+      `,
+      values: [estimateId, ...externalParents.flatMap((parent) => [parent.parentId, parent.tabId]), externalParents.length],
+    });
+  }
+  const sortClauses = nodesToRestore.map(() => "(estimate_tab_id IS ? AND parent_id IS ? AND sort_order = ?)").join(" OR ");
+  restoreGuards.push({
+    sql: `
+      SELECT CASE WHEN NOT EXISTS (
+        SELECT 1
+        FROM estimate_nodes
+        WHERE estimate_id = ?
+          AND (${sortClauses})
+      ) THEN 1 ELSE json('') END AS estimate_node_restore_sort_guard
+    `,
+    values: [
+      estimateId,
+      ...nodesToRestore.flatMap((node) => [
+        typeof node.estimate_tab_id === "string" ? node.estimate_tab_id : null,
+        typeof node.parent_id === "string" && node.parent_id ? node.parent_id : null,
+        readNumber(node.sort_order),
+      ]),
+    ],
+  });
   const statements: Array<{ sql: string; values?: unknown[] }> = [
+    ...restoreGuards,
     ...attachmentRetention.guardStatements,
     ...buildPackedInsertStatements("estimate_nodes", nodesToRestore),
     ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
     ...attachmentRetention.releaseStatements,
+    buildProjectPublicationRevisionForScope(projectId, project.workspace_id, estimateId),
   ];
   if (history.statement) statements.push(history.statement, history.outboxStatement);
-  if (statements.length > D1_MAX_BATCH_STATEMENTS) {
-    throw new Error("Deleted subtree is too large to restore in one D1 batch.");
-  }
+  assertD1MutationStatementLimit(statements.length);
   await runBatch(database, statements);
   return {
     eventId: history.eventId,
@@ -1879,13 +2594,28 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
   };
 }
 
-async function insertRowItem(database: D1DatabaseLike, args: Record<string, unknown>) {
+async function insertRowItem(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
+  if (!database.batch) throw new Error("Atomic estimate row insertion is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const nodeId = String(args.target_node_id ?? "");
   const payload = readJsonRecord(args.row_payload);
-  const correlationId = String(args.correlation_id ?? randomUUID());
-  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  const activeTabId = typeof args.target_active_tab_id === "string" && args.target_active_tab_id
+    ? args.target_active_tab_id
+    : null;
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.insert",
+    { projectId, estimateId, nodeId, activeTabId, payload },
+  );
+  if (committedResult) return committedResult;
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
   if (existingEvent) {
     const existingPayload = readJsonRecord(existingEvent.payload);
     const existingRowId = String(existingEvent.target_row_id ?? existingPayload.rowId ?? payload.id ?? "");
@@ -1893,18 +2623,22 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     if (!existingRow) throw new Error("Idempotent estimate row insert event exists but the row is missing.");
     return rowItemHistoryResult(existingRow, existingEvent.id);
   }
+  const destination = await validateEstimateDestinationNodes(database, estimateId, [nodeId], activeTabId);
   const sort = await first<{ max_sort_order: number | null }>(
     database,
     "SELECT MAX(sort_order) AS max_sort_order FROM estimate_row_items WHERE estimate_id = ? AND node_id = ?",
     [estimateId, nodeId],
   );
+  const expectedMaxSortOrder = sort?.max_sort_order === null || sort?.max_sort_order === undefined
+    ? -1000
+    : readNumber(sort.max_sort_order, -1000);
   const rowId = typeof payload.id === "string" && payload.id ? payload.id : randomUUID();
   const insert = buildInsertRecordStatement("estimate_row_items", {
     id: rowId,
     estimate_id: estimateId,
     node_id: nodeId,
     source_library_item_id: payload.sourceLibraryItemId ?? null,
-    source_snapshot: payload.sourceSnapshot ?? null,
+    source_snapshot: payload.sourceSnapshot ?? {},
     category_node_id: payload.categoryNodeId ?? null,
     supplier_id: payload.supplierId ?? null,
     material: payload.material ?? "",
@@ -1922,12 +2656,12 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     designation: payload.designation ?? "",
     metadata: payload.metadata ?? {},
     link_state: payload.linkState ?? "unlinked",
-    sort_order: readNumber(sort?.max_sort_order, -1000) + 1000,
+    pricing_provenance_origin: payload.pricingProvenanceOrigin ?? "missing",
+    sort_order: expectedMaxSortOrder + 1000,
   });
   const insertedRow = insert.record as unknown as EstimateRowItemRow;
-  const project = await readProjectContext(database, projectId);
-  const workspaceId = project?.workspace_id ?? "";
-  const userId = String(args.acting_user_id ?? "");
+  const workspaceId = intent.workspaceId;
+  const userId = intent.actorUserId;
   const occurredAt = nowIso();
   const activationStatements: D1PreparedStatementLike[] = [];
   const rowIntent = validateActivationProducerIntent({
@@ -1977,22 +2711,215 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
       workspaceId,
     }));
   }
-  const eventId = await runMutationWithHistory(database, [{ sql: insert.sql, values: insert.values }], {
+  const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
+    workspaceId,
     estimateNodeId: nodeId,
     targetRowId: rowId,
     eventType: "row_inserted",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId,
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
     newSnapshot: insert.record,
     rowContext: { material: insertedRow.material, supplier: insertedRow.supplier },
     payload: { rowId },
     totalDelta: minorUnitsToAmount(insertedRowTotalMinorUnits),
-  }, activationStatements);
+  });
+  const result = rowItemHistoryResult(insertedRow, history.eventId);
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    destination.guard,
+    {
+      sql: `
+        SELECT CASE WHEN COALESCE((
+          SELECT MAX(sort_order)
+          FROM estimate_row_items
+          WHERE estimate_id = ?
+            AND node_id = ?
+        ), -1000) = ? THEN 1 ELSE json('') END AS estimate_row_order_guard
+      `,
+      values: [estimateId, nodeId, expectedMaxSortOrder],
+    },
+    { sql: insert.sql, values: insert.values },
+    buildProjectPublicationRevisionStatement(intent),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  statements.push(buildEstimateMutationReceiptStatement(intent, "estimate_row_item", rowId, result, occurredAt));
+  assertD1MutationStatementLimit(statements.length + activationStatements.length);
+  try {
+    await runBatchWithPreparedStatements(database, statements, activationStatements);
+  } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
+    throw error;
+  }
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item was not created.");
-  return rowItemHistoryResult(row, eventId);
+  return rowItemHistoryResult(row, history.eventId);
+}
+
+async function duplicateRowItem(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
+  if (!database.batch) throw new Error("Atomic estimate row duplication is unavailable.");
+  const projectId = String(args.target_project_id ?? "");
+  const estimateId = String(args.target_estimate_id ?? "");
+  const sourceRowId = String(args.source_row_id ?? "");
+  const targetNodeId = String(args.target_node_id ?? "");
+  const duplicatedRowId = String(args.duplicated_row_id ?? "");
+  const expectedSourceRowRevision = readNumber(args.expected_source_row_revision);
+  const activeTabId = typeof args.target_active_tab_id === "string" && args.target_active_tab_id
+    ? args.target_active_tab_id
+    : null;
+  if (!sourceRowId || !targetNodeId || !duplicatedRowId) throw new Error("Estimate row duplication identity is incomplete.");
+  if (!Number.isInteger(expectedSourceRowRevision) || expectedSourceRowRevision < 1) {
+    throw new Error("Estimate row duplication requires the current source revision.");
+  }
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.duplicate",
+    {
+      projectId,
+      estimateId,
+      sourceRowId,
+      expectedSourceRowRevision,
+      targetNodeId,
+      activeTabId,
+      duplicatedRowId,
+    },
+  );
+  if (committedResult) return committedResult;
+
+  const sourceRow = await readRowById(database, estimateId, sourceRowId);
+  if (!sourceRow) throw new Error("Estimate row item to duplicate was not found in the current project.");
+  if (readNumber(sourceRow.row_revision, 1) !== expectedSourceRowRevision) {
+    throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
+  }
+  if (sourceRow.node_id !== targetNodeId) throw new Error("Estimate row duplication target changed. Refresh and try again.");
+  const destination = await validateEstimateDestinationNodes(database, estimateId, [targetNodeId], activeTabId);
+  const sort = await first<{ max_sort_order: number | null }>(
+    database,
+    "SELECT MAX(sort_order) AS max_sort_order FROM estimate_row_items WHERE estimate_id = ? AND node_id = ?",
+    [estimateId, targetNodeId],
+  );
+  const expectedMaxSortOrder = sort?.max_sort_order === null || sort?.max_sort_order === undefined
+    ? -1000
+    : readNumber(sort.max_sort_order, -1000);
+  const timestamp = nowIso();
+  const insert = buildInsertRecordStatement("estimate_row_items", {
+    id: duplicatedRowId,
+    estimate_id: estimateId,
+    node_id: targetNodeId,
+    description: sourceRow.description ?? "",
+    designation: sourceRow.designation ?? "",
+    discipline: sourceRow.discipline ?? "",
+    material: sourceRow.material ?? "",
+    supplier: sourceRow.supplier ?? "",
+    supplier_id: sourceRow.supplier_id ?? null,
+    quantity: readNumber(sourceRow.quantity),
+    quantity_base: sourceRow.quantity_base ?? null,
+    quantity_contingency_amount: sourceRow.quantity_contingency_amount ?? null,
+    unit: sourceRow.unit ?? "",
+    unit_cost: readNumber(sourceRow.unit_cost),
+    misc_cost: readNumber(sourceRow.misc_cost),
+    contingency_percentage: readNumber(sourceRow.contingency_percentage),
+    adjustment_percentage: readNumber(sourceRow.adjustment_percentage),
+    source_snapshot: rowSourceSnapshot(sourceRow) ?? {},
+    sort_order: expectedMaxSortOrder + 1000,
+    row_revision: 1,
+    category_node_id: sourceRow.category_node_id ?? null,
+    source_library_item_id: sourceRow.source_library_item_id ?? null,
+    link_state: sourceRow.link_state ?? "unlinked",
+    metadata: rowMetadata(sourceRow),
+    pricing_provenance_origin: sourceRow.pricing_provenance_origin ?? "missing",
+    created_at: timestamp,
+    updated_at: timestamp,
+  });
+  const duplicatedRow = insert.record as unknown as EstimateRowItemRow;
+  const history = await prepareHistoryEventInsert(database, {
+    projectId,
+    estimateId,
+    workspaceId: intent.workspaceId,
+    estimateNodeId: targetNodeId,
+    targetRowId: duplicatedRowId,
+    eventType: "row_duplicated",
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
+    newSnapshot: insert.record,
+    rowContext: { material: duplicatedRow.material, supplier: duplicatedRow.supplier },
+    payload: { sourceRowId, duplicatedRowId },
+    totalDelta: minorUnitsToAmount(estimateRowTotalMinorUnits(duplicatedRow)),
+  });
+  const result = {
+    ...rowItemHistoryResult(duplicatedRow, history.eventId),
+    sourceRowId,
+  };
+  const activationStatements: D1PreparedStatementLike[] = [];
+  for (const milestone of ["first_row_priced", "first_valid_total"] as const) {
+    if (milestone === "first_valid_total" && estimateRowTotalMinorUnits(duplicatedRow) <= 0) continue;
+    const activationIntent = validateActivationProducerIntent({
+      domainMutationId: duplicatedRowId,
+      estimateId,
+      milestone,
+      occurredAt: timestamp,
+      projectId,
+      source: "estimate",
+      userId: intent.actorUserId,
+      workspaceId: intent.workspaceId,
+    });
+    if (activationIntent.status !== "accepted") throw new Error("Activation duplicated row intent is invalid.");
+    activationStatements.push(prepareActivationOutboxIntent(database, {
+      domainMutationId: duplicatedRowId,
+      dedupeKey: activationIntent.dedupeKey,
+      estimateId,
+      milestone,
+      occurredAt: timestamp,
+      projectId,
+      source: "estimate",
+      userId: intent.actorUserId,
+      workspaceId: intent.workspaceId,
+    }));
+  }
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    destination.guard,
+    buildRowRevisionGuardStatement(estimateId, [{ rowId: sourceRowId, rowRevision: expectedSourceRowRevision }]),
+    {
+      sql: `
+        SELECT CASE WHEN COALESCE((
+          SELECT MAX(sort_order)
+          FROM estimate_row_items
+          WHERE estimate_id = ?
+            AND node_id = ?
+        ), -1000) = ? THEN 1 ELSE json('') END AS estimate_row_duplicate_order_guard
+      `,
+      values: [estimateId, targetNodeId, expectedMaxSortOrder],
+    },
+    { sql: insert.sql, values: insert.values },
+    buildProjectPublicationRevisionStatement(intent),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  statements.push(buildEstimateMutationReceiptStatement(intent, "estimate_row_item", duplicatedRowId, result, timestamp));
+  assertD1MutationStatementLimit(statements.length + activationStatements.length);
+  try {
+    await runBatchWithPreparedStatements(database, statements, activationStatements);
+  } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
+    const authoritativeSource = await readRowById(database, estimateId, sourceRowId);
+    if (!authoritativeSource || readNumber(authoritativeSource.row_revision, 1) !== expectedSourceRowRevision) {
+      throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
+    }
+    throw error;
+  }
+  const authoritativeRow = await readRowById(database, estimateId, duplicatedRowId);
+  if (!authoritativeRow) throw new Error("Duplicated estimate row could not be reloaded.");
+  return {
+    ...rowItemHistoryResult(authoritativeRow, history.eventId),
+    sourceRowId,
+  };
 }
 
 function updateValuesForRowPatch(rowPatch: Record<string, unknown>) {
@@ -2013,6 +2940,7 @@ function updateValuesForRowPatch(rowPatch: Record<string, unknown>) {
     metadata: "metadata_json",
     linkState: "link_state",
     sourceLibraryItemId: "source_library_item_id",
+    pricingProvenanceOrigin: "pricing_provenance_origin",
     categoryNodeId: "category_node_id",
     supplierId: "supplier_id",
     discipline: "discipline",
@@ -2021,7 +2949,14 @@ function updateValuesForRowPatch(rowPatch: Record<string, unknown>) {
   for (const [key, column] of Object.entries(mapping)) {
     if (!Object.prototype.hasOwnProperty.call(rowPatch, key)) continue;
     const value = rowPatch[key];
-    columns.push([column, column.endsWith("_json") ? jsonString(value, column === "source_snapshot_json" ? null : {}) : value]);
+    const normalizedValue = column === "source_snapshot_json"
+      ? normalizeEstimateRowJsonObject(value, "Estimate row source snapshot")
+      : column === "metadata_json"
+        ? normalizeEstimateRowJsonObject(value, "Estimate row metadata")
+        : column === "pricing_provenance_origin"
+          ? normalizeEstimateRowPricingProvenance(value)
+          : value;
+    columns.push([column, column.endsWith("_json") ? jsonString(normalizedValue) : normalizedValue]);
   }
   return columns;
 }
@@ -2048,6 +2983,7 @@ function applyRowPatchForActivity(
     metadata: "metadata",
     linkState: "link_state",
     sourceLibraryItemId: "source_library_item_id",
+    pricingProvenanceOrigin: "pricing_provenance_origin",
     categoryNodeId: "category_node_id",
     supplierId: "supplier_id",
     discipline: "discipline",
@@ -2369,7 +3305,7 @@ function mergeSharedSourceSnapshotIntoRow(
 
 function mergeSourceSnapshotPatchIntoRow(row: EstimateRowItemRow, rowPatch: Record<string, unknown>) {
   if (!Object.prototype.hasOwnProperty.call(rowPatch, "sourceSnapshot")) return rowPatch;
-  if (rowPatch.sourceSnapshot === null) return rowPatch;
+  if (rowPatch.sourceSnapshot === null) return { ...rowPatch, sourceSnapshot: {} };
   return {
     ...rowPatch,
     sourceSnapshot: {
@@ -2377,6 +3313,148 @@ function mergeSourceSnapshotPatchIntoRow(row: EstimateRowItemRow, rowPatch: Reco
       ...readJsonRecord(rowPatch.sourceSnapshot),
     },
   };
+}
+
+type LibrarySourceCommitReceipt = {
+  sourceLibraryItemId: string;
+  workspaceId: string;
+  itemVersion: number;
+  itemUpdatedAt: string | null;
+  lifecycleState: string | null;
+  itemUnit: string;
+  itemUnitCost: number;
+  itemMiscCost: number;
+  itemActivePriceOptionId: string | null;
+  selectedOptionId: string | null;
+  optionLabel: string | null;
+  optionUnit: string | null;
+  optionUnitCost: number | null;
+  optionMiscCost: number | null;
+  optionUpdatedAt: string | null;
+  activeCostEntryId: string | null;
+  activeCostEntryUnitCost: number | null;
+  activeCostEntryMiscCost: number | null;
+  activeCostEntryUpdatedAt: string | null;
+  resolvedUnit: string;
+  resolvedUnitCost: number;
+  resolvedMiscCost: number;
+  fingerprint: string;
+};
+
+function readLibrarySourceCommitReceipt(value: unknown): LibrarySourceCommitReceipt | null {
+  if (value === null || value === undefined) return null;
+  const record = readRequiredJsonRecord(value, "Library source commit receipt");
+  const fingerprint = typeof record.fingerprint === "string" ? record.fingerprint : "";
+  const { fingerprint: ignoredFingerprint, ...receipt } = record;
+  void ignoredFingerprint;
+  if (!fingerprint || createMutationRequestFingerprint(receipt) !== fingerprint) {
+    throw new Error("Library source commit receipt is invalid.");
+  }
+  return { ...receipt, fingerprint } as LibrarySourceCommitReceipt;
+}
+
+function buildLibrarySourceCommitGuardStatements(receipt: LibrarySourceCommitReceipt) {
+  const guards: Array<{ sql: string; values?: unknown[] }> = [{
+    sql: `
+      SELECT CASE WHEN EXISTS (
+        SELECT 1
+        FROM cost_library_items
+        WHERE id = ?
+          AND workspace_id = ?
+          AND current_version_number = ?
+          AND updated_at IS ?
+          AND lifecycle_state IS ?
+          AND lifecycle_state <> 'archived'
+          AND unit = ?
+          AND unit_cost = ?
+          AND misc_cost = ?
+          AND active_price_option_id IS ?
+      ) THEN 1 ELSE json('') END AS estimate_library_source_guard
+    `,
+    values: [
+      receipt.sourceLibraryItemId,
+      receipt.workspaceId,
+      receipt.itemVersion,
+      receipt.itemUpdatedAt,
+      receipt.lifecycleState,
+      receipt.itemUnit,
+      receipt.itemUnitCost,
+      receipt.itemMiscCost,
+      receipt.itemActivePriceOptionId,
+    ],
+  }];
+  if (!receipt.selectedOptionId) return guards;
+  guards.push({
+    sql: `
+      SELECT CASE WHEN EXISTS (
+        SELECT 1
+        FROM cost_library_item_price_options
+        WHERE id = ?
+          AND item_id = ?
+          AND workspace_id = ?
+          AND is_active = 1
+          AND label IS ?
+          AND unit IS ?
+          AND unit_cost IS ?
+          AND misc_cost IS ?
+          AND updated_at IS ?
+      ) THEN 1 ELSE json('') END AS estimate_library_option_guard
+    `,
+    values: [
+      receipt.selectedOptionId,
+      receipt.sourceLibraryItemId,
+      receipt.workspaceId,
+      receipt.optionLabel,
+      receipt.optionUnit,
+      receipt.optionUnitCost,
+      receipt.optionMiscCost,
+      receipt.optionUpdatedAt,
+    ],
+  });
+  if (receipt.activeCostEntryId) {
+    guards.push({
+      sql: `
+        SELECT CASE WHEN EXISTS (
+          SELECT 1
+          FROM cost_library_item_variant_cost_entries
+          WHERE id = ?
+            AND workspace_id = ?
+            AND item_id = ?
+            AND price_option_id = ?
+            AND is_current = 1
+            AND deleted_at IS NULL
+            AND unit_cost IS ?
+            AND misc_cost IS ?
+            AND updated_at IS ?
+        ) THEN 1 ELSE json('') END AS estimate_library_cost_guard
+      `,
+      values: [
+        receipt.activeCostEntryId,
+        receipt.workspaceId,
+        receipt.sourceLibraryItemId,
+        receipt.selectedOptionId,
+        receipt.activeCostEntryUnitCost,
+        receipt.activeCostEntryMiscCost,
+        receipt.activeCostEntryUpdatedAt,
+      ],
+    });
+  } else {
+    guards.push({
+      sql: `
+        SELECT CASE WHEN NOT EXISTS (
+          SELECT 1
+          FROM cost_library_item_variant_cost_entries
+          WHERE workspace_id = ?
+            AND item_id = ?
+            AND price_option_id = ?
+            AND is_current = 1
+            AND deleted_at IS NULL
+        ) THEN 1 ELSE json('') END AS estimate_library_cost_absence_guard
+      `,
+      values: [receipt.workspaceId, receipt.sourceLibraryItemId, receipt.selectedOptionId],
+    });
+  }
+  return guards;
 }
 
 function buildProjectComponentImpactGuardStatement(input: {
@@ -3108,7 +4186,24 @@ function planRowPatchMutation(
   expectedRowRevision: number,
 ) {
   if (readNumber(row.row_revision, 1) !== expectedRowRevision) throw new Error("Estimate row revision conflict.");
-  const effectiveRowPatch = mergeSourceSnapshotPatchIntoRow(row, rowPatch);
+  const mergedRowPatch = mergeSourceSnapshotPatchIntoRow(row, rowPatch);
+  const sourceLinkState = normalizeEstimateRowSourceLinkState(
+    Object.prototype.hasOwnProperty.call(mergedRowPatch, "sourceLibraryItemId")
+      ? mergedRowPatch.sourceLibraryItemId
+      : row.source_library_item_id,
+    Object.prototype.hasOwnProperty.call(mergedRowPatch, "linkState")
+      ? mergedRowPatch.linkState
+      : row.link_state,
+  );
+  const effectiveRowPatch = {
+    ...mergedRowPatch,
+    ...(Object.prototype.hasOwnProperty.call(mergedRowPatch, "sourceLibraryItemId")
+      ? { sourceLibraryItemId: sourceLinkState.sourceLibraryItemId }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(mergedRowPatch, "linkState")
+      ? { linkState: sourceLinkState.linkState }
+      : {}),
+  };
   const columns = updateValuesForRowPatch(effectiveRowPatch);
   if (columns.length === 0) return null;
   const nextRevision = expectedRowRevision + 1;
@@ -3137,8 +4232,27 @@ async function patchRowItem(
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
-  const correlationId = String(args.correlation_id ?? randomUUID());
-  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  const expectedLibrarySourceReceipt = readLibrarySourceCommitReceipt(args.expected_library_source_receipt);
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    eventType === "row_replaced" ? "estimate.row.replace" : "estimate.row.update",
+    {
+      projectId,
+      estimateId,
+      rowId,
+      eventType,
+      expectedRowRevision: args.expected_row_revision ?? null,
+      rowPatch,
+      componentMutationIntent: args.component_mutation_intent ?? null,
+      expectedComponentImpactFingerprint: args.expected_component_impact_fingerprint ?? null,
+      removedPriceOptionReplacements: args.removed_price_option_replacements ?? null,
+      expectedLibrarySourceReceipt,
+    },
+  );
+  if (committedResult) return committedResult;
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
   if (existingEvent) {
     const existingRow = await readRowById(database, estimateId, rowId);
     if (!existingRow) throw new Error("Idempotent estimate row update event exists but the row is missing.");
@@ -3186,6 +4300,26 @@ async function patchRowItem(
   const rowPatchPlan = planRowPatchMutation(row, estimateId, attachmentPlan.canonicalRowPatch, expected);
   if (!rowPatchPlan) return rowItemHistoryResult(row);
   const { columns, effectiveRowPatch, statement, updated } = rowPatchPlan;
+  const replacementSourceId = eventType === "row_replaced" ? updated.source_library_item_id ?? null : null;
+  if (eventType === "row_replaced") {
+    if (replacementSourceId) {
+      if (
+        !expectedLibrarySourceReceipt
+        || expectedLibrarySourceReceipt.sourceLibraryItemId !== replacementSourceId
+        || expectedLibrarySourceReceipt.workspaceId !== intent.workspaceId
+        || expectedLibrarySourceReceipt.resolvedUnit !== updated.unit
+        || expectedLibrarySourceReceipt.resolvedUnitCost !== readNumber(updated.unit_cost)
+        || expectedLibrarySourceReceipt.resolvedMiscCost !== readNumber(updated.misc_cost)
+      ) {
+        throw new Error("Library source changed. Refresh the estimate before replacing this row.");
+      }
+    } else if (expectedLibrarySourceReceipt) {
+      throw new Error("Unlinked row replacements cannot retain a Library source receipt.");
+    }
+  }
+  const librarySourceGuards = expectedLibrarySourceReceipt
+    ? buildLibrarySourceCommitGuardStatements(expectedLibrarySourceReceipt)
+    : [];
   const expectedImpactFingerprint = !selectingProjectComponentVariant && typeof args.expected_component_impact_fingerprint === "string"
     ? args.expected_component_impact_fingerprint
     : undefined;
@@ -3225,44 +4359,56 @@ async function patchRowItem(
       componentId,
       expectedFingerprint: persistedImpactFingerprint,
     })] : []),
+    ...librarySourceGuards,
     ...attachmentPlan.preSourceGuards,
     statement,
     ...attachmentPlan.postSourceGuards,
     ...attachmentPlan.mutationStatements,
     ...propagation.mutationStatements,
   ];
-  if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
+  if (mutationStatements.length + 4 > D1_MAX_BATCH_STATEMENTS) {
     throw new Error("Component propagation is too large to persist atomically with activity history.");
   }
-  let eventId: string;
+  const history = await prepareHistoryEventInsert(database, {
+    projectId,
+    estimateId,
+    workspaceId: intent.workspaceId,
+    estimateNodeId: updated.node_id,
+    targetRowId: rowId,
+    eventType,
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
+    changedFields,
+    oldSnapshot: row,
+    newSnapshot: updated,
+    rowContext: { material: updated.material, supplier: updated.supplier },
+    payload: {
+      rowId,
+      variant: variantsDiffer(previousVariant, nextVariant) ? { previous: previousVariant, next: nextVariant } : null,
+      propagatedRowIds: propagation.rowIds,
+      propagatedRowCount: propagation.rowIds.length,
+      propagatedRowFacts: propagation.facts,
+      propagatedRowFactsTruncated: propagation.truncatedCount,
+      attachments: attachmentPlan.active ? {
+        createdAttachmentIds: attachmentPlan.createdAttachmentIds,
+        supersededAttachmentIds: attachmentPlan.supersededAttachmentIds,
+      } : null,
+    },
+    totalDelta: minorUnitsToAmount(estimateRowTotalMinorUnits(updated) - estimateRowTotalMinorUnits(row) + propagation.totalDeltaMinorUnits),
+  });
+  const result = rowItemHistoryResult(updated, history.eventId);
+  const statements = [
+    ...mutationStatements,
+    buildProjectPublicationRevisionStatement(intent),
+    ...(history.statement ? [history.statement, history.outboxStatement] : []),
+    buildEstimateMutationReceiptStatement(intent, "estimate_row_item", rowId, result, nowIso()),
+  ];
+  assertD1MutationStatementLimit(statements.length);
   try {
-    eventId = await runMutationWithHistory(database, mutationStatements, {
-      projectId,
-      estimateId,
-      estimateNodeId: updated.node_id,
-      targetRowId: rowId,
-      eventType,
-      actorUserId: String(args.acting_user_id ?? "") || null,
-      correlationId,
-      changedFields,
-      oldSnapshot: row,
-      newSnapshot: updated,
-      rowContext: { material: updated.material, supplier: updated.supplier },
-      payload: {
-        rowId,
-        variant: variantsDiffer(previousVariant, nextVariant) ? { previous: previousVariant, next: nextVariant } : null,
-        propagatedRowIds: propagation.rowIds,
-        propagatedRowCount: propagation.rowIds.length,
-        propagatedRowFacts: propagation.facts,
-        propagatedRowFactsTruncated: propagation.truncatedCount,
-        attachments: attachmentPlan.active ? {
-          createdAttachmentIds: attachmentPlan.createdAttachmentIds,
-          supersededAttachmentIds: attachmentPlan.supersededAttachmentIds,
-        } : null,
-      },
-      totalDelta: minorUnitsToAmount(estimateRowTotalMinorUnits(updated) - estimateRowTotalMinorUnits(row) + propagation.totalDeltaMinorUnits),
-    });
+    await runBatch(database, statements);
   } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
     if (persistedImpactFingerprint) {
       const currentImpactRows = await readProjectComponentImpactRevisionRows(database, {
         projectId,
@@ -3277,9 +4423,12 @@ async function patchRowItem(
     if (!authoritativeRow || readNumber(authoritativeRow.row_revision, 1) !== expected) {
       throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
     }
+    if (expectedLibrarySourceReceipt) {
+      throw new Error("Library source changed. Refresh the estimate before replacing this row.");
+    }
     throw error;
   }
-  return rowItemHistoryResult(updated, eventId);
+  return result;
 }
 
 type ExpectedRowRevision = { rowId: string; rowRevision: number };
@@ -3319,15 +4468,45 @@ function hasRowRevisionConflict(rows: readonly EstimateRowItemRow[], expectedRow
   return rowRevisionConflictResult(rows, expectedRows).conflictRowIds.length > 0;
 }
 
-async function moveRowComponent(database: D1DatabaseLike, args: Record<string, unknown>) {
+async function moveRowComponent(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
   if (!database.batch) throw new Error("Atomic estimate row component moves are unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const sourceRowId = String(args.source_row_id ?? "");
   const targetRowId = String(args.target_row_id ?? "");
   if (!sourceRowId || !targetRowId || sourceRowId === targetRowId) throw new Error("Source and target estimate rows must be different.");
-  const correlationId = String(args.correlation_id ?? randomUUID());
-  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  const activeTabId = typeof args.target_active_tab_id === "string" && args.target_active_tab_id
+    ? args.target_active_tab_id
+    : null;
+  const expectedRows: ExpectedRowRevision[] = [
+    { rowId: sourceRowId, rowRevision: readNumber(args.expected_source_row_revision) },
+    { rowId: targetRowId, rowRevision: readNumber(args.expected_target_row_revision) },
+  ];
+  if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
+    throw new Error("Component move requires the current revision for both rows.");
+  }
+  const sourceReplacementPayload = readJsonRecord(args.source_replacement_payload);
+  const targetReplacementPayload = readJsonRecord(args.target_replacement_payload);
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.component-move",
+    {
+      projectId,
+      estimateId,
+      activeTabId,
+      expectedRows,
+      sourceReplacementPayload,
+      targetReplacementPayload,
+    },
+  );
+  if (committedResult) return committedResult;
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
   if (existingEvent) {
     const payload = readJsonRecord(existingEvent.payload);
     if (!payload.sourceRow || !payload.targetRow) throw new Error("Idempotent estimate row move event is incomplete.");
@@ -3339,14 +4518,6 @@ async function moveRowComponent(database: D1DatabaseLike, args: Record<string, u
       payload: { ...payload, eventId: existingEvent.id, status: "applied" },
     };
   }
-
-  const expectedRows: ExpectedRowRevision[] = [
-    { rowId: sourceRowId, rowRevision: readNumber(args.expected_source_row_revision) },
-    { rowId: targetRowId, rowRevision: readNumber(args.expected_target_row_revision) },
-  ];
-  if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
-    throw new Error("Component move requires the current revision for both rows.");
-  }
   const currentRows = await all<EstimateRowItemRow>(
     database,
     `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
@@ -3357,37 +4528,66 @@ async function moveRowComponent(database: D1DatabaseLike, args: Record<string, u
   const sourceRow = rowById.get(sourceRowId);
   const targetRow = rowById.get(targetRowId);
   if (!sourceRow || !targetRow) return rowRevisionConflictResult(currentRows, expectedRows);
-  const sourcePlan = planRowPatchMutation(sourceRow, estimateId, readJsonRecord(args.source_replacement_payload), expectedRows[0].rowRevision);
-  const targetPlan = planRowPatchMutation(targetRow, estimateId, readJsonRecord(args.target_replacement_payload), expectedRows[1].rowRevision);
+  const topologyNodeIds = [sourceRow.node_id ?? "", targetRow.node_id ?? ""];
+  const topology = await validateEstimateDestinationNodes(database, estimateId, topologyNodeIds, activeTabId);
+  const topologyTabIds = new Set(topology.nodes.map((node) => node.estimate_tab_id));
+  if (topologyTabIds.size !== 1) throw new Error("Estimate row components cannot move across tabs.");
+  const expectedTabId = topology.nodes[0]?.estimate_tab_id ?? null;
+  const sourcePlan = planRowPatchMutation(sourceRow, estimateId, sourceReplacementPayload, expectedRows[0].rowRevision);
+  const targetPlan = planRowPatchMutation(targetRow, estimateId, targetReplacementPayload, expectedRows[1].rowRevision);
   if (!sourcePlan || !targetPlan) throw new Error("Component move did not produce both row replacements.");
   const sourceResult = rowItemHistoryResult(sourcePlan.updated).row;
   const targetResult = rowItemHistoryResult(targetPlan.updated).row;
-  let eventId: string;
+  const history = await prepareHistoryEventInsert(database, {
+    projectId,
+    estimateId,
+    workspaceId: intent.workspaceId,
+    estimateNodeId: targetPlan.updated.node_id,
+    estimateTabId: expectedTabId,
+    targetRowId,
+    eventType: "row_component_moved",
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
+    changedFields: Array.from(new Set([...sourcePlan.columns, ...targetPlan.columns].map(([column]) => column))),
+    oldSnapshot: { sourceRow: serializeRowItem(sourceRow), targetRow: serializeRowItem(targetRow) },
+    newSnapshot: { sourceRow: serializeRowItem(sourcePlan.updated), targetRow: serializeRowItem(targetPlan.updated) },
+    payload: { sourceRow: sourceResult, targetRow: targetResult },
+    totalDelta: minorUnitsToAmount(
+      estimateRowTotalMinorUnits(sourcePlan.updated)
+        + estimateRowTotalMinorUnits(targetPlan.updated)
+        - estimateRowTotalMinorUnits(sourceRow)
+        - estimateRowTotalMinorUnits(targetRow),
+    ),
+  });
+  const result = {
+    status: "applied" as const,
+    eventId: history.eventId,
+    sourceRow: sourceResult,
+    targetRow: targetResult,
+    payload: {
+      status: "applied" as const,
+      eventId: history.eventId,
+      sourceRow: sourceResult,
+      targetRow: targetResult,
+    },
+  };
+  const timestamp = nowIso();
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    topology.guard,
+    buildEstimateNodeTabGuardStatement(estimateId, topologyNodeIds, expectedTabId),
+    buildRowRevisionGuardStatement(estimateId, expectedRows),
+    sourcePlan.statement,
+    targetPlan.statement,
+    buildProjectPublicationRevisionStatement(intent),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  statements.push(buildEstimateMutationReceiptStatement(intent, "estimate_row_item_set", targetRowId, result, timestamp));
+  assertD1MutationStatementLimit(statements.length);
   try {
-    eventId = await runMutationWithHistory(database, [
-      buildRowRevisionGuardStatement(estimateId, expectedRows),
-      sourcePlan.statement,
-      targetPlan.statement,
-    ], {
-      projectId,
-      estimateId,
-      estimateNodeId: targetPlan.updated.node_id,
-      targetRowId,
-      eventType: "row_component_moved",
-      actorUserId: String(args.acting_user_id ?? "") || null,
-      correlationId,
-      changedFields: Array.from(new Set([...sourcePlan.columns, ...targetPlan.columns].map(([column]) => column))),
-      oldSnapshot: { sourceRow: serializeRowItem(sourceRow), targetRow: serializeRowItem(targetRow) },
-      newSnapshot: { sourceRow: serializeRowItem(sourcePlan.updated), targetRow: serializeRowItem(targetPlan.updated) },
-      payload: { sourceRow: sourceResult, targetRow: targetResult },
-      totalDelta: minorUnitsToAmount(
-        estimateRowTotalMinorUnits(sourcePlan.updated)
-          + estimateRowTotalMinorUnits(targetPlan.updated)
-          - estimateRowTotalMinorUnits(sourceRow)
-          - estimateRowTotalMinorUnits(targetRow),
-      ),
-    });
+    await runBatch(database, statements);
   } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
     const authoritativeRows = await all<EstimateRowItemRow>(
       database,
       `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
@@ -3396,22 +4596,45 @@ async function moveRowComponent(database: D1DatabaseLike, args: Record<string, u
     if (hasRowRevisionConflict(authoritativeRows, expectedRows)) return rowRevisionConflictResult(authoritativeRows, expectedRows);
     throw error;
   }
+  const authoritativeRows = await all<EstimateRowItemRow>(
+    database,
+    `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
+    [estimateId, sourceRowId, targetRowId],
+  );
+  const authoritativeById = new Map(authoritativeRows.map((row) => [row.id, row]));
+  const authoritativeSource = authoritativeById.get(sourceRowId);
+  const authoritativeTarget = authoritativeById.get(targetRowId);
+  if (!authoritativeSource || !authoritativeTarget) throw new Error("Moved estimate row components could not be reloaded.");
   return {
-    status: "applied" as const,
-    eventId,
-    sourceRow: sourceResult,
-    targetRow: targetResult,
-    payload: { status: "applied", eventId, sourceRow: sourceResult, targetRow: targetResult },
+    ...result,
+    sourceRow: rowItemHistoryResult(authoritativeSource, history.eventId).row,
+    targetRow: rowItemHistoryResult(authoritativeTarget, history.eventId).row,
   };
 }
 
-async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unknown>) {
+async function deleteRowItem(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
   if (!database.batch) throw new Error("Atomic estimate row deletion is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
-  const correlationId = String(args.correlation_id ?? randomUUID());
-  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.delete",
+    {
+      projectId,
+      estimateId,
+      rowId,
+      expectedRowRevision: args.expected_row_revision ?? null,
+    },
+  );
+  if (committedResult) return committedResult;
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
   if (existingEvent) {
     const payload = readJsonRecord(existingEvent.payload);
     return {
@@ -3429,18 +4652,16 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
   if (readNumber(row.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
-  const project = await readProjectContext(database, projectId);
-  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
   const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
-    workspaceId: project.workspace_id,
+    workspaceId: intent.workspaceId,
     estimateNodeId: row.node_id,
     targetRowId: rowId,
     eventType: "row_deleted",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId,
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
     oldSnapshot: row,
     rowContext: { material: row.material, supplier: row.supplier },
     payload: { rowId, deletedRow: rowItemHistoryResult(row).row },
@@ -3449,7 +4670,7 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
   const statements: Array<{ sql: string; values?: unknown[] }> = [
     buildRowRevisionGuardStatement(estimateId, [{ rowId, rowRevision: expected }]),
     ...buildProjectComponentAttachmentDeleteRetentionStatements({
-      workspaceId: project.workspace_id,
+      workspaceId: intent.workspaceId,
       projectId,
       sourceDeleteEventId: history.eventId,
       deletedRows: [row],
@@ -3461,65 +4682,192 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
     },
   ];
   if (history.statement) statements.push(history.statement, history.outboxStatement);
+  const result = {
+    eventId: history.eventId,
+    rowId,
+    deletedRow: rowItemHistoryResult(row).row,
+    payload: { rowId, deletedRow: rowItemHistoryResult(row).row },
+  };
+  statements.push(
+    buildProjectPublicationRevisionStatement(intent),
+    buildEstimateMutationReceiptStatement(intent, "estimate_row_item", rowId, result, deletedAt),
+  );
+  assertD1MutationStatementLimit(statements.length);
   try {
     await runBatch(database, statements);
   } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
     const authoritativeRow = await readRowById(database, estimateId, rowId);
     if (!authoritativeRow || readNumber(authoritativeRow.row_revision, 1) !== expected) {
       throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
     }
     throw error;
   }
-  return { eventId: history.eventId, rowId, deletedRow: rowItemHistoryResult(row).row, payload: { rowId, deletedRow: rowItemHistoryResult(row).row } };
+  return result;
 }
 
-async function moveRowItem(database: D1DatabaseLike, args: Record<string, unknown>) {
+async function moveRowItem(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
   if (!database.batch) throw new Error("Atomic estimate row reorganization is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
-  const updates = Array.isArray(args.move_updates) ? args.move_updates as Array<Record<string, unknown>> : [];
-  const rows: Array<{ rowId: string; nodeId: string; sortOrder: number; rowRevision: number }> = [];
-  const expectedRows: ExpectedRowRevision[] = [];
-  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
+  const activeTabId = typeof args.target_active_tab_id === "string" && args.target_active_tab_id
+    ? args.target_active_tab_id
+    : null;
+  const updates = (Array.isArray(args.move_updates) ? args.move_updates : [])
+    .map(readJsonRecord)
+    .map((update) => ({
+      rowId: String(update.rowId ?? ""),
+      nodeId: String(update.nodeId ?? ""),
+      sortOrder: readNumber(update.sortOrder, Number.NaN),
+      expectedRowRevision: readNumber(update.expectedRowRevision),
+    }))
+    .sort((left, right) => left.rowId.localeCompare(right.rowId));
+  if (updates.length === 0) throw new Error("Select at least one estimate row to move.");
+  const updateIds = new Set<string>();
   for (const update of updates) {
-    const rowId = String(update.rowId ?? "");
-    const current = await readRowById(database, estimateId, rowId);
-    if (!current) throw new Error("Estimate row item not found in the current project.");
-    const expected = readNumber(update.expectedRowRevision);
-    if (!Number.isInteger(expected) || expected < 1) throw new Error("Row reorganization requires the current revision for every affected row.");
-    if (readNumber(current.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
-    const nextRevision = readNumber(current.row_revision, 1) + 1;
-    const nodeId = String(update.nodeId ?? "");
-    const sortOrder = readNumber(update.sortOrder);
-    mutationStatements.push({
-      sql: "UPDATE estimate_row_items SET node_id = ?, sort_order = ?, row_revision = ?, updated_at = ? WHERE id = ? AND estimate_id = ? AND row_revision = ?",
-      values: [nodeId, sortOrder, nextRevision, nowIso(), rowId, estimateId, expected],
-    });
-    expectedRows.push({ rowId, rowRevision: expected });
-    rows.push({ rowId, nodeId, sortOrder, rowRevision: nextRevision });
+    if (!update.rowId || !update.nodeId) throw new Error("Estimate row reorganization identity is incomplete.");
+    if (updateIds.has(update.rowId)) throw new Error("Estimate row reorganization contains a duplicate row.");
+    updateIds.add(update.rowId);
+    if (!Number.isFinite(update.sortOrder) || update.sortOrder < 0) {
+      throw new Error("Estimate row sort order must be a non-negative number.");
+    }
+    if (!Number.isInteger(update.expectedRowRevision) || update.expectedRowRevision < 1) {
+      throw new Error("Row reorganization requires the current revision for every affected row.");
+    }
   }
-  let eventId: string;
-  try {
-    eventId = await runMutationWithHistory(database, [buildRowRevisionGuardStatement(estimateId, expectedRows), ...mutationStatements], {
-      projectId,
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.move",
+    { projectId, estimateId, activeTabId, updates },
+  );
+  if (committedResult) return committedResult;
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
+  if (existingEvent) {
+    const payload = readJsonRecord(existingEvent.payload);
+    const rows = Array.isArray(payload.rows) ? payload.rows.map(readJsonRecord) : [];
+    if (rows.length === 0) throw new Error("Idempotent estimate row move event is incomplete.");
+    return {
+      eventId: existingEvent.id,
+      updatedRowCount: rows.length,
+      rows,
+      payload: { ...payload, eventId: existingEvent.id },
+    };
+  }
+
+  const expectedRows = updates.map((update) => ({
+    rowId: update.rowId,
+    rowRevision: update.expectedRowRevision,
+  }));
+  const currentRows = await all<EstimateRowItemRow>(
+    database,
+    `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
+    [estimateId, ...expectedRows.map((row) => row.rowId)],
+  );
+  if (hasRowRevisionConflict(currentRows, expectedRows)) {
+    return rowRevisionConflictResult(currentRows, expectedRows);
+  }
+  const currentById = new Map(currentRows.map((row) => [row.id, row]));
+  const topologyNodeIds = updates.flatMap((update) => {
+    const currentNodeId = currentById.get(update.rowId)?.node_id;
+    return currentNodeId ? [currentNodeId, update.nodeId] : [update.nodeId];
+  });
+  const topology = await validateEstimateDestinationNodes(database, estimateId, topologyNodeIds, activeTabId);
+  const topologyTabIds = new Set(topology.nodes.map((node) => node.estimate_tab_id));
+  if (topologyTabIds.size !== 1) throw new Error("Estimate rows cannot move across tabs.");
+  const expectedTabId = topology.nodes[0]?.estimate_tab_id ?? null;
+  const timestamp = nowIso();
+  const rows = updates.map((update) => ({
+    rowId: update.rowId,
+    nodeId: update.nodeId,
+    sortOrder: update.sortOrder,
+    rowRevision: update.expectedRowRevision + 1,
+  }));
+  const mutationStatements = rows.map((row, index) => ({
+    sql: "UPDATE estimate_row_items SET node_id = ?, sort_order = ?, row_revision = ?, updated_at = ? WHERE id = ? AND estimate_id = ? AND row_revision = ?",
+    values: [
+      row.nodeId,
+      row.sortOrder,
+      row.rowRevision,
+      timestamp,
+      row.rowId,
       estimateId,
-      estimateNodeId: String(args.target_node_id ?? "") || null,
-      targetRowId: String(args.moved_row_id ?? "") || null,
-      eventType: "rows_moved",
-      actorUserId: null,
-      correlationId: String(args.correlation_id ?? randomUUID()),
-      payload: { rows, updatedRowCount: rows.length },
-    });
+      updates[index]!.expectedRowRevision,
+    ],
+  }));
+  const movedRowId = String(args.moved_row_id ?? "") || rows[0]!.rowId;
+  const movedRow = rows.find((row) => row.rowId === movedRowId) ?? rows[0]!;
+  const history = await prepareHistoryEventInsert(database, {
+    projectId,
+    estimateId,
+    workspaceId: intent.workspaceId,
+    estimateNodeId: movedRow.nodeId,
+    estimateTabId: expectedTabId,
+    targetRowId: movedRowId,
+    eventType: "rows_moved",
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
+    changedFields: ["node_id", "sort_order"],
+    oldSnapshot: { rows: currentRows.map(serializeRowItem) },
+    newSnapshot: { rows },
+    payload: { rows, updatedRowCount: rows.length },
+  });
+  const result = {
+    eventId: history.eventId,
+    updatedRowCount: rows.length,
+    rows,
+    payload: { eventId: history.eventId, updatedRowCount: rows.length, rows },
+  };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    topology.guard,
+    buildEstimateNodeTabGuardStatement(estimateId, topologyNodeIds, expectedTabId),
+    buildRowRevisionGuardStatement(estimateId, expectedRows),
+    ...mutationStatements,
+    buildProjectPublicationRevisionStatement(intent),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  statements.push(buildEstimateMutationReceiptStatement(intent, "estimate_row_item", movedRowId, result, timestamp));
+  assertD1MutationStatementLimit(statements.length);
+  try {
+    await runBatch(database, statements);
   } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
     const authoritativeRows = await all<EstimateRowItemRow>(
       database,
       `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
       [estimateId, ...expectedRows.map((row) => row.rowId)],
     );
-    if (hasRowRevisionConflict(authoritativeRows, expectedRows)) throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
+    if (hasRowRevisionConflict(authoritativeRows, expectedRows)) {
+      throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
+    }
     throw error;
   }
-  return { eventId, updatedRowCount: rows.length, rows, payload: { eventId, updatedRowCount: rows.length, rows } };
+  const authoritativeRows = await all<EstimateRowItemRow>(
+    database,
+    `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(expectedRows)}) ORDER BY id`,
+    [estimateId, ...expectedRows.map((row) => row.rowId)],
+  );
+  const authoritativeById = new Map(authoritativeRows.map((row) => [row.id, row]));
+  return {
+    ...result,
+    rows: rows.map((row) => {
+      const authoritative = authoritativeById.get(row.rowId);
+      if (!authoritative) throw new Error("Moved estimate row could not be reloaded.");
+      return {
+        rowId: authoritative.id,
+        nodeId: authoritative.node_id ?? "",
+        sortOrder: readNumber(authoritative.sort_order),
+        rowRevision: readNumber(authoritative.row_revision, 1),
+      };
+    }),
+  };
 }
 
 async function updateSheetAdjustment(database: D1DatabaseLike, args: Record<string, unknown>) {
@@ -3561,14 +4909,33 @@ async function updateSheetAdjustment(database: D1DatabaseLike, args: Record<stri
   return { eventId, adjustment: { estimateId, mode, percentage, rowRevision, updatedAt, updatedBy } };
 }
 
-async function deleteRowsBulk(database: D1DatabaseLike, args: Record<string, unknown>) {
+async function deleteRowsBulk(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
   if (!database.batch) throw new Error("Atomic bulk estimate row deletion is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
-  const rowIds = Array.isArray(args.target_row_ids) ? args.target_row_ids.filter((id): id is string => typeof id === "string") : [];
+  const rowIds = Array.isArray(args.target_row_ids)
+    ? args.target_row_ids.filter((id): id is string => typeof id === "string" && Boolean(id)).sort()
+    : [];
   if (rowIds.length === 0) throw new Error("Select at least one estimate row.");
-  const correlationId = String(args.correlation_id ?? randomUUID());
-  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (new Set(rowIds).size !== rowIds.length) throw new Error("Bulk row delete contains a duplicate row.");
+  const expectedRevisionRecord = readJsonRecord(args.expected_row_revisions);
+  const expectedRows = rowIds.map((rowId) => ({ rowId, rowRevision: readNumber(expectedRevisionRecord[rowId]) }));
+  if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
+    throw new Error("Bulk row delete requires the current revision for every selected row.");
+  }
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.bulk-delete",
+    { projectId, estimateId, expectedRows },
+  );
+  if (committedResult) return committedResult;
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
   if (existingEvent) {
     const payload = readJsonRecord(existingEvent.payload);
     const deletedRowIds = Array.isArray(payload.deletedRowIds)
@@ -3583,69 +4950,89 @@ async function deleteRowsBulk(database: D1DatabaseLike, args: Record<string, unk
       payload: { ...payload, eventId: existingEvent.id, status: "applied" },
     };
   }
-  const expectedRevisionRecord = readJsonRecord(args.expected_row_revisions);
-  const expectedRows = rowIds.map((rowId) => ({ rowId, rowRevision: readNumber(expectedRevisionRecord[rowId]) }));
-  if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
-    throw new Error("Bulk row delete requires the current revision for every selected row.");
-  }
   const rows = await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`, [estimateId, ...rowIds]);
   if (hasRowRevisionConflict(rows, expectedRows)) return rowRevisionConflictResult(rows, expectedRows);
-  const project = await readProjectContext(database, projectId);
-  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
   const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
-    workspaceId: project.workspace_id,
+    workspaceId: intent.workspaceId,
     eventType: "rows_deleted",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId,
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
     oldSnapshot: { rows: rows.map(serializeRowItem) },
     payload: { deletedRowIds: rowIds, deletedRowCount: rowIds.length },
     totalDelta: minorUnitsToAmount(-sumEstimateRowTotalMinorUnits(rows)),
   });
-  let eventId: string;
+  const result = {
+    status: "applied" as const,
+    eventId: history.eventId,
+    deletedRowIds: rowIds,
+    deletedRowCount: rowIds.length,
+    payload: {
+      status: "applied" as const,
+      eventId: history.eventId,
+      deletedRowIds: rowIds,
+      deletedRowCount: rowIds.length,
+    },
+  };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    buildRowRevisionGuardStatement(estimateId, expectedRows),
+    ...buildProjectComponentAttachmentDeleteRetentionStatements({
+      workspaceId: intent.workspaceId,
+      projectId,
+      sourceDeleteEventId: history.eventId,
+      deletedRows: rows,
+      deletedAt,
+    }),
+    {
+      sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND (${expectedRows.map(() => "(id = ? AND row_revision = ?)").join(" OR ")})`,
+      values: [estimateId, ...expectedRows.flatMap((row) => [row.rowId, row.rowRevision])],
+    },
+    buildProjectPublicationRevisionStatement(intent),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  statements.push(buildEstimateMutationReceiptStatement(intent, "estimate_row_item_set", estimateId, result, deletedAt));
+  assertD1MutationStatementLimit(statements.length);
   try {
-    const statements: Array<{ sql: string; values?: unknown[] }> = [
-      buildRowRevisionGuardStatement(estimateId, expectedRows),
-      ...buildProjectComponentAttachmentDeleteRetentionStatements({
-        workspaceId: project.workspace_id,
-        projectId,
-        sourceDeleteEventId: history.eventId,
-        deletedRows: rows,
-        deletedAt,
-      }),
-      {
-        sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND (${expectedRows.map(() => "(id = ? AND row_revision = ?)").join(" OR ")})`,
-        values: [estimateId, ...expectedRows.flatMap((row) => [row.rowId, row.rowRevision])],
-      },
-    ];
-    if (history.statement) statements.push(history.statement, history.outboxStatement);
     await runBatch(database, statements);
-    eventId = history.eventId;
   } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
     const authoritativeRows = await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(rowIds)})`, [estimateId, ...rowIds]);
     if (hasRowRevisionConflict(authoritativeRows, expectedRows)) return rowRevisionConflictResult(authoritativeRows, expectedRows);
     throw error;
   }
-  return {
-    status: "applied" as const,
-    eventId,
-    deletedRowIds: rowIds,
-    deletedRowCount: rowIds.length,
-    payload: { status: "applied", eventId, deletedRowIds: rowIds, deletedRowCount: rowIds.length },
-  };
+  return result;
 }
 
-async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record<string, unknown>) {
+async function restoreDeletedEstimateRows(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+) {
+  if (!database.batch) throw new Error("Atomic estimate row restoration is unavailable.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const sourceEventId = String(args.source_delete_event_id ?? "");
-  const correlationId = String(args.correlation_id ?? randomUUID());
-  const project = await readProjectContext(database, projectId);
-  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
-  const estimate = await readEstimateContext(database, estimateId, projectId);
-  if (!estimate) throw new Error("Estimate not found in the current project.");
+  const activeTabId = typeof args.target_active_tab_id === "string" && args.target_active_tab_id
+    ? args.target_active_tab_id
+    : null;
+  const requestedRowIds = Array.isArray(args.target_row_ids)
+    ? args.target_row_ids.filter((id): id is string => typeof id === "string" && Boolean(id)).sort()
+    : [];
+  if (!sourceEventId) throw new Error("Deleted row history identity is required.");
+  if (requestedRowIds.length > MAX_RESTORABLE_ROW_BATCH_SIZE || new Set(requestedRowIds).size !== requestedRowIds.length) {
+    throw new Error("Requested row restore selection is invalid.");
+  }
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.row.restore",
+    { projectId, estimateId, sourceEventId, requestedRowIds, activeTabId },
+  );
+  if (committedResult) return committedResult;
 
   const sourceEvent = await first<EstimateEventRow>(
     database,
@@ -3658,7 +5045,7 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
         AND workspace_id = ?
       LIMIT 1
     `,
-    [sourceEventId, estimateId, projectId, project.workspace_id],
+    [sourceEventId, estimateId, projectId, intent.workspaceId],
   );
   if (!sourceEvent || !["row_deleted", "rows_deleted", "rows_bulk_deleted"].includes(sourceEvent.event_type)) {
     throw new Error("Deleted row history snapshot was not found in the current estimate.");
@@ -3688,12 +5075,6 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
     snapshotRowIds.add(rowId);
   }
 
-  const requestedRowIds = Array.isArray(args.target_row_ids)
-    ? args.target_row_ids.filter((id): id is string => typeof id === "string")
-    : [];
-  if (requestedRowIds.length > MAX_RESTORABLE_ROW_BATCH_SIZE || new Set(requestedRowIds).size !== requestedRowIds.length) {
-    throw new Error("Requested row restore selection is invalid.");
-  }
   if (requestedRowIds.some((rowId) => !snapshotRowIds.has(rowId))) {
     throw new Error("Requested rows are not present in the deleted row history snapshot.");
   }
@@ -3701,7 +5082,7 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
     ? snapshotRows.filter((row) => requestedRowIds.includes(String(row.id)))
     : snapshotRows;
 
-  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, intent.intentId);
   if (existingEvent) {
     const existingPayload = readJsonRecord(existingEvent.payload);
     const restoredRowIds = Array.isArray(existingPayload.restoredRowIds)
@@ -3717,7 +5098,7 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
     const restoredRows = await Promise.all(restoredRowIds.map(async (rowId) => {
       const row = await readRowById(database, estimateId, rowId);
       if (!row) throw new Error("Idempotent row restore event exists but restored rows are missing.");
-      return rowItemHistoryResult(row, existingEvent.id);
+      return rowItemHistoryResult(row, existingEvent.id).row;
     }));
     return {
       eventId: existingEvent.id,
@@ -3736,45 +5117,90 @@ async function restoreDeletedEstimateRows(database: D1DatabaseLike, args: Record
   );
   if (collidingRows.length > 0) throw new Error("One or more estimate rows to restore already exist.");
 
+  const normalizedRowsToRestore = rowsToRestore.map((row) => (
+    assignInsertDefaults("estimate_row_items", row) as unknown as EstimateRowItemRow
+  ));
+  const destinationNodeIds = normalizedRowsToRestore.map((row) => row.node_id ?? "");
+  const destination = await validateEstimateDestinationNodes(database, estimateId, destinationNodeIds, activeTabId);
+  const destinationTabIds = new Set(destination.nodes.map((node) => node.estimate_tab_id));
+  if (destinationTabIds.size !== 1) throw new Error("Deleted estimate rows cannot restore across tabs.");
+  const destinationTabId = destination.nodes[0]?.estimate_tab_id ?? null;
+
   const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
-    workspaceId: project.workspace_id,
+    workspaceId: intent.workspaceId,
+    estimateTabId: destinationTabId,
     targetRowId: restoredRowIds.length === 1 ? restoredRowIds[0] ?? null : null,
     eventType: "estimate_rows_restored",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId,
-    newSnapshot: { rows: rowsToRestore },
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
+    newSnapshot: { rows: normalizedRowsToRestore.map(serializeRowItem) },
     payload: {
       sourceEventId,
       restoredRowIds,
       restoredRowCount: restoredRowIds.length,
     },
-    totalDelta: minorUnitsToAmount(sumEstimateRowTotalMinorUnits(rowsToRestore as EstimateRowItemRow[])),
+    totalDelta: minorUnitsToAmount(sumEstimateRowTotalMinorUnits(normalizedRowsToRestore)),
   });
   const restoredAt = nowIso();
   const attachmentRetention = buildProjectComponentAttachmentRestoreRetentionStatements({
     projectId,
     sourceDeleteEventId: sourceEventId,
-    restoredRows: rowsToRestore,
+    restoredRows: normalizedRowsToRestore,
     restoredAt,
   });
-  const statements: Array<{ sql: string; values?: unknown[] }> = [
-    ...attachmentRetention.guardStatements,
-    ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
-    ...attachmentRetention.releaseStatements,
-  ];
-  if (history.statement) statements.push(history.statement, history.outboxStatement);
-  if (statements.length > D1_MAX_BATCH_STATEMENTS) {
-    throw new Error("Deleted row restore is too large to persist in one D1 batch.");
-  }
-  await runBatch(database, statements);
-  return {
+  const result = {
     eventId: history.eventId,
     sourceEventId,
     restoredRowIds,
     restoredRowCount: restoredRowIds.length,
-    restoredRows: rowsToRestore.map((row) => rowItemHistoryResult(row as EstimateRowItemRow, history.eventId)),
+    restoredRows: normalizedRowsToRestore.map((row) => rowItemHistoryResult(row, history.eventId).row),
+  };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    {
+      sql: `
+        SELECT CASE WHEN EXISTS (
+          SELECT 1
+          FROM estimate_sheet_events
+          WHERE id = ?
+            AND estimate_id = ?
+            AND project_id = ?
+            AND workspace_id = ?
+            AND event_type IN ('row_deleted', 'rows_deleted', 'rows_bulk_deleted')
+        ) THEN 1 ELSE json('') END AS estimate_row_restore_source_guard
+      `,
+      values: [sourceEventId, estimateId, projectId, intent.workspaceId],
+    },
+    destination.guard,
+    buildEstimateNodeTabGuardStatement(estimateId, destinationNodeIds, destinationTabId),
+    ...attachmentRetention.guardStatements,
+    ...buildPackedInsertStatements("estimate_row_items", normalizedRowsToRestore as unknown as Record<string, unknown>[]),
+    ...attachmentRetention.releaseStatements,
+    buildProjectPublicationRevisionStatement(intent),
+  ];
+  if (history.statement) statements.push(history.statement, history.outboxStatement);
+  statements.push(buildEstimateMutationReceiptStatement(intent, "estimate_row_item_set", estimateId, result, restoredAt));
+  assertD1MutationStatementLimit(statements.length);
+  try {
+    await runBatch(database, statements);
+  } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
+    throw error;
+  }
+  const authoritativeRows = await all<EstimateRowItemRow>(
+    database,
+    `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(restoredRowIds)}) ORDER BY id`,
+    [estimateId, ...restoredRowIds],
+  );
+  if (authoritativeRows.length !== restoredRowIds.length) {
+    throw new Error("Restored estimate rows could not be reloaded.");
+  }
+  const authoritativeById = new Map(authoritativeRows.map((row) => [row.id, row]));
+  return {
+    ...result,
+    restoredRows: restoredRowIds.map((rowId) => rowItemHistoryResult(authoritativeById.get(rowId)!, history.eventId).row),
   };
 }
 
@@ -3872,10 +5298,85 @@ function buildSavedTemplateSourceSnapshot(row: TemplateRowItemRow, reason: strin
   };
 }
 
-async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, unknown>, sourceRootNodeId?: string | null) {
+function latestTemplateSourceUpdate(rows: Array<{ updated_at?: string | null }>) {
+  return rows.reduce((latest, row) => String(row.updated_at ?? "") > latest ? String(row.updated_at ?? "") : latest, "");
+}
+
+function assertTemplateCopyStatementLimit(statementCount: number) {
+  try {
+    assertD1MutationStatementLimit(statementCount);
+  } catch {
+    const error = new Error(`selection_too_large: Narrow the selection so the atomic copy uses at most ${D1_MAX_BATCH_STATEMENTS} D1 statements.`) as Error & {
+      code: string;
+      statementCount: number;
+    };
+    error.code = "selection_too_large";
+    error.statementCount = statementCount;
+    throw error;
+  }
+}
+
+function validateTemplateCopyTopology(
+  templateIds: string[],
+  templateNodes: TemplateNodeRow[],
+  templateRows: TemplateRowItemRow[],
+  nodesToCopy: TemplateNodeRow[],
+  rowsToCopy: TemplateRowItemRow[],
+) {
+  if (nodesToCopy.length === 0) throw new Error("Estimate template source has no nodes to insert.");
+  const templateIdSet = new Set(templateIds);
+  const nodeById = new Map<string, TemplateNodeRow>();
+  for (const node of templateNodes) {
+    if (!templateIdSet.has(node.template_id) || nodeById.has(node.id)) {
+      throw new Error("Estimate template source topology is invalid.");
+    }
+    nodeById.set(node.id, node);
+  }
+  for (const templateId of templateIds) {
+    if (!templateNodes.some((node) => node.template_id === templateId)) {
+      throw new Error("Estimate template source has no nodes to insert.");
+    }
+  }
+  for (const node of templateNodes) {
+    if (node.parent_id) {
+      const parent = nodeById.get(node.parent_id);
+      if (!parent || parent.template_id !== node.template_id) {
+        throw new Error("Estimate template source contains a node whose parent is unavailable.");
+      }
+    }
+    const visited = new Set<string>();
+    let cursor: TemplateNodeRow | undefined = node;
+    while (cursor) {
+      if (visited.has(cursor.id)) throw new Error("Estimate template source contains a cyclic node graph.");
+      visited.add(cursor.id);
+      cursor = cursor.parent_id ? nodeById.get(cursor.parent_id) : undefined;
+    }
+  }
+  const rowIds = new Set<string>();
+  for (const row of templateRows) {
+    const node = nodeById.get(row.template_node_id);
+    if (rowIds.has(row.id) || !node || node.template_id !== row.template_id) {
+      throw new Error("Estimate template source contains a row without a valid node.");
+    }
+    rowIds.add(row.id);
+  }
+  const copiedNodeIds = new Set(nodesToCopy.map((node) => node.id));
+  if (rowsToCopy.some((row) => !copiedNodeIds.has(row.template_node_id))) {
+    throw new Error("Estimate template source selection is incomplete.");
+  }
+}
+
+async function copyTemplateNodes(
+  database: D1DatabaseLike,
+  args: Record<string, unknown>,
+  currentUser: CurrentUserContext,
+  sourceRootNodeId?: string | null,
+) {
+  if (!database.batch) throw new Error("Estimate template insertion requires atomic D1 batch support.");
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const targetParentNodeId = String(args.target_parent_node_id ?? "");
+  const requestedTargetTabId = typeof args.target_tab_id === "string" ? args.target_tab_id : null;
   const requestedTemplateIds = Array.isArray(args.source_template_ids)
     ? args.source_template_ids.filter((value): value is string => typeof value === "string" && value.length > 0)
     : [String(args.source_template_id ?? "")].filter(Boolean);
@@ -3883,49 +5384,78 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
   if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
   if (sourceRootNodeId && templateIds.length !== 1) throw new Error("A template subtree insert requires exactly one template.");
 
-  const estimate = await readEstimateContext(database, estimateId, projectId);
-  if (!estimate) throw new Error("Estimate not found in the current project.");
-  const parentNode = await readNodeById(database, estimateId, targetParentNodeId);
+  const { context: intent, committedResult } = await prepareEstimateMutationIntent(
+    database,
+    args,
+    currentUser,
+    "estimate.template.copy",
+    {
+      projectId,
+      estimateId,
+      targetParentNodeId,
+      requestedTargetTabId,
+      templateIds,
+      sourceRootNodeId: sourceRootNodeId ?? null,
+    },
+  );
+  if (committedResult) return committedResult;
+
+  const parentNode = await readNodeById(database, intent.estimateId, targetParentNodeId);
   if (!parentNode) throw new Error("Estimate tree node not found in the current project.");
-  const targetTabId = typeof args.target_tab_id === "string" ? args.target_tab_id : parentNode.estimate_tab_id ?? null;
+  const targetTabId = parentNode.estimate_tab_id ?? null;
+  if (requestedTargetTabId !== null && requestedTargetTabId !== targetTabId) {
+    throw new Error("Template insert target tab does not match the selected estimate node.");
+  }
+
   const templateHeaders = await all<TemplateHeaderRow>(
     database,
-    `SELECT id, workspace_id
+    `SELECT id, workspace_id, updated_at
      FROM estimate_templates
      WHERE workspace_id = ?
        AND id IN (${placeholders(templateIds)})`,
-    [estimate.workspace_id, ...templateIds],
+    [intent.workspaceId, ...templateIds],
   );
   if (templateHeaders.length !== templateIds.length) {
     throw new Error("Estimate template not found in the current workspace.");
   }
 
-  const [templateNodes, templateRows] = await Promise.all([
+  const [unsortedTemplateNodes, unsortedTemplateRows] = await Promise.all([
     all<TemplateNodeRow>(
       database,
       `SELECT * FROM estimate_template_nodes
-       WHERE template_id IN (${placeholders(templateIds)})
-       ORDER BY template_id ASC, sort_order ASC`,
+       WHERE template_id IN (${placeholders(templateIds)})`,
       templateIds,
     ),
     all<TemplateRowItemRow>(
       database,
       `SELECT * FROM estimate_template_row_items
-       WHERE template_id IN (${placeholders(templateIds)})
-       ORDER BY template_id ASC, sort_order ASC`,
+       WHERE template_id IN (${placeholders(templateIds)})`,
       templateIds,
     ),
   ]);
+  const templateRank = new Map(templateIds.map((templateId, index) => [templateId, index]));
+  const templateNodes = [...unsortedTemplateNodes].sort((left, right) => (
+    (templateRank.get(left.template_id) ?? 0) - (templateRank.get(right.template_id) ?? 0)
+    || readNumber(left.sort_order) - readNumber(right.sort_order)
+    || left.id.localeCompare(right.id)
+  ));
+  const templateRows = [...unsortedTemplateRows].sort((left, right) => (
+    (templateRank.get(left.template_id) ?? 0) - (templateRank.get(right.template_id) ?? 0)
+    || readNumber(left.sort_order) - readNumber(right.sort_order)
+    || left.id.localeCompare(right.id)
+  ));
   const rootTemplateId = templateIds[0]!;
   const rootTemplateNodes = templateNodes.filter((node) => node.template_id === rootTemplateId);
-  const allowedNodeIds = sourceRootNodeId
-    ? new Set(await collectTemplateDescendantNodeIds(rootTemplateNodes, sourceRootNodeId))
-    : new Set(templateNodes.map((node) => node.id));
   if (sourceRootNodeId && !rootTemplateNodes.some((node) => node.id === sourceRootNodeId)) {
     throw new Error("Estimate template node not found in the current template.");
   }
+  const allowedNodeIds = sourceRootNodeId
+    ? new Set(collectTemplateDescendantNodeIds(rootTemplateNodes, sourceRootNodeId))
+    : new Set(templateNodes.map((node) => node.id));
   const nodesToCopy = templateNodes.filter((node) => allowedNodeIds.has(node.id));
   const rowsToCopy = templateRows.filter((row) => allowedNodeIds.has(row.template_node_id));
+  validateTemplateCopyTopology(templateIds, templateNodes, templateRows, nodesToCopy, rowsToCopy);
+
   const linkedSourceIds = [...new Set(rowsToCopy.flatMap((row) => row.source_library_item_id ? [row.source_library_item_id] : []))];
   const [libraryItems, priceOptions, currentCostEntries] = linkedSourceIds.length > 0
     ? await Promise.all([
@@ -3934,7 +5464,7 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
           `SELECT * FROM cost_library_items
            WHERE workspace_id = ?
              AND id IN (${placeholders(linkedSourceIds)})`,
-          [estimate.workspace_id, ...linkedSourceIds],
+          [intent.workspaceId, ...linkedSourceIds],
         ),
         all<TemplatePriceOptionRow>(
           database,
@@ -3943,17 +5473,17 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
              AND item_id IN (${placeholders(linkedSourceIds)})
              AND is_active = 1
            ORDER BY item_id ASC, is_default DESC, created_at ASC`,
-          [estimate.workspace_id, ...linkedSourceIds],
+          [intent.workspaceId, ...linkedSourceIds],
         ),
         all<TemplateCostEntryRow>(
           database,
-          `SELECT price_option_id, unit_cost, misc_cost, currency, pricing_source, pricing_date, source_url
+          `SELECT *
            FROM cost_library_item_variant_cost_entries
            WHERE workspace_id = ?
              AND item_id IN (${placeholders(linkedSourceIds)})
              AND is_current = 1
              AND deleted_at IS NULL`,
-          [estimate.workspace_id, ...linkedSourceIds],
+          [intent.workspaceId, ...linkedSourceIds],
         ),
       ])
     : [[], [], []];
@@ -3994,28 +5524,130 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
     };
   }
 
+  const sibling = await first<{ sort_order: number | string | null }>(
+    database,
+    `SELECT COALESCE(MAX(sort_order), 0) AS sort_order
+     FROM estimate_nodes
+     WHERE estimate_id = ?
+       AND estimate_tab_id IS ?
+       AND parent_id = ?`,
+    [intent.estimateId, targetTabId, targetParentNodeId],
+  );
+  const expectedMaxSiblingSortOrder = readNumber(sibling?.sort_order, 0);
   const sourceRoots = nodesToCopy.filter((node) => !node.parent_id || !allowedNodeIds.has(node.parent_id));
-  const sourceRootIds = new Set(sourceRoots.map((root) => root.id));
+  if (sourceRoots.length === 0) throw new Error("Estimate template source has no root nodes to insert.");
+  const exactStatementCount = 1 + nodesToCopy.length + rowsToCopy.length + 1 + 1 + 1 + 1;
+  assertTemplateCopyStatementLimit(exactStatementCount);
+
+  const sourceFingerprint = createMutationRequestFingerprint({
+    templateHeaders,
+    templateNodes,
+    templateRows,
+    libraryItems,
+    priceOptions,
+    currentCostEntries,
+    sourceRootNodeId: sourceRootNodeId ?? null,
+  });
+  const linkedSourceGuard = linkedSourceIds.length > 0
+    ? `
+        AND (SELECT COUNT(*) FROM cost_library_items WHERE workspace_id = ? AND id IN (${placeholders(linkedSourceIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM cost_library_items WHERE workspace_id = ? AND id IN (${placeholders(linkedSourceIds)})), '') = ?
+        AND (SELECT COUNT(*) FROM cost_library_item_price_options WHERE workspace_id = ? AND item_id IN (${placeholders(linkedSourceIds)}) AND is_active = 1) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM cost_library_item_price_options WHERE workspace_id = ? AND item_id IN (${placeholders(linkedSourceIds)}) AND is_active = 1), '') = ?
+        AND (SELECT COUNT(*) FROM cost_library_item_variant_cost_entries WHERE workspace_id = ? AND item_id IN (${placeholders(linkedSourceIds)}) AND is_current = 1 AND deleted_at IS NULL) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM cost_library_item_variant_cost_entries WHERE workspace_id = ? AND item_id IN (${placeholders(linkedSourceIds)}) AND is_current = 1 AND deleted_at IS NULL), '') = ?
+      `
+    : "";
+  const linkedSourceGuardValues = linkedSourceIds.length > 0
+    ? [
+        intent.workspaceId, ...linkedSourceIds, libraryItems.length,
+        intent.workspaceId, ...linkedSourceIds, latestTemplateSourceUpdate(libraryItems),
+        intent.workspaceId, ...linkedSourceIds, priceOptions.length,
+        intent.workspaceId, ...linkedSourceIds, latestTemplateSourceUpdate(priceOptions),
+        intent.workspaceId, ...linkedSourceIds, currentCostEntries.length,
+        intent.workspaceId, ...linkedSourceIds, latestTemplateSourceUpdate(currentCostEntries),
+      ]
+    : [];
+  const sourceGuard = {
+    sql: `
+      SELECT CASE WHEN
+        EXISTS (
+          SELECT 1
+          FROM estimate_nodes
+          WHERE id = ?
+            AND estimate_id = ?
+            AND estimate_tab_id IS ?
+            AND updated_at = ?
+        )
+        AND COALESCE((
+          SELECT MAX(sort_order)
+          FROM estimate_nodes
+          WHERE estimate_id = ?
+            AND estimate_tab_id IS ?
+            AND parent_id = ?
+        ), 0) = ?
+        AND (SELECT COUNT(*) FROM estimate_templates WHERE workspace_id = ? AND id IN (${placeholders(templateIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_templates WHERE workspace_id = ? AND id IN (${placeholders(templateIds)})), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_template_nodes WHERE template_id IN (${placeholders(templateIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_template_nodes WHERE template_id IN (${placeholders(templateIds)})), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_template_row_items WHERE template_id IN (${placeholders(templateIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_template_row_items WHERE template_id IN (${placeholders(templateIds)})), '') = ?
+        ${linkedSourceGuard}
+      THEN 1 ELSE json('') END AS estimate_template_copy_source_guard
+    `,
+    values: [
+      targetParentNodeId,
+      intent.estimateId,
+      targetTabId,
+      String(parentNode.updated_at ?? ""),
+      intent.estimateId,
+      targetTabId,
+      targetParentNodeId,
+      expectedMaxSiblingSortOrder,
+      intent.workspaceId,
+      ...templateIds,
+      templateHeaders.length,
+      intent.workspaceId,
+      ...templateIds,
+      latestTemplateSourceUpdate(templateHeaders),
+      ...templateIds,
+      templateNodes.length,
+      ...templateIds,
+      latestTemplateSourceUpdate(templateNodes),
+      ...templateIds,
+      templateRows.length,
+      ...templateIds,
+      latestTemplateSourceUpdate(templateRows),
+      ...linkedSourceGuardValues,
+    ],
+  };
+
+  const copiedAt = nowIso();
   const nodeIdBySource = new Map(nodesToCopy.map((node) => [node.id, randomUUID()]));
-  const insertedRootNodeIds = nodesToCopy.flatMap((node) => sourceRootIds.has(node.id) ? [nodeIdBySource.get(node.id)!] : []);
-  const mutationStatements: Array<{ sql: string; values: unknown[] }> = [];
-  for (const node of nodesToCopy) {
-    const nextNodeId = nodeIdBySource.get(node.id)!;
-    const nodeInsert = buildInsertRecordStatement("estimate_nodes", {
-      id: nextNodeId,
-      estimate_id: estimateId,
+  const sourceRootIds = new Set(sourceRoots.map((root) => root.id));
+  const sourceRootRankById = new Map(sourceRoots.map((root, index) => [root.id, index + 1]));
+  const insertedRootNodeIds = sourceRoots.map((root) => nodeIdBySource.get(root.id)!);
+  const nodeStatements = nodesToCopy.map((node) => {
+    const isRoot = sourceRootIds.has(node.id);
+    const insert = buildInsertRecordStatement("estimate_nodes", {
+      id: nodeIdBySource.get(node.id)!,
+      estimate_id: intent.estimateId,
       estimate_tab_id: targetTabId,
-      parent_id: node.parent_id && nodeIdBySource.has(node.parent_id) ? nodeIdBySource.get(node.parent_id) : targetParentNodeId,
+      parent_id: isRoot ? targetParentNodeId : nodeIdBySource.get(node.parent_id ?? "") ?? null,
       kind: node.kind,
       name: node.name,
-      sort_order: readNumber(node.sort_order),
+      sort_order: isRoot
+        ? expectedMaxSiblingSortOrder + (sourceRootRankById.get(node.id) ?? 1) * 1_000
+        : readNumber(node.sort_order),
       metadata_json: readJson(node.metadata, {}),
+      created_at: copiedAt,
+      updated_at: copiedAt,
     });
-    mutationStatements.push({ sql: nodeInsert.sql, values: nodeInsert.values });
-  }
-  for (const row of rowsToCopy) {
+    return { sql: insert.sql, values: insert.values };
+  });
+  const rowStatements = rowsToCopy.map((row) => {
     const nodeId = nodeIdBySource.get(row.template_node_id);
-    if (!nodeId) continue;
+    if (!nodeId) throw new Error("Estimate template source selection is incomplete.");
     const savedSnapshot = readJsonRecord(row.source_snapshot);
     const unavailableReason = unavailableReasonByRowId.get(row.id);
     const currentItem = row.source_library_item_id ? libraryItemById.get(row.source_library_item_id) : undefined;
@@ -4033,9 +5665,9 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
       : null;
     const useSavedUnlinked = Boolean(unavailableReason);
     const effectiveCostEntry = selectedOption ? currentCostEntryByOptionId.get(selectedOption.id) : undefined;
-    const rowInsert = buildInsertRecordStatement("estimate_row_items", {
+    const insert = buildInsertRecordStatement("estimate_row_items", {
       id: randomUUID(),
-      estimate_id: estimateId,
+      estimate_id: intent.estimateId,
       node_id: nodeId,
       sort_order: readNumber(row.sort_order),
       source_library_item_id: currentSnapshot ? currentItem!.id : null,
@@ -4043,6 +5675,7 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
         currentSnapshot ?? (useSavedUnlinked ? buildSavedTemplateSourceSnapshot(row, unavailableReason!) : savedSnapshot),
         null,
       ),
+      pricing_provenance_origin: row.pricing_provenance_origin ?? "inherited_snapshot",
       category_node_id: currentSnapshot ? currentItem!.category_node_id : row.category_node_id,
       supplier_id: currentSnapshot ? selectedOption!.supplier_id ?? currentItem!.supplier_id : row.supplier_id,
       material: currentSnapshot ? currentItem!.name : row.material ?? "",
@@ -4058,39 +5691,68 @@ async function copyTemplateNodes(database: D1DatabaseLike, args: Record<string, 
       designation: row.designation ?? "",
       link_state: currentSnapshot ? "linked-clean" : "unlinked",
       metadata_json: readJson(row.metadata, {}),
+      row_revision: 1,
+      created_at: copiedAt,
+      updated_at: copiedAt,
     });
-    mutationStatements.push({ sql: rowInsert.sql, values: rowInsert.values });
-  }
-  if (mutationStatements.length + 2 > D1_MAX_BATCH_STATEMENTS) {
-    throw new Error("Template insertion is too large to persist atomically with activity history.");
-  }
-  const eventId = await runMutationWithHistory(database, mutationStatements, {
-    projectId,
-    estimateId,
-    workspaceId: estimate.workspace_id,
+    return { sql: insert.sql, values: insert.values };
+  });
+  const history = await prepareHistoryEventInsert(database, {
+    projectId: intent.projectId,
+    estimateId: intent.estimateId,
+    workspaceId: intent.workspaceId,
     estimateNodeId: targetParentNodeId,
     estimateTabId: targetTabId,
     eventType: sourceRootNodeId ? "template_node_subtree_inserted" : "template_inserted",
-    actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
+    actorUserId: intent.actorUserId,
+    correlationId: intent.intentId,
     payload: {
       inserted_root_node_ids: insertedRootNodeIds,
-      inserted_node_count: nodeIdBySource.size,
-      inserted_row_item_count: rowsToCopy.length,
+      inserted_node_count: nodeStatements.length,
+      inserted_row_item_count: rowStatements.length,
       sourceTemplateIds: templateIds,
       sourceTemplateId: templateIds.length === 1 ? templateIds[0] : null,
       sourceTemplateNodeId: sourceRootNodeId ?? null,
       savedSnapshotUnlinkedRowCount: unavailableRows.length,
+      sourceFingerprint,
+      statementCount: exactStatementCount,
     },
   });
-  return {
+  if (!history.statement || !history.outboxStatement) {
+    throw new Error("Template insert intent has activity history without a committed mutation receipt.");
+  }
+  const result = {
     status: "inserted",
-    eventId,
+    eventId: history.eventId,
     insertedRootNodeIds,
     inserted_root_node_ids: insertedRootNodeIds,
     insertedRootNodeId: insertedRootNodeIds[0] ?? null,
     inserted_root_node_id: insertedRootNodeIds[0] ?? null,
+    estimateTabId: targetTabId,
+    estimate_tab_id: targetTabId,
+    insertedNodeCount: nodeStatements.length,
+    insertedRowItemCount: rowStatements.length,
+    sourceFingerprint,
+    statementCount: exactStatementCount,
   };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    sourceGuard,
+    ...nodeStatements,
+    ...rowStatements,
+    buildProjectPublicationRevisionStatement(intent),
+    history.statement,
+    history.outboxStatement,
+    buildEstimateMutationReceiptStatement(intent, "estimate_node", insertedRootNodeIds[0] ?? null, result, copiedAt),
+  ];
+  assertTemplateCopyStatementLimit(statements.length);
+  try {
+    await runBatch(database, statements);
+  } catch (error) {
+    const concurrentReceipt = await readConcurrentEstimateMutationReceipt(database, intent);
+    if (concurrentReceipt) return concurrentReceipt;
+    throw error;
+  }
+  return result;
 }
 
 function collectTemplateDescendantNodeIds(nodes: TemplateNodeRow[], rootNodeId: string) {
@@ -4558,27 +6220,28 @@ async function callEstimateAction<T>(
   if (name === "create_estimate_tab_with_history") return await createEstimateTab(database, args) as T;
   if (name === "rename_estimate_tab_with_history") return await renameEstimateTab(database, args) as T;
   if (name === "reorder_estimate_tabs_with_history") return await reorderEstimateTabs(database, args) as T;
-  if (name === "duplicate_estimate_tab_with_history") return await duplicateEstimateTab(database, args) as T;
+  if (name === "duplicate_estimate_tab_with_history") return await duplicateEstimateTab(database, args, currentUser!) as T;
   if (name === "archive_estimate_tab_with_history") return await archiveEstimateTab(database, args) as T;
   if (name === "delete_estimate_tab_with_history") return await deleteEstimateTab(database, args) as T;
   if (name === "create_estimate_node_with_history") return await createEstimateNode(database, args) as T;
   if (name === "rename_estimate_node_with_history") return await renameEstimateNode(database, args) as T;
   if (name === "reorder_estimate_nodes_with_history") return await reorderEstimateNodes(database, args) as T;
   if (name === "delete_estimate_node_with_history" || name === "delete_estimate_nodes_bulk_with_history") return await deleteEstimateNodes(database, args) as T;
-  if (name === "insert_estimate_row_item_with_history") return await insertRowItem(database, args) as T;
+  if (name === "insert_estimate_row_item_with_history") return await insertRowItem(database, args, currentUser!) as T;
+  if (name === "duplicate_estimate_row_item_with_history") return await duplicateRowItem(database, args, currentUser!) as T;
   if (name === "update_estimate_row_item_with_history") return await patchRowItem(database, args, "row_updated", readJsonRecord(args.row_patch), currentUser!) as T;
   if (name === "replace_estimate_row_item_with_history") return await patchRowItem(database, args, "row_replaced", readJsonRecord(args.replacement_payload), currentUser!) as T;
-  if (name === "delete_estimate_row_item_with_history") return await deleteRowItem(database, args) as T;
-  if (name === "delete_estimate_row_items_bulk_with_history") return await deleteRowsBulk(database, args) as T;
-  if (name === "move_estimate_row_item_with_history") return await moveRowItem(database, args) as T;
-  if (name === "move_estimate_row_component_with_history") return await moveRowComponent(database, args) as T;
-  if (name === "insert_estimate_template_into_estimate_with_history") return await copyTemplateNodes(database, args) as T;
-  if (name === "insert_estimate_templates_into_estimate_with_history") return await copyTemplateNodes(database, args) as T;
-  if (name === "insert_estimate_template_node_into_estimate_with_history") return await copyTemplateNodes(database, args, String(args.source_template_node_id ?? "")) as T;
+  if (name === "delete_estimate_row_item_with_history") return await deleteRowItem(database, args, currentUser!) as T;
+  if (name === "delete_estimate_row_items_bulk_with_history") return await deleteRowsBulk(database, args, currentUser!) as T;
+  if (name === "move_estimate_row_item_with_history") return await moveRowItem(database, args, currentUser!) as T;
+  if (name === "move_estimate_row_component_with_history") return await moveRowComponent(database, args, currentUser!) as T;
+  if (name === "insert_estimate_template_into_estimate_with_history") return await copyTemplateNodes(database, args, currentUser!) as T;
+  if (name === "insert_estimate_templates_into_estimate_with_history") return await copyTemplateNodes(database, args, currentUser!) as T;
+  if (name === "insert_estimate_template_node_into_estimate_with_history") return await copyTemplateNodes(database, args, currentUser!, String(args.source_template_node_id ?? "")) as T;
   if (name === "update_estimate_sheet_adjustment_with_history") return await updateSheetAdjustment(database, args) as T;
   if (name === "preview_bulk_delete_estimate_sheets") return await previewBulkDeleteEstimateSheets(database, args) as T;
   if (name === "execute_bulk_delete_estimate_sheets") return await executeBulkDeleteEstimateSheets(database, args) as T;
-  if (name === "restore_deleted_estimate_rows_with_history") return await restoreDeletedEstimateRows(database, args) as T;
+  if (name === "restore_deleted_estimate_rows_with_history") return await restoreDeletedEstimateRows(database, args, currentUser!) as T;
   if (name === "restore_deleted_estimate_nodes_with_history") return await restoreDeletedEstimateNodes(database, args) as T;
   throw new Error(`Unsupported Cloudflare D1 estimate action: ${name}`);
 }

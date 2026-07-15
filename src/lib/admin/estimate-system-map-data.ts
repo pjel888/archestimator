@@ -1,4 +1,5 @@
 import { defineEstimateSystemDocumentation } from "@/lib/admin/estimate-system-map";
+import { estimateSystemKnowledgeGraph } from "@/lib/admin/estimate-system-knowledge-data";
 
 const source = (file: string, note: string) => ({ file, note });
 
@@ -7,7 +8,8 @@ export const estimateSystemDocumentation = defineEstimateSystemDocumentation({
   lastVerified: "15 July 2026",
   title: "Estimate System Guide",
   summary:
-    "A product-level guide to where estimating work happens, how core features behave, and how a project moves from setup to client review.",
+    "A product and system guide to where estimating work happens, how core features behave, what each action changes, and how live work becomes client-facing review content.",
+  knowledgeGraph: estimateSystemKnowledgeGraph,
   journey: {
     title: "From project setup to client decision",
     summary:

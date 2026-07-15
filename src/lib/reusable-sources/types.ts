@@ -74,6 +74,7 @@ export type InsertProjectSourceIntoEstimateInput = {
   targetProjectId: string;
   targetEstimateId: string;
   targetParentNodeId: string;
+  intentId: string;
   source: { projectId: string; estimateId: string; tabId: string; nodeId?: string | null };
   // RS-1: the tab the insert targets in the *target* estimate. When set, the
   // refreshed tree is loaded for THIS tab so a non-default-tab insert returns

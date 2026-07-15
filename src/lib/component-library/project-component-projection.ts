@@ -8,7 +8,9 @@ import {
   SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT,
   fallbackComponentRowsLibraryDataset,
   getCurrentWorkspaceComponentRowsLibrary,
+  type ComponentRowsLibraryCursor,
   type ComponentRowsLibraryDataset,
+  type ComponentRowsLibraryPage,
 } from "@/lib/repositories/component-library-repository";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 import type { EstimateRowItem } from "@/lib/estimates/types";
@@ -18,6 +20,83 @@ const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
 const PROJECT_COMPONENTS_EXPRESS_FOLDER_SUFFIX = "express";
 const PROJECT_COMPONENTS_PROJECT_SPECIFIC_FOLDER_SUFFIX = "project-specific";
 const UNKNOWN_ESTIMATE_FOLDER_ID = "unknown-estimate";
+export const PROJECT_COMPONENT_ROWS_PAGE_SIZE = 50;
+
+const PROJECT_COMPONENT_IDENTITY_SQL = `
+  COALESCE(
+    CASE
+      WHEN json_extract(row_items.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+      THEN NULLIF(json_extract(row_items.source_snapshot_json, '$.sourceComponentId'), '')
+    END,
+    CASE
+      WHEN json_extract(row_items.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+      THEN NULLIF(json_extract(row_items.source_snapshot_json, '$.sourceEstimateRowId'), '')
+    END,
+    NULLIF(json_extract(row_items.metadata_json, '$.projectComponentProjection.componentId'), ''),
+    NULLIF(json_extract(row_items.metadata_json, '$.expressComponent.componentId'), ''),
+    NULLIF(json_extract(row_items.metadata_json, '$.expressComponent.id'), ''),
+    row_items.id
+  )
+`;
+
+const PROJECT_COMPONENT_ELIGIBILITY_SQL = `
+  (
+    json_type(row_items.metadata_json, '$.expressComponent') = 'object'
+    OR row_items.link_state = 'detached'
+  )
+`;
+
+const PROJECT_COMPONENT_PROJECTION_COLUMNS = `
+  row_items.id,
+  row_items.material,
+  row_items.description,
+  row_items.supplier,
+  row_items.supplier_id,
+  row_items.unit,
+  row_items.unit_cost,
+  row_items.quantity,
+  row_items.quantity_base,
+  row_items.quantity_contingency_amount,
+  row_items.contingency_percentage,
+  row_items.adjustment_percentage,
+  row_items.misc_cost,
+  row_items.row_revision,
+  row_items.category_node_id,
+  row_items.discipline,
+  row_items.designation,
+  row_items.source_library_item_id,
+  row_items.link_state,
+  row_items.source_snapshot_json,
+  row_items.metadata_json,
+  row_items.created_at,
+  row_items.updated_at,
+  nodes.id AS node_id,
+  nodes.name AS node_name,
+  estimates.id AS estimate_id,
+  estimates.name AS estimate_name,
+  estimates.project_id AS estimate_project_id
+`;
+
+const PROJECT_COMPONENT_PROJECTION_FROM_SQL = `
+  FROM estimate_row_items row_items
+  LEFT JOIN estimate_nodes nodes ON nodes.id = row_items.node_id
+  INNER JOIN estimates ON estimates.id = row_items.estimate_id
+  LEFT JOIN estimate_sheet_access_settings access ON access.estimate_id = estimates.id
+`;
+
+const PROJECT_COMPONENT_ACCESS_SQL = `
+  estimates.project_id = ?
+  AND (
+    ? = 1
+    OR COALESCE(access.inherit_project_access, 1) = 1
+    OR EXISTS (
+      SELECT 1
+      FROM estimate_sheet_members sheet_member
+      WHERE sheet_member.estimate_id = estimates.id
+        AND sheet_member.user_id = ?
+    )
+  )
+`;
 
 export type ProjectComponentProjectionRow = {
   id: string;
@@ -56,6 +135,7 @@ export type ProjectComponentProjectionRow = {
 
 export type ProjectComponentRowsLibraryOptions = {
   includeDetailGraph?: boolean;
+  includeWorkspaceItems?: boolean;
   itemLimit?: number;
   projectRowLimit?: number;
 };
@@ -91,6 +171,15 @@ type ProjectComponentProjectionD1Row = {
   estimate_project_id: string | null;
 };
 
+type ProjectComponentPageIdentityRow = {
+  component_id: string;
+  component_created_at: string;
+};
+
+type ProjectComponentCountRow = {
+  count: number | string;
+};
+
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -120,6 +209,28 @@ function normalizeProjectComponentRowLimit(limit: number | undefined): number | 
   if (limit === undefined) return undefined;
   if (!Number.isFinite(limit)) return SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT;
   return Math.max(1, Math.min(SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT, Math.floor(limit)));
+}
+
+function validateProjectComponentRowsCursor(
+  cursor: ComponentRowsLibraryCursor | null | undefined,
+): ComponentRowsLibraryCursor | null {
+  if (!cursor) return null;
+  if (
+    typeof cursor.id !== "string"
+    || cursor.id.trim().length === 0
+    || !Number.isFinite(Date.parse(cursor.createdAt))
+    || !Number.isFinite(Date.parse(cursor.snapshotAt))
+    || !Number.isSafeInteger(cursor.snapshotTotalCount)
+    || cursor.snapshotTotalCount < 0
+  ) {
+    throw new Error("Invalid project component cursor.");
+  }
+  return cursor;
+}
+
+function readProjectComponentCount(row: ProjectComponentCountRow | undefined) {
+  const count = Number(row?.count ?? 0);
+  return Number.isSafeInteger(count) && count >= 0 ? count : 0;
 }
 
 function fromD1ProjectComponentRow(row: ProjectComponentProjectionD1Row): ProjectComponentProjectionRow {
@@ -305,77 +416,15 @@ function mergeProjectComponentProjectionItems(entries: Array<{ row: ProjectCompo
   });
 }
 
-export async function getProjectComponentRowsLibrary(
-  projectId: string,
-  options: ProjectComponentRowsLibraryOptions = {},
-): Promise<ComponentRowsLibraryDataset> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) return fallbackComponentRowsLibraryDataset;
-
-  const library = await getCurrentWorkspaceComponentRowsLibrary({
-    includeDetailGraph: options.includeDetailGraph,
-    itemLimit: options.itemLimit,
-  });
-  if (!isExpressComponentProjectFolderEnabled()) return library;
-
-  const database = await requireProjectComponentProjectionD1Database();
-  const currentUser = await requireCurrentUserContext();
-  const canAccessWholeProject = await canAccessWholeProjectInD1(database, project.id, currentUser);
-  if (!canAccessWholeProject) return library;
-  const canReadRestrictedEstimates = currentUser.role === "ceo" || currentUser.role === "admin";
-
-  const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
-  const projectRows = await all<ProjectComponentProjectionD1Row>(
-    database,
-    `SELECT
-       row_items.id,
-       row_items.material,
-       row_items.description,
-       row_items.supplier,
-       row_items.supplier_id,
-       row_items.unit,
-       row_items.unit_cost,
-       row_items.quantity,
-       row_items.quantity_base,
-       row_items.quantity_contingency_amount,
-       row_items.contingency_percentage,
-       row_items.adjustment_percentage,
-       row_items.misc_cost,
-       row_items.row_revision,
-       row_items.category_node_id,
-       row_items.discipline,
-       row_items.designation,
-       row_items.source_library_item_id,
-       row_items.link_state,
-       row_items.source_snapshot_json,
-       row_items.metadata_json,
-       row_items.created_at,
-       row_items.updated_at,
-       nodes.id AS node_id,
-       nodes.name AS node_name,
-       estimates.id AS estimate_id,
-       estimates.name AS estimate_name,
-       estimates.project_id AS estimate_project_id
-     FROM estimate_row_items row_items
-     LEFT JOIN estimate_nodes nodes ON nodes.id = row_items.node_id
-     INNER JOIN estimates ON estimates.id = row_items.estimate_id
-     LEFT JOIN estimate_sheet_access_settings access ON access.estimate_id = estimates.id
-     WHERE estimates.project_id = ?
-       AND (
-         ? = 1
-         OR COALESCE(access.inherit_project_access, 1) = 1
-         OR EXISTS (
-           SELECT 1
-           FROM estimate_sheet_members sheet_member
-           WHERE sheet_member.estimate_id = estimates.id
-             AND sheet_member.user_id = ?
-         )
-       )
-     ORDER BY row_items.updated_at DESC, row_items.created_at DESC, row_items.id DESC
-     LIMIT ?`,
-    [project.id, canReadRestrictedEstimates ? 1 : 0, currentUser.userId, projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT],
-  );
-
+function composeProjectComponentRowsLibrary({
+  library,
+  project,
+  projectRows,
+}: {
+  library: ComponentRowsLibraryDataset;
+  project: { id: string; workspace_id: string; name: string | null };
+  projectRows: ProjectComponentProjectionD1Row[];
+}) {
   const projectedRows = projectRows
     .map(fromD1ProjectComponentRow)
     .map((row) => ({ row, item: projectEstimateRowToLibraryItem(row, project.id, project.name) }))
@@ -417,12 +466,174 @@ export async function getProjectComponentRowsLibrary(
   const projectFolderIds = new Set(projectFolders.map((folder) => folder.id));
 
   return {
+    projectFolders,
+    projectItems,
+    dataset: {
+      ...library,
+      libraryFolders: [
+        ...projectFolders,
+        ...library.libraryFolders.filter((folder) => !projectFolderIds.has(folder.id)),
+      ],
+      libraryItems: [...projectItems, ...library.libraryItems],
+    } satisfies ComponentRowsLibraryDataset,
+  };
+}
+
+function emptyProjectComponentRowsPage(library: ComponentRowsLibraryDataset): ComponentRowsLibraryPage {
+  return {
     ...library,
-    libraryFolders: [
-      ...projectFolders,
-      ...library.libraryFolders.filter((folder) => !projectFolderIds.has(folder.id)),
-    ],
-    libraryItems: [...projectItems, ...library.libraryItems],
+    isPartial: false,
+    libraryFolders: [],
+    libraryItems: [],
+    loadedComponentCount: 0,
+    totalComponentCount: 0,
+    hasMore: false,
+    nextCursor: null,
+  };
+}
+
+export async function getProjectComponentRowsLibrary(
+  projectId: string,
+  options: ProjectComponentRowsLibraryOptions = {},
+): Promise<ComponentRowsLibraryDataset> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return fallbackComponentRowsLibraryDataset;
+
+  const library = await getCurrentWorkspaceComponentRowsLibrary({
+    includeDetailGraph: options.includeDetailGraph,
+    itemLimit: options.itemLimit,
+    itemIds: options.includeWorkspaceItems === false ? [] : undefined,
+  });
+  if (!isExpressComponentProjectFolderEnabled()) return library;
+
+  const database = await requireProjectComponentProjectionD1Database();
+  const currentUser = await requireCurrentUserContext();
+  const canAccessWholeProject = await canAccessWholeProjectInD1(database, project.id, currentUser);
+  if (!canAccessWholeProject) return library;
+  const canReadRestrictedEstimates = currentUser.role === "ceo" || currentUser.role === "admin";
+
+  const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
+  const projectRows = await all<ProjectComponentProjectionD1Row>(
+    database,
+    `SELECT ${PROJECT_COMPONENT_PROJECTION_COLUMNS}
+     ${PROJECT_COMPONENT_PROJECTION_FROM_SQL}
+     WHERE ${PROJECT_COMPONENT_ACCESS_SQL}
+     ORDER BY row_items.updated_at DESC, row_items.created_at DESC, row_items.id DESC
+     LIMIT ?`,
+    [project.id, canReadRestrictedEstimates ? 1 : 0, currentUser.userId, projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT],
+  );
+
+  return composeProjectComponentRowsLibrary({ library, project, projectRows }).dataset;
+}
+
+export async function getProjectOnlyComponentRowsLibraryPage(
+  projectId: string,
+  cursor?: ComponentRowsLibraryCursor | null,
+): Promise<ComponentRowsLibraryPage> {
+  const validatedCursor = validateProjectComponentRowsCursor(cursor);
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return emptyProjectComponentRowsPage(fallbackComponentRowsLibraryDataset);
+
+  const library = await getCurrentWorkspaceComponentRowsLibrary({
+    includeDetailGraph: false,
+    itemIds: [],
+  });
+  if (!isExpressComponentProjectFolderEnabled()) return emptyProjectComponentRowsPage(library);
+
+  const database = await requireProjectComponentProjectionD1Database();
+  const currentUser = await requireCurrentUserContext();
+  const canAccessWholeProject = await canAccessWholeProjectInD1(database, project.id, currentUser);
+  if (!canAccessWholeProject) return emptyProjectComponentRowsPage(library);
+
+  const canReadRestrictedEstimates = currentUser.role === "ceo" || currentUser.role === "admin";
+  const snapshotAt = validatedCursor?.snapshotAt ?? new Date().toISOString();
+  const baseValues: D1Value[] = [
+    project.id,
+    canReadRestrictedEstimates ? 1 : 0,
+    currentUser.userId,
+    snapshotAt,
+  ];
+  const eligibleRowsCte = `
+    WITH eligible_rows AS (
+      SELECT
+        ${PROJECT_COMPONENT_IDENTITY_SQL} AS component_id,
+        COALESCE(row_items.created_at, '1970-01-01T00:00:00.000Z') AS component_row_created_at
+      ${PROJECT_COMPONENT_PROJECTION_FROM_SQL}
+      WHERE ${PROJECT_COMPONENT_ACCESS_SQL}
+        AND COALESCE(row_items.created_at, '1970-01-01T00:00:00.000Z') <= ?
+        AND ${PROJECT_COMPONENT_ELIGIBILITY_SQL}
+    )
+  `;
+  const snapshotTotalCount = validatedCursor?.snapshotTotalCount ?? readProjectComponentCount((await all<ProjectComponentCountRow>(
+    database,
+    `${eligibleRowsCte}
+     SELECT COUNT(*) AS count
+     FROM (
+       SELECT component_id
+       FROM eligible_rows
+       GROUP BY component_id
+     ) grouped_components`,
+    baseValues,
+  ))[0]);
+  const cursorClause = validatedCursor
+    ? `HAVING MAX(component_row_created_at) < ?
+         OR (MAX(component_row_created_at) = ? AND component_id > ?)`
+    : "";
+  const pageValues: D1Value[] = validatedCursor
+    ? [...baseValues, validatedCursor.createdAt, validatedCursor.createdAt, validatedCursor.id, PROJECT_COMPONENT_ROWS_PAGE_SIZE + 1]
+    : [...baseValues, PROJECT_COMPONENT_ROWS_PAGE_SIZE + 1];
+  const componentPage = await all<ProjectComponentPageIdentityRow>(
+    database,
+    `${eligibleRowsCte}
+     SELECT component_id, MAX(component_row_created_at) AS component_created_at
+     FROM eligible_rows
+     GROUP BY component_id
+     ${cursorClause}
+     ORDER BY component_created_at DESC, component_id ASC
+     LIMIT ?`,
+    pageValues,
+  );
+  const hasMore = componentPage.length > PROJECT_COMPONENT_ROWS_PAGE_SIZE;
+  const visibleComponentPage = componentPage.slice(0, PROJECT_COMPONENT_ROWS_PAGE_SIZE);
+  const componentIds = visibleComponentPage.map((row) => row.component_id);
+  if (componentIds.length === 0) {
+    return {
+      ...emptyProjectComponentRowsPage(library),
+      totalComponentCount: snapshotTotalCount,
+    };
+  }
+
+  const componentPlaceholders = componentIds.map(() => "?").join(", ");
+  const projectRows = await all<ProjectComponentProjectionD1Row>(
+    database,
+    `SELECT ${PROJECT_COMPONENT_PROJECTION_COLUMNS}
+     ${PROJECT_COMPONENT_PROJECTION_FROM_SQL}
+     WHERE ${PROJECT_COMPONENT_ACCESS_SQL}
+       AND COALESCE(row_items.created_at, '1970-01-01T00:00:00.000Z') <= ?
+       AND ${PROJECT_COMPONENT_ELIGIBILITY_SQL}
+       AND ${PROJECT_COMPONENT_IDENTITY_SQL} IN (${componentPlaceholders})
+     ORDER BY row_items.updated_at DESC, row_items.created_at DESC, row_items.id DESC`,
+    [...baseValues, ...componentIds],
+  );
+  const composition = composeProjectComponentRowsLibrary({ library, project, projectRows });
+  const lastVisibleComponent = visibleComponentPage.at(-1) ?? null;
+
+  return {
+    ...library,
+    isPartial: hasMore,
+    libraryFolders: composition.projectFolders,
+    libraryItems: composition.projectItems,
+    loadedComponentCount: composition.projectItems.length,
+    totalComponentCount: snapshotTotalCount,
+    hasMore,
+    nextCursor: hasMore && lastVisibleComponent
+      ? {
+          createdAt: lastVisibleComponent.component_created_at,
+          id: lastVisibleComponent.component_id,
+          snapshotAt,
+          snapshotTotalCount,
+        }
+      : null,
   };
 }
 

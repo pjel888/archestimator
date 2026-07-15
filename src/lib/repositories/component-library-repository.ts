@@ -65,6 +65,21 @@ export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templat
   totalComponentCount?: number;
 };
 
+export type ComponentRowsLibraryCursor = {
+  createdAt: string;
+  id: string;
+  snapshotAt: string;
+  snapshotTotalCount: number;
+};
+
+export type ComponentRowsLibraryPage = ComponentRowsLibraryDataset & {
+  isPartial: boolean;
+  loadedComponentCount: number;
+  totalComponentCount: number;
+  hasMore: boolean;
+  nextCursor: ComponentRowsLibraryCursor | null;
+};
+
 type EstimateTemplateRow = {
   id: string;
   workspace_id: string;
@@ -270,6 +285,7 @@ type EstimateTemplateCostSummaryRow = {
 };
 
 const COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE = 1000;
+export const COMPONENT_ROWS_LIBRARY_PAGE_SIZE = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100;
 export const ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT = 50;
@@ -283,6 +299,15 @@ type ComponentRowsLibraryLoadOptions = {
   includeDetailGraph?: boolean;
   itemLimit?: number;
   itemIds?: string[];
+};
+
+type ComponentRowsLibraryCursorRow = {
+  id: string;
+  created_at: string;
+};
+
+type ComponentRowsLibraryCountRow = {
+  count: number | string;
 };
 
 function placeholders(valuesOrCount: number | readonly unknown[]) {
@@ -384,6 +409,36 @@ function normalizeComponentLibraryItemLimit(limit: number | undefined): number |
   if (limit === undefined) return undefined;
   if (!Number.isFinite(limit)) return SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT;
   return Math.max(1, Math.min(SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT, Math.floor(limit)));
+}
+
+function validateComponentRowsLibraryCursor(
+  cursor: ComponentRowsLibraryCursor | null | undefined,
+): ComponentRowsLibraryCursor | null {
+  if (cursor === null || cursor === undefined) return null;
+  const createdAt = typeof cursor === "object" ? cursor.createdAt : undefined;
+  const snapshotAt = typeof cursor === "object" ? cursor.snapshotAt : undefined;
+  if (
+    typeof cursor !== "object"
+    || typeof createdAt !== "string"
+    || !createdAt.trim()
+    || !Number.isFinite(Date.parse(createdAt))
+    || typeof cursor.id !== "string"
+    || !isUuid(cursor.id)
+    || typeof snapshotAt !== "string"
+    || !snapshotAt.trim()
+    || !Number.isFinite(Date.parse(snapshotAt))
+    || Date.parse(createdAt) > Date.parse(snapshotAt)
+    || !Number.isSafeInteger(cursor.snapshotTotalCount)
+    || cursor.snapshotTotalCount < 0
+  ) {
+    throw new Error("Invalid component library cursor.");
+  }
+  return {
+    createdAt,
+    id: cursor.id,
+    snapshotAt,
+    snapshotTotalCount: cursor.snapshotTotalCount,
+  };
 }
 
 async function loadWorkspaceCostLibraryItemRows({
@@ -1456,6 +1511,93 @@ export async function getCurrentWorkspaceComponentRowsLibrary(options: Component
     itemLimit: options.itemLimit,
     itemIds: options.itemIds,
   });
+}
+
+export async function getCurrentWorkspaceComponentRowsLibraryPage(
+  cursor?: ComponentRowsLibraryCursor | null,
+): Promise<ComponentRowsLibraryPage> {
+  const validatedCursor = validateComponentRowsLibraryCursor(cursor);
+  const { workspace } = await ensureDefaultWorkspace();
+  const database = await requireComponentLibraryRepositoryD1Database();
+  const snapshotAt = validatedCursor?.snapshotAt ?? new Date().toISOString();
+  const cursorPredicate = validatedCursor
+    ? "AND (created_at < ? OR (created_at = ? AND id > ?))"
+    : "";
+  const cursorValues = validatedCursor
+    ? [validatedCursor.createdAt, validatedCursor.createdAt, validatedCursor.id]
+    : [];
+  const countQuery = `SELECT COUNT(*) AS count
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+         AND created_at <= ?`;
+  const identityQuery = `SELECT id, created_at
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+         AND created_at <= ?
+         ${cursorPredicate}
+       ORDER BY created_at DESC, id ASC
+       LIMIT ?`;
+  const identityValues = [
+    workspace.id,
+    snapshotAt,
+    ...cursorValues,
+    COMPONENT_ROWS_LIBRARY_PAGE_SIZE + 1,
+  ];
+
+  let countRow: ComponentRowsLibraryCountRow | null = null;
+  let identityRows: ComponentRowsLibraryCursorRow[];
+  if (validatedCursor) {
+    identityRows = await all<ComponentRowsLibraryCursorRow>(database, identityQuery, identityValues);
+  } else if (database.batch) {
+    const [countResult, identityResult] = await database.batch([
+      database.prepare(countQuery).bind(...bindValues([workspace.id, snapshotAt])),
+      database.prepare(identityQuery).bind(...bindValues(identityValues)),
+    ]);
+    countRow = (countResult?.results?.[0] as ComponentRowsLibraryCountRow | undefined) ?? null;
+    identityRows = (identityResult?.results as ComponentRowsLibraryCursorRow[] | undefined) ?? [];
+  } else {
+    [countRow, identityRows] = await Promise.all([
+      first<ComponentRowsLibraryCountRow>(database, countQuery, [workspace.id, snapshotAt]),
+      all<ComponentRowsLibraryCursorRow>(database, identityQuery, identityValues),
+    ]);
+  }
+
+  const hasMore = identityRows.length > COMPONENT_ROWS_LIBRARY_PAGE_SIZE;
+  const visibleIdentityRows = identityRows.slice(0, COMPONENT_ROWS_LIBRARY_PAGE_SIZE);
+  const dataset = await loadCurrentWorkspaceComponentRowsLibrary({
+    database,
+    workspaceId: workspace.id,
+    includeDetailGraph: false,
+    itemIds: visibleIdentityRows.map((row) => row.id),
+  });
+  const itemById = new Map(dataset.libraryItems.map((item) => [item.id, item]));
+  const libraryItems = visibleIdentityRows.flatMap((row) => {
+    const item = itemById.get(row.id);
+    return item ? [item] : [];
+  });
+  const lastVisibleIdentity = visibleIdentityRows.at(-1);
+  const countedTotal = Math.max(0, Number(countRow?.count ?? 0));
+  const totalComponentCount = validatedCursor?.snapshotTotalCount
+    ?? (Number.isFinite(countedTotal) ? countedTotal : 0);
+
+  return {
+    ...dataset,
+    libraryItems,
+    isPartial: hasMore,
+    loadedComponentCount: libraryItems.length,
+    totalComponentCount,
+    hasMore,
+    nextCursor: hasMore && lastVisibleIdentity
+      ? {
+        createdAt: lastVisibleIdentity.created_at,
+        id: lastVisibleIdentity.id,
+        snapshotAt,
+        snapshotTotalCount: totalComponentCount,
+      }
+      : null,
+  };
 }
 
 export async function getCurrentWorkspaceComponentRowDetail(itemId: string): Promise<EstimateRowItem | null> {

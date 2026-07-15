@@ -1,4 +1,6 @@
-export const ESTIMATE_SYSTEM_VIEWS = ["product", "features", "pages", "ux"] as const;
+import type { EstimateSystemKnowledgeGraph } from "@/lib/admin/estimate-system-knowledge";
+
+export const ESTIMATE_SYSTEM_VIEWS = ["product", "features", "pages", "ux", "knowledge"] as const;
 
 export type EstimateSystemView = (typeof ESTIMATE_SYSTEM_VIEWS)[number];
 
@@ -163,6 +165,7 @@ export type EstimateSystemDocumentation = Readonly<{
   lastVerified: string;
   title: string;
   summary: string;
+  knowledgeGraph: EstimateSystemKnowledgeGraph;
   journey: Readonly<{
     title: string;
     summary: string;
@@ -184,6 +187,9 @@ export type EstimateSystemDocumentation = Readonly<{
     personaCount: number;
     experiencePathCount: number;
     intersectionCount: number;
+    knowledgeNodeCount: number;
+    knowledgeRelationCount: number;
+    knowledgeOperationCount: number;
   }>;
 }>;
 
@@ -254,6 +260,15 @@ export function defineEstimateSystemDocumentation(
   const personaIds = new Set(input.personas.map((persona) => persona.id));
   const experiencePathIds = new Set(input.experiencePaths.map((path) => path.id));
   const experiencePathsById = new Map(input.experiencePaths.map((path) => [path.id, path]));
+
+  for (const node of input.knowledgeGraph.nodes) {
+    assertReferences(`Knowledge node ${node.id}`, node.pageIds, pageIds, "page");
+    assertReferences(`Knowledge node ${node.id}`, node.featureIds, featureIds, "feature");
+  }
+  for (const operation of input.knowledgeGraph.operations) {
+    assertReferences(`Knowledge operation ${operation.id}`, operation.pageIds, pageIds, "page");
+    assertReferences(`Knowledge operation ${operation.id}`, operation.featureIds, featureIds, "feature");
+  }
 
   assertReferences("Product journey", input.journey.supportingAreaIds, areaIds, "area");
   for (const step of input.journey.steps) {
@@ -448,6 +463,9 @@ export function defineEstimateSystemDocumentation(
       personaCount: input.personas.length,
       experiencePathCount: input.experiencePaths.length,
       intersectionCount: input.intersections.length,
+      knowledgeNodeCount: input.knowledgeGraph.integrity.nodeCount,
+      knowledgeRelationCount: input.knowledgeGraph.integrity.relationCount,
+      knowledgeOperationCount: input.knowledgeGraph.integrity.operationCount,
     },
   };
 }

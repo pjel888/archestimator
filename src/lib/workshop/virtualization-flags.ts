@@ -8,11 +8,11 @@ export function readPublicFlag(value: string | undefined, defaultValue: boolean)
 }
 
 export function isLibraryDenseModeEnabled(): boolean {
-  return readPublicFlag(process.env.NEXT_PUBLIC_LIBRARY_DENSE_MODE, false);
+  return readPublicFlag(process.env.NEXT_PUBLIC_LIBRARY_DENSE_MODE, true);
 }
 
 export function isLibraryVirtualizationEnabled(): boolean {
-  return readPublicFlag(process.env.NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED, false);
+  return readPublicFlag(process.env.NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED, true);
 }
 
 export const WORKSHOP_VIRTUALIZATION_FLAGS = {
