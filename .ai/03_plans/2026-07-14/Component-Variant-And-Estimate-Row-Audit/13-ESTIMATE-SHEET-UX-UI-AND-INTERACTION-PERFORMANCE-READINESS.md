@@ -17,7 +17,7 @@ This artifact turns that direction into one implementation contract for:
 - dense row, tree, and sidebar interaction feedback; and
 - render isolation, layout stability, deferred filtering, and existing virtualization boundaries.
 
-It does not redesign the Estimate Sheet, replace the current primitives, add a new dependency, or authorize product tests. It narrows existing behaviors into one consistent system.
+It does not redesign the Estimate Sheet, replace the current primitives, or add a new dependency. This planning artifact runs no product tests, but the integrated implementation program now treats the focused browser/render/network checks below as authorized `TEST_TASK` evidence.
 
 ## Evidence And Limits
 
@@ -188,7 +188,7 @@ Do not flatten all four purposes into one visual variant. Consistency means the 
 
 ## Interaction-Performance Contract
 
-The roadmap remains the global owner, but implementation cannot depend on an unrelated document lookup. This slice freezes the exact local budgets below; any later roadmap tightening supersedes them only through an explicit plan refresh.
+The roadmap remains the global owner, while artifact `14` owns whole-route performance, persistence, and test readiness. This slice freezes the exact rename/filter budgets below; any later roadmap tightening supersedes them only through an explicit plan refresh.
 
 | Interaction | Target | Hard ceiling / invariant | Regression signal |
 | --- | --- | --- | --- |
@@ -217,14 +217,14 @@ The roadmap remains the global owner, but implementation cannot depend on an unr
 7. **Do not virtualize by instinct.** Existing thresholds remain until route measurement demonstrates a different boundary. No new dependency or list rewrite is part of this pass.
 8. **Keep pending object-scoped.** Rename and Template/source operations show progress only on the affected editor, target node, or source list; no whole-sheet skeleton or opacity wash.
 
-### Required implementation evidence without test authorization
+### Required implementation evidence and authorized test proof
 
 - Source/static ownership receipt showing rename draft state is local to the edited row/direct owner and loaded source-family selection does not invoke a query path or outer-sheet remount key.
 - Class/style and DOM-ownership receipt showing edit entry/exit preserves the same parent row/tab/header container and changes no width/height/padding/border/grid-track contract.
 - Dependency/diff receipt showing no new package and `0 KB` intended critical-route bundle impact.
 - Authoritative mutation/read-back receipts from owning units; no UI state may claim success before its object-scoped mutation settles.
 
-### Proposed browser evidence when explicitly authorized
+### Required implementation test evidence
 
 - React Profiler or equivalent render-count receipt for one Area rename keystroke, showing only the edited row/direct owner changes materially.
 - Network capture for each Templates source-family toggle after summaries are loaded, showing no new request.
@@ -232,7 +232,7 @@ The roadmap remains the global owner, but implementation cannot depend on an unr
 - Layout geometry comparison for edit entry/exit showing stable row/tab/header bounds.
 - Keyboard/focus walkthrough for F2/context-menu rename, Enter, Escape, blur de-duplication, menu open/close, and source-filter selection.
 
-The current planning turn collected only the baseline live-route and source evidence described above. Missing proposed browser evidence leaves browser/release proof unevaluated but does not block source/D1 implementation completion.
+The current planning turn collected only the baseline live-route and source evidence described above. During implementation these checks are required by `TEST-006` and `TEST-007`; a source/D1 fix is `IMPLEMENTED_UNVERIFIED` until the applicable checks pass.
 
 ## Unit Ownership
 
@@ -243,7 +243,8 @@ The current planning turn collected only the baseline live-route and source evid
 | `UNIT-004` | Apply the same rename behavior to Library folders and project/group surfaces touched by the Estimate workflow; remove mouse-leave commit. |
 | `UNIT-005` | Replace the Templates source-family boxed field with the compact transparent trigger, unify labels, preserve target-scoped pending, and prove local/no-fetch filtering. |
 | `UNIT-009` | Apply the filter/menu and inline rename contract to Template/category/editor lifecycle without changing detached Template semantics. |
-| `UNIT-008` | Reconcile required source/static/D1 proof; run visual, focus, geometry, render-scope, network, and reduced-motion evidence only when explicitly authorized, then make the truthful implementation/release decision. |
+| `UNIT-011` | Run the authorized visual-state, focus, geometry, render-scope, network, continuity, and reduced-motion checks and fix failures until they pass. |
+| `UNIT-008` | Reconcile the completed implementation and test receipts into the truthful objective/release decision. |
 
 `UNIT-002`, `UNIT-006`, and `UNIT-007` do not gain new UI work unless their existing mutation/loading/publication changes touch one of the shared primitives above.
 
@@ -254,7 +255,7 @@ The current planning turn collected only the baseline live-route and source evid
 | `AC-016` / `UX-002` | Dense inline rename preserves the parent surface and geometry; Enter saves, Escape cancels, blur deduplicates, pointer exit does not save, full-value auto-selection is removed, focus remains visible, and Templates source filtering uses the compact transparent trigger with consistent labels and an opaque accessible menu. | `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-009`, integrated by `UNIT-008` |
 | `AC-017` / `PERF-002` | One rename draft does not invalidate unrelated visible rows; loaded source-family toggles make no new request or outer-sheet remount; edit/filter transitions preserve geometry, scroll, expansion, selection, and focus; exact latency/rerender/network/geometry/dependency budgets above hold; existing deferred/bounded/virtualized paths remain intact. | `UNIT-003`, `UNIT-005`, `UNIT-009`, integrated by `UNIT-008` |
 
-Both criteria remain `FAIL` until implementation and their decisive evidence exists. Source/static evidence can close implementation ownership claims; browser-only claims stay `FAIL` or `NOT_EVALUATED` until explicitly authorized. This planning artifact is collected evidence for readiness only.
+Both criteria remain `FAIL` until implementation and their decisive evidence exists. Source/static evidence can prove ownership, but the required implementation test tasks must pass before behavior or objective completion. This planning artifact is collected evidence for readiness only.
 
 ## Stop Condition
 
@@ -267,4 +268,4 @@ This UX/UI readiness slice is complete only when:
 5. accessibility remains explicit after background fills are removed; and
 6. `AC-016` and `AC-017` have fresh evidence and the canonical pack still passes validation.
 
-Source/static implementation may be complete before this release-evidence stop condition. Without explicit browser authorization, keep browser-only portions of `AC-016`/`AC-017` `FAIL` or `NOT_EVALUATED` and report the boundary; do not reopen otherwise proven local implementation work.
+A source/static change may exist before this stop condition, but it remains `IMPLEMENTED_UNVERIFIED`. The implementation loop continues through the authorized browser/render/network checks and reopens the smallest owning unit on failure.

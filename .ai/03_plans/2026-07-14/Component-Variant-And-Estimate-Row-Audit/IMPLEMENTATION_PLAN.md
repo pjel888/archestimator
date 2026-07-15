@@ -6,6 +6,8 @@
 **Canonical resolution record:** `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md`
 **Canonical Template lifecycle contract:** `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md`
 **Canonical UX/UI and interaction-performance contract:** `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md`
+**Canonical performance/persistence/test contract:** `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md`
+**Canonical execution tracker:** `IMPLEMENTATION_TRACKER.md`
 **Plan status:** `IMPLEMENTATION_READY`
 **Implementation status:** `NOT_STARTED`
 **Release status:** `NOT_READY`
@@ -13,7 +15,7 @@
 
 ## Target Result
 
-The Estimate Sheet becomes a coherent MVP authoring system whose left tree, center sheet, and right Sources sidebar share one identity, mutation, history, recovery, and publication contract. Every user-visible action in artifact `09` must be either proven, repaired, explicitly unsupported, or assigned to an adjacent owner without leaving an ambiguous persistence path.
+The Estimate Sheet becomes a coherent, fast MVP authoring system whose left tree, center sheet, and right Sources sidebar share one identity, replay-safe mutation, cache, history, recovery, performance, and publication contract. Every user-visible action in artifact `09` must be proven, repaired, explicitly unsupported, or assigned to an adjacent owner without leaving an ambiguous persistence or performance path.
 
 This plan does not treat source presence, a green plan validator, local D1 behavior, browser behavior, Cloudflare preview, hosted D1/R2, and public-share behavior as interchangeable proof.
 
@@ -37,6 +39,12 @@ This plan does not treat source presence, a green plan validator, local D1 behav
 16. **Pricing provenance:** `recorded` means a direct explicit price resolution, `inherited_snapshot` means a detached copy of an explicit upstream value, `synthesized_fallback` means compatibility-only synthesis, and `missing` means no authoritative provenance. Duplicate/restore preserves the persisted value; the field remains private and is never silently dropped or exposed publicly.
 17. **Template truth:** production Template reads never substitute hard-coded seed data for missing D1 tables; missing schema is an explicit unavailable/migration state, and seeds remain named development fixtures only. The uncalled Template-row reorder export is removed rather than advertised as a supported interaction.
 18. **Template activity:** committed Template header/category/editor intents write one bounded actor/workspace/resource receipt to `component_library_telemetry_events` in the same D1 batch; this operational receipt is distinct from Estimate history and is not a compliance ledger.
+19. **Create-to-use:** component create and Estimate insert remain separate explicit intents. Create returns the complete authoritative projection and patches full/lite/rows caches synchronously so the component is immediately insertable without reload or prerequisite refetch.
+20. **Command receipts:** every persistent action checks one workspace-scoped command intent and request fingerprint before ID allocation. Matching committed replay returns stable result IDs; mismatch rejects. Domain writes, revision/topology guards, history/outbox/telemetry, publication revision, and receipt completion share one D1 batch.
+21. **Cache convergence:** each cache shape has one named convergence owner per mutation. Local authoritative patch plus one targeted background invalidation is allowed; duplicate active refetch/invalidation of the same projection is not.
+22. **Performance:** artifact `14`'s `PERF-S01`–`PERF-S12` fixtures and budgets are mandatory. Route/edit/search/tree budgets follow the roadmap; environment-variable D1 timings remain diagnostic while round-trip, query, render, remount, and work-count invariants are hard.
+23. **Tests:** the user explicitly authorizes `TEST-001` through `TEST-008`. The implementation continues through deterministic, D1, integration, browser, storage, and performance tests; a failing test reopens the smallest owning unit and must be fixed/retested.
+24. **Completion state:** `IMPLEMENTATION_TRACKER.md` distinguishes authored, dependency-eligible, active, implemented, verified, behavior-verified, objective-achieved, and release-ready states. Nonterminal repository-controlled work always has one exact continuation.
 
 ## Execution Rules
 
@@ -48,44 +56,52 @@ This plan does not treat source presence, a green plan validator, local D1 behav
 - A correlation/history uniqueness check is not mutation idempotency unless it prevents every mutation statement from replaying or returns a stored receipt before mutation planning.
 - Do not fix a race with another preflight read or client-only validation. Put freshness, topology, and intent guards in the authoritative D1 boundary.
 - Every issue-visible mutation implemented by `UNIT-002` through `UNIT-006` increments `projects.publication_source_revision` once per distinct affected project in the same D1 batch. Existing direct `UPDATE projects` writers increment in that update; multi-project component fan-out/delete batches add one guarded increment per owner project. The increment counts toward every statement ceiling.
-- The current plan refresh includes one read-only live-route baseline recorded in artifact `13`. Required implementation evidence is limited to source/static/diff checks, D1 integrity and mutation receipts, provider receipts within standing authority, and deterministic read-back. Automated tests, browser automation, screenshots, visual QA, React Profiler, and browser-network capture remain `TEST_PROPOSAL` evidence until explicitly authorized; their absence cannot block a unit's local implementation completion, but the corresponding browser/release claim remains `FAIL` or `NOT_EVALUATED`.
+- The current planning refresh runs no product tests. The user has explicitly authorized the implementation program's focused `TEST_TASK` matrix, including one browser MVP spec, render/network evidence, D1 failure simulations, and storage lifecycle checks. These are required before behavior/objective completion.
 - No unit may claim completion from a source diff alone. The evidence named by that unit must be collected at the environment level it claims.
+- Run tests serially by group. Stop the sequence on first failure, repair the implementation or proven-bad test, rerun the exact failure, then continue. A flaky rerun is not green and performance scenarios never retry into pass.
+- Do not stop after an implemented diff while a required unit, test, mutation row, performance scenario, or criterion remains open. Only a true `AUTH_BLOCKED` or exhausted `TECH_BLOCKED` boundary may end the loop nonterminally.
 
 ## Dependency Graph
 
 ```text
 UNIT-001  Fresh baseline and incident verification
+  `-- UNIT-010  Command receipt and create-to-use cache foundation
+UNIT-001 + UNIT-010
   |-- UNIT-002  Row mutation integrity
-  |-- UNIT-003  Tab and tree integrity
-UNIT-001 + UNIT-002
+  `-- UNIT-003  Tab and tree integrity
+UNIT-001 + UNIT-002 + UNIT-010
   `-- UNIT-004  Component lifecycle and shared edits
-UNIT-001 + UNIT-002 + UNIT-003
+UNIT-001 + UNIT-002 + UNIT-003 + UNIT-010
   `-- UNIT-005  Template/project-source interoperability
-UNIT-001 + UNIT-004
+UNIT-001 + UNIT-004 + UNIT-010
   `-- UNIT-006  D1/R2/Images/provider integrity
-UNIT-001 + UNIT-004 + UNIT-005
+UNIT-001 + UNIT-004 + UNIT-005 + UNIT-010
   `-- UNIT-009  Template library lifecycle hardening
-UNIT-001 through UNIT-006
+UNIT-001 through UNIT-006 + UNIT-009 + UNIT-010
   `-- UNIT-007  Authoring-to-issued projection parity
-UNIT-001 through UNIT-007 + UNIT-009
+UNIT-001 through UNIT-007 + UNIT-009 + UNIT-010
+  `-- UNIT-011  Whole-route performance and authorized adversarial test gate
+UNIT-001 through UNIT-007 + UNIT-009 through UNIT-011
   `-- UNIT-008  Integrated route verification and release decision
 ```
 
-`UNIT-002` and `UNIT-003` may begin in parallel after `UNIT-001`. `UNIT-006` follows `UNIT-004` so component/image cleanup has one settled ownership contract. `UNIT-009` follows `UNIT-004` and `UNIT-005` because Template provenance and lifecycle share component-delete and insert writers; this avoids parallel edits to the same mutation surface. `UNIT-007` begins after row/tree/source and public-asset descriptor contracts are stable, so it depends on `UNIT-001` through `UNIT-006`. `UNIT-008` is the sole integration and release-decision unit and also waits for `UNIT-009`.
+`UNIT-010` follows the baseline and lands the smallest shared command/cache foundation before mutation units modify their writers. `UNIT-002` and `UNIT-003` may then begin in parallel. `UNIT-006` follows `UNIT-004`; `UNIT-009` follows `UNIT-004` and `UNIT-005`; `UNIT-007` waits for all issue-visible writer families, including Template lifecycle. `UNIT-011` is the mandatory measured optimization and test/fix/retest gate. `UNIT-008` is final reconciliation only after `UNIT-011` verifies.
 
 ## Unit Index
 
 | Unit | Goal | Depends on | Findings | Status |
 | --- | --- | --- | --- | --- |
 | `UNIT-001` | Freeze current source, dirty-fix, schema, incident, and UX interaction truth. | — | `F-007`, `F-013`–`F-016`, `F-024`, `UI-F-001`–`UI-F-009` | `READY` |
-| `UNIT-002` | Make row CRUD, move, restore, duplicate, replace, and input commits authoritative. | `UNIT-001` | `F-001`, `F-002`, `F-008`, `F-012`, `F-014`–`F-016`, `F-022`, `F-023` | `READY` |
-| `UNIT-003` | Repair tab/tree topology and make Area/tab rename stable and render-isolated. | `UNIT-001` | `F-010`, `F-020`, `UI-F-001`, `UI-F-005`–`UI-F-008` | `READY` |
-| `UNIT-004` | Finish component lifecycle and align Library/project-group rename behavior. | `UNIT-001`, `UNIT-002` | `F-005`, `F-009`, `F-013`, `F-015`, `F-018`, `F-019`, `F-021`, `UI-F-001`, `UI-F-002`, `UI-F-005`, `UI-F-006` | `READY` |
-| `UNIT-005` | Make Template/Project insertion target-correct and streamline source filtering. | `UNIT-001`, `UNIT-002`, `UNIT-003` | `F-011`, `F-017`, `F-020`, `UI-F-003`–`UI-F-006`, `UI-F-009` | `READY` |
-| `UNIT-006` | Repair D1/R2/Images metadata integrity and collect provider-layer evidence. | `UNIT-001`, `UNIT-004` | `F-003`, `F-004`, `F-024` | `READY` |
-| `UNIT-007` | Align legacy and Client Portal issued projections with authoring. | `UNIT-001`–`UNIT-006` | `F-006` | `READY` |
-| `UNIT-009` | Harden Template lifecycle plus Template rename, filter, and menu coherence. | `UNIT-001`, `UNIT-004`, `UNIT-005` | `TPL-F-001`, `TPL-F-004`–`TPL-F-009`, `UI-F-001`, `UI-F-003`–`UI-F-005`, `UI-F-009` | `READY` |
-| `UNIT-008` | Reconcile every action/finding, including UX/performance readiness, and make a truthful release decision. | `UNIT-001`–`UNIT-007`, `UNIT-009` | All open P0/P1 findings plus unresolved absorbed Template and `UI-F-*` findings | `READY` |
+| `UNIT-010` | Add durable intent receipts and complete create-to-use/cache convergence. | `UNIT-001` | `PP-F-001`–`PP-F-008`, `PP-F-012` | `READY` |
+| `UNIT-002` | Make row CRUD, move, restore, duplicate, replace, and input commits authoritative. | `UNIT-001`, `UNIT-010` | `F-001`, `F-002`, `F-008`, `F-012`, `F-014`–`F-016`, `F-022`, `F-023`, `PP-F-002` | `READY` |
+| `UNIT-003` | Repair tab/tree topology and make Area/tab rename stable and render-isolated. | `UNIT-001`, `UNIT-010` | `F-010`, `F-020`, `UI-F-001`, `UI-F-005`–`UI-F-008` | `READY` |
+| `UNIT-004` | Finish component lifecycle and align Library/project-group rename behavior. | `UNIT-001`, `UNIT-002`, `UNIT-010` | `F-005`, `F-009`, `F-013`, `F-015`, `F-018`, `F-019`, `F-021`, `UI-F-001`, `UI-F-002`, `UI-F-005`, `UI-F-006`, `PP-F-005`, `PP-F-008` | `READY` |
+| `UNIT-005` | Make Template/Project insertion target-correct and streamline source filtering. | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-010` | `F-011`, `F-017`, `F-020`, `UI-F-003`–`UI-F-006`, `UI-F-009`, `PP-F-003` | `READY` |
+| `UNIT-006` | Repair D1/R2/Images metadata integrity and collect provider-layer evidence. | `UNIT-001`, `UNIT-004`, `UNIT-010` | `F-003`, `F-004`, `F-024` | `READY` |
+| `UNIT-009` | Harden Template lifecycle plus Template rename, filter, and menu coherence. | `UNIT-001`, `UNIT-004`, `UNIT-005`, `UNIT-010` | `TPL-F-001`, `TPL-F-004`–`TPL-F-009`, `UI-F-001`, `UI-F-003`–`UI-F-005`, `UI-F-009`, `PP-F-004` | `READY` |
+| `UNIT-007` | Align legacy and Client Portal issued projections with authoring. | `UNIT-001`–`UNIT-006`, `UNIT-009`, `UNIT-010` | `F-006`, `PP-F-006` | `READY` |
+| `UNIT-011` | Measure and optimize the whole route, then execute every authorized adversarial test. | `UNIT-001`–`UNIT-007`, `UNIT-009`, `UNIT-010` | `PP-F-007`–`PP-F-012` plus all unresolved behavior proof | `READY` |
+| `UNIT-008` | Reconcile every action/finding/test/criterion and make truthful objective/release decisions. | `UNIT-001`–`UNIT-007`, `UNIT-009`–`UNIT-011` | All open core findings and criteria | `READY` |
 
 ## `UNIT-001` — Fresh Baseline And Incident Verification
 
@@ -110,6 +126,8 @@ Establish a reproducible starting point without absorbing concurrent work or tre
 7. Freeze the expected local D1 integrity queries and the local/preview/hosted evidence ladder before implementation starts.
 8. Freeze artifact `13`'s observed rename/filter baseline, shared primitive owners, current deferred/bounded/virtualized strengths, and its exact local budgets: direct intent `<100ms` target/`<200ms` ceiling, zero unrelated visible-row rerenders, zero loaded-filter requests or outer-sheet remounts, zero-pixel geometry delta, and `0 KB` intended dependency/bundle impact.
 9. Build the complete registry of issue-visible authoring writers that must increment `projects.publication_source_revision`; include row, tab/tree, adjustment/total, component/variant fan-out, Template/Project-source insertion, and any project metadata consumed by publication. A writer absent from this registry blocks `UNIT-007` rather than becoming an implicit exception.
+10. Freeze artifact `14`'s `MUT-*`, `PERF-S*`, cache-flow, receipt, D1 ceiling, index activation, and adversarial scenario registries against current source; capture small/large/stress fixture identity and before-change work/query/render counts.
+11. Initialize `IMPLEMENTATION_TRACKER.md` from current source: only `UNIT-001` is dependency-eligible, `TEST-001` through `TEST-008` are `PLANNED`, behavior is `NOT_EVALUATED`, and the objective is `NOT_ACHIEVED`.
 
 ### Acceptance
 
@@ -118,11 +136,57 @@ Establish a reproducible starting point without absorbing concurrent work or tre
 - Each current dirty fix has an exact source receipt and an explicit verification state.
 - `UNIT-002` through `UNIT-007` retain valid file owners, dependencies, and finding coverage after the refresh.
 - `UI-F-001` through `UI-F-009` have one existing-unit owner, and the baseline distinguishes source-level risk from measured runtime behavior.
+- `PP-F-001` through `PP-F-012`, `MUT-01` through `MUT-12`, and `PERF-S01` through `PERF-S12` have current source owners, named fixtures/evidence, and no inherited archive success claim.
+- The tracker, manifest, and dependency graph name `UNIT-010` as the only successor before row/tree mutation work begins.
 
 ### Evidence and recovery
 
 - Evidence: scoped Git receipt, current source references, migration/binding receipt, updated matrix/finding register.
 - Recovery: documentation-only; if source moves during the unit, refresh the baseline and invalidate dependent receipts rather than guessing.
+
+## `UNIT-010` — Durable Intent Receipts And Create-To-Use Cache Continuity
+
+### Goal
+
+Provide the narrow shared command and cache-convergence foundation required for replay-safe row, component, Template, storage, and publication mutations without introducing a new client framework.
+
+### Primary source scope
+
+- one forward migration, expected `migrations/0081_estimate_mutation_receipts.sql`, only after `UNIT-001` integrity preflight
+- `src/lib/estimates/d1-action-client.ts`
+- `src/lib/estimates/actions.ts`
+- `src/lib/component-library/actions.ts`
+- `src/lib/component-library/template-editor-actions.ts`
+- `src/lib/component-library/query-keys.ts`
+- `src/hooks/use-estimate-row-mutations.ts`
+- `src/components/workshop/component-library-manager/AddComponentModal.tsx`
+- `src/components/workshop/component-library/index.tsx`
+- the smallest shared cache/result helpers already used by these owners
+
+### Work
+
+1. Freeze the command-family registry from `MUT-01` through `MUT-12`, including actor/workspace/resource scope, request fingerprint, result shape, side effects, and owning cache keys.
+2. Add one durable command-receipt table keyed by `(workspace_id, command_kind, intent_id)` with request fingerprint, bounded status/result JSON, and timestamps. Do not store PII, raw snapshots unrelated to replay, or binary content.
+3. Add one server helper that resolves an existing committed receipt before ID allocation; rejects fingerprint mismatch; and appends receipt completion to the same D1 batch as guards, domain writes, history/outbox/telemetry, and publication revision.
+4. Keep existing action-specific D1 operations. Do not route all mutations through a generic command bus or replace current typed result/error shapes.
+5. Make component creation return the complete authoritative component/options/attachment projection needed by full, lite, and rows caches. Patch applicable mounted caches synchronously before the modal closes so a second explicit insert intent can use the component immediately.
+6. Define one convergence owner for every cache shape touched by row insert, shared component/variant edit, permanent delete, Template lifecycle, and source insertion. Remove duplicate active refetch/invalidation only when the recorded query flow proves the scopes overlap.
+7. Record focused before-change query/refetch/round-trip counts for component create→insert, direct row edit, shared variant edit, Template insert, and permanent delete. Instrumentation must be test-only or deferred and must not add user-visible latency.
+8. Run `EXPLAIN QUERY PLAN` for receipt lookup and measured fan-out/publication queries. Add only the receipt uniqueness index unconditionally; any other index requires the activation evidence in artifact `14`.
+
+### Acceptance
+
+- Matching replay returns the same committed IDs/revisions without executing domain statements again; mismatched replay writes nothing.
+- No action allocates row/node/template/component IDs before resolving its retained intent.
+- Component create→immediate insert works without reload or prerequisite refetch and exposes the complete option graph.
+- One cache shape has one named convergence owner per mutation; authoritative returned state cannot be overwritten by a stale inactive cache.
+- The receipt migration has integrity preflight, unique lookup, bounded payload semantics, and rollback/drop SQL.
+- No command bus, second state store, new dependency, performance mode, evaluator, or evidence-runtime framework is added.
+
+### Evidence and recovery
+
+- Required: migration pre/post queries, same-intent/same-result and fingerprint-mismatch zero-write receipts, complete component projection/cache snapshot, create→insert read-back, per-cache query/refetch count, query plans, scoped type/static evidence, and `TEST-001`, `TEST-003`, and `TEST-004` focused cases.
+- Recovery: receipt rows are append-only command facts. If a domain batch fails, no committed receipt exists. If reconciliation is ambiguous, retry the same intent and inspect the receipt; never invent a second intent to escape uncertainty.
 
 ## `UNIT-002` — Row Mutation Integrity
 
@@ -164,7 +228,7 @@ Make row insert/update/replace/move/duplicate/delete/restore and inline commit s
 ### Evidence and recovery
 
 - Required: GitNexus change scope, focused static/type evidence, local D1 before/after queries, history/correlation receipts, and authoritative read-back.
-- Proposed when explicitly authorized: focused mutation/concurrency and keyboard behavior tests because these critical invariants cannot be proven by source review alone.
+- Required `TEST_TASK`: run `TEST-001`, `TEST-002`, and the applicable `TEST-007` row/keyboard scenarios; fix and rerun failures before this unit verifies.
 - Recovery: failed optimistic writes roll back from authoritative cache; a migration includes a forward repair and explicit verification query, not a destructive rollback.
 
 ## `UNIT-003` — Tab And Tree Integrity
@@ -204,9 +268,8 @@ Make tab and Area CRUD, duplicate, move/reorder, delete, and restore preserve to
 
 ### Evidence and recovery
 
-- Required without test authorization: topology queries, source/target read-back, route fallback receipt, history receipt, scoped static evidence, and source/class/DOM ownership showing the active rename draft is row-local and geometry-stable.
-- Proposed when browser evidence is explicitly authorized: focus/geometry walkthrough and one render-count/React Profiler capture for an Area rename keystroke.
-- Proposed when explicitly authorized: deep-tree duplicate, cycle, restore, and partial-tree drag cases.
+- Required: topology queries, source/target read-back, route fallback receipt, history receipt, scoped static evidence, and source/class/DOM ownership showing the active rename draft is row-local and geometry-stable.
+- Required `TEST_TASK`: `TEST-001` deep-tree duplicate/cycle/restore/partial-tree cases plus `TEST-006`/`TEST-007` focus, geometry, and render-isolation scenarios.
 - Recovery: refresh the affected tab from authoritative D1 on mutation failure; never locally synthesize missing parents.
 
 ## `UNIT-004` — Component Lifecycle And Shared Edits
@@ -256,7 +319,7 @@ After the core lifecycle acceptance is met, implement `UX-003`/`AC-018`: account
 ### Evidence and recovery
 
 - Required: impact preview/execute receipts, D1 before/after counts, audit-event reads, attachment-reference reads, cache invalidation receipt, and scoped static evidence.
-- Proposed when explicitly authorized: destructive-delete stale-preview/atomicity and concurrent-promotion tests because these critical invariants cannot be established by cheaper non-test evidence alone.
+- Required `TEST_TASK`: `TEST-003` and applicable `TEST-008` cases, including 400/401, stale-preview, injected failure, replay, concurrent promotion, and cache reconciliation.
 - Recovery: permanent delete is explicitly irreversible; any failure before commit changes nothing, and post-commit object cleanup remains retryable from durable metadata.
 
 ## `UNIT-005` — Template And Project-Source Interoperability
@@ -302,9 +365,8 @@ Make Template/category/node and reusable Project source insertion target-correct
 
 ### Evidence and recovery
 
-- Required without test authorization: copy receipt, duplicate-correlation read-back, exact statement-count receipt, over-limit zero-write receipt, topology/source fingerprint comparison, history/cache receipt, and scoped static evidence.
-- Proposed when browser evidence is explicitly authorized: loaded-filter network capture plus continuity/focus/geometry walkthrough.
-- Proposed when explicitly authorized: retry/idempotency and mixed-source insertion tests because the critical invariant cannot be proved by UI inspection alone.
+- Required: copy receipt, retained-intent read-back, exact statement-count receipt, over-limit zero-write receipt, topology/source fingerprint comparison, history/cache receipt, and scoped static evidence.
+- Required `TEST_TASK`: `TEST-004` retry/idempotency/mixed-source/limit cases and `TEST-006`/`TEST-007` loaded-filter network, continuity, focus, and geometry scenarios.
 - Recovery: reject before mutation when source/target is invalid; after a committed success, reconcile from the returned destination subtree rather than replaying the request.
 
 ## `UNIT-006` — D1, R2, Images, And Provider Integrity
@@ -343,7 +405,7 @@ Eliminate metadata/object drift and prove the repaired mutation contracts separa
 ### Evidence and recovery
 
 - Required: migration pre/post queries, D1 batch receipts, provider identity, R2 head/list/delete receipts for scoped fixtures, cleanup confirmation, and `git diff --check`.
-- Product tests/browser QA remain separately authorized; provider queries are operational evidence, not substitutes for UI proof.
+- Required `TEST_TASK`: `TEST-008` storage/provider lifecycle and the applicable `TEST-007` recovery scenarios. Provider queries remain operational evidence and do not substitute for browser behavior.
 - Recovery: forward-fix metadata; never restore an object reference unless object existence and ownership are re-proven. Stop before hosted mutation if fixture cleanup cannot be guaranteed.
 
 ## `UNIT-007` — Authoring-To-Issued Projection Parity
@@ -394,7 +456,7 @@ Make legacy share and Client Portal issuance consume one explicit authoring fiel
 ### Evidence and recovery
 
 - Required: writer-registry completeness receipt, revision increment/read-back, forced post-reread revision-change zero-write receipt, field-level source/snapshot diff, content hash/fingerprint receipt, privacy field audit, totals comparison, and scoped static evidence.
-- Proposed when explicitly authorized: one focused authoring-to-issued parity test because this critical invariant spans two readers and cheaper source review is insufficient to prove equivalent output.
+- Required `TEST_TASK`: `TEST-005` publication revision-race, parity, privacy, and zero-write cases plus the applicable `TEST-007` publish/reload journey.
 - Recovery: retain the prior valid publication/issue pointer until the replacement snapshot is fully built and accepted.
 
 ## `UNIT-009` — Component Template Library Lifecycle
@@ -441,9 +503,58 @@ Make Template save/create, bounded browse, header/category lifecycle, editor nod
 
 ### Evidence and recovery
 
-- Required without test authorization: failed-create/no-shell D1 receipt, complete Template graph read-back, bounded summary/detail query receipt, editor topology/order/activity receipt, fallback-state receipt, row-field/variant/provenance diff, cache invalidation receipt, source/class/DOM ownership receipt, source-pack absence/path search, and canonical plan validation.
-- Proposed when explicitly authorized: rename/filter geometry and focus walkthrough plus the exact Template lifecycle test command below.
+- Required: failed-create/no-shell D1 receipt, complete Template graph read-back, bounded summary/detail query receipt, editor topology/order/activity receipt, fallback-state receipt, row-field/variant/provenance diff, cache invalidation receipt, source/class/DOM ownership receipt, source-pack absence/path search, and canonical plan validation.
+- Required `TEST_TASK`: `TEST-004` full Template lifecycle/failure/replay cases plus applicable `TEST-006`/`TEST-007` rename, filter, focus, geometry, and create→insert journeys.
 - Recovery: all pre-commit validation failures change nothing; Template delete is explicitly irreversible for the Template graph but cannot affect prior Estimate copies; object cleanup remains metadata-driven and retryable.
+
+## `UNIT-011` — Whole-Route Performance And Authorized Adversarial Test Gate
+
+### Goal
+
+Measure the completed Estimate Sheet MVP on named fixtures, make only the smallest evidence-backed performance fixes, and run the full authorized test/fix/retest sequence until all core behavior is verified.
+
+### Primary source scope
+
+- product paths changed by `UNIT-002` through `UNIT-007`, `UNIT-009`, and `UNIT-010`
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `src/components/workshop/estimate-sheet/rows/branch.tsx`
+- `src/components/workshop/estimate-sheet/rows/row-table.tsx`
+- `src/components/workshop/estimate-sheet/rows/virtual-branch-list.tsx`
+- `src/components/workshop/estimate-sheet-render-probe.ts`
+- `src/hooks/use-estimate-query.ts`
+- `src/hooks/use-estimate-row-mutations.ts`
+- focused existing `tests/vitest/**` files named below
+- one focused new `e2e/estimate-sheet-mvp.spec.ts`
+- one deterministic large Estimate fixture only if no current fixture can express `PERF-S11`
+
+### Work
+
+1. Reconcile `IMPLEMENTATION_TRACKER.md`: every implementation unit is `VERIFIED`, each `MUT-*` row has receipts, and no required test is falsely marked run before this gate begins.
+2. Capture before-change and current measurements for `PERF-S01` through `PERF-S12`, including fixture identity, render/work/query/refetch/round-trip counts, timing environment, and expected budget.
+3. Keep already-good indexed fan-out, row-level draft subscriptions, ancestor-delta totals, deferred search, bounded Template hydration, and thresholded virtualization. Do not rewrite those boundaries without a failing metric.
+4. If shared-edit convergence exceeds its request/render budget, remove only proven duplicate active refreshes while preserving one background freshness owner.
+5. If branch comparison dominates a named nested fixture, pass the smallest branch-local revision/slice needed by the comparator; do not redesign the store.
+6. Change `refetchOnMount` only if warm-navigation evidence proves redundant cost and conflict/reconciliation tests prove cache freshness remains safe.
+7. Add only missing focused tests required by `TEST-001` through `TEST-008`; reuse current fixtures and tests before creating new helpers.
+8. Run the exact test groups below serially. Stop at the first failure, record it in the tracker, fix the smallest owning implementation, rerun the exact test, then resume the sequence.
+9. Run `TEST-007` with one deterministic MVP journey covering Library component create→insert→edit→reload, Template create→insert→reload, duplicate, timeout/retry, stale conflict, failed bulk action, rename/filter continuity, and partial/lazy-tree safety.
+10. Run scoped typecheck/lint/static/diff checks after tests. Run a build/bundle measurement only when the implementation changes a route-loading boundary or adds measurable client code; no build is used as a substitute for behavior tests.
+11. Update every test, performance scenario, evidence dimension, reopened criterion, and continuation in the tracker and manifest from actual results.
+
+### Acceptance
+
+- `TEST-001` through `TEST-008` are `PASS`; there are no unexpected skips, retries-to-green, raised global timeouts, leaked fixtures, page/console errors, or orphan processes.
+- `PERF-S01` through `PERF-S12` meet their target or hard invariant on the named fixture and environment.
+- Component create is immediately insertable with complete options and no prerequisite refetch.
+- Same-intent retries for row duplicate, Template/Project insertion, component lifecycle, and publication return one stable authoritative result.
+- No row, Template, component, history/outbox/telemetry, receipt, publication pointer, or attachment mutation partially commits under the required failure simulations.
+- No cancelled performance mode, evaluator, custom reporter, benchmark server, evidence-runtime pipeline, new performance dependency, or speculative index/state layer exists.
+- A failed test or budget reopens one exact owning unit and the loop continues until it passes or a true terminal blocker is documented.
+
+### Evidence and recovery
+
+- Required: `TEST-001`–`TEST-008` command/result receipts, exact failing-name and rerun history, fixture cleanup, `PERF-S*` before/after table, cache/query/render/network counts, D1 read-back, scoped type/lint/diff output, and GitNexus `detect_changes()` for changed product symbols.
+- Recovery: revert only the smallest failed optimization while preserving correctness fixes; keep the failing test and reopen its owner. Do not weaken assertions, budgets, fixtures, or timeouts to manufacture a pass.
 
 ## `UNIT-008` — Integrated Verification And Release Decision
 
@@ -453,8 +564,8 @@ Reconcile every matrix action, finding, requirement, risk, evidence class, and a
 
 ### Owned scope
 
-- `README.md`, artifacts `09` through `13`, `TRACEABILITY.md`, `LOOP_LEDGER.md`, and `plan-pack.json`
-- read-only reconciliation of product paths changed by `UNIT-002` through `UNIT-009`
+- `README.md`, artifacts `09` through `14`, `IMPLEMENTATION_TRACKER.md`, `TRACEABILITY.md`, `LOOP_LEDGER.md`, and `plan-pack.json`
+- read-only reconciliation of product paths changed by `UNIT-002` through `UNIT-007` and `UNIT-009` through `UNIT-011`
 - local/provider/public receipts already produced by preceding units; no new product behavior is implemented here
 
 ### Work
@@ -462,56 +573,62 @@ Reconcile every matrix action, finding, requirement, risk, evidence class, and a
 1. Re-run the full action inventory and mark each action `PASS`, accepted boundary, unsupported-by-design, or open gap with claim-level evidence.
 2. Confirm every P0/P1 finding and every absorbed `TPL-F-*` disposition is fixed, explicitly accepted with owner/rationale, superseded by a stronger integrated finding, or removed by a product decision; P2/P3 items must have an owner and non-misleading state.
 3. Re-run local D1 integrity and static gates after all units; compare expected changed symbols/flows through GitNexus `detect_changes()`.
-4. Reconcile source/static ownership, D1 receipts, authoritative read-back, provider/public receipts, and exact unresolved claims without requiring an unauthorized test or browser surface to mark local implementation complete.
-5. When explicitly authorized, verify the exact MVP route across left tree, center sheet, and right Sources sidebar and collect artifact `13`'s visual-state, focus, geometry, render-count, loaded-filter network, continuity, and reduced-motion receipts. Without that authorization, keep the corresponding browser/release claims `FAIL` or `NOT_EVALUATED`; do not block completion of otherwise proven local implementation units.
+4. Reconcile source/static ownership, D1 receipts, authoritative read-back, provider/public receipts, `TEST-001` through `TEST-008`, every `MUT-*` row, and every `PERF-S*` scenario; missing required behavior proof keeps implementation/objective nonterminal.
+5. Confirm `UNIT-011` verified the exact MVP route across left tree, center sheet, and right Sources sidebar, including visual state, focus, geometry, render count, loaded-filter network, continuity, reduced motion, create-to-use, retry, failure, and reload behavior.
 6. Reconcile preview/hosted provider receipts from `UNIT-006` and public projection receipts from `UNIT-007`; never convert missing evidence into PASS.
-7. Refresh `README.md`, artifacts `09`/`10`/`11`/`12`/`13`, `TRACEABILITY.md`, `LOOP_LEDGER.md`, and `plan-pack.json` from actual results.
-8. Set release `READY` only if all core criteria pass with fresh evidence. Otherwise keep `NOT_READY` and name the exact next unit/finding.
+7. Refresh `README.md`, artifacts `09` through `14`, `IMPLEMENTATION_TRACKER.md`, `TRACEABILITY.md`, `LOOP_LEDGER.md`, and `plan-pack.json` from actual results.
+8. Set implementation `COMPLETE`, behavior `VERIFIED`, and objective `ACHIEVED` only when every core unit, criterion, mutation row, performance scenario, and required test is verified. Set release `READY` only if all release evidence also passes; otherwise keep the exact truthful release boundary.
 
 ### Acceptance
 
 - No orphan action, requirement, absorbed finding, unit, criterion, risk, decision, or evidence ID remains.
 - No criterion uses blanket evidence unrelated to its claim.
-- All collected environment receipts are fresh and correctly scoped; uncollected user-gated evidence remains explicitly unevaluated.
+- All required test and environment receipts are fresh and correctly scoped; no required evidence remains unevaluated at objective completion.
 - Plan validation, scoped diff checks, and source-path checks pass, but are described only as planning/static proof.
 - Every `UI-F-*` finding is fixed or explicitly accepted, and `AC-016`/`AC-017` distinguish stable visual behavior from render/network performance proof.
+- Every `PP-F-*`, `MUT-*`, `PERF-S*`, and `TEST-*` record is terminal with decisive evidence; `AC-019` through `AC-021` pass.
 - The final status tuple is internally coherent and names either a release-ready result or one exact continuation.
 
 ### Evidence and recovery
 
-- Required without test authorization: claim-level traceability, current hashes, validator receipt, scoped static/diff receipt, preceding units' D1/provider/public receipts, and an exact unresolved/unevaluated list.
-- Proposed when explicitly authorized: artifact `13`'s visual/focus/geometry/render/network receipts and the integrated browser/critical-mutation matrix. These are release-proof layers, not prerequisites for truthful local implementation completion.
+- Required: claim-level traceability, current hashes, validator receipt, scoped static/diff receipt, preceding units' D1/provider/public receipts, all test/performance receipts, tracker reconciliation, and an exact zero-open-core-work assertion or exact reopened continuation.
 - Recovery: if any source changes after proof, mark dependent evidence stale and reopen the smallest affected unit.
 
-## Test Proposals — Not Authorized By This Pack
+## Authorized Test Tasks
 
-These commands are exact proposals only. Do not create, repair, or run them unless the active implementation task explicitly authorizes testing. Missing proposal evidence keeps its criterion/browser release claim open; it does not convert a completed source/D1 implementation into an implementation blocker.
+The user explicitly authorized implementation testing for this pack. The executor must run these groups serially, repair any in-scope failure at the smallest owning unit, rerun the failed group, and continue until every group passes. A failing required group is implementation work, not a reason to stop. Provider-gated receipts remain truthful authorization or environment boundaries and never become fabricated PASS states.
 
-| Risk slice | Exact proposed command |
-| --- | --- |
-| Row mutation, retry, and keyboard commit | `bun x vitest run tests/vitest/estimate-row-atomic-d1-contracts.test.ts tests/vitest/estimate-actions-d1-row-restore-history.test.ts tests/vitest/estimate-row-mutation-coordinator.test.tsx --maxWorkers=1` |
-| Component delete and promotion | `bun x vitest run tests/vitest/component-library-manager-concurrency.test.tsx tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx --maxWorkers=1` |
-| Template/Project-source insertion | `bun x vitest run tests/vitest/estimate-template-trusted-insert.test.ts tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx --maxWorkers=1` |
-| Publication revision fence and parity | `bun x vitest run tests/vitest/client-portal-publish-service.test.ts tests/vitest/client-portal-issue-builder.test.ts tests/vitest/project-publication-snapshot.test.ts tests/vitest/client-portal-estimate-browser.test.ts --maxWorkers=1` |
-| UX render isolation and continuity | `bun x vitest run tests/vitest/estimate-tree-edit.test.ts tests/vitest/estimate-sheet-sidebar-render-isolation.test.tsx tests/vitest/perf/estimate-sheet-memoization.test.tsx tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx --maxWorkers=1` |
-| Template lifecycle | `bun x vitest run tests/vitest/template-editor.test.tsx tests/vitest/templates-tree-performance.test.ts tests/vitest/component-library-templates-repository.test.ts --maxWorkers=1` |
+| ID | Risk slice | Exact command |
+| --- | --- | --- |
+| `TEST-001` | D1 command topology, statement ceilings, atomicity, and large-data contracts | `bun x vitest run tests/vitest/estimate-row-atomic-d1-contracts.test.ts tests/vitest/estimate-sheet-center-atomic-contracts.test.ts tests/vitest/estimate-sheet-large-data-budgets.test.ts --maxWorkers=1` |
+| `TEST-002` | Row CRUD, replay, retry, concurrency, restore, insert, and partial-failure behavior | `bun x vitest run tests/vitest/estimate-actions-d1-reorder-history.test.ts tests/vitest/estimate-actions-d1-row-restore-history.test.ts tests/vitest/estimate-mutation-revision-concurrency.test.ts tests/vitest/estimate-row-mutation-coordinator.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx --maxWorkers=1` |
+| `TEST-003` | Component/variant CRUD, fan-out, attachment lifecycle, projection, and row-details behavior | `bun x vitest run tests/vitest/component-library-manager-concurrency.test.tsx tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/component-library-d1-store.test.ts tests/vitest/project-component-projection.test.ts tests/vitest/project-component-projection-d1.test.ts tests/vitest/estimate-component-fan-out.test.ts tests/vitest/estimate-sheet-row-details-crud.test.tsx --maxWorkers=1` |
+| `TEST-004` | Template create/edit/browse/repository/insert/drop behavior | `bun x vitest run tests/vitest/new-template-modal.test.tsx tests/vitest/template-editor.test.tsx tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-templates-repository.test.ts tests/vitest/estimate-template-trusted-insert.test.ts tests/vitest/estimate-template-drop-zones.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1` |
+| `TEST-005` | Estimate integrity, revision facts, publication fence, and client-portal parity | `bun x vitest run tests/vitest/estimate-repository.test.ts tests/vitest/estimate-schema-compat.test.ts tests/vitest/estimate-revision-fact-producers.test.ts tests/vitest/estimate-unification-oracle.test.ts tests/vitest/client-portal-publish-service.test.ts tests/vitest/client-portal-issue-builder.test.ts tests/vitest/project-publication-snapshot.test.ts tests/vitest/client-portal-estimate-browser.test.ts --maxWorkers=1` |
+| `TEST-006` | Lean render isolation, memoization, active-tab, virtualization, and Template-tree budgets | `bun x vitest run tests/vitest/estimate-sheet-sidebar-render-isolation.test.tsx tests/vitest/perf/estimate-sheet-memoization.test.tsx tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx tests/vitest/estimate-branch-virtualization.test.tsx tests/vitest/estimate-row-table-virtualization.test.tsx tests/vitest/templates-tree-performance.test.ts --maxWorkers=1` |
+| `TEST-007` | Exact-route browser behavior, continuity, keyboard/focus, failure/retry, reload, and measured scenario proof | `bun x playwright test e2e/estimate-sheet-mvp.spec.ts --project=chromium --workers=1 --retries=0` |
+| `TEST-008` | Component image/attachment persistence, ownership, retention, and R2 provider contracts | `bun x vitest run tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/component-attachment-ownership-migration.test.ts tests/vitest/project-component-attachment-retention.test.ts tests/vitest/estimate-linked-library-image-upload.test.tsx tests/vitest/cloudflare-r2-storage-provider.test.ts tests/vitest/upload-component-attachment-client.test.ts --maxWorkers=1` |
+
+After the focused groups pass, run `bun run type-check`, scoped `bun run lint -- <changed-files>`, and `git diff --check`. Run the project build only if the implementation changes route-loading or client-bundle boundaries; record that decision either way.
 
 ## Executor State Transitions
 
 | Completed unit | Exact next state |
 | --- | --- |
-| `UNIT-001` | Open `UNIT-002` and `UNIT-003` in parallel only after freezing the writer registry and source baseline. |
+| `UNIT-001` | Open `UNIT-010` after freezing the writer registry, source baseline, tracker, and performance/mutation contract. |
+| `UNIT-010` | Open `UNIT-002` and `UNIT-003` in parallel only after durable intent receipts and create-to-use cache continuity are verified. |
 | `UNIT-002` | Open `UNIT-004`; keep `UNIT-003` active if unfinished, because `UNIT-005` also waits for it. |
 | `UNIT-003` | When `UNIT-002` is also verified, open `UNIT-005`; `UNIT-004` may already be active from `UNIT-002`. |
 | `UNIT-004` | Open `UNIT-006`; open `UNIT-009` after `UNIT-005` also verifies. `UX-003`/`AC-018` remains an optional auxiliary tail. |
 | `UNIT-005` | Open `UNIT-009` after `UNIT-004`; preserve its receipts for `UNIT-007`. |
-| `UNIT-006` | Open `UNIT-007` only after all registered authoring writers from `UNIT-002` through `UNIT-006` are revision-aware. |
-| `UNIT-009` | If `UNIT-007` is verified, open `UNIT-008`; otherwise continue `UNIT-007`. |
-| `UNIT-007` | If `UNIT-009` is verified, open `UNIT-008`; otherwise continue `UNIT-009`. |
-| `UNIT-008` | Set implementation status from evidence; set release `READY` only when every core criterion is `PASS`, otherwise name the exact reopened unit/criterion. |
+| `UNIT-006` | Open `UNIT-007` only after `UNIT-009` is also verified and all registered authoring writers are revision-aware. |
+| `UNIT-009` | Open `UNIT-007` only after `UNIT-006` is also verified; otherwise continue the exact unfinished dependency. |
+| `UNIT-007` | Open `UNIT-011` only after every implementation unit through `UNIT-010` is verified. |
+| `UNIT-011` | Open `UNIT-008` only after all required tests, mutation contracts, and performance scenarios are terminal with decisive evidence. |
+| `UNIT-008` | Set implementation, behavior, objective, and release status from evidence; if anything fails, reopen the smallest owning unit and continue rather than stopping at reconciliation. |
 
 ## Handoff And Stop Conditions
 
 The implementer stops a unit only when its acceptance and evidence are reconciled. A failed optional tool is not a blocker if an equivalent repository-grounded check exists. `TECH_BLOCKED` is reserved for a core result that remains impossible after materially different local approaches fail.
 
-The implementation program ends only when all core units, including `UNIT-009`, are `VERIFIED`, all core criteria through `AC-017` have fresh claim-level evidence or a truthful user-gated `NOT_EVALUATED` release boundary, the action matrix reflects the current route, full Template lifecycle, and UX/performance readiness scope, and implementation/release status is set from actual local/provider/public proof rather than source confidence. Auxiliary `UX-003`/`AC-018` remains separately visible and does not gate the core MVP status.
+The implementation program ends only when all eleven core units are `VERIFIED`, all twenty core criteria through `AC-021` are `PASS`, `TEST-001` through `TEST-008` pass, every `MUT-*` and `PERF-S*` row is terminal with decisive evidence, the action matrix reflects the current route and full component/variant/Template lifecycle, implementation is `COMPLETE`, behavior is `VERIFIED`, and the objective is `ACHIEVED`. Release remains separately truthful to provider/public evidence. Any failed in-scope check reopens the smallest owning unit and the executor continues. Auxiliary `UX-003`/`AC-018` remains separately visible and does not gate the core MVP status.

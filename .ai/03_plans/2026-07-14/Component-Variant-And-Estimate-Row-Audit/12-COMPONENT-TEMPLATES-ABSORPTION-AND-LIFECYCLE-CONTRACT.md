@@ -247,7 +247,7 @@ These claims are consolidated into manifest evidence `EVID-006`. They are planni
 - `UNIT-009` owns Template save/create atomicity, bounded browse/detail, editor CRUD/topology, category/header lifecycle, contingency/provenance policy, synthetic fallback policy, Template library audit/cache semantics, and the shared inline rename/menu treatment for Template/category/editor surfaces.
 - `UNIT-008` cannot make a final release decision until those units and `AC-007`/`AC-015`/`AC-016`/`AC-017` are resolved with the named evidence.
 - Artifact `13` is the sole visual/interaction-performance authority for these Template surfaces; it does not alter detached Template data semantics in this artifact.
-- No automated product test, browser test, screenshot, provider mutation, or deployment is authorized by this absorption. Existing `TEST_PROPOSAL` records remain proposals.
+- This absorption did not independently authorize automated product or browser tests when written. The later pack-wide authority in artifact `14` and `IMPLEMENTATION_PLAN.md` supersedes that test boundary with required `TEST_TASK` coverage; provider mutation and deployment remain separately governed operational boundaries.
 
 ## Source Pack Removal Gate
 

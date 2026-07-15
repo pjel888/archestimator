@@ -361,3 +361,80 @@ Do not edit or delete earlier entries. Add a new entry for every implementation/
 `IMPLEMENTATION = NOT_STARTED_FOR_REFRESHED_DAG`
 `UX_UI_BASELINE = PLANNING_ONLY`
 `STOP = stable rename, compact filter/menu, accessibility, render isolation, continuity, unit ownership, criteria, evidence, and manifest are current, dependency-closed, and validator-backed`
+
+## 2026-07-15 — Create-Implementation-Prompt Readiness Hardening
+
+**Status:** `COMPLETE`
+**Mode:** planning-only implementation-authoring audit, adversarial gap repair, and fail-closed manifest refresh
+**Scope:** compile the canonical pack against `Create-Implementation-Prompt.md`; no product implementation
+
+### Audit findings repaired
+
+- closed the publication freshness race with a commit-time project revision fence covering every issue-visible mutation writer;
+- fixed one hard D1 statement ceiling, all-or-nothing over-limit behavior, and the duplicate-row latch lifecycle through authoritative terminal outcomes;
+- separated single-line Enter-to-save behavior from true multiline `Mod+Enter` save behavior;
+- froze Template fallback, reorder, activity, and pricing-provenance decisions instead of leaving executor-owned ambiguity;
+- classified favorites as auxiliary work so it cannot block the core implementation-readiness gate;
+- replaced roadmap-only performance wording with measurable local latency, rerender, request, remount, geometry, and dependency budgets; and
+- separated required source/static/D1/read-back implementation evidence from automated tests, browser QA, profiler, network, and visual proof that remain user-gated proposals.
+
+### Evidence boundary
+
+- every unit now identifies exact owner paths, ordered changes, acceptance authority, required evidence, recovery, dependency closure, and next state;
+- the executor transition table identifies the exact first unit and every dependency-driven successor;
+- no product code, migration, automated product test, browser automation, screenshot, profiler capture, provider mutation, deployment, or public-route verification was performed; and
+- product criteria and release readiness remain failed until implementation evidence exists.
+
+### Resume marker
+
+`NEXT = UNIT-001`
+`IMPLEMENTATION = NOT_STARTED`
+`RELEASE = NOT_READY`
+`STOP = PASSED — canonical write and non-write validators plus planning-prompt validation after fail-closed hash refresh`
+
+## 2026-07-15 — MVP Performance, Persistence, And Continuous-Execution Hardening
+
+**Status:** `IMPLEMENTATION_READINESS_HARDENED`
+**Mode:** planning-only hot-path audit, persistence-failure simulation, test-authority integration, executor tracking, and fail-closed manifest refresh
+**Scope:** the full Estimate Sheet MVP across component, variant, row, Template, attachment, publication, cache, D1, UX, and performance behavior; no product implementation
+
+### Current state tuple
+
+- package: `IMPLEMENTATION_READY`
+- implementation: `NOT_STARTED`
+- behavior: `NOT_EVALUATED`
+- objective: `NOT_ACHIEVED`
+- release: `NOT_READY`
+- terminal: `ACTIVE`
+- active unit: none
+- last verified unit: none
+- required next unit: `UNIT-001`
+- open core criteria: `20 / 20`
+- required test groups: `8 / 8 PLANNED`
+- continuation: required until implementation, behavior, and objective reach their terminal success states
+
+### Work performed
+
+- added `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md` with twelve persistence findings, twelve mutation contracts, twelve performance scenarios, D1 statement ceilings, cache-convergence ownership, conditional index gates, and fifteen adversarial simulations;
+- added `IMPLEMENTATION_TRACKER.md` with one continuously reconciled view of all eleven units, twenty core requirements/criteria plus auxiliary `UX-003`/`AC-018`, eight test groups, mutation rows, performance scenarios, evidence dimensions, and completion state;
+- kept component creation and Estimate insertion as two explicit intents while requiring a complete creation projection and synchronous cache patch so immediate explicit use needs no reload or refetch;
+- introduced `UNIT-010` for durable intent receipts and create-to-use continuity before all replayable mutation units, plus `UNIT-011` for whole-route performance and the authorized fix-test-retest gate before final reconciliation;
+- converted the formerly optional test proposals into required `TEST_TASK` groups covering D1 topology, row CRUD/retry, components/variants, Templates, publication/integrity, lean performance, exact-route browser behavior, and attachment/R2 persistence;
+- expanded the action inventory to `135` rows: `22 L + 50 C + 44 R + 19 S`; and
+- refreshed the canonical manifest to `19` artifacts, `9` sources, `21` requirements, `21` criteria, `11` dependency-closed units, `8` planned tests, `10` evidence records, `22` decisions, and `11` risks.
+
+### Readiness and evidence boundary
+
+- the first manifest refresh was deliberately demoted and passed canonical write validation before the complete graph was explicitly re-promoted;
+- the re-promoted manifest passed canonical write validation as `IMPLEMENTATION_READY / NOT_STARTED / NOT_READY / ACTIVE`, with exact next `UNIT-001`;
+- product tests, browser automation, provider mutations, deployment, and public-route verification were not run during this planning task; they are mandatory implementation work owned by `UNIT-011`, not optional future proposals;
+- planning readiness does not claim working product behavior: all twenty core criteria remain `FAIL`, every required test remains `PLANNED`, and behavior/objective/release remain nonterminal; and
+- final non-write validation, planning-prompt validation, reference checks, and scoped diff checks follow this receipt and must remain green.
+
+### Resume marker
+
+`NEXT = UNIT-001`
+`THEN = UNIT-010`
+`IMPLEMENTATION = NOT_STARTED`
+`TEST_AUTHORITY = TEST_TASK`
+`STOP = only after all eleven core units verify, all twenty core criteria pass, TEST-001 through TEST-008 pass, every MUT-* and PERF-S* row is terminal, implementation is COMPLETE, behavior is VERIFIED, objective is ACHIEVED, and release is set truthfully from provider/public evidence`
