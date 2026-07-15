@@ -5,6 +5,7 @@ import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo
 import { FolderSimple, Package, Plus, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
+import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
@@ -25,9 +26,11 @@ import {
   deleteEstimateTemplate,
   duplicateCostLibraryComponent,
   executeBulkArchiveLibraryComponents,
+  executeBulkDeleteLibraryComponents,
   loadCostLibraryComponentEditorDetail,
   moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
+  previewBulkDeleteLibraryComponents,
   recordComponentLibraryTelemetryEvent,
   renameEstimateTemplate,
   renameLibraryFolder,
@@ -38,6 +41,7 @@ import { setLibraryTelemetrySink } from "@/lib/component-library/library-telemet
 import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { createBulkActionCorrelationId } from "@/lib/mass-deletion/bulk-action";
+import type { BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import {
   getReusableEstimateOutline,
   listReusableProjectEstimateSources,
@@ -1044,6 +1048,7 @@ function useEstimateRightSidebarContent({
   const searchRef = useRef<HTMLInputElement>(null);
   const projectSourceSearchRequestIdRef = useRef(0);
   const componentEditorRequestIdRef = useRef(0);
+  const permanentDeletePreviewRequestIdRef = useRef(0);
   const componentFolderMoveQueueRef = useRef(new Map<string, Promise<void>>());
   const componentFolderMoveGenerationRef = useRef(new Map<string, number>());
   const confirmedComponentFolderRef = useRef(new Map<string, string | null>());
@@ -1059,6 +1064,10 @@ function useEstimateRightSidebarContent({
   const syncedLibraryFoldersRef = useRef(libraryFolders);
   const [archiveComponentPending, setArchiveComponentPending] = useState(false);
   const [archiveComponentError, setArchiveComponentError] = useState("");
+  const [permanentDeleteCandidate, setPermanentDeleteCandidate] = useState<EstimateRowItem | null>(null);
+  const [permanentDeletePreview, setPermanentDeletePreview] = useState<BulkActionPreviewResult | null>(null);
+  const [permanentDeleteError, setPermanentDeleteError] = useState<string | null>(null);
+  const [permanentDeleteState, setPermanentDeleteState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
   const [componentModalItem, setComponentModalItem] = useState<EstimateRowItem | null>(null);
   const [componentModalImpactFingerprint, setComponentModalImpactFingerprint] = useState("");
   const [componentModalOptionUsageCounts, setComponentModalOptionUsageCounts] = useState<Record<string, number>>({});
@@ -2191,6 +2200,87 @@ function useEstimateRightSidebarContent({
     toast,
   ]);
 
+  const openPermanentDeletePreview = useCallback((item: EstimateRowItem) => {
+    const requestId = permanentDeletePreviewRequestIdRef.current + 1;
+    permanentDeletePreviewRequestIdRef.current = requestId;
+    setPermanentDeleteCandidate(item);
+    setPermanentDeletePreview(null);
+    setPermanentDeleteError(null);
+    setPermanentDeleteState("loading");
+    void previewBulkDeleteLibraryComponents({ itemIds: [item.id] })
+      .then((preview) => {
+        if (permanentDeletePreviewRequestIdRef.current !== requestId) return;
+        setPermanentDeletePreview(preview);
+        setPermanentDeleteState("ready");
+      })
+      .catch((error: unknown) => {
+        if (permanentDeletePreviewRequestIdRef.current !== requestId) return;
+        setPermanentDeleteError(error instanceof Error ? error.message : "Could not load deletion preview.");
+        setPermanentDeleteState("ready");
+      });
+  }, []);
+
+  const closePermanentDeletePreview = useCallback(() => {
+    permanentDeletePreviewRequestIdRef.current += 1;
+    setPermanentDeleteCandidate(null);
+    setPermanentDeletePreview(null);
+    setPermanentDeleteError(null);
+    setPermanentDeleteState("idle");
+  }, []);
+
+  const executePermanentDelete = useCallback(() => {
+    if (!permanentDeleteCandidate || !permanentDeletePreview?.previewHash) return;
+    const candidate = permanentDeleteCandidate;
+    const previewHash = permanentDeletePreview.previewHash;
+    setPermanentDeleteState("executing");
+    void executeBulkDeleteLibraryComponents({
+      itemIds: [candidate.id],
+      expectedPreviewHash: previewHash,
+      correlationId: createBulkActionCorrelationId(),
+    })
+      .then((result) => {
+        if (!result.ok) {
+          setPermanentDeletePreview((current) => current
+            ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false }
+            : current);
+          setPermanentDeleteError(getArchiveActionIssueMessage(result, "Could not delete component."));
+          setPermanentDeleteState("ready");
+          return;
+        }
+        const deletedIds = result.deletedIds?.length ? result.deletedIds : [candidate.id];
+        const deletedIdSet = new Set(deletedIds);
+        setLibraryItems((items) => items.filter((item) => !deletedIdSet.has(item.id)));
+        setRecentIds((ids) => ids.filter((id) => !deletedIdSet.has(id)));
+        setBulkSelectedNodeIds((ids) => {
+          const next = new Set(ids);
+          for (const id of deletedIds) next.delete(id);
+          return next;
+        });
+        setPreviewItemId((current) => (current && deletedIdSet.has(current) ? null : current));
+        setDeleteCandidate((current) => (current && deletedIdSet.has(current.id) ? null : current));
+        closePermanentDeletePreview();
+        toast({ tone: "success", message: `${getComponentName(candidate)} permanently deleted.` });
+        onLibraryDataChanged?.();
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Could not delete component.";
+        setPermanentDeleteError(message);
+        setPermanentDeleteState("ready");
+        toast({ tone: "error", message });
+      });
+  }, [
+    closePermanentDeletePreview,
+    onLibraryDataChanged,
+    permanentDeleteCandidate,
+    permanentDeletePreview,
+    setBulkSelectedNodeIds,
+    setDeleteCandidate,
+    setLibraryItems,
+    setPreviewItemId,
+    setRecentIds,
+    toast,
+  ]);
+
   const toggleFavorite = useCallback(
     (item: EstimateRowItem) => {
       setLibraryItems((items) => {
@@ -3176,6 +3266,7 @@ function useEstimateRightSidebarContent({
                   setArchiveComponentError("");
                   setDeleteCandidate(item);
                 } : undefined}
+                onItemPermanentDelete={isLibraryTab ? openPermanentDeletePreview : undefined}
                 itemDestructiveActionLabel="Archive"
                 onCreateComponent={isLibraryTab ? startNewComponentFromTree : undefined}
                 onFolderRename={isLibraryTab && componentViewMode === "default" ? renameFolder : undefined}
@@ -3561,6 +3652,23 @@ function useEstimateRightSidebarContent({
             </div>
           </dialog>
         ) : null}
+        <BulkDestructivePreviewModal
+          open={Boolean(permanentDeleteCandidate)}
+          title="Permanently delete component?"
+          description={permanentDeletePreview
+            ? `This permanently removes the source, ${Number(permanentDeletePreview.summary.estimateRowCount ?? 0)} linked estimate row${Number(permanentDeletePreview.summary.estimateRowCount ?? 0) === 1 ? "" : "s"}, and ${Number(permanentDeletePreview.summary.templateRowCount ?? 0)} linked template row${Number(permanentDeletePreview.summary.templateRowCount ?? 0) === 1 ? "" : "s"}.`
+            : "This permanently removes the source and every linked estimate and template row."}
+          requiredPhrase="DELETE COMPONENT"
+          executeLabel="Delete permanently"
+          loading={permanentDeleteState === "loading"}
+          executing={permanentDeleteState === "executing"}
+          preview={permanentDeletePreview}
+          previewError={permanentDeleteError}
+          onExecute={executePermanentDelete}
+          onOpenChange={(open) => {
+            if (!open) closePermanentDeletePreview();
+          }}
+        />
       </aside>
   );
 

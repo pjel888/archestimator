@@ -119,6 +119,7 @@ function createItemActionGroups({
   onDuplicate,
   onToggleFavorite,
   onDelete,
+  onPermanentDelete,
   destructiveActionLabel = "Delete",
 }: {
   item: EstimateRowItem;
@@ -130,6 +131,7 @@ function createItemActionGroups({
   onDuplicate?: () => void;
   onToggleFavorite?: () => void;
   onDelete?: () => void;
+  onPermanentDelete?: () => void;
   destructiveActionLabel?: string;
 }): ActionMenuGroup[] {
   return [
@@ -170,9 +172,14 @@ function createItemActionGroups({
     },
     {
       id: "component-danger",
-      items: onDelete
-        ? [{ id: "delete", label: destructiveActionLabel, icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onDelete }]
-        : [],
+      items: [
+        ...(onDelete
+          ? [{ id: "delete", label: destructiveActionLabel, icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onDelete }]
+          : []),
+        ...(onPermanentDelete
+          ? [{ id: "delete-permanently", label: "Delete permanently", icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onPermanentDelete }]
+          : []),
+      ],
     },
   ];
 }
@@ -422,6 +429,7 @@ export function LibraryTree({
   onItemDuplicate,
   onItemToggleFavorite,
   onItemDelete,
+  onItemPermanentDelete,
   itemDestructiveActionLabel = "Delete",
   onCreateComponent,
   onFolderRename,
@@ -602,6 +610,7 @@ export function LibraryTree({
         onDuplicate: onItemDuplicate ? () => onItemDuplicate(item) : undefined,
         onToggleFavorite: onItemToggleFavorite ? () => onItemToggleFavorite(item) : undefined,
         onDelete: onItemDelete ? () => onItemDelete(item) : undefined,
+        onPermanentDelete: onItemPermanentDelete ? () => onItemPermanentDelete(item) : undefined,
         destructiveActionLabel: itemDestructiveActionLabel,
       });
     }
@@ -627,6 +636,7 @@ export function LibraryTree({
     onFolderDelete,
     onItemAdd,
     onItemDelete,
+    onItemPermanentDelete,
     onItemDuplicate,
     onItemEdit,
     onItemPreview,

@@ -2976,12 +2976,7 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
   const timestamp = nowIso();
   await runAtomicBatch(database, [{
     sql: `
-      UPDATE estimate_row_items
-      SET source_library_item_id = NULL,
-          source_snapshot_json = NULL,
-          link_state = 'detached',
-          row_revision = row_revision + 1,
-          updated_at = ?
+      DELETE FROM estimate_row_items
       WHERE source_library_item_id IN (${placeholders(deletedIds)})
         AND estimate_id IN (
           SELECT estimate.id
@@ -2990,14 +2985,10 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
           WHERE project.workspace_id = ?
         )
     `,
-    values: [timestamp, ...deletedIds, workspace.id],
+    values: [...deletedIds, workspace.id],
   }, {
     sql: `
-      UPDATE estimate_template_row_items
-      SET source_library_item_id = NULL,
-          source_snapshot = NULL,
-          link_state = 'detached',
-          updated_at = ?
+      DELETE FROM estimate_template_row_items
       WHERE source_library_item_id IN (${placeholders(deletedIds)})
         AND template_id IN (
           SELECT id
@@ -3005,7 +2996,7 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
           WHERE workspace_id = ?
         )
     `,
-    values: [timestamp, ...deletedIds, workspace.id],
+    values: [...deletedIds, workspace.id],
   }, {
     sql: `
       UPDATE upload_assets

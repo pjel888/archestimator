@@ -32,6 +32,7 @@ export type LibraryTreeProps = {
   onItemDuplicate?: (item: EstimateRowItem) => void;
   onItemToggleFavorite?: (item: EstimateRowItem) => void;
   onItemDelete?: (item: EstimateRowItem) => void;
+  onItemPermanentDelete?: (item: EstimateRowItem) => void;
   itemDestructiveActionLabel?: string;
   /** Context-menu create on folder rows (opens the add-component flow). */
   onCreateComponent?: (folderId: string) => void;

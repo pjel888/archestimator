@@ -1849,7 +1849,7 @@ function ComponentLibrarySheet({
           <BulkActionToolbar
             selectedCount={selectedVisibleItemIds.length}
             actionLabel="Delete selected"
-            helperText="Delete is permanent; linked rows keep their current values after detaching."
+            helperText="Delete is permanent; linked estimate and template rows are deleted too."
             onAction={() => onDeleteSelected(selectedVisibleItemIds)}
             onClear={onClearSelected}
             onSelectVisible={() => onSelectVisible(visibleItems.map((item) => item.id))}
@@ -2216,11 +2216,11 @@ export function ComponentLibraryManager({
   const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive 1 component?" : `Archive ${archiveComponentTargetIds.length} components?`;
   const deleteComponentPhrase = deleteComponentTargetIds.length === 1 ? "DELETE COMPONENT" : `DELETE ${deleteComponentTargetIds.length} COMPONENTS`;
   const deleteComponentTitle = deleteComponentTargetIds.length === 1 ? "Permanently delete 1 component?" : `Permanently delete ${deleteComponentTargetIds.length} components?`;
-  const detachedEstimateRowCount = Number(deleteComponentPreview?.summary.estimateRowCount ?? 0);
-  const detachedTemplateRowCount = Number(deleteComponentPreview?.summary.templateRowCount ?? 0);
+  const deletedEstimateRowCount = Number(deleteComponentPreview?.summary.estimateRowCount ?? 0);
+  const deletedTemplateRowCount = Number(deleteComponentPreview?.summary.templateRowCount ?? 0);
   const deleteComponentDescription = deleteComponentPreview
-    ? `This permanently removes the source and detaches ${detachedEstimateRowCount} estimate row${detachedEstimateRowCount === 1 ? "" : "s"} and ${detachedTemplateRowCount} template row${detachedTemplateRowCount === 1 ? "" : "s"}. Their current values stay unchanged.`
-    : "This permanently removes the source. Linked estimate and template rows keep their current values after detaching.";
+    ? `This permanently removes the source, ${deletedEstimateRowCount} linked estimate row${deletedEstimateRowCount === 1 ? "" : "s"}, and ${deletedTemplateRowCount} linked template row${deletedTemplateRowCount === 1 ? "" : "s"}.`
+    : "This permanently removes the source and every linked estimate and template row.";
 
   function denyLibraryManagement() {
     setSheetStatus({ state: "error", message: "Only workspace editors/admins can manage the library." });
