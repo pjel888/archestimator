@@ -169,6 +169,16 @@ function scrollRenderedTreeRowIntoView(nodeId: string) {
   }
 }
 
+function focusRenderedTreeRow(nodeId: string) {
+  if (typeof window === "undefined") return;
+  const focusRow = () => findRenderedTreeRow(nodeId)?.focus();
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(focusRow);
+  } else {
+    window.setTimeout(focusRow, 0);
+  }
+}
+
 type EstimateSheetTreeState = {
   reorderStatus: EstimateTreeReorderStatus;
   editingNodeId: string | null;
@@ -342,7 +352,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const routeParams = useParams<{ nodeId?: string | string[] }>();
   const routeNodeIdParam = Array.isArray(routeParams?.nodeId) ? routeParams.nodeId[0] : routeParams?.nodeId;
   const { toast, dismissToast } = useToast();
-  const tabInitialNodes = activeTabId && activeTabId === initialTabId ? nodes : [];
+  const tabInitialNodes = activeTabId && activeTabId === initialTabId ? nodes : undefined;
   const legacyTreeQuery = useEstimateAreaTreeQuery({ projectId, estimateId, initialNodes: nodes, enabled: !activeTabId });
   const tabTreeQuery = useEstimateTabTreeQuery({
     projectId,
@@ -352,6 +362,15 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     initialLoadLimitState: activeTabId === initialTabId ? loadLimitState : undefined,
     enabled: Boolean(activeTabId),
   });
+  const refetchLegacyTree = legacyTreeQuery.refetch;
+  const refetchTabTree = tabTreeQuery.refetch;
+  const refreshAuthoritativeTree = useCallback(async () => {
+    const result = activeTabId
+      ? await refetchTabTree()
+      : await refetchLegacyTree();
+    if (result.error) throw result.error;
+    return result.data ?? [];
+  }, [activeTabId, refetchLegacyTree, refetchTabTree]);
   const {
     tree: localNodes,
     setTree: setLocalNodes,
@@ -541,10 +560,11 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     cancelRenameNode,
     focusAndSelectRenameInput,
     handleContextMenuCloseAutoFocus,
-    markRenameDraftDirty,
+    readRenameDraftName,
     remapEditingNodeId,
     resetContextMenuRenameHandoff,
     shouldIgnoreRenameBlur,
+    updateRenameDraftName,
   } = useEstimateTreeRenameEditor({
     editingNodeId,
     canEditEstimate,
@@ -571,6 +591,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     getLocalTreeRevision,
     prepareOptimisticUpdate: prepareAreaTreeOptimisticUpdate,
     setReorderStatus,
+    refreshAuthoritativeTree,
     isOptimisticNodeId: isOptimisticEstimateNodeId,
     suppressPrimaryActionAfterDrag,
   });
@@ -616,14 +637,15 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     handleConfirmBulkDeleteNodes,
   } = useEstimateTreeCrud({
     projectId, estimateId, activeTabId, localNodes, activeSelectedNodeId, creationParentNodeId,
-    expandedItems, canEditEstimate, isTreeMutationSaving, currentRouteNodeId, editingNodeName,
+    expandedItems, canEditEstimate, isTreeMutationSaving, currentRouteNodeId, readRenameDraftName,
     deleteTargetNode, deletePending, bulkDeletePending, bulkDeleteRootNodeIds, bulkSelectedNodeIds,
     setLocalNodes, snapshotLocalNodes, restoreLocalNodes, getLocalTreeRevision,
     prepareAreaTreeOptimisticUpdate, setExpandedNodeIds, setSelectedNodeId, setEditingNodeId,
     setEditingNodeName, setEditingNodeError, setRenamingNodeId, setDeleteTargetNode, setDeletePending,
     setBulkDeleteConfirmOpen, setBulkDeletePending, setBulkSelectedNodeIds, setReorderStatus,
     syncEstimateRouteUrl, beginRenameForCreatedNode, remapEditingNodeId, cancelRenameNode,
-    focusAndSelectRenameInput, resetContextMenuRenameHandoff, scrollRenderedTreeRowIntoView, toast,
+    focusAndSelectRenameInput, resetContextMenuRenameHandoff, focusRenderedTreeRow,
+    scrollRenderedTreeRowIntoView, refreshAuthoritativeTree, toast,
   });
 
   // Reordering pauses while a search filters the tree: visible sibling order
@@ -660,7 +682,18 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [canEditEstimate, canReorderNow, editingNodeId, localNodes, treeSearchActive]);
 
 
-  const treeExternalDrop = useEstimateTreeExternalDrops({ canEditEstimate, localNodes, suppressPrimaryActionAfterDrag });
+  const notifyRejectedExternalDrop = useCallback((message: string) => {
+    toast({ tone: "error", message });
+  }, [toast]);
+  const treeExternalDrop = useEstimateTreeExternalDrops({
+    projectId,
+    estimateId,
+    activeTabId,
+    canEditEstimate,
+    localNodes,
+    suppressPrimaryActionAfterDrag,
+    notifyRejectedDrop: notifyRejectedExternalDrop,
+  });
 
   // Selecting a node only swaps the middle sheet: state + shallow URL sync,
   // never a router navigation, which would re-render the entire route.
@@ -863,27 +896,25 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       renameSavePending ? savingId : null,
     ].filter(Boolean).join(" ") || undefined;
     return (
-      <span className="relative flex min-w-0 flex-1 items-center gap-1">
+      <span className="relative flex h-5 min-w-0 flex-1 items-center">
         <input
           ref={attachRenameInputRef}
-          value={editingNodeName}
+          defaultValue={editingNodeName}
           aria-label={`Rename ${node.name}`}
           aria-invalid={editingNodeError ? "true" : undefined}
           aria-describedby={describedBy}
           aria-busy={renameSavePending ? "true" : undefined}
-          disabled={renameSavePending}
+          readOnly={renameSavePending}
           draggable={false}
           placeholder="Area name"
           onChange={(event) => {
             if (renameSavePending) return;
-            markRenameDraftDirty();
-            setEditingNodeName(event.currentTarget.value);
-            if (editingNodeError) setEditingNodeError(null);
+            updateRenameDraftName(event.currentTarget.value);
           }}
           onBlur={(event) => {
             if (renameSavePending) return;
             if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("[data-estimate-tree-rename-control='true']")) return;
-            if (shouldIgnoreRenameBlur(editingNodeName, node.name)) return;
+            if (shouldIgnoreRenameBlur(event.currentTarget.value, node.name)) return;
             commitRenameNode(node);
           }}
           onPointerDown={(event) => event.stopPropagation()}
@@ -904,68 +935,73 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             if (event.key === "Escape") {
               event.preventDefault();
               cancelRenameNode();
+              focusRenderedTreeRow(node.id);
             }
           }}
           className={cn(
-            "h-5 min-h-0 min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-[10px] font-normal leading-5 tracking-normal text-ink outline-none shadow-none placeholder:text-tertiary focus:outline-none focus-visible:outline-none disabled:cursor-default disabled:opacity-70",
+            "h-5 min-h-0 min-w-0 flex-1 border-0 bg-transparent py-0 pl-0 pr-11 text-[10px] font-normal leading-5 tracking-normal text-ink outline-none shadow-none placeholder:text-tertiary focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus read-only:cursor-wait",
             editingNodeError ? "text-danger placeholder:text-danger" : "",
           )}
         />
-        <button
-          type="button"
-          data-estimate-tree-rename-control="true"
-          aria-label={`Confirm rename ${node.name}`}
-          title="Confirm rename"
-          disabled={renameSavePending}
-          className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink disabled:cursor-not-allowed disabled:opacity-35"
-          onPointerDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            commitRenameNode(node);
-          }}
-        >
-          <Check size={12} weight="regular" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          data-estimate-tree-rename-control="true"
-          aria-label={`Cancel rename ${node.name}`}
-          title="Cancel rename"
-          disabled={renameSavePending}
-          className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink disabled:cursor-not-allowed disabled:opacity-35"
-          onPointerDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            cancelRenameNode();
-          }}
-        >
-          <X size={12} weight="regular" aria-hidden="true" />
-        </button>
-        {renameSavePending ? (
-          <output
-            id={savingId}
-            aria-live="polite"
-            className="shrink-0 text-[9px] font-medium leading-3 text-tertiary"
-          >
-            Saving...
-          </output>
-        ) : null}
+        <span className="absolute inset-y-0 right-0 flex w-10 items-center justify-end" data-estimate-tree-rename-controls>
+          {renameSavePending ? (
+            <output
+              id={savingId}
+              aria-live="polite"
+              className="pr-0.5 text-[9px] font-medium leading-3 text-tertiary"
+            >
+              Saving...
+            </output>
+          ) : (
+            <>
+              <button
+                type="button"
+                data-estimate-tree-rename-control="true"
+                aria-label={`Confirm rename ${node.name}`}
+                title="Confirm rename"
+                className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  commitRenameNode(node);
+                }}
+              >
+                <Check size={12} weight="regular" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                data-estimate-tree-rename-control="true"
+                aria-label={`Cancel rename ${node.name}`}
+                title="Cancel rename"
+                className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  cancelRenameNode();
+                  focusRenderedTreeRow(node.id);
+                }}
+              >
+                <X size={12} weight="regular" aria-hidden="true" />
+              </button>
+            </>
+          )}
+        </span>
         {editingNodeError ? (
           <span
             id={errorId}
@@ -985,11 +1021,9 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     editingNodeId,
     editingNodeName,
     localNodes,
-    markRenameDraftDirty,
     renamingNodeId,
-    setEditingNodeError,
-    setEditingNodeName,
     shouldIgnoreRenameBlur,
+    updateRenameDraftName,
   ]);
 
   const deleteConfirmationDescription = deleteTargetNode

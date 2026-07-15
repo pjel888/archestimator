@@ -475,7 +475,7 @@ function EstimateMaterialCardContent({
 
 type ExpressEditableField = "name" | "description" | "brand" | "supplier" | "unit" | "unitCost" | "priceOptionLabel" | "imageUrl" | "sourceUrl";
 
-function handleExpressFieldKeyDown(
+export function handleExpressFieldKeyDown(
   event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
   options: { field: ExpressEditableField; onRevert: (field: ExpressEditableField) => void },
 ) {
@@ -492,6 +492,11 @@ function handleExpressFieldKeyDown(
   }
 
   if (event.key === "Enter") {
+    const isMultiline = event.currentTarget.tagName === "TEXTAREA";
+    if (isMultiline && !event.metaKey && !event.ctrlKey) {
+      event.stopPropagation();
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.blur();

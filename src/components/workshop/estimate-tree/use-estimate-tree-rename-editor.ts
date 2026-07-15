@@ -24,10 +24,18 @@ export function useEstimateTreeRenameEditor({
   setEditingNodeError,
 }: UseEstimateTreeRenameEditorInput) {
   const skipRenameAutoSelectRef = useRef(false);
-  const renameDraftDirtyRef = useRef(false);
+  const renameDraftValueRef = useRef("");
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const suppressContextMenuCloseAutoFocusRef = useRef(false);
   const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
+
+  const focusRenameInputAtEnd = useCallback(() => {
+    const input = renameInputRef.current;
+    if (!input) return;
+    input.focus();
+    const caretPosition = input.value.length;
+    input.setSelectionRange(caretPosition, caretPosition);
+  }, []);
 
   useEffect(() => {
     if (!editingNodeId) {
@@ -39,28 +47,18 @@ export function useEstimateTreeRenameEditor({
       skipRenameAutoSelectRef.current = false;
       const input = renameInputRef.current;
       if (input) {
-        if (document.activeElement !== input) input.focus();
-        if (renameDraftDirtyRef.current) {
-          const caretPosition = input.value.length;
-          input.setSelectionRange(caretPosition, caretPosition);
-        } else {
-          input.select();
-        }
+        focusRenameInputAtEnd();
       }
       return undefined;
     }
 
     let focusAnimationFrame: number | null = null;
     let focusTimeout: number | null = null;
-    const focusAndSelectRenameInput = () => {
-      renameInputRef.current?.focus();
-      renameInputRef.current?.select();
-    };
     const menuCloseAnimationFrame = window.requestAnimationFrame(() => {
       focusAnimationFrame = window.requestAnimationFrame(() => {
-        focusAndSelectRenameInput();
+        focusRenameInputAtEnd();
         focusTimeout = window.setTimeout(() => {
-          focusAndSelectRenameInput();
+          focusRenameInputAtEnd();
           ignoreRenameBlurDuringContextMenuCloseRef.current = false;
         }, 0);
       });
@@ -72,20 +70,14 @@ export function useEstimateTreeRenameEditor({
       suppressContextMenuCloseAutoFocusRef.current = false;
       ignoreRenameBlurDuringContextMenuCloseRef.current = false;
     };
-  }, [editingNodeId]);
+  }, [editingNodeId, focusRenameInputAtEnd]);
 
   const attachRenameInputRef = useCallback((input: HTMLInputElement | null) => {
     renameInputRef.current = input;
     if (!input || document.activeElement === input) return;
     if (suppressContextMenuCloseAutoFocusRef.current || ignoreRenameBlurDuringContextMenuCloseRef.current) return;
-    input.focus();
-    if (renameDraftDirtyRef.current) {
-      const caretPosition = input.value.length;
-      input.setSelectionRange(caretPosition, caretPosition);
-    } else {
-      input.select();
-    }
-  }, []);
+    focusRenameInputAtEnd();
+  }, [focusRenameInputAtEnd]);
 
   const armContextMenuRenameHandoff = useCallback(() => {
     suppressContextMenuCloseAutoFocusRef.current = true;
@@ -100,7 +92,7 @@ export function useEstimateTreeRenameEditor({
       suppressContextMenuCloseAutoFocusRef.current = false;
       ignoreRenameBlurDuringContextMenuCloseRef.current = false;
     }
-    renameDraftDirtyRef.current = false;
+    renameDraftValueRef.current = node.name;
     setEditingNodeId(node.id);
     setEditingNodeName(node.name);
     setEditingNodeError(null);
@@ -114,7 +106,7 @@ export function useEstimateTreeRenameEditor({
   ]);
 
   const beginRenameForCreatedNode = useCallback((nodeId: string, name: string) => {
-    renameDraftDirtyRef.current = false;
+    renameDraftValueRef.current = name;
     setEditingNodeId(nodeId);
     setEditingNodeName(name);
     setEditingNodeError(null);
@@ -123,6 +115,7 @@ export function useEstimateTreeRenameEditor({
   const cancelRenameNode = useCallback(() => {
     suppressContextMenuCloseAutoFocusRef.current = false;
     ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+    renameDraftValueRef.current = "";
     setEditingNodeId(null);
     setEditingNodeName("");
     setEditingNodeError(null);
@@ -132,9 +125,10 @@ export function useEstimateTreeRenameEditor({
     setEditingNodeId((current) => {
       if (current !== fromNodeId) return current;
       skipRenameAutoSelectRef.current = true;
+      setEditingNodeName(renameDraftValueRef.current);
       return toNodeId;
     });
-  }, [setEditingNodeId]);
+  }, [setEditingNodeId, setEditingNodeName]);
 
   const resetContextMenuRenameHandoff = useCallback(() => {
     suppressContextMenuCloseAutoFocusRef.current = false;
@@ -142,13 +136,14 @@ export function useEstimateTreeRenameEditor({
   }, []);
 
   const focusAndSelectRenameInput = useCallback(() => {
-    renameInputRef.current?.focus();
-    renameInputRef.current?.select();
+    focusRenameInputAtEnd();
+  }, [focusRenameInputAtEnd]);
+
+  const updateRenameDraftName = useCallback((name: string) => {
+    renameDraftValueRef.current = name;
   }, []);
 
-  const markRenameDraftDirty = useCallback(() => {
-    renameDraftDirtyRef.current = true;
-  }, []);
+  const readRenameDraftName = useCallback(() => renameDraftValueRef.current, []);
 
   const shouldIgnoreRenameBlur = useCallback((draftName: string, originalName: string) => (
     ignoreRenameBlurDuringContextMenuCloseRef.current && draftName === originalName
@@ -172,9 +167,10 @@ export function useEstimateTreeRenameEditor({
     cancelRenameNode,
     focusAndSelectRenameInput,
     handleContextMenuCloseAutoFocus,
-    markRenameDraftDirty,
+    readRenameDraftName,
     remapEditingNodeId,
     resetContextMenuRenameHandoff,
     shouldIgnoreRenameBlur,
+    updateRenameDraftName,
   };
 }

@@ -427,7 +427,7 @@ function composeProjectComponentRowsLibrary({
 }) {
   const projectedRows = projectRows
     .map(fromD1ProjectComponentRow)
-    .map((row) => ({ row, item: projectEstimateRowToLibraryItem(row, project.id, project.name) }))
+    .map((row) => ({ row, item: projectEstimateRowToLibraryItem(row, project.id, project.name ?? undefined) }))
     .filter((entry): entry is { row: ProjectComponentProjectionRow; item: EstimateRowItem } => Boolean(entry.item));
   const projectItems = mergeProjectComponentProjectionItems(projectedRows);
 

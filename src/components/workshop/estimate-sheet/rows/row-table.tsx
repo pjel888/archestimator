@@ -176,7 +176,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
 const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
 const ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP = "Delete row. Undo after saving can restore it.";
-const ESTIMATE_COLUMN_HELP = {
+const ESTIMATE_COLUMN_HELP: Partial<Record<EstimateColumnId, string>> = {
   material: "The material or component used for this line, including its unit cost.",
   quantity: "The total amount needed. You can enter a base quantity with a contingency amount, such as 10 + 1.",
   contingency: "Extra quantity added to the base quantity. It changes Qty before the subtotal is calculated.",
@@ -184,7 +184,7 @@ const ESTIMATE_COLUMN_HELP = {
   adjustment: "A percentage applied to the subtotal. Use a positive value to add cost or a negative value for a discount.",
   miscCost: "An additional flat cost added after the subtotal and adjustment, such as delivery or consumables.",
   totalItemCosts: "Subtotal plus the adjustment and miscellaneous cost.",
-} as const satisfies Partial<Record<EstimateColumnId, string>>;
+};
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
 type ScrollMarginAction = { type: "reset" } | { type: "measure"; value: number };

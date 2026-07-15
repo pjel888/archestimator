@@ -27,6 +27,9 @@ import {
   type ComponentPriceOptionInput,
   type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
+import {
+  convergeCreatedComponentLibraryCaches,
+} from "@/lib/component-library/cache-convergence";
 import { isUuid } from "@/lib/ids";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
@@ -84,12 +87,14 @@ import {
   INSERT_PROJECT_SOURCE_EVENT,
   readInsertProjectSourceEventDetail,
   type EstimateTemplate,
+  type InsertProjectSourceEventDetail,
 } from "./component-library/templates";
 import {
   reportEstimateSheetContentRender,
 } from "./estimate-sheet-render-probe";
 import { createEstimateTreeIndex, getEstimateComponentInstanceRowIds } from "@/lib/estimates/estimate-tree-index";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
+import type { ComponentUpdatePendingScope } from "./component-library-manager/AddComponentModal";
 import { buildComponentCatalogueComboboxOptions, getSelectedComponentCatalogueOptionId } from "./component-catalogue-combobox-options";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
@@ -97,7 +102,9 @@ import { loadEstimateSheetAccountPreferences, saveEstimateSheetAccountPreference
 import {
   REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT,
   REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT,
+  readEstimateExternalDropEnvelope,
   readRequestEstimateRowItemMoveEventDetail,
+  type RequestEstimateRowItemMoveEventDetail,
 } from "./estimate-sheet/events";
 import type { ProposalExportPreviewScope, ProposalExportUserSettings } from "./ProposalExportPreviewDialog";
 // Interaction-gated overlay: only mounts when its `open` prop is true, so it
@@ -138,6 +145,7 @@ import {
   ADD_LIBRARY_ITEM_EVENT,
   EMPTY_ESTIMATE_ROW_ITEMS,
   readAddLibraryItemEventDetail,
+  type AddLibraryItemEventDetail,
   type EstimateLibraryItemPayloadRejectReason,
 } from "./estimate-sheet/rows/constants";
 import {
@@ -1313,6 +1321,7 @@ export function EstimateSheetContent({
   const componentEditorRequestIdRef = useRef(0);
   const [pendingSharedComponentEdit, setPendingSharedComponentEdit] = useState<PendingSharedComponentEdit | null>(null);
   const pendingSharedComponentEditRowIdsRef = useRef(new Set<string>());
+  const linkedLibraryComponentUpdateIntentRef = useRef(new Map<string, { payloadSignature: string; intentId: string }>());
   const [componentEditorPendingRowIds, setComponentEditorPendingRowIds] = useState<ReadonlySet<string>>(() => new Set());
   const [editableRowStore] = useState(() => createEditableRowStore(editableRows, estimateTree));
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
@@ -1632,6 +1641,10 @@ export function EstimateSheetContent({
     if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
     void refetchActiveTree();
   });
+  const handleLibraryComponentCreated = useStableCallback((item: EstimateRowItem) => {
+    if (!workspaceId) return;
+    convergeCreatedComponentLibraryCaches(queryClient, workspaceId, item);
+  });
   const refetchProjectComponentProjection = useStableCallback(() => {
     // Project-row mutations can alter the mounted Project tab projection. Keep
     // active sidebar observers reconciled even when the row mutation already
@@ -1705,12 +1718,20 @@ export function EstimateSheetContent({
     [activeSelectedNodeId, estimateTree],
   );
   const estimateTreeIndex = useMemo(() => createEstimateTreeIndex(estimateTree), [estimateTree]);
-  const handleComponentEditorPendingChange = useStableCallback((item: EstimateRowItem, pending: boolean, variantScoped = false) => {
-    const selectedOptionId = item.priceOptionId?.trim();
-    const pendingRowIds = variantScoped && selectedOptionId
-      ? getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id).filter((rowId) =>
-          findEstimateRowItem(estimateTree, rowId)?.priceOptionId?.trim() === selectedOptionId)
-      : getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id);
+  const handleComponentEditorPendingChange = useStableCallback((
+    item: EstimateRowItem,
+    pending: boolean,
+    scope: ComponentUpdatePendingScope = { kind: "component" },
+  ) => {
+    const componentRowIds = getEstimateComponentInstanceRowIds(estimateTreeIndex, item.id);
+    const scopedOptionIds = scope.kind === "variants" ? new Set(scope.priceOptionIds) : null;
+    const scopedRowIds = scopedOptionIds
+      ? componentRowIds.filter((rowId) => {
+          const selectedOptionId = findEstimateRowItem(estimateTree, rowId)?.priceOptionId?.trim();
+          return Boolean(selectedOptionId && scopedOptionIds.has(selectedOptionId));
+        })
+      : componentRowIds;
+    const pendingRowIds = scopedRowIds.length > 0 ? scopedRowIds : [item.id];
     setComponentEditorPendingRowIds(
       pending ? new Set(pendingRowIds) : new Set(),
     );
@@ -2090,6 +2111,7 @@ export function EstimateSheetContent({
       const restoreResult = await restoreDeletedEstimateRows({
         projectId,
         estimateId,
+        activeTabId: dataTabId,
         sourceEventId,
         rowIds,
       });
@@ -2115,6 +2137,7 @@ export function EstimateSheetContent({
       throw error;
     }
   }, [
+    dataTabId,
     estimateId,
     projectId,
     refetchActiveTree,
@@ -2381,7 +2404,7 @@ export function EstimateSheetContent({
 
     handleComponentEditorPendingChange(item, true);
     try {
-      const result = await updateCostLibraryComponentWithPriceOptions(libraryItemId, {
+      const updateRequest = {
         name,
         description: componentDescription,
         category: item.category,
@@ -2399,7 +2422,18 @@ export function EstimateSheetContent({
         expectedVersionNumber,
         expectedComponentImpactFingerprint,
         priceOptions,
+      };
+      const payloadSignature = JSON.stringify(updateRequest);
+      const retainedIntent = linkedLibraryComponentUpdateIntentRef.current.get(libraryItemId);
+      const updateIntent = retainedIntent?.payloadSignature === payloadSignature
+        ? retainedIntent
+        : { payloadSignature, intentId: crypto.randomUUID() };
+      linkedLibraryComponentUpdateIntentRef.current.set(libraryItemId, updateIntent);
+      const result = await updateCostLibraryComponentWithPriceOptions(libraryItemId, {
+        ...updateRequest,
+        intentId: updateIntent.intentId,
       });
+      linkedLibraryComponentUpdateIntentRef.current.delete(libraryItemId);
       const updatedItem = applyEstimateRowItemPatch(item, {
         material: name,
         description,
@@ -2453,7 +2487,14 @@ export function EstimateSheetContent({
     const variantScoped = isProjectComponentRow(item)
       && Boolean(item.priceOptionId?.trim())
       && !Object.keys(values).some((field) => PROJECT_COMPONENT_LEVEL_EDIT_FIELDS.has(field as keyof EditableRowValue));
-    handleComponentEditorPendingChange(item, true, variantScoped);
+    const selectedOptionId = item.priceOptionId?.trim();
+    handleComponentEditorPendingChange(
+      item,
+      true,
+      variantScoped && selectedOptionId
+        ? { kind: "variants", priceOptionIds: [selectedOptionId] }
+        : { kind: "component" },
+    );
     let awaitingConfirmation = false;
     try {
       const impact = await getEstimateComponentEditImpact({ projectId, estimateId, rowId: item.id });
@@ -2695,21 +2736,39 @@ export function EstimateSheetContent({
 
   const handleSidebarAddLibraryItemEvent = useEffectEvent((event: Event) => {
     const customEvent = event as CustomEvent<unknown>;
-    const result = readAddLibraryItemEventDetail(customEvent.detail);
+    const envelope = projectId && estimateId
+      ? readEstimateExternalDropEnvelope<AddLibraryItemEventDetail>(customEvent.detail, {
+          projectId,
+          estimateId,
+          tabId: dataTabId ?? null,
+        })
+      : null;
+    const result = readAddLibraryItemEventDetail(envelope?.payload ?? customEvent.detail);
     if (!result.ok) {
       recordLibraryInsertPayloadRejected(result.reason, "custom_event", result.field);
       result.onAccepted?.(false);
+      envelope?.acknowledge({ accepted: false, reason: "The dropped Library component is invalid." });
       customEvent.preventDefault();
       return;
     }
-    const targetNodeId = result.targetNodeId ?? insertTargetNodeId;
+    if (envelope && result.targetNodeId && result.targetNodeId !== envelope.target.nodeId) {
+      envelope.acknowledge({ accepted: false, reason: "The Library drop target changed." });
+      customEvent.preventDefault();
+      return;
+    }
+    const targetNodeId = envelope?.target.nodeId ?? result.targetNodeId ?? insertTargetNodeId;
     if (!targetNodeId) {
       result.onAccepted?.(false);
+      envelope?.acknowledge({ accepted: false, reason: "Select an Area before adding this component." });
       customEvent.preventDefault();
       return;
     }
     const accepted = insertLibraryItem(targetNodeId, result.item);
     result.onAccepted?.(accepted);
+    envelope?.acknowledge({
+      accepted,
+      ...(!accepted ? { reason: "The Library component could not be added to this Area." } : {}),
+    });
     if (!accepted) customEvent.preventDefault();
   });
 
@@ -2726,23 +2785,53 @@ export function EstimateSheetContent({
   useEffect(() => {
     if (!libraryEnableReusableProjectSources) return undefined;
     function handleInsertProjectSourceEvent(event: Event) {
-      const detail = readInsertProjectSourceEventDetail((event as CustomEvent<unknown>).detail);
-      if (!detail) return;
-      insertProjectSourceIntoParentById(detail.targetParentNodeId, detail.source);
+      const rawDetail = (event as CustomEvent<unknown>).detail;
+      const envelope = projectId && estimateId
+        ? readEstimateExternalDropEnvelope<InsertProjectSourceEventDetail>(rawDetail, {
+            projectId,
+            estimateId,
+            tabId: dataTabId ?? null,
+          })
+        : null;
+      const detail = readInsertProjectSourceEventDetail(envelope?.payload ?? rawDetail);
+      if (!detail || (envelope && detail.targetParentNodeId !== envelope.target.nodeId)) {
+        envelope?.acknowledge({ accepted: false, reason: "The project-source drop target is invalid." });
+        return;
+      }
+      void insertProjectSourceIntoParentById(detail.targetParentNodeId, detail.source)
+        .then((accepted) => envelope?.acknowledge({
+          accepted,
+          ...(!accepted ? { reason: "The project source could not be inserted here." } : {}),
+        }));
     }
     window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
     return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
-  }, [insertProjectSourceIntoParentById, libraryEnableReusableProjectSources]);
+  }, [dataTabId, estimateId, insertProjectSourceIntoParentById, libraryEnableReusableProjectSources, projectId]);
 
   useEffect(() => {
     function handleMoveRowItemEvent(event: Event) {
-      const detail = readRequestEstimateRowItemMoveEventDetail((event as CustomEvent<unknown>).detail);
-      if (!detail) return;
-      moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex, { targetPlacement: detail.targetPlacement });
+      const rawDetail = (event as CustomEvent<unknown>).detail;
+      const envelope = projectId && estimateId
+        ? readEstimateExternalDropEnvelope<RequestEstimateRowItemMoveEventDetail>(rawDetail, {
+            projectId,
+            estimateId,
+            tabId: dataTabId ?? null,
+          })
+        : null;
+      const detail = readRequestEstimateRowItemMoveEventDetail(envelope?.payload ?? rawDetail);
+      if (!detail || (envelope && detail.targetNodeId !== envelope.target.nodeId)) {
+        envelope?.acknowledge({ accepted: false, reason: "The row-move target is invalid." });
+        return;
+      }
+      const moved = moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex, { targetPlacement: detail.targetPlacement });
+      envelope?.acknowledge({
+        accepted: moved !== false,
+        ...(moved === false ? { reason: "The row could not be moved to this Area." } : {}),
+      });
     }
     window.addEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, handleMoveRowItemEvent);
     return () => window.removeEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, handleMoveRowItemEvent);
-  }, [moveRowItemToNode]);
+  }, [dataTabId, estimateId, moveRowItemToNode, projectId]);
 
   const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
   const activeTreeErrorMessage = activeTreeQuery.isError
@@ -3477,6 +3566,7 @@ export function EstimateSheetContent({
             onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
             onInsertProjectSource={insertProjectSourceIntoSelectedGroup}
             onLibraryDataChanged={handleLibraryDataChanged}
+            onLibraryComponentCreated={handleLibraryComponentCreated}
           />
         )
       ) : null}

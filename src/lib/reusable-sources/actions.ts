@@ -122,7 +122,7 @@ type ReusableSourceEventPayload = {
   sourceRootNodeId: string | null;
   targetParentNodeId: string;
   idempotent: boolean;
-  eventId: string;
+  eventId?: string;
   sourceFingerprint: string;
   statementCount: number;
 };
@@ -760,7 +760,7 @@ async function copyProjectSourceSubtreeInD1(
       SELECT COALESCE(MAX(sort_order), 0) AS sort_order
       FROM estimate_nodes
       WHERE estimate_id = ?
-        AND estimate_tab_id = ?
+        AND estimate_tab_id IS ?
         AND parent_id = ?
     `,
     [input.targetEstimateId, targetParent.estimate_tab_id, input.targetParentNodeId],
@@ -868,7 +868,7 @@ async function copyProjectSourceSubtreeInD1(
         isRoot ? input.targetParentNodeId : idMap.get(node.parent_id ?? "") ?? null,
         node.kind,
         node.name,
-        isRoot ? maxSiblingSortOrder + (rootRankById.get(node.id) ?? 1) * 10 : readNumber(node.sort_order, 0),
+        isRoot ? maxSiblingSortOrder + (rootRankById.get(node.id) ?? 1) * 1_000 : readNumber(node.sort_order, 0),
         mergeJsonRecord(node.metadata_json, { ...provenance, sourceNodeId: node.id }),
         now,
         now,
@@ -923,7 +923,6 @@ async function copyProjectSourceSubtreeInD1(
     };
   });
 
-  const eventId = randomUUID();
   const payload: ReusableSourceEventPayload = {
     inserted_root_node_ids: roots.map((node) => idMap.get(node.id)!),
     inserted_node_count: nodeStatements.length,
@@ -935,7 +934,6 @@ async function copyProjectSourceSubtreeInD1(
     sourceRootNodeId: input.source.nodeId ?? null,
     targetParentNodeId: input.targetParentNodeId,
     idempotent: false,
-    eventId,
     sourceFingerprint,
     statementCount: exactStatementCount,
   };
@@ -954,7 +952,7 @@ async function copyProjectSourceSubtreeInD1(
   if (!history.statement || !history.outboxStatement) {
     throw new Error("Project-source insert intent has activity history without a committed mutation receipt.");
   }
-  payload.eventId = history.eventId;
+  const result: ReusableSourceEventPayload = { ...payload, eventId: history.eventId };
   const statements = [
     sourceGuard,
     ...nodeStatements,
@@ -969,8 +967,8 @@ async function copyProjectSourceSubtreeInD1(
     buildCommittedMutationReceiptStatement({
       ...receiptIdentity,
       resourceType: "estimate_node",
-      resourceId: payload.inserted_root_node_ids[0] ?? null,
-      result: payload,
+      resourceId: result.inserted_root_node_ids[0] ?? null,
+      result,
       timestamp: now,
     }),
   ];
@@ -982,7 +980,7 @@ async function copyProjectSourceSubtreeInD1(
     if (concurrentReceipt) return concurrentReceipt;
     throw error;
   }
-  return payload;
+  return result;
 }
 
 export async function insertProjectSourceIntoEstimate(

@@ -36,9 +36,127 @@ type UseEstimateTreeReorderInput = {
   getLocalTreeRevision: () => number;
   prepareOptimisticUpdate: () => Promise<EstimateTreeNode[]>;
   setReorderStatus: (status: EstimateTreeReorderStatus) => void;
+  refreshAuthoritativeTree: () => Promise<EstimateTreeNode[]>;
   isOptimisticNodeId: (nodeId: string) => boolean;
   suppressPrimaryActionAfterDrag: () => void;
 };
+
+function getEstimateTreeNodeIds(nodes: EstimateTreeNode[]): Set<string> {
+  const nodeIds = new Set<string>();
+
+  function visit(currentNodes: EstimateTreeNode[]) {
+    for (const node of currentNodes) {
+      nodeIds.add(node.id);
+      visit(node.children ?? []);
+    }
+  }
+
+  visit(nodes);
+  return nodeIds;
+}
+
+function cloneEstimateTreeNode(node: EstimateTreeNode): EstimateTreeNode {
+  return {
+    ...node,
+    children: node.children?.map(cloneEstimateTreeNode),
+    estimateRowItems: node.estimateRowItems ? [...node.estimateRowItems] : node.estimateRowItems,
+  };
+}
+
+function removeConcurrentEstimateTreeDeletions(
+  nodes: EstimateTreeNode[],
+  deletedNodeIds: Set<string>,
+): EstimateTreeNode[] {
+  return nodes.flatMap((node) => {
+    if (deletedNodeIds.has(node.id)) return [];
+    return [{
+      ...node,
+      children: node.children
+        ? removeConcurrentEstimateTreeDeletions(node.children, deletedNodeIds)
+        : node.children,
+    }];
+  });
+}
+
+function getEstimateTreeChildren(
+  nodes: EstimateTreeNode[],
+  parentId: string | null,
+): EstimateTreeNode[] | null {
+  if (parentId === null) return nodes;
+
+  for (const node of nodes) {
+    if (node.id === parentId) {
+      node.children ??= [];
+      return node.children;
+    }
+    const children = getEstimateTreeChildren(node.children ?? [], parentId);
+    if (children) return children;
+  }
+
+  return null;
+}
+
+function reconcileConfirmedReorderWithConcurrentTreeEdits({
+  confirmedNodes,
+  baseNodes,
+  currentNodes,
+}: {
+  confirmedNodes: EstimateTreeNode[];
+  baseNodes: EstimateTreeNode[];
+  currentNodes: EstimateTreeNode[];
+}): EstimateTreeNode[] {
+  const baseNodeIds = getEstimateTreeNodeIds(baseNodes);
+  const currentNodeIds = getEstimateTreeNodeIds(currentNodes);
+  const deletedNodeIds = new Set([...baseNodeIds].filter((nodeId) => !currentNodeIds.has(nodeId)));
+  const mergedNodes = removeConcurrentEstimateTreeDeletions(
+    mergeEstimateTreeStructureWithCachedNodes({
+      structureNodes: confirmedNodes,
+      cachedNodes: currentNodes,
+    }),
+    deletedNodeIds,
+  );
+  const mergedNodeIds = getEstimateTreeNodeIds(mergedNodes);
+
+  function addConcurrentNodes(currentSiblings: EstimateTreeNode[], parentId: string | null) {
+    for (let currentIndex = 0; currentIndex < currentSiblings.length; currentIndex += 1) {
+      const currentNode = currentSiblings[currentIndex];
+      if (!baseNodeIds.has(currentNode.id) && !mergedNodeIds.has(currentNode.id)) {
+        const targetSiblings = getEstimateTreeChildren(mergedNodes, parentId);
+        if (!targetSiblings) continue;
+
+        let insertionIndex = targetSiblings.length;
+        for (let siblingIndex = currentIndex - 1; siblingIndex >= 0; siblingIndex -= 1) {
+          const previousNodeId = currentSiblings[siblingIndex]?.id;
+          const previousTargetIndex = targetSiblings.findIndex((node) => node.id === previousNodeId);
+          if (previousTargetIndex >= 0) {
+            insertionIndex = previousTargetIndex + 1;
+            break;
+          }
+        }
+        if (insertionIndex === targetSiblings.length) {
+          for (let siblingIndex = currentIndex + 1; siblingIndex < currentSiblings.length; siblingIndex += 1) {
+            const nextNodeId = currentSiblings[siblingIndex]?.id;
+            const nextTargetIndex = targetSiblings.findIndex((node) => node.id === nextNodeId);
+            if (nextTargetIndex >= 0) {
+              insertionIndex = nextTargetIndex;
+              break;
+            }
+          }
+        }
+
+        const concurrentNode = cloneEstimateTreeNode(currentNode);
+        targetSiblings.splice(insertionIndex, 0, concurrentNode);
+        for (const nodeId of getEstimateTreeNodeIds([concurrentNode])) mergedNodeIds.add(nodeId);
+        continue;
+      }
+
+      addConcurrentNodes(currentNode.children ?? [], currentNode.id);
+    }
+  }
+
+  addConcurrentNodes(currentNodes, null);
+  return mergedNodes;
+}
 
 export function useEstimateTreeReorder({
   projectId,
@@ -55,6 +173,7 @@ export function useEstimateTreeReorder({
   getLocalTreeRevision,
   prepareOptimisticUpdate,
   setReorderStatus,
+  refreshAuthoritativeTree,
   isOptimisticNodeId,
   suppressPrimaryActionAfterDrag,
 }: UseEstimateTreeReorderInput) {
@@ -170,17 +289,25 @@ export function useEstimateTreeReorder({
           targetTabId: activeTabId,
         });
         setLocalNodes((currentNodes) =>
-          mergeEstimateTreeStructureWithCachedNodes({
-            structureNodes: confirmed.tree,
-            cachedNodes: currentNodes,
+          reconcileConfirmedReorderWithConcurrentTreeEdits({
+            confirmedNodes: confirmed.tree,
+            baseNodes: previousNodes,
+            currentNodes,
           }),
         );
+        pendingPropNodesRef.current = null;
         setReorderStatus({ state: "saved", message: "Tree order saved" });
       } catch (error) {
-        if (optimisticRevision === null) {
-          setLocalNodes(previousNodes);
-        } else {
-          restoreLocalNodes(previousNodes, optimisticRevision);
+        try {
+          const authoritativeTree = await refreshAuthoritativeTree();
+          setLocalNodes(authoritativeTree);
+          pendingPropNodesRef.current = null;
+        } catch {
+          if (optimisticRevision === null) {
+            setLocalNodes(previousNodes);
+          } else {
+            restoreLocalNodes(previousNodes, optimisticRevision);
+          }
         }
         setReorderStatus({
           state: "error",
@@ -202,6 +329,7 @@ export function useEstimateTreeReorder({
     localNodes,
     prepareOptimisticUpdate,
     projectId,
+    refreshAuthoritativeTree,
     restoreLocalNodes,
     setLocalNodes,
     setReorderStatus,

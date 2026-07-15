@@ -62,6 +62,7 @@ type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "delete" | 
 type EstimateTabStripState = {
   editingTabId: string | null;
   editingName: string;
+  editingWidth: string;
   pendingAction: PendingAction;
   error: string;
   announcement: string;
@@ -70,7 +71,7 @@ type EstimateTabStripState = {
 };
 
 type EstimateTabStripAction =
-  | { type: "renameStarted"; tabId: string; name: string }
+  | { type: "renameStarted"; tabId: string; name: string; width: string }
   | { type: "renameNameChanged"; name: string }
   | { type: "renameEnded" }
   | { type: "pendingStarted"; pendingAction: NonNullable<PendingAction> }
@@ -83,6 +84,7 @@ type EstimateTabStripAction =
 const INITIAL_ESTIMATE_TAB_STRIP_STATE: EstimateTabStripState = {
   editingTabId: null,
   editingName: "",
+  editingWidth: "3ch",
   pendingAction: null,
   error: "",
   announcement: "",
@@ -97,6 +99,7 @@ function estimateTabStripReducer(state: EstimateTabStripState, action: EstimateT
         ...state,
         editingTabId: action.tabId,
         editingName: action.name,
+        editingWidth: action.width,
         error: "",
       };
     case "renameNameChanged":
@@ -171,6 +174,13 @@ function getNextTabName(tabs: readonly EstimateTabSummary[]) {
   return formatEstimatePageTabName(index);
 }
 
+function focusInputAtEnd(input: HTMLInputElement | null) {
+  if (!input) return;
+  input.focus();
+  const caretPosition = input.value.length;
+  input.setSelectionRange(caretPosition, caretPosition);
+}
+
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function EstimateTabStrip({
   tabs,
@@ -195,6 +205,7 @@ export function EstimateTabStrip({
   const springLoadTimerRef = useRef<number | null>(null);
   const springLoadTargetRef = useRef<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const renameCommitStartedRef = useRef(false);
   // After a context-menu action that changes the active tab (delete/duplicate),
   // focus the resulting tab once the new list renders — deterministically,
   // instead of racing the Radix close-auto-focus return-to-trigger.
@@ -204,6 +215,7 @@ export function EstimateTabStrip({
   const {
     editingTabId,
     editingName,
+    editingWidth,
     pendingAction,
     error,
     announcement,
@@ -276,8 +288,7 @@ export function EstimateTabStrip({
     renameInputRef.current = input;
     if (!input || document.activeElement === input) return;
     if (suppressContextMenuCloseAutoFocusRef.current || ignoreRenameBlurDuringContextMenuCloseRef.current) return;
-    input.focus();
-    input.select();
+    focusInputAtEnd(input);
   }, []);
 
   const armContextMenuRenameHandoff = useCallback(() => {
@@ -290,8 +301,7 @@ export function EstimateTabStrip({
       // Rename: keep focus off the trigger so it can move to the inline input.
       event.preventDefault();
       window.setTimeout(() => {
-        renameInputRef.current?.focus();
-        renameInputRef.current?.select();
+        focusInputAtEnd(renameInputRef.current);
         suppressContextMenuCloseAutoFocusRef.current = false;
         ignoreRenameBlurDuringContextMenuCloseRef.current = false;
       }, 0);
@@ -311,8 +321,7 @@ export function EstimateTabStrip({
     let focusAnimationFrame: number | null = null;
     let focusTimeout: number | null = null;
     const focusRenameInput = () => {
-      renameInputRef.current?.focus();
-      renameInputRef.current?.select();
+      focusInputAtEnd(renameInputRef.current);
     };
     const menuCloseAnimationFrame = window.requestAnimationFrame(() => {
       focusAnimationFrame = window.requestAnimationFrame(() => {
@@ -425,12 +434,23 @@ export function EstimateTabStrip({
 
   const beginRename = useCallback((tab: EstimateTabSummary) => {
     if (!lifecycleActionsReady) return;
+    const tabIndex = orderedTabs.findIndex((candidate) => candidate.id === tab.id);
+    const label = tabIndex >= 0
+      ? tabRefs.current[tabIndex]?.querySelector<HTMLElement>("[data-estimate-tab-label]")
+      : null;
+    const preEditLabelWidth = Math.max(label?.getBoundingClientRect().width ?? 0, label?.scrollWidth ?? 0);
+    const fallbackLabel = tabIndex >= 0 ? getEstimateTabDisplayName(tab, tabIndex) : tab.name;
+    const editingWidth = preEditLabelWidth > 0
+      ? `${preEditLabelWidth}px`
+      : `${Math.max(fallbackLabel.length, 3)}ch`;
+    renameCommitStartedRef.current = false;
     armContextMenuRenameHandoff();
-    dispatch({ type: "renameStarted", tabId: tab.id, name: tab.name });
-  }, [armContextMenuRenameHandoff, lifecycleActionsReady]);
+    dispatch({ type: "renameStarted", tabId: tab.id, name: tab.name, width: editingWidth });
+  }, [armContextMenuRenameHandoff, lifecycleActionsReady, orderedTabs]);
 
   const commitRename = useCallback(async () => {
-    if (!projectId || !estimateId || !editingTabId) return;
+    if (!projectId || !estimateId || !editingTabId || renameCommitStartedRef.current) return;
+    renameCommitStartedRef.current = true;
     suppressContextMenuCloseAutoFocusRef.current = false;
     ignoreRenameBlurDuringContextMenuCloseRef.current = false;
     const renamedTabId = editingTabId;
@@ -439,6 +459,7 @@ export function EstimateTabStrip({
     const focusRenamedTab = () => focusTab(orderedTabs.findIndex((tab) => tab.id === renamedTabId));
     const nextName = editingName.trim();
     if (!nextName) {
+      renameCommitStartedRef.current = false;
       dispatch({ type: "errorChanged", error: "Tab name is required." });
       return;
     }
@@ -457,6 +478,7 @@ export function EstimateTabStrip({
       dispatch({ type: "announcementChanged", announcement: `Renamed tab to ${nextName}.` });
       window.requestAnimationFrame(focusRenamedTab);
     } catch (renameError) {
+      renameCommitStartedRef.current = false;
       dispatch({ type: "errorChanged", error: renameError instanceof Error ? renameError.message : "Could not rename tab." });
     } finally {
       dispatch({ type: "pendingSettled" });
@@ -670,8 +692,8 @@ export function EstimateTabStrip({
             <span className="inline-flex max-w-44 items-center ring-1 ring-inset ring-focus" data-estimate-tab-id={tab.id}>
                 <input
                   ref={attachRenameInputRef}
-                  size={Math.max(editingName.length, 3)}
                   className="min-w-0 max-w-[150px] bg-transparent text-[10px] font-medium leading-none text-ink outline-none"
+                  style={{ width: editingWidth }}
                   aria-label={`Rename ${displayName} tab`}
                   placeholder="Tab name"
                   value={editingName}
@@ -692,17 +714,19 @@ export function EstimateTabStrip({
                       event.preventDefault();
                       suppressContextMenuCloseAutoFocusRef.current = false;
                       ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+                      renameCommitStartedRef.current = false;
                       dispatch({ type: "renameEnded" });
+                      window.requestAnimationFrame(() => focusTab(index));
                     }
                   }}
                 />
               </span>
           ) : (
-            <span className="truncate" data-estimate-tab-id={tab.id}>{displayName}</span>
+            <span className="truncate" data-estimate-tab-id={tab.id} data-estimate-tab-label>{displayName}</span>
           ),
         };
       }),
-    [attachRenameInputRef, commitRename, editingName, editingTabId, orderedTabs, pendingAction],
+    [attachRenameInputRef, commitRename, editingName, editingTabId, editingWidth, focusTab, orderedTabs, pendingAction],
   );
 
   // The "New tab" button has been relocated to the middle-panel header toolbar

@@ -16,7 +16,7 @@ type Input = {
   projectId:string; estimateId:string; activeTabId?:string; localNodes:EstimateTreeNode[];
   activeSelectedNodeId:string|null; creationParentNodeId:string|null; expandedItems:string[];
   canEditEstimate:boolean; isTreeMutationSaving:boolean; currentRouteNodeId:string|null;
-  editingNodeName:string; deleteTargetNode:EstimateTreeNode|null; deletePending:boolean;
+  readRenameDraftName:()=>string; deleteTargetNode:EstimateTreeNode|null; deletePending:boolean;
   bulkDeletePending:boolean; bulkDeleteRootNodeIds:string[]; bulkSelectedNodeIds:Set<string>;
   setLocalNodes:(next:TreeUpdater)=>number; snapshotLocalNodes:()=>EstimateTreeNode[];
   restoreLocalNodes:(tree:EstimateTreeNode[], revision?:number)=>boolean; getLocalTreeRevision:()=>number;
@@ -29,19 +29,22 @@ type Input = {
   setReorderStatus:(status:EstimateTreeReorderStatus)=>void; syncEstimateRouteUrl:(id:string|null)=>void;
   beginRenameForCreatedNode:(id:string,name:string)=>void; remapEditingNodeId:(from:string,to:string)=>void;
   cancelRenameNode:()=>void; focusAndSelectRenameInput:()=>void; resetContextMenuRenameHandoff:()=>void;
-  scrollRenderedTreeRowIntoView:(id:string)=>void; toast:ReturnType<typeof useToast>["toast"];
+  focusRenderedTreeRow:(id:string)=>void; scrollRenderedTreeRowIntoView:(id:string)=>void;
+  refreshAuthoritativeTree:()=>Promise<EstimateTreeNode[]>;
+  toast:ReturnType<typeof useToast>["toast"];
 };
 
 export function useEstimateTreeCrud(input: Input) {
   const { projectId, estimateId, activeTabId, localNodes, activeSelectedNodeId, creationParentNodeId,
-    expandedItems, canEditEstimate, isTreeMutationSaving, currentRouteNodeId, editingNodeName,
+    expandedItems, canEditEstimate, isTreeMutationSaving, currentRouteNodeId, readRenameDraftName,
     deleteTargetNode, deletePending, bulkDeletePending, bulkDeleteRootNodeIds, bulkSelectedNodeIds,
     setLocalNodes, snapshotLocalNodes, restoreLocalNodes, getLocalTreeRevision,
     prepareAreaTreeOptimisticUpdate, setExpandedNodeIds, setSelectedNodeId, setEditingNodeId,
     setEditingNodeName, setEditingNodeError, setRenamingNodeId, setDeleteTargetNode, setDeletePending,
     setBulkDeleteConfirmOpen, setBulkDeletePending, setBulkSelectedNodeIds, setReorderStatus,
     syncEstimateRouteUrl, beginRenameForCreatedNode, remapEditingNodeId, cancelRenameNode,
-    focusAndSelectRenameInput, resetContextMenuRenameHandoff, scrollRenderedTreeRowIntoView, toast } = input;
+    focusAndSelectRenameInput, resetContextMenuRenameHandoff, focusRenderedTreeRow,
+    scrollRenderedTreeRowIntoView, refreshAuthoritativeTree, toast } = input;
   const renameCommitInFlightRef = useRef(false);
   const pendingNodeCreatesRef = useRef<Map<string, Promise<string>>>(null!);
   if (pendingNodeCreatesRef.current === null) pendingNodeCreatesRef.current = new Map();
@@ -130,10 +133,15 @@ export function useEstimateTreeCrud(input: Input) {
         }
         setReorderStatus({ state: "saved", message: "Area added" });
       })
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
         unstable_rethrow(error);
         pendingNodeCreatesRef.current.delete(optimisticNodeId);
-        setLocalNodes((currentNodes) => removeLocalEstimateTreeNode(currentNodes, optimisticNodeId));
+        try {
+          const authoritativeTree = await refreshAuthoritativeTree();
+          setLocalNodes(authoritativeTree);
+        } catch {
+          setLocalNodes((currentNodes) => removeLocalEstimateTreeNode(currentNodes, optimisticNodeId));
+        }
         setEditingNodeId((current) => (current === optimisticNodeId ? null : current));
         const selectedNodeIdForScope = activeTabId
           ? useEstimateWorkspaceState.getState().selectedNodeIdByTabId[activeTabId]
@@ -152,6 +160,7 @@ export function useEstimateTreeCrud(input: Input) {
     expandedItems,
     localNodes,
     projectId,
+    refreshAuthoritativeTree,
     remapEditingNodeId,
     resolveServerNodeId,
     scrollRenderedTreeRowIntoView,
@@ -191,7 +200,7 @@ export function useEstimateTreeCrud(input: Input) {
     if (!canEditEstimate || renameCommitInFlightRef.current) return;
     resetContextMenuRenameHandoff();
 
-    const nextName = editingNodeName.trim();
+    const nextName = readRenameDraftName().trim();
     if (!nextName) {
       setEditingNodeError("Name is required.");
       window.requestAnimationFrame(focusAndSelectRenameInput);
@@ -199,10 +208,12 @@ export function useEstimateTreeCrud(input: Input) {
     }
     if (nextName === node.name) {
       cancelRenameNode();
+      focusRenderedTreeRow(node.id);
       return;
     }
 
     renameCommitInFlightRef.current = true;
+    setEditingNodeName(nextName);
     setRenamingNodeId(node.id);
     setEditingNodeError(null);
     setReorderStatus({ state: "saving", message: "Renaming node" });
@@ -225,13 +236,24 @@ export function useEstimateTreeCrud(input: Input) {
         setEditingNodeName("");
         setEditingNodeError(null);
         setReorderStatus({ state: "saved", message: "Node renamed" });
+        focusRenderedTreeRow(confirmed.nodeId);
       } catch (error) {
         unstable_rethrow(error);
         const localNodeId = resolvedNodeIdsRef.current.get(node.id) ?? node.id;
-        const currentNodes = snapshotLocalNodes();
+        let currentNodes: EstimateTreeNode[];
+        let recoveredAuthoritatively = false;
+        try {
+          currentNodes = await refreshAuthoritativeTree();
+          setLocalNodes(currentNodes);
+          recoveredAuthoritatively = true;
+        } catch {
+          currentNodes = snapshotLocalNodes();
+        }
         const currentNode = findEstimateNode(currentNodes, localNodeId);
-        if (currentNode?.name === nextName) {
-          setLocalNodes(renameEstimateTreeNode(currentNodes, localNodeId, node.name));
+        if (currentNode) {
+          if (!recoveredAuthoritatively && currentNode.name === nextName) {
+            setLocalNodes(renameEstimateTreeNode(currentNodes, localNodeId, node.name));
+          }
           setEditingNodeId(localNodeId);
           setEditingNodeName(nextName);
           setEditingNodeError(error instanceof Error ? error.message : "Could not rename node.");
@@ -249,12 +271,14 @@ export function useEstimateTreeCrud(input: Input) {
   }, [
     cancelRenameNode,
     canEditEstimate,
-    editingNodeName,
     estimateId,
+    focusRenderedTreeRow,
     focusAndSelectRenameInput,
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
+    readRenameDraftName,
+    refreshAuthoritativeTree,
     resetContextMenuRenameHandoff,
     resolveServerNodeId,
     setEditingNodeError,
@@ -268,10 +292,29 @@ export function useEstimateTreeCrud(input: Input) {
 
   const replaceEstimateRoute = syncEstimateRouteUrl;
 
+  const recoverAuthoritativeTree = useCallback(async (preferredSelectedNodeId: string | null, preferredRouteNodeId: string | null) => {
+    const authoritativeTree = await refreshAuthoritativeTree();
+    setLocalNodes(authoritativeTree);
+    const fallbackNodeId = resolveConfirmedDeleteFallbackNodeId(authoritativeTree, null);
+    const nextSelectedNodeId = preferredSelectedNodeId && findEstimateNode(authoritativeTree, preferredSelectedNodeId)
+      ? preferredSelectedNodeId
+      : fallbackNodeId;
+    setSelectedNodeId(nextSelectedNodeId);
+    const nextRouteNodeId = preferredRouteNodeId && findEstimateNode(authoritativeTree, preferredRouteNodeId)
+      ? preferredRouteNodeId
+      : preferredRouteNodeId
+        ? nextSelectedNodeId
+        : null;
+    replaceEstimateRoute(nextRouteNodeId);
+    return authoritativeTree;
+  }, [refreshAuthoritativeTree, replaceEstimateRoute, setLocalNodes, setSelectedNodeId]);
+
   const showDeletedNodesUndoToast = useCallback((input: {
     sourceEventId: string;
     nodeIds: string[];
     preferredRestoreNodeId: string | null;
+    confirmedSelectedNodeId: string | null;
+    confirmedRouteNodeId: string | null;
     message: string;
     restoredMessage: string;
   }) => {
@@ -311,6 +354,11 @@ export function useEstimateTreeCrud(input: Input) {
               });
             } catch (error) {
               unstable_rethrow(error);
+              try {
+                await recoverAuthoritativeTree(input.confirmedSelectedNodeId, input.confirmedRouteNodeId);
+              } catch (recoveryError) {
+                void recoveryError;
+              }
               toast({
                 id: restoreToastId,
                 tone: "error",
@@ -325,6 +373,7 @@ export function useEstimateTreeCrud(input: Input) {
     activeTabId,
     estimateId,
     projectId,
+    recoverAuthoritativeTree,
     replaceEstimateRoute,
     setLocalNodes,
     setSelectedNodeId,
@@ -388,24 +437,37 @@ export function useEstimateTreeCrud(input: Input) {
           replaceEstimateRoute(serverRouteNodeId);
         }
         setReorderStatus({ state: "saved", message: "Node deleted" });
+        const deletedNodeCount = confirmed.deletedNodeCount ?? confirmed.deletedNodeIds.length;
+        const deletedRowCount = confirmed.deletedRowCount ?? 0;
         showDeletedNodesUndoToast({
           sourceEventId: confirmed.eventId,
           nodeIds: confirmed.deletedNodeIds,
           preferredRestoreNodeId,
-          message: "Area deleted.",
-          restoredMessage: "Area restored.",
+          confirmedSelectedNodeId: activeSelectionWasDeletedOnServer ? confirmedFallbackNodeId : activeSelectedNodeId,
+          confirmedRouteNodeId: serverRouteNodeId,
+          message: formatEstimateTreeMutationImpact(deletedNodeCount, deletedRowCount, "deleted"),
+          restoredMessage: formatEstimateTreeMutationImpact(deletedNodeCount, deletedRowCount, "restored"),
         });
       } catch (error) {
         unstable_rethrow(error);
-        let didRestoreTree = true;
-        if (optimisticRevision === null) {
-          setLocalNodes(previousNodes);
-        } else {
-          didRestoreTree = restoreLocalNodes(previousNodes, optimisticRevision);
+        let recoveredAuthoritatively = false;
+        try {
+          await recoverAuthoritativeTree(previousSelectedNodeId, routeNodeIdBeforeDelete);
+          recoveredAuthoritatively = true;
+        } catch (recoveryError) {
+          void recoveryError;
         }
-        if (didRestoreTree) {
-          setSelectedNodeId(previousSelectedNodeId);
-          if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
+        if (!recoveredAuthoritatively) {
+          let didRestoreTree = true;
+          if (optimisticRevision === null) {
+            setLocalNodes(previousNodes);
+          } else {
+            didRestoreTree = restoreLocalNodes(previousNodes, optimisticRevision);
+          }
+          if (didRestoreTree) {
+            setSelectedNodeId(previousSelectedNodeId);
+            if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
+          }
         }
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete node." });
       } finally {
@@ -424,6 +486,7 @@ export function useEstimateTreeCrud(input: Input) {
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
+    recoverAuthoritativeTree,
     replaceEstimateRoute,
     resolveServerNodeId,
     restoreLocalNodes,
@@ -507,25 +570,38 @@ export function useEstimateTreeCrud(input: Input) {
           replaceEstimateRoute(serverRouteNodeId);
         }
         setReorderStatus({ state: "saved", message: "Selected nodes deleted" });
+        const deletedNodeCount = confirmed.deletedNodeCount ?? confirmed.deletedNodeIds.length;
+        const deletedRowCount = confirmed.deletedRowCount ?? 0;
         showDeletedNodesUndoToast({
           sourceEventId: confirmed.eventId,
           nodeIds: confirmed.deletedNodeIds,
           preferredRestoreNodeId,
-          message: `${confirmed.deletedNodeIds.length} ${confirmed.deletedNodeIds.length === 1 ? "Area" : "Areas"} deleted.`,
-          restoredMessage: `${confirmed.deletedNodeIds.length} ${confirmed.deletedNodeIds.length === 1 ? "Area" : "Areas"} restored.`,
+          confirmedSelectedNodeId: activeSelectionWasDeletedOnServer ? confirmedFallbackNodeId : activeSelectedNodeId,
+          confirmedRouteNodeId: serverRouteNodeId,
+          message: formatEstimateTreeMutationImpact(deletedNodeCount, deletedRowCount, "deleted"),
+          restoredMessage: formatEstimateTreeMutationImpact(deletedNodeCount, deletedRowCount, "restored"),
         });
       } catch (error) {
         unstable_rethrow(error);
-        let didRestoreTree = true;
-        if (optimisticRevision === null) {
-          setLocalNodes(previousNodes);
-        } else {
-          didRestoreTree = restoreLocalNodes(previousNodes, optimisticRevision);
+        let recoveredAuthoritatively = false;
+        try {
+          await recoverAuthoritativeTree(previousSelectedNodeId, routeNodeIdBeforeDelete);
+          recoveredAuthoritatively = true;
+        } catch (recoveryError) {
+          void recoveryError;
         }
-        if (didRestoreTree) {
-          setSelectedNodeId(previousSelectedNodeId);
-          setBulkSelectedNodeIds(previousBulkSelection);
-          if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
+        if (!recoveredAuthoritatively) {
+          let didRestoreTree = true;
+          if (optimisticRevision === null) {
+            setLocalNodes(previousNodes);
+          } else {
+            didRestoreTree = restoreLocalNodes(previousNodes, optimisticRevision);
+          }
+          if (didRestoreTree) {
+            setSelectedNodeId(previousSelectedNodeId);
+            setBulkSelectedNodeIds(previousBulkSelection);
+            if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
+          }
         }
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete selected nodes." });
       } finally {
@@ -546,6 +622,7 @@ export function useEstimateTreeCrud(input: Input) {
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
+    recoverAuthoritativeTree,
     replaceEstimateRoute,
     resolveServerNodeId,
     restoreLocalNodes,
@@ -635,6 +712,12 @@ function createOptimisticEstimateTreeNode(id: string, name: string): EstimateTre
 function resolveConfirmedDeleteFallbackNodeId(tree: EstimateTreeNode[], fallbackNodeId: string | null) {
   if (fallbackNodeId && findEstimateNode(tree, fallbackNodeId)) return fallbackNodeId;
   return tree[0]?.id ?? null;
+}
+
+function formatEstimateTreeMutationImpact(nodeCount: number, rowCount: number, action: "deleted" | "restored") {
+  const nodeLabel = nodeCount === 1 ? "Area" : "Areas";
+  const rowLabel = rowCount === 1 ? "cost row" : "cost rows";
+  return `${nodeCount} ${nodeLabel} and ${rowCount} ${rowLabel} ${action}.`;
 }
 
 function isOptimisticEstimateNodeId(nodeId: string) {

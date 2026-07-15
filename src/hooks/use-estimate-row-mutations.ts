@@ -120,6 +120,7 @@ type SharedMutationInput = {
 
 type InsertEstimateRowInput = SharedMutationInput & {
   targetNodeId: string;
+  activeTabId?: string | null;
   rowId: string;
   libraryItem: EstimateRowItem;
   mutationId?: string;
@@ -174,6 +175,7 @@ type DeleteEstimateRowsInput = SharedMutationInput & {
 };
 
 type RestoreDeletedRowsInput = SharedMutationInput & {
+  activeTabId?: string | null;
   sourceEventId: string;
   rowIds?: string[];
   mutationId?: string;
@@ -182,6 +184,7 @@ type RestoreDeletedRowsInput = SharedMutationInput & {
 };
 
 type MoveEstimateRowsInput = SharedMutationInput & {
+  activeTabId?: string | null;
   sourceRowId: string;
   targetRowId: string;
   sourceLibraryItem: EstimateRowItem;
@@ -207,6 +210,7 @@ type MoveEstimateRowItemInput = SharedMutationInput & {
 };
 
 type PromoteEstimateRowInput = SharedMutationInput & {
+  expectedRowRevision: number;
   rowId: string;
   libraryFolderId?: string | null;
   mutationId?: string;
@@ -580,7 +584,8 @@ export function useEstimateRowMutations(
   const queryClient = useQueryClient();
   const { saveState, activeMutationCount, rowMutationError, markRowDirty, markRowClean, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
   const rowOperationIdsRef = useRef<Record<string, number>>({});
-  const estimateMutationQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const estimateMutationBarrierRef = useRef<Promise<unknown>>(Promise.resolve());
+  const rowMutationQueueTailsRef = useRef<Record<string, Promise<unknown>>>({});
   const queuedRowMutationCountsRef = useRef<Record<string, number>>({});
   const escalatedPendingMutationKeysRef = useRef<Set<string>>(new Set());
   const [rowMutationStatuses, setRowMutationStatuses] = useState<EstimateRowMutationStatusMap>({});
@@ -1346,6 +1351,7 @@ export function useEstimateRowMutations(
   function withMoveMutationIdentity(input: MoveEstimateRowsInput): MoveEstimateRowsInput {
     return {
       ...input,
+      activeTabId: input.activeTabId ?? estimateTabId ?? null,
       mutationId: input.mutationId ?? createMutationId(),
       expectedSourceRowRevision: input.expectedSourceRowRevision ?? getCachedRowRevision(input.sourceRowId),
       expectedTargetRowRevision: input.expectedTargetRowRevision ?? getCachedRowRevision(input.targetRowId),
@@ -1378,15 +1384,21 @@ export function useEstimateRowMutations(
     for (const rowId of queuedRowIds) {
       queuedRowMutationCountsRef.current[rowId] = (queuedRowMutationCountsRef.current[rowId] ?? 0) + 1;
     }
-    const nextUpdate = estimateMutationQueueRef.current
-      .catch(() => undefined)
-      .then(run);
-    estimateMutationQueueRef.current = nextUpdate;
+    const queueDependencies = queuedRowIds.length > 0
+      ? [estimateMutationBarrierRef.current, ...queuedRowIds.map((rowId) => rowMutationQueueTailsRef.current[rowId]).filter(Boolean)]
+      : [estimateMutationBarrierRef.current, ...Object.values(rowMutationQueueTailsRef.current)];
+    const nextUpdate = Promise.all(queueDependencies.map((dependency) => dependency.catch(() => undefined))).then(run);
+    if (queuedRowIds.length > 0) {
+      for (const rowId of queuedRowIds) rowMutationQueueTailsRef.current[rowId] = nextUpdate;
+    } else {
+      estimateMutationBarrierRef.current = nextUpdate;
+    }
     const cleanup = () => {
       for (const rowId of queuedRowIds) {
         const nextCount = (queuedRowMutationCountsRef.current[rowId] ?? 1) - 1;
         if (nextCount > 0) queuedRowMutationCountsRef.current[rowId] = nextCount;
         else delete queuedRowMutationCountsRef.current[rowId];
+        if (rowMutationQueueTailsRef.current[rowId] === nextUpdate) delete rowMutationQueueTailsRef.current[rowId];
       }
     };
     void nextUpdate.then(cleanup, cleanup);
@@ -1437,6 +1449,7 @@ export function useEstimateRowMutations(
     deleteRows: (input: DeleteEstimateRowsInput) => enqueueEstimateMutation(input.rowIds, () => deleteRowsMutation.mutateAsync(withDeleteRowsMutationIdentity(input))),
     restoreDeletedRows: (input: RestoreDeletedRowsInput) => enqueueEstimateMutation(input.rowIds ?? [], () => restoreDeletedRowsMutation.mutateAsync({
       ...input,
+      activeTabId: input.activeTabId ?? estimateTabId ?? null,
       mutationId: input.mutationId ?? createMutationId(),
     })),
     updateRow: enqueueRowUpdate,

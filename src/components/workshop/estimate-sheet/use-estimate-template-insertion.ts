@@ -13,8 +13,10 @@ import {
   INSERT_ESTIMATE_TEMPLATE_EVENT,
   readInsertEstimateTemplateEventDetail,
   type EstimateTemplate,
+  type InsertEstimateTemplateEventDetail,
 } from "../component-library/templates";
 import { findEstimateNode, type EstimateTreeNode } from "../estimate-tree-data";
+import { readEstimateExternalDropEnvelope } from "./events";
 import { collectEditableRows, type EditableRowValue } from "./rows/editable-row-model";
 import {
   appendTemplateNodesToParent,
@@ -29,6 +31,19 @@ type RestoreEstimateState = (
   expectedRevision?: number,
 ) => void;
 type Toast = (input: { tone?: "neutral" | "loading" | "success" | "error"; message: string }) => string;
+
+function resolveRetainedTemplateInsertIntent(
+  retainedIntents: Map<string, string>,
+  signature: string,
+  requestedIntentId?: string,
+) {
+  const retainedIntentId = retainedIntents.get(signature);
+  if (retainedIntentId) return retainedIntentId;
+  const intentId = requestedIntentId ?? crypto.randomUUID();
+  retainedIntents.set(signature, intentId);
+  if (retainedIntents.size > 100) retainedIntents.delete(retainedIntents.keys().next().value ?? "");
+  return intentId;
+}
 
 function useSavedTemplateSnapshotConfirmation() {
   const resolverRef = useRef<((confirmed: boolean) => void) | null>(null);
@@ -91,8 +106,20 @@ export function useEstimateTemplateInsertion({
     requestConfirmation: requestTemplateSnapshotConfirmation,
     resolveConfirmation: resolveTemplateSnapshotConfirmation,
   } = useSavedTemplateSnapshotConfirmation();
+  const retainedTemplateInsertIntentsRef = useRef<Map<string, string> | null>(null);
+  if (retainedTemplateInsertIntentsRef.current === null) retainedTemplateInsertIntentsRef.current = new Map();
+  const pendingTargetCountsRef = useRef<Map<string, number> | null>(null);
+  if (pendingTargetCountsRef.current === null) pendingTargetCountsRef.current = new Map();
+  const [templateInsertPendingNodeIds, setTemplateInsertPendingNodeIds] = useState<ReadonlySet<string>>(new Set());
+  const setTemplateTargetPending = useCallback((targetNodeId: string, pending: boolean) => {
+    const counts = pendingTargetCountsRef.current!;
+    const nextCount = Math.max(0, (counts.get(targetNodeId) ?? 0) + (pending ? 1 : -1));
+    if (nextCount > 0) counts.set(targetNodeId, nextCount);
+    else counts.delete(targetNodeId);
+    setTemplateInsertPendingNodeIds(new Set(counts.keys()));
+  }, []);
   const insertTemplateIntoParent = useStableCallback(
-    (targetParentNodeId: string, template: EstimateTemplate) => {
+    async (targetParentNodeId: string, template: EstimateTemplate, requestedIntentId?: string) => {
       if (!canEditEstimate) {
         recordReadOnlyLibraryMutationAttempt("insert_template");
         return false;
@@ -104,35 +131,48 @@ export function useEstimateTemplateInsertion({
       setSelectedNodeId(targetParentNodeId);
 
       if (projectId && estimateId) {
+        const intentSignature = ["template", projectId, estimateId, targetParentNodeId, template.id].join(":");
+        const intentId = resolveRetainedTemplateInsertIntent(
+          retainedTemplateInsertIntentsRef.current!,
+          intentSignature,
+          requestedIntentId,
+        );
         const persist = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateIntoEstimate({
           projectId,
           estimateId,
           targetParentNodeId,
           templateId: template.id,
+          intentId,
           targetTabId: dataTabId,
           unavailableSourcePolicy,
         });
-        persist("cancel")
-          .then(async (result) => {
-            if (result.status !== "requires_saved_snapshot_confirmation") return result;
-            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) return null;
-            return persist("use_saved_snapshot_unlinked");
-          })
-          .then((result) => {
-            if (!result || result.status !== "inserted") return;
-            setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
-              currentTree,
-              authoritativeTree: result.tree,
-              targetParentNodeId,
-              authoritativeRootNodeIds: result.insertedRootNodeIds,
-            }));
-            setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
-          })
-          .catch((error: unknown) => {
-            console.error("[estimate] template insert failed", error);
-            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
-          });
-        return true;
+        setTemplateTargetPending(targetParentNodeId, true);
+        try {
+          let result = await persist("cancel");
+          if (result.status === "requires_saved_snapshot_confirmation") {
+            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) {
+              retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+              return false;
+            }
+            result = await persist("use_saved_snapshot_unlinked");
+          }
+          if (result.status !== "inserted") return false;
+          setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
+            currentTree,
+            authoritativeTree: result.tree,
+            targetParentNodeId,
+            authoritativeRootNodeIds: result.insertedRootNodeIds,
+          }));
+          setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
+          retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+          return true;
+        } catch (error: unknown) {
+          console.error("[estimate] template insert failed", error);
+          toast({ tone: "error", message: "Couldn't insert the template. Try again." });
+          return false;
+        } finally {
+          setTemplateTargetPending(targetParentNodeId, false);
+        }
       }
 
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate(template.nodes);
@@ -147,13 +187,13 @@ export function useEstimateTemplateInsertion({
   // drop can't lose templates to a concurrent-insert tree-read race. A single
   // template still routes through the efficient single-insert path.
   const insertTemplatesIntoParent = useStableCallback(
-    (targetParentNodeId: string, templates: EstimateTemplate[]) => {
+    async (targetParentNodeId: string, templates: EstimateTemplate[], requestedIntentId?: string) => {
       if (!canEditEstimate) {
         recordReadOnlyLibraryMutationAttempt("insert_templates");
         return false;
       }
       if (templates.length === 0) return false;
-      if (templates.length === 1) return insertTemplateIntoParent(targetParentNodeId, templates[0]);
+      if (templates.length === 1) return insertTemplateIntoParent(targetParentNodeId, templates[0], requestedIntentId);
 
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
@@ -161,35 +201,49 @@ export function useEstimateTemplateInsertion({
       setSelectedNodeId(targetParentNodeId);
 
       if (projectId && estimateId) {
+        const templateIds = templates.map((template) => template.id);
+        const intentSignature = ["templates", projectId, estimateId, targetParentNodeId, ...templateIds].join(":");
+        const intentId = resolveRetainedTemplateInsertIntent(
+          retainedTemplateInsertIntentsRef.current!,
+          intentSignature,
+          requestedIntentId,
+        );
         const persist = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplatesIntoEstimate({
           projectId,
           estimateId,
           targetParentNodeId,
-          templateIds: templates.map((template) => template.id),
+          templateIds,
+          intentId,
           targetTabId: dataTabId,
           unavailableSourcePolicy,
         });
-        persist("cancel")
-          .then(async (result) => {
-            if (result.status !== "requires_saved_snapshot_confirmation") return result;
-            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) return null;
-            return persist("use_saved_snapshot_unlinked");
-          })
-          .then((result) => {
-            if (!result || result.status !== "inserted") return;
-            setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
-              currentTree,
-              authoritativeTree: result.tree,
-              targetParentNodeId,
-              authoritativeRootNodeIds: result.insertedRootNodeIds,
-            }));
-            setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
-          })
-          .catch((error: unknown) => {
-            console.error("[estimate] template batch insert failed", error);
-            toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
-          });
-        return true;
+        setTemplateTargetPending(targetParentNodeId, true);
+        try {
+          let result = await persist("cancel");
+          if (result.status === "requires_saved_snapshot_confirmation") {
+            if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) {
+              retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+              return false;
+            }
+            result = await persist("use_saved_snapshot_unlinked");
+          }
+          if (result.status !== "inserted") return false;
+          setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
+            currentTree,
+            authoritativeTree: result.tree,
+            targetParentNodeId,
+            authoritativeRootNodeIds: result.insertedRootNodeIds,
+          }));
+          setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
+          retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+          return true;
+        } catch (error: unknown) {
+          console.error("[estimate] template batch insert failed", error);
+          toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
+          return false;
+        } finally {
+          setTemplateTargetPending(targetParentNodeId, false);
+        }
       }
 
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
@@ -200,12 +254,12 @@ export function useEstimateTemplateInsertion({
   );
 
   const insertTemplatesIntoParentById = useCallback(
-    (targetParentNodeId: string, templateIds: string[]) => {
+    (targetParentNodeId: string, templateIds: string[], requestedIntentId?: string) => {
       const templates = templateIds
         .map((templateId) => templateById.get(templateId))
         .filter((template): template is EstimateTemplate => Boolean(template));
       if (templates.length === 0) return false;
-      return insertTemplatesIntoParent(targetParentNodeId, templates);
+      return insertTemplatesIntoParent(targetParentNodeId, templates, requestedIntentId);
     },
     [insertTemplatesIntoParent, templateById],
   );
@@ -285,11 +339,11 @@ export function useEstimateTemplateInsertion({
     [insertTemplateNodeIntoParent, templateById],
   );
   const insertTemplatesIntoParentByIdFromEvent = useEffectEvent((targetParentNodeId: string, templateIds: string[]) => {
-    insertTemplatesIntoParentById(targetParentNodeId, templateIds);
+    return insertTemplatesIntoParentById(targetParentNodeId, templateIds);
   });
   const insertTemplateNodeIntoParentByIdFromEvent = useEffectEvent(
     (targetParentNodeId: string, templateId: string, templateNodeId: string) => {
-      insertTemplateNodeIntoParentById(targetParentNodeId, templateId, templateNodeId);
+      return insertTemplateNodeIntoParentById(targetParentNodeId, templateId, templateNodeId);
     },
   );
 
@@ -309,17 +363,33 @@ export function useEstimateTemplateInsertion({
   // area-wrap branch).
   useEffect(() => {
     function handleInsertTemplateEvent(event: Event) {
-      const detail = readInsertEstimateTemplateEventDetail((event as CustomEvent<unknown>).detail);
-      if (!detail) return;
-      if ("templateId" in detail) {
-        insertTemplateNodeIntoParentByIdFromEvent(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
+      const rawDetail = (event as CustomEvent<unknown>).detail;
+      const envelope = projectId && estimateId
+        ? readEstimateExternalDropEnvelope<InsertEstimateTemplateEventDetail>(rawDetail, {
+            projectId,
+            estimateId,
+            tabId: dataTabId ?? null,
+          })
+        : null;
+      const detail = readInsertEstimateTemplateEventDetail(envelope?.payload ?? rawDetail);
+      if (!detail || (envelope && detail.targetParentNodeId !== envelope.target.nodeId)) {
+        envelope?.acknowledge({ accepted: false, reason: "The template drop target is invalid." });
         return;
       }
-      insertTemplatesIntoParentByIdFromEvent(detail.targetParentNodeId, detail.templateIds);
+      let accepted = false;
+      if ("templateId" in detail) {
+        accepted = insertTemplateNodeIntoParentByIdFromEvent(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
+      } else {
+        accepted = insertTemplatesIntoParentByIdFromEvent(detail.targetParentNodeId, detail.templateIds);
+      }
+      envelope?.acknowledge({
+        accepted,
+        ...(!accepted ? { reason: "The selected template is no longer available." } : {}),
+      });
     }
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-  }, []);
+  }, [dataTabId, estimateId, projectId]);
 
   return {
     insertTemplateIntoSelectedGroup,

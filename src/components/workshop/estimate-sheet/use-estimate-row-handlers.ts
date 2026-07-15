@@ -358,6 +358,15 @@ function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editable
   };
 }
 
+function readDuplicateEstimateRowSourceId(libraryItem: EstimateRowItem) {
+  const sourceRowId = (libraryItem as EstimateRowItem & { duplicateSourceRowId?: unknown }).duplicateSourceRowId;
+  return typeof sourceRowId === "string" && sourceRowId.trim() ? sourceRowId.trim() : null;
+}
+
+function isAmbiguousDuplicateRowFailure(error: Error) {
+  return /offline|network|fetch|timeout|timed out|connection|unknown/i.test(error.message);
+}
+
 function getClearedEstimateRowMetadata(metadata: EstimateRowItem["metadata"]): EstimateRowItem["metadata"] {
   const { expressComponent: _expressComponent, projectComponentProjection: _projectComponentProjection, ...rest } = readEstimateRowMetadata(metadata);
   void _expressComponent;
@@ -439,6 +448,11 @@ export function useEstimateRowHandlers({
   const pendingFocusRowIdRef = useRef("");
   const pendingFocusTargetRef = useRef<"name" | "quantity">("name");
   const pendingFocusFrameIdRef = useRef(0);
+  const duplicateRowIntentRef = useRef(new Map<string, {
+    rowId: string;
+    mutationId: string;
+    status: "pending" | "failed";
+  }>());
 
   useEffect(() => {
     saveStateRef.current = saveState;
@@ -843,6 +857,7 @@ export function useEstimateRowHandlers({
       projectId,
       estimateId,
       targetNodeId: draft.targetNodeId,
+      activeTabId,
       rowId: rowItemId,
       libraryItem: draft.libraryItem,
       mutationId: draft.mutationId,
@@ -873,9 +888,28 @@ export function useEstimateRowHandlers({
 
     const previousTree = estimateTree;
     const previousRows = getEditableRows();
-    const newItem = cloneLibraryItemForEstimate(libraryItem);
+    const duplicateSourceRowId = readDuplicateEstimateRowSourceId(libraryItem);
+    const retainedDuplicateIntent = duplicateSourceRowId
+      ? duplicateRowIntentRef.current.get(duplicateSourceRowId)
+      : undefined;
+    if (retainedDuplicateIntent?.status === "pending") return true;
+    const clonedItem = cloneLibraryItemForEstimate(libraryItem);
+    const newItem = retainedDuplicateIntent
+      ? { ...clonedItem, id: retainedDuplicateIntent.rowId }
+      : clonedItem;
     const isExpressInsert = isExpressComponentRow(newItem);
-    const mutationId = isExpressInsert ? createEstimateRowItemId() : undefined;
+    const mutationId = duplicateSourceRowId
+      ? retainedDuplicateIntent?.mutationId ?? createEstimateRowItemId()
+      : isExpressInsert
+        ? createEstimateRowItemId()
+        : undefined;
+    if (duplicateSourceRowId && mutationId) {
+      duplicateRowIntentRef.current.set(duplicateSourceRowId, {
+        rowId: newItem.id,
+        mutationId,
+        status: "pending",
+      });
+    }
     requestPendingRowFocus(
       newItem.id,
       readProjectComponentProjectionMetadata(newItem.metadata) ? "quantity" : "name",
@@ -909,12 +943,32 @@ export function useEstimateRowHandlers({
         projectId,
         estimateId,
         targetNodeId,
+        activeTabId,
         rowId: newItem.id,
         libraryItem,
         ...(mutationId ? { mutationId } : {}),
         rollback: isExpressInsert ? () => undefined : () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onSuccess: isExpressInsert ? () => handleExpressInsertSuccess(newItem.id) : undefined,
-        onError: isExpressInsert ? (error) => handleExpressInsertError(newItem.id, error) : undefined,
+        onSuccess: isExpressInsert
+          ? () => handleExpressInsertSuccess(newItem.id)
+          : duplicateSourceRowId
+            ? () => {
+                const retained = duplicateRowIntentRef.current.get(duplicateSourceRowId);
+                if (retained?.mutationId === mutationId) duplicateRowIntentRef.current.delete(duplicateSourceRowId);
+              }
+            : undefined,
+        onError: isExpressInsert
+          ? (error) => handleExpressInsertError(newItem.id, error)
+          : duplicateSourceRowId
+            ? (error) => {
+              const retained = duplicateRowIntentRef.current.get(duplicateSourceRowId);
+                if (!retained || retained.mutationId !== mutationId) return;
+                if (isAmbiguousDuplicateRowFailure(error)) {
+                  duplicateRowIntentRef.current.set(duplicateSourceRowId, { ...retained, status: "failed" });
+                } else {
+                  duplicateRowIntentRef.current.delete(duplicateSourceRowId);
+                }
+              }
+            : undefined,
       });
     }
     return true;
@@ -1068,6 +1122,7 @@ export function useEstimateRowHandlers({
     promoteRow({
       projectId,
       estimateId,
+      expectedRowRevision: rowItem.rowRevision ?? 1,
       rowId: rowItemId,
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
       onSuccess: (result) => {
