@@ -473,11 +473,11 @@ function EstimateMaterialCardContent({
   );
 }
 
-type ExpressEditableField = "name" | "description" | "brand" | "supplier" | "unit" | "unitCost" | "imageUrl" | "sourceUrl";
+type ExpressEditableField = "name" | "description" | "brand" | "supplier" | "unit" | "unitCost" | "priceOptionLabel" | "imageUrl" | "sourceUrl";
 
 function handleExpressFieldKeyDown(
   event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
-  options: { field: ExpressEditableField; onCommit: () => void; onRevert: (field: ExpressEditableField) => void; multiline?: boolean },
+  options: { field: ExpressEditableField; onRevert: (field: ExpressEditableField) => void },
 ) {
   if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
     event.stopPropagation();
@@ -491,10 +491,10 @@ function handleExpressFieldKeyDown(
     return;
   }
 
-  if (event.key === "Enter" && (!options.multiline || event.metaKey || event.ctrlKey)) {
+  if (event.key === "Enter") {
     event.preventDefault();
     event.stopPropagation();
-    options.onCommit();
+    event.currentTarget.blur();
   }
 }
 
@@ -852,6 +852,10 @@ function ExpressMaterialEditor({
   const commitField = (field: ExpressEditableField, value: string) => onCommit({ [field]: value });
   const editorLabel = editableRow.name || item.material || "Project Component";
   const activeVariantLabel = getActiveMaterialVariantLabel(item);
+  const canEditActiveVariantLabel = Boolean(activeVariantLabel)
+    && classifyEstimateRowSource(item) !== "linked-library"
+    && (isExpressComponentRow(item) || item.linkState === "detached" || Boolean(readProjectComponentProjectionMetadata(item.metadata)));
+  const editableActiveVariantLabel = editableRow.priceOptionLabel ?? activeVariantLabel ?? "";
   const editableBrand = editableRow.brand ?? "";
   const imageUrl = editableRow.imageUrl.trim();
   const imageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
@@ -870,6 +874,30 @@ function ExpressMaterialEditor({
     }
     onChange({ supplier: value });
     if (change.reason !== "input") onCommit({ supplier: value });
+  }
+
+  function handleUnitFieldChange(change: CreatableComboboxChange) {
+    const value = getUnitComboboxValue(change);
+    onChange({ unit: value });
+    if (change.reason !== "input") onCommit({ unit: value });
+  }
+
+  function commitActiveVariantLabel(value: string) {
+    const nextVariantLabel = value.trim();
+    if (!nextVariantLabel) {
+      onRevert("priceOptionLabel");
+      return;
+    }
+    const activeVariantId = getActiveMaterialVariantId(item, getMaterialVariantOptions(item));
+    const priceOptions = item.priceOptions?.map((option) => (
+      option.id === activeVariantId ? { ...option, label: nextVariantLabel } : option
+    ));
+    const patch: Partial<EditableRowValue> = {
+      priceOptionLabel: nextVariantLabel,
+      ...(priceOptions ? { priceOptions } : {}),
+    };
+    onChange(patch);
+    onCommit(patch);
   }
 
   return (
@@ -946,19 +974,38 @@ function ExpressMaterialEditor({
                 commitField("name", event.currentTarget.value);
                 onActiveChange(false);
               }}
-              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "name", onCommit: () => commitField("name", event.currentTarget.value), onRevert })}
+              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "name", onRevert })}
               data-estimate-row-id={item.id}
               data-express-field="name"
               aria-label={activeVariantLabel ? `Component name, active variant ${activeVariantLabel}` : "Component name"}
               placeholder="Component name"
-              className={cn(cardInputClass, "min-w-0 flex-1 !text-[12px] font-medium leading-4 text-ink placeholder:text-ink")}
+              className={cn(cardInputClass, "!w-auto min-w-[8ch] max-w-full shrink field-sizing-content !text-[12px] font-medium leading-4 text-ink placeholder:text-ink")}
             />
             {activeVariantLabel ? (
               <>
                 <span className="shrink-0 text-[12px] font-normal leading-4 text-tertiary" aria-hidden="true">·</span>
-                <span className="max-w-[40%] shrink truncate text-[12px] font-normal leading-4 text-secondary" title={activeVariantLabel}>
-                  {activeVariantLabel}
-                </span>
+                {canEditActiveVariantLabel ? (
+                  <ControlInput
+                    type="text"
+                    value={editableActiveVariantLabel}
+                    onChange={(event) => onChange({ priceOptionLabel: event.target.value })}
+                    onFocus={() => onActiveChange(true)}
+                    onBlur={(event) => {
+                      commitActiveVariantLabel(event.currentTarget.value);
+                      onActiveChange(false);
+                    }}
+                    onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "priceOptionLabel", onRevert })}
+                    data-estimate-row-id={item.id}
+                    data-express-field="priceOptionLabel"
+                    aria-label={`Active variant name for ${editorLabel}`}
+                    aria-required="true"
+                    className={cn(cardInputClass, "!w-auto min-w-[4ch] max-w-full shrink field-sizing-content !text-[12px] font-normal leading-4 text-secondary")}
+                  />
+                ) : (
+                  <span className="max-w-[40%] shrink truncate text-[12px] font-normal leading-4 text-secondary" title={activeVariantLabel}>
+                    {activeVariantLabel}
+                  </span>
+                )}
               </>
             ) : null}
           </div>
@@ -974,7 +1021,7 @@ function ExpressMaterialEditor({
               commitField("brand", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "brand", onCommit: () => commitField("brand", event.currentTarget.value), onRevert })}
+            onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "brand", onRevert })}
             inputDataAttributes={{
               "data-estimate-row-id": item.id,
               "data-express-field": "brand",
@@ -999,7 +1046,7 @@ function ExpressMaterialEditor({
               commitField("supplier", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "supplier", onCommit: () => commitField("supplier", event.currentTarget.value), onRevert })}
+            onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "supplier", onRevert })}
             inputDataAttributes={{
               "data-estimate-row-id": item.id,
               "data-express-field": "supplier",
@@ -1026,7 +1073,7 @@ function ExpressMaterialEditor({
                 commitField("unitCost", event.currentTarget.value);
                 onActiveChange(false);
               }}
-              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unitCost", onCommit: () => commitField("unitCost", event.currentTarget.value), onRevert })}
+              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unitCost", onRevert })}
               data-estimate-row-id={item.id}
               data-express-field="unitCost"
               ariaLabel="Unit cost"
@@ -1043,7 +1090,7 @@ function ExpressMaterialEditor({
               commitField("description", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "description", onCommit: () => commitField("description", event.currentTarget.value), onRevert })}
+            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "description", onRevert })}
             data-estimate-row-id={item.id}
             data-express-field="description"
             aria-label="Component description"
@@ -1059,13 +1106,13 @@ function ExpressMaterialEditor({
               value={editableRow.unit}
               selectedId={getSelectedUnitId(editableRow.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
               options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
-              onChange={(change) => onChange({ unit: getUnitComboboxValue(change) })}
+              onChange={handleUnitFieldChange}
               onInputFocus={() => onActiveChange(true)}
               onInputBlur={(event) => {
                 commitField("unit", event.currentTarget.value);
                 onActiveChange(false);
               }}
-              onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unit", onCommit: () => commitField("unit", event.currentTarget.value), onRevert })}
+              onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unit", onRevert })}
               inputDataAttributes={{
                 "data-estimate-row-id": item.id,
                 "data-express-field": "unit",

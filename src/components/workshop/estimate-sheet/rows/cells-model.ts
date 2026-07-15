@@ -24,6 +24,13 @@ export function focusEstimateCellByRowId(rowId: string, cellIndex: number) {
   return Boolean(nextCell);
 }
 
+export function handleEstimateInputCommitKeyDown(event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.blur();
+}
+
 export function handleEstimateCellKeyDown(
   event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
   rowIndex: number,
@@ -32,8 +39,7 @@ export function handleEstimateCellKeyDown(
   requestFocusByRowId?: (rowId: string, cellIndex: number) => void,
 ) {
   if (event.key === "Enter") {
-    event.preventDefault();
-    event.currentTarget.blur();
+    handleEstimateInputCommitKeyDown(event);
     return;
   }
 

@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "zustand";
-import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Info, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CopySimple, DotsSixVertical, Info, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -37,7 +37,7 @@ import {
 } from "./constants";
 import { EstimateRowColumnResizeHandle } from "./column-resize-handle";
 import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState, type MaterialVariantOption } from "./cells";
-import { focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells-model";
+import { focusEstimateCellByRowId, handleEstimateCellKeyDown, handleEstimateInputCommitKeyDown } from "./cells-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import { formatQuantityUnitLabel } from "@/lib/estimates/format-quantity-unit-label";
 import {
@@ -298,6 +298,7 @@ type EstimateRowItemTableRowProps = {
   isReplaceTarget: boolean;
   setFocusedCell: Dispatch<SetStateAction<FocusedEstimateCell | null>>;
   setReplaceTargetRowId: Dispatch<SetStateAction<string>>;
+  onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
@@ -342,6 +343,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   isReplaceTarget,
   setFocusedCell,
   setReplaceTargetRowId,
+  onInsertLibraryItem,
   onReplaceRowItem,
   onDeleteRowItem,
   onUpdateRowItem,
@@ -447,6 +449,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const rowContingencyQuantityUnitLabel = formatQuantityUnitLabel(rowContingencyQuantity, quantityDisplayUnit);
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
   const rowMutationPending = rowMutationStatus?.phase === "pending";
+  const duplicateRowItemDisabled = Boolean(expressDraftState) || rowMutationPending || componentSyncPending;
 
   function handleQuantityCellMouseLeave() {
     setQuantityCellHovered(false);
@@ -513,6 +516,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     if (values.supplier !== undefined && nextValues.supplier !== item.supplier) patch.supplier = nextValues.supplier;
     if (values.unit !== undefined && nextValues.unit !== item.unit) patch.unit = nextValues.unit;
     if (values.unitCost !== undefined && parseNonNegativeEditableNumber(nextValues.unitCost) !== item.itemCost) patch.unitCost = nextValues.unitCost;
+    if (values.priceOptionLabel !== undefined && nextValues.priceOptionLabel !== item.priceOptionLabel) patch.priceOptionLabel = nextValues.priceOptionLabel;
+    if (values.priceOptions !== undefined) patch.priceOptions = values.priceOptions;
     if (values.imageUrl !== undefined && nextValues.imageUrl !== (item.imageUrl ?? "")) patch.imageUrl = nextValues.imageUrl;
     if (values.imageAsset !== undefined) patch.imageAsset = values.imageAsset;
     if (values.sourceUrl !== undefined && nextValues.sourceUrl !== (item.sourceUrl ?? "")) patch.sourceUrl = nextValues.sourceUrl;
@@ -855,6 +860,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                 className={ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS}
                 onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
                 onChange={(event) => updateQuantityBreakdown("base", event.target.value)}
+                onKeyDown={handleEstimateInputCommitKeyDown}
                 onBlur={(event) => {
                   setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
                   commitQuantityFields(buildEditableQuantityContingencyPatch(event.currentTarget.value, computedItem.editableQuantityContingencyAmount));
@@ -874,6 +880,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                 className={ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS}
                 onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
                 onChange={(event) => updateQuantityBreakdown("contingency", event.target.value)}
+                onKeyDown={handleEstimateInputCommitKeyDown}
                 onBlur={(event) => {
                   setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
                   commitQuantityFields(buildEditableQuantityContingencyPatch(computedItem.editableQuantityBase, event.currentTarget.value));
@@ -998,18 +1005,24 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         <p className={ESTIMATE_PRIMARY_NUMERIC_CLASS}>{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
       </td>
       <td className="grid grid-cols-1 place-content-center gap-1 py-2 text-tertiary">
-        <Tooltip label="Row details" side="left" contentClassName="z-[1200]">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-            aria-label={`Open row details for ${computedItemLabel}`}
-            onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "details")}
-          >
-            <DotsThreeVertical size={14} weight="regular" aria-hidden="true" />
-          </Button>
-        </Tooltip>
+        {canEditEstimate ? (
+          <Tooltip label="Duplicate row item" side="left" contentClassName="z-[1200]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              aria-label={`Duplicate row item ${computedItemLabel}`}
+              disabled={duplicateRowItemDisabled}
+              onClick={() => onInsertLibraryItem(targetNodeId, {
+                ...computedItem,
+                duplicateSourceRowId: computedItem.id,
+              } as EstimateRowItem & { duplicateSourceRowId: string })}
+            >
+              <CopySimple size={14} weight="regular" aria-hidden="true" />
+            </Button>
+          </Tooltip>
+        ) : null}
         <Tooltip label="Row activity" side="left" contentClassName="z-[1200]">
           <Button
             type="button"
@@ -1339,6 +1352,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 setFocusedCell={setFocusedCell}
                 setReplaceTargetRowId={setReplaceTargetRowId}
                 onExpressEditorActiveChange={handleExpressEditorActiveChange}
+                onInsertLibraryItem={onInsertLibraryItem}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
                 onUpdateRowItem={onUpdateRowItem}

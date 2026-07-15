@@ -361,6 +361,7 @@ export function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
     supplier: item.supplier,
     unit: editableUnit,
     unitCost: toEditableNumber(item.itemCost),
+    priceOptionLabel: item.priceOptionLabel ?? null,
     imageUrl: item.imageUrl ?? "",
     sourceUrl: item.sourceUrl ?? "",
   };

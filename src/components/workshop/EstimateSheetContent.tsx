@@ -647,6 +647,7 @@ const SHARED_COMPONENT_EDIT_FIELDS = new Set<keyof EditableRowValue>([
   "supplier",
   "unit",
   "unitCost",
+  "priceOptionLabel",
   "imageUrl",
   "sourceUrl",
 ]);

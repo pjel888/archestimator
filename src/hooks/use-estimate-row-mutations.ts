@@ -128,6 +128,23 @@ type InsertEstimateRowInput = SharedMutationInput & {
   onError?: (error: Error) => void;
 };
 
+type DuplicateEstimateRowLibraryItem = EstimateRowItem & {
+  duplicateSourceRowId?: unknown;
+  duplicateSourceRowRevision?: number;
+};
+
+function readDuplicateEstimateRowSourceId(libraryItem: EstimateRowItem) {
+  const sourceRowId = (libraryItem as DuplicateEstimateRowLibraryItem).duplicateSourceRowId;
+  return typeof sourceRowId === "string" && sourceRowId.trim() ? sourceRowId.trim() : null;
+}
+
+function withDuplicateEstimateRowSourceRevision(libraryItem: EstimateRowItem, rowRevision: number) {
+  return {
+    ...libraryItem,
+    duplicateSourceRowRevision: rowRevision,
+  } as DuplicateEstimateRowLibraryItem;
+}
+
 type ReplaceEstimateRowInput = SharedMutationInput & {
   rowId: string;
   libraryItem: EstimateRowItem;
@@ -206,6 +223,7 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   supplier?: string;
   unit?: string;
   unitCost?: number;
+  priceOptionLabel?: string;
   categoryNodeId?: string | null;
   supplierId?: string | null;
   quantity?: number;
@@ -233,6 +251,7 @@ function isVariantScopedProjectComponentInput(input: UpdateEstimateRowInput) {
     || input.description !== undefined
     || input.unit !== undefined
     || input.unitCost !== undefined
+    || input.priceOptionLabel !== undefined
     || input.priceOptions !== undefined
     || input.removedPriceOptionReplacements !== undefined;
 }
@@ -296,6 +315,7 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
     ...(input.supplier !== undefined ? { supplier: input.supplier } : {}),
     ...(input.unit !== undefined ? { unit: input.unit } : {}),
     ...(input.unitCost !== undefined ? { itemCost: input.unitCost } : {}),
+    ...(input.priceOptionLabel !== undefined ? { priceOptionLabel: input.priceOptionLabel } : {}),
     ...(input.categoryNodeId !== undefined ? { categoryNodeId: input.categoryNodeId } : {}),
     ...(input.supplierId !== undefined ? { supplierId: input.supplierId } : {}),
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
@@ -342,6 +362,7 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
     unit: result.unit,
     itemCost: result.itemCost,
     rowRevision: result.rowRevision,
+    ...(input.priceOptionLabel !== undefined ? { priceOptionLabel: snapshotStringPatch(result.sourceSnapshot, "priceOptionLabel") ?? undefined } : {}),
     ...(input.quantity !== undefined ? { quantity: result.quantity } : {}),
     ...(input.quantityBase !== undefined ? { quantityBase: result.quantityBase } : {}),
     ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: result.quantityContingencyAmount } : {}),
@@ -1311,9 +1332,14 @@ export function useEstimateRowMutations(
   }
 
   function withInsertMutationIdentity(input: InsertEstimateRowInput): InsertEstimateRowInput {
+    const duplicateSourceRowId = readDuplicateEstimateRowSourceId(input.libraryItem);
+    const duplicateSourceRowRevision = duplicateSourceRowId ? getCachedRowRevision(duplicateSourceRowId) : undefined;
     return {
       ...input,
       mutationId: input.mutationId ?? createMutationId(),
+      libraryItem: duplicateSourceRowRevision === undefined
+        ? input.libraryItem
+        : withDuplicateEstimateRowSourceRevision(input.libraryItem, duplicateSourceRowRevision),
     };
   }
 
@@ -1395,7 +1421,11 @@ export function useEstimateRowMutations(
     markRowDirty,
     markRowClean,
     fetchTree: fetchEstimateTree,
-    insertRow: (input: InsertEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => insertMutation.mutateAsync(withInsertMutationIdentity(input))),
+    insertRow: (input: InsertEstimateRowInput) => {
+      const duplicateSourceRowId = readDuplicateEstimateRowSourceId(input.libraryItem);
+      const queuedRowIds = duplicateSourceRowId ? [duplicateSourceRowId, input.rowId] : [input.rowId];
+      return enqueueEstimateMutation(queuedRowIds, () => insertMutation.mutateAsync(withInsertMutationIdentity(input)));
+    },
     replaceRow: (input: ReplaceEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => replaceMutation.mutateAsync(withMutationIdentity(input))),
     moveRows: (input: MoveEstimateRowsInput) => enqueueEstimateMutation([input.sourceRowId, input.targetRowId], () => moveMutation.mutateAsync(withMoveMutationIdentity(input))),
     moveRowItem: (input: MoveEstimateRowItemInput) => enqueueEstimateMutation(input.updates.map((update) => update.rowId), () => moveRowItemMutation.mutateAsync(withMoveRowItemMutationIdentity(input))),

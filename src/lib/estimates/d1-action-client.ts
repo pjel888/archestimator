@@ -2245,16 +2245,23 @@ function normalizeProjectComponentSourceRowPatch(
   rowPatch: Record<string, unknown>,
   replacements: Map<string, string>,
 ) {
-  if (!Object.prototype.hasOwnProperty.call(rowPatch, "sourceSnapshot") || rowPatch.sourceSnapshot === null) {
-    return rowPatch;
+  const hasPriceOptionLabelPatch = Object.prototype.hasOwnProperty.call(rowPatch, "priceOptionLabel");
+  const nextPriceOptionLabel = hasPriceOptionLabelPatch ? readNonEmptyText(rowPatch.priceOptionLabel) : null;
+  if (hasPriceOptionLabelPatch && !nextPriceOptionLabel) {
+    throw new Error("Variant name is required.");
+  }
+  const persistedRowPatch = { ...rowPatch };
+  delete persistedRowPatch.priceOptionLabel;
+  if (!Object.prototype.hasOwnProperty.call(persistedRowPatch, "sourceSnapshot") || persistedRowPatch.sourceSnapshot === null) {
+    return persistedRowPatch;
   }
   const currentSourceSnapshot = readJsonRecord(rowSourceSnapshot(row));
   const incomingSourceSnapshot = {
     ...currentSourceSnapshot,
-    ...readJsonRecord(rowPatch.sourceSnapshot),
+    ...readJsonRecord(persistedRowPatch.sourceSnapshot),
   };
   const incomingOptions = readProjectComponentPriceOptions(incomingSourceSnapshot);
-  if (incomingOptions.length === 0) return rowPatch;
+  if (incomingOptions.length === 0) return persistedRowPatch;
   const currentSelectedId = readProjectComponentSelectedPriceOptionId(row);
   const incomingOptionById = new Map(incomingOptions.map((option) => [option.id, option]));
   let selectedId = readNonEmptyText(incomingSourceSnapshot.priceOptionId) ?? currentSelectedId;
@@ -2273,11 +2280,12 @@ function normalizeProjectComponentSourceRowPatch(
   const selectedIndex = incomingOptions.findIndex((option) => option.id === selectedId);
   const nextSelectedOption: ProjectComponentPriceOptionSnapshot = {
     ...selectedOption!,
-    ...(Object.prototype.hasOwnProperty.call(rowPatch, "description")
-      ? { variantDescription: rowPatch.description }
+    ...(nextPriceOptionLabel ? { label: nextPriceOptionLabel } : {}),
+    ...(Object.prototype.hasOwnProperty.call(persistedRowPatch, "description")
+      ? { variantDescription: persistedRowPatch.description }
       : {}),
-    ...(Object.prototype.hasOwnProperty.call(rowPatch, "unit") ? { unit: rowPatch.unit } : {}),
-    ...(Object.prototype.hasOwnProperty.call(rowPatch, "unitCost") ? { unitCost: rowPatch.unitCost } : {}),
+    ...(Object.prototype.hasOwnProperty.call(persistedRowPatch, "unit") ? { unit: persistedRowPatch.unit } : {}),
+    ...(Object.prototype.hasOwnProperty.call(persistedRowPatch, "unitCost") ? { unitCost: persistedRowPatch.unitCost } : {}),
   };
   const nextOptions = [...incomingOptions];
   nextOptions[selectedIndex] = nextSelectedOption;
@@ -2289,7 +2297,7 @@ function normalizeProjectComponentSourceRowPatch(
     || projectComponentVariantImageSignature(previousSelectedOption) !== projectComponentVariantImageSignature(nextSelectedOption);
   const variantSnapshotPatch = projectComponentVariantSourceSnapshotPatch(nextSelectedOption, { clearImageAsset: imageChanged });
   return {
-    ...rowPatch,
+    ...persistedRowPatch,
     description: variantSnapshotPatch.description ?? "",
     unit: variantSnapshotPatch.unit,
     unitCost: variantSnapshotPatch.unit_cost,

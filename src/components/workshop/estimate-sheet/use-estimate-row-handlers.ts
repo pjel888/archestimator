@@ -550,6 +550,7 @@ export function useEstimateRowHandlers({
       supplier: values.supplier ?? currentEditableRow?.supplier ?? "",
       unit: values.unit ?? currentEditableRow?.unit ?? "unit",
       unitCost: values.unitCost ?? currentEditableRow?.unitCost ?? "0",
+      priceOptionLabel: values.priceOptionLabel ?? currentEditableRow?.priceOptionLabel ?? null,
       imageUrl: values.imageUrl ?? currentEditableRow?.imageUrl ?? "",
       sourceUrl: values.sourceUrl ?? currentEditableRow?.sourceUrl ?? "",
       quantity: values.quantity ?? currentEditableRow?.quantity ?? "0",
@@ -561,7 +562,7 @@ export function useEstimateRowHandlers({
       adjustmentPercentage: values.adjustmentPercentage ?? currentEditableRow?.adjustmentPercentage ?? "0",
       miscCost: values.miscCost ?? currentEditableRow?.miscCost ?? "0",
     };
-    const expressFieldNames = ["name", "description", "brand", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
+    const expressFieldNames = ["name", "description", "brand", "supplier", "unit", "unitCost", "priceOptionLabel", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
     if (expressFieldNames.length > 0) {
       recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
     }
@@ -685,6 +686,7 @@ export function useEstimateRowHandlers({
       ...(values.supplier !== undefined ? { supplier: values.supplier } : {}),
       ...(values.unit !== undefined ? { unit: values.unit } : {}),
       ...(values.unitCost !== undefined ? { unitCost: parseNonNegativeEditableNumber(values.unitCost) } : {}),
+      ...(values.priceOptionLabel !== undefined ? { priceOptionLabel: values.priceOptionLabel ?? "" } : {}),
       ...(values.categoryNodeId !== undefined ? { categoryNodeId: values.categoryNodeId } : {}),
       ...(values.supplierId !== undefined ? { supplierId: values.supplierId } : {}),
       ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
@@ -722,6 +724,7 @@ export function useEstimateRowHandlers({
           || values.description !== undefined
           || values.unit !== undefined
           || values.unitCost !== undefined
+          || values.priceOptionLabel !== undefined
           || values.priceOptions !== undefined
           || options.removedPriceOptionReplacements !== undefined;
         let patchedTree = estimateTree;

@@ -166,6 +166,11 @@ type InsertEstimateRowItemFromLibraryInput = {
   mutationId?: string;
 };
 
+type DuplicateEstimateRowItemRequest = EstimateRowItem & {
+  duplicateSourceRowId?: unknown;
+  duplicateSourceRowRevision?: unknown;
+};
+
 type InsertEstimateTemplateIntoEstimateInput = {
   projectId: string;
   estimateId: string;
@@ -220,6 +225,7 @@ type UpdateEstimateRowItemInput = {
   supplier?: string;
   unit?: string;
   unitCost?: number;
+  priceOptionLabel?: string;
   categoryNodeId?: string | null;
   supplierId?: string | null;
   quantity?: number;
@@ -3478,6 +3484,91 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   return { status: "inserted", tree, insertedRootNodeId };
 }
 
+function readDuplicateEstimateRowItemRequest(libraryItem: EstimateRowItem) {
+  const request = libraryItem as DuplicateEstimateRowItemRequest;
+  if (request.duplicateSourceRowId === undefined) return null;
+  if (typeof request.duplicateSourceRowId !== "string") throw new Error("Duplicate estimate row source id is invalid.");
+
+  const sourceRowId = assertPersistedUuid(request.duplicateSourceRowId, "Duplicate estimate row source");
+  if (request.duplicateSourceRowRevision === undefined) return { sourceRowId, expectedSourceRowRevision: undefined };
+
+  const expectedSourceRowRevision = Number(request.duplicateSourceRowRevision);
+  if (!Number.isInteger(expectedSourceRowRevision) || expectedSourceRowRevision < 1) {
+    throw new Error("Duplicate estimate row source revision is invalid.");
+  }
+  return { sourceRowId, expectedSourceRowRevision };
+}
+
+async function duplicateEstimateRowItemFromSource({
+  projectId,
+  estimateId,
+  sourceRowId,
+  expectedSourceRowRevision,
+  duplicatedRowId,
+  mutationId,
+  actingUserId,
+  dataStore,
+}: {
+  projectId: string;
+  estimateId: string;
+  sourceRowId: string;
+  expectedSourceRowRevision?: number;
+  duplicatedRowId: string;
+  mutationId?: string;
+  actingUserId: string;
+  dataStore: EstimateActionsD1Client;
+}) {
+  const { data: sourceRow, error: sourceRowError } = await dataStore
+    .from("estimate_row_items")
+    .select("id, estimate_id, node_id, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, discipline, designation, metadata, link_state, row_revision, estimate_nodes!inner(id, estimates!inner(project_id))")
+    .eq("id", sourceRowId)
+    .eq("estimate_id", estimateId)
+    .eq("estimate_nodes.estimates.project_id", projectId)
+    .maybeSingle<Tables<"estimate_row_items">>();
+
+  if (sourceRowError) throw sourceRowError;
+  if (!sourceRow) throw new Error("Estimate row item to duplicate was not found in the current project.");
+  if (
+    expectedSourceRowRevision !== undefined
+    && readNumber(sourceRow.row_revision, 1) !== expectedSourceRowRevision
+  ) {
+    throw new EstimateRowRevisionConflictError();
+  }
+
+  const { data: insertData, error: insertError } = await dataStore.call("insert_estimate_row_item_with_history", {
+    target_project_id: projectId,
+    target_estimate_id: estimateId,
+    target_node_id: sourceRow.node_id,
+    row_payload: {
+      id: assertPersistedUuid(duplicatedRowId, "Duplicated estimate row"),
+      sourceLibraryItemId: sourceRow.source_library_item_id,
+      sourceSnapshot: sourceRow.source_snapshot ?? {},
+      categoryNodeId: sourceRow.category_node_id,
+      supplierId: sourceRow.supplier_id,
+      material: sourceRow.material,
+      description: sourceRow.description,
+      supplier: sourceRow.supplier,
+      unit: sourceRow.unit,
+      quantity: sourceRow.quantity,
+      quantityBase: sourceRow.quantity_base,
+      quantityContingencyAmount: sourceRow.quantity_contingency_amount,
+      unitCost: sourceRow.unit_cost,
+      contingencyPercentage: sourceRow.contingency_percentage,
+      adjustmentPercentage: sourceRow.adjustment_percentage,
+      miscCost: sourceRow.misc_cost,
+      discipline: sourceRow.discipline,
+      designation: sourceRow.designation,
+      metadata: sourceRow.metadata ?? {},
+      linkState: sourceRow.link_state,
+    },
+    acting_user_id: actingUserId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (insertError) throwEstimateRowMutationError(insertError);
+  return insertData ? readHistoryRowResult(insertData) : undefined;
+}
+
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -3485,6 +3576,19 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   const dataStore = await createEstimateActionsD1Client();
   await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
+  const duplicateRequest = readDuplicateEstimateRowItemRequest(libraryItem);
+  if (duplicateRequest) {
+    return duplicateEstimateRowItemFromSource({
+      projectId: project.id,
+      estimateId,
+      sourceRowId: duplicateRequest.sourceRowId,
+      expectedSourceRowRevision: duplicateRequest.expectedSourceRowRevision,
+      duplicatedRowId: rowId,
+      mutationId,
+      actingUserId: currentUser.userId,
+      dataStore,
+    });
+  }
   // P6 single-node model: a row may be inserted into ANY node, not only the
   // former "area" kind. We still scope the target to a node that exists in this
   // estimate/project; the relaxed insert_estimate_row_item_with_history RPC
@@ -3596,7 +3700,7 @@ export async function updateEstimateSheetAdjustment({
   return readEstimateSheetAdjustmentRpcResult(adjustmentResult);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, componentMutationIntent, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, componentMutationIntent, material, description, supplier, unit, unitCost, priceOptionLabel, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
@@ -3624,6 +3728,16 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
     }
     sourceSnapshotPatch = sanitizeEstimateRowSourceSnapshotForPersistence(mergedSourceSnapshot);
   }
+  const normalizedPriceOptionLabel = priceOptionLabel !== undefined
+    ? normalizeEditableText(priceOptionLabel, "Variant name")
+    : undefined;
+  if (normalizedPriceOptionLabel !== undefined) {
+    sourceSnapshotPatch = sanitizeEstimateRowSourceSnapshotForPersistence({
+      ...readJsonObject(row.source_snapshot),
+      ...readJsonObject(sourceSnapshotPatch),
+      priceOptionLabel: normalizedPriceOptionLabel,
+    });
+  }
   assertValidEstimateRowCalculationInput({
     quantity: quantity ?? row.quantity,
     quantity_base: quantityBase !== undefined ? quantityBase : row.quantity_base,
@@ -3640,6 +3754,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
     ...(supplier !== undefined ? { supplier } : {}),
     ...(unit !== undefined ? { unit } : {}),
     ...(unitCost !== undefined ? { unitCost } : {}),
+    ...(normalizedPriceOptionLabel !== undefined ? { priceOptionLabel: normalizedPriceOptionLabel } : {}),
     ...(categoryNodeId !== undefined ? { categoryNodeId } : {}),
     ...(supplierId !== undefined ? { supplierId } : {}),
     ...(quantity !== undefined ? { quantity } : {}),
