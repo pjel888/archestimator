@@ -19,6 +19,7 @@ import {
   getUnitComboboxValue,
 } from "@/components/workshop/component-unit-combobox-options";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
+import { formatVariantCode, formatVariantDropdownLabel } from "@/lib/component-library/variant-display";
 import { classifyEstimateRowSource, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { cn } from "@/lib/ui/cn";
 import { getUploadClientErrorMessage, isUploadAbortError, postUploadFormData } from "@/lib/uploads/client-upload";
@@ -364,7 +365,7 @@ function MaterialVariantControl({
   const activeOptionId = getActiveMaterialVariantId(item, variantOptions);
   const activeOptionIndex = Math.max(0, variantOptions.findIndex((option) => option.id === activeOptionId));
   const activeOption = variantOptions[activeOptionIndex];
-  const variantLabel = String(activeOptionIndex + 1);
+  const variantLabel = formatVariantCode(activeOptionIndex);
   const variantTitle = activeOption?.label ?? "Default";
   const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const controlClass =
@@ -397,11 +398,11 @@ function MaterialVariantControl({
         </button>
       )}
     >
-      {variantOptions.map((option) => (
+      {variantOptions.map((option, index) => (
         <DropdownMenu.Item
           key={option.id}
           id={option.id}
-          label={option.label}
+          label={formatVariantDropdownLabel(index, option.label)}
           selected={option.id === activeOptionId}
           disabled={!hasSelectableVariants}
           onClick={() => onSelectVariant(option)}
@@ -1011,7 +1012,7 @@ function ExpressMaterialEditor({
               commitField("description", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "description", onCommit: () => commitField("description", event.currentTarget.value), onRevert, multiline: true })}
+            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "description", onCommit: () => commitField("description", event.currentTarget.value), onRevert })}
             data-estimate-row-id={item.id}
             data-express-field="description"
             aria-label="Component description"

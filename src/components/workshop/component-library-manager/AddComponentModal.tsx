@@ -35,6 +35,7 @@ import {
   type CreateCostLibraryComponentInput,
   type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
+import { formatVariantCode, formatVariantDropdownLabel } from "@/lib/component-library/variant-display";
 import {
   type LibraryFolderRecord,
 } from "@/lib/component-library/library-folder-reorder";
@@ -2175,7 +2176,7 @@ function OpenAddComponentModal({
                     <button
                       key={variant.id}
                       type="button"
-                      aria-label={`Open ${variant.label || fallbackLabel}`}
+                      aria-label={`Open ${formatVariantDropdownLabel(index, variant.label || fallbackLabel)}`}
                       aria-pressed={isActive}
                       onClick={() => {
                         setActiveVariantId(variant.id);
@@ -2189,7 +2190,7 @@ function OpenAddComponentModal({
                         isLast && "rounded-br-[3px]",
                       )}
                     >
-                      {variant.isDefault ? "D" : index + 1}
+                      {formatVariantCode(index)}
                     </button>
                   );
                 })}
