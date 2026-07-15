@@ -266,3 +266,5 @@ This UX/UI readiness slice is complete only when:
 4. no scoped edit/filter action causes unrelated loading, remount, fetch, scroll loss, or layout shift;
 5. accessibility remains explicit after background fills are removed; and
 6. `AC-016` and `AC-017` have fresh evidence and the canonical pack still passes validation.
+
+Source/static implementation may be complete before this release-evidence stop condition. Without explicit browser authorization, keep browser-only portions of `AC-016`/`AC-017` `FAIL` or `NOT_EVALUATED` and report the boundary; do not reopen otherwise proven local implementation work.

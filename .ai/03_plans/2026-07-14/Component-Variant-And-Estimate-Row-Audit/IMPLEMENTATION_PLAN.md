@@ -203,7 +203,8 @@ Make tab and Area CRUD, duplicate, move/reorder, delete, and restore preserve to
 
 ### Evidence and recovery
 
-- Required: topology queries, source/target read-back, route fallback receipt, history receipt, scoped static evidence, edit-state geometry/focus receipt, and a render-count/profiler receipt for one Area rename keystroke.
+- Required without test authorization: topology queries, source/target read-back, route fallback receipt, history receipt, scoped static evidence, and source/class/DOM ownership showing the active rename draft is row-local and geometry-stable.
+- Proposed when browser evidence is explicitly authorized: focus/geometry walkthrough and one render-count/React Profiler capture for an Area rename keystroke.
 - Proposed when explicitly authorized: deep-tree duplicate, cycle, restore, and partial-tree drag cases.
 - Recovery: refresh the affected tab from authoritative D1 on mutation failure; never locally synthesize missing parents.
 
@@ -432,8 +433,8 @@ Make Template save/create, bounded browse, header/category lifecycle, editor nod
 
 ### Evidence and recovery
 
-- Required: failed-create/no-shell D1 receipt, complete Template graph read-back, bounded summary/detail query receipt, editor topology/order receipt, row-field/variant diff, cache invalidation receipt, rename/filter geometry and focus receipt, source-pack absence/path search, and canonical plan validation.
-- Proposed when explicitly authorized: one failed-save atomicity test and one Template insert retry/variant-fallback test because those critical mutation behaviors cannot be proved by source inspection alone.
+- Required without test authorization: failed-create/no-shell D1 receipt, complete Template graph read-back, bounded summary/detail query receipt, editor topology/order/activity receipt, fallback-state receipt, row-field/variant/provenance diff, cache invalidation receipt, source/class/DOM ownership receipt, source-pack absence/path search, and canonical plan validation.
+- Proposed when explicitly authorized: rename/filter geometry and focus walkthrough plus the exact Template lifecycle test command below.
 - Recovery: all pre-commit validation failures change nothing; Template delete is explicitly irreversible for the Template graph but cannot affect prior Estimate copies; object cleanup remains metadata-driven and retryable.
 
 ## `UNIT-008` — Integrated Verification And Release Decision
@@ -492,8 +493,8 @@ These commands are exact proposals only. Do not create, repair, or run them unle
 | Completed unit | Exact next state |
 | --- | --- |
 | `UNIT-001` | Open `UNIT-002` and `UNIT-003` in parallel only after freezing the writer registry and source baseline. |
-| `UNIT-002` | Keep `UNIT-003` active if unfinished; otherwise open `UNIT-004`. |
-| `UNIT-003` | Keep `UNIT-002` active if unfinished; after both verify, open `UNIT-004`, then `UNIT-005` when `UNIT-004` is not required by its dependency set. |
+| `UNIT-002` | Open `UNIT-004`; keep `UNIT-003` active if unfinished, because `UNIT-005` also waits for it. |
+| `UNIT-003` | When `UNIT-002` is also verified, open `UNIT-005`; `UNIT-004` may already be active from `UNIT-002`. |
 | `UNIT-004` | Open `UNIT-006`; open `UNIT-009` after `UNIT-005` also verifies. `UX-003`/`AC-018` remains an optional auxiliary tail. |
 | `UNIT-005` | Open `UNIT-009` after `UNIT-004`; preserve its receipts for `UNIT-007`. |
 | `UNIT-006` | Open `UNIT-007` only after all registered authoring writers from `UNIT-002` through `UNIT-006` are revision-aware. |

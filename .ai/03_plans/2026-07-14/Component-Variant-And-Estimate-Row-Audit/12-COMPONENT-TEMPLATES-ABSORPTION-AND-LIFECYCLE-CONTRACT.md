@@ -30,7 +30,7 @@ The high-value claims from the absorbed pack were spot-checked against the curre
 | Unavailable variants require explicit fallback | Missing/inactive/mismatched source or selected option returns `requires_saved_snapshot_confirmation`; accepted fallback inserts unlinked saved data. | `CONFIRMED` |
 | Template insert is atomic but not truly retry-idempotent | Rows/nodes/history use `runMutationWithHistory`, but row/node IDs are allocated per call and correlation alone does not return a committed mutation receipt before copy planning. | `CONFIRMED_OPEN` |
 | Template editor CRUD exists | Node create/rename/delete/move, row add/update/delete/reorder, allowance creation, and template-into-template composition exports remain present. | `CONFIRMED` |
-| Hard-coded fallback templates remain | `getTemplateTableFallbackTemplates` can still return the three seed templates when explicitly told the table is missing. | `CONFIRMED_OPEN_POLICY` |
+| Hard-coded fallback templates remain | `getTemplateTableFallbackTemplates` can still return the three seed templates when explicitly told the table is missing. | `CONFIRMED_OPEN_IMPLEMENTATION`; policy is fixed below. |
 | `pricing_provenance_origin` remains incomplete | Template save, insert, and composition builders still do not consistently write the field. | `CONFIRMED_OPEN` |
 
 This recheck also corrects one stale statement in historical artifact `03`: the current sidebar path is not accurately described as loading every template graph. The canonical current model is bounded summary browse plus selected graph hydration. Artifacts `01` through `08` remain dated baseline material and cannot override this artifact.
