@@ -130,7 +130,7 @@ The editor must not imply a Project-source insertion capability it does not supp
 5. Component and selected-variant receipts are re-resolved against current Library state.
 6. Any unavailable source first returns one bounded confirmation result; accepted saved-snapshot fallback becomes explicitly unlinked.
 7. All destination IDs are fresh and all roots/children preserve deterministic topology/order.
-8. The server computes the exact statement count from the validated graph, including every guard, order shift, node, row, history, outbox, and committed-receipt statement. A count above `D1_MAX_BATCH_STATEMENTS = 1000` returns `selection_too_large` before ID allocation or mutation; the intent is never chunked.
+8. The server computes the exact statement count from the validated graph, including every guard, order shift, node, row, destination-project publication-revision bump, history, outbox, and committed-receipt statement. A count above `D1_MAX_BATCH_STATEMENTS = 1000` returns `selection_too_large` before ID allocation or mutation; the intent is never chunked.
 9. One atomic D1 batch of at most `1000` statements writes the complete intent.
 10. A replay of the same intent returns the prior committed receipt before generating IDs or statements; a deliberate second copy uses a new intent ID.
 11. The client reconciles the authoritative inserted roots. While waiting, it shows a lightweight target-scoped pending affordance rather than cloning the full subtree optimistically.

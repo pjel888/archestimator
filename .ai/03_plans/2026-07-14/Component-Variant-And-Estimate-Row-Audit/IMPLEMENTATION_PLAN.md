@@ -24,7 +24,7 @@ This plan does not treat source presence, a green plan validator, local D1 behav
 3. **Variants:** selected variant is row-owned; editing a variant definition is shared and scoped by component identity plus stable variant ID.
 4. **Permanent Library delete:** archive preserves references; typed permanent delete removes the Library component and dependent Estimate/Template rows, is explicitly irreversible, and emits atomic audit receipts. The interactive path refuses above `MAX_PERMANENT_DELETE_DEPENDENTS = 400` combined dependent rows and offers Archive; larger destruction is a separately authorized maintenance task. It never degrades into silent detach.
 5. **Templates:** this pack owns the complete detached-blueprint lifecycle: save/create, bounded browse/detail, category/header CRUD, editor node/row CRUD, composition, selected-variant/source trust, and Estimate/Project-source insertion. The absorbed duplicate pack is no longer a parallel authority.
-6. **Publication:** this pack owns authoring-to-issued field, tree, totals, and privacy parity. A forward migration adds monotonic `projects.publication_source_revision`; every issue-visible authoring mutation increments it in the same D1 batch, publication reads capture it, and issue/publication persistence commits only while that exact revision still matches. Recipient sessions, discussions, decisions, notifications, and full Client Portal presentation remain auxiliary.
+6. **Publication:** this pack owns authoring-to-issued field, tree, totals, and privacy parity. `migrations/0080_project_publication_source_revision.sql` adds monotonic `projects.publication_source_revision`; every issue-visible authoring mutation increments it in the same D1 batch, publication reads capture it, and issue/publication persistence commits only while that exact revision still matches. Recipient sessions, discussions, decisions, notifications, and full Client Portal presentation remain auxiliary.
 7. **Provider scope:** only resources bound to this repository in `wrangler.jsonc` are in scope. No legacy Supabase, unrelated Cloudflare project, deployment, paid add-on, or unbound resource is included.
 8. **Source/link state:** `linked-clean`, `linked-overridden`, and `source-changed` require a valid source identity; `unlinked` requires `NULL`; `detached` retains historical source identity for provenance but is excluded from live Library ownership and fan-out.
 9. **Revision:** every active row begins at revision `1`; no writer may create revision `0`, and no reader may hide persisted drift by clamping it.
@@ -47,6 +47,7 @@ This plan does not treat source presence, a green plan validator, local D1 behav
 - Keep optimistic UI reversible until authoritative success. Destructive operations must validate impact before mutating and must not chunk into partially committed states.
 - A correlation/history uniqueness check is not mutation idempotency unless it prevents every mutation statement from replaying or returns a stored receipt before mutation planning.
 - Do not fix a race with another preflight read or client-only validation. Put freshness, topology, and intent guards in the authoritative D1 boundary.
+- Every issue-visible mutation implemented by `UNIT-002` through `UNIT-006` increments `projects.publication_source_revision` once per distinct affected project in the same D1 batch. Existing direct `UPDATE projects` writers increment in that update; multi-project component fan-out/delete batches add one guarded increment per owner project. The increment counts toward every statement ceiling.
 - The current plan refresh includes one read-only live-route baseline recorded in artifact `13`. Required implementation evidence is limited to source/static/diff checks, D1 integrity and mutation receipts, provider receipts within standing authority, and deterministic read-back. Automated tests, browser automation, screenshots, visual QA, React Profiler, and browser-network capture remain `TEST_PROPOSAL` evidence until explicitly authorized; their absence cannot block a unit's local implementation completion, but the corresponding browser/release claim remains `FAIL` or `NOT_EVALUATED`.
 - No unit may claim completion from a source diff alone. The evidence named by that unit must be collected at the environment level it claims.
 
@@ -278,7 +279,7 @@ Make Template/category/node and reusable Project source insertion target-correct
 2. Authoritatively derive target tab/estimate from the target parent; remove or reject any caller-supplied mismatch.
 3. Pass one stable client intent ID. Return the existing committed receipt before source loading, ID generation, or copy statements on retry; an intentional second copy uses a new intent ID.
 4. Allocate fresh tab/node/row identities, preserve parent topology and deterministic order, and localize source receipts/selected variants according to the accepted copy contract.
-5. Resolve and validate the complete source set—workspace/project access, lifecycle, bounded payload, and partial-tree conditions—before allocating destination IDs. Compute the exact D1 statement count from that resolved graph, including guards, order shifts, nodes, rows, one history event, one outbox event, and one committed receipt. If the count exceeds `D1_MAX_BATCH_STATEMENTS = 1000`, return `selection_too_large` before ID allocation or mutation and instruct the user to narrow the selection; never chunk or partially succeed.
+5. Resolve and validate the complete source set—workspace/project access, lifecycle, bounded payload, and partial-tree conditions—before allocating destination IDs. Compute the exact D1 statement count from that resolved graph, including guards, order shifts, nodes, rows, the project publication-revision bump, one history event, one outbox event, and one committed receipt. If the count exceeds `D1_MAX_BATCH_STATEMENTS = 1000`, return `selection_too_large` before ID allocation or mutation and instruct the user to narrow the selection; never chunk or partially succeed.
 6. Allocate fresh identities only after the ceiling check, then execute the entire user intent in one hard D1 batch and return one authoritative copy receipt for cache replacement, history, totals, and source-set messaging.
 7. Keep the browser-event bridge but centralize a versioned command envelope containing target estimate/tab/node, source kind/identity, intent ID, and acceptance callback; one listener must claim or reject the command.
 8. Expose one lightweight target-scoped pending affordance while the authoritative insert runs. Do not clone the full Template subtree optimistically or place unrelated Template/component instances into loading state.
@@ -357,8 +358,15 @@ Make legacy share and Client Portal issuance consume one explicit authoring fiel
 - `src/lib/publication/snapshot.ts`
 - `src/lib/client-portal/publish-service.ts`
 - `src/lib/client-portal/issue-builder.ts`
-- the forward migration that adds `projects.publication_source_revision`
-- every issue-visible authoring writer registered by `UNIT-001`
+- `migrations/0080_project_publication_source_revision.sql`
+- `src/lib/estimates/actions.ts`
+- `src/lib/estimates/d1-action-client.ts`
+- `src/lib/estimates/express-promotion-actions.ts`
+- `src/lib/component-library/actions.ts`
+- `src/lib/projects/actions.ts`
+- `src/lib/projects/location-actions.ts`
+- `src/lib/publisher/drawer-actions.ts`
+- any additional issue-visible writer proven by `UNIT-001`'s registry; adding one requires updating the registry before `UNIT-007` can verify
 - public share model/types only where authoring fields or privacy filters differ
 
 ### Work
