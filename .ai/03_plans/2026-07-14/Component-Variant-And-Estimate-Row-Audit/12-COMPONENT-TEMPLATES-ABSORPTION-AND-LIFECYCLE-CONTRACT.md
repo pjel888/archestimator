@@ -190,15 +190,15 @@ These are contracts to preserve, not evidence that the wider feature is release-
 
 | Absorbed ID | Severity in source pack | Integrated assessment | Canonical owner/disposition |
 | --- | --- | --- | --- |
-| `TPL-F-001` Create header/batch atomicity | `P2 OPEN` | Confirmed. A failed node/row batch plus failed/interrupted compensating delete can leave a shell. | `REQ-009`, `DATA-001`, `UNIT-009`, `AC-015`; one hard batch, no compensating delete. |
+| `TPL-F-001` Create header/batch atomicity | `P2 OPEN` | Confirmed. A failed node/row batch plus failed/interrupted compensating delete can leave a shell. | `REQ-009`, `DATA-001`, `UNIT-009`, `AC-015`; one hard graph+activity batch within the inclusive `1000`-statement ceiling, no compensating delete. |
 | `TPL-F-002` No immediate insert feedback | `P2 OPEN` | Confirmed UX gap; full optimistic subtree cloning remains rejected. | `REQ-007`, `UX-001`, `UNIT-005`, `AC-007`, `AC-012`; lightweight target-scoped pending affordance. |
 | `TPL-F-003` Implicit global events | `P3` | Superseded by broader `F-020 P1`: unscoped/unacknowledged commands can misroute or duplicate insertion. | `UNIT-003`, `UNIT-005`; versioned acknowledged envelope plus server guards. |
 | `TPL-F-004` Contingency semantic drift | `P3 OPEN` | Confirmed latent field-contract drift. | `REQ-009`, `DATA-001`, `UNIT-009`, `AC-015`; one explicit zero/fold or removal invariant. |
 | `TPL-F-005` D1 cycle/order constraints | `P3 ACCEPTED` | App guards cover normal alpha authoring, but concurrent move/direct-write risk remains. | `RISK-001`, `RISK-008`, `UNIT-009`; integrity query now, forward constraint only after real data and concurrency need justify it. |
-| `TPL-F-006` No Template CRUD history | `P3 DECISION` | Estimate insertion must remain historized; Template library CRUD needs an explicit library audit policy, not fake Estimate events. | `OPS-001`, `UNIT-009`, `AC-014`, `AC-015`; decide/document and implement only the chosen library-level receipt. |
+| `TPL-F-006` No Template CRUD history | `P3 DECIDED` | Estimate insertion remains historized; Template library CRUD receives one bounded same-batch operational receipt, not fake Estimate events. | `OPS-001`, `UNIT-009`, `AC-014`, `AC-015`; use existing `component_library_telemetry_events` and make no compliance-log claim. |
 | `TPL-F-007` No zod schemas | `P3 ACCEPTED` | No demonstrated correctness defect; existing guards are currently adequate. | No unit/dependency added. Add schema validation only when a concrete boundary gap is found. |
-| `TPL-F-008` Synthetic seed fallback | `P3 OPEN_POLICY` | Confirmed degraded-mode ambiguity. | `REQ-009`, `PERF-001`, `OPS-001`, `UNIT-009`; prove migration availability, then remove or make the synthetic/demo state explicit. |
-| `TPL-F-009` Dead pricing provenance | `P3 OPEN` | Confirmed, with broader row/publication blast radius than the source pack modeled. | `REQ-004`, `REQ-009`, `DATA-001`, `UNIT-002`, `UNIT-009`; resolve one cross-system contract. |
+| `TPL-F-008` Synthetic seed fallback | `P3 DECIDED` | Confirmed degraded-mode ambiguity. | `REQ-009`, `PERF-001`, `OPS-001`, `UNIT-009`; remove the production fallback after preflight, return explicit schema-unavailable state, and retain seeds only as named development fixtures. |
+| `TPL-F-009` Dead pricing provenance | `P3 DECIDED_OPEN_IMPLEMENTATION` | Confirmed, with broader row/publication blast radius than the source pack modeled. | `REQ-004`, `REQ-009`, `DATA-001`, `UNIT-002`, `UNIT-009`; apply the fixed `recorded`/`inherited_snapshot`/`synthesized_fallback`/`missing` contract and keep it private. |
 | `TPL-F-010` No insert replay dedupe | `P3 ACCEPTED` in source pack | Superseded by `F-011 P1`: current cross-surface intent/retry contract requires real idempotency before release. | `REQ-007`, `UNIT-005`, `AC-007`; committed receipt before copy planning. |
 
 ## Absorbed Requirement Crosswalk
@@ -221,9 +221,9 @@ These are contracts to preserve, not evidence that the wider feature is release-
 | Source `UNIT-1` — atomic create | `UNIT-009` | Retained as required work. |
 | Source `UNIT-2` — insert pending affordance | `UNIT-005` | Retained, narrowed to a lightweight target-scoped placeholder. |
 | Source `UNIT-3` — contingency symmetry | `UNIT-009` | Retained under the full row-field contract. |
-| Source `UNIT-4` — pricing provenance decision | `UNIT-002` + `UNIT-009` | Expanded to one Estimate/Template/Project/publication decision; isolated read deletion is superseded. |
+| Source `UNIT-4` — pricing provenance decision | `UNIT-002` + `UNIT-009` | Resolved as the fixed four-value private contract; isolated read deletion is superseded. |
 
-The source pack rejected dedicated units for idempotency, cycle constraints, validation schemas, global-event refactor, Template CRUD history, and fallback removal. Integration keeps validation-schema and speculative D1-constraint work deferred, but promotes real insertion idempotency/event acknowledgement into existing `UNIT-005` because the broader route audit demonstrated a release-blocking intent-identity risk.
+The source pack rejected dedicated units for idempotency, cycle constraints, validation schemas, global-event refactor, Template CRUD history, and fallback removal. Integration keeps validation-schema and speculative D1-constraint work deferred, promotes real insertion idempotency/event acknowledgement into existing `UNIT-005`, and folds the chosen telemetry/fallback cleanup into `UNIT-009` rather than leaving routine implementation decisions open.
 
 ## Retained Evidence Index
 
