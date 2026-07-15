@@ -180,6 +180,19 @@ import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
 
+function resolveRetainedProjectSourceInsertIntent(
+  retainedIntents: Map<string, string>,
+  signature: string,
+  requestedIntentId?: string,
+) {
+  const retainedIntentId = retainedIntents.get(signature);
+  if (retainedIntentId) return retainedIntentId;
+  const intentId = requestedIntentId ?? crypto.randomUUID();
+  retainedIntents.set(signature, intentId);
+  if (retainedIntents.size > 100) retainedIntents.delete(retainedIntents.keys().next().value ?? "");
+  return intentId;
+}
+
 function readComponentLibraryImageStoragePath(value: string) {
   if (!value.startsWith("/api/component-library/images?")) return null;
   try {
@@ -2628,11 +2641,24 @@ export function EstimateSheetContent({
     if (moved !== false) closeRowMoveDialog();
   }, [closeRowMoveDialog, moveRowItemToNode, rowMoveDialog, rowMoveTargetNode]);
 
+  const retainedProjectSourceInsertIntentsRef = useRef<Map<string, string> | null>(null);
+  if (retainedProjectSourceInsertIntentsRef.current === null) retainedProjectSourceInsertIntentsRef.current = new Map();
+  const projectSourcePendingTargetCountsRef = useRef<Map<string, number> | null>(null);
+  if (projectSourcePendingTargetCountsRef.current === null) projectSourcePendingTargetCountsRef.current = new Map();
+  const [projectSourceInsertPendingNodeIds, setProjectSourceInsertPendingNodeIds] = useState<ReadonlySet<string>>(new Set());
+  const setProjectSourceTargetPending = useCallback((targetNodeId: string, pending: boolean) => {
+    const counts = projectSourcePendingTargetCountsRef.current!;
+    const nextCount = Math.max(0, (counts.get(targetNodeId) ?? 0) + (pending ? 1 : -1));
+    if (nextCount > 0) counts.set(targetNodeId, nextCount);
+    else counts.delete(targetNodeId);
+    setProjectSourceInsertPendingNodeIds(new Set(counts.keys()));
+  }, []);
   const {
     insertTemplateIntoSelectedGroup,
     insertTemplatesIntoParentById,
     insertTemplateNodeIntoParentById,
     insertTemplateNodeIntoSelectedGroup,
+    templateInsertPendingNodeIds,
     templateSnapshotUnavailableSourceCount,
     resolveTemplateSnapshotConfirmation,
   } = useEstimateTemplateInsertion({
@@ -2652,13 +2678,28 @@ export function EstimateSheetContent({
     recordReadOnlyLibraryMutationAttempt,
     toast,
   });
+  const sourceInsertPendingNodeIds = useMemo(() => new Set([
+    ...templateInsertPendingNodeIds,
+    ...projectSourceInsertPendingNodeIds,
+  ]), [projectSourceInsertPendingNodeIds, templateInsertPendingNodeIds]);
+  const insertTemplatesIntoSelectedNode = useCallback((templates: EstimateTemplate[]) => {
+    if (!templateTargetParentNode) return false;
+    return insertTemplatesIntoParentById(
+      templateTargetParentNode.id,
+      templates.map((template) => template.id),
+    );
+  }, [insertTemplatesIntoParentById, templateTargetParentNode]);
 
   // U2: insert a project-derived source (whole tab / node subtree) as a child of
   // a target node. Non-optimistic — the server copies the subtree via the
   // hardened RPC and returns the refreshed tree. P6: any node is a valid target
   // (no group gate); the relaxed insert_estimate_subtree RPC accepts it.
   const insertProjectSourceIntoParentById = useStableCallback(
-    async (targetParentNodeId: string, source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null }) => {
+    async (
+      targetParentNodeId: string,
+      source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null },
+      requestedIntentId?: string,
+    ) => {
       if (!canEditEstimate) {
         recordReadOnlyLibraryMutationAttempt("insert_project_source");
         return false;
@@ -2666,12 +2707,30 @@ export function EstimateSheetContent({
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
       if (!projectId || !estimateId) return false;
+      setSelectedNodeId(targetParentNodeId);
+      const intentSignature = [
+        "project-source",
+        projectId,
+        estimateId,
+        targetParentNodeId,
+        source.projectId,
+        source.estimateId,
+        source.tabId,
+        source.nodeId ?? "tab",
+      ].join(":");
+      const intentId = resolveRetainedProjectSourceInsertIntent(
+        retainedProjectSourceInsertIntentsRef.current!,
+        intentSignature,
+        requestedIntentId,
+      );
+      setProjectSourceTargetPending(targetParentNodeId, true);
       try {
         const result = await insertProjectSourceIntoEstimate({
           targetProjectId: projectId,
           targetEstimateId: estimateId,
           targetParentNodeId,
           source,
+          intentId,
           targetTabId: dataTabId,
         });
         // This insert is NON-optimistic: nothing is added to the tree before
@@ -2686,11 +2745,14 @@ export function EstimateSheetContent({
           targetParentNodeId,
           authoritativeRootNodeIds: result.insertedRootNodeIds,
         }));
+        retainedProjectSourceInsertIntentsRef.current!.delete(intentSignature);
         return true;
       } catch (error: unknown) {
         console.error("[estimate] project source insert failed", error);
         toast({ tone: "error", message: "Couldn't insert the project source. Try again." });
         return false;
+      } finally {
+        setProjectSourceTargetPending(targetParentNodeId, false);
       }
     },
   );
@@ -2798,11 +2860,22 @@ export function EstimateSheetContent({
         envelope?.acknowledge({ accepted: false, reason: "The project-source drop target is invalid." });
         return;
       }
-      void insertProjectSourceIntoParentById(detail.targetParentNodeId, detail.source)
-        .then((accepted) => envelope?.acknowledge({
-          accepted,
-          ...(!accepted ? { reason: "The project source could not be inserted here." } : {}),
-        }));
+      void (async () => {
+        try {
+          const accepted = await insertProjectSourceIntoParentById(
+            detail.targetParentNodeId,
+            detail.source,
+            envelope?.intentId,
+          );
+          envelope?.acknowledge({
+            accepted,
+            ...(!accepted ? { reason: "The project source could not be inserted here." } : {}),
+          });
+        } catch (error: unknown) {
+          console.error("[estimate] project-source drop insert failed", error);
+          envelope?.acknowledge({ accepted: false, reason: "The project source could not be inserted." });
+        }
+      })();
     }
     window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
     return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
@@ -3445,6 +3518,7 @@ export function EstimateSheetContent({
                         promotingRowId={promotingRowId}
                         rowMutationStatuses={rowMutationStatuses}
                         componentSyncPendingRowIds={componentEditorPendingRowIds}
+                        sourceInsertPendingNodeIds={sourceInsertPendingNodeIds}
                         onMoveRowComponent={moveRowComponent}
                         onMoveRowItem={moveRowItemToNode}
                         onOpenMoveRowItemDialog={openMoveRowItemDialog}
@@ -3563,6 +3637,7 @@ export function EstimateSheetContent({
             onMobileDrawerOpenChange={setSourcesDrawerOpen}
             mobileDrawerId={ESTIMATE_SOURCES_DRAWER_ID}
             onInsertTemplate={insertTemplateIntoSelectedGroup}
+            onInsertTemplates={insertTemplatesIntoSelectedNode}
             onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
             onInsertProjectSource={insertProjectSourceIntoSelectedGroup}
             onLibraryDataChanged={handleLibraryDataChanged}

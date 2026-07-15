@@ -113,9 +113,10 @@ export type TemplatesTreeProps = {
   /** Whether the workspace currently has a valid group target for templates. */
   canInsertTemplate: boolean;
   templateTargetName: string;
-  onAddTemplate: (template: EstimateTemplate) => void;
+  onAddTemplate: (template: EstimateTemplate) => void | Promise<boolean>;
+  onAddTemplates: (templates: EstimateTemplate[]) => void | Promise<boolean>;
   /** Inserts one group/area from inside a template, with its subtree. */
-  onAddTemplateNode: (template: EstimateTemplate, node: EstimateTreeNode) => void;
+  onAddTemplateNode: (template: EstimateTemplate, node: EstimateTreeNode) => void | Promise<boolean>;
   onTemplateDragStart: (event: DragEvent<HTMLElement>, template: EstimateTemplate) => void;
   /** Dragging a category header carries every template inside it. */
   onCategoryDragStart: (event: DragEvent<HTMLElement>, category: string, templates: EstimateTemplate[]) => void;
@@ -157,6 +158,7 @@ export function TemplatesTree({
   canInsertTemplate,
   templateTargetName,
   onAddTemplate,
+  onAddTemplates,
   onAddTemplateNode,
   onTemplateDragStart,
   onCategoryDragStart,
@@ -354,7 +356,7 @@ export function TemplatesTree({
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
               disabledReason: "Select an Area before adding this template.",
-              onSelect: () => onAddTemplate(datum.template),
+              onSelect: () => void onAddTemplate(datum.template),
             },
             ...toggleItem,
           ],
@@ -399,7 +401,7 @@ export function TemplatesTree({
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
               disabledReason: "Select an Area before adding this node.",
-              onSelect: () => onAddTemplateNode(datum.template, datum.node),
+              onSelect: () => void onAddTemplateNode(datum.template, datum.node),
             },
             ...toggleItem,
           ],
@@ -474,7 +476,7 @@ export function TemplatesTree({
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || categoryTemplates.length === 0,
               disabledReason: "Select an Area before adding these templates.",
-              onSelect: () => categoryTemplates.forEach((template) => onAddTemplate(template)),
+              onSelect: () => void onAddTemplates(categoryTemplates),
             },
             ...toggleItem,
           ],
@@ -492,6 +494,7 @@ export function TemplatesTree({
     onAddComponent,
     onAddProjectSource,
     onAddTemplate,
+    onAddTemplates,
     onAddTemplateNode,
     onCreateTemplate,
     onDeleteTemplate,

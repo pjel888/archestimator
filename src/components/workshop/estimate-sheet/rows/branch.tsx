@@ -60,6 +60,7 @@ export type EstimateSheetBranchProps = {
   promotingRowId?: string | null;
   rowMutationStatuses?: EstimateRowMutationStatusMap;
   componentSyncPendingRowIds?: ReadonlySet<string>;
+  sourceInsertPendingNodeIds?: ReadonlySet<string>;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -139,6 +140,20 @@ function branchRowStateChanged(
   return false;
 }
 
+function branchNodePendingStateChanged(
+  node: EstimateTreeNode,
+  previousPendingNodeIds: ReadonlySet<string> | undefined,
+  nextPendingNodeIds: ReadonlySet<string> | undefined,
+  includeDescendants: boolean,
+): boolean {
+  if (previousPendingNodeIds?.has(node.id) !== nextPendingNodeIds?.has(node.id)) return true;
+  if (!includeDescendants) return false;
+  for (const child of node.children ?? []) {
+    if (branchNodePendingStateChanged(child, previousPendingNodeIds, nextPendingNodeIds, true)) return true;
+  }
+  return false;
+}
+
 function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: EstimateSheetBranchProps) {
   if (
     prev.node !== next.node ||
@@ -195,13 +210,21 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     !prev.nodeTotals ||
     !next.nodeTotals;
+  const pendingNodeStateChanged = prev.sourceInsertPendingNodeIds !== next.sourceInsertPendingNodeIds
+    && branchNodePendingStateChanged(
+      next.node,
+      prev.sourceInsertPendingNodeIds,
+      next.sourceInsertPendingNodeIds,
+      next.renderChildBranches ?? true,
+    );
+  if (pendingNodeStateChanged) return false;
   if (!needsRowStateCheck) return true;
 
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onUpdateLinkedLibraryComponent, onMarkRowDirty, onReconcileRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, totalsIncomplete = false, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onUpdateLinkedLibraryComponent, onMarkRowDirty, onReconcileRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, componentSyncPendingRowIds, sourceInsertPendingNodeIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, totalsIncomplete = false, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const editableRowStore = useEditableRowStore();
   const storedNodeTotal = useStore(editableRowStore, (state) => state.nodeTotals.get(node.id));
@@ -225,6 +248,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
   const leftIndent = Math.min(depth * 16, 96);
   const headerTextOffset = leftIndent + 51;
   const total = storedNodeTotal ?? nodeTotals?.get(node.id) ?? 0;
+  const sourceInsertPending = sourceInsertPendingNodeIds?.has(node.id) ?? false;
   const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
   // Sticky model: ONLY the displayed (depth-0) node header is sticky, pinned at
   // the top of the scroll container. Nested node headers and every table <thead>
@@ -354,6 +378,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
         (templateDragActive || componentDragActive) && branchDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
+      aria-busy={sourceInsertPending || undefined}
       data-estimate-node-drop-target={node.id}
       onDragOver={handleBranchDragOver}
       onDragEnter={handleBranchDragEnter}
@@ -408,6 +433,12 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
           <div className="min-w-0 flex-1">
             <p className={nodeNameClasses(depth)} role="heading" aria-level={headingLevel}>{node.name}</p>
           </div>
+          {sourceInsertPending ? (
+            <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-normal text-tertiary" role="status">
+              <span className="size-1 animate-pulse rounded-full bg-current" aria-hidden="true" />
+              Adding…
+            </span>
+          ) : null}
           <span className={nodeTotalClasses()} aria-label={totalsIncomplete ? `Partial loaded total ${pesoFormatter.format(total)}` : undefined}>
             {pesoFormatter.format(total)}
             {totalsIncomplete ? <span className="ml-1 text-[8px] text-warning">Partial</span> : null}
@@ -545,6 +576,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 promotingRowId={promotingRowId}
                 rowMutationStatuses={rowMutationStatuses}
                 componentSyncPendingRowIds={componentSyncPendingRowIds}
+                sourceInsertPendingNodeIds={sourceInsertPendingNodeIds}
                 onMoveRowComponent={onMoveRowComponent}
                 onMoveRowItem={onMoveRowItem}
                 onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}

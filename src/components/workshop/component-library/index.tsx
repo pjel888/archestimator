@@ -348,7 +348,7 @@ type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
 const TEMPLATE_SOURCE_FILTER_OPTIONS = [
   { value: "all", label: "All sources" },
   { value: "custom", label: "Custom templates" },
-  { value: "projects", label: "From projects" },
+  { value: "projects", label: "Project sources" },
 ] as const satisfies readonly DropdownSelectOption[];
 
 function isTemplateSourceFilter(value: string): value is TemplateSourceFilter {
@@ -620,9 +620,10 @@ function ProjectSourcePreviewPanel({
 
 type EstimateRightSidebarProps = {
   onInsertComponent?: (item: EstimateRowItem) => boolean | void;
-  onInsertTemplate?: (template: EstimateTemplate) => boolean | void;
+  onInsertTemplate?: (template: EstimateTemplate) => boolean | void | Promise<boolean | void>;
+  onInsertTemplates?: (templates: EstimateTemplate[]) => boolean | void | Promise<boolean | void>;
   /** Inserts one group/area from inside a template, with its subtree. */
-  onInsertTemplateNode?: (template: EstimateTemplate, node: EstimateTreeNode) => boolean | void;
+  onInsertTemplateNode?: (template: EstimateTemplate, node: EstimateTreeNode) => boolean | void | Promise<boolean | void>;
   projectId?: string;
   estimateId?: string;
   selectedNodeId?: string | null;
@@ -827,6 +828,7 @@ function projectSourceToTemplateSourceNode(source: ProjectSourceInsertTarget, pr
 function useEstimateRightSidebarContent({
   onInsertComponent,
   onInsertTemplate,
+  onInsertTemplates,
   onInsertTemplateNode,
   projectId,
   estimateId,
@@ -1206,7 +1208,7 @@ function useEstimateRightSidebarContent({
   const effectiveTemplateSourceFilter = templateSourceFilter === "projects" && !projectSourcesLoading && !hasLoadedProjectSources
     ? "all"
     : templateSourceFilter;
-  const projectSourceSearchQuery = visibleActiveTab === "templates" && effectiveTemplateSourceFilter !== "custom"
+  const projectSourceSearchQuery = visibleActiveTab === "templates"
     ? searchQuery.trim()
     : "";
 
@@ -1625,15 +1627,13 @@ function useEstimateRightSidebarContent({
   }, [projectSourcesLoading]);
   const handleTemplateSourceFilterChange = useCallback((nextFilter: TemplateSourceFilter) => {
     setTemplateSourceFilter(nextFilter);
-    setBulkSelectedNodeIds(new Set());
-    if (nextFilter === "custom") setPreviewProjectSourceKey(null);
-  }, [setBulkSelectedNodeIds, setPreviewProjectSourceKey, setTemplateSourceFilter]);
+  }, [setTemplateSourceFilter]);
   const templatesSourceFilterControls = useMemo(() => {
     const hasCustomTemplates = templateList.length > 0;
     const hasProjectSources = hasLoadedProjectSources || projectSourcesLoading;
     if (!hasCustomTemplates || !hasProjectSources) return null;
     return (
-      <div className="mb-2">
+      <div className="mb-2 inline-flex max-w-full">
         <DropdownSelect
           options={TEMPLATE_SOURCE_FILTER_OPTIONS}
           value={effectiveTemplateSourceFilter}
@@ -1641,8 +1641,8 @@ function useEstimateRightSidebarContent({
             if (isTemplateSourceFilter(nextValue)) handleTemplateSourceFilterChange(nextValue);
           }}
           aria-label="Reusable source filter"
-          className="w-full"
-          variant="boxed"
+          className="h-6 w-auto border-0 bg-transparent px-0 text-[9px] font-normal hover:border-0 focus-visible:border-0 focus-visible:ring-0"
+          panelClassName="min-w-36 bg-white"
         />
       </div>
     );
@@ -2010,17 +2010,18 @@ function useEstimateRightSidebarContent({
   ]);
 
   const addTemplate = useCallback(
-    (template: EstimateTemplate) => {
+    async (template: EstimateTemplate) => {
       if (!canInsertTemplate) {
-        setLastActionMessage("Select an Area before adding estimate templates.");
+        setLastActionMessage("Select an estimate node before adding templates.");
         return false;
       }
 
-      const didInsert = onInsertTemplate
-        ? onInsertTemplate(template) !== false
+      const insertResult = onInsertTemplate
+        ? await onInsertTemplate(template)
         : window.dispatchEvent(new CustomEvent("archestimator:add-estimate-template", { detail: template }));
+      const didInsert = insertResult !== false;
       if (!didInsert) {
-        setLastActionMessage(`${template.name} was not inserted. Select an Area and try again.`);
+        setLastActionMessage(`${template.name} was not inserted. Select an estimate node and try again.`);
         return false;
       }
 
@@ -2030,16 +2031,48 @@ function useEstimateRightSidebarContent({
     [canInsertTemplate, effectiveTemplateTargetName, onInsertTemplate, setLastActionMessage],
   );
 
-  const addTemplateNode = useCallback(
-    (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+  const addTemplates = useCallback(
+    async (templatesToInsert: EstimateTemplate[]) => {
+      if (templatesToInsert.length === 0) return false;
+      if (templatesToInsert.length === 1) return addTemplate(templatesToInsert[0]);
       if (!canInsertTemplate) {
-        setLastActionMessage("Select an Area before adding template nodes.");
+        setLastActionMessage("Select an estimate node before adding templates.");
         return false;
       }
 
-      const didInsert = onInsertTemplateNode ? onInsertTemplateNode(template, templateNode) !== false : false;
+      let didInsert = true;
+      if (onInsertTemplates) {
+        didInsert = await onInsertTemplates(templatesToInsert) !== false;
+      } else {
+        for (const template of templatesToInsert) {
+          // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Hosts without a batch seam must preserve deterministic source order.
+          if (!await addTemplate(template)) {
+            didInsert = false;
+            break;
+          }
+        }
+      }
       if (!didInsert) {
-        setLastActionMessage(`${templateNode.name} was not inserted. Select an Area and try again.`);
+        setLastActionMessage("The templates were not inserted. Select an estimate node and try again.");
+        return false;
+      }
+
+      setLastActionMessage(`${templatesToInsert.length} templates added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      return true;
+    },
+    [addTemplate, canInsertTemplate, effectiveTemplateTargetName, onInsertTemplates, setLastActionMessage],
+  );
+
+  const addTemplateNode = useCallback(
+    async (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+      if (!canInsertTemplate) {
+        setLastActionMessage("Select an estimate node before adding template nodes.");
+        return false;
+      }
+
+      const didInsert = onInsertTemplateNode ? await onInsertTemplateNode(template, templateNode) !== false : false;
+      if (!didInsert) {
+        setLastActionMessage(`${templateNode.name} was not inserted. Select an estimate node and try again.`);
         return false;
       }
 
@@ -2684,12 +2717,11 @@ function useEstimateRightSidebarContent({
     const { templates: checkedTemplates, templateNodes, items } = bulkTemplateUnits;
     let insertedCount = 0;
     if (canInsertTemplate) {
-      checkedTemplates.forEach((template) => {
-        if (addTemplate(template)) insertedCount += 1;
-      });
-      templateNodes.forEach(({ template, node }) => {
-        if (addTemplateNode(template, node)) insertedCount += 1;
-      });
+      if (await addTemplates(checkedTemplates)) insertedCount += checkedTemplates.length;
+      for (const { template, node } of templateNodes) {
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Node-subtree inserts must preserve deterministic source order.
+        if (await addTemplateNode(template, node)) insertedCount += 1;
+      }
       for (const source of bulkProjectSourceTargets) {
         // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Source insertion mutates ordered estimate state; preserve deterministic insertion order.
         if (await addProjectSource(source)) insertedCount += 1;
@@ -2702,7 +2734,7 @@ function useEstimateRightSidebarContent({
     clearBulkSelection();
   }, [
     addProjectSource,
-    addTemplate,
+    addTemplates,
     addTemplateNode,
     bulkProjectSourceTargets,
     bulkProjectSourceRowItems,
@@ -3150,6 +3182,7 @@ function useEstimateRightSidebarContent({
                   canInsertTemplate={canInsertTemplate}
                   templateTargetName={effectiveTemplateTargetName || "selected group"}
                   onAddTemplate={addTemplate}
+                  onAddTemplates={addTemplates}
                   onAddTemplateNode={addTemplateNode}
                   onTemplateDragStart={handleTemplateDragStart}
                   onCategoryDragStart={handleCategoryDragStart}

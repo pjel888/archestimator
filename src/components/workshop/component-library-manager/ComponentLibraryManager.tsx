@@ -631,10 +631,6 @@ function getItemPricingSourceLabel(item: EstimateRowItem) {
   return item.pricingSource?.trim() || "Source not set";
 }
 
-function getCatalogueScopeSummary(totalCount: number) {
-  return `${totalCount} ${totalCount === 1 ? "component" : "components"}`;
-}
-
 function flattenCatalogueBranch(branch: CatalogueBranch): CatalogueCard[] {
   return [
     ...branch.directItems,
@@ -1640,7 +1636,6 @@ function ComponentLibrarySheet({
     (item) => item.id,
   );
   const selectionLimitReached = selectedItemIds.size >= COMPONENT_SELECTION_LIMIT;
-  const resultSummary = getCatalogueScopeSummary(sheetItems.length);
   const changeDisplayMode = (mode: ComponentLibraryDisplayMode) => {
     dispatchSheet({ type: "displayModeChanged", mode });
     try {
@@ -1663,13 +1658,6 @@ function ComponentLibrarySheet({
   const loadedScopeLabel = exactTotalCount === undefined
     ? `${loadedCount} loaded`
     : `${loadedCount} loaded of ${exactTotalCount}`;
-  const visibleSummary = searchQuery
-    ? `${visibleItems.length} loaded ${visibleItems.length === 1 ? "match" : "matches"} · ${activeFacetCount > 0
-      ? `${facetedItems.length} loaded after filters`
-      : `${sheetItems.length} loaded in scope`}`
-    : activeFacetCount > 0
-      ? `${facetedItems.length} loaded shown · ${sheetItems.length} loaded in scope`
-      : `${resultSummary} · ${loadedScopeLabel}`;
   const partialTotalCount = componentRowsLoadState?.totalComponentCount;
   const showPartialLoadAction = Boolean(
     componentRowsLoadState?.isPartial &&
@@ -1757,22 +1745,6 @@ function ComponentLibrarySheet({
               />
             </div>
           }
-          leadingActions={[
-            {
-              id: "component-sheet-summary",
-              label: "Component result summary",
-              element: (
-                <p
-                  aria-live="polite"
-                  className="sr-only text-[9px] leading-3 text-tertiary lg:not-sr-only lg:block lg:min-w-0 lg:max-w-[360px] lg:truncate"
-                  data-component-sheet-summary="true"
-                >
-                  {selectedLabel} · {visibleSummary}
-                </p>
-              ),
-            },
-          ]}
-          leadingActionsLabel="Component catalogue status"
           addActions={canManageLibrary
             ? [
                 {
