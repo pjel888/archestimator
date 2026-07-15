@@ -1,12 +1,13 @@
 "use client";
 
+/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { EstimateSystemGraph } from "./EstimateSystemGraph";
+import { EstimateSystemKnowledgeGraph } from "./EstimateSystemKnowledgeGraph";
 import { EstimateSystemUx, type EstimateSystemUxMode } from "./EstimateSystemUx";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchInput } from "@/components/ui/search-input";
 import { Tabs } from "@/components/ui/tabs";
 import {
@@ -30,6 +31,7 @@ const VIEW_TABS = [
   { id: "features", label: "Features" },
   { id: "pages", label: "Pages" },
   { id: "ux", label: "UX" },
+  { id: "knowledge", label: "Knowledge" },
 ] as const;
 
 function SourceNotes({ sources }: { sources: readonly EstimateSystemSource[] }) {
@@ -40,7 +42,7 @@ function SourceNotes({ sources }: { sources: readonly EstimateSystemSource[] }) 
       </summary>
       <ul className="mt-2 space-y-1.5">
         {sources.map((item) => (
-          <li key={`${item.file}:${item.note}`} className="grid gap-0.5 text-[8px] leading-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:gap-3">
+          <li key={`${item.file}:${item.note}`} className="grid gap-0.5 text-[9px] leading-4 sm:grid-cols-[minmax(0,1fr)_180px] sm:gap-3">
             <code className="break-all text-ink">{item.file}</code>
             <span className="text-tertiary">{item.note}</span>
           </li>
@@ -82,36 +84,33 @@ function NavigationButton({
       variant="ghost"
       size="xs"
       aria-pressed={active}
-      className="h-auto min-h-0 w-full min-w-0 flex-col items-start gap-0.5 whitespace-normal rounded-none border-l-2 border-transparent px-2 py-1.5 text-left aria-pressed:border-ink aria-pressed:bg-surfaceMuted"
+      className="h-auto min-h-0 w-full min-w-0 flex-col items-start gap-0.5 whitespace-normal rounded-xs px-2 py-1.5 text-left aria-pressed:bg-white aria-pressed:font-medium"
       onClick={onClick}
     >
       <span className="text-[10px] leading-3 text-ink">{title}</span>
-      {description ? <span className="line-clamp-2 text-[8px] font-normal leading-3 text-tertiary">{description}</span> : null}
+      {description ? <span className="line-clamp-2 text-[10px] font-normal leading-4 text-tertiary">{description}</span> : null}
     </Button>
   );
 }
 
 function ProductIndex({ documentation, onOpenPage }: { documentation: EstimateSystemDocumentation; onOpenPage: (pageId: string) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-px bg-hairline lg:block lg:gap-0 lg:divide-y lg:divide-hairline lg:bg-transparent">
-      {documentation.areas.map((area, index) => (
-        <div key={area.id} className="grid grid-cols-[22px_minmax(0,1fr)] gap-1.5 bg-surface px-2 py-2 lg:bg-transparent lg:px-0 lg:first:pt-0">
-          <span className="text-[8px] font-medium tabular-nums text-tertiary">{String(index + 1).padStart(2, "0")}</span>
-          <div>
-            <p className="text-[10px] font-medium leading-3 text-ink">{area.title}</p>
-            <p className="mt-0.5 hidden text-[8px] leading-3 text-tertiary lg:block">{area.userOutcome}</p>
-            {area.pageIds[0] ? (
-              <Button
-                variant="plain"
-                size="xs"
-                className="mt-1 h-auto min-h-0 min-w-0 px-0 py-0 !text-[8px] underline decoration-divider underline-offset-2"
-                onClick={() => onOpenPage(area.pageIds[0])}
-              >
-                <span className="lg:hidden">Open page</span>
-                <span className="hidden lg:inline">Open page map</span>
-              </Button>
-            ) : null}
-          </div>
+    <div className="divide-y divide-hairline">
+      {documentation.areas.map((area) => (
+        <div key={area.id} className="px-2 py-2 lg:px-0 lg:first:pt-0">
+          <p className="text-[10px] font-medium leading-3 text-ink">{area.title}</p>
+          <p className="mt-0.5 text-[10px] leading-4 text-tertiary">{area.userOutcome}</p>
+          {area.pageIds[0] ? (
+            <Button
+              variant="plain"
+              size="xs"
+              className="mt-1 h-auto min-h-6 min-w-0 px-0 py-1 !text-[10px] underline decoration-divider underline-offset-2"
+              onClick={() => onOpenPage(area.pageIds[0])}
+            >
+              <span className="lg:hidden">Open page</span>
+              <span className="hidden lg:inline">Open page map</span>
+            </Button>
+          ) : null}
         </div>
       ))}
     </div>
@@ -132,8 +131,8 @@ function FeatureDetails({
   return (
     <div className="grid gap-3 lg:grid-cols-2">
       <div className="space-y-3">
-        <section className="border-l-2 border-ink pl-2.5">
-          <h3 className="text-[8px] font-medium uppercase text-tertiary">User need</h3>
+        <section>
+          <h3 className="text-[9px] font-medium text-ink">User need</h3>
           <p className="mt-0.5 text-[10px] leading-4 text-ink">{feature.userNeed}</p>
         </section>
         <DetailList title="Entry points" items={feature.entryPoints} />
@@ -176,7 +175,7 @@ function PageDetails({ documentation, page }: { documentation: EstimateSystemDoc
     <div className="grid gap-3 lg:grid-cols-2">
       <section>
         <h3 className="text-[9px] font-medium text-ink">Purpose</h3>
-        <p className="mt-1 text-[9px] leading-4 text-secondary">{page.purpose}</p>
+        <p className="mt-1 text-[10px] leading-4 text-secondary">{page.purpose}</p>
         <dl className="mt-2 grid gap-1 text-[9px] leading-3 sm:grid-cols-2">
           <div>
             <dt className="text-tertiary">Audience</dt>
@@ -213,12 +212,16 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
   const [selectedPageId, setSelectedPageId] = useState(
     documentation.pages.find((page) => page.id === "estimate-workspace")?.id ?? documentation.pages[0]?.id ?? "",
   );
+  const [mobileIndexOpen, setMobileIndexOpen] = useState(false);
   const contentHeadingRef = useRef<HTMLHeadingElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const focusDestinationRef = useRef(false);
   const [navigationStatus, setNavigationStatus] = useState("");
+  const [navigationEpoch, setNavigationEpoch] = useState(0);
 
-  const selectedFeature = findEstimateSystemFeature(documentation, selectedFeatureId);
-  const selectedPage = findEstimateSystemPage(documentation, selectedPageId);
+  const selectedFeatureCandidate = findEstimateSystemFeature(documentation, selectedFeatureId);
+  const selectedPageCandidate = findEstimateSystemPage(documentation, selectedPageId);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredFeatures = useMemo(
     () =>
@@ -234,28 +237,48 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
       ),
     [documentation.pages, normalizedQuery],
   );
+  const selectedFeature = (!normalizedQuery || filteredFeatures.some((feature) => feature.id === selectedFeatureCandidate?.id)
+    ? selectedFeatureCandidate
+    : filteredFeatures[0]) ?? null;
+  const selectedPage = (!normalizedQuery || filteredPages.some((page) => page.id === selectedPageCandidate?.id)
+    ? selectedPageCandidate
+    : filteredPages[0]) ?? null;
 
   function changeView(nextView: string) {
     if (!ESTIMATE_SYSTEM_VIEWS.includes(nextView as EstimateSystemView)) return;
+    rootRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
+    setNavigationEpoch((current) => current + 1);
     setView(nextView as EstimateSystemView);
     setQuery("");
+    setMobileIndexOpen(false);
+  }
+
+  function clearIndexQueryAndFocus() {
+    setQuery("");
+    window.requestAnimationFrame(() => searchInputRef.current?.focus());
   }
 
   function openFeature(featureId: string) {
     const feature = findEstimateSystemFeature(documentation, featureId);
+    rootRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
+    setNavigationEpoch((current) => current + 1);
     focusDestinationRef.current = true;
     setSelectedFeatureId(featureId);
     setView("features");
     setQuery("");
+    setMobileIndexOpen(false);
     setNavigationStatus(`Opened feature documentation: ${feature?.title ?? featureId}.`);
   }
 
   function openPage(pageId: string) {
     const page = findEstimateSystemPage(documentation, pageId);
+    rootRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
+    setNavigationEpoch((current) => current + 1);
     focusDestinationRef.current = true;
     setSelectedPageId(pageId);
     setView("pages");
     setQuery("");
+    setMobileIndexOpen(false);
     setNavigationStatus(`Opened page documentation: ${page?.title ?? pageId}.`);
   }
 
@@ -263,57 +286,61 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
     if (!focusDestinationRef.current) return;
     focusDestinationRef.current = false;
     contentHeadingRef.current?.focus();
-  }, [selectedFeatureId, selectedPageId, view]);
+  }, [navigationEpoch, selectedFeatureId, selectedPageId, view]);
 
   const heading = view === "product"
     ? documentation.journey.title
     : view === "features"
-      ? selectedFeature?.title ?? "Feature"
+      ? selectedFeature?.title ?? (normalizedQuery ? "No matching features" : "Feature")
       : view === "pages"
-        ? selectedPage?.title ?? "Page"
-        : "Users, paths, and intersections";
+        ? selectedPage?.title ?? (normalizedQuery ? "No matching pages" : "Page")
+        : view === "ux"
+          ? "Users, paths, and intersections"
+          : documentation.knowledgeGraph.title;
   const summary = view === "product"
     ? documentation.journey.summary
     : view === "features"
-      ? selectedFeature?.summary ?? ""
+      ? selectedFeature?.summary ?? (normalizedQuery ? `No feature matches “${query.trim()}”.` : "")
       : view === "pages"
-        ? selectedPage?.summary ?? ""
-        : "Understand who uses the product, the ordered path they follow, and where work changes hands.";
+        ? selectedPage?.summary ?? (normalizedQuery ? `No page matches “${query.trim()}”.` : "")
+        : view === "ux"
+          ? "Understand who uses the product, the ordered path they follow, and where work changes hands."
+          : documentation.knowledgeGraph.summary;
+  const mobileIndexLabel = view === "product"
+    ? "product areas"
+    : view === "features"
+      ? "features"
+      : "pages";
   return (
-    <div className="flex min-h-0 flex-col gap-3">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-3xl">
-          <p className="text-[8px] font-medium uppercase text-tertiary">Admin · Product documentation</p>
-          <h1 className="mt-0.5 text-[12px] font-medium leading-5 text-ink">{documentation.title}</h1>
+    <div ref={rootRef} className="estimate-system-guide flex min-h-0 min-w-0 flex-col">
+      <header className="px-1 pb-2">
+        <div className="max-w-4xl">
+          <h1 className="text-[12px] font-medium leading-4 text-ink">{documentation.title}</h1>
           <p className="mt-0.5 text-[10px] leading-4 text-secondary">{documentation.summary}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5 text-[8px] text-tertiary">
-          <Badge tone="neutral" size="xs" className="min-w-0 normal-case">Product-level</Badge>
-          <span>Verified {documentation.lastVerified}</span>
         </div>
       </header>
 
       <Tabs
-        tabs={VIEW_TABS.map((tab) => ({
-          ...tab,
-          badge:
-            tab.id === "features"
-              ? documentation.integrity.featureCount
-              : tab.id === "pages"
-                ? documentation.integrity.pageCount
-                : tab.id === "ux"
-                  ? documentation.integrity.experiencePathCount
-                  : documentation.integrity.areaCount,
-        }))}
+        tabs={VIEW_TABS}
         activeId={view}
         onChange={changeView}
         ariaLabel="Estimate system documentation views"
         idBase="estimate-system-view"
-        controlsPanels={false}
+        className="sticky top-0 z-20 border-x border-t border-hairline bg-white/95 backdrop-blur-sm"
         getTabButtonProps={() => ({
-          className: "focus-visible:bg-surfaceMuted",
+          className: "text-secondary aria-selected:text-ink focus-visible:bg-surfaceMuted",
         })}
       />
+
+      {VIEW_TABS.filter((tab) => tab.id !== view).map((tab) => (
+        <div
+          key={tab.id}
+          id={`estimate-system-view-panel-${tab.id}`}
+          role="tabpanel"
+          aria-labelledby={`estimate-system-view-tab-${tab.id}`}
+          hidden
+        />
+      ))}
 
       <p className="sr-only" role="status" aria-live="polite">{navigationStatus}</p>
 
@@ -322,7 +349,7 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
         role="tabpanel"
         aria-labelledby={`estimate-system-view-tab-${view}`}
         tabIndex={0}
-        className="grid min-h-[560px] overflow-hidden rounded-xs border border-hairline bg-surface lg:grid-cols-[230px_minmax(0,1fr)]"
+        className="grid min-w-0 rounded-b-xs border-x border-b border-hairline bg-surface lg:grid-cols-[230px_minmax(0,1fr)]"
       >
         {view === "ux" ? (
           <EstimateSystemUx
@@ -338,10 +365,35 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
             onOpenFeature={openFeature}
             onOpenPage={openPage}
           />
+        ) : view === "knowledge" ? (
+          <EstimateSystemKnowledgeGraph
+            graph={documentation.knowledgeGraph}
+            onOpenFeature={openFeature}
+            onOpenPage={openPage}
+          />
         ) : (
           <>
-            <aside className="flex min-h-0 flex-col border-b border-hairline bg-surfaceMuted/25 lg:border-b-0 lg:border-r" aria-label="Documentation index">
-          <div className="border-b border-hairline px-2.5 py-2">
+            <aside className="min-h-0 border-b border-hairline bg-surfaceMuted/20 lg:border-b-0 lg:border-r" aria-label="Documentation index">
+          <div className="p-2 lg:hidden">
+            <Button
+              variant="outline"
+              size="xs"
+              className="w-full min-w-0 justify-between"
+              aria-expanded={mobileIndexOpen}
+              aria-controls="estimate-system-guide-index-content"
+              onClick={() => {
+                const nextOpen = !mobileIndexOpen;
+                setMobileIndexOpen(nextOpen);
+                if (nextOpen && view !== "product") {
+                  window.requestAnimationFrame(() => searchInputRef.current?.focus());
+                }
+              }}
+            >
+              {mobileIndexOpen ? `Hide ${mobileIndexLabel}` : `Browse ${mobileIndexLabel}`}
+            </Button>
+          </div>
+          <div id="estimate-system-guide-index-content" className={`${mobileIndexOpen ? "block" : "hidden"} lg:block`}>
+            <div className="border-b border-hairline px-2.5 py-2">
             <p className="text-[9px] font-medium text-ink">
               {view === "product" ? "Product areas" : view === "features" ? "Feature index" : "Page index"}
             </p>
@@ -354,17 +406,18 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
             </p>
             {view !== "product" ? (
               <SearchInput
+                ref={searchInputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                onClear={() => setQuery("")}
+                onClear={clearIndexQueryAndFocus}
                 placeholder={view === "features" ? "Find a feature" : "Find a page or route"}
                 aria-label={view === "features" ? "Search features" : "Search pages"}
-                wrapperClassName="mt-2"
+                wrapperClassName="mt-2 border border-hairline bg-white"
               />
             ) : null}
-          </div>
+            </div>
 
-          <ScrollArea className="max-h-64 flex-1 px-2 py-2 lg:max-h-none" scrollShadows>
+            <div key={`guide-index-${view}-${navigationEpoch}`} className="px-2 py-2">
             {view === "product" ? (
               <ProductIndex documentation={documentation} onOpenPage={openPage} />
             ) : view === "features" ? (
@@ -372,10 +425,10 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
                 {filteredFeatures.map((feature) => (
                   <NavigationButton
                     key={feature.id}
-                    active={feature.id === selectedFeatureId}
+                    active={feature.id === selectedFeature?.id}
                     title={feature.title}
                     description={feature.summary}
-                    onClick={() => setSelectedFeatureId(feature.id)}
+                    onClick={() => openFeature(feature.id)}
                   />
                 ))}
                 {!filteredFeatures.length ? <p className="px-2 py-3 text-[9px] text-tertiary">No matching features.</p> : null}
@@ -387,15 +440,15 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
                   if (!pages.length) return null;
                   return (
                     <section key={area.id}>
-                      <h2 className="px-2 pb-1 text-[8px] font-medium uppercase text-tertiary">{area.title}</h2>
+                      <p className="px-2 pb-1 text-[9px] font-medium text-secondary">{area.title}</p>
                       <div className="space-y-0.5">
                         {pages.map((page) => (
                           <NavigationButton
                             key={page.id}
-                            active={page.id === selectedPageId}
+                            active={page.id === selectedPage?.id}
                             title={page.title}
                             description={page.route}
-                            onClick={() => setSelectedPageId(page.id)}
+                            onClick={() => openPage(page.id)}
                           />
                         ))}
                       </div>
@@ -405,24 +458,21 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
                 {!filteredPages.length ? <p className="px-2 py-3 text-[9px] text-tertiary">No matching pages.</p> : null}
               </div>
             )}
-          </ScrollArea>
+            </div>
+          </div>
             </aside>
 
-            <ScrollArea className="min-h-0" scrollShadows>
-              <main className="space-y-4 p-3 lg:p-4">
+            <section key={`guide-record-${view}-${navigationEpoch}`} className="min-w-0 space-y-4 p-3 lg:p-4" aria-label="Selected estimate system guide record">
             <header className="flex flex-col gap-2 border-b border-hairline pb-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-3xl">
-                <p className="text-[8px] font-medium uppercase text-tertiary">
-                  {view === "product" ? "Product journey" : view === "features" ? "Feature flow" : "Page record"}
-                </p>
                 <h2
                   ref={contentHeadingRef}
                   tabIndex={-1}
-                  className="mt-0.5 text-[12px] font-medium leading-5 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="text-[12px] font-medium leading-5 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 >
                   {heading}
                 </h2>
-                <p className="mt-0.5 text-[9px] leading-4 text-secondary">{summary}</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-secondary">{summary}</p>
               </div>
               {view === "pages" && selectedPage ? (
                 <code className="max-w-full shrink-0 break-all rounded-xs bg-surfaceMuted px-2 py-1 text-[8px] leading-3 text-ink">
@@ -431,35 +481,24 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
               ) : null}
             </header>
 
-            <EstimateSystemGraph
-              documentation={documentation}
-              view={view}
-              feature={selectedFeature}
-              page={selectedPage}
-              onOpenFeature={openFeature}
-              onOpenPage={openPage}
-            />
-
-            {view === "product" ? (
-              <section className="grid divide-y divide-hairline border-y border-hairline sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-                <div className="py-2 sm:pr-3">
-                  <h3 className="text-[9px] font-medium text-ink">Product</h3>
-                  <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use this view to understand the main journey and product areas.</p>
-                </div>
-                <div className="py-2 sm:px-3">
-                  <h3 className="text-[9px] font-medium text-ink">Features</h3>
-                  <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use feature flows to understand how one user goal works.</p>
-                </div>
-                <div className="py-2 sm:pl-3">
-                  <h3 className="text-[9px] font-medium text-ink">Pages</h3>
-                  <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use page records to understand where work lives and what connects next.</p>
-                </div>
-                <div className="py-2 sm:pl-3">
-                  <h3 className="text-[9px] font-medium text-ink">UX</h3>
-                  <p className="mt-0.5 text-[8px] leading-3 text-tertiary">Use UX paths to understand users, ordered work, and cross-flow handoffs.</p>
-                </div>
+            {(view === "features" && normalizedQuery && !selectedFeature) || (view === "pages" && normalizedQuery && !selectedPage) ? (
+              <section className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/25 p-3" role="status">
+                <p className="text-[10px] font-medium text-ink">Nothing matches “{query.trim()}”.</p>
+                <p className="mt-1 text-[9px] leading-4 text-secondary">Clear the search to restore the complete documentation index.</p>
+                <Button variant="outline" size="xs" className="mt-2 min-w-0" onClick={clearIndexQueryAndFocus}>Clear search</Button>
               </section>
-            ) : view === "features" && selectedFeature ? (
+            ) : (
+              <EstimateSystemGraph
+                documentation={documentation}
+                view={view}
+                feature={selectedFeature}
+                page={selectedPage}
+                onOpenFeature={openFeature}
+                onOpenPage={openPage}
+              />
+            )}
+
+            {view === "features" && selectedFeature ? (
               <FeatureDetails
                 documentation={documentation}
                 feature={selectedFeature}
@@ -469,8 +508,7 @@ export function EstimateSystemMap({ documentation }: EstimateSystemMapProps) {
             ) : view === "pages" && selectedPage ? (
               <PageDetails documentation={documentation} page={selectedPage} />
             ) : null}
-              </main>
-            </ScrollArea>
+              </section>
           </>
         )}
       </div>

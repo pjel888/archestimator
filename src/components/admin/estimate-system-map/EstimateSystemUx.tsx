@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchInput } from "@/components/ui/search-input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
@@ -85,10 +83,9 @@ function PersonaDetailList({ title, items }: { title: string; items: readonly st
 function PersonaProfile({ persona }: { persona: EstimateSystemPersona }) {
   return (
     <section className="space-y-3 border-t border-hairline pt-3" aria-labelledby="ux-persona-profile-heading">
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div>
         <h3 id="ux-persona-profile-heading" className="text-[10px] font-medium text-ink">{persona.title} context</h3>
-        <Badge tone="neutral" size="xs" className="min-w-0 normal-case">{persona.group}</Badge>
-        <Badge tone="neutral" size="xs" className="min-w-0 normal-case">{persona.evidenceConfidence} confidence</Badge>
+        <p className="mt-0.5 text-[8px] text-tertiary">{persona.group.replace("-", " ")}</p>
       </div>
       <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
         <PersonaDetailList title="Observed contexts" items={persona.contexts} />
@@ -96,13 +93,13 @@ function PersonaProfile({ persona }: { persona: EstimateSystemPersona }) {
         <PersonaDetailList title="Needs and constraints" items={[...persona.needs, ...persona.constraints]} />
         <PersonaDetailList title="Open assumptions" items={persona.unresolvedAssumptions} />
       </div>
-      <div className="grid gap-2 border-l-2 border-ink pl-2.5 sm:grid-cols-2">
-        <div>
-          <p className="text-[8px] font-medium uppercase text-secondary">Access path</p>
+      <div className="grid divide-y divide-hairline border-y border-hairline sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="py-2 sm:pr-3">
+          <p className="text-[8px] font-medium text-secondary">Access path</p>
           <p className="mt-0.5 text-[9px] leading-4 text-ink">{persona.accessPath}</p>
         </div>
-        <div>
-          <p className="text-[8px] font-medium uppercase text-secondary">Success signal</p>
+        <div className="py-2 sm:pl-3">
+          <p className="text-[8px] font-medium text-secondary">Success signal</p>
           <p className="mt-0.5 text-[9px] leading-4 text-ink">{persona.successSignal}</p>
         </div>
       </div>
@@ -123,44 +120,33 @@ function JourneyFlow({
   onOpenPage: (pageId: string) => void;
 }) {
   return (
-    <section className="rounded-xs border border-hairline bg-surfaceMuted/35 p-3" aria-labelledby="ux-happy-path-heading">
+    <section aria-labelledby="ux-happy-path-heading">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="ux-happy-path-heading" className="text-[9px] font-medium text-ink">Ordered happy path</h3>
-        <span className="text-[8px] text-secondary">{path.steps.length} steps</span>
+        <h3 id="ux-happy-path-heading" className="text-[9px] font-medium text-ink">Ordered path</h3>
       </div>
-      <ol className="mt-3 space-y-2" aria-label={`${path.title} ordered steps`}>
+      <ol className="mt-2 divide-y divide-hairline border-y border-hairline" aria-label={`${path.title} ordered steps`}>
         {path.steps.map((step, index) => {
           const resolved = resolveEstimateSystemExperienceStep(documentation, step);
           if (!resolved) return null;
           const actor = findEstimateSystemPersona(documentation, resolved.actorPersonaId);
           const page = resolved.pageId ? findEstimateSystemPage(documentation, resolved.pageId) : null;
           return (
-            <li key={step.id} className="grid grid-cols-[28px_minmax(0,1fr)] gap-2">
-              <div className="flex flex-col items-center" aria-hidden="true">
-                <span className={cn(
-                  "grid size-5 shrink-0 place-items-center rounded-xs text-[8px] font-medium",
-                  resolved.state === "partial" ? "bg-warning/10 text-warning ring-1 ring-warning/30" : "bg-ink text-white",
-                )}>
-                  {index + 1}
-                </span>
-                {index < path.steps.length - 1 ? <span className="mt-1 min-h-6 w-px flex-1 bg-divider" /> : null}
-              </div>
+            <li key={step.id} className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 py-2.5">
+              <span className={cn("pt-0.5 text-[8px] font-medium tabular-nums", resolved.state === "partial" ? "text-warning" : "text-tertiary")} aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
               <article
                 aria-label={`Step ${index + 1} of ${path.steps.length}: ${resolved.title}`}
-                className={cn(
-                  "min-w-0 rounded-xs bg-white px-2.5 py-2 ring-1",
-                  resolved.state === "partial" ? "ring-warning/30" : "ring-hairline",
-                )}
+                className="min-w-0"
               >
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[8px] font-medium uppercase text-secondary">Step {index + 1} of {path.steps.length}</span>
-                  {actor ? <Badge tone="neutral" size="xs" className="min-w-0 normal-case">{actor.title}</Badge> : null}
-                  {resolved.state === "partial" ? <Badge tone="warning" size="xs" className="min-w-0 normal-case">Partial gap</Badge> : null}
+                  {actor ? <span className="text-[8px] text-tertiary">{actor.title}</span> : null}
+                  {resolved.state === "partial" ? <span className="text-[9px] font-medium text-warning">Coverage gap</span> : null}
                 </div>
                 <h4 className="mt-1 text-[10px] font-medium leading-4 text-ink">{resolved.title}</h4>
                 <p className="mt-0.5 text-[9px] leading-4 text-secondary">{resolved.description}</p>
                 {resolved.result ? (
-                  <p className="mt-1.5 border-l-2 border-success/60 pl-2 text-[9px] leading-4 text-ink">{resolved.result}</p>
+                  <p className="mt-1 text-[9px] leading-4 text-ink"><span className="text-tertiary">Result: </span>{resolved.result}</p>
                 ) : null}
                 <div className="mt-2 flex flex-wrap gap-1">
                   {page ? (
@@ -183,10 +169,10 @@ function JourneyFlow({
           );
         })}
       </ol>
-      <div className="mt-3 border-l-2 border-success bg-success/5 px-2.5 py-2">
-        <p className="text-[8px] font-medium uppercase text-success">Path outcome</p>
-        <p className="mt-0.5 text-[9px] leading-4 text-ink">{path.outcome}</p>
-      </div>
+      <dl className="grid gap-1 border-b border-hairline py-2.5 sm:grid-cols-[90px_minmax(0,1fr)]">
+        <dt className="text-[8px] font-medium text-tertiary">Path outcome</dt>
+        <dd className="text-[9px] leading-4 text-ink">{path.outcome}</dd>
+      </dl>
     </section>
   );
 }
@@ -215,10 +201,8 @@ function IntersectionList({
           <li key={intersection.id} className="grid gap-2 px-2.5 py-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)]">
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <Badge tone={intersection.status === "partial" ? "warning" : "neutral"} size="xs" className="min-w-0 normal-case">
-                  {intersection.status}
-                </Badge>
-                <Badge tone="neutral" size="xs" className="min-w-0 normal-case">{intersection.kind}</Badge>
+                {intersection.status === "partial" ? <span className="text-[9px] font-medium text-warning">Coverage gap</span> : null}
+                <span className="text-[8px] text-tertiary">{intersection.kind}</span>
                 {owner ? <span className="text-[8px] text-secondary">Owner · {owner.title}</span> : null}
               </div>
               <h4 className="mt-1 text-[10px] font-medium leading-4 text-ink">{intersection.title}</h4>
@@ -229,13 +213,13 @@ function IntersectionList({
             <div className="flex flex-col justify-between gap-2 border-t border-hairline pt-2 lg:border-l lg:border-t-0 lg:pl-2 lg:pt-0">
               <div className="flex flex-wrap items-center gap-1">
                 {fromPath ? (
-                  <Button aria-label={`From path: ${fromPath.title}`} variant="plain" size="xs" className="h-auto min-h-0 min-w-0 px-0 py-0 !text-[9px] underline" onClick={() => onSelectRelatedPath(fromPath.id)}>
+                  <Button aria-label={`From path: ${fromPath.title}`} variant="plain" size="xs" className="h-auto min-h-6 min-w-0 px-0 py-1 !text-[9px] underline" onClick={() => onSelectRelatedPath(fromPath.id)}>
                     {fromPath.title}
                   </Button>
                 ) : null}
                 <ArrowRight size={12} className="text-tertiary" aria-hidden="true" />
                 {toPath ? (
-                  <Button aria-label={`To path: ${toPath.title}`} variant="plain" size="xs" className="h-auto min-h-0 min-w-0 px-0 py-0 !text-[9px] underline" onClick={() => onSelectRelatedPath(toPath.id)}>
+                  <Button aria-label={`To path: ${toPath.title}`} variant="plain" size="xs" className="h-auto min-h-6 min-w-0 px-0 py-1 !text-[9px] underline" onClick={() => onSelectRelatedPath(toPath.id)}>
                     {toPath.title}
                   </Button>
                 ) : null}
@@ -272,12 +256,12 @@ function PathNetworkCard({
       variant="ghost"
       size="xs"
       aria-pressed={active}
-      className="h-auto min-h-20 w-full min-w-0 flex-col items-start justify-start gap-1 whitespace-normal rounded-xs border border-hairline bg-white px-2.5 py-2 text-left aria-pressed:border-ink aria-pressed:ring-1 aria-pressed:ring-ink"
+      className="h-auto min-h-0 w-full min-w-0 flex-col items-start justify-start gap-0.5 whitespace-normal rounded-xs px-2.5 py-2 text-left aria-pressed:bg-surfaceMuted aria-pressed:font-medium"
       onClick={onClick}
     >
-      <span className="text-[8px] font-medium uppercase text-secondary">{persona?.title ?? "User"}</span>
+      <span className="text-[8px] font-medium text-secondary">{persona?.title ?? "User"}</span>
       <span className="text-[10px] font-medium leading-4 text-ink">{path.title}</span>
-      <span className="line-clamp-2 text-[8px] font-normal leading-3 text-secondary">{path.outcome}</span>
+      <span className="line-clamp-2 text-[10px] font-normal leading-4 text-secondary">{path.outcome}</span>
     </Button>
   );
 }
@@ -307,15 +291,14 @@ function IntersectionNetwork({
 
   return (
     <section className="space-y-3" aria-labelledby="ux-intersection-network-heading">
-      <div className="rounded-xs border border-hairline bg-surfaceMuted/35 p-3">
+      <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 id="ux-intersection-network-heading" className="text-[9px] font-medium text-ink">Core handoff chain</h3>
             <p className="mt-0.5 text-[8px] leading-3 text-secondary">Authoring moves to publication, external review, and internal response triage.</p>
           </div>
-          <Badge tone="neutral" size="xs" className="min-w-0 normal-case">Current paths</Badge>
         </div>
-        <ol className="mt-3 flex flex-col gap-2 2xl:flex-row 2xl:items-stretch" aria-label="Core experience handoff chain">
+        <ol className="mt-2 flex flex-col gap-1 border-y border-hairline py-1 2xl:flex-row 2xl:items-stretch" aria-label="Core experience handoff chain">
           {corePaths.map((path, index) => (
             <li key={path.id} className="contents">
               <div className="min-w-0 flex-1">
@@ -338,7 +321,7 @@ function IntersectionNetwork({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)]">
-        <section className="rounded-xs border border-hairline p-3" aria-labelledby="ux-support-paths-heading">
+        <section className="border-t border-hairline pt-3" aria-labelledby="ux-support-paths-heading">
           <h3 id="ux-support-paths-heading" className="text-[9px] font-medium text-ink">Paths that feed or follow authoring</h3>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
             {supportPaths.map((path) => (
@@ -354,10 +337,7 @@ function IntersectionNetwork({
         </section>
         {partialPath ? (
           <section className="rounded-xs border border-warning/30 bg-warning/5 p-3" aria-labelledby="ux-partial-return-heading">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Badge tone="warning" size="xs" className="min-w-0 normal-case">Partial return</Badge>
-              <h3 id="ux-partial-return-heading" className="text-[9px] font-medium text-ink">Changes requested only</h3>
-            </div>
+            <h3 id="ux-partial-return-heading" className="text-[9px] font-medium text-ink">Changes-requested return gap</h3>
             <p className="mt-1 text-[9px] leading-4 text-secondary">Approval and decline end in monitoring. A change request begins a manual continuity gap back to the source estimate.</p>
             <Button variant="outline" size="xs" className="mt-2 min-w-0" onClick={() => onSelectRelatedPath(partialPath.id)}>
               Open partial path
@@ -372,7 +352,6 @@ function IntersectionNetwork({
             <h3 id="ux-all-intersections-heading" className="text-[9px] font-medium text-ink">All documented intersections</h3>
             <p className="mt-0.5 text-[8px] leading-3 text-secondary">This list is the complete non-spatial equivalent of the connected lanes.</p>
           </div>
-          <Badge tone="neutral" size="xs" className="min-w-0 normal-case">{documentation.intersections.length} connections</Badge>
         </div>
         <IntersectionList
           documentation={documentation}
@@ -471,6 +450,8 @@ export function EstimateSystemUx({
   onOpenPage,
 }: EstimateSystemUxProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLElement>(null);
+  const [mobileIndexOpen, setMobileIndexOpen] = useState(false);
   const selectedPersona = findEstimateSystemPersona(documentation, selectedPersonaId) ?? documentation.personas[0] ?? null;
   const normalizedQuery = query.trim().toLowerCase();
   const matchingPaths = useMemo(() => {
@@ -500,11 +481,27 @@ export function EstimateSystemUx({
     )
     : [];
 
+  function focusSelectedContent() {
+    window.requestAnimationFrame(() => {
+      contentRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
+      contentRef.current?.focus({ preventScroll: true });
+    });
+  }
+
   function selectPersona(personaId: string) {
-    if (personaId === selectedPersona?.id) return;
-    const nextPath = findMatchingPaths(documentation, personaId, normalizedQuery)[0]?.path;
-    onSelectPersona(personaId);
-    onSelectPath(nextPath?.id ?? "");
+    if (personaId !== selectedPersona?.id) {
+      const nextPath = findMatchingPaths(documentation, personaId, normalizedQuery)[0]?.path;
+      onSelectPersona(personaId);
+      onSelectPath(nextPath?.id ?? "");
+    }
+    setMobileIndexOpen(false);
+    focusSelectedContent();
+  }
+
+  function selectPath(pathId: string) {
+    onSelectPath(pathId);
+    setMobileIndexOpen(false);
+    focusSelectedContent();
   }
 
   function selectRelatedPath(pathId: string) {
@@ -516,6 +513,8 @@ export function EstimateSystemUx({
     onSelectPersona(currentPersonaCanUsePath ? currentPersonaId : path.primaryPersonaId);
     onSelectPath(path.id);
     onQueryChange("");
+    setMobileIndexOpen(false);
+    focusSelectedContent();
   }
 
   function clearQueryAndFocus() {
@@ -525,26 +524,43 @@ export function EstimateSystemUx({
 
   return (
     <div className="grid min-h-0 lg:col-span-2 lg:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="flex min-h-0 flex-col border-b border-hairline bg-surfaceMuted/25 lg:border-b-0 lg:border-r" aria-label="UX documentation index">
-        <div className="border-b border-hairline px-2.5 py-2">
-          <p className="text-[9px] font-medium text-ink">Users and MVP paths</p>
-          <p className="mt-0.5 text-[8px] leading-3 text-secondary">Choose one user context, then one journey.</p>
+      <aside className="min-h-0 border-b border-hairline bg-surfaceMuted/20 lg:border-b-0 lg:border-r" aria-label="UX documentation index">
+        <div className="p-2 lg:hidden">
+          <Button
+            variant="outline"
+            size="xs"
+            className="w-full min-w-0 justify-between"
+            aria-expanded={mobileIndexOpen}
+            aria-controls="estimate-system-ux-index-content"
+            onClick={() => {
+              const nextOpen = !mobileIndexOpen;
+              setMobileIndexOpen(nextOpen);
+              if (nextOpen) window.requestAnimationFrame(() => searchInputRef.current?.focus());
+            }}
+          >
+            {mobileIndexOpen ? "Hide users and paths" : "Browse users and paths"}
+          </Button>
         </div>
-        <ScrollArea className="max-h-96 flex-1 px-2 py-2 lg:max-h-none" scrollShadows>
+        <div id="estimate-system-ux-index-content" className={`${mobileIndexOpen ? "block" : "hidden"} lg:block`}>
+          <div className="border-b border-hairline px-2.5 py-2">
+            <p className="text-[9px] font-medium text-ink">Users and MVP paths</p>
+            <p className="mt-0.5 text-[8px] leading-3 text-secondary">Choose one user context, then one journey.</p>
+          </div>
+          <div className="px-2 py-2">
           <div className="space-y-3">
             {PERSONA_GROUPS.map((group) => {
               const personas = documentation.personas.filter((persona) => persona.group === group.id);
               return (
                 <section key={group.id}>
-                  <h2 className="px-1 pb-1 text-[8px] font-medium uppercase text-secondary">{group.label}</h2>
-                  <div className="grid grid-cols-2 gap-1 lg:grid-cols-1">
+                  <p className="px-1 pb-1 text-[9px] font-medium text-secondary">{group.label}</p>
+                  <div className="grid grid-cols-1 gap-1">
                     {personas.map((persona) => (
                       <Button
                         key={persona.id}
                         variant="ghost"
                         size="xs"
                         aria-pressed={persona.id === selectedPersona?.id}
-                        className="h-auto min-h-8 min-w-0 justify-start whitespace-normal rounded-none border-l-2 border-transparent px-2 py-1 text-left aria-pressed:border-ink aria-pressed:bg-surfaceMuted"
+                        className="h-auto min-h-8 min-w-0 justify-start whitespace-normal rounded-xs px-2 py-1 text-left aria-pressed:bg-white aria-pressed:font-medium"
                         onClick={() => selectPersona(persona.id)}
                       >
                         <span className="text-[9px] leading-3 text-ink">{persona.title}</span>
@@ -556,7 +572,7 @@ export function EstimateSystemUx({
             })}
 
             <section className="border-t border-hairline pt-3">
-              <h2 className="px-1 text-[8px] font-medium uppercase text-secondary">Relevant paths</h2>
+              <p className="px-1 text-[9px] font-medium text-secondary">Relevant paths</p>
               <SearchInput
                 ref={searchInputRef}
                 value={query}
@@ -564,9 +580,9 @@ export function EstimateSystemUx({
                 onClear={clearQueryAndFocus}
                 placeholder="Find a path, step, page, or feature"
                 aria-label="Search UX paths"
-                wrapperClassName="mt-2"
+                wrapperClassName="mt-2 border border-hairline bg-white"
               />
-              <p className="mt-1 px-1 text-[8px] leading-3 text-secondary" role="status">
+              <p className="sr-only" role="status">
                 {matchingPaths.length} matching path{matchingPaths.length === 1 ? "" : "s"}
               </p>
               <div className="mt-2 space-y-0.5">
@@ -576,20 +592,20 @@ export function EstimateSystemUx({
                     variant="ghost"
                     size="xs"
                     aria-pressed={path.id === selectedPath?.id}
-                    className="h-auto min-h-0 w-full min-w-0 flex-col items-start gap-0.5 whitespace-normal rounded-none border-l-2 border-transparent px-2 py-1.5 text-left aria-pressed:border-ink aria-pressed:bg-surfaceMuted"
-                    onClick={() => onSelectPath(path.id)}
+                    className="h-auto min-h-0 w-full min-w-0 flex-col items-start gap-0.5 whitespace-normal rounded-xs px-2 py-1.5 text-left aria-pressed:bg-white aria-pressed:font-medium"
+                    onClick={() => selectPath(path.id)}
                   >
                     <span className="flex w-full items-center justify-between gap-2 text-[9px] leading-3 text-ink">
                       <span>{path.title}</span>
                       {path.status === "partial" ? <span className="text-[8px] text-warning">Partial</span> : null}
                     </span>
-                    <span className="line-clamp-2 text-[8px] font-normal leading-3 text-secondary">{matchLabel}</span>
+                    <span className="line-clamp-2 text-[10px] font-normal leading-4 text-secondary">{matchLabel}</span>
                   </Button>
                 ))}
                 {!matchingPaths.length ? (
                   <div className="px-2 py-3" role="status">
                     <p className="text-[9px] font-medium text-ink">{hasAssignedPaths ? "No matching UX paths." : "No assigned UX paths."}</p>
-                    <p className="mt-1 text-[8px] leading-3 text-secondary">
+                    <p className="mt-1 text-[10px] leading-4 text-secondary">
                       {hasAssignedPaths
                         ? "Search checks journey, step, page, feature, and user text."
                         : "This context is documented without forcing it into an end-user journey."}
@@ -599,20 +615,25 @@ export function EstimateSystemUx({
               </div>
             </section>
           </div>
-        </ScrollArea>
+          </div>
+        </div>
       </aside>
 
-      <ScrollArea className="min-h-0" scrollShadows>
-        <main className="space-y-4 p-3 lg:p-4">
+      <section
+        ref={contentRef}
+        tabIndex={-1}
+        className="scroll-mt-12 min-w-0 space-y-4 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 lg:p-4"
+        aria-label="Selected UX documentation"
+      >
           {normalizedQuery && hasAssignedPaths && !selectedPath && selectedPersona ? (
             <>
               <header className="border-b border-hairline pb-3">
-                <p className="text-[8px] font-medium uppercase text-secondary">UX search</p>
+                <p className="text-[8px] font-medium text-secondary">UX search</p>
                 <h2 className="mt-0.5 text-[12px] font-medium leading-5 text-ink">No matching UX paths</h2>
-                <p className="mt-0.5 text-[9px] leading-4 text-secondary">Your search filtered every path available to {selectedPersona.title}.</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-secondary">Your search filtered every path available to {selectedPersona.title}.</p>
               </header>
               <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/25 p-3" role="status">
-                <p className="text-[9px] leading-4 text-secondary">Try another term or reset the search to restore this persona&apos;s full path list.</p>
+                <p className="text-[10px] leading-4 text-secondary">Try another term or reset the search to restore this persona&apos;s full path list.</p>
                 <Button variant="outline" size="xs" className="mt-2 min-w-0" onClick={clearQueryAndFocus}>Reset UX search</Button>
               </div>
             </>
@@ -621,12 +642,12 @@ export function EstimateSystemUx({
               <header className="flex flex-col gap-2 border-b border-hairline pb-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="max-w-3xl">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="text-[8px] font-medium uppercase text-secondary">{selectedPersona.title} · UX path</p>
-                    <Badge tone={selectedPath.status === "partial" ? "warning" : "neutral"} size="xs" className="min-w-0 normal-case">{selectedPath.status}</Badge>
+                    <p className="text-[8px] font-medium text-secondary">{selectedPersona.title} · UX path</p>
+                    {selectedPath.status === "partial" ? <span className="text-[9px] font-medium text-warning">Coverage gap</span> : null}
                   </div>
                   <h2 className="mt-0.5 text-[12px] font-medium leading-5 text-ink">{selectedPath.title}</h2>
-                  <p className="mt-0.5 text-[9px] leading-4 text-secondary">{selectedPath.summary}</p>
-                  <p className="mt-1 text-[8px] leading-3 text-secondary">Trigger: {selectedPath.trigger}</p>
+                  <p className="mt-0.5 text-[10px] leading-4 text-secondary">{selectedPath.summary}</p>
+                  <p className="mt-1 text-[9px] leading-4 text-secondary">Trigger: {selectedPath.trigger}</p>
                 </div>
                 <SegmentedControl
                   ariaLabel="UX documentation mode"
@@ -645,7 +666,6 @@ export function EstimateSystemUx({
                   <section aria-labelledby="ux-related-intersections-heading">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <h3 id="ux-related-intersections-heading" className="text-[9px] font-medium text-ink">Where this path connects</h3>
-                      <Badge tone="neutral" size="xs" className="min-w-0 normal-case">{selectedPathIntersections.length} connections</Badge>
                     </div>
                     <IntersectionList
                       documentation={documentation}
@@ -671,7 +691,7 @@ export function EstimateSystemUx({
           ) : selectedPersona ? (
             <>
               <header className="border-b border-hairline pb-3">
-                <p className="text-[8px] font-medium uppercase text-secondary">Persona record</p>
+                <p className="text-[8px] font-medium text-secondary">Persona record</p>
                 <h2 className="mt-0.5 text-[12px] font-medium leading-5 text-ink">{selectedPersona.title}</h2>
                 <p className="mt-0.5 text-[9px] leading-4 text-secondary">{selectedPersona.summary}</p>
               </header>
@@ -682,8 +702,7 @@ export function EstimateSystemUx({
               <PersonaProfile persona={selectedPersona} />
             </>
           ) : null}
-        </main>
-      </ScrollArea>
+      </section>
     </div>
   );
 }

@@ -1,8 +1,5 @@
 "use client";
 
-import { ArrowDown, ArrowRight } from "@phosphor-icons/react/dist/ssr";
-
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   findEstimateSystemArea,
@@ -15,21 +12,12 @@ import {
 
 type EstimateSystemGraphProps = Readonly<{
   documentation: EstimateSystemDocumentation;
-  view: Exclude<EstimateSystemView, "ux">;
+  view: Exclude<EstimateSystemView, "ux" | "knowledge">;
   feature: EstimateSystemFeature | null;
   page: EstimateSystemPage | null;
   onOpenFeature: (featureId: string) => void;
   onOpenPage: (pageId: string) => void;
 }>;
-
-function FlowConnector() {
-  return (
-    <div className="flex shrink-0 items-center justify-center text-tertiary" aria-hidden="true">
-      <ArrowRight size={14} weight="regular" className="hidden xl:block" />
-      <ArrowDown size={14} weight="regular" className="xl:hidden" />
-    </div>
-  );
-}
 
 function PageLink({
   documentation,
@@ -47,7 +35,7 @@ function PageLink({
     <Button
       variant="plain"
       size="xs"
-      className="h-auto min-h-0 min-w-0 justify-start whitespace-normal px-0 py-0 text-left !text-[9px] leading-3 underline decoration-divider underline-offset-2"
+      className="h-auto min-h-6 min-w-0 justify-start whitespace-normal px-0 py-1 text-left !text-[10px] leading-4 underline decoration-divider underline-offset-2"
       onClick={() => onOpenPage(page.id)}
     >
       {page.title}
@@ -61,40 +49,33 @@ function ProductJourney({
   onOpenPage,
 }: Pick<EstimateSystemGraphProps, "documentation" | "onOpenFeature" | "onOpenPage">) {
   return (
-    <div className="space-y-3">
-      <div className="rounded-xs border border-hairline bg-surfaceMuted/35 p-3">
-        <ol className="flex flex-col gap-2 xl:flex-row xl:items-stretch" aria-label="Primary product journey">
+    <div className="space-y-4">
+      <section aria-labelledby="product-journey-steps-heading">
+        <h3 id="product-journey-steps-heading" className="mb-2 text-[9px] font-medium text-ink">From project setup to client decision</h3>
+        <ol className="divide-y divide-hairline border-y border-hairline" aria-label="Primary product journey">
           {documentation.journey.steps.map((step, index) => (
-            <li key={step.id} className="contents">
-              <article className="min-w-0 flex-1 border-l-2 border-ink bg-white px-2.5 py-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="grid size-4 shrink-0 place-items-center rounded-xs bg-ink text-[8px] font-medium text-white">
-                    {index + 1}
-                  </span>
-                  <h3 className="text-[10px] font-medium leading-3 text-ink">{step.title}</h3>
-                </div>
-                <p className="mt-1.5 text-[9px] leading-4 text-secondary">{step.summary}</p>
-                <div className="mt-2">
-                  <PageLink documentation={documentation} pageId={step.pageId} onOpenPage={onOpenPage} />
-                </div>
-              </article>
-              {index < documentation.journey.steps.length - 1 ? <FlowConnector /> : null}
+            <li key={step.id} className="grid gap-2 py-2.5 sm:grid-cols-[28px_minmax(0,1fr)_160px] sm:items-start">
+              <span className="pt-0.5 text-[8px] font-medium tabular-nums text-tertiary">{String(index + 1).padStart(2, "0")}</span>
+              <div className="min-w-0">
+                <h4 className="text-[10px] font-medium leading-4 text-ink">{step.title}</h4>
+                <p className="mt-0.5 text-[10px] leading-4 text-secondary">{step.summary}</p>
+              </div>
+              <div className="sm:text-right">
+                <PageLink documentation={documentation} pageId={step.pageId} onOpenPage={onOpenPage} />
+              </div>
             </li>
           ))}
         </ol>
-      </div>
+      </section>
 
       {documentation.journey.supportingAreaIds.map((areaId) => {
         const area = findEstimateSystemArea(documentation, areaId);
         if (!area) return null;
         return (
-          <section key={area.id} className="flex flex-col gap-2 border-y border-hairline py-2 sm:flex-row sm:items-center sm:justify-between">
+          <section key={area.id} className="flex flex-col gap-2 border-t border-hairline pt-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <Badge tone="neutral" size="xs" className="min-w-0 normal-case">Supports the journey</Badge>
-                <h3 className="text-[10px] font-medium text-ink">{area.title}</h3>
-              </div>
-              <p className="mt-1 text-[9px] leading-4 text-secondary">{area.userOutcome}</p>
+              <h3 className="text-[10px] font-medium text-ink">{area.title}</h3>
+              <p className="mt-0.5 text-[10px] leading-4 text-secondary">{area.userOutcome}</p>
             </div>
             <div className="flex flex-wrap gap-1">
               {area.featureIds.map((featureId) => {
@@ -129,34 +110,29 @@ function FeatureFlow({
   const result = feature.steps.findLast((step) => step.result)?.result;
 
   return (
-    <div className="rounded-xs border border-hairline bg-surfaceMuted/35 p-3">
-      <p className="mb-3 text-[9px] font-medium text-ink">User flow</p>
-      <ol className="flex flex-col gap-2 xl:flex-row xl:items-stretch" aria-label={`${feature.title} flow`}>
+    <section aria-labelledby="feature-flow-heading">
+      <h3 id="feature-flow-heading" className="mb-2 text-[9px] font-medium text-ink">How it works</h3>
+      <ol className="divide-y divide-hairline border-y border-hairline" aria-label={`${feature.title} flow`}>
         {feature.steps.map((step, index) => (
-          <li key={step.id} className="contents">
-            <article className="min-w-0 flex-1 bg-white px-2.5 py-2 ring-1 ring-hairline">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[8px] font-medium tabular-nums text-tertiary">{String(index + 1).padStart(2, "0")}</span>
-                <h3 className="text-[10px] font-medium leading-3 text-ink">{step.title}</h3>
-              </div>
-              <p className="mt-1.5 text-[9px] leading-4 text-secondary">{step.description}</p>
-              {step.pageId ? (
-                <div className="mt-2">
-                  <PageLink documentation={documentation} pageId={step.pageId} onOpenPage={onOpenPage} />
-                </div>
-              ) : null}
-            </article>
-            {index < feature.steps.length - 1 ? <FlowConnector /> : null}
+          <li key={step.id} className="grid gap-2 py-2.5 sm:grid-cols-[28px_minmax(0,1fr)_160px] sm:items-start">
+            <span className="pt-0.5 text-[8px] font-medium tabular-nums text-tertiary">{String(index + 1).padStart(2, "0")}</span>
+            <div className="min-w-0">
+              <h4 className="text-[10px] font-medium leading-4 text-ink">{step.title}</h4>
+              <p className="mt-0.5 text-[10px] leading-4 text-secondary">{step.description}</p>
+            </div>
+            <div className="sm:text-right">
+              {step.pageId ? <PageLink documentation={documentation} pageId={step.pageId} onOpenPage={onOpenPage} /> : null}
+            </div>
           </li>
         ))}
       </ol>
       {result ? (
-        <div className="mt-3 border-l-2 border-success bg-success/5 px-2.5 py-2">
-          <p className="text-[8px] font-medium uppercase text-success">Outcome</p>
-          <p className="mt-0.5 text-[9px] leading-4 text-ink">{result}</p>
-        </div>
+        <dl className="grid gap-1 border-b border-hairline py-2.5 sm:grid-cols-[90px_minmax(0,1fr)]">
+          <dt className="text-[8px] font-medium text-tertiary">Outcome</dt>
+          <dd className="text-[10px] leading-4 text-ink">{result}</dd>
+        </dl>
       ) : null}
-    </div>
+    </section>
   );
 }
 
@@ -169,16 +145,16 @@ function PageMap({
   if (!page) return null;
 
   return (
-    <div className="grid gap-3 rounded-xs border border-hairline bg-surfaceMuted/35 p-3 md:grid-cols-[minmax(0,1fr)_220px]">
+    <div className="grid gap-3 border-y border-hairline py-3 md:grid-cols-[minmax(0,1fr)_220px]">
       <section aria-labelledby="page-regions-heading">
         <h3 id="page-regions-heading" className="text-[9px] font-medium text-ink">Inside this page</h3>
-        <ol className="mt-2 divide-y divide-hairline border-y border-hairline bg-white">
+        <ol className="mt-2 divide-y divide-hairline border-y border-hairline">
           {page.regions.map((region, index) => (
             <li key={region.title} className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 px-2 py-2">
               <span className="text-[8px] font-medium tabular-nums text-tertiary">{String(index + 1).padStart(2, "0")}</span>
               <div>
                 <p className="text-[10px] font-medium leading-3 text-ink">{region.title}</p>
-                <p className="mt-0.5 text-[9px] leading-4 text-secondary">{region.description}</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-secondary">{region.description}</p>
               </div>
             </li>
           ))}
@@ -197,7 +173,7 @@ function PageMap({
                   key={feature.id}
                   variant="plain"
                   size="xs"
-                  className="h-auto min-h-0 min-w-0 justify-start whitespace-normal px-0 py-0 text-left !text-[9px] leading-4 underline decoration-divider underline-offset-2"
+                  className="h-auto min-h-0 min-w-0 justify-start whitespace-normal px-0 py-0 text-left !text-[10px] leading-4 underline decoration-divider underline-offset-2"
                   onClick={() => onOpenFeature(feature.id)}
                 >
                   {feature.title}
