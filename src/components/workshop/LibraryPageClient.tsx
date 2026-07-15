@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,12 +11,24 @@ import {
   workspaceComponentLibraryQueryKey,
   workspaceComponentRowsLibraryQueryKey,
 } from "@/lib/component-library/query-keys";
-import { loadCurrentWorkspaceComponentRowsLibrary, loadProjectComponentRowsLibrary } from "@/lib/component-library/actions";
+import {
+  loadCurrentWorkspaceComponentRowsLibrary,
+  loadProjectComponentRowsLibrary,
+  loadProjectOnlyComponentRowsLibrary,
+} from "@/lib/component-library/actions";
 import type { EstimateRowItem } from "./estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
-import type { ComponentLibraryBrand, ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import type {
+  ComponentLibraryBrand,
+  ComponentRowsLibraryDataset,
+  ComponentRowsLibraryPage,
+} from "@/lib/repositories/component-library-repository";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
+
+type LibraryItemsMutationOptions = {
+  totalComponentCountDelta?: number;
+};
 
 const ComponentLibraryManager = dynamic(() =>
   import("./component-library-manager/ComponentLibraryManager").then((module) => module.ComponentLibraryManager),
@@ -34,9 +47,9 @@ function LibraryManagerFallback() {
         <section className="flex h-full min-h-0 gap-2 overflow-hidden bg-transparent" aria-label="Component library workspace">
           <div className="estimate-glass-paper flex min-w-0 flex-1 flex-col rounded-xs p-2" aria-hidden="true">
             <Skeleton className="h-7 w-32" />
-            <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2">
+            <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-3">
               {Array.from({ length: 8 }, (_, index) => (
-                <Skeleton key={index} className="h-[236px] w-full" />
+                <Skeleton key={index} className="h-[292px] w-full" />
               ))}
             </div>
           </div>
@@ -55,6 +68,59 @@ function LibraryManagerFallback() {
   );
 }
 
+function mergeBrowseRowPreservingDetail(existing: EstimateRowItem, incoming: EstimateRowItem): EstimateRowItem {
+  const existingPriceOptions = new Map((existing.priceOptions ?? []).map((option) => [option.id, option]));
+  const mergedPriceOptions = incoming.priceOptions?.map((option) => {
+    const existingOption = existingPriceOptions.get(option.id);
+    if (!existingOption) return option;
+    return {
+      ...existingOption,
+      ...option,
+      attachments: existingOption.attachments ?? option.attachments,
+    };
+  });
+
+  return {
+    ...existing,
+    ...incoming,
+    priceOptions: mergedPriceOptions ?? existing.priceOptions,
+    history: existing.history ?? incoming.history,
+    notes: incoming.notes ?? existing.notes,
+  };
+}
+
+function appendComponentRowsPage(
+  current: ComponentRowsLibraryDataset,
+  incoming: ComponentRowsLibraryPage,
+): ComponentRowsLibraryPage {
+  const mergedFoldersById = new Map(current.libraryFolders.map((folder) => [folder.id, folder]));
+  for (const folder of incoming.libraryFolders) mergedFoldersById.set(folder.id, folder);
+  const incomingById = new Map(incoming.libraryItems.map((item) => [item.id, item]));
+  const mergedItems = current.libraryItems.map((item) => {
+    const incomingItem = incomingById.get(item.id);
+    if (!incomingItem) return item;
+    incomingById.delete(item.id);
+    return mergeBrowseRowPreservingDetail(item, incomingItem);
+  });
+  mergedItems.push(...incoming.libraryItems.filter((item) => incomingById.has(item.id)));
+
+  const snapshotTotalCount = "nextCursor" in current
+    ? (current as ComponentRowsLibraryPage).nextCursor?.snapshotTotalCount
+    : undefined;
+  const localTotalDelta = snapshotTotalCount === undefined || current.totalComponentCount === undefined
+    ? 0
+    : current.totalComponentCount - snapshotTotalCount;
+
+  return {
+    ...current,
+    ...incoming,
+    libraryFolders: [...mergedFoldersById.values()],
+    libraryItems: mergedItems,
+    loadedComponentCount: mergedItems.length,
+    totalComponentCount: incoming.totalComponentCount + localTotalDelta,
+  };
+}
+
 type LibraryPageClientProps = {
   // Library Optimization Plan P0 T3: the Components tab owns its dataset in a
   // TanStack Query cache. The server route seeds it via initialData (preserving SSR
@@ -70,6 +136,7 @@ type LibraryPageClientProps = {
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
   projectId?: string;
+  projectOnly?: boolean;
   promotionEnabled?: boolean;
   canManageLibrary?: boolean;
 };
@@ -82,10 +149,13 @@ export function LibraryPageClient({
   libraryFolders,
   libraryItems,
   projectId,
+  projectOnly = false,
   promotionEnabled = false,
   canManageLibrary = false,
 }: LibraryPageClientProps = {}) {
   const queryClient = useQueryClient();
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const seed: ComponentRowsLibraryDataset | undefined =
     initialLibrary ??
     (categoryTree || suppliers || brands || libraryFolders || libraryItems
@@ -98,26 +168,76 @@ export function LibraryPageClient({
           libraryItems: libraryItems ?? [],
         } as ComponentRowsLibraryDataset)
       : undefined);
-  const componentRowsQueryKey = seed?.workspaceId
+  const componentRowsBaseQueryKey = seed?.workspaceId
     ? workspaceComponentRowsLibraryQueryKey(seed.workspaceId, projectId)
     : projectId
       ? [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "project", projectId]
       : WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY;
+  const componentRowsQueryKey = projectId && projectOnly
+    ? [...componentRowsBaseQueryKey, "project-only"] as const
+    : componentRowsBaseQueryKey;
   const seedIsPartial = seed?.isPartial === true;
-  const { data, isFetching, refetch } = useQuery({
+  const { data, isFetching } = useQuery({
     queryKey: componentRowsQueryKey,
-    queryFn: () => projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary(),
+    queryFn: async () => {
+      if (!projectId) return loadCurrentWorkspaceComponentRowsLibrary();
+      return projectOnly
+        ? loadProjectOnlyComponentRowsLibrary(projectId)
+        : loadProjectComponentRowsLibrary(projectId);
+    },
     initialData: seed,
     staleTime: 5 * 60 * 1000,
     refetchOnMount: seedIsPartial ? false : true,
   });
   const library = data ?? seed;
+  const componentRowsPage = library && "hasMore" in library
+    ? library as ComponentRowsLibraryPage
+    : null;
+
+  const loadMoreComponentRows = () => {
+    if (!componentRowsPage?.hasMore || !componentRowsPage.nextCursor || isLoadingMore) return;
+    const nextPageRequest = projectId && projectOnly
+      ? loadProjectOnlyComponentRowsLibrary(projectId, componentRowsPage.nextCursor)
+      : !projectId
+        ? loadCurrentWorkspaceComponentRowsLibrary(componentRowsPage.nextCursor)
+        : null;
+    if (!nextPageRequest) return;
+    setIsLoadingMore(true);
+    setLoadMoreError(null);
+    void nextPageRequest
+      .then((nextPage) => {
+        queryClient.setQueryData<ComponentRowsLibraryDataset>(componentRowsQueryKey, (current) => (
+          current ? appendComponentRowsPage(current, nextPage) : nextPage
+        ));
+      })
+      .catch((error: unknown) => {
+        setLoadMoreError(error instanceof Error ? error.message : "Could not load more components.");
+      })
+      .finally(() => {
+        setIsLoadingMore(false);
+      });
+  };
 
   // T4: manager mutations patch this warm cache entry instead of router.refresh().
-  const onLibraryItemsMutated = (updater: (items: EstimateRowItem[]) => EstimateRowItem[]) => {
+  const onLibraryItemsMutated = (
+    updater: (items: EstimateRowItem[]) => EstimateRowItem[],
+    options?: LibraryItemsMutationOptions,
+  ) => {
     queryClient.setQueryData<ComponentRowsLibraryDataset>(
       componentRowsQueryKey,
-      (prev) => (prev ? { ...prev, libraryItems: updater(prev.libraryItems) } : prev),
+      (prev) => {
+        if (!prev) return prev;
+        const nextItems = updater(prev.libraryItems);
+        const totalComponentCount = prev.totalComponentCount === undefined
+          ? undefined
+          : Math.max(0, prev.totalComponentCount + (options?.totalComponentCountDelta ?? 0));
+        return {
+          ...prev,
+          libraryItems: nextItems,
+          loadedComponentCount: nextItems.length,
+          totalComponentCount,
+        };
+      },
     );
   };
   const onLibraryFoldersMutated = (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => {
@@ -131,6 +251,7 @@ export function LibraryPageClient({
     void queryClient.invalidateQueries({ queryKey: componentRowsQueryKey });
     if (library?.workspaceId) {
       void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(library.workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspaceComponentRowsLibraryQueryKey(library.workspaceId) });
     }
   };
 
@@ -147,13 +268,12 @@ export function LibraryPageClient({
         promotionEnabled={promotionEnabled}
         canManageLibrary={canManageLibrary}
         componentRowsLoadState={library ? {
-          isPartial: library.isPartial === true,
+          isPartial: componentRowsPage?.hasMore === true || library.isPartial === true,
           loadedComponentCount: library.loadedComponentCount ?? library.libraryItems.length,
           totalComponentCount: library.totalComponentCount,
-          isLoading: isFetching,
-          onLoadAll: () => {
-            void refetch();
-          },
+          isLoading: isFetching || isLoadingMore,
+          loadError: loadMoreError,
+          onLoadMore: loadMoreComponentRows,
         } : undefined}
         onLibraryItemsMutated={onLibraryItemsMutated}
         onLibraryFoldersMutated={onLibraryFoldersMutated}

@@ -296,12 +296,10 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
 
 function FolderRenameInput({
   value,
-  onChange,
   onCommit,
   onCancel,
 }: {
   value: string;
-  onChange: (value: string) => void;
   onCommit: (value: string) => void;
   onCancel: () => void;
 }) {
@@ -309,34 +307,42 @@ function FolderRenameInput({
   // focus management). autoFocus is avoided so it doesn't steal focus on load;
   // instead the input is focused once on mount via a ref + effect.
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const commitStartedRef = useRef(false);
   useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
   }, []);
+  const commitOnce = (nextValue: string) => {
+    if (commitStartedRef.current) return;
+    commitStartedRef.current = true;
+    onCommit(nextValue);
+  };
   return (
     <input
       ref={inputRef}
       aria-label="Folder name"
-      value={value}
-      onFocus={(event) => event.currentTarget.select()}
+      data-library-folder-rename-input
+      defaultValue={value}
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      onBlur={(event) => onCommit(event.currentTarget.value)}
+      onBlur={(event) => commitOnce(event.currentTarget.value)}
       placeholder="Folder name"
       onKeyDown={(event) => {
         event.stopPropagation();
         if (event.key === "Enter") {
           event.preventDefault();
-          onCommit(event.currentTarget.value);
+          commitOnce(event.currentTarget.value);
           return;
         }
         if (event.key === "Escape") {
           event.preventDefault();
+          commitStartedRef.current = true;
           onCancel();
         }
       }}
-      className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
+      className="h-5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[10px] leading-5 text-ink outline-none placeholder:text-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
     />
   );
 }
@@ -443,7 +449,6 @@ export function LibraryTree({
   showThumbnails = false,
   editingNodeId,
   editingNodeValue = "",
-  onEditingNodeValueChange,
   onEditingNodeCommit,
   onEditingNodeCancel,
   treeAriaLabel = "Library components",
@@ -656,7 +661,6 @@ export function LibraryTree({
         return (
           <FolderRenameInput
             value={editingNodeValue}
-            onChange={(value) => onEditingNodeValueChange?.(value)}
             onCommit={(value) => onEditingNodeCommit?.(value)}
             onCancel={() => onEditingNodeCancel?.()}
           />
@@ -684,7 +688,6 @@ export function LibraryTree({
       editingNodeValue,
       onEditingNodeCancel,
       onEditingNodeCommit,
-      onEditingNodeValueChange,
       onItemAdd,
       itemAddIsDisabled,
       showThumbnails,

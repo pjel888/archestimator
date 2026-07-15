@@ -1,7 +1,7 @@
 "use client";
 
 import type { Ref } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check,
   FolderPlus,
@@ -45,6 +45,69 @@ export type ManageGroupsPopoverProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
+
+function ManageGroupNameInput({
+  group,
+  onRename,
+}: {
+  group: ProjectGroupSummary;
+  onRename: (groupId: string, name: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const focusSessionCommittedRef = useRef(false);
+  const [draftName, setDraftName] = useState(group.name);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input || document.activeElement === input) return;
+    setDraftName(group.name);
+  }, [group.name]);
+
+  const commitRename = () => {
+    if (focusSessionCommittedRef.current) return;
+    focusSessionCommittedRef.current = true;
+    const nextName = draftName.trim();
+    if (
+      nextName.length === 0
+      || nextName.length > MAX_PROJECT_GROUP_NAME_LENGTH
+      || nextName === group.name
+    ) {
+      setDraftName(group.name);
+      return;
+    }
+    setDraftName(nextName);
+    onRename(group.id, nextName);
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      aria-label={`Rename ${group.name}`}
+      value={draftName}
+      maxLength={MAX_PROJECT_GROUP_NAME_LENGTH}
+      className="h-6 min-w-0 flex-1 rounded-xs border border-transparent bg-transparent px-1 text-[10px] text-ink outline-none hover:border-hairline focus-visible:border-hairline focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
+      onChange={(event) => setDraftName(event.currentTarget.value)}
+      onFocus={() => {
+        focusSessionCommittedRef.current = false;
+      }}
+      onBlur={commitRename}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          commitRename();
+          event.currentTarget.blur();
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          focusSessionCommittedRef.current = true;
+          setDraftName(group.name);
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
 
 export function ManageGroupsPopover({
   groups,
@@ -128,7 +191,7 @@ export function ManageGroupsPopover({
             maxLength={MAX_PROJECT_GROUP_NAME_LENGTH}
             placeholder="Group name"
             aria-label="New group name"
-            className="h-7 w-full rounded-xs border border-hairline px-2 text-[10px] text-ink focus-visible:bg-accentSoft focus-visible:outline-none"
+            className="h-7 w-full rounded-xs border border-hairline bg-transparent px-2 text-[10px] text-ink outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
             onChange={(event) => setDraftName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -200,22 +263,7 @@ export function ManageGroupsPopover({
           >
             {groups.map((group) => (
               <li key={group.id} className="flex items-center gap-1">
-                <input
-                  aria-label={`Rename ${group.name}`}
-                  defaultValue={group.name}
-                  maxLength={MAX_PROJECT_GROUP_NAME_LENGTH}
-                  className="h-6 min-w-0 flex-1 rounded-xs border border-transparent px-1 text-[10px] text-ink hover:border-hairline focus-visible:bg-accentSoft focus-visible:outline-none"
-                  onBlur={(event) => {
-                    const next = event.target.value.trim();
-                    if (
-                      next.length > 0 &&
-                      next.length <= MAX_PROJECT_GROUP_NAME_LENGTH &&
-                      next !== group.name
-                    ) {
-                      onRename(group.id, next);
-                    }
-                  }}
-                />
+                <ManageGroupNameInput group={group} onRename={onRename} />
                 {recolorOpenId === group.id ? (
                   <div
                     className="flex items-center gap-0.5"

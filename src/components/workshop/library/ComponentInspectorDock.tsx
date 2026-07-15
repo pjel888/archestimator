@@ -34,8 +34,7 @@ type ComponentUsageCounts = {
 
 function isNextImageSafeSource(src: string) {
   if (!src) return false;
-  if (src.startsWith("/")) return true;
-  return false;
+  return src.startsWith("/") && !src.startsWith("/api/");
 }
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
@@ -59,12 +58,10 @@ export function ComponentInspectorDock({
   onEdit,
   onDuplicate,
   onArchive,
-  onDelete,
   duplicatePending = false,
   canEdit = true,
   canDuplicate = true,
   canArchive = true,
-  canDelete = true,
   promoteAction,
 }: {
   item: EstimateRowItem;
@@ -72,12 +69,10 @@ export function ComponentInspectorDock({
   onEdit: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
-  onDelete: () => void;
   duplicatePending?: boolean;
   canEdit?: boolean;
   canDuplicate?: boolean;
   canArchive?: boolean;
-  canDelete?: boolean;
   promoteAction?: { label: string; pending?: boolean; onClick: () => void };
 }) {
   const surfaceVariant = useLibrarySurfaceVariant();
@@ -87,6 +82,7 @@ export function ComponentInspectorDock({
     error: boolean;
   }>({ itemId: item.id, counts: null, error: false });
   const [historyVisibility, setHistoryVisibility] = useState({ itemId: item.id, showAll: false });
+  const [failedImage, setFailedImage] = useState<{ itemId: string; src: string } | null>(null);
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const usage = usageState.itemId === item.id ? usageState.counts : null;
   const usageError = usageState.itemId === item.id ? usageState.error : false;
@@ -125,6 +121,8 @@ export function ComponentInspectorDock({
   const priceHistory = (item.history ?? []).filter((entry) => entry.type === "price");
   const visibleHistory = showAllHistory ? priceHistory : priceHistory.slice(0, PRICE_HISTORY_PREVIEW_COUNT);
   const lifecycle = item.lifecycleState ?? "available";
+  const imageUrl = item.imageUrl?.trim() || null;
+  const imageFailed = Boolean(imageUrl && failedImage?.itemId === item.id && failedImage.src === imageUrl);
 
   const detailsPanel = (
       <section
@@ -150,7 +148,6 @@ export function ComponentInspectorDock({
                 }}
               />
               {canArchive ? <DropdownMenu.Item label="Archive component" destructive onClick={onArchive} /> : null}
-              {canDelete ? <DropdownMenu.Item label="Delete permanently" destructive onClick={onDelete} /> : null}
             </DropdownMenu>
             <Button
               variant="ghost"
@@ -167,24 +164,29 @@ export function ComponentInspectorDock({
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           <div
             className={cn(
-              "relative h-[120px] w-[120px] overflow-hidden rounded-xs border",
+              "relative h-[120px] w-[120px] shrink-0 overflow-hidden rounded-xs border",
               surfaceVariant === "glass" ? INSPECTOR_GLASS_THUMBNAIL_CLASS : "border-hairline bg-white",
             )}
+            data-component-inspector-thumbnail="true"
           >
-            {item.imageUrl && isNextImageSafeSource(item.imageUrl) ? (
-              <Image src={item.imageUrl} alt={`${name} thumbnail`} fill sizes="120px" className="object-cover" />
-            ) : item.imageUrl ? (
+            {imageUrl && !imageFailed ? (
               <Image
-                src={item.imageUrl}
+                src={imageUrl}
                 alt={`${name} thumbnail`}
                 fill
                 sizes="120px"
-                unoptimized
+                unoptimized={!isNextImageSafeSource(imageUrl)}
                 className="object-cover"
+                onError={() => setFailedImage({ itemId: item.id, src: imageUrl })}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-tertiary" aria-hidden="true">
-                <ImageSquare size={24} weight="regular" />
+              <div
+                className="flex h-full w-full items-center justify-center text-tertiary"
+                role="img"
+                aria-label={imageFailed ? `${name} thumbnail unavailable` : `No thumbnail for ${name}`}
+                data-component-inspector-thumbnail-fallback="true"
+              >
+                <ImageSquare size={24} weight="regular" aria-hidden="true" />
               </div>
             )}
           </div>

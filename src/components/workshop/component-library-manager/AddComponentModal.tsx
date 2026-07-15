@@ -29,9 +29,10 @@ import {
 } from "@/components/workshop/component-unit-combobox-options";
 import {
   createCostLibraryComponent,
-  saveCostLibraryComponentDraft,
+  findCurrentWorkspaceCostLibraryComponentDuplicate,
   updateCostLibraryComponentWithPriceOptions,
   type ComponentLifecycleState,
+  type CostLibraryComponentDuplicateMatch,
   type CreateCostLibraryComponentInput,
   type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
@@ -172,7 +173,11 @@ type AddComponentModalProps = {
     instanceSync?: LibraryComponentInstanceSyncResult,
     context?: { removedPriceOptionReplacements: Record<string, string> },
   ) => void | Promise<void>;
-  onComponentUpdatePendingChange?: (item: EstimateRowItem, pending: boolean) => void;
+  onComponentUpdatePendingChange?: (
+    item: EstimateRowItem,
+    pending: boolean,
+    scope: ComponentUpdatePendingScope,
+  ) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
   onDeleteFolder?: (folderId: string, currentName: string) => void;
@@ -180,6 +185,10 @@ type AddComponentModalProps = {
   treeMutationPending?: boolean;
   catalogueOptionsStorageScope: string;
 };
+
+export type ComponentUpdatePendingScope =
+  | { kind: "component" }
+  | { kind: "variants"; priceOptionIds: readonly string[] };
 
 type AddComponentModalTab = "component" | "activity";
 type VariantDrawerView = "manager" | "variant";
@@ -541,6 +550,73 @@ function hasMeaningfulDraftChanges(initialDraft: ComponentDraft, draft: Componen
   return JSON.stringify(getDraftSnapshot(initialDraft)) !== JSON.stringify(getDraftSnapshot(draft));
 }
 
+function getComponentLevelPendingSnapshot(draft: ComponentDraft) {
+  return {
+    name: draft.name.trim(),
+    category: draft.category.trim(),
+    categoryNodeId: draft.categoryNodeId,
+    supplierId: draft.supplierId,
+    supplierName: draft.supplierName.trim(),
+    brand: draft.brand.trim(),
+    brandId: draft.brandId,
+    lifecycleState: draft.lifecycleState,
+  };
+}
+
+function getVariantPendingSignature(draft: ComponentDraft, variant: VariantDraft, index: number) {
+  return JSON.stringify({
+    index,
+    label: variant.label.trim(),
+    description: variant.description.trim(),
+    sku: variant.sku.trim(),
+    unitCost: parseAccountingMoney(variant.unitCost),
+    unit: variant.unit,
+    packageQuantity: variant.packageQuantity.trim(),
+    packageUnit: variant.packageUnit.trim(),
+    isDefault: variant.isDefault,
+    effectiveAt: draft.effectiveAt,
+    image: getDraftImageSnapshot(getVariantImage(draft, variant)),
+    attachments: variant.attachments.map((attachment) => ({
+      id: attachment.id,
+      assetId: attachment.assetId ?? null,
+      bucket: attachment.bucket,
+      path: attachment.path,
+      fileName: attachment.fileName,
+      contentType: attachment.contentType,
+      sizeBytes: attachment.sizeBytes,
+      scanStatus: attachment.scanStatus ?? null,
+    })),
+  });
+}
+
+function getComponentUpdatePendingScope(
+  initialDraft: ComponentDraft,
+  draft: ComponentDraft,
+  editingItem: EstimateRowItem,
+): ComponentUpdatePendingScope {
+  if (JSON.stringify(getComponentLevelPendingSnapshot(initialDraft)) !== JSON.stringify(getComponentLevelPendingSnapshot(draft))) {
+    return { kind: "component" };
+  }
+
+  const nextVariantsById = new Map(draft.variants.map((variant, index) => [variant.id, { variant, index }]));
+  const changedPriceOptionIds = initialDraft.variants.flatMap((initialVariant, initialIndex) => {
+    const next = nextVariantsById.get(initialVariant.id);
+    if (!next) return [initialVariant.id];
+    return getVariantPendingSignature(initialDraft, initialVariant, initialIndex)
+      === getVariantPendingSignature(draft, next.variant, next.index)
+      ? []
+      : [initialVariant.id];
+  });
+  if (changedPriceOptionIds.length > 0) {
+    return { kind: "variants", priceOptionIds: changedPriceOptionIds };
+  }
+
+  const selectedPriceOptionId = getSelectedEditingPriceOptionId(editingItem);
+  return selectedPriceOptionId
+    ? { kind: "variants", priceOptionIds: [selectedPriceOptionId] }
+    : { kind: "component" };
+}
+
 type ExistingPriceOption = NonNullable<EstimateRowItem["priceOptions"]>[number];
 
 function getSelectedEditingPriceOptionId(editingItem: EstimateRowItem) {
@@ -860,20 +936,22 @@ function OpenAddComponentModal({
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [pendingVariantRemoval, setPendingVariantRemoval] = useState<PendingVariantRemoval | null>(null);
   const [removedPriceOptionReplacements, setRemovedPriceOptionReplacements] = useState<Record<string, string>>({});
-  const [draftSaveError, setDraftSaveError] = useState("");
   const [duplicateCheckReady, setDuplicateCheckReady] = useState(false);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const [serverDuplicate, setServerDuplicate] = useState<CostLibraryComponentDuplicateMatch | null>(null);
   const [error, setError] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [draftSavePending, startDraftSaveTransition] = useTransition();
   const thumbnailInputId = useId();
   const variantThumbnailInputId = useId();
   const attachmentInputId = useId();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
+  const createIntentRef = useRef<{ payloadSignature: string; intentId: string } | null>(null);
+  const updateIntentRef = useRef<{ payloadSignature: string; intentId: string } | null>(null);
   const initialDraftRef = useRef(draft);
   const duplicateCheckTimerRef = useRef<number | null>(null);
+  const duplicateCheckRequestRef = useRef(0);
   const draftRef = useRef(draft);
   const variantPreviewUrlsRef = useRef(variantPreviewUrls);
   const sharedPreviewUrlRef = useRef(sharedPreviewUrl);
@@ -969,8 +1047,7 @@ function OpenAddComponentModal({
     selectedBrand?.name,
     selectedSupplier?.name,
   ]);
-  const possibleDuplicate = useMemo(() => {
-    if (isEditing || !duplicateCheckReady || duplicateAcknowledged) return null;
+  const localPossibleDuplicate = useMemo(() => {
     const name = normalizeDuplicateIdentityValue(draft.name);
     const category = normalizeDuplicateIdentityValue(draft.category);
     const supplier = normalizeDuplicateIdentityValue(selectedSupplier?.name ?? draft.supplierName);
@@ -981,17 +1058,17 @@ function OpenAddComponentModal({
     if (supplierMatch && brandMatch) return supplierMatch.order <= brandMatch.order ? supplierMatch.item : brandMatch.item;
     return supplierMatch?.item ?? brandMatch?.item ?? null;
   }, [
-    duplicateAcknowledged,
-    duplicateCheckReady,
     duplicateIdentityIndex,
     draft.brand,
     draft.category,
     draft.name,
     draft.supplierName,
-    isEditing,
     selectedBrand?.name,
     selectedSupplier?.name,
   ]);
+  const possibleDuplicate = isEditing || !duplicateCheckReady || duplicateAcknowledged
+    ? null
+    : serverDuplicate ?? localPossibleDuplicate;
   const validation = useMemo(() => {
     const messages: string[] = Object.values(quickAddValidation.errors);
     if (draft.variants.length === 0) messages.push("At least one variant is required.");
@@ -1061,6 +1138,7 @@ function OpenAddComponentModal({
     if (duplicateIdentityChanged) {
       setDuplicateCheckReady(false);
       setDuplicateAcknowledged(false);
+      scheduleDuplicateCheck();
     }
     updateDraft(update);
   }
@@ -1120,10 +1198,27 @@ function OpenAddComponentModal({
   }
 
   function scheduleDuplicateCheck() {
+    if (isEditing) return;
     if (duplicateCheckTimerRef.current !== null) window.clearTimeout(duplicateCheckTimerRef.current);
+    const requestId = duplicateCheckRequestRef.current + 1;
+    duplicateCheckRequestRef.current = requestId;
+    setServerDuplicate(null);
     duplicateCheckTimerRef.current = window.setTimeout(() => {
       setDuplicateCheckReady(true);
       duplicateCheckTimerRef.current = null;
+      const current = draftRef.current;
+      const supplier = suppliers.find((candidate) => candidate.id === current.supplierId)?.name ?? current.supplierName;
+      const brand = brands.find((candidate) => candidate.id === current.brandId)?.name ?? current.brand;
+      void findCurrentWorkspaceCostLibraryComponentDuplicate({
+        name: current.name,
+        category: current.category,
+        supplier,
+        brand,
+      }).then((match) => {
+        if (duplicateCheckRequestRef.current === requestId) setServerDuplicate(match);
+      }).catch(() => {
+        if (duplicateCheckRequestRef.current === requestId) setServerDuplicate(null);
+      });
     }, 300);
   }
 
@@ -1358,33 +1453,6 @@ function OpenAddComponentModal({
     dirtyRef.current = false;
     setDiscardDialogOpen(false);
     onOpenChange(false);
-  }
-
-  function saveDraftAndClose() {
-    if (imageBusy || attachmentBusy || draftSavePending) {
-      setDraftSaveError("Wait for uploads to finish before saving this draft.");
-      return;
-    }
-    startDraftSaveTransition(async () => {
-      setDraftSaveError("");
-      try {
-        await saveCostLibraryComponentDraft({
-          title: draft.name,
-          draft: {
-            form: draft,
-            activeTab,
-            activeVariantId,
-            variantDrawerOpen,
-            variantDrawerView,
-          },
-        });
-        dirtyRef.current = false;
-        setDiscardDialogOpen(false);
-        onOpenChange(false);
-      } catch (saveError) {
-        setDraftSaveError(saveError instanceof Error ? saveError.message : "Could not save this component draft.");
-      }
-    });
   }
 
   function submitFromCloseDialog() {
@@ -1670,7 +1738,12 @@ function OpenAddComponentModal({
     }
     const payload = buildComponentPayload();
     const pendingEditingItem = isEditing ? editingItem ?? null : null;
-    if (pendingEditingItem) onComponentUpdatePendingChange?.(pendingEditingItem, true);
+    const pendingScope = pendingEditingItem
+      ? getComponentUpdatePendingScope(initialDraftRef.current, draft, pendingEditingItem)
+      : null;
+    if (pendingEditingItem && pendingScope) {
+      onComponentUpdatePendingChange?.(pendingEditingItem, true, pendingScope);
+    }
 
     startTransition(async () => {
       setError("");
@@ -1684,19 +1757,52 @@ function OpenAddComponentModal({
             if (!editingItem?.updatedAt || !editingItem.componentVersionNumber || !expectedComponentImpactFingerprint) {
               throw new Error("Refresh this component before editing it.");
             }
-            const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, {
+            const updateRequest = {
               ...payload,
               expectedUpdatedAt: editingItem.updatedAt,
               expectedVersionNumber: editingItem.componentVersionNumber,
               expectedComponentImpactFingerprint,
               removedPriceOptionReplacements,
+            };
+            const payloadSignature = JSON.stringify({ sourceLibraryItemId, ...updateRequest });
+            const updateIntent = updateIntentRef.current?.payloadSignature === payloadSignature
+              ? updateIntentRef.current
+              : { payloadSignature, intentId: crypto.randomUUID() };
+            updateIntentRef.current = updateIntent;
+            const result = await updateCostLibraryComponentWithPriceOptions(sourceLibraryItemId, {
+              ...updateRequest,
+              intentId: updateIntent.intentId,
             });
             instanceSync = result;
             editedItem = result.component;
           }
           await onComponentUpdated?.(editedItem, instanceSync, { removedPriceOptionReplacements });
         } else {
-          const result = await createCostLibraryComponent(payload);
+          const allowDuplicate = duplicateAcknowledged;
+          const requestId = duplicateCheckRequestRef.current + 1;
+          duplicateCheckRequestRef.current = requestId;
+          if (!allowDuplicate) {
+            const duplicate = await findCurrentWorkspaceCostLibraryComponentDuplicate({
+              name: payload.name,
+              category: payload.category,
+              supplier: payload.supplier,
+              brand: payload.brand,
+            });
+            if (duplicateCheckRequestRef.current === requestId) {
+              setServerDuplicate(duplicate);
+              setDuplicateCheckReady(true);
+            }
+            if (duplicate) {
+              throw new Error(`A component named "${duplicate.name}" already exists. Choose Create anyway to add another.`);
+            }
+          }
+          const createRequest = { ...payload, allowDuplicate };
+          const payloadSignature = JSON.stringify(createRequest);
+          const createIntent = createIntentRef.current?.payloadSignature === payloadSignature
+            ? createIntentRef.current
+            : { payloadSignature, intentId: crypto.randomUUID() };
+          createIntentRef.current = createIntent;
+          const result = await createCostLibraryComponent({ ...createRequest, intentId: createIntent.intentId });
           onComponentCreated(result.component);
         }
         dirtyRef.current = false;
@@ -1704,7 +1810,9 @@ function OpenAddComponentModal({
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : "Could not save component.");
       } finally {
-        if (pendingEditingItem) onComponentUpdatePendingChange?.(pendingEditingItem, false);
+        if (pendingEditingItem && pendingScope) {
+          onComponentUpdatePendingChange?.(pendingEditingItem, false, pendingScope);
+        }
       }
     });
   }
@@ -1942,7 +2050,11 @@ function OpenAddComponentModal({
                     {possibleDuplicate ? (
                       <output className="flex min-h-8 items-center justify-between gap-2 rounded-[6px] bg-warningSoft/50 px-2 text-[10px] font-medium text-ink">
                         <span className="min-w-0 truncate">
-                          A component named &quot;{possibleDuplicate.name ?? possibleDuplicate.material}&quot; already exists.
+                          A component named &quot;{
+                            "material" in possibleDuplicate
+                              ? possibleDuplicate.name ?? possibleDuplicate.material
+                              : possibleDuplicate.name
+                          }&quot; already exists.
                         </span>
                         <Button
                           type="button"
@@ -2549,21 +2661,18 @@ function OpenAddComponentModal({
       </Modal>
       <Modal
         open={discardDialogOpen}
-        onOpenChange={(nextOpen) => {
-          if (draftSavePending) return;
-          setDiscardDialogOpen(nextOpen);
-        }}
-        title="Save component draft?"
+        onOpenChange={setDiscardDialogOpen}
+        title="Discard unsaved component?"
         description="This component has unsaved edits. Choose how to handle it before closing."
         tone="default"
         size="md"
-        closeLabel="Close save draft dialog"
+        closeLabel="Close discard changes dialog"
         closeOnOverlayClick={false}
         closeOnEscape={false}
         contentClassName={cn("rounded-[12px] border-[rgba(61,61,61,0.08)]", OPENDESIGN_MODAL_BG_CLASS, OPENDESIGN_MODAL_SHADOW_CLASS)}
         bodyClassName="space-y-3 bg-white/65 p-4"
         footer={
-          <div className="grid w-full min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
+          <div className="grid w-full min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
             <Button
               type="button"
               variant="ghost"
@@ -2571,22 +2680,11 @@ function OpenAddComponentModal({
               className="w-full justify-center sm:w-auto sm:justify-self-start"
               data-dialog-initial-focus
               onClick={() => setDiscardDialogOpen(false)}
-              disabled={draftSavePending}
             >
               Keep editing
             </Button>
-            <Button type="button" variant="danger" size="sm" className="w-full sm:w-auto" onClick={confirmDiscardDraft} disabled={draftSavePending}>
-              Discard draft
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={saveDraftAndClose}
-              disabled={draftSavePending || imageBusy || attachmentBusy}
-            >
-              {draftSavePending ? "Saving..." : "Save to drafts"}
+            <Button type="button" variant="danger" size="sm" className="w-full sm:w-auto" onClick={confirmDiscardDraft}>
+              Discard changes
             </Button>
             <Button
               type="button"
@@ -2594,22 +2692,17 @@ function OpenAddComponentModal({
               size="sm"
               className="w-full sm:w-auto"
               onClick={submitFromCloseDialog}
-              disabled={isPending || imageBusy || attachmentBusy || draftSavePending}
+              disabled={isPending || imageBusy || attachmentBusy}
             >
               Add Component
             </Button>
           </div>
         }
       >
-        {draftSaveError ? (
-          <div role="alert" className="rounded-[6px] border border-dangerSoft bg-dangerSoft px-2.5 py-2 text-[9.5px] leading-4 tracking-normal text-danger">
-            {draftSaveError}
-          </div>
-        ) : null}
         <div className="rounded-[8px] border border-[rgba(61,61,61,0.08)] bg-white/78 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
-          <p className="m-0 text-[11px] font-medium leading-4 tracking-normal text-ink">Keep this component out of the library until it is ready.</p>
+          <p className="m-0 text-[11px] font-medium leading-4 tracking-normal text-ink">Unsaved changes are not stored after you discard them.</p>
           <p className="m-0 mt-1 text-[10px] leading-4 tracking-normal text-secondary">
-            Saving a draft preserves the form, catalogue fields, variants, costs, thumbnails, and attachments for later.
+            Keep editing, add the component now, or discard the changes and uploaded draft assets.
           </p>
         </div>
       </Modal>

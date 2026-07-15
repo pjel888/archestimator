@@ -50,7 +50,6 @@ export type LibraryTreeProps = {
   showThumbnails?: boolean;
   editingNodeId?: string | null;
   editingNodeValue?: string;
-  onEditingNodeValueChange?: (value: string) => void;
   onEditingNodeCommit?: (value: string) => void;
   onEditingNodeCancel?: () => void;
   /** Accessible label for the rendered tree. Defaults to Library components. */

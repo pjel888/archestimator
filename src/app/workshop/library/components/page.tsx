@@ -6,7 +6,8 @@ type LibraryComponentsPageProps = {
 };
 
 export default async function LibraryComponentsPage({ searchParams }: LibraryComponentsPageProps) {
-  assertRouteErrorSmoke({ routeLabel: "Components", searchParams: await searchParams });
+  const resolvedSearchParams = await searchParams;
+  assertRouteErrorSmoke({ routeLabel: "Components", searchParams: resolvedSearchParams });
 
-  return <LibraryComponentsRoute />;
+  return <LibraryComponentsRoute searchParams={resolvedSearchParams} />;
 }

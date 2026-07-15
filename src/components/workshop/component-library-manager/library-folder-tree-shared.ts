@@ -1,9 +1,9 @@
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 
 export const COMPONENT_VIEW_MODES = [
-  { id: "default", label: "Default" },
+  { id: "default", label: "Folders" },
   { id: "suppliers", label: "Suppliers" },
-  { id: "brand", label: "Brand" },
+  { id: "brand", label: "Brands" },
 ] as const;
 
 export const ALL_COMPONENTS_FOLDER_ID = "all-components";

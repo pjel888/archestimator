@@ -106,7 +106,7 @@ export function BulkDestructivePreviewModal({
             : "Review the details before continuing.";
   const confirmationHint = canExecute
     ? actionCopy.verb === "archive"
-      ? "Archived components are hidden from browse and blocked from new inserts. You can restore them later."
+      ? "Archived components are hidden from browse and blocked from new inserts."
       : "This action cannot be undone."
     : actionBlocked
       ? `Resolve the item above before ${actionCopy.gerund}.`

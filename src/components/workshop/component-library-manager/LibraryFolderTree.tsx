@@ -12,8 +12,10 @@ import {
 import { CaretDown, CaretRight, Check, FolderSimple, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
+import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
+import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { TreeBulkActionBar } from "@/components/workshop/tree-row-affordances";
@@ -235,7 +237,7 @@ function filterComponentItemsByFolderId(itemsByFolderId: Map<string, EstimateRow
 function toLibraryFolderUiNodes(
   nodes: LibraryFolderTreeNode[],
   itemsByFolderId: Map<string, EstimateRowItem[]>,
-  options: { enableFolderActions: boolean; componentsSelectable: boolean },
+  options: { foldersSelectable: boolean; componentsSelectable: boolean },
 ): UiTreeNode[] {
   return nodes.map((node) => {
     const isSyntheticRoot = isAllComponentsFolderId(node.folderId);
@@ -257,7 +259,7 @@ function toLibraryFolderUiNodes(
       id: node.id,
       label: node.label,
       ariaLabel: node.label,
-      selectable: options.enableFolderActions && !isSyntheticRoot,
+      selectable: options.foldersSelectable && !isSyntheticRoot,
       isLeaf: false,
       icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       children: children.length ? children : undefined,
@@ -343,9 +345,9 @@ export function ComponentViewControls({
     <div
       role="menu"
       aria-label={ariaLabel}
-      className={cn("absolute left-2 top-[72px] z-40 w-36 rounded-xs border border-hairline bg-white p-1 shadow-lg", className)}
+      className={cn("absolute left-2 top-[38px] z-40 w-40 rounded-xs border border-hairline bg-white p-1 shadow-lg", className)}
     >
-      <div className="px-2 pb-1 pt-0.5 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">View By</div>
+      <div className="px-2 pb-1 pt-0.5 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">Organize by</div>
       <div className="space-y-0.5">
         {COMPONENT_VIEW_MODES.map((item) => (
           <button
@@ -431,11 +433,12 @@ export function LibraryFolderTree({
     [filteredComponentItemsByFolderId, nodes, searchQuery],
   );
   const componentsSelectable = Boolean(onToggleComponentSelected);
-  const selectable = enableFolderActions || componentsSelectable;
+  const foldersSelectable = Boolean(onDeleteFolders);
+  const selectable = foldersSelectable || componentsSelectable;
 
   const uiNodes = useMemo(
-    () => toLibraryFolderUiNodes(filteredNodes, filteredComponentItemsByFolderId, { enableFolderActions, componentsSelectable }),
-    [componentsSelectable, enableFolderActions, filteredComponentItemsByFolderId, filteredNodes],
+    () => toLibraryFolderUiNodes(filteredNodes, filteredComponentItemsByFolderId, { foldersSelectable, componentsSelectable }),
+    [componentsSelectable, filteredComponentItemsByFolderId, filteredNodes, foldersSelectable],
   );
   const nodeById = useMemo(() => indexUiNodes(uiNodes), [uiNodes]);
   const placement = useMemo(() => buildFolderPlacement(filteredNodes), [filteredNodes]);
@@ -866,6 +869,7 @@ function resolveModeValue(value: string | ((mode: ComponentViewMode) => string),
 
 type LibraryFolderTreeSurfaceState = {
   searchQuery: string;
+  searchOpen: boolean;
   internalViewMode: ComponentViewMode;
   viewModeMenuOpen: boolean;
   expandedFolderItemIds: string[];
@@ -875,6 +879,7 @@ type LibraryFolderTreeSurfaceState = {
 
 type LibraryFolderTreeSurfaceAction =
   | { type: "searchQueryChanged"; query: string }
+  | { type: "searchOpenChanged"; open: boolean }
   | { type: "internalViewModeChanged"; mode: ComponentViewMode }
   | { type: "viewModeMenuOpenChanged"; open: boolean }
   | { type: "viewModeMenuToggled" }
@@ -898,6 +903,7 @@ function createInitialLibraryFolderTreeSurfaceState({
 }): LibraryFolderTreeSurfaceState {
   return {
     searchQuery: "",
+    searchOpen: false,
     internalViewMode: defaultViewMode,
     viewModeMenuOpen: false,
     expandedFolderItemIds: getAllFolderTreeItemIds(displayedFolderNodes),
@@ -916,6 +922,12 @@ function libraryFolderTreeSurfaceReducer(
         ...state,
         searchQuery: action.query,
       };
+    case "searchOpenChanged":
+      return {
+        ...state,
+        searchOpen: action.open,
+        viewModeMenuOpen: action.open ? false : state.viewModeMenuOpen,
+      };
     case "internalViewModeChanged":
       return {
         ...state,
@@ -928,10 +940,14 @@ function libraryFolderTreeSurfaceReducer(
         viewModeMenuOpen: action.open,
       };
     case "viewModeMenuToggled":
-      return {
-        ...state,
-        viewModeMenuOpen: !state.viewModeMenuOpen,
-      };
+      {
+        const viewModeMenuOpen = !state.viewModeMenuOpen;
+        return {
+          ...state,
+          searchOpen: viewModeMenuOpen ? false : state.searchOpen,
+          viewModeMenuOpen,
+        };
+      }
     case "expandedFolderItemIdsChanged":
       return {
         ...state,
@@ -1038,6 +1054,7 @@ export function LibraryFolderTreeSurface({
   );
   const {
     searchQuery,
+    searchOpen,
     internalViewMode,
     viewModeMenuOpen,
     expandedFolderItemIds,
@@ -1126,14 +1143,30 @@ export function LibraryFolderTreeSurface({
     if (!onCreateFolder) return [];
     return [
       {
+        id: "add-library-folder",
         label: "Add library folder",
-        icon: <FolderActionIcon />,
-        onClick: handleCreateFolder,
-        disabled: treeMutationPending,
-        className: toolbarIconClassName,
+        element: (
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Add library folder"
+            title="Add library folder"
+            disabled={treeMutationPending}
+            className={cn("size-6 rounded-xs p-0 text-tertiary", ADD_BUTTON_CLASSNAME)}
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true });
+              handleCreateFolder();
+            }}
+          >
+            <span className="pointer-events-none inline-flex shrink-0 items-center justify-center">
+              <FolderSimple size={13} weight="regular" aria-hidden="true" />
+            </span>
+          </Button>
+        ),
       },
     ];
-  }, [handleCreateFolder, onCreateFolder, toolbarIconClassName, treeMutationPending]);
+  }, [handleCreateFolder, onCreateFolder, treeMutationPending]);
 
   const supplierListTree = filteredSuppliers.length > 0 ? (
     <div role="tree" aria-label="Add component supplier tree" className={WORKSHOP_TREE_ROW_GAP_CLASS}>
@@ -1251,6 +1284,8 @@ export function LibraryFolderTreeSurface({
         labelPrefix={resolveModeValue(toolbarLabelPrefix, viewMode)}
         searchValue={searchQuery}
         onSearchValueChange={(query) => dispatchSurface({ type: "searchQueryChanged", query })}
+        searchOpen={searchOpen}
+        onSearchOpenChange={(open) => dispatchSurface({ type: "searchOpenChanged", open })}
         searchPlaceholder={treeSearchPlaceholder}
         searchLabel={resolveModeValue(searchAriaLabel, viewMode)}
         showDefaultActions={false}
@@ -1268,14 +1303,16 @@ export function LibraryFolderTreeSurface({
         }}
         leadingActions={[
           {
-            label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Default"}`,
+            label: `Organize by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Folders"}`,
+            visibleLabel: COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Folders",
             icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
             onClick: () => dispatchSurface({ type: "viewModeMenuToggled" }),
             pressed: viewModeMenuOpen,
+            ariaHasPopup: "menu",
             className: viewModeMenuOpen ? activeToolbarIconClassName : toolbarIconClassName,
           },
         ]}
-        leadingActionsLabel="Component tree view mode"
+        leadingActionsLabel="Component tree organization"
         addActions={addActions}
       >
         {viewModeMenuOpen ? (

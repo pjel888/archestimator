@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSelectedLayoutSegments } from "next/navigation";
-import { Blueprint, MagnifyingGlass, Package, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { Blueprint, MagnifyingGlass, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
+import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { cn } from "@/lib/ui/cn";
 import { getLibraryActiveTab, LIBRARY_TABS_ID_BASE, type LibraryTabId } from "./library-tabs-model";
@@ -127,6 +128,8 @@ function LibraryTabsLayoutContent({
   }, []);
 
   useEffect(() => {
+    if (activeTab === "components") return;
+
     function handleSearchShortcut(event: globalThis.KeyboardEvent) {
       if (event.defaultPrevented) return;
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
@@ -137,10 +140,10 @@ function LibraryTabsLayoutContent({
 
     window.addEventListener("keydown", handleSearchShortcut);
     return () => window.removeEventListener("keydown", handleSearchShortcut);
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
-    if (!searchOpen) return;
+    if (activeTab === "components" || !searchOpen) return;
 
     function handleDocumentPointerDown(event: PointerEvent) {
       const target = event.target;
@@ -151,7 +154,7 @@ function LibraryTabsLayoutContent({
 
     document.addEventListener("pointerdown", handleDocumentPointerDown, true);
     return () => document.removeEventListener("pointerdown", handleDocumentPointerDown, true);
-  }, [searchOpen]);
+  }, [activeTab, searchOpen]);
 
   const startActions: HeaderIconToolbarAddAction[] = [
     {
@@ -173,46 +176,47 @@ function LibraryTabsLayoutContent({
   const addActions: HeaderIconToolbarAddAction[] = [
     {
       label: "Add component",
-      icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+      icon: <Package size={13} weight="regular" aria-hidden="true" />,
       onClick: () => navigationRouter.push("/workshop/library/components?add=component"),
-      className:
-        "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800",
+      className: ADD_BUTTON_CLASSNAME,
     },
   ];
 
   return (
     <div className="shrink-0 bg-transparent">
-      <div ref={searchRootRef} className="relative">
-        <HeaderIconToolbar
-          ariaLabel="Library tools"
-          labelPrefix="library"
-          startActions={startActions}
-          startActionsLabel="Library search"
-          addActions={addActions}
-          className="bg-transparent"
-        />
-        {searchOpen ? (
-          <search
-            id={searchPanelId}
-            aria-label="Library search"
-            className="absolute left-2 right-2 top-[38px] z-30 w-auto sm:right-auto sm:w-[420px]"
-            data-library-header-search-panel="true"
-          >
-            <LibraryOverviewSearch
-              className="w-full"
-              autoFocus
-              onDismiss={closeSearchPanel}
-              onQueryPresenceChange={handleSearchQueryPresenceChange}
-            />
-          </search>
-        ) : null}
-      </div>
+      {activeTab !== "components" ? (
+        <div ref={searchRootRef} className="relative">
+          <HeaderIconToolbar
+            ariaLabel="Library tools"
+            labelPrefix="library"
+            startActions={startActions}
+            startActionsLabel="Library search"
+            addActions={addActions}
+            className="bg-transparent"
+          />
+          {searchOpen ? (
+            <search
+              id={searchPanelId}
+              aria-label="Library search"
+              className="absolute left-2 right-2 top-[38px] z-30 w-auto sm:right-auto sm:w-[420px]"
+              data-library-header-search-panel="true"
+            >
+              <LibraryOverviewSearch
+                className="w-full"
+                autoFocus
+                onDismiss={closeSearchPanel}
+                onQueryPresenceChange={handleSearchQueryPresenceChange}
+              />
+            </search>
+          ) : null}
+        </div>
+      ) : null}
       <div className="bg-transparent px-2">
         <div
           role="tablist"
           aria-label="Library sections"
           aria-orientation="horizontal"
-          className="grid h-[41px] overflow-visible border-b border-transparent grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3"
+          className="grid h-[41px] grid-cols-3 gap-1 overflow-visible border-b border-transparent md:grid-cols-[repeat(auto-fill,minmax(248px,1fr))] md:gap-3"
         >
           {LIBRARY_TABS.map((tab, index) => {
             const isActive = activeTab === tab.id;

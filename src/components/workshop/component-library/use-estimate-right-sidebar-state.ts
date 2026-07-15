@@ -16,9 +16,8 @@ import {
 } from "@/components/workshop/library/component-facet-filter-model";
 import type { ComponentViewMode } from "../component-library-manager/library-folder-tree-shared";
 import type { EstimateRowItem } from "../estimate-tree-data";
-import { defaultForm, getComponentDesignation, getComponentDiscipline } from "./helpers";
+import { getComponentDesignation, getComponentDiscipline } from "./helpers";
 import type { EstimateTemplate } from "./templates";
-import type { NewComponentForm as NewComponentFormType } from "./types";
 import {
   buildLibraryTreeWithComponentRows,
   buildProjectComponentTree,
@@ -67,11 +66,7 @@ export type EstimateRightSidebarLibraryState = {
   bulkSelectedNodeIds: Set<string>;
   bulkDeleteConfirmOpen: boolean;
   customOrderByViewMode: Record<ComponentViewMode, LibraryTreeOrder>;
-  showNewComponent: boolean;
   addComponentOpen: boolean;
-  discardComponentChangesOpen: boolean;
-  form: NewComponentFormType;
-  formError: string;
   deleteCandidate: EstimateRowItem | null;
   insertQuantity: number;
   facetFilters: ComponentFacetFilters;
@@ -195,11 +190,7 @@ function createInitialLibraryTabState({
     bulkSelectedNodeIds: new Set(),
     bulkDeleteConfirmOpen: false,
     customOrderByViewMode: EMPTY_LIBRARY_TREE_ORDER,
-    showNewComponent: false,
     addComponentOpen: false,
-    discardComponentChangesOpen: false,
-    form: defaultForm,
-    formError: "",
     deleteCandidate: null,
     insertQuantity: 1,
     facetFilters: EMPTY_COMPONENT_FACET_FILTERS,
@@ -289,11 +280,7 @@ export function useLibraryTabState(init: LibraryTabInit) {
         "bulkSelectedNodeIds",
         "bulkDeleteConfirmOpen",
         "customOrderByViewMode",
-        "showNewComponent",
         "addComponentOpen",
-        "discardComponentChangesOpen",
-        "form",
-        "formError",
         "deleteCandidate",
         "insertQuantity",
         "facetFilters",

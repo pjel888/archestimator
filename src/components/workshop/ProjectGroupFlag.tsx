@@ -88,6 +88,7 @@ export function ProjectGroupFlag({
   onReorderDragEnd,
 }: ProjectGroupFlagProps) {
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const renameCommitStartedRef = useRef(false);
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(group.label);
   const isGroupMode = mode === "group";
@@ -119,26 +120,30 @@ export function ProjectGroupFlag({
     const input = renameInputRef.current;
     if (!input) return;
     input.focus();
-    input.select();
+    input.setSelectionRange(input.value.length, input.value.length);
   }, [editingName]);
 
   function beginRename() {
     if (!canRename) return;
+    renameCommitStartedRef.current = false;
     setDraftName(group.label);
     setEditingName(true);
   }
 
   function cancelRename() {
+    renameCommitStartedRef.current = true;
     setDraftName(group.label);
     setEditingName(false);
   }
 
   function commitRename() {
+    if (renameCommitStartedRef.current) return;
     const nextName = draftName.trim();
     if (nextName.length === 0) {
       setDraftName(group.label);
       return;
     }
+    renameCommitStartedRef.current = true;
     setEditingName(false);
     if (nextName === group.label) {
       setDraftName(group.label);
@@ -218,13 +223,12 @@ export function ProjectGroupFlag({
           <input
             ref={renameInputRef}
             aria-label={`Rename ${group.label} group`}
-            className="h-4 w-full min-w-0 border-0 bg-transparent p-0 text-[9px] font-medium leading-3 text-current outline-none [appearance:none] focus:bg-transparent focus-visible:bg-transparent"
+            className="h-4 w-full min-w-0 border-0 bg-transparent p-0 text-[9px] font-medium leading-3 text-current outline-none [appearance:none] focus:bg-transparent focus-visible:bg-transparent focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50"
             data-project-group-rename-input
             value={draftName}
             onBlur={commitRename}
             onChange={(event) => setDraftName(event.currentTarget.value)}
             onKeyDown={handleRenameKeyDown}
-            onMouseLeave={commitRename}
           />
         ) : canRename ? (
           <button

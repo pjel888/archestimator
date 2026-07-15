@@ -509,6 +509,7 @@ body:has([data-landing-page-root="true"]) {
 }
 
 html {
+  overflow-x: clip;
   scrollbar-width: thin;
   scrollbar-color: var(--divider) transparent;
 }
@@ -3584,4 +3585,46 @@ input[type="number"] {
 
 .duration-150 {
   animation-duration: 0.15s;
+}
+
+/* Hallmark · modern-minimal · compact source-grounded workbench · orange anchor
+   · macrostructure: index-first documentation ledger · contrast: static pass
+   · slop: static pass · responsive/mobile: pending live browser proof */
+.estimate-system-guide {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+  --estimate-guide-tertiary: color-mix(in srgb, var(--secondary) 60%, var(--tertiary));
+}
+
+.estimate-system-guide .text-tertiary {
+  color: var(--estimate-guide-tertiary);
+}
+
+.estimate-system-guide button {
+  min-height: 1.5rem;
+}
+
+.estimate-system-guide [data-search-input-root="true"] button {
+  min-width: 1.5rem;
+}
+
+/* Keep the guide compact without asking people to read an 8–10px wiki.
+   Existing utility classes still express hierarchy; this scoped floor makes
+   the rendered documentation comfortably legible without affecting the app. */
+.estimate-system-guide .text-\[8px\],
+.estimate-system-guide .text-\[9px\] {
+  font-size: 0.625rem;
+}
+
+.estimate-system-guide .text-\[10px\] {
+  font-size: 0.6875rem;
+}
+
+.estimate-system-guide .text-\[11px\] {
+  font-size: 0.75rem;
+}
+
+.estimate-system-guide .text-\[12px\] {
+  font-size: 0.875rem;
 }

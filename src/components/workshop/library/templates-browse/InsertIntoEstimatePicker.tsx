@@ -103,6 +103,18 @@ export type InsertIntoEstimatePickerProps = {
 };
 
 const STALE_TARGET_MESSAGE = "That estimate is no longer available. Choose another target.";
+const retainedInsertIntentBySignature = new Map<string, string>();
+
+function resolveRetainedInsertIntent(signature: string) {
+  const retainedIntentId = retainedInsertIntentBySignature.get(signature);
+  if (retainedIntentId) return retainedIntentId;
+  const intentId = crypto.randomUUID();
+  retainedInsertIntentBySignature.set(signature, intentId);
+  if (retainedInsertIntentBySignature.size > 100) {
+    retainedInsertIntentBySignature.delete(retainedInsertIntentBySignature.keys().next().value ?? "");
+  }
+  return intentId;
+}
 
 function normalizeResolvedTarget(result: EstimateTemplateInsertTargetResolution): ResolvedInsertTarget | null {
   if (!result.targetParentNodeId) return null;
@@ -298,19 +310,31 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
         key: selectedTargetKey,
         resolution: { state: "resolved", target: resolvedTarget },
       });
+      const intentSignature = [
+        selectedProject.id,
+        selectedEstimate.id,
+        resolvedTarget.targetParentNodeId,
+        template.id,
+      ].join(":");
+      const intentId = resolveRetainedInsertIntent(intentSignature);
       const insert = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateIntoEstimate({
         projectId: selectedProject.id,
         estimateId: selectedEstimate.id,
         targetParentNodeId: resolvedTarget.targetParentNodeId,
         templateId: template.id,
+        intentId,
         unavailableSourcePolicy,
       });
       let result = await insert("cancel");
       if (result.status === "requires_saved_snapshot_confirmation") {
-        if (!await requestSnapshotConfirmation(result.unavailableSourceCount)) return;
+        if (!await requestSnapshotConfirmation(result.unavailableSourceCount)) {
+          retainedInsertIntentBySignature.delete(intentSignature);
+          return;
+        }
         result = await insert("use_saved_snapshot_unlinked");
       }
       if (result.status !== "inserted") return;
+      retainedInsertIntentBySignature.delete(intentSignature);
       onInserted(selectedEstimate.name);
       onOpenChange(false);
     } catch (error) {

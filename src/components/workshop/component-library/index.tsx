@@ -9,7 +9,6 @@ import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructi
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
-import { Modal } from "@/components/ui/modal";
 import { Drawer } from "@/components/ui/overlays/sheet-drawer";
 import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
@@ -76,7 +75,6 @@ import {
   componentMatchesFacets,
   countActiveComponentFacets,
 } from "@/components/workshop/library/component-facet-filter-model";
-import { NewComponentForm } from "./NewComponentForm";
 import { NewTemplateModal } from "./NewTemplateModal";
 import { PreviewPanel } from "./PreviewPanel";
 import {
@@ -176,12 +174,9 @@ const AddComponentModal = dynamic(() =>
   import("../component-library-manager/AddComponentModal").then((module) => module.AddComponentModal),
 );
 import {
-  createComponent,
-  defaultForm,
   getComponentName,
   getComponentPrice,
   isLibraryComponentInsertable,
-  isFormDirty,
   LIBRARY_FAVORITES_KEY,
   LIBRARY_PREFS_KEY,
   LIBRARY_RECENTS_KEY,
@@ -665,6 +660,7 @@ type EstimateRightSidebarProps = {
   // Fired after a server-confirmed library/template mutation so callers that
   // cache the lazy library dataset can invalidate it (remount freshness).
   onLibraryDataChanged?: () => void;
+  onLibraryComponentCreated?: (item: EstimateRowItem) => void;
   /**
    * How the dock's "Add Template" creates templates: from the selected
    * estimate node (estimate workspace, default) or from scratch (hosts with
@@ -859,6 +855,7 @@ function useEstimateRightSidebarContent({
   onMobileDrawerOpenChange,
   mobileDrawerId,
   onLibraryDataChanged,
+  onLibraryComponentCreated,
   templateCreateMode = "estimate-node",
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
@@ -911,11 +908,7 @@ function useEstimateRightSidebarContent({
     bulkSelectedNodeIds,
     bulkDeleteConfirmOpen,
     customOrderByViewMode,
-    showNewComponent,
     addComponentOpen,
-    discardComponentChangesOpen,
-    form,
-    formError,
     deleteCandidate,
     insertQuantity,
     facetFilters,
@@ -965,11 +958,7 @@ function useEstimateRightSidebarContent({
     setBulkSelectedNodeIds,
     setBulkDeleteConfirmOpen,
     setCustomOrderByViewMode,
-    setShowNewComponent,
     setAddComponentOpen,
-    setDiscardComponentChangesOpen,
-    setForm,
-    setFormError,
     setDeleteCandidate,
     setInsertQuantity,
     setFacetFilters,
@@ -1044,11 +1033,11 @@ function useEstimateRightSidebarContent({
   // The server-side project-source search keeps using the immediate value (it
   // has its own 250ms debounce).
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const editItemIdRef = useRef<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const projectSourceSearchRequestIdRef = useRef(0);
   const componentEditorRequestIdRef = useRef(0);
   const permanentDeletePreviewRequestIdRef = useRef(0);
+  const permanentDeleteCorrelationIdRef = useRef<string | null>(null);
   const componentFolderMoveQueueRef = useRef(new Map<string, Promise<void>>());
   const componentFolderMoveGenerationRef = useRef(new Map<string, number>());
   const confirmedComponentFolderRef = useRef(new Map<string, string | null>());
@@ -1111,30 +1100,8 @@ function useEstimateRightSidebarContent({
       : "Add to selected area"
     : "Select an area";
 
-  const resetComponentForm = useCallback(() => {
-    setForm(defaultForm);
-    setFormError("");
-    editItemIdRef.current = null;
-  }, [setForm, setFormError]);
-
-  const discardComponentChanges = useCallback(() => {
-    setDiscardComponentChangesOpen(false);
-    setShowNewComponent(false);
-    resetComponentForm();
-  }, [resetComponentForm, setDiscardComponentChangesOpen, setShowNewComponent]);
-
-  const closeNewComponent = useCallback(() => {
-    if (isFormDirty(form)) {
-      setDiscardComponentChangesOpen(true);
-      return;
-    }
-    setShowNewComponent(false);
-    resetComponentForm();
-  }, [form, resetComponentForm, setDiscardComponentChangesOpen, setShowNewComponent]);
   const sidebarKeyboardStateRef = useRef<{
-    showNewComponent: boolean;
     addComponentOpen: boolean;
-    discardComponentChangesOpen: boolean;
     deleteCandidate: EstimateRowItem | null;
     renameTemplateTarget: EstimateTemplate | null;
     deleteTemplateTarget: EstimateTemplate | null;
@@ -1145,9 +1112,7 @@ function useEstimateRightSidebarContent({
     previewProjectSourceKey: string | null;
     previewItemId: string | null;
     mobileDrawerOpen: boolean;
-    closeNewComponent: () => void;
     setSearchOpen: (value: SetStateAction<boolean>) => void;
-    setDiscardComponentChangesOpen: (value: SetStateAction<boolean>) => void;
     setViewModeMenuOpen: (value: SetStateAction<boolean>) => void;
     setBulkDeleteConfirmOpen: (value: SetStateAction<boolean>) => void;
     setDeleteCandidate: (value: SetStateAction<EstimateRowItem | null>) => void;
@@ -1160,9 +1125,7 @@ function useEstimateRightSidebarContent({
   } | null>(null);
   useEffect(() => {
     sidebarKeyboardStateRef.current = {
-      showNewComponent,
       addComponentOpen,
-      discardComponentChangesOpen,
       deleteCandidate,
       renameTemplateTarget,
       deleteTemplateTarget,
@@ -1173,9 +1136,7 @@ function useEstimateRightSidebarContent({
       previewProjectSourceKey,
       previewItemId,
       mobileDrawerOpen: sourcesDrawerOpen,
-      closeNewComponent,
       setSearchOpen,
-      setDiscardComponentChangesOpen,
       setViewModeMenuOpen,
       setBulkDeleteConfirmOpen,
       setDeleteCandidate,
@@ -1391,9 +1352,7 @@ function useEstimateRightSidebarContent({
       const activeTag = document.activeElement?.tagName;
       if (
         event.key === "/" &&
-        !state.showNewComponent &&
         !state.addComponentOpen &&
-        !state.discardComponentChangesOpen &&
         !state.deleteCandidate &&
         !state.renameTemplateTarget &&
         !state.deleteTemplateTarget &&
@@ -1409,11 +1368,9 @@ function useEstimateRightSidebarContent({
         let handled = true;
         if (state.viewModeMenuOpen) state.setViewModeMenuOpen(false);
         else if (state.bulkDeleteConfirmOpen) state.setBulkDeleteConfirmOpen(false);
-        else if (state.discardComponentChangesOpen) state.setDiscardComponentChangesOpen(false);
         else if (state.deleteCandidate) state.setDeleteCandidate(null);
         else if (state.renameTemplateTarget) state.setRenameTemplateTarget(null);
         else if (state.deleteTemplateTarget) state.setDeleteTemplateTarget(null);
-        else if (state.showNewComponent) state.closeNewComponent();
         else if (state.searchQuery) state.setSearchQuery("");
         else if (state.searchOpen) state.setSearchOpen(false);
         else if (state.previewProjectSourceKey) state.setPreviewProjectSourceKey(null);
@@ -2203,6 +2160,7 @@ function useEstimateRightSidebarContent({
   const openPermanentDeletePreview = useCallback((item: EstimateRowItem) => {
     const requestId = permanentDeletePreviewRequestIdRef.current + 1;
     permanentDeletePreviewRequestIdRef.current = requestId;
+    permanentDeleteCorrelationIdRef.current = createBulkActionCorrelationId();
     setPermanentDeleteCandidate(item);
     setPermanentDeletePreview(null);
     setPermanentDeleteError(null);
@@ -2222,6 +2180,7 @@ function useEstimateRightSidebarContent({
 
   const closePermanentDeletePreview = useCallback(() => {
     permanentDeletePreviewRequestIdRef.current += 1;
+    permanentDeleteCorrelationIdRef.current = null;
     setPermanentDeleteCandidate(null);
     setPermanentDeletePreview(null);
     setPermanentDeleteError(null);
@@ -2232,11 +2191,13 @@ function useEstimateRightSidebarContent({
     if (!permanentDeleteCandidate || !permanentDeletePreview?.previewHash) return;
     const candidate = permanentDeleteCandidate;
     const previewHash = permanentDeletePreview.previewHash;
+    const correlationId = permanentDeleteCorrelationIdRef.current ?? createBulkActionCorrelationId();
+    permanentDeleteCorrelationIdRef.current = correlationId;
     setPermanentDeleteState("executing");
     void executeBulkDeleteLibraryComponents({
       itemIds: [candidate.id],
       expectedPreviewHash: previewHash,
-      correlationId: createBulkActionCorrelationId(),
+      correlationId,
     })
       .then((result) => {
         if (!result.ok) {
@@ -2380,8 +2341,9 @@ function useEstimateRightSidebarContent({
     setPreviewItemId(item.id);
     setPreviewProjectSourceKey(null);
     setLastActionMessage(`${getComponentName(item)} created in the component library.`);
-    onLibraryDataChanged?.();
-  }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems, setPreviewItemId, setPreviewProjectSourceKey]);
+    if (onLibraryComponentCreated) onLibraryComponentCreated(item);
+    else onLibraryDataChanged?.();
+  }, [onLibraryComponentCreated, onLibraryDataChanged, setLastActionMessage, setLibraryItems, setPreviewItemId, setPreviewProjectSourceKey]);
 
   const handleComponentUpdated = useCallback((item: EstimateRowItem) => {
     setLibraryItems((items) => items.map((entry) => (entry.id === item.id ? { ...entry, ...item } : entry)));
@@ -2418,10 +2380,18 @@ function useEstimateRightSidebarContent({
     void duplicateCostLibraryComponent({ itemId: sourceItemId })
       .then((result) => {
         handleComponentCreated(result.component);
-        if (result.omittedAttachmentCount > 0) {
+        const omittedAssets = [
+          result.omittedImageCount > 0
+            ? `${result.omittedImageCount} image${result.omittedImageCount === 1 ? "" : "s"}`
+            : null,
+          result.omittedAttachmentCount > 0
+            ? `${result.omittedAttachmentCount} attachment${result.omittedAttachmentCount === 1 ? "" : "s"}`
+            : null,
+        ].filter((value): value is string => Boolean(value));
+        if (omittedAssets.length > 0) {
           toast({
             tone: "neutral",
-            message: `Duplicated without ${result.omittedAttachmentCount} attachment${result.omittedAttachmentCount === 1 ? "" : "s"}; the originals remain on the source component.`,
+            message: `Duplicated without ${omittedAssets.join(" and ")}; the originals remain on the source component.`,
           });
         }
       })
@@ -2518,49 +2488,6 @@ function useEstimateRightSidebarContent({
     setLastActionMessage,
     setTemplateList,
   ]);
-
-  const saveNewComponent = useCallback(
-    (addNow = false) => {
-      const result = createComponent(form);
-      if (result.error || !result.component) {
-        setFormError(result.error ?? "Could not save component.");
-        return;
-      }
-      const editingItemId = editItemIdRef.current;
-      const nextComponent = editingItemId
-        ? {
-            ...result.component,
-            id: editingItemId,
-            isCustom: true,
-            createdAt: libraryItems.find((item) => item.id === editingItemId)?.createdAt ?? result.component.createdAt,
-            updatedAt: new Date().toISOString(),
-          }
-        : result.component;
-      setLibraryItems((items) => (editingItemId ? items.map((item) => (item.id === editingItemId ? nextComponent : item)) : [nextComponent, ...items]));
-      setDiscardComponentChangesOpen(false);
-      setShowNewComponent(false);
-      resetComponentForm();
-      setPreviewItemId(nextComponent.id);
-      setPreviewProjectSourceKey(null);
-      setLastActionMessage(`${getComponentName(nextComponent)} ${editingItemId ? "updated" : "created"} in this sidebar view.`);
-      if (addNow) addComponent(nextComponent);
-      onLibraryDataChanged?.();
-    },
-    [
-      addComponent,
-      form,
-      libraryItems,
-      onLibraryDataChanged,
-      resetComponentForm,
-      setDiscardComponentChangesOpen,
-      setFormError,
-      setLastActionMessage,
-      setLibraryItems,
-      setPreviewItemId,
-      setPreviewProjectSourceKey,
-      setShowNewComponent,
-    ],
-  );
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
     setActiveTab(resolveVisibleTab(tab));
@@ -3279,7 +3206,6 @@ function useEstimateRightSidebarContent({
                 showThumbnails
                 editingNodeId={editingFolderId}
                 editingNodeValue={editingFolderName}
-                onEditingNodeValueChange={setEditingFolderName}
                 onEditingNodeCommit={commitInlineFolderEdit}
                 onEditingNodeCancel={cancelInlineFolderEdit}
                 treeAriaLabel={activeLibraryTreeAriaLabel}
@@ -3414,54 +3340,6 @@ function useEstimateRightSidebarContent({
             defaultCategory={templateDefaultCategory ?? undefined}
             onCreated={handleTemplateCreated}
           />
-        ) : null}
-
-        {/* Edit component form */}
-        <Modal
-          open={showNewComponent}
-          title="Edit component"
-          description="Update this reusable cost component in the local library."
-          closeLabel="Cancel component edit"
-          className="max-w-3xl"
-          onOpenChange={(open) => {
-            if (open) setShowNewComponent(true);
-            else closeNewComponent();
-          }}
-        >
-          <NewComponentForm
-            form={form}
-            formError={formError}
-            onChange={setForm}
-            onSave={() => saveNewComponent(false)}
-            onSaveAndAdd={() => saveNewComponent(true)}
-            onCancel={closeNewComponent}
-          />
-        </Modal>
-
-        {discardComponentChangesOpen ? (
-          <Modal
-            open={discardComponentChangesOpen}
-            title="Discard component changes?"
-            description="This edit has unsaved changes."
-            tone="destructive"
-            closeLabel="Keep editing component"
-            className="max-w-sm"
-            onOpenChange={setDiscardComponentChangesOpen}
-          >
-            <div className="grid gap-3">
-              <p className="text-[10px] leading-4 text-secondary">
-                Discard the unsaved component edits and close the form?
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => setDiscardComponentChangesOpen(false)}>
-                  Keep editing
-                </Button>
-                <Button type="button" variant="danger" size="sm" onClick={discardComponentChanges}>
-                  Discard changes
-                </Button>
-              </div>
-            </div>
-          </Modal>
         ) : null}
 
         {/* Delete folder confirmation */}

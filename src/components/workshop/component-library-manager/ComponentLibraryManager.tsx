@@ -5,10 +5,27 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import {
+  Barcode,
+  CalendarBlank,
+  CurrencyCircleDollar,
+  FolderSimple,
+  ImageSquare,
+  Package,
+  Rows,
+  SortAscending,
+  SortDescending,
+  SquaresFour,
+  Storefront,
+  Tag,
+  TextAa,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { ControlInput } from "@/components/ui/control-input";
 import { Button } from "@/components/ui/button";
+import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
+import { HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME } from "@/components/ui/header-icon-toolbar";
+import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
@@ -31,12 +48,10 @@ import {
   deleteLibraryFolder,
   duplicateCostLibraryComponent,
   executeBulkArchiveLibraryComponents,
-  executeBulkDeleteLibraryComponents,
   loadCostLibraryComponentEditorDetail,
   loadCostLibraryComponentRowDetail,
   moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
-  previewBulkDeleteLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
 import { enqueuePerItemMutation } from "@/components/workshop/component-library/per-item-mutation-queue";
@@ -120,9 +135,12 @@ const ComponentInspectorDock = dynamic(
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
-const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
+const CATALOGUE_CARD_GRID_CLASS = "grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-3 p-0";
 const CATALOGUE_CARD_SHELL_CLASS =
-  "flex min-h-[236px] flex-col overflow-hidden rounded-xs border text-left";
+  "flex min-h-[292px] flex-col overflow-hidden rounded-xs border text-left";
+const COMPONENT_SELECTION_LIMIT = 500;
+const COMPONENT_TOOLBAR_SELECT_TRIGGER_CLASS =
+  "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
 const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode";
 const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
 const LIBRARY_GLASS_DIVIDER_CLASS = "border-[color:var(--glass-border)]";
@@ -195,7 +213,9 @@ type ComponentLibrarySheetAction =
   | { type: "facetParamsApplied"; filters: ComponentFacetFilters }
   | { type: "catalogueBranchToggled"; branchId: string }
   | { type: "displayModeChanged"; mode: ComponentLibraryDisplayMode }
-  | { type: "denseSortChanged"; key: DenseSortKey };
+  | { type: "denseSortChanged"; key: DenseSortKey }
+  | { type: "sortFieldChanged"; key: DenseSortKey }
+  | { type: "sortDirectionChanged"; direction: DenseSortDirection };
 
 function getInitialComponentLibraryDisplayMode(denseModeEnabled: boolean): ComponentLibraryDisplayMode {
   if (!denseModeEnabled) return "cards";
@@ -266,6 +286,16 @@ function componentLibrarySheetReducer(
         ...state,
         denseSort: getNextDenseSortState(state.denseSort, action.key),
       };
+    case "sortFieldChanged":
+      return {
+        ...state,
+        denseSort: { ...state.denseSort, key: action.key },
+      };
+    case "sortDirectionChanged":
+      return {
+        ...state,
+        denseSort: { ...state.denseSort, direction: action.direction },
+      };
     default:
       return state;
   }
@@ -283,7 +313,18 @@ type ComponentRowsLoadState = {
   loadedComponentCount: number;
   totalComponentCount?: number;
   isLoading: boolean;
-  onLoadAll: () => void;
+  loadError?: string | null;
+  onLoadMore: () => void;
+};
+
+type LibraryItemsMutationOptions = {
+  totalComponentCountDelta?: number;
+};
+
+type RouteComponentLookupState = {
+  componentId: string | null;
+  state: "idle" | "loading" | "error" | "not-found";
+  message?: string;
 };
 
 type StateUpdater<T> = T | ((current: T) => T);
@@ -314,10 +355,6 @@ type ComponentLibraryManagerState = {
   archiveComponentPreview: BulkActionPreviewResult | null;
   archiveComponentError: string | null;
   archiveComponentState: DestructiveComponentState;
-  deleteComponentTargetIds: string[];
-  deleteComponentPreview: BulkActionPreviewResult | null;
-  deleteComponentError: string | null;
-  deleteComponentState: DestructiveComponentState;
   folderTextPrompt: FolderTextPrompt | null;
   folderTextPromptValue: string;
   deleteFolderTarget: { folderId: string; currentName: string } | null;
@@ -345,10 +382,6 @@ type ComponentLibraryManagerAction =
   | { type: "archiveComponentPreviewChanged"; value: StateUpdater<BulkActionPreviewResult | null> }
   | { type: "archiveComponentErrorChanged"; value: StateUpdater<string | null> }
   | { type: "archiveComponentStateChanged"; value: StateUpdater<DestructiveComponentState> }
-  | { type: "deleteComponentTargetIdsChanged"; value: StateUpdater<string[]> }
-  | { type: "deleteComponentPreviewChanged"; value: StateUpdater<BulkActionPreviewResult | null> }
-  | { type: "deleteComponentErrorChanged"; value: StateUpdater<string | null> }
-  | { type: "deleteComponentStateChanged"; value: StateUpdater<DestructiveComponentState> }
   | { type: "folderTextPromptChanged"; value: StateUpdater<FolderTextPrompt | null> }
   | { type: "folderTextPromptValueChanged"; value: StateUpdater<string> }
   | { type: "deleteFolderTargetChanged"; value: StateUpdater<{ folderId: string; currentName: string } | null> }
@@ -381,10 +414,6 @@ function createInitialComponentLibraryManagerState({
     archiveComponentPreview: null,
     archiveComponentError: null,
     archiveComponentState: "idle",
-    deleteComponentTargetIds: [],
-    deleteComponentPreview: null,
-    deleteComponentError: null,
-    deleteComponentState: "idle",
     folderTextPrompt: null,
     folderTextPromptValue: "",
     deleteFolderTarget: null,
@@ -427,14 +456,6 @@ function componentLibraryManagerReducer(
       return { ...state, archiveComponentError: resolveStateUpdater(state.archiveComponentError, action.value) };
     case "archiveComponentStateChanged":
       return { ...state, archiveComponentState: resolveStateUpdater(state.archiveComponentState, action.value) };
-    case "deleteComponentTargetIdsChanged":
-      return { ...state, deleteComponentTargetIds: resolveStateUpdater(state.deleteComponentTargetIds, action.value) };
-    case "deleteComponentPreviewChanged":
-      return { ...state, deleteComponentPreview: resolveStateUpdater(state.deleteComponentPreview, action.value) };
-    case "deleteComponentErrorChanged":
-      return { ...state, deleteComponentError: resolveStateUpdater(state.deleteComponentError, action.value) };
-    case "deleteComponentStateChanged":
-      return { ...state, deleteComponentState: resolveStateUpdater(state.deleteComponentState, action.value) };
     case "folderTextPromptChanged":
       return { ...state, folderTextPrompt: resolveStateUpdater(state.folderTextPrompt, action.value) };
     case "folderTextPromptValueChanged":
@@ -685,10 +706,41 @@ function getDenseAriaSort(sort: DenseSortState, key: DenseSortKey) {
   return sort.direction === "asc" ? "ascending" as const : "descending" as const;
 }
 
-function isNextImageSafeComponentSource(src: string) {
-  if (!src) return false;
-  if (src.startsWith("/")) return true;
-  return false;
+const COMPONENT_VIEW_OPTIONS = [
+  { value: "cards", label: "Cards", icon: <SquaresFour size={12} weight="regular" aria-hidden="true" /> },
+  { value: "dense", label: "Dense table", icon: <Rows size={12} weight="regular" aria-hidden="true" /> },
+] as const satisfies readonly DropdownSelectOption[];
+
+const COMPONENT_SORT_FIELD_OPTIONS = [
+  { value: "folder", label: "Folder order", icon: <FolderSimple size={12} weight="regular" aria-hidden="true" /> },
+  { value: "name", label: "Component name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
+  { value: "supplier", label: "Supplier", icon: <Storefront size={12} weight="regular" aria-hidden="true" /> },
+  { value: "brand", label: "Brand", icon: <Tag size={12} weight="regular" aria-hidden="true" /> },
+  { value: "cost", label: "Unit cost", icon: <CurrencyCircleDollar size={12} weight="regular" aria-hidden="true" /> },
+  { value: "pricingSource", label: "Pricing source", icon: <Barcode size={12} weight="regular" aria-hidden="true" /> },
+  { value: "pricingDate", label: "Pricing date", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "lifecycle", label: "Lifecycle", icon: <Tag size={12} weight="regular" aria-hidden="true" /> },
+  { value: "usage", label: "Last used", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+] as const satisfies readonly DropdownSelectOption[];
+
+function isDenseSortKey(value: string): value is DenseSortKey {
+  return COMPONENT_SORT_FIELD_OPTIONS.some((option) => option.value === value);
+}
+
+function getComponentSortDirectionOptions(key: DenseSortKey): DropdownSelectOption[] {
+  const labels = key === "cost"
+    ? { asc: "Lowest cost first", desc: "Highest cost first" }
+    : key === "pricingDate" || key === "usage"
+      ? { asc: "Oldest first", desc: "Newest first" }
+      : { asc: "A to Z", desc: "Z to A" };
+  return [
+    { value: "asc", label: labels.asc, icon: <SortAscending size={12} weight="regular" aria-hidden="true" /> },
+    { value: "desc", label: labels.desc, icon: <SortDescending size={12} weight="regular" aria-hidden="true" /> },
+  ];
+}
+
+function shouldBypassComponentImageOptimization(src: string) {
+  return src.startsWith("/api/") || !src.startsWith("/");
 }
 
 const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
@@ -700,7 +752,9 @@ const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
 
 function ComponentCatalogueCard({
   card,
+  loadImageEagerly = false,
   selected,
+  selectionDisabled,
   inspectorSelected,
   onToggleSelected,
   onInspect,
@@ -708,7 +762,9 @@ function ComponentCatalogueCard({
   promotePending = false,
 }: {
   card: CatalogueCard;
+  loadImageEagerly?: boolean;
   selected: boolean;
+  selectionDisabled: boolean;
   inspectorSelected: boolean;
   onToggleSelected?: (itemId: string) => void;
   onInspect: (itemId: string) => void;
@@ -717,6 +773,13 @@ function ComponentCatalogueCard({
 }) {
   const surfaceVariant = useLibrarySurfaceVariant();
   const item = card.item;
+  const [failedImage, setFailedImage] = useState<{ itemId: string; src: string } | null>(null);
+  const imageUrl = item.imageUrl?.trim() ?? "";
+  const imageFailed = Boolean(
+    imageUrl
+    && failedImage?.itemId === item.id
+    && failedImage.src === imageUrl,
+  );
   const name = getComponentName(item);
   const brand = item.brand?.trim();
   const brandLabel = getItemBrandLabel(item);
@@ -744,6 +807,10 @@ function ComponentCatalogueCard({
         surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
         inspectorSelected && (surfaceVariant === "glass" ? LIBRARY_GLASS_SELECTED_CLASS : "border-ink bg-surfaceMuted/40"),
       )}
+      onClick={(event) => {
+        if (event.target instanceof Element && event.target.closest("button, input, label")) return;
+        onInspect(item.id);
+      }}
     >
       <div
         className={cn(
@@ -765,18 +832,20 @@ function ComponentCatalogueCard({
         {onToggleSelected ? (
           <label
             className={cn(
-              "absolute left-2 top-2 z-10 grid size-7 cursor-pointer place-items-center rounded-xs border",
+              "absolute left-2 top-2 z-10 grid size-7 place-items-center rounded-xs border",
+              selectionDisabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
               surfaceVariant === "glass"
                 ? LIBRARY_GLASS_CONTROL_CLASS
                 : "border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white",
             )}
           >
-            <span className="sr-only">{`Select ${item.name ?? item.material} for archive`}</span>
+            <span className="sr-only">{`Select ${item.name ?? item.material}`}</span>
             <input
               type="checkbox"
-              className="size-3 rounded-xs border-hairline accent-danger"
-              aria-label={`Select ${item.name ?? item.material} for archive`}
+              className="size-4 rounded-xs border-hairline accent-[color:var(--brand-orange)]"
+              aria-label={`Select ${item.name ?? item.material}`}
               checked={selected}
+              disabled={selectionDisabled}
               onChange={() => onToggleSelected(item.id)}
             />
           </label>
@@ -794,21 +863,15 @@ function ComponentCatalogueCard({
             onInspect(item.id);
           }}
         >
-          {item.imageUrl && isNextImageSafeComponentSource(item.imageUrl) ? (
+          {imageUrl && !imageFailed ? (
             <Image
-              src={item.imageUrl}
+              src={imageUrl}
               alt=""
               fill
-              sizes="(max-width: 768px) 50vw, 176px"
-              className="object-cover transition duration-200 group-hover:scale-[1.02]"
-            />
-          ) : item.imageUrl ? (
-            <Image
-              src={item.imageUrl}
-              alt=""
-              fill
-              sizes="(max-width: 768px) 50vw, 176px"
-              unoptimized
+              sizes="(max-width: 640px) calc(100vw - 48px), (max-width: 1024px) 33vw, 240px"
+              loading={loadImageEagerly ? "eager" : "lazy"}
+              unoptimized={shouldBypassComponentImageOptimization(imageUrl)}
+              onError={() => setFailedImage({ itemId: item.id, src: imageUrl })}
               className="object-cover transition duration-200 group-hover:scale-[1.02]"
             />
           ) : (
@@ -904,6 +967,7 @@ function CatalogueCardGrid({
   cards,
   label,
   selectedItemIds,
+  selectionLimitReached,
   inspectorItemId,
   onToggleSelected,
   onInspect,
@@ -913,6 +977,7 @@ function CatalogueCardGrid({
   cards: CatalogueCard[];
   label: string;
   selectedItemIds: Set<string>;
+  selectionLimitReached: boolean;
   inspectorItemId: string | null;
   onToggleSelected?: (itemId: string) => void;
   onInspect: (itemId: string) => void;
@@ -926,11 +991,13 @@ function CatalogueCardGrid({
       className={CATALOGUE_CARD_GRID_CLASS}
       aria-label={`${label} component catalogue grid`}
     >
-      {cards.map((card) => (
+      {cards.map((card, index) => (
         <ComponentCatalogueCard
           key={card.item.id}
           card={card}
+          loadImageEagerly={index === 0}
           selected={selectedItemIds.has(card.item.id)}
+          selectionDisabled={selectionLimitReached && !selectedItemIds.has(card.item.id)}
           inspectorSelected={inspectorItemId === card.item.id}
           onToggleSelected={onToggleSelected}
           onInspect={onInspect}
@@ -985,6 +1052,7 @@ function ComponentCatalogueDenseTable({
   label,
   sort,
   selectedItemIds,
+  selectionLimitReached,
   inspectorItemId,
   onSort,
   onToggleSelected,
@@ -996,6 +1064,7 @@ function ComponentCatalogueDenseTable({
   label: string;
   sort: DenseSortState;
   selectedItemIds: Set<string>;
+  selectionLimitReached: boolean;
   inspectorItemId: string | null;
   onSort: (key: DenseSortKey) => void;
   onToggleSelected?: (itemId: string) => void;
@@ -1186,8 +1255,9 @@ function ComponentCatalogueDenseTable({
                     <input
                       type="checkbox"
                       className="size-3 rounded-xs border-hairline accent-danger"
-                      aria-label={`Select ${name} for archive`}
+                      aria-label={`Select ${name}`}
                       checked={selected}
+                      disabled={selectionLimitReached && !selected}
                       onChange={() => onToggleSelected(item.id)}
                     />
                   ) : null}
@@ -1279,100 +1349,6 @@ function ComponentCatalogueDenseTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-function ComponentCatalogueBranch({
-  branch,
-  collapsedBranchIds,
-  onToggleBranch,
-  selectedItemIds,
-  inspectorItemId,
-  onToggleSelected,
-  onInspect,
-  onPromote,
-  promotingItemId,
-}: {
-  branch: CatalogueBranch;
-  collapsedBranchIds: Set<string>;
-  onToggleBranch: (branchId: string) => void;
-  selectedItemIds: Set<string>;
-  inspectorItemId: string | null;
-  onToggleSelected?: (itemId: string) => void;
-  onInspect: (itemId: string) => void;
-  onPromote?: (item: EstimateRowItem) => void;
-  promotingItemId?: string | null;
-}) {
-  const surfaceVariant = useLibrarySurfaceVariant();
-  const collapsed = collapsedBranchIds.has(branch.id);
-  const eyebrow = branch.parentPathLabel || "Component Library";
-
-  return (
-    <section
-      aria-label={`${branch.pathLabel} component catalogue branch`}
-      data-component-catalogue-section={branch.id}
-      data-component-catalogue-folder-depth={branch.depth}
-      className={cn("relative", branch.depth === 0 ? "pt-1" : "pt-0.5")}
-    >
-      <div
-        className={cn(
-          "flex min-h-[72px] min-w-0 items-center gap-2 px-3 py-2.5",
-          librarySurfaceClass(surfaceVariant, "contentTile"),
-          surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
-        )}
-      >
-        <button
-          type="button"
-          className="grid size-5 shrink-0 place-items-center rounded-xs text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          aria-label={`${collapsed ? "Expand" : "Collapse"} ${branch.pathLabel}`}
-          aria-expanded={!collapsed}
-          onClick={() => onToggleBranch(branch.id)}
-        >
-          {collapsed ? <CaretRight size={12} weight="regular" /> : <CaretDown size={12} weight="regular" />}
-        </button>
-        <FolderSimple size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary/70">
-            {eyebrow}
-          </p>
-          <h2 className="mt-0.5 truncate text-[12px] font-medium leading-4 tracking-normal text-ink">
-            {branch.label}
-          </h2>
-        </div>
-      </div>
-      {!collapsed ? (
-        <>
-          <CatalogueCardGrid
-            cards={branch.directItems}
-            label={branch.pathLabel}
-            selectedItemIds={selectedItemIds}
-            inspectorItemId={inspectorItemId}
-            onToggleSelected={onToggleSelected}
-            onInspect={onInspect}
-            onPromote={onPromote}
-            promotingItemId={promotingItemId}
-          />
-          {branch.children.length > 0 ? (
-            <div className={cn("flex flex-col gap-1", branch.directItems.length > 0 ? "mt-2" : "mt-1")}>
-              {branch.children.map((child) => (
-                <ComponentCatalogueBranch
-                  key={child.id}
-                  branch={child}
-                  collapsedBranchIds={collapsedBranchIds}
-                  onToggleBranch={onToggleBranch}
-                  selectedItemIds={selectedItemIds}
-                  inspectorItemId={inspectorItemId}
-                  onToggleSelected={onToggleSelected}
-                  onInspect={onInspect}
-                  onPromote={onPromote}
-                  promotingItemId={promotingItemId}
-                />
-              ))}
-            </div>
-          ) : null}
-        </>
-      ) : null}
-    </section>
   );
 }
 
@@ -1545,7 +1521,6 @@ function ComponentLibrarySheet({
   inspectorItemId,
   onAddComponent,
   onArchiveSelected,
-  onDeleteSelected,
   onClearSelected,
   onSelectVisible,
   onToggleSelected,
@@ -1570,7 +1545,6 @@ function ComponentLibrarySheet({
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
   onArchiveSelected: (itemIds: string[]) => void;
-  onDeleteSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
@@ -1593,7 +1567,6 @@ function ComponentLibrarySheet({
     searchQuery,
     searchOpen,
     facetFilters,
-    collapsedCatalogueBranchIds,
     displayMode,
     denseSort,
   } = sheetState;
@@ -1651,23 +1624,23 @@ function ComponentLibrarySheet({
     () => buildCatalogueOutline(visibleItems, folderNodes, selectedFolderNode, searchQuery),
     [folderNodes, searchQuery, selectedFolderNode, visibleItems],
   );
-  const denseCatalogueCards = useMemo(() => sortDenseCatalogueCards(flattenCatalogueOutline(catalogueOutline), denseSort), [catalogueOutline, denseSort]);
-  const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
+  const flatCatalogueCards = useMemo(() => flattenCatalogueOutline(catalogueOutline), [catalogueOutline]);
+  const sortedCatalogueCards = useMemo(() => sortDenseCatalogueCards(flatCatalogueCards, denseSort), [denseSort, flatCatalogueCards]);
+  const hasCatalogueResults = flatCatalogueCards.length > 0;
   const cardScaleFallbackActive = Boolean(
     denseModeEnabled &&
       WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.enabled &&
       effectiveDisplayMode === "cards" &&
       visibleItems.length >= WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows,
   );
+  const selectableVisibleItems = visibleItems.slice(0, COMPONENT_SELECTION_LIMIT);
   const selectedVisibleItemIds = filterMapBy(
     visibleItems,
     (item) => selectedItemIds.has(item.id),
     (item) => item.id,
   );
+  const selectionLimitReached = selectedItemIds.size >= COMPONENT_SELECTION_LIMIT;
   const resultSummary = getCatalogueScopeSummary(sheetItems.length);
-  const toggleCatalogueBranch = (branchId: string) => {
-    dispatchSheet({ type: "catalogueBranchToggled", branchId });
-  };
   const changeDisplayMode = (mode: ComponentLibraryDisplayMode) => {
     dispatchSheet({ type: "displayModeChanged", mode });
     try {
@@ -1677,6 +1650,7 @@ function ComponentLibrarySheet({
   const changeDenseSort = (key: DenseSortKey) => {
     dispatchSheet({ type: "denseSortChanged", key });
   };
+  const sortDirectionOptions = getComponentSortDirectionOptions(denseSort.key);
   const selectedLabel = viewMode === "suppliers"
     ? selectedSupplierNode?.label ?? "All Suppliers"
     : viewMode === "brand"
@@ -1684,11 +1658,18 @@ function ComponentLibrarySheet({
     : isAllComponentsFolderId(selectedFolderId)
       ? "All Components"
       : selectedFolderNode?.label ?? "Components";
+  const loadedCount = componentRowsLoadState?.loadedComponentCount ?? libraryItems.length;
+  const exactTotalCount = componentRowsLoadState?.totalComponentCount;
+  const loadedScopeLabel = exactTotalCount === undefined
+    ? `${loadedCount} loaded`
+    : `${loadedCount} loaded of ${exactTotalCount}`;
   const visibleSummary = searchQuery
-    ? `${visibleItems.length} shown · ${facetedItems.length} after filters`
+    ? `${visibleItems.length} loaded ${visibleItems.length === 1 ? "match" : "matches"} · ${activeFacetCount > 0
+      ? `${facetedItems.length} loaded after filters`
+      : `${sheetItems.length} loaded in scope`}`
     : activeFacetCount > 0
-      ? `${facetedItems.length} shown · ${sheetItems.length} in scope`
-      : resultSummary;
+      ? `${facetedItems.length} loaded shown · ${sheetItems.length} loaded in scope`
+      : `${resultSummary} · ${loadedScopeLabel}`;
   const partialTotalCount = componentRowsLoadState?.totalComponentCount;
   const showPartialLoadAction = Boolean(
     componentRowsLoadState?.isPartial &&
@@ -1696,8 +1677,9 @@ function ComponentLibrarySheet({
       (partialTotalCount === undefined || partialTotalCount > componentRowsLoadState.loadedComponentCount),
   );
   const partialLoadLabel = partialTotalCount === undefined
-    ? `Showing ${componentRowsLoadState?.loadedComponentCount ?? 0}+`
-    : `Showing ${componentRowsLoadState?.loadedComponentCount ?? 0} of ${partialTotalCount}`;
+    ? `${componentRowsLoadState?.loadedComponentCount ?? 0} loaded`
+    : `${componentRowsLoadState?.loadedComponentCount ?? 0} loaded of ${partialTotalCount}`;
+  const hasActiveQuery = Boolean(searchQuery || activeFacetCount > 0);
 
   return (
     <section
@@ -1728,104 +1710,80 @@ function ComponentLibrarySheet({
           searchInputRef={searchInputRef}
           showDefaultActions={false}
           filterSlot={
-            <ComponentFacetFilterPopover
-              options={facetOptions}
-              filters={facetFilters}
-              onFiltersChange={(filters) => dispatchSheet({ type: "facetFiltersChanged", filters })}
-            />
+            <div className="flex min-w-0 flex-nowrap items-center gap-1">
+              <ComponentFacetFilterPopover
+                options={facetOptions}
+                filters={facetFilters}
+                onFiltersChange={(filters) => dispatchSheet({ type: "facetFiltersChanged", filters })}
+              />
+              <span aria-hidden="true" className={HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME} />
+              {denseModeEnabled ? (
+                <DropdownSelect
+                  aria-label="View components"
+                  options={COMPONENT_VIEW_OPTIONS}
+                  value={effectiveDisplayMode}
+                  onValueChange={(value) => {
+                    if (value === "cards" || value === "dense") changeDisplayMode(value);
+                  }}
+                  variant="boxed"
+                  triggerDisplay="icon"
+                  triggerTitlePrefix="View"
+                  className={COMPONENT_TOOLBAR_SELECT_TRIGGER_CLASS}
+                />
+              ) : null}
+              <DropdownSelect
+                aria-label="Sort components by"
+                options={COMPONENT_SORT_FIELD_OPTIONS}
+                value={denseSort.key}
+                onValueChange={(value) => {
+                  if (isDenseSortKey(value)) dispatchSheet({ type: "sortFieldChanged", key: value });
+                }}
+                variant="boxed"
+                triggerDisplay="icon"
+                triggerTitlePrefix="Sort by"
+                className={COMPONENT_TOOLBAR_SELECT_TRIGGER_CLASS}
+              />
+              <DropdownSelect
+                aria-label="Component sort order"
+                options={sortDirectionOptions}
+                value={denseSort.direction}
+                onValueChange={(value) => {
+                  if (value === "asc" || value === "desc") dispatchSheet({ type: "sortDirectionChanged", direction: value });
+                }}
+                variant="boxed"
+                triggerDisplay="icon"
+                triggerTitlePrefix="Sort order"
+                className={COMPONENT_TOOLBAR_SELECT_TRIGGER_CLASS}
+              />
+            </div>
           }
+          leadingActions={[
+            {
+              id: "component-sheet-summary",
+              label: "Component result summary",
+              element: (
+                <p
+                  aria-live="polite"
+                  className="sr-only text-[9px] leading-3 text-tertiary lg:not-sr-only lg:block lg:min-w-0 lg:max-w-[360px] lg:truncate"
+                  data-component-sheet-summary="true"
+                >
+                  {selectedLabel} · {visibleSummary}
+                </p>
+              ),
+            },
+          ]}
+          leadingActionsLabel="Component catalogue status"
           addActions={canManageLibrary
             ? [
                 {
                   label: "Add component",
-                  visibleLabel: "Add component",
-                  showVisibleLabel: true,
-                  icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+                  icon: <Package size={13} weight="regular" aria-hidden="true" />,
                   onClick: (event) => onAddComponent(event.currentTarget),
-                  className: surfaceVariant === "glass"
-                    ? "workshop-liquid-button min-h-11 border px-3 text-secondary hover:text-ink"
-                    : undefined,
+                  className: ADD_BUTTON_CLASSNAME,
                 },
               ]
             : []}
         />
-        <div
-          className={cn(
-            "flex min-h-7 shrink-0 items-center justify-between gap-2 px-2",
-            librarySurfaceClass(surfaceVariant, "contextStrip"),
-          )}
-          data-component-sheet-context-strip="true"
-        >
-          <p className="truncate text-[10px] font-normal leading-4 text-secondary">
-            {selectedLabel} · {visibleSummary}
-          </p>
-          <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {showPartialLoadAction ? (
-              <div className="flex shrink-0 items-center gap-1 text-[9px] leading-3 text-tertiary">
-                <span className="hidden sm:inline">{partialLoadLabel}</span>
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex h-6 shrink-0 items-center gap-1 rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait disabled:opacity-60",
-                    surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
-                  )}
-                  disabled={componentRowsLoadState?.isLoading}
-                  onClick={componentRowsLoadState?.onLoadAll}
-                >
-                  <Rows size={10} weight="regular" aria-hidden="true" />
-                  {componentRowsLoadState?.isLoading ? "Loading" : "Load all"}
-                </button>
-              </div>
-            ) : null}
-            {denseModeEnabled ? (
-              // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Display mode buttons are a named control group; <address> would be incorrect.
-              <div
-                role="group"
-                aria-label="Component display mode"
-                className={cn(
-                  "flex h-6 shrink-0 items-center overflow-hidden",
-                  librarySurfaceClass(surfaceVariant, "segmentedControl"),
-                  surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
-                )}
-              >
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex h-full items-center gap-1 px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                    effectiveDisplayMode === "cards" && (surfaceVariant === "glass" ? "bg-white/70 text-ink" : "bg-surfaceMuted text-ink"),
-                  )}
-                  aria-pressed={effectiveDisplayMode === "cards"}
-                  onClick={() => changeDisplayMode("cards")}
-                >
-                  <SquaresFour size={10} weight="regular" aria-hidden="true" />
-                  Cards
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex h-full items-center gap-1 border-l px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                    surfaceVariant === "glass" ? "border-[color:var(--glass-border)]" : "border-hairline",
-                    effectiveDisplayMode === "dense" && (surfaceVariant === "glass" ? "bg-white/70 text-ink" : "bg-surfaceMuted text-ink"),
-                  )}
-                  aria-pressed={effectiveDisplayMode === "dense"}
-                  onClick={() => changeDisplayMode("dense")}
-                >
-                  <Rows size={10} weight="regular" aria-hidden="true" />
-                  Dense
-                </button>
-              </div>
-            ) : null}
-            <p aria-live="polite" className="shrink-0 text-[9px] leading-3 text-tertiary">
-              {searchQuery
-                ? `${visibleItems.length} of ${facetedItems.length} match "${searchQuery}"`
-                : activeFacetCount > 0
-                  ? `${facetedItems.length} of ${sheetItems.length} after filters`
-                  : effectiveDisplayMode === "dense"
-                    ? "Sorted in dense table"
-                    : "Sorted by folder order"}
-            </p>
-          </div>
-        </div>
         <ComponentAppliedFacetChips
           filters={facetFilters}
           options={facetOptions}
@@ -1845,30 +1803,81 @@ function ComponentLibrarySheet({
             {status.message}
           </output>
         ) : null}
+        {componentRowsLoadState?.loadError && hasCatalogueResults ? (
+          <div className="flex items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-2 py-1 text-[10px] leading-4 text-red-700" role="alert">
+            <span>{componentRowsLoadState.loadError}</span>
+            <Button type="button" variant="ghost" size="sm" className="h-7 shrink-0 px-2" onClick={componentRowsLoadState.onLoadMore}>
+              Retry
+            </Button>
+          </div>
+        ) : null}
         {canManageLibrary ? (
           <BulkActionToolbar
             selectedCount={selectedVisibleItemIds.length}
-            actionLabel="Delete selected"
-            helperText="Delete is permanent; linked estimate and template rows are deleted too."
-            onAction={() => onDeleteSelected(selectedVisibleItemIds)}
+            actionLabel="Archive selected"
+            helperText={visibleItems.length > COMPONENT_SELECTION_LIMIT
+              ? `Exact-ID selection is capped at ${COMPONENT_SELECTION_LIMIT} loaded components.`
+              : "Archives the exact loaded components selected here."}
+            onAction={() => onArchiveSelected(selectedVisibleItemIds)}
             onClear={onClearSelected}
-            onSelectVisible={() => onSelectVisible(visibleItems.map((item) => item.id))}
-            secondaryActionSlot={(
-              <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => onArchiveSelected(selectedVisibleItemIds)}>
-                Archive selected
-              </Button>
-            )}
+            onSelectVisible={() => onSelectVisible(selectableVisibleItems.map((item) => item.id))}
           />
         ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
-        {effectiveDisplayMode === "dense" ? (
+        {!hasCatalogueResults ? (
+          <div
+            className={cn(
+              "grid min-h-[320px] place-items-center rounded-xs border border-dashed p-6 text-center",
+              librarySurfaceClass(surfaceVariant, "emptyState"),
+              surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
+            )}
+            data-component-library-empty-state={hasActiveQuery ? "no-loaded-matches" : "empty-library"}
+          >
+            <div className="grid max-w-sm justify-items-center gap-2">
+              <ImageSquare size={28} weight="regular" className="text-tertiary" aria-hidden="true" />
+              <h2 className="text-[13px] font-medium leading-5 text-ink">
+                {hasActiveQuery ? "No loaded components match" : "Build your component library"}
+              </h2>
+              <p className="text-[10px] leading-4 text-secondary">
+                {hasActiveQuery
+                  ? `Search and filters currently cover ${loadedScopeLabel}. Clear them or load the next page to keep looking.`
+                  : canManageLibrary
+                    ? "Add the first reusable component so your team can estimate with consistent costs and sourcing."
+                    : "No active components are available in this workspace yet."}
+              </p>
+              <div className="mt-1 flex flex-wrap justify-center gap-2">
+                {searchQuery ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => dispatchSheet({ type: "searchQueryChanged", query: "" })}>
+                    Clear search
+                  </Button>
+                ) : null}
+                {activeFacetCount > 0 ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => dispatchSheet({ type: "facetFiltersChanged", filters: parseComponentFacetSearchParams(new URLSearchParams()) })}>
+                    Clear filters
+                  </Button>
+                ) : null}
+                {showPartialLoadAction ? (
+                  <Button type="button" variant="outline" size="sm" disabled={componentRowsLoadState?.isLoading} onClick={componentRowsLoadState?.onLoadMore}>
+                    {componentRowsLoadState?.isLoading ? "Loading…" : "Load 50 more"}
+                  </Button>
+                ) : null}
+              </div>
+              {componentRowsLoadState?.loadError ? (
+                <p role="alert" className="text-[10px] leading-4 text-red-700">
+                  {componentRowsLoadState.loadError}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : effectiveDisplayMode === "dense" ? (
           <ComponentCatalogueDenseTable
-            cards={denseCatalogueCards}
+            cards={sortedCatalogueCards}
             label={selectedLabel}
             sort={denseSort}
             selectedItemIds={selectedItemIds}
+            selectionLimitReached={selectionLimitReached}
             inspectorItemId={inspectorItemId}
             onSort={changeDenseSort}
             onToggleSelected={canManageLibrary ? onToggleSelected : undefined}
@@ -1906,55 +1915,37 @@ function ComponentLibrarySheet({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
-            {catalogueOutline.branches.map((branch) => (
-              <ComponentCatalogueBranch
-                key={branch.id}
-                branch={branch}
-                collapsedBranchIds={collapsedCatalogueBranchIds}
-                onToggleBranch={toggleCatalogueBranch}
-                selectedItemIds={selectedItemIds}
-                inspectorItemId={inspectorItemId}
-                onToggleSelected={canManageLibrary ? onToggleSelected : undefined}
-                onInspect={onInspectItem}
-                onPromote={onPromoteItem}
-                promotingItemId={promotingItemId}
-              />
-            ))}
-            {catalogueOutline.items.length > 0 ? (
-              <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
-                <div
-                  className={cn(
-                    "flex min-h-[72px] min-w-0 items-center gap-2 px-3 py-2.5",
-                    librarySurfaceClass(surfaceVariant, "contentTile"),
-                    surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
-                    surfaceVariant === "paper" && "bg-surfaceMuted/70",
-                  )}
-                >
-                  <SquaresFour size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-                  <div className="flex min-w-0 flex-1 flex-col justify-center">
-                    <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary/70">
-                      No folder assigned
-                    </p>
-                    <h2 className="truncate text-[12px] font-medium leading-4 tracking-normal text-ink">
-                      {CATALOGUE_UNASSIGNED_LABEL}
-                    </h2>
-                  </div>
-                </div>
-                <CatalogueCardGrid
-                  cards={catalogueOutline.items}
-                  label={CATALOGUE_UNASSIGNED_LABEL}
-                  selectedItemIds={selectedItemIds}
-                  inspectorItemId={inspectorItemId}
-                  onToggleSelected={canManageLibrary ? onToggleSelected : undefined}
-                  onInspect={onInspectItem}
-                  onPromote={onPromoteItem}
-                  promotingItemId={promotingItemId}
-                />
-              </section>
-            ) : null}
-          </div>
+          <CatalogueCardGrid
+            cards={sortedCatalogueCards}
+            label={selectedLabel}
+            selectedItemIds={selectedItemIds}
+            selectionLimitReached={selectionLimitReached}
+            inspectorItemId={inspectorItemId}
+            onToggleSelected={canManageLibrary ? onToggleSelected : undefined}
+            onInspect={onInspectItem}
+            onPromote={onPromoteItem}
+            promotingItemId={promotingItemId}
+          />
         )}
+        {showPartialLoadAction && hasCatalogueResults ? (
+          <div
+            className="mt-3 flex items-center justify-center gap-2 border-t border-hairline pt-3 text-[9px] leading-3 text-tertiary"
+            data-component-load-more-boundary="true"
+          >
+            <span>{partialLoadLabel}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-2 text-[9px]"
+              disabled={componentRowsLoadState?.isLoading}
+              onClick={componentRowsLoadState?.onLoadMore}
+            >
+              <Rows size={10} weight="regular" aria-hidden="true" />
+              {componentRowsLoadState?.isLoading ? "Loading…" : "Load 50 more"}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -1977,7 +1968,6 @@ function ComponentLibrarySheetPanel({
   inspectorItemId,
   onAddComponent,
   onArchiveSelected,
-  onDeleteSelected,
   onClearSelected,
   onSelectVisible,
   onToggleSelected,
@@ -2002,7 +1992,6 @@ function ComponentLibrarySheetPanel({
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
   onArchiveSelected: (itemIds: string[]) => void;
-  onDeleteSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
@@ -2030,7 +2019,6 @@ function ComponentLibrarySheetPanel({
         inspectorItemId={inspectorItemId}
         onAddComponent={onAddComponent}
         onArchiveSelected={onArchiveSelected}
-        onDeleteSelected={onDeleteSelected}
         onClearSelected={onClearSelected}
         onSelectVisible={onSelectVisible}
         onToggleSelected={onToggleSelected}
@@ -2070,7 +2058,10 @@ export function ComponentLibraryManager({
   // instead of calling router.refresh() (which re-ran the whole server segment). They
   // default to no-ops so the manager has no hard QueryClient dependency and can still
   // be mounted bare in unit tests.
-  onLibraryItemsMutated?: (updater: (items: EstimateRowItem[]) => EstimateRowItem[]) => void;
+  onLibraryItemsMutated?: (
+    updater: (items: EstimateRowItem[]) => EstimateRowItem[],
+    options?: LibraryItemsMutationOptions,
+  ) => void;
   onLibraryFoldersMutated?: (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => void;
   projectId?: string;
   promotionEnabled?: boolean;
@@ -2084,6 +2075,7 @@ export function ComponentLibraryManager({
   const syncLibraryItemsCache = onLibraryItemsMutated;
   const syncLibraryFoldersCache = onLibraryFoldersMutated;
   const addButtonReturnRef = useRef<HTMLElement | null>(null);
+  const folderTextPromptReturnRef = useRef<HTMLElement | null>(null);
   const quickAddSessionCounterRef = useRef(0);
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
@@ -2129,10 +2121,6 @@ export function ComponentLibraryManager({
     archiveComponentPreview,
     archiveComponentError,
     archiveComponentState,
-    deleteComponentTargetIds,
-    deleteComponentPreview,
-    deleteComponentError,
-    deleteComponentState,
     folderTextPrompt,
     folderTextPromptValue,
     deleteFolderTarget,
@@ -2167,14 +2155,6 @@ export function ComponentLibraryManager({
     dispatchManager({ type: "archiveComponentErrorChanged", value });
   const setArchiveComponentState = (value: StateUpdater<DestructiveComponentState>) =>
     dispatchManager({ type: "archiveComponentStateChanged", value });
-  const setDeleteComponentTargetIds = (value: StateUpdater<string[]>) =>
-    dispatchManager({ type: "deleteComponentTargetIdsChanged", value });
-  const setDeleteComponentPreview = (value: StateUpdater<BulkActionPreviewResult | null>) =>
-    dispatchManager({ type: "deleteComponentPreviewChanged", value });
-  const setDeleteComponentError = (value: StateUpdater<string | null>) =>
-    dispatchManager({ type: "deleteComponentErrorChanged", value });
-  const setDeleteComponentState = (value: StateUpdater<DestructiveComponentState>) =>
-    dispatchManager({ type: "deleteComponentStateChanged", value });
   const setFolderTextPrompt = (value: StateUpdater<FolderTextPrompt | null>) =>
     dispatchManager({ type: "folderTextPromptChanged", value });
   const setFolderTextPromptValue = (value: StateUpdater<string>) =>
@@ -2200,6 +2180,11 @@ export function ComponentLibraryManager({
   const [componentModalItem, setComponentModalItem] = useState<EstimateRowItem | null>(null);
   const [componentModalImpactFingerprint, setComponentModalImpactFingerprint] = useState("");
   const [componentModalOptionUsageCounts, setComponentModalOptionUsageCounts] = useState<Record<string, number>>({});
+  const [routeComponentLookup, setRouteComponentLookup] = useState<RouteComponentLookupState>({
+    componentId: null,
+    state: "idle",
+  });
+  const [routeComponentLookupAttempt, setRouteComponentLookupAttempt] = useState(0);
 
   const localLibraryItems = libraryItemState.source === libraryItems ? libraryItemState.items : libraryItems;
   function updateLocalLibraryItems(updater: (items: EstimateRowItem[]) => EstimateRowItem[]) {
@@ -2214,13 +2199,6 @@ export function ComponentLibraryManager({
 
   const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;
   const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive 1 component?" : `Archive ${archiveComponentTargetIds.length} components?`;
-  const deleteComponentPhrase = deleteComponentTargetIds.length === 1 ? "DELETE COMPONENT" : `DELETE ${deleteComponentTargetIds.length} COMPONENTS`;
-  const deleteComponentTitle = deleteComponentTargetIds.length === 1 ? "Permanently delete 1 component?" : `Permanently delete ${deleteComponentTargetIds.length} components?`;
-  const deletedEstimateRowCount = Number(deleteComponentPreview?.summary.estimateRowCount ?? 0);
-  const deletedTemplateRowCount = Number(deleteComponentPreview?.summary.templateRowCount ?? 0);
-  const deleteComponentDescription = deleteComponentPreview
-    ? `This permanently removes the source, ${deletedEstimateRowCount} linked estimate row${deletedEstimateRowCount === 1 ? "" : "s"}, and ${deletedTemplateRowCount} linked template row${deletedTemplateRowCount === 1 ? "" : "s"}.`
-    : "This permanently removes the source and every linked estimate and template row.";
 
   function denyLibraryManagement() {
     setSheetStatus({ state: "error", message: "Only workspace editors/admins can manage the library." });
@@ -2335,7 +2313,10 @@ export function ComponentLibraryManager({
     if (item.supplierId) setSelectedSupplierNodeId(toSupplierTreeNodeId(item.supplierId));
     if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
     setSheetStatus({ state: "saved", message: "Component saved." });
-    syncLibraryItemsCache((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
+    syncLibraryItemsCache(
+      (items) => [item, ...items.filter((entry) => entry.id !== item.id)],
+      { totalComponentCountDelta: 1 },
+    );
     writeComponentRouteState(item.id);
     const quickAddSession = quickAddSessionRef.current;
     if (quickAddSession) {
@@ -2349,9 +2330,11 @@ export function ComponentLibraryManager({
     }
   }
 
-  const routeComponentIsValid = Boolean(routeComponentId && localLibraryItems.some((entry) => entry.id === routeComponentId));
-  const inspectorItemId = routeComponentIsValid ? routeComponentId : null;
-  const inspectorItem = inspectorItemId ? localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null : null;
+  const inspectorItem = routeComponentId
+    ? localLibraryItems.find((entry) => entry.id === routeComponentId) ?? null
+    : null;
+  const routeComponentIsValid = Boolean(routeComponentId && inspectorItem);
+  const inspectorItemId = inspectorItem?.id ?? null;
   const inspectorItemRef = useRef<EstimateRowItem | null>(null);
   const updateLocalLibraryItemsRef = useRef(updateLocalLibraryItems);
   const syncLibraryItemsCacheRef = useRef(syncLibraryItemsCache);
@@ -2361,6 +2344,47 @@ export function ComponentLibraryManager({
     updateLocalLibraryItemsRef.current = updateLocalLibraryItems;
     syncLibraryItemsCacheRef.current = syncLibraryItemsCache;
   }, [inspectorItem, syncLibraryItemsCache, updateLocalLibraryItems]);
+
+  useEffect(() => {
+    const itemId = routeComponentId;
+    if (!itemId || routeComponentIsValid) return;
+    if (projectId) return;
+
+    let stale = false;
+    Promise.resolve()
+      .then(() => {
+        if (!stale) setRouteComponentLookup({ componentId: itemId, state: "loading" });
+      })
+      .then(() => loadCostLibraryComponentRowDetail(itemId))
+      .then((detail) => {
+        if (stale) return;
+        if (!detail) {
+          setRouteComponentLookup({ componentId: itemId, state: "not-found" });
+          return;
+        }
+        detailHydratedItemIdsRef.current?.add(detail.id);
+        const upsertDetail = (items: EstimateRowItem[]) => {
+          const existingIndex = items.findIndex((entry) => entry.id === detail.id);
+          if (existingIndex === -1) return [...items, detail];
+          return items.map((entry) => (entry.id === detail.id ? { ...entry, ...detail } : entry));
+        };
+        updateLocalLibraryItemsRef.current(upsertDetail);
+        syncLibraryItemsCacheRef.current(upsertDetail);
+        setRouteComponentLookup({ componentId: itemId, state: "idle" });
+      })
+      .catch((error: unknown) => {
+        if (stale) return;
+        setRouteComponentLookup({
+          componentId: itemId,
+          state: "error",
+          message: error instanceof Error ? error.message : "Could not load this component.",
+        });
+      });
+
+    return () => {
+      stale = true;
+    };
+  }, [projectId, routeComponentId, routeComponentIsValid, routeComponentLookupAttempt]);
 
   useEffect(() => {
     const itemId = inspectorItemId;
@@ -2414,6 +2438,10 @@ export function ComponentLibraryManager({
       }
       return;
     }
+    const projectComponentIsMissing = Boolean(projectId);
+    const workspaceComponentIsMissing = routeComponentLookup.componentId === routeComponentId
+      && routeComponentLookup.state === "not-found";
+    if (!projectComponentIsMissing && !workspaceComponentIsMissing) return;
     recordLibraryEvent("route_state_authz_denied", {
       workspaceId,
       resourceKind: "component",
@@ -2433,7 +2461,7 @@ export function ComponentLibraryManager({
         componentId: null,
       }),
     );
-  }, [componentRouteSearchParamsKey, pathname, routeComponentId, routeComponentIsValid, workspaceId]);
+  }, [componentRouteSearchParamsKey, pathname, projectId, routeComponentId, routeComponentIsValid, routeComponentLookup, workspaceId]);
 
   function inspectComponent(itemId: string) {
     componentEditorRequestIdRef.current += 1;
@@ -2496,10 +2524,18 @@ export function ComponentLibraryManager({
         const result = await duplicateCostLibraryComponent({ itemId: source.sourceLibraryItemId ?? source.id });
         handleComponentCreated(result.component);
         writeComponentRouteState(result.component.id);
-        if (result.omittedAttachmentCount > 0) {
+        const omittedAssets = [
+          result.omittedImageCount > 0
+            ? `${result.omittedImageCount} image${result.omittedImageCount === 1 ? "" : "s"}`
+            : null,
+          result.omittedAttachmentCount > 0
+            ? `${result.omittedAttachmentCount} attachment${result.omittedAttachmentCount === 1 ? "" : "s"}`
+            : null,
+        ].filter((value): value is string => Boolean(value));
+        if (omittedAssets.length > 0) {
           setSheetStatus({
             state: "saved",
-            message: `Duplicated without ${result.omittedAttachmentCount} attachment${result.omittedAttachmentCount === 1 ? "" : "s"}; originals remain on the source component.`,
+            message: `Duplicated without ${omittedAssets.join(" and ")}; originals remain on the source component.`,
           });
         }
       } catch (error) {
@@ -2512,16 +2548,30 @@ export function ComponentLibraryManager({
   }
 
   function toggleComponentSelection(itemId: string) {
+    if (!selectedItemIds.has(itemId) && selectedItemIds.size >= COMPONENT_SELECTION_LIMIT) {
+      setSheetStatus({
+        state: "error",
+        message: `Select up to ${COMPONENT_SELECTION_LIMIT} components at a time. Clear part of the selection to continue.`,
+      });
+      return;
+    }
     setSelectedItemIds((current) => {
       const next = new Set(current);
       if (next.has(itemId)) next.delete(itemId);
-      else next.add(itemId);
+      else if (next.size < COMPONENT_SELECTION_LIMIT) next.add(itemId);
       return next;
     });
   }
 
   function selectVisibleComponents(itemIds: string[]) {
-    setSelectedItemIds(new Set(itemIds));
+    const exactIds = Array.from(new Set(itemIds));
+    setSelectedItemIds(new Set(exactIds.slice(0, COMPONENT_SELECTION_LIMIT)));
+    if (exactIds.length > COMPONENT_SELECTION_LIMIT) {
+      setSheetStatus({
+        state: "saved",
+        message: `Selected the first ${COMPONENT_SELECTION_LIMIT} loaded components. Archive them before selecting another batch.`,
+      });
+    }
   }
 
   function clearComponentSelection() {
@@ -2543,6 +2593,7 @@ export function ComponentLibraryManager({
       await promoteEstimateRowToLibraryComponent({
         projectId: targetProjectId,
         estimateId: targetEstimateId,
+        expectedRowRevision: item.rowRevision ?? 1,
         rowId: item.id,
       });
       updateLocalLibraryItems((items) => items.filter((entry) => entry.id !== item.id));
@@ -2631,7 +2682,10 @@ export function ComponentLibraryManager({
             writeComponentRouteState(null);
           }
           closeArchiveComponentPreview();
-          syncLibraryItemsCache((items) => items.filter((item) => !archivedIds.includes(item.id)));
+          syncLibraryItemsCache(
+            (items) => items.filter((item) => !archivedIds.includes(item.id)),
+            { totalComponentCountDelta: -archivedIds.length },
+          );
         })
         .catch((error: unknown) => {
           setArchiveComponentError(error instanceof Error ? error.message : "Could not archive components.");
@@ -2640,83 +2694,18 @@ export function ComponentLibraryManager({
     });
   }
 
-  function openDeleteComponentPreview(itemIds: string[]) {
-    if (!canManageLibrary) {
-      denyLibraryManagement();
-      return;
-    }
-    const itemsById = new Map(localLibraryItems.map((item) => [item.id, item]));
-    const ids = Array.from(new Set(itemIds)).filter((id) => {
-      const item = itemsById.get(id);
-      return item && !isProjectProjectionItem(item);
-    });
-    if (ids.length === 0 || ids.length !== new Set(itemIds).size) {
-      setSheetStatus({ state: "error", message: "Project components are estimate-backed. Select only workspace library components to delete here." });
-      return;
-    }
-    setDeleteComponentTargetIds(ids);
-    setDeleteComponentPreview(null);
-    setDeleteComponentError(null);
-    setDeleteComponentState("loading");
-    startTreeMutation(() => {
-      void previewBulkDeleteLibraryComponents({ itemIds: ids })
-        .then((preview) => {
-          setDeleteComponentPreview(preview);
-          setDeleteComponentState("ready");
-        })
-        .catch((error: unknown) => {
-          setDeleteComponentError(error instanceof Error ? error.message : "Could not load deletion preview.");
-          setDeleteComponentState("ready");
-        });
+  function closeFolderTextPrompt() {
+    setFolderTextPrompt(null);
+    const target = folderTextPromptReturnRef.current;
+    folderTextPromptReturnRef.current = null;
+    if (!target) return;
+    requestAnimationFrame(() => {
+      if (target.isConnected) target.focus({ preventScroll: true });
     });
   }
 
-  function closeDeleteComponentPreview() {
-    setDeleteComponentTargetIds([]);
-    setDeleteComponentPreview(null);
-    setDeleteComponentError(null);
-    setDeleteComponentState("idle");
-  }
-
-  function executeDeleteComponentPreview() {
-    if (!deleteComponentPreview?.previewHash) return;
-    const previewHash = deleteComponentPreview.previewHash;
-    setDeleteComponentState("executing");
-    startTreeMutation(() => {
-      void executeBulkDeleteLibraryComponents({
-        itemIds: deleteComponentTargetIds,
-        expectedPreviewHash: previewHash,
-        correlationId: createBulkActionCorrelationId(),
-      })
-        .then((result) => {
-          if (!result.ok) {
-            setDeleteComponentPreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
-            setDeleteComponentError(result.issues[0]?.message ?? "Could not delete components.");
-            setDeleteComponentState("ready");
-            return;
-          }
-          const deletedIds = result.deletedIds?.length ? result.deletedIds : deleteComponentTargetIds;
-          updateLocalLibraryItems((items) => items.filter((item) => !deletedIds.includes(item.id)));
-          setSelectedItemIds((current) => {
-            const next = new Set(current);
-            for (const id of deletedIds) next.delete(id);
-            return next;
-          });
-          setSheetStatus({ state: "saved", message: `${deletedIds.length} component${deletedIds.length === 1 ? "" : "s"} permanently deleted.` });
-          if (inspectorItemId && deletedIds.includes(inspectorItemId)) {
-            writeComponentRouteState(null);
-          }
-          closeDeleteComponentPreview();
-          syncLibraryItemsCache((items) => items.filter((item) => !deletedIds.includes(item.id)));
-        })
-        .catch((error: unknown) => {
-          setDeleteComponentError(error instanceof Error ? error.message : "Could not delete components.");
-          setDeleteComponentState("ready");
-        });
-    });
-  }
-
-  function openFolderTextPrompt(next: NonNullable<typeof folderTextPrompt>) {
+  function openFolderTextPrompt(next: FolderTextPrompt) {
+    folderTextPromptReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setFolderTextPrompt(next);
     setFolderTextPromptValue(next.initialValue);
   }
@@ -2725,7 +2714,7 @@ export function ComponentLibraryManager({
     if (!folderTextPrompt) return;
     const value = folderTextPromptValue.trim();
     const handler = folderTextPrompt.onSubmit;
-    setFolderTextPrompt(null);
+    closeFolderTextPrompt();
     if (value) handler(value);
   }
 
@@ -2820,8 +2809,12 @@ export function ComponentLibraryManager({
         const deletedParentId = localFolders.find((folder) => folder.id === folderId)?.parent_id ?? null;
         const removeFolder = (current: LibraryFolderRecord[]) =>
           planLibraryFolderDelete(current, folderId)?.nextFolders ?? current.filter((folder) => folder.id !== folderId);
-        setLocalFolders(removeFolder);
-        syncLibraryFoldersCache(removeFolder);
+        const clearDeletedFolderAssignment = (items: EstimateRowItem[]) => items.map((item) => (
+          item.libraryFolderId === folderId ? { ...item, libraryFolderId: undefined } : item
+        ));
+        handleFoldersChange(removeFolder);
+        updateLocalLibraryItems(clearDeletedFolderAssignment);
+        syncLibraryItemsCache(clearDeletedFolderAssignment);
         if (selectedFolderId === folderId) {
           setSelectedFolderId(deletedParentId);
         }
@@ -2833,24 +2826,13 @@ export function ComponentLibraryManager({
   }
 
   function getDeleteFolderDescription(target: { folderId: string; currentName: string }) {
-    const componentCount = localLibraryItems.filter((item) => item.libraryFolderId === target.folderId).length;
     const childFolderCount = localFolders.filter((folder) => folder.parent_id === target.folderId).length;
     if (childFolderCount > 0) {
-      const componentPart = componentCount === 1 ? "1 component" : `${componentCount} components`;
       const folderPart = childFolderCount === 1 ? "1 subfolder" : `${childFolderCount} subfolders`;
-      if (componentCount === 0) {
-        const verb = childFolderCount === 1 ? "moves" : "move";
-        return `Delete "${target.currentName}"? Its ${folderPart} ${verb} out of this folder; nothing is deleted from the library.`;
-      }
-      return `Delete "${target.currentName}"? Its ${componentPart} and ${folderPart} move out of this folder; nothing is deleted from the library.`;
+      const verb = childFolderCount === 1 ? "moves" : "move";
+      return `Delete "${target.currentName}"? Its ${folderPart} ${verb} out of this folder. Any components assigned to it stay in the library and lose this folder.`;
     }
-    if (componentCount > 0) {
-      const componentPart = componentCount === 1
-        ? "1 component stays in the library and loses this folder"
-        : `${componentCount} components stay in the library and lose this folder`;
-      return `Delete "${target.currentName}"? Its ${componentPart}.`;
-    }
-    return `Delete "${target.currentName}"? This folder is empty.`;
+    return `Delete "${target.currentName}"? Any components assigned to it stay in the library and lose this folder.`;
   }
 
   async function moveComponentToFolder(item: EstimateRowItem, targetFolderId: string) {
@@ -2963,7 +2945,6 @@ export function ComponentLibraryManager({
             inspectorItemId={inspectorItemId}
             onAddComponent={openAddComponentModal}
             onArchiveSelected={openArchiveComponentPreview}
-            onDeleteSelected={openDeleteComponentPreview}
             onClearSelected={clearComponentSelection}
             onSelectVisible={selectVisibleComponents}
             onToggleSelected={toggleComponentSelection}
@@ -2972,6 +2953,38 @@ export function ComponentLibraryManager({
             onPromoteItem={promotionEnabled ? promoteProjectComponent : undefined}
             promotingItemId={promotingItemId}
           />
+          {routeComponentId
+            && !inspectorItem
+            && routeComponentLookup.componentId === routeComponentId
+            && (routeComponentLookup.state === "loading" || routeComponentLookup.state === "error") ? (
+            <aside
+              className={cn(
+                "grid w-[312px] shrink-0 content-start gap-2 rounded-xs border p-3",
+                librarySurfaceClass(surfaceVariant, "rightDock"),
+              )}
+              aria-label="Component details status"
+            >
+              <h2 className="text-[12px] font-medium leading-5 text-ink">
+                {routeComponentLookup.state === "loading" ? "Loading component…" : "Component could not be loaded"}
+              </h2>
+              <p className="text-[10px] leading-4 text-secondary">
+                {routeComponentLookup.state === "loading"
+                  ? "Resolving this direct component link in the workspace library."
+                  : routeComponentLookup.message ?? "The component link is still preserved so you can retry."}
+              </p>
+              {routeComponentLookup.state === "error" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  onClick={() => setRouteComponentLookupAttempt((attempt) => attempt + 1)}
+                >
+                  Retry
+                </Button>
+              ) : null}
+            </aside>
+          ) : null}
           {inspectorItem ? (
             <ComponentInspectorDock
               item={inspectorItem}
@@ -2979,12 +2992,10 @@ export function ComponentLibraryManager({
               onEdit={openInspectorComponentEditor}
               onDuplicate={duplicateInspectorComponent}
               onArchive={() => openArchiveComponentPreview([inspectorItem.id])}
-              onDelete={() => openDeleteComponentPreview([inspectorItem.id])}
               duplicatePending={isDuplicatePending}
               canEdit={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               canDuplicate={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               canArchive={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
-              canDelete={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               promoteAction={canPromoteProjectProjectionItem(inspectorItem, projectId, promotionEnabled) ? {
                 label: "Promote to library",
                 pending: promotingItemId === inspectorItem.id,
@@ -3037,18 +3048,19 @@ export function ComponentLibraryManager({
         <ConfirmDialog
           open
           onOpenChange={(open) => {
-            if (!open) setFolderTextPrompt(null);
+            if (!open) closeFolderTextPrompt();
           }}
           title={folderTextPrompt.title}
           description="Enter a folder name and confirm to apply."
           confirmLabel={folderTextPrompt.confirmLabel}
+          initialFocus="first"
           onConfirm={submitFolderTextPrompt}
         >
           <label className="grid gap-1">
             <span className="text-[9px] font-medium text-tertiary">{folderTextPrompt.label}</span>
             <ControlInput
               aria-label={folderTextPrompt.label}
-              autoFocus
+              data-dialog-initial-focus=""
               value={folderTextPromptValue}
               onChange={(event) => setFolderTextPromptValue(event.target.value)}
               onKeyDown={(event) => {
@@ -3074,21 +3086,6 @@ export function ComponentLibraryManager({
         onExecute={executeArchiveComponentPreview}
         onOpenChange={(open) => {
           if (!open) closeArchiveComponentPreview();
-        }}
-      />
-      <BulkDestructivePreviewModal
-        open={deleteComponentTargetIds.length > 0}
-        title={deleteComponentTitle}
-        description={deleteComponentDescription}
-        requiredPhrase={deleteComponentPhrase}
-        executeLabel="Delete permanently"
-        loading={deleteComponentState === "loading"}
-        executing={deleteComponentState === "executing"}
-        preview={deleteComponentPreview}
-        previewError={deleteComponentError}
-        onExecute={executeDeleteComponentPreview}
-        onOpenChange={(open) => {
-          if (!open) closeDeleteComponentPreview();
         }}
       />
     </div>
