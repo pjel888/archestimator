@@ -9,6 +9,7 @@ import {
   Flag,
   Gauge,
   Headset,
+  Lightning,
   Megaphone,
   Pulse,
   SidebarSimple,
@@ -26,7 +27,10 @@ import { cn } from "@/lib/ui/cn";
 export const ADMIN_NAV_GROUPS = [
   {
     label: "Home",
-    items: [{ href: "/admin", label: "Overview", icon: Gauge }],
+    items: [
+      { href: "/admin", label: "Overview", icon: Gauge },
+      { href: "/admin/today", label: "Today", icon: Lightning },
+    ],
   },
   {
     label: "Customers",

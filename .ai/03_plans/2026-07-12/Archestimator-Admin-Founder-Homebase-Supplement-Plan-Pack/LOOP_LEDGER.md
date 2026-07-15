@@ -142,3 +142,17 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Degraded capability:** none (search degrades gracefully per-source; nav links only existing routes).
 - **Result:** F1 search + grouped-navigation deliverables met. Pins/recents explicitly deferred, not silently dropped.
 - **Next decision:** F2 / UNIT-003 (Today + Action Inbox) is the founder's core daily surface; it needs a derivation registry and (for snooze/resolve) new schema.
+
+## UNIT-003 / F2 (read-only seed) — 2026-07-16 — "TODAY" ATTENTION VIEW IMPLEMENTED
+
+- **State:** PARTIAL (read-only attention view done; action-inbox state machine deferred)
+- **Founder outcome:** a dedicated `/admin/today` page answers "what needs my attention now?" — open incidents rendered as prioritized action items with severity, age, owner, and a deep link, surfaced in the sidebar Home group.
+- **Files owned:** new `src/app/admin/today/page.tsx`; edited `AdminSidebar.tsx` (Today nav item).
+- **Schema/migration:** NONE this increment.
+- **Security risk:** LOW — read-only, admin-gated via the layout.
+- **Test requirement:** NOT_REQUIRED (read-only rendering of existing repo output).
+- **Evidence:** `bunx tsc --noEmit` — 0 errors. Diff review. react-doctor: 0 findings in admin components (8 pre-existing findings are in AdminCharts + estimate-system-map, outside this slice).
+- **Deferred (deliberate):** the action-inbox STATE MACHINE — `admin_action_items` table, derivation registry across support/feedback/identity/job/upload-scan sources, and snooze/resolve/dismiss/reopen reconciliation. This is the crux of F2 and is poor candidate to rush: it needs careful idempotent upsert + reconciliation logic and ideally tests. Source list functions for support/feedback items also don't exist yet (only aggregates). Migration slot reserved at 0088 (`admin_action_items`).
+- **Degraded capability:** none.
+- **Result:** F2 read-only "Today" delivered. The persistence/state-machine increment is explicitly deferred, not silently dropped.
+- **Next decision:** Build the F2 action-inbox state machine (migration 0088 + derivation registry + snooze/resolve actions) as a focused, tested increment; OR proceed to F3 (Customer 360).
