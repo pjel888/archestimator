@@ -1,5 +1,7 @@
 # Current Architecture And Evidence
 
+> **Historical baseline notice (2026-07-15):** This document is a dated baseline/deep dive, not current readiness authority. Current status lives in `README.md`, `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md`, `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md`, `IMPLEMENTATION_PLAN.md`, and `TRACEABILITY.md`. Any `PASS`, implemented, or complete wording below is historical unless re-proved there.
+
 ## Evidence Model
 
 This document describes the current shared worktree, not the older planning baseline. Current source wins over the GitNexus index where the index points at an earlier commit. GitNexus still confirms the central relationship: `AddComponentModal.submit` calls `updateCostLibraryComponentWithPriceOptions`, which in turn owns option planning, linked-row synchronization, revision guards, D1 batching, authoritative detail reread, and route revalidation.

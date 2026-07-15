@@ -1,131 +1,139 @@
-# Traceability And Implementation Evidence
+# Estimate Sheet MVP Traceability And Evidence Model
 
-## Current Decision
-
-- pack status: `RECONCILED_TO_CURRENT_WORKTREE`;
-- component-path implementation: `IMPLEMENTED_IN_WORKTREE`;
-- release status: `NOT_EVALUATED`;
-- browser/visual status: `NOT_RUN`;
-- hosted Cloudflare status: `NOT_EVALUATED`;
-- manifest reconciliation: `INCLUDED_AND_VALIDATED`.
-
-The statuses below describe the current source and evidence actually present. They do not turn focused proof into a deployment or release claim.
+**Current decision:** the remediation plan is implementation-ready, implementation has not started under the refreshed DAG, and release is not ready. Every criterion below is `FAIL` until its named evidence is collected after implementation. A `READY` unit means executable scope and dependencies are complete; it does not mean the behavior works.
 
 ## Status Vocabulary
 
-| Status | Meaning |
+| Record | Current meaning |
 | --- | --- |
-| `FOCUSED_PROOF` | Current source was audited and a directly relevant focused automated receipt was recorded as passing by an implementation lane |
-| `IMPLEMENTED_SOURCE` | The implementation is present in current source and mapped to existing evidence, but this reconciliation does not claim a complete release gate |
-| `PRESENT_NOT_RUN` | A relevant automated evidence file exists but was not rerun by this implementation reconciliation |
-| `NOT_EVALUATED` | Browser, hosted-provider, deployment, or full-release proof was not performed |
+| Requirement `ACCEPTED` | The product/data/UX/operations contract is fixed and owned. |
+| Unit `READY` | Goal, dependencies, paths, acceptance, evidence, and recovery are executable. |
+| Criterion `FAIL` | Required implementation or decisive evidence is still missing. |
+| Evidence `COLLECTED` | Current planning/source evidence exists; it is not implementation or release proof. |
+| `TEST_PROPOSAL` | A critical test is recommended but not authorized or run by this planning task. |
+| Release `NOT_READY` | One or more core criteria remain `FAIL` or an environment layer is unproved. |
 
-## Artifact Index
+## Current Source Authority
 
-| Source | Artifact | Current purpose |
+| Source | Authority | Requirements informed |
 | --- | --- | --- |
-| `SRC-001` | `README.md` | package outcome, exact repro, proof boundary, and pack map |
-| `SRC-002` | `01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md` | current Add/Edit through D1/R2 and issued-review architecture |
-| `SRC-003` | `02-MVP-REQUIREMENTS-AND-INVARIANTS.md` | accepted requirements and invariants |
-| `SRC-004` | `03-FINDINGS-RISK-SECURITY-PERFORMANCE.md` | original finding and risk registry; historical findings must be read with current implementation evidence |
-| `SRC-005` | `04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md` | identity, propagation, transfer, and publication contracts |
-| `SRC-006` | `05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md` | modal PRD, exact variant fix, Library/Project CRUD, and Estimate row behavior |
-| `SRC-007` | `06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md` | current D1/R2 attachment ownership and persistence schema |
-| `SRC-008` | `07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md` | direct replacement and one-authority cleanup |
-| `SRC-009` | `08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md` | concrete user-visible and data-flow before/after |
-| `SRC-010` | `IMPLEMENTATION_PLAN.md` | implemented unit map and remaining release boundary |
-| `SRC-011` | `LOOP_LEDGER.md` | append-only planning and implementation reconciliation record |
+| `SRC-001` | `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` — current action inventory and status. | `REQ-001`–`REQ-007`, `UX-001`, `UX-002`, `PERF-001`, `PERF-002`, `SEC-001` |
+| `SRC-002` | `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` — mutation findings, D1/R2 risks, and publication gap. | `REQ-004`–`REQ-008`, `DATA-001`, `DATA-002`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
+| `SRC-003` | `README.md` — goal, product decisions, scope boundaries, and stop condition. | `REQ-001`, `REQ-006`–`REQ-008`, `SEC-001`, `UX-002`, `PERF-002`, `OPS-001` |
+| `SRC-004` | `IMPLEMENTATION_PLAN.md` — dependency-closed implementation and evidence sequence. | all requirements |
+| `SRC-005` | `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` — corrected premises, failure/race/partial-failure simulations, alternatives, selected fixes, and residual risks for `F-001`–`F-024`. | `REQ-001`–`REQ-008`, `DATA-001`, `DATA-002`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
+| `SRC-006` | `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` — retained Template architecture, create/browse/editor/insert flows, variant/source trust, ten-finding disposition, source-unit crosswalk, and source-pack removal proof. | `REQ-001`, `REQ-005`, `REQ-007`, `REQ-009`, `DATA-001`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
+| `SRC-007` | `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` — read-only live-route baseline, stable-surface rename contract, compact-filter/menu contract, broader UX streamlining, render isolation, and continuity evidence requirements. | `REQ-001`, `REQ-003`, `REQ-006`, `REQ-007`, `REQ-009`, `UX-001`, `UX-002`, `PERF-001`, `PERF-002` |
+
+Artifacts `01` through `08` are dated baseline/deep-dive sources only. They cannot close a current criterion without a fresh receipt in this trace.
 
 ## Requirement Coverage
 
-| Requirement | Acceptance intent | Current status | Primary source and focused evidence | Remaining boundary |
+| ID | Role | Accepted requirement | Capability coverage | Findings | Owner units | Criterion |
+| --- | --- | --- | --- | --- | --- | --- |
+| `REQ-001` | `CORE` | Maintain one canonical inventory and source owner for every Estimate Sheet and Component Template click, context action, keyboard action, bulk action, drag/drop path, loading state, retry, recovery path, and dense interaction-state contract. | `L-01`–`L-22`, `C-01`–`C-50`, `R-01`–`R-44`, `S-01`–`S-17` | `F-007`, absorbed-pack authority drift, `UI-F-001`–`UI-F-009` | `UNIT-001`, `UNIT-008`, `UNIT-009` | `AC-001` |
+| `REQ-002` | `CORE` | Left tree Area CRUD, search/filter, lazy loading, move/reorder, delete/bulk delete, restore, and external drops preserve estimate/tab topology and route selection. | `L-01`–`L-22` | `F-001`, `F-002`, `F-020` | `UNIT-003`, `UNIT-008` | `AC-002` |
+| `REQ-003` | `CORE` | Tabs and center-sheet shell create, rename, duplicate, delete, reorder, select, filter/group, expand, resize, total, and recover without cross-tab or partial-tree corruption. | `C-01`–`C-14`, `C-43`–`C-50` | `F-010` | `UNIT-003`, `UNIT-008` | `AC-003` |
+| `REQ-004` | `CORE` | Row insert/edit/replace/move/duplicate/delete/bulk delete/restore and Enter/Escape commits preserve row ownership, revisions, object snapshots, history, totals, and authoritative reconciliation. | `C-15`–`C-19`, `C-23`–`C-25`, `C-32`–`C-42`, `L-17`–`L-19`, `R-18`, `R-20`–`R-22` | `F-001`, `F-002`, `F-008`, `F-012`, `F-014`–`F-016`, `F-022`, `F-023` | `UNIT-002`, `UNIT-008` | `AC-004` |
+| `REQ-005` | `CORE` | Component and variant edits obey Library/Project/express ownership; selected variant is row-owned, definition edits are stable-ID shared mutations, and pending UI uses the same scope key. | `C-20`–`C-30`, `R-23`, `R-24`, `S-10` | `F-009`, `F-012`, `F-013`, `F-022` | `UNIT-002`, `UNIT-004`, `UNIT-008` | `AC-005` |
+| `REQ-006` | `CORE` | Right-sidebar Library/folder lifecycle supports create/read/update/duplicate/archive/permanent delete/bulk actions and drag/drop with explicit favorite, nesting, attachment, audit, cache, and the `400`-dependent interactive delete ceiling. | `R-01`–`R-24`, `S-10`, `S-13` | `F-005`, `F-009`, `F-015`, `F-018`, `F-019`, `F-021` | `UNIT-004`, `UNIT-008` | `AC-006` |
+| `REQ-007` | `CORE` | Template and reusable Project sources insert all-or-nothing per intent into one selected node target with fresh identities, parent-derived tab scope, deterministic order, source localization, idempotency, and acknowledged routing. | `L-16`, `L-19`, `C-17`, `C-18`, `R-25`–`R-30`, `S-11` | `F-011`, `F-017`, `F-020` | `UNIT-005`, `UNIT-008` | `AC-007` |
+| `REQ-008` | `CORE` | Legacy share and Client Portal issue builders project equivalent authoring tree/row/component/variant/totals meaning from one accepted source fingerprint and deterministic semantic identity while preserving immutable issue and privacy rules. | `C-44`, `C-47`, `S-01`–`S-09` | `F-006` | `UNIT-007`, `UNIT-008` | `AC-008` |
+| `REQ-009` | `CORE` | Component Templates are detached, workspace-scoped blueprints whose save/create, bounded browse/detail, header/category lifecycle, editor node/row CRUD, composition, variant/source trust, and deletion are atomic, topology-valid, and non-propagating to prior Estimate copies. | `L-16`, `R-25`, `R-34`–`R-44`, `S-11` | `TPL-F-001`–`TPL-F-009` | `UNIT-009`, `UNIT-008` | `AC-015` |
+| `DATA-001` | `CORE` | D1 mutations enforce workspace/project/estimate/tab/node/template ownership, non-null object snapshots, revision/idempotency, atomic order/history/outbox, and valid restore/delete semantics. | All persistent `L-*`, `C-*`, `R-*`, `S-08`, `S-11`, `S-13` | `F-001`, `F-002`, `F-005`, `F-008`–`F-012`, `F-015`, `F-016`, `F-022`, `F-023`, `TPL-F-001`, `TPL-F-004`, `TPL-F-005`, `TPL-F-009` | `UNIT-002`–`UNIT-006`, `UNIT-009`, `UNIT-008` | `AC-009` |
+| `DATA-002` | `CORE` | Upload session, asset, attachment, Images/R2 object, and cleanup state remain ownership-valid and recoverable across component/row/template lifecycle. | `C-31`, `R-10`, `R-12`, `R-13`, `R-16`, `S-10`, `S-12` | `F-003`, `F-004`, `F-005`, `F-024` | `UNIT-004`, `UNIT-006`, `UNIT-008` | `AC-010` |
+| `SEC-001` | `CORE` | Every action authorizes workspace/project/estimate/template/resource scope server-side, view-only roles cannot mutate, and issued/public data exposes no private D1 IDs, snapshots, or private storage paths. | `L-21`, `C-50`, `R-32`, `R-34`–`R-44`, `S-01`–`S-07`, `S-11`, `S-12`, `S-15` | `F-001`–`F-006`, `F-011`, `F-020`, `F-024`, absorbed Template authorization findings | `UNIT-002`–`UNIT-009` | `AC-011` |
+| `UX-001` | `CORE` | Inputs, drag/drop, destructive confirmations, skeletons, pending/conflict/offline states, retries, focus, and rollback identify the exact affected object and never imply a false success. | Loading/error/retry and mutation feedback rows across all four matrix sections | `F-013`, `F-014`, `F-017`–`F-020`, `TPL-F-002`, `TPL-F-003` | `UNIT-002`–`UNIT-005`, `UNIT-009`, `UNIT-008` | `AC-012` |
+| `UX-002` | `CORE` | Dense inline rename preserves the parent surface, geometry, selection meaning, and keyboard focus; Enter saves, Escape cancels, blur deduplicates, pointer exit never saves, and compact source filters use transparent triggers with consistent labels and opaque accessible menus. | `L-09`, `C-04`, `R-02`, `R-06`, `R-25`, `R-26`, `R-37`, `R-41`, `R-42`, `S-16` | `UI-F-001`–`UI-F-007` | `UNIT-001`, `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-009`, `UNIT-008` | `AC-016` |
+| `PERF-001` | `CORE` | Tree/sidebar/Template loading, fan-out, bulk operations, copy, and history remain bounded; partial data is labeled and no global rerender/loading state substitutes for object scope. | `L-01`, `L-05`, `L-06`, `C-01`, `C-11`, `C-42`–`C-44`, `R-02`–`R-04`, `R-18`, `R-19`, `R-25`, `R-31`, `R-34`–`R-44` | `F-005`, `F-011`, `F-013`, `F-020`, `TPL-F-002`, `TPL-F-008` | `UNIT-001`–`UNIT-005`, `UNIT-009`, `UNIT-008` | `AC-013` |
+| `PERF-002` | `CORE` | Rename drafts and loaded source-family toggles stay render-, network-, and layout-local; they preserve scroll, expansion, selection, focus, deferred search, bounded detail hydration, and existing virtualization without speculative dependencies. | `L-09`, `C-04`, `R-02`, `R-25`, `R-37`, `R-41`, `S-17` | `UI-F-008`, `UI-F-009` | `UNIT-001`, `UNIT-003`, `UNIT-005`, `UNIT-009`, `UNIT-008` | `AC-017` |
+| `OPS-001` | `CORE` | Cache invalidation, history/outbox, Template-library audit policy, local/preview/hosted environment identity, migration parity, scoped fixture cleanup, source fingerprints, and evidence freshness are explicit and non-substitutable. | `C-42`, `C-46`, `R-34`–`R-44`, `S-08`, `S-11`–`S-13`, `S-15` | `F-004`, `F-006`, `F-007`, `F-024`, `TPL-F-006`, `TPL-F-008` | `UNIT-001`, `UNIT-006`, `UNIT-009`, `UNIT-008` | `AC-014` |
+
+## Acceptance Criteria
+
+All criteria start `FAIL`. The named evidence is what can change the status; an implementation diff alone cannot.
+
+| Criterion | Pass condition | Decisive evidence | Test decision | Current result |
 | --- | --- | --- | --- | --- |
-| `REQ-001` / `AC-001` | Area/tab membership, order, count, and issued hierarchy remain truthful | `IMPLEMENTED_SOURCE` | Estimate tree/content source and existing tree/query tests | Full release and browser evaluation |
-| `REQ-002` / `AC-002` | Row graph, single-delete, and reorganization mutations use in-batch guards plus revision-qualified final writes | `FOCUSED_PROOF` | `src/lib/estimates/actions.ts`; `src/lib/estimates/d1-action-client.ts`; `tests/vitest/estimate-row-atomic-d1-contracts.test.ts` | Hosted D1 transaction proof |
-| `REQ-003` / `AC-003` | Save/cache/history and visible totals reconcile to authoritative state | `IMPLEMENTED_SOURCE` | row mutation coordinator and route-cache tests | Full cross-feature release evaluation |
-| `REQ-004` / `AC-004` | Library shared changes update eligible linked rows while preserving overrides | `FOCUSED_PROOF` | `buildLinkedEstimateRowSyncPlans`; `tests/vitest/component-library-actions-revalidation.test.ts` | Browser workflow proof |
-| `REQ-005` / `AC-005` | Selected option, image, costs, and attachments survive persistence | `FOCUSED_PROOF` | modal, D1 graph, migrations `0076`/`0079`; modal/D1/migration tests | Hosted R2 and malware-scan lifecycle proof |
-| `REQ-006` / `AC-006` | Project fan-out stays in one project and Make Project Specific localizes one instance | `FOCUSED_PROOF` | `updateEstimateRowItem`; source snapshot helper; D1 and modal tests | Browser workflow proof |
-| `REQ-007` / `AC-007` | Template insertion is bounded and preserves or explicitly localizes source identity | `FOCUSED_PROOF` | template browse/insert actions; `tests/vitest/estimate-template-trusted-insert.test.ts` | Large hosted-data proof |
-| `REQ-008` / `AC-008` | Library, Project, and Template lifecycle and request concurrency are owner-correct | `FOCUSED_PROOF` | manager, per-item queue, template browse actions; concurrency tests | Browser keyboard and loading-state proof |
-| `REQ-009` / `AC-009` | Issued output is consistent, opaque, immutable, and client-safe | `FOCUSED_PROOF` | `src/lib/publication/snapshot.ts`; publication snapshot tests | Full publish/no-op hosted proof |
-| `REQ-010` / `AC-010` | Financial sections reconcile to the issued row projection | `FOCUSED_PROOF` | estimate browser and financial section services/tests | Browser presentation proof |
-| `REQ-011` / `AC-011` | Area, row, and component discussions authorize issued membership | `FOCUSED_PROOF` | issued target resolver and discussion services/tests | Hosted public-route proof |
-| `REQ-012` / `AC-012` | Recipient access is deliverable, redeemable, revocable, and secret-safe | `FOCUSED_PROOF` | access/recipient services and recipient access tests | Email delivery and hosted session proof |
-| `REQ-013` / `AC-013` | Decisions bind the issued state, authority, intent, and receipt | `FOCUSED_PROOF` | decision service/handlers and decision tests | Hosted multi-recipient proof |
-| `REQ-014` / `AC-014` | Activity, notifications, supersession, and mobile actions share capability rules | `IMPLEMENTED_SOURCE` | activity, notification queue, publisher discussion service/tests | Hosted Queue/Email delivery and browser proof |
-| `SEC-001` / `AC-015` | Tenant, recipient, target, and asset boundaries fail closed | `FOCUSED_PROOF` | auth-sensitive boundary tests, issued target resolver, attachment ownership migration | External security review and hosted proof |
-| `PERF-001` / `AC-016` | Row, template, issue, thread, and activity work remains bounded | `IMPLEMENTED_SOURCE` | bounded action/query source and existing performance contracts | No browser benchmark was run |
-| `UX-001` / `AC-017` | One full Add/Edit Component modal owns advanced Library and Project editing | `FOCUSED_PROOF` | `AddComponentModal.tsx`; deleted `EditComponentDrawer.tsx`; modal suites | Browser/visual proof |
-| `REQ-015` / `AC-018` | Library/Project CRUD and option CRUD round-trip stable identities and fields | `FOCUSED_PROOF` | modal, owner actions, duplicate/promotion/delete paths, focused tests | Full browser CRUD matrix |
-| `REQ-016` / `AC-019` | Option edits affect only instances selecting that option | `FOCUSED_PROOF` | Library sync planner; Project D1 fan-out tests | Hosted concurrent-impact proof |
-| `REQ-017` / `AC-020` | Insert, variant select, detach, promote, copy, move, and delete preserve intended receipts | `FOCUSED_PROOF` | estimate handlers, source snapshot helper, promotion action/tests | Browser drag/drop and cross-project proof |
-| `REQ-018` / `AC-021` | Saves reconcile authoritative component detail and changed row revisions | `FOCUSED_PROOF` | Library read-back and Project D1 result; exact reopen test | Hosted conflict/retry proof |
-| `DATA-001` / `AC-022` | D1 relations, upload assets, R2 ownership, and cleanup remain transactionally valid | `FOCUSED_PROOF` | migrations `0076`/`0079`, attachment routes, lifecycle and migration tests | Hosted migration and R2 cleanup proof |
-| `OPS-001` / `AC-023` | One current pre-release path replaces superseded editors and compatibility-only forks | `IMPLEMENTED_SOURCE` | deleted reduced drawer; one modal; one owner action per graph; cleanup document | Manifest reconciliation and release review |
+| `AC-001` | Matrix has one current owner/status for every discoverable action; no orphan requirement/finding/unit/evidence ID; historical claims are visibly demoted. | Route/source inventory diff, path checks, traceability/manifest validation. | `NOT_REQUIRED` — document/source/static proof is decisive. | `FAIL` — the plan structure is validator-backed, but `UNIT-001` still must freeze the implementation baseline against then-current route/source ownership. |
+| `AC-002` | Area/tree CRUD, DnD, delete/restore, and route fallback reject invalid topology and reconcile authoritative state. | Local D1 topology queries, mutation/history receipts, route read-back. | `NOT_REQUIRED` for plan status; focused tests may be proposed by `UNIT-003`. | `FAIL` — target validation and integrated proof are open. |
+| `AC-003` | Tab CRUD/duplicate/reorder and sheet shell preserve deep topology, selection, order, and partial-tree semantics. | Deep-tree duplicate/topology receipt, reload/read-back, scoped static evidence. | `NOT_REQUIRED` for plan status. | `FAIL` — child-before-parent copy gap is open. |
+| `AC-004` | Row CRUD, move, duplicate, replace, delete/restore, and input commits are revision-safe, idempotent, history-complete, and snapshot-valid. | D1 before/after/history/correlation receipts plus authorized focused behavior proof. | `TEST_PROPOSAL` — row mutation concurrency and keyboard commit are critical invariants; cheaper non-test review is insufficient to prove race/retry behavior. | `FAIL` — multiple P0/P1 gaps and dirty fixes remain unverified. |
+| `AC-005` | Component/variant edits fan out only to accepted owner and stable variant scopes; promotion is revision-safe and returns one canonical winner. | Affected-row/source receipts, existing promotion uniqueness query, winner/loser cleanup receipt, scoped loading reconciliation. | `NOT_REQUIRED` for plan status; concurrency proof may be proposed by `UNIT-004`. | `FAIL` — variant scope is source-verified only; promotion revision/winner behavior remains open. |
+| `AC-006` | Archive preserves links; interactive permanent delete atomically removes the source and at most `400` combined dependent rows with exact preview, non-restorable audit, attachment safety, and cache reconciliation; larger impact refuses before mutation and offers Archive. | Stale-preview/over-ceiling rejection, D1 counts/events, attachment references, authoritative cache/read-back. | `TEST_PROPOSAL` — destructive atomic delete is a critical invariant; cheaper non-test evidence is insufficient to prove stale-preview and failure atomicity. | `FAIL` — current dirty fix lacks audit/provider proof. |
+| `AC-007` | Template/Project insertion is all-or-nothing per intent, idempotent, any-selected-node target/tab-valid, identity-fresh, deterministic, acknowledged, and consistently labeled. | Repeated-intent and deliberate-second-copy receipts, mixed-source rejection receipt, topology/source receipt, command acknowledgement, authoritative destination read-back. | `TEST_PROPOSAL` — copy idempotency is a critical invariant; cheaper non-test inspection cannot prove concurrent retry behavior. | `FAIL` — mutation replay, target-kind contradiction, and ambient routing gaps are open. |
+| `AC-008` | Legacy and Client Portal issuance agree on authoring fields/tree/totals from one accepted source fingerprint, produce deterministic semantic hashes/anchors, and keep immutable/private-state boundaries. | Mid-read change rejection/retry, unchanged-source hash/anchor stability, field-level snapshot comparison, privacy audit, totals comparison. | `TEST_PROPOSAL` — cross-reader projection parity is a critical invariant; cheaper source review is insufficient to prove equivalent output. | `FAIL` — legacy projection drift and shared consistency proof are open. |
+| `AC-009` | D1 integrity query set is zero/valid and every destructive/shared fixture mutation has ownership, revision/idempotency, atomic history/outbox, and read-back. | Local D1 query/mutation receipts and forward-migration pre/post evidence. | `NOT_REQUIRED` — direct D1 receipts are decisive for this criterion. | `FAIL` — integrity queries and repairs were not executed. |
+| `AC-010` | Upload metadata and stored objects cannot drift; referenced objects are retained and unreferenced removed objects clean idempotently. | D1 session/asset/reference queries plus environment-scoped R2 object lifecycle receipts. | `NOT_REQUIRED` — direct D1/R2 evidence is decisive. | `FAIL` — split writes and unsafe delete remain open; provider proof absent. |
+| `AC-011` | Server authorization blocks cross-tenant/view-only mutation and public projections contain no private identities/paths. | Action authorization receipts, D1 scope reads, issued-field privacy audit. | `NOT_REQUIRED` for plan status; security tests may be separately proposed if needed. | `FAIL` — integrated authorization/public proof absent. |
+| `AC-012` | Enter/Escape, focus, drag/drop, loading, conflict/offline, destructive confirmation, retry, and rollback communicate exact object state with no false success. | Current route behavior matrix plus authoritative read-back for each mutation class. | `TEST_PROPOSAL` — user-visible state reconciliation is a critical invariant; cheaper non-test evidence is insufficient to prove real interaction timing. | `FAIL` — browser/product proof was not authorized or run. |
+| `AC-013` | Lazy/partial loading and bulk/shared fan-out stay bounded and correctly labeled without unrelated global skeletons or total corruption. | Query/fan-out counts, scoped render/loading receipt, partial-total read-back. | `NOT_REQUIRED` for plan status. | `FAIL` — boundedness and current-route proof remain open. |
+| `AC-014` | Local, preview, hosted, and public evidence are environment-labeled and fresh; cache/history/outbox reconcile; final status names no stronger proof than collected. | Evidence ledger, provider identity, current hashes, scoped diff/GitNexus receipt, final validator output. | `TEST_PROPOSAL` — integrated MVP behavior is a critical invariant; cheaper non-test evidence is insufficient to prove the three-surface route end to end. | `FAIL` — only planning/source evidence is collected. |
+| `AC-015` | Template save/create is one atomic graph write; browse/detail is bounded; header/category/editor/composition mutations are workspace/topology-valid; exact selected-variant/source trust and field semantics round-trip; prior Estimate copies remain detached. | Failed-save/no-shell D1 receipt, bounded query counts, editor topology/order receipt, complete row/variant diff, cache read-back, and source-pack absence/validator receipt. | `TEST_PROPOSAL` — failed-create atomicity and full Template round trip cross multiple mutation surfaces; source inspection alone cannot prove failure behavior. | `FAIL` — the absorbed audit is retained and current source was spot-checked, but its proposed product fixes remain unimplemented/unverified. |
+| `AC-016` | Area, tab, folder, group, Template, and Template-category rename keep their parent styling and bounds; focus remains visible without whole-value auto-selection; Enter/Escape/blur/pointer behavior is consistent; the Templates filter is compact and transparent at rest with consistent labels and an opaque accessible popup. | Before/editing/saving/error/after state capture, geometry comparison, keyboard/focus walkthrough, source ownership review, and current-route accessibility inspection. | `NOT_REQUIRED` — direct visual, focus, geometry, and source receipts are decisive; an automated regression may be separately proposed. | `FAIL` — the planning baseline is collected, but the stable-surface rename and compact-filter implementation does not yet exist. |
+| `AC-017` | One rename draft does not materially rerender unrelated visible rows; loaded source-family toggles make no new request or outer-sheet remount; edit/filter transitions preserve geometry, scroll, expansion, selection, focus, and existing deferred/bounded/virtualized paths. | Render-count/React Profiler receipt, loaded-filter network receipt, layout/continuity comparison, and canonical performance-budget reference. | `NOT_REQUIRED` — direct profiler, network, geometry, and continuity receipts are decisive for this interaction-performance criterion. | `FAIL` — source review identifies render-amplification and continuity risks, but implementation-phase measurements are absent. |
 
-## Exact Reproduction Trace
+No automated product test is authorized or recorded as run by this planning refresh. A read-only live-route inspection established artifact `13`'s planning baseline only; it is not implementation or release proof. `TEST_PROPOSAL` rows carry proposal metadata only, and future implementation-phase browser or automated execution requires explicit authorization in that active task.
 
-| Step | Current authority | Evidence |
-| --- | --- | --- |
-| Open Project component editor | `EstimateSheetContent.getProjectComponentEditorIdentity` resolves stable `sourceComponentId` | `src/components/workshop/EstimateSheetContent.tsx`; estimate component lazy-load test |
-| Add variant | `AddComponentModal.addVariant` appends a stable-ID draft | `src/components/workshop/component-library-manager/AddComponentModal.tsx` |
-| Save | modal builds complete `sourceSnapshot.priceOptions` and calls Project `updateEstimateRowItem` | exact modal interaction test |
-| Persist/fan out | D1 action persists ordered graph and derives option fields by each row's selected option | `src/lib/estimates/actions.ts`; D1 fan-out tests |
-| Reopen | authoritative result is reconciled under the same Project component identity | `keeps a newly added project component variant after save and reopen` |
+## Finding Disposition Map
 
-## Component-Type And Row Trace
-
-| Transition | Identity retained or created | Mutation authority | Fan-out rule |
+| Finding | Requirement/criterion | Primary unit | Current disposition |
 | --- | --- | --- | --- |
-| Library edit | Library item and stable option IDs retained | `updateCostLibraryComponentWithPriceOptions` | eligible linked rows retain their own selection; overrides stay visible |
-| Project edit | Project `sourceComponentId` and stable option IDs retained | `updateEstimateRowItem` / guarded D1 action | same project only; option-derived fields only for matching selections |
-| Library insert | row ID created; Library and selected-option receipt retained | estimate insert path | new row starts linked |
-| Variant selection | row ID retained; selected option changes | row update path | no component default change and no row replacement |
-| Make Project Specific | fresh Project component ID; Library link cleared | localization helper plus row action | only localized Project instances participate later |
-| Promote | fresh Library item/option ownership | express promotion action | ordered graph and current selection retained |
-| Detach | row and snapshot retained; Library linkage removed | row action | future Library changes excluded |
-| Library delete | source removed after dependent references are detached | Library lifecycle action | estimate/template values survive as localized snapshots |
-| Project row delete | row instance removed | estimate row action | shared Project component data changes only through explicit component edit/lifecycle |
+| `F-001`, `F-002` | `REQ-002`, `REQ-004`, `DATA-001`; `AC-002`, `AC-004`, `AC-009` | `UNIT-002`, `UNIT-003` | Repair target ownership/tab validation and restore policy. |
+| `F-003`, `F-004` | `DATA-002`, `OPS-001`; `AC-010`, `AC-014` | `UNIT-006` | Metadata-first object lifecycle and atomic upload records. |
+| `F-005` | `REQ-006`, `DATA-001`, `DATA-002`; `AC-006`, `AC-009`, `AC-010` | `UNIT-004` | Preserve destructive rule; exact-set audit/idempotency and hard `400`-dependent interactive ceiling. |
+| `F-006` | `REQ-008`, `SEC-001`; `AC-008`, `AC-011` | `UNIT-007` | Shared private projector, bounded fingerprint fence, deterministic semantic identity, privacy-safe serializers, and atomic pointer replacement. |
+| `F-007` | `REQ-001`, `OPS-001`; `AC-001`, `AC-014` | `UNIT-001`, `UNIT-008` | Old blanket PASS is superseded, but evidence still needs method/actual-signal and executable source/diff freshness. |
+| `F-008` | `REQ-004`, `DATA-001`; `AC-004`, `AC-009` | `UNIT-002` | Put duplicate source revision/idempotency in mutation boundary. |
+| `F-009` | `REQ-005`, `REQ-006`, `DATA-001`; `AC-005`, `AC-006`, `AC-009` | `UNIT-004` | Keep existing uniqueness; revision-guard promotion, recover the canonical winner, and reconcile copied objects/outbox. |
+| `F-010` | `REQ-003`, `DATA-001`; `AC-003`, `AC-009` | `UNIT-003` | Two-pass topology, source fingerprint, true retry receipt, and revision-1 copied rows. |
+| `F-011` | `REQ-007`, `DATA-001`; `AC-007`, `AC-009` | `UNIT-005` | Correlation receipt and target-derived tab. |
+| `F-012` | `REQ-004`, `REQ-005`; `AC-004`, `AC-005` | `UNIT-002` | Bind source fingerprint and row revision to replace commit. |
+| `F-013` | `REQ-005`, `UX-001`; `AC-005`, `AC-012` | `UNIT-001`, `UNIT-004` | Preserve source-verified stable-ID rename/pending scope and collect runtime proof. |
+| `F-014` | `REQ-004`, `UX-001`; `AC-004`, `AC-012` | `UNIT-001`, `UNIT-002` | Preserve source-verified Enter/blur fix and verify every input/multiline class. |
+| `F-015` | `REQ-006`, `DATA-001`; `AC-006`, `AC-009` | `UNIT-001`, `UNIT-004` | Preserve source-verified no-null destructive path and complete `F-005`. |
+| `F-016` | `REQ-004`; `AC-004` | `UNIT-001`, `UNIT-002` | Replace partial generic-insert duplication with the atomic `F-008` contract and synchronous click latch. |
+| `F-017` | `REQ-007`, `UX-001`; `AC-007`, `AC-012` | `UNIT-005` | Resolve functional target-kind contradiction with one any-selected-node contract and per-intent copy. |
+| `F-018` | `REQ-006`, `UX-001`; `AC-006`, `AC-012` | `UNIT-004` non-blocking tail | Mutate only `favorite_item_ids_json` in the existing preference row with idempotent set/unset and visible retry; no new table. |
+| `F-019` | `REQ-006`, `DATA-001`, `UX-001`; `AC-006`, `AC-009`, `AC-012` | `UNIT-004` | Add child creation and authoritative atomic cycle-safe folder mutation. |
+| `F-020` | `REQ-002`, `REQ-007`, `SEC-001`; `AC-002`, `AC-007`, `AC-011` | `UNIT-003`, `UNIT-005` | Keep typed events but add target scope, acknowledgement, version, and intent identity. |
+| `F-021` | `REQ-006`, `UX-001`; `AC-006`, `AC-012` | `UNIT-004` | Delete the source-proven unreachable reduced editor and local-only save path. |
+| `F-022`, `F-023` | `REQ-004`, `REQ-005`, `DATA-001`; `AC-004`, `AC-005`, `AC-009` | `UNIT-002` | Enforce linked-ID/unlinked-NULL/detached-provenance matrix, fix revision-zero producers, audit/backfill, then apply narrow checks. |
+| `F-024` | `DATA-002`, `OPS-001`; `AC-010`, `AC-014` | `UNIT-001`, `UNIT-006`, `UNIT-008` | Collect environment-scoped Cloudflare evidence. |
+| `TPL-F-001`, `TPL-F-004` | `REQ-009`, `DATA-001`; `AC-009`, `AC-015` | `UNIT-009` | One hard create batch and one explicit contingency field invariant. |
+| `TPL-F-002` | `REQ-007`, `UX-001`; `AC-007`, `AC-012` | `UNIT-005` | Add target-scoped pending feedback without full optimistic subtree cloning. |
+| `TPL-F-003`, `TPL-F-010` | `REQ-007`, `SEC-001`; `AC-007`, `AC-011` | `UNIT-003`, `UNIT-005` | Superseded by stricter `F-020`/`F-011` acknowledged-routing and committed-receipt fixes. |
+| `TPL-F-005` | `REQ-009`, `DATA-001`; `AC-009`, `AC-015` | `UNIT-009` | Keep alpha app guards, collect topology evidence, and defer speculative D1 constraints. |
+| `TPL-F-006`, `TPL-F-008` | `REQ-009`, `OPS-001`, `PERF-001`; `AC-013`–`AC-015` | `UNIT-009` | Resolve Template-library audit policy and synthetic fallback truthfully. |
+| `TPL-F-007` | `REQ-009`; `AC-015` | `UNIT-009` guardrail | Accepted without a new dependency; add schema validation only for a demonstrated boundary defect. |
+| `TPL-F-009` | `REQ-004`, `REQ-009`, `DATA-001`; `AC-004`, `AC-009`, `AC-015` | `UNIT-002`, `UNIT-009` | One cross-system pricing-provenance contract; no isolated cosmetic read deletion. |
+| `UI-F-001`, `UI-F-002` | `UX-002`; `AC-016` | `UNIT-003`, `UNIT-004`, `UNIT-009` | Use one stable-surface rename model, remove whole-value auto-selection and mouse-leave save, and preserve parent geometry/focus. |
+| `UI-F-003`–`UI-F-007` | `UX-002`; `AC-016` | `UNIT-003`–`UNIT-005`, `UNIT-009`, integrated by `UNIT-008` | Make source filters compact/transparent, unify vocabulary and state meaning, reserve action geometry, and retain non-color keyboard focus. |
+| `UI-F-008`, `UI-F-009` | `PERF-002`; `AC-017` | `UNIT-003`, `UNIT-005`, `UNIT-009`, integrated by `UNIT-008` | Isolate rename draft rendering and prove loaded filtering adds no fetch, remount, layout shift, or continuity loss. |
 
-## Attachment And Issued-Review Trace
+## Evidence Index
 
-| Concern | D1/R2 or issued authority | Evidence |
-| --- | --- | --- |
-| Exclusive attachment owner | `component_variant_attachments.owner_scope` with Library or Project tuple | `migrations/0076_component_attachment_ownership.sql` and migration test |
-| Binary object | `ARCH_UPLOADS_R2`; D1 metadata must authorize binding/read/cleanup | attachment routes and lifecycle tests |
-| Project delete/restore retention | `project_component_attachment_retention_holds` | migration `0079` and retention test |
-| Safe issued component receipt | opaque component/variant anchors in publication snapshot | publication snapshot and client portal browser tests |
-| Private URL filtering | unsafe local broker paths dropped | `src/lib/publication/image-url.ts`; privacy-focused snapshot test |
-| Component versus row discussion | issued target resolver plus distinct UI targets | resolver, shell, and publisher discussion tests |
-| Owner reply notification | publisher discussion service to notification queue | publisher discussion and notification queue tests |
+| Evidence | Artifact | What it currently proves | Status |
+| --- | --- | --- | --- |
+| `EVID-001` | `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` | The current discoverable action inventory and open-status classification. | `COLLECTED` |
+| `EVID-002` | `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` | Current source/migration/binding findings and evidence gaps. | `COLLECTED` |
+| `EVID-003` | `IMPLEMENTATION_PLAN.md` | Dependency-closed unit scopes, acceptance, evidence, and recovery are specified. | `COLLECTED` |
+| `EVID-004` | `TRACEABILITY.md` | Requirements, criteria, findings, units, and current evidence are reciprocally mapped. | `COLLECTED` |
+| `EVID-005` | `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` | Every finding has a current-source disposition, failure/race/partial-failure simulation, alternatives, selected minimal resolution, and residual risk. | `COLLECTED` |
+| `EVID-006` | `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` | All eight source requirements, ten findings, four units, eight evidence claims, architecture/flow/variant contracts, conflicts, and source-pack removal gates are retained under current authority. | `COLLECTED` |
+| `EVID-007` | `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` | The live/source baseline, nine UX/performance findings, interaction contracts, existing performance strengths, unit owners, and implementation-phase evidence requirements are current. | `COLLECTED` |
 
-## Evidence Receipts
+These records prove plan readiness only. `EVID-007` proves the observed baseline and planned contract, not corrected browser behavior. None of these records proves product implementation, local D1 mutation results, preview/hosted provider behavior, or public-share behavior.
 
-| Evidence | Recorded result | Scope |
-| --- | --- | --- |
-| `EVID-001` | `PASS` | exact Project add/save/reopen cases: 3 focused cases |
-| `EVID-002` | `PASS` | Add/Edit modal suite: 30 focused cases |
-| `EVID-003` | `PASS` | Library and Project option-scoped fan-out, replacement, usage, and attachment graph |
-| `EVID-004` | `PASS` | attachment ownership migration and Project retention behavior |
-| `EVID-005` | `PASS` | promotion, localization, selected-option transfer, and authoritative row reconciliation |
-| `EVID-006` | `PASS` | Client Portal issued target, discussion, decision, activity, and access slice: 20 focused cases |
-| `EVID-007` | `PASS` | publication snapshot suite: 10/10 after current expectation reconciliation |
-| `EVID-008` | `PASS` | TypeScript type check and targeted ESLint reported by implementation lanes |
-| `EVID-009` | `NOT_RUN` | browser automation, screenshots, and visual QA |
-| `EVID-010` | `NOT_EVALUATED` | hosted D1/R2/Queue/Email and deployment |
+## Release And Resume Decision
 
-## Readiness And Stop Decision
+- Package: `IMPLEMENTATION_READY`
+- Implementation: `NOT_STARTED`
+- Release: `NOT_READY`
+- Lifecycle: `ACTIVE`
+- Terminal: `ACTIVE`
+- Exact next unit: `UNIT-001`
+- Ready slice: `UNIT-001` through `UNIT-009`, with `UNIT-008` remaining the final integration/release unit
+- Current blocker: none; missing proof is planned work, not an authorization or technical blocker
 
-The implementation concern that triggered this pack is no longer only a future plan item: the source path and focused evidence are present. The pack is sufficiently grounded to tell an implementing agent which identity, mutation, row-transfer, storage, and issued-review contracts must remain intact.
-
-Stop implementation reconciliation when:
-
-1. every requirement maps to current source or an explicit unevaluated boundary;
-2. the exact Project variant reproduction maps to a passing focused receipt;
-3. Library and Project ownership and option-scoped fan-out are distinct;
-4. CRUD, promotion, detach, deletion, D1/R2, and public review are mapped;
-5. no product version fork or compatibility-only path is proposed;
-6. release, browser, and hosted proof gaps remain explicit while the local implementation manifest is valid.
-
-Those conditions are satisfied in the pack and validated `plan-pack.json`. Local manifest completion is not evidence of deployment, hosted-provider behavior, browser behavior, or product release.
+If source changes before `UNIT-001` freezes a baseline, mark the affected source/evidence stale and refresh the smallest impacted requirement/unit mapping. Never preserve a PASS by updating only a hash.

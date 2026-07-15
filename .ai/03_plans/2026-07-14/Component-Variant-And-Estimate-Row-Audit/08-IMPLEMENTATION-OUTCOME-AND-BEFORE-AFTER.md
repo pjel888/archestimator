@@ -1,5 +1,7 @@
 # Implementation Outcome And Before/After
 
+> **Historical baseline notice (2026-07-15):** This document is a dated baseline/deep dive, not current readiness authority. Current status lives in `README.md`, `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md`, `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md`, `IMPLEMENTATION_PLAN.md`, and `TRACEABILITY.md`. Any `PASS`, implemented, or complete wording below is historical unless re-proved there.
+
 ## Outcome
 
 The current worktree contains the direct pre-release implementation for the component graph audited by this pack. The reported Project-component variant persistence defect is addressed at its source, and the same canonical graph now connects Add/Edit, Library and Project ownership, Estimate Sheet rows, attachments, and issued review.

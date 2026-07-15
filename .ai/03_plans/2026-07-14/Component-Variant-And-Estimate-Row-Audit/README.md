@@ -1,117 +1,134 @@
-# Component Variants, Estimate Rows, And Issued Review
+# Estimate Sheet MVP Feature Inventory, CRUD/Data/UI Audit, And Readiness
 
-**Package posture:** implementation reconciliation
-**Current implementation:** `IMPLEMENTED_IN_WORKTREE`
-**Release status:** `NOT_EVALUATED`
-**Browser/visual proof:** `NOT_RUN`
+**Canonical route:** `/workshop/projects/[projectId]/estimates/[nodeId]`
+**Package posture:** implementation-ready remediation plan with issue-by-issue fix simulations
+**Implementation status:** `NOT_STARTED` for the refreshed remediation DAG
+**Release status:** `NOT_READY`
+**Browser/visual proof:** `PLANNING_BASELINE_ONLY` — Area rename and Templates source-filter states were inspected read-only; implementation proof remains open
+**Local/preview/hosted Cloudflare proof:** `NOT_EVALUATED`
+**Exact next unit:** `UNIT-001`
 
 ## Outcome
 
-The current worktree implements the single pre-release component path needed to resolve the reported Project-component variant defect and its downstream data-integrity risks.
+This pack is the canonical Estimate Sheet system inventory and remediation plan for the MVP authoring route. It replaces the previous narrow posture centered on one Project-component variant defect and separates the route into three primary surfaces:
 
-The exact reported reproduction was:
+1. **Left sidebar** — Estimate tree, Area CRUD, bulk delete, move/reorder, search/filter, lazy loading, template handoff, and external drops.
+2. **Center Estimate Sheet** — tabs, search/filter/grouping, row and component CRUD, inline editing, variants, duplicate/move/replace/delete/restore, history, totals, export handoff, and error/recovery behavior.
+3. **Right sidebar** — Library, Project, and Templates source browsing; component/folder lifecycle; archive/permanent delete; bulk actions; drag/drop; and reusable-source insertion.
 
-1. edit a Project component;
-2. add a variant;
-3. save;
-4. reopen Edit Component; and
-5. observe that the new variant is missing.
+Secondary surfaces cover the project header, component editor, activity/export, Cloudflare storage, publication, and client review only where they consume or mutate Estimate Sheet state. The full Component Templates lifecycle is now included because the completed 2026-07-15 Template audit has been absorbed into this pack. Dense inline editing, dropdown/menu state language, and interaction-render readiness are canonical in artifact `13`.
 
-The root UI defect was concrete: the first **Add variant** action in a single-option draft only enabled variant mode and returned. It did not append a second variant. The current modal always appends the new stable-ID option, submits the complete ordered component graph, waits for persistence, reconciles authoritative row data, and can reopen with the saved option present.
+## Why The Pack Was Reopened
 
-This is not a compatibility or release-version project. Archestimator is alpha-stage and pre-release. The implementation uses direct replacement and fix-forward cleanup: one full modal, one complete graph payload per save, owner-specific atomic D1 actions, and no product `V1`/`V2` path.
+The prior manifest said implementation was complete and marked every criterion PASS. That status is no longer credible because:
 
-## What Is Implemented
+- all 23 criteria were tied to one blanket evidence record;
+- the pack itself said browser and hosted Cloudflare proof were not run;
+- the source has changed since the frozen baseline;
+- recent user-reported incidents exposed Enter-key behavior, variant-name editing/loading, permanent component deletion, a D1 `source_snapshot_json` NOT NULL failure, and missing duplicate-row behavior; and
+- current source review found additional move, restore, upload, R2 image, promotion, template-copy, tab-copy, and publication-parity risks.
 
-### One editor and one graph save
+The refreshed plan treats current dirty fixes as `FIX_PRESENT_UNVERIFIED`, not as completed work.
 
-- `src/components/workshop/component-library-manager/AddComponentModal.tsx` is the full Add/Edit authority for Library and Project components.
-- `src/components/workshop/library/EditComponentDrawer.tsx` is deleted; the reduced editor is no longer an active path.
-- Each save submits one complete component plus ordered variant graph.
-- Library ownership commits through `updateCostLibraryComponentWithPriceOptions` in one guarded D1 batch.
-- Project ownership commits through `updateEstimateRowItem` and the D1 `update_estimate_row_item_with_history` action in one guarded component-instance batch.
-- Create and Library update reread complete authoritative detail before returning success; Project update refetches/reconciles the authoritative estimate tree before the modal closes.
+The current core register contains **7 P0 mission-critical findings, 15 P1 important findings, and 2 P2 non-mission-critical cleanup/quality findings**. Every `F-001` through `F-024` has a corrected premise, failure simulation, blast radius, selected resolution, and required evidence. Artifact `12` additionally preserves and maps all ten absorbed Template findings (`TPL-F-001` through `TPL-F-010`) without falsely promoting their proposed fixes to implemented status. Artifact `13` adds nine planning-only UI/readiness findings (`UI-F-001` through `UI-F-009`); none is a data-loss or authorization P0.
 
-### Library and Project behavior
+## Current Highest-Risk Findings
 
-- Library component identity remains `cost_library_items.id`.
-- Library variant identity remains `cost_library_item_price_options.id`.
-- Project component identity remains the project-scoped `sourceComponentId` stored in estimate-row snapshot/metadata; it is not the estimate row ID and does not require a new master table.
-- Detached Project components with historical `sourceLibraryItemId` values stay on the Project path and do not mutate the Library source.
-- Component-level fields fan out within the owning Library/workspace or Project scope.
-- Variant-derived fields update only rows selecting that stable variant ID.
-- Existing rows keep their selected option when options are added, reordered, or a different option becomes default.
-- Quantity, contingency, adjustment, miscellaneous cost, designation, discipline, row identity, and row placement remain row-owned.
-- A used variant cannot be deleted without an explicit active replacement; only rows selecting the deleted option move to that replacement.
+| Priority | Finding | Required unit |
+| --- | --- | --- |
+| `P0` | Row move and restore do not prove the target node belongs to the same estimate/tab inside the atomic D1 boundary. | `UNIT-002` |
+| `P0` | Permanent component delete follows the requested destructive contract but lacks per-estimate/template audit history and an explicit bounded interactive ceiling. | `UNIT-004` |
+| `P0` | Project image deletion can remove referenced R2 objects; component image deletion has a separate save-versus-delete race. | `UNIT-006` |
+| `P0` | Upload session, asset, and event metadata can partially commit. | `UNIT-006` |
+| `P0` | Legacy and Client Portal publication do not share one authoring/privacy projection, consistency-fence, and deterministic semantic-identity contract. | `UNIT-007` |
+| `P1` | Duplicate row, replace, promotion, tab duplication, template/Project insertion, and folder topology have race, ordering, or idempotency gaps. | `UNIT-002`–`UNIT-005` |
+| `P1` | Variant-name, Enter-to-save, and the NOT NULL incident are source-fixed but unverified; duplicate-row is partial. | `UNIT-001` onward |
+| `P1` | Cross-surface insertion events remain ambient: target estimate/tab, acknowledgement, and intent identity are incomplete. | `UNIT-003`, `UNIT-005` |
+| `P1` | Area/tab/folder/group/Template rename states use inconsistent fills, focus, selection, commit, and render scope; one Area draft can invalidate all visible tree rows. | `UNIT-003`, `UNIT-004`, `UNIT-009` |
+| `P2` | The Templates source-family filter is a full-width boxed field with inconsistent project-source vocabulary and no explicit local/no-fetch interaction contract. | `UNIT-005`, `UNIT-009` |
+| `P2` | Saving an Estimate node/tab as a Template still pre-commits the Template header before the node/row batch and relies on compensating deletion. | `UNIT-009` |
 
-### Estimate-row transfer
+See `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` for the complete ranked register and `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` for corrected premises, failure simulations, alternatives, and selected fixes.
 
-- Insert resolves the default option once, then persists the selected `priceOptionId` and the complete bounded option catalogue.
-- Variant selection updates the same row through the normal row mutation path; it is not a component replacement.
-- Replace, move, make-project-specific/detach, promotion, and deletion preserve their explicit row-identity and row-local-value policies.
-- Making a Library row project-specific clears its Library link, creates a fresh Project component identity, copies the option graph, and omits Library-owned attachments instead of stealing ownership.
-- Promotion writes the complete ordered option graph and preserves the selected option rather than collapsing to the default.
-- Deleting a Library master detaches linked estimate/template rows while leaving their current estimate values intact.
+## Permanent Delete Contract
 
-### D1, R2, and attachments
+The user's explicit product rule is authoritative:
 
-- Active component metadata uses D1 tables for components, price options, cost entries, versions/history, uploads, and estimate rows.
-- `migrations/0076_component_attachment_ownership.sql` replaces the Library-only attachment relation with `component_variant_attachments`, an exclusive Library-or-Project owner tuple bound to one immutable `upload_assets.id`.
-- Project attachment upload, delete, and cleanup use the stable Project component ID, not an initiating estimate row ID.
-- `migrations/0079_project_component_attachment_retention.sql` adds restore-window holds for the last live Project-component instance.
-- R2 objects remain behind the bound `ARCH_UPLOADS_R2` service and private broker routes; raw private broker `?path=` values are removed from issued/public projections.
-- Migration files and code are present locally. Hosted D1 migration state and hosted R2 behavior are not claimed.
+- **Archive** is the non-destructive action and preserves existing Estimate/Template references.
+- **Delete permanently** removes the Library component and its dependent Estimate and Template row items after impact preview and typed confirmation only when the combined dependent-row count is at most `400`.
+- Above `400`, the interactive action refuses before mutation and offers Archive; larger destruction is a separately authorized maintenance operation, not automatic chunking.
+- Permanent delete must be workspace-scoped, atomic, impact-counted, auditable, attachment-safe, and explicit about whether recovery is possible.
+- No implementation may satisfy deletion by writing `NULL` into `estimate_row_items.source_snapshot_json`.
 
-### Issued/public review
+## Scope Boundaries
 
-- Issued rows now carry opaque issue-local component/variant anchors plus component version, selected variant label, row revision, and link state.
-- Raw Library/Project IDs, private asset paths, attachment metadata, and internal source snapshots are not emitted to recipients.
-- Client Portal estimate rows expose separate **Component** and **Row** discussion targets.
-- Target resolution validates the opaque ID against immutable issued content and derives labels server-side.
-- Owner replies write client-safe activity, deduplicate active subscribers and mentions, enqueue recipient outbox notifications, and use owner-reply wording in queued email.
+### Included
+
+- every visible click, context-menu, keyboard, bulk, drag/drop, loading, retry, and recovery action on the three primary surfaces;
+- inline rename, compact dropdown/menu, focus, geometry, loading-scope, and interaction-render contracts on those surfaces;
+- Estimate tab/node/row/component/template-source identity and mutation contracts;
+- the complete Component Template lifecycle: save/create, bounded browse, category/header CRUD, editor node/row CRUD, template composition, variant/source trust, and insertion;
+- D1 constraints, revision guards, history/outbox, atomicity, cache reconciliation, and local-versus-hosted evidence;
+- R2/Images ownership only where Estimate rows/components reference stored assets; and
+- authoring-to-issued/public snapshot parity and privacy.
+
+### Auxiliary
+
+- full Add/Edit Component modal detail already captured in artifacts `05` and `06`;
+- proposal export formatting;
+- collaboration/presence lifecycle; and
+- recipient access, discussions, decisions, notifications, and full Client Portal presentation.
+
+### Excluded
+
+- implementation work in this planning turn;
+- automated product tests or product mutations in this planning turn; the read-only browser inspection is planning baseline evidence only;
+- deployment or live production mutation;
+- unrelated Admin Estimate System Map work.
+
+## Canonical Artifact Order
+
+Read the pack in this order:
+
+1. `README.md` — objective, scope, current status, and pack authority.
+2. `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` — complete left/center/right/secondary action inventory.
+3. `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` — mutation audit, ranked findings, Cloudflare evidence ladder, and issued boundary.
+4. `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` — current-source corrections, blast radius, options, and the selected minimal resolution for every finding.
+5. `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` — retained Template architecture, flows, variant contract, ten-finding disposition, source-unit mapping, and removal gate.
+6. `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` — live baseline, stable-surface rename contract, compact filter/menu contract, accessibility, render isolation, and visual/performance evidence requirements.
+7. `IMPLEMENTATION_PLAN.md` — exact dependency graph, units, file scopes, acceptance, and proof.
+8. `TRACEABILITY.md` — requirement-to-capability-to-finding-to-unit-to-evidence map.
+9. `01` through `08` — dated deep dives retained as baseline/reference; they are not current completion authority.
+10. `LOOP_LEDGER.md` — append-only coordination history, not product truth.
+
+## Naming Decision
+
+The folder is intentionally not renamed during concurrent work. No tracked inbound reference required the old name, but active agents may hold uncommitted or prompt-level references. The canonical title above changes immediately; a folder rename adds collision and hash-refreeze risk without improving execution.
 
 ## Evidence Boundary
 
-Current source evidence includes:
+Current readiness evidence is planning/source-level with one read-only browser baseline:
 
-- `src/components/workshop/component-library-manager/AddComponentModal.tsx`
-- `src/components/workshop/EstimateSheetContent.tsx`
-- `src/lib/component-library/actions.ts`
-- `src/lib/estimates/d1-action-client.ts`
-- `src/lib/estimates/source-snapshot-price-options.ts`
-- `src/lib/estimates/express-promotion-actions.ts`
-- `src/app/api/component-library/attachments/route.ts`
-- `src/app/api/component-library/attachments/direct-upload/route.ts`
-- `src/lib/publication/snapshot.ts`
-- `src/lib/client-portal/estimate-browser.ts`
-- `src/lib/client-portal/issued-target-resolver.ts`
-- `src/lib/client-portal/publisher-discussion-service.ts`
+- route/component/action source;
+- D1 migrations and action transport;
+- `wrangler.jsonc` bindings;
+- current dirty worktree diff; and
+- user-reported runtime incidents from the live Estimate Sheet;
+- the fully read Component Templates audit, reclassified through artifact `12` because its legacy manifest does not satisfy the current canonical validator; and
+- a read-only in-app browser baseline of active Area rename and the Templates source-family trigger/menu, plus the current source styles and render boundaries consolidated in artifact `13`.
 
-Focused automated evidence already produced during implementation includes the modal suite, the exact Project save/reopen scenario, Project variant fan-out/replacement cases, attachment ownership cases, and focused publication/Client Portal cases. `bun run type-check` and targeted lint checks were also reported passing for the changed implementation slices. The detailed receipts are in `TRACEABILITY.md`.
-
-No Playwright/browser automation, screenshots, Storybook, or visual QA were run. No hosted deployment, hosted migration, or production-data proof is claimed. Release status therefore remains `NOT_EVALUATED`.
-
-## Pack Map
-
-1. `01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md` — implemented private-to-issued data path and source evidence.
-2. `02-MVP-REQUIREMENTS-AND-INVARIANTS.md` — accepted product and domain requirements.
-3. `03-FINDINGS-RISK-SECURITY-PERFORMANCE.md` — original audit findings and risk register.
-4. `04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md` — target integration contracts.
-5. `05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md` — exact modal defect, implemented Library/Project behavior, CRUD, transfer, and fan-out.
-6. `06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md` — current D1/R2/Queue schema and ownership boundaries.
-7. `07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md` — one-path cleanup and no product-version ceremony.
-8. `08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md` — user-visible and architectural before/after.
-9. `IMPLEMENTATION_PLAN.md` — implemented unit map, evidence, and remaining release boundary.
-10. `TRACEABILITY.md` — requirement-to-source/test/evidence receipts.
-11. `LOOP_LEDGER.md` — planning and implementation reconciliation history.
-
-## Remaining Gaps
-
-- Hosted D1 migrations `0076` through `0079` are not verified as applied.
-- Real-browser interaction and visual behavior are not evaluated.
-- Hosted R2 upload/download/cleanup and Queue/Email delivery are not evaluated by this documentation pass.
-- The full release decision remains outside this local implementation reconciliation.
+The browser baseline proves only the observed current visual states. No claim in this refresh means the remediated interaction works, that all viewports/keyboard/failure paths pass, or that the action works against local Miniflare D1, Cloudflare preview, hosted `ARCH_DB`/`ARCH_UPLOADS_R2`, or the public share route. Those are separate evidence levels defined in artifacts `10` and `13`.
 
 ## Stop Condition
 
-This implementation reconciliation is complete when the pack and manifest describe the implemented single path without claiming hosted or browser proof, every core component/variant transition maps to source and focused evidence, and remaining release gaps are explicit rather than hidden behind pre-implementation planning language.
+The remediation program is complete only when:
+
+1. every matrix action has one current source owner and one decisive result;
+2. all P0/P1 findings are fixed, explicitly accepted, or removed by a product decision;
+3. destructive/shared mutations prove authorization, atomicity, revision/idempotency, history, cache reconciliation, and recovery/irreversibility;
+4. local D1, browser, Cloudflare provider, and public-route evidence are reported separately and truthfully;
+5. legacy and Client Portal issuance agree on authoring row/tree/component/variant meaning; and
+6. Template save/browse/editor/insert lifecycle satisfies `REQ-009` and `AC-015` without duplicate planning authority;
+7. inline rename and compact filter/menu behavior satisfy `UX-002`/`AC-016` without repainting or shifting the edited container;
+8. edit/filter interactions satisfy `PERF-002`/`AC-017` without unrelated rerender, remount, fetch, loading, scroll loss, or layout shift; and
+9. `plan-pack.json` has claim-level evidence rather than blanket PASS records.

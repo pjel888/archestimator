@@ -1,5 +1,7 @@
 # Pre-Release Feature Path Cleanup And Simplification
 
+> **Historical baseline notice (2026-07-15):** This document is a dated baseline/deep dive, not current readiness authority. Current status lives in `README.md`, `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md`, `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md`, `IMPLEMENTATION_PLAN.md`, and `TRACEABILITY.md`. Any `PASS`, implemented, or complete wording below is historical unless re-proved there.
+
 ## Decision
 
 Archestimator is alpha-stage, pre-release software. There is no released component API or user population that requires parallel compatibility paths.

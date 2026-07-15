@@ -1,19 +1,19 @@
 {
   "schema_version": "1.0",
   "suite_version": "2026-07-12",
-  "package_id": "PLAN-2026-07-14-estimate-component-shared-review",
+  "package_id": "PLAN-2026-07-14-estimate-sheet-mvp-readiness",
   "profile": "high-blast-radius",
-  "package_action_ceiling": "IMPLEMENT_LOCAL",
-  "last_observed_run_scope": "IMPLEMENT_LOCAL",
+  "package_action_ceiling": "EXTERNAL_ACTIONS",
+  "last_observed_run_scope": "PLAN_ONLY",
   "package_status": "IMPLEMENTATION_READY",
-  "implementation_status": "COMPLETE",
-  "release_status": "NOT_EVALUATED",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_READY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "ad2187d23881b490009c45dd283d9ced82c12b10",
-    "scoped_status_sha256": "c95125543ec15637854f08e34a9a1a28aa2c1cd1693bc765d4e0d556fb32b147",
-    "scoped_diff_sha256": "dbe7c7a82c145e75cc6d17c741b0c01b47ba7eca9ec637301347ad2bd97d087c"
+    "head": "4f9d3b419e7d761c3f02f8746497129b36e61b1d",
+    "scoped_status_sha256": "f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25",
+    "scoped_diff_sha256": "f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,80 +21,110 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "5436b898ce811a7804c164a3db134367cda9b9d1618f9546307302955aec841e"
+      "sha256": "0821aec858f3e9da1a37f20b719bd838a31cfd68adedf5ef51ef232f6dd9b7a9"
     },
     {
       "id": "ART-002",
-      "role": "evidence",
+      "role": "historical-baseline",
       "path": "01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md",
-      "sha256": "32ded490c331a522b10972f118b04a6b058cef2d0bba065131e9aa149f869cdb"
+      "sha256": "0f5c928a18275412194a0669fa52e551c3ea2abeef40d01757fdeda3b9a97abc"
     },
     {
       "id": "ART-003",
-      "role": "supporting",
+      "role": "historical-baseline",
       "path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "sha256": "c494ddd219b1d2abb76e8e7457ae1e7bb85d412c514649b42bc5fbc267c25a4c"
+      "sha256": "2a085c8b2042a5f65387187a7eb88c662d9e281ead85c2c6a50800e87275c46a"
     },
     {
       "id": "ART-004",
-      "role": "evidence",
+      "role": "historical-baseline",
       "path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "sha256": "71dc7deac4f97cfd3bc2ddd61f4120a506ddf99c3ad30dada64b818d76218340"
+      "sha256": "20b90d64dfb7dd5ff854b49f742c429f531b87d9b8fa7d699280a79f410cf44d"
     },
     {
       "id": "ART-005",
-      "role": "supporting",
+      "role": "historical-baseline",
       "path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md",
-      "sha256": "c17f8c04a5c146ae82df9fcc4be3d32667a2136d08d0a172a545273db858e2a6"
+      "sha256": "ec0229e2b38d574cb010bcb43cefdf98ede89c029b5dfa70d7d673dd8d3fc106"
     },
     {
       "id": "ART-006",
-      "role": "canonical-execution",
-      "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "1eecb99cdc0712b1a46cdb795ac7aa58b3947e92cf610891f5268b3be667e9f6"
+      "role": "historical-deep-dive",
+      "path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
+      "sha256": "7320ae38d615101a8830a4675d366077eebeb95819898d9d464089aba6559f30"
     },
     {
       "id": "ART-007",
-      "role": "evidence",
-      "path": "TRACEABILITY.md",
-      "sha256": "6c63d58c7099b384c7c09d978c23f1b6d35d64c2d9005a22e6cb9afba77bb7a4"
+      "role": "historical-deep-dive",
+      "path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
+      "sha256": "e8b695a6d30bf3ed4d754a288939b858f8a10e0943fbb581ad176725bb556dda"
     },
     {
       "id": "ART-008",
-      "role": "recovery",
-      "path": "LOOP_LEDGER.md",
-      "sha256": "8ec84dc6564f8795b1a4846f85f840c1a470f96807e27516fd62ff135a879250"
+      "role": "historical-baseline",
+      "path": "07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
+      "sha256": "e90d43c527fe90a7492554b7bc0827826047289bd4b77f2b8589f2556f5d0f4b"
     },
     {
       "id": "ART-009",
-      "role": "evidence",
-      "path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
-      "sha256": "1f17e628a652abffaa9762e244948d127f9077f2b2873d7c7a6d5aa1e1717249"
+      "role": "historical-outcome",
+      "path": "08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md",
+      "sha256": "d4ee087c84d2e54697ffd0f067841438bc748fad80791082960a2ba44c7b3c83"
     },
     {
       "id": "ART-010",
-      "role": "evidence",
-      "path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
-      "sha256": "a549c58d6cddb72482478b83633873203895165f4cb60cf786379c1599b512e7"
+      "role": "canonical-inventory",
+      "path": "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md",
+      "sha256": "64d0297f670c94332f462e665ff6aae010713c5c0b9dc1ce788a1266f8cfbd28"
     },
     {
       "id": "ART-011",
-      "role": "supporting",
-      "path": "07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
-      "sha256": "ab7a1810a1625ec21b0410713a3c58ff6906ad8f1e25a136ff5d85b35a116ee6"
+      "role": "canonical-audit",
+      "path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
+      "sha256": "e25006b3972f33c7afd336235ac9ab4188ef35ceec149f362c3e979300629343"
     },
     {
       "id": "ART-012",
-      "role": "evidence",
-      "path": "08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md",
-      "sha256": "1164c9596ef3db636ed2b6174a0d70eb4497bcd5c6f3d2ef65e191268c02dfb7"
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "e0047eb94f956ec695b0e637d9fc5367c746d2416d5d0fddfc6f85f8df2c6688"
+    },
+    {
+      "id": "ART-013",
+      "role": "traceability",
+      "path": "TRACEABILITY.md",
+      "sha256": "ab56dc2afd1b2a14da4b01a425ba855b944b9136626d6a5d9d30c3c0b3fe17c3"
+    },
+    {
+      "id": "ART-014",
+      "role": "recovery",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "922e8002204cb032e0c0d78da4191404beabfdaad88830ab3ebeba4f1dde80a6"
+    },
+    {
+      "id": "ART-015",
+      "role": "canonical-resolution",
+      "path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
+      "sha256": "9885dc31b04d0511c2b0a87945baf3d699b4e5ad69a6e8d056b3778c09340fcd"
+    },
+    {
+      "id": "ART-016",
+      "role": "canonical-template-lifecycle",
+      "path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
+      "sha256": "f662621e8ab15035aee114567a3a8923521f49d78177f2ab9eaba6039c3ba0ee"
+    },
+    {
+      "id": "ART-017",
+      "role": "canonical-ux-ui-performance-readiness",
+      "path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
+      "sha256": "9452bfc5901de95ee3d559b43fd189b609e541d062e957fdadcf5c2ebfa701f3"
     }
   ],
   "sources": [
     {
       "id": "SRC-001",
       "status": "CURRENT",
-      "artifact_path": "01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md",
+      "artifact_path": "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md",
       "affected_ids": [
         "REQ-001",
         "REQ-002",
@@ -103,88 +133,51 @@
         "REQ-005",
         "REQ-006",
         "REQ-007",
-        "REQ-008",
-        "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
         "SEC-001",
-        "PERF-001"
+        "UX-001",
+        "UX-002",
+        "PERF-001",
+        "PERF-002",
+        "REQ-009"
       ]
     },
     {
       "id": "SRC-002",
       "status": "CURRENT",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "affected_ids": [
-        "REQ-001",
-        "REQ-002",
-        "REQ-003",
         "REQ-004",
         "REQ-005",
         "REQ-006",
         "REQ-007",
         "REQ-008",
         "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
+        "DATA-001",
+        "DATA-002",
         "SEC-001",
-        "PERF-001"
+        "UX-001",
+        "PERF-001",
+        "OPS-001"
       ]
     },
     {
       "id": "SRC-003",
       "status": "CURRENT",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "artifact_path": "README.md",
       "affected_ids": [
         "REQ-001",
-        "REQ-002",
-        "REQ-003",
-        "REQ-004",
-        "REQ-005",
         "REQ-006",
         "REQ-007",
         "REQ-008",
-        "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
         "SEC-001",
-        "PERF-001"
+        "UX-002",
+        "PERF-002",
+        "OPS-001",
+        "REQ-009"
       ]
     },
     {
       "id": "SRC-004",
-      "status": "CURRENT",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md",
-      "affected_ids": [
-        "REQ-001",
-        "REQ-002",
-        "REQ-003",
-        "REQ-004",
-        "REQ-005",
-        "REQ-006",
-        "REQ-007",
-        "REQ-008",
-        "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
-        "SEC-001",
-        "PERF-001"
-      ]
-    },
-    {
-      "id": "SRC-005",
       "status": "CURRENT",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "affected_ids": [
@@ -197,46 +190,67 @@
         "REQ-007",
         "REQ-008",
         "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
+        "DATA-001",
+        "DATA-002",
         "SEC-001",
-        "PERF-001"
+        "UX-001",
+        "UX-002",
+        "PERF-001",
+        "PERF-002",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "UX-001",
+        "PERF-001",
+        "OPS-001"
       ]
     },
     {
       "id": "SRC-006",
       "status": "CURRENT",
-      "artifact_path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
       "affected_ids": [
+        "REQ-001",
+        "REQ-005",
+        "REQ-007",
+        "REQ-009",
+        "DATA-001",
+        "SEC-001",
         "UX-001",
-        "REQ-015",
-        "REQ-016",
-        "REQ-017",
-        "REQ-018"
+        "PERF-001",
+        "OPS-001"
       ]
     },
     {
       "id": "SRC-007",
       "status": "CURRENT",
-      "artifact_path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
+      "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
       "affected_ids": [
-        "REQ-015",
-        "REQ-016",
-        "REQ-017",
-        "REQ-018",
-        "DATA-001"
-      ]
-    },
-    {
-      "id": "SRC-008",
-      "status": "CURRENT",
-      "artifact_path": "07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
-      "affected_ids": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-009",
         "UX-001",
-        "OPS-001"
+        "UX-002",
+        "PERF-001",
+        "PERF-002"
       ]
     }
   ],
@@ -244,18 +258,21 @@
     {
       "id": "REQ-001",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Maintain one canonical inventory and source owner for every Estimate Sheet and Component Template action and state.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
-        "SRC-002",
         "SRC-003",
         "SRC-004",
-        "SRC-005"
+        "SRC-005",
+        "SRC-006",
+        "SRC-007"
       ],
       "unit_ids": [
-        "UNIT-003",
-        "UNIT-007",
-        "UNIT-011"
+        "UNIT-001",
+        "UNIT-008",
+        "UNIT-009"
       ],
       "criterion_ids": [
         "AC-001"
@@ -264,17 +281,17 @@
     {
       "id": "REQ-002",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Area tree CRUD, DnD, delete/restore, lazy loading, and route selection preserve valid topology.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
-        "SRC-002",
-        "SRC-003",
         "SRC-004",
         "SRC-005"
       ],
       "unit_ids": [
-        "UNIT-002",
-        "UNIT-011"
+        "UNIT-003",
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-002"
@@ -283,19 +300,18 @@
     {
       "id": "REQ-003",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Tab and center-sheet shell operations preserve topology, order, selection, totals, and partial-tree meaning.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
-        "SRC-002",
-        "SRC-003",
         "SRC-004",
-        "SRC-005"
+        "SRC-005",
+        "SRC-007"
       ],
       "unit_ids": [
-        "UNIT-002",
         "UNIT-003",
-        "UNIT-007",
-        "UNIT-011"
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-003"
@@ -304,17 +320,18 @@
     {
       "id": "REQ-004",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Row CRUD, duplicate, move, replace, delete/restore, and input commits preserve row-owned state and authoritative history.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
         "SRC-002",
-        "SRC-003",
         "SRC-004",
         "SRC-005"
       ],
       "unit_ids": [
-        "UNIT-001",
-        "UNIT-011"
+        "UNIT-002",
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-004"
@@ -323,19 +340,20 @@
     {
       "id": "REQ-005",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Component and variant edits obey Library, Project, express, and stable-variant ownership boundaries.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
         "SRC-002",
-        "SRC-003",
         "SRC-004",
-        "SRC-005"
+        "SRC-005",
+        "SRC-006"
       ],
       "unit_ids": [
-        "UNIT-001",
+        "UNIT-002",
         "UNIT-004",
-        "UNIT-007",
-        "UNIT-011"
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-005"
@@ -344,17 +362,20 @@
     {
       "id": "REQ-006",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Library and folder lifecycle includes explicit archive, a 400-dependent interactive permanent-delete ceiling, favorite, nesting, attachment, audit, and cache semantics.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
         "SRC-002",
         "SRC-003",
         "SRC-004",
-        "SRC-005"
+        "SRC-005",
+        "SRC-007"
       ],
       "unit_ids": [
-        "UNIT-001",
-        "UNIT-011"
+        "UNIT-004",
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-006"
@@ -363,18 +384,21 @@
     {
       "id": "REQ-007",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Template and reusable Project source insertion is all-or-nothing per intent, any-selected-node target-valid, identity-fresh, ordered, acknowledged, and idempotent.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
         "SRC-002",
         "SRC-003",
         "SRC-004",
-        "SRC-005"
+        "SRC-005",
+        "SRC-006",
+        "SRC-007"
       ],
       "unit_ids": [
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-011"
+        "UNIT-005",
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-007"
@@ -383,19 +407,18 @@
     {
       "id": "REQ-008",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Legacy and Client Portal issuance project equivalent authoring meaning from one accepted source fingerprint and deterministic semantic identity without leaking private state.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
-        "SRC-001",
         "SRC-002",
         "SRC-003",
         "SRC-004",
         "SRC-005"
       ],
       "unit_ids": [
-        "UNIT-001",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-011"
+        "UNIT-007",
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-008"
@@ -404,223 +427,159 @@
     {
       "id": "REQ-009",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Component Templates are detached, workspace-scoped blueprints whose save/create, bounded browse/detail, header/category lifecycle, editor node/row CRUD, composition, variant/source trust, and deletion are atomic, topology-valid, and non-propagating to prior Estimate copies.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
         "SRC-002",
         "SRC-003",
         "SRC-004",
-        "SRC-005"
-      ],
-      "unit_ids": [
-        "UNIT-007",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-009"
-      ]
-    },
-    {
-      "id": "REQ-010",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-001",
-        "SRC-002",
-        "SRC-003",
-        "SRC-004",
-        "SRC-005"
-      ],
-      "unit_ids": [
-        "UNIT-007",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-010"
-      ]
-    },
-    {
-      "id": "REQ-011",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-001",
-        "SRC-002",
-        "SRC-003",
-        "SRC-004",
-        "SRC-005"
+        "SRC-006",
+        "SRC-007"
       ],
       "unit_ids": [
         "UNIT-009",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-011"
-      ]
-    },
-    {
-      "id": "REQ-012",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-001",
-        "SRC-002",
-        "SRC-003",
-        "SRC-004",
-        "SRC-005"
-      ],
-      "unit_ids": [
-        "UNIT-008",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-012"
-      ]
-    },
-    {
-      "id": "REQ-013",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-001",
-        "SRC-002",
-        "SRC-003",
-        "SRC-004",
-        "SRC-005"
-      ],
-      "unit_ids": [
-        "UNIT-010",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-013"
-      ]
-    },
-    {
-      "id": "REQ-014",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-001",
-        "SRC-002",
-        "SRC-003",
-        "SRC-004",
-        "SRC-005"
-      ],
-      "unit_ids": [
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-014"
-      ]
-    },
-    {
-      "id": "SEC-001",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-001",
-        "SRC-002",
-        "SRC-003",
-        "SRC-004",
-        "SRC-005"
-      ],
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-004",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-015"
       ]
     },
     {
-      "id": "PERF-001",
+      "id": "DATA-001",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "D1 mutations enforce workspace/project/estimate/tab/node/template ownership, non-null object snapshots, revisions, idempotency, atomic history/outbox, and valid recovery.",
+      "artifact_path": "TRACEABILITY.md",
+      "source_ids": [
+        "SRC-002",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-009",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Upload, asset, attachment, Images/R2 object, and cleanup state remain ownership-valid and recoverable.",
+      "artifact_path": "TRACEABILITY.md",
+      "source_ids": [
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Server actions authorize workspace/project/estimate/template/resource scope and issued/public data exposes no private IDs, snapshots, or storage paths.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
         "SRC-001",
         "SRC-002",
         "SRC-003",
         "SRC-004",
-        "SRC-005"
+        "SRC-005",
+        "SRC-006"
       ],
       "unit_ids": [
+        "UNIT-002",
         "UNIT-003",
+        "UNIT-004",
         "UNIT-005",
         "UNIT-006",
         "UNIT-007",
-        "UNIT-011"
+        "UNIT-009",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Inputs, DnD, confirmations, pending/conflict/offline states, retries, focus, and rollback show exact object state.",
+      "artifact_path": "TRACEABILITY.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Dense inline rename preserves parent surface, geometry, keyboard focus, and consistent commit behavior while compact source filters use transparent triggers and accessible opaque menus.",
+      "artifact_path": "TRACEABILITY.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-004",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
         "AC-016"
       ]
     },
     {
-      "id": "UX-001",
+      "id": "PERF-001",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Tree/sidebar/Template loading, bulk/shared fan-out, copy, and partial data remain bounded and correctly scoped.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
-        "SRC-006",
-        "SRC-008"
-      ],
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-005",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-017"
-      ]
-    },
-    {
-      "id": "REQ-015",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-006",
-        "SRC-007"
-      ],
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-018"
-      ]
-    },
-    {
-      "id": "REQ-016",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-006",
-        "SRC-007"
-      ],
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-019"
-      ]
-    },
-    {
-      "id": "REQ-017",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005",
         "SRC-006",
         "SRC-007"
       ],
@@ -628,62 +587,59 @@
         "UNIT-001",
         "UNIT-002",
         "UNIT-003",
-        "UNIT-011"
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-020"
+        "AC-013"
       ]
     },
     {
-      "id": "REQ-018",
+      "id": "PERF-002",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Rename drafts and loaded source-family toggles remain render-, network-, and layout-local while preserving continuity and existing deferred, bounded, and virtualized paths.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
-        "SRC-006",
+        "SRC-001",
+        "SRC-003",
+        "SRC-004",
         "SRC-007"
       ],
       "unit_ids": [
         "UNIT-001",
         "UNIT-003",
         "UNIT-005",
-        "UNIT-011"
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-021"
-      ]
-    },
-    {
-      "id": "DATA-001",
-      "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
-      "source_ids": [
-        "SRC-007"
-      ],
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-004",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-022"
+        "AC-017"
       ]
     },
     {
       "id": "OPS-001",
       "status": "ACCEPTED",
-      "artifact_path": "02-MVP-REQUIREMENTS-AND-INVARIANTS.md",
+      "completion_role": "CORE",
+      "statement": "Cache, history/outbox, Template-library audit policy, migration parity, environment identity, cleanup, and evidence freshness are explicit.",
+      "artifact_path": "TRACEABILITY.md",
       "source_ids": [
-        "SRC-008"
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
       ],
       "unit_ids": [
         "UNIT-001",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-007",
-        "UNIT-011"
+        "UNIT-006",
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-023"
+        "AC-014"
       ]
     }
   ],
@@ -692,173 +648,127 @@
     {
       "id": "RISK-001",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Invalid node/tab/folder topology can orphan or misplace rows, copied subtrees, and Library folders.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-001"
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
+        "AC-002",
+        "AC-003",
         "AC-004",
-        "AC-005"
+        "AC-006",
+        "AC-007",
+        "AC-009",
+        "AC-015"
       ]
     },
     {
       "id": "RISK-002",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Permanent component deletion can partially destroy data or omit non-restorable audit evidence.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-001"
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-004"
+        "AC-006",
+        "AC-009",
+        "AC-010",
+        "AC-011"
       ]
     },
     {
       "id": "RISK-003",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "D1 upload metadata and R2/Images objects can drift or delete referenced assets.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-004"
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-005",
-        "AC-008",
-        "AC-015"
+        "AC-006",
+        "AC-010",
+        "AC-011"
       ]
     },
     {
       "id": "RISK-004",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Preflight-only revision, fingerprint, or correlation checks allow concurrency duplicates and stale writes.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-002"
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-002",
-        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-009",
         "AC-015"
       ]
     },
     {
       "id": "RISK-005",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Legacy and Client Portal readers/serializers can mix source revisions, issue different authoring meaning, produce unstable semantic identity, or expose controlled data through direct or derived fields.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-003"
+        "UNIT-007",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-001",
-        "AC-003",
-        "AC-016"
+        "AC-008",
+        "AC-011"
       ]
     },
     {
       "id": "RISK-006",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Concurrent dirty work and non-executable source/diff evidence freshness can preserve false completion claims.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-005",
-        "UNIT-006"
+        "UNIT-001",
+        "UNIT-006",
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-007",
-        "AC-008",
-        "AC-016"
+        "AC-001",
+        "AC-014",
+        "AC-015"
       ]
     },
     {
       "id": "RISK-007",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Client-supplied IDs or public projections can cross workspace, project, estimate, or privacy boundaries.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
-        "UNIT-008"
-      ],
-      "criterion_ids": [
-        "AC-012",
-        "AC-015"
-      ]
-    },
-    {
-      "id": "RISK-008",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-008"
-      ],
-      "criterion_ids": [
-        "AC-012",
-        "AC-015"
-      ]
-    },
-    {
-      "id": "RISK-009",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-009"
-      ],
-      "criterion_ids": [
-        "AC-011",
-        "AC-015"
-      ]
-    },
-    {
-      "id": "RISK-010",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-007"
-      ],
-      "criterion_ids": [
-        "AC-009",
-        "AC-015"
-      ]
-    },
-    {
-      "id": "RISK-011",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-007",
-        "UNIT-010"
-      ],
-      "criterion_ids": [
-        "AC-010",
-        "AC-013",
-        "AC-015"
-      ]
-    },
-    {
-      "id": "RISK-012",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-003",
-        "UNIT-011"
-      ],
-      "criterion_ids": [
-        "AC-014",
-        "AC-016"
-      ]
-    },
-    {
-      "id": "RISK-013",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-001",
         "UNIT-002",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
         "UNIT-006",
         "UNIT-007",
-        "UNIT-008",
         "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-001",
         "AC-002",
         "AC-003",
         "AC-004",
@@ -869,548 +779,325 @@
         "AC-009",
         "AC-010",
         "AC-011",
-        "AC-012",
-        "AC-013",
-        "AC-014",
-        "AC-015",
-        "AC-016"
+        "AC-015"
       ]
     },
     {
-      "id": "RISK-014",
+      "id": "RISK-008",
       "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-005"
-      ],
-      "criterion_ids": [
-        "AC-017",
-        "AC-018"
-      ]
-    },
-    {
-      "id": "RISK-015",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-001"
-      ],
-      "criterion_ids": [
-        "AC-018",
-        "AC-019"
-      ]
-    },
-    {
-      "id": "RISK-016",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-001"
-      ],
-      "criterion_ids": [
-        "AC-019",
-        "AC-020"
-      ]
-    },
-    {
-      "id": "RISK-017",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
+      "statement": "Template lifecycle behavior can drift across save, bounded browse, editor, source/variant fields, insertion, and shared command contracts when ownership or evidence is split.",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
       "unit_ids": [
         "UNIT-001",
         "UNIT-003",
-        "UNIT-005"
-      ],
-      "criterion_ids": [
-        "AC-018",
-        "AC-021"
-      ]
-    },
-    {
-      "id": "RISK-018",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-004"
-      ],
-      "criterion_ids": [
-        "AC-018",
-        "AC-022"
-      ]
-    },
-    {
-      "id": "RISK-019",
-      "status": "OPEN",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "unit_ids": [
-        "UNIT-001",
         "UNIT-005",
-        "UNIT-007",
-        "UNIT-011"
+        "UNIT-009",
+        "UNIT-008"
       ],
       "criterion_ids": [
-        "AC-017",
-        "AC-023"
+        "AC-001",
+        "AC-002",
+        "AC-007",
+        "AC-009",
+        "AC-012",
+        "AC-013",
+        "AC-014",
+        "AC-015"
       ]
     }
   ],
   "criteria": [
     {
       "id": "AC-001",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Document, path, and static validation are the decisive evidence for inventory and trace completeness.",
       "requirement_ids": [
         "REQ-001"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-001",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-002",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Direct D1 topology and mutation receipts are the decisive evidence for the tree contract.",
       "requirement_ids": [
         "REQ-002"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-001"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-003",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Deep topology read-back and scoped static evidence are decisive for tab and shell integrity.",
       "requirement_ids": [
         "REQ-003"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-001"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-004",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Row mutation concurrency and keyboard commit are critical invariants; cheaper non-test review is insufficient to prove race and retry behavior.",
       "requirement_ids": [
         "REQ-004"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-005",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Affected-row receipts, uniqueness queries, and scoped loading reconciliation are decisive for ownership scope.",
       "requirement_ids": [
         "REQ-005"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-006",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Destructive atomic component delete is a critical invariant; cheaper non-test evidence is insufficient to prove stale-preview and failure atomicity.",
       "requirement_ids": [
         "REQ-006"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-007",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Template copy idempotency is a critical invariant; cheaper non-test inspection cannot prove concurrent retry behavior.",
       "requirement_ids": [
         "REQ-007"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-008",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Cross-reader publication parity is a critical invariant; cheaper non-test review is insufficient to prove equivalent output.",
       "requirement_ids": [
         "REQ-008"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-009",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Direct local D1 integrity and mutation receipts are decisive for the database criterion.",
       "requirement_ids": [
-        "REQ-009"
+        "DATA-001"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-010",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Environment-scoped D1 and R2 lifecycle receipts are decisive for storage ownership integrity.",
       "requirement_ids": [
-        "REQ-010"
+        "DATA-002"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-011",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Server authorization receipts and an issued-field privacy audit are decisive for this criterion.",
       "requirement_ids": [
-        "REQ-011"
+        "SEC-001"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-012",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "User-visible state reconciliation is a critical invariant; cheaper non-test evidence is insufficient to prove real interaction timing.",
       "requirement_ids": [
-        "REQ-012"
+        "UX-001"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-001",
+        "EVID-002",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-013",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Query, fan-out, and scoped loading receipts are decisive for the boundedness criterion.",
       "requirement_ids": [
-        "REQ-013"
+        "PERF-001"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-001",
+        "EVID-002",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-014",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Integrated three-surface MVP behavior is a critical invariant; cheaper non-test evidence is insufficient to prove the route end to end.",
       "requirement_ids": [
-        "REQ-014"
+        "OPS-001"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-002",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-015",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Atomic failed-create behavior and a full Template round trip are MVP critical invariants; cheaper source and static evidence cannot prove cross-surface failure behavior.",
       "requirement_ids": [
-        "SEC-001"
+        "REQ-009"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-016",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Direct visual-state, focus, geometry, accessibility, and source receipts are decisive for stable-surface rename and compact-filter behavior; automated regression may be proposed separately.",
       "requirement_ids": [
-        "PERF-001"
+        "UX-002"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-007"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-017",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Direct profiler, network, geometry, and continuity receipts are decisive for this interaction-performance criterion.",
       "requirement_ids": [
-        "UX-001"
+        "PERF-002"
       ],
-      "test_ids": [
-        "TEST-001"
-      ],
+      "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
-      ],
-      "authorization_boundary_id": null
-    },
-    {
-      "id": "AC-018",
-      "status": "PASS",
-      "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
-      "requirement_ids": [
-        "REQ-015"
-      ],
-      "test_ids": [
-        "TEST-001"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ],
-      "authorization_boundary_id": null
-    },
-    {
-      "id": "AC-019",
-      "status": "PASS",
-      "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
-      "requirement_ids": [
-        "REQ-016"
-      ],
-      "test_ids": [
-        "TEST-001"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ],
-      "authorization_boundary_id": null
-    },
-    {
-      "id": "AC-020",
-      "status": "PASS",
-      "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
-      "requirement_ids": [
-        "REQ-017"
-      ],
-      "test_ids": [
-        "TEST-001"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ],
-      "authorization_boundary_id": null
-    },
-    {
-      "id": "AC-021",
-      "status": "PASS",
-      "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
-      "requirement_ids": [
-        "REQ-018"
-      ],
-      "test_ids": [
-        "TEST-001"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ],
-      "authorization_boundary_id": null
-    },
-    {
-      "id": "AC-022",
-      "status": "PASS",
-      "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
-      "requirement_ids": [
-        "DATA-001"
-      ],
-      "test_ids": [
-        "TEST-001"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ],
-      "authorization_boundary_id": null
-    },
-    {
-      "id": "AC-023",
-      "status": "PASS",
-      "artifact_path": "TRACEABILITY.md",
-      "test_requirement": "TEST_TASK",
-      "test_trigger": "EXPLICIT_TEST_TASK",
-      "test_rationale": "The user explicitly authorized implementation testing; focused existing tests and static checks cover this criterion.",
-      "requirement_ids": [
-        "OPS-001"
-      ],
-      "test_ids": [
-        "TEST-001"
-      ],
-      "evidence_ids": [
-        "EVID-009"
+        "EVID-007"
       ],
       "authorization_boundary_id": null
     }
   ],
-  "tests": [
-    {
-      "id": "TEST-001",
-      "status": "PASS",
-      "artifact_path": "08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md",
-      "criterion_ids": [
-        "AC-001",
-        "AC-002",
-        "AC-003",
-        "AC-004",
-        "AC-005",
-        "AC-006",
-        "AC-007",
-        "AC-008",
-        "AC-009",
-        "AC-010",
-        "AC-011",
-        "AC-012",
-        "AC-013",
-        "AC-014",
-        "AC-015",
-        "AC-016",
-        "AC-017",
-        "AC-018",
-        "AC-019",
-        "AC-020",
-        "AC-021",
-        "AC-022",
-        "AC-023"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ]
-    }
-  ],
+  "tests": [],
   "gates": [
     {
-      "id": "GATE-VERIFY-001",
-      "status": "PASS",
-      "artifact_path": "08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md",
+      "id": "GATE-READINESS-001",
+      "status": "FAIL",
+      "artifact_path": "TRACEABILITY.md",
       "criterion_ids": [
         "AC-001",
         "AC-002",
@@ -1428,16 +1115,10 @@
         "AC-014",
         "AC-015",
         "AC-016",
-        "AC-017",
-        "AC-018",
-        "AC-019",
-        "AC-020",
-        "AC-021",
-        "AC-022",
-        "AC-023"
+        "AC-017"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-004"
       ],
       "authorization_boundary_id": null
     }
@@ -1445,258 +1126,238 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Freeze current source, dirty-fix, schema, binding, incident, and UX interaction truth.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
-        "UX-001",
-        "REQ-004",
-        "REQ-005",
-        "REQ-006",
-        "REQ-008",
-        "REQ-015",
-        "REQ-016",
-        "REQ-017",
-        "REQ-018",
-        "DATA-001",
-        "OPS-001",
-        "SEC-001"
+        "REQ-001",
+        "UX-002",
+        "PERF-001",
+        "PERF-002",
+        "OPS-001"
       ],
       "risk_ids": [
-        "RISK-001",
-        "RISK-002",
-        "RISK-013",
-        "RISK-014",
-        "RISK-015",
-        "RISK-016",
-        "RISK-017",
-        "RISK-019"
+        "RISK-006",
+        "RISK-008"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003",
+        "EVID-007"
       ]
     },
     {
       "id": "UNIT-002",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Make row CRUD, move, restore, duplicate, replace, and input commits authoritative.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "depends_on": [],
+      "depends_on": [
+        "UNIT-001"
+      ],
       "requirement_ids": [
-        "REQ-002",
-        "REQ-003",
-        "REQ-017",
-        "SEC-001"
+        "REQ-004",
+        "REQ-005",
+        "DATA-001",
+        "SEC-001",
+        "UX-001",
+        "PERF-001"
       ],
       "risk_ids": [
+        "RISK-001",
         "RISK-004",
-        "RISK-013"
+        "RISK-007"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003"
       ]
     },
     {
       "id": "UNIT-003",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Repair tab/tree topology and make Area and tab rename stable and render-isolated.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-002"
+        "UNIT-001"
       ],
       "requirement_ids": [
-        "REQ-001",
+        "REQ-002",
         "REQ-003",
-        "REQ-017",
-        "REQ-018",
-        "PERF-001"
+        "DATA-001",
+        "SEC-001",
+        "UX-001",
+        "UX-002",
+        "PERF-001",
+        "PERF-002"
       ],
       "risk_ids": [
-        "RISK-005",
-        "RISK-012",
-        "RISK-013",
-        "RISK-017"
+        "RISK-001",
+        "RISK-007",
+        "RISK-008"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003",
+        "EVID-007"
       ]
     },
     {
       "id": "UNIT-004",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Finish component lifecycle and align Library and project-group rename behavior.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-001"
+        "UNIT-001",
+        "UNIT-002"
       ],
       "requirement_ids": [
         "REQ-005",
-        "REQ-008",
-        "REQ-015",
+        "REQ-006",
         "DATA-001",
-        "OPS-001",
-        "SEC-001"
+        "DATA-002",
+        "SEC-001",
+        "UX-001",
+        "UX-002",
+        "PERF-001"
       ],
       "risk_ids": [
+        "RISK-001",
+        "RISK-002",
         "RISK-003",
-        "RISK-013",
-        "RISK-018"
+        "RISK-004",
+        "RISK-007"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003",
+        "EVID-007"
       ]
     },
     {
       "id": "UNIT-005",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Make Template and Project-source insertion target-correct while streamlining source filtering.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-001"
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
       ],
       "requirement_ids": [
+        "REQ-007",
+        "DATA-001",
+        "SEC-001",
         "UX-001",
-        "REQ-008",
-        "REQ-015",
-        "REQ-018",
-        "OPS-001",
-        "PERF-001"
+        "UX-002",
+        "PERF-001",
+        "PERF-002"
       ],
       "risk_ids": [
-        "RISK-006",
-        "RISK-013",
-        "RISK-014",
-        "RISK-017",
-        "RISK-019"
+        "RISK-001",
+        "RISK-004",
+        "RISK-007",
+        "RISK-008"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003",
+        "EVID-007"
       ]
     },
     {
       "id": "UNIT-006",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Repair D1/R2/Images metadata integrity and collect environment-scoped provider evidence.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-001"
+        "UNIT-001",
+        "UNIT-004"
       ],
       "requirement_ids": [
-        "REQ-007",
+        "DATA-001",
+        "DATA-002",
         "SEC-001",
-        "PERF-001"
+        "OPS-001"
       ],
       "risk_ids": [
+        "RISK-002",
+        "RISK-003",
         "RISK-006",
-        "RISK-013"
+        "RISK-007"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003"
       ]
     },
     {
       "id": "UNIT-007",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Align legacy and Client Portal issued projections with authoring.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001",
+        "UNIT-002",
         "UNIT-003",
         "UNIT-004",
+        "UNIT-005",
         "UNIT-006"
       ],
       "requirement_ids": [
-        "REQ-001",
-        "REQ-003",
-        "REQ-005",
-        "REQ-007",
-        "REQ-009",
-        "REQ-010",
-        "OPS-001",
-        "SEC-001",
-        "PERF-001"
-      ],
-      "risk_ids": [
-        "RISK-010",
-        "RISK-011",
-        "RISK-013",
-        "RISK-019"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ]
-    },
-    {
-      "id": "UNIT-008",
-      "status": "VERIFIED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "depends_on": [
-        "UNIT-007"
-      ],
-      "requirement_ids": [
-        "REQ-012",
-        "REQ-014",
+        "REQ-008",
         "SEC-001"
       ],
       "risk_ids": [
-        "RISK-007",
-        "RISK-008",
-        "RISK-013"
+        "RISK-005",
+        "RISK-007"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003"
       ]
     },
     {
       "id": "UNIT-009",
-      "status": "VERIFIED",
+      "status": "READY",
+      "goal": "Harden Template lifecycle plus Template rename, filter, and menu coherence.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-007",
-        "UNIT-008"
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005"
       ],
       "requirement_ids": [
-        "REQ-011",
-        "REQ-014",
-        "SEC-001"
+        "REQ-001",
+        "REQ-009",
+        "DATA-001",
+        "SEC-001",
+        "UX-001",
+        "UX-002",
+        "PERF-001",
+        "PERF-002",
+        "OPS-001"
       ],
       "risk_ids": [
-        "RISK-009",
-        "RISK-013"
+        "RISK-001",
+        "RISK-004",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003",
+        "EVID-006",
+        "EVID-007"
       ]
     },
     {
-      "id": "UNIT-010",
-      "status": "VERIFIED",
+      "id": "UNIT-008",
+      "status": "READY",
+      "goal": "Reconcile every action, finding, environment, UX/performance contract, and criterion into a truthful release decision.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-007",
-        "UNIT-008"
-      ],
-      "requirement_ids": [
-        "REQ-013",
-        "REQ-014",
-        "SEC-001"
-      ],
-      "risk_ids": [
-        "RISK-011",
-        "RISK-013"
-      ],
-      "evidence_ids": [
-        "EVID-009"
-      ]
-    },
-    {
-      "id": "UNIT-011",
-      "status": "VERIFIED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "depends_on": [
+        "UNIT-001",
         "UNIT-002",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
         "UNIT-006",
         "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010"
+        "UNIT-009"
       ],
       "requirement_ids": [
         "REQ-001",
@@ -1708,317 +1369,433 @@
         "REQ-007",
         "REQ-008",
         "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
-        "UX-001",
-        "REQ-015",
-        "REQ-016",
-        "REQ-017",
-        "REQ-018",
         "DATA-001",
-        "OPS-001",
+        "DATA-002",
         "SEC-001",
-        "PERF-001"
+        "UX-001",
+        "UX-002",
+        "PERF-001",
+        "PERF-002",
+        "OPS-001"
       ],
       "risk_ids": [
-        "RISK-012",
-        "RISK-013",
-        "RISK-019"
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-003",
+        "EVID-006",
+        "EVID-007"
       ]
     }
   ],
   "decisions": [
     {
       "id": "DEC-AUTO-001",
-      "affected_ids": [
-        "REQ-009",
-        "REQ-011",
-        "UNIT-007",
-        "UNIT-009"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Keep the stable folder path and use the canonical Estimate Sheet MVP title.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "UNIT-008"
+      ]
     },
     {
       "id": "DEC-AUTO-002",
-      "affected_ids": [
-        "REQ-005",
-        "UNIT-001"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Permanent Library delete removes at most 400 combined dependent Estimate and Template rows after exact preview and is explicitly irreversible; larger interactive impact refuses before mutation and offers Archive.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-006",
+        "DATA-001",
+        "DATA-002",
+        "UNIT-004",
+        "RISK-002"
+      ]
     },
     {
       "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "decision": "Selected variant is row-owned; component and variant definition edits are stable-identity shared mutations.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "affected_ids": [
         "REQ-004",
-        "UNIT-001"
-      ],
-      "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+        "REQ-005",
+        "UNIT-002",
+        "UNIT-004"
+      ]
     },
     {
       "id": "DEC-AUTO-004",
-      "affected_ids": [
-        "REQ-006",
-        "UNIT-001"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "This pack owns authoring-to-issued parity, bounded source-fingerprint consistency, and deterministic semantic identity, but not the full recipient lifecycle.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-008",
+        "SEC-001",
+        "UNIT-007"
+      ]
     },
     {
       "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "decision": "This pack is the sole active authority for the full Component Template lifecycle; the absorbed source pack is removed only after complete crosswalk and validator-backed integration.",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
       "affected_ids": [
         "REQ-007",
-        "UNIT-006"
-      ],
-      "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+        "REQ-009",
+        "UNIT-005",
+        "UNIT-009",
+        "RISK-008",
+        "AC-015"
+      ]
     },
     {
       "id": "DEC-AUTO-006",
-      "affected_ids": [
-        "REQ-009",
-        "REQ-011",
-        "UNIT-007",
-        "UNIT-009"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Source, static, local D1, browser, preview, hosted, and public evidence are separate classes.",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-006",
+        "UNIT-008",
+        "AC-014"
+      ]
     },
     {
       "id": "DEC-AUTO-007",
-      "affected_ids": [
-        "REQ-013",
-        "UNIT-010"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Template and reusable Project sources use the current any-selected-node target contract, derive estimate and tab from that node, and reject the whole intent before mutation if any source is invalid.",
+      "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
+      "affected_ids": [
+        "REQ-007",
+        "UNIT-005",
+        "AC-007"
+      ]
     },
     {
       "id": "DEC-AUTO-008",
-      "affected_ids": [
-        "UNIT-011"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Every active row starts at revision one; linked states require a source ID, unlinked requires null, and detached retains historical source ID while leaving live Library ownership and fan-out.",
+      "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
+      "affected_ids": [
+        "REQ-004",
+        "REQ-005",
+        "DATA-001",
+        "UNIT-002",
+        "AC-004",
+        "AC-005",
+        "AC-009"
+      ]
     },
     {
       "id": "DEC-AUTO-009",
-      "affected_ids": [
-        "UX-001",
-        "REQ-015",
-        "REQ-018",
-        "UNIT-001",
-        "UNIT-005"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Retry identity is separate from source and target identity; one intent mutates once and a deliberate second copy uses a new intent ID.",
+      "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
+      "affected_ids": [
+        "REQ-003",
+        "REQ-004",
+        "REQ-007",
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ]
     },
     {
       "id": "DEC-AUTO-010",
-      "affected_ids": [
-        "OPS-001",
-        "UNIT-001",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-007",
-        "UNIT-011"
-      ],
       "status": "ACTIVE",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md"
+      "decision": "Template creation commits its header, initial node, and copied rows in one hard D1 batch; compensating delete is not an atomicity substitute.",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
+      "affected_ids": [
+        "REQ-009",
+        "DATA-001",
+        "UNIT-009",
+        "RISK-008",
+        "AC-009",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-011",
+      "status": "ACTIVE",
+      "decision": "Templates remain detached by value; insertion preserves the exact selected variant and current selected price, with an explicit unavailable-price fallback.",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
+      "affected_ids": [
+        "REQ-005",
+        "REQ-007",
+        "REQ-009",
+        "DATA-001",
+        "UNIT-005",
+        "UNIT-009",
+        "AC-005",
+        "AC-007",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "decision": "Pricing provenance is resolved once across Estimate, Template, Project-source, health, and publication contracts; no isolated cosmetic read deletion is accepted.",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
+      "affected_ids": [
+        "REQ-004",
+        "REQ-009",
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-009",
+        "AC-004",
+        "AC-009",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "decision": "Dense inline rename preserves the parent surface and geometry, focuses at the caret end without whole-value auto-selection, saves with Enter or deduplicated blur, cancels with Escape, and never saves from pointer exit.",
+      "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
+      "affected_ids": [
+        "UX-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-009",
+        "AC-016"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-014",
+      "status": "ACTIVE",
+      "decision": "The Templates source-family filter uses a compact transparent trigger with All sources, Custom templates, and Project sources labels; its popup remains opaque and accessible without a persistent selected-row fill.",
+      "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
+      "affected_ids": [
+        "UX-002",
+        "UNIT-005",
+        "UNIT-009",
+        "AC-016"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-015",
+      "status": "ACTIVE",
+      "decision": "Preserve existing deferred search, bounded Template hydration, and thresholded virtualization while isolating rename drafts and loaded source filters; add no performance dependency without measured evidence.",
+      "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
+      "affected_ids": [
+        "PERF-002",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008",
+        "AC-017"
+      ]
     }
   ],
   "authorization_boundaries": [],
   "evidence_index": [
     {
       "id": "EVID-001",
-      "artifact_path": "01-CURRENT-ARCHITECTURE-AND-EVIDENCE.md",
-      "sha256": "32ded490c331a522b10972f118b04a6b058cef2d0bba065131e9aa149f869cdb",
+      "artifact_path": "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md",
+      "sha256": "64d0297f670c94332f462e665ff6aae010713c5c0b9dc1ce788a1266f8cfbd28",
       "claim_ids": [
-        "REQ-001",
-        "REQ-002",
-        "REQ-003",
-        "REQ-004",
-        "REQ-005",
-        "REQ-006",
-        "REQ-007",
-        "REQ-008",
-        "REQ-009",
-        "REQ-010",
-        "REQ-011",
-        "REQ-012",
-        "REQ-013",
-        "REQ-014",
-        "SEC-001",
-        "PERF-001"
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-012",
+        "AC-013"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
+      "status": "COLLECTED",
+      "method": "Current route/source action inventory with artifact and scoped-worktree fingerprint comparison.",
+      "expected_signal": "Every discoverable action has one owner/status and historical completion claims are not reused.",
+      "actual_signal": "The 133-row matrix is current at the observed scoped source revision; product behavior is not proven.",
+      "environment": "WORKTREE_SOURCE",
+      "observed_at": "2026-07-15T06:11:38.000Z",
+      "source_paths": [
+        "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md"
+      ],
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "PLANNING_ONLY_COLLECTED",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T06:11:38Z",
+      "valid_until": "2026-07-16T06:11:38.000Z"
     },
     {
       "id": "EVID-002",
-      "artifact_path": "03-FINDINGS-RISK-SECURITY-PERFORMANCE.md",
-      "sha256": "71dc7deac4f97cfd3bc2ddd61f4120a506ddf99c3ad30dada64b818d76218340",
+      "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
+      "sha256": "e25006b3972f33c7afd336235ac9ab4188ef35ceec149f362c3e979300629343",
       "claim_ids": [
-        "RISK-001",
-        "RISK-002",
-        "RISK-003",
-        "RISK-004",
-        "RISK-005",
-        "RISK-006",
-        "RISK-007",
-        "RISK-008",
-        "RISK-009",
-        "RISK-010",
-        "RISK-011",
-        "RISK-012",
-        "RISK-013",
-        "RISK-014",
-        "RISK-015",
-        "RISK-016",
-        "RISK-017",
-        "RISK-018",
-        "RISK-019"
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "AC-013",
+        "AC-014"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
+      "status": "COLLECTED",
+      "method": "Current source, migration, binding, graph-impact, and incident review grouped by mutation boundary.",
+      "expected_signal": "Every ranked finding has current evidence and no stale premise is preserved.",
+      "actual_signal": "Twenty-four findings remain traceable; corrected premises and unresolved evidence gaps are explicit.",
+      "environment": "WORKTREE_SOURCE",
+      "observed_at": "2026-07-15T05:40:31.770Z",
+      "source_paths": [
+        "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md"
+      ],
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "PLANNING_ONLY_COLLECTED",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T05:40:31Z",
+      "valid_until": "2026-07-16T05:40:31.770Z"
     },
     {
       "id": "EVID-003",
-      "artifact_path": "04-INTEROPERABILITY-AND-PUBLICATION-CONTRACT.md",
-      "sha256": "c17f8c04a5c146ae82df9fcc4be3d32667a2136d08d0a172a545273db858e2a6",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "e0047eb94f956ec695b0e637d9fc5367c746d2416d5d0fddfc6f85f8df2c6688",
       "claim_ids": [
-        "DEC-AUTO-001",
-        "DEC-AUTO-002",
-        "DEC-AUTO-003",
-        "DEC-AUTO-004",
-        "DEC-AUTO-005",
-        "DEC-AUTO-006",
-        "DEC-AUTO-007",
-        "DEC-AUTO-008",
-        "DEC-AUTO-009",
-        "DEC-AUTO-010"
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
+      "status": "COLLECTED",
+      "method": "Dependency, owner-path, acceptance, evidence, and recovery review for every remediation unit.",
+      "expected_signal": "Every unit has dependency closure and one executable minimal-fix sequence.",
+      "actual_signal": "Nine units are READY as planning units after re-proof; none is implemented or product-verified.",
+      "environment": "PLAN_ARTIFACT",
+      "observed_at": "2026-07-15T06:11:38.000Z",
+      "source_paths": [
+        "IMPLEMENTATION_PLAN.md"
+      ],
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "IMPLEMENTATION_PLAN_READY_ONLY",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T06:11:38Z",
+      "valid_until": "2026-07-16T06:11:38.000Z"
     },
     {
       "id": "EVID-004",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "1eecb99cdc0712b1a46cdb795ac7aa58b3947e92cf610891f5268b3be667e9f6",
+      "artifact_path": "TRACEABILITY.md",
+      "sha256": "ab56dc2afd1b2a14da4b01a425ba855b944b9136626d6a5d9d30c3c0b3fe17c3",
       "claim_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
+        "AC-014",
+        "GATE-READINESS-001",
+        "AC-015"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
+      "status": "COLLECTED",
+      "method": "Reciprocal ID/path/requirement/criterion/unit/evidence manifest review.",
+      "expected_signal": "No orphan ID or invalid status tuple and every criterion remains truthful.",
+      "actual_signal": "All seventeen criteria remain FAIL; package, implementation, release, reciprocal trace, artifact hashes, and stale-to-reprove transitions pass canonical validation.",
+      "environment": "PLAN_ARTIFACT",
+      "observed_at": "2026-07-15T06:11:38.000Z",
+      "source_paths": [
+        "TRACEABILITY.md",
+        "plan-pack.json"
+      ],
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "PLAN_PACK_VALIDATION_PASSED",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T06:11:38Z",
+      "valid_until": "2026-07-16T06:11:38.000Z"
     },
     {
       "id": "EVID-005",
-      "artifact_path": "TRACEABILITY.md",
-      "sha256": "6c63d58c7099b384c7c09d978c23f1b6d35d64c2d9005a22e6cb9afba77bb7a4",
+      "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
+      "sha256": "9885dc31b04d0511c2b0a87945baf3d699b4e5ad69a6e8d056b3778c09340fcd",
+      "claim_ids": [
+        "AC-014"
+      ],
+      "status": "COLLECTED",
+      "method": "Five bounded read-only audit clusters plus integrator synthesis and adversarial review of root cause, blast radius, options, and recovery.",
+      "expected_signal": "Every F-001 through F-024 has a corrected premise, failure/race/partial-failure simulation, selected smallest coherent repair, rejected alternatives, decisive evidence, and residual risk.",
+      "actual_signal": "All twenty-four findings are covered; five stale premises and three partial/source-fix dispositions are corrected without product-code changes.",
+      "environment": "WORKTREE_SOURCE",
+      "observed_at": "2026-07-15T05:40:31.770Z",
+      "source_paths": [
+        "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md"
+      ],
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "PLANNING_ONLY_COLLECTED",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T05:40:31Z",
+      "valid_until": "2026-07-16T05:40:31.770Z"
+    },
+    {
+      "id": "EVID-006",
+      "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
+      "sha256": "f662621e8ab15035aee114567a3a8923521f49d78177f2ab9eaba6039c3ba0ee",
       "claim_ids": [
         "AC-001",
-        "AC-002",
-        "AC-003",
         "AC-004",
         "AC-005",
         "AC-006",
         "AC-007",
-        "AC-008",
         "AC-009",
-        "AC-010",
         "AC-011",
         "AC-012",
         "AC-013",
         "AC-014",
         "AC-015",
-        "AC-016",
-        "AC-017",
-        "AC-018",
-        "AC-019",
-        "AC-020",
-        "AC-021",
-        "AC-022",
-        "AC-023"
+        "UNIT-009",
+        "UNIT-008"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
-    },
-    {
-      "id": "EVID-006",
-      "artifact_path": "05-ADD-EDIT-COMPONENT-MODAL-PRD-AND-AUDIT.md",
-      "sha256": "1f17e628a652abffaa9762e244948d127f9077f2b2873d7c7a6d5aa1e1717249",
-      "claim_ids": [
-        "UX-001",
-        "REQ-015",
-        "REQ-016",
-        "REQ-017",
-        "REQ-018",
-        "RISK-014",
-        "RISK-015",
-        "RISK-016",
-        "RISK-017"
+      "status": "COLLECTED",
+      "method": "Full source-pack artifact and manifest review, current-source spot checks, requirement/finding/unit/evidence crosswalk, and path/reference validation.",
+      "expected_signal": "All source requirements, findings, units, evidence claims, architecture, flow, and variant contracts are retained with no duplicate active authority.",
+      "actual_signal": "All eight source requirements, ten findings, four source units, and eight evidence claims are retained under one destination authority; the absorbed source folder is absent, the destination revalidates, and product implementation remains unproven.",
+      "environment": "PLAN_ARTIFACT",
+      "observed_at": "2026-07-15T06:11:38.000Z",
+      "source_paths": [
+        "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "PLANNING_ONLY_COLLECTED",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T06:11:38Z",
+      "valid_until": "2026-07-16T06:11:38.000Z"
     },
     {
       "id": "EVID-007",
-      "artifact_path": "06-CLOUDFLARE-COMPONENT-DATA-AND-STORAGE-SCHEMA.md",
-      "sha256": "a549c58d6cddb72482478b83633873203895165f4cb60cf786379c1599b512e7",
+      "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
+      "sha256": "9452bfc5901de95ee3d559b43fd189b609e541d062e957fdadcf5c2ebfa701f3",
       "claim_ids": [
-        "REQ-015",
-        "REQ-016",
-        "REQ-017",
-        "REQ-018",
-        "DATA-001",
-        "RISK-018"
+        "AC-016",
+        "AC-017",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-008"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
-    },
-    {
-      "id": "EVID-008",
-      "artifact_path": "07-PRE-RELEASE-FEATURE-PATH-CLEANUP-AND-SIMPLIFICATION.md",
-      "sha256": "ab7a1810a1625ec21b0410713a3c58ff6906ad8f1e25a136ff5d85b35a116ee6",
-      "claim_ids": [
-        "UX-001",
-        "OPS-001",
-        "RISK-019"
+      "status": "COLLECTED",
+      "method": "Read-only live-route inspection plus current-source review of Area, tab, folder, project-group, Template filter, shared dropdown, tree-render, deferred-search, bounded-hydration, and virtualization paths.",
+      "expected_signal": "Rename and compact-filter behavior has one stable interaction contract, current strengths are preserved, each risk has an existing-unit owner, and implementation proof remains explicitly open.",
+      "actual_signal": "Nine UI/performance findings, two core requirements, two failing criteria, three decisions, six unit owners, and the required visual, focus, geometry, render, network, and continuity receipts are defined without product-code changes.",
+      "environment": "WORKTREE_SOURCE",
+      "observed_at": "2026-07-15T06:05:54.000Z",
+      "source_paths": [
+        "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md"
       ],
-      "status": "PASS",
-      "source_revision": "ad2187d23881b490009c45dd283d9ced82c12b10+scoped-working-tree-2026-07-14",
-      "valid_until": null
-    },
+      "source_fingerprint": "4f9d3b419e7d761c3f02f8746497129b36e61b1d:f7de4cc752e04e5d16cd33b94a2198d7f9eabb469974a4f364caca54c77ced25:f30820020922896734bac0735a7d2bc79e4c8681d22711d11d1298f1dfa717ca",
+      "result": "PLANNING_ONLY_COLLECTED",
+      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-source-2026-07-15T06:05:54Z",
+      "valid_until": "2026-07-16T06:05:54.000Z"
+    }
+  ],
+  "ready_slices": [
     {
-      "id": "EVID-009",
-      "artifact_path": "08-IMPLEMENTATION-OUTCOME-AND-BEFORE-AFTER.md",
-      "sha256": "1164c9596ef3db636ed2b6174a0d70eb4497bcd5c6f3d2ef65e191268c02dfb7",
-      "claim_ids": [
+      "id": "SLICE-001",
+      "unit_ids": [
         "UNIT-001",
         "UNIT-002",
         "UNIT-003",
@@ -2026,51 +1803,22 @@
         "UNIT-005",
         "UNIT-006",
         "UNIT-007",
-        "UNIT-008",
         "UNIT-009",
-        "UNIT-010",
-        "UNIT-011",
-        "AC-001",
-        "AC-002",
-        "AC-003",
-        "AC-004",
-        "AC-005",
-        "AC-006",
-        "AC-007",
-        "AC-008",
-        "AC-009",
-        "AC-010",
-        "AC-011",
-        "AC-012",
-        "AC-013",
-        "AC-014",
-        "AC-015",
-        "AC-016",
-        "AC-017",
-        "AC-018",
-        "AC-019",
-        "AC-020",
-        "AC-021",
-        "AC-022",
-        "AC-023",
-        "TEST-001",
-        "GATE-VERIFY-001"
-      ],
-      "status": "PASS",
-      "source_revision": "working-tree-2026-07-14",
-      "valid_until": null
+        "UNIT-008"
+      ]
     }
   ],
-  "ready_slices": [],
   "stale_triggers": [
-    "estimate-row-or-tree-contract-change",
-    "component-library-or-variant-contract-change",
-    "publication-or-client-portal-contract-change",
-    "recipient-session-or-notification-change",
-    "planning-suite-change",
+    "estimate-sheet-action-or-route-contract-change",
+    "estimate-tab-tree-row-or-history-contract-change",
+    "component-library-variant-template-or-upload-contract-change",
+    "estimate-sheet-inline-rename-filter-or-interaction-performance-contract-change",
+    "publication-client-portal-or-public-projection-change",
+    "migration-provider-binding-or-environment-change",
+    "planning-suite-validator-change",
     "scoped-working-tree-drift"
   ],
-  "next_unit": null,
-  "updated_at": "2026-07-14T00:00:00.000Z",
-  "manifest_sha256": "c7deebd8d9a481e0111cd1dda66881cddc45c441c2b916dd9f5147b5ede1ede1"
+  "next_unit": "UNIT-001",
+  "updated_at": "2026-07-15T06:11:38.000Z",
+  "manifest_sha256": "9f751e19cf66768dbb42a9df40807c3fc7ea0ae72cc63313f6b32c2696e60178"
 }
