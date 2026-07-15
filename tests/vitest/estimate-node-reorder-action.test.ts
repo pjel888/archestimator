@@ -1168,6 +1168,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
       estimateId: "estimate-1",
       targetParentNodeId: "parent-group",
       templateId: "template-1",
+      intentId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       template: {
         id: "attacker-template",
         name: "Client Forgery",
@@ -1186,6 +1187,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
       target_estimate_id: "estimate-1",
       target_parent_node_id: "parent-group",
       source_template_id: "template-1",
+      unavailable_source_policy: "cancel",
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
@@ -1217,6 +1219,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
         estimateId: "estimate-1",
         targetParentNodeId: "parent-group",
         templateId: "template-1",
+        intentId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       }),
     ).rejects.toThrow("Could not insert estimate template: Template row items must belong to area nodes.");
 
@@ -1244,6 +1247,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
         estimateId: "estimate-1",
         targetParentNodeId: "parent-group",
         templateId: "template-1",
+        intentId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
@@ -1282,6 +1286,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
         targetParentNodeId: "parent-group",
         templateId: "template-1",
         templateNodeId: "template-node-1",
+        intentId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
@@ -1310,6 +1315,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
       targetParentNodeId: "parent-group",
       templateId: "template-1",
       templateNodeId: "template-node-1",
+      intentId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       targetTabId: "tab-2",
     });
 
@@ -1321,6 +1327,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
       target_parent_node_id: "parent-group",
       source_template_id: "template-1",
       source_template_node_id: "template-node-1",
+      unavailable_source_policy: "cancel",
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
       target_tab_id: "tab-2",

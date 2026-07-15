@@ -15,6 +15,8 @@ const TEMPLATE_NODE_ID = "66666666-6666-4666-8666-666666666666";
 const TEMPLATE_ROW_ID = "77777777-7777-4777-8777-777777777777";
 const COMPONENT_ID = "88888888-8888-4888-8888-888888888888";
 const PRICE_OPTION_ID = "99999999-9999-4999-8999-999999999999";
+const TARGET_TAB_ID = "abababab-abab-4bab-8bab-abababababab";
+const INSERT_INTENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 function currentUser(): CurrentUserContext {
   const now = "2026-07-14T00:00:00.000Z";
@@ -56,6 +58,9 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
   }
 
   async first<R = T>(): Promise<R | null> {
+    if (this.sql.includes("FROM estimate_mutation_receipts")) {
+      return this.database.receipts.get(`${String(this.values[1])}:${String(this.values[2])}`) as R | undefined ?? null;
+    }
     if (this.sql.includes("SELECT estimate.id")) {
       return { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: WORKSPACE_ID } as R;
     }
@@ -63,11 +68,12 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
       return {
         id: PARENT_NODE_ID,
         estimate_id: ESTIMATE_ID,
-        estimate_tab_id: null,
+        estimate_tab_id: this.database.parentTabId,
         parent_id: null,
-        kind: "group",
+        kind: this.database.parentKind,
         name: "Target",
         sort_order: 0,
+        updated_at: "2026-07-14T00:00:00.000Z",
       } as R;
     }
     if (this.sql.includes("FROM estimate_sheet_events") && this.sql.includes("correlation_id")) return null;
@@ -76,49 +82,19 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
 
   async all<R = T>(): Promise<D1Result<R>> {
     if (this.sql.includes("FROM estimate_templates")) {
-      return { success: true, results: [{ id: TEMPLATE_ID, workspace_id: WORKSPACE_ID }] as R[] };
+      this.database.sourceReadCount += 1;
+      return {
+        success: true,
+        results: [{ id: TEMPLATE_ID, workspace_id: WORKSPACE_ID, updated_at: "2026-07-14T00:00:00.000Z" }] as R[],
+      };
     }
     if (this.sql.includes("FROM estimate_template_nodes")) {
-      return {
-        success: true,
-        results: [{
-          id: TEMPLATE_NODE_ID,
-          template_id: TEMPLATE_ID,
-          parent_id: null,
-          kind: "area",
-          name: "Living",
-          sort_order: 0,
-          metadata: "{}",
-        }] as R[],
-      };
+      this.database.sourceReadCount += 1;
+      return { success: true, results: this.database.templateNodes as R[] };
     }
     if (this.sql.includes("FROM estimate_template_row_items")) {
-      return {
-        success: true,
-        results: [{
-          id: TEMPLATE_ROW_ID,
-          template_id: TEMPLATE_ID,
-          template_node_id: TEMPLATE_NODE_ID,
-          sort_order: 0,
-          source_library_item_id: COMPONENT_ID,
-          source_snapshot: JSON.stringify({ priceOptionId: PRICE_OPTION_ID, priceOptionLabel: "Saved" }),
-          category_node_id: "saved-category",
-          supplier_id: "saved-supplier",
-          material: "Saved material",
-          description: "Saved description",
-          supplier: "Saved supplier",
-          unit: "saved-unit",
-          quantity: 2,
-          unit_cost: 100,
-          misc_cost: 5,
-          contingency_percentage: 0,
-          adjustment_percentage: 10,
-          discipline: "Architectural",
-          designation: "Furniture",
-          link_state: "linked-clean",
-          metadata: "{}",
-        }] as R[],
-      };
+      this.database.sourceReadCount += 1;
+      return { success: true, results: this.database.templateRows as R[] };
     }
     if (this.sql.includes("FROM cost_library_items")) {
       return {
@@ -173,6 +149,9 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
       return {
         success: true,
         results: [{
+          id: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+          workspace_id: WORKSPACE_ID,
+          item_id: COMPONENT_ID,
           price_option_id: PRICE_OPTION_ID,
           unit_cost: 300,
           misc_cost: 30,
@@ -180,6 +159,7 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
           pricing_source: "Current cost entry",
           pricing_date: "2026-07-14",
           source_url: "https://example.test/current",
+          updated_at: "2026-07-14T00:00:00.000Z",
         }] as R[],
       };
     }
@@ -193,6 +173,50 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
 
 class TemplateInsertDatabase implements D1DatabaseLike {
   readonly batches: FakeStatement[][] = [];
+  sourceReadCount = 0;
+  readonly receipts = new Map<string, {
+    actor_user_id: string;
+    request_fingerprint: string;
+    result_json: string;
+    status: string;
+  }>();
+  parentKind = "group";
+  parentTabId: string | null = TARGET_TAB_ID;
+  templateNodes = [{
+    id: TEMPLATE_NODE_ID,
+    template_id: TEMPLATE_ID,
+    parent_id: null,
+    kind: "area",
+    name: "Living",
+    sort_order: 0,
+    metadata: "{}",
+    updated_at: "2026-07-14T00:00:00.000Z",
+  }];
+  templateRows = [{
+    id: TEMPLATE_ROW_ID,
+    template_id: TEMPLATE_ID,
+    template_node_id: TEMPLATE_NODE_ID,
+    sort_order: 0,
+    source_library_item_id: COMPONENT_ID,
+    source_snapshot: JSON.stringify({ priceOptionId: PRICE_OPTION_ID, priceOptionLabel: "Saved" }),
+    pricing_provenance_origin: "inherited_snapshot",
+    category_node_id: "saved-category",
+    supplier_id: "saved-supplier",
+    material: "Saved material",
+    description: "Saved description",
+    supplier: "Saved supplier",
+    unit: "saved-unit",
+    quantity: 2,
+    unit_cost: 100,
+    misc_cost: 5,
+    contingency_percentage: 0,
+    adjustment_percentage: 10,
+    discipline: "Architectural",
+    designation: "Furniture",
+    link_state: "linked-clean",
+    metadata: "{}",
+    updated_at: "2026-07-14T00:00:00.000Z",
+  }];
 
   constructor(readonly lifecycleState: string) {}
 
@@ -201,12 +225,26 @@ class TemplateInsertDatabase implements D1DatabaseLike {
   }
 
   async batch<T = Record<string, unknown>>(statements: D1PreparedStatementLike<T>[]) {
-    this.batches.push(statements as FakeStatement[]);
+    const fakeStatements = statements as FakeStatement[];
+    this.batches.push(fakeStatements);
+    for (const statement of fakeStatements) {
+      if (!statement.sql.includes("INSERT INTO estimate_mutation_receipts")) continue;
+      this.receipts.set(`${String(statement.values[2])}:${String(statement.values[3])}`, {
+        actor_user_id: String(statement.values[4]),
+        request_fingerprint: String(statement.values[7]),
+        result_json: String(statement.values[8]),
+        status: "committed",
+      });
+    }
     return statements.map(() => ({ success: true }));
   }
 }
 
-function insert(client: EstimateActionsD1Client, unavailableSourcePolicy?: "cancel" | "use_saved_snapshot_unlinked") {
+function insert(
+  client: EstimateActionsD1Client,
+  unavailableSourcePolicy?: "cancel" | "use_saved_snapshot_unlinked",
+  overrides: Record<string, unknown> = {},
+) {
   return client.call("insert_estimate_template_into_estimate_with_history", {
     target_project_id: PROJECT_ID,
     target_estimate_id: ESTIMATE_ID,
@@ -214,7 +252,8 @@ function insert(client: EstimateActionsD1Client, unavailableSourcePolicy?: "canc
     source_template_id: TEMPLATE_ID,
     unavailable_source_policy: unavailableSourcePolicy,
     acting_user_id: currentUser().userId,
-    correlation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    correlation_id: INSERT_INTENT_ID,
+    ...overrides,
   });
 }
 
@@ -224,8 +263,18 @@ describe("trusted estimate template insertion", () => {
     const result = await insert(new EstimateActionsD1Client(database, currentUser()));
 
     expect(result.error).toBeNull();
-    expect(result.data).toMatchObject({ status: "inserted", insertedRootNodeIds: [expect.any(String)] });
+    expect(result.data).toMatchObject({
+      status: "inserted",
+      insertedRootNodeIds: [expect.any(String)],
+      estimateTabId: TARGET_TAB_ID,
+      statementCount: 7,
+    });
     expect(database.batches).toHaveLength(1);
+    expect(database.batches[0]).toHaveLength(7);
+    expect(database.batches[0][0]?.sql).toContain("estimate_template_copy_source_guard");
+    expect(database.batches[0].some((statement) => statement.sql.includes("publication_source_revision"))).toBe(true);
+    expect(database.batches[0].some((statement) => statement.sql.includes("INSERT INTO activity_event_outbox"))).toBe(true);
+    expect(database.batches[0].some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
     const nodeInsert = database.batches[0].find((statement) => statement.sql.startsWith("INSERT INTO estimate_nodes"));
     const rowInsert = database.batches[0].find((statement) => statement.sql.startsWith("INSERT INTO estimate_row_items"));
     expect(nodeInsert).toBeDefined();
@@ -246,6 +295,8 @@ describe("trusted estimate template insertion", () => {
       unit_cost: 300,
       misc_cost: 30,
       link_state: "linked-clean",
+      row_revision: 1,
+      pricing_provenance_origin: "inherited_snapshot",
     });
     expect(JSON.parse(String(rowRecord.source_snapshot_json))).toMatchObject({
       sourceLibraryItemId: COMPONENT_ID,
@@ -301,5 +352,74 @@ describe("trusted estimate template insertion", () => {
       templateSourceResolution: "saved_snapshot_unlinked",
       templateSourceUnavailableReason: "component_archived",
     });
+  });
+
+  it("replays the same committed intent without source reads or another batch", async () => {
+    const database = new TemplateInsertDatabase("available");
+    const client = new EstimateActionsD1Client(database, currentUser());
+
+    const first = await insert(client);
+    const sourceReadCount = database.sourceReadCount;
+    const replay = await insert(client);
+
+    expect(replay.data).toEqual(first.data);
+    expect(database.batches).toHaveLength(1);
+    expect(database.sourceReadCount).toBe(sourceReadCount);
+  });
+
+  it("uses a fresh destination id for a new intent", async () => {
+    const database = new TemplateInsertDatabase("available");
+    const client = new EstimateActionsD1Client(database, currentUser());
+
+    const first = await insert(client);
+    const second = await insert(client, undefined, { correlation_id: "dededede-dede-4ede-8ede-dededededede" });
+
+    expect(database.batches).toHaveLength(2);
+    expect((second.data as { insertedRootNodeIds: string[] }).insertedRootNodeIds)
+      .not.toEqual((first.data as { insertedRootNodeIds: string[] }).insertedRootNodeIds);
+  });
+
+  it("accepts any selected estimate node as the destination parent", async () => {
+    const database = new TemplateInsertDatabase("available");
+    database.parentKind = "area";
+
+    const result = await insert(new EstimateActionsD1Client(database, currentUser()));
+
+    expect(result.error).toBeNull();
+    expect(result.data).toMatchObject({ status: "inserted" });
+    expect(database.batches).toHaveLength(1);
+  });
+
+  it("rejects a caller tab mismatch with zero writes", async () => {
+    const database = new TemplateInsertDatabase("available");
+
+    const result = await insert(new EstimateActionsD1Client(database, currentUser()), undefined, {
+      target_tab_id: "efefefef-efef-4fef-8fef-efefefefefef",
+    });
+
+    expect(result.error?.message).toContain("Template insert target tab does not match the selected estimate node.");
+    expect(database.batches).toHaveLength(0);
+  });
+
+  it("rejects an over-1000-statement selection without chunking or writes", async () => {
+    const database = new TemplateInsertDatabase("available");
+    database.templateNodes = Array.from({ length: 996 }, (_, index) => ({
+      id: `01000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+      template_id: TEMPLATE_ID,
+      parent_id: null,
+      kind: "area",
+      name: `Template node ${index}`,
+      sort_order: index,
+      metadata: "{}",
+      updated_at: "2026-07-14T00:00:00.000Z",
+    }));
+    database.templateRows = [];
+
+    const result = await insert(new EstimateActionsD1Client(database, currentUser()));
+
+    expect(result.error).toMatchObject({
+      message: expect.stringContaining("selection_too_large"),
+    });
+    expect(database.batches).toHaveLength(0);
   });
 });

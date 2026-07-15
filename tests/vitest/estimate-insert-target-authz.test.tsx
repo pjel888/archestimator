@@ -194,6 +194,7 @@ describe("library estimate insert-target authorization", () => {
         estimateId: ESTIMATE_ID,
         targetParentNodeId: TARGET_PARENT_NODE_ID,
         templateId: TEMPLATE_ID,
+        intentId: "77777777-7777-4777-8777-777777777777",
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
@@ -213,6 +214,7 @@ describe("library estimate insert-target authorization", () => {
         targetParentNodeId: TARGET_PARENT_NODE_ID,
         templateId: TEMPLATE_ID,
         templateNodeId: TEMPLATE_NODE_ID,
+        intentId: "88888888-8888-4888-8888-888888888888",
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
