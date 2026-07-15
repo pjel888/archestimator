@@ -1,6 +1,6 @@
 # Estimate Sheet MVP Traceability And Evidence Model
 
-**Current decision:** the remediation plan is implementation-ready, implementation has not started, behavior is not evaluated, the objective is not achieved, and release is not ready. Every criterion below is `FAIL` until its named evidence is collected after implementation. A manifest `READY` unit is fully authored; dependency eligibility is tracked separately in `IMPLEMENTATION_TRACKER.md`.
+**Current decision:** the remediation plan is implementation-ready and active. `UNIT-004` is the last verified unit, `UNIT-005` is the exact continuation, behavior is not yet verified end to end, the objective is not achieved, and release is not ready. Every criterion below remains `FAIL` until its complete named evidence is reconciled; partial unit receipts live in `IMPLEMENTATION_TRACKER.md` and do not manufacture criterion PASS.
 
 ## Status Vocabulary
 
@@ -63,7 +63,7 @@ All criteria start `FAIL`. The named evidence and any linked `TEST_TASK` must ex
 
 | Criterion | Pass condition | Decisive evidence | Test decision | Current result |
 | --- | --- | --- | --- | --- |
-| `AC-001` | Inventory, trace, tracker, and manifest have one current owner and no orphan ID or stale authority. | route/source inventory, path checks, tracker/manifest validation | `NOT_REQUIRED` | `FAIL` — implementation baseline not frozen. |
+| `AC-001` | Inventory, trace, tracker, and manifest have one current owner and no orphan ID or stale authority. | route/source inventory, path checks, tracker/manifest validation | `NOT_REQUIRED` | `FAIL` — baseline is frozen, but final inventory and terminal reconciliation remain open. |
 | `AC-002` | Area/tree CRUD, DnD, delete/restore, and route fallback reject invalid topology and reconcile authoritative state. | D1 topology/history/read-back | `TEST_TASK` — `TEST-001`, `TEST-007` | `FAIL` |
 | `AC-003` | Tab CRUD/duplicate/reorder and shell preserve deep topology, selection, order, and partial-tree meaning. | deep-tree read-back and route proof | `TEST_TASK` — `TEST-001`, `TEST-007` | `FAIL` |
 | `AC-004` | Row CRUD, duplicate, move, replace, delete/restore, and keyboard commits are revision-safe, replay-safe, history-complete, snapshot-valid, and authoritative. | D1 receipts, latch/intent state, read-back | `TEST_TASK` — `TEST-001`, `TEST-002`, `TEST-007` | `FAIL` |
@@ -147,15 +147,16 @@ These records prove plan readiness only. `EVID-007` and `EVID-008` prove observe
 ## Release And Resume Decision
 
 - Package: `IMPLEMENTATION_READY`
-- Implementation: `NOT_STARTED`
+- Implementation: `IN_PROGRESS`
 - Behavior: `NOT_EVALUATED`
 - Objective: `NOT_ACHIEVED`
 - Release: `NOT_READY`
 - Lifecycle: `ACTIVE`
 - Terminal: `ACTIVE`
-- Exact next unit: `UNIT-001`
-- Ready slice: all eleven fully authored units; only `UNIT-001` is dependency-eligible now, `UNIT-011` is the required test/performance gate, and `UNIT-008` is final reconciliation
-- Required tests: `TEST-001` through `TEST-008`, all `PLANNED`
+- Last verified unit: `UNIT-004`
+- Exact next unit: `UNIT-005`
+- Ready slice: all eleven units are fully authored; `UNIT-005` is active, `UNIT-006` is dependency-eligible but queued, `UNIT-011` remains the required test/performance gate, and `UNIT-008` remains final reconciliation
+- Required tests: current partial/pass receipts are recorded in `IMPLEMENTATION_TRACKER.md`; the integrated `UNIT-011` sequence remains mandatory
 - Current blocker: none; all missing implementation, testing, and proof is repository-controlled planned work
 
-If source changes before `UNIT-001` freezes a baseline, mark the affected source/evidence stale and refresh the smallest impacted requirement/unit mapping. Never preserve a PASS by updating only a hash.
+If source changes after a unit receipt, mark only the affected source/evidence stale and reopen the smallest impacted requirement/unit mapping. Never preserve a PASS by updating only a hash.

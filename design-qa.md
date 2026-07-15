@@ -786,3 +786,45 @@ final result: passed
 ## Final Result
 
 source-verified; visual recheck not run
+
+## 2026-07-15 Components library production-core follow-up
+
+source visual truth path:
+- `/Users/philiplewis/Documents/archestimator/.ai/02_audits/2026-07-15-component-library-production-audit/13-estimate-sidebar-add-reference.png`
+
+implementation screenshot path:
+- `/Users/philiplewis/Documents/archestimator/.ai/02_audits/2026-07-15-component-library-production-audit/12-final-components-followup.png`
+
+viewport:
+- 1280 × 720 CSS px for both screenshots.
+
+state:
+- Components route in Cards mode with no dialog, active selection, search, or filter panel.
+- Estimate reference route showing the existing right-sidebar light-orange Add treatment.
+
+combined comparison evidence:
+- Reference and implementation screenshots were supplied together in one visual comparison input.
+- Add component and Add folder both measure 24 × 24 and match the existing pale-orange fill, orange icon, compact radius, and toolbar density.
+- The Components page preserves the product's existing white/paper surfaces, hairline borders, compact typography, pane proportions, and orange active-tab accent.
+- The catalogue card uses the real component image, square crop, folder/category context, supplier/brand hierarchy, cost/unit, source, and pricing-date state without a broken asset.
+- One loaded component leaves deliberate grid whitespace; additional components fill the responsive grid without changing the card contract.
+
+primary interactions tested:
+- Add component open, Name focus, close, and focus return.
+- Add folder open, Folder name focus, Cancel, and focus return.
+- Search no-match and clear recovery.
+- Filter open/close and Cards/Dense switching.
+- Inspector open/close and focus return.
+- Select component, archive preview, cancel, and clear selection without executing a mutation.
+
+runtime evidence:
+- Clean reload: zero new console errors or warnings.
+- Broken images: zero.
+- First catalogue image: `loading="eager"`.
+- Folder rows: one visible, zero folder checkboxes.
+
+findings:
+- No actionable P0, P1, or P2 visual or core-interaction finding remains for this follow-up.
+- Enterprise-global query, archive restore, import/export, purge governance, legacy image backfill, and hosted scale proof remain explicit product-programme follow-ups.
+
+final result: passed

@@ -2,14 +2,16 @@
 
 **Canonical route:** `/workshop/projects/[projectId]/estimates/[nodeId]`
 **Package posture:** implementation-ready remediation plan, compiled and re-audited against `Create-Implementation-Prompt.md`
-**Implementation status:** `NOT_STARTED` for the refreshed remediation DAG
+**Implementation status:** `IN_PROGRESS`
 **Behavior status:** `NOT_EVALUATED`
 **Objective status:** `NOT_ACHIEVED`
 **Release status:** `NOT_READY`
-**Browser/visual proof:** `PLANNING_BASELINE_ONLY` — Area rename and Templates source-filter states were inspected read-only; implementation proof remains open
+**Browser/visual proof:** `PARTIAL` — verified unit receipts exist through `UNIT-004`; the integrated `TEST-007` route gate remains open
 **Local/preview/hosted Cloudflare proof:** `NOT_EVALUATED`
 **Implementation test authorization:** `TEST_TASK` — focused deterministic, D1, integration, browser, and performance tests are required by `UNIT-011`
-**Exact next unit:** `UNIT-001`
+**Last verified unit:** `UNIT-004`
+**Exact next unit:** `UNIT-005`
+**Current execution authority:** `IMPLEMENTATION_TRACKER.md`
 
 ## Outcome
 
@@ -31,26 +33,21 @@ The prior manifest said implementation was complete and marked every criterion P
 - recent user-reported incidents exposed Enter-key behavior, variant-name editing/loading, permanent component deletion, a D1 `source_snapshot_json` NOT NULL failure, and missing duplicate-row behavior; and
 - current source review found additional move, restore, upload, R2 image, promotion, template-copy, tab-copy, and publication-parity risks.
 
-The refreshed plan treats current dirty fixes as `FIX_PRESENT_UNVERIFIED`, not as completed work.
+At reopening, the refreshed plan treated dirty fixes as `FIX_PRESENT_UNVERIFIED`, not as completed work. Current implementation truth now comes from the unit receipts in `IMPLEMENTATION_TRACKER.md`; historical reopening language does not override that tracker.
 
 The current core register contains **7 P0 mission-critical findings, 15 P1 important findings, and 2 P2 non-mission-critical cleanup/quality findings**. Every `F-001` through `F-024` has a corrected premise, failure simulation, blast radius, selected resolution, and required evidence. Artifact `12` preserves all ten absorbed Template findings (`TPL-F-001` through `TPL-F-010`). Artifact `13` adds nine UI/readiness findings (`UI-F-001` through `UI-F-009`). Artifact `14` adds twelve performance/persistence readiness findings (`PP-F-001` through `PP-F-012`), including six mission-critical replay/atomicity gaps that must be fixed before objective completion.
 
-## Current Highest-Risk Findings
+## Current Highest-Risk Remaining Work
 
 | Priority | Finding | Required unit |
 | --- | --- | --- |
-| `P0` | Row move and restore do not prove the target node belongs to the same estimate/tab inside the atomic D1 boundary. | `UNIT-002` |
-| `P0` | Permanent component delete follows the requested destructive contract but lacks per-estimate/template audit history and an explicit bounded interactive ceiling. | `UNIT-004` |
 | `P0` | Project image deletion can remove referenced R2 objects; component image deletion has a separate save-versus-delete race. | `UNIT-006` |
 | `P0` | Upload session, asset, and event metadata can partially commit. | `UNIT-006` |
 | `P0` | Legacy and Client Portal publication do not share one authoring/privacy projection, consistency-fence, and deterministic semantic-identity contract. | `UNIT-007` |
-| `P0` | Event/history correlation is not durable command idempotency; row duplicate, Template insertion/composition, and permanent component delete can replay or commit across unsafe boundaries. | `UNIT-010`, then owning mutation units |
-| `P1` | Duplicate row, replace, promotion, tab duplication, template/Project insertion, and folder topology have race, ordering, or idempotency gaps. | `UNIT-002`–`UNIT-005` |
-| `P1` | Variant-name, Enter-to-save, and the NOT NULL incident are source-fixed but unverified; duplicate-row is partial. | `UNIT-001` onward |
-| `P1` | Cross-surface insertion events remain ambient: target estimate/tab, acknowledgement, and intent identity are incomplete. | `UNIT-003`, `UNIT-005` |
-| `P1` | Area/tab/folder/group/Template rename states use inconsistent fills, focus, selection, commit, and render scope; one Area draft can invalidate all visible tree rows. | `UNIT-003`, `UNIT-004`, `UNIT-009` |
-| `P2` | The Templates source-family filter is a full-width boxed field with inconsistent project-source vocabulary and no explicit local/no-fetch interaction contract. | `UNIT-005`, `UNIT-009` |
+| `P1` | Template/Project insertion still needs target-derived topology, retained-intent replay, hard statement-ceiling enforcement, and authoritative subtree reconciliation. | `UNIT-005` |
 | `P2` | Saving an Estimate node/tab as a Template still pre-commits the Template header before the node/row batch and relies on compensating deletion. | `UNIT-009` |
+| `P2` | Template rename/menu/filter behavior and production fallback truth still need the integrated lifecycle pass. | `UNIT-009` |
+| `P1` | Whole-route render, request, remount, D1 round-trip, retry, and adversarial behavior still require the final measured gate. | `UNIT-011` |
 
 See `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` for the complete ranked register and `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` for corrected premises, failure simulations, alternatives, and selected fixes.
 
@@ -116,19 +113,20 @@ The folder is intentionally not renamed during concurrent work. No tracked inbou
 
 ## Evidence Boundary
 
-Current readiness evidence is planning/source-level with one read-only browser baseline:
+Current evidence combines the frozen planning/source baseline with verified implementation receipts through `UNIT-004`:
 
 - route/component/action source;
 - D1 migrations and action transport;
 - `wrangler.jsonc` bindings;
-- current dirty worktree diff; and
+- current scoped worktree diff;
 - user-reported runtime incidents from the live Estimate Sheet;
 - the fully read Component Templates audit, reclassified through artifact `12` because its legacy manifest does not satisfy the current canonical validator; and
 - a read-only in-app browser baseline of active Area rename and the Templates source-family trigger/menu, plus the current source styles and render boundaries consolidated in artifact `13`.
 - current-source hot-path, persistence-boundary, query/cache, and historical lean-performance analysis consolidated in artifact `14`; and
-- an implementation tracker that distinguishes authored, dependency-eligible, implemented, behavior-verified, objective-complete, and release-ready states.
+- an implementation tracker that records verified row, tab/tree, component lifecycle, permanent-delete, replay, cache, and focused-test receipts through `UNIT-004`; and
+- an exact continuation at `UNIT-005`, while whole-route behavior, provider, publication, and final release evidence remain open.
 
-The browser baseline proves only the observed current visual states. No claim in this refresh means the remediated interaction works, that all failure/performance paths pass, or that the action works against local Miniflare D1, Cloudflare preview, hosted `ARCH_DB`/`ARCH_UPLOADS_R2`, or the public share route. Those separate evidence levels are mandatory implementation work under artifacts `10`, `13`, and `14`.
+The completed unit receipts prove only their named slices. They do not prove the full Estimate Sheet objective, every failure/performance path, Cloudflare preview/hosted `ARCH_DB`/`ARCH_UPLOADS_R2`, or public-share parity. Those evidence levels remain mandatory under artifacts `10`, `13`, and `14`.
 
 ## Stop Condition
 

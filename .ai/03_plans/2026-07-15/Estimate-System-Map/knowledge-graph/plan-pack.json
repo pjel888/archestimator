@@ -1,0 +1,739 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-15-estimate-system-wiki-knowledge-graph",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "IN_PROGRESS",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "baseline": {
+    "head": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "ab3883a216ca6089ba8476ab0dbc85768d0c6e67c88a67463985153fafc74e86"
+    },
+    {
+      "id": "ART-002",
+      "role": "research",
+      "path": "RESEARCH.md",
+      "sha256": "83f281144f27aba12cb6d4b1e0b7f589cc338118b2afe6fac1cc48965b9db6c6"
+    },
+    {
+      "id": "ART-003",
+      "role": "traceability",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "c96c8f9d0a06874931e1052b8882d1303faca73117c1d57db6feb0860431344a"
+    },
+    {
+      "id": "ART-004",
+      "role": "evidence",
+      "path": "IMPLEMENTATION_EVIDENCE.md",
+      "sha256": "292aaa422fac996ce4f211189ac5835d030eec1bea84b95976649f7aae3aeac6"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "RESEARCH.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "LOOP_LEDGER.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Preserve Product, Features, Pages, and UX with Product as default, and add a separate fifth Knowledge view.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Define a typed source-grounded ontology for stages, entities, relationships, operations, effects, statuses, sources, layout, and verification freshness.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Classify every explicitly enumerated in-scope current estimate CRUD and lifecycle operation or label it partial, legacy, boundary, or not applicable.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Explain each operation's direct, derived, fan-out, unchanged, timing, guard, recovery, and snapshot effects in plain language.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Provide a deterministic read-only infinite canvas with pan, zoom, fit, reset, search, focus, and progressive relationship disclosure.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Provide human-readable wiki detail answering what an entity is, where it appears, what can be done, what changes, what stays unchanged, and what proves the claim.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Provide a keyboard-usable semantic linear equivalent and compact layout that does not rely on spatial position, hover, connector shape, or color.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Keep claims freshness-aware and close only after explicit coverage and requirement-to-evidence audits pass.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "statement": "The typed model or operation inventory can imply causality not supported by current source.",
+      "artifact_path": "RESEARCH.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "statement": "Shared-definition, placed-instance, materialized-copy, and immutable-snapshot effects can be conflated.",
+      "artifact_path": "RESEARCH.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "statement": "An everything-at-once canvas can recreate the prior overloaded technical map or become inaccessible.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "statement": "Stale graph evidence or shared-worktree noise can be mistaken for verified current product truth.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Typed source loading, scoped static analysis, source review, diff evidence, and plan validators are decisive for this documentation contract.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Typed source loading, scoped static analysis, source review, diff evidence, and plan validators are decisive for this documentation contract.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Typed source loading, scoped static analysis, source review, diff evidence, and plan validators are decisive for this documentation contract.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Typed source loading, scoped static analysis, source review, diff evidence, and plan validators are decisive for this documentation contract.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly invoked UltraQA for the current Knowledge-view goal; focused local interaction, accessibility, responsive-layout, and console proof is authorized.",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Typed source loading, scoped static analysis, source review, diff evidence, and plan validators are decisive for this documentation contract.",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly invoked UltraQA for the current Knowledge-view goal; focused local interaction, accessibility, responsive-layout, and console proof is authorized.",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Typed source loading, scoped static analysis, source review, diff evidence, and plan validators are decisive for this documentation contract.",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "criterion_ids": [
+        "AC-005",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-COMPLETION-001",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "goal": "Implement the typed ontology, integrity validation, deterministic source registry, and explicit operation inventory.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "goal": "Model estimate structure, row CRUD, totals, history, and read-model effects.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "goal": "Model component, variant, template, attachment, materialization, localization, promotion, and shared fan-out effects.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "goal": "Model live authoring, legacy snapshot, immutable Client Portal issue, review, discussion, decision, and supersession boundaries.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "VERIFIED",
+      "goal": "Implement the human-readable Knowledge index, search, presets, inspector, effects, unchanged surfaces, guards, and sources.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "VERIFIED",
+      "goal": "Implement the deterministic SVG infinite canvas and D3 pan, zoom, fit, reset, and focus controls.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "VERIFIED",
+      "goal": "Implement semantic linear equivalence, keyboard behavior, compact layout, and cross-navigation.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "IN_PROGRESS",
+      "goal": "Collect static, browser, review, impact, coverage, and validator evidence and close only when every criterion passes.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "decision": "Keep the achieved parent UX Brain pack unchanged and execute the expanded canvas/CRUD objective as this nested successor pack.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "decision": "Treat current source as product truth; use GitNexus only for discovery and impact because the local index was two commits behind.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-008",
+        "UNIT-001",
+        "UNIT-008"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "artifact_path": "RESEARCH.md",
+      "sha256": "83f281144f27aba12cb6d4b1e0b7f589cc338118b2afe6fac1cc48965b9db6c6",
+      "claim_ids": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-008"
+      ],
+      "status": "PASS",
+      "source_revision": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805+knowledge-graph-research-2026-07-15",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "ab3883a216ca6089ba8476ab0dbc85768d0c6e67c88a67463985153fafc74e86",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "status": "PASS",
+      "source_revision": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805+knowledge-graph-plan-2026-07-15",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "artifact_path": "IMPLEMENTATION_EVIDENCE.md",
+      "sha256": "292aaa422fac996ce4f211189ac5835d030eec1bea84b95976649f7aae3aeac6",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "TEST-001",
+        "GATE-COMPLETION-001"
+      ],
+      "status": "PASS",
+      "source_revision": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805+knowledge-graph-evidence-2026-07-15",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ]
+    }
+  ],
+  "stale_triggers": [
+    "estimate-row-component-variant-or-template-mutation-contract-change",
+    "legacy-publication-or-client-portal-snapshot-contract-change",
+    "admin-estimate-system-documentation-model-or-route-change",
+    "planning-suite-or-plan-pack-validator-change",
+    "scoped-working-tree-drift"
+  ],
+  "next_unit": "UNIT-008",
+  "updated_at": "2026-07-15T10:06:22.000Z",
+  "manifest_sha256": "c913b9669759bec37db0ee469fe6ffd3388ef43d9687d40e84d656c5cd86d813"
+}

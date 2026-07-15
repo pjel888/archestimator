@@ -438,3 +438,195 @@ Do not edit or delete earlier entries. Add a new entry for every implementation/
 `IMPLEMENTATION = NOT_STARTED`
 `TEST_AUTHORITY = TEST_TASK`
 `STOP = only after all eleven core units verify, all twenty core criteria pass, TEST-001 through TEST-008 pass, every MUT-* and PERF-S* row is terminal, implementation is COMPLETE, behavior is VERIFIED, objective is ACHIEVED, and release is set truthfully from provider/public evidence`
+
+## 2026-07-15 — UNIT-001 Fresh Baseline And Incident Verification
+
+**Status:** `VERIFIED`
+**Mode:** local source, D1, route, action-inventory, performance-contract, and publication-writer baseline
+**Observed at:** `2026-07-15T08:37:05Z`
+
+### Baseline receipt
+
+- source `HEAD`: `43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805`;
+- pre-execution scoped status and diff were empty, both SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
+- canonical action inventory is complete and unique at `135` rows: `22 L + 50 C + 44 R + 19 S`;
+- provider bindings remain `ARCH_DB`, `ARCH_UPLOADS_R2`, `IMAGES`, `EMAIL`, `COLLAB_ROOMS`, `GLOBAL_PRESENCE`, `SUPPORT_INBOX`, `UPLOAD_JOBS_QUEUE`, and `CLIENT_PORTAL_NOTIFICATIONS_QUEUE`;
+- the local D1 was five migrations behind and reproduced the fresh route failure `D1_ERROR: no such table: project_component_attachment_retention_holds`; existing migrations `0075` through `0079` were applied locally, after which `wrangler d1 migrations list ARCH_DB --local` reported no pending migrations;
+- thirteen read-only integrity checks returned zero invalid row snapshots, revision-floor violations, source/link coupling violations, cross-estimate topology defects, invalid Template snapshots, invalid attachment ownership, missing finalized storage, orphan publications, or missing Template nodes; and
+- the exact canonical Estimate route reloaded after migration repair with the workshop tree, Estimate Sheet, right sidebar, active-variant editor, and duplicate-row controls rendered and no new page or console error.
+
+### Incident and owner-state receipt
+
+- active-variant rename, Enter-to-save, the NOT NULL delete incident, and permanent component delete have source fixes present but remain runtime-unverified by their owning downstream units;
+- duplicate row remains partial because atomic source revision validation, durable intent replay, provenance/order, and history proof are still open;
+- every discoverable route action has exactly one current `L-*`, `C-*`, `R-*`, or `S-*` owner; no duplicate or ownerless action was found; and
+- no product behavior criterion was promoted from this baseline alone.
+
+### Publication writer registry
+
+The issue-visible writers requiring same-batch `projects.publication_source_revision` handling are frozen as: row insert/copy/restore/update/replace/variant/swap/move/reorder/delete; tab and node create/rename/reorder/archive/delete/restore; issue-visible estimate metadata; Library component/variant fan-out and permanent delete; Template insertion; Project-source insertion; and publication-consumed project metadata. Sheet-adjustment writes remain outside the current projector and must be added if that projector begins consuming them. The Project-source path's active-row revision `0` initialization is handed to `UNIT-002`.
+
+### Performance and mutation baseline
+
+- existing thresholds remain tree `150`, estimate rows `75`, master column `80`, and Library components `500`;
+- current strengths include optimistic row-store patches, memoized row/branch rendering, thresholded virtualization, loaded-array filtering, bounded Template summary/detail hydration, D1 batching, and existing targeted indexes;
+- current risks include `refetchOnMount: true`, overlapping shared-edit tree refresh, cold-query create-to-use dependence, recursive visible-tree allocation, missing no-request proof for 1,000-item search, missing 1,500-node/5,000-row route fixture, and missing authoritative D1 round-trip counts; and
+- `MUT-01` through `MUT-12`, `PERF-S01` through `PERF-S12`, and `TEST-001` through `TEST-008` remain open and are not inherited as passing from this unit.
+
+### Execution decision
+
+Migration ownership is corrected to match dependency order: `UNIT-010` creates schema-only `0080_project_publication_source_revision.sql` and `0081_estimate_mutation_receipts.sql`; `UNIT-007` later implements all writer increments and guarded publication commit behavior. This is an ownership correction, not a scope expansion.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-001`
+`ACTIVE = UNIT-010`
+`NEXT = IMPLEMENT_DURABLE_RECEIPTS_AND_CREATE_TO_USE_CACHE_CONTINUITY`
+`STOP = UNIT-010 migration, replay, projection/cache, query-plan, focused-test, and authoritative read-back evidence are complete`
+
+## 2026-07-15 — UNIT-010 Durable Receipt And Create-To-Use Verification
+
+**Status:** `VERIFIED`
+**Mode:** local migration, typed action/cache implementation, focused Vitest, exact-route browser use, local D1 read-back, and scoped static/graph verification
+**Observed at:** `2026-07-15T09:11:26Z`
+
+### Implementation receipt
+
+- added schema-only project publication revision and durable estimate mutation receipt migrations, with one indexed `(workspace_id, command_kind, intent_id)` replay identity, bounded result JSON, workspace ownership, and rollback/drop guidance;
+- added canonical request fingerprints, retained-intent lookup, fingerprint-mismatch zero-write failure, same-batch committed receipts, authoritative replay results, and the inclusive `1000`-statement ceiling without a generic command bus;
+- integrated the first replay-safe command family into component create, retaining one modal intent across identical retries and allocating component/option/cost/attachment IDs only after receipt resolution;
+- added one synchronous cache-convergence owner for full, lite, and rows component datasets, with cancellation of matching in-flight queries and no invalidation/refetch;
+- repaired the existing component stale-write guard so timestamp and version must both match, preserving its prior error contract; and
+- kept publication revision writer increments deferred to `UNIT-007`, as frozen by the dependency graph.
+
+### Verification receipt
+
+- focused Vitest: `5` files and `31` tests passed, covering canonical fingerprints, receipt replay/mismatch, bounds, migration constraints/query plan, real QueryClient convergence, component-create replay, authz fixture compatibility, and stale revision rejection;
+- local D1: migrations current through `0081`; receipt lookup uses the unique index; invalid receipt and negative publication-revision counts are zero;
+- exact route: created a disposable Library component, observed it synchronously in the sidebar, inserted it into the active Estimate without reload or prerequisite refetch, verified component/option/row provenance and revision state in D1, then deleted the component and linked row;
+- cleanup: disposable component count `0`, row count `0`, valid append-only receipt count `1`, invalid receipt count `0`;
+- static/graph: scoped ESLint `0` errors, `git diff --check` clean, and GitNexus reports `14` changed symbols, `3` expected affected processes, and `MEDIUM` aggregate risk; and
+- full repository type-check still reports the unrelated pre-existing `row-table.tsx:252` tooltip-map key error, so no global type-check pass is claimed.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-010`
+`ACTIVE = UNIT-002`
+`ALSO_ELIGIBLE = UNIT-003`
+`NEXT = IMPLEMENT_ROW_MUTATION_INTEGRITY`
+`STOP = UNIT-002 atomicity, revision, replay, provenance, history, cache, focused-test, and read-back evidence are complete`
+
+## 2026-07-15 — UNIT-002 Row Mutation Integrity Verification
+
+**Status:** `VERIFIED`
+**Mode:** forward local D1 migration, row mutation implementation, focused Vitest, exact-route browser duplicate/edit/delete, and static/type verification
+**Observed at:** `2026-07-15T10:32:48Z`
+
+### Implementation receipt
+
+- added `0082_estimate_row_integrity_constraints.sql`, rebuilding `estimate_row_items` with revision-floor, object-JSON, source/link-matrix, and pricing-provenance constraints after zero-defect preflight;
+- made row insert, patch, replace, move, reorder, delete, restore, and bulk paths target/revision guarded with authoritative read-back, history/outbox, receipt, and publication-source statements in the same mutation boundary;
+- replaced duplicate's generic insert branch with a dedicated source-revision-guarded operation that copies the full persisted row contract, assigns revision `1` and authoritative order, and returns one durable replay receipt plus one `row_duplicated` event;
+- retained duplicate row and mutation IDs through ambiguous failure while releasing them after authoritative success or explicit non-commit, and serialized only overlapping row mutations while allowing unrelated rows to proceed;
+- corrected single-line Enter to prevent, stop, blur, and commit; preserved multiline Enter and `Mod+Enter`; and kept Escape as authoritative revert; and
+- reconciled optimistic results from authoritative rows while preserving row/component-variant-scoped loading.
+
+### Verification receipt
+
+- `TEST-001` UNIT-002 command: `3` files / `17` tests passed;
+- `TEST-002` UNIT-002 command: `6` files / `91` tests passed;
+- focused duplicate/keyboard command: `2` files / `48` tests passed;
+- repository type-check passed; scoped ESLint returned `0` errors and `4` known hook/compiler warnings; `git diff --check` passed;
+- migration `0082` was applied alone while preserving concurrently owned `0083`; all four integrity counts and `PRAGMA foreign_key_check` remained zero;
+- exact-route duplicate read-back recorded zero copied-field mismatches, revision `1`, object JSON, one committed receipt, and one `row_duplicated` event;
+- exact-route Enter persisted quantity `26` at revision `2` with one `row_updated` event, then exact-row delete removed the disposable fixture and wrote `row_deleted`; and
+- cleanup left zero fixture rows, one valid append-only duplicate receipt, intact history, and zero foreign-key defects.
+
+### Evidence boundary
+
+- the first browser attempt exposed a stale Turbopack chunk and unhydrated server-rendered controls; a graceful local dev-server restart restored current client code before behavior was judged;
+- full `TEST-001`, `TEST-002`, and `TEST-007` remain nonterminal because `UNIT-003` and `UNIT-011` own their remaining cases; and
+- no `UNIT-003` completion is inferred from existing baseline tree/tab behavior or from concurrently authored migration `0083`, which is component-library browse performance work.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-002`
+`ACTIVE = UNIT-003`
+`NEXT = IMPLEMENT_TAB_TREE_TOPOLOGY_AND_RENAME_ISOLATION`
+`STOP = UNIT-003 topology, retry, route-fallback, stable-rename, render-isolation, focused-test, D1-read-back, and browser evidence are complete`
+
+## 2026-07-15 — UNIT-003 Tab And Tree Integrity Verification
+
+**Status:** `VERIFIED`
+**Mode:** tab/tree D1 hardening, retained-intent replay, rename/render isolation, focused Vitest, exact-route browser proof, local D1 read-back, and scoped static verification
+**Observed at:** `2026-07-15T12:15:44Z`
+
+### Implementation receipt
+
+- added two-pass tab duplication with complete source-parent validation, preallocated node/row IDs, retained intent plus source fingerprint before allocation, deterministic copied order/revision/timestamps, same-batch history/outbox/publication/receipt writes, and authoritative replay;
+- enforced workspace, active-tab, destination, incomplete-tree, and cycle guards across tab and Area CRUD/move/reorder/delete/restore, with authoritative tab refresh on failure and no synthetic parents;
+- versioned and target-scoped external drop payloads, and disabled unsafe drag during search, rename, pending create, permission denial, or incomplete lazy trees;
+- made Area/tab rename geometry and background stable, focused at caret end, deduplicated Enter/blur persistence, kept Escape revert, removed pointer-exit save, and isolated Area draft/status from sibling rows;
+- reconciled reorder races and restore failures from authoritative server state; and
+- fixed copied-tab hydration by restricting server `initialData` to the initial tab so a newly selected copied tab fetches its real tree instead of retaining a fresh empty cache.
+
+### Verification receipt
+
+- `TEST-001`: `3` files / `17` tests passed;
+- `TEST-006`: `6` files / `26` tests passed after replacing the removed production demo-library export with a test-only fixture and restoring required editable-row-store providers;
+- topology/UI regression slice: `11` files / `179` tests passed;
+- repository type-check passed; scoped ESLint returned `0` errors and `3` known unused-fixture warnings; `git diff --check` passed;
+- exact route: copied tab `0955a821-34ee-4c1a-a409-91159bad25ff` hydrated `4` nodes / `5` rows without reload, Area rename preserved `318×28` transparent bounds, pointer exit did not save, Enter persisted `UNIT-003 Area Proof`, and tab delete selected the surviving original route; and
+- local D1 cleanup left the original `5` rows with zero copied nodes/rows, foreign-key defects, or orphan/cross-estimate/self-parent/cross-tab/cycle defects.
+
+### Evidence boundary
+
+- `TEST-007` remains nonterminal for the final UNIT-011 full browser suite even though the applicable UNIT-003 tab/tree/rename scenarios passed;
+- a noncanonical broad fixture-consumer sweep exposed unrelated stale component-library styling and legacy row-action expectations; those tests are not UNIT-003 gates and remain owned by later component/Template test groups; and
+- behavior, objective, release, remaining mutation families, remaining performance scenarios, and provider/public evidence stay nonterminal.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-003`
+`ACTIVE = UNIT-004`
+`ALSO_ELIGIBLE = UNIT-005`
+`NEXT = IMPLEMENT_COMPONENT_VARIANT_LIFECYCLE_AND_BOUNDED_PERMANENT_DELETE`
+`STOP = UNIT-004 component/variant revision, fan-out, rename, delete, attachment, cache, TEST-003, TEST-008, D1, and browser evidence are complete`
+
+## 2026-07-15 — UNIT-004 Component Lifecycle And Shared-Edit Verification
+
+**Status:** `VERIFIED`
+**Mode:** component/variant lifecycle, retained-intent fan-out, bounded permanent delete, promotion/folder recovery, stable rename, focused Vitest, real SQLite atomicity, and scoped static verification
+**Observed at:** `2026-07-15T13:41:38Z`
+
+### Implementation receipt
+
+- completed archive versus typed permanent-delete behavior with an exact dependent-set preview, same-set revalidation, a hard `400`-row interactive ceiling, one atomic component/dependent delete, per-owner audit/outbox records, one durable mass-deletion receipt, and attachment-safe cleanup metadata;
+- added replay-safe component update/fan-out with one retained intent per unchanged payload, request fingerprint mismatch rejection, receipt-before-allocation replay, stable affected row revisions, grouped estimate history/outbox, and one publication-source revision increment per affected project in the same batch;
+- proved injected failure at receipt completion rolls back the component, linked rows, events, outbox, receipt, and project revision together;
+- preserved stable option-ID fan-out and component+variant pending scope, recovered the canonical promotion winner, made folder create/reorder atomic and cycle-safe, and removed the unreachable reduced component editor; and
+- aligned Library folder, project group, and Manage Groups rename with transparent stable geometry, Enter save, Escape cancel, deduplicated blur, and no pointer-exit save.
+
+### Verification receipt
+
+- exact `TEST-003`: `7` files / `27` tests passed;
+- current exact `TEST-008`: `6` files / `32` tests passed for the applicable storage/attachment contract;
+- focused UNIT-004 aggregate: `10` files / `113` tests passed;
+- real in-memory SQLite atomicity: `2` tests passed for commit/replay and injected full rollback;
+- repository type-check passed; `git diff --check` passed; and
+- scoped UNIT-004 ESLint returned `0` errors and `7` known pre-existing warnings.
+
+### Evidence boundary
+
+- the exact component lifecycle, permanent-delete, promotion, folder, rename, replay, and atomicity slices are verified;
+- full upload/image/R2 provider lifecycle remains owned by `UNIT-006`;
+- integrated whole-route browser/performance and final required-group reruns remain owned by `UNIT-011`; and
+- behavior, objective, release, Template/source mutation families, provider, and public projection remain nonterminal.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-004`
+`ACTIVE = UNIT-005`
+`ALSO_ELIGIBLE = UNIT-006`
+`NEXT = IMPLEMENT_REPLAY_SAFE_TEMPLATE_PROJECT_SOURCE_INSERTION_AND_TRANSPARENT_FILTERING`
+`STOP = UNIT-005 target topology, source validation, statement ceiling, retained intent, authoritative subtree, pending scope, filter continuity, TEST-004, and applicable TEST-006/TEST-007 evidence are complete`

@@ -9,9 +9,11 @@
 **Canonical performance/persistence/test contract:** `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md`
 **Canonical execution tracker:** `IMPLEMENTATION_TRACKER.md`
 **Plan status:** `IMPLEMENTATION_READY`
-**Implementation status:** `NOT_STARTED`
+**Implementation status:** `IN_PROGRESS`
 **Release status:** `NOT_READY`
-**Exact next unit:** `UNIT-001`
+**Last verified unit:** `UNIT-004`
+**Exact next unit:** `UNIT-005`
+**Current execution-state authority:** `IMPLEMENTATION_TRACKER.md`
 
 ## Target Result
 
@@ -89,14 +91,14 @@ UNIT-001 through UNIT-007 + UNIT-009 through UNIT-011
 
 ## Unit Index
 
-| Unit | Goal | Depends on | Findings | Status |
+| Unit | Goal | Depends on | Findings | Current state |
 | --- | --- | --- | --- | --- |
-| `UNIT-001` | Freeze current source, dirty-fix, schema, incident, and UX interaction truth. | — | `F-007`, `F-013`–`F-016`, `F-024`, `UI-F-001`–`UI-F-009` | `READY` |
-| `UNIT-010` | Add durable intent receipts and complete create-to-use/cache convergence. | `UNIT-001` | `PP-F-001`–`PP-F-008`, `PP-F-012` | `READY` |
-| `UNIT-002` | Make row CRUD, move, restore, duplicate, replace, and input commits authoritative. | `UNIT-001`, `UNIT-010` | `F-001`, `F-002`, `F-008`, `F-012`, `F-014`–`F-016`, `F-022`, `F-023`, `PP-F-002` | `READY` |
-| `UNIT-003` | Repair tab/tree topology and make Area/tab rename stable and render-isolated. | `UNIT-001`, `UNIT-010` | `F-010`, `F-020`, `UI-F-001`, `UI-F-005`–`UI-F-008` | `READY` |
-| `UNIT-004` | Finish component lifecycle and align Library/project-group rename behavior. | `UNIT-001`, `UNIT-002`, `UNIT-010` | `F-005`, `F-009`, `F-013`, `F-015`, `F-018`, `F-019`, `F-021`, `UI-F-001`, `UI-F-002`, `UI-F-005`, `UI-F-006`, `PP-F-005`, `PP-F-008` | `READY` |
-| `UNIT-005` | Make Template/Project insertion target-correct and streamline source filtering. | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-010` | `F-011`, `F-017`, `F-020`, `UI-F-003`–`UI-F-006`, `UI-F-009`, `PP-F-003` | `READY` |
+| `UNIT-001` | Freeze current source, dirty-fix, schema, incident, and UX interaction truth. | — | `F-007`, `F-013`–`F-016`, `F-024`, `UI-F-001`–`UI-F-009` | `VERIFIED` |
+| `UNIT-010` | Add durable intent receipts and complete create-to-use/cache convergence. | `UNIT-001` | `PP-F-001`–`PP-F-008`, `PP-F-012` | `VERIFIED` |
+| `UNIT-002` | Make row CRUD, move, restore, duplicate, replace, and input commits authoritative. | `UNIT-001`, `UNIT-010` | `F-001`, `F-002`, `F-008`, `F-012`, `F-014`–`F-016`, `F-022`, `F-023`, `PP-F-002` | `VERIFIED` |
+| `UNIT-003` | Repair tab/tree topology and make Area/tab rename stable and render-isolated. | `UNIT-001`, `UNIT-010` | `F-010`, `F-020`, `UI-F-001`, `UI-F-005`–`UI-F-008` | `VERIFIED` |
+| `UNIT-004` | Finish component lifecycle and align Library/project-group rename behavior. | `UNIT-001`, `UNIT-002`, `UNIT-010` | `F-005`, `F-009`, `F-013`, `F-015`, `F-018`, `F-019`, `F-021`, `UI-F-001`, `UI-F-002`, `UI-F-005`, `UI-F-006`, `PP-F-005`, `PP-F-008` | `VERIFIED` |
+| `UNIT-005` | Make Template/Project insertion target-correct and streamline source filtering. | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-010` | `F-011`, `F-017`, `F-020`, `UI-F-003`–`UI-F-006`, `UI-F-009`, `PP-F-003` | `IN_PROGRESS` |
 | `UNIT-006` | Repair D1/R2/Images metadata integrity and collect provider-layer evidence. | `UNIT-001`, `UNIT-004`, `UNIT-010` | `F-003`, `F-004`, `F-024` | `READY` |
 | `UNIT-009` | Harden Template lifecycle plus Template rename, filter, and menu coherence. | `UNIT-001`, `UNIT-004`, `UNIT-005`, `UNIT-010` | `TPL-F-001`, `TPL-F-004`–`TPL-F-009`, `UI-F-001`, `UI-F-003`–`UI-F-005`, `UI-F-009`, `PP-F-004` | `READY` |
 | `UNIT-007` | Align legacy and Client Portal issued projections with authoring. | `UNIT-001`–`UNIT-006`, `UNIT-009`, `UNIT-010` | `F-006`, `PP-F-006` | `READY` |
