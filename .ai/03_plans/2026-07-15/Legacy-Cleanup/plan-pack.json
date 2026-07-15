@@ -5,13 +5,13 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "4f9d3b419e7d761c3f02f8746497129b36e61b1d",
+    "head": "141988a89ea6bf3961c464db97365d26a7ce50f9",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
@@ -21,25 +21,25 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "a62e00644932335779be6d88f21c3a7dc59a8c39632528bf6bb66624ea7c8e3f"
+      "sha256": "46377f66c69a8e091a7fd0bfef81d4725ade220ff9a92d01defa77fbb7b7590b"
     },
     {
       "id": "ART-002",
       "role": "evidence",
       "path": "01-LEGACY-AUDIT.md",
-      "sha256": "a4453a7aa89640a1b722547585f9c4281f2222a6d0d73167d57aa53420917629"
+      "sha256": "210d433ceaed275bfb23117e5602a1adc5a48bb13ac364302f360f1d6f500d55"
     },
     {
       "id": "ART-003",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "c9c12ace940a1f802f2d413457d721848776304c0b8000dc5a4bce74f803f7bb"
+      "sha256": "3c2192b0cd76be78e77d34306110d6fed737b7e33dbff89993585bb2dea59fd2"
     },
     {
       "id": "ART-004",
       "role": "traceability",
       "path": "LOOP_LEDGER.md",
-      "sha256": "b706fc318ee59bed0f1a8d8c82ad13ee91335917dd98a3e3ea065d9635448042"
+      "sha256": "693139965972c765813041c25fc21abcf561b06d8da03acde1fadb9270849e09"
     }
   ],
   "sources": [
@@ -109,7 +109,7 @@
       "id": "REQ-002",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Remove proven obsolete tracked artifacts, scaffold assets, duplicate commands, and superseded provider-era executable capability while preserving the minimal Vercel guard, current Cloudflare and provider-exit truth, historical evidence, provenance-uncertain visuals, and owner assets.",
+      "statement": "Remove the exact obsolete artifact, tooling, and configuration set while preserving owner assets, disabled workflows, historical evidence, current Cloudflare truth, and the minimal Vercel guard.",
       "artifact_path": "LOOP_LEDGER.md",
       "source_ids": [
         "SRC-001",
@@ -149,7 +149,7 @@
       "id": "REQ-004",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Prove external demand before retiring alternate Client Portal APIs or legacy recipient URL aliases.",
+      "statement": "Classify every alternate Client Portal API method and legacy recipient alias from complete evidence, defaulting to retention when proof is incomplete.",
       "artifact_path": "LOOP_LEDGER.md",
       "source_ids": [
         "SRC-001",
@@ -169,7 +169,7 @@
       "id": "REQ-005",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Complete and verify legacy publication cutover before removing migration, rollback, write-freeze, mapping, or schema compatibility.",
+      "statement": "Preserve the active publication migration, rollback, write-freeze, and mapping corridor unless a separately scoped cutover proves it removable.",
       "artifact_path": "LOOP_LEDGER.md",
       "source_ids": [
         "SRC-001",
@@ -179,13 +179,11 @@
       "unit_ids": [
         "UNIT-005",
         "UNIT-007",
-        "UNIT-008",
         "UNIT-010"
       ],
       "criterion_ids": [
         "AC-005",
         "AC-007",
-        "AC-008",
         "AC-010"
       ]
     },
@@ -193,7 +191,7 @@
       "id": "DATA-001",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Normalize auth aliases, legacy blank rows, and historical financial fallback data before deleting compatibility reads.",
+      "statement": "Preserve auth aliases, blank-row and history readers, adjustment fallbacks, and mapping lineage where current or immutable compatibility cannot be safely normalized in this pack.",
       "artifact_path": "LOOP_LEDGER.md",
       "source_ids": [
         "SRC-001",
@@ -213,7 +211,7 @@
       "id": "OPS-001",
       "status": "ACCEPTED",
       "completion_role": "CORE",
-      "statement": "Retain callback normalization until direct provider behavior is proven and an external routing deployment is explicitly authorized.",
+      "statement": "Verify-retain callback normalization and separate future production-domain OAuth proof from future Cloudflare route and deployment mutation.",
       "artifact_path": "LOOP_LEDGER.md",
       "source_ids": [
         "SRC-001",
@@ -267,13 +265,11 @@
       "artifact_path": "01-LEGACY-AUDIT.md",
       "unit_ids": [
         "UNIT-005",
-        "UNIT-007",
-        "UNIT-008"
+        "UNIT-007"
       ],
       "criterion_ids": [
         "AC-005",
-        "AC-007",
-        "AC-008"
+        "AC-007"
       ]
     },
     {
@@ -412,7 +408,7 @@
       "artifact_path": "LOOP_LEDGER.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "A complete dated 30-day route/method receipt plus redacted D1, issued-link, environment, Vercel, and provider readback is decisive; incomplete evidence forces retention.",
+      "test_rationale": "Exact aggregate production and preview D1 queries, a method-contract matrix, and redacted hostname and log-completeness evidence are decisive; unavailable or incomplete proof forces retention without mutation.",
       "requirement_ids": [
         "REQ-004",
         "REQ-005",
@@ -430,7 +426,7 @@
       "artifact_path": "LOOP_LEDGER.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "Demand receipts, route mapping, canonical endpoint coverage, and static reference scans are decisive until testing is requested.",
+      "test_rationale": "Method-level demand completeness, handler-contract equivalence, canonical endpoint coverage, and static reference scans are decisive; the legacy rt alias is retained because D1 lacks historical URL-format provenance.",
       "requirement_ids": [
         "REQ-004"
       ],
@@ -446,7 +442,7 @@
       "artifact_path": "LOOP_LEDGER.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "Per-publication D1 reconciliation plus a complete incident-free 30-day external-demand receipt is decisive for migration and rollback closure.",
+      "test_rationale": "Current source reachability and aggregate D1 evidence are decisive for the fixed retain outcome; no migration, observation campaign, source deletion, or hosted mutation occurs in this cleanup pack.",
       "requirement_ids": [
         "REQ-005"
       ],
@@ -462,9 +458,8 @@
       "artifact_path": "LOOP_LEDGER.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "Exact pre/post mutation counts, environment readbacks, forward-migration inspection, and source/type analysis are decisive for fallback retirement.",
+      "test_rationale": "Current source and immutable-data contracts plus aggregate counts are decisive for retaining auth aliases, blank-row and history readers, adjustment fallbacks, and mapping lineage without mutation.",
       "requirement_ids": [
-        "REQ-005",
         "DATA-001"
       ],
       "test_ids": [],
@@ -475,11 +470,11 @@
     },
     {
       "id": "AC-009",
-      "status": "BOUNDARY",
+      "status": "FAIL",
       "artifact_path": "LOOP_LEDGER.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "Real provider route/callback evidence is decisive for removal; otherwise current-routing proof supports an explicit verified-retained outcome.",
+      "test_rationale": "Current route ownership or incomplete readback is decisive for the fixed verified-retained outcome; future credentialed browser proof and production routing mutation remain separately authorization-bound.",
       "requirement_ids": [
         "OPS-001"
       ],
@@ -487,7 +482,7 @@
       "evidence_ids": [
         "EVID-001"
       ],
-      "authorization_boundary_id": "AUTH-001"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-010",
@@ -543,6 +538,30 @@
         "EVID-003"
       ],
       "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-CALLBACK-PROOF-001",
+      "status": "BOUNDARY",
+      "artifact_path": "LOOP_LEDGER.md",
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "GATE-CALLBACK-DEPLOY-001",
+      "status": "BOUNDARY",
+      "artifact_path": "LOOP_LEDGER.md",
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": "AUTH-002"
     }
   ],
   "units": [
@@ -601,7 +620,9 @@
       "status": "READY",
       "goal": "Repair the active plan index, stale packs, and current architecture and feature authority without losing unresolved obligations or historical provider lineage.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "depends_on": [],
+      "depends_on": [
+        "UNIT-003"
+      ],
       "requirement_ids": [
         "REQ-003"
       ],
@@ -616,13 +637,12 @@
     },
     {
       "id": "UNIT-005",
-      "status": "PLANNED",
-      "goal": "Collect a dated read-only route demand, issued-link, D1, environment, Vercel, data-shape, and provider receipt before any mutation.",
+      "status": "READY",
+      "goal": "Collect one redacted aggregate production and preview D1, method-contract, hostname, and provider-completeness receipt without mutation.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001",
         "UNIT-002",
-        "UNIT-003",
         "UNIT-004"
       ],
       "requirement_ids": [
@@ -642,8 +662,8 @@
     },
     {
       "id": "UNIT-006",
-      "status": "PLANNED",
-      "goal": "Retire alternate public API routes and the legacy recipient query alias only where demand gates pass.",
+      "status": "READY",
+      "goal": "Resolve every alternate public API method independently from complete demand and contract proof while retaining the legacy recipient query alias.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -660,8 +680,8 @@
     },
     {
       "id": "UNIT-007",
-      "status": "PLANNED",
-      "goal": "Complete and verify legacy publication migration, cutover, and rollback closure.",
+      "status": "READY",
+      "goal": "Record an evidence-backed RETAIN outcome for the active legacy publication migration, rollback, write-freeze, and mapping corridor without mutation.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -678,19 +698,17 @@
     },
     {
       "id": "UNIT-008",
-      "status": "PLANNED",
-      "goal": "Execute an exact amended normalization manifest with pre/post proof and retire only specifically enumerated reads or forward-migration schema operations.",
+      "status": "READY",
+      "goal": "Record fixed RETAIN outcomes for auth aliases, blank-row and history compatibility, adjustment fallbacks, and mapping lineage without source, data, secret, issued-content, or schema mutation.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006",
         "UNIT-007"
       ],
       "requirement_ids": [
-        "REQ-005",
         "DATA-001"
       ],
       "risk_ids": [
-        "RISK-003",
         "RISK-004"
       ],
       "evidence_ids": [
@@ -699,8 +717,8 @@
     },
     {
       "id": "UNIT-009",
-      "status": "PLANNED",
-      "goal": "Resolve callback normalization with UNIT-009 verified and an evidence-backed REMOVE or RETAIN decision, never a custom unit status.",
+      "status": "READY",
+      "goal": "Verify-retain callback normalization without browser testing, deployment, route mutation, or source and config deletion.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -717,7 +735,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "PLANNED",
+      "status": "READY",
       "goal": "Run final reference, graph, validator, retained/removed disposition, status, and archive reconciliation.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -757,7 +775,7 @@
     {
       "id": "DEC-AUTO-002",
       "status": "ACTIVE",
-      "decision": "Applied D1 migrations are immutable; compatibility schema retirement uses a new forward migration.",
+      "decision": "Applied D1 migrations are immutable; this pack retains publication mappings and data compatibility and adds no retirement migration.",
       "artifact_path": "README.md",
       "affected_ids": [
         "REQ-005",
@@ -825,14 +843,13 @@
         "REQ-002",
         "AC-003",
         "UNIT-003",
-        "UNIT-005",
         "RISK-007"
       ]
     },
     {
       "id": "DEC-AUTO-008",
       "status": "ACTIVE",
-      "decision": "Delete the seven exact root screenshots approved by the owner on 2026-07-15 while retaining the separate public screenshot until provenance and public-demand evidence support deletion.",
+      "decision": "Delete the seven exact root screenshots approved by the owner on 2026-07-15 while retaining public/Screenshot 2026-05-18 at 9.00.39 PM.png, whose filename contains U+202F before PM.",
       "artifact_path": "README.md",
       "affected_ids": [
         "REQ-002",
@@ -844,7 +861,7 @@
     {
       "id": "DEC-AUTO-009",
       "status": "ACTIVE",
-      "decision": "Keep UNIT-005 read-only and represent every later conditional outcome as a standard VERIFIED unit plus an evidence-backed REMOVE or RETAIN manifest decision.",
+      "decision": "Keep UNIT-005 read-only; incomplete evidence forces RETAIN, and every later unit completes with a standard VERIFIED state plus candidate-level REMOVE or RETAIN decisions.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "affected_ids": [
         "REQ-004",
@@ -873,13 +890,78 @@
     {
       "id": "DEC-AUTO-011",
       "status": "ACTIVE",
-      "decision": "Retain the OAuth callback normalizer after 2026-07-15 read-only Cloudflare readback showed it still fronts production traffic; conditional removal authorization applies only after controlled direct-main-Worker Google OAuth and state-mismatch recovery proof with rollback readiness.",
+      "decision": "Verify-retain the OAuth callback normalizer because it still fronts production traffic; future credentialed real-domain proof and future Cloudflare production routing mutation are separate authorization boundaries outside this cleanup implementation.",
       "artifact_path": "README.md",
       "affected_ids": [
         "OPS-001",
         "AC-009",
         "UNIT-009",
-        "AUTH-001"
+        "AUTH-001",
+        "AUTH-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "decision": "UNIT-003 deletes rather than repoints the Supabase and Postgres performance collector, retains all four Worker crons, removes completed type and provider-test loops after preserving reports, and removes rather than repoints stale allowlist entries into skipped supabase evidence.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-002",
+        "AC-003",
+        "UNIT-003",
+        "RISK-007"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "decision": "UNIT-004 keeps Shared-Link, Workshop-Library-Audit, Estimate-Tree follow-ups, Templates follow-ups, and authentication follow-ups active, repairs their truth, and performs no archive move.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "AC-004",
+        "UNIT-004",
+        "RISK-006"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-014",
+      "status": "ACTIVE",
+      "decision": "Retain the legacy publication migration, rollback, write-freeze, mapping, and applied-migration corridor; a future dedicated cutover pack, not repository cleanup, owns issuance shutdown and hosted transition work.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-005",
+        "AC-007",
+        "UNIT-007",
+        "RISK-003",
+        "RISK-004"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-015",
+      "status": "ACTIVE",
+      "decision": "Retain auth-provider aliases, blank-row and immutable-history readers, adjustment decoder fallbacks, and legacy mapping lineage without source, data, secret, issued-content, or schema mutation.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "AC-008",
+        "UNIT-008",
+        "RISK-004",
+        "RISK-005"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-016",
+      "status": "ACTIVE",
+      "decision": "Resolve each legacy Client Portal route method independently; the legacy session proxy maps to canonical verify, incomplete demand evidence retains the method, and the rt alias is retained because D1 lacks historical URL-format provenance.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-004",
+        "AC-005",
+        "AC-006",
+        "UNIT-005",
+        "UNIT-006",
+        "RISK-002"
       ]
     }
   ],
@@ -887,10 +969,21 @@
     {
       "id": "AUTH-001",
       "status": "ACTIVE",
-      "statement": "The owner conditionally authorizes bounded removal of the live OAuth state-cookie recovery Worker only after controlled direct-main-Worker Google OAuth and state-mismatch recovery proof with rollback readiness; the proof gate remains unsatisfied.",
+      "statement": "A future credentialed production-domain Google OAuth and state-mismatch recovery proof requires explicit browser and real-account testing authorization; it is not authorized by the focused UNIT-001 and UNIT-003 test task.",
       "artifact_path": "README.md",
       "affected_ids": [
-        "AC-009",
+        "GATE-CALLBACK-PROOF-001",
+        "OPS-001",
+        "UNIT-009"
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "status": "ACTIVE",
+      "statement": "Any future Cloudflare production route, service-binding, Worker deployment, or callback-normalizer removal mutation requires fresh external authorization after exact route/version snapshots and rollback context are captured.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "GATE-CALLBACK-DEPLOY-001",
         "OPS-001",
         "UNIT-009"
       ]
@@ -900,7 +993,7 @@
     {
       "id": "EVID-001",
       "artifact_path": "01-LEGACY-AUDIT.md",
-      "sha256": "a4453a7aa89640a1b722547585f9c4281f2222a6d0d73167d57aa53420917629",
+      "sha256": "210d433ceaed275bfb23117e5602a1adc5a48bb13ac364302f360f1d6f500d55",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -913,13 +1006,13 @@
         "AC-009"
       ],
       "status": "COLLECTED",
-      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-working-tree-2026-07-15",
+      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+legacy-cleanup-plan-freeze-2026-07-15",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "c9c12ace940a1f802f2d413457d721848776304c0b8000dc5a4bce74f803f7bb",
+      "sha256": "3c2192b0cd76be78e77d34306110d6fed737b7e33dbff89993585bb2dea59fd2",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -934,19 +1027,21 @@
         "TEST-001"
       ],
       "status": "COLLECTED",
-      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-working-tree-2026-07-15",
+      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+legacy-cleanup-plan-freeze-2026-07-15",
       "valid_until": null
     },
     {
       "id": "EVID-003",
       "artifact_path": "LOOP_LEDGER.md",
-      "sha256": "b706fc318ee59bed0f1a8d8c82ad13ee91335917dd98a3e3ea065d9635448042",
+      "sha256": "693139965972c765813041c25fc21abcf561b06d8da03acde1fadb9270849e09",
       "claim_ids": [
         "AC-010",
-        "GATE-COMPLETION-001"
+        "GATE-COMPLETION-001",
+        "GATE-CALLBACK-PROOF-001",
+        "GATE-CALLBACK-DEPLOY-001"
       ],
       "status": "COLLECTED",
-      "source_revision": "4f9d3b419e7d761c3f02f8746497129b36e61b1d+scoped-working-tree-2026-07-15",
+      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+legacy-cleanup-plan-freeze-2026-07-15",
       "valid_until": null
     }
   ],
@@ -957,7 +1052,13 @@
         "UNIT-001",
         "UNIT-002",
         "UNIT-003",
-        "UNIT-004"
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010"
       ]
     }
   ],
@@ -976,6 +1077,6 @@
     "scoped-working-tree-drift"
   ],
   "next_unit": "UNIT-002",
-  "updated_at": "2026-07-15T05:18:42.000Z",
-  "manifest_sha256": "670e1834a33e596d15e087af278a88d4b5bf1692285b4122c98e564fbbd7b75c"
+  "updated_at": "2026-07-15T07:00:00.000Z",
+  "manifest_sha256": "dee084b4ac2eacf2ae1163c96db313edcf85f08d29863d4c32c35c4cb396acc0"
 }
