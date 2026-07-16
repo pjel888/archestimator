@@ -156,7 +156,10 @@ export function useEstimateTemplateInsertion({
             }
             result = await persist("use_saved_snapshot_unlinked");
           }
-          if (result.status !== "inserted") return false;
+          if (result.status !== "inserted") {
+            retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+            return false;
+          }
           setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
             currentTree,
             authoritativeTree: result.tree,
@@ -227,7 +230,10 @@ export function useEstimateTemplateInsertion({
             }
             result = await persist("use_saved_snapshot_unlinked");
           }
-          if (result.status !== "inserted") return false;
+          if (result.status !== "inserted") {
+            retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+            return false;
+          }
           setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
             currentTree,
             authoritativeTree: result.tree,

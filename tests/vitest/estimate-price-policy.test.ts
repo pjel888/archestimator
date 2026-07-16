@@ -12,7 +12,7 @@ describe("estimate price policy contract (UNIT-001 red baseline)", () => {
     expect(resolvePriceFreshnessPolicy({
       workspacePolicy: ESTIMATE_HEALTH_GOLDEN_FIXTURE.workspacePolicy,
       categoryPolicy: ESTIMATE_HEALTH_GOLDEN_FIXTURE.categoryPolicy,
-      categoryNodeId: "category-masonry",
+      categoryId: "folder-masonry",
     })).toEqual({ revision: 8, staleDays: 30, veryStaleDays: 60 });
   });
 

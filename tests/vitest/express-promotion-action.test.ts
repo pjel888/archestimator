@@ -103,8 +103,12 @@ function makePromotionD1Database(options: {
       return options.canManageLibrary === false ? null : { allowed: 1 };
     }
     if (sql.includes("FROM library_folders")) {
-      if (values[1] !== sourceWorkspaceId) return null;
-      return options.folderExists === false ? null : { id: FOLDER_ID };
+      if (values[0] !== sourceWorkspaceId) return null;
+      if (sql.includes("is_default_category = 1")) {
+        return { id: "66666666-6666-4666-8666-666666666666", name: "Uncategorized" };
+      }
+      if (values[1] !== FOLDER_ID) return null;
+      return options.folderExists === false ? null : { id: FOLDER_ID, name: "Selected category" };
     }
     if (sql.includes("FROM cost_library_items") && sql.includes("source_estimate_row_item_id")) {
       return options.existingLibraryItem
@@ -257,8 +261,8 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     );
     expect(workspaceEditorCheck?.values[0]).toBe(sourceWorkspaceId);
     expect(database.firstStatements.find((statement) => statement.sql.includes("FROM library_folders"))?.values).toEqual([
-      FOLDER_ID,
       sourceWorkspaceId,
+      FOLDER_ID,
     ]);
     expect(database.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"))?.values).toEqual(
       expect.arrayContaining([sourceWorkspaceId, "Custom vanity", ROW_ID, USER_ID]),

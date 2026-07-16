@@ -20,7 +20,6 @@ const ISSUE_PAGE_SIZE = 100;
 type EstimateHealthFactRow = {
   id: string;
   estimate_id: string;
-  category_node_id: string | null;
   quantity: number | null;
   unit_cost: number | null;
   misc_cost: number | null;
@@ -31,6 +30,7 @@ type EstimateHealthFactRow = {
 
 type ProjectBudgetRow = { target_budget: number | null };
 type PolicyRow = {
+  category_folder_id: string | null;
   category_node_id: string | null;
   revision: number;
   stale_days: number;
@@ -55,7 +55,7 @@ export type ProjectEstimateHealthData = {
   issues: EstimateHealthIssueSummary[];
   issuePage: EstimateHealthIssuePage;
   costDrivers: EstimateCostDriver[];
-  policy: { workspace: PriceFreshnessPolicy; categories: Array<PriceFreshnessPolicy & { categoryNodeId: string }> };
+  policy: { workspace: PriceFreshnessPolicy; categories: Array<PriceFreshnessPolicy & { categoryId: string }> };
   truncated: boolean;
   rowLimit: number;
 };
@@ -73,7 +73,7 @@ export async function getProjectEstimateHealthData(
   const database = await requireEstimateHealthDatabase();
   const budget = await first<ProjectBudgetRow>(database, "SELECT target_budget FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1", [authorized.project.id, authorized.workspace.id]);
   const factResult = await loadFacts(database, selectedEstimateIds);
-  const policies = await loadPolicies(database, authorized.workspace.id, factResult.categoryNodeIds);
+  const policies = await loadPolicies(database, authorized.workspace.id, factResult.categoryIds);
   const estimateBudgetById = new Map(authorized.estimates.map((estimate) => [estimate.id, estimate.project_budget]));
   const evaluation = evaluateEstimateHealth({
     clock: new Date().toISOString(),
@@ -113,23 +113,23 @@ export async function getProjectEstimateHealthData(
 }
 
 async function loadFacts(database: D1DatabaseLike, estimateIds: string[]) {
-  if (estimateIds.length === 0) return { rows: [] as EstimateHealthRowFact[], truncated: false, categoryNodeIds: [] as string[], estimateIdByRowId: new Map<string, string>() };
+  if (estimateIds.length === 0) return { rows: [] as EstimateHealthRowFact[], truncated: false, categoryIds: [] as string[], estimateIdByRowId: new Map<string, string>() };
   const placeholders = estimateIds.map(() => "?").join(", ");
-  const records = await all<EstimateHealthFactRow>(database, `SELECT id, estimate_id, category_node_id, quantity, unit_cost, misc_cost, pricing_provenance_origin, source_snapshot_json, link_state FROM estimate_row_items WHERE estimate_id IN (${placeholders}) ORDER BY id ASC LIMIT ?`, [...estimateIds, FACT_LIMIT + 1]);
+  const records = await all<EstimateHealthFactRow>(database, `SELECT id, estimate_id, quantity, unit_cost, misc_cost, pricing_provenance_origin, source_snapshot_json, link_state FROM estimate_row_items WHERE estimate_id IN (${placeholders}) ORDER BY id ASC LIMIT ?`, [...estimateIds, FACT_LIMIT + 1]);
   const limited = records.slice(0, FACT_LIMIT);
   const estimateIdByRowId = new Map<string, string>();
-  const categoryNodeIds = new Set<string>();
+  const categoryIds = new Set<string>();
   const rows = limited.map((record) => {
     const snapshot = readJsonRecord(record.source_snapshot_json);
-    const categoryNodeId = record.category_node_id ?? readString(snapshot.categoryNodeId);
-    if (categoryNodeId) categoryNodeIds.add(categoryNodeId);
+    const categoryId = readString(snapshot.categoryId);
+    if (categoryId) categoryIds.add(categoryId);
     estimateIdByRowId.set(record.id, record.estimate_id);
     const quantity = finite(record.quantity);
     const unitCost = finite(record.unit_cost);
     return {
       id: record.id,
       estimateId: record.estimate_id,
-      categoryNodeId,
+      categoryId,
       quantity,
       unitCost,
       amount: quantity * unitCost + finite(record.misc_cost),
@@ -141,18 +141,18 @@ async function loadFacts(database: D1DatabaseLike, estimateIds: string[]) {
       lifecycleState: readLifecycleState(snapshot.lifecycleState),
     } satisfies EstimateHealthRowFact;
   });
-  return { rows, truncated: records.length > FACT_LIMIT, categoryNodeIds: [...categoryNodeIds], estimateIdByRowId };
+  return { rows, truncated: records.length > FACT_LIMIT, categoryIds: [...categoryIds], estimateIdByRowId };
 }
 
-async function loadPolicies(database: D1DatabaseLike, workspaceId: string, categoryNodeIds: string[]) {
-  const records = await all<PolicyRow>(database, `SELECT category_node_id, revision, stale_days, very_stale_days FROM workspace_price_freshness_policies WHERE workspace_id = ?${categoryNodeIds.length ? ` AND (category_node_id IS NULL OR category_node_id IN (${categoryNodeIds.map(() => "?").join(", ")}))` : " AND category_node_id IS NULL"}`, [workspaceId, ...categoryNodeIds]);
-  const workspaceRecord = records.find((record) => record.category_node_id === null);
+async function loadPolicies(database: D1DatabaseLike, workspaceId: string, categoryIds: string[]) {
+  const records = await all<PolicyRow>(database, `SELECT category_folder_id, category_node_id, revision, stale_days, very_stale_days FROM workspace_price_freshness_policies WHERE workspace_id = ?${categoryIds.length ? ` AND ((category_folder_id IS NULL AND category_node_id IS NULL) OR category_folder_id IN (${categoryIds.map(() => "?").join(", ")}))` : " AND category_folder_id IS NULL AND category_node_id IS NULL"}`, [workspaceId, ...categoryIds]);
+  const workspaceRecord = records.find((record) => record.category_folder_id === null && record.category_node_id === null);
   const workspace = toPolicy(workspaceRecord) ?? DEFAULT_PRICE_FRESHNESS_POLICY;
-  const categories: Array<PriceFreshnessPolicy & { categoryNodeId: string }> = [];
+  const categories: Array<PriceFreshnessPolicy & { categoryId: string }> = [];
   for (const record of records) {
     const policy = toPolicy(record);
-    if (record.category_node_id && policy) {
-      categories.push({ ...policy, categoryNodeId: record.category_node_id });
+    if (record.category_folder_id && policy) {
+      categories.push({ ...policy, categoryId: record.category_folder_id });
     }
   }
   return { workspace, categories };

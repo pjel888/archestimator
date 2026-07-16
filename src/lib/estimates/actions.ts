@@ -1421,8 +1421,10 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
     : null;
   return sanitizeEstimateRowSourceSnapshot({
     category: libraryItem.category,
+    categoryId: libraryItem.categoryId ?? null,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
+    categoryPathIds: libraryItem.categoryPathIds ?? [],
     brand: libraryItem.brand ?? null,
     brandId: libraryItem.brandId ?? null,
     componentVersionId: libraryItem.componentVersionId ?? null,
@@ -1544,8 +1546,10 @@ const SOURCE_SNAPSHOT_ALLOWED_KEYS = new Set([
   "brand",
   "brandId",
   "category",
+  "categoryId",
   "categoryNodeId",
   "categoryPath",
+  "categoryPathIds",
   "componentVersionId",
   "componentVersionNumber",
   "contingency_percentage",
@@ -1667,7 +1671,7 @@ function sanitizeEstimateRowSourceSnapshotForPersistence(value: unknown): Json |
       if (descriptor !== undefined) sanitized.imageAsset = descriptor;
       continue;
     }
-    if (key === "categoryPath" || key === "tags") {
+    if (key === "categoryPath" || key === "categoryPathIds" || key === "tags") {
       const values = sanitizeSourceSnapshotStringArray(rawValue);
       if (values !== undefined) sanitized[key] = values;
       continue;
@@ -1810,8 +1814,10 @@ function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
     .filter((tag): tag is string => typeof tag === "string");
   let metadata: EstimateRowMetadata = {
     ...existingMetadata,
+    categoryId: libraryItem.categoryId ?? null,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
+    categoryPathIds: libraryItem.categoryPathIds ?? [],
     brandId: libraryItem.brandId ?? null,
     supplierId: libraryItem.supplierId ?? null,
     sourceComponentId: sourceLibraryItemId,

@@ -46,8 +46,9 @@ function createDatabase(rows: unknown[]) {
           if (sql.includes("workspace_price_freshness_policies")) {
             return {
               results: [
-                { category_node_id: null, revision: 3, stale_days: 30, very_stale_days: 60 },
-                { category_node_id: "category-a", revision: 4, stale_days: 10, very_stale_days: 20 },
+                { category_folder_id: null, category_node_id: "legacy-category", revision: 99, stale_days: 1, very_stale_days: 2 },
+                { category_folder_id: null, category_node_id: null, revision: 3, stale_days: 30, very_stale_days: 60 },
+                { category_folder_id: "folder-a", category_node_id: null, revision: 4, stale_days: 10, very_stale_days: 20 },
               ],
               success: true,
             };
@@ -73,6 +74,7 @@ function row(index: number) {
     pricing_provenance_origin: "recorded",
     link_state: "linked-clean",
     source_snapshot_json: JSON.stringify({
+      categoryId: "folder-a",
       pricingDate: "2026-07-01",
       pricingSource: "Supplier catalog",
       sourceUrl: "https://private.example.test/secret",
@@ -104,7 +106,7 @@ describe("estimate health repository", () => {
     expect(firstPage?.summary.incomplete).toBe(true);
     expect(firstPage?.rowLimit).toBe(5000);
     expect(firstPage?.policy.workspace).toEqual({ revision: 3, staleDays: 30, veryStaleDays: 60 });
-    expect(firstPage?.policy.categories).toEqual([{ categoryNodeId: "category-a", revision: 4, staleDays: 10, veryStaleDays: 20 }]);
+    expect(firstPage?.policy.categories).toEqual([{ categoryId: "folder-a", revision: 4, staleDays: 10, veryStaleDays: 20 }]);
     expect(firstPage?.issuePage.items).toHaveLength(100);
     expect(firstPage?.issuePage.nextCursor).toBe("v1:100");
     expect(secondPage?.issuePage.items[0]).not.toEqual(firstPage?.issuePage.items[0]);

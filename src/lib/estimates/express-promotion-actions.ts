@@ -971,20 +971,24 @@ async function readPromotionSourceRow(database: D1DatabaseLike, input: { project
   );
 }
 
-async function assertLibraryFolderBelongsToWorkspace(database: D1DatabaseLike, input: { workspaceId: string; libraryFolderId: string | null }) {
-  if (!input.libraryFolderId) return;
-  const folder = await first<{ id: string }>(
+async function resolvePromotionLibraryFolder(database: D1DatabaseLike, input: { workspaceId: string; libraryFolderId: string | null }) {
+  const folder = await first<{ id: string; name: string }>(
     database,
     `
-      SELECT id
+      SELECT id, name
       FROM library_folders
-      WHERE id = ?
-        AND workspace_id = ?
+      WHERE workspace_id = ?
+        AND ${input.libraryFolderId ? "id = ?" : "is_default_category = 1"}
       LIMIT 1
     `,
-    [input.libraryFolderId, input.workspaceId],
+    input.libraryFolderId ? [input.workspaceId, input.libraryFolderId] : [input.workspaceId],
   );
-  if (!folder) throw new Error("Target library folder was not found in the current workspace.");
+  if (!folder) {
+    throw new Error(input.libraryFolderId
+      ? "Target library folder was not found in the current workspace."
+      : "The workspace default component category is missing.");
+  }
+  return folder;
 }
 
 function buildPromotionMetadata(
@@ -1076,7 +1080,7 @@ export async function promoteEstimateRowToLibraryComponent({
     if (!canEditEstimate || !canManageLibrary) {
       throw new Error("Estimate edit access and workspace library access are required to promote this component.");
     }
-    await assertLibraryFolderBelongsToWorkspace(database, { workspaceId: row.workspace_id, libraryFolderId });
+    const targetLibraryFolder = await resolvePromotionLibraryFolder(database, { workspaceId: row.workspace_id, libraryFolderId });
 
     const promotedItem = await readPromotedLibraryItem(database, {
       workspaceId: row.workspace_id,
@@ -1251,8 +1255,8 @@ export async function promoteEstimateRowToLibraryComponent({
       ] as D1Value[],
     }))]);
     const sourceSnapshotRecord = readJsonRecord(row.source_snapshot_json);
-    const componentCategory = readText(sourceSnapshotRecord.category) ?? "Uncategorized";
-    const componentCategoryNodeId = readText(sourceSnapshotRecord.categoryNodeId);
+    const componentCategory = targetLibraryFolder.name;
+    const componentCategoryNodeId = null;
     const componentBrand = readText(sourceSnapshotRecord.brand);
     const componentBrandId = readText(sourceSnapshotRecord.brandId);
     const componentSnapshot = {
@@ -1266,7 +1270,7 @@ export async function promoteEstimateRowToLibraryComponent({
       brandId: componentBrandId,
       unit: defaultOption.unit,
       thumbnailPath: defaultOption.thumbnailPath ?? null,
-      libraryFolderId,
+      libraryFolderId: targetLibraryFolder.id,
       lifecycleState: "available",
       metadata: {
         source: "library",
@@ -1338,7 +1342,7 @@ export async function promoteEstimateRowToLibraryComponent({
           row.description ?? "",
           componentCategory,
           componentCategoryNodeId,
-          libraryFolderId,
+          targetLibraryFolder.id,
           row.supplier ?? null,
           row.supplier_id ?? null,
           componentBrand,
@@ -1454,7 +1458,7 @@ export async function promoteEstimateRowToLibraryComponent({
           correlationId,
           currentUser.userId,
           JSON.stringify(["source_library_item_id", "link_state", "source_snapshot_json", "metadata_json", "row_revision"]),
-          jsonObject({ rowId, material, libraryFolderId }),
+          jsonObject({ rowId, material, libraryFolderId: targetLibraryFolder.id }),
           oldSnapshot,
           newSnapshot,
           payload,

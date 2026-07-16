@@ -48,8 +48,8 @@ export function evaluateEstimateHealth(input: EstimateHealthInput): EstimateHeal
     if (priced && !provenance) add("provenance-missing", row, amount);
 
     if (provenance) {
-      const categoryPolicy = input.categoryPolicies?.find((candidate) => candidate.categoryNodeId === row.categoryNodeId) ?? input.categoryPolicy;
-      const policy = resolvePriceFreshnessPolicy({ workspacePolicy: input.workspacePolicy, categoryPolicy, categoryNodeId: row.categoryNodeId });
+      const categoryPolicy = input.categoryPolicies?.find((candidate) => candidate.categoryId === row.categoryId) ?? input.categoryPolicy;
+      const policy = resolvePriceFreshnessPolicy({ workspacePolicy: input.workspacePolicy, categoryPolicy, categoryId: row.categoryId });
       const freshness = getPriceFreshness({ timestamp: toTimestamp(row.pricingDate), now: clock, policy });
       if (freshness === "fresh") freshRows += 1;
       if (freshness === "stale") add("price-stale", row, amount);

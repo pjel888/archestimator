@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
-import { REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
+import { INSERT_ESTIMATE_TEMPLATE_EVENT, INSERT_PROJECT_SOURCE_EVENT } from "@/components/workshop/component-library/templates";
+import { dispatchEstimateExternalDrop, REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
 import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { handleExpressFieldKeyDown } from "@/components/workshop/estimate-sheet/rows/cells";
 import { ToastProvider } from "@/components/ui/toast";
@@ -39,8 +39,13 @@ const promotionMocks = vi.hoisted(() => ({
   promoteEstimateRowToLibraryComponent: vi.fn(),
 }));
 
+const reusableSourceMocks = vi.hoisted(() => ({
+  insertProjectSourceIntoEstimate: vi.fn(),
+}));
+
 vi.mock("@/lib/estimates/actions", () => actionMocks);
 vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
+vi.mock("@/lib/reusable-sources/actions", () => reusableSourceMocks);
 
 const projectId = "22222222-2222-4222-8222-222222222222";
 const estimateId = "77777777-7777-4777-8777-777777777719";
@@ -567,6 +572,7 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeIds: [] });
     actionMocks.insertEstimateTemplateNodeIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeId: groupNodeId });
     actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ status: "inserted", tree: nodesWithGroup, insertedRootNodeIds: [] });
+    reusableSourceMocks.insertProjectSourceIntoEstimate.mockResolvedValue({ tree: nodesWithGroup, insertedRootNodeIds: [] });
     actionMocks.moveEstimateRowComponentWithHistory.mockResolvedValue({
       sourceRow: makeCanonicalReplaceResult(cabinetRowId, {
         ...nodesWithRow[0].estimateRowItems![0],
@@ -1515,6 +1521,8 @@ describe("estimate sheet library insertion persistence", () => {
       estimateId,
       targetParentNodeId: groupNodeId,
       templateId: starterTemplate.id,
+      intentId: expect.any(String),
+      targetTabId: undefined,
       unavailableSourcePolicy: "cancel",
     });
     expect(await screen.findByLabelText("Interior Fit-Out")).toBeInTheDocument();
@@ -1549,6 +1557,104 @@ describe("estimate sheet library insertion persistence", () => {
       templateId: starterTemplate.id,
     });
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).not.toHaveProperty("template");
+  });
+
+  it("inserts a project source into any target node with scoped pending feedback and post-commit acknowledgement", async () => {
+    const pendingInsert = deferred<{ tree: EstimateTreeNode[]; insertedRootNodeIds: string[] }>();
+    const acknowledgements = vi.fn();
+    const sourceProjectId = "33333333-3333-4333-8333-333333333333";
+    const sourceEstimateId = "44444444-4444-4444-8444-444444444444";
+    const sourceTabId = "88888888-8888-4888-8888-888888888888";
+    const intentId = "99999999-9999-4999-8999-999999999999";
+    reusableSourceMocks.insertProjectSourceIntoEstimate.mockReturnValueOnce(pendingInsert.promise);
+
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          canEditEstimate={true}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    act(() => {
+      dispatchEstimateExternalDrop({
+        eventName: INSERT_PROJECT_SOURCE_EVENT,
+        intentId,
+        target: { projectId, estimateId, tabId: null, nodeId: targetNodeId },
+        payload: {
+          targetParentNodeId: targetNodeId,
+          source: { projectId: sourceProjectId, estimateId: sourceEstimateId, tabId: sourceTabId, nodeId: null },
+        },
+        onAcknowledged: acknowledgements,
+      });
+    });
+
+    await waitFor(() => expect(reusableSourceMocks.insertProjectSourceIntoEstimate).toHaveBeenCalledTimes(1));
+    expect(reusableSourceMocks.insertProjectSourceIntoEstimate).toHaveBeenCalledWith({
+      targetProjectId: projectId,
+      targetEstimateId: estimateId,
+      targetParentNodeId: targetNodeId,
+      source: { projectId: sourceProjectId, estimateId: sourceEstimateId, tabId: sourceTabId, nodeId: null },
+      intentId,
+      targetTabId: undefined,
+    });
+    expect(screen.getByLabelText("Kitchen")).toHaveAttribute("aria-busy", "true");
+    expect(within(screen.getByLabelText("Kitchen")).getByRole("status")).toHaveTextContent("Adding…");
+    expect(acknowledgements).not.toHaveBeenCalled();
+
+    await act(async () => {
+      pendingInsert.resolve({ tree: nodesWithGroup, insertedRootNodeIds: [] });
+      await pendingInsert.promise;
+    });
+
+    await waitFor(() => expect(screen.getByLabelText("Kitchen")).not.toHaveAttribute("aria-busy"));
+    expect(acknowledgements).toHaveBeenCalledWith({ accepted: true });
+  });
+
+  it("retains one project-source intent across an ambiguous retry", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const source = {
+      projectId: "33333333-3333-4333-8333-333333333333",
+      estimateId: "44444444-4444-4444-8444-444444444444",
+      tabId: "88888888-8888-4888-8888-888888888888",
+      nodeId: null,
+    };
+    reusableSourceMocks.insertProjectSourceIntoEstimate
+      .mockRejectedValueOnce(new Error("delivery status unknown"))
+      .mockResolvedValueOnce({ tree: nodesWithGroup, insertedRootNodeIds: [] });
+
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          canEditEstimate={true}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    const dispatchInsert = () => window.dispatchEvent(new CustomEvent(INSERT_PROJECT_SOURCE_EVENT, {
+      detail: { targetParentNodeId: targetNodeId, source },
+    }));
+    act(dispatchInsert);
+    await waitFor(() => expect(reusableSourceMocks.insertProjectSourceIntoEstimate).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByLabelText("Kitchen")).not.toHaveAttribute("aria-busy"));
+    act(dispatchInsert);
+    await waitFor(() => expect(reusableSourceMocks.insertProjectSourceIntoEstimate).toHaveBeenCalledTimes(2));
+
+    const firstIntentId = reusableSourceMocks.insertProjectSourceIntoEstimate.mock.calls[0][0].intentId;
+    const secondIntentId = reusableSourceMocks.insertProjectSourceIntoEstimate.mock.calls[1][0].intentId;
+    expect(firstIntentId).toBe(secondIntentId);
+    expect(isUuid(firstIntentId)).toBe(true);
+    expect(consoleError).toHaveBeenCalled();
   });
 
   it("requires explicit confirmation before using saved template values", async () => {
@@ -1749,6 +1855,7 @@ describe("estimate sheet library insertion persistence", () => {
         projectId,
         estimateId,
         rowId: cabinetRowId,
+        expectedRowRevision: 7,
         mutationId: expect.any(String),
       });
     });

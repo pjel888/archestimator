@@ -702,6 +702,18 @@ function buildProjectPublicationRevisionForScope(projectId: string, workspaceId:
   };
 }
 
+function buildProjectPublicationRevisionForProject(projectId: string, workspaceId: string) {
+  return {
+    sql: `
+      UPDATE projects
+      SET publication_source_revision = publication_source_revision + 1
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    values: [projectId, workspaceId],
+  };
+}
+
 function validateCopiedEstimateTabTopology(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]) {
   const nodesById = new Map(nodes.map((node) => [node.id, node]));
   for (const node of nodes) {
@@ -1537,6 +1549,8 @@ async function updateEstimateDetails(database: D1DatabaseLike, args: Record<stri
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const patch = readJsonRecord(args.estimate_patch);
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const current = await first<EstimateRow>(database, "SELECT * FROM estimates WHERE id = ? AND project_id = ? LIMIT 1", [estimateId, projectId]);
   if (!current) throw new Error("Estimate not found in the current project.");
   const assignments: string[] = [];
@@ -1557,7 +1571,10 @@ async function updateEstimateDetails(database: D1DatabaseLike, args: Record<stri
   if (assignments.length === 0) return { estimateId };
   assignments.push("updated_at = ?");
   values.push(nowIso(), estimateId, projectId);
-  await runMutationWithHistory(database, [{ sql: `UPDATE estimates SET ${assignments.join(", ")} WHERE id = ? AND project_id = ?`, values }], {
+  await runMutationWithHistory(database, [
+    { sql: `UPDATE estimates SET ${assignments.join(", ")} WHERE id = ? AND project_id = ?`, values },
+    buildProjectPublicationRevisionForScope(projectId, estimate.workspace_id, estimateId),
+  ], {
     projectId,
     estimateId,
     eventType: "estimate_details_updated",
@@ -3001,16 +3018,12 @@ const SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS = new Set([
   "material",
   "supplier",
   "sourceSnapshot",
-  "categoryNodeId",
   "supplierId",
 ]);
 
 const SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS = new Set([
   "brand",
   "brandId",
-  "category",
-  "categoryNodeId",
-  "categoryPath",
   "componentVersionId",
   "componentVersionNumber",
   "lifecycleState",
@@ -5865,6 +5878,7 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
       deletedRows,
       deletedAt: now,
     }),
+    buildProjectPublicationRevisionForProject(projectId, project.workspace_id),
     { sql: `DELETE FROM estimate_sheet_user_preferences WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
     { sql: `DELETE FROM estimate_sheet_access_settings WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },
     { sql: `DELETE FROM estimate_sheet_members WHERE estimate_id IN (${estimateSql})`, values: eligibleIds },

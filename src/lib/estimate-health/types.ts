@@ -24,7 +24,7 @@ export type PriceFreshnessPolicy = {
 export type EstimateHealthRowFact = {
   id: string;
   estimateId: string;
-  categoryNodeId: string | null;
+  categoryId: string | null;
   quantity: number | null;
   unitCost: number | null;
   amount: number | null;
@@ -40,8 +40,8 @@ export type EstimateHealthInput = {
   clock: string;
   evaluatorVersion?: string;
   workspacePolicy: PriceFreshnessPolicy;
-  categoryPolicy?: (PriceFreshnessPolicy & { categoryNodeId: string }) | null;
-  categoryPolicies?: Array<PriceFreshnessPolicy & { categoryNodeId: string }>;
+  categoryPolicy?: (PriceFreshnessPolicy & { categoryId: string }) | null;
+  categoryPolicies?: Array<PriceFreshnessPolicy & { categoryId: string }>;
   projectTargetBudget: number | null;
   estimateBudget: number | null;
   rows: EstimateHealthRowFact[];

@@ -14,13 +14,13 @@ function isValidPolicy(policy: PriceFreshnessPolicy | null | undefined): policy 
 export function resolvePriceFreshnessPolicy({
   workspacePolicy,
   categoryPolicy,
-  categoryNodeId,
+  categoryId,
 }: {
   workspacePolicy: PriceFreshnessPolicy | null | undefined;
-  categoryPolicy?: (PriceFreshnessPolicy & { categoryNodeId: string }) | null;
-  categoryNodeId?: string | null;
+  categoryPolicy?: (PriceFreshnessPolicy & { categoryId: string }) | null;
+  categoryId?: string | null;
 }): PriceFreshnessPolicy {
-  if (categoryPolicy && categoryPolicy.categoryNodeId === categoryNodeId && isValidPolicy(categoryPolicy)) {
+  if (categoryPolicy && categoryPolicy.categoryId === categoryId && isValidPolicy(categoryPolicy)) {
     return { revision: categoryPolicy.revision, staleDays: categoryPolicy.staleDays, veryStaleDays: categoryPolicy.veryStaleDays };
   }
   if (isValidPolicy(workspacePolicy)) return { revision: workspacePolicy.revision, staleDays: workspacePolicy.staleDays, veryStaleDays: workspacePolicy.veryStaleDays };

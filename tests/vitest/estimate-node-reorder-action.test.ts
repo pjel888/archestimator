@@ -1194,6 +1194,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
     expect(supabase.from).not.toHaveBeenCalled();
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
     expect(result).toEqual({
+      status: "inserted",
       tree: [{ id: "parent-group", name: "Ground Floor", kind: "group", total: "₱0.00", children: [] }],
       insertedRootNodeIds: ["new-root-node"],
     });
@@ -1302,7 +1303,10 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
     const rpc = vi.fn(async (name: string) => {
       if (name === "can_edit_estimate") return { data: true, error: null };
       if (name === "insert_estimate_template_node_into_estimate_with_history") {
-        return { data: { insertedRootNodeId: "created-template-root" }, error: null };
+        return {
+          data: { insertedRootNodeId: "created-template-root", estimateTabId: "tab-2" },
+          error: null,
+        };
       }
       throw new Error(`Unexpected RPC ${name}`);
     });
@@ -1337,6 +1341,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
     expect(from).not.toHaveBeenCalled();
     expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith("project-1", "estimate-1", "tab-2");
     expect(result).toEqual({
+      status: "inserted",
       tree: [{ id: "tab-root", name: "Tab Root", kind: "group", total: "₱0.00", children: [] }],
       insertedRootNodeId: "created-template-root",
     });

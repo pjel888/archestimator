@@ -117,8 +117,10 @@ export type EstimateRowItem = {
   totalItemCosts: number;
   imageUrl?: string;
   category: string;
+  categoryId?: string;
   categoryNodeId?: string;
   categoryPath?: string[];
+  categoryPathIds?: string[];
   libraryFolderId?: string;
   brand?: string;
   brandId?: string;
