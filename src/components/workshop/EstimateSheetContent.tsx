@@ -1187,7 +1187,7 @@ export function EstimateSheetContent({
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
   const { toast, dismissToast } = useToast();
   const notifySaveState = useCallback((state: EstimateSaveState, error: EstimateRowMutationError | null) => {
-    if (state === "saving" || state === "saved" || state === "idle") {
+    if (state === "saving" || state === "saved") {
       dismissToast("estimate-row-save");
       return;
     }

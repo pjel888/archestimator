@@ -38,6 +38,7 @@ function queryResult<T>(result: QueryResult<T>) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    is: vi.fn(() => builder),
     not: vi.fn(() => builder),
     or: vi.fn(() => builder),
     gte: vi.fn(() => builder),
@@ -88,6 +89,37 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const CURRENT_LIBRARY_SOURCE_ROW = {
+  id: "11111111-1111-4111-8111-111111111111",
+  workspace_id: "workspace-1",
+  active_price_option_id: "44444444-4444-4444-8444-444444444444",
+  current_version_number: 2,
+  updated_at: null,
+  lifecycle_state: "available",
+  unit: "sqm",
+  unit_cost: 950,
+  misc_cost: 300,
+};
+
+const CURRENT_LIBRARY_PRICE_OPTION_ROW = {
+  id: "44444444-4444-4444-8444-444444444444",
+  item_id: "11111111-1111-4111-8111-111111111111",
+  label: "Option 1",
+  unit: "sqm",
+  unit_cost: 950,
+  misc_cost: 300,
+  is_active: 1,
+  updated_at: "2026-05-24T00:00:00.000Z",
+};
+
+const CURRENT_LIBRARY_VARIANT_COST_ROW = {
+  id: "55555555-5555-4555-8555-555555555555",
+  price_option_id: "44444444-4444-4444-8444-444444444444",
+  unit_cost: 950,
+  misc_cost: 300,
+  updated_at: "2026-05-24T00:00:00.000Z",
+};
+
 function getRpcArgs(supabase: { rpc: { mock: { calls: [string, Record<string, unknown>][] } } }, fn: string) {
   const call = supabase.rpc.mock.calls.find(([name]) => name === fn);
   expect(call).toBeDefined();
@@ -106,7 +138,7 @@ function makeSupabase({
   sourceLibraryItemId = "33333333-3333-4333-8333-333333333333",
   rowMetadata = {},
   canEditEstimate = true,
-  librarySource = { id: "11111111-1111-4111-8111-111111111111", updated_at: null, lifecycle_state: "available" },
+  librarySource = CURRENT_LIBRARY_SOURCE_ROW,
   rpcData,
   rpcError = null,
 }: {
@@ -142,6 +174,8 @@ function makeSupabase({
   });
   const existingRowsQuery = queryResult({ data: [{ sort_order: 4 }], error: null });
   const librarySourceQuery = queryResult({ data: librarySource, error: null });
+  const libraryPriceOptionQuery = queryResult({ data: CURRENT_LIBRARY_PRICE_OPTION_ROW, error: null });
+  const libraryVariantCostQuery = queryResult({ data: CURRENT_LIBRARY_VARIANT_COST_ROW, error: null });
   const supabase = {
     rpc: vi.fn(async (fn: string) => {
       if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
@@ -179,6 +213,8 @@ function makeSupabase({
       if (table === "estimate_row_items") return rowQuery;
       if (table === "estimate_nodes") return targetNodeQuery;
       if (table === "cost_library_items") return librarySourceQuery;
+      if (table === "cost_library_item_price_options") return libraryPriceOptionQuery;
+      if (table === "cost_library_item_variant_cost_entries") return libraryVariantCostQuery;
       throw new Error(`Unexpected table ${table}`);
     }),
     rowQuery,
@@ -222,9 +258,11 @@ function makeAtomicRowSupabase({
     error: null,
   });
   const sourceLibraryQuery = queryResult({
-    data: { id: "11111111-1111-4111-8111-111111111111", updated_at: null, lifecycle_state: "available" },
+    data: CURRENT_LIBRARY_SOURCE_ROW,
     error: null,
   });
+  const libraryPriceOptionQuery = queryResult({ data: CURRENT_LIBRARY_PRICE_OPTION_ROW, error: null });
+  const libraryVariantCostQuery = queryResult({ data: CURRENT_LIBRARY_VARIANT_COST_ROW, error: null });
   const bulkRowsQuery = queryResult({
     data: [
       { id: "source-row", row_revision: sourceRowRevision },
@@ -274,6 +312,8 @@ function makeAtomicRowSupabase({
     from: vi.fn((table: string) => {
       if (table === "estimate_row_items") return rowQuery;
       if (table === "cost_library_items") return sourceLibraryQuery;
+      if (table === "cost_library_item_price_options") return libraryPriceOptionQuery;
+      if (table === "cost_library_item_variant_cost_entries") return libraryVariantCostQuery;
       throw new Error(`Unexpected table ${table}`);
     }),
     rowQuery,
@@ -507,7 +547,8 @@ describe("estimate sheet version control server actions", () => {
     expect(hookSource).toContain('import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict"');
     expect(hookSource).toContain("This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.");
     expect(hookSource).toContain("isRowRevisionConflictError(error) ? \"active\" : \"none\"");
-    expect(hookSource).toContain("isRowRevisionConflictError(_error) ? \"active\" : \"none\"");
+    expect(hookSource).toContain("await recoverAuthoritativeTreeAfterConflict(input)");
+    expect(hookSource).toContain('const refetchType = rowRevisionConflict && !recoveredAuthoritativeTree ? "active" : "none"');
   });
 
   it("replaces row source through the history RPC with the existing row revision", async () => {
@@ -548,9 +589,8 @@ describe("estimate sheet version control server actions", () => {
   it("blocks stale library source commits before the history RPC", async () => {
     const supabase = makeSupabase({
       librarySource: {
-        id: "11111111-1111-4111-8111-111111111111",
+        ...CURRENT_LIBRARY_SOURCE_ROW,
         updated_at: "2026-06-22T08:00:00.000Z",
-        lifecycle_state: "available",
       },
     });
     mockEstimateActionsDataStore(supabase);

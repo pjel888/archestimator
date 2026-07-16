@@ -985,6 +985,8 @@ function useEstimateRightSidebarContent({
     setTemplateSourceNodeId,
     setTemplateSourceProjectSource,
     setTemplateDefaultCategory,
+    upsertTemplateLocally,
+    removeTemplateLocally,
     setRenameTemplateTarget,
     setRenameTemplateName,
     setRenameTemplateError,
@@ -2435,7 +2437,7 @@ function useEstimateRightSidebarContent({
   }, [duplicateComponentPendingId, handleComponentCreated, toast]);
 
   const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
-    setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
+    upsertTemplateLocally(template);
     setActiveTab(resolveVisibleTab("templates"));
     setTemplatesExpandedIds((current) => Array.from(new Set([
       ...current,
@@ -2444,7 +2446,7 @@ function useEstimateRightSidebarContent({
     ])));
     setLastActionMessage(`${template.name} saved to templates.`);
     onLibraryDataChanged?.();
-  }, [onLibraryDataChanged, resolveVisibleTab, setActiveTab, setLastActionMessage, setTemplateList, setTemplatesExpandedIds]);
+  }, [onLibraryDataChanged, resolveVisibleTab, setActiveTab, setLastActionMessage, setTemplatesExpandedIds, upsertTemplateLocally]);
 
   const startRenameTemplate = useCallback((template: EstimateTemplate) => {
     setRenameTemplateTarget(template);
@@ -2506,7 +2508,7 @@ function useEstimateRightSidebarContent({
     setDeleteTemplateError("");
     try {
       await deleteEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: deleteTemplateTarget.id });
-      setTemplateList((current) => current.filter((template) => template.id !== deleteTemplateTarget.id));
+      removeTemplateLocally(deleteTemplateTarget.id);
       setLastActionMessage(`${deleteTemplateTarget.name} deleted from templates.`);
       setDeleteTemplateTarget(null);
       onLibraryDataChanged?.();
@@ -2519,11 +2521,11 @@ function useEstimateRightSidebarContent({
     deleteTemplatePending,
     deleteTemplateTarget,
     onLibraryDataChanged,
+    removeTemplateLocally,
     setDeleteTemplateError,
     setDeleteTemplatePending,
     setDeleteTemplateTarget,
     setLastActionMessage,
-    setTemplateList,
   ]);
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {

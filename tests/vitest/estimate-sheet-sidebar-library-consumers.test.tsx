@@ -70,6 +70,8 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(sheetSource).toContain("data-estimate-row-save-status");
     expect(sheetSource).toContain('id: "estimate-row-save"');
     expect(sheetSource).toContain('toast({ id: "estimate-row-save", tone: "error"');
+    expect(sheetSource).toContain('state === "saving" || state === "saved"');
+    expect(sheetSource).not.toContain('state === "saving" || state === "saved" || state === "idle"');
     expect(tabStripSource).not.toContain('{error ? <p role="alert"');
     expect(tabStripSource).toContain("ESTIMATE_TAB_STRIP_ERROR_TOAST_ID");
     expect(tabStripSource).toContain("toast({");

@@ -1246,7 +1246,27 @@ class EstimateActionD1Query {
       return { data: rows, error: null };
     }
     if (this.table === "cost_library_items") {
-      const rows = await all<T>(this.database, `SELECT id, updated_at, lifecycle_state FROM cost_library_items${whereSql}${limitSql}`, values);
+      const rows = await all<T>(
+        this.database,
+        `SELECT id, workspace_id, active_price_option_id, current_version_number, updated_at, lifecycle_state, unit, unit_cost, misc_cost FROM cost_library_items${whereSql}${limitSql}`,
+        values,
+      );
+      return { data: rows, error: null };
+    }
+    if (this.table === "cost_library_item_price_options") {
+      const rows = await all<T>(
+        this.database,
+        `SELECT id, item_id, label, unit, unit_cost, misc_cost, is_active, updated_at FROM cost_library_item_price_options${whereSql}${limitSql}`,
+        values,
+      );
+      return { data: rows, error: null };
+    }
+    if (this.table === "cost_library_item_variant_cost_entries") {
+      const rows = await all<T>(
+        this.database,
+        `SELECT id, price_option_id, unit_cost, misc_cost, updated_at FROM cost_library_item_variant_cost_entries${whereSql}${limitSql}`,
+        values,
+      );
       return { data: rows, error: null };
     }
     if (this.table === "estimates") {
@@ -4198,7 +4218,7 @@ function planRowPatchMutation(
   rowPatch: Record<string, unknown>,
   expectedRowRevision: number,
 ) {
-  if (readNumber(row.row_revision, 1) !== expectedRowRevision) throw new Error("Estimate row revision conflict.");
+  if (readNumber(row.row_revision, 1) !== expectedRowRevision) throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
   const mergedRowPatch = mergeSourceSnapshotPatchIntoRow(row, rowPatch);
   const sourceLinkState = normalizeEstimateRowSourceLinkState(
     Object.prototype.hasOwnProperty.call(mergedRowPatch, "sourceLibraryItemId")
@@ -4664,7 +4684,7 @@ async function deleteRowItem(
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
-  if (readNumber(row.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
+  if (readNumber(row.row_revision, 1) !== expected) throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
   const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
     projectId,
@@ -4894,7 +4914,7 @@ async function updateSheetAdjustment(database: D1DatabaseLike, args: Record<stri
     [estimateId, mode],
   );
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? null : readNumber(args.expected_row_revision);
-  if (expected !== null && existing && readNumber(existing.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
+  if (expected !== null && existing && readNumber(existing.row_revision, 1) !== expected) throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
   const rowRevision = existing ? readNumber(existing.row_revision, 1) + 1 : 1;
   const updatedAt = nowIso();
   const updatedBy = String(args.acting_user_id ?? "") || null;

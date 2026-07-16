@@ -15,6 +15,10 @@ function sourceBetween(source: string, start: string, end: string) {
 }
 
 describe("estimate row atomic D1 contracts", () => {
+  it("uses the stable conflict code for every D1 revision mismatch", () => {
+    expect(d1ActionClient).not.toContain('throw new Error("Estimate row revision conflict.")');
+  });
+
   it("guards ordinary row patch and replace mutations inside their history batch", () => {
     const patchSource = sourceBetween(d1ActionClient, "async function patchRowItem", "type ExpectedRowRevision");
 

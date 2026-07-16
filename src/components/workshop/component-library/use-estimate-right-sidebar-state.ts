@@ -309,43 +309,66 @@ export function useProjectTabState(init: ProjectTabInit) {
 
 export function useTemplatesTabState(init: TemplatesTabInit) {
   const syncedTemplatesRef = useRef(init.templates);
+  const optimisticTemplateIdsRef = useRef(new Set<string>());
+  const deletedTemplateIdsRef = useRef(new Set<string>());
   const [state, setField] = useSidebarSlice(() => createInitialTemplatesTabState(init));
   useEffect(() => {
     if (syncedTemplatesRef.current === init.templates) return;
     syncedTemplatesRef.current = init.templates;
+    const optimisticTemplateIds = new Set(optimisticTemplateIdsRef.current);
+    const deletedTemplateIds = new Set(deletedTemplateIdsRef.current);
+    const propIds = new Set(init.templates.map((template) => template.id));
     setField("templateList", (current) => {
-      const propIds = new Set(init.templates.map((template) => template.id));
-      const optimisticOnly = current.filter((template) => !propIds.has(template.id));
-      return optimisticOnly.length > 0 ? [...init.templates, ...optimisticOnly] : init.templates;
+      const incomingTemplates = init.templates.filter((template) => !deletedTemplateIds.has(template.id));
+      const optimisticOnly = current.filter((template) =>
+        optimisticTemplateIds.has(template.id)
+        && !propIds.has(template.id)
+        && !deletedTemplateIds.has(template.id));
+      return optimisticOnly.length > 0 ? [...incomingTemplates, ...optimisticOnly] : incomingTemplates;
     });
+    propIds.forEach((templateId) => optimisticTemplateIdsRef.current.delete(templateId));
   }, [init.templates, setField]);
+  const upsertTemplateLocally = useCallback((template: EstimateTemplate) => {
+    deletedTemplateIdsRef.current.delete(template.id);
+    optimisticTemplateIdsRef.current.add(template.id);
+    setField("templateList", (current) => [...current.filter((entry) => entry.id !== template.id), template]);
+  }, [setField]);
+  const removeTemplateLocally = useCallback((templateId: string) => {
+    optimisticTemplateIdsRef.current.delete(templateId);
+    deletedTemplateIdsRef.current.add(templateId);
+    setField("templateList", (current) => current.filter((template) => template.id !== templateId));
+  }, [setField]);
   const actions = useMemo(
-    () => bindSidebarSetters<EstimateRightSidebarTemplatesState>(
-      [
-        "templateList",
-        "loadedProjectSources",
-        "templateSourceFilter",
-        "projectSourcesLoading",
-        "projectSourceSearchResults",
-        "projectEstimateLoadingProjectIds",
-        "projectOutlineLoadingEstimateIds",
-        "templatesExpandedIds",
-        "addTemplateOpen",
-        "customTemplateGroups",
-        "templateSourceNodeId",
-        "templateSourceProjectSource",
-        "templateDefaultCategory",
-        "renameTemplateTarget",
-        "renameTemplateName",
-        "renameTemplateError",
-        "renameTemplatePending",
-        "deleteTemplateTarget",
-        "deleteTemplateError",
-        "deleteTemplatePending",
-      ],
-      setField,
-    ),
-    [setField],
+    () => ({
+      ...bindSidebarSetters<EstimateRightSidebarTemplatesState>(
+        [
+          "templateList",
+          "loadedProjectSources",
+          "templateSourceFilter",
+          "projectSourcesLoading",
+          "projectSourceSearchResults",
+          "projectEstimateLoadingProjectIds",
+          "projectOutlineLoadingEstimateIds",
+          "templatesExpandedIds",
+          "addTemplateOpen",
+          "customTemplateGroups",
+          "templateSourceNodeId",
+          "templateSourceProjectSource",
+          "templateDefaultCategory",
+          "renameTemplateTarget",
+          "renameTemplateName",
+          "renameTemplateError",
+          "renameTemplatePending",
+          "deleteTemplateTarget",
+          "deleteTemplateError",
+          "deleteTemplatePending",
+        ],
+        setField,
+      ),
+      upsertTemplateLocally,
+      removeTemplateLocally,
+    }),
+    [removeTemplateLocally, setField, upsertTemplateLocally],
   );
   return { state, actions };
 }

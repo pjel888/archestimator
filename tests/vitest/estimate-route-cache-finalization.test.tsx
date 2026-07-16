@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
-import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 
 const actionMocks = vi.hoisted(() => ({
   deleteEstimateRowItem: vi.fn(),
@@ -195,9 +194,13 @@ describe("estimate route cache finalization", () => {
     const queryClient = makeQueryClient();
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-    const conflict = Object.assign(new Error("row revision conflict"), {
-      code: ESTIMATE_ROW_REVISION_CONFLICT_CODE,
-    });
+    const authoritativeNodes = [{
+      ...nodesWithRow[0],
+      estimateRowItems: [{ ...cabinetRow, quantity: 3, rowRevision: 8 }],
+    }];
+    actionMocks.fetchEstimateTree.mockResolvedValueOnce(authoritativeNodes);
+    const conflict = new Error("This row changed elsewhere. Reload the estimate and review the latest row before saving again.");
+    conflict.name = "EstimateRowRevisionConflictError";
     actionMocks.updateEstimateRowItem.mockRejectedValueOnce(conflict);
     const { result } = renderHook(
       () => useEstimateRowMutations(estimateId),
@@ -214,7 +217,9 @@ describe("estimate route cache finalization", () => {
     });
 
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
-    await waitFor(() => expectTreeAndDetailInvalidated(invalidateSpy, "active", "active"));
+    await waitFor(() => expect(actionMocks.fetchEstimateTree).toHaveBeenCalledWith({ projectId, estimateId }));
+    await waitFor(() => expect(queryClient.getQueryData<EstimateTreeNode[]>(estimateQueryKeys.areaTree(estimateId))?.[0]?.estimateRowItems?.[0]?.quantity).toBe(3));
+    await waitFor(() => expectTreeAndDetailInvalidated(invalidateSpy, "none", "active"));
     await waitFor(() => expect(result.current.rowMutationStatuses[cabinetRowId]?.phase).toBe("failed"));
   });
 

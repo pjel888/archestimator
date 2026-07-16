@@ -91,7 +91,12 @@ function assertBrowserOnline() {
 function readMutationErrorCode(error: Error) {
   const code = (error as Error & { code?: unknown }).code;
   if (typeof code === "string") return code;
-  return error.message.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE) ? ESTIMATE_ROW_REVISION_CONFLICT_CODE : undefined;
+  if (
+    error.name === "EstimateRowRevisionConflictError"
+    || error.message.startsWith("This row changed elsewhere.")
+    || error.message.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE)
+  ) return ESTIMATE_ROW_REVISION_CONFLICT_CODE;
+  return undefined;
 }
 
 function isRowRevisionConflictError(error: Error) {
@@ -1221,6 +1226,14 @@ export function useEstimateRowMutations(
     },
   });
 
+  const recoverAuthoritativeTreeAfterConflict = useCallback(async (input: SharedMutationInput) => {
+    const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+    const authoritativeTree = estimateTabId
+      ? (await fetchEstimateTabTree({ projectId: input.projectId, estimateId: input.estimateId, tabId: estimateTabId })).tree
+      : await fetchEstimateTree({ projectId: input.projectId, estimateId: input.estimateId });
+    queryClient.setQueryData<EstimateTreeNode[]>(queryKey, authoritativeTree);
+  }, [estimateTabId, queryClient]);
+
   const updateMutation = useMutation({
     networkMode: ROW_MUTATION_NETWORK_MODE,
     mutationFn: (input: UpdateEstimateRowInput) => {
@@ -1298,7 +1311,7 @@ export function useEstimateRowMutations(
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
       input.onSuccess?.(result);
     },
-    onError: (_error: Error, input, context) => {
+    onError: async (_error: Error, input, context) => {
       if (!context || !isLatestScopedRow(input.rowId, context)) {
         markSaved();
         return;
@@ -1315,10 +1328,20 @@ export function useEstimateRowMutations(
       } else if (!offlineError) input.rollback?.();
       input.onError?.(_error);
       finishScopedRowMutation(context, _error);
+      const rowRevisionConflict = isRowRevisionConflictError(_error);
+      let recoveredAuthoritativeTree = false;
+      if (rowRevisionConflict) {
+        try {
+          await recoverAuthoritativeTreeAfterConflict(input);
+          recoveredAuthoritativeTree = true;
+        } catch {
+          recoveredAuthoritativeTree = false;
+        }
+      }
       markFailed(_error, input);
-      const refetchType = isRowRevisionConflictError(_error) ? "active" : "none";
+      const refetchType = rowRevisionConflict && !recoveredAuthoritativeTree ? "active" : "none";
       void queryClient.invalidateQueries({ queryKey, refetchType });
-      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: rowRevisionConflict ? "active" : "none" });
     },
   });
 

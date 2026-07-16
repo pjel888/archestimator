@@ -2916,7 +2916,8 @@ describe("templates tree", () => {
 
   it("deletes a template from its context menu after confirmation", async () => {
     templateActionMocks.deleteEstimateTemplate.mockResolvedValue({ templateId: "tpl-1" });
-    openTemplatesTab();
+    const view = renderSidebar({ templates: sidebarTemplates });
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
 
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" }), { clientX: 16, clientY: 16 });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
@@ -2931,6 +2932,9 @@ describe("templates tree", () => {
     });
     expect(screen.queryByText(/No templates yet/i)).not.toBeInTheDocument();
     expect(screen.getByRole("tree", { name: "Reusable estimate sources" })).toBeInTheDocument();
+
+    view.rerender(<EstimateRightSidebar initialLibraryItems={sidebarSeedItems} templates={[...sidebarTemplates]} />);
+    expect(screen.queryByRole("treeitem", { name: "Kitchen Starter estimate template" })).not.toBeInTheDocument();
   });
 
   it("starts a new template from a category with the category prefilled", async () => {
