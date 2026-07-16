@@ -128,7 +128,7 @@ export async function searchAdminEntities(rawQuery: string): Promise<AdminSearch
       id: p.id,
       label: p.name,
       sublabel: p.project_code,
-      href: `/workshop/projects/${p.id}`,
+      href: `/admin/projects/${p.id}`,
     })),
     ...estimates.map((e) => ({
       kind: "estimate" as const,

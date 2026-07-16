@@ -7,6 +7,7 @@ import {
   ChartLine,
   ClipboardText,
   Flag,
+  FolderOpen,
   Gauge,
   Headset,
   Lightning,
@@ -43,6 +44,7 @@ export const ADMIN_NAV_GROUPS = [
   {
     label: "Product",
     items: [
+      { href: "/admin/projects", label: "Projects", icon: FolderOpen },
       { href: "/admin/estimate-system", label: "Estimate System", icon: TreeStructure },
       { href: "/admin/analytics", label: "Analytics", icon: ChartLine },
     ],
