@@ -107,6 +107,10 @@ function isEstimateRowOfflineError(error: Error) {
   return error.message === ESTIMATE_ROW_OFFLINE_MESSAGE || /offline/i.test(error.message);
 }
 
+function isAmbiguousDuplicateRowFailure(error: Error) {
+  return /offline|network|fetch|timeout|timed out|connection|unknown/i.test(error.message);
+}
+
 function toEstimateRowMutationError(error: Error, input?: { rowId?: string }): EstimateRowMutationError {
   const code = readMutationErrorCode(error);
   const staleDataConflict = code === ESTIMATE_ROW_REVISION_CONFLICT_CODE;
@@ -142,6 +146,11 @@ type DuplicateEstimateRowLibraryItem = EstimateRowItem & {
 function readDuplicateEstimateRowSourceId(libraryItem: EstimateRowItem) {
   const sourceRowId = (libraryItem as DuplicateEstimateRowLibraryItem).duplicateSourceRowId;
   return typeof sourceRowId === "string" && sourceRowId.trim() ? sourceRowId.trim() : null;
+}
+
+function readDuplicateEstimateRowSourceRevision(libraryItem: EstimateRowItem) {
+  const sourceRowRevision = (libraryItem as DuplicateEstimateRowLibraryItem).duplicateSourceRowRevision;
+  return typeof sourceRowRevision === "number" ? sourceRowRevision : undefined;
 }
 
 function withDuplicateEstimateRowSourceRevision(libraryItem: EstimateRowItem, rowRevision: number) {
@@ -593,6 +602,7 @@ export function useEstimateRowMutations(
   const rowMutationQueueTailsRef = useRef<Record<string, Promise<unknown>>>({});
   const queuedRowMutationCountsRef = useRef<Record<string, number>>({});
   const escalatedPendingMutationKeysRef = useRef<Set<string>>(new Set());
+  const duplicateInsertRevisionByMutationIdRef = useRef(new Map<string, number>());
   const [rowMutationStatuses, setRowMutationStatuses] = useState<EstimateRowMutationStatusMap>({});
   const rowMutationStatusesRef = useRef(rowMutationStatuses);
   useEffect(() => {
@@ -882,30 +892,14 @@ export function useEstimateRowMutations(
       return beginScopedRowMutation([input.rowId], "Creating row", "insert_row", input.mutationId);
     },
     onSuccess: (result: UpdateEstimateRowItemResult | undefined, input, context) => {
+      if (input.mutationId) duplicateInsertRevisionByMutationIdRef.current.delete(input.mutationId);
       markSaved();
       finishScopedRowMutation(context);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       if (result) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
           currentTree
-            ? patchEstimateRowItemInTree(currentTree, input.rowId, {
-                material: result.material,
-                description: result.description,
-                supplier: result.supplier,
-                unit: result.unit,
-                quantity: result.quantity,
-                quantityBase: result.quantityBase,
-                quantityContingencyAmount: result.quantityContingencyAmount,
-                itemCost: result.itemCost,
-                contingencyPercentage: result.contingencyPercentage,
-                miscCost: result.miscCost,
-                sourceSnapshot: result.sourceSnapshot,
-                imageUrl: snapshotStringPatch(result.sourceSnapshot, "imageUrl"),
-                sourceUrl: snapshotStringPatch(result.sourceSnapshot, "sourceUrl"),
-                metadata: result.metadata as EstimateRowItem["metadata"],
-                linkState: result.linkState,
-                rowRevision: result.rowRevision,
-              })
+            ? patchEstimateRowItemInTree(currentTree, input.rowId, estimateRowMutationResultToPatch(result))
             : currentTree,
         );
       }
@@ -915,6 +909,13 @@ export function useEstimateRowMutations(
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
     onError: (error: Error, input, context) => {
+      if (
+        input.mutationId
+        && readDuplicateEstimateRowSourceId(input.libraryItem)
+        && !isAmbiguousDuplicateRowFailure(error)
+      ) {
+        duplicateInsertRevisionByMutationIdRef.current.delete(input.mutationId);
+      }
       input.rollback?.();
       input.onError?.(error);
       finishScopedRowMutation(context, error);
@@ -1360,11 +1361,22 @@ export function useEstimateRowMutations(
   }
 
   function withInsertMutationIdentity(input: InsertEstimateRowInput): InsertEstimateRowInput {
+    const mutationId = input.mutationId ?? createMutationId();
     const duplicateSourceRowId = readDuplicateEstimateRowSourceId(input.libraryItem);
-    const duplicateSourceRowRevision = duplicateSourceRowId ? getCachedRowRevision(duplicateSourceRowId) : undefined;
+    const duplicateSourceRowRevision = duplicateInsertRevisionByMutationIdRef.current.get(mutationId)
+      ?? readDuplicateEstimateRowSourceRevision(input.libraryItem)
+      ?? (duplicateSourceRowId ? getCachedRowRevision(duplicateSourceRowId) : undefined);
+    if (
+      duplicateSourceRowId
+      && typeof duplicateSourceRowRevision === "number"
+      && Number.isInteger(duplicateSourceRowRevision)
+      && duplicateSourceRowRevision > 0
+    ) {
+      duplicateInsertRevisionByMutationIdRef.current.set(mutationId, duplicateSourceRowRevision);
+    }
     return {
       ...input,
-      mutationId: input.mutationId ?? createMutationId(),
+      mutationId,
       libraryItem: duplicateSourceRowRevision === undefined
         ? input.libraryItem
         : withDuplicateEstimateRowSourceRevision(input.libraryItem, duplicateSourceRowRevision),

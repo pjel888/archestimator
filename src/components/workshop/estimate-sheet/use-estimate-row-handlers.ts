@@ -6,7 +6,13 @@ import { flushSync } from "react-dom";
 import type { useEstimateRowMutations, EstimateRowMutationStatus, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
-import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchComponentInstanceRowsInTree, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import {
+  applyEstimateRowItemPatch,
+  estimateRowMutationResultToPatch,
+  findEstimateRowItemInTree,
+  patchComponentInstanceRowsInTree,
+  patchEstimateRowItemInTree,
+} from "@/lib/estimates/estimate-row-tree-patch";
 import {
   isExpressComponentRow,
   readEstimateRowMetadata,
@@ -451,6 +457,10 @@ export function useEstimateRowHandlers({
   const duplicateRowIntentRef = useRef(new Map<string, {
     rowId: string;
     mutationId: string;
+    sourceRowRevision?: number;
+    targetNodeId: string;
+    activeTabId: string | null;
+    optimisticItem: EstimateRowItem;
     status: "pending" | "failed";
   }>());
 
@@ -883,20 +893,30 @@ export function useEstimateRowHandlers({
   });
 
   const commitLibraryItemInsert = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
-    const targetNode = findEstimateNode(estimateTree, targetNodeId);
-    if (!targetNode) return false;
-
-    const previousTree = estimateTree;
-    const previousRows = getEditableRows();
     const duplicateSourceRowId = readDuplicateEstimateRowSourceId(libraryItem);
     const retainedDuplicateIntent = duplicateSourceRowId
       ? duplicateRowIntentRef.current.get(duplicateSourceRowId)
       : undefined;
     if (retainedDuplicateIntent?.status === "pending") return true;
-    const clonedItem = cloneLibraryItemForEstimate(libraryItem);
-    const newItem = retainedDuplicateIntent
-      ? { ...clonedItem, id: retainedDuplicateIntent.rowId }
-      : clonedItem;
+    const resolvedTargetNodeId = retainedDuplicateIntent?.targetNodeId ?? targetNodeId;
+    const resolvedActiveTabId = retainedDuplicateIntent?.activeTabId ?? activeTabId ?? null;
+    const targetNode = findEstimateNode(estimateTree, resolvedTargetNodeId);
+    if (!targetNode) return false;
+    const previousTree = estimateTree;
+    const previousRows = getEditableRows();
+
+    const sourceRowRevision = retainedDuplicateIntent?.sourceRowRevision
+      ?? (duplicateSourceRowId ? findEstimateRowItemInTree(estimateTree, duplicateSourceRowId)?.rowRevision : undefined)
+      ?? libraryItem.rowRevision;
+    const newItem = retainedDuplicateIntent?.optimisticItem ?? (
+      duplicateSourceRowId
+        ? {
+            ...cloneLibraryItemForEstimate(libraryItem),
+            duplicateSourceRowId,
+            ...(typeof sourceRowRevision === "number" ? { duplicateSourceRowRevision: sourceRowRevision } : {}),
+          } as EstimateRowItem & { duplicateSourceRowId: string; duplicateSourceRowRevision?: number }
+        : cloneLibraryItemForEstimate(libraryItem)
+    );
     const isExpressInsert = isExpressComponentRow(newItem);
     const mutationId = duplicateSourceRowId
       ? retainedDuplicateIntent?.mutationId ?? createEstimateRowItemId()
@@ -907,6 +927,10 @@ export function useEstimateRowHandlers({
       duplicateRowIntentRef.current.set(duplicateSourceRowId, {
         rowId: newItem.id,
         mutationId,
+        sourceRowRevision,
+        targetNodeId: resolvedTargetNodeId,
+        activeTabId: resolvedActiveTabId,
+        optimisticItem: newItem,
         status: "pending",
       });
     }
@@ -918,7 +942,7 @@ export function useEstimateRowHandlers({
       setExpressInsertDrafts((current) => ({
         ...current,
         [newItem.id]: {
-          targetNodeId,
+          targetNodeId: resolvedTargetNodeId,
           libraryItem,
           mutationId,
           status: "creating",
@@ -928,26 +952,42 @@ export function useEstimateRowHandlers({
     const rollbackRevision = setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
-          if (areaNode.id === targetNodeId) {
-            return { ...areaNode, estimateRowItems: [...(areaNode.estimateRowItems ?? []), newItem] };
+          if (areaNode.id === resolvedTargetNodeId) {
+            const rowItems = areaNode.estimateRowItems ?? [];
+            if (rowItems.some((item) => item.id === newItem.id)) return areaNode;
+            return { ...areaNode, estimateRowItems: [...rowItems, newItem] };
           }
           return { ...areaNode, children: areaNode.children?.map(visit) };
         }
         return visit(node);
       }),
     );
-    setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
+    setEditableRows((current) => current[newItem.id]
+      ? current
+      : { ...current, [newItem.id]: getInitialEditableRow(newItem) });
 
     if (projectId && estimateId) {
       insertRow({
         projectId,
         estimateId,
-        targetNodeId,
-        activeTabId,
+        targetNodeId: resolvedTargetNodeId,
+        activeTabId: resolvedActiveTabId,
         rowId: newItem.id,
-        libraryItem,
+        libraryItem: duplicateSourceRowId ? newItem : libraryItem,
         ...(mutationId ? { mutationId } : {}),
-        rollback: isExpressInsert ? () => undefined : () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        rollback: isExpressInsert
+          ? () => undefined
+          : duplicateSourceRowId
+            ? () => {
+                setEstimateTree((current) => removeEstimateRowItem(current, newItem.id));
+                setEditableRows((current) => {
+                  if (!current[newItem.id]) return current;
+                  const next = { ...current };
+                  delete next[newItem.id];
+                  return next;
+                });
+              }
+            : () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
         onSuccess: isExpressInsert
           ? () => handleExpressInsertSuccess(newItem.id)
           : duplicateSourceRowId
