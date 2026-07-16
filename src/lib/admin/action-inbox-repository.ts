@@ -3,6 +3,7 @@ import "server-only";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { emitLogRecord } from "@/lib/observability/logger";
 import { listOpenIncidents, type OperationalIncidentRow } from "@/lib/admin/incidents-repository";
+import { listOpenSupportConversations } from "@/lib/admin/support-attention-repository";
 
 // F2 (UNIT-003) Founder Action Inbox. Durable, deduped action items derived from
 // operational sources. v1 source: open incidents. The derivation is idempotent
@@ -71,24 +72,32 @@ export async function deriveActionItemsFromSources(): Promise<boolean> {
   if (!db || !db.batch) return false;
 
   try {
-    const incidentsResult = await listOpenIncidents();
+    const [incidentsResult, supportResult] = await Promise.all([
+      listOpenIncidents(),
+      listOpenSupportConversations(),
+    ]);
     const incidents = incidentsResult.data ?? [];
+    const support = supportResult;
     const now = new Date().toISOString();
 
-    const upserts = incidents.map((incident) => {
-      const derivedKey = `incident:${incident.id}`;
-      const title = incident.summary || `Incident ${incident.id}`;
-      const detail = incident.root_cause ?? null;
-      const severity = INCIDENT_SEVERITY[incident.severity];
-      const priority = INCIDENT_PRIORITY[incident.severity];
-      return db
+    const buildUpsert = (
+      derivedKey: string,
+      sourceKind: "incident" | "support",
+      sourceId: string,
+      title: string,
+      detail: string | null,
+      severity: ActionItemSeverity,
+      priority: number,
+      href: string,
+    ) =>
+      db
         .prepare(
           `
             INSERT INTO admin_action_items
               (id, derived_key, source_kind, source_id, title, detail, severity, href,
                status, priority, first_seen_at, last_seen_at, snooze_until, resolved_at,
                created_at, updated_at)
-            VALUES (?, ?, 'incident', ?, ?, ?, ?, '/admin/observability', 'open', ?, ?, ?, NULL, NULL, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, NULL, NULL, ?, ?)
             ON CONFLICT(derived_key) DO UPDATE SET
               title = excluded.title,
               detail = excluded.detail,
@@ -112,34 +121,82 @@ export async function deriveActionItemsFromSources(): Promise<boolean> {
               END
           `,
         )
-        .bind(crypto.randomUUID(), derivedKey, incident.id, title, detail, severity, priority, now, now, now, now);
-    });
+        .bind(
+          crypto.randomUUID(),
+          derivedKey,
+          sourceKind,
+          sourceId,
+          title,
+          detail,
+          severity,
+          href,
+          priority,
+          now,
+          now,
+          now,
+          now,
+        );
 
-    // Auto-resolve incident items whose source is no longer in the open set.
-    const openIds = incidents.map((i) => i.id);
-    let resolveSql: string;
-    let resolveBinds: (string | number)[];
-    if (openIds.length > 0) {
-      const placeholders = openIds.map(() => "?").join(", ");
-      resolveSql = `
-        UPDATE admin_action_items
-        SET status = 'resolved', resolved_at = ?, snooze_until = NULL, updated_at = ?
-        WHERE source_kind = 'incident'
-          AND status IN ('open', 'snoozed')
-          AND source_id NOT IN (${placeholders})
-      `;
-      resolveBinds = [now, now, ...openIds];
-    } else {
-      resolveSql = `
-        UPDATE admin_action_items
-        SET status = 'resolved', resolved_at = ?, snooze_until = NULL, updated_at = ?
-        WHERE source_kind = 'incident' AND status IN ('open', 'snoozed')
-      `;
-      resolveBinds = [now, now];
-    }
-    const resolveStmt = db.prepare(resolveSql).bind(...resolveBinds);
+    const upserts: ReturnType<typeof buildUpsert>[] = [
+      ...incidents.map((incident) =>
+        buildUpsert(
+          `incident:${incident.id}`,
+          "incident",
+          incident.id,
+          incident.summary || `Incident ${incident.id}`,
+          incident.root_cause ?? null,
+          INCIDENT_SEVERITY[incident.severity],
+          INCIDENT_PRIORITY[incident.severity],
+          "/admin/observability",
+        ),
+      ),
+      // F4: open/pending support conversations become action items. Awaiting-reply
+      // (unread_for_admin=1) triages above read ones.
+      ...support.map((conv) =>
+        buildUpsert(
+          `support:${conv.id}`,
+          "support",
+          conv.id,
+          conv.subject?.trim() || `Support conversation ${conv.id.slice(0, 8)}`,
+          `status: ${conv.status}`,
+          conv.unread_for_admin === 1 ? "warning" : "info",
+          conv.unread_for_admin === 1 ? 20 : 60,
+          "/admin/support",
+        ),
+      ),
+    ];
 
-    await db.batch([...upserts, resolveStmt]);
+    // Auto-resolve items whose source is no longer open, per source kind.
+    const buildResolve = (sourceKind: "incident" | "support", openIds: string[]) => {
+      if (openIds.length > 0) {
+        const placeholders = openIds.map(() => "?").join(", ");
+        return db
+          .prepare(
+            `
+              UPDATE admin_action_items
+              SET status = 'resolved', resolved_at = ?, snooze_until = NULL, updated_at = ?
+              WHERE source_kind = ? AND status IN ('open', 'snoozed')
+                AND source_id NOT IN (${placeholders})
+            `,
+          )
+          .bind(now, now, sourceKind, ...openIds);
+      }
+      return db
+        .prepare(
+          `
+            UPDATE admin_action_items
+            SET status = 'resolved', resolved_at = ?, snooze_until = NULL, updated_at = ?
+            WHERE source_kind = ? AND status IN ('open', 'snoozed')
+          `,
+        )
+        .bind(now, now, sourceKind);
+    };
+
+    await db.batch([
+      ...upserts,
+      buildResolve("incident", incidents.map((i) => i.id)),
+      buildResolve("support", support.map((c) => c.id)),
+    ]);
     return true;
   } catch (error) {
     logFailure(error, "admin_action_inbox_derive_failed");
