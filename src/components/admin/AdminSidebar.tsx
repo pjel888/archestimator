@@ -19,6 +19,7 @@ import {
   Pulse,
   Rocket,
   SidebarSimple,
+  Sparkle,
   TreeStructure,
   Users,
 } from "@phosphor-icons/react/dist/ssr";
@@ -54,6 +55,7 @@ export const ADMIN_NAV_GROUPS = [
       { href: "/admin/estimate-system", label: "Estimate System", icon: TreeStructure },
       { href: "/admin/analytics", label: "Analytics", icon: ChartLine },
       { href: "/admin/financials", label: "Financials", icon: Coins },
+      { href: "/admin/copilot", label: "AI Copilot", icon: Sparkle },
     ],
   },
   {
