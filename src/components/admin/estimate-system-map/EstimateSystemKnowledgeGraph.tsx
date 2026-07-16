@@ -5,6 +5,7 @@ import { ArrowsOut, MagnifyingGlassMinus, MagnifyingGlassPlus } from "@phosphor-
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import {
   findEstimateSystemKnowledgeNode,
@@ -53,6 +54,22 @@ function knowledgeStatus(status: string) {
     compact: humanizeId(status),
     description: "Documented status.",
   };
+}
+
+export function KnowledgeStatusBadge({ status }: { status: string }) {
+  const tone = status === "current"
+    ? "success"
+    : status === "partial"
+      ? "danger"
+      : status === "guarded" || status === "boundary"
+        ? "warning"
+        : "neutral";
+
+  return (
+    <Badge tone={tone} size="xs">
+      {knowledgeStatus(status).compact}
+    </Badge>
+  );
 }
 
 function KnowledgeStatusLabel({ status }: { status: string }) {
@@ -784,6 +801,7 @@ export function EstimateSystemKnowledgeGraph({
                   <h2 className="mt-1 text-[12px] font-medium leading-5 text-ink">{selectedInventoryItem.label}</h2>
                   <p className="mt-1 text-[10px] leading-4 text-secondary">{selectedInventoryItem.note}</p>
                   <p className="mt-2 max-w-3xl text-[10px] leading-4 text-ink">{selectedOperation.summary}</p>
+                  <KnowledgeStatusNote status={selectedInventoryItem.status} />
                 </div>
                 <div className="grid w-full grid-cols-2 rounded-xs border border-hairline p-0.5 sm:w-auto" role="group" aria-label="Knowledge relationship scope">
                   <Button variant={showWholeSystem ? "ghost" : "secondary"} size="xs" className="min-w-0 whitespace-nowrap" aria-pressed={!showWholeSystem} onClick={() => { setShowWholeSystem(false); setSelectedNodeId(""); }}>Focused</Button>
@@ -868,6 +886,7 @@ export function EstimateSystemKnowledgeGraph({
                   </div>
                   <h2 id="knowledge-entity-heading" className="mt-1 text-[12px] font-medium leading-5 text-ink">{selectedNode.title}</h2>
                   <p className="mt-1 max-w-3xl text-[10px] leading-4 text-secondary">{selectedNode.plainLanguage}</p>
+                  <KnowledgeStatusNote status={selectedNode.status} />
                 </div>
                 <Button variant="plain" size="xs" className="min-w-0 self-start px-0" onClick={() => { setSelectedNodeId(""); focusRecord(contentRef); }}>Return to action</Button>
               </header>

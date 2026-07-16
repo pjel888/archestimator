@@ -1,6 +1,6 @@
 import type { EstimateSystemKnowledgeGraph } from "@/lib/admin/estimate-system-knowledge";
 
-export const ESTIMATE_SYSTEM_VIEWS = ["product", "features", "pages", "ux", "knowledge"] as const;
+export const ESTIMATE_SYSTEM_VIEWS = ["overview", "browse", "journeys", "knowledge"] as const;
 
 export type EstimateSystemView = (typeof ESTIMATE_SYSTEM_VIEWS)[number];
 

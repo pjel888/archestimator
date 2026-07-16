@@ -7,12 +7,13 @@ import {
   type EstimateSystemDocumentation,
   type EstimateSystemFeature,
   type EstimateSystemPage,
-  type EstimateSystemView,
 } from "@/lib/admin/estimate-system-map";
+
+export type EstimateSystemGraphView = "product" | "features" | "pages";
 
 type EstimateSystemGraphProps = Readonly<{
   documentation: EstimateSystemDocumentation;
-  view: Exclude<EstimateSystemView, "ux" | "knowledge">;
+  view: EstimateSystemGraphView;
   feature: EstimateSystemFeature | null;
   page: EstimateSystemPage | null;
   onOpenFeature: (featureId: string) => void;
