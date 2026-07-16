@@ -8,7 +8,7 @@
 4. Do not overwrite unfamiliar changes. A dirty owned path means refresh the unit baseline and coordinate a single writer; it is not permission to stash, reset, revert, or fork a competing implementation.
 5. Use GitNexus impact before editing each named symbol. Treat the current graph as directional until its index is current; verify every decision in source.
 6. Keep domain behavior in one deep implementation. Do not introduce generic factories, compatibility re-exports, or pass-through wrappers.
-7. Product tests are user-controlled. Commands below are `TEST_PROPOSAL` only. Static source, scoped lint/type evidence, `git diff --check`, and plan/manifest validators are allowed.
+7. Product tests are user-controlled. Commands below are `TEST_PROPOSAL` only. A unit that requires test-source edits stays `PLANNED` until those edits are explicitly authorized; import maintenance never authorizes test execution or assertion expansion. Static source, scoped lint/type evidence, `git diff --check`, and plan/manifest validators are allowed.
 8. Record one sanitized receipt per unit under this pack's future `evidence/` directory, then update the manifest/ledger without claiming unrun tests.
 
 ## 2. Unit DAG
@@ -16,16 +16,17 @@
 ```text
 UNIT-001  component category resolver                 READY   ┐
 UNIT-002  internal Bearer boundary                    READY   ├─ SLICE-001
-UNIT-003  Estimate-tree D1 read module                READY   ┘
+UNIT-009  per-asset upload-removal results            READY   ┘
 
+UNIT-003  Estimate-tree D1 read module                PLANNED (test-source edit authorization)
 UNIT-004  component-folder move coordinator           PLANNED (component UI lease)
 UNIT-005  component-library D1 mutation modules       PLANNED (component action lease)
 UNIT-006  durable public rate-limit modules           PLANNED (security single-writer lease)
 UNIT-007  typed Estimate D1 intent modules             PLANNED (active Estimate lease)
-UNIT-008  provider-owned Estimate row editing          PLANNED (depends on UNIT-007)
+UNIT-008  provider-owned Estimate row editing          PLANNED (Estimate UI lease)
 ```
 
-`UNIT-001`, `UNIT-002`, and `UNIT-003` are mutually independent. `UNIT-008` depends on `UNIT-007`; all other relationships are lease scheduling rather than invented technical dependencies.
+`UNIT-001`, `UNIT-002`, and `UNIT-009` are mutually independent. No technical dependency edge is invented between the planned units; their gates are authorization or single-writer scheduling conditions.
 
 ## 3. Receipt Contract
 
@@ -84,7 +85,7 @@ Revert only the four owned-path edits. Because the public convenience signature 
 
 ### Completion and next state
 
-Mark `UNIT-001` `VERIFIED` only from fresh source/static evidence and any separately authorized test receipt. Set `next_unit` to `UNIT-002` if it remains clean; otherwise `UNIT-003` may become next within `SLICE-001`.
+Mark `UNIT-001` `VERIFIED` only from fresh source/static evidence and any separately authorized test receipt. Set `next_unit` to `UNIT-002` if it remains clean; otherwise `UNIT-009` may become next within `SLICE-001`.
 
 ## UNIT-002 — Centralize Production Upload Bearer Authorization
 
@@ -127,25 +128,76 @@ Restore the three local helpers and delete the new shared file. No stored creden
 
 This auxiliary unit does not block core architecture completion. If verified, advance to the remaining clean ready unit. If deferred, record the reason and keep core package state truthful.
 
-## UNIT-003 — Extract the Concrete Estimate-Tree D1 Read Module
+## UNIT-009 — Make Upload Removal Per-Asset and Truthful
 
 **Status:** `READY`  
 **Depends on:** none  
+**Requirement:** `DATA-001` (auxiliary)  
+**Risk:** `RISK-009`
+
+### Owned paths
+
+- `src/lib/uploads/removal-claims.ts`
+- `src/app/api/projects/images/route.ts`
+- `src/app/api/component-library/attachments/route.ts`
+- `src/app/api/component-library/images/route.ts`
+
+### Exact change
+
+1. Replace the whole-matched-set reference guard with a correlated per-asset guard: each candidate row is claimable only when that row is unreferenced. Preserve the existing workspace, actor, surface, bucket, status, purge-state, delay, claim-ID, and cleanup semantics.
+2. Replace the collapsed result with exact sets: `claimedAssetIds`/`claimedPaths`, `blockedAssetIds`/`blockedPaths`, and `alreadyRemovedAssetIds`/`alreadyRemovedPaths`. Keep `not_found` only for zero matched assets.
+3. Derive one deterministic status from those sets: `claimed` when at least one asset is claimed and no blocked/already-removed asset remains; `partial` when at least one is claimed and another is blocked or already removed; `referenced` when none is claimed and at least one is blocked; `already_claimed` when matched assets are already removed and none is claimed or blocked; otherwise `not_found`.
+4. After the atomic claim, classify only the unmatched rows in one diagnostic query. Do not report a path in more than one result set.
+5. In all three route handlers, return `409` only for a zero-claim `referenced` result and `404` only for `not_found`. For `claimed`, `partial`, or `already_claimed`, return `200` with `{ removedPaths: claimedPaths, blockedPaths, alreadyRemovedPaths }`; never substitute the requested paths for `removedPaths`.
+6. Keep the cleanup job's final reference re-check unchanged. Do not add the predecessor's speculative composite index or reference-tracking table in this unit.
+
+### Acceptance evidence
+
+- The claim `UPDATE` correlates the reference predicate to the row being updated; no referenced candidate blocks an unrelated free candidate.
+- Mixed input produces disjoint claimed, blocked, and already-removed path sets with a deterministic `partial` status.
+- All three routes derive `removedPaths` only from `claimedPaths`.
+- The result contract and every route branch use the same status/set vocabulary.
+- No migration, index, cleanup-job, or storage deletion behavior changes.
+- `git diff --check` is clean for the four owned paths.
+
+### Test decision
+
+`TEST_PROPOSAL`: update and run only `tests/vitest/upload-removal-claims.test.ts` for mixed `[referenced, free, already removed]`, all-referenced, all-free, and zero-match inputs. Route response assertions may be added only if the implementation task explicitly authorizes test-source work. This plan does not authorize either edit or execution.
+
+### Recovery
+
+Restore the previous claim result type, whole-set query, and three route response branches together. No migration or stored-data rollback is involved; already-created removal claims retain their existing cleanup delay and final reference re-check.
+
+### Completion and next state
+
+This auxiliary correctness unit does not block core architecture completion. If verified, advance to the remaining clean ready unit; if deferred, record why the verified defect remains accepted risk rather than reviving the archived predecessor wholesale.
+
+## UNIT-003 — Extract the Concrete Estimate-Tree D1 Read Module
+
+**Status:** `PLANNED`  
+**Depends on:** none  
 **Requirement:** `REQ-002`  
 **Risk:** `RISK-003`
+
+### Authorization gate
+
+The extraction requires import-only maintenance in two focused tests and source-contract maintenance in two more. The current plan authoring task did not authorize test-source edits. Promote this unit to `READY` only when the implementation task explicitly authorizes those four narrow maintenance edits; that authorization does not imply permission to run tests or expand assertions.
 
 ### Owned paths
 
 - new `src/lib/estimates/estimate-tree-read-repository.ts`
 - `src/lib/repositories/workspace-repository.ts`
-- direct non-workspace imports of `buildEstimateTree`, `groupEstimateTabTrees`, and their row/node query types
+- `tests/vitest/workspace-repository-estimate-tree.test.ts` (import retarget only)
+- `tests/vitest/proposal-export-tab-grouping.test.ts` (import retarget only)
+- `tests/vitest/estimate-tabs-domain.test.ts` (source-contract retarget only)
+- `tests/vitest/live-estimate-node-route.test.ts` (source-contract retarget only)
 
 ### Exact change
 
 1. Create a concrete D1 read module. It owns the current Estimate tab/node/row query helpers, load-limit normalization, legacy-tab normalization, optional adjustment read, tree/subtree construction, and batched tab grouping.
 2. Export only the D1-level operations required by `workspace-repository.ts` plus the pure `buildEstimateTree` and `groupEstimateTabTrees` utilities used directly by focused consumers/tests.
 3. Keep current workspace/project lookup, current-user context, edit/access decisions, and public route orchestration in `workspace-repository.ts`. The new module must not import `workspace-repository.ts`.
-4. Update all direct imports of the two pure builders/types to the new module. Do not re-export them from `workspace-repository.ts` after every in-repo caller moves.
+4. Under explicit test-source edit authorization, retarget the two pure-builder/type imports to the new module and retarget the two source-contract assertions to the new ownership boundary. Do not expand test behavior or re-export the builders from `workspace-repository.ts`.
 5. Preserve all public orchestration signatures and legacy-fallback conditions. Do not remove `clearEstimateRouteContextProcessCache` or `readEstimateNodeRouteContextD1FastPath` in this unit; their current source-contract tests make that a separate cleanup decision.
 6. Do not change query columns, ordering, limits, access checks, trace labels, tab fallback semantics, selected-node behavior, or row-total calculations.
 
@@ -160,7 +212,7 @@ This auxiliary unit does not block core architecture completion. If verified, ad
 
 ### Test decision
 
-`TEST_PROPOSAL`: `bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts`. The critical invariant is byte-equivalent tree/tab output and legacy fallback; import/type inspection alone cannot prove it.
+`TEST_PROPOSAL`: `bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts tests/vitest/live-estimate-node-route.test.ts`. The critical invariant is byte-equivalent tree/tab output and legacy fallback; import/type inspection alone cannot prove it.
 
 ### Recovery
 
@@ -168,7 +220,7 @@ Move the extracted implementation back into `workspace-repository.ts` and restor
 
 ### Completion and next state
 
-When verified, close `SLICE-001` if `UNIT-001` and `UNIT-002` are also resolved. The package remains `CONDITIONALLY_READY` until a planned unit's lease clears and is promoted to `READY` with a refreshed baseline.
+When verified, record the explicit test-source authorization receipt and refresh the package baseline. The package remains `CONDITIONALLY_READY` until every planned unit's authorization or lease gate is truthfully resolved.
 
 ## UNIT-004 — Deepen the Component-Folder Move Coordinator
 
@@ -360,7 +412,8 @@ Do not start until the active Estimate/Component Variant unit is terminal and `s
 
 ### Acceptance evidence
 
-- `rg -n "EstimateActionD1Query|EstimateActionsD1Client|createEstimateActionsD1Client|\.call\(|dataStore\.from\("` is empty on the Estimate action consumers.
+- `rg -n "EstimateActionD1Query|EstimateActionsD1Client|createEstimateActionsD1Client|dataStore\.(call|from|select)\(" src/lib/estimates/actions.ts src/lib/reusable-sources/actions.ts src/lib/estimates` is empty.
+- `rg -n "EstimateActionsD1Client|(client|viewerClient|strangerClient)\.call\(" src/lib/cloudflare/estimate-history-proof-router.ts` is empty; unrelated uses such as `hasOwnProperty.call` are outside the façade residue check.
 - `d1-action-client.ts` is absent and all new modules are concrete intent implementations.
 - No module exposes raw table/action/projection strings as a public API.
 - A before/after action inventory accounts for every old dispatcher name and direct-table operation exactly once.
@@ -378,24 +431,25 @@ Recover at the last completed checkpoint by restoring the old family branch and 
 
 ### Completion and next state
 
-The unit is verified only when the old file and every shallow call surface are gone. On verification, refresh `UNIT-008` against the stable typed row intents and promote it to `READY` if its UI lease is clear.
+The unit is verified only when the old file and every shallow call surface are gone. On verification, refresh `UNIT-008` against the stable client-callable server-action adapters and promote it to `READY` if its independent UI lease is clear.
 
 ## UNIT-008 — Deepen the Existing Estimate Row Editing Store
 
 **Status:** `PLANNED`  
-**Depends on:** `UNIT-007`  
+**Depends on:** none  
 **Requirement:** `REQ-006`  
 **Risk:** `RISK-008`
 
 ### Lease gate
 
-`UNIT-007` must be verified. `EstimateSheetContent.tsx`, `editable-row-store.ts`, `use-estimate-row-handlers.ts`, row table/branch files, and their current active owner must be clean or explicitly single-writer leased. Refresh the prop/store inventory after the backend intent interface stabilizes.
+`EstimateSheetContent.tsx`, `editable-row-store.ts`, `use-estimate-row-handlers.ts`, `use-estimate-row-mutations.ts`, row table/branch files, and their current active owner must be clean or explicitly single-writer leased. Refresh the prop/store and client-mutation-adapter inventory after that lease clears. `UNIT-007` is useful prior context but is not a technical dependency because the client store must never import server-only D1 intents.
 
 ### Owned paths
 
 - new `src/components/workshop/estimate-sheet/rows/row-commit-intent.ts`
 - `src/components/workshop/estimate-sheet/rows/editable-row-store.ts`
 - `src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts`
+- `src/hooks/use-estimate-row-mutations.ts`
 - `src/components/workshop/estimate-sheet/rows/row-table.tsx`
 - `src/components/workshop/estimate-sheet/rows/branch.tsx`
 - `src/components/workshop/EstimateSheetContent.tsx`
@@ -405,7 +459,7 @@ The unit is verified only when the old file and every shallow call surface are g
 1. Add four explicit discriminated commit intents in `row-commit-intent.ts`: ordinary row field update, selected-variant update, linked shared-component definition update, and make-project-specific/detach update.
 2. Preserve routing exactly: quantity and selected variant are row-owned; variant-definition edits are shared; the linked mutation path remains conditioned on the current linked-shared-component identity and update capability.
 3. Deepen the existing per-`EstimateSheetContent` vanilla-Zustand `EditableRowStore`. It owns editable values, dirty/clean state, pending/error status, current optimistic snapshot, authoritative snapshot, commit intent dispatch, and rollback for each row.
-4. Inject the typed row intent functions from `UNIT-007` when creating the per-sheet store. Do not create a global store, a second context, or `RowMutationCoordinator`.
+4. Inject client-safe commit adapters built from the existing client mutation hook and server-action callbacks when creating the per-sheet store. Those adapters may call server actions whose internals use `UNIT-007`, but no `"use client"` module may import a D1 intent, database handle, or actor-context function. Do not create a global store, a second context, or `RowMutationCoordinator`.
 5. Keep insert, delete, restore, move, picker, promotion, and toast orchestration in `use-estimate-row-handlers` unless it is directly required by a row commit. Narrow the hook input only by removing state/handlers now owned by the store.
 6. Make row table/branch components select their own row values/status/actions from the store. Retain structural node/row identity and layout props.
 7. Remove handler prop drilling and memo-comparator clauses only after the corresponding selector owns the dependency. Do not delete comparators merely to reduce line count.
@@ -418,6 +472,7 @@ The unit is verified only when the old file and every shallow call surface are g
 - `use-estimate-row-handlers` no longer receives or forwards store-owned editable/dirty/status/commit dependencies.
 - Branch props contain structural data and non-store operations only.
 - The selected-variant/shared-definition rule is named in source and the unit receipt.
+- Client modules import only client-safe action adapters; server-only D1 intent modules remain below the Server Action boundary.
 - Any removed comparator entry has a corresponding selector subscription.
 - `git diff --check` is clean.
 
@@ -444,4 +499,3 @@ The implementation closeout must prove:
 - `bun run validate:planning-prompts` and `bun run validate:plan-pack -- <this-pack>` pass;
 - `git diff --check` passes for the implementation scope; and
 - GitNexus `detect_changes` plus scoped source diff agree on the affected execution flows.
-
