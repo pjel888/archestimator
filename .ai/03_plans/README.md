@@ -12,7 +12,7 @@ This folder contains historical and future implementation plans.
 
 The canonical current state is `.ai/10_state/current-state.md`.
 
-- `.ai/03_plans/2026-07-16/Master-Codebase-Architecture-Deepening-Plan-Pack/` — canonical conditionally-ready master for current codebase architecture deepening. Start at `IMPLEMENTATION_PLAN.md`; `UNIT-001` is next, `UNIT-001` through `UNIT-003` are the clean ready slice, and later component/Estimate units carry explicit single-writer leases.
+- `.ai/03_plans/2026-07-16/Master-Codebase-Architecture-Deepening-Plan-Pack/` — canonical conditionally-ready master for current codebase architecture deepening. Start at `IMPLEMENTATION_PLAN.md`; `UNIT-001` is next, `UNIT-001`, `UNIT-002`, and `UNIT-009` are the clean ready slice, `UNIT-003` has an explicit test-source maintenance gate, and later component/security/Estimate units carry single-writer leases.
 - `.ai/09_archive/store/2026-07-16-Codebase-Architecture-Deepening-Plan-Pack-superseded/` and `.ai/09_archive/store/2026-07-16-Codebase-Improve-Audit-Plan-Pack-superseded/` — cancelled/incomplete planning predecessors retained only as historical evidence after every requirement was dispositioned into the master.
 
 Archestimator is no longer at the completely blank `/workshop` reset snapshot. The repo currently contains a small post-reset workshop route slice. Older plans in this folder that describe the rejected full prototype, local-first MVP, proposal/revision system, Glide migration, or broad workshop route family are historical context only unless a current plan explicitly reactivates a narrow piece.
