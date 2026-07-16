@@ -60,6 +60,7 @@ class Statement<T = Record<string, unknown>> {
   }
 
   async first<R = T>(): Promise<R | null> {
+    this.database.operationLog.push({ kind: "first", sql: this.sql });
     if (this.sql.includes("SELECT 1 AS allowed")) return { allowed: 1 } as R;
     if (this.sql.includes("FROM estimate_mutation_receipts")) {
       return (this.database.receipts.get(this.database.receiptKey(this.values[0], this.values[1], this.values[2])) ?? null) as R | null;
@@ -101,6 +102,7 @@ class Statement<T = Record<string, unknown>> {
   }
 
   async all<R = T>(): Promise<D1Result<R>> {
+    this.database.operationLog.push({ kind: "all", sql: this.sql });
     if (this.sql.includes("FROM estimate_nodes node") && this.sql.includes("node.id IN")) {
       const ids = new Set(this.values.slice(1).map(String));
       return {
@@ -165,6 +167,7 @@ class RestoreDatabase implements D1DatabaseLike {
   receipts = new Map<string, Receipt>();
   batchCount = 0;
   failNextBatch = false;
+  operationLog: Array<{ kind: "first" | "all" | "batch"; sql?: string }> = [];
 
   receiptKey(workspaceId: unknown, commandKind: unknown, intentId: unknown) {
     return `${String(workspaceId)}:${String(commandKind)}:${String(intentId)}`;
@@ -176,6 +179,7 @@ class RestoreDatabase implements D1DatabaseLike {
 
   async batch<T = Record<string, unknown>>(statements: Array<D1PreparedStatementLike<T>>): Promise<Array<D1Result<T>>> {
     this.batchCount += 1;
+    this.operationLog.push({ kind: "batch" });
     if (this.failNextBatch) {
       this.failNextBatch = false;
       return statements.map(() => ({ success: false } as D1Result<T>));
@@ -349,6 +353,7 @@ describe("EstimateActionsD1Client row duplicate history", () => {
     const client = new EstimateActionsD1Client(database, user());
 
     const first = await duplicate(client, { correlationId: "duplicate-idempotent" });
+    const firstOperationLog = [...database.operationLog];
     const replay = await duplicate(client, { correlationId: "duplicate-idempotent" });
 
     expect(first.error).toBeNull();
@@ -401,6 +406,13 @@ describe("EstimateActionsD1Client row duplicate history", () => {
     expect(database.receipts.has(`${WORKSPACE_ID}:estimate.row.duplicate:duplicate-idempotent`)).toBe(true);
     expect(replay).toEqual(first);
     expect(database.batchCount).toBe(1);
+    const batchIndex = firstOperationLog.findIndex((operation) => operation.kind === "batch");
+    const postCommitReadBacks = firstOperationLog
+      .slice(batchIndex + 1)
+      .filter((operation) => operation.kind === "first" || operation.kind === "all");
+    expect(batchIndex).toBeGreaterThanOrEqual(0);
+    expect(postCommitReadBacks).toHaveLength(1);
+    expect(postCommitReadBacks[0]?.sql).toContain("FROM estimate_row_items");
   });
 
   it("rejects stale source, invalid target, and changed replay payloads before another write", async () => {

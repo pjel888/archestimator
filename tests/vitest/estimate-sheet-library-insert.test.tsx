@@ -1056,14 +1056,16 @@ describe("estimate sheet library insertion persistence", () => {
       projectId,
       estimateId,
       targetNodeId,
+      activeTabId: null,
       mutationId: expect.any(String),
       libraryItem: expect.objectContaining({
-        id: cabinetRowId,
         duplicateSourceRowId: cabinetRowId,
+        duplicateSourceRowRevision: 7,
         rowRevision: 7,
       }),
     });
     expect(input.rowId).not.toBe(cabinetRowId);
+    expect(input.libraryItem.id).toBe(input.rowId);
 
     await act(async () => {
       duplicate.resolve(undefined);
@@ -1072,6 +1074,7 @@ describe("estimate sheet library insertion persistence", () => {
   });
 
   it("reuses duplicate identity after ambiguity and releases it after explicit rejection", async () => {
+    const user = userEvent.setup();
     actionMocks.insertEstimateRowItemFromLibrary
       .mockRejectedValueOnce(new Error("Network timeout"))
       .mockResolvedValueOnce(undefined)
@@ -1085,11 +1088,22 @@ describe("estimate sheet library insertion persistence", () => {
     const ambiguousInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
     await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(2));
 
+    const sourceQuantity = screen.getByLabelText("Kitchen Cabinet quantity") as HTMLInputElement;
+    await user.clear(sourceQuantity);
+    await user.type(sourceQuantity, "7");
+    fireEvent.blur(sourceQuantity);
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+
     fireEvent.click(sourceDuplicateButton());
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
     const ambiguityRetryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[1][0];
     expect(ambiguityRetryInput.rowId).toBe(ambiguousInput.rowId);
     expect(ambiguityRetryInput.mutationId).toBe(ambiguousInput.mutationId);
+    expect(ambiguityRetryInput.targetNodeId).toBe(ambiguousInput.targetNodeId);
+    expect(ambiguityRetryInput.activeTabId).toBe(ambiguousInput.activeTabId);
+    expect(ambiguousInput.libraryItem.duplicateSourceRowRevision).toBe(7);
+    expect(ambiguityRetryInput.libraryItem.duplicateSourceRowRevision).toBe(7);
+    expect(ambiguityRetryInput.libraryItem.id).toBe(ambiguousInput.libraryItem.id);
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -1105,6 +1119,39 @@ describe("estimate sheet library insertion persistence", () => {
     const deliberateRetryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[3][0];
     expect(deliberateRetryInput.rowId).not.toBe(rejectedInput.rowId);
     expect(deliberateRetryInput.mutationId).not.toBe(rejectedInput.mutationId);
+  });
+
+  it("rolls back only the failed duplicate while preserving an unrelated row edit", async () => {
+    const user = userEvent.setup();
+    const duplicate = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateRowItemFromLibrary>>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(duplicate.promise);
+    actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
+      ...makeCanonicalReplaceResult(sinkRowId, {
+        ...nodesWithRow[0].estimateRowItems![1],
+        quantity: 4,
+      }, 4),
+      quantity: 4,
+    });
+    renderPersistedEstimateSheet(nodesWithRow);
+
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate row item Kitchen Cabinet" }));
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(3));
+
+    const sinkQuantity = screen.getByLabelText("Kitchen Sink quantity") as HTMLInputElement;
+    await user.clear(sinkQuantity);
+    await user.type(sinkQuantity, "4");
+    fireEvent.blur(sinkQuantity);
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(sinkQuantity).toHaveValue("4"));
+
+    await act(async () => {
+      duplicate.reject(new Error("Network timeout"));
+      await duplicate.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(2));
+    expect(screen.getByLabelText("Kitchen Sink quantity")).toHaveValue("4");
   });
 
   it("still renders and persists an editable express row when the legacy flag is disabled", async () => {

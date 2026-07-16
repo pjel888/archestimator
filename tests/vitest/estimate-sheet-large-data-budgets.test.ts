@@ -1,8 +1,91 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { patchComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import { createEstimateTreeIndex } from "@/lib/estimates/estimate-tree-index";
+
 function read(path: string) {
   return readFileSync(path, "utf8");
+}
+
+function makePerformanceRow(id: string, sourceLibraryItemId?: string): EstimateRowItem {
+  return {
+    id,
+    material: "Original material",
+    description: "Large estimate fixture row",
+    supplier: "Fixture supplier",
+    source: "library",
+    sourceLibraryItemId,
+    linkState: sourceLibraryItemId ? "linked-clean" : undefined,
+    unit: "unit",
+    itemCost: 1,
+    quantity: 1,
+    subTotal: 1,
+    miscCost: 0,
+    totalItemCosts: 1,
+    category: "Performance",
+    pricingSource: "Deterministic fixture",
+    pricingDate: "2026-07-16",
+  };
+}
+
+function makeLargeFanOutFixture() {
+  const linkedRowIds: string[] = [];
+  const areaNodes = Array.from({ length: 1_400 }, (_, areaIndex): EstimateTreeNode => {
+    const isLinked = areaIndex < 1_000;
+    const rowCount = isLinked ? 1 : 10;
+    const estimateRowItems = Array.from({ length: rowCount }, (_, rowIndex) => {
+      const rowId = `perf-row-${areaIndex}-${rowIndex}`;
+      if (isLinked) linkedRowIds.push(rowId);
+      return makePerformanceRow(rowId, isLinked ? "shared-component" : undefined);
+    });
+    return {
+      id: `perf-area-${areaIndex}`,
+      name: `Performance Area ${areaIndex}`,
+      kind: "area",
+      total: "₱0.00",
+      estimateRowItems,
+      children: [],
+    };
+  });
+
+  const groups: EstimateTreeNode[] = [];
+  let areaCursor = 0;
+  for (let groupIndex = 0; groupIndex < 99; groupIndex += 1) {
+    const areaCount = 14 + (groupIndex < 14 ? 1 : 0);
+    const groupAreas = areaNodes.slice(areaCursor, areaCursor + areaCount);
+    areaCursor += areaCount;
+    let children = groupAreas;
+    if (groupIndex === 0) {
+      children = [];
+      for (let index = groupAreas.length - 1; index >= 0; index -= 1) {
+        const nestedArea = { ...groupAreas[index], children };
+        children = [nestedArea];
+      }
+    }
+    groups.push({
+      id: `perf-group-${groupIndex}`,
+      name: `Performance Group ${groupIndex}`,
+      kind: "group",
+      total: "₱0.00",
+      estimateRowItems: [],
+      children,
+    });
+  }
+
+  return {
+    tree: [{
+      id: "perf-root",
+      name: "Performance Root",
+      kind: "group" as const,
+      total: "₱0.00",
+      estimateRowItems: [],
+      children: groups,
+    }],
+    linkedRowIds,
+    unrelatedNodes: areaNodes.slice(1_000),
+  };
 }
 
 describe("estimate sheet large-data budgets", () => {
@@ -46,5 +129,49 @@ describe("estimate sheet large-data budgets", () => {
     expect(workspaceRepository).toContain("listProjectEstimateSheets(projectId: string, options: { limit?: number } = {})");
     expect(sheetRepository).toContain("normalizeProjectEstimateSheetLimit");
     expect(sheetRepository).toContain("LIMIT ?");
+  });
+
+  it("patches a 1,000-row shared component without scanning 4,000 unrelated rows", () => {
+    const { tree, linkedRowIds, unrelatedNodes } = makeLargeFanOutFixture();
+    const index = createEstimateTreeIndex(tree);
+    let unrelatedRowReads = 0;
+    const unrelatedRows = unrelatedNodes.map((node) => node.estimateRowItems ?? []);
+
+    expect(index.nodesById.size).toBe(1_500);
+    expect(index.rowsById.size).toBe(5_000);
+    expect(index.rowIdsByComponentIdentity.get("library:shared-component")).toHaveLength(1_000);
+
+    unrelatedNodes.forEach((node, nodeIndex) => {
+      Object.defineProperty(node, "estimateRowItems", {
+        configurable: true,
+        enumerable: true,
+        get() {
+          unrelatedRowReads += 1;
+          return unrelatedRows[nodeIndex];
+        },
+      });
+    });
+
+    const startedAt = performance.now();
+    const next = patchComponentInstanceRowsInTree(
+      tree,
+      linkedRowIds[0],
+      { material: "Updated shared material" },
+      index,
+    );
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(unrelatedRowReads).toBe(0);
+    expect(elapsedMs).toBeLessThan(1_000);
+
+    const nextIndex = createEstimateTreeIndex(next);
+    expect(linkedRowIds.every((rowId) => {
+      const location = nextIndex.rowsById.get(rowId);
+      const node = location ? nextIndex.nodesById.get(location.nodeId)?.node : undefined;
+      return location ? node?.estimateRowItems?.[location.rowIndex]?.material === "Updated shared material" : false;
+    })).toBe(true);
+    expect(unrelatedNodes.every((node) => nextIndex.nodesById.get(node.id)?.node === node)).toBe(true);
+    expect(unrelatedRows.flat().every((row) => row.material === "Original material")).toBe(true);
+    console.log("estimate-sheet-large-data-perf-s11", JSON.stringify({ elapsedMs, nodeCount: index.nodesById.size, rowCount: index.rowsById.size, linkedRowCount: linkedRowIds.length, unrelatedRowReads: 0 }));
   });
 });
