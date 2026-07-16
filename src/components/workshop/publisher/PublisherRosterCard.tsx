@@ -49,20 +49,20 @@ export function PublisherRosterCard({ copyState, onCopyLink, onSelect, row, sele
         <span className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[11px] font-medium leading-4 text-ink">{row.projectName}</span>
-            <span className="block truncate text-[9px] leading-3 text-tertiary">
+            <span className="block truncate text-[9px] leading-3 text-secondary">
               {[row.projectCode, row.clientName].filter(Boolean).join(" / ") || "No client set"}
             </span>
           </span>
-          <StatusBadge status={status.badge} showDot className="min-w-0 shrink-0 px-1.5 py-1 !text-[8px]">{status.label}</StatusBadge>
+          <StatusBadge status={status.badge} showDot className="min-w-0 shrink-0 px-1.5 py-1 !text-[10px]">{status.label}</StatusBadge>
         </span>
         <span className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] leading-3 text-secondary">
           <span>{formatPublisherSheetScope(row)}</span>
           <span>{formatPublisherRecipientCount(row)}</span>
           {row.status !== "unpublished" ? <span>{row.openCount} opens</span> : null}
-          <span className="text-tertiary">{formatRelativeTime(row.latestActivityAt)}</span>
+          <span className="text-secondary">{formatRelativeTime(row.latestActivityAt)}</span>
         </span>
         {row.passwordRequired || row.staleSnapshotWarning || row.linkUnavailableReason ? (
-          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] leading-3 text-tertiary">
+          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] leading-3 text-secondary">
             {row.passwordRequired ? <span className="inline-flex items-center gap-1"><LockKey size={10} aria-hidden="true" /> Password</span> : null}
             {row.staleSnapshotWarning ? <span className="inline-flex items-center gap-1 text-warning"><WarningCircle size={10} aria-hidden="true" /> Needs update</span> : null}
             {row.linkUnavailableReason ? <span className="inline-flex items-center gap-1 text-danger"><LinkBreak size={10} aria-hidden="true" /> Link unavailable</span> : null}

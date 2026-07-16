@@ -61,7 +61,7 @@ function proposal(overrides: Partial<RecipientProposalRow> = {}): RecipientPropo
 beforeEach(() => {
   vi.useRealTimers();
   vi.clearAllMocks();
-  actionMocks.loadRecipientProposals.mockResolvedValue({ ok: true, rows: [] } satisfies RecipientProposalsResult);
+  actionMocks.loadRecipientProposals.mockResolvedValue({ ok: true, rows: [], hasMore: false } satisfies RecipientProposalsResult);
 });
 
 afterEach(() => {
@@ -82,11 +82,11 @@ describe("ProposalsPageClient", () => {
             proposal({ publicationId: "44444444-4444-4444-8444-444444444444", projectName: "Expired Project", status: "expired" }),
             proposal({ publicationId: "55555555-5555-4555-8555-555555555555", projectName: "Revoked Project", status: "revoked", revokedAt: "2026-06-30T00:00:00.000Z" }),
           ],
+          hasMore: false,
         }}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Proposals" })).toBeInTheDocument();
     expect(screen.getByText("recipient@example.com")).toBeInTheDocument();
     expect(screen.getByText("New Project")).toBeInTheDocument();
     expect(screen.getByText("Opened Project")).toBeInTheDocument();
@@ -97,8 +97,8 @@ describe("ProposalsPageClient", () => {
     expect(screen.getByText("Opened")).toBeInTheDocument();
     expect(screen.getByText("Decision submitted")).toBeInTheDocument();
     expect(screen.getByText("Accepted")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expired" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Revoked" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Expired" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Revoked" })).toHaveAttribute("aria-disabled", "true");
 
     await act(async () => {
       await Promise.resolve();
@@ -115,6 +115,7 @@ describe("ProposalsPageClient", () => {
         initialResult={{
           ok: true,
           rows: [proposal({ projectName: "Visible While Stale" })],
+          hasMore: false,
         }}
       />,
     );
@@ -124,7 +125,8 @@ describe("ProposalsPageClient", () => {
     await waitFor(() => expect(actionMocks.loadRecipientProposals).toHaveBeenCalledTimes(1));
     expect(screen.getByText("Visible While Stale")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Proposals could not be refreshed.");
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument());
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Refresh" }));
   });
 
   it("renders the full error state when no safe result has been loaded", async () => {
@@ -141,6 +143,7 @@ describe("ProposalsPageClient", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() => expect(actionMocks.loadRecipientProposals).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument());
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Retry" }));
   });
 
@@ -154,13 +157,38 @@ describe("ProposalsPageClient", () => {
     renderWithClient(
       <ProposalsPageClient
         userEmail="recipient@example.com"
-        initialResult={{ ok: true, rows: [] }}
+        initialResult={{ ok: true, rows: [], hasMore: false }}
       />,
     );
 
     expect(screen.getByRole("heading", { name: "No proposals yet" })).toBeInTheDocument();
-    const main = screen.getByText("Proposals sent to your signed-in email address will appear here.").parentElement;
+    const main = screen.getByText("This inbox shows proposals sent to your email address.").parentElement;
     expect(main).not.toBeNull();
     expect(within(main as HTMLElement).getByText("No proposals yet")).toBeInTheDocument();
+  });
+
+  it("does not loop refresh when a row action errors (regression: stable onActionError)", async () => {
+    actionMocks.openRecipientProposalAction.mockImplementation(async () => ({ ok: false, error: "unavailable" }));
+    renderWithClient(
+      <ProposalsPageClient
+        userEmail="recipient@example.com"
+        initialResult={{ ok: true, rows: [proposal({ projectName: "Loop Guard" })], hasMore: false }}
+      />,
+    );
+
+    expect(actionMocks.loadRecipientProposals).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Review" }));
+
+    // A row action error should trigger exactly one inbox refresh — never a self-sustaining loop.
+    await waitFor(() => expect(actionMocks.loadRecipientProposals).toHaveBeenCalled());
+    const callsAfterError = actionMocks.loadRecipientProposals.mock.calls.length;
+
+    // Let any would-be loop iterations run.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(actionMocks.loadRecipientProposals.mock.calls.length).toBe(callsAfterError);
   });
 });

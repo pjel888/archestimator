@@ -109,13 +109,14 @@ describe("recipient proposals repository", () => {
           workspaceName: "Lewis Studio",
         },
       ],
+      hasMore: false,
     });
     const query = mocks.d1.prepared[0];
     expect(query.sql).toContain("FROM shared_link_recipients recipient");
     expect(query.sql).toContain("lower(recipient.email) = ?");
     expect(query.sql).toContain("publication.status IN ('published', 'expired', 'revoked')");
     expect(query.sql).not.toMatch(/\b(token_hash|recipient_token_hash|encrypted_token|password_hash)\b/i);
-    expect(query.values).toEqual([expect.any(String), expect.any(String), "recipient@example.com", 50]);
+    expect(query.values).toEqual([expect.any(String), expect.any(String), "recipient@example.com", 51]);
     expect(JSON.stringify(result)).not.toMatch(/token|hash|encrypted|password/i);
   });
 

@@ -259,6 +259,9 @@ export async function assignClientPortalThread({ actor, assigneeUserId, database
 }
 
 export async function setClientPortalThreadStatusAsOwner({ actor, database, portalId, status, threadId }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; portalId: string; status: "open" | "resolved"; threadId: string }) {
+  // The TS type is erased at runtime for server actions; validate the enum explicitly so a
+  // malformed client can't write an arbitrary status string to the thread.
+  if (status !== "open" && status !== "resolved") throw new PublisherDiscussionError("client_portal_discussion_invalid", "Status must be 'open' or 'resolved'.");
   const { policy } = await policyPortal(database, actor, portalId);
   const thread = await clientThread(database, portalId, threadId);
   if (thread.status !== "open" && thread.status !== "resolved") throw new PublisherDiscussionError("client_portal_discussion_stale", "Client Portal discussion cannot be updated.");

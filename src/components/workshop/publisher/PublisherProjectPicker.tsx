@@ -108,11 +108,11 @@ export function PublisherProjectPicker({ onOpenChange, onSelect, open, projects 
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[11px] font-medium leading-4 text-ink">{project.name}</span>
-                            <span className="block truncate text-[9px] leading-3 text-tertiary">
+                            <span className="block truncate text-[9px] leading-3 text-secondary">
                               {[project.projectCode, project.clientName].filter(Boolean).join(" / ") || "No client set"}
                             </span>
                             <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] leading-3 text-secondary">
-                              <StatusBadge status={status.badge} showDot className="min-w-0 px-1.5 py-1 !text-[8px]">
+                              <StatusBadge status={status.badge} showDot className="min-w-0 px-1.5 py-1 !text-[10px]">
                                 {status.label}
                               </StatusBadge>
                               <span>
@@ -135,7 +135,7 @@ export function PublisherProjectPicker({ onOpenChange, onSelect, open, projects 
                           onClick={() => selectProject(project.id)}
                         >
                           {rowContent}
-                          <ArrowRight size={13} className="shrink-0 text-tertiary group-hover:text-ink" aria-hidden="true" />
+                          <ArrowRight size={13} className="shrink-0 text-secondary group-hover:text-ink" aria-hidden="true" />
                         </button>
                       ) : (
                         <Link

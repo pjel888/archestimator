@@ -227,23 +227,36 @@ describe("Publisher roster repository composer", () => {
     expect(paginated.hasNextPage).toBe(true);
   });
 
-  it("does not synthesize draft rows when the publication scan is truncated", () => {
-    const result = composePublisherRosterResult({
+  it("seeds drafts for unpublished projects under truncation but omits projects with unloaded publications", () => {
+    // project-draft has no publication at all — it should still seed a draft row when the scan
+    // is truncated so the project can be shared, instead of vanishing from the roster.
+    const withUnpublished = composePublisherRosterResult({
       filters: defaultFilters,
       projects: [projects[3]!],
       publications: [],
       truncated: true,
     });
-
-    expect(result.rows).toEqual([]);
-    expect(result.truncated).toBe(true);
-    expect(result.projectOptions).toEqual([
+    expect(withUnpublished.rows.map((row) => row.projectId)).toEqual(["project-draft"]);
+    expect(withUnpublished.rows[0]?.status).toBe("unpublished");
+    expect(withUnpublished.truncated).toBe(true);
+    expect(withUnpublished.projectOptions).toEqual([
       {
         id: "project-draft",
         name: "Draft Tower",
         projectCode: null,
       },
     ]);
+
+    // project-active has a publication that was not loaded (truncated scan); latestStatusByProjectId
+    // reports it, so we must NOT synthesize an inaccurate draft row for a project we can't render.
+    const withUnloadedPublication = composePublisherRosterResult({
+      filters: defaultFilters,
+      projects: [projects[0]!],
+      publications: [],
+      latestStatusByProjectId: new Map([["project-active", "published"]]),
+      truncated: true,
+    });
+    expect(withUnloadedPublication.rows).toEqual([]);
   });
 
   it("marks published rows with unavailable links when encrypted token decryption fails", () => {

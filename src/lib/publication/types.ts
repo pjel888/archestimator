@@ -44,11 +44,17 @@ export type ProjectPublicationSummary = {
     displayName: string | null;
     openedAt: string;
   } | null;
-  staleSnapshotWarning?: {
-    daysBehind: number;
-    latestEstimateUpdatedAt: string;
-    snapshotGeneratedAt: string;
-  } | null;
+  staleSnapshotWarning?:
+    | {
+        daysBehind: number;
+        latestEstimateUpdatedAt: string;
+        snapshotGeneratedAt: string;
+      }
+    | {
+        currentSourceRevision: number;
+        issuedSourceRevision: number;
+      }
+    | null;
 };
 
 export type ProjectPublicationListSummary = Pick<
@@ -75,7 +81,10 @@ export type PublicationSnapshotRow = {
   description: string;
   designation: string;
   discipline: string;
+  categoryId?: string | null;
   category?: string | null;
+  categoryPath?: string[];
+  categoryPathIds?: string[];
   supplier?: string | null;
   material: string;
   quantity: number;
@@ -127,8 +136,10 @@ export type PublicationSnapshotEstimate = {
 };
 
 export type ProjectPublicationSnapshot = {
-  schemaVersion: 1 | 1.2 | 1.3 | 1.4;
+  schemaVersion: 1 | 1.2 | 1.3 | 1.4 | 1.5 | 1.6;
   generatedAt: string;
+  semanticHash?: string;
+  sourceRevision?: number;
   /**
    * Immutable issuance identity written by the publication transaction. Older
    * snapshots omit it and remain readable.

@@ -49,8 +49,19 @@ export async function updatePublisherProjectClientName({
   const database = await getCloudflareD1Database();
   if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required to update the client name.");
   await database
-    .prepare("UPDATE projects SET client_name = ?, updated_at = ? WHERE id = ?")
-    .bind(normalizedClientName || null, new Date().toISOString(), projectId)
+    .prepare(`
+      UPDATE projects
+      SET client_name = ?,
+          publication_source_revision = publication_source_revision + 1,
+          updated_at = ?
+      WHERE id = ? AND workspace_id = ?
+    `)
+    .bind(
+      normalizedClientName || null,
+      new Date().toISOString(),
+      projectId,
+      project.project.workspace_id,
+    )
     .run();
 
   return { clientName: normalizedClientName || null, ok: true };

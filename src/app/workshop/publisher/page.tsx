@@ -39,13 +39,11 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
   });
 
   return (
-    <Suspense fallback={<PublisherRosterSkeleton />}>
-      <PublisherRosterClient
-        key={`${filters.status}:${filters.projectId ?? ""}:${filters.search}:${filters.page}`}
-        roster={roster}
-        filters={filters}
-      />
-    </Suspense>
+    <PublisherRosterClient
+      key={`${filters.status}:${filters.projectId ?? ""}:${filters.page}`}
+      roster={roster}
+      filters={filters}
+    />
   );
 }
 

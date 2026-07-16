@@ -255,6 +255,10 @@ export async function readPublisherWorkspaceActivity({
   if (projectId) assertUuidProjectId(projectId);
 
   const safeLimit = Math.min(PUBLISHER_ACTIVITY_LIMIT, Math.max(1, Math.trunc(limit)));
+  // ponytail: cap the publication scan so a workspace with many publications doesn't pull
+  // unbounded rows; older shared-link activity beyond this cap is intentionally omitted and
+  // surfaced via `partial` so the user knows the feed isn't complete.
+  const publicationScanLimit = 250;
   const cursor = decodeSharedLinkActivityCursor(cursorValue);
   const cursorWhere = activityCursorClause(cursor);
   const workspaceProjects = await listCurrentWorkspaceProjects();
@@ -281,7 +285,7 @@ export async function readPublisherWorkspaceActivity({
        WHERE workspace_id = ? AND project_id IN (${placeholders(projectIds)})
        ORDER BY published_at DESC
        LIMIT ?`,
-      [workspaceProjects.workspace.id, ...projectIds, 250],
+      [workspaceProjects.workspace.id, ...projectIds, publicationScanLimit],
     ),
   );
   const unavailableSources = publicationsResult.unavailableSource ? [publicationsResult.unavailableSource] : [];
@@ -374,24 +378,28 @@ export async function readPublisherWorkspaceActivity({
         .filter((id): id is string => Boolean(id)),
     ),
   );
-  const recipientDisplayNames = new Map<string, string>();
-  if (recipientIds.length) {
-    const recipients = await all<PublisherRecipientIdentityRow>(
-      database,
-      `SELECT id, email, display_name
-       FROM shared_link_recipients
-       WHERE id IN (${placeholders(recipientIds)})`,
-      recipientIds,
-    );
-    for (const recipient of recipients) {
-      recipientDisplayNames.set(recipient.id, recipient.display_name?.trim() || recipient.email || "Client");
-    }
-  }
-
-  const actorLabels = await readActorLabels(database, [
+  const actorIds = [
     ...collaborations.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
     ...estimates.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
+  ];
+
+  // ponytail: recipient labels and actor labels are independent — fetch them in one round-trip wave.
+  const [recipients, actorLabels] = await Promise.all([
+    recipientIds.length
+      ? all<PublisherRecipientIdentityRow>(
+          database,
+          `SELECT id, email, display_name
+           FROM shared_link_recipients
+           WHERE id IN (${placeholders(recipientIds)})`,
+          recipientIds,
+        )
+      : Promise.resolve([] as PublisherRecipientIdentityRow[]),
+    readActorLabels(database, actorIds),
   ]);
+  const recipientDisplayNames = new Map<string, string>();
+  for (const recipient of recipients) {
+    recipientDisplayNames.set(recipient.id, recipient.display_name?.trim() || recipient.email || "Client");
+  }
 
   const activities: ActivityViewModel[] = [
     ...applyCursor(comments.rows, cursor).map((row) => {
@@ -491,7 +499,7 @@ export async function readPublisherWorkspaceActivity({
     activities: page,
     hasMore: Boolean(nextItem),
     nextCursor: nextItem ? encodeSharedLinkActivityCursor({ id: page.at(-1)?.id ?? nextItem.id, created_at: page.at(-1)?.occurredAt ?? nextItem.occurredAt }) : undefined,
-    partial: unavailableSources.length > 0,
+    partial: unavailableSources.length > 0 || publicationRows.length >= publicationScanLimit,
     unavailableSources,
   };
 }

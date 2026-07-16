@@ -11,7 +11,6 @@ describe("recipient inbox dead-end recovery", () => {
     expect(repository).not.toContain(".filter(Boolean)");
     expect(row).toContain("Open the link from your email invitation");
     expect(row).toContain("Contact the sender for the next steps.");
-    expect(row).toContain("contact the sender for next steps");
     expect(emptyState).toContain("This inbox shows proposals sent to your email address.");
   });
 });

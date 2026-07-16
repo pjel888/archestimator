@@ -281,7 +281,12 @@ function rowMatchesSearch(row: ProjectPublicationRosterRow, search: string) {
 }
 
 function compareNullableDesc(left: string | null, right: string | null) {
-  if (left && right) return Date.parse(right) - Date.parse(left);
+  if (left && right) {
+    const diff = Date.parse(right) - Date.parse(left);
+    // ponytail: a non-parseable timestamp yields NaN, which would make Array.sort unstable;
+    // treat it as a tie so malformed data degrades to name-order instead of implementation-defined order.
+    return Number.isFinite(diff) ? diff : 0;
+  }
   if (left) return -1;
   if (right) return 1;
   return 0;
@@ -335,6 +340,7 @@ export function composePublisherRosterResult({
   filters,
   latestCommentAtByPublicationId,
   latestResponseAtByPublicationId,
+  latestStatusByProjectId,
   migratedClientPortalIdByPublicationId,
   now = new Date(),
   projects,
@@ -346,6 +352,7 @@ export function composePublisherRosterResult({
   filters: PublisherRosterFilters;
   latestCommentAtByPublicationId?: ReadonlyMap<string, string | null>;
   latestResponseAtByPublicationId?: ReadonlyMap<string, string | null>;
+  latestStatusByProjectId?: ReadonlyMap<string, ProjectPublicationStatus>;
   migratedClientPortalIdByPublicationId?: ReadonlyMap<string, string>;
   now?: Date;
   projects: PublisherRosterProjectInput[];
@@ -409,38 +416,40 @@ export function composePublisherRosterResult({
     });
   }
 
-  if (!truncated) {
-    for (const project of visibleProjects) {
-      if (!project.canManagePublication) continue;
-      if (publicationProjectIds.has(project.id)) continue;
-      rows.push({
-        canManagePublication: project.canManagePublication,
-        clientLinkPath: null,
-        clientPortalPath: null,
-        clientName: project.clientName,
-        currentUserRole: project.currentUserRole,
-        expiresAt: null,
-        latestActivityAt: null,
-        latestOpenedAt: null,
-        linkUnavailableReason: null,
-        location: project.location,
-        openCount: 0,
-        passwordRequired: false,
-        projectCode: project.projectCode,
-        projectId: project.id,
-        projectName: project.name,
-        publicationId: null,
-        publishedAt: null,
-        recipientCount: 0,
-        selectedEstimateCount: 0,
-        selectedEstimateIds: [],
-        snapshotVersion: 0,
-        staleSnapshotWarning: null,
-        status: "unpublished",
-        tokenCopyAvailable: false,
-        workspaceId: project.workspaceId,
-      });
-    }
+  for (const project of visibleProjects) {
+    if (!project.canManagePublication) continue;
+    if (publicationProjectIds.has(project.id)) continue;
+    // When the publication scan was truncated, a project may have a publication we did not
+    // load — we can't render that accurately (no decrypted link/counts), so skip it rather
+    // than mislabel it. Projects with no publication at all still seed a draft row.
+    if (latestStatusByProjectId?.has(project.id)) continue;
+    rows.push({
+      canManagePublication: project.canManagePublication,
+      clientLinkPath: null,
+      clientPortalPath: null,
+      clientName: project.clientName,
+      currentUserRole: project.currentUserRole,
+      expiresAt: null,
+      latestActivityAt: null,
+      latestOpenedAt: null,
+      linkUnavailableReason: null,
+      location: project.location,
+      openCount: 0,
+      passwordRequired: false,
+      projectCode: project.projectCode,
+      projectId: project.id,
+      projectName: project.name,
+      publicationId: null,
+      publishedAt: null,
+      recipientCount: 0,
+      selectedEstimateCount: 0,
+      selectedEstimateIds: [],
+      snapshotVersion: 0,
+      staleSnapshotWarning: null,
+      status: "unpublished",
+      tokenCopyAvailable: false,
+      workspaceId: project.workspaceId,
+    });
   }
 
   const filteredRows = rows
@@ -448,11 +457,15 @@ export function composePublisherRosterResult({
     .filter((row) => rowMatchesStatus(row, filters.status))
     .filter((row) => rowMatchesSearch(row, filters.search))
     .sort(compareRosterRows);
-  const offset = (filters.page - 1) * filters.pageSize;
+  // Clamp the page into range so a stale/out-of-range ?page= doesn't strand the user on an
+  // empty view with a disabled next button and no way forward.
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / filters.pageSize));
+  const page = Math.min(Math.max(filters.page, 1), totalPages);
+  const offset = (page - 1) * filters.pageSize;
 
   return {
     hasNextPage: offset + filters.pageSize < filteredRows.length,
-    page: filters.page,
+    page,
     pageSize: filters.pageSize,
     projectOptions,
     rows: filteredRows.slice(offset, offset + filters.pageSize),
@@ -642,18 +655,20 @@ async function readLatestPublicationStatusByProjectId(
   if (projectIds.length === 0) return new Map<string, ProjectPublicationStatus>();
   const rows = await all<PublicationProjectStatusRow>(
     database,
-    `SELECT publication.project_id, publication.status, publication.expires_at, publication.revoked_at
-     FROM project_publications AS publication
-     WHERE publication.workspace_id = ?
-       AND publication.project_id IN (${placeholders(projectIds)})
-       AND publication.id = (
-         SELECT latest.id
-         FROM project_publications AS latest
-         WHERE latest.workspace_id = publication.workspace_id
-           AND latest.project_id = publication.project_id
-         ORDER BY latest.published_at DESC, latest.id DESC
-         LIMIT 1
-       )`,
+    // ponytail: window function replaces the O(K²) correlated subquery (which re-scanned all
+    // publications per candidate row). D1/SQLite ≥3.25 supports ROW_NUMBER(); this is a single
+    // partitioned scan returning the newest publication per project.
+    `SELECT project_id, status, expires_at, revoked_at
+     FROM (
+       SELECT project_id, status, expires_at, revoked_at,
+              ROW_NUMBER() OVER (
+                PARTITION BY project_id
+                ORDER BY published_at DESC, id DESC
+              ) AS rn
+       FROM project_publications
+       WHERE workspace_id = ? AND project_id IN (${placeholders(projectIds)})
+     )
+     WHERE rn = 1`,
     [workspaceId, ...projectIds],
   );
   const statusByProjectId = new Map<string, ProjectPublicationStatus>();
@@ -720,6 +735,7 @@ export async function readWorkspacePublicationsRoster(
     filters,
     latestCommentAtByPublicationId,
     latestResponseAtByPublicationId,
+    latestStatusByProjectId: statusByProjectId,
     migratedClientPortalIdByPublicationId,
     projects: allRosterProjects,
     publications: publicationRows.map(toRosterPublicationInput),

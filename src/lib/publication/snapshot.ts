@@ -25,7 +25,7 @@ type SnapshotProjectInput = {
   coverImageUrl?: string | null;
 };
 
-type SnapshotRowInput = {
+export type SnapshotRowInput = {
   id: string;
   componentId?: string | null;
   variantId?: string | null;
@@ -36,7 +36,10 @@ type SnapshotRowInput = {
   description: string;
   designation: string;
   discipline: string;
+  categoryId?: string | null;
   categoryLabel?: string | null;
+  categoryPath?: string[] | null;
+  categoryPathIds?: string[] | null;
   supplierLabel?: string | null;
   material: string;
   quantity: number;
@@ -71,7 +74,7 @@ type SnapshotNodeInput = {
   estimateTabId?: string | null;
 };
 
-type SnapshotEstimateInput = {
+export type SnapshotEstimateInput = {
   id: string;
   name: string;
   sheetCode: string;
@@ -81,7 +84,7 @@ type SnapshotEstimateInput = {
   tabs?: SnapshotTabInput[];
 };
 
-type PublicationIdKind = "project" | "estimate" | "row" | "node" | "tab" | "component" | "variant";
+type PublicationIdKind = "project" | "estimate" | "row" | "node" | "tab" | "component" | "variant" | "category";
 type InternalProjectPublicationSnapshot = ProjectPublicationSnapshot & {
   _privateIdNamespace?: string;
   _privateOpaqueAllIds?: boolean;
@@ -95,6 +98,7 @@ const PUBLIC_ID_PREFIX: Record<PublicationIdKind, string> = {
   tab: "tab",
   component: "cmp",
   variant: "var",
+  category: "cat",
 };
 const CANONICAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GPS_COORDINATE_PATTERN = /[-+]?(?:[0-8]?\d(?:\.\d{3,})?|90(?:\.0+)?)\s*,\s*[-+]?(?:1[0-7]\d(?:\.\d{3,})?|[0-9]?\d(?:\.\d{3,})?|180(?:\.0+)?)/;
@@ -162,16 +166,28 @@ export function createPublicationSnapshotIdMaps(snapshot: ProjectPublicationSnap
   const namespace = readSnapshotIdNamespace(snapshot);
   const opaqueAllIds = (snapshot as InternalProjectPublicationSnapshot)._privateOpaqueAllIds === true;
   const rawToPublic = new Map<string, string>();
+  const typedRawToPublic = new Map<string, string>();
   const publicToRaw = new Map<string, string>();
 
   function add(kind: PublicationIdKind, value: string | null | undefined) {
     const normalized = value?.trim();
+    if (kind === "category" && normalized && /^cat_[A-Za-z0-9_-]{20}$/.test(normalized)) return;
     if (!normalized || (!opaqueAllIds && !isCanonicalUuid(normalized))) return;
     const raw = normalized.toLowerCase();
-    if (rawToPublic.has(raw)) return;
+    const typedRaw = `${kind}:${raw}`;
+    if (typedRawToPublic.has(typedRaw)) return;
     const publicId = createOpaqueSnapshotId(kind, raw, namespace);
-    rawToPublic.set(raw, publicId);
+    typedRawToPublic.set(typedRaw, publicId);
+    if (!rawToPublic.has(raw)) rawToPublic.set(raw, publicId);
     publicToRaw.set(publicId, raw);
+  }
+
+  function collectRow(row: PublicationSnapshotRow) {
+    add("row", row.id);
+    add("node", row.nodeId);
+    add("tab", row.tabId);
+    add("category", row.categoryId);
+    for (const categoryPathId of row.categoryPathIds ?? []) add("category", categoryPathId);
   }
 
   function collectTreeNodes(nodes: PublicationSnapshotTreeNode[] | undefined) {
@@ -186,24 +202,16 @@ export function createPublicationSnapshotIdMaps(snapshot: ProjectPublicationSnap
   for (const estimate of snapshot.estimates ?? []) {
     add("estimate", estimate.id);
     collectTreeNodes(estimate.treeNodes);
-    for (const row of estimate.rows ?? []) {
-      add("row", row.id);
-      add("node", row.nodeId);
-      add("tab", row.tabId);
-    }
+    for (const row of estimate.rows ?? []) collectRow(row);
     for (const tab of estimate.tabs ?? []) {
       add("tab", tab.id);
       for (const rowId of tab.rowIds ?? []) add("row", rowId);
-      for (const row of tab.rows ?? []) {
-        add("row", row.id);
-        add("node", row.nodeId);
-        add("tab", row.tabId);
-      }
+      for (const row of tab.rows ?? []) collectRow(row);
       collectTreeNodes(tab.treeNodes);
     }
   }
 
-  return { rawToPublic, publicToRaw };
+  return { rawToPublic, typedRawToPublic, publicToRaw };
 }
 
 export function resolvePublicationSnapshotPublicId(snapshot: ProjectPublicationSnapshot, id: string | null | undefined) {
@@ -248,9 +256,24 @@ function calculateRowCostParts(row: SnapshotRowInput, currencyCode: string) {
   });
 }
 
+function normalizeCategorySnapshot(row: SnapshotRowInput) {
+  const categoryPath = (row.categoryPath ?? []).map((label) => label.trim()).filter(Boolean);
+  const category = row.categoryLabel?.trim() || categoryPath.at(-1) || null;
+  if (categoryPath.length === 0 && category) categoryPath.push(category);
+
+  const rawPathIds = (row.categoryPathIds ?? []).map((id) => id.trim()).filter(Boolean);
+  const rawCategoryId = row.categoryId?.trim() || null;
+  if (rawPathIds.length === 0 && rawCategoryId && categoryPath.length === 1) rawPathIds.push(rawCategoryId);
+  const categoryPathIds = rawPathIds.length === categoryPath.length ? rawPathIds : [];
+  const categoryId = categoryPathIds.at(-1) ?? (categoryPath.length === 1 ? rawCategoryId : null);
+
+  return { category, categoryId, categoryPath, categoryPathIds };
+}
+
 function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, idNamespace: string, tabId?: string | null): PublicationSnapshotRow {
   const costParts = calculateRowCostParts(row, currencyCode);
   if (!costParts.ok) throw new Error("Cannot publish an estimate row with invalid calculation input.");
+  const categorySnapshot = normalizeCategorySnapshot(row);
 
   const snapshotRow: PublicationSnapshotRow = {
     id: row.id,
@@ -263,7 +286,7 @@ function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, idNamespa
     description: row.description,
     designation: row.designation,
     discipline: row.discipline,
-    category: row.categoryLabel?.trim() || null,
+    category: categorySnapshot.category,
     supplier: row.supplierLabel?.trim() || null,
     material: row.material,
     quantity: toFiniteNumber(row.quantity),
@@ -278,6 +301,11 @@ function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, idNamespa
     imageUrl: normalizeIssuedPublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
   };
+  if (categorySnapshot.categoryId) snapshotRow.categoryId = createOpaqueSnapshotId("category", categorySnapshot.categoryId, idNamespace);
+  if (categorySnapshot.categoryPath.length > 0) snapshotRow.categoryPath = categorySnapshot.categoryPath;
+  if (categorySnapshot.categoryPathIds.length > 0) {
+    snapshotRow.categoryPathIds = categorySnapshot.categoryPathIds.map((categoryPathId) => createOpaqueSnapshotId("category", categoryPathId, idNamespace));
+  }
   if (tabId) snapshotRow.tabId = tabId;
   return snapshotRow;
 }
@@ -314,6 +342,23 @@ function sanitizeSnapshotRow(
   if (Number.isSafeInteger(row.componentVersionNumber) && Number(row.componentVersionNumber) >= 0) snapshotRow.componentVersionNumber = Number(row.componentVersionNumber);
   if (typeof row.variantLabel === "string" && row.variantLabel.trim()) snapshotRow.variantLabel = row.variantLabel.trim();
   if (typeof row.category === "string" && row.category.trim()) snapshotRow.category = row.category.trim();
+  const categoryPath = Array.isArray(row.categoryPath)
+    ? row.categoryPath.filter((label): label is string => typeof label === "string" && Boolean(label.trim())).map((label) => label.trim())
+    : [];
+  const categoryPathIds = Array.isArray(row.categoryPathIds)
+    ? row.categoryPathIds
+        .filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
+        .map((id) => mapPublicSnapshotId(idMaps, "category", id))
+        .filter((id) => /^cat_[A-Za-z0-9_-]{20}$/.test(id))
+    : [];
+  const categoryId = typeof row.categoryId === "string" ? mapPublicSnapshotId(idMaps, "category", row.categoryId) : null;
+  if (categoryPath.length > 0) snapshotRow.categoryPath = categoryPath;
+  if (categoryPathIds.length === categoryPath.length && categoryPathIds.length > 0) {
+    snapshotRow.categoryPathIds = categoryPathIds;
+    snapshotRow.categoryId = categoryPathIds.at(-1) ?? null;
+  } else if (categoryId && /^cat_[A-Za-z0-9_-]{20}$/.test(categoryId)) {
+    snapshotRow.categoryId = categoryId;
+  }
   if (typeof row.supplier === "string" && row.supplier.trim()) snapshotRow.supplier = row.supplier.trim();
   if (Number.isSafeInteger(row.rowRevision) && Number(row.rowRevision) >= 0) snapshotRow.rowRevision = Number(row.rowRevision);
   if (row.linkState === "unlinked" || row.linkState === "linked-clean" || row.linkState === "linked-overridden" || row.linkState === "source-changed" || row.linkState === "detached") snapshotRow.linkState = row.linkState;
@@ -352,11 +397,12 @@ function sanitizeSnapshotEstimateTab(
 
 function mapPublicSnapshotId(
   idMaps: ReturnType<typeof createPublicationSnapshotIdMaps> | null,
-  _kind: PublicationIdKind,
+  kind: PublicationIdKind,
   value: string,
 ) {
   if (!idMaps) return value;
-  return idMaps.rawToPublic.get(value.toLowerCase()) ?? value;
+  const raw = value.toLowerCase();
+  return idMaps.typedRawToPublic.get(`${kind}:${raw}`) ?? idMaps.rawToPublic.get(raw) ?? value;
 }
 
 function sanitizeSnapshotTreeNodes(
@@ -550,11 +596,15 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput, currencyCode: st
 export function buildProjectPublicationSnapshot({
   generatedAt,
   idNamespace,
+  semanticHash,
+  sourceRevision,
   project,
   estimates,
 }: {
   generatedAt: string;
   idNamespace?: string;
+  semanticHash?: string;
+  sourceRevision?: number;
   project: SnapshotProjectInput;
   estimates: SnapshotEstimateInput[];
 }): ProjectPublicationSnapshot {
@@ -580,7 +630,7 @@ export function buildProjectPublicationSnapshot({
           location: sanitizeProjectPublicationLocation(project.location, locationVisibility),
           locationVisibility,
         };
-  const schemaVersion = 1.4;
+  const schemaVersion = 1.6;
 
   const totalCostMinorUnits = snapshotEstimates.reduce((total, estimate) => {
     const next = total + (estimate.totalCostMinorUnits ?? 0);
@@ -592,6 +642,8 @@ export function buildProjectPublicationSnapshot({
     _privateOpaqueAllIds: Boolean(explicitIdNamespace),
     schemaVersion,
     generatedAt,
+    ...(typeof semanticHash === "string" && /^[a-f0-9]{64}$/.test(semanticHash) ? { semanticHash } : {}),
+    ...(Number.isSafeInteger(sourceRevision) && Number(sourceRevision) >= 0 ? { sourceRevision: Number(sourceRevision) } : {}),
     project: snapshotProject,
     estimateCount: snapshotEstimates.length,
     rowCount: snapshotEstimates.reduce((total, estimate) => total + estimate.rowCount, 0),

@@ -209,6 +209,8 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
       setCopyState("failed");
       setFeedback({ text: "Copy unavailable. Select the link below to copy it.", tone: "error" });
     }
+    // ponytail: reset the button label so "Copied"/"Retry copy" doesn't stick forever.
+    window.setTimeout(() => setCopyState("idle"), 2500);
   }
 
   const content = (
@@ -222,7 +224,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="truncate text-[12px] font-medium leading-4 text-ink">{row.projectName}</h2>
-              <StatusBadge status={status.badge} showDot className="min-w-0 px-1.5 py-1 !text-[8px]">{status.label}</StatusBadge>
+              <StatusBadge status={status.badge} showDot className="min-w-0 px-1.5 py-1 !text-[10px]">{status.label}</StatusBadge>
               {summary?.passwordRequired ? (
                 <span className="inline-flex min-h-5 items-center gap-1 text-[9px] leading-3 text-secondary">
                   <LockSimple size={11} aria-hidden="true" /> Password protected
@@ -270,7 +272,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
             {row.clientPortalPath ? (
               <Link
                 href={row.clientPortalPath}
-                className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-brand/30 bg-brandSoft px-2 text-[10px] font-medium text-brand transition hover:bg-brandSoft/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
+                className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
               >
                 <ArrowSquareOut size={13} aria-hidden="true" />
                 Open Client Portal
@@ -282,7 +284,10 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
         {summary?.staleSnapshotWarning ? (
           <p className="mt-2.5 flex items-start gap-1.5 border border-warning/30 bg-warningSoft px-2.5 py-2 text-[10px] leading-4 text-warning">
             <WarningCircle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-            Client content is {summary.staleSnapshotWarning.daysBehind} days behind the current project. Edit the client link to publish the latest estimates.
+            {"daysBehind" in summary.staleSnapshotWarning
+              ? `Client content is ${summary.staleSnapshotWarning.daysBehind} days behind the current project.`
+              : "Client content is behind the current project."}{" "}
+            Edit the client link to publish the latest estimates.
           </p>
         ) : null}
         {feedback ? (
@@ -346,12 +351,12 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
             <section>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Link summary</h3>
               <dl className="mt-1.5 divide-y divide-hairline border-y border-hairline">
-                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-tertiary">Published</dt><dd className="font-medium text-ink">{formatDate(summary?.publishedAt)}</dd></div>
-                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-tertiary">Expires</dt><dd className="font-medium text-ink">{formatDate(summary?.expiresAt)}</dd></div>
-                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-tertiary">Estimates</dt><dd className="font-medium text-ink">{readEstimateScope(estimateCount)}</dd></div>
-                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-tertiary">Recipients</dt><dd className="font-medium text-ink">{readRecipientScope(row.recipientCount)}</dd></div>
-                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-tertiary">Opens</dt><dd className="font-medium text-ink">{row.openCount}</dd></div>
-                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-tertiary">Latest activity</dt><dd className="font-medium text-ink">{formatDate(summary?.latestActivityAt)}</dd></div>
+                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-secondary">Published</dt><dd className="font-medium text-ink">{formatDate(summary?.publishedAt)}</dd></div>
+                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-secondary">Expires</dt><dd className="font-medium text-ink">{formatDate(summary?.expiresAt)}</dd></div>
+                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-secondary">Estimates</dt><dd className="font-medium text-ink">{readEstimateScope(estimateCount)}</dd></div>
+                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-secondary">Recipients</dt><dd className="font-medium text-ink">{readRecipientScope(row.recipientCount)}</dd></div>
+                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-secondary">Opens</dt><dd className="font-medium text-ink">{row.openCount}</dd></div>
+                <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-secondary">Latest activity</dt><dd className="font-medium text-ink">{formatDate(summary?.latestActivityAt)}</dd></div>
               </dl>
             </section>
 
@@ -363,14 +368,6 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
-                {row.clientPortalPath ? (
-                  <Link
-                    href={row.clientPortalPath}
-                    className="inline-flex min-h-8 items-center justify-center rounded-xs border border-brand/30 bg-brandSoft px-2 text-[10px] font-medium text-brand transition hover:bg-brandSoft/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    Open Client Portal
-                  </Link>
-                ) : null}
                 {canMigrateLegacyPublication ? (
                   <Button
                     type="button"

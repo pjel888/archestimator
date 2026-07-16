@@ -12,14 +12,20 @@ const repositoryMocks = vi.hoisted(() => ({
   listProjectEstimateSheets: vi.fn(),
 }));
 
+const cloudflareD1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
+vi.mock("@/lib/cloudflare/d1", () => cloudflareD1Mocks);
 
 function projectItem(projectId: string, currentUserRole: "owner" | "admin" | "editor" | "viewer") {
   return {
     currentUserRole,
     project: {
       id: projectId,
+      workspace_id: "workspace-1",
     },
   };
 }
@@ -32,6 +38,7 @@ describe("readPublisherPublicationDrawerData", () => {
     repositoryMocks.getProjectPublicationSummary.mockReset();
     repositoryMocks.listCurrentWorkspaceProjects.mockReset();
     repositoryMocks.listProjectEstimateSheets.mockReset();
+    cloudflareD1Mocks.getCloudflareD1Database.mockReset();
 
     authMocks.requireCurrentUserContext.mockResolvedValue({
       email: "editor@example.test",
@@ -119,5 +126,33 @@ describe("readPublisherPublicationDrawerData", () => {
       clientLinkPath: "/share/manager-token",
       tokenCopyAvailable: true,
     });
+  });
+
+  it("increments the publication source revision with a Publisher client-name edit", async () => {
+    const run = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } });
+    const bind = vi.fn().mockReturnValue({ run });
+    const prepare = vi.fn().mockReturnValue({ bind });
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue({ prepare });
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [projectItem("project-owner", "owner")],
+      workspace: { id: "workspace-1" },
+    });
+
+    const { updatePublisherProjectClientName } = await import("@/lib/publisher/drawer-actions");
+    await updatePublisherProjectClientName({
+      clientName: "  New   Client  ",
+      projectId: "project-owner",
+    });
+
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining(
+      "publication_source_revision = publication_source_revision + 1",
+    ));
+    expect(bind).toHaveBeenCalledWith(
+      "New Client",
+      expect.any(String),
+      "project-owner",
+      "workspace-1",
+    );
+    expect(run).toHaveBeenCalledOnce();
   });
 });

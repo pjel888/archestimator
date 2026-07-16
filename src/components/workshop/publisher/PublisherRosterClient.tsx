@@ -133,6 +133,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [manualWizardRow, setManualWizardRow] = useState<ProjectPublicationRosterRowData | null>(null);
   const manualWizardTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileDetailHeaderRef = useRef<HTMLDivElement | null>(null);
   const mobileDetailOpen = Boolean(drawerIntent);
   const selectedProjectId = drawerIntent?.row.projectId
     ?? (roster.rows.some((row) => row.projectId === selectedProjectIdPreference)
@@ -251,15 +252,31 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
     return () => window.clearTimeout(timeout);
   }, [filters.search, replaceQuery, searchValue]);
 
+  useEffect(() => {
+    // When the detail pane opens on mobile the list is hidden (display:none), which would
+    // strand focus on <body>. Move focus into the mobile detail header bar. Desktop is
+    // unaffected — that bar is lg:hidden, so focus() is a no-op on a hidden element.
+    if (mobileDetailOpen) mobileDetailHeaderRef.current?.focus();
+  }, [mobileDetailOpen, selectedRow?.projectId]);
+
   async function handleCopyLink(row: ProjectPublicationRosterRowData) {
     if (!row.publicationId || !row.clientLinkPath) return;
+    const publicationId = row.publicationId;
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       await navigator.clipboard.writeText(readAbsoluteClientLink(row.clientLinkPath));
-      setCopyStateByPublicationId((current) => ({ ...current, [row.publicationId!]: "copied" }));
+      setCopyStateByPublicationId((current) => ({ ...current, [publicationId]: "copied" }));
     } catch {
-      setCopyStateByPublicationId((current) => ({ ...current, [row.publicationId!]: "failed" }));
+      setCopyStateByPublicationId((current) => ({ ...current, [publicationId]: "failed" }));
     }
+    // ponytail: reset the per-row copy affordance so "Copied"/"Retry copy" doesn't stick forever.
+    window.setTimeout(() => {
+      setCopyStateByPublicationId((current) =>
+        current[publicationId] && current[publicationId] !== "idle"
+          ? { ...current, [publicationId]: "idle" }
+          : current,
+      );
+    }, 2500);
   }
 
   const startRow = roster.totalRows === 0 ? 0 : (roster.page - 1) * roster.pageSize + 1;
@@ -313,6 +330,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
             size="sm"
             className="min-h-8 w-full min-w-0 px-2.5 !text-[10px] xl:w-auto"
             disabled={shareProjectOptions.length === 0}
+            title={shareProjectOptions.length === 0 ? "You don't have manage access on any project in this workspace." : undefined}
             onClick={() => setProjectPickerOpen(true)}
           >
             <Plus size={14} aria-hidden="true" /> Create client link
@@ -331,7 +349,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
           <div className="flex min-h-10 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2.5">
             <div className="min-w-0">
               <h2 className="text-[11px] font-medium leading-4 text-ink">Client links</h2>
-              <p className="text-[9px] leading-3 text-tertiary">{resultLabel}</p>
+              <p className="text-[9px] leading-3 text-secondary">{resultLabel}</p>
             </div>
             {hasFilters ? (
               <Button type="button" variant="plain" size="sm" className="min-h-8 min-w-0 px-2 !text-[9px]" onClick={clearFilters}>
@@ -359,9 +377,10 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
           </div>
 
           <div className="flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-2 border-t border-hairline bg-white px-2.5 py-1">
-            <p className="text-[9px] leading-3 text-tertiary">
+            <p className="text-[9px] leading-3 text-secondary">
               {roster.totalRows === 0 ? "No results" : `${startRow}-${endRow} of ${roster.totalRows}`}
               {roster.truncated ? " (capped)" : ""}
+              {isPending ? " · updating…" : ""}
             </p>
             <PublisherPagination
               hasNextPage={roster.hasNextPage}
@@ -374,7 +393,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
         <div className={cn("min-h-0 flex-col bg-white", mobileDetailOpen ? "flex" : "hidden lg:flex")}>
           {selectedRow ? (
             <>
-              <div className="flex min-h-9 shrink-0 items-center border-b border-hairline px-1.5 lg:hidden">
+              <div ref={mobileDetailHeaderRef} tabIndex={-1} className="flex min-h-9 shrink-0 items-center border-b border-hairline px-1.5 outline-none lg:hidden">
                 <Button type="button" variant="plain" size="sm" className="min-h-8 min-w-0 px-2 !text-[10px]" onClick={closeMobileDetail}>
                   <ArrowLeft size={14} aria-hidden="true" /> Client links
                 </Button>
@@ -404,7 +423,11 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
       </div>
 
       <output aria-live="polite" aria-atomic="true" className="sr-only">
-        {Object.entries(copyStateByPublicationId).find(([, state]) => state !== "idle")?.join(": ") ?? ""}
+        {(() => {
+          const active = Object.values(copyStateByPublicationId).find((state) => state !== "idle");
+          if (!active) return "";
+          return active === "copied" ? "Client link copied." : "Copy failed. Try again.";
+        })()}
       </output>
       <PublisherProjectPicker
         open={projectPickerOpen}

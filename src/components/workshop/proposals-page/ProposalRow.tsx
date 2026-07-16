@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   ArrowSquareOut,
   CheckCircle,
@@ -39,13 +39,19 @@ const decisionLabels: Record<Exclude<RecipientProposalDecision, null>, string> =
   revision_requested: "Revision requested",
 };
 
+// ponytail: hoist + pin locale. Module scope avoids rebuilding the Intl formatter on every call
+// (it ran up to 3×/row × 50 rows per render), and a fixed "en-US" locale keeps SSR/client date
+// text identical — an `undefined` locale resolves to the runtime default (Node vs browser) and
+// causes a hydration mismatch for recipients whose browser locale differs. Revisit when i18n lands.
+const proposalDateFormat = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 function formatProposalDate(value: string | null) {
   if (!value) return "Not recorded";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return proposalDateFormat.format(new Date(value));
 }
 
 function getProposalState(proposal: RecipientProposalRow): ProposalState {
@@ -57,8 +63,10 @@ function getProposalState(proposal: RecipientProposalRow): ProposalState {
 }
 
 function getChipClassName(tone: ProposalState["tone"]) {
-  if (tone === "success") return "border-success/25 bg-success/10 text-success";
-  if (tone === "warning") return "border-warning/25 bg-warning/10 text-warning";
+  // Chip text sits on white (not the /10 tint) so success/warning text clears AA 4.5:1
+  // (#15803d/#b45309 on the tinted bg measured 4.38–4.39:1 — a fail for 10px normal text).
+  if (tone === "success") return "border-success/40 bg-white text-success";
+  if (tone === "warning") return "border-warning/40 bg-white text-warning";
   if (tone === "danger") return "border-dangerSoft bg-dangerSoft text-danger";
   return "border-hairline bg-surfaceMuted text-secondary";
 }
@@ -76,9 +84,15 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
   const StateIcon = proposalState.Icon;
   const disabled = proposal.status !== "published";
 
+  // Latest-callback ref: report the error only when `actionState` changes, not on every parent
+  // render. Without this the unstable `onActionError` prop (rebuilt each render through the
+  // query→refresh→handleActionError chain) re-fires this effect, driving a self-sustaining
+  // refresh→refetch→re-render loop whenever a row action has errored.
+  const onActionErrorRef = useRef(onActionError);
+  onActionErrorRef.current = onActionError;
   useEffect(() => {
-    if (actionState?.error) onActionError?.(actionState.error);
-  }, [actionState, onActionError]);
+    if (actionState?.error) onActionErrorRef.current?.(actionState.error);
+  }, [actionState]);
 
   return (
     <article
@@ -89,7 +103,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
     >
       <div className="min-w-0">
         <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate text-[9px] font-medium uppercase tracking-normal text-tertiary">
+          <span className="truncate text-[9px] font-medium uppercase tracking-normal text-secondary">
             {proposal.workspaceName}
           </span>
           {proposal.projectCode ? (
@@ -98,7 +112,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
             </span>
           ) : null}
         </div>
-        <h2 className="truncate text-[12px] font-medium text-ink">{proposal.projectName}</h2>
+        <h3 className="truncate text-[12px] font-medium text-ink">{proposal.projectName}</h3>
         <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[10px] leading-4 text-secondary">
           <span>Version {proposal.snapshotVersion}</span>
           <span>
@@ -120,7 +134,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
           {proposalState.label}
         </span>
         {proposal.decision ? (
-          <span className="inline-flex h-6 items-center gap-1.5 rounded-xs border border-success/25 bg-success/10 px-2 text-[10px] font-medium leading-none text-success">
+          <span className="inline-flex h-6 items-center gap-1.5 rounded-xs border border-success/40 bg-white px-2 text-[10px] font-medium leading-none text-success">
             <CheckCircle size={13} weight="regular" aria-hidden="true" />
             {decisionLabels[proposal.decision]}
           </span>
@@ -136,7 +150,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
             This proposal can no longer be reviewed. Contact the sender for the next steps.
           </span>
         ) : null}
-        <span className="w-full text-[10px] leading-4 text-tertiary">
+        <span className="w-full text-[10px] leading-4 text-secondary">
           Last activity <time dateTime={proposal.lastActivityAt ?? undefined}>{formatProposalDate(proposal.lastActivityAt)}</time>
         </span>
       </div>
@@ -145,13 +159,12 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
         <form action={formAction}>
           <input type="hidden" name="publicationId" value={proposal.publicationId} />
           <Button
-            type="submit"
+            type={disabled ? "button" : "submit"}
             variant="brand"
             size="sm"
-            disabled={disabled || isPending}
-            className="w-full md:w-auto"
-            aria-label={disabled ? `${proposalState.label}: contact the sender for next steps` : undefined}
-            title={disabled ? `${proposalState.label}: contact the sender for next steps` : undefined}
+            disabled={isPending}
+            aria-disabled={disabled || undefined}
+            className={cn("w-full md:w-auto", disabled && "cursor-not-allowed opacity-60")}
           >
             <ArrowSquareOut size={13} weight="regular" aria-hidden="true" />
             {disabled ? proposalState.label : isPending ? "Opening" : "Review"}

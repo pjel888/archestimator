@@ -7,13 +7,20 @@ type CapturedStatement = { sql: string; values: D1Value[] };
 
 const actor = { kind: "internal" as const, portalGrants: ["manager"] as const, projectId: "project_1", projectRole: "owner" as const, userId: "owner_1", workspaceId: "workspace_1" };
 
-function databaseForPublish(options: { dataScope?: Record<string, unknown>; sectionConfig?: Record<string, unknown>; sectionKind?: string; unstableRows?: boolean } = {}) {
+function databaseForPublish(options: {
+  dataScope?: Record<string, unknown>;
+  revisionPairs?: Array<readonly [number, number]>;
+  sectionConfig?: Record<string, unknown>;
+  sectionKind?: string;
+  visibleFields?: string[];
+} = {}) {
   const statements: CapturedStatement[] = [];
-  let rowReadCount = 0;
+  let sourceReadIndex = 0;
+  const revisionPairs = options.revisionPairs ?? [[7, 7]];
   const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "draft", current_issue_id: null, default_brand_profile_id: null, client_brand_profile_id: null };
   const section = {
     id: "section_1", section_key: "estimates", kind: options.sectionKind ?? "estimate_browser", title: "Estimates", description: null, sort_order: 0, enabled: 1, layout_mode: "wide", data_scope_json: JSON.stringify(options.dataScope ?? {}),
-    visibility_policy_json: "{}", field_policy_json: JSON.stringify({ visibleFields: ["description", "row_total"] }), interaction_policy_json: JSON.stringify({ commentable: true }), print_policy_json: JSON.stringify({ downloadable: true }), config_json: JSON.stringify(options.sectionConfig ?? { selectedEstimateIds: ["estimate_1"], defaultGrouping: "area", allowRowDiscussion: true }),
+    visibility_policy_json: "{}", field_policy_json: JSON.stringify({ visibleFields: options.visibleFields ?? ["description", "row_total"] }), interaction_policy_json: JSON.stringify({ commentable: true }), print_policy_json: JSON.stringify({ downloadable: true }), config_json: JSON.stringify(options.sectionConfig ?? { selectedEstimateIds: ["estimate_1"], defaultGrouping: "area", allowRowDiscussion: true }),
   };
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -22,19 +29,27 @@ function databaseForPublish(options: { dataScope?: Record<string, unknown>; sect
         bind(...nextValues) { values = nextValues; statements.push({ sql, values }); return prepared; },
         async first<T>() {
           if (sql.includes("FROM client_portals")) return portal as T;
-          if (sql.includes("FROM projects")) return { id: "project_1", name: "Makati Tower", project_code: "MK-100", currency_code: "USD" } as T;
+          if (sql.includes("SELECT publication_source_revision FROM projects")) {
+            const pair = revisionPairs[Math.min(sourceReadIndex, revisionPairs.length - 1)]!;
+            sourceReadIndex += 1;
+            return { publication_source_revision: pair[1] } as T;
+          }
+          if (sql.includes("FROM projects")) {
+            const pair = revisionPairs[Math.min(sourceReadIndex, revisionPairs.length - 1)]!;
+            return { id: "project_1", name: "Makati Tower", project_code: "MK-100", currency_code: "USD", publication_source_revision: pair[0] } as T;
+          }
           return null as T | null;
         },
         async all<T>() {
           if (sql.includes("FROM client_portal_sections")) return { success: true, results: [section] as T[] } as D1Result<T>;
           if (sql.includes("FROM estimates")) return { success: true, results: [{ id: "estimate_1", name: "Main estimate", sheet_code: "A-100", updated_at: null }] as T[] } as D1Result<T>;
           if (sql.includes("FROM estimate_row_items")) {
-            rowReadCount += 1;
             return { success: true, results: [{
               id: "row_1", estimate_id: "estimate_1", node_id: null, description: "Wall finish", designation: "W1", discipline: "Build", material: "Private material", supplier: "Internal supplier", quantity: 2, quantity_base: null, quantity_contingency_amount: null, unit: "m2", unit_cost: 50, misc_cost: 0, contingency_percentage: 0, adjustment_percentage: 0,
-              row_revision: options.unstableRows ? rowReadCount : 7,
+              row_revision: 7,
               source_library_item_id: "11111111-1111-4111-8111-111111111111",
               source_snapshot_json: JSON.stringify({ sourceComponentId: "11111111-1111-4111-8111-111111111111", componentVersionNumber: 3, priceOptionId: "22222222-2222-4222-8222-222222222222", priceOptionLabel: "V2", imageUrl: "/component-thumbnails/wall.jpg", category: "Finishes", supplier: "Safe supplier" }),
+              metadata_json: "{}",
               link_state: "linked-clean",
             }] as T[] } as D1Result<T>;
           }
@@ -46,7 +61,7 @@ function databaseForPublish(options: { dataScope?: Record<string, unknown>; sect
     },
     async batch(batchStatements) {
       statements.push(...batchStatements.map(() => ({ sql: "__batch__", values: [] })));
-      return batchStatements.map(() => ({ success: true }));
+      return batchStatements.map(() => ({ success: true, meta: { changes: 1 } }));
     },
   };
   return { database, statements };
@@ -71,10 +86,31 @@ describe("client portal publish service", () => {
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issues"))).toBe(true);
   });
 
-  it("rejects a publish when bounded source reads never stabilize", async () => {
-    const { database, statements } = databaseForPublish({ unstableRows: true });
+  it("retries a source revision mismatch and publishes the first stable read", async () => {
+    const { database, statements } = databaseForPublish({ revisionPairs: [[1, 2], [2, 2]] });
+
+    await expect(publishClientPortalDraft({ actor, database, idempotencyKey: "publish_retry", portalId: "portal_1" })).resolves.toMatchObject({ issueNumber: 1 });
+
+    expect(statements.filter((statement) => statement.sql.includes("SELECT publication_source_revision FROM projects"))).toHaveLength(2);
+  });
+
+  it("rejects a publish when bounded source revision reads never stabilize", async () => {
+    const { database, statements } = databaseForPublish({ revisionPairs: [[1, 2], [2, 3], [3, 4]] });
 
     await expect(publishClientPortalDraft({ actor, database, idempotencyKey: "publish_unstable", portalId: "portal_1" })).rejects.toThrow("changed repeatedly");
+
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issues"))).toBe(false);
+  });
+
+  it("rejects hidden supplier grouping instead of leaking supplier labels", async () => {
+    const { database, statements } = databaseForPublish({
+      dataScope: { selectedEstimateIds: ["estimate_1"] },
+      sectionConfig: { groupBy: "supplier", includeCharts: true },
+      sectionKind: "cost_breakdown",
+      visibleFields: ["description", "row_total"],
+    });
+
+    await expect(publishClientPortalDraft({ actor, database, idempotencyKey: "publish_hidden_supplier", portalId: "portal_1" })).rejects.toThrow("make supplier visible");
 
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issues"))).toBe(false);
   });

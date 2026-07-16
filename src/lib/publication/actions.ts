@@ -24,6 +24,11 @@ import {
   buildProjectPublicationSnapshot,
   normalizeProjectPublicationLocationVisibility,
 } from "@/lib/publication/snapshot";
+import {
+  createPublicationAuthoringSemanticHash,
+  createPublicationOpaqueIdNamespace,
+  projectPublicationAuthoringRow,
+} from "@/lib/publication/authoring-projection";
 import { createPublicationAdminD1Client, type PublicationAdminJson } from "@/lib/publication/admin-d1-client";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/transactional-email-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
@@ -97,12 +102,19 @@ type EstimateSource = {
 };
 type EstimateRowSource = {
   adjustment_percentage: number | string | null;
+  categoryId: string | null;
+  categoryLabel: string | null;
+  categoryPath: Json | string | null;
+  categoryPathIds: Json | string | null;
+  componentVersionNumber: number | string | null;
   contingency_percentage: number | string | null;
   description: string;
   designation: string;
   discipline: string;
   estimate_id: string;
   id: string;
+  imageUrl: string | null;
+  link_state: string | null;
   material: string;
   metadata_json: Json | null;
   misc_cost: number | string | null;
@@ -110,9 +122,16 @@ type EstimateRowSource = {
   quantity: number | string | null;
   quantity_base: number | string | null;
   quantity_contingency_amount: number | string | null;
+  priceOptionId: string | null;
+  priceOptionLabel: string | null;
+  row_revision: number | string | null;
+  sourceComponentId: string | null;
+  sourceEstimateRowId: string | null;
+  source_library_item_id: string | null;
+  sourceSupplier: string | null;
+  supplier: string | null;
   unit: string;
   unit_cost: number | string | null;
-  imageUrl: string | null;
 };
 type EstimateNodeSource = {
   id: string;
@@ -129,6 +148,9 @@ type EstimateTabSource = {
   sort_order: number;
   estimate_id: string;
   is_default: boolean;
+};
+type PublicationSourceProjectRow = ProjectRow & {
+  publication_source_revision: number | string | null;
 };
 type LatestPublication = Pick<
   {
@@ -259,6 +281,7 @@ const roleRank = {
   viewer: 10,
 } as const;
 const managerRank = roleRank.admin;
+const MAX_PUBLICATION_SOURCE_READS = 3;
 const SHARED_LINK_RECIPIENT_RESEND_SCOPE = "shared_link_recipient_resend";
 const SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS = 5 * 60;
 const SHARED_LINK_RECIPIENT_ADD_CONCURRENCY = 4;
@@ -612,112 +635,121 @@ async function buildSnapshotForProject(
   selectedEstimateIds: string[],
   locationVisibility: ProjectPublicationLocationVisibility = "locality",
 ) {
-  let estimatesQuery = context.admin
-    .from<EstimateSource>("estimates")
-    .select("id, name, sheet_code, updated_at")
-    .eq("project_id", context.project.id)
-    .order("sheet_code", { ascending: true });
+  for (let read = 0; read < MAX_PUBLICATION_SOURCE_READS; read += 1) {
+    const { data: sourceProject, error: sourceProjectError } = await context.admin
+      .from<PublicationSourceProjectRow>("projects")
+      .select("id, workspace_id, name, project_code, client_name, location, currency_code, metadata, publication_source_revision")
+      .eq("id", context.project.id)
+      .eq("workspace_id", context.project.workspace_id)
+      .maybeSingle();
+    if (sourceProjectError) throw sourceProjectError;
+    if (!sourceProject) throw new Error("Project was not found.");
+    const sourceRevision = normalizePublicationSourceRevision(sourceProject.publication_source_revision);
 
-  if (selectedEstimateIds.length) estimatesQuery = estimatesQuery.in("id", selectedEstimateIds);
+    let estimatesQuery = context.admin
+      .from<EstimateSource>("estimates")
+      .select("id, name, sheet_code, updated_at")
+      .eq("project_id", sourceProject.id)
+      .order("sheet_code", { ascending: true })
+      .order("id", { ascending: true });
+    if (selectedEstimateIds.length) estimatesQuery = estimatesQuery.in("id", selectedEstimateIds);
 
-  const { data: estimates, error: estimatesError } = await estimatesQuery;
-  if (estimatesError) throw estimatesError;
+    const { data: estimates, error: estimatesError } = await estimatesQuery;
+    if (estimatesError) throw estimatesError;
+    const estimateRows = (estimates ?? []) as EstimateSource[];
+    const estimateIds = estimateRows.map((estimate) => estimate.id);
+    const rowsByEstimateId = new Map<string, EstimateRowSource[]>();
+    const nodesByEstimateId = new Map<string, EstimateNodeSource[]>();
+    const tabsByEstimateId = new Map<string, EstimateTabSource[]>();
 
-  const estimateRows = (estimates ?? []) as EstimateSource[];
-  const estimateIds = estimateRows.map((estimate) => estimate.id);
-  const rowsByEstimateId = new Map<string, EstimateRowSource[]>();
+    if (estimateIds.length) {
+      const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
+        context.admin
+          .from<EstimateRowSource>("estimate_row_items")
+          .select("id, estimate_id, node_id, description, designation, discipline, material, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, metadata_json, row_revision, source_library_item_id, link_state, imageUrl:source_snapshot->>imageUrl, categoryId:source_snapshot->>categoryId, categoryLabel:source_snapshot->>category, categoryPath:source_snapshot->categoryPath, categoryPathIds:source_snapshot->categoryPathIds, sourceSupplier:source_snapshot->>supplier, sourceComponentId:source_snapshot->>sourceComponentId, sourceEstimateRowId:source_snapshot->>sourceEstimateRowId, componentVersionNumber:source_snapshot->>componentVersionNumber, priceOptionId:source_snapshot->>priceOptionId, priceOptionLabel:source_snapshot->>priceOptionLabel")
+          .in("estimate_id", estimateIds)
+          .order("estimate_id", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("id", { ascending: true }),
+        context.admin
+          .from<EstimateNodeSource>("estimate_nodes")
+          .select("id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order")
+          .in("estimate_id", estimateIds)
+          .order("estimate_id", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("id", { ascending: true }),
+        context.admin
+          .from<EstimateTabSource>("estimate_tabs")
+          .select("id, estimate_id, name, sort_order, is_default")
+          .in("estimate_id", estimateIds)
+          .is("archived_at", null)
+          .order("estimate_id", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("id", { ascending: true }),
+      ]);
+      if (rowsError) throw rowsError;
+      if (nodesError) throw nodesError;
+      if (tabsError) throw tabsError;
 
-  const nodesByEstimateId = new Map<string, EstimateNodeSource[]>();
-  const tabsByEstimateId = new Map<string, EstimateTabSource[]>();
-
-  if (estimateIds.length) {
-    const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
-      context.admin
-        .from<EstimateRowSource>("estimate_row_items")
-        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, metadata_json, imageUrl:source_snapshot->>imageUrl")
-        .in("estimate_id", estimateIds)
-        .order("sort_order", { ascending: true }),
-      context.admin
-        .from<EstimateNodeSource>("estimate_nodes")
-        .select("id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order")
-        .in("estimate_id", estimateIds)
-        .order("sort_order", { ascending: true }),
-      context.admin
-        .from<EstimateTabSource>("estimate_tabs")
-        .select("id, estimate_id, name, sort_order, is_default")
-        .in("estimate_id", estimateIds)
-        .is("archived_at", null)
-        .order("sort_order", { ascending: true }),
-    ]);
-
-    if (rowsError) throw rowsError;
-    if (nodesError) throw nodesError;
-    if (tabsError) throw tabsError;
-
-    for (const row of (rows ?? []) as EstimateRowSource[]) {
-      const current = rowsByEstimateId.get(row.estimate_id) ?? [];
-      current.push(row);
-      rowsByEstimateId.set(row.estimate_id, current);
+      for (const row of (rows ?? []) as EstimateRowSource[]) {
+        rowsByEstimateId.set(row.estimate_id, [...(rowsByEstimateId.get(row.estimate_id) ?? []), row]);
+      }
+      for (const node of (nodes ?? []) as EstimateNodeSource[]) {
+        nodesByEstimateId.set(node.estimate_id, [...(nodesByEstimateId.get(node.estimate_id) ?? []), node]);
+      }
+      for (const tab of (tabs ?? []) as EstimateTabSource[]) {
+        tabsByEstimateId.set(tab.estimate_id, [...(tabsByEstimateId.get(tab.estimate_id) ?? []), tab]);
+      }
     }
 
-    for (const node of (nodes ?? []) as EstimateNodeSource[]) {
-      const current = nodesByEstimateId.get(node.estimate_id) ?? [];
-      current.push(node);
-      nodesByEstimateId.set(node.estimate_id, current);
-    }
+    const { data: revisionCheck, error: revisionCheckError } = await context.admin
+      .from<Pick<PublicationSourceProjectRow, "publication_source_revision">>("projects")
+      .select("publication_source_revision")
+      .eq("id", sourceProject.id)
+      .eq("workspace_id", sourceProject.workspace_id)
+      .maybeSingle();
+    if (revisionCheckError) throw revisionCheckError;
+    if (!revisionCheck || normalizePublicationSourceRevision(revisionCheck.publication_source_revision) !== sourceRevision) continue;
 
-    for (const tab of (tabs ?? []) as EstimateTabSource[]) {
-      const current = tabsByEstimateId.get(tab.estimate_id) ?? [];
-      current.push(tab);
-      tabsByEstimateId.set(tab.estimate_id, current);
-    }
-  }
-
-  return buildProjectPublicationSnapshot({
-    generatedAt: new Date().toISOString(),
-    project: {
-      id: context.project.id,
-      name: context.project.name,
-      projectCode: context.project.project_code,
-      clientName: context.project.client_name,
-      location: context.project.location,
-      locationVisibility,
-      currencyCode: context.project.currency_code,
-      senderName: context.currentUserDisplayName,
-      showArchestimatorBranding: readBooleanMetadataValue(context.project.metadata, "showArchestimatorBranding") !== false,
-      // P9: capture cover for receiver hero (from metadata at publish; additive)
-      coverImageUrl:
-        readStringMetadataValue(context.project.metadata, "projectImageUrl") ??
-        readStringMetadataValue(context.project.metadata, "coverImageUrl") ??
-        null,
-    },
-    estimates: estimateRows.map((estimate) => ({
+    const authoringEstimates = estimateRows.map((estimate) => ({
       id: estimate.id,
       name: estimate.name,
       sheetCode: estimate.sheet_code,
       updatedAt: estimate.updated_at,
-      rows: (rowsByEstimateId.get(estimate.id) ?? []).map((row) => {
-        return {
-          id: row.id,
-          nodeId: row.node_id ?? undefined,
-          description: row.description,
-          designation: row.designation,
-          discipline: row.discipline,
-          material: row.material,
-          quantity: Number(row.quantity),
-          quantityBase: row.quantity_base === null ? null : Number(row.quantity_base),
-          quantityContingencyAmount: row.quantity_base === null ? null : Number(row.quantity_contingency_amount ?? 0),
-          unit: row.unit,
-          unitCost: Number(row.unit_cost),
-          miscCost: Number(row.misc_cost),
-          contingencyPercentage: Number(row.contingency_percentage ?? 0),
-          adjustmentPercentage: Number(row.adjustment_percentage ?? 0),
-          laborRate: readFiniteMetadataNumber(row.metadata_json, "laborUnitCost"),
-          scopeStatus: readSnapshotScopeStatus(row.metadata_json),
-          // P9: extract only the source_snapshot image path instead of transferring full row JSON.
-          imageUrl: typeof row.imageUrl === "string" && row.imageUrl.trim() ? row.imageUrl : undefined,
-        };
-      }),
+      rows: (rowsByEstimateId.get(estimate.id) ?? []).map((row) => projectPublicationAuthoringRow({
+        id: row.id,
+        nodeId: row.node_id,
+        sourceLibraryItemId: row.source_library_item_id,
+        sourceSnapshot: {
+          imageUrl: row.imageUrl,
+          categoryId: row.categoryId,
+          category: row.categoryLabel,
+          categoryPath: readStringArrayValue(row.categoryPath),
+          categoryPathIds: readStringArrayValue(row.categoryPathIds),
+          supplier: row.sourceSupplier,
+          sourceComponentId: row.sourceComponentId,
+          sourceEstimateRowId: row.sourceEstimateRowId,
+          componentVersionNumber: row.componentVersionNumber,
+          priceOptionId: row.priceOptionId,
+          priceOptionLabel: row.priceOptionLabel,
+        },
+        metadata: row.metadata_json,
+        linkState: row.link_state,
+        rowRevision: row.row_revision,
+        supplier: row.supplier,
+        description: row.description,
+        designation: row.designation,
+        discipline: row.discipline,
+        material: row.material,
+        quantity: row.quantity,
+        quantityBase: row.quantity_base,
+        quantityContingencyAmount: row.quantity_contingency_amount,
+        unit: row.unit,
+        unitCost: row.unit_cost,
+        miscCost: row.misc_cost,
+        contingencyPercentage: row.contingency_percentage,
+        adjustmentPercentage: row.adjustment_percentage,
+      })),
       nodes: (nodesByEstimateId.get(estimate.id) ?? []).map((node) => ({
         id: node.id,
         name: node.name,
@@ -732,8 +764,38 @@ async function buildSnapshotForProject(
         sortOrder: tab.sort_order,
         isDefault: tab.is_default,
       })),
-    })),
-  });
+    }));
+    const semanticHash = createPublicationAuthoringSemanticHash({
+      projectId: sourceProject.id,
+      currencyCode: sourceProject.currency_code,
+      estimates: authoringEstimates,
+    });
+
+    return buildProjectPublicationSnapshot({
+      generatedAt: new Date().toISOString(),
+      idNamespace: createPublicationOpaqueIdNamespace(sourceProject.id, semanticHash),
+      semanticHash,
+      sourceRevision,
+      project: {
+        id: sourceProject.id,
+        name: sourceProject.name,
+        projectCode: sourceProject.project_code,
+        clientName: sourceProject.client_name,
+        location: sourceProject.location,
+        locationVisibility,
+        currencyCode: sourceProject.currency_code,
+        senderName: context.currentUserDisplayName,
+        showArchestimatorBranding: readBooleanMetadataValue(sourceProject.metadata, "showArchestimatorBranding") !== false,
+        coverImageUrl:
+          readStringMetadataValue(sourceProject.metadata, "projectImageUrl") ??
+          readStringMetadataValue(sourceProject.metadata, "coverImageUrl") ??
+          null,
+      },
+      estimates: authoringEstimates,
+    });
+  }
+
+  throw new Error("Publication source changed repeatedly while the shared page was being prepared. Try again after edits settle.");
 }
 
 function normalizeSelectedEstimateIds(estimateIds: string[] | undefined) {
@@ -758,22 +820,33 @@ function readStringMetadataValue(metadata: Json | null | undefined, key: string)
   return typeof value === "string" ? value : null;
 }
 
+function readStringArrayValue(value: Json | string | null | undefined) {
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value) as Json;
+    } catch {
+      return undefined;
+    }
+  }
+  if (!Array.isArray(value)) return undefined;
+  const strings = value.filter((entry): entry is string => typeof entry === "string" && Boolean(entry.trim())).map((entry) => entry.trim());
+  return strings.length > 0 ? strings : undefined;
+}
+
 function readBooleanMetadataValue(metadata: Json | null | undefined, key: string) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
   const value = metadata[key];
   return typeof value === "boolean" ? value : undefined;
 }
 
-function readFiniteMetadataNumber(metadata: Json | null | undefined, key: string) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
-  const value = metadata[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+function normalizePublicationSourceRevision(value: number | string | null | undefined) {
+  const revision = Number(value ?? 0);
+  if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("Project publication source revision is invalid.");
+  return revision;
 }
 
-function readSnapshotScopeStatus(metadata: Json | null | undefined): "included" | "excluded" | "by_owner" | undefined {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
-  const value = metadata.scopeStatus;
-  return value === "included" || value === "excluded" || value === "by_owner" ? value : undefined;
+function snapshotPublicationSourceRevision(snapshot: { sourceRevision?: number }) {
+  return normalizePublicationSourceRevision(snapshot.sourceRevision);
 }
 
 function readClientLinkPath(publication: Pick<LatestPublication, "encrypted_token">) {
@@ -852,6 +925,7 @@ export async function createProjectPublication({
     p_selected_estimate_ids: resolvedEstimateIds,
     p_published_by: context.currentUserId,
     p_expires_at: expiresAt ?? null,
+    p_expected_source_revision: snapshotPublicationSourceRevision(snapshot),
   });
 
   if (error) throw error;
@@ -941,6 +1015,7 @@ export async function republishProjectPublication({
     p_selected_estimate_ids: resolvedEstimateIds,
     p_published_by: context.currentUserId,
     p_expires_at: effectiveExpiresAt,
+    p_expected_source_revision: snapshotPublicationSourceRevision(snapshot),
   });
 
   if (error) throw error;
@@ -1013,6 +1088,7 @@ export async function rotateProjectPublicationLink({
     p_snapshot_json: snapshot,
     p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
     p_selected_estimate_ids: resolvedEstimateIds,
+    p_expected_source_revision: snapshotPublicationSourceRevision(snapshot),
   });
 
   if (error) throw error;

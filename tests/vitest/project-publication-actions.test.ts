@@ -648,8 +648,12 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
 
   it("builds publication snapshots without selecting full source_snapshot JSON for row thumbnails", () => {
     expect(actions).toContain("imageUrl:source_snapshot->>imageUrl");
+    expect(actions).toContain("categoryId:source_snapshot->>categoryId");
+    expect(actions).toContain("categoryPath:source_snapshot->categoryPath");
     expect(actions).not.toContain("contingency_percentage, source_snapshot");
-    expect(actions).toContain("imageUrl: typeof row.imageUrl === \"string\"");
+    expect(actions).toContain("sourceComponentId:source_snapshot->>sourceComponentId");
+    expect(actions).toContain("priceOptionId:source_snapshot->>priceOptionId");
+    expect(actions).toContain("imageUrl: row.imageUrl");
   });
 
   it("processes recipient invitation sends with bounded concurrency", () => {

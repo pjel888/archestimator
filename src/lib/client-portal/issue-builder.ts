@@ -63,6 +63,7 @@ const CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE = 40;
 const D1_MAX_BATCH_STATEMENTS = 1_000;
 
 export type ClientPortalIssueSource = {
+  authoringSemanticHash: string;
   currencyCode: string;
   decisionPolicySnapshot: JsonRecord;
   exclusions: readonly string[];
@@ -72,6 +73,7 @@ export type ClientPortalIssueSource = {
   };
   selectedEstimateIds: readonly string[];
   semanticHash: string;
+  sourceRevision: number;
   totalCost: number;
   totalCostMinorUnits: number;
   projectionSchemaVersion: number;
@@ -129,6 +131,7 @@ export class ClientPortalIssueBuildError extends Error {
       | "client_portal_invalid_input"
       | "client_portal_not_found"
       | "client_portal_publish_denied"
+      | "client_portal_source_changed"
       | "client_portal_source_invalid"
       | "client_portal_write_failed",
     message: string,
@@ -181,6 +184,12 @@ function requireSource(source: ClientPortalIssueSource) {
   if (duplicate) throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Selected estimate IDs must be unique non-empty strings.");
   if (!/^[a-f0-9]{64}$/.test(source.semanticHash)) {
     throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue semanticHash must be a lowercase SHA-256 digest.");
+  }
+  if (!/^[a-f0-9]{64}$/.test(source.authoringSemanticHash)) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue authoringSemanticHash must be a lowercase SHA-256 digest.");
+  }
+  if (!Number.isSafeInteger(source.sourceRevision) || source.sourceRevision < 0) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue sourceRevision must be a non-negative safe integer.");
   }
   if (!Number.isSafeInteger(source.totalCostMinorUnits) || source.totalCostMinorUnits < 0) {
     throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue totalCostMinorUnits must be a non-negative safe integer.");
@@ -235,12 +244,56 @@ function statement(database: D1DatabaseLike, sql: string, values: D1Value[]): D1
   return database.prepare(sql).bind(...values);
 }
 
-function packedInsertStatements(database: D1DatabaseLike, table: string, columns: readonly string[], rows: readonly D1Value[][]) {
+type IssueCommitGuard = {
+  contentHash: string;
+  issueId: string;
+  portalId: string;
+};
+
+function issueCommitGuardSql() {
+  return "EXISTS (SELECT 1 FROM client_portal_issues committed_issue WHERE committed_issue.id = ? AND committed_issue.portal_id = ? AND committed_issue.content_hash = ?)";
+}
+
+function issueCommitGuardValues(guard: IssueCommitGuard): D1Value[] {
+  return [guard.issueId, guard.portalId, guard.contentHash];
+}
+
+function conditionalInsertStatement(
+  database: D1DatabaseLike,
+  table: string,
+  columns: readonly string[],
+  values: readonly D1Value[],
+  guard: IssueCommitGuard,
+) {
+  return statement(
+    database,
+    `INSERT INTO ${table} (${columns.join(", ")})
+     SELECT ${columns.map(() => "?").join(", ")}
+     WHERE ${issueCommitGuardSql()}`,
+    [...values, ...issueCommitGuardValues(guard)],
+  );
+}
+
+function packedInsertStatements(
+  database: D1DatabaseLike,
+  table: string,
+  columns: readonly string[],
+  rows: readonly D1Value[][],
+  guard: IssueCommitGuard,
+) {
   const statements: D1PreparedStatementLike[] = [];
-  const rowPlaceholder = `(${columns.map(() => "?").join(", ")})`;
   for (let index = 0; index < rows.length; index += CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE) {
     const chunk = rows.slice(index, index + CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE);
-    statements.push(statement(database, `INSERT INTO ${table} (${columns.join(", ")}) VALUES ${chunk.map(() => rowPlaceholder).join(", ")}`, chunk.flat()));
+    const sourceColumns = columns.map((_, columnIndex) => `value_${columnIndex}`);
+    const sourceRows = chunk.map((row, rowIndex) => `SELECT ${row.map((_, columnIndex) => rowIndex === 0 ? `? AS ${sourceColumns[columnIndex]}` : "?").join(", ")}`).join(" UNION ALL ");
+    statements.push(statement(
+      database,
+      `INSERT INTO ${table} (${columns.join(", ")})
+       SELECT ${sourceColumns.join(", ")}
+       FROM (${sourceRows}) packed_rows
+       WHERE ${issueCommitGuardSql()}`,
+      [...chunk.flat(), ...issueCommitGuardValues(guard)],
+    ));
   }
   return statements;
 }
@@ -386,6 +439,10 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     versionLabel,
     issuedAt,
     contentHash,
+    authoringSemanticHash: input.source.authoringSemanticHash,
+    sourceRevision: input.source.sourceRevision,
+    sourceSemanticHash: input.source.semanticHash,
+    projectionSchemaVersion: input.source.projectionSchemaVersion,
     totalCost: input.source.totalCost,
     currencyCode: input.source.currencyCode,
     project: input.source.projectSnapshot,
@@ -400,6 +457,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     })),
   };
 
+  const commitGuard = { contentHash, issueId, portalId: portal.id };
   const statements: D1PreparedStatementLike[] = [
     statement(
       input.database,
@@ -407,12 +465,21 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         id, portal_id, issue_number, version_label, status, issued_at, issued_by, idempotency_key, valid_through, supersedes_issue_id,
         manifest_json, content_hash, total_cost, currency_code, selected_estimate_ids_json, brand_snapshot_json,
         decision_policy_snapshot_json, assumptions_json, exclusions_json, created_at
-      ) VALUES (?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      SELECT ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      FROM client_portals source_portal
+      JOIN projects source_project
+        ON source_project.id = source_portal.project_id
+       AND source_project.workspace_id = source_portal.workspace_id
+      WHERE source_portal.id = ?
+        AND source_portal.workspace_id = ?
+        AND source_portal.project_id = ?
+        AND source_project.publication_source_revision = ?`,
       [
         issueId, portal.id, issueNumber, versionLabel, issuedAt, input.actor.userId, input.idempotencyKey, input.validThrough ?? null, latestIssue?.id ?? null,
         canonicalJson(manifest), contentHash, input.source.totalCost, input.source.currencyCode, JSON.stringify(input.source.selectedEstimateIds),
         canonicalJson(brandSnapshot), canonicalJson(input.source.decisionPolicySnapshot), JSON.stringify(input.source.assumptions),
-        JSON.stringify(input.source.exclusions), issuedAt,
+        JSON.stringify(input.source.exclusions), issuedAt, portal.id, portal.workspace_id, portal.project_id, input.source.sourceRevision,
       ],
     ),
   ];
@@ -420,12 +487,13 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   for (const [index, section] of issuedSections.entries()) {
     const manifestSection = manifest.sections[index];
     statements.push(
-      statement(
+      conditionalInsertStatement(
         input.database,
-        `INSERT INTO client_portal_issue_sections (
-          id, issue_id, section_key, kind, title, sort_order, payload_storage, payload_json, r2_object_key,
-          payload_hash, payload_bytes, schema_version, policy_snapshot_json, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        "client_portal_issue_sections",
+        [
+          "id", "issue_id", "section_key", "kind", "title", "sort_order", "payload_storage", "payload_json", "r2_object_key",
+          "payload_hash", "payload_bytes", "schema_version", "policy_snapshot_json", "created_at",
+        ],
         [
           manifestSection.id,
           issueId,
@@ -442,6 +510,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
           canonicalJson(section.policySnapshot),
           issuedAt,
         ],
+        commitGuard,
       ),
     );
     const browser = section.manifest.kind === "estimate_browser" ? estimateBrowserPayload(section.manifest.payload) : null;
@@ -449,10 +518,12 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       const summary = summarizeClientPortalEstimateBrowserPayload(browser);
       const projectedRows = buildClientPortalEstimateBrowserRowProjection(browser);
       statements.push(
-        statement(
+        conditionalInsertStatement(
           input.database,
-          "INSERT INTO client_portal_issue_estimate_projections (section_id, payload_hash, summary_json, row_count, created_at) VALUES (?, ?, ?, ?, ?)",
+          "client_portal_issue_estimate_projections",
+          ["section_id", "payload_hash", "summary_json", "row_count", "created_at"],
           [manifestSection.id, section.storage.payloadHash, canonicalJson(summary), projectedRows.length, issuedAt],
+          commitGuard,
         ),
         ...packedInsertStatements(
           input.database,
@@ -469,36 +540,46 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
             projection.searchText,
             canonicalJson(projection.row),
           ]),
+          commitGuard,
         ),
       );
     }
   }
 
   if (latestIssue && latestIssue.status !== "superseded") {
-    statements.push(statement(input.database, "UPDATE client_portal_issues SET status = 'superseded' WHERE id = ?", [latestIssue.id]));
+    statements.push(statement(
+      input.database,
+      `UPDATE client_portal_issues
+       SET status = 'superseded'
+       WHERE id = ? AND ${issueCommitGuardSql()}`,
+      [latestIssue.id, ...issueCommitGuardValues(commitGuard)],
+    ));
   }
   statements.push(
     statement(
       input.database,
-      "UPDATE client_portals SET current_issue_id = ?, status = 'live', updated_at = ? WHERE id = ? AND workspace_id = ? AND project_id = ?",
-      [issueId, issuedAt, portal.id, portal.workspace_id, portal.project_id],
+      `UPDATE client_portals
+       SET current_issue_id = ?, status = 'live', updated_at = ?
+       WHERE id = ? AND workspace_id = ? AND project_id = ?
+         AND ${issueCommitGuardSql()}`,
+      [issueId, issuedAt, portal.id, portal.workspace_id, portal.project_id, ...issueCommitGuardValues(commitGuard)],
     ),
-    statement(
+    conditionalInsertStatement(
       input.database,
-      `INSERT INTO client_portal_audit_events
-        (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at)
-       VALUES (?, ?, ?, ?, 'internal_user', ?, 'issue_issued', 'client_safe', ?, ?, ?)`,
-      [randomUUID(), portal.workspace_id, portal.id, issueId, input.actor.userId, JSON.stringify({ contentHash, issueNumber }), issuedAt, issuedAt],
+      "client_portal_audit_events",
+      ["id", "workspace_id", "portal_id", "issue_id", "actor_type", "actor_id", "event_type", "visibility", "metadata_json", "occurred_at", "created_at"],
+      [randomUUID(), portal.workspace_id, portal.id, issueId, "internal_user", input.actor.userId, "issue_issued", "client_safe", JSON.stringify({ contentHash, issueNumber, sourceRevision: input.source.sourceRevision }), issuedAt, issuedAt],
+      commitGuard,
     ),
   );
   for (const recipient of activeRecipients) {
     statements.push(
-      statement(
+      conditionalInsertStatement(
         input.database,
-        `INSERT INTO client_portal_notification_outbox
-          (id, portal_id, issue_id, recipient_id, event_type, idempotency_key, payload_json, state, attempt_count, next_attempt_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'issue_issued', ?, ?, 'pending', 0, ?, ?, ?)`,
-        [`outbox_${randomUUID()}`, portal.id, issueId, recipient.id, `issue:${contentHash}:issued:${recipient.id}`, JSON.stringify({ issueId, issueNumber, recipientId: recipient.id }), issuedAt, issuedAt, issuedAt],
+        "client_portal_notification_outbox",
+        ["id", "portal_id", "issue_id", "recipient_id", "event_type", "idempotency_key", "payload_json", "state", "attempt_count", "next_attempt_at", "created_at", "updated_at"],
+        [`outbox_${randomUUID()}`, portal.id, issueId, recipient.id, "issue_issued", `issue:${contentHash}:issued:${recipient.id}`, JSON.stringify({ issueId, issueNumber, recipientId: recipient.id }), "pending", 0, issuedAt, issuedAt, issuedAt],
+        commitGuard,
       ),
     );
   }
@@ -510,7 +591,11 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   try {
     const result = await input.database.batch(statements);
     if (result.some((entry) => entry.success === false)) throw new Error("D1 batch statement failed");
+    if (result[0]?.meta?.changes === 0) {
+      throw new ClientPortalIssueBuildError("client_portal_source_changed", "Client Portal source content changed before issue commit. Publish again to issue one consistent revision.");
+    }
   } catch (error) {
+    if (error instanceof ClientPortalIssueBuildError && error.code === "client_portal_source_changed") throw error;
     const retry = await first<IssueRow>(
       input.database,
       "SELECT id, issue_number, version_label, content_hash, status FROM client_portal_issues WHERE portal_id = ? AND (content_hash = ? OR idempotency_key = ?) LIMIT 1",

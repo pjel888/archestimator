@@ -6,10 +6,11 @@ import type { RecipientProposalRow } from "@/lib/repositories/recipient-proposal
 
 type ProposalsListProps = {
   rows: RecipientProposalRow[];
+  hasMore?: boolean;
   onActionError?: (error: Exclude<OpenRecipientProposalActionState, null>["error"]) => void;
 };
 
-export function ProposalsList({ rows, onActionError }: ProposalsListProps) {
+export function ProposalsList({ rows, hasMore = false, onActionError }: ProposalsListProps) {
   return (
     <div className="overflow-hidden rounded-xs border border-hairline bg-white shadow-xs">
       <div className="flex items-center justify-between gap-3 border-b border-hairline bg-surfaceMuted/60 px-4 py-3">
@@ -19,10 +20,19 @@ export function ProposalsList({ rows, onActionError }: ProposalsListProps) {
         </span>
       </div>
       <div>
+        {/*
+          key includes status so a row whose status flips after a refresh (e.g. published → revoked)
+          remounts with a fresh useActionState instead of showing a stale per-row error forever (#6).
+        */}
         {rows.map((proposal) => (
-          <ProposalRow key={proposal.publicationId} proposal={proposal} onActionError={onActionError} />
+          <ProposalRow key={`${proposal.publicationId}:${proposal.status}`} proposal={proposal} onActionError={onActionError} />
         ))}
       </div>
+      {hasMore ? (
+        <p className="border-t border-hairline px-4 py-2 text-[10px] text-secondary">
+          Showing the {rows.length} most recent proposals. Older proposals are not shown.
+        </p>
+      ) : null}
     </div>
   );
 }

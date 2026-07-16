@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 
+import { readPublicationRevisionStaleness } from "@/lib/publication/source-revision";
 import { buildProjectPublicationSnapshot, sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
+
+describe("project publication revision staleness", () => {
+  it("requires reissue when authoring advanced beyond the issued revision", () => {
+    expect(readPublicationRevisionStaleness({
+      currentSourceRevision: 12,
+      snapshot: { sourceRevision: 11 },
+    })).toEqual({
+      currentSourceRevision: 12,
+      issuedSourceRevision: 11,
+    });
+  });
+
+  it("returns current for an exact revision and defers legacy snapshots to timestamp fallback", () => {
+    expect(readPublicationRevisionStaleness({
+      currentSourceRevision: "12",
+      snapshot: { sourceRevision: 12 },
+    })).toBeNull();
+    expect(readPublicationRevisionStaleness({
+      currentSourceRevision: 12,
+      snapshot: { generatedAt: "2026-07-15T00:00:00.000Z" },
+    })).toBeUndefined();
+  });
+});
 
 describe("project publication snapshot builder (Shared Link V2)", () => {
   it("returns a client-safe immutable DTO with computed totals and no internal supplier/library metadata", () => {
@@ -43,7 +67,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       ],
     });
 
-    expect(snapshot.schemaVersion).toBe(1.4);
+    expect(snapshot.schemaVersion).toBe(1.6);
     expect(snapshot.project).toEqual({
       id: "project-1",
       name: "Valencia Residence",
@@ -152,6 +176,8 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
   it("emits stable issue-local component and variant receipts without raw source IDs", () => {
     const componentId = "11111111-1111-4111-8111-111111111111";
     const variantId = "22222222-2222-4222-8222-222222222222";
+    const rootCategoryId = "33333333-3333-4333-8333-333333333333";
+    const leafCategoryId = "44444444-4444-4444-8444-444444444444";
     const snapshot = sanitizeProjectPublicationSnapshotForPublicRead(buildProjectPublicationSnapshot({
       generatedAt: "2026-07-14T00:00:00.000Z",
       idNamespace: "semantic-issue-namespace",
@@ -172,7 +198,10 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
           description: "",
           designation: "",
           discipline: "Finishes",
+          categoryId: leafCategoryId,
           categoryLabel: "Flooring",
+          categoryPath: ["Finishes", "Flooring"],
+          categoryPathIds: [rootCategoryId, leafCategoryId],
           supplierLabel: "Approved supplier",
           material: "Tile",
           quantity: 1,
@@ -185,15 +214,19 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     }));
 
     const [first, second] = snapshot.estimates[0]!.rows;
-    expect(first).toMatchObject({ componentVersionNumber: 4, variantLabel: "V2", rowRevision: 9, linkState: "linked-clean", category: "Flooring", supplier: "Approved supplier", rowTotalMinorUnits: 1001 });
+    expect(first).toMatchObject({ componentVersionNumber: 4, variantLabel: "V2", rowRevision: 9, linkState: "linked-clean", category: "Flooring", categoryPath: ["Finishes", "Flooring"], supplier: "Approved supplier", rowTotalMinorUnits: 1001 });
     expect(first?.componentAnchor).toMatch(/^cmp_[A-Za-z0-9_-]{20}$/);
     expect(first?.variantAnchor).toMatch(/^var_[A-Za-z0-9_-]{20}$/);
+    expect(first?.categoryId).toMatch(/^cat_[A-Za-z0-9_-]{20}$/);
+    expect(first?.categoryPathIds).toEqual([expect.stringMatching(/^cat_[A-Za-z0-9_-]{20}$/), first?.categoryId]);
     expect(second?.componentAnchor).toBe(first?.componentAnchor);
     expect(second?.variantAnchor).toBe(first?.variantAnchor);
     expect(snapshot.totalCostMinorUnits).toBe(2002);
     expect(snapshot.totalCost).toBe(20.02);
     expect(JSON.stringify(snapshot)).not.toContain(componentId);
     expect(JSON.stringify(snapshot)).not.toContain(variantId);
+    expect(JSON.stringify(snapshot)).not.toContain(rootCategoryId);
+    expect(JSON.stringify(snapshot)).not.toContain(leafCategoryId);
   });
 
   it("uses the included proposal basis and retains only safe canonical calculation provenance", () => {
@@ -309,7 +342,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(hidden.project.locationVisibility).toBe("hidden");
   });
 
-  it("builds compact v1.4 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
+  it("builds compact v1.6 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-06-13T00:00:00.000Z",
       project: {
@@ -368,7 +401,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
 
     const estimate = snapshot.estimates[0];
 
-    expect(snapshot.schemaVersion).toBe(1.4);
+    expect(snapshot.schemaVersion).toBe(1.6);
     expect(estimate?.rowCount).toBe(2);
     expect(estimate?.rows.map((row) => row.id)).toEqual(["row-base", "row-alt"]);
     expect(estimate?.rows.map((row) => row.tabId)).toEqual(["tab-base", "tab-alt"]);

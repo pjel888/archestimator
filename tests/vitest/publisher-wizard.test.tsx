@@ -214,6 +214,28 @@ describe("ShareWizard", () => {
       selectedEstimateIds: ["estimate-1", "estimate-2"],
     }));
   });
+
+  it("blocks saving a new protected link when the password is blank", async () => {
+    drawerActionMocks.readPublisherPublicationDrawerData.mockResolvedValueOnce({
+      collaborationSummary: null,
+      currentUserEmail: "owner@example.test",
+      estimateSheets: [{ id: "estimate-1", name: "Base", sheetCode: "E-1" }],
+      summary: createPublisherSummary({
+        publicationId: null,
+        passwordRequired: false,
+        clientLinkPath: null,
+        tokenCopyAvailable: false,
+        status: "unpublished",
+      }),
+    });
+    renderWizard({ row: { ...row, publicationId: null, status: "unpublished", clientLinkPath: null, tokenCopyAvailable: false } });
+
+    const passwordToggle = await screen.findByRole("checkbox", { name: /require a password/i });
+    fireEvent.click(passwordToggle); // require a password but leave it blank
+
+    expect(await screen.findByText(/set a password for this link/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create client link" })).toBeDisabled();
+  });
 });
 
 describe("ShareLinkDisplay", () => {

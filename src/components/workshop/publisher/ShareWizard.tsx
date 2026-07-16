@@ -65,6 +65,11 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
   const passwordRequired = passwordRequiredOverride ?? defaultPasswordRequired;
   const canManage = Boolean(row?.canManagePublication && (summary?.canManagePublication ?? true));
   const hasEstimates = estimates.length > 0;
+  // A password is required to share when "Require a password" is checked but there is no
+  // existing password to keep (a new link, or an open link being protected). Leaving it
+  // blank otherwise means "keep the current password" for an already-protected link.
+  const hasExistingPassword = Boolean(summary?.passwordRequired);
+  const passwordMissing = passwordRequired && !hasExistingPassword && password.trim().length === 0;
   const canShare = Boolean(
     canManage
       && !isLoading
@@ -72,6 +77,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
       && !verificationPending
       && hasEstimates
       && selectedEstimateIds.length > 0
+      && !passwordMissing
       && !drawer.isMutating,
   );
   const clientLinkPath = summary?.clientLinkPath;
@@ -384,15 +390,22 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
                 disabled={!canManage || drawer.isMutating}
               />
               {passwordRequired ? (
-                <ControlField label="Password" className="mt-3 [&>label]:!text-[9px]">
-                  <ControlInput
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.currentTarget.value)}
-                    className={cn("min-h-8 !text-[10px]", CONTROL_INPUT_SURFACE_CLASS)}
-                    placeholder={summary?.passwordRequired ? "Leave blank to keep current password" : "Set a link password"}
-                  />
-                </ControlField>
+                <>
+                  <ControlField label="Password" className="mt-3 [&>label]:!text-[9px]">
+                    <ControlInput
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.currentTarget.value)}
+                      className={cn("min-h-8 !text-[10px]", CONTROL_INPUT_SURFACE_CLASS)}
+                      placeholder={summary?.passwordRequired ? "Leave blank to keep current password" : "Set a link password"}
+                    />
+                  </ControlField>
+                  {passwordMissing ? (
+                    <p role="status" className="mt-2 border border-warning/30 bg-warningSoft px-2.5 py-2 text-[10px] leading-4 text-warning">
+                      Set a password for this link, or turn off “Require a password.”
+                    </p>
+                  ) : null}
+                </>
               ) : null}
             </section>
 

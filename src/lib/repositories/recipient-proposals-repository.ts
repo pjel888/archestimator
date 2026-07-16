@@ -26,8 +26,12 @@ export type RecipientProposalRow = {
 };
 
 export type RecipientProposalsResult =
-  | { ok: true; rows: RecipientProposalRow[] }
+  | { ok: true; rows: RecipientProposalRow[]; hasMore: boolean }
   | { ok: false; error: "unauthorized" | "unknown" };
+
+// Inbox page size. We fetch PAGE_SIZE + 1 to detect whether older proposals exist beyond the cap,
+// so the UI can signal truncation instead of silently dropping rows (#5).
+const RECIPIENT_PROPOSALS_PAGE_SIZE = 50;
 
 type RecipientProposalD1Row = {
   publication_id: string;
@@ -149,14 +153,20 @@ export async function listRecipientProposals(): Promise<RecipientProposalsResult
           ORDER BY last_activity_at DESC, publication.published_at DESC, publication.id DESC
           LIMIT ?
         `)
-        .bind(now, now, recipientEmail, 50)
+        .bind(now, now, recipientEmail, RECIPIENT_PROPOSALS_PAGE_SIZE + 1)
         .all<RecipientProposalD1Row>(),
     );
 
     const rows = results.map(mapRecipientProposalRow);
+    // Fail-closed: a single corrupt row (bad decision/snapshotVersion) fails the whole inbox rather
+    // than serving a partial list from unexpected data. This is a deliberate safety invariant
+    // (pinned by the dead-end + repository tests), not a bug — leave it.
     if (rows.some((row) => row === null)) return { ok: false, error: "unknown" };
 
-    return { ok: true, rows: rows as RecipientProposalRow[] };
+    // Fetching PAGE_SIZE + 1 lets us detect rows beyond the cap so the UI can signal truncation.
+    const hasMore = rows.length > RECIPIENT_PROPOSALS_PAGE_SIZE;
+
+    return { ok: true, rows: rows.slice(0, RECIPIENT_PROPOSALS_PAGE_SIZE) as RecipientProposalRow[], hasMore };
   } catch {
     return { ok: false, error: "unknown" };
   }

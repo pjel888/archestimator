@@ -6,7 +6,11 @@ import { publishClientPortalIssue } from "@/lib/client-portal/issue-builder";
 
 type CapturedStatement = { sql: string; values: D1Value[] };
 
-function createDatabase(options: { activeRecipientIds?: string[]; existingIssue?: { content_hash: string; id: string; issue_number: number; status: "issued"; version_label: string } } = {}) {
+function createDatabase(options: {
+  activeRecipientIds?: string[];
+  existingIssue?: { content_hash: string; id: string; issue_number: number; status: "issued"; version_label: string };
+  issueInsertChanges?: number;
+} = {}) {
   const statements: CapturedStatement[] = [];
   const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready", current_issue_id: options.existingIssue?.id ?? null };
   const draftRows = [{
@@ -57,7 +61,10 @@ function createDatabase(options: { activeRecipientIds?: string[]; existingIssue?
     },
     async batch(batchStatements) {
       statements.push(...batchStatements.map(() => ({ sql: "__batch__", values: [] })));
-      return batchStatements.map(() => ({ success: true }));
+      return batchStatements.map((_, index) => ({
+        success: true,
+        meta: { changes: index === 0 ? (options.issueInsertChanges ?? 1) : 1 },
+      }));
     },
   };
 
@@ -74,6 +81,7 @@ const actor = {
 };
 
 const source = {
+  authoringSemanticHash: "b".repeat(64),
   totalCost: 1200,
   currencyCode: "USD",
   projectSnapshot: { name: "Kitchen Remodel", code: "AE-100" },
@@ -81,6 +89,7 @@ const source = {
   decisionPolicySnapshot: { requiredApprovals: 1 },
   projectionSchemaVersion: 2,
   semanticHash: "a".repeat(64),
+  sourceRevision: 7,
   totalCostMinorUnits: 120_000,
   assumptions: ["Permit allowance excluded"],
   exclusions: ["Sales tax"],
@@ -102,12 +111,30 @@ describe("client portal issue builder", () => {
     expect(issue.sections[0]?.payload).toEqual({ description: "Floor finish", row_total: 1200 });
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issues"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_sections"))).toBe(true);
-    expect(statements.some((statement) => statement.sql.includes("UPDATE client_portals SET current_issue_id"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("UPDATE client_portals") && statement.sql.includes("current_issue_id"))).toBe(true);
     expect(statements.some((statement) => statement.sql === "__batch__")).toBe(true);
     expect(JSON.stringify(statements)).not.toContain("unit_cost");
     expect(JSON.stringify(statements)).not.toContain("margin");
     expect(JSON.stringify(statements)).toContain("policy_snapshot_json");
     expect(JSON.stringify(statements)).toContain("visibleFields");
+    expect(statements.filter((statement) => statement.sql.includes("INSERT INTO client_portal_issue_sections")).every((statement) => statement.sql.includes("committed_issue"))).toBe(true);
+  });
+
+  it("rejects an issue when the source revision changes at commit time", async () => {
+    const { database, statements } = createDatabase({ issueInsertChanges: 0 });
+
+    await expect(publishClientPortalIssue({
+      actor,
+      database,
+      idempotencyKey: "publish_source_changed",
+      portalId: "portal_1",
+      source,
+      buildSectionPayload: async () => ({ description: "Floor finish", row_total: 1200 }),
+    })).rejects.toMatchObject({ code: "client_portal_source_changed" });
+
+    const issueInsert = statements.find((statement) => statement.sql.includes("INSERT INTO client_portal_issues"));
+    expect(issueInsert?.sql).toContain("source_project.publication_source_revision = ?");
+    expect(issueInsert?.values.at(-1)).toBe(source.sourceRevision);
   });
 
   it("returns the existing immutable issue for the same content fingerprint", async () => {

@@ -2,8 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { getCloudflareD1Database, type D1DatabaseLike, type D1Result, type D1Value } from "@/lib/cloudflare/d1";
-import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { validateActivationProducerIntent } from "@/lib/onboarding/activation-producer-contract";
 
 export type PublicationAdminJson = string | number | boolean | null | { [key: string]: PublicationAdminJson | undefined } | PublicationAdminJson[];
@@ -131,6 +130,12 @@ function jsonText(value: unknown, fallback: PublicationAdminJson = {}) {
   return JSON.stringify(value ?? fallback);
 }
 
+function publicationSourceRevision(value: unknown) {
+  const revision = Number(value ?? 0);
+  if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("Project publication source revision is invalid.");
+  return revision;
+}
+
 function normalizeWriteRow(table: string, input: Record<string, unknown>) {
   const row: Record<string, unknown> = { ...input };
   const at = nowIso();
@@ -191,8 +196,13 @@ function selectExpression(rawColumn: string) {
   if (aliasParts) {
     const [, alias, expression] = aliasParts;
     assertSafeIdentifier(alias);
-    if (expression === "source_snapshot->>imageUrl") {
-      return `json_extract(source_snapshot_json, '$.imageUrl') AS ${alias}`;
+    const snapshotScalarKey = /^source_snapshot->>(imageUrl|categoryId|category|supplier|sourceComponentId|sourceEstimateRowId|componentVersionNumber|priceOptionId|priceOptionLabel)$/.exec(expression)?.[1];
+    if (snapshotScalarKey) {
+      return `json_extract(source_snapshot_json, '$.${snapshotScalarKey}') AS ${alias}`;
+    }
+    const snapshotJsonKey = /^source_snapshot->(categoryPath|categoryPathIds)$/.exec(expression)?.[1];
+    if (snapshotJsonKey) {
+      return `json_extract(source_snapshot_json, '$.${snapshotJsonKey}') AS ${alias}`;
     }
     throw new Error(`Unsupported publication D1 select expression: ${trimmed}`);
   }
@@ -510,9 +520,11 @@ function withImmutableIssuance(
 }
 
 async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string, unknown>) {
-  const project = await first<{ id: string }>(
+  if (!db.batch) throw new Error("Publication replacement requires D1 batch support.");
+  const expectedSourceRevision = publicationSourceRevision(args.p_expected_source_revision);
+  const project = await first<{ id: string; publication_source_revision: number | string | null }>(
     db,
-    "SELECT id FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",
+    "SELECT id, publication_source_revision FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",
     [args.target_project_id, args.target_workspace_id],
   );
   if (!project) throw new Error("Project not found.");
@@ -550,16 +562,35 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
       .prepare(
         `UPDATE project_publications
          SET status = 'revoked', revoked_at = ?, updated_at = ?
-         WHERE project_id = ? AND status = 'published'`,
+         WHERE project_id = ? AND status = 'published'
+           AND EXISTS (
+             SELECT 1
+             FROM projects source_project
+             WHERE source_project.id = ?
+               AND source_project.workspace_id = ?
+               AND source_project.publication_source_revision = ?
+           )`,
       )
-      .bind(at, at, normalizeD1Value(args.target_project_id)),
+      .bind(
+        at,
+        at,
+        normalizeD1Value(args.target_project_id),
+        normalizeD1Value(args.target_project_id),
+        normalizeD1Value(args.target_workspace_id),
+        expectedSourceRevision,
+      ),
     db
       .prepare(
         `INSERT INTO project_publications (
           id, workspace_id, project_id, token_hash, encrypted_token, password_hash,
           snapshot_json, activity_target_labels_json, location_visibility, selected_estimate_ids,
           snapshot_version, published_by, published_at, expires_at, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?, ?)`,
+        )
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?, ?
+        FROM projects source_project
+        WHERE source_project.id = ?
+          AND source_project.workspace_id = ?
+          AND source_project.publication_source_revision = ?`,
       )
       .bind(
         publicationId,
@@ -578,6 +609,9 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
         normalizeD1Value(args.p_expires_at ?? null),
         at,
         at,
+        normalizeD1Value(args.target_project_id),
+        normalizeD1Value(args.target_workspace_id),
+        expectedSourceRevision,
       ),
   ];
 
@@ -591,37 +625,55 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
     workspaceId: String(args.target_workspace_id),
   });
   if (activationIntent.status === "accepted") {
-    statements.push(prepareActivationOutboxIntent(db, {
-      domainMutationId: publicationId,
-      dedupeKey: activationIntent.dedupeKey,
-      milestone: "publication_created",
-      occurredAt: at,
-      projectId: String(args.target_project_id),
-      source: "publication",
-      userId: String(args.p_published_by),
-      workspaceId: String(args.target_workspace_id),
-    }));
+    statements.push(db.prepare(`
+      INSERT OR IGNORE INTO beta_activation_outbox (
+        id, domain_mutation_id, user_id, workspace_id, project_id, estimate_id,
+        milestone, source, occurred_at, dedupe_key, metadata_json, state, attempt_count,
+        next_attempt_at, created_at, updated_at
+      )
+      SELECT ?, ?, ?, ?, ?, NULL, 'publication_created', 'publication', ?, ?, '{}', 'pending', 0, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM project_publications committed_publication
+        WHERE committed_publication.id = ?
+          AND committed_publication.project_id = ?
+          AND committed_publication.status = 'published'
+      )
+    `).bind(
+      randomUUID(),
+      publicationId,
+      normalizeD1Value(args.p_published_by),
+      normalizeD1Value(args.target_workspace_id),
+      normalizeD1Value(args.target_project_id),
+      at,
+      activationIntent.dedupeKey,
+      at,
+      at,
+      at,
+      publicationId,
+      normalizeD1Value(args.target_project_id),
+    ));
   }
 
-  if (db.batch) {
-    await db.batch(statements);
-  } else {
-    for (const statement of statements) await statement.run();
-  }
+  const results = await db.batch(statements);
+  if (results.some((result) => result.success === false)) throw new Error("Publication replacement batch failed.");
+  if (results[1]?.meta?.changes === 0) throw new Error("Publication source changed before commit. Publish again.");
 
   return publicationId;
 }
 
 async function rotateProjectPublicationCredentials(db: D1DatabaseLike, args: Record<string, unknown>) {
+  if (!db.batch) throw new Error("Publication rotation requires D1 batch support.");
+  const expectedSourceRevision = publicationSourceRevision(args.p_expected_source_revision);
   const publication = await first<{
     encrypted_token: string | null;
     expires_at: string | null;
+    project_id: string;
     revoked_at: string | null;
     snapshot_version: number | null;
     status: string | null;
   }>(
     db,
-    "SELECT encrypted_token, expires_at, revoked_at, snapshot_version, status FROM project_publications WHERE id = ? LIMIT 1",
+    "SELECT encrypted_token, expires_at, project_id, revoked_at, snapshot_version, status FROM project_publications WHERE id = ? LIMIT 1",
     [args.target_publication_id],
   );
   const at = nowIso();
@@ -636,46 +688,86 @@ async function rotateProjectPublicationCredentials(db: D1DatabaseLike, args: Rec
   }
 
   const nextVersion = Number(publication.snapshot_version ?? 0) + 1;
-  await run(
-    db,
-    `UPDATE project_publications
-     SET token_hash = ?,
-         encrypted_token = ?,
-         password_hash = ?,
-         snapshot_json = ?,
-         activity_target_labels_json = ?,
-         selected_estimate_ids = ?,
-         snapshot_version = ?,
-         published_at = ?,
-         updated_at = ?
-     WHERE id = ?`,
-    [
-      args.p_token_hash,
-      args.p_encrypted_token,
-      args.p_password_hash,
-      jsonText(args.p_snapshot_json),
+  const issuedSnapshot = withImmutableIssuance(args.p_snapshot_json, {
+    issuedAt: at,
+    issueNumber: nextVersion,
+    selectedEstimateIds: Array.isArray(args.p_selected_estimate_ids)
+      ? args.p_selected_estimate_ids.filter((value): value is string => typeof value === "string")
+      : [],
+    supersedes: {
+      issueNumber: Number(publication.snapshot_version ?? 0),
+      version: Number(publication.snapshot_version ?? 0),
+    },
+    validThrough: publication.expires_at,
+  });
+  const statements = [
+    db.prepare(`
+      UPDATE project_publications
+      SET token_hash = ?,
+          encrypted_token = ?,
+          password_hash = ?,
+          snapshot_json = ?,
+          activity_target_labels_json = ?,
+          selected_estimate_ids = ?,
+          snapshot_version = ?,
+          published_at = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND status = 'published'
+        AND revoked_at IS NULL
+        AND encrypted_token = ?
+        AND (expires_at IS NULL OR expires_at > ?)
+        AND EXISTS (
+          SELECT 1
+          FROM projects source_project
+          WHERE source_project.id = project_publications.project_id
+            AND source_project.publication_source_revision = ?
+        )
+    `).bind(
+      normalizeD1Value(args.p_token_hash),
+      normalizeD1Value(args.p_encrypted_token),
+      normalizeD1Value(args.p_password_hash),
+      jsonText(issuedSnapshot),
       jsonText(args.p_activity_target_labels_json),
       jsonText(args.p_selected_estimate_ids, []),
       nextVersion,
       at,
       at,
-      args.target_publication_id,
-    ],
-  );
-
-  const recipients = await run(
-    db,
-    `UPDATE shared_link_recipients
-     SET recipient_token_hash = 'revoked:' || publication_id || ':' || id || ':' || ?,
-         delivery_status = 'pending',
-         resend_email_id = NULL,
-         resend_last_event_at = NULL,
-         resend_last_event_type = NULL,
-         updated_at = ?
-     WHERE publication_id = ?`,
-    [nextVersion, at, args.target_publication_id],
-  );
-  return recipients.meta?.changes ?? 0;
+      normalizeD1Value(args.target_publication_id),
+      normalizeD1Value(args.expected_encrypted_token),
+      at,
+      expectedSourceRevision,
+    ),
+    db.prepare(`
+      UPDATE shared_link_recipients
+      SET recipient_token_hash = 'revoked:' || publication_id || ':' || id || ':' || ?,
+          delivery_status = 'pending',
+          resend_email_id = NULL,
+          resend_last_event_at = NULL,
+          resend_last_event_type = NULL,
+          updated_at = ?
+      WHERE publication_id = ?
+        AND EXISTS (
+          SELECT 1
+          FROM project_publications committed_publication
+          WHERE committed_publication.id = ?
+            AND committed_publication.encrypted_token = ?
+            AND committed_publication.snapshot_version = ?
+            AND committed_publication.status = 'published'
+        )
+    `).bind(
+      nextVersion,
+      at,
+      normalizeD1Value(args.target_publication_id),
+      normalizeD1Value(args.target_publication_id),
+      normalizeD1Value(args.p_encrypted_token),
+      nextVersion,
+    ),
+  ];
+  const results = await db.batch(statements);
+  if (results.some((result) => result.success === false)) throw new Error("Publication rotation batch failed.");
+  if (results[0]?.meta?.changes === 0) return -1;
+  return results[1]?.meta?.changes ?? 0;
 }
 
 async function persistSharedLinkRecipientResend(db: D1DatabaseLike, args: Record<string, unknown>) {

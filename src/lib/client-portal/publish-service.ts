@@ -9,14 +9,18 @@ import { buildClientPortalEstimateBrowserPayload } from "@/lib/client-portal/est
 import type { ClientPortalInternalActor } from "@/lib/client-portal/policy";
 import { parseClientPortalSectionDraft, type ClientPortalSectionDraft } from "@/lib/client-portal/section-registry";
 import { ESTIMATE_CALCULATION_CURRENCY_SCALE } from "@/lib/estimates/estimate-row-total";
+import {
+  createPublicationAuthoringSemanticHash,
+  createPublicationOpaqueIdNamespace,
+  projectPublicationAuthoringRow,
+} from "@/lib/publication/authoring-projection";
 import { buildProjectPublicationSnapshot, sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
 import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
 
 type PortalSource = { id: string; project_id: string; status: "draft" | "ready" | "live" | "access_off" | "archived"; workspace_id: string };
-type ProjectSource = { currency_code: string; id: string; name: string; project_code: string | null };
+type ProjectSource = { currency_code: string; id: string; name: string; project_code: string | null; publication_source_revision: number | string };
 type EstimateSource = { id: string; name: string; sheet_code: string; updated_at: string | null };
 type NodeSource = { estimate_id: string; estimate_tab_id: string | null; id: string; kind: string; name: string; parent_id: string | null; sort_order: number };
-type RowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
 type RowSource = {
   adjustment_percentage: number | string | null;
   contingency_percentage: number | string | null;
@@ -28,6 +32,7 @@ type RowSource = {
   link_state: string;
   material: string;
   misc_cost: number | string | null;
+  metadata_json: string;
   node_id: string | null;
   quantity: number | string | null;
   quantity_base: number | string | null;
@@ -107,16 +112,6 @@ function numberValue(value: number | string | null) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function safeText(value: unknown, maxLength = 160) {
-  if (typeof value !== "string") return null;
-  const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized ? normalized.slice(0, maxLength) : null;
-}
-
-function rowLinkState(value: string): RowLinkState {
-  return value === "linked-clean" || value === "linked-overridden" || value === "source-changed" || value === "detached" ? value : "unlinked";
-}
-
 async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[]) {
   const result = await database.prepare<T>(sql).bind(...values).all<T>();
   if (result.success === false) throw new ClientPortalPublishError("client_portal_publish_invalid", "Client Portal source data could not be loaded.");
@@ -177,38 +172,61 @@ function estimateIdsForSection(draft: ClientPortalSectionDraft, fallbackEstimate
 }
 
 function rowProjectionInput(row: RowSource) {
-  const sourceSnapshot = parseObject(row.source_snapshot_json);
-  const componentVersionNumber = Number(sourceSnapshot.componentVersionNumber);
-  return {
+  return projectPublicationAuthoringRow({
     id: row.id,
     nodeId: row.node_id,
-    componentId: safeText(sourceSnapshot.sourceComponentId) ?? row.source_library_item_id,
-    variantId: safeText(sourceSnapshot.priceOptionId),
-    componentVersionNumber: Number.isSafeInteger(componentVersionNumber) && componentVersionNumber >= 0 ? componentVersionNumber : null,
-    variantLabel: safeText(sourceSnapshot.priceOptionLabel),
-    rowRevision: Math.max(0, Math.trunc(numberValue(row.row_revision))),
-    linkState: rowLinkState(row.link_state),
-    categoryLabel: safeText(sourceSnapshot.category),
-    supplierLabel: safeText(sourceSnapshot.supplier) ?? safeText(row.supplier),
-    imageUrl: safeText(sourceSnapshot.imageUrl, 2_048),
+    sourceLibraryItemId: row.source_library_item_id,
+    sourceSnapshot: row.source_snapshot_json,
+    metadata: row.metadata_json,
+    linkState: row.link_state,
+    rowRevision: row.row_revision,
+    supplier: row.supplier,
     description: row.description,
     designation: row.designation,
     discipline: row.discipline,
     material: row.material,
-    quantity: numberValue(row.quantity),
-    quantityBase: row.quantity_base === null ? null : numberValue(row.quantity_base),
-    quantityContingencyAmount: row.quantity_contingency_amount === null ? null : numberValue(row.quantity_contingency_amount),
+    quantity: row.quantity,
+    quantityBase: row.quantity_base,
+    quantityContingencyAmount: row.quantity_contingency_amount,
     unit: row.unit,
-    unitCost: numberValue(row.unit_cost),
-    miscCost: numberValue(row.misc_cost),
-    contingencyPercentage: numberValue(row.contingency_percentage),
-    adjustmentPercentage: numberValue(row.adjustment_percentage),
-  };
+    unitCost: row.unit_cost,
+    miscCost: row.misc_cost,
+    contingencyPercentage: row.contingency_percentage,
+    adjustmentPercentage: row.adjustment_percentage,
+  });
 }
 
-function sourceFingerprint(source: PublicationSource) {
+function authoringEstimates(source: PublicationSource) {
+  const rowsByEstimate = groupByEstimate(source.rows);
+  const nodesByEstimate = groupByEstimate(source.nodes);
+  const tabsByEstimate = groupByEstimate(source.tabs);
+  return source.estimates.map((estimate) => ({
+    id: estimate.id,
+    name: estimate.name,
+    sheetCode: estimate.sheet_code,
+    updatedAt: estimate.updated_at,
+    rows: (rowsByEstimate.get(estimate.id) ?? []).map(rowProjectionInput),
+    nodes: (nodesByEstimate.get(estimate.id) ?? []).map((node) => ({
+      id: node.id,
+      name: node.name,
+      kind: node.kind === "area" ? "area" as const : "group" as const,
+      parentId: node.parent_id,
+      sortOrder: node.sort_order,
+      estimateTabId: node.estimate_tab_id,
+    })),
+    tabs: (tabsByEstimate.get(estimate.id) ?? []).map((tab) => ({
+      id: tab.id,
+      name: tab.name,
+      sortOrder: tab.sort_order,
+      isDefault: Boolean(tab.is_default),
+    })),
+  }));
+}
+
+function sourceFingerprint(source: PublicationSource, authoringSemanticHash: string) {
   return sha256(canonicalJson({
     projectionSchemaVersion: CLIENT_PORTAL_PROJECTION_SCHEMA_VERSION,
+    authoringSemanticHash,
     drafts: source.drafts,
     sectionPolicies: source.sectionRows.map((row) => ({
       id: row.id,
@@ -219,10 +237,7 @@ function sourceFingerprint(source: PublicationSource) {
       printPolicy: parseObject(row.print_policy_json),
     })),
     project: source.project,
-    estimates: source.estimates,
-    rows: source.rows.map(rowProjectionInput),
-    nodes: source.nodes,
-    tabs: source.tabs,
+    estimates: source.estimates.map(({ id, name, sheet_code, updated_at }) => ({ id, name, sheet_code, updated_at })),
   }));
 }
 
@@ -241,13 +256,13 @@ async function loadPublicationSource(database: D1DatabaseLike, portal: PortalSou
   const estimateIds = selectedEstimateIds(drafts);
   if (!estimateIds.length) throw new ClientPortalPublishError("client_portal_publish_invalid", "Choose at least one estimate source before publishing.");
 
-  const project = await database.prepare<ProjectSource>("SELECT id, name, project_code, currency_code FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1").bind(portal.project_id, portal.workspace_id).first<ProjectSource>();
+  const project = await database.prepare<ProjectSource>("SELECT id, name, project_code, currency_code, publication_source_revision FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1").bind(portal.project_id, portal.workspace_id).first<ProjectSource>();
   if (!project) throw new ClientPortalPublishError("client_portal_publish_not_found", "Client Portal project was not found.");
   const placeholders = estimateIds.map(() => "?").join(", ");
   const estimates = await all<EstimateSource>(database, `SELECT id, name, sheet_code, updated_at FROM estimates WHERE project_id = ? AND id IN (${placeholders}) ORDER BY sheet_code ASC, id ASC`, [project.id, ...estimateIds]);
   if (estimates.length !== estimateIds.length) throw new ClientPortalPublishError("client_portal_publish_invalid", "One or more selected estimate sources are unavailable for this project.");
   const [rows, nodes, tabs] = await Promise.all([
-    all<RowSource>(database, `SELECT id, estimate_id, node_id, description, designation, discipline, material, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, row_revision, source_library_item_id, source_snapshot_json, link_state FROM estimate_row_items WHERE estimate_id IN (${placeholders}) ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
+    all<RowSource>(database, `SELECT id, estimate_id, node_id, description, designation, discipline, material, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, row_revision, source_library_item_id, source_snapshot_json, metadata_json, link_state FROM estimate_row_items WHERE estimate_id IN (${placeholders}) ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
     all<NodeSource>(database, `SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order FROM estimate_nodes WHERE estimate_id IN (${placeholders}) ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
     all<TabSource>(database, `SELECT id, estimate_id, name, sort_order, is_default FROM estimate_tabs WHERE estimate_id IN (${placeholders}) AND archived_at IS NULL ORDER BY estimate_id ASC, sort_order ASC, id ASC`, estimateIds),
   ]);
@@ -255,14 +270,27 @@ async function loadPublicationSource(database: D1DatabaseLike, portal: PortalSou
 }
 
 async function loadConsistentPublicationSource(database: D1DatabaseLike, portal: PortalSource) {
-  let previous = await loadPublicationSource(database, portal);
-  let previousFingerprint = sourceFingerprint(previous);
-  for (let read = 1; read < MAX_CONSISTENCY_SOURCE_READS; read += 1) {
-    const current = await loadPublicationSource(database, portal);
-    const currentFingerprint = sourceFingerprint(current);
-    if (currentFingerprint === previousFingerprint) return { fingerprint: currentFingerprint, source: current };
-    previous = current;
-    previousFingerprint = currentFingerprint;
+  for (let read = 0; read < MAX_CONSISTENCY_SOURCE_READS; read += 1) {
+    const source = await loadPublicationSource(database, portal);
+    const sourceRevision = Math.max(0, Math.trunc(numberValue(source.project.publication_source_revision)));
+    const revisionAfterRead = await database.prepare<{ publication_source_revision: number | string }>(
+      "SELECT publication_source_revision FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",
+    ).bind(portal.project_id, portal.workspace_id).first<{ publication_source_revision: number | string }>();
+    if (revisionAfterRead && Math.max(0, Math.trunc(numberValue(revisionAfterRead.publication_source_revision))) === sourceRevision) {
+      const estimates = authoringEstimates(source);
+      const authoringSemanticHash = createPublicationAuthoringSemanticHash({
+        projectId: source.project.id,
+        currencyCode: source.project.currency_code,
+        estimates,
+      });
+      return {
+        authoringSemanticHash,
+        estimates,
+        fingerprint: sourceFingerprint(source, authoringSemanticHash),
+        source,
+        sourceRevision,
+      };
+    }
   }
   throw new ClientPortalPublishError("client_portal_publish_invalid", "The selected estimate sources changed repeatedly while the issue was being prepared. Publish again after edits settle.");
 }
@@ -313,6 +341,12 @@ function payloadForSection(
       if (draft.config.includeContingency) throw new ClientPortalPublishError("client_portal_publish_invalid", `${draft.title} cannot publish a separate contingency metric from the current issued-row basis.`);
       return buildClientPortalFinancialSummaryPayload({ currencyCode: input.currencyCode, estimates });
     case "cost_breakdown":
+      if (draft.config.groupBy === "supplier" && !draft.visibleFields.includes("supplier")) {
+        throw new ClientPortalPublishError("client_portal_publish_invalid", `${draft.title} must make supplier visible before grouping by supplier.`);
+      }
+      if (draft.config.groupBy === "category" && !draft.visibleFields.includes("category")) {
+        throw new ClientPortalPublishError("client_portal_publish_invalid", `${draft.title} must make category visible before grouping by category.`);
+      }
       return buildClientPortalCostBreakdownPayload({ currencyCode: input.currencyCode, estimates, groupBy: draft.config.groupBy ?? "area", includeCharts: draft.config.includeCharts });
     case "estimate_comparison":
       if (draft.config.compareIssueIds?.length) throw new ClientPortalPublishError("client_portal_publish_invalid", `${draft.title} contains historical issue comparisons that are not supported by the current issued projection.`);
@@ -332,23 +366,14 @@ function payloadForSection(
 export async function publishClientPortalDraft({ actor, database, idempotencyKey, portalId }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; idempotencyKey: string; portalId: string }): Promise<ClientPortalPublishedIssue> {
   const portal = await database.prepare<PortalSource>("SELECT id, workspace_id, project_id, status FROM client_portals WHERE id = ? LIMIT 1").bind(portalId).first<PortalSource>();
   if (!portal || portal.project_id !== actor.projectId || portal.workspace_id !== actor.workspaceId) throw new ClientPortalPublishError("client_portal_publish_not_found", "Client Portal was not found.");
-  const { fingerprint, source } = await loadConsistentPublicationSource(database, portal);
-  const rowsByEstimate = groupByEstimate(source.rows);
-  const nodesByEstimate = groupByEstimate(source.nodes);
-  const tabsByEstimate = groupByEstimate(source.tabs);
+  const { authoringSemanticHash, estimates, fingerprint, source, sourceRevision } = await loadConsistentPublicationSource(database, portal);
   const snapshot = sanitizeProjectPublicationSnapshotForPublicRead(buildProjectPublicationSnapshot({
     generatedAt: new Date().toISOString(),
-    idNamespace: sha256(`${portal.id}\u001f${fingerprint}`),
+    idNamespace: createPublicationOpaqueIdNamespace(source.project.id, authoringSemanticHash),
+    semanticHash: authoringSemanticHash,
+    sourceRevision,
     project: { id: source.project.id, name: source.project.name, projectCode: source.project.project_code, clientName: null, location: null, locationVisibility: "hidden", currencyCode: source.project.currency_code },
-    estimates: source.estimates.map((estimate) => ({
-      id: estimate.id,
-      name: estimate.name,
-      sheetCode: estimate.sheet_code,
-      updatedAt: estimate.updated_at,
-      rows: (rowsByEstimate.get(estimate.id) ?? []).map(rowProjectionInput),
-      nodes: (nodesByEstimate.get(estimate.id) ?? []).map((node) => ({ id: node.id, name: node.name, kind: node.kind === "area" ? "area" as const : "group" as const, parentId: node.parent_id, sortOrder: node.sort_order, estimateTabId: node.estimate_tab_id })),
-      tabs: (tabsByEstimate.get(estimate.id) ?? []).map((tab) => ({ id: tab.id, name: tab.name, sortOrder: tab.sort_order, isDefault: Boolean(tab.is_default) })),
-    })),
+    estimates,
   }));
   const estimatesBySourceId = new Map(source.estimates.map((estimate, index) => [estimate.id, snapshot.estimates[index]!]));
   const totalCostMinorUnits = snapshot.totalCostMinorUnits ?? Math.round(snapshot.totalCost * MINOR_UNIT_FACTOR);
@@ -364,6 +389,8 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
       exclusions: [],
       projectSnapshot: { code: source.project.project_code, name: source.project.name },
       projectionSchemaVersion: CLIENT_PORTAL_PROJECTION_SCHEMA_VERSION,
+      authoringSemanticHash,
+      sourceRevision,
       selectedEstimateIds: source.estimateIds,
       semanticHash: fingerprint,
       totalCost: snapshot.totalCost,
@@ -372,7 +399,14 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
     },
     assertSourceCurrent: async () => {
       const current = await loadPublicationSource(database, portal);
-      if (sourceFingerprint(current) !== fingerprint) {
+      const currentRevision = Math.max(0, Math.trunc(numberValue(current.project.publication_source_revision)));
+      const currentEstimates = authoringEstimates(current);
+      const currentAuthoringSemanticHash = createPublicationAuthoringSemanticHash({
+        projectId: current.project.id,
+        currencyCode: current.project.currency_code,
+        estimates: currentEstimates,
+      });
+      if (currentRevision !== sourceRevision || sourceFingerprint(current, currentAuthoringSemanticHash) !== fingerprint) {
         throw new ClientPortalPublishError("client_portal_publish_invalid", "Client Portal source content changed before issue commit. Publish again to issue one consistent revision.");
       }
     },

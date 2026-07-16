@@ -36,6 +36,7 @@ import type {
   ProjectCollaboratorSummary,
 } from "@/lib/collaboration/types";
 import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
+import { readPublicationRevisionStaleness } from "@/lib/publication/source-revision";
 import { normalizeProjectPublicationLocationVisibility } from "@/lib/publication/snapshot";
 import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
@@ -607,7 +608,9 @@ type ProjectPublicationRow = Pick<
   | "snapshot_json"
   | "snapshot_version"
   | "status"
->;
+> & {
+  current_source_revision?: number | string | null;
+};
 type ProjectPublicationListRow = Omit<ProjectPublicationRow, "selected_estimate_ids" | "snapshot_json">;
 
 type WorkshopProjectAccessContext = {
@@ -952,6 +955,7 @@ async function readOptionalProjectPublication(
       `SELECT
          id,
          project_id,
+         (SELECT publication_source_revision FROM projects WHERE projects.id = project_publications.project_id) AS current_source_revision,
          encrypted_token,
          password_hash,
          status,
@@ -3048,10 +3052,16 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
   const latestActivityAt = canManagePublication
     ? readLatestPublicationActivityTimestamp([latestCommentAt, latestResponseAt, publication?.latest_opened_at ?? null])
     : null;
-  const staleSnapshotWarning = readPublicationSnapshotStaleness({
-    latestEstimateUpdatedAt,
-    snapshotGeneratedAt: readSnapshotGeneratedAt(publication?.snapshot_json),
+  const revisionStaleness = readPublicationRevisionStaleness({
+    currentSourceRevision: publication?.current_source_revision,
+    snapshot: publication?.snapshot_json,
   });
+  const staleSnapshotWarning = revisionStaleness === undefined
+    ? readPublicationSnapshotStaleness({
+        latestEstimateUpdatedAt,
+        snapshotGeneratedAt: readSnapshotGeneratedAt(publication?.snapshot_json),
+      })
+    : revisionStaleness;
 
   return {
     projectId: project.id,
@@ -3540,7 +3550,14 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
     ? sourceSnapshot.category
     : "General";
+  const categoryId = typeof sourceSnapshot.categoryId === "string" ? sourceSnapshot.categoryId : undefined;
   const categoryNodeId = row.category_node_id ?? (typeof sourceSnapshot.categoryNodeId === "string" ? sourceSnapshot.categoryNodeId : undefined);
+  const categoryPath = Array.isArray(sourceSnapshot.categoryPath)
+    ? sourceSnapshot.categoryPath.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : undefined;
+  const categoryPathIds = Array.isArray(sourceSnapshot.categoryPathIds)
+    ? sourceSnapshot.categoryPathIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : undefined;
   const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
   const tags = Array.isArray(metadata.tags) ? metadata.tags.filter((tag): tag is string => typeof tag === "string") : undefined;
   const componentVersionNumber = typeof sourceSnapshot.componentVersionNumber === "number" ? sourceSnapshot.componentVersionNumber : undefined;
@@ -3575,7 +3592,10 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
     rowRevision: row.row_revision,
     category,
+    categoryId,
     categoryNodeId: categoryNodeId ?? undefined,
+    categoryPath,
+    categoryPathIds,
     brand: typeof sourceSnapshot.brand === "string" ? sourceSnapshot.brand : undefined,
     brandId: typeof sourceSnapshot.brandId === "string" ? sourceSnapshot.brandId : undefined,
     discipline: row.discipline ?? undefined,
