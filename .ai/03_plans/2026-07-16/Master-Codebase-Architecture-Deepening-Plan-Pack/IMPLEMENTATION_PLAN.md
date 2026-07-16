@@ -4,7 +4,7 @@
 
 1. Start with `bun run supermemory:ensure`, the `FAST PATH` block in `.ai/10_state/current-state.md`, and `git status --short --branch`.
 2. Read this file, `plan-pack.json`, and the unit's owned paths immediately before editing.
-3. Execute only `next_unit` or another unit in the advertised ready slice whose owned paths are still clean and unleased.
+3. Execute only `next_unit`. The advertised ready slice is fallback inventory, not permission to skip. If `next_unit` is stale or blocked, record the evidence and explicitly update `next_unit` in `plan-pack.json` and `LOOP_LEDGER.md` before editing another ready unit.
 4. Do not overwrite unfamiliar changes. A dirty owned path means refresh the unit baseline and coordinate a single writer; it is not permission to stash, reset, revert, or fork a competing implementation.
 5. Use GitNexus impact before editing each named symbol. Treat the current graph as directional until its index is current; verify every decision in source.
 6. Keep domain behavior in one deep implementation. Do not introduce generic factories, compatibility re-exports, or pass-through wrappers.
@@ -15,18 +15,18 @@
 
 ```text
 UNIT-001  component category resolver                 READY   ┐
-UNIT-002  internal Bearer boundary                    READY   ├─ SLICE-001
-UNIT-009  per-asset upload-removal results            READY   ┘
+UNIT-002  internal Bearer boundary                    READY   ┘─ SLICE-001
 
 UNIT-003  Estimate-tree D1 read module                PLANNED (test-source edit authorization)
-UNIT-004  component-folder move coordinator           PLANNED (component UI lease)
+UNIT-004  component-folder move coordinator           PLANNED (component UI lease + test-source edit authorization)
 UNIT-005  component-library D1 mutation modules       PLANNED (component action lease)
-UNIT-006  durable public rate-limit modules           PLANNED (security single-writer lease)
-UNIT-007  typed Estimate D1 intent modules             PLANNED (active Estimate lease)
+UNIT-006  durable public rate-limit modules           PLANNED (test-source edit authorization; no formal lease)
+UNIT-007  typed Estimate D1 intent modules             PLANNED (Estimate lease + test-source authorization + Admin map handoff)
 UNIT-008  provider-owned Estimate row editing          PLANNED (Estimate UI lease)
+UNIT-009  per-asset upload-removal results            PLANNED (test-source edit authorization)
 ```
 
-`UNIT-001`, `UNIT-002`, and `UNIT-009` are mutually independent. No technical dependency edge is invented between the planned units; their gates are authorization or single-writer scheduling conditions.
+`UNIT-001` and `UNIT-002` are mutually independent and are the only advertised ready units. No technical dependency edge is invented between the planned units; their gates are authorization or single-writer scheduling conditions.
 
 ## 3. Receipt Contract
 
@@ -47,7 +47,7 @@ Never store secrets, authorization headers, private URLs, raw provider output, o
 
 ## UNIT-001 — Compile the Component Category Resolver Once
 
-**Status:** `READY`  
+**Status:** `READY`
 **Depends on:** none  
 **Requirement:** `REQ-001`  
 **Risk:** `RISK-001`
@@ -85,7 +85,7 @@ Revert only the four owned-path edits. Because the public convenience signature 
 
 ### Completion and next state
 
-Mark `UNIT-001` `VERIFIED` only from fresh source/static evidence and any separately authorized test receipt. Set `next_unit` to `UNIT-002` if it remains clean; otherwise `UNIT-009` may become next within `SLICE-001`.
+Mark `UNIT-001` `VERIFIED` only from fresh source/static evidence and any separately authorized test receipt. Set `next_unit` to `UNIT-002` if it remains eligible. If it is stale or blocked, record why and stop until a planned unit's named gate clears and `next_unit` is explicitly updated; no other unit is currently ready.
 
 ## UNIT-002 — Centralize Production Upload Bearer Authorization
 
@@ -126,14 +126,18 @@ Restore the three local helpers and delete the new shared file. No stored creden
 
 ### Completion and next state
 
-This auxiliary unit does not block core architecture completion. If verified, advance to the remaining clean ready unit. If deferred, record the reason and keep core package state truthful.
+This auxiliary unit does not block core architecture completion. If verified, do not choose among planned units: advance only after a named gate receipt promotes one unit and the manifest/ledger explicitly records it as `next_unit`. If deferred, record the reason and update package state before continuing.
 
 ## UNIT-009 — Make Upload Removal Per-Asset and Truthful
 
-**Status:** `READY`  
+**Status:** `PLANNED`
 **Depends on:** none  
 **Requirement:** `DATA-001` (auxiliary)  
 **Risk:** `RISK-009`
+
+### Test-source authorization gate
+
+The existing `tests/vitest/upload-removal-claims.test.ts` asserts the current collapsed result/status contract and must change with the production result type. Promote this unit only when the implementation task explicitly authorizes that one-file contract update. The authorization does not allow route-test expansion or test execution.
 
 ### Owned paths
 
@@ -141,6 +145,7 @@ This auxiliary unit does not block core architecture completion. If verified, ad
 - `src/app/api/projects/images/route.ts`
 - `src/app/api/component-library/attachments/route.ts`
 - `src/app/api/component-library/images/route.ts`
+- `tests/vitest/upload-removal-claims.test.ts` (result-contract update only, under explicit test-source authorization)
 
 ### Exact change
 
@@ -158,11 +163,11 @@ This auxiliary unit does not block core architecture completion. If verified, ad
 - All three routes derive `removedPaths` only from `claimedPaths`.
 - The result contract and every route branch use the same status/set vocabulary.
 - No migration, index, cleanup-job, or storage deletion behavior changes.
-- `git diff --check` is clean for the four owned paths.
+- `git diff --check` is clean for the five owned paths when the gated test-source edit is authorized.
 
 ### Test decision
 
-`TEST_PROPOSAL`: update and run only `tests/vitest/upload-removal-claims.test.ts` for mixed `[referenced, free, already removed]`, all-referenced, all-free, and zero-match inputs. Route response assertions may be added only if the implementation task explicitly authorizes test-source work. This plan does not authorize either edit or execution.
+`TEST_PROPOSAL`: under separate edit authorization, update `tests/vitest/upload-removal-claims.test.ts` for mixed `[referenced, free, already removed]`, all-referenced, all-free, and zero-match inputs. Run that file only under separate execution authorization. Route response assertions are outside this unit unless separately authorized.
 
 ### Recovery
 
@@ -170,11 +175,11 @@ Restore the previous claim result type, whole-set query, and three route respons
 
 ### Completion and next state
 
-This auxiliary correctness unit does not block core architecture completion. If verified, advance to the remaining clean ready unit; if deferred, record why the verified defect remains accepted risk rather than reviving the archived predecessor wholesale.
+This auxiliary correctness unit does not block core architecture completion. If verified, advance only to the manifest's already-recorded `next_unit`. If deferred, record why the verified defect remains accepted risk rather than reviving the archived predecessor wholesale.
 
 ## UNIT-003 — Extract the Concrete Estimate-Tree D1 Read Module
 
-**Status:** `PLANNED`  
+**Status:** `PLANNED`
 **Depends on:** none  
 **Requirement:** `REQ-002`  
 **Risk:** `RISK-003`
@@ -233,12 +238,16 @@ When verified, record the explicit test-source authorization receipt and refresh
 
 Do not start while `src/components/workshop/component-library/index.tsx` is dirty or another Component/Workshop Library owner is active on either adapter. Re-read both adapters after the lease clears and refresh the scoped hashes; behavior drift invalidates this unit.
 
+### Test-source authorization gate
+
+Retargeting `tests/vitest/per-item-mutation-queue.test.ts` is required source maintenance, but the current plan-only task did not authorize test-source edits. Promote this unit only when both the lease clears and the implementation task explicitly authorizes that one-file contract/import retarget. Test-source edit authorization does not authorize executing the test or expanding its assertions.
+
 ### Owned paths
 
 - replace `src/components/workshop/component-library/per-item-mutation-queue.ts` with `component-folder-move-coordinator.ts`
 - `src/components/workshop/component-library/index.tsx`
 - `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
-- focused queue/coordinator contract imports
+- `tests/vitest/per-item-mutation-queue.test.ts` (contract/import retarget only, under explicit test-source authorization)
 
 ### Exact change
 
@@ -257,7 +266,7 @@ Do not start while `src/components/workshop/component-library/index.tsx` is dirt
 
 ### Test decision
 
-`TEST_PROPOSAL`: retarget `tests/vitest/per-item-mutation-queue.test.ts` to the coordinator contract and run that one focused file. No browser/render suite is proposed.
+`TEST_PROPOSAL`: after separate test-source edit authorization retargets `tests/vitest/per-item-mutation-queue.test.ts`, run that one focused file only if test execution is also explicitly authorized. No browser/render suite is proposed.
 
 ### Recovery
 
@@ -269,7 +278,7 @@ Mark verified only after both real adapters use the coordinator. Do not expand t
 
 ## UNIT-005 — Extract Concrete Component-Library D1 Mutation Modules
 
-**Status:** `PLANNED`  
+**Status:** `PLANNED`
 **Depends on:** none  
 **Requirement:** `REQ-004`  
 **Risk:** `RISK-005`
@@ -318,14 +327,18 @@ The unit completes only when both aggregate modules are deep and all relocated h
 
 ## UNIT-006 — Extract Durable Public Rate-Limit Infrastructure
 
-**Status:** `PLANNED`  
+**Status:** `PLANNED`
 **Depends on:** none  
 **Requirement:** `SEC-002`  
 **Risk:** `RISK-006`
 
-### Lease gate
+### Pre-edit coordination check
 
-Confirm no active security, Client Portal, Publisher, or compliance owner is changing `security_rate_limit_events` behavior or the named files. Refresh current consumers before editing.
+No security, Client Portal, Publisher, or compliance contention was recorded at authoring, and the named owned paths were clean at the final source freeze. Immediately before editing, recheck current owners, consumers, and owned-path status. New contention or behavior drift requires a refreshed baseline; this check is not a standing formal lease gate.
+
+### Test-source authorization gate
+
+Deleting the old `public-repository.ts` rate-limit exports and moving route/handler imports requires the exact mock/import/source-contract retargets listed below. Promote this unit only when those maintenance edits are explicitly authorized. That authorization does not permit test execution or assertion expansion.
 
 ### Owned paths
 
@@ -335,7 +348,35 @@ Confirm no active security, Client Portal, Publisher, or compliance owner is cha
 - new `src/lib/client-portal/public-rate-limits.ts`
 - `src/lib/publication/public-repository.ts`
 - `src/lib/publication/d1-store.ts`
-- current publication/share/proposal/Client Portal rate-limit importers
+- production import retargets:
+  - `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts`
+  - `src/app/api/share/[token]/activity/route.ts`
+  - `src/app/api/share/[token]/assets/[assetId]/route.ts`
+  - `src/app/api/share/[token]/comment/route.ts`
+  - `src/app/api/share/[token]/decision/route.ts`
+  - `src/app/api/share/[token]/password/route.ts`
+  - `src/app/api/share/[token]/route.ts`
+  - `src/app/api/share/[token]/session/route.ts`
+  - `src/app/api/share/[token]/unsubscribe/route.ts`
+  - `src/app/share/[token]/page.tsx`
+  - `src/lib/client-portal/public-decision-handlers.ts`
+  - `src/lib/client-portal/public-password-handler.ts`
+  - `src/lib/client-portal/public-route-handlers.ts`
+  - `src/lib/client-portal/public-session-handler.ts`
+  - `src/lib/client-portal/public-thread-handlers.ts`
+- test-source maintenance, under explicit authorization:
+  - `tests/vitest/client-portal-public-rate-limit.test.ts`
+  - `tests/vitest/project-publication-activity.test.tsx`
+  - `tests/vitest/project-publication-comments.test.tsx`
+  - `tests/vitest/project-publication-decision.test.tsx`
+  - `tests/vitest/project-publication-page.test.tsx`
+  - `tests/vitest/project-publication-password-lockout-route.test.ts`
+  - `tests/vitest/project-publication-public-repository.test.ts`
+  - `tests/vitest/project-publication-route.test.ts`
+  - `tests/vitest/proposal-export-route-workbook.test.ts`
+  - `tests/vitest/proposal-export-route.test.ts`
+  - `tests/vitest/share-unsubscribe-interstitial.test.ts`
+  - `tests/vitest/share/share-page-get-routes-contract.test.ts`
 
 ### Exact change
 
@@ -359,7 +400,7 @@ Confirm no active security, Client Portal, Publisher, or compliance owner is cha
 
 ### Test decision
 
-`TEST_PROPOSAL`: `bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts`. The critical invariant is identical durable lockout and clearing behavior; static import proof cannot establish it.
+`TEST_PROPOSAL`: after separately authorized mock/import retargets, run `bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts` only under explicit execution authorization. The critical invariant is identical durable lockout and clearing behavior; static import proof cannot establish it.
 
 ### Recovery
 
@@ -367,7 +408,7 @@ Move the engine, store methods, and policy wrappers back to their original modul
 
 ### Completion and next state
 
-Verify only after the original blocks are deleted and behavior is unchanged. Semantic convergence with other domain limiters requires a new measured unit, not follow-on improvisation here.
+Verify only after the original blocks are deleted and behavior is unchanged. Advance only to the manifest's already-recorded `next_unit`. Semantic convergence with other domain limiters requires a new measured unit, not follow-on improvisation here.
 
 ## UNIT-007 — Replace the Stringly Estimate D1 Façade with Typed Intent Modules
 
@@ -379,6 +420,14 @@ Verify only after the original blocks are deleted and behavior is unchanged. Sem
 ### Lease gate
 
 Do not start until the active Estimate/Component Variant unit is terminal and `src/lib/estimates/d1-action-client.ts` is no longer dirty under another owner. Re-read the final projection and receipt contracts, refresh GitNexus impact, and freeze new scoped hashes.
+
+### Test-source authorization gate
+
+Deleting `d1-action-client.ts` requires the exact import/mock/source-contract retargets listed below. Promote this unit only when the Estimate lease clears and the implementation task explicitly authorizes those maintenance edits. Test-source authorization does not authorize execution or assertion expansion.
+
+### Admin map handoff gate
+
+The active Admin Estimate System program owns `src/lib/admin/estimate-system-knowledge-data.ts`, whose `sources.persistence` entry points at the façade this unit deletes. Before the deletion checkpoint, obtain an explicit release from that owner and record the handoff receipt. Under that release, change only the `sources.persistence` entry to point at `src/lib/estimates/d1-intents/database.ts` and update its note to say that the file owns shared execution primitives while sibling typed-intent modules own guarded mutations, history, cascades, and template materialization. Do not change any node, relation, operation, page, feature, or other source entry.
 
 ### Owned paths
 
@@ -396,7 +445,28 @@ Do not start until the active Estimate/Component Variant unit is terminal and `s
 - `src/lib/estimates/actions.ts`
 - `src/lib/reusable-sources/actions.ts`
 - `src/lib/cloudflare/estimate-history-proof-router.ts`
+- `src/lib/admin/estimate-system-knowledge-data.ts` — coordinated `sources.persistence` entry retarget only, under the Admin owner's explicit release
 - delete `src/lib/estimates/d1-action-client.ts` after zero callers remain
+- test-source maintenance, under explicit authorization:
+  - `tests/vitest/activity-durable-write.test.ts`
+  - `tests/vitest/activity-history-lifecycle-contract.test.ts`
+  - `tests/vitest/activity-variant-propagation.test.ts`
+  - `tests/vitest/d1-access-created-by.test.ts`
+  - `tests/vitest/estimate-action-d1-library-source-projection.test.ts`
+  - `tests/vitest/estimate-actions-d1-reorder-history.test.ts`
+  - `tests/vitest/estimate-actions-d1-row-restore-history.test.ts`
+  - `tests/vitest/estimate-area-activation-batch.test.ts`
+  - `tests/vitest/estimate-insert-target-authz.test.tsx`
+  - `tests/vitest/estimate-node-reorder-action.test.ts`
+  - `tests/vitest/estimate-revision-fact-producers.test.ts`
+  - `tests/vitest/estimate-row-activation-batch.test.ts`
+  - `tests/vitest/estimate-row-atomic-d1-contracts.test.ts`
+  - `tests/vitest/estimate-sheet-actions-authz.test.ts`
+  - `tests/vitest/estimate-sheet-create-empty-tree.test.ts`
+  - `tests/vitest/estimate-sheet-version-control-actions.test.ts`
+  - `tests/vitest/estimate-template-trusted-insert.test.ts`
+  - `tests/vitest/mass-deletion-contract.test.ts`
+  - `tests/vitest/upload-domain-contracts.test.ts`
 
 ### Exact change
 
@@ -407,13 +477,16 @@ Do not start until the active Estimate/Component Variant unit is terminal and `s
 5. Migrate in four fixed checkpoints within this unit: access/record calls; tab/node/template/bulk-sheet calls; row/component/history calls; proof-router and reusable-source calls. At each checkpoint, delete the retired façade branch before proceeding.
 6. Replace every `dataStore.from(...)`, `.select(...)`, `.call(...)`, `new EstimateActionsD1Client`, and `createEstimateActionsD1Client` use with a typed intent function.
 7. Update the proof router to call the exact row-history intent directly with its injected D1/actor context.
-8. Delete `EstimateActionD1Query`, `EstimateActionsD1Client`, the string dispatcher, unused query-emulation types/helpers, and finally `d1-action-client.ts`. Do not leave a re-export or compatibility façade.
-9. Preserve all SQL, statement ordering, atomicity, revision/history/outbox/receipt behavior, projection fields, error names, actor rules, statement-limit assertions, and returned shapes during the move.
+8. After `database.ts` exists and the Admin owner release is recorded, retarget only `sources.persistence` in `src/lib/admin/estimate-system-knowledge-data.ts` from `d1-action-client.ts` to `src/lib/estimates/d1-intents/database.ts`; update only that entry's note with the sibling-module ownership wording above.
+9. Delete `EstimateActionD1Query`, `EstimateActionsD1Client`, the string dispatcher, unused query-emulation types/helpers, and finally `d1-action-client.ts`. Do not leave a re-export or compatibility façade, and do not delete the file before the Admin map retarget lands.
+10. Preserve all SQL, statement ordering, atomicity, revision/history/outbox/receipt behavior, projection fields, error names, actor rules, statement-limit assertions, and returned shapes during the move.
 
 ### Acceptance evidence
 
 - `rg -n "EstimateActionD1Query|EstimateActionsD1Client|createEstimateActionsD1Client|dataStore\.(call|from|select)\(" src/lib/estimates/actions.ts src/lib/reusable-sources/actions.ts src/lib/estimates` is empty.
 - `rg -n "EstimateActionsD1Client|(client|viewerClient|strangerClient)\.call\(" src/lib/cloudflare/estimate-history-proof-router.ts` is empty; unrelated uses such as `hasOwnProperty.call` are outside the façade residue check.
+- `rg -n "d1-action-client|EstimateActionD1Query|EstimateActionsD1Client" src/lib/admin/estimate-system-knowledge-data.ts` is empty, the `sources.persistence` entry names the existing `src/lib/estimates/d1-intents/database.ts`, and its note names sibling typed-intent ownership.
+- `git diff -- src/lib/admin/estimate-system-knowledge-data.ts` changes only the `sources.persistence` entry, and the handoff receipt identifies the Admin owner's release.
 - `d1-action-client.ts` is absent and all new modules are concrete intent implementations.
 - No module exposes raw table/action/projection strings as a public API.
 - A before/after action inventory accounts for every old dispatcher name and direct-table operation exactly once.
@@ -423,7 +496,7 @@ Do not start until the active Estimate/Component Variant unit is terminal and `s
 
 ### Test decision
 
-`TEST_PROPOSAL`: a focused command over the existing Estimate D1 action, reorder/history, row restore, template insert, authz, and current library-source projection contract files. The exact file list must be refreshed after the active owner lands; this plan does not authorize running or rewriting tests.
+`TEST_PROPOSAL`: after separately authorized import/mock/source-contract retargets, run exactly the nineteen listed files only under explicit execution authorization. They cover access, projections, statement batching, atomic row/history/revision behavior, templates, authz, mass deletion, and upload-domain coupling; no broader suite is proposed.
 
 ### Recovery
 
@@ -431,7 +504,7 @@ Recover at the last completed checkpoint by restoring the old family branch and 
 
 ### Completion and next state
 
-The unit is verified only when the old file and every shallow call surface are gone. On verification, refresh `UNIT-008` against the stable client-callable server-action adapters and promote it to `READY` if its independent UI lease is clear.
+The unit is verified only when the old file and every shallow call surface are gone and the released Admin map pointer targets the new concrete persistence boundary. On verification, refresh `UNIT-008` against the stable client-callable server-action adapters and promote it to `READY` if its independent UI lease is clear.
 
 ## UNIT-008 — Deepen the Existing Estimate Row Editing Store
 
@@ -456,8 +529,8 @@ The unit is verified only when the old file and every shallow call surface are g
 
 ### Exact change
 
-1. Add four explicit discriminated commit intents in `row-commit-intent.ts`: ordinary row field update, selected-variant update, linked shared-component definition update, and make-project-specific/detach update.
-2. Preserve routing exactly: quantity and selected variant are row-owned; variant-definition edits are shared; the linked mutation path remains conditioned on the current linked-shared-component identity and update capability.
+1. Add four explicit discriminated commit intents in `row-commit-intent.ts`: ordinary row field update, selected-variant update, shared-component-definition update, and make-project-specific/detach update. The shared-definition intent is further discriminated by component kind/scope so it covers both linked Library component updates and shared project component/variant-definition updates.
+2. Preserve routing exactly: quantity and selected variant are row-owned; shared component/variant-definition edits are shared. Route the shared-definition intent through the existing mutation path selected by component kind/scope, authoritative shared identity, and update capability.
 3. Deepen the existing per-`EstimateSheetContent` vanilla-Zustand `EditableRowStore`. It owns editable values, dirty/clean state, pending/error status, current optimistic snapshot, authoritative snapshot, commit intent dispatch, and rollback for each row.
 4. Inject client-safe commit adapters built from the existing client mutation hook and server-action callbacks when creating the per-sheet store. Those adapters may call server actions whose internals use `UNIT-007`, but no `"use client"` module may import a D1 intent, database handle, or actor-context function. Do not create a global store, a second context, or `RowMutationCoordinator`.
 5. Keep insert, delete, restore, move, picker, promotion, and toast orchestration in `use-estimate-row-handlers` unless it is directly required by a row commit. Narrow the hook input only by removing state/handlers now owned by the store.
@@ -471,7 +544,7 @@ The unit is verified only when the old file and every shallow call surface are g
 - `row-table.tsx` contains no server-routing decision for the four commit intents.
 - `use-estimate-row-handlers` no longer receives or forwards store-owned editable/dirty/status/commit dependencies.
 - Branch props contain structural data and non-store operations only.
-- The selected-variant/shared-definition rule is named in source and the unit receipt.
+- The selected-variant/shared-definition rule and both Library/shared-project definition scopes are named in source and the unit receipt.
 - Client modules import only client-safe action adapters; server-only D1 intent modules remain below the Server Action boundary.
 - Any removed comparator entry has a corresponding selector subscription.
 - `git diff --check` is clean.

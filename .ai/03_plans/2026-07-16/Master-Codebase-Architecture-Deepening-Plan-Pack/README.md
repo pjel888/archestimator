@@ -20,13 +20,12 @@ Their current-source-valid findings were re-audited, narrowed, merged, or reject
 
 ## Ready Shape
 
-The package is conditionally ready because three clean, dependency-free units can start now while the Estimate-tree test-source move and the component, security, and Estimate surfaces retain explicit gates.
+The package is conditionally ready because two clean, dependency-free units are implementation-ready while five units require explicit test-source maintenance authorization and the contested Component/Estimate surfaces retain evidence-backed leases. `UNIT-001` is the only authorized start; `UNIT-002` is fallback inventory that requires a recorded `next_unit` update before use.
 
 1. `UNIT-001` compiles the component-category folder resolver once per dataset.
 2. `UNIT-002` centralizes the three production upload-route Bearer checks behind one timing-safe server boundary.
-3. `UNIT-009` makes upload removal per-asset and returns truthful removed, blocked, and already-removed path sets.
 
-`UNIT-003` is specified but remains `PLANNED` until its required import-only test-source maintenance is explicitly authorized. `UNIT-004` through `UNIT-008` remain `PLANNED` until their named single-writer lease gates clear. A lease is an internal coordination condition, not a request for product direction or external authorization.
+`UNIT-003`, `UNIT-004`, `UNIT-006`, `UNIT-007`, and `UNIT-009` remain `PLANNED` until their exact test-source import/mock/contract maintenance is authorized. `UNIT-004` and `UNIT-007` also need their UI/action leases; `UNIT-005` and `UNIT-008` need their named single-writer leases. Before `UNIT-007` deletes the old façade, it also needs the Admin Estimate System owner to release one narrow `sources.persistence` pointer retarget; no broader admin feature or content work enters this pack. `UNIT-006` has no formal security lease—its paths were clean and uncontested at authoring—but remains planned solely because deleting the old rate-limit exports requires test-source retargets. A lease is an internal coordination condition, not a request for product direction or external authorization.
 
 ## Deep-Module Contract
 
@@ -34,7 +33,7 @@ The package is conditionally ready because three clean, dependency-free units ca
 - Keep domain intent at callers and hide SQL, sequencing, rollback, and concurrency mechanics below the interface.
 - Do not add a generic repository factory without a second implementation.
 - Do not leave compatibility re-exports after all in-repo callers move.
-- Preserve row-owned quantity and selected-variant state; variant-definition edits remain shared mutations.
+- Preserve row-owned quantity and selected-variant state; shared component-definition edits remain shared mutations for both linked Library components and shared project component/variant definitions.
 - Relocate security behavior byte-for-byte before changing policy semantics.
 - Delete props, memo comparators, and helper seams only when a deeper interface makes them unnecessary.
 

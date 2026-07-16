@@ -4,21 +4,21 @@
 
 This is a fresh current-source audit of the two predecessor packs, not a merge-by-concatenation. The audit used:
 
-- current repository source at baseline `01b9a507225c0552ab7291c2c62ebdc2ef7f938c`;
-- scoped working-tree status hash `d11fa888172f01724325b3d51e51ff6a253f25608ac953d05e1384fcf51bfd31`;
-- scoped diff hash `3e85e837ccf692252988562f583be850ab95e2fd59dd0b6876828862393bfeff`;
+- repository source frozen at baseline `2afd71c0aa24fdebe6007b6927be1a5d6e1c446b` after the concurrent Estimate/Library owner landed;
+- scoped working-tree status hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
+- scoped diff hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
 - both predecessor plan packs and their validator receipts;
 - three independent read-only audit/critic lanes;
 - GitNexus impact analysis, treated as directional because its index was more than 40 commits stale while HEAD continued to advance; and
 - React Doctor as a heuristic diagnostic only, not an automatic backlog generator.
 
-The scoped dirty paths at freeze were:
+The previously contested paths were clean at the final source freeze:
 
 - `src/components/workshop/EstimateSheetContent.tsx`
 - `src/components/workshop/component-library/index.tsx`
 - `src/lib/estimates/d1-action-client.ts`
 
-Those paths create explicit lease gates for `UNIT-004`, `UNIT-007`, and `UNIT-008`. Concurrent unrelated admin work is excluded entirely.
+Their landed changes preserved the audited seams: the Estimate façade remains 6,281 lines, the component move queue remains shallow, and the existing editable-row store remains the correct client-side nucleus. `UNIT-004`, `UNIT-007`, and `UNIT-008` stay `PLANNED` until a fresh executor records an explicit single-writer release and refreshes the affected inventory; a clean worktree alone does not prove that another agent will not resume. A separate Estimate-row correctness fix resumed in `use-estimate-row-handlers.ts` and `use-estimate-row-mutations.ts` after this source freeze, which reinforces the `UNIT-008` lease without changing the ready status of `UNIT-001` or `UNIT-002`. Concurrent admin feature work remains excluded; only the cross-owner source-pointer handoff identified in section 2.7 is required.
 
 ## 2. Current Architecture Evidence
 
@@ -74,17 +74,17 @@ Server actions keep auth, input parsing, public errors, and revalidation. D1 mod
 
 `src/lib/publication/public-repository.ts:290-840` owns the durable record/count/check/clear engine and policy wrappers for publications, proposals, shared links, and Client Portal. `src/lib/client-portal/public-session-handler.ts:9-16` imports its security limiter through a publication-specific boundary. Storage methods live in `src/lib/publication/d1-store.ts:297-344` even though `security_rate_limit_events` is shared infrastructure.
 
-The retained unit relocates existing behavior before any semantic change. A shared D1 store and engine own hashing, cleanup, record/count/check/clear mechanics. Publication and Client Portal retain separate policy wrappers. Invite, AI, privacy, and admin rate-limit algorithms are explicitly out of this unit because their reservation and consumption semantics differ.
+The retained unit relocates existing behavior before any semantic change. A shared D1 store and engine own hashing, cleanup, record/count/check/clear mechanics. Publication and Client Portal retain separate policy wrappers. Invite, AI, privacy, and admin rate-limit algorithms are explicitly out of this unit because their reservation and consumption semantics differ. The owned product paths were clean at the final freeze and no active security/publication owner was recorded, so no formal lease is justified. The unit remains `PLANNED` because deleting the publication-owned exports requires exact import/mock/source-contract maintenance across the focused test sources named in the canonical plan.
 
 GitNexus rated the current recorded-limit path `CRITICAL` directionally. The plan therefore forbids policy unification during the relocation unit.
 
 ### 2.7 Estimate D1 action façade
 
-`src/lib/estimates/d1-action-client.ts` is 6,281 lines. `EstimateActionD1Query` at `:1127-1331` accepts `.select(columns)` but hard-codes projections. `EstimateActionsD1Client.call()` at `:1378` delegates to `callEstimateAction` at `:6199-6280`, which dispatches more than 30 string action names. `src/lib/estimates/actions.ts` uses the façade for access checks, direct table inserts, tab/node/template/sheet operations, and row mutations; `src/lib/cloudflare/estimate-history-proof-router.ts:418-454` constructs the client directly.
+`src/lib/estimates/d1-action-client.ts` is 6,281 lines. A concurrent fix expanded several hard-coded Library projections, but `EstimateActionD1Query` at `:1127-1331` still accepts `.select(columns)` without making that selection authoritative. `EstimateActionsD1Client.call()` at `:1378` delegates to `callEstimateAction` at `:6199-6280`, which dispatches more than 30 string action names. `src/lib/estimates/actions.ts` uses the façade for access checks, direct table inserts, tab/node/template/sheet operations, and row mutations; `src/lib/cloudflare/estimate-history-proof-router.ts:418-454` constructs the client directly. The active Admin Estimate System knowledge map also hard-codes this façade at `src/lib/admin/estimate-system-knowledge-data.ts:13` as its `sources.persistence` pointer.
 
-The shallow interface failed its stated responsibility: callers appear typed while table, projection, and mutation intent are not enforced. The retained target deletes `.from(table)`, `.select(columns)`, `.call(name,args)`, both façade classes, and the file after all three consumer families move to concrete typed intent modules. `src/lib/estimates/mutation-receipts.ts` already exists and is not re-planned.
+The shallow interface failed its stated responsibility: callers appear typed while table, projection, and mutation intent are not enforced. The retained target deletes `.from(table)`, `.select(columns)`, `.call(name,args)`, both façade classes, and the file after all three consumer families move to concrete typed intent modules. Before deletion, `UNIT-007` must obtain the Admin owner release and retarget only `sources.persistence` to `src/lib/estimates/d1-intents/database.ts`, with a note that the file owns shared execution primitives while sibling intent modules own guarded mutations, history, cascades, and template materialization. `src/lib/estimates/mutation-receipts.ts` already exists and is not re-planned.
 
-GitNexus rated the façade `CRITICAL` transitively and `MEDIUM` at direct depth. The file is currently dirty, so execution waits for the active Estimate owner.
+GitNexus rated the façade `CRITICAL` transitively and `MEDIUM` at direct depth. The landed projection patch fixed a symptom but left the shallow interface intact. Execution still waits for an explicit release from the recent Estimate owner; final-path cleanliness alone is not a single-writer handoff.
 
 ### 2.8 Estimate row editing
 
@@ -95,7 +95,7 @@ The current row-editing responsibility is distributed across:
 - `src/components/workshop/estimate-sheet/rows/row-table.tsx`; and
 - the existing vanilla-Zustand `src/components/workshop/estimate-sheet/rows/editable-row-store.ts`.
 
-The store is the correct nucleus. The master rejects a second `RowMutationCoordinator`, a second context, and a new global store. `UNIT-008` deepens the existing per-sheet store after typed server intents land. It preserves quantity and selected variant as row-owned state, while shared variant-definition edits continue through the linked shared-component mutation branch.
+The store is the correct nucleus. The master rejects a second `RowMutationCoordinator`, a second context, and a new global store. `UNIT-008` deepens the existing per-sheet store without importing server-only D1 intents. It preserves quantity and selected variant as row-owned state, while one discriminated shared-component-definition intent covers both linked Library updates and shared project component/variant-definition updates through their existing mutation paths.
 
 React Doctor reported 13 errors and 413 warnings across 208 files. Large-component and prop-surface heuristics corroborate this seam, but unrelated warnings and its current three source errors are not promoted into this architecture plan.
 
@@ -103,7 +103,7 @@ React Doctor reported 13 errors and 413 warnings across 208 files. Large-compone
 
 `src/lib/uploads/removal-claims.ts:239-267` currently applies one whole-set `NOT EXISTS` predicate: if any matched asset is referenced, the update claims none of the otherwise-free assets. Its diagnostic then collapses the remaining set to one status. The three route handlers at `src/app/api/projects/images/route.ts:553-568`, `src/app/api/component-library/attachments/route.ts:695-710`, and `src/app/api/component-library/images/route.ts:362-377` report requested paths as `removedPaths` when the claim is merely `already_claimed`.
 
-This is a verified predecessor finding, not a desired all-or-nothing domain rule. The narrowed correction makes eligibility correlated per asset, returns separate claimed, referenced, and already-removed sets, and keeps the cleanup job's final reference re-check. The predecessor's speculative matching-index addition is not retained without query-plan or scale evidence.
+This is a verified predecessor finding, not a desired all-or-nothing domain rule. The narrowed correction makes eligibility correlated per asset, returns separate claimed, referenced, and already-removed sets, and keeps the cleanup job's final reference re-check. The predecessor's speculative matching-index addition is not retained without query-plan or scale evidence. The existing focused contract asserts the old result shape, so the unit stays `PLANNED` until that one test-source update is authorized; execution remains a separate decision.
 
 ## 3. Master Candidate Set
 
@@ -114,10 +114,10 @@ This is a verified predecessor finding, not a desired all-or-nothing domain rule
 | Estimate-tree D1 read module | `UNIT-003` | Core | `PLANNED` | Retain with workspace/auth orchestration left in place; required test-import/source-contract maintenance needs explicit test-source authorization. |
 | Component-folder move coordinator | `UNIT-004` | Core | `PLANNED` | Retain narrowly; wait for current UI owner. |
 | Component-library D1 mutations | `UNIT-005` | Core | `PLANNED` | Retain as two concrete aggregate modules under one server-action lease. |
-| Durable public rate limits | `UNIT-006` | Core | `PLANNED` | Retain; relocate byte-for-byte before policy change. |
-| Typed Estimate D1 intents | `UNIT-007` | Core | `PLANNED` | Highest leverage; wait for active Estimate owner. |
+| Durable public rate limits | `UNIT-006` | Core | `PLANNED` | Retain; no lease, but exact test-source retarget authorization is required before old exports are deleted. |
+| Typed Estimate D1 intents | `UNIT-007` | Core | `PLANNED` | Highest leverage; wait for active Estimate owner, test-source authorization, and the narrow Admin map pointer handoff. |
 | Provider-owned row editing | `UNIT-008` | Core | `PLANNED` | Retain behind its UI lease; inject client-safe action adapters, never server-only D1 intents. |
-| Per-asset upload-removal results | `UNIT-009` | Auxiliary | `READY` | Restore the verified correctness finding; exclude the unmeasured index proposal. |
+| Per-asset upload-removal results | `UNIT-009` | Auxiliary | `PLANNED` | Restore the verified correctness finding after its one-file test-source contract update is authorized; exclude the unmeasured index proposal. |
 
 ## 4. Architecture Predecessor Crosswalk
 
@@ -143,7 +143,7 @@ This is a verified predecessor finding, not a desired all-or-nothing domain rule
 
 | Predecessor unit | Disposition in master |
 |---|---|
-| `UNIT-001` migration replay safety | Rejected as an implementation unit. `0084-0087` are immutable historical migrations; the DB-wide FK check is a separately recorded environment/applicability gate, not authority to edit them. |
+| `UNIT-001` migration replay safety | Rejected as an implementation unit. `0084-0087` are immutable historical migrations. The broader FK concern survives only as `FOLLOWUP-DATA-001`, a future migration-execution preflight; it is not a gate or authority to edit applied migrations in this architecture pack. |
 | `UNIT-002` category map rebuild | Reauthored as `UNIT-001`. |
 | `UNIT-003` timing-safe Bearer secret | Reauthored narrowly as auxiliary `UNIT-002`. |
 | `UNIT-004` test gate | Rejected; current `validate` already includes Bun unit and Vitest, and tests remain user-controlled. |
@@ -160,9 +160,13 @@ This is a verified predecessor finding, not a desired all-or-nothing domain rule
 | `UNIT-015` hosted lockout proof | Routed to security/release follow-up; no hosted proof is part of this plan. |
 | `UNIT-016` upload reference table | Rejected/YAGNI without measured query-plan or latency evidence. |
 | `UNIT-017` access-security extraction | Reauthored only as `UNIT-006`; crypto already lives in `publication/security.ts` and stays there. |
-| `UNIT-018` Estimate System Map | Excluded as already implemented/owned by the active admin program. |
+| `UNIT-018` Estimate System Map | Feature/content work stays excluded as already implemented/owned by the active admin program. `UNIT-007` owns only a coordinated one-entry `sources.persistence` retarget because it deletes the referenced façade. |
 | `UNIT-019` estimate import | Excluded as product capability work. |
 | `UNIT-020` Action Inbox direction | Excluded as already implemented/owned by Founder Homebase. |
+
+### Deferred valid follow-up
+
+- `FOLLOWUP-DATA-001`: before the next upload-related migration is executed, inspect the active D1 foreign-key topology and ordering assumptions against the then-current migration. This is deployment/migration preflight work outside this architecture program; it neither blocks this pack nor authorizes editing applied migration files.
 
 ## 6. Fixed Decisions and Non-Goals
 
@@ -170,7 +174,7 @@ This is a verified predecessor finding, not a desired all-or-nothing domain rule
 - No new dependency, feature flag, compatibility re-export, generic repository interface, or parallel state store is introduced by the plan.
 - No applied migration is edited.
 - No hosted D1 query, deployment, browser proof, screenshot, test, build, or provider mutation is a mandatory plan gate.
-- No admin Estimate System Map, Founder Homebase, compliance, or Legacy Cleanup files are implementation scope.
+- No Admin Estimate System feature/content work, Founder Homebase, compliance, or Legacy Cleanup work is implementation scope; the one coordinated `sources.persistence` retarget required by `UNIT-007` is the sole admin-file exception.
 - No rate-limit policy, threshold, key shape, or consumption/reservation behavior changes during relocation.
 - No row-owned selected variant becomes shared definition state.
 - No route reports requested upload paths as removed unless the claim result identifies them as claimed; already-removed and referenced paths remain distinct.
@@ -183,6 +187,7 @@ Refresh this pack before execution if any of the following occur:
 
 - one of the scoped dirty paths changes owner or lands;
 - `d1-action-client.ts`, `component-library/actions.ts`, `workspace-repository.ts`, or `editable-row-store.ts` changes materially;
+- the Admin Estimate System `sources.persistence` pointer or its active owner changes;
 - a second storage implementation is introduced;
 - row ownership versus shared-definition semantics change;
 - rate-limit table or policy semantics change;

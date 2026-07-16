@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c",
-    "scoped_status_sha256": "d11fa888172f01724325b3d51e51ff6a253f25608ac953d05e1384fcf51bfd31",
-    "scoped_diff_sha256": "3e85e837ccf692252988562f583be850ab95e2fd59dd0b6876828862393bfeff"
+    "head": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,25 +21,25 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "97f5c81e2a49f5971b73643697e783c24d265cad16063a64d817acfb1406b78a"
+      "sha256": "9010ef8a9d140a8f3abbe858e9893c8fad08e5ccc9684a71d6d01e7ebd588b34"
     },
     {
       "id": "ART-002",
       "role": "evidence",
       "path": "AUDIT-AND-DISPOSITION.md",
-      "sha256": "aff5c3980cdea8af7c49a72009a4e95691152e479532fab268248e8fcb5a926b"
+      "sha256": "500a61ba4c884573336b042b9a02f6a715d85fa04e1fa95ff6ff26e60bee2d66"
     },
     {
       "id": "ART-003",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "5b7dfd8c8f655cf08c45bb4c5ecd18c92d7440e60b38b7819ce8d6dc80ad6120"
+      "sha256": "e227d7f890ca115ed60423ec36f9d9caad763411e932c778edf9e3254efbf018"
     },
     {
       "id": "ART-004",
       "role": "traceability",
       "path": "LOOP_LEDGER.md",
-      "sha256": "7b7915e57a811ecf207551b4b693586965f11f87c96e999d9d9c0ac7a277c9cf"
+      "sha256": "89f81804bb5c851b9bba5603ef911e773e4cfc66a81eb2d7382d3353ce5ad350"
     }
   ],
   "sources": [
@@ -508,7 +508,7 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "The critical invariant is identical Estimate write, history, revision, receipt, projection, and authorization behavior after facade deletion; cheaper no-residual evidence is insufficient.",
+      "test_rationale": "The critical invariant is identical Estimate write, history, revision, receipt, projection, and authorization behavior after facade deletion; the Admin map must also stop naming the deleted file, and cheaper no-residual evidence is insufficient.",
       "requirement_ids": [
         "REQ-005"
       ],
@@ -604,7 +604,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "command": "retarget tests/vitest/per-item-mutation-queue.test.ts, then run only that file"
+      "command": "under separate edit authorization retarget tests/vitest/per-item-mutation-queue.test.ts; under separate execution authorization run only that file"
     },
     {
       "id": "TEST-005",
@@ -628,7 +628,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "command": "bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts"
+      "command": "after separately authorized mock/import retargets, run bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts only under explicit execution authorization"
     },
     {
       "id": "TEST-007",
@@ -640,7 +640,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "command": "refresh and run only the focused Estimate D1 action, history, restore, template, authz, and projection contract files after the active lease closes"
+      "command": "after separately authorized retargets, run only the nineteen test-source files listed under UNIT-007 in IMPLEMENTATION_PLAN.md and only under explicit execution authorization"
     },
     {
       "id": "TEST-008",
@@ -673,7 +673,11 @@
       "status": "FAIL",
       "artifact_path": "LOOP_LEDGER.md",
       "criterion_ids": [
-        "AC-003"
+        "AC-003",
+        "AC-004",
+        "AC-006",
+        "AC-007",
+        "AC-009"
       ],
       "evidence_ids": [
         "EVID-003"
@@ -687,9 +691,20 @@
       "criterion_ids": [
         "AC-004",
         "AC-005",
-        "AC-006",
         "AC-007",
         "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-ADMIN-MAP-001",
+      "status": "FAIL",
+      "artifact_path": "LOOP_LEDGER.md",
+      "criterion_ids": [
+        "AC-007"
       ],
       "evidence_ids": [
         "EVID-003"
@@ -752,7 +767,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "PLANNED",
       "goal": "Make upload-removal eligibility per asset and return disjoint truthful claimed, blocked, and already-removed path sets.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
@@ -896,15 +911,15 @@
     {
       "id": "DEC-AUTO-003",
       "status": "ACTIVE",
-      "statement": "The package is conditionally ready and advertises only UNIT-001, UNIT-002, and UNIT-009 until named gates clear.",
+      "statement": "The package is conditionally ready and advertises only UNIT-001 and UNIT-002, while only the exact next_unit may start.",
       "affected_ids": [
         "UNIT-001",
         "UNIT-002",
+        "UNIT-006",
         "UNIT-009",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
-        "UNIT-006",
         "UNIT-007",
         "UNIT-008"
       ],
@@ -913,7 +928,7 @@
     {
       "id": "DEC-AUTO-004",
       "status": "ACTIVE",
-      "statement": "Component, security, and Estimate work use internal single-writer lease gates; UNIT-003 has a separate explicit test-source authorization boundary.",
+      "statement": "Component and Estimate work use evidence-backed single-writer lease gates; UNIT-003, UNIT-004, UNIT-006, UNIT-007, and UNIT-009 have explicit test-source authorization boundaries.",
       "affected_ids": [
         "UNIT-003",
         "UNIT-004",
@@ -921,6 +936,7 @@
         "UNIT-006",
         "UNIT-007",
         "UNIT-008",
+        "UNIT-009",
         "GATE-LEASE-001",
         "GATE-TEST-SOURCE-001"
       ],
@@ -929,7 +945,7 @@
     {
       "id": "DEC-AUTO-005",
       "status": "ACTIVE",
-      "statement": "Quantity and selected variant remain row-owned while variant-definition edits remain shared mutations.",
+      "statement": "Quantity and selected variant remain row-owned while shared component-definition edits remain shared for linked Library and shared project component or variant definitions.",
       "affected_ids": [
         "REQ-005",
         "REQ-006",
@@ -951,7 +967,7 @@
     {
       "id": "DEC-AUTO-007",
       "status": "ACTIVE",
-      "statement": "Applied migrations, admin work, Legacy Cleanup, estimate import, hosted proof, pagehide cleanup, and unmeasured performance proposals remain outside core scope; verified upload-removal correctness remains auxiliary scope.",
+      "statement": "Applied migrations, admin feature or content work, Legacy Cleanup, estimate import, hosted proof, pagehide cleanup, and unmeasured performance proposals remain outside core scope; verified upload-removal correctness remains auxiliary scope.",
       "affected_ids": [
         "REQ-001",
         "SEC-001",
@@ -981,6 +997,17 @@
         "TEST-009"
       ],
       "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "statement": "Admin Estimate System feature and content work stays excluded, but UNIT-007 must coordinate the exact sources.persistence retarget to d1-intents/database.ts before deleting the facade that entry names.",
+      "affected_ids": [
+        "UNIT-007",
+        "AC-007",
+        "GATE-ADMIN-MAP-001"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
     }
   ],
   "authorization_boundaries": [],
@@ -989,7 +1016,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "AUDIT-AND-DISPOSITION.md",
-      "sha256": "aff5c3980cdea8af7c49a72009a4e95691152e479532fab268248e8fcb5a926b",
+      "sha256": "500a61ba4c884573336b042b9a02f6a715d85fa04e1fa95ff6ff26e60bee2d66",
       "claim_ids": [
         "REQ-001",
         "SEC-001",
@@ -1003,14 +1030,14 @@
         "ASSUMP-001",
         "ASSUMP-002"
       ],
-      "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-audit-2026-07-16",
+      "source_revision": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b+master-architecture-audit-admin-handoff-reproof-2026-07-16",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "COLLECTED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "5b7dfd8c8f655cf08c45bb4c5ecd18c92d7440e60b38b7819ce8d6dc80ad6120",
+      "sha256": "e227d7f890ca115ed60423ec36f9d9caad763411e932c778edf9e3254efbf018",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -1040,17 +1067,18 @@
         "TEST-008",
         "TEST-009"
       ],
-      "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-plan-2026-07-16",
+      "source_revision": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b+master-architecture-plan-admin-handoff-reproof-2026-07-16",
       "valid_until": null
     },
     {
       "id": "EVID-003",
       "status": "COLLECTED",
       "artifact_path": "LOOP_LEDGER.md",
-      "sha256": "7b7915e57a811ecf207551b4b693586965f11f87c96e999d9d9c0ac7a277c9cf",
+      "sha256": "89f81804bb5c851b9bba5603ef911e773e4cfc66a81eb2d7382d3353ce5ad350",
       "claim_ids": [
         "GATE-TEST-SOURCE-001",
         "GATE-LEASE-001",
+        "GATE-ADMIN-MAP-001",
         "GATE-COMPLETION-001",
         "DEC-AUTO-001",
         "DEC-AUTO-002",
@@ -1059,9 +1087,10 @@
         "DEC-AUTO-005",
         "DEC-AUTO-006",
         "DEC-AUTO-007",
-        "DEC-AUTO-008"
+        "DEC-AUTO-008",
+        "DEC-AUTO-009"
       ],
-      "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-ledger-2026-07-16",
+      "source_revision": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b+master-architecture-ledger-admin-handoff-reproof-2026-07-16",
       "valid_until": null
     }
   ],
@@ -1070,8 +1099,7 @@
       "id": "SLICE-001",
       "unit_ids": [
         "UNIT-001",
-        "UNIT-002",
-        "UNIT-009"
+        "UNIT-002"
       ]
     }
   ],
@@ -1080,6 +1108,7 @@
     "component-or-estimate-owner-change",
     "component-library-action-contract-change",
     "estimate-d1-projection-action-or-receipt-contract-change",
+    "admin-estimate-system-source-pointer-or-owner-change",
     "estimate-tree-query-or-route-contract-change",
     "row-owned-versus-shared-definition-contract-change",
     "security-rate-limit-table-policy-or-consumer-change",
@@ -1088,6 +1117,6 @@
     "planning-schema-validator-or-prompt-suite-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-16T05:36:05.000Z",
-  "manifest_sha256": "731dd8528701cfe79756ae72cdd0729eb9d96b816864a89fe8bde54d553a5da6"
+  "updated_at": "2026-07-16T06:35:43.000Z",
+  "manifest_sha256": "36e2b1cfc195627a78fef6722b8e0d8a0e9fa543ee470c601f9bc85b7cc8a3df"
 }
