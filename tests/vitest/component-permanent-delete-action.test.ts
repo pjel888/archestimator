@@ -29,7 +29,7 @@ const COMPONENT_ID = "22222222-2222-4222-8222-222222222222";
 const OPTION_ID = "33333333-3333-4333-8333-333333333333";
 const ASSET_ID = "44444444-4444-4444-8444-444444444444";
 
-function createFailingDeleteDatabase() {
+function createDeleteDatabase(options: { failBatch?: boolean } = {}) {
   const batchStatements: Array<{ sql: string; values: unknown[] }> = [];
   const database = {
     prepare: vi.fn((sql: string) => ({
@@ -79,8 +79,8 @@ function createFailingDeleteDatabase() {
     batch: vi.fn(async (statements: Array<{ sql: string; values: unknown[] }>) => {
       batchStatements.push(...statements);
       return statements.map((_, index) => ({
-        success: index !== 0,
-        meta: { changes: index === 0 ? 0 : 1 },
+        success: !options.failBatch || index !== 0,
+        meta: { changes: options.failBatch && index === 0 ? 0 : 1 },
         results: [],
       }));
     }),
@@ -102,7 +102,7 @@ beforeEach(() => {
 
 describe("component permanent delete action", () => {
   it("does not touch object storage when the atomic D1 batch fails", async () => {
-    const database = createFailingDeleteDatabase();
+    const database = createDeleteDatabase({ failBatch: true });
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const {
       executeBulkDeleteLibraryComponents,
@@ -128,5 +128,30 @@ describe("component permanent delete action", () => {
     expect(storageMocks.createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
     expect(cleanupAuditMocks.recordMassDeletionStorageCleanupResultInD1).not.toHaveBeenCalled();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("queues object cleanup without touching storage after the D1 delete commits", async () => {
+    const database = createDeleteDatabase();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const {
+      executeBulkDeleteLibraryComponents,
+      previewBulkDeleteLibraryComponents,
+    } = await import("@/lib/component-library/actions");
+
+    const preview = await previewBulkDeleteLibraryComponents({ itemIds: [COMPONENT_ID] });
+    const result = await executeBulkDeleteLibraryComponents({
+      itemIds: [COMPONENT_ID],
+      expectedPreviewHash: preview.previewHash ?? "",
+      correlationId: "55555555-5555-4555-8555-555555555555",
+    });
+
+    expect(result).toMatchObject({ ok: true, deletedIds: [COMPONENT_ID] });
+    expect(database.batchStatements.some((statement) => (
+      statement.sql.includes("UPDATE upload_assets")
+      && statement.sql.includes("removal_claim_id")
+      && statement.sql.includes("purge_state = 'pending'")
+    ))).toBe(true);
+    expect(storageMocks.createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+    expect(cleanupAuditMocks.recordMassDeletionStorageCleanupResultInD1).not.toHaveBeenCalled();
   });
 });

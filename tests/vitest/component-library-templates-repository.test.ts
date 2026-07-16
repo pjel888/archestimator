@@ -1,23 +1,84 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
-import { estimateTemplates } from "@/lib/component-library/estimate-templates";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
+const workspaceRepositoryMocks = vi.hoisted(() => ({
+  ensureDefaultWorkspace: vi.fn(),
+}));
+
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+vi.mock("@/lib/repositories/workspace-repository", () => workspaceRepositoryMocks);
+
 import {
   buildEstimateTemplateSummariesFromRows,
   buildEstimateTemplatesFromRows,
+  ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH,
+  ESTIMATE_TEMPLATE_SCHEMA_TABLES,
   ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT,
+  EstimateTemplateSchemaUnavailableError,
   fallbackComponentLibraryDataset,
   fallbackComponentRowsLibraryDataset,
   getCurrentWorkspaceComponentLibrary,
   getCurrentWorkspaceComponentRowsLibrary,
   getCurrentWorkspaceEstimateTemplates,
-  getTemplateTableFallbackTemplates,
+  getCurrentWorkspaceEstimateTemplatesSeed,
+  getEstimateTemplateById,
 } from "@/lib/repositories/component-library-repository";
 
-function collectTemplateNodeIds(nodes: Array<{ id: string; children?: Array<{ id: string; children?: never }> }>): string[] {
-  return nodes.flatMap((node) => [node.id, ...collectTemplateNodeIds(node.children ?? [])]);
+type PreparedD1Statement = {
+  sql: string;
+  values: unknown[];
+};
+
+class FakeTemplateD1Statement {
+  constructor(
+    private readonly database: FakeTemplateD1Database,
+    private readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.database.prepared.push({ sql: this.sql, values });
+    return this;
+  }
+
+  async all() {
+    return { results: this.database.resolve(this.sql) };
+  }
 }
+
+class FakeTemplateD1Database {
+  prepared: PreparedD1Statement[] = [];
+
+  constructor(private readonly missingTables: ReadonlySet<string> = new Set()) {}
+
+  prepare(sql: string) {
+    return new FakeTemplateD1Statement(this, sql);
+  }
+
+  resolve(sql: string) {
+    const missingTable = ESTIMATE_TEMPLATE_SCHEMA_TABLES.find((tableName) => this.missingTables.has(tableName) && sql.includes(tableName));
+    if (missingTable) throw new Error(`D1_ERROR: no such table: ${missingTable}`);
+    if (sql.includes("SELECT 1 FROM")) return [];
+    if (sql.includes("FROM estimate_templates")) return [];
+    if (sql.includes("FROM estimate_template_nodes")) return [];
+    if (sql.includes("FROM estimate_template_row_items")) return [];
+    throw new Error(`Unexpected D1 query: ${sql}`);
+  }
+}
+
+beforeEach(() => {
+  d1Mocks.getCloudflareD1Database.mockReset();
+  workspaceRepositoryMocks.ensureDefaultWorkspace.mockReset();
+  workspaceRepositoryMocks.ensureDefaultWorkspace.mockResolvedValue({
+    workspace: { id: "workspace-1" },
+    profile: { id: "user-1" },
+  });
+});
 
 describe("component-library template repository helpers", () => {
   it("pages full workspace detail graph reads and keeps the sidebar path bounded by item ids", () => {
@@ -89,18 +150,86 @@ describe("component-library template repository helpers", () => {
     })]);
   });
 
-  it("uses static templates only when the persisted template table is missing", () => {
-    expect(getTemplateTableFallbackTemplates({ isTemplateTableMissing: true })).toBe(estimateTemplates);
-    expect(getTemplateTableFallbackTemplates({ isTemplateTableMissing: false })).toEqual([]);
+  it("keeps production template repository paths free of synthetic fallback templates", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/lib/repositories/component-library-repository.ts"),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(/\bestimateTemplates\b/);
+    expect(source).not.toContain("getTemplateTableFallbackTemplates");
     expect(fallbackComponentLibraryDataset.templates).toEqual([]);
   });
 
-  it("uses canonical UUID ids for static seed templates that can be persisted and copied by RPC", () => {
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    for (const template of estimateTemplates) {
-      expect(template.id).toMatch(uuidPattern);
-      expect(collectTemplateNodeIds(template.nodes).every((id) => uuidPattern.test(id))).toBe(true);
-    }
+  it("keeps an ordinary empty workspace available with an empty bounded seed", async () => {
+    const database = new FakeTemplateD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    await expect(getCurrentWorkspaceEstimateTemplatesSeed()).resolves.toEqual({
+      status: "available",
+      templates: [],
+      userId: "user-1",
+      workspaceId: "workspace-1",
+    });
+    expect(database.prepared.filter(({ sql }) => sql.includes("LIMIT 0"))).toHaveLength(2);
+    expect(database.prepared.find(({ sql }) => sql.includes("FROM estimate_templates"))).toEqual(expect.objectContaining({
+      values: ["workspace-1", ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT],
+    }));
+  });
+
+  it.each(ESTIMATE_TEMPLATE_SCHEMA_TABLES)("returns a migration-required seed when %s is missing", async (missingTable) => {
+    const database = new FakeTemplateD1Database(new Set([missingTable]));
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    await expect(getCurrentWorkspaceEstimateTemplatesSeed()).resolves.toEqual({
+      status: "schema_unavailable",
+      reason: "migration_required",
+      migrationPath: ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH,
+      missingTables: [missingTable],
+      templates: [],
+      userId: "user-1",
+      workspaceId: "workspace-1",
+    });
+  });
+
+  it("throws the typed schema error from direct array and detail loaders", async () => {
+    const database = new FakeTemplateD1Database(new Set(["estimate_template_nodes"]));
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const arrayError = await getCurrentWorkspaceEstimateTemplates().catch((error: unknown) => error);
+    expect(arrayError).toBeInstanceOf(EstimateTemplateSchemaUnavailableError);
+    expect(arrayError).toMatchObject({
+      status: "schema_unavailable",
+      code: "schema_unavailable",
+      reason: "migration_required",
+      migrationPath: ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH,
+      missingTables: ["estimate_template_nodes"],
+    });
+
+    const detailError = await getEstimateTemplateById("11111111-1111-4111-8111-111111111111").catch((error: unknown) => error);
+    expect(detailError).toBeInstanceOf(EstimateTemplateSchemaUnavailableError);
+    expect(detailError).toMatchObject({
+      status: "schema_unavailable",
+      code: "schema_unavailable",
+      reason: "migration_required",
+      missingTables: ["estimate_template_nodes"],
+    });
+  });
+
+  it("passes the typed seed to an honest migration-required browse state", () => {
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/app/workshop/library/templates/page.tsx"),
+      "utf8",
+    );
+    const clientSource = readFileSync(
+      join(process.cwd(), "src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx"),
+      "utf8",
+    );
+
+    expect(pageSource).toContain("templateSeed={templateSeed}");
+    expect(clientSource).toContain('data-template-schema-state="schema_unavailable"');
+    expect(clientSource).toContain("Template storage needs a database migration");
+    expect(clientSource).toContain("No sample templates are being shown.");
   });
 
   it("builds UI-ready estimate templates from persisted template rows", () => {

@@ -483,7 +483,7 @@ describe("component library manager UI", () => {
 
     const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
     expect(within(addDialog).queryByLabelText("Component nesting")).not.toBeInTheDocument();
-    expect(within(addDialog).getByRole("combobox", { name: "Category" })).toBeInTheDocument();
+    expect(within(addDialog).getByRole("textbox", { name: "Direct category" })).toHaveValue("Uncategorized");
   });
 
   it("uses an in-app discard confirmation for dirty Add Component drafts", async () => {
@@ -871,7 +871,7 @@ describe("component library manager UI", () => {
     expect(within(dialog).queryByRole("treeitem", { name: "Fabrication" })).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("Name")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Description")).toBeInTheDocument();
-    expect(within(dialog).getByRole("combobox", { name: "Category" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: "Direct category" })).toHaveValue("Uncategorized");
     expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toBeInTheDocument();
     expect(within(dialog).getByRole("combobox", { name: "Brand" })).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Unit cost")).toBeInTheDocument();

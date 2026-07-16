@@ -133,6 +133,10 @@ describe("component permanent deletion", () => {
     expect(sql).toContain("estimate_template_rows_permanently_deleted");
     expect(sql).toContain("INSERT INTO mass_deletion_events");
     expect(sql).toContain("'$.cleanupRequestedAt'");
+    expect(sql).toContain("removal_claim_id");
+    expect(sql).toContain("removal_claimed_at");
+    expect(sql).toContain("cleanup_not_before");
+    expect(sql).toContain("purge_state = 'pending'");
     expect(sql).toContain("DELETE FROM estimate_row_items");
     expect(sql).toContain("DELETE FROM estimate_template_row_items");
     expect(sql).toContain("DELETE FROM cost_library_items");

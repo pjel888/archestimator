@@ -25,10 +25,10 @@ describe("mass deletion server action contract", () => {
       "Only project owners/admins can delete projects.",
     );
     expect(actions).toContain("expectedPreviewHash");
-    expect(actions).toContain("cleanupStorageTargets");
-    expect(actions).toContain(
-      "recordMassDeletionStorageCleanupResultInCloudflareD1",
-    );
+    expect(actions).toContain("removal_claim_id");
+    expect(actions).toContain("purge_state = 'pending'");
+    expect(actions).not.toContain("cleanupStorageTargets");
+    expect(actions).not.toContain("createRuntimeUploadStorageProvider");
     expect(storageCleanupMigration).toContain(
       "mass_deletion_storage_cleanup_results",
     );
@@ -46,18 +46,14 @@ describe("mass deletion server action contract", () => {
     );
   });
 
-  it("records project storage cleanup results through a D1 sidecar instead of Supabase service-role", () => {
+  it("leaves project object cleanup to the D1-backed delayed cleanup queue", () => {
     const actions = readFileSync("src/lib/projects/actions.ts", "utf8");
-    const d1Audit = readFileSync("src/lib/projects/d1-audit.ts", "utf8");
 
-    expect(actions).toContain(
-      "recordMassDeletionStorageCleanupResultInCloudflareD1",
-    );
-    expect(d1Audit).toContain(
-      "INSERT INTO mass_deletion_storage_cleanup_results",
-    );
-    expect(`${actions}\n${d1Audit}`).not.toMatch(
-      /createSupabaseServiceRoleClient|record_mass_deletion_storage_cleanup_result|SUPABASE_SERVICE_ROLE_KEY/,
+    expect(actions).toContain("cleanup_not_before");
+    expect(actions).toContain("storage_cleanup_pending");
+    expect(actions).not.toContain("recordMassDeletionStorageCleanupResultInCloudflareD1");
+    expect(actions).not.toMatch(
+      /cleanupStorageTargets|createSupabaseServiceRoleClient|record_mass_deletion_storage_cleanup_result|SUPABASE_SERVICE_ROLE_KEY/,
     );
   });
 

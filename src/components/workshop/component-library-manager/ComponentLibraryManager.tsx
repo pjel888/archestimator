@@ -4,6 +4,7 @@ import { useEffect, useMemo, useReducer, useRef, useState, useTransition } from 
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
+import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Barcode,
@@ -1010,36 +1011,53 @@ function DenseSortableHeader({
   sortKey,
   sort,
   onSort,
-  className,
 }: {
   label: string;
   sortKey: DenseSortKey;
   sort: DenseSortState;
   onSort: (key: DenseSortKey) => void;
-  className?: string;
 }) {
-  const surfaceVariant = useLibrarySurfaceVariant();
   const active = sort.key === sortKey;
   return (
-    <th
-      scope="col"
-      aria-sort={getDenseAriaSort(sort, sortKey)}
-      className={cn(
-        "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
-        surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
-        className,
-      )}
+    <button
+      type="button"
+      className="inline-flex min-h-6 max-w-full items-center gap-1 text-left text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      aria-label={`Sort by ${label.toLowerCase()}`}
+      onClick={() => onSort(sortKey)}
     >
-      <button
-        type="button"
-        className="inline-flex min-h-6 max-w-full items-center gap-1 text-left text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        aria-label={`Sort by ${label.toLowerCase()}`}
-        onClick={() => onSort(sortKey)}
-      >
-        <span className="truncate">{label}</span>
-        {active ? <span aria-hidden="true" className="shrink-0 text-[8px] uppercase">{sort.direction}</span> : null}
-      </button>
-    </th>
+      <span className="truncate">{label}</span>
+      {active ? <span aria-hidden="true" className="shrink-0 text-[8px] uppercase">{sort.direction}</span> : null}
+    </button>
+  );
+}
+
+function ComponentCatalogueDenseThumbnail({ item }: { item: EstimateRowItem }) {
+  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
+  const imageUrl = item.imageUrl?.trim() ?? "";
+  const imageFailed = Boolean(imageUrl && failedImageSrc === imageUrl);
+
+  return (
+    <div
+      className="relative size-12 overflow-hidden rounded-xs border border-hairline bg-white"
+      aria-hidden="true"
+    >
+      {imageUrl && !imageFailed ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="48px"
+          loading="lazy"
+          unoptimized={shouldBypassComponentImageOptimization(imageUrl)}
+          onError={() => setFailedImageSrc(imageUrl)}
+          className="object-cover"
+        />
+      ) : (
+        <span className="flex size-full items-center justify-center text-tertiary">
+          <ImageSquare size={18} weight="regular" />
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -1070,19 +1088,191 @@ function ComponentCatalogueDenseTable({
 }) {
   const surfaceVariant = useLibrarySurfaceVariant();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const columns = useMemo<ColumnDef<CatalogueCard>[]>(
+    () => [
+      {
+        id: "select",
+        header: () => <span className="sr-only">Select</span>,
+        size: 36,
+        enableSorting: false,
+        cell: ({ row }) => {
+          const item = row.original.item;
+          const name = getComponentName(item);
+          const selected = Boolean(onToggleSelected && selectedItemIds.has(item.id));
+          return onToggleSelected ? (
+            <input
+              type="checkbox"
+              className="size-3 rounded-xs border-hairline accent-danger"
+              aria-label={`Select ${name}`}
+              checked={selected}
+              disabled={selectionLimitReached && !selected}
+              onChange={() => onToggleSelected(item.id)}
+            />
+          ) : null;
+        },
+      },
+      {
+        id: "thumbnail",
+        header: () => <span className="sr-only">Thumbnail</span>,
+        size: 64,
+        enableSorting: false,
+        cell: ({ row }) => <ComponentCatalogueDenseThumbnail item={row.original.item} />,
+      },
+      {
+        id: "name",
+        header: () => <DenseSortableHeader label="Name" sortKey="name" sort={sort} onSort={onSort} />,
+        size: 220,
+        cell: ({ row }) => {
+          const item = row.original.item;
+          const name = getComponentName(item);
+          return (
+            <button
+              type="button"
+              className="block max-w-full truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              data-component-card-inspect={item.id}
+              aria-label={`View details for ${name}`}
+              title={name}
+              onClick={(event) => {
+                if ((event.metaKey || event.ctrlKey) && onToggleSelected) {
+                  onToggleSelected(item.id);
+                  return;
+                }
+                onInspect(item.id);
+              }}
+            >
+              {name}
+            </button>
+          );
+        },
+      },
+      {
+        id: "folder",
+        header: () => <DenseSortableHeader label="Folder" sortKey="folder" sort={sort} onSort={onSort} />,
+        size: 160,
+        cell: ({ row }) => <span className="block truncate text-secondary" title={row.original.pathLabel}>{row.original.pathLabel}</span>,
+      },
+      {
+        id: "brand",
+        header: () => <DenseSortableHeader label="Brand" sortKey="brand" sort={sort} onSort={onSort} />,
+        size: 132,
+        cell: ({ row }) => {
+          const label = getItemBrandLabel(row.original.item);
+          return <span className="block truncate text-tertiary" title={label}>{label}</span>;
+        },
+      },
+      {
+        id: "supplier",
+        header: () => <DenseSortableHeader label="Supplier" sortKey="supplier" sort={sort} onSort={onSort} />,
+        size: 132,
+        cell: ({ row }) => {
+          const label = row.original.item.supplier || "No supplier";
+          return <span className="block truncate text-secondary" title={label}>{label}</span>;
+        },
+      },
+      {
+        id: "cost",
+        header: () => <DenseSortableHeader label="Cost" sortKey="cost" sort={sort} onSort={onSort} />,
+        size: 112,
+        cell: ({ row }) => {
+          const item = row.original.item;
+          return <span className="font-sans tabular-nums text-ink">{pesoFormatter.format(getComponentPrice(item))} / {item.unit}</span>;
+        },
+      },
+      {
+        id: "pricingSource",
+        header: () => <DenseSortableHeader label="Pricing source" sortKey="pricingSource" sort={sort} onSort={onSort} />,
+        size: 148,
+        cell: ({ row }) => {
+          const label = getItemPricingSourceLabel(row.original.item);
+          return <span className="block truncate text-tertiary" title={label}>{label}</span>;
+        },
+      },
+      {
+        id: "pricingDate",
+        header: () => <DenseSortableHeader label="Pricing date" sortKey="pricingDate" sort={sort} onSort={onSort} />,
+        size: 104,
+        cell: ({ row }) => <span className="block truncate tabular-nums text-tertiary">{row.original.item.pricingDate || "Date not set"}</span>,
+      },
+      {
+        id: "lifecycle",
+        header: () => <DenseSortableHeader label="Lifecycle" sortKey="lifecycle" sort={sort} onSort={onSort} />,
+        size: 104,
+        cell: ({ row }) => <span className="block truncate text-tertiary">{getComponentLifecycleLabel(row.original.item)}</span>,
+      },
+      {
+        id: "usage",
+        header: () => <DenseSortableHeader label="Usage" sortKey="usage" sort={sort} onSort={onSort} />,
+        size: 116,
+        cell: ({ row }) => {
+          const label = getComponentUsageLabel(row.original.item);
+          return <span className="block truncate text-tertiary" title={label}>{label}</span>;
+        },
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        size: 132,
+        enableSorting: false,
+        cell: ({ row }) => {
+          const item = row.original.item;
+          const name = getComponentName(item);
+          const canPromote = Boolean(onPromote && isPromotableProjectProjectionItem(item));
+          return (
+            <div className="flex min-w-0 items-center gap-1">
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+                )}
+                data-component-card-inspect={item.id}
+                aria-label={`View details for ${name}`}
+                onClick={() => onInspect(item.id)}
+              >
+                Details
+              </button>
+              {canPromote ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
+                    surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+                  )}
+                  aria-label={`Promote ${name} to library`}
+                  title={`Promote ${name} to library`}
+                  disabled={promotingItemId === item.id}
+                  onClick={() => onPromote?.(item)}
+                >
+                  {promotingItemId === item.id ? "Promoting" : "Promote"}
+                </button>
+              ) : null}
+            </div>
+          );
+        },
+      },
+    ],
+    [onInspect, onPromote, onSort, onToggleSelected, promotingItemId, selectedItemIds, selectionLimitReached, sort, surfaceVariant],
+  );
+  const table = useReactTable({
+    data: cards,
+    columns,
+    getRowId: (card) => card.item.id,
+    getCoreRowModel: getCoreRowModel(),
+  });
+  const tableRows = table.getRowModel().rows;
   const virtualEnabled = Boolean(
     WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.enabled &&
-      cards.length >= WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows,
+      tableRows.length >= WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows,
   );
   const virtualEstimateRowHeight = WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.estimateRowHeight;
   const virtualOverscan = WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.overscan;
   const virtualInitialViewportHeight = WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.initialViewportHeight;
   const rowVirtualizer = useVirtualizer({
-    count: cards.length,
+    count: tableRows.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => virtualEstimateRowHeight,
     overscan: virtualOverscan,
-    getItemKey: (index) => cards[index]?.item.id ?? index,
+    getItemKey: (index) => tableRows[index]?.id ?? index,
     enabled: virtualEnabled,
     useFlushSync: WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.useFlushSync,
     initialRect: { height: virtualInitialViewportHeight, width: 0 },
@@ -1092,13 +1282,13 @@ function ComponentCatalogueDenseTable({
     ? Array.from(
         {
           length: Math.min(
-            cards.length,
+            tableRows.length,
             Math.ceil(virtualInitialViewportHeight / virtualEstimateRowHeight) + virtualOverscan * 2,
           ),
         },
         (_, index) => ({
           index,
-          key: cards[index]?.item.id ?? index,
+          key: tableRows[index]?.id ?? index,
           start: index * virtualEstimateRowHeight,
           end: (index + 1) * virtualEstimateRowHeight,
         }),
@@ -1106,9 +1296,9 @@ function ComponentCatalogueDenseTable({
     : measuredVirtualRows;
   const rowSlots = virtualEnabled
     ? renderedVirtualRows
-    : cards.map((card, index) => ({
+    : tableRows.map((row, index) => ({
         index,
-        key: card.item.id,
+        key: row.id,
         start: 0,
         end: 0,
       }));
@@ -1116,6 +1306,7 @@ function ComponentCatalogueDenseTable({
   const lastVirtualRow = virtualEnabled ? renderedVirtualRows[renderedVirtualRows.length - 1] : null;
   const virtualPaddingTop = firstVirtualRow?.start ?? 0;
   const virtualPaddingBottom = Math.max(0, virtualEnabled ? rowVirtualizer.getTotalSize() - (lastVirtualRow?.end ?? 0) : 0);
+  const leafColumnCount = table.getAllLeafColumns().length;
 
   if (cards.length === 0) return null;
 
@@ -1137,7 +1328,7 @@ function ComponentCatalogueDenseTable({
       data-library-virtual-mounted-count={virtualEnabled ? String(rowSlots.length) : undefined}
     >
       <table
-        className="min-w-[1120px] table-fixed border-collapse text-[10px]"
+        className="w-full min-w-[1120px] table-fixed border-collapse text-[10px]"
         aria-label={`${label} dense component table`}
         data-component-dense-table="true"
         data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
@@ -1146,49 +1337,29 @@ function ComponentCatalogueDenseTable({
         data-library-virtual-mounted-count={virtualEnabled ? String(rowSlots.length) : undefined}
       >
         <colgroup>
-          <col className="w-9" />
-          <col className="w-[220px]" />
-          <col className="w-[160px]" />
-          <col className="w-[132px]" />
-          <col className="w-[132px]" />
-          <col className="w-[112px]" />
-          <col className="w-[148px]" />
-          <col className="w-[104px]" />
-          <col className="w-[104px]" />
-          <col className="w-[116px]" />
-          <col className="w-[128px]" />
-          <col className="w-[132px]" />
+          {table.getAllLeafColumns().map((column) => (
+            <col key={column.id} style={{ width: `${column.getSize()}px` }} />
+          ))}
         </colgroup>
         <thead>
-          <tr>
-            <th
-              scope="col"
-              className={cn(
-                "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
-                surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
-              )}
-            >
-              <span className="sr-only">Select</span>
-            </th>
-            <DenseSortableHeader label="Name" sortKey="name" sort={sort} onSort={onSort} className="z-20" />
-            <DenseSortableHeader label="Folder" sortKey="folder" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Brand" sortKey="brand" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Supplier" sortKey="supplier" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Cost" sortKey="cost" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Pricing source" sortKey="pricingSource" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Pricing date" sortKey="pricingDate" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Lifecycle" sortKey="lifecycle" sort={sort} onSort={onSort} />
-            <DenseSortableHeader label="Usage" sortKey="usage" sort={sort} onSort={onSort} />
-            <th
-              scope="col"
-              className={cn(
-                "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
-                surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
-              )}
-            >
-              Actions
-            </th>
-          </tr>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th
+                  key={header.id}
+                  scope="col"
+                  aria-sort={isDenseSortKey(header.column.id) ? getDenseAriaSort(sort, header.column.id) : undefined}
+                  className={cn(
+                    "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+                    surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
+                    header.column.id === "name" && "z-20",
+                  )}
+                >
+                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
         </thead>
         <tbody>
           {virtualEnabled && virtualPaddingTop > 0 ? (
@@ -1196,19 +1367,16 @@ function ComponentCatalogueDenseTable({
               {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Virtualization spacer row is not user-operable content. */}
               <tr aria-hidden="true" data-component-dense-virtual-spacer="top">
                 {/* react-doctor-disable-next-line react-doctor/control-has-associated-label -- Virtualization spacer cell is hidden from assistive tech. */}
-                <td colSpan={12} style={{ height: virtualPaddingTop, padding: 0, border: 0 }} />
+                <td colSpan={leafColumnCount} style={{ height: virtualPaddingTop, padding: 0, border: 0 }} />
               </tr>
             </>
           ) : null}
           {rowSlots.map((virtualRow) => {
-            const card = cards[virtualRow.index];
-            if (!card) return null;
-            const item = card.item;
-            const name = getComponentName(item);
+            const row = tableRows[virtualRow.index];
+            if (!row) return null;
+            const item = row.original.item;
             const selected = Boolean(onToggleSelected && selectedItemIds.has(item.id));
             const inspectorSelected = inspectorItemId === item.id;
-            const lifecycle = getComponentLifecycleLabel(item);
-            const canPromote = Boolean(onPromote && isPromotableProjectProjectionItem(item));
             return (
               <tr
                 key={virtualRow.key}
@@ -1218,7 +1386,7 @@ function ComponentCatalogueDenseTable({
                 data-component-dense-virtual-row={virtualEnabled ? item.id : undefined}
                 aria-selected={inspectorSelected || selected}
                 className={cn(
-                  "border-b transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus",
+                  "h-16 border-b transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus",
                   surfaceVariant === "glass"
                     ? "border-[color:var(--glass-border)] hover:bg-white/40"
                     : "border-hairline hover:bg-surfaceMuted/55",
@@ -1246,90 +1414,17 @@ function ComponentCatalogueDenseTable({
                   }
                 }}
               >
-                <td className="px-2 py-1 align-top">
-                  {onToggleSelected ? (
-                    <input
-                      type="checkbox"
-                      className="size-3 rounded-xs border-hairline accent-danger"
-                      aria-label={`Select ${name}`}
-                      checked={selected}
-                      disabled={selectionLimitReached && !selected}
-                      onChange={() => onToggleSelected(item.id)}
-                    />
-                  ) : null}
-                </td>
-                <th
-                  scope="row"
-                  className={cn(surfaceVariant === "glass" ? "bg-transparent" : "bg-white", "px-2 py-1 text-left align-top")}
-                >
-                  <button
-                    type="button"
-                    className="block max-w-full truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                    data-component-card-inspect={item.id}
-                    aria-label={`View details for ${name}`}
-                    title={name}
-                    onClick={(event) => {
-                      if ((event.metaKey || event.ctrlKey) && onToggleSelected) {
-                        onToggleSelected(item.id);
-                        return;
-                      }
-                      onInspect(item.id);
-                    }}
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className={cn(
+                      "px-2 py-2 align-middle",
+                      cell.column.id === "name" && (surfaceVariant === "glass" ? "bg-transparent" : "bg-white"),
+                    )}
                   >
-                    {name}
-                  </button>
-                </th>
-                <td className="truncate px-2 py-1 align-top text-secondary" title={card.pathLabel}>{card.pathLabel}</td>
-                <td className="truncate px-2 py-1 align-top text-tertiary" title={getItemBrandLabel(item)}>
-                  {getItemBrandLabel(item)}
-                </td>
-                <td className="truncate px-2 py-1 align-top text-secondary" title={item.supplier || "No supplier"}>
-                  {item.supplier || "No supplier"}
-                </td>
-                <td className="px-2 py-1 align-top font-sans tabular-nums text-ink">
-                  {pesoFormatter.format(getComponentPrice(item))} / {item.unit}
-                </td>
-                <td className="truncate px-2 py-1 align-top text-tertiary" title={getItemPricingSourceLabel(item)}>
-                  {getItemPricingSourceLabel(item)}
-                </td>
-                <td className="truncate px-2 py-1 align-top tabular-nums text-tertiary">
-                  {item.pricingDate || "Date not set"}
-                </td>
-                <td className="truncate px-2 py-1 align-top text-tertiary">{lifecycle}</td>
-                <td className="truncate px-2 py-1 align-top text-tertiary" title={getComponentUsageLabel(item)}>
-                  {getComponentUsageLabel(item)}
-                </td>
-                <td className="px-2 py-1 align-top">
-                  <div className="flex min-w-0 items-center gap-1">
-                    <button
-                      type="button"
-                      className={cn(
-                        "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                        surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
-                      )}
-                      data-component-card-inspect={item.id}
-                      aria-label={`View details for ${name}`}
-                      onClick={() => onInspect(item.id)}
-                    >
-                      Details
-                    </button>
-                    {canPromote ? (
-                      <button
-                        type="button"
-                        className={cn(
-                          "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
-                          surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
-                        )}
-                        aria-label={`Promote ${name} to library`}
-                        title={`Promote ${name} to library`}
-                        disabled={promotingItemId === item.id}
-                        onClick={() => onPromote?.(item)}
-                      >
-                        {promotingItemId === item.id ? "Promoting" : "Promote"}
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
               </tr>
             );
           })}
@@ -1338,7 +1433,7 @@ function ComponentCatalogueDenseTable({
               {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Virtualization spacer row is not user-operable content. */}
               <tr aria-hidden="true" data-component-dense-virtual-spacer="bottom">
                 {/* react-doctor-disable-next-line react-doctor/control-has-associated-label -- Virtualization spacer cell is hidden from assistive tech. */}
-                <td colSpan={12} style={{ height: virtualPaddingBottom, padding: 0, border: 0 }} />
+                <td colSpan={leafColumnCount} style={{ height: virtualPaddingBottom, padding: 0, border: 0 }} />
               </tr>
             </>
           ) : null}

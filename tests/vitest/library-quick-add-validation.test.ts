@@ -21,7 +21,6 @@ describe("quick add validation", () => {
 
     expect(normalized).toMatchObject({
       name: "Door hinge",
-      category: "Hardware",
       unit: "pc",
       unitCost: 12.35,
       miscCost: 0,
@@ -44,7 +43,6 @@ describe("quick add validation", () => {
 
     expect(result.errors).toMatchObject({
       name: "Enter a component name.",
-      category: "Choose or enter a category.",
       unit: "Enter a unit (e.g. each, m2, hr).",
       unitCost: "Enter a unit cost of zero or more.",
       pricingDate: "Enter a pricing date that is not in the future.",
@@ -65,7 +63,6 @@ describe("quick add validation", () => {
 
     expect(result.errors).toMatchObject({
       name: "Remove spreadsheet formula prefixes from the name.",
-      category: "Remove spreadsheet formula prefixes from the category.",
       unit: "Remove spreadsheet formula prefixes from the unit.",
       supplier: "Remove spreadsheet formula prefixes.",
       brand: "Remove spreadsheet formula prefixes.",

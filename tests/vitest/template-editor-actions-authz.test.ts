@@ -24,6 +24,9 @@ const templateId = "00000000-0000-4000-8000-000000000002";
 const sourceTemplateId = "00000000-0000-4000-8000-000000000003";
 const nodeId = "00000000-0000-4000-8000-000000000004";
 const rowId = "00000000-0000-4000-8000-000000000005";
+const sourceGroupId = "00000000-0000-4000-8000-000000000012";
+const sourceAreaId = "00000000-0000-4000-8000-000000000013";
+const sourceRowId = "00000000-0000-4000-8000-000000000014";
 
 class FakeD1Statement {
   values: unknown[] = [];
@@ -40,18 +43,22 @@ class FakeD1Statement {
 
   async first<T>() {
     this.database.executedStatements.push(this);
+    if (this.sql.includes("FROM estimate_mutation_receipts")) {
+      return (this.database.receipts.get(this.values.slice(0, 3).join(":")) ?? null) as T | null;
+    }
     if (this.sql.includes("FROM workspace_members")) {
       return (this.database.isEditor ? { allowed: 1 } : null) as T | null;
     }
     if (this.sql.includes("FROM estimate_templates")) {
       return {
-        id: templateId,
+        id: String(this.values[0]),
         workspace_id: workspaceId,
         name: "Editor-safe template",
+        updated_at: this.database.templateUpdatedAt,
       } as T;
     }
     if (this.sql.includes("FROM estimate_template_nodes")) {
-      return {
+      return (this.database.targetNodes.find((node) => node.id === this.values[0]) ?? {
         id: nodeId,
         template_id: templateId,
         parent_id: null,
@@ -61,7 +68,7 @@ class FakeD1Statement {
         metadata: "{}",
         created_at: "2026-07-01T00:00:00.000Z",
         updated_at: "2026-07-01T00:00:00.000Z",
-      } as T;
+      }) as T;
     }
     if (this.sql.includes("FROM estimate_template_row_items")) {
       return this.database.row as T;
@@ -71,6 +78,19 @@ class FakeD1Statement {
 
   async all<T>() {
     this.database.executedStatements.push(this);
+    if (this.sql.includes("FROM estimate_template_nodes")) {
+      const rows = this.values[0] === sourceTemplateId ? this.database.sourceNodes : this.database.targetNodes;
+      return { results: rows as T[], success: true };
+    }
+    if (this.sql.includes("FROM estimate_template_row_items")) {
+      if (this.values.length === 1 && this.values[0] === sourceTemplateId) {
+        return { results: this.database.sourceRows as T[], success: true };
+      }
+      const requestedIds = new Set(this.values.slice(1).map(String));
+      const rows = [this.database.row, ...this.database.insertedRows]
+        .filter((row) => requestedIds.size === 0 || requestedIds.has(row.id));
+      return { results: rows as T[], success: true };
+    }
     return { results: [] as T[], success: true };
   }
 
@@ -80,8 +100,49 @@ class FakeD1Statement {
       this.database.row = {
         ...this.database.row,
         material: String(this.values[0]),
-        updated_at: String(this.values[1]),
+        adjustment_percentage: Number(this.values.at(-5)),
+        contingency_percentage: 0,
+        updated_at: String(this.values.at(-4)),
       };
+    }
+    if (this.sql.includes("INSERT INTO estimate_template_row_items")) {
+      this.database.insertedRows.push({
+        id: String(this.values[0]),
+        template_id: String(this.values[1]),
+        template_node_id: String(this.values[2]),
+        sort_order: Number(this.values[3]),
+        source_library_item_id: this.values[4] === null ? null : String(this.values[4]),
+        source_snapshot: this.values[5] === null ? null : String(this.values[5]),
+        pricing_provenance_origin: String(this.values[6]),
+        category_node_id: this.values[7] === null ? null : String(this.values[7]),
+        supplier_id: this.values[8] === null ? null : String(this.values[8]),
+        material: String(this.values[9]),
+        description: String(this.values[10]),
+        supplier: String(this.values[11]),
+        unit: String(this.values[12]),
+        quantity: Number(this.values[13]),
+        unit_cost: Number(this.values[14]),
+        misc_cost: Number(this.values[15]),
+        contingency_percentage: Number(this.values[16]),
+        adjustment_percentage: Number(this.values[17]),
+        discipline: String(this.values[18]),
+        designation: String(this.values[19]),
+        link_state: String(this.values[20]),
+        metadata: String(this.values[21]),
+        created_at: String(this.values[22]),
+        updated_at: String(this.values[23]),
+      });
+    }
+    if (this.sql.includes("UPDATE estimate_templates") && this.sql.includes("SET updated_at")) {
+      this.database.templateUpdatedAt = String(this.values[0]);
+    }
+    if (this.sql.includes("INSERT INTO estimate_mutation_receipts")) {
+      this.database.receipts.set(this.values.slice(1, 4).join(":"), {
+        actor_user_id: String(this.values[4]),
+        request_fingerprint: String(this.values[7]),
+        result_json: String(this.values[8]),
+        status: "committed",
+      });
     }
     return { success: true };
   }
@@ -89,6 +150,19 @@ class FakeD1Statement {
 
 class FakeD1Database {
   executedStatements: FakeD1Statement[] = [];
+  batchCalls: FakeD1Statement[][] = [];
+  insertedRows: Array<Record<string, unknown> & { id: string }> = [];
+  targetNodes: Array<Record<string, unknown> & { id: string }> = [];
+  sourceNodes: Array<Record<string, unknown> & { id: string }> = [];
+  sourceRows: Array<Record<string, unknown> & { id: string }> = [];
+  receipts = new Map<string, {
+    actor_user_id: string;
+    request_fingerprint: string;
+    result_json: string;
+    status: string;
+  }>();
+  templateUpdatedAt = "2026-07-01T00:00:00.000Z";
+  failBatch = false;
   row = {
     id: rowId,
     template_id: templateId,
@@ -96,6 +170,7 @@ class FakeD1Database {
     sort_order: 0,
     source_library_item_id: null,
     source_snapshot: null,
+    pricing_provenance_origin: "missing",
     category_node_id: null,
     supplier_id: null,
     material: "Existing row",
@@ -119,6 +194,12 @@ class FakeD1Database {
 
   prepare(sql: string) {
     return new FakeD1Statement(this, sql);
+  }
+
+  async batch(statements: FakeD1Statement[]) {
+    this.batchCalls.push(statements);
+    if (this.failBatch) throw new Error("Injected atomic batch failure");
+    return Promise.all(statements.map((statement) => statement.run()));
   }
 }
 
@@ -165,15 +246,12 @@ describe("template editor server action authorization", () => {
     await expect(actions.removeEstimateTemplateRowItem({ templateId, rowId })).rejects.toThrow(
       "Only workspace editors/admins can edit estimate templates.",
     );
-    await expect(actions.reorderEstimateTemplateRowItems({ templateId, nodeId, orderedRowIds: [rowId] })).rejects.toThrow(
-      "Only workspace editors/admins can edit estimate templates.",
-    );
     await expect(actions.insertTemplateIntoTemplate({ targetTemplateId: templateId, targetNodeId: null, sourceTemplateId })).rejects.toThrow(
       "Only workspace editors/admins can edit estimate templates.",
     );
 
-    expect(d1Mocks.getCloudflareD1Database).toHaveBeenCalledTimes(10);
-    expect(database.executedStatements.filter((statement) => statement.sql.includes("FROM workspace_members"))).toHaveLength(10);
+    expect(d1Mocks.getCloudflareD1Database).toHaveBeenCalledTimes(9);
+    expect(database.executedStatements.filter((statement) => statement.sql.includes("FROM workspace_members"))).toHaveLength(9);
     expect(database.executedStatements.some((statement) => statement.sql.includes("estimate_templates"))).toBe(false);
     expect(database.executedStatements.some((statement) => statement.sql.includes("estimate_template_row_items"))).toBe(false);
   });
@@ -182,8 +260,9 @@ describe("template editor server action authorization", () => {
     const database = new FakeD1Database(true);
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const actions = await import("@/lib/component-library/template-editor-actions");
+    const intentId = "00000000-0000-4000-8000-000000000010";
 
-    await expect(actions.updateEstimateTemplateRowItem({ templateId, rowId, patch: { material: "Updated row" } })).resolves.toMatchObject({
+    await expect(actions.updateEstimateTemplateRowItem({ intentId, templateId, rowId, patch: { material: "Updated row" } })).resolves.toMatchObject({
       row: { id: rowId, template_id: templateId, material: "Updated row" },
     });
 
@@ -194,8 +273,20 @@ describe("template editor server action authorization", () => {
     expect(templateReadIndex).toBeGreaterThan(workspaceGateIndex);
     expect(rowUpdateIndex).toBeGreaterThan(templateReadIndex);
     expect(database.executedStatements[rowUpdateIndex].values[0]).toBe("Updated row");
-    expect(database.executedStatements[rowUpdateIndex].values.at(-2)).toBe(rowId);
-    expect(database.executedStatements[rowUpdateIndex].values.at(-1)).toBe(templateId);
+    expect(database.executedStatements[rowUpdateIndex].values.at(-3)).toBe(rowId);
+    expect(database.executedStatements[rowUpdateIndex].values.at(-2)).toBe(templateId);
+    expect(database.batchCalls).toHaveLength(1);
+    expect(database.batchCalls[0]?.map((statement) => statement.sql)).toEqual(expect.arrayContaining([
+      expect.stringContaining("UPDATE estimate_template_row_items"),
+      expect.stringContaining("UPDATE estimate_templates"),
+      expect.stringContaining("INSERT INTO component_library_telemetry_events"),
+      expect.stringContaining("INSERT INTO estimate_mutation_receipts"),
+    ]));
+
+    await expect(actions.updateEstimateTemplateRowItem({ intentId, templateId, rowId, patch: { material: "Updated row" } })).resolves.toMatchObject({
+      row: { id: rowId, material: "Updated row" },
+    });
+    expect(database.batchCalls).toHaveLength(1);
   });
 
   it("persists referenced component and selected variant identity in template row snapshots", async () => {
@@ -245,6 +336,8 @@ describe("template editor server action authorization", () => {
 
     const insert = database.executedStatements.find((statement) => statement.sql.includes("INSERT INTO estimate_template_row_items"));
     expect(insert?.values[4]).toBe(componentId);
+    expect(insert?.values[6]).toBe("recorded");
+    expect(insert?.values[16]).toBe(0);
     expect(JSON.parse(String(insert?.values[5]))).toMatchObject({
       sourceLibraryItemId: componentId,
       sourceComponentId: componentId,
@@ -254,6 +347,118 @@ describe("template editor server action authorization", () => {
       priceOptionLabel: "Blue",
       priceOptions: [expect.objectContaining({ id: priceOptionId, label: "Blue" })],
     });
+  });
+
+  it("leaves no Template domain write or receipt when the atomic batch fails", async () => {
+    const database = new FakeD1Database(true);
+    database.failBatch = true;
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const actions = await import("@/lib/component-library/template-editor-actions");
+
+    await expect(actions.updateEstimateTemplateRowItem({
+      intentId: "00000000-0000-4000-8000-000000000011",
+      templateId,
+      rowId,
+      patch: { material: "Should roll back" },
+    })).rejects.toThrow("Could not update the row.");
+
+    expect(database.batchCalls).toHaveLength(1);
+    expect(database.row.material).toBe("Existing row");
+    expect(database.receipts.size).toBe(0);
+    expect(database.executedStatements.some((statement) => statement.sql.includes("UPDATE estimate_template_row_items"))).toBe(false);
+  });
+
+  it("copies a detached Template graph, telemetry, and receipt in one replay-safe batch", async () => {
+    const database = new FakeD1Database(true);
+    database.sourceNodes = [
+      {
+        id: sourceGroupId,
+        template_id: sourceTemplateId,
+        parent_id: null,
+        kind: "group",
+        name: "Source group",
+        sort_order: 0,
+        metadata: "{}",
+        created_at: "2026-07-01T00:00:00.000Z",
+        updated_at: "2026-07-01T00:00:00.000Z",
+      },
+      {
+        id: sourceAreaId,
+        template_id: sourceTemplateId,
+        parent_id: sourceGroupId,
+        kind: "area",
+        name: "Source area",
+        sort_order: 0,
+        metadata: "{}",
+        created_at: "2026-07-01T00:00:00.000Z",
+        updated_at: "2026-07-01T00:00:00.000Z",
+      },
+    ];
+    database.sourceRows = [{
+      ...database.row,
+      id: sourceRowId,
+      template_id: sourceTemplateId,
+      template_node_id: sourceAreaId,
+      source_library_item_id: "00000000-0000-4000-8000-000000000015",
+      source_snapshot: "{}",
+      pricing_provenance_origin: "recorded",
+      contingency_percentage: 12,
+      adjustment_percentage: 0,
+    }];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const actions = await import("@/lib/component-library/template-editor-actions");
+    const input = {
+      intentId: "00000000-0000-4000-8000-000000000016",
+      targetTemplateId: templateId,
+      targetNodeId: null,
+      sourceTemplateId,
+    };
+
+    const first = await actions.insertTemplateIntoTemplate(input);
+    const replay = await actions.insertTemplateIntoTemplate(input);
+
+    expect(first.insertedNodeIds).toHaveLength(2);
+    expect(replay).toEqual(first);
+    expect(first.insertedNodeIds).not.toContain(sourceGroupId);
+    expect(first.insertedNodeIds).not.toContain(sourceAreaId);
+    expect(database.batchCalls).toHaveLength(1);
+    const batch = database.batchCalls[0] ?? [];
+    expect(batch.some((statement) => statement.sql.includes("template_composition_source_guard"))).toBe(true);
+    expect(batch.filter((statement) => statement.sql.includes("INSERT INTO estimate_template_nodes"))).toHaveLength(2);
+    expect(batch.some((statement) => statement.sql.includes("INSERT INTO component_library_telemetry_events"))).toBe(true);
+    expect(batch.some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
+    const rowInsert = batch.find((statement) => statement.sql.includes("INSERT INTO estimate_template_row_items"));
+    expect(rowInsert?.values[0]).not.toBe(sourceRowId);
+    expect(rowInsert?.values[6]).toBe("inherited_snapshot");
+    expect(rowInsert?.values[16]).toBe(0);
+    expect(rowInsert?.values[17]).toBe(12);
+  });
+
+  it("refuses oversized Template composition before opening an atomic batch", async () => {
+    const database = new FakeD1Database(true);
+    database.sourceNodes = Array.from({ length: 997 }, (_, index) => ({
+      id: `00000000-0000-4000-8001-${String(index).padStart(12, "0")}`,
+      template_id: sourceTemplateId,
+      parent_id: null,
+      kind: "group",
+      name: `Source group ${index}`,
+      sort_order: index,
+      metadata: "{}",
+      created_at: "2026-07-01T00:00:00.000Z",
+      updated_at: "2026-07-01T00:00:00.000Z",
+    }));
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const actions = await import("@/lib/component-library/template-editor-actions");
+
+    await expect(actions.insertTemplateIntoTemplate({
+      intentId: "00000000-0000-4000-8000-000000000017",
+      targetTemplateId: templateId,
+      targetNodeId: null,
+      sourceTemplateId,
+    })).rejects.toThrow("more than 1000 atomic D1 statements");
+
+    expect(database.batchCalls).toHaveLength(0);
+    expect(database.receipts.size).toBe(0);
   });
 });
 

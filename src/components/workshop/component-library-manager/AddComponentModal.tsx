@@ -36,6 +36,7 @@ import {
   type CreateCostLibraryComponentInput,
   type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
+import { resolveComponentCategory } from "@/lib/component-library/category-folders";
 import { formatVariantCode, formatVariantDropdownLabel } from "@/lib/component-library/variant-display";
 import {
   type LibraryFolderRecord,
@@ -118,7 +119,7 @@ type ComponentDraft = {
   variants: VariantDraft[];
 };
 
-type CatalogueOptionKind = "category" | "supplier" | "brand";
+type CatalogueOptionKind = "supplier" | "brand";
 
 type LocalCatalogueOption = {
   id: string;
@@ -241,7 +242,7 @@ const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
 const LOCAL_CATALOGUE_OPTION_PREFIX = "local-catalogue-option";
 const ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX = "archestimator:add-component-catalogue-options";
 const LOCAL_CATALOGUE_OPTION_LIMIT = 80;
-const CATALOGUE_OPTION_KINDS: CatalogueOptionKind[] = ["category", "supplier", "brand"];
+const CATALOGUE_OPTION_KINDS: CatalogueOptionKind[] = ["supplier", "brand"];
 
 function toComboboxOptions(options: Array<{ id: string; name: string }>): CreatableComboboxOption[] {
   return options.map((option) => ({ id: option.id, label: option.name }));
@@ -249,7 +250,6 @@ function toComboboxOptions(options: Array<{ id: string; name: string }>): Creata
 
 function emptyLocalCatalogueOptionsState(): LocalCatalogueOptionsState {
   return {
-    category: [],
     supplier: [],
     brand: [],
   };
@@ -669,12 +669,16 @@ function toVariantDraftFromPriceOption(
 }
 
 function getInitialDraft({
+  folders,
+  selectedFolderId,
   selectedSupplierId,
   selectedBrandId,
   suppliers,
   brands,
   editingItem,
 }: {
+  folders: LibraryFolderRecord[];
+  selectedFolderId: string | null;
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
   suppliers: ComponentLibrarySupplierOption[];
@@ -682,6 +686,11 @@ function getInitialDraft({
   editingItem?: EstimateRowItem | null;
 }): ComponentDraft {
   if (editingItem) {
+    const resolvedCategory = resolveComponentCategory(
+      folders,
+      editingItem.libraryFolderId,
+      editingItem.category,
+    );
     const selectedPriceOptionId = getSelectedEditingPriceOptionId(editingItem);
     const priceOptionDrafts = (editingItem.priceOptions ?? [])
       .filter((option) => option.isActive !== false)
@@ -705,8 +714,8 @@ function getInitialDraft({
         ];
     return {
       name: editingItem.name?.trim() || editingItem.material,
-      category: editingItem.category,
-      categoryNodeId: editingItem.categoryNodeId ?? "",
+      category: resolvedCategory.category,
+      categoryNodeId: "",
       supplierId: editingItem.supplierId ?? "",
       supplierName: editingItem.supplier,
       brand: editingItem.brand ?? "",
@@ -725,9 +734,10 @@ function getInitialDraft({
 
   const supplier = selectedSupplierId ? suppliers.find((entry) => entry.id === selectedSupplierId) : undefined;
   const brand = selectedBrandId ? brands.find((entry) => entry.id === selectedBrandId) : undefined;
+  const resolvedCategory = resolveComponentCategory(folders, selectedFolderId);
   return {
     name: "",
-    category: "",
+    category: resolvedCategory.category,
     categoryNodeId: "",
     supplierId: supplier?.id ?? "",
     supplierName: supplier?.name ?? "",
@@ -888,6 +898,7 @@ export function AddComponentModal(props: AddComponentModalProps) {
 
 function OpenAddComponentModal({
   open,
+  folders,
   suppliers,
   brands,
   libraryItems,
@@ -912,6 +923,8 @@ function OpenAddComponentModal({
     ? { projectId: projectImageUploadId, projectComponentId }
     : null;
   const [draft, setDraft] = useState(() => getInitialDraft({
+    folders,
+    selectedFolderId,
     selectedSupplierId,
     selectedBrandId,
     suppliers,
@@ -971,10 +984,6 @@ function OpenAddComponentModal({
 
   const baseBrandOptions = useMemo(() => toComboboxOptions(brands), [brands]);
   const baseSupplierOptions = useMemo(() => toComboboxOptions(suppliers), [suppliers]);
-  const localCategoryOptions = useMemo(
-    () => toLocalCatalogueComboboxOptions(localCatalogueOptions.category),
-    [localCatalogueOptions.category],
-  );
   const localBrandOptions = useMemo(
     () => toLocalCatalogueComboboxOptions(localCatalogueOptions.brand),
     [localCatalogueOptions.brand],
@@ -982,10 +991,6 @@ function OpenAddComponentModal({
   const localSupplierOptions = useMemo(
     () => toLocalCatalogueComboboxOptions(localCatalogueOptions.supplier),
     [localCatalogueOptions.supplier],
-  );
-  const categoryOptions = useMemo(
-    () => localCategoryOptions,
-    [localCategoryOptions],
   );
   const brandOptions = useMemo(
     () => mergeCatalogueComboboxOptions(baseBrandOptions, localBrandOptions),
@@ -999,7 +1004,6 @@ function OpenAddComponentModal({
   const selectedSupplier = suppliers.find((supplier) => supplier.id === draft.supplierId);
   const supplierValue = selectedSupplier?.name ?? draft.supplierName;
   const brandValue = selectedBrand?.name ?? draft.brand;
-  const selectedCategoryOptionId = findSelectedLocalCatalogueOptionId(draft.category, localCategoryOptions);
   const selectedSupplierOptionId = draft.supplierId || findSelectedLocalCatalogueOptionId(supplierValue, localSupplierOptions);
   const selectedBrandOptionId = draft.brandId || findSelectedLocalCatalogueOptionId(brandValue, localBrandOptions);
   const defaultVariant = draft.variants.find((variant) => variant.isDefault) ?? draft.variants[0];
@@ -1153,7 +1157,6 @@ function OpenAddComponentModal({
   }
 
   function getBaseCatalogueOptions(kind: CatalogueOptionKind): CreatableComboboxOption[] {
-    if (kind === "category") return [];
     if (kind === "supplier") return baseSupplierOptions;
     return baseBrandOptions;
   }
@@ -1186,9 +1189,6 @@ function OpenAddComponentModal({
       return { ...current, [kind]: nextOptions };
     });
 
-    if (kind === "category" && !draft.categoryNodeId && normalizeCatalogueOptionKey(draft.category) === optionKey) {
-      updateQuickAddIdentity({ category: "", categoryNodeId: "" });
-    }
     if (kind === "supplier" && !draft.supplierId && normalizeCatalogueOptionKey(draft.supplierName) === optionKey) {
       updateQuickAddIdentity({ supplierId: "", supplierName: "" });
     }
@@ -1597,17 +1597,6 @@ function OpenAddComponentModal({
     updateDraft({ sharedImageForAllVariants: false });
   }
 
-  function selectCategory(change: CreatableComboboxChange) {
-    const createdOption = change.reason === "create" ? rememberCatalogueOption("category", change.label) : null;
-    const fallbackLabel = change.reason === "input"
-      ? change.label
-      : normalizeCatalogueOptionLabel(createdOption?.label ?? change.label);
-    updateQuickAddIdentity({
-      category: fallbackLabel,
-      categoryNodeId: "",
-    });
-  }
-
   function selectSupplier(change: CreatableComboboxChange) {
     const createdOption = change.reason === "create" ? rememberCatalogueOption("supplier", change.label) : null;
     const supplierId = change.id && !isLocalCatalogueOptionId(change.id) ? change.id : "";
@@ -1988,25 +1977,13 @@ function OpenAddComponentModal({
 
                   <section className={OPENDESIGN_SECTION_CLASS} aria-label="Catalogue fields">
                     <div className={OPENDESIGN_SECTION_TITLE_CLASS}>Catalogue</div>
-                    <ControlField as="div" label="Category" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.category}>
-                      <CreatableCombobox
-                        ariaLabel="Category"
-                        ariaRequired
-                        value={draft.category}
-                        selectedId={selectedCategoryOptionId}
-                        options={categoryOptions}
-                        placeholder="Search categories"
-                        emptyLabel="No categories found"
-                        createLabel={(value) => `Add category "${value}"`}
-                        invalid={Boolean(visibleValidationErrors.category)}
-                        inputClassName={OPENDESIGN_INPUT_CLASS}
-                        onChange={selectCategory}
-                        isOptionDeletable={isLocalCatalogueComboboxOption}
-                        onDeleteOption={(option) => deleteCatalogueOption("category", option)}
-                        getDeleteOptionLabel={(option) => `Delete category "${option.label}"`}
-                        preferSelectionOnEnter
-                        showClearButton={false}
-                        showDropdownIndicator
+                    <ControlField as="div" label="Direct category" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
+                      <ControlInput
+                        aria-label="Direct category"
+                        value={resolveComponentCategory(folders, editingItem?.libraryFolderId ?? selectedFolderId, draft.category).categoryPath.join(" / ")}
+                        readOnly
+                        aria-readonly="true"
+                        className={OPENDESIGN_INPUT_CLASS}
                       />
                     </ControlField>
                     <ControlField as="div" label="Supplier" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.supplier}>

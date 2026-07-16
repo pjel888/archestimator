@@ -404,6 +404,7 @@ describe("component library UI", () => {
 
     await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledTimes(1));
     expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledWith({
+      intentId: expect.any(String),
       projectId: "project-2",
       estimateId: "estimate-2",
       tabId: "tab-2",
@@ -2468,6 +2469,12 @@ describe("templates tree", () => {
 
     const sourceFilter = screen.getByRole("combobox", { name: "Reusable source filter" });
     expect(sourceFilter).toHaveTextContent("All sources");
+    expect(sourceFilter).toHaveClass("w-auto", "bg-transparent");
+    const templateCheckbox = screen.getByRole("checkbox", { name: "Select Kitchen Starter" });
+    fireEvent.click(templateCheckbox);
+    expect(templateCheckbox).toHaveAttribute("aria-checked", "true");
+    const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    const templateExpandedState = templateRow.getAttribute("aria-expanded");
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     const allSourcesProjectSection = screen.getByRole("treeitem", { name: "Projects reusable sources" });
     expect(allSourcesProjectSection).toBeInTheDocument();
@@ -2475,9 +2482,13 @@ describe("templates tree", () => {
     expect(allSourcesProjectSection).toHaveClass("mt-1");
 
     fireEvent.click(sourceFilter);
-    fireEvent.click(screen.getByRole("option", { name: "From projects" }));
+    const sourceListbox = screen.getByRole("listbox", { name: "Reusable source filter" });
+    expect(sourceListbox).toHaveClass("bg-white");
+    expect(sourceListbox.className).toContain("aria-selected=true");
+    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
 
-    expect(sourceFilter).toHaveTextContent("From projects");
+    expect(sourceFilter).toHaveFocus();
+    expect(sourceFilter).toHaveTextContent("Project sources");
     expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
     const projectOnlySection = screen.getByRole("treeitem", { name: "Projects reusable sources" });
     expect(projectOnlySection).toBeInTheDocument();
@@ -2491,6 +2502,8 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Template Group" })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Select Kitchen Starter" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" })).toHaveAttribute("aria-expanded", templateExpandedState);
   });
 
   it("restores custom templates when project-source loading resolves empty after selecting the project filter", async () => {
@@ -2505,9 +2518,9 @@ describe("templates tree", () => {
 
     const sourceFilter = await screen.findByRole("combobox", { name: "Reusable source filter" });
     fireEvent.click(sourceFilter);
-    fireEvent.click(screen.getByRole("option", { name: "From projects" }));
+    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
 
-    expect(sourceFilter).toHaveTextContent("From projects");
+    expect(sourceFilter).toHaveTextContent("Project sources");
     expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
 
     await act(async () => {
@@ -2520,6 +2533,31 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" })).toBeInTheDocument();
     expect(screen.queryByText(/No templates yet/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps loaded source-family toggles local without repeating project-source search", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({ sources: projectSources });
+    reusableSourceActionMocks.searchReusableProjectSources.mockResolvedValue({ sources: projectSources });
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+
+    const search = openLibrarySearch("Show templates search", "Search Templates");
+    fireEvent.change(search, { target: { value: "Amenity" } });
+    await waitFor(() => expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledTimes(1));
+
+    const sourceFilter = screen.getByRole("combobox", { name: "Reusable source filter" });
+    fireEvent.click(sourceFilter);
+    fireEvent.click(screen.getByRole("option", { name: "Custom templates" }));
+    fireEvent.click(sourceFilter);
+    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
+    });
+    expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledTimes(1);
+    expect(search).toHaveValue("Amenity");
+    expect(sourceFilter).toHaveFocus();
   });
 
   it("drags a project tab source with the project-source payload", () => {
@@ -2697,7 +2735,7 @@ describe("templates tree", () => {
     expect(within(preview).getByText("group")).toBeInTheDocument();
   });
 
-  it("bulk-adds checked project-source targets as top-level reusable selections", () => {
+  it("bulk-adds checked project-source targets as top-level reusable selections", async () => {
     const onInsertProjectSource = vi.fn(() => true);
     openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
@@ -2706,7 +2744,7 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Page 001" }));
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
-    expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onInsertProjectSource).toHaveBeenCalledTimes(1));
     expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
       kind: "project-tab",
       tabId: "tab-2",
@@ -2735,7 +2773,7 @@ describe("templates tree", () => {
     expect(onInsertProjectSource).not.toHaveBeenCalled();
   });
 
-  it("keyboard-selects a project source for bulk insertion", () => {
+  it("keyboard-selects a project source for bulk insertion", async () => {
     const onInsertProjectSource = vi.fn(() => true);
     openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
@@ -2749,7 +2787,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
-    expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onInsertProjectSource).toHaveBeenCalledTimes(1));
     expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
       kind: "project-tab",
       tabId: "tab-2",
@@ -2798,6 +2836,49 @@ describe("templates tree", () => {
     expect(onInsertTemplate).toHaveBeenCalledWith(expect.objectContaining({ id: "tpl-1" }));
   });
 
+  it("inserts a template category through one awaited batch callback", async () => {
+    let resolveInsert: ((inserted: boolean) => void) | undefined;
+    const insertResult = new Promise<boolean>((resolve) => {
+      resolveInsert = resolve;
+    });
+    const onInsertTemplate = vi.fn(() => true);
+    const onInsertTemplates = vi.fn(() => insertResult);
+    const bathTemplate: EstimateTemplate = {
+      ...sidebarTemplates[0],
+      id: "tpl-2",
+      name: "Bath Starter",
+      nodes: sidebarTemplates[0].nodes.map((node) => ({ ...node, id: "tpl-2-root", name: "Bath Fit-Out" })),
+    };
+    openTemplatesTab({
+      templates: [...sidebarTemplates, bathTemplate],
+      onInsertTemplate,
+      onInsertTemplates,
+      selectedNodeKind: "area",
+      selectedNodeName: "Kitchen",
+    });
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Rooms templates" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Add 2 templates to Kitchen" }));
+
+    expect(onInsertTemplates).toHaveBeenCalledTimes(1);
+    expect(onInsertTemplates).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "tpl-1" }),
+      expect.objectContaining({ id: "tpl-2" }),
+    ]);
+    expect(onInsertTemplate).not.toHaveBeenCalled();
+    expect(toastMocks.toast).not.toHaveBeenCalledWith(expect.objectContaining({ message: "2 templates added to Kitchen." }));
+
+    await act(async () => {
+      resolveInsert?.(true);
+      await insertResult;
+    });
+
+    await waitFor(() => expect(toastMocks.toast).toHaveBeenCalledWith(expect.objectContaining({
+      tone: "success",
+      message: "2 templates added to Kitchen.",
+    })));
+  });
+
   it("keyboard-selects a custom template for bulk insertion", () => {
     const onInsertTemplate = vi.fn(() => true);
     openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
@@ -2826,7 +2907,11 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save name" }));
 
     await waitFor(() => expect(screen.getByRole("treeitem", { name: "Kitchen Deluxe estimate template" })).toBeInTheDocument());
-    expect(templateActionMocks.renameEstimateTemplate).toHaveBeenCalledWith({ templateId: "tpl-1", name: "Kitchen Deluxe" });
+    expect(templateActionMocks.renameEstimateTemplate).toHaveBeenCalledWith({
+      intentId: expect.any(String),
+      templateId: "tpl-1",
+      name: "Kitchen Deluxe",
+    });
   });
 
   it("deletes a template from its context menu after confirmation", async () => {
@@ -2840,7 +2925,10 @@ describe("templates tree", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete template" }));
 
     await waitFor(() => expect(screen.queryByRole("treeitem", { name: "Kitchen Starter estimate template" })).not.toBeInTheDocument());
-    expect(templateActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({ templateId: "tpl-1" });
+    expect(templateActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({
+      intentId: expect.any(String),
+      templateId: "tpl-1",
+    });
     expect(screen.queryByText(/No templates yet/i)).not.toBeInTheDocument();
     expect(screen.getByRole("tree", { name: "Reusable estimate sources" })).toBeInTheDocument();
   });

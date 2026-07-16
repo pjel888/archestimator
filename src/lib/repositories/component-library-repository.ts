@@ -8,16 +8,15 @@ import type {
   EstimateTreeNode,
 } from "@/lib/estimates/types";
 import {
-  estimateTemplates,
   summarizeEstimateTemplate,
   type EstimateTemplate,
   type EstimateTemplateSummary,
 } from "@/lib/component-library/estimate-templates";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
+import { resolveComponentCategory } from "@/lib/component-library/category-folders";
 import {
   buildComponentCategoryTreeFromRows,
   componentCategoryTree,
-  findComponentCategoryPath,
   type ComponentLibraryCategoryRow,
   type ComponentLibraryTaxonomyNode,
 } from "@/lib/component-library/taxonomy";
@@ -47,6 +46,7 @@ export type ComponentLibraryFolder = {
   sort_order: number;
   source_category_node_id: string | null;
   folder_kind: LibraryFolderKind;
+  is_default_category?: number | boolean | null;
 };
 
 export type ComponentLibraryDataset = {
@@ -289,6 +289,36 @@ export const COMPONENT_ROWS_LIBRARY_PAGE_SIZE = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50;
 export const SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100;
 export const ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT = 50;
+export const ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH = "migrations/0024_estimate_templates.sql";
+export const ESTIMATE_TEMPLATE_SCHEMA_TABLES = [
+  "estimate_templates",
+  "estimate_template_nodes",
+  "estimate_template_row_items",
+] as const;
+export type EstimateTemplateSchemaTable = (typeof ESTIMATE_TEMPLATE_SCHEMA_TABLES)[number];
+export type EstimateTemplateSchemaUnavailableState = {
+  status: "schema_unavailable";
+  reason: "migration_required";
+  migrationPath: typeof ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH;
+  missingTables: EstimateTemplateSchemaTable[];
+};
+
+export class EstimateTemplateSchemaUnavailableError extends Error {
+  readonly status = "schema_unavailable" as const;
+  readonly code = "schema_unavailable" as const;
+  readonly reason = "migration_required" as const;
+  readonly migrationPath = ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH;
+  readonly missingTables: EstimateTemplateSchemaTable[];
+
+  constructor(missingTables: readonly EstimateTemplateSchemaTable[]) {
+    const normalizedMissingTables = ESTIMATE_TEMPLATE_SCHEMA_TABLES.filter((tableName) => missingTables.includes(tableName));
+    super(
+      `Template storage schema is unavailable. Apply ${ESTIMATE_TEMPLATE_SCHEMA_MIGRATION_PATH}. Missing tables: ${normalizedMissingTables.join(", ")}.`,
+    );
+    this.name = "EstimateTemplateSchemaUnavailableError";
+    this.missingTables = normalizedMissingTables;
+  }
+}
 export const SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS =
   "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
 
@@ -340,6 +370,47 @@ async function all<T>(database: D1DatabaseLike, sql: string, values: readonly un
 
 async function first<T>(database: D1DatabaseLike, sql: string, values: readonly unknown[] = []): Promise<T | null> {
   return database.prepare(sql).bind(...bindValues(values)).first<T>();
+}
+
+function readErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message.toLowerCase();
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message.toLowerCase();
+  }
+  return "";
+}
+
+function isMissingEstimateTemplateTableError(error: unknown, tableName: EstimateTemplateSchemaTable): boolean {
+  const message = readErrorMessage(error);
+  return message.includes(tableName)
+    && (message.includes("no such table") || message.includes("does not exist") || message.includes("schema cache"));
+}
+
+function rethrowEstimateTemplateSchemaError(error: unknown): never {
+  if (error instanceof EstimateTemplateSchemaUnavailableError) throw error;
+  const missingTables = ESTIMATE_TEMPLATE_SCHEMA_TABLES.filter((tableName) => isMissingEstimateTemplateTableError(error, tableName));
+  if (missingTables.length > 0) throw new EstimateTemplateSchemaUnavailableError(missingTables);
+  throw error;
+}
+
+async function assertEstimateTemplateGraphTablesAvailable(database: D1DatabaseLike): Promise<void> {
+  const graphTables = ESTIMATE_TEMPLATE_SCHEMA_TABLES.filter((tableName) => tableName !== "estimate_templates");
+  const checks = await Promise.allSettled(
+    graphTables.map((tableName) => all(database, `SELECT 1 FROM ${tableName} LIMIT 0`)),
+  );
+  const missingTables: EstimateTemplateSchemaTable[] = [];
+
+  for (const [index, check] of checks.entries()) {
+    if (check.status === "fulfilled") continue;
+    const tableName = graphTables[index];
+    if (tableName && isMissingEstimateTemplateTableError(check.reason, tableName)) {
+      missingTables.push(tableName);
+      continue;
+    }
+    throw check.reason;
+  }
+
+  if (missingTables.length > 0) throw new EstimateTemplateSchemaUnavailableError(missingTables);
 }
 
 function readJson(value: Json | string | null | undefined): Json {
@@ -544,16 +615,15 @@ function formatPeso(value: number) {
 
 function normalizeComponentLibraryItem(
   row: CostLibraryItemRow,
-  categoryById: Map<string, ComponentLibraryTaxonomyNode>,
   supplierById: Map<string, ComponentLibrarySupplier>,
   brandById: Map<string, ComponentLibraryBrand>,
-  categoryTree: ComponentLibraryTaxonomyNode[],
+  libraryFolders: ComponentLibraryFolder[],
   priceOptions: ComponentPriceOption[] = [],
   history: ComponentHistoryEntry[] = [],
   latestVersion?: ComponentVersionRow,
 ): EstimateRowItem {
   const metadata = readMetadataRecord(row.metadata);
-  const categoryNode = row.category_node_id ? categoryById.get(row.category_node_id) : undefined;
+  const category = resolveComponentCategory(libraryFolders, row.library_folder_id, row.category);
   const supplier = row.supplier_id ? supplierById.get(row.supplier_id) : undefined;
   const brand = row.brand_id ? brandById.get(row.brand_id) : undefined;
   const defaultPriceOption = priceOptions.find((option) => option.isDefault && option.isActive) ?? priceOptions.find((option) => option.isActive);
@@ -583,9 +653,11 @@ function normalizeComponentLibraryItem(
     miscCostDefault: miscCost,
     totalItemCosts: itemCost + miscCost,
     imageUrl: defaultPriceOption?.thumbnailPath ?? row.thumbnail_path ?? readString(metadata.imageUrl),
-    category: categoryNode?.label ?? row.category,
+    category: category.category,
+    categoryId: category.categoryId,
     categoryNodeId: row.category_node_id ?? undefined,
-    categoryPath: row.category_node_id ? findComponentCategoryPath(categoryTree, row.category_node_id) ?? undefined : undefined,
+    categoryPath: category.categoryPath,
+    categoryPathIds: category.categoryPathIds,
     libraryFolderId: row.library_folder_id ?? undefined,
     brand: brand?.name ?? row.brand ?? undefined,
     brandId: row.brand_id ?? undefined,
@@ -740,10 +812,6 @@ function normalizeStateHistory(row: ComponentStateHistoryRow): ComponentHistoryE
   };
 }
 
-function flattenCategoryTree(nodes: ComponentLibraryTaxonomyNode[]): ComponentLibraryTaxonomyNode[] {
-  return nodes.flatMap((node) => [node, ...flattenCategoryTree(node.children ?? [])]);
-}
-
 function compareSortOrder(a: { sort_order: number; id: string }, b: { sort_order: number; id: string }) {
   if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
   return a.id.localeCompare(b.id);
@@ -759,7 +827,7 @@ function sortFolders(folders: ComponentLibraryFolder[]): ComponentLibraryFolder[
 
 function normalizeComponentLibraryFolder(folder: Pick<
   ComponentLibraryFolder,
-  "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind"
+  "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind" | "is_default_category"
 >): ComponentLibraryFolder {
   return {
     ...folder,
@@ -773,7 +841,7 @@ async function fetchLibraryFolders(
 ): Promise<ComponentLibraryFolder[]> {
   const rows = await all<ComponentLibraryFolder>(
     database,
-    `SELECT id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind
+    `SELECT id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind, is_default_category
      FROM library_folders
      WHERE workspace_id = ?
        AND folder_kind = 'custom'
@@ -852,7 +920,6 @@ export function parseLibraryTemplatesSeedPayload(value: unknown): LibraryTemplat
 
 function buildComponentRowsLibraryDataset({
   workspaceId,
-  categoryRows,
   suppliers,
   persistedBrands,
   libraryFolders,
@@ -883,7 +950,18 @@ function buildComponentRowsLibraryDataset({
   stateHistoryRows?: ComponentStateHistoryRow[];
   attachmentRows?: ComponentVariantAttachmentRow[];
 }): ComponentRowsLibraryDataset {
-  const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
+  const folderCategoryRows: ComponentLibraryCategoryRow[] = libraryFolders.map((folder) => ({
+    id: folder.id,
+    parent_id: folder.parent_id,
+    label: folder.name,
+    node_type: folder.parent_id ? "subcategory" : "category",
+    sort_order: folder.sort_order,
+    code: null,
+    metadata: {},
+  }));
+  const categoryTree = folderCategoryRows.length > 0
+    ? buildComponentCategoryTreeFromRows(folderCategoryRows)
+    : [];
   const fallbackBrandMap = new Map<string, ComponentLibraryBrand>();
   for (const row of itemRows) {
     const brandName = row.brand?.trim();
@@ -950,7 +1028,6 @@ function buildComponentRowsLibraryDataset({
     addHistory(row.item_id, normalizeStateHistory(row));
   }
 
-  const categoryById = new Map(flattenCategoryTree(categoryTree).map((node) => [node.id, node]));
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
   const brandById = new Map(brands.map((brand) => [brand.id, brand]));
   const libraryItems = itemRows.map((row) => {
@@ -959,10 +1036,9 @@ function buildComponentRowsLibraryDataset({
     ));
     const item = normalizeComponentLibraryItem(
       row,
-      categoryById,
       supplierById,
       brandById,
-      categoryTree,
+      libraryFolders,
       priceOptionsByItemId.get(row.id) ?? [],
       history,
       versionsByItemId.get(row.id)?.[0],
@@ -1040,7 +1116,10 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
     imageUrl: readString(sourceSnapshot.imageUrl),
     category: readString(sourceSnapshot.category) ?? "General",
+    categoryId: readString(sourceSnapshot.categoryId) ?? undefined,
     categoryNodeId: categoryNodeId ?? undefined,
+    categoryPath: readStringArray(sourceSnapshot.categoryPath),
+    categoryPathIds: readStringArray(sourceSnapshot.categoryPathIds),
     brand: readString(sourceSnapshot.brand),
     brandId: readString(sourceSnapshot.brandId),
     discipline: row.discipline || readString(sourceSnapshot.discipline),
@@ -1164,10 +1243,6 @@ export function buildEstimateTemplateSummariesFromRows(input: {
   });
 }
 
-export function getTemplateTableFallbackTemplates({ isTemplateTableMissing }: { isTemplateTableMissing: boolean }): EstimateTemplate[] {
-  return isTemplateTableMissing ? estimateTemplates : [];
-}
-
 async function loadCurrentWorkspaceComponentRowsLibrary({
   database,
   workspaceId,
@@ -1213,11 +1288,7 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
 }): Promise<ComponentRowsLibraryDataset> {
   const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
   const selectedItemIds = itemIds ? [...new Set(itemIds.filter(isUuid))] : [];
-  const [categoryRows, suppliers, persistedBrands, libraryFolders, itemRows] = await Promise.all([
-    all<ComponentLibraryCategoryRow>(
-      database,
-      "SELECT * FROM component_category_nodes ORDER BY sort_order ASC, label ASC",
-    ),
+  const [suppliers, persistedBrands, libraryFolders, itemRows] = await Promise.all([
     all<ComponentLibrarySupplier>(
       database,
       `SELECT id, name, normalized_name, sort_order
@@ -1371,7 +1442,7 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
 
   return buildComponentRowsLibraryDataset({
     workspaceId,
-    categoryRows,
+    categoryRows: [],
     suppliers,
     persistedBrands,
     libraryFolders,
@@ -1396,17 +1467,20 @@ async function loadCurrentWorkspaceEstimateTemplatesAppPath({
   workspaceId: string;
   templateId?: string | null;
 }): Promise<EstimateTemplate[]> {
-  const persistedTemplateRows = await all<EstimateTemplateRow>(
-    database,
-    `SELECT *
-     FROM estimate_templates
-     WHERE workspace_id = ?${templateId ? " AND id = ?" : ""}
-     ORDER BY sort_order ASC, name ASC`,
-    templateId ? [workspaceId, templateId] : [workspaceId],
-  );
-  let libraryTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing: false });
+  try {
+    const persistedTemplateRows = await all<EstimateTemplateRow>(
+      database,
+      `SELECT *
+       FROM estimate_templates
+       WHERE workspace_id = ?${templateId ? " AND id = ?" : ""}
+       ORDER BY sort_order ASC, name ASC`,
+      templateId ? [workspaceId, templateId] : [workspaceId],
+    );
+    if (persistedTemplateRows.length === 0) {
+      await assertEstimateTemplateGraphTablesAvailable(database);
+      return [];
+    }
 
-  if (persistedTemplateRows.length > 0) {
     const templateIds = persistedTemplateRows.map((template) => template.id);
     const [templateNodes, templateRowItems] = await Promise.all([
       all<EstimateTemplateNodeRow>(
@@ -1427,14 +1501,14 @@ async function loadCurrentWorkspaceEstimateTemplatesAppPath({
       ),
     ]);
 
-    libraryTemplates = buildEstimateTemplatesFromRows({
+    return buildEstimateTemplatesFromRows({
       templates: persistedTemplateRows,
       nodes: templateNodes,
       rowItems: templateRowItems,
     });
+  } catch (error) {
+    rethrowEstimateTemplateSchemaError(error);
   }
-
-  return libraryTemplates;
 }
 
 async function loadCurrentWorkspaceEstimateTemplateSummaries({
@@ -1446,47 +1520,54 @@ async function loadCurrentWorkspaceEstimateTemplateSummaries({
   workspaceId: string;
   limit?: number;
 }): Promise<EstimateTemplate[]> {
-  const boundedLimit = Math.max(1, Math.min(Math.trunc(limit), ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT));
-  const templates = await all<EstimateTemplateRow>(
-    database,
-    `SELECT *
-     FROM estimate_templates
-     WHERE workspace_id = ?
-     ORDER BY sort_order ASC, name ASC
-     LIMIT ?`,
-    [workspaceId, boundedLimit],
-  );
-  if (templates.length === 0) return [];
-
-  const templateIds = templates.map((template) => template.id);
-  const [nodeSummaries, costSummaries] = await Promise.all([
-    all<EstimateTemplateNodeSummaryRow>(
+  try {
+    const boundedLimit = Math.max(1, Math.min(Math.trunc(limit), ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT));
+    const templates = await all<EstimateTemplateRow>(
       database,
-      `SELECT template_id,
-              SUM(CASE WHEN kind = 'group' THEN 1 ELSE 0 END) AS group_count,
-              SUM(CASE WHEN kind = 'area' THEN 1 ELSE 0 END) AS area_count
-       FROM estimate_template_nodes
-       WHERE template_id IN (${placeholders(templateIds)})
-       GROUP BY template_id`,
-      templateIds,
-    ),
-    all<EstimateTemplateCostSummaryRow>(
-      database,
-      `SELECT template_id,
-              COUNT(*) AS row_count,
-              COALESCE(SUM(
-                (quantity * unit_cost)
-                + misc_cost
-                + ((quantity * unit_cost) * COALESCE(adjustment_percentage, contingency_percentage, 0) / 100.0)
-              ), 0) AS total
-       FROM estimate_template_row_items
-       WHERE template_id IN (${placeholders(templateIds)})
-       GROUP BY template_id`,
-      templateIds,
-    ),
-  ]);
+      `SELECT *
+       FROM estimate_templates
+       WHERE workspace_id = ?
+       ORDER BY sort_order ASC, name ASC
+       LIMIT ?`,
+      [workspaceId, boundedLimit],
+    );
+    if (templates.length === 0) {
+      await assertEstimateTemplateGraphTablesAvailable(database);
+      return [];
+    }
 
-  return buildEstimateTemplateSummariesFromRows({ templates, nodeSummaries, costSummaries });
+    const templateIds = templates.map((template) => template.id);
+    const [nodeSummaries, costSummaries] = await Promise.all([
+      all<EstimateTemplateNodeSummaryRow>(
+        database,
+        `SELECT template_id,
+                SUM(CASE WHEN kind = 'group' THEN 1 ELSE 0 END) AS group_count,
+                SUM(CASE WHEN kind = 'area' THEN 1 ELSE 0 END) AS area_count
+         FROM estimate_template_nodes
+         WHERE template_id IN (${placeholders(templateIds)})
+         GROUP BY template_id`,
+        templateIds,
+      ),
+      all<EstimateTemplateCostSummaryRow>(
+        database,
+        `SELECT template_id,
+                COUNT(*) AS row_count,
+                COALESCE(SUM(
+                  (quantity * unit_cost)
+                  + misc_cost
+                  + ((quantity * unit_cost) * COALESCE(adjustment_percentage, contingency_percentage, 0) / 100.0)
+                ), 0) AS total
+         FROM estimate_template_row_items
+         WHERE template_id IN (${placeholders(templateIds)})
+         GROUP BY template_id`,
+        templateIds,
+      ),
+    ]);
+
+    return buildEstimateTemplateSummariesFromRows({ templates, nodeSummaries, costSummaries });
+  } catch (error) {
+    rethrowEstimateTemplateSchemaError(error);
+  }
 }
 
 async function loadCurrentWorkspaceEstimateTemplates({
@@ -1609,25 +1690,48 @@ export async function getCurrentWorkspaceComponentRowDetail(itemId: string): Pro
   return library.libraryItems[0] ?? null;
 }
 
-export type CurrentWorkspaceEstimateTemplatesSeed = {
-  templates: EstimateTemplate[];
+type CurrentWorkspaceEstimateTemplatesSeedBase = {
   userId: string;
   workspaceId: string;
 };
 
+export type CurrentWorkspaceEstimateTemplatesSeed = CurrentWorkspaceEstimateTemplatesSeedBase & ({
+  status: "available";
+  templates: EstimateTemplate[];
+} | (EstimateTemplateSchemaUnavailableState & {
+  templates: [];
+}));
+
 export async function getCurrentWorkspaceEstimateTemplatesSeed(): Promise<CurrentWorkspaceEstimateTemplatesSeed> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const database = await requireComponentLibraryRepositoryD1Database();
-  return {
-    templates: await loadCurrentWorkspaceEstimateTemplateSummaries({ database, workspaceId: workspace.id }),
-    userId: profile.id,
-    workspaceId: workspace.id,
-  };
+  try {
+    return {
+      status: "available",
+      templates: await loadCurrentWorkspaceEstimateTemplateSummaries({ database, workspaceId: workspace.id }),
+      userId: profile.id,
+      workspaceId: workspace.id,
+    };
+  } catch (error) {
+    if (!(error instanceof EstimateTemplateSchemaUnavailableError)) throw error;
+    return {
+      status: "schema_unavailable",
+      reason: error.reason,
+      migrationPath: error.migrationPath,
+      missingTables: error.missingTables,
+      templates: [],
+      userId: profile.id,
+      workspaceId: workspace.id,
+    };
+  }
 }
 
 export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
-  const { templates } = await getCurrentWorkspaceEstimateTemplatesSeed();
-  return templates;
+  const seed = await getCurrentWorkspaceEstimateTemplatesSeed();
+  if (seed.status === "schema_unavailable") {
+    throw new EstimateTemplateSchemaUnavailableError(seed.missingTables);
+  }
+  return seed.templates;
 }
 
 /** Pricing-date age beyond which a component price counts as stale on the Overview health line. */
@@ -1970,7 +2074,8 @@ async function getLibraryOverviewAppPath(): Promise<LibraryOverview> {
     ),
     first<CountRow>(
       database,
-      "SELECT COUNT(*) AS count FROM component_category_nodes WHERE parent_id IS NULL",
+      "SELECT COUNT(*) AS count FROM library_folders WHERE workspace_id = ? AND folder_kind = 'custom'",
+      [workspaceId],
     ),
     first<CountRow>(
       database,
@@ -2078,10 +2183,6 @@ async function getLibraryOverviewAppPath(): Promise<LibraryOverview> {
     recentTemplates = recentTemplateRows
       .map((row) => builtById.get(row.id))
       .filter((template): template is EstimateTemplate => Boolean(template))
-      .map(toLibraryOverviewTemplate);
-  } else {
-    recentTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing: false })
-      .slice(0, 5)
       .map(toLibraryOverviewTemplate);
   }
 

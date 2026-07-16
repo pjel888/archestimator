@@ -33,6 +33,7 @@ const CHILD_FOLDER_ID = "00000000-0000-4000-8000-000000000004";
 const GRANDCHILD_FOLDER_ID = "00000000-0000-4000-8000-000000000005";
 const SIBLING_FOLDER_ID = "00000000-0000-4000-8000-000000000006";
 const FOREIGN_FOLDER_ID = "00000000-0000-4000-8000-000000000007";
+const LEGACY_FOLDER_ID = "legacy-folder-id";
 
 function createD1Fixture(options: {
   firstResults?: unknown[];
@@ -135,7 +136,7 @@ describe("component library folder server actions", () => {
     expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
     expect(d1.statements.map((statement) => statement.sql)).toEqual(expect.arrayContaining([
       expect.stringContaining("SELECT * FROM library_folders"),
-      expect.stringContaining("UPDATE cost_library_items SET library_folder_id = NULL"),
+      expect.stringContaining("UPDATE cost_library_items SET library_folder_id = ?"),
       expect.stringContaining("DELETE FROM library_folders"),
     ]));
     const liftedChildren = d1.statements.filter((statement) => statement.sql.includes("UPDATE library_folders") && statement.sql.includes("sort_order = ?"));
@@ -292,26 +293,26 @@ describe("component library folder server actions", () => {
     expect(insert?.values).toEqual(expect.arrayContaining([WORKSPACE_ID, null, "Top folder", 0, USER_ID]));
   });
 
-  it("moves a component by updating only its library folder", async () => {
+  it("moves a component and derives its category from the destination folder", async () => {
     const d1 = createD1Fixture({
       firstResults: [
-        { id: FOLDER_ID },
+        { id: LEGACY_FOLDER_ID, name: "Flooring" },
         { id: ITEM_ID },
       ],
     });
     const actions = await import("@/lib/component-library/actions");
 
-    await expect(actions.moveCostLibraryComponentToFolder({ itemId: ITEM_ID, libraryFolderId: FOLDER_ID })).resolves.toBeUndefined();
+    await expect(actions.moveCostLibraryComponentToFolder({ itemId: ITEM_ID, libraryFolderId: LEGACY_FOLDER_ID })).resolves.toBeUndefined();
 
     expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
     expect(d1.statements).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        sql: expect.stringContaining("SELECT id\n      FROM library_folders"),
-        values: [FOLDER_ID, WORKSPACE_ID],
+        sql: expect.stringContaining("SELECT id, name\n      FROM library_folders"),
+        values: [LEGACY_FOLDER_ID, WORKSPACE_ID],
       }),
       expect.objectContaining({
         sql: expect.stringContaining("UPDATE cost_library_items SET library_folder_id = ?"),
-        values: [FOLDER_ID, expect.any(String), ITEM_ID, WORKSPACE_ID],
+        values: [LEGACY_FOLDER_ID, "Flooring", expect.any(String), ITEM_ID, WORKSPACE_ID],
       }),
       expect.objectContaining({
         sql: expect.stringContaining("SELECT id FROM cost_library_items"),

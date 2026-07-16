@@ -170,11 +170,13 @@ export function NewTemplateModal({
     dispatchForm({ type: "submit:start" });
     try {
       let result: { template: EstimateTemplate };
+      const intentId = globalThis.crypto.randomUUID();
       if (scratchMode) {
-        result = await createEstimateTemplate({ name, category, description });
+        result = await createEstimateTemplate({ intentId, name, category, description });
       } else if (tabMode) {
         if (!sourceNode || !projectId || !estimateId || !sourceTabId) return;
         result = await createEstimateTemplateFromEstimateTab({
+          intentId,
           projectId,
           estimateId,
           tabId: sourceTabId,
@@ -186,6 +188,7 @@ export function NewTemplateModal({
       } else {
         if (!sourceNode || !projectId || !estimateId) return;
         result = await createEstimateTemplateFromEstimateNode({
+          intentId,
           projectId,
           estimateId,
           sourceNodeId: sourceNode.id,

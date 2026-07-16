@@ -332,6 +332,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(componentLibraryActionMocks.resolveEstimateTemplateInsertTarget).toHaveBeenCalledTimes(2);
     await waitFor(() => {
       expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         projectId: "project-1",
         estimateId: "estimate-1",
         targetParentNodeId: "node-root-group",
@@ -360,6 +361,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
 
     await waitFor(() => {
       expect(componentLibraryActionMocks.renameEstimateTemplate).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-condo",
         name: "Condo Premium",
       });
@@ -383,7 +385,10 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete template" }));
 
     await waitFor(() => {
-      expect(componentLibraryActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({ templateId: "template-condo" });
+      expect(componentLibraryActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({
+        intentId: expect.any(String),
+        templateId: "template-condo",
+      });
     });
     await waitFor(() => {
       expect(within(getGallery()).queryByText("Condo Starter")).not.toBeInTheDocument();
@@ -400,7 +405,10 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
 
     await waitFor(() => {
-      expect(componentLibraryActionMocks.duplicateEstimateTemplate).toHaveBeenCalledWith({ templateId: "template-condo" });
+      expect(componentLibraryActionMocks.duplicateEstimateTemplate).toHaveBeenCalledWith({
+        intentId: expect.any(String),
+        templateId: "template-condo",
+      });
     });
     expect(await within(screen.getByRole("list", { name: "All Templates template rows" })).findByText("Condo Starter copy")).toBeInTheDocument();
   });
@@ -443,6 +451,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
 
     await waitFor(() => {
       expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-condo",
         category: "Exterior",
       });
@@ -470,6 +479,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
 
     await waitFor(() => {
       expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-condo",
         category: "Exterior",
       });
@@ -495,6 +505,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
 
     await waitFor(() => {
       expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-condo",
         category: "Premium",
       });

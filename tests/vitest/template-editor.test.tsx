@@ -256,6 +256,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.updateEstimateTemplateRowItem).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         rowId: "row-1",
         patch: { quantity: 3 },
@@ -276,6 +277,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.updateEstimateTemplateRowItem).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         rowId: "row-1",
         patch: { quantity: 3 },
@@ -288,6 +290,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.updateEstimateTemplateRowItem).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         rowId: "row-1",
         patch: { unitCost: 12000 },
@@ -308,6 +311,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.removeEstimateTemplateRowItem).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         rowId: "row-1",
       });
@@ -339,6 +343,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.createEstimateTemplateAllowanceRow).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         nodeId: "area-1",
         material: "Floor drain allowance",
@@ -360,6 +365,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.createEstimateTemplateNode).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         parentId: null,
         kind: "group",
@@ -422,6 +428,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.insertTemplateIntoTemplate).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         targetTemplateId: "template-1",
         targetNodeId: null,
         sourceTemplateId: "tpl-2",
@@ -455,6 +462,7 @@ describe("TemplateEditorClient", () => {
 
     await waitFor(() => {
       expect(actionMocks.deleteEstimateTemplateNode).toHaveBeenCalledWith({
+        intentId: expect.any(String),
         templateId: "template-1",
         nodeId: "area-1",
       });

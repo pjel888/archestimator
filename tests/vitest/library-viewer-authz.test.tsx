@@ -280,6 +280,7 @@ describe("library viewer mutation authorization", () => {
       firstResults: [
         { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: SHARED_WORKSPACE_ID },
         { count: 0 },
+        { id: TAB_ID, name: "Main", updated_at: "2026-07-03T00:00:00.000Z" },
         null,
         templateD1Row(SHARED_WORKSPACE_ID),
         templateD1Row(SHARED_WORKSPACE_ID),
@@ -335,8 +336,8 @@ describe("library viewer mutation authorization", () => {
   it("preserves supported component and variant fields while normalizing empty IDs", async () => {
     const d1 = createD1Fixture({
       firstResults: [
+        { id: FOLDER_ID, name: "Hardware" },
         { count: 0 },
-        { id: FOLDER_ID },
       ],
     });
     const actions = await import("@/lib/component-library/actions");

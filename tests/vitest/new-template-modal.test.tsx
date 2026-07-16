@@ -84,6 +84,7 @@ describe("NewTemplateModal", () => {
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(createdTemplate));
     expect(actionMocks.createEstimateTemplateFromEstimateNode).toHaveBeenCalledWith({
+      intentId: expect.any(String),
       projectId: "project-1",
       estimateId: "estimate-1",
       sourceNodeId: "node-1",

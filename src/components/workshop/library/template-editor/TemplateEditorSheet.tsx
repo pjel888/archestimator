@@ -32,7 +32,7 @@ import { librarySurfaceClass } from "../library-surface-class";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 
-const TEMPLATE_SHEET_ROW_COLUMNS = "grid-cols-[24px_minmax(140px,44fr)_10fr_10fr_18fr_18fr_28px]";
+const TEMPLATE_SHEET_ROW_COLUMNS = "grid-cols-[minmax(140px,44fr)_10fr_10fr_18fr_18fr_28px]";
 
 export type TemplateSheetHandlers = {
   onAddNode: (parentId: string | null, kind: "group" | "area") => void;
@@ -152,13 +152,6 @@ function TemplateEditableRow({
       )}
       data-template-editor-row={item.id}
     >
-      <span
-        className="flex cursor-grab items-center justify-center text-tertiary opacity-0 transition group-hover:opacity-100"
-        data-template-row-drag-handle={item.id}
-        aria-hidden="true"
-      >
-        ⠿
-      </span>
       <ControlInput
         value={draft.material}
         aria-label={`${item.material} row name`}
@@ -632,7 +625,6 @@ export function TemplateEditorSheet({
           )}
           aria-hidden="true"
         >
-          <span />
           <span className="px-1">Item</span>
           <span className="px-1 text-right">Qty</span>
           <span className="px-1">Unit</span>

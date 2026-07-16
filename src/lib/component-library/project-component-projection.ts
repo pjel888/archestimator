@@ -325,7 +325,14 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
   const adjustmentPercentage = row.adjustment_percentage === undefined ? legacyAdjustmentPercentage : readNumber(row.adjustment_percentage ?? 0);
   const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const category = readString(sourceSnapshot.category) || "Project";
+  const categoryId = readString(sourceSnapshot.categoryId) || undefined;
   const categoryNodeId = row.category_node_id ?? (typeof sourceSnapshot.categoryNodeId === "string" ? sourceSnapshot.categoryNodeId : undefined);
+  const categoryPath = Array.isArray(sourceSnapshot.categoryPath)
+    ? sourceSnapshot.categoryPath.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : undefined;
+  const categoryPathIds = Array.isArray(sourceSnapshot.categoryPathIds)
+    ? sourceSnapshot.categoryPathIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : undefined;
   const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
   const estimateName = row.estimate_nodes?.estimates?.name;
   const estimateId = row.estimate_nodes?.estimates?.id;
@@ -355,7 +362,10 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     totalItemCosts: subTotal + contingencyValue + adjustmentValue + miscCost,
     rowRevision: row.row_revision ?? undefined,
     category,
+    categoryId,
     categoryNodeId: categoryNodeId ?? undefined,
+    categoryPath,
+    categoryPathIds,
     discipline: row.discipline ?? undefined,
     designation: row.designation ?? undefined,
     tags: ["project-component", projectionClassification, estimateName, nodeName].filter((tag): tag is string => Boolean(tag)),

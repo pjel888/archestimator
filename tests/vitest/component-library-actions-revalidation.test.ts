@@ -65,9 +65,13 @@ function createD1Fixture(options: {
         return {
           sql,
           values,
-          first: vi.fn(async () => sql.includes("FROM estimate_mutation_receipts")
-            ? committedReceipt
-            : firstResults.shift() ?? null),
+          first: vi.fn(async () => {
+            if (sql.includes("FROM estimate_mutation_receipts")) return committedReceipt;
+            if (sql.includes("FROM library_folders") && sql.includes("is_default_category = 1")) {
+              return { id: "99999999-9999-4999-8999-999999999999", name: "Uncategorized" };
+            }
+            return firstResults.shift() ?? null;
+          }),
           all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
           run: vi.fn(async () => ({
             success: true,
@@ -149,18 +153,74 @@ afterEach(() => {
 
 describe("template-surface revalidation (U11)", () => {
   it("revalidates BOTH the library overview and the templates browse route (no recursion)", async () => {
-    createD1Fixture({
-      firstResults: [{ id: TEMPLATE_ID, name: "Kitchen Deluxe" }],
+    const database = createD1Fixture({
+      firstResults: [{ id: TEMPLATE_ID, name: "Kitchen Deluxe", updated_at: "2026-07-14T00:00:00.000Z" }],
     });
     const { renameEstimateTemplate } = await import("@/lib/component-library/actions");
+    const input = {
+      intentId: "12121212-1212-4212-8212-121212121212",
+      templateId: TEMPLATE_ID,
+      name: "Kitchen Deluxe",
+    };
 
     // Completing at all proves the shared helper does not recurse/stack-overflow.
-    const result = await renameEstimateTemplate({ templateId: TEMPLATE_ID, name: "Kitchen Deluxe" });
+    const result = await renameEstimateTemplate(input);
+    const replay = await renameEstimateTemplate(input);
 
     expect(result).toEqual({ templateId: TEMPLATE_ID, name: "Kitchen Deluxe" });
+    expect(replay).toEqual(result);
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string }>;
+    expect(batchStatements.some((statement) => statement.sql.includes("UPDATE estimate_templates SET name"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql.includes("template_lifecycle_committed"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
     const paths = cacheMocks.revalidatePath.mock.calls.map((call) => call[0]);
     expect(paths).toContain("/workshop/library");
     expect(paths).toContain("/workshop/library/templates");
+  });
+
+  it("leaves no template shell when a blank-template batch fails", async () => {
+    const database = createD1Fixture({
+      firstResults: [{ count: 0 }, null],
+      batchFailureAt: 0,
+    });
+    const { createEstimateTemplate } = await import("@/lib/component-library/actions");
+
+    await expect(createEstimateTemplate({
+      intentId: "23232323-2323-4232-8232-232323232323",
+      name: "Atomic template",
+    })).rejects.toThrow("Cloudflare D1 template mutation batch failed.");
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string }>;
+    expect(batchStatements.some((statement) => statement.sql.includes("INSERT INTO estimate_templates"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql.includes("template_lifecycle_committed"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
+    expect(database.statements.some((statement) => statement.sql.includes("DELETE FROM estimate_templates"))).toBe(false);
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("commits and replays category rename as one operational intent", async () => {
+    const database = createD1Fixture({
+      allResults: [[{ id: TEMPLATE_ID, updated_at: "2026-07-14T00:00:00.000Z" }]],
+    });
+    const { renameTemplateCategory } = await import("@/lib/component-library/actions");
+    const input = {
+      intentId: "34343434-3434-4434-8434-343434343434",
+      from: "Kitchen",
+      to: "Interiors",
+    };
+
+    const result = await renameTemplateCategory(input);
+    const replay = await renameTemplateCategory(input);
+
+    expect(result).toEqual({ category: "Interiors", updatedCount: 1 });
+    expect(replay).toEqual(result);
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string }>;
+    expect(batchStatements.some((statement) => statement.sql.includes("UPDATE estimate_templates SET category"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql.includes("template_lifecycle_committed"))).toBe(true);
+    expect(batchStatements.some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
   });
 
   it("denies a workspace viewer at the app layer (P3 T17 / F19) without mutating", async () => {

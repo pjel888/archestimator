@@ -15,11 +15,6 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import {
-  cleanupStorageTargets,
-  storageCleanupReportToJson,
-} from "@/lib/mass-deletion/storage-cleanup";
-import { recordMassDeletionStorageCleanupResultInD1 } from "@/lib/projects/d1-audit";
-import {
   SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
   buildEstimateTemplatesFromRows,
   getCurrentWorkspaceComponentLibrary,
@@ -52,7 +47,6 @@ import {
 } from "@/lib/repositories/workspace-repository";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { isUuid } from "@/lib/ids";
-import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import {
   loadComponentLibraryUserPreferencesFromCloudflareD1,
   recordComponentLibraryTelemetryEventInCloudflareD1,
@@ -74,6 +68,19 @@ import {
 } from "./quick-add-validation";
 import { recordLibraryEvent, sanitizeLibraryTelemetryRecord, type LibraryTelemetryRecord } from "./library-telemetry";
 import { readComponentSourceUrlInput } from "./source-url";
+import { UNCATEGORIZED_CATEGORY_LABEL } from "./category-folders";
+import {
+  buildTemplateMutationReceiptStatement,
+  buildTemplateMutationTelemetryStatement,
+  createTemplateMutationIdentity,
+  normalizeTemplatePricingProvenance,
+  readCommittedTemplateMutation,
+  runTemplateAtomicBatch,
+  toDetachedTemplatePricingProvenance,
+  type TemplateMutationIdentity,
+  type TemplateMutationStatement,
+  type TemplatePricingProvenanceOrigin,
+} from "./template-mutations";
 import {
   buildComponentPermanentDeletePreview,
   buildComponentPermanentDeleteStatements,
@@ -102,6 +109,7 @@ type LibraryFolderRow = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  is_default_category: number;
 };
 
 type ComponentItemD1Row = {
@@ -478,7 +486,6 @@ type LinkedEstimateRowSyncPlan = {
   supplierId: string | null;
   unit: string;
   unitCost: number;
-  categoryNodeId: string | null;
   sourceSnapshot: Record<string, Json | undefined>;
   metadata: Record<string, Json | undefined>;
   patch: EstimateRowItemPatch;
@@ -621,7 +628,6 @@ function buildLinkedEstimateRowsSyncStatement(input: {
     supplierId: plan.supplierId,
     unit: plan.unit,
     unitCost: plan.unitCost,
-    categoryNodeId: plan.categoryNodeId,
     sourceSnapshot: plan.sourceSnapshot,
     metadata: plan.metadata,
   }));
@@ -655,10 +661,6 @@ function buildLinkedEstimateRowsSyncStatement(input: {
           unit_cost = CASE
             WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN unit_cost
             ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.unitCost')
-          END,
-          category_node_id = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN category_node_id
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.categoryNodeId')
           END,
           source_snapshot_json = json_extract(
             (SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id),
@@ -739,8 +741,6 @@ function buildLinkedEstimateRowSyncPlans(input: {
   itemId: string;
   material: string;
   componentDescription: string;
-  category: string;
-  categoryNodeId: string | null;
   brand: string | null;
   brandId: string | null;
   supplier: string | null;
@@ -783,8 +783,6 @@ function buildLinkedEstimateRowSyncPlans(input: {
     const sourceSnapshotPatch = {
       brand: input.brand,
       brandId: input.brandId,
-      category: input.category,
-      categoryNodeId: input.categoryNodeId,
       componentDescription: input.componentDescription,
       componentVersionNumber: input.componentVersionNumber,
       description: rowDescription,
@@ -809,7 +807,6 @@ function buildLinkedEstimateRowSyncPlans(input: {
     };
     const metadataPatch = {
       brandId: input.brandId,
-      categoryNodeId: input.categoryNodeId,
       componentVersionNumber: input.componentVersionNumber,
       priceOptionId: selectedOption.id,
       sourceComponentId: input.itemId,
@@ -836,8 +833,6 @@ function buildLinkedEstimateRowSyncPlans(input: {
         itemCost: selectedOption.unitCost,
         imageUrl,
         sourceUrl: selectedOption.sourceUrl,
-        category: input.category,
-        categoryNodeId: input.categoryNodeId,
         brandId: input.brandId,
         supplierId: input.supplierId,
         sku: selectedOption.sku,
@@ -858,7 +853,6 @@ function buildLinkedEstimateRowSyncPlans(input: {
       supplierId: input.supplierId,
       unit: selectedOption.unit,
       unitCost: selectedOption.unitCost,
-      categoryNodeId: input.categoryNodeId,
       sourceSnapshot,
       metadata,
       patch,
@@ -905,11 +899,18 @@ function readFolderName(name: string) {
   return value;
 }
 
+function readLibraryFolderId(value: string, errorMessage: string) {
+  const folderId = value.trim();
+  if (!folderId || folderId.length > 256) throw new Error(errorMessage);
+  return folderId;
+}
+
 type LibraryFolderGraphIdentity = {
   id: string;
   parent_id: string | null;
   sort_order: number;
   updated_at: string;
+  is_default_category?: number;
 };
 
 function buildLibraryFolderGraphGuardStatement(input: {
@@ -1333,7 +1334,7 @@ function normalizeComponentInput(input: CostLibraryComponentInput) {
     ...input,
     name: readRequiredComponentText(input.name, "Component name", QUICK_ADD_TEXT_LIMITS.name),
     unit: readRequiredComponentText(input.unit, "Component unit", QUICK_ADD_TEXT_LIMITS.unit),
-    category: readRequiredComponentText(input.category, "Component category", QUICK_ADD_TEXT_LIMITS.category),
+    category: readRequiredComponentText(input.category ?? UNCATEGORIZED_CATEGORY_LABEL, "Component category", QUICK_ADD_TEXT_LIMITS.category),
     description: input.description ?? "",
     categoryNodeId: input.categoryNodeId?.trim() || null,
     supplier: readOptionalComponentText(input.supplier, "Supplier", QUICK_ADD_TEXT_LIMITS.supplier),
@@ -1592,15 +1593,12 @@ function componentSnapshot(component: ReturnType<typeof normalizeComponentInput>
   return {
     name: component.name,
     description: component.description,
-    category: component.category,
-    categoryNodeId: component.categoryNodeId ?? null,
     supplier: component.supplier ?? null,
     supplierId: component.supplierId ?? null,
     brand: component.brand ?? null,
     brandId: component.brandId ?? null,
     unit: component.unit,
     thumbnailPath: component.thumbnailPath ?? null,
-    libraryFolderId: component.libraryFolderId ?? null,
     lifecycleState: component.lifecycleState,
     metadata: readMetadataObject(component.metadata),
     ...patch,
@@ -1736,22 +1734,54 @@ async function runComponentRevisionGuardedBatch(
   }
 }
 
-async function assertLibraryFolderInWorkspace(database: D1DatabaseLike, workspaceId: string, folderId: string | null | undefined) {
-  if (!folderId) return null;
-  if (!isUuid(folderId)) throw new Error("Library folder not found in the current workspace.");
-  const folder = await first<{ id: string }>(
+async function ensureDefaultLibraryCategoryFolder(database: D1DatabaseLike, workspaceId: string) {
+  const existing = await first<Pick<LibraryFolderRow, "id" | "name">>(
+    database,
+    `SELECT id, name
+     FROM library_folders
+     WHERE workspace_id = ?
+       AND is_default_category = 1
+     ORDER BY id ASC
+     LIMIT 1`,
+    [workspaceId],
+  );
+  if (existing) return existing;
+
+  const folderId = randomUUID();
+  const timestamp = nowIso();
+  await run(
+    database,
+    `INSERT OR IGNORE INTO library_folders (
+       id, workspace_id, parent_id, name, sort_order, folder_kind,
+       created_by, created_at, updated_at, is_default_category
+     ) VALUES (?, ?, NULL, ?, 0, 'custom', NULL, ?, ?, 1)`,
+    [folderId, workspaceId, UNCATEGORIZED_CATEGORY_LABEL, timestamp, timestamp],
+  );
+  const created = await first<Pick<LibraryFolderRow, "id" | "name">>(
+    database,
+    "SELECT id, name FROM library_folders WHERE workspace_id = ? AND is_default_category = 1 LIMIT 1",
+    [workspaceId],
+  );
+  if (!created) throw new Error("Could not create the workspace default category.");
+  return created;
+}
+
+async function resolveLibraryFolderInWorkspace(database: D1DatabaseLike, workspaceId: string, folderId: string | null | undefined) {
+  if (!folderId) return ensureDefaultLibraryCategoryFolder(database, workspaceId);
+  const normalizedFolderId = readLibraryFolderId(folderId, "Library folder not found in the current workspace.");
+  const folder = await first<Pick<LibraryFolderRow, "id" | "name">>(
     database,
     `
-      SELECT id
+      SELECT id, name
       FROM library_folders
       WHERE id = ?
         AND workspace_id = ?
       LIMIT 1
     `,
-    [folderId, workspaceId],
+    [normalizedFolderId, workspaceId],
   );
   if (!folder) throw new Error("Library folder not found in the current workspace.");
-  return folder.id;
+  return folder;
 }
 
 type ComponentPriceOptionWriteInput = {
@@ -2531,7 +2561,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   const priceOptionInputs = input.priceOptions;
   validatePriceOptions(priceOptionInputs);
   const componentInput = readComponentInputForCreate(input);
-  const component = normalizeComponentInput({
+  const normalizedComponent = normalizeComponentInput({
     ...componentInput,
     metadata: {
       ...readMetadataObject(input.metadata),
@@ -2540,6 +2570,13 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       createdFrom: "workshop-library",
     },
   });
+  const targetFolder = await resolveLibraryFolderInWorkspace(database, workspace.id, normalizedComponent.libraryFolderId);
+  const component = {
+    ...normalizedComponent,
+    category: targetFolder.name,
+    categoryNodeId: null,
+    libraryFolderId: targetFolder.id,
+  };
   const defaultPriceOption = priceOptionInputs.find((option) => option.isDefault) ?? priceOptionInputs[0];
   const quickAddValidation = validateQuickAddComponentInput({
     name: component.name,
@@ -2576,7 +2613,6 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   const itemId = component.id && isUuid(component.id) ? component.id : randomUUID();
   const timestamp = nowIso();
   await assertWithinLibraryQuota(database, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
-  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
   const priceOptionPlans = priceOptions.map((priceOption) => buildComponentPriceOptionWritePlan({
     workspaceId: workspace.id,
     itemId,
@@ -2614,7 +2650,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       component.description,
       component.category,
       component.categoryNodeId ?? null,
-      targetFolderId,
+      targetFolder.id,
       component.supplier,
       component.supplierId ?? null,
       component.brand,
@@ -3015,8 +3051,14 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     throw new Error(STALE_COMPONENT_IMPACT_ERROR);
   }
 
-  const component = normalizeComponentInput(input);
-  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
+  const normalizedComponent = normalizeComponentInput(input);
+  const targetFolder = await resolveLibraryFolderInWorkspace(database, workspace.id, normalizedComponent.libraryFolderId);
+  const component = {
+    ...normalizedComponent,
+    category: targetFolder.name,
+    categoryNodeId: null,
+    libraryFolderId: targetFolder.id,
+  };
   const metadataJson = input.metadata === undefined
     ? existing.metadata_json ?? "{}"
     : jsonText(readMetadataObject(component.metadata));
@@ -3080,8 +3122,6 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     itemId,
     material: component.name,
     componentDescription: component.description,
-    category: component.category,
-    categoryNodeId: component.categoryNodeId,
     brand: component.brand,
     brandId: component.brandId,
     supplier: component.supplier,
@@ -3122,7 +3162,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
         component.description,
         component.category,
         component.categoryNodeId ?? null,
-        targetFolderId,
+        targetFolder.id,
         component.supplier,
         component.supplierId ?? null,
         component.brand,
@@ -3544,69 +3584,6 @@ function revalidateComponentPermanentDeleteSurfaces(input: {
   revalidateLibraryRoutes();
 }
 
-async function completeComponentPermanentDeleteStorageCleanup(input: {
-  database: D1DatabaseLike;
-  result: BulkActionExecutionResult;
-  receiptStatus?: string;
-  workspaceId: string;
-}) {
-  const storageTargets = input.result.storageTargets ?? [];
-  const shouldAttemptCleanup = storageTargets.length > 0 && (
-    input.receiptStatus === undefined
-    || input.receiptStatus === "storage_cleanup_pending"
-    || input.receiptStatus === "storage_cleanup_failed"
-  );
-  if (!shouldAttemptCleanup || !input.result.auditEventId) return input.result;
-
-  try {
-    const storageProvider = await createRuntimeUploadStorageProvider();
-    input.result.storageCleanup = await cleanupStorageTargets(
-      storageProvider,
-      storageTargets,
-      { kind: "component", workspaceId: input.workspaceId },
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Storage cleanup failed.";
-    input.result.storageCleanup = {
-      removed: [],
-      rejected: [],
-      failed: storageTargets.map((target) => ({ ...target, message })),
-    };
-  }
-
-  const cleanupFailed = input.result.storageCleanup.failed.length > 0
-    || input.result.storageCleanup.rejected.length > 0;
-  try {
-    await recordMassDeletionStorageCleanupResultInD1(input.database, {
-      targetEventId: input.result.auditEventId,
-      cleanupResult: storageCleanupReportToJson(input.result.storageCleanup) as Record<string, Json | undefined>,
-    });
-    await run(
-      input.database,
-      `
-        UPDATE mass_deletion_events
-        SET status = ?, updated_at = ?
-        WHERE id = ?
-          AND workspace_id = ?
-          AND target_type = 'library_component'
-          AND action = 'delete'
-      `,
-      [
-        cleanupFailed ? "storage_cleanup_failed" : "storage_cleanup_completed",
-        nowIso(),
-        input.result.auditEventId,
-        input.workspaceId,
-      ],
-    );
-  } catch (error) {
-    console.warn("[component-library] mass deletion cleanup audit could not be recorded", {
-      auditEventId: input.result.auditEventId,
-      message: error instanceof Error ? error.message : "Unknown cleanup audit error.",
-    });
-  }
-  return input.result;
-}
-
 export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDeleteLibraryComponentsInput): Promise<BulkActionExecutionResult> {
   const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
   if (issues.length > 0) {
@@ -3647,14 +3624,8 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
       receipt: replayReceipt,
     });
     if (!replay.ok) return replay;
-    const result = await completeComponentPermanentDeleteStorageCleanup({
-      database,
-      result: replay,
-      receiptStatus: replayReceipt.status,
-      workspaceId: workspace.id,
-    });
     revalidateComponentPermanentDeleteSurfaces(getComponentPermanentDeleteReceiptOwners(replayReceipt));
-    return result;
+    return replay;
   }
 
   let impact: ComponentPermanentDeleteImpact;
@@ -3710,32 +3681,22 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
       receipt: committedReceipt,
     });
     if (!replay.ok) return replay;
-    const result = await completeComponentPermanentDeleteStorageCleanup({
-      database,
-      result: replay,
-      receiptStatus: committedReceipt.status,
-      workspaceId: workspace.id,
-    });
     revalidateComponentPermanentDeleteSurfaces(getComponentPermanentDeleteReceiptOwners(committedReceipt));
-    return result;
+    return replay;
   }
 
-  const result = await completeComponentPermanentDeleteStorageCleanup({
-    database,
-    result: {
-      ok: true,
-      targetType: "library_component",
-      ids,
-      deletedIds: preview.eligibleIds,
-      auditEventId: eventId,
-      previewHash: preview.previewHash,
-      summary: preview.summary,
-      issues: [],
-      blocked: [],
-      storageTargets: preview.storageTargets,
-    },
-    workspaceId: workspace.id,
-  });
+  const result: BulkActionExecutionResult = {
+    ok: true,
+    targetType: "library_component",
+    ids,
+    deletedIds: preview.eligibleIds,
+    auditEventId: eventId,
+    previewHash: preview.previewHash,
+    summary: preview.summary,
+    issues: [],
+    blocked: [],
+    storageTargets: preview.storageTargets,
+  };
   revalidateComponentPermanentDeleteSurfaces(getComponentPermanentDeleteOwners(impact));
   return coerceBulkExecutionResult(result, { targetType: "library_component", ids });
 }
@@ -3744,9 +3705,9 @@ export async function createLibraryFolder(parentId: string | null, name: string,
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
-  if (parentId !== null && !isUuid(parentId)) {
-    throw new Error("Parent folder not found in the current workspace.");
-  }
+  const normalizedParentId = parentId === null
+    ? null
+    : readLibraryFolderId(parentId, "Parent folder not found in the current workspace.");
   const scopedFolders = await all<LibraryFolderGraphIdentity>(
     database,
     `
@@ -3756,14 +3717,14 @@ export async function createLibraryFolder(parentId: string | null, name: string,
         AND (id IS ? OR parent_id IS ?)
       ORDER BY id
     `,
-    [workspace.id, parentId, parentId],
+    [workspace.id, normalizedParentId, normalizedParentId],
   );
-  if (parentId && !scopedFolders.some((folder) => folder.id === parentId)) {
+  if (normalizedParentId && !scopedFolders.some((folder) => folder.id === normalizedParentId)) {
     throw new Error("Parent folder not found in the current workspace.");
   }
 
   const placement = options.placement ?? "bottom";
-  const siblingRows = scopedFolders.filter((folder) => folder.parent_id === parentId);
+  const siblingRows = scopedFolders.filter((folder) => folder.parent_id === normalizedParentId);
   const nextSortOrder = getLibraryFolderCreateSortOrder(siblingRows, placement);
   const folderId = randomUUID();
   const timestamp = nowIso();
@@ -3775,7 +3736,7 @@ export async function createLibraryFolder(parentId: string | null, name: string,
         WHERE workspace_id = ?
           AND (id IS ? OR parent_id IS ?)
       `,
-      actualValues: [workspace.id, parentId, parentId],
+      actualValues: [workspace.id, normalizedParentId, normalizedParentId],
       expectedRows: scopedFolders,
       guardName: "library_folder_create_graph_guard",
     }),
@@ -3812,7 +3773,7 @@ export async function createLibraryFolder(parentId: string | null, name: string,
     values: [
       folderId,
       workspace.id,
-      parentId,
+      normalizedParentId,
       readFolderName(name),
       nextSortOrder,
       currentUser.userId,
@@ -3836,11 +3797,22 @@ export async function renameLibraryFolder(folderId: string, name: string): Promi
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
-  await run(
-    database,
-    "UPDATE library_folders SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-    [readFolderName(name), nowIso(), folderId, workspace.id],
-  );
+  const nextName = readFolderName(name);
+  const defaultFolder = await ensureDefaultLibraryCategoryFolder(database, workspace.id);
+  if (folderId === defaultFolder.id && nextName !== UNCATEGORIZED_CATEGORY_LABEL) {
+    throw new Error(`The default category must remain ${UNCATEGORIZED_CATEGORY_LABEL}.`);
+  }
+  const timestamp = nowIso();
+  await runAtomicBatch(database, [
+    {
+      sql: "UPDATE library_folders SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+      values: [nextName, timestamp, folderId, workspace.id],
+    },
+    {
+      sql: "UPDATE cost_library_items SET category = ?, category_node_id = NULL, updated_at = ? WHERE workspace_id = ? AND library_folder_id = ?",
+      values: [nextName, timestamp, workspace.id, folderId],
+    },
+  ]);
   const data = await first<LibraryFolderRow>(database, "SELECT * FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1", [folderId, workspace.id]);
   if (!data) throw new Error("Folder not found in the current workspace.");
   revalidateLibraryRoutes();
@@ -3851,15 +3823,23 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
-  if (!isUuid(folderId)) throw new Error("Library folder not found in the current workspace.");
+  const normalizedFolderId = readLibraryFolderId(folderId, "Library folder not found in the current workspace.");
 
   const folders = await all<LibraryFolderRow>(
     database,
     "SELECT * FROM library_folders WHERE workspace_id = ?",
     [workspace.id],
   );
-  const deletePlan = planLibraryFolderDelete(folders, folderId);
+  const deletePlan = planLibraryFolderDelete(folders, normalizedFolderId);
   if (!deletePlan) throw new Error("Library folder not found in the current workspace.");
+  if (deletePlan.deletedFolder.is_default_category === 1) throw new Error("The default category cannot be deleted.");
+  const defaultFolder = deletePlan.deletedFolder.parent_id
+    ? null
+    : await ensureDefaultLibraryCategoryFolder(database, workspace.id);
+  const rehomeFolder = deletePlan.deletedFolder.parent_id
+    ? folders.find((folder) => folder.id === deletePlan.deletedFolder.parent_id)
+    : defaultFolder;
+  if (!rehomeFolder) throw new Error("The parent category no longer exists.");
   const timestamp = nowIso();
   const statements: Array<{ sql: string; values: D1Value[] }> = [
     ...deletePlan.liftedChildUpdates.map((update) => ({
@@ -3867,16 +3847,34 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
       values: [update.parentId, update.sortOrder, timestamp, update.id, workspace.id],
     })),
     {
-      sql: "UPDATE cost_library_items SET library_folder_id = NULL, updated_at = ? WHERE workspace_id = ? AND library_folder_id = ?",
-      values: [timestamp, workspace.id, folderId],
+      sql: "UPDATE cost_library_items SET library_folder_id = ?, category = ?, category_node_id = NULL, updated_at = ? WHERE workspace_id = ? AND library_folder_id = ?",
+      values: [rehomeFolder.id, rehomeFolder.name, timestamp, workspace.id, normalizedFolderId],
+    },
+    {
+      sql: `DELETE FROM workspace_price_freshness_policies
+            WHERE workspace_id = ?
+              AND category_folder_id = ?
+              AND EXISTS (
+                SELECT 1
+                FROM workspace_price_freshness_policies AS destination
+                WHERE destination.workspace_id = ?
+                  AND destination.category_folder_id = ?
+              )`,
+      values: [workspace.id, normalizedFolderId, workspace.id, rehomeFolder.id],
+    },
+    {
+      sql: `UPDATE workspace_price_freshness_policies
+            SET category_folder_id = ?, category_node_id = NULL, updated_at = ?
+            WHERE workspace_id = ? AND category_folder_id = ?`,
+      values: [rehomeFolder.id, timestamp, workspace.id, normalizedFolderId],
     },
     {
       sql: "DELETE FROM library_folders WHERE id = ? AND workspace_id = ?",
-      values: [folderId, workspace.id],
+      values: [normalizedFolderId, workspace.id],
     },
   ];
   assertD1MutationStatementLimit(statements.length);
-  await runBatch(database, statements);
+  await runAtomicBatch(database, statements);
 
   revalidateLibraryRoutes();
 }
@@ -3890,23 +3888,23 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
   const updateIds = new Set<string>();
   const validUpdates = input.updates.map((update) => {
-    if (!isUuid(update.id)) throw new Error("Library folder not found in the current workspace.");
-    if (updateIds.has(update.id)) throw new Error("A library folder can only be reordered once per request.");
-    updateIds.add(update.id);
-    if (update.parentId !== null && !isUuid(update.parentId)) {
-      throw new Error("Parent folder not found in the current workspace.");
-    }
+    const folderId = readLibraryFolderId(update.id, "Library folder not found in the current workspace.");
+    const parentId = update.parentId === null
+      ? null
+      : readLibraryFolderId(update.parentId, "Parent folder not found in the current workspace.");
+    if (updateIds.has(folderId)) throw new Error("A library folder can only be reordered once per request.");
+    updateIds.add(folderId);
     if (!Number.isSafeInteger(update.sortOrder) || update.sortOrder < 0) {
       throw new Error("Library folder sort order is invalid.");
     }
-    if (update.parentId === update.id) throw new Error("A library folder cannot be moved inside itself.");
-    return update;
+    if (parentId === folderId) throw new Error("A library folder cannot be moved inside itself.");
+    return { ...update, id: folderId, parentId };
   });
   assertD1MutationStatementLimit(validUpdates.length);
 
   const folders = await all<LibraryFolderGraphIdentity>(
     database,
-    "SELECT id, parent_id, sort_order, updated_at FROM library_folders WHERE workspace_id = ?",
+    "SELECT id, parent_id, sort_order, updated_at, is_default_category FROM library_folders WHERE workspace_id = ?",
     [workspace.id],
   );
   const folderById = new Map(folders.map((folder) => [folder.id, folder]));
@@ -3914,6 +3912,9 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
     if (!folderById.has(update.id)) throw new Error("Library folder not found in the current workspace.");
     if (update.parentId && !folderById.has(update.parentId)) {
       throw new Error("Parent folder not found in the current workspace.");
+    }
+    if (folderById.get(update.id)?.is_default_category === 1 && update.parentId !== null) {
+      throw new Error("The default category must remain at the root.");
     }
   }
 
@@ -3957,7 +3958,7 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
   const timestamp = nowIso();
   const statements: Array<{ sql: string; values: D1Value[] }> = [
     buildLibraryFolderGraphGuardStatement({
-      actualSql: "SELECT id, parent_id, sort_order, updated_at FROM library_folders WHERE workspace_id = ?",
+      actualSql: "SELECT id, parent_id, sort_order, updated_at, is_default_category FROM library_folders WHERE workspace_id = ?",
       actualValues: [workspace.id],
       expectedRows: folders,
       guardName: "library_folder_reorder_graph_guard",
@@ -3995,11 +3996,11 @@ export async function moveCostLibraryComponentToFolder(input: MoveCostLibraryCom
 
   if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
 
-  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, input.libraryFolderId);
+  const targetFolder = await resolveLibraryFolderInWorkspace(database, workspace.id, input.libraryFolderId);
   await run(
     database,
-    "UPDATE cost_library_items SET library_folder_id = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-    [targetFolderId, nowIso(), input.itemId, workspace.id],
+    "UPDATE cost_library_items SET library_folder_id = ?, category = ?, category_node_id = NULL, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    [targetFolder.id, targetFolder.name, nowIso(), input.itemId, workspace.id],
   );
   const component = await first<{ id: string }>(database, "SELECT id FROM cost_library_items WHERE id = ? AND workspace_id = ? LIMIT 1", [input.itemId, workspace.id]);
   if (!component) throw new Error("Component not found in the current workspace.");
@@ -4049,6 +4050,7 @@ type EstimateTemplateRowItemD1Row = {
   misc_cost: number | string;
   contingency_percentage: number | string;
   adjustment_percentage: number | string;
+  pricing_provenance_origin: TemplatePricingProvenanceOrigin | null;
   discipline: string;
   designation: string;
   link_state: string;
@@ -4063,16 +4065,10 @@ type EstimateSourceRowD1 = {
   workspace_id: string;
 };
 
-type EstimateNodeSourceRowD1 = {
+type EstimateTabSourceRowD1 = {
   id: string;
-  parent_id: string | null;
-  kind: string;
   name: string;
-  sort_order: number;
-};
-
-type EstimateTabNodeSourceRowD1 = EstimateNodeSourceRowD1 & {
-  kind: "group" | "area";
+  updated_at: string;
 };
 
 type EstimateRowItemSourceD1 = {
@@ -4091,11 +4087,13 @@ type EstimateRowItemSourceD1 = {
   unit_cost: number | string;
   contingency_percentage: number | string;
   adjustment_percentage: number | string;
+  pricing_provenance_origin: TemplatePricingProvenanceOrigin | null;
   misc_cost: number | string;
   discipline: string;
   designation: string;
   link_state: string | null;
   metadata_json: string | null;
+  updated_at: string;
 };
 
 function toTemplateRow(row: EstimateTemplateD1Row): EstimateTemplateTableRow {
@@ -4151,7 +4149,7 @@ async function readNextTemplateSortOrder(database: D1DatabaseLike, workspaceId: 
   return numberValue(row?.sort_order, -1) + 1;
 }
 
-async function insertTemplate(database: D1DatabaseLike, input: {
+function buildTemplateInsert(input: {
   workspaceId: string;
   name: string;
   description: string;
@@ -4162,31 +4160,82 @@ async function insertTemplate(database: D1DatabaseLike, input: {
 }) {
   const id = randomUUID();
   const timestamp = nowIso();
-  await run(
-    database,
-    `
+  const row: EstimateTemplateD1Row = {
+    id,
+    workspace_id: input.workspaceId,
+    name: input.name,
+    description: input.description,
+    category: input.category,
+    sort_order: input.sortOrder,
+    metadata: jsonText(input.metadata),
+    created_by: input.createdBy,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+  return {
+    row,
+    statement: {
+      sql: `
       INSERT INTO estimate_templates (
         id, workspace_id, name, description, category, sort_order,
         metadata, created_by, created_at, updated_at
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      id,
-      input.workspaceId,
-      input.name,
-      input.description,
-      input.category,
-      input.sortOrder,
-      jsonText(input.metadata),
-      input.createdBy,
-      timestamp,
-      timestamp,
-    ],
-  );
-  const row = await first<EstimateTemplateD1Row>(database, "SELECT * FROM estimate_templates WHERE id = ? LIMIT 1", [id]);
-  if (!row) throw new Error("Could not read back the created template.");
-  return toTemplateRow(row);
+      `,
+      values: [
+        row.id,
+        row.workspace_id,
+        row.name,
+        row.description,
+        row.category,
+        row.sort_order,
+        row.metadata,
+        row.created_by,
+        row.created_at,
+        row.updated_at,
+      ] as D1Value[],
+    },
+  };
+}
+
+type TemplateGraphMutationReceipt = {
+  templateId: string;
+  nodeCount: number;
+  rowCount: number;
+};
+
+function parseTemplateGraphMutationReceipt(value: unknown): TemplateGraphMutationReceipt {
+  if (!value || typeof value !== "object") throw new Error("The committed Template receipt is invalid.");
+  const result = value as Record<string, unknown>;
+  if (typeof result.templateId !== "string" || !isUuid(result.templateId)) {
+    throw new Error("The committed Template receipt is invalid.");
+  }
+  const nodeCount = Number(result.nodeCount);
+  const rowCount = Number(result.rowCount);
+  if (!Number.isSafeInteger(nodeCount) || nodeCount < 0 || !Number.isSafeInteger(rowCount) || rowCount < 0) {
+    throw new Error("The committed Template receipt is invalid.");
+  }
+  return { templateId: result.templateId, nodeCount, rowCount };
+}
+
+async function readTemplateGraphResult(database: D1DatabaseLike, templateId: string, userMessage: string) {
+  const buildRows = await readTemplateBuildRows(database, templateId);
+  const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
+  if (!template) throw new Error(userMessage);
+  return { template };
+}
+
+async function readTemplateGraphReplay(
+  database: D1DatabaseLike,
+  identity: TemplateMutationIdentity,
+  userMessage: string,
+) {
+  const receipt = await readCommittedTemplateMutation(database, identity, parseTemplateGraphMutationReceipt);
+  return receipt ? readTemplateGraphResult(database, receipt.templateId, userMessage) : null;
+}
+
+function latestUpdatedAt(rows: Array<{ updated_at: string }>) {
+  return rows.reduce((latest, row) => row.updated_at > latest ? row.updated_at : latest, "");
 }
 
 function templateRowInsertValues(
@@ -4202,6 +4251,7 @@ function templateRowInsertValues(
     numberValue(row.sort_order),
     row.source_library_item_id,
     row.source_snapshot_json ?? "{}",
+    toDetachedTemplatePricingProvenance(row.pricing_provenance_origin),
     row.category_node_id,
     row.supplier_id,
     row.material,
@@ -4232,12 +4282,12 @@ const INSERT_TEMPLATE_NODE_SQL = `
 const INSERT_TEMPLATE_ROW_ITEM_SQL = `
   INSERT INTO estimate_template_row_items (
     id, template_id, template_node_id, sort_order, source_library_item_id,
-    source_snapshot, category_node_id, supplier_id, material, description,
+    source_snapshot, pricing_provenance_origin, category_node_id, supplier_id, material, description,
     supplier, unit, quantity, unit_cost, misc_cost, contingency_percentage,
     adjustment_percentage, discipline, designation, link_state, metadata,
     created_at, updated_at
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 function templateNodeInsertStatement(input: {
@@ -4290,6 +4340,7 @@ function copiedTemplateRowInsertValues(
     numberValue(row.sort_order),
     row.source_library_item_id,
     row.source_snapshot,
+    normalizeTemplatePricingProvenance(row.pricing_provenance_origin),
     row.category_node_id,
     row.supplier_id,
     row.material,
@@ -4299,8 +4350,8 @@ function copiedTemplateRowInsertValues(
     numberValue(row.quantity),
     numberValue(row.unit_cost),
     numberValue(row.misc_cost),
-    numberValue(row.contingency_percentage),
-    numberValue(row.adjustment_percentage),
+    0,
+    numberValue(row.adjustment_percentage, numberValue(row.contingency_percentage)),
     row.discipline,
     row.designation,
     row.link_state,
@@ -4336,6 +4387,7 @@ async function readTemplateBuildRows(database: D1DatabaseLike, templateId: strin
 }
 
 export type CreateEstimateTemplateFromNodeInput = {
+  intentId?: string;
   projectId: string;
   estimateId: string;
   sourceNodeId: string;
@@ -4350,6 +4402,7 @@ type EstimateNodeSubtreeRow = {
   kind: string;
   name: string;
   sort_order: number;
+  updated_at: string;
 };
 
 /**
@@ -4377,13 +4430,30 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
   await assertCanManageLibrary(database, estimate.workspace_id, currentUser);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: estimate.workspace_id,
+    commandKind: "template.create_from_estimate_node",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: {
+      projectId: input.projectId,
+      estimateId: input.estimateId,
+      sourceNodeId: input.sourceNodeId,
+      name: templateName,
+      description: templateDescription,
+      category: templateCategory,
+    },
+  });
+  const replay = await readTemplateGraphReplay(database, identity, "Could not read back the created template.");
+  if (replay) return replay;
+
   await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);
   await assertWithinLibraryQuota(database, "estimate_templates", estimate.workspace_id, LIBRARY_TEMPLATE_CAP, "template");
 
   const nodeRows = await all<EstimateNodeSubtreeRow>(
     database,
     `
-      SELECT id, parent_id, kind, name, sort_order
+      SELECT id, parent_id, kind, name, sort_order, updated_at
       FROM estimate_nodes
       WHERE estimate_id = ?
       ORDER BY sort_order ASC
@@ -4418,7 +4488,8 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
           SELECT id, node_id, sort_order, source_library_item_id, source_snapshot_json,
             category_node_id, supplier_id, material, description, supplier, unit,
             quantity, unit_cost, contingency_percentage, adjustment_percentage,
-            misc_cost, discipline, designation, link_state, metadata_json
+            misc_cost, discipline, designation, link_state, metadata_json,
+            pricing_provenance_origin, updated_at
           FROM estimate_row_items
           WHERE estimate_id = ?
             AND node_id IN (${placeholders(subtreeNodeIds)})
@@ -4428,7 +4499,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
       )
     : [];
 
-  const insertedTemplate = await insertTemplate(database, {
+  const insertedTemplate = buildTemplateInsert({
     workspaceId: estimate.workspace_id,
     name: templateName,
     description: templateDescription,
@@ -4442,44 +4513,88 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     },
   });
 
+  const templateNodeIdBySourceId = new Map<string, string>(subtreeNodes.map((node) => [node.id, randomUUID()]));
+  const templateNodeStatements = subtreeNodes.map((node) => {
+    const kind = normalizeEstimateTreeNodeKind(node.kind);
+    if (!kind) throw new Error("Could not copy the node structure.");
+    return templateNodeInsertStatement({
+      id: templateNodeIdBySourceId.get(node.id)!,
+      templateId: insertedTemplate.row.id,
+      parentId: node.id === sourceNode.id ? null : templateNodeIdBySourceId.get(node.parent_id ?? "") ?? null,
+      kind,
+      name: node.name,
+      sortOrder: node.id === sourceNode.id ? 0 : node.sort_order,
+    });
+  });
+  const rowStatements = rowItemRows.map((row) => {
+    const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
+    if (!templateNodeId) throw new Error("Could not copy the estimate rows.");
+    return templateRowItemInsertStatement(insertedTemplate.row.id, templateNodeId, row);
+  });
+  const sourceGuard: TemplateMutationStatement = {
+    sql: `
+      SELECT CASE WHEN
+        (SELECT COUNT(*) FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(subtreeNodeIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(subtreeNodeIds)})), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(subtreeNodeIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(subtreeNodeIds)})), '') = ?
+      THEN 1 ELSE json('') END AS template_source_guard
+    `,
+    values: [
+      input.estimateId,
+      ...subtreeNodeIds,
+      subtreeNodes.length,
+      input.estimateId,
+      ...subtreeNodeIds,
+      latestUpdatedAt(subtreeNodes),
+      input.estimateId,
+      ...subtreeNodeIds,
+      rowItemRows.length,
+      input.estimateId,
+      ...subtreeNodeIds,
+      latestUpdatedAt(rowItemRows),
+    ],
+  };
+  const receipt: TemplateGraphMutationReceipt = {
+    templateId: insertedTemplate.row.id,
+    nodeCount: templateNodeStatements.length,
+    rowCount: rowStatements.length,
+  };
+  const statements: TemplateMutationStatement[] = [
+    sourceGuard,
+    insertedTemplate.statement,
+    ...templateNodeStatements,
+    ...rowStatements,
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: estimate.workspace_id,
+      templateId: insertedTemplate.row.id,
+      action: "create_from_estimate_node",
+      intentId: identity.intentId,
+      timestamp: insertedTemplate.row.updated_at,
+      metadata: { nodeCount: receipt.nodeCount, rowCount: receipt.rowCount },
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: insertedTemplate.row.id,
+      result: receipt,
+      timestamp: insertedTemplate.row.updated_at,
+    }),
+  ];
   try {
-    const templateNodeIdBySourceId = new Map<string, string>(subtreeNodes.map((node) => [node.id, randomUUID()]));
-    const templateNodeStatements = subtreeNodes.map((node) => {
-      const kind = normalizeEstimateTreeNodeKind(node.kind);
-      if (!kind) throw new Error("Could not copy the node structure.");
-      return templateNodeInsertStatement({
-        id: templateNodeIdBySourceId.get(node.id)!,
-        templateId: insertedTemplate.id,
-        // The saved node becomes the template root; descendants keep shape.
-        parentId: node.id === sourceNode.id ? null : templateNodeIdBySourceId.get(node.parent_id ?? "") ?? null,
-        kind,
-        name: node.name,
-        sortOrder: node.id === sourceNode.id ? 0 : node.sort_order,
-      });
-    });
-
-    const rowStatements = rowItemRows.map((row) => {
-      const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
-      if (!templateNodeId) throw new Error("Could not copy the estimate rows.");
-      return templateRowItemInsertStatement(insertedTemplate.id, templateNodeId, row);
-    });
-    await runBatch(database, [...templateNodeStatements, ...rowStatements]);
-
-    revalidateTemplateSurfaces();
-
-    const buildRows = await readTemplateBuildRows(database, insertedTemplate.id);
-    const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
-    if (!template) throw new Error("Could not read back the created template.");
-    return { template };
+    await runTemplateAtomicBatch(database, statements);
   } catch (error) {
-    // Without a cross-statement transaction, a partial failure leaves an
-    // orphan template; deleting it cascades to any copied nodes/rows.
-    await run(database, "DELETE FROM estimate_templates WHERE id = ?", [insertedTemplate.id]);
+    const committed = await readTemplateGraphReplay(database, identity, "Could not read back the created template.");
+    if (committed) return committed;
     throw error;
   }
+
+  revalidateTemplateSurfaces();
+  return readTemplateGraphResult(database, insertedTemplate.row.id, "Could not read back the created template.");
 }
 
 export type CreateEstimateTemplateFromTabInput = {
+  intentId?: string;
   projectId: string;
   estimateId: string;
   tabId: string;
@@ -4501,7 +4616,6 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
   if (!templateName) throw new Error("Template name is required.");
   const templateCategory = (input.category ?? "").trim() || "General";
   const templateDescription = (input.description ?? "").trim();
-  const sourceTabName = input.tabName.trim() || "Project tab";
   if (!isUuid(input.projectId) || !isUuid(input.estimateId) || !isUuid(input.tabId)) {
     throw new Error("Estimate tab not found in the current workspace.");
   }
@@ -4512,13 +4626,37 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
   });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
   await assertCanManageLibrary(database, estimate.workspace_id, currentUser);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: estimate.workspace_id,
+    commandKind: "template.create_from_estimate_tab",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: {
+      projectId: input.projectId,
+      estimateId: input.estimateId,
+      tabId: input.tabId,
+      name: templateName,
+      description: templateDescription,
+      category: templateCategory,
+    },
+  });
+  const replay = await readTemplateGraphReplay(database, identity, "Could not read back the created template.");
+  if (replay) return replay;
+
   await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);
   await assertWithinLibraryQuota(database, "estimate_templates", estimate.workspace_id, LIBRARY_TEMPLATE_CAP, "template");
+  const sourceTab = await first<EstimateTabSourceRowD1>(
+    database,
+    "SELECT id, name, updated_at FROM estimate_tabs WHERE id = ? AND estimate_id = ? AND archived_at IS NULL LIMIT 1",
+    [input.tabId, input.estimateId],
+  );
+  if (!sourceTab) throw new Error("Estimate tab not found in the current workspace.");
+  const sourceTabName = sourceTab.name.trim() || input.tabName.trim() || "Project tab";
 
   const nodeRows = await all<EstimateTabTemplateNodeRow>(
     database,
     `
-      SELECT id, parent_id, kind, name, sort_order
+      SELECT id, parent_id, kind, name, sort_order, updated_at
       FROM estimate_nodes
       WHERE estimate_id = ?
         AND estimate_tab_id = ?
@@ -4542,7 +4680,8 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
       SELECT id, node_id, sort_order, source_library_item_id, source_snapshot_json,
         category_node_id, supplier_id, material, description, supplier, unit,
         quantity, unit_cost, contingency_percentage, adjustment_percentage,
-        misc_cost, discipline, designation, link_state, metadata_json
+        misc_cost, discipline, designation, link_state, metadata_json,
+        pricing_provenance_origin, updated_at
       FROM estimate_row_items
       WHERE estimate_id = ?
         AND node_id IN (${placeholders(sourceNodeIds)})
@@ -4551,7 +4690,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     [input.estimateId, ...sourceNodeIds],
   );
 
-  const insertedTemplate = await insertTemplate(database, {
+  const insertedTemplate = buildTemplateInsert({
     workspaceId: estimate.workspace_id,
     name: templateName,
     description: templateDescription,
@@ -4566,58 +4705,140 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     },
   });
 
+  const wrapperNodeId = randomUUID();
+  const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
+  const sourceNodeIdSet = new Set(sourceNodeIds);
+  const copiedNodeStatements = sourceNodes.map((node) => {
+    const templateNodeId = templateNodeIdBySourceId.get(node.id);
+    if (!templateNodeId) throw new Error("Could not map the estimate tab tree.");
+    const mappedParentId = node.parent_id && sourceNodeIdSet.has(node.parent_id)
+      ? templateNodeIdBySourceId.get(node.parent_id) ?? wrapperNodeId
+      : wrapperNodeId;
+    return templateNodeInsertStatement({
+      id: templateNodeId,
+      templateId: insertedTemplate.row.id,
+      parentId: mappedParentId,
+      kind: node.kind,
+      name: node.name,
+      sortOrder: node.sort_order,
+    });
+  });
+  const templateNodeStatements = [
+    templateNodeInsertStatement({
+      id: wrapperNodeId,
+      templateId: insertedTemplate.row.id,
+      parentId: null,
+      kind: "group",
+      name: sourceTabName,
+      sortOrder: 0,
+    }),
+    ...copiedNodeStatements,
+  ];
+  const rowStatements = rowItemRows.map((row) => {
+    const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
+    if (!templateNodeId) throw new Error("Could not map the estimate tab rows.");
+    return templateRowItemInsertStatement(insertedTemplate.row.id, templateNodeId, row);
+  });
+  const sourceGuard: TemplateMutationStatement = {
+    sql: `
+      SELECT CASE WHEN
+        EXISTS (SELECT 1 FROM estimate_tabs WHERE id = ? AND estimate_id = ? AND archived_at IS NULL AND updated_at = ?)
+        AND (SELECT COUNT(*) FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_nodes WHERE estimate_id = ? AND estimate_tab_id = ?), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(sourceNodeIds)})) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(sourceNodeIds)})), '') = ?
+      THEN 1 ELSE json('') END AS template_tab_source_guard
+    `,
+    values: [
+      input.tabId,
+      input.estimateId,
+      sourceTab.updated_at,
+      input.estimateId,
+      input.tabId,
+      sourceNodes.length,
+      input.estimateId,
+      input.tabId,
+      latestUpdatedAt(sourceNodes),
+      input.estimateId,
+      ...sourceNodeIds,
+      rowItemRows.length,
+      input.estimateId,
+      ...sourceNodeIds,
+      latestUpdatedAt(rowItemRows),
+    ],
+  };
+  const receipt: TemplateGraphMutationReceipt = {
+    templateId: insertedTemplate.row.id,
+    nodeCount: templateNodeStatements.length,
+    rowCount: rowStatements.length,
+  };
+  const statements: TemplateMutationStatement[] = [
+    sourceGuard,
+    insertedTemplate.statement,
+    ...templateNodeStatements,
+    ...rowStatements,
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: estimate.workspace_id,
+      templateId: insertedTemplate.row.id,
+      action: "create_from_estimate_tab",
+      intentId: identity.intentId,
+      timestamp: insertedTemplate.row.updated_at,
+      metadata: { nodeCount: receipt.nodeCount, rowCount: receipt.rowCount },
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: insertedTemplate.row.id,
+      result: receipt,
+      timestamp: insertedTemplate.row.updated_at,
+    }),
+  ];
   try {
-    const wrapperNodeId = randomUUID();
-    const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
-    const sourceNodeIdSet = new Set(sourceNodeIds);
-    const copiedNodeStatements = sourceNodes.map((node) => {
-      const templateNodeId = templateNodeIdBySourceId.get(node.id);
-      if (!templateNodeId) throw new Error("Could not map the estimate tab tree.");
-      const mappedParentId = node.parent_id && sourceNodeIdSet.has(node.parent_id)
-        ? templateNodeIdBySourceId.get(node.parent_id) ?? wrapperNodeId
-        : wrapperNodeId;
-      return templateNodeInsertStatement({
-        id: templateNodeId,
-        templateId: insertedTemplate.id,
-        parentId: mappedParentId,
-        kind: node.kind,
-        name: node.name,
-        sortOrder: node.sort_order,
-      });
-    });
-    const templateNodeStatements = [
-      templateNodeInsertStatement({
-        id: wrapperNodeId,
-        templateId: insertedTemplate.id,
-        parentId: null,
-        kind: "group",
-        name: sourceTabName,
-        sortOrder: 0,
-      }),
-      ...copiedNodeStatements,
-    ];
-
-    const rowStatements = rowItemRows.map((row) => {
-      const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
-      if (!templateNodeId) throw new Error("Could not map the estimate tab rows.");
-      return templateRowItemInsertStatement(insertedTemplate.id, templateNodeId, row);
-    });
-    await runBatch(database, [...templateNodeStatements, ...rowStatements]);
-
-    revalidateTemplateSurfaces();
-
-    const buildRows = await readTemplateBuildRows(database, insertedTemplate.id);
-    const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
-    if (!template) throw new Error("Could not read back the created template.");
-    return { template };
+    await runTemplateAtomicBatch(database, statements);
   } catch (error) {
-    await run(database, "DELETE FROM estimate_templates WHERE id = ?", [insertedTemplate.id]);
+    const committed = await readTemplateGraphReplay(database, identity, "Could not read back the created template.");
+    if (committed) return committed;
     throw error;
   }
+
+  revalidateTemplateSurfaces();
+  return readTemplateGraphResult(database, insertedTemplate.row.id, "Could not read back the created template.");
+}
+
+type TemplateHeaderMutationReceipt = {
+  templateId: string;
+  name?: string;
+  category?: string;
+  sortOrder?: number;
+  updatedCount?: number;
+};
+
+function parseTemplateHeaderMutationReceipt(value: unknown): TemplateHeaderMutationReceipt {
+  if (!value || typeof value !== "object") throw new Error("The committed Template receipt is invalid.");
+  const result = value as Record<string, unknown>;
+  if (typeof result.templateId !== "string" || !isUuid(result.templateId)) {
+    throw new Error("The committed Template receipt is invalid.");
+  }
+  return {
+    templateId: result.templateId,
+    name: typeof result.name === "string" ? result.name : undefined,
+    category: typeof result.category === "string" ? result.category : undefined,
+    sortOrder: Number.isFinite(Number(result.sortOrder)) ? Number(result.sortOrder) : undefined,
+    updatedCount: Number.isSafeInteger(Number(result.updatedCount)) ? Number(result.updatedCount) : undefined,
+  };
+}
+
+function parseTemplateCategoryMutationReceipt(value: unknown) {
+  if (!value || typeof value !== "object") throw new Error("The committed Template receipt is invalid.");
+  const result = value as Record<string, unknown>;
+  if (typeof result.category !== "string" || !Number.isSafeInteger(Number(result.updatedCount))) {
+    throw new Error("The committed Template receipt is invalid.");
+  }
+  return { category: result.category, updatedCount: Number(result.updatedCount) };
 }
 
 /** Renames a workspace estimate template. */
-export async function renameEstimateTemplate(input: { templateId: string; name: string }) {
+export async function renameEstimateTemplate(input: { intentId?: string; templateId: string; name: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -4625,35 +4846,119 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
 
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
-  await run(
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.rename",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, name: templateName },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+  if (replay) return { templateId: replay.templateId, name: replay.name ?? templateName };
+
+  const template = await first<{ id: string; name: string; updated_at: string }>(
     database,
-    "UPDATE estimate_templates SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-    [templateName, nowIso(), input.templateId, workspace.id],
-  );
-  const template = await first<{ id: string; name: string }>(
-    database,
-    "SELECT id, name FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    "SELECT id, name, updated_at FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
     [input.templateId, workspace.id],
   );
   if (!template) throw new Error("Template not found in the current workspace.");
+  const timestamp = nowIso();
+  const result: TemplateHeaderMutationReceipt = { templateId: template.id, name: templateName };
+  const statements: TemplateMutationStatement[] = [
+    {
+      sql: `SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?
+      ) THEN 1 ELSE json('') END AS template_header_guard`,
+      values: [template.id, workspace.id, template.updated_at],
+    },
+    {
+      sql: "UPDATE estimate_templates SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ? AND updated_at = ?",
+      values: [templateName, timestamp, template.id, workspace.id, template.updated_at],
+    },
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: template.id,
+      action: "rename",
+      intentId: identity.intentId,
+      timestamp,
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: template.id,
+      result,
+      timestamp,
+    }),
+  ];
+  try {
+    await runTemplateAtomicBatch(database, statements);
+  } catch (error) {
+    const committed = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+    if (committed) return { templateId: committed.templateId, name: committed.name ?? templateName };
+    throw error;
+  }
   revalidateTemplateSurfaces();
-  return { templateId: template.id, name: template.name };
+  return { templateId: template.id, name: templateName };
 }
 
 /** Deletes a workspace estimate template; nodes and rows cascade. */
-export async function deleteEstimateTemplate(input: { templateId: string }) {
+export async function deleteEstimateTemplate(input: { intentId?: string; templateId: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
-  const template = await first<{ id: string }>(
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.delete",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+  if (replay) return { templateId: replay.templateId };
+
+  const template = await first<{ id: string; updated_at: string }>(
     database,
-    "SELECT id FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    "SELECT id, updated_at FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
     [input.templateId, workspace.id],
   );
   if (!template) throw new Error("Template not found in the current workspace.");
-  await run(database, "DELETE FROM estimate_templates WHERE id = ? AND workspace_id = ?", [input.templateId, workspace.id]);
+  const timestamp = nowIso();
+  const result: TemplateHeaderMutationReceipt = { templateId: template.id };
+  const statements: TemplateMutationStatement[] = [
+    {
+      sql: `SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?
+      ) THEN 1 ELSE json('') END AS template_delete_guard`,
+      values: [template.id, workspace.id, template.updated_at],
+    },
+    {
+      sql: "DELETE FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?",
+      values: [template.id, workspace.id, template.updated_at],
+    },
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: template.id,
+      action: "delete",
+      intentId: identity.intentId,
+      timestamp,
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: template.id,
+      result,
+      timestamp,
+    }),
+  ];
+  try {
+    await runTemplateAtomicBatch(database, statements);
+  } catch (error) {
+    const committed = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+    if (committed) return { templateId: committed.templateId };
+    throw error;
+  }
   revalidateTemplateSurfaces();
   return { templateId: template.id };
 }
@@ -4663,7 +4968,7 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
  * Templates browse "New template" flow uses this when there is no estimate
  * node to capture; the template editor fills in the structure later.
  */
-export async function createEstimateTemplate(input: { name: string; category?: string; description?: string }) {
+export async function createEstimateTemplate(input: { intentId?: string; name: string; category?: string; description?: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -4672,8 +4977,17 @@ export async function createEstimateTemplate(input: { name: string; category?: s
 
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.create_blank",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { name: templateName, category: templateCategory, description: templateDescription },
+  });
+  const replay = await readTemplateGraphReplay(database, identity, "Could not read back the created template.");
+  if (replay) return replay;
   await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
-  const insertedTemplate = await insertTemplate(database, {
+  const insertedTemplate = buildTemplateInsert({
     workspaceId: workspace.id,
     name: templateName,
     description: templateDescription,
@@ -4682,16 +4996,35 @@ export async function createEstimateTemplate(input: { name: string; category?: s
     createdBy: currentUser.userId,
     metadata: { savedFrom: "library-templates-browse" },
   });
+  const receipt: TemplateGraphMutationReceipt = { templateId: insertedTemplate.row.id, nodeCount: 0, rowCount: 0 };
+  const statements: TemplateMutationStatement[] = [
+    insertedTemplate.statement,
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: insertedTemplate.row.id,
+      action: "create_blank",
+      intentId: identity.intentId,
+      timestamp: insertedTemplate.row.updated_at,
+      metadata: { nodeCount: 0, rowCount: 0 },
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: insertedTemplate.row.id,
+      result: receipt,
+      timestamp: insertedTemplate.row.updated_at,
+    }),
+  ];
+  try {
+    await runTemplateAtomicBatch(database, statements);
+  } catch (error) {
+    const committed = await readTemplateGraphReplay(database, identity, "Could not read back the created template.");
+    if (committed) return committed;
+    throw error;
+  }
 
   revalidateTemplateSurfaces();
-
-  const [template] = buildEstimateTemplatesFromRows({
-    templates: [insertedTemplate],
-    nodes: [],
-    rowItems: [],
-  });
-  if (!template) throw new Error("Could not read back the created template.");
-  return { template };
+  return readTemplateGraphResult(database, insertedTemplate.row.id, "Could not read back the created template.");
 }
 
 /**
@@ -4699,12 +5032,21 @@ export async function createEstimateTemplate(input: { name: string; category?: s
  * every row item (all columns). The copy lands in the same category with the
  * next sort_order in that category and the name `{name} copy`.
  */
-export async function duplicateEstimateTemplate(input: { templateId: string }) {
+export async function duplicateEstimateTemplate(input: { intentId?: string; templateId: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.duplicate",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId },
+  });
+  const replay = await readTemplateGraphReplay(database, identity, "Could not read back the duplicated template.");
+  if (replay) return replay;
   await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
   const sourceTemplate = await first<EstimateTemplateD1Row>(
     database,
@@ -4726,7 +5068,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
     ),
   ]);
 
-  const insertedTemplate = await insertTemplate(database, {
+  const insertedTemplate = buildTemplateInsert({
     workspaceId: workspace.id,
     name: `${sourceTemplate.name} copy`,
     description: sourceTemplate.description,
@@ -4739,45 +5081,89 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
     },
   });
 
+  const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
+  const nodeStatements = sourceNodes.map((node) => {
+    const kind = normalizeEstimateTreeNodeKind(node.kind);
+    if (!kind) throw new Error("Could not copy the node structure.");
+    return templateNodeInsertStatement({
+      id: templateNodeIdBySourceId.get(node.id)!,
+      templateId: insertedTemplate.row.id,
+      parentId: node.parent_id ? templateNodeIdBySourceId.get(node.parent_id) ?? null : null,
+      kind,
+      name: node.name,
+      sortOrder: numberValue(node.sort_order),
+      metadata: readJsonRecord(node.metadata),
+    });
+  });
+  const rowStatements = sourceRowItems.map((row) => {
+    const templateNodeId = templateNodeIdBySourceId.get(row.template_node_id);
+    if (!templateNodeId) throw new Error("Could not copy the template rows.");
+    return copiedTemplateRowItemInsertStatement(insertedTemplate.row.id, templateNodeId, row);
+  });
+  const sourceGuard: TemplateMutationStatement = {
+    sql: `
+      SELECT CASE WHEN
+        EXISTS (SELECT 1 FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?)
+        AND (SELECT COUNT(*) FROM estimate_template_nodes WHERE template_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_template_nodes WHERE template_id = ?), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_template_row_items WHERE template_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_template_row_items WHERE template_id = ?), '') = ?
+      THEN 1 ELSE json('') END AS template_duplicate_source_guard
+    `,
+    values: [
+      sourceTemplate.id,
+      workspace.id,
+      sourceTemplate.updated_at,
+      sourceTemplate.id,
+      sourceNodes.length,
+      sourceTemplate.id,
+      latestUpdatedAt(sourceNodes),
+      sourceTemplate.id,
+      sourceRowItems.length,
+      sourceTemplate.id,
+      latestUpdatedAt(sourceRowItems),
+    ],
+  };
+  const receipt: TemplateGraphMutationReceipt = {
+    templateId: insertedTemplate.row.id,
+    nodeCount: nodeStatements.length,
+    rowCount: rowStatements.length,
+  };
+  const statements: TemplateMutationStatement[] = [
+    sourceGuard,
+    insertedTemplate.statement,
+    ...nodeStatements,
+    ...rowStatements,
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: insertedTemplate.row.id,
+      action: "duplicate",
+      intentId: identity.intentId,
+      timestamp: insertedTemplate.row.updated_at,
+      metadata: { sourceTemplateId: sourceTemplate.id, nodeCount: receipt.nodeCount, rowCount: receipt.rowCount },
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: insertedTemplate.row.id,
+      result: receipt,
+      timestamp: insertedTemplate.row.updated_at,
+    }),
+  ];
   try {
-    const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
-    const nodeStatements = sourceNodes.map((node) => {
-      const kind = normalizeEstimateTreeNodeKind(node.kind);
-      if (!kind) throw new Error("Could not copy the node structure.");
-      return templateNodeInsertStatement({
-        id: templateNodeIdBySourceId.get(node.id)!,
-        templateId: insertedTemplate.id,
-        parentId: node.parent_id ? templateNodeIdBySourceId.get(node.parent_id) ?? null : null,
-        kind,
-        name: node.name,
-        sortOrder: numberValue(node.sort_order),
-        metadata: readJsonRecord(node.metadata),
-      });
-    });
-
-    const rowStatements = sourceRowItems.map((row) => {
-      const templateNodeId = templateNodeIdBySourceId.get(row.template_node_id);
-      if (!templateNodeId) throw new Error("Could not copy the template rows.");
-      return copiedTemplateRowItemInsertStatement(insertedTemplate.id, templateNodeId, row);
-    });
-    await runBatch(database, [...nodeStatements, ...rowStatements]);
-
-    revalidateTemplateSurfaces();
-
-    const buildRows = await readTemplateBuildRows(database, insertedTemplate.id);
-    const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
-    if (!template) throw new Error("Could not read back the duplicated template.");
-    return { template };
+    await runTemplateAtomicBatch(database, statements);
   } catch (error) {
-    // Without a cross-statement transaction, a partial failure leaves an
-    // orphan template; deleting it cascades to any copied nodes/rows.
-    await run(database, "DELETE FROM estimate_templates WHERE id = ?", [insertedTemplate.id]);
+    const committed = await readTemplateGraphReplay(database, identity, "Could not read back the duplicated template.");
+    if (committed) return committed;
     throw error;
   }
+
+  revalidateTemplateSurfaces();
+  return readTemplateGraphResult(database, insertedTemplate.row.id, "Could not read back the duplicated template.");
 }
 
 /** Moves a template to another category (group), optionally repositioning it. */
-export async function moveEstimateTemplateToCategory(input: { templateId: string; category: string; sortOrder?: number }) {
+export async function moveEstimateTemplateToCategory(input: { intentId?: string; templateId: string; category: string; sortOrder?: number }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const category = input.category.trim();
   if (!category) throw new Error("Group name is required.");
@@ -4788,31 +5174,76 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
 
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
-  if (input.sortOrder !== undefined) {
-    await run(
-      database,
-      "UPDATE estimate_templates SET category = ?, sort_order = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-      [category, input.sortOrder, nowIso(), input.templateId, workspace.id],
-    );
-  } else {
-    await run(
-      database,
-      "UPDATE estimate_templates SET category = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-      [category, nowIso(), input.templateId, workspace.id],
-    );
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.move_category",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, category, sortOrder: input.sortOrder ?? null },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+  if (replay) {
+    return {
+      templateId: replay.templateId,
+      category: replay.category ?? category,
+      sortOrder: replay.sortOrder ?? input.sortOrder ?? 0,
+    };
   }
-  const template = await first<{ id: string; category: string; sort_order: number }>(
+  const template = await first<{ id: string; category: string; sort_order: number; updated_at: string }>(
     database,
-    "SELECT id, category, sort_order FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    "SELECT id, category, sort_order, updated_at FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
     [input.templateId, workspace.id],
   );
   if (!template) throw new Error("Template not found in the current workspace.");
+  const timestamp = nowIso();
+  const sortOrder = input.sortOrder ?? template.sort_order;
+  const result: TemplateHeaderMutationReceipt = { templateId: template.id, category, sortOrder };
+  const statements: TemplateMutationStatement[] = [
+    {
+      sql: `SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?
+      ) THEN 1 ELSE json('') END AS template_move_category_guard`,
+      values: [template.id, workspace.id, template.updated_at],
+    },
+    {
+      sql: "UPDATE estimate_templates SET category = ?, sort_order = ?, updated_at = ? WHERE id = ? AND workspace_id = ? AND updated_at = ?",
+      values: [category, sortOrder, timestamp, template.id, workspace.id, template.updated_at],
+    },
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: template.id,
+      action: "move_category",
+      intentId: identity.intentId,
+      timestamp,
+      metadata: { category, sortOrder },
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: template.id,
+      result,
+      timestamp,
+    }),
+  ];
+  try {
+    await runTemplateAtomicBatch(database, statements);
+  } catch (error) {
+    const committed = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+    if (committed) {
+      return {
+        templateId: committed.templateId,
+        category: committed.category ?? category,
+        sortOrder: committed.sortOrder ?? sortOrder,
+      };
+    }
+    throw error;
+  }
   revalidateTemplateSurfaces();
-  return { templateId: template.id, category: template.category, sortOrder: template.sort_order };
+  return { templateId: template.id, category, sortOrder };
 }
 
 /** Renames a template category (group): bulk text update scoped to the workspace. */
-export async function renameTemplateCategory(input: { from: string; to: string }) {
+export async function renameTemplateCategory(input: { intentId?: string; from: string; to: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const from = input.from.trim();
   const to = input.to.trim();
@@ -4822,13 +5253,60 @@ export async function renameTemplateCategory(input: { from: string; to: string }
 
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
-  const result = await run(
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.rename_category",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { from, to },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateCategoryMutationReceipt);
+  if (replay) return replay;
+  const templates = await all<{ id: string; updated_at: string }>(
     database,
-    "UPDATE estimate_templates SET category = ?, updated_at = ? WHERE workspace_id = ? AND category = ?",
-    [to, nowIso(), workspace.id, from],
+    "SELECT id, updated_at FROM estimate_templates WHERE workspace_id = ? AND category = ? ORDER BY id ASC",
+    [workspace.id, from],
   );
+  if (templates.length === 0) return { category: to, updatedCount: 0 };
+  const timestamp = nowIso();
+  const result = { category: to, updatedCount: templates.length };
+  const statements: TemplateMutationStatement[] = [
+    {
+      sql: `SELECT CASE WHEN
+        (SELECT COUNT(*) FROM estimate_templates WHERE workspace_id = ? AND category = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_templates WHERE workspace_id = ? AND category = ?), '') = ?
+      THEN 1 ELSE json('') END AS template_category_guard`,
+      values: [workspace.id, from, templates.length, workspace.id, from, latestUpdatedAt(templates)],
+    },
+    {
+      sql: "UPDATE estimate_templates SET category = ?, updated_at = ? WHERE workspace_id = ? AND category = ?",
+      values: [to, timestamp, workspace.id, from],
+    },
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: null,
+      action: "rename_category",
+      intentId: identity.intentId,
+      timestamp,
+      metadata: { from, to, updatedCount: templates.length },
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: null,
+      result,
+      timestamp,
+    }),
+  ];
+  try {
+    await runTemplateAtomicBatch(database, statements);
+  } catch (error) {
+    const committed = await readCommittedTemplateMutation(database, identity, parseTemplateCategoryMutationReceipt);
+    if (committed) return committed;
+    throw error;
+  }
   revalidateTemplateSurfaces();
-  return { category: to, updatedCount: result.meta?.changes ?? 0 };
+  return result;
 }
 
 export type EstimateInsertTargetProject = {

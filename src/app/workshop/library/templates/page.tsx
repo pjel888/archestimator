@@ -12,7 +12,7 @@ type LibraryTemplatesPageProps = {
 };
 
 async function TemplatesBrowseData() {
-  const [{ templates, userId, workspaceId }, componentLibrary] = await withPerfTraceRequest("workshop.library.templates", () =>
+  const [templateSeed, componentLibrary] = await withPerfTraceRequest("workshop.library.templates", () =>
     Promise.all([
       traced("library.templates.seed", () => getCurrentWorkspaceEstimateTemplatesSeed()),
       traced("library.templates.components", () => getCurrentWorkspaceComponentRowsLibrary({
@@ -21,7 +21,13 @@ async function TemplatesBrowseData() {
       })),
     ]),
   );
-  return <TemplatesBrowsePageClient templates={templates} componentLibrary={componentLibrary} queryScope={{ userId, workspaceId }} />;
+  return (
+    <TemplatesBrowsePageClient
+      templateSeed={templateSeed}
+      componentLibrary={componentLibrary}
+      queryScope={{ userId: templateSeed.userId, workspaceId: templateSeed.workspaceId }}
+    />
+  );
 }
 
 export default async function LibraryTemplatesPage({ searchParams }: LibraryTemplatesPageProps) {

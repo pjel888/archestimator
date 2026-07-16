@@ -897,7 +897,7 @@ export function TemplatesBrowseManager({
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
       dispatch({ type: "statusChanged", status: { state: "saving", message: "Renaming template…" } });
-      renameEstimateTemplate({ templateId: template.id, name })
+      renameEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: template.id, name })
         .then(() => {
           dispatch({ type: "statusChanged", status: { state: "saved", message: "Template renamed." } });
           syncTemplatesCache((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
@@ -932,7 +932,7 @@ export function TemplatesBrowseManager({
   const duplicateTemplate = useCallback(
     (template: EstimateTemplate) => {
       dispatch({ type: "statusChanged", status: { state: "saving", message: "Duplicating template…" } });
-      duplicateEstimateTemplate({ templateId: template.id })
+      duplicateEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: template.id })
         .then(({ template: duplicated }) => {
           setItems((items) => [...items.filter((entry) => entry.id !== duplicated.id), duplicated]);
           dispatch({ type: "templateSelected", templateId: duplicated.id });
@@ -959,7 +959,7 @@ export function TemplatesBrowseManager({
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, category: nextCategory } : entry)));
       dispatch({ type: "statusChanged", status: { state: "saving", message: "Moving template…" } });
-      moveEstimateTemplateToCategory({ templateId: template.id, category: nextCategory })
+      moveEstimateTemplateToCategory({ intentId: globalThis.crypto.randomUUID(), templateId: template.id, category: nextCategory })
         .then(() => {
           dispatch({ type: "statusChanged", status: { state: "saved", message: `Moved to ${nextCategory}.` } });
           syncTemplatesCache((items) =>
@@ -1014,7 +1014,7 @@ export function TemplatesBrowseManager({
       setItems((items) => items.map((entry) => (entry.category === category ? { ...entry, category: name } : entry)));
       if (selectedCategory === category) dispatch({ type: "selectedCategoryChanged", category: name });
       dispatch({ type: "statusChanged", status: { state: "saving", message: "Renaming group…" } });
-      renameTemplateCategory({ from: category, to: name })
+      renameTemplateCategory({ intentId: globalThis.crypto.randomUUID(), from: category, to: name })
         .then(() => {
           dispatch({ type: "statusChanged", status: { state: "saved", message: "Group renamed." } });
           syncTemplatesCache((items) =>
@@ -1054,7 +1054,7 @@ export function TemplatesBrowseManager({
     if (!template || deletePending) return;
     dispatch({ type: "deletePendingChanged", pending: true });
     dispatch({ type: "statusChanged", status: { state: "saving", message: "Deleting template…" } });
-    deleteEstimateTemplate({ templateId: template.id })
+    deleteEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: template.id })
       .then(() => {
         setItems((items) => items.filter((entry) => entry.id !== template.id));
         if (selectedTemplateId === template.id) dispatch({ type: "templateSelected", templateId: null });

@@ -9,7 +9,6 @@ export const QUICK_ADD_TEXT_LIMITS = {
 
 export type QuickAddField =
   | "name"
-  | "category"
   | "unit"
   | "unitCost"
   | "miscCost"
@@ -20,7 +19,7 @@ export type QuickAddField =
 
 export type QuickAddComponentValidationInput = {
   name: unknown;
-  category: unknown;
+  category?: unknown;
   unit: unknown;
   unitCost: unknown;
   miscCost?: unknown;
@@ -33,7 +32,6 @@ export type QuickAddComponentValidationInput = {
 
 export type NormalizedQuickAddComponentInput = {
   name: string;
-  category: string;
   unit: string;
   unitCost: number;
   miscCost: number;
@@ -128,7 +126,6 @@ export function validateQuickAddComponentInput(
   const errors: Partial<Record<QuickAddField, string>> = {};
 
   const name = normalizeQuickAddText(input.name);
-  const category = normalizeQuickAddText(input.category);
   const unit = normalizeQuickAddText(input.unit);
   const supplier = normalizeQuickAddText(input.supplier);
   const brand = normalizeQuickAddText(input.brand);
@@ -140,17 +137,14 @@ export function validateQuickAddComponentInput(
     : parseQuickAddMoney(input.miscCost);
 
   if (!name) errors.name = "Enter a component name.";
-  if (!category) errors.category = "Choose or enter a category.";
   if (!unit) errors.unit = "Enter a unit (e.g. each, m2, hr).";
 
   addTextLengthError(errors, "name", name, QUICK_ADD_TEXT_LIMITS.name, "Use 120 characters or fewer for the name.");
-  addTextLengthError(errors, "category", category, QUICK_ADD_TEXT_LIMITS.category, "Use 120 characters or fewer for the category.");
   addTextLengthError(errors, "unit", unit, QUICK_ADD_TEXT_LIMITS.unit, "Use 32 characters or fewer for the unit.");
   addTextLengthError(errors, "supplier", supplier, QUICK_ADD_TEXT_LIMITS.supplier, "Use 120 characters or fewer.");
   addTextLengthError(errors, "brand", brand, QUICK_ADD_TEXT_LIMITS.brand, "Use 120 characters or fewer.");
 
   addFormulaPrefixError(errors, "name", name, "Remove spreadsheet formula prefixes from the name.");
-  addFormulaPrefixError(errors, "category", category, "Remove spreadsheet formula prefixes from the category.");
   addFormulaPrefixError(errors, "unit", unit, "Remove spreadsheet formula prefixes from the unit.");
   addFormulaPrefixError(errors, "supplier", supplier, "Remove spreadsheet formula prefixes.");
   addFormulaPrefixError(errors, "brand", brand, "Remove spreadsheet formula prefixes.");
@@ -188,7 +182,6 @@ export function validateQuickAddComponentInput(
     errors,
     normalized: {
       name,
-      category,
       unit,
       unitCost: Number.isFinite(unitCost) ? roundQuickAddMoney(unitCost) : undefined,
       miscCost: Number.isFinite(miscCost) ? roundQuickAddMoney(miscCost) : undefined,

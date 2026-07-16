@@ -41,6 +41,10 @@ function createTemporaryId() {
   return `temp-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
 }
 
+function createMutationIntentId() {
+  return globalThis.crypto.randomUUID();
+}
+
 /**
  * Optimistic template editing: every mutation patches the local tree first,
  * runs the server action, then router.refresh() pulls the canonical tree
@@ -132,7 +136,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
       };
       return run(
         (nodes) => appendTemplateChildNode(nodes, parentId, tempNode),
-        () => createEstimateTemplateNode({ templateId: template.id, parentId, kind, name: trimmed }),
+        () => createEstimateTemplateNode({ intentId: createMutationIntentId(), templateId: template.id, parentId, kind, name: trimmed }),
       );
     },
     [run, template.id],
@@ -144,7 +148,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
       if (!trimmed) return Promise.resolve(false);
       return run(
         (nodes) => renameTemplateNodeInNodes(nodes, nodeId, trimmed),
-        () => renameEstimateTemplateNode({ templateId: template.id, nodeId, name: trimmed }),
+        () => renameEstimateTemplateNode({ intentId: createMutationIntentId(), templateId: template.id, nodeId, name: trimmed }),
       );
     },
     [run, template.id],
@@ -154,7 +158,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
     (nodeId: string) =>
       run(
         (nodes) => removeTemplateNodeFromNodes(nodes, nodeId),
-        () => deleteEstimateTemplateNode({ templateId: template.id, nodeId }),
+        () => deleteEstimateTemplateNode({ intentId: createMutationIntentId(), templateId: template.id, nodeId }),
       ),
     [run, template.id],
   );
@@ -163,7 +167,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
     (nodeId: string, parentId: string | null, orderedSiblingIds: string[]) =>
       // Tree moves re-shape sibling arrays; the refreshed server tree is the
       // source of truth, so skip the local transform and show saving state.
-      run(null, () => moveEstimateTemplateNode({ templateId: template.id, nodeId, parentId, orderedSiblingIds })),
+      run(null, () => moveEstimateTemplateNode({ intentId: createMutationIntentId(), templateId: template.id, nodeId, parentId, orderedSiblingIds })),
     [run, template.id],
   );
 
@@ -180,7 +184,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
       if (patch.adjustmentPercentage !== undefined) localPatch.adjustmentPercentage = patch.adjustmentPercentage;
       return run(
         (nodes) => updateTemplateRowInNodes(nodes, rowId, localPatch),
-        () => updateEstimateTemplateRowItem({ templateId: template.id, rowId, patch }),
+        () => updateEstimateTemplateRowItem({ intentId: createMutationIntentId(), templateId: template.id, rowId, patch }),
         "deferred",
       );
     },
@@ -191,7 +195,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
     (rowId: string) =>
       run(
         (nodes) => removeTemplateRowFromNodes(nodes, rowId),
-        () => removeEstimateTemplateRowItem({ templateId: template.id, rowId }),
+        () => removeEstimateTemplateRowItem({ intentId: createMutationIntentId(), templateId: template.id, rowId }),
       ),
     [run, template.id],
   );
@@ -221,7 +225,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
       });
       return run(
         (nodes) => appendTemplateRowToNode(nodes, nodeId, tempRow),
-        () => createEstimateTemplateAllowanceRow({ templateId: template.id, nodeId, material: trimmed }),
+        () => createEstimateTemplateAllowanceRow({ intentId: createMutationIntentId(), templateId: template.id, nodeId, material: trimmed }),
       );
     },
     [run, template.id],
@@ -241,7 +245,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
       );
       return run(
         (nodes) => tempRows.reduce((acc, row) => appendTemplateRowToNode(acc, nodeId, row), nodes),
-        () => addEstimateTemplateRowItems({ templateId: template.id, nodeId, libraryItems: items }),
+        () => addEstimateTemplateRowItems({ intentId: createMutationIntentId(), templateId: template.id, nodeId, libraryItems: items }),
       );
     },
     [run, template.id],
@@ -250,7 +254,13 @@ export function useTemplateEditor(template: EstimateTemplate) {
   const insertTemplate = useCallback(
     (sourceTemplateId: string, targetNodeId: string | null, sourceNodeId?: string | null) =>
       run(null, () =>
-        insertTemplateIntoTemplate({ targetTemplateId: template.id, targetNodeId, sourceTemplateId, sourceNodeId }),
+        insertTemplateIntoTemplate({
+          intentId: createMutationIntentId(),
+          targetTemplateId: template.id,
+          targetNodeId,
+          sourceTemplateId,
+          sourceNodeId,
+        }),
       ),
     [run, template.id],
   );

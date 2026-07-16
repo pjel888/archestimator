@@ -7,6 +7,7 @@ import type {
   BulkActionPreviewResult,
   StorageCleanupTarget,
 } from "@/lib/mass-deletion/bulk-action";
+import { getUploadRemovalCleanupNotBefore } from "@/lib/uploads/removal-claims";
 
 export const MAX_PERMANENT_DELETE_DEPENDENTS = 400;
 
@@ -596,6 +597,7 @@ export function buildComponentPermanentDeleteStatements(input: {
   const attachmentsJson = JSON.stringify(impact.attachments);
   const assetsJson = JSON.stringify(impact.assets);
   const cleanupAssetIdsJson = JSON.stringify(impact.assets.filter((asset) => asset.cleanup).map((asset) => asset.id));
+  const cleanupNotBefore = getUploadRemovalCleanupNotBefore(new Date(input.timestamp));
   const storageTargetsJson = JSON.stringify(impact.storageTargets);
   const componentIds = impact.components.map((component) => component.id);
   const receiptMetadata = {
@@ -1081,6 +1083,11 @@ export function buildComponentPermanentDeleteStatements(input: {
       sql: `
         UPDATE upload_assets
         SET status = 'removed',
+            removal_claim_id = ?,
+            removal_claimed_at = ?,
+            cleanup_not_before = ?,
+            purge_state = 'pending',
+            purged_at = NULL,
             target_entity_type = 'mass-deletion',
             target_entity_id = ?,
             metadata_json = json_set(
@@ -1094,7 +1101,17 @@ export function buildComponentPermanentDeleteStatements(input: {
           AND workspace_id = ?
           AND status NOT IN ('removed', 'deleted')
       `,
-      values: [input.eventId, input.eventId, input.timestamp, input.timestamp, cleanupAssetIdsJson, impact.workspaceId],
+      values: [
+        input.eventId,
+        input.timestamp,
+        cleanupNotBefore,
+        input.eventId,
+        input.eventId,
+        input.timestamp,
+        input.timestamp,
+        cleanupAssetIdsJson,
+        impact.workspaceId,
+      ],
     },
     {
       sql: `

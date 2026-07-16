@@ -20,6 +20,7 @@ export type LibraryFolderRecord = {
   sort_order: number;
   source_category_node_id: string | null;
   folder_kind: LibraryFolderKind;
+  is_default_category?: number | boolean | null;
 };
 
 export type LibraryFolderTreeNode = {

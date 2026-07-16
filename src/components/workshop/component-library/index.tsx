@@ -1094,8 +1094,8 @@ function useEstimateRightSidebarContent({
   const effectiveSelectedName = selectedTargetNode?.name ?? selectedNodeName ?? "";
   const hasTargetContext = Boolean(nodes || selectedNodeKind !== undefined || selectedNodeName !== undefined);
   const canInsert = !hasTargetContext || effectiveSelectedKind === "area";
-  const canInsertTemplate = canInsertTemplateProp ?? (!hasTargetContext || effectiveSelectedKind === "group");
-  const effectiveTemplateTargetName = templateTargetName ?? (effectiveSelectedKind === "group" ? effectiveSelectedName : "") ?? "";
+  const canInsertTemplate = canInsertTemplateProp ?? (!hasTargetContext || effectiveSelectedKind === "group" || effectiveSelectedKind === "area");
+  const effectiveTemplateTargetName = templateTargetName ?? (canInsertTemplate ? effectiveSelectedName : "") ?? "";
   const targetLabel = canInsert
     ? effectiveSelectedName
       ? `Add to ${effectiveSelectedName}`
@@ -1642,7 +1642,7 @@ function useEstimateRightSidebarContent({
           }}
           aria-label="Reusable source filter"
           className="h-6 w-auto border-0 bg-transparent px-0 text-[9px] font-normal hover:border-0 focus-visible:border-0 focus-visible:ring-0"
-          panelClassName="min-w-36 bg-white"
+          panelClassName="min-w-36 bg-white [&_[role=option][aria-selected=true]]:!bg-transparent [&_[role=option][aria-selected=true]]:font-semibold"
         />
       </div>
     );
@@ -2087,7 +2087,7 @@ function useEstimateRightSidebarContent({
       if (!enableReusableProjectSources) return false;
       const sourceName = getProjectReusableSourceDisplayName(source);
       if (!canInsertTemplate) {
-        setLastActionMessage("Select an Area before adding project sources.");
+        setLastActionMessage("Select an estimate node before adding project sources.");
         return false;
       }
 
@@ -2105,7 +2105,7 @@ function useEstimateRightSidebarContent({
         toast({
           id: PROJECT_SOURCE_INSERT_TOAST_ID,
           tone: "error",
-          message: `${sourceName} was not inserted. Select an Area and try again.`,
+          message: `${sourceName} was not inserted. Select an estimate node and try again.`,
         });
         return false;
       }
@@ -2113,7 +2113,7 @@ function useEstimateRightSidebarContent({
         toast({
           id: PROJECT_SOURCE_INSERT_TOAST_ID,
           tone: "error",
-          message: `${sourceName} was not inserted. Select an Area and try again.`,
+          message: `${sourceName} was not inserted. Select an estimate node and try again.`,
         });
         return false;
       }
@@ -2467,7 +2467,11 @@ function useEstimateRightSidebarContent({
     setRenameTemplatePending(true);
     setRenameTemplateError("");
     try {
-      const confirmed = await renameEstimateTemplate({ templateId: renameTemplateTarget.id, name: nextName });
+      const confirmed = await renameEstimateTemplate({
+        intentId: globalThis.crypto.randomUUID(),
+        templateId: renameTemplateTarget.id,
+        name: nextName,
+      });
       setTemplateList((current) =>
         current.map((template) => (template.id === confirmed.templateId ? { ...template, name: confirmed.name } : template)),
       );
@@ -2501,7 +2505,7 @@ function useEstimateRightSidebarContent({
     setDeleteTemplatePending(true);
     setDeleteTemplateError("");
     try {
-      await deleteEstimateTemplate({ templateId: deleteTemplateTarget.id });
+      await deleteEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: deleteTemplateTarget.id });
       setTemplateList((current) => current.filter((template) => template.id !== deleteTemplateTarget.id));
       setLastActionMessage(`${deleteTemplateTarget.name} deleted from templates.`);
       setDeleteTemplateTarget(null);
@@ -3180,7 +3184,7 @@ function useEstimateRightSidebarContent({
                   loadingEstimateIds={skeletonEstimateIds}
                   onPrefetchNode={handleTemplatesPrefetch}
                   canInsertTemplate={canInsertTemplate}
-                  templateTargetName={effectiveTemplateTargetName || "selected group"}
+                  templateTargetName={effectiveTemplateTargetName || "selected node"}
                   onAddTemplate={addTemplate}
                   onAddTemplates={addTemplates}
                   onAddTemplateNode={addTemplateNode}
@@ -3329,8 +3333,8 @@ function useEstimateRightSidebarContent({
             addDisabled={!canInsertTemplate}
             addLabel={
               canInsertTemplate
-                ? `Add to ${effectiveTemplateTargetName || "selected group"}`
-                : "Select an Area before adding project sources"
+                ? `Add to ${effectiveTemplateTargetName || "selected node"}`
+                : "Select an estimate node before adding project sources"
             }
           />
         ) : null}

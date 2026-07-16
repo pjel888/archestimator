@@ -18,9 +18,9 @@ const statusClasses: Record<StatusBadgeStatus, string> = {
   approved: "bg-successSoft text-success",
   review: "bg-warningSoft text-warning",
   danger: "bg-dangerSoft text-danger",
-  draft: "bg-surfaceMuted text-muted",
+  draft: "bg-surfaceMuted text-secondary",
   active: "bg-successSoft text-success",
-  inactive: "bg-surfaceMuted text-tertiary",
+  inactive: "bg-surfaceMuted text-secondary",
 };
 
 const dotClasses: Record<StatusBadgeStatus, string> = {
@@ -42,7 +42,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center min-w-[96px] rounded-xs p-[6px] text-[8px] font-medium uppercase leading-none tracking-normal",
+        "inline-flex shrink-0 items-center justify-center min-w-[96px] rounded-xs p-[6px] text-[10px] font-medium uppercase leading-none tracking-normal",
         statusClasses[status],
         className
       )}

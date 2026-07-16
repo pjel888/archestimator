@@ -110,7 +110,7 @@ export type TemplatesTreeProps = {
    * expand path is already resident and shows no loading state at all (U23).
    */
   onPrefetchNode?: (nodeId: string) => void;
-  /** Whether the workspace currently has a valid group target for templates. */
+  /** Whether the workspace currently has a valid estimate-node target for templates. */
   canInsertTemplate: boolean;
   templateTargetName: string;
   onAddTemplate: (template: EstimateTemplate) => void | Promise<boolean>;
@@ -355,7 +355,7 @@ export function TemplatesTree({
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
-              disabledReason: "Select an Area before adding this template.",
+              disabledReason: "Select an estimate node before adding this template.",
               onSelect: () => void onAddTemplate(datum.template),
             },
             ...toggleItem,
@@ -400,7 +400,7 @@ export function TemplatesTree({
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
-              disabledReason: "Select an Area before adding this node.",
+              disabledReason: "Select an estimate node before adding this node.",
               onSelect: () => void onAddTemplateNode(datum.template, datum.node),
             },
             ...toggleItem,
@@ -440,7 +440,7 @@ export function TemplatesTree({
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || !onAddProjectSource,
               disabledReason: !canInsertTemplate
-                ? "Select an Area before adding this source."
+                ? "Select an estimate node before adding this source."
                 : "Project source insertion is not wired in this surface yet.",
               onSelect: () => onAddProjectSource?.(datum.source),
             },
@@ -475,7 +475,7 @@ export function TemplatesTree({
                 : "Add all to estimate",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || categoryTemplates.length === 0,
-              disabledReason: "Select an Area before adding these templates.",
+              disabledReason: "Select an estimate node before adding these templates.",
               onSelect: () => void onAddTemplates(categoryTemplates),
             },
             ...toggleItem,

@@ -13,10 +13,23 @@ import {
 import type { EstimateRowItem, EstimateRowLinkState } from "@/lib/estimates/types";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
+import { assertD1MutationStatementLimit } from "@/lib/estimates/mutation-receipts";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/types/json";
 import { throwActionError } from "./action-errors";
+import {
+  buildTemplateMutationReceiptStatement,
+  buildTemplateMutationTelemetryStatement,
+  createTemplateMutationIdentity,
+  normalizeTemplatePricingProvenance,
+  readCommittedTemplateMutation,
+  runTemplateAtomicBatch,
+  toDetachedTemplatePricingProvenance,
+  type TemplateMutationIdentity,
+  type TemplateMutationStatement,
+  type TemplatePricingProvenanceOrigin,
+} from "./template-mutations";
 
 type CurrentUserContext = Awaited<ReturnType<typeof requireCurrentUserContext>>;
 
@@ -37,6 +50,7 @@ type EstimateTemplateRow = {
   id: string;
   workspace_id: string;
   name: string;
+  updated_at: string;
 };
 
 type EstimateTemplateNodeD1Row = {
@@ -62,6 +76,7 @@ type EstimateTemplateRowItemD1Row = {
   sort_order: number;
   source_library_item_id: string | null;
   source_snapshot: string | Json | null;
+  pricing_provenance_origin: TemplatePricingProvenanceOrigin | null;
   category_node_id: string | null;
   supplier_id: string | null;
   material: string;
@@ -167,6 +182,7 @@ function toTemplateRowItem(row: EstimateTemplateRowItemD1Row): EstimateTemplateR
     misc_cost: Number(row.misc_cost ?? 0),
     contingency_percentage: Number(row.contingency_percentage ?? 0),
     adjustment_percentage: Number(row.adjustment_percentage ?? 0),
+    pricing_provenance_origin: normalizeTemplatePricingProvenance(row.pricing_provenance_origin),
     source_snapshot: parseJsonValue(row.source_snapshot, null),
     metadata: parseJsonValue(row.metadata, {}),
   };
@@ -213,50 +229,21 @@ async function all<T>(
   }
 }
 
-async function run(
+async function commitTemplateMutation<T>(
   database: D1DatabaseLike,
-  sql: string,
-  values: D1Value[] = [],
-  userMessage = "Could not update template data.",
-) {
+  identity: TemplateMutationIdentity,
+  statements: TemplateMutationStatement[],
+  result: T,
+  parseResult: (value: unknown) => T,
+  userMessage: string,
+): Promise<T> {
+  assertD1MutationStatementLimit(statements.length);
   try {
-    const result = await database
-      .prepare(sql)
-      .bind(...values)
-      .run();
-    if (result.success === false) throw new Error("Cloudflare D1 template editor write failed.");
+    await runTemplateAtomicBatch(database, statements);
     return result;
   } catch (error) {
-    throwActionError(userMessage, error);
-  }
-}
-
-async function runBatch(
-  database: D1DatabaseLike,
-  statements: Array<{ sql: string; values?: D1Value[] }>,
-  userMessage = "Could not update template data.",
-) {
-  if (statements.length === 0) return;
-  try {
-    if (database.batch) {
-      const results = await database.batch(
-        statements.map((statement) =>
-          database.prepare(statement.sql).bind(...(statement.values ?? [])),
-        ),
-      );
-      if (results.some((result) => result.success === false)) {
-        throw new Error("Cloudflare D1 template editor batch failed.");
-      }
-      return;
-    }
-    for (const statement of statements) {
-      const result = await database
-        .prepare(statement.sql)
-        .bind(...(statement.values ?? []))
-        .run();
-      if (result.success === false) throw new Error("Cloudflare D1 template editor write failed.");
-    }
-  } catch (error) {
+    const committed = await readCommittedTemplateMutation(database, identity, parseResult);
+    if (committed) return committed;
     throwActionError(userMessage, error);
   }
 }
@@ -280,7 +267,7 @@ async function requireWorkspaceTemplate(database: D1DatabaseLike, workspaceId: s
   const template = await first<EstimateTemplateRow>(
     database,
     `
-      SELECT id, workspace_id, name
+      SELECT id, workspace_id, name, updated_at
       FROM estimate_templates
       WHERE id = ?
         AND workspace_id = ?
@@ -291,6 +278,138 @@ async function requireWorkspaceTemplate(database: D1DatabaseLike, workspaceId: s
   );
   if (!template) throw new Error("Template not found in the current workspace.");
   return template;
+}
+
+type TemplateNodeMutationReceipt = {
+  templateId: string;
+  nodeId: string;
+  name?: string;
+  parentId?: string | null;
+};
+
+type TemplateNodeListMutationReceipt = {
+  templateId: string;
+  nodeIds: string[];
+};
+
+type TemplateRowMutationReceipt = {
+  templateId: string;
+  rowId: string;
+};
+
+type TemplateRowListMutationReceipt = {
+  templateId: string;
+  rowIds: string[];
+};
+
+function receiptRecord(value: unknown) {
+  if (!value || typeof value !== "object") throw new Error("The committed Template editor receipt is invalid.");
+  return value as Record<string, unknown>;
+}
+
+function receiptUuid(value: unknown) {
+  if (typeof value !== "string" || !isUuid(value)) {
+    throw new Error("The committed Template editor receipt is invalid.");
+  }
+  return value;
+}
+
+function receiptUuidList(value: unknown) {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string" || !isUuid(entry))) {
+    throw new Error("The committed Template editor receipt is invalid.");
+  }
+  return value as string[];
+}
+
+function parseTemplateNodeMutationReceipt(value: unknown): TemplateNodeMutationReceipt {
+  const result = receiptRecord(value);
+  const parentId = result.parentId === null ? null : result.parentId === undefined ? undefined : receiptUuid(result.parentId);
+  return {
+    templateId: receiptUuid(result.templateId),
+    nodeId: receiptUuid(result.nodeId),
+    name: typeof result.name === "string" ? result.name : undefined,
+    parentId,
+  };
+}
+
+function parseTemplateNodeListMutationReceipt(value: unknown): TemplateNodeListMutationReceipt {
+  const result = receiptRecord(value);
+  return {
+    templateId: receiptUuid(result.templateId),
+    nodeIds: receiptUuidList(result.nodeIds),
+  };
+}
+
+function parseTemplateRowMutationReceipt(value: unknown): TemplateRowMutationReceipt {
+  const result = receiptRecord(value);
+  return {
+    templateId: receiptUuid(result.templateId),
+    rowId: receiptUuid(result.rowId),
+  };
+}
+
+function parseTemplateRowListMutationReceipt(value: unknown): TemplateRowListMutationReceipt {
+  const result = receiptRecord(value);
+  return {
+    templateId: receiptUuid(result.templateId),
+    rowIds: receiptUuidList(result.rowIds),
+  };
+}
+
+function buildTemplateEditorMutationStatements(input: {
+  template: EstimateTemplateRow;
+  identity: TemplateMutationIdentity;
+  actorUserId: string;
+  action: string;
+  timestamp: string;
+  result: object;
+  statements: TemplateMutationStatement[];
+  metadata?: Record<string, string | number | boolean | null>;
+}) {
+  return [
+    {
+      sql: `SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM estimate_templates
+        WHERE id = ? AND workspace_id = ? AND updated_at = ?
+      ) THEN 1 ELSE json('') END AS template_editor_header_guard`,
+      values: [input.template.id, input.template.workspace_id, input.template.updated_at],
+    },
+    ...input.statements,
+    {
+      sql: `
+        UPDATE estimate_templates
+        SET updated_at = ?
+        WHERE id = ?
+          AND workspace_id = ?
+          AND updated_at = ?
+      `,
+      values: [
+        input.timestamp,
+        input.template.id,
+        input.template.workspace_id,
+        input.template.updated_at,
+      ],
+    },
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: input.actorUserId,
+      workspaceId: input.template.workspace_id,
+      templateId: input.template.id,
+      action: input.action,
+      intentId: input.identity.intentId,
+      timestamp: input.timestamp,
+      metadata: input.metadata,
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...input.identity,
+      templateId: input.template.id,
+      result: input.result,
+      timestamp: input.timestamp,
+    }),
+  ] satisfies TemplateMutationStatement[];
+}
+
+function latestUpdatedAt(rows: Array<{ updated_at: string }>) {
+  return rows.reduce((latest, row) => row.updated_at > latest ? row.updated_at : latest, "");
 }
 
 async function requireTemplateNode(database: D1DatabaseLike, templateId: string, nodeId: string) {
@@ -367,6 +486,25 @@ async function readTemplateRowItem(database: D1DatabaseLike, templateId: string,
   return row ? toTemplateRowItem(row) : null;
 }
 
+async function readTemplateRowItemsByIds(database: D1DatabaseLike, templateId: string, rowIds: string[]) {
+  if (rowIds.length === 0) return [];
+  const rows = await all<EstimateTemplateRowItemD1Row>(
+    database,
+    `
+      SELECT *
+      FROM estimate_template_row_items
+      WHERE template_id = ?
+        AND id IN (${placeholders(rowIds)})
+    `,
+    [templateId, ...rowIds],
+    "Could not load the template rows.",
+  );
+  const rowById = new Map(rows.map((row) => [row.id, toTemplateRowItem(row)]));
+  const orderedRows = rowIds.map((rowId) => rowById.get(rowId)).filter((row): row is EstimateTemplateRowItem => Boolean(row));
+  if (orderedRows.length !== rowIds.length) throw new Error("One or more committed Template rows no longer exist.");
+  return orderedRows;
+}
+
 function templateNodeInsertStatement(input: {
   id: string;
   templateId: string;
@@ -408,6 +546,7 @@ function templateRowItemInsertStatement(input: EstimateTemplateRowItem & { now: 
         sort_order,
         source_library_item_id,
         source_snapshot,
+        pricing_provenance_origin,
         category_node_id,
         supplier_id,
         material,
@@ -426,7 +565,7 @@ function templateRowItemInsertStatement(input: EstimateTemplateRowItem & { now: 
         created_at,
         updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     values: [
       input.id,
@@ -435,6 +574,7 @@ function templateRowItemInsertStatement(input: EstimateTemplateRowItem & { now: 
       input.sort_order,
       input.source_library_item_id,
       nullableJsonText(input.source_snapshot),
+      normalizeTemplatePricingProvenance(input.pricing_provenance_origin),
       input.category_node_id,
       input.supplier_id,
       input.material,
@@ -457,6 +597,7 @@ function templateRowItemInsertStatement(input: EstimateTemplateRowItem & { now: 
 }
 
 export async function createEstimateTemplateNode(input: {
+  intentId?: string;
   templateId: string;
   parentId: string | null;
   kind: TemplateNodeKind;
@@ -465,10 +606,21 @@ export async function createEstimateTemplateNode(input: {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
 
   const name = input.name.trim();
   if (!name) throw new Error("Node name is required.");
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.create_node",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, parentId: input.parentId, kind: input.kind, name },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateNodeMutationReceipt);
+  if (replay) {
+    return { node: await requireTemplateNode(database, replay.templateId, replay.nodeId) };
+  }
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
   if (input.parentId === null && input.kind !== "group") {
     throw new Error("Only groups can sit at the template root.");
   }
@@ -480,59 +632,106 @@ export async function createEstimateTemplateNode(input: {
   const now = nowIso();
   const nodeId = randomUUID();
   const sortOrder = await nextSiblingSortOrder(database, input.templateId, input.parentId);
-  const insertStatement = templateNodeInsertStatement({
-    id: nodeId,
-    templateId: input.templateId,
-    parentId: input.parentId,
-    kind: input.kind,
-    name,
-    sortOrder,
-    now,
+  const result: TemplateNodeMutationReceipt = { templateId: template.id, nodeId };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "create_node",
+    timestamp: now,
+    result,
+    metadata: { nodeId, kind: input.kind },
+    statements: [templateNodeInsertStatement({
+      id: nodeId,
+      templateId: input.templateId,
+      parentId: input.parentId,
+      kind: input.kind,
+      name,
+      sortOrder,
+      now,
+    })],
   });
-  await run(
+  const committed = await commitTemplateMutation(
     database,
-    insertStatement.sql,
-    insertStatement.values,
+    identity,
+    statements,
+    result,
+    parseTemplateNodeMutationReceipt,
     `Could not add the ${input.kind}.`,
   );
 
-  const node = await requireTemplateNode(database, input.templateId, nodeId);
+  const node = await requireTemplateNode(database, committed.templateId, committed.nodeId);
   revalidateTemplateEditorPaths(input.templateId);
   return { node };
 }
 
-export async function renameEstimateTemplateNode(input: { templateId: string; nodeId: string; name: string }) {
+export async function renameEstimateTemplateNode(input: { intentId?: string; templateId: string; nodeId: string; name: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
 
   const name = input.name.trim();
   if (!name) throw new Error("Node name is required.");
-
-  await run(
-    database,
-    `
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.rename_node",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, nodeId: input.nodeId, name },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateNodeMutationReceipt);
+  if (replay) return { nodeId: replay.nodeId, name: replay.name ?? name };
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, template.id, input.nodeId);
+  const timestamp = nowIso();
+  const result: TemplateNodeMutationReceipt = { templateId: template.id, nodeId: node.id, name };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "rename_node",
+    timestamp,
+    result,
+    metadata: { nodeId: node.id },
+    statements: [{
+      sql: `
       UPDATE estimate_template_nodes
       SET name = ?, updated_at = ?
       WHERE id = ?
         AND template_id = ?
+        AND updated_at = ?
     `,
-    [name, nowIso(), input.nodeId, input.templateId],
+      values: [name, timestamp, node.id, template.id, node.updated_at],
+    }],
+  });
+  const committed = await commitTemplateMutation(
+    database,
+    identity,
+    statements,
+    result,
+    parseTemplateNodeMutationReceipt,
     "Could not rename the node.",
   );
-  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
 
   revalidateTemplateEditorPaths(input.templateId);
-  return { nodeId: node.id, name: node.name };
+  return { nodeId: committed.nodeId, name: committed.name ?? name };
 }
 
-export async function deleteEstimateTemplateNode(input: { templateId: string; nodeId: string }) {
+export async function deleteEstimateTemplateNode(input: { intentId?: string; templateId: string; nodeId: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
-  await requireTemplateNode(database, input.templateId, input.nodeId);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.delete_node",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, nodeId: input.nodeId },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateNodeListMutationReceipt);
+  if (replay) return { deletedNodeIds: replay.nodeIds };
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  await requireTemplateNode(database, template.id, input.nodeId);
 
   const allNodes = await readAllTemplateNodes(database, input.templateId);
   const childrenByParent = new Map<string | null, string[]>();
@@ -549,16 +748,24 @@ export async function deleteEstimateTemplateNode(input: { templateId: string; no
     queue.push(...(childrenByParent.get(current) ?? []));
   }
 
-  await runBatch(
-    database,
-    [
+  const timestamp = nowIso();
+  const result: TemplateNodeListMutationReceipt = { templateId: template.id, nodeIds: subtreeIds };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "delete_node",
+    timestamp,
+    result,
+    metadata: { rootNodeId: input.nodeId, deletedNodeCount: subtreeIds.length },
+    statements: [
       {
         sql: `
           DELETE FROM estimate_template_row_items
           WHERE template_id = ?
             AND template_node_id IN (${placeholders(subtreeIds)})
         `,
-        values: [input.templateId, ...subtreeIds],
+        values: [template.id, ...subtreeIds],
       },
       {
         sql: `
@@ -566,17 +773,25 @@ export async function deleteEstimateTemplateNode(input: { templateId: string; no
           WHERE template_id = ?
             AND id IN (${placeholders(subtreeIds)})
         `,
-        values: [input.templateId, ...subtreeIds],
+        values: [template.id, ...subtreeIds],
       },
     ],
+  });
+  const committed = await commitTemplateMutation(
+    database,
+    identity,
+    statements,
+    result,
+    parseTemplateNodeListMutationReceipt,
     "Could not delete the node.",
   );
 
   revalidateTemplateEditorPaths(input.templateId);
-  return { deletedNodeIds: subtreeIds };
+  return { deletedNodeIds: committed.nodeIds };
 }
 
 export async function moveEstimateTemplateNode(input: {
+  intentId?: string;
   templateId: string;
   nodeId: string;
   parentId: string | null;
@@ -586,18 +801,33 @@ export async function moveEstimateTemplateNode(input: {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
-  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.move_node",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: {
+      templateId: input.templateId,
+      nodeId: input.nodeId,
+      parentId: input.parentId,
+      orderedSiblingIds: input.orderedSiblingIds,
+    },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateNodeMutationReceipt);
+  if (replay) return { nodeId: replay.nodeId, parentId: replay.parentId ?? null };
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, template.id, input.nodeId);
+  const allNodes = (await readAllTemplateNodes(database, template.id)).map(toTemplateNode);
 
   if (input.parentId === null && node.kind !== "group") {
     throw new Error("Only groups can sit at the template root.");
   }
   if (input.parentId !== null) {
     if (input.parentId === input.nodeId) throw new Error("A node cannot be its own parent.");
-    const parent = await requireTemplateNode(database, input.templateId, input.parentId);
+    const parent = allNodes.find((entry) => entry.id === input.parentId);
+    if (!parent) throw new Error("Template node not found.");
     if (parent.kind !== "group") throw new Error("Groups and areas can only be moved under a group.");
 
-    const allNodes = await readAllTemplateNodes(database, input.templateId);
     const parentById = new Map(allNodes.map((entry) => [entry.id, entry.parent_id]));
     let ancestor: string | null = input.parentId;
     while (ancestor) {
@@ -606,33 +836,71 @@ export async function moveEstimateTemplateNode(input: {
     }
   }
 
-  await runBatch(
-    database,
-    [
+  if (input.orderedSiblingIds.some((siblingId) => !isUuid(siblingId))) {
+    throw new Error("The sibling order contains an invalid node.");
+  }
+  const orderedSiblingIds = [...input.orderedSiblingIds];
+  if (new Set(orderedSiblingIds).size !== orderedSiblingIds.length) {
+    throw new Error("The sibling order contains duplicate nodes.");
+  }
+  const expectedSiblingIds = allNodes
+    .filter((entry) => entry.parent_id === input.parentId && entry.id !== node.id)
+    .map((entry) => entry.id)
+    .concat(node.id);
+  if (
+    orderedSiblingIds.length !== expectedSiblingIds.length
+    || expectedSiblingIds.some((siblingId) => !orderedSiblingIds.includes(siblingId))
+  ) {
+    throw new Error("The sibling order no longer matches the target group.");
+  }
+
+  const timestamp = nowIso();
+  const result: TemplateNodeMutationReceipt = {
+    templateId: template.id,
+    nodeId: node.id,
+    parentId: input.parentId,
+  };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "move_node",
+    timestamp,
+    result,
+    metadata: { nodeId: node.id, siblingCount: orderedSiblingIds.length },
+    statements: [
       {
         sql: `
           UPDATE estimate_template_nodes
           SET parent_id = ?, updated_at = ?
           WHERE id = ?
             AND template_id = ?
+            AND updated_at = ?
         `,
-        values: [input.parentId, nowIso(), input.nodeId, input.templateId],
+        values: [input.parentId, timestamp, node.id, template.id, node.updated_at],
       },
-      ...input.orderedSiblingIds.map((siblingId, index) => ({
+      ...orderedSiblingIds.map((siblingId, index) => ({
         sql: `
           UPDATE estimate_template_nodes
           SET sort_order = ?, updated_at = ?
           WHERE id = ?
             AND template_id = ?
         `,
-        values: [index, nowIso(), siblingId, input.templateId] as D1Value[],
+        values: [index, timestamp, siblingId, template.id] as D1Value[],
       })),
     ],
+  });
+  const committed = await commitTemplateMutation(
+    database,
+    identity,
+    statements,
+    result,
+    parseTemplateNodeMutationReceipt,
     "Could not move the node.",
   );
 
   revalidateTemplateEditorPaths(input.templateId);
-  return { nodeId: input.nodeId, parentId: input.parentId };
+  return { nodeId: committed.nodeId, parentId: committed.parentId ?? null };
 }
 
 function buildTemplateRowInsert(input: {
@@ -679,6 +947,7 @@ function buildTemplateRowInsert(input: {
     sort_order: input.sortOrder,
     source_library_item_id: sourceLibraryItemId,
     source_snapshot: sourceSnapshot,
+    pricing_provenance_origin: sourceLibraryItemId ? "recorded" : "missing",
     category_node_id: item.categoryNodeId ?? null,
     supplier_id: item.supplierId ?? null,
     material: item.name?.trim() || item.material,
@@ -698,6 +967,7 @@ function buildTemplateRowInsert(input: {
 }
 
 export async function addEstimateTemplateRowItems(input: {
+  intentId?: string;
   templateId: string;
   nodeId: string;
   libraryItems: EstimateRowItem[];
@@ -705,10 +975,21 @@ export async function addEstimateTemplateRowItems(input: {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
-  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
-  if (node.kind !== "area") throw new Error("Components can only be added to an area.");
   if (input.libraryItems.length === 0) throw new Error("No components to add.");
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.add_component_rows",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, nodeId: input.nodeId, libraryItems: input.libraryItems },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateRowListMutationReceipt);
+  if (replay) {
+    return { rows: await readTemplateRowItemsByIds(database, replay.templateId, replay.rowIds) };
+  }
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, template.id, input.nodeId);
+  if (node.kind !== "area") throw new Error("Components can only be added to an area.");
 
   const lastRow = await first<{ sort_order: number | null }>(
     database,
@@ -736,30 +1017,36 @@ export async function addEstimateTemplateRowItems(input: {
     }),
   }));
 
-  await runBatch(
+  const result: TemplateRowListMutationReceipt = {
+    templateId: template.id,
+    rowIds: inserts.map((row) => row.id),
+  };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "add_component_rows",
+    timestamp: now,
+    result,
+    metadata: { nodeId: node.id, rowCount: inserts.length },
+    statements: inserts.map((row) => templateRowItemInsertStatement({ ...row, now })),
+  });
+  const committed = await commitTemplateMutation(
     database,
-    inserts.map((row) => templateRowItemInsertStatement({ ...row, now })),
+    identity,
+    statements,
+    result,
+    parseTemplateRowListMutationReceipt,
     "Could not add the rows.",
   );
-  const ids = inserts.map((row) => row.id);
-  const rows = await all<EstimateTemplateRowItemD1Row>(
-    database,
-    `
-      SELECT *
-      FROM estimate_template_row_items
-      WHERE id IN (${placeholders(ids)})
-        AND template_id = ?
-      ORDER BY sort_order ASC, id ASC
-    `,
-    [...ids, input.templateId],
-    "Could not add the rows.",
-  );
+  const rows = await readTemplateRowItemsByIds(database, committed.templateId, committed.rowIds);
 
   revalidateTemplateEditorPaths(input.templateId);
-  return { rows: rows.map(toTemplateRowItem) };
+  return { rows };
 }
 
 export async function createEstimateTemplateAllowanceRow(input: {
+  intentId?: string;
   templateId: string;
   nodeId: string;
   material: string;
@@ -767,12 +1054,25 @@ export async function createEstimateTemplateAllowanceRow(input: {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
-  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
-  if (node.kind !== "area") throw new Error("Rows can only be added to an area.");
 
   const material = input.material.trim();
   if (!material) throw new Error("Row name is required.");
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.create_allowance_row",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, nodeId: input.nodeId, material },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateRowMutationReceipt);
+  if (replay) {
+    const row = await readTemplateRowItem(database, replay.templateId, replay.rowId);
+    if (!row) throw new Error("The committed Template row no longer exists.");
+    return { row };
+  }
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, template.id, input.nodeId);
+  if (node.kind !== "area") throw new Error("Rows can only be added to an area.");
 
   const lastRow = await first<{ sort_order: number | null }>(
     database,
@@ -794,6 +1094,7 @@ export async function createEstimateTemplateAllowanceRow(input: {
     sort_order: Number(lastRow?.sort_order ?? -1) + 1,
     source_library_item_id: null,
     source_snapshot: null,
+    pricing_provenance_origin: "missing",
     category_node_id: null,
     supplier_id: null,
     material,
@@ -813,14 +1114,26 @@ export async function createEstimateTemplateAllowanceRow(input: {
     updated_at: now,
   };
 
-  const insertStatement = templateRowItemInsertStatement({ ...row, now });
-  await run(
+  const result: TemplateRowMutationReceipt = { templateId: template.id, rowId: row.id };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "create_allowance_row",
+    timestamp: now,
+    result,
+    metadata: { nodeId: node.id, rowId: row.id },
+    statements: [templateRowItemInsertStatement({ ...row, now })],
+  });
+  const committed = await commitTemplateMutation(
     database,
-    insertStatement.sql,
-    insertStatement.values,
+    identity,
+    statements,
+    result,
+    parseTemplateRowMutationReceipt,
     "Could not add the allowance row.",
   );
-  const insertedRow = await readTemplateRowItem(database, input.templateId, row.id);
+  const insertedRow = await readTemplateRowItem(database, committed.templateId, committed.rowId);
   if (!insertedRow) throwActionError("Could not add the allowance row.");
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -828,6 +1141,7 @@ export async function createEstimateTemplateAllowanceRow(input: {
 }
 
 export async function updateEstimateTemplateRowItem(input: {
+  intentId?: string;
   templateId: string;
   rowId: string;
   patch: TemplateEditorRowPatch;
@@ -835,8 +1149,23 @@ export async function updateEstimateTemplateRowItem(input: {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
   if (!isUuid(input.rowId)) throw new Error("Template row not found.");
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.update_row",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, rowId: input.rowId, patch: input.patch },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateRowMutationReceipt);
+  if (replay) {
+    const row = await readTemplateRowItem(database, replay.templateId, replay.rowId);
+    if (!row) throw new Error("The committed Template row no longer exists.");
+    return { row };
+  }
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const currentRow = await readTemplateRowItem(database, template.id, input.rowId);
+  if (!currentRow) throw new Error("Template row not found.");
 
   const update: TemplateRowUpdate = {};
   if (input.patch.material !== undefined) {
@@ -876,77 +1205,103 @@ export async function updateEstimateTemplateRowItem(input: {
   }
   const entries = Object.entries(update) as Array<[keyof TemplateRowUpdate, D1Value]>;
   if (entries.length === 0) throw new Error("Nothing to update.");
-
-  await run(
-    database,
-    `
+  const nonAdjustmentEntries = entries.filter(([column]) => column !== "adjustment_percentage");
+  const canonicalAdjustment = update.adjustment_percentage
+    ?? (currentRow.adjustment_percentage !== 0 || currentRow.contingency_percentage === 0
+      ? currentRow.adjustment_percentage
+      : currentRow.contingency_percentage);
+  const timestamp = nowIso();
+  const result: TemplateRowMutationReceipt = { templateId: template.id, rowId: currentRow.id };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "update_row",
+    timestamp,
+    result,
+    metadata: { rowId: currentRow.id },
+    statements: [{
+      sql: `
       UPDATE estimate_template_row_items
-      SET ${entries.map(([column]) => `${column} = ?`).join(", ")}, updated_at = ?
+      SET ${nonAdjustmentEntries.map(([column]) => `${column} = ?, `).join("")}adjustment_percentage = ?, contingency_percentage = 0, updated_at = ?
       WHERE id = ?
         AND template_id = ?
+        AND updated_at = ?
     `,
-    [...entries.map(([, value]) => value), nowIso(), input.rowId, input.templateId],
+      values: [
+        ...nonAdjustmentEntries.map(([, value]) => value),
+        canonicalAdjustment,
+        timestamp,
+        currentRow.id,
+        template.id,
+        currentRow.updated_at,
+      ],
+    }],
+  });
+  const committed = await commitTemplateMutation(
+    database,
+    identity,
+    statements,
+    result,
+    parseTemplateRowMutationReceipt,
     "Could not update the row.",
   );
-  const row = await readTemplateRowItem(database, input.templateId, input.rowId);
+  const row = await readTemplateRowItem(database, committed.templateId, committed.rowId);
   if (!row) throw new Error("Template row not found.");
 
   revalidateTemplateEditorPaths(input.templateId);
   return { row };
 }
 
-export async function removeEstimateTemplateRowItem(input: { templateId: string; rowId: string }) {
+export async function removeEstimateTemplateRowItem(input: { intentId?: string; templateId: string; rowId: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
   if (!isUuid(input.rowId)) throw new Error("Template row not found.");
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.remove_row",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId, rowId: input.rowId },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateRowMutationReceipt);
+  if (replay) return { rowId: replay.rowId };
+  const template = await requireWorkspaceTemplate(database, workspace.id, input.templateId);
 
-  const row = await readTemplateRowItem(database, input.templateId, input.rowId);
+  const row = await readTemplateRowItem(database, template.id, input.rowId);
   if (!row) throw new Error("Template row not found.");
-  await run(
-    database,
-    `
+  const timestamp = nowIso();
+  const result: TemplateRowMutationReceipt = { templateId: template.id, rowId: row.id };
+  const statements = buildTemplateEditorMutationStatements({
+    template,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "remove_row",
+    timestamp,
+    result,
+    metadata: { rowId: row.id },
+    statements: [{
+      sql: `
       DELETE FROM estimate_template_row_items
       WHERE id = ?
         AND template_id = ?
+        AND updated_at = ?
     `,
-    [input.rowId, input.templateId],
+      values: [row.id, template.id, row.updated_at],
+    }],
+  });
+  const committed = await commitTemplateMutation(
+    database,
+    identity,
+    statements,
+    result,
+    parseTemplateRowMutationReceipt,
     "Could not remove the row.",
   );
 
   revalidateTemplateEditorPaths(input.templateId);
-  return { rowId: row.id };
-}
-
-export async function reorderEstimateTemplateRowItems(input: {
-  templateId: string;
-  nodeId: string;
-  orderedRowIds: string[];
-}) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const database = await requireTemplateEditorD1Database();
-  await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
-
-  const now = nowIso();
-  await runBatch(
-    database,
-    input.orderedRowIds.map((rowId, index) => ({
-      sql: `
-        UPDATE estimate_template_row_items
-        SET sort_order = ?, updated_at = ?
-        WHERE id = ?
-          AND template_id = ?
-          AND template_node_id = ?
-      `,
-      values: [index, now, rowId, input.templateId, input.nodeId],
-    })),
-    "Could not store the row order.",
-  );
-
-  revalidateTemplateEditorPaths(input.templateId);
-  return { nodeId: input.nodeId };
+  return { rowId: committed.rowId };
 }
 
 /**
@@ -955,6 +1310,7 @@ export async function reorderEstimateTemplateRowItems(input: {
  * rejected as a footgun.
  */
 export async function insertTemplateIntoTemplate(input: {
+  intentId?: string;
   targetTemplateId: string;
   targetNodeId: string | null;
   sourceTemplateId: string;
@@ -964,13 +1320,29 @@ export async function insertTemplateIntoTemplate(input: {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireTemplateEditorD1Database();
   await requireTemplateEditorAccess(database, workspace.id, currentUser);
-  await requireWorkspaceTemplate(database, workspace.id, input.targetTemplateId);
-  await requireWorkspaceTemplate(database, workspace.id, input.sourceTemplateId);
   if (input.targetTemplateId === input.sourceTemplateId) {
     throw new Error("A template cannot be inserted into itself.");
   }
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template_editor.insert_template",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: {
+      targetTemplateId: input.targetTemplateId,
+      targetNodeId: input.targetNodeId,
+      sourceTemplateId: input.sourceTemplateId,
+      sourceNodeId: input.sourceNodeId ?? null,
+    },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateNodeListMutationReceipt);
+  if (replay) return { insertedNodeIds: replay.nodeIds };
+  const [targetTemplate, sourceTemplate] = await Promise.all([
+    requireWorkspaceTemplate(database, workspace.id, input.targetTemplateId),
+    requireWorkspaceTemplate(database, workspace.id, input.sourceTemplateId),
+  ]);
   if (input.targetNodeId !== null) {
-    const target = await requireTemplateNode(database, input.targetTemplateId, input.targetNodeId);
+    const target = await requireTemplateNode(database, targetTemplate.id, input.targetNodeId);
     if (target.kind !== "group") throw new Error("Templates can only be inserted under a group.");
   }
 
@@ -1034,12 +1406,10 @@ export async function insertTemplateIntoTemplate(input: {
       kind: node.kind,
       name: node.name,
       sortOrder: node.parent_id ? node.sort_order : baseSortOrder + index,
-      metadata: {},
+      metadata: node.metadata,
       now,
     }),
   );
-
-  await runBatch(database, nodeInserts, "Could not copy the structure.");
 
   const rowInserts = rowsToCopy.map((row) => {
     const copiedNodeId = idMap.get(row.template_node_id);
@@ -1049,30 +1419,71 @@ export async function insertTemplateIntoTemplate(input: {
       id: randomUUID(),
       template_id: input.targetTemplateId,
       template_node_id: copiedNodeId,
+      pricing_provenance_origin: toDetachedTemplatePricingProvenance(row.pricing_provenance_origin),
+      contingency_percentage: 0,
+      adjustment_percentage: row.adjustment_percentage !== 0 || row.contingency_percentage === 0
+        ? row.adjustment_percentage
+        : row.contingency_percentage,
       created_at: now,
       updated_at: now,
       now,
     });
   });
 
-  if (rowInserts.length > 0) {
-    try {
-      await runBatch(database, rowInserts, "Could not copy the rows.");
-    } catch (error) {
-      await run(
-        database,
-        `
-          DELETE FROM estimate_template_nodes
-          WHERE template_id = ?
-            AND id IN (${placeholders(Array.from(idMap.values()))})
-        `,
-        [input.targetTemplateId, ...Array.from(idMap.values())],
-        "Could not clean up the copied structure.",
-      );
-      throw error;
-    }
-  }
+  const sourceGuard: TemplateMutationStatement = {
+    sql: `
+      SELECT CASE WHEN
+        EXISTS (
+          SELECT 1 FROM estimate_templates
+          WHERE id = ? AND workspace_id = ? AND updated_at = ?
+        )
+        AND (SELECT COUNT(*) FROM estimate_template_nodes WHERE template_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_template_nodes WHERE template_id = ?), '') = ?
+        AND (SELECT COUNT(*) FROM estimate_template_row_items WHERE template_id = ?) = ?
+        AND COALESCE((SELECT MAX(updated_at) FROM estimate_template_row_items WHERE template_id = ?), '') = ?
+      THEN 1 ELSE json('') END AS template_composition_source_guard
+    `,
+    values: [
+      sourceTemplate.id,
+      workspace.id,
+      sourceTemplate.updated_at,
+      sourceTemplate.id,
+      sourceNodes.length,
+      sourceTemplate.id,
+      latestUpdatedAt(sourceNodes),
+      sourceTemplate.id,
+      sourceRows.length,
+      sourceTemplate.id,
+      latestUpdatedAt(sourceRows),
+    ],
+  };
+  const result: TemplateNodeListMutationReceipt = {
+    templateId: targetTemplate.id,
+    nodeIds: Array.from(idMap.values()),
+  };
+  const statements = buildTemplateEditorMutationStatements({
+    template: targetTemplate,
+    identity,
+    actorUserId: currentUser.userId,
+    action: "insert_template",
+    timestamp: now,
+    result,
+    metadata: {
+      sourceTemplateId: sourceTemplate.id,
+      insertedNodeCount: nodeInserts.length,
+      insertedRowCount: rowInserts.length,
+    },
+    statements: [sourceGuard, ...nodeInserts, ...rowInserts],
+  });
+  const committed = await commitTemplateMutation(
+    database,
+    identity,
+    statements,
+    result,
+    parseTemplateNodeListMutationReceipt,
+    "Could not insert the template.",
+  );
 
   revalidateTemplateEditorPaths(input.targetTemplateId);
-  return { insertedNodeIds: Array.from(idMap.values()) };
+  return { insertedNodeIds: committed.nodeIds };
 }
