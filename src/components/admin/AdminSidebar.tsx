@@ -7,6 +7,7 @@ import {
   ChartLine,
   Coins,
   ClipboardText,
+  Database,
   Flag,
   FolderOpen,
   Gauge,
@@ -56,6 +57,7 @@ export const ADMIN_NAV_GROUPS = [
     label: "Operations",
     items: [
       { href: "/admin/releases", label: "Releases", icon: Rocket },
+      { href: "/admin/data-quality", label: "Data Quality", icon: Database },
       { href: "/admin/observability", label: "Observability", icon: Pulse },
     ],
   },
