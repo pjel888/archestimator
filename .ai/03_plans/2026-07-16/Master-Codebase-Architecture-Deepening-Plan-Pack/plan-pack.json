@@ -21,25 +21,25 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "df9e117156e91ef65d64ecd6a1a00a2616946482359ff7024186f478ef0a934f"
+      "sha256": "97f5c81e2a49f5971b73643697e783c24d265cad16063a64d817acfb1406b78a"
     },
     {
       "id": "ART-002",
       "role": "evidence",
       "path": "AUDIT-AND-DISPOSITION.md",
-      "sha256": "1c7da1b9f9e811fd5c71a8ed9b876feb34bfb710570316757ddb064330fb7e8a"
+      "sha256": "aff5c3980cdea8af7c49a72009a4e95691152e479532fab268248e8fcb5a926b"
     },
     {
       "id": "ART-003",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "305b3b7a997ae0b77e07c72158cf0d70b25056df1094ad5085e6cbcd476a6b77"
+      "sha256": "5b7dfd8c8f655cf08c45bb4c5ecd18c92d7440e60b38b7819ce8d6dc80ad6120"
     },
     {
       "id": "ART-004",
       "role": "traceability",
       "path": "LOOP_LEDGER.md",
-      "sha256": "555c427f11b98e82f632fa51ea8b4f16bc5065253af546c749b2d00fb2ee0cf3"
+      "sha256": "7b7915e57a811ecf207551b4b693586965f11f87c96e999d9d9c0ac7a277c9cf"
     }
   ],
   "sources": [
@@ -446,7 +446,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "authorization_boundary_id": "AUTH-001"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-004",
@@ -670,7 +670,7 @@
   "gates": [
     {
       "id": "GATE-TEST-SOURCE-001",
-      "status": "BOUNDARY",
+      "status": "FAIL",
       "artifact_path": "LOOP_LEDGER.md",
       "criterion_ids": [
         "AC-003"
@@ -678,7 +678,7 @@
       "evidence_ids": [
         "EVID-003"
       ],
-      "authorization_boundary_id": "AUTH-001"
+      "authorization_boundary_id": null
     },
     {
       "id": "GATE-LEASE-001",
@@ -983,25 +983,13 @@
       "artifact_path": "LOOP_LEDGER.md"
     }
   ],
-  "authorization_boundaries": [
-    {
-      "id": "AUTH-001",
-      "status": "ACTIVE",
-      "statement": "UNIT-003 requires explicit authorization to retarget two test imports and two source-contract assertions; that narrow test-source maintenance does not authorize test execution or assertion expansion.",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "affected_ids": [
-        "GATE-TEST-SOURCE-001",
-        "AC-003",
-        "UNIT-003"
-      ]
-    }
-  ],
+  "authorization_boundaries": [],
   "evidence_index": [
     {
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "AUDIT-AND-DISPOSITION.md",
-      "sha256": "1c7da1b9f9e811fd5c71a8ed9b876feb34bfb710570316757ddb064330fb7e8a",
+      "sha256": "aff5c3980cdea8af7c49a72009a4e95691152e479532fab268248e8fcb5a926b",
       "claim_ids": [
         "REQ-001",
         "SEC-001",
@@ -1022,7 +1010,7 @@
       "id": "EVID-002",
       "status": "COLLECTED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "305b3b7a997ae0b77e07c72158cf0d70b25056df1094ad5085e6cbcd476a6b77",
+      "sha256": "5b7dfd8c8f655cf08c45bb4c5ecd18c92d7440e60b38b7819ce8d6dc80ad6120",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -1059,7 +1047,7 @@
       "id": "EVID-003",
       "status": "COLLECTED",
       "artifact_path": "LOOP_LEDGER.md",
-      "sha256": "555c427f11b98e82f632fa51ea8b4f16bc5065253af546c749b2d00fb2ee0cf3",
+      "sha256": "7b7915e57a811ecf207551b4b693586965f11f87c96e999d9d9c0ac7a277c9cf",
       "claim_ids": [
         "GATE-TEST-SOURCE-001",
         "GATE-LEASE-001",
@@ -1101,5 +1089,5 @@
   ],
   "next_unit": "UNIT-001",
   "updated_at": "2026-07-16T05:36:05.000Z",
-  "manifest_sha256": "8e8b4e1c5bfcc63a0f355c51bff3bd9af21714f984d5b7fd6fe984bd49571a70"
+  "manifest_sha256": "731dd8528701cfe79756ae72cdd0729eb9d96b816864a89fe8bde54d553a5da6"
 }

@@ -46,7 +46,7 @@
 
 | Gate | Status | Meaning |
 |---|---|---|
-| `GATE-TEST-SOURCE-001` | `BOUNDARY` | `UNIT-003` remains planned until its two test imports and two source-contract assertions are explicitly authorized for narrow maintenance; execution/expansion remains unauthorized. |
+| `GATE-TEST-SOURCE-001` | `FAIL` | `UNIT-003` remains planned until its two test imports and two source-contract assertions are explicitly authorized for narrow maintenance; execution/expansion remains unauthorized. |
 | `GATE-LEASE-001` | `FAIL` | Component UI/action, security, and Estimate source leases must clear before `UNIT-004`, `UNIT-005`, `UNIT-006`, `UNIT-007`, or `UNIT-008` is promoted to ready. |
 | `GATE-COMPLETION-001` | `FAIL` | Core implementation has not started; all core units must verify before completion. |
 
