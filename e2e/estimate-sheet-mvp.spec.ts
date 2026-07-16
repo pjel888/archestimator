@@ -52,6 +52,10 @@ function getTemplateNodeByName(page: Page, name: string) {
     .filter({ has: page.getByText(name, { exact: true }) });
 }
 
+function getComponentNameInputs(page: Page, componentName: string) {
+  return page.locator(`input[data-express-field="name"][value=${JSON.stringify(componentName)}]`);
+}
+
 async function expandEstimateNode(node: Locator) {
   await node.focus();
   await node.press("ArrowRight");
@@ -167,7 +171,7 @@ async function permanentlyDeleteComponent(page: Page, componentName: string) {
   await execute.click();
   await expect(dialog).toBeHidden();
   await expect(libraryTree.getByRole("treeitem", { name: componentName, exact: true })).toHaveCount(0);
-  await expect(page.getByDisplayValue(componentName)).toHaveCount(0);
+  await expect(getComponentNameInputs(page, componentName)).toHaveCount(0);
 }
 
 async function cleanupStaleMvpFixtures(page: Page) {
@@ -416,7 +420,7 @@ test.describe("Estimate Sheet MVP", () => {
         await expect(addButton).toBeVisible();
         const insertStartedAt = await page.evaluate(() => performance.now());
         await addButton.click();
-        const createdRows = page.getByDisplayValue(componentName);
+        const createdRows = getComponentNameInputs(page, componentName);
         await expect(createdRows).toHaveCount(1);
         metrics.componentOptimisticInsertMs = await page.evaluate((startedAt) => performance.now() - startedAt, insertStartedAt);
         expect(Number(metrics.componentOptimisticInsertMs)).toBeLessThan(200);
@@ -430,35 +434,35 @@ test.describe("Estimate Sheet MVP", () => {
         await expect(quantity).not.toBeFocused();
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(1);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(1);
         await expect(page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByLabel(`${componentName} quantity`)).toHaveValue("2");
       });
 
       await test.step("duplicate timeout retry and stale conflict stay replay-safe", async () => {
         const duplicate = page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first();
         await duplicate.click();
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(2);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(2);
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(2);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(2);
 
         expectedConsoleErrorBudget += 2;
         const finishTimeout = await abortNextServerAction(page, expectedFailedRequests);
         await page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first().click();
         await finishTimeout();
         await expect(page.getByRole("alert").filter({ hasText: /failed to fetch|network|timeout|timed out|connection/iu })).toBeVisible();
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(2);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(2);
         await page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first().click();
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(3);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(3);
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(3);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(3);
 
-        const staleRowId = await page.getByDisplayValue(componentName).first().getAttribute("data-estimate-row-id");
+        const staleRowId = await getComponentNameInputs(page, componentName).first().getAttribute("data-estimate-row-id");
         expect(staleRowId).toBeTruthy();
         secondaryPage = await context.newPage();
         await secondaryPage.goto(pathname, { waitUntil: "domcontentloaded" });
-        await expect(secondaryPage.getByDisplayValue(componentName)).toHaveCount(3);
+        await expect(getComponentNameInputs(secondaryPage, componentName)).toHaveCount(3);
         const authoritativeQuantity = secondaryPage.locator(`tr[data-estimate-row-id="${staleRowId}"]`).getByLabel(`${componentName} quantity`);
         await authoritativeQuantity.fill("3");
         await authoritativeQuantity.press("Enter");
@@ -474,7 +478,7 @@ test.describe("Estimate Sheet MVP", () => {
       });
 
       await test.step("failed bulk action rolls back exact rows", async () => {
-        const rowIds = await page.getByDisplayValue(componentName).evaluateAll((inputs) => inputs.map((input) => input.getAttribute("data-estimate-row-id")).filter(Boolean));
+        const rowIds = await getComponentNameInputs(page, componentName).evaluateAll((inputs) => inputs.map((input) => input.getAttribute("data-estimate-row-id")).filter(Boolean));
         expect(rowIds).toHaveLength(3);
         for (const rowId of rowIds.slice(0, 2)) {
           await page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByRole("checkbox", { name: `Select ${componentName}` }).click();
@@ -485,7 +489,7 @@ test.describe("Estimate Sheet MVP", () => {
         await page.getByRole("button", { name: "Delete selected rows", exact: true }).click();
         await finishBulkFailure();
         await expect(page.getByRole("alert").filter({ hasText: "Couldn't delete the selected rows. Try again." })).toBeVisible();
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(3);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(3);
         await page.getByRole("button", { name: "Clear selection", exact: true }).click();
       });
 
@@ -493,7 +497,7 @@ test.describe("Estimate Sheet MVP", () => {
         await permanentlyDeleteComponent(page, componentName);
         componentExists = false;
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(page.getByDisplayValue(componentName)).toHaveCount(0);
+        await expect(getComponentNameInputs(page, componentName)).toHaveCount(0);
         await selectSourceTab(page, "Library");
         await setSourceSearch(page, "Search Library", componentName);
         await expect(page.getByRole("tree", { name: "Library sources" }).getByRole("treeitem", { name: componentName, exact: true })).toHaveCount(0);
