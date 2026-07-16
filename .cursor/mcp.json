@@ -13,6 +13,13 @@
       "args": [
         "chrome-devtools-mcp@1.4.0"
       ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
     }
   }
 }

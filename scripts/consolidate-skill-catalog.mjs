@@ -216,6 +216,10 @@ function reconcileGlobalDuplicates() {
 fs.mkdirSync(projectCatalog, { recursive: true });
 fs.mkdirSync(globalCatalog, { recursive: true });
 
+const legacyProjectLock = path.join(projectRoot, "skills-lock.json");
+const legacyProjectLockRemoved = fs.existsSync(legacyProjectLock);
+removePath(legacyProjectLock);
+
 const projectRemoved = trimProjectCatalog();
 const projectLinks = reconcileProjectLinks();
 const aliasesRemovedBefore = removeInternalAliases(globalCatalog);
@@ -227,6 +231,7 @@ const globalDuplicates = reconcileGlobalDuplicates();
 console.log(
   [
     "Skill catalog consolidated.",
+    `legacy_project_lock_removed=${Number(legacyProjectLockRemoved)}`,
     `project_skills=${skillEntries(projectCatalog).length}`,
     `project_removed=${projectRemoved}`,
     `project_mirrors_removed=${projectLinks.removed}`,
