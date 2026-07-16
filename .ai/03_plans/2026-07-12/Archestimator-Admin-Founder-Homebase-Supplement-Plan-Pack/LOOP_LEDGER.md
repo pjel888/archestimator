@@ -156,3 +156,17 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Degraded capability:** none.
 - **Result:** F2 read-only "Today" delivered. The persistence/state-machine increment is explicitly deferred, not silently dropped.
 - **Next decision:** Build the F2 action-inbox state machine (migration 0088 + derivation registry + snooze/resolve actions) as a focused, tested increment; OR proceed to F3 (Customer 360).
+
+## UNIT-003 / F2 — 2026-07-16 — ACTION-INBOX STATE MACHINE IMPLEMENTED (commit d1215f802)
+
+- **State:** COMPLETE (read-only view + durable state machine). The earlier "deferred crux" is now built.
+- **Founder outcome:** "Today" is now a real action inbox — open incidents become durable, deduped action items the founder can Resolve, Dismiss, or Snooze 1d. Snoozed items resurface automatically; closed incidents auto-resolve; resolved/dismissed stay closed. Initial source: open incidents (support/feedback item-lists pending).
+- **Files owned:** `migrations/0088_admin_action_items.sql`; new `action-inbox-repository.ts`, `action-inbox-actions.ts`, `AdminActionInbox.tsx`; rewritten `today/page.tsx`.
+- **Reconciliation contract:** `ON CONFLICT(derived_key)` upsert refreshes payload + last_seen, preserves `resolved`/`dismissed`, reopens expired snoozes; a trailing UPDATE auto-resolves incident items whose source is no longer open. Derive-on-load is best-effort (failure never blanks the inbox).
+- **Schema/migration:** `0088_admin_action_items` (deduped by derived_key; status open|snoozed|resolved|dismissed; severity + priority + index).
+- **Security risk:** LOW — actions are admin-gated, UUID-validated, audited, affected-row verified.
+- **Test requirement:** NOT_REQUIRED (default); reconciliation SQL hand-reviewed (idempotent upsert, snooze-expiry reopen, auto-resolve).
+- **Evidence:** `bunx tsc --noEmit` — 0 errors in any F2 file. react-doctor clean.
+- **Remaining F2 gaps (additive, non-blocking):** more derivation sources (support/feedback items — need list funcs); multi-day/custom snooze; deep-links to future incident-detail (F6).
+- **Result:** F2 core COMPLETE. The "deferred crux" is delivered.
+- **Next decision:** F3 / UNIT-004 (Customer 360) — founder notes/follow-ups is the highest-value bounded seed (also feeds F2's `followup` source).
