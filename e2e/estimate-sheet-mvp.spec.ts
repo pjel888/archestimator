@@ -92,6 +92,7 @@ async function deleteEstimateArea(page: Page, name: string, parentName?: string)
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(deleteReceipts).toHaveCount(1);
   await expect(matchingNodes).toHaveCount(beforeCount - 1);
+  await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 10_000 });
 }
 
 async function selectSourceTab(page: Page, name: "Library" | "Templates") {
@@ -335,6 +336,7 @@ test.describe("Estimate Sheet MVP", () => {
         await templateDialog.getByRole("combobox", { name: "Template category" }).fill(templateCategory);
         await templateDialog.getByRole("button", { name: "Save template", exact: true }).click();
         await expect(templateDialog).toBeHidden();
+        await page.waitForLoadState("networkidle");
         templateExists = true;
 
         await deleteEstimateArea(page, areaName, sourceName);
