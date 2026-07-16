@@ -612,12 +612,13 @@ test.describe("Estimate Sheet MVP", () => {
       await test.step("failed bulk action rolls back exact rows", async () => {
         const rowIds = await getComponentRowIds(page, componentName);
         expect(rowIds).toHaveLength(3);
-        for (const rowId of rowIds.slice(0, 2)) {
+        const selectedRowIds = rowIds.slice(0, 2);
+        for (const rowId of selectedRowIds) {
           await page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByRole("checkbox", { name: `Select ${componentName}` }).click();
         }
         await expect(page.getByLabel("2 rows selected")).toBeVisible();
         expectedConsoleErrorBudget += 2;
-        const finishBulkFailure = await abortNextServerAction(page, expectedFailedRequests);
+        const finishBulkFailure = await abortNextServerAction(page, expectedFailedRequests, selectedRowIds[0]!);
         await page.getByRole("button", { name: "Delete selected rows", exact: true }).click();
         await finishBulkFailure();
         await expect(page.getByRole("alert").filter({ hasText: "Couldn't delete the selected rows. Try again." })).toBeVisible();
