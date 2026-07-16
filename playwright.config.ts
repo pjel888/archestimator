@@ -55,9 +55,9 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `bun run dev -- --port ${port}`,
+    command: `bun run predev && bun x next dev --webpack --port ${port}`,
     url: baseURL,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: libraryBrowserMatrixEnabled

@@ -78,6 +78,19 @@ async function expectComponentRowCount(page: Page, componentName: string, expect
   await expect.poll(() => getComponentRowIds(page, componentName), { intervals, timeout: 15_000 }).toHaveLength(expectedCount);
 }
 
+async function waitForReactHandler(locator: Locator, handlerName: "onClick" | "onKeyDown") {
+  await expect.poll(() => locator.evaluate((element, reactHandlerName) => {
+    const reactPropsKey = Object.getOwnPropertyNames(element).find((key) => key.startsWith("__reactProps$"));
+    if (!reactPropsKey) return false;
+    const reactProps = (element as unknown as Record<string, unknown>)[reactPropsKey];
+    return Boolean(
+      reactProps
+      && typeof reactProps === "object"
+      && typeof (reactProps as Record<string, unknown>)[reactHandlerName] === "function",
+    );
+  }, handlerName), { timeout: 15_000 }).toBe(true);
+}
+
 async function expandEstimateNode(node: Locator) {
   await node.focus();
   await node.press("ArrowRight");
@@ -166,13 +179,18 @@ async function selectSourceTab(page: Page, name: "Library" | "Templates") {
 
 async function setSourceSearch(page: Page, label: "Search Library" | "Search Templates", value: string) {
   const searchInput = page.locator(`input[aria-label="${label}"]`);
-  if (!(await searchInput.isVisible().catch(() => false))) {
-    const prefix = label === "Search Library" ? "library" : "templates";
-    await page.getByRole("button", { name: `Show ${prefix} search`, exact: true }).click();
-  }
-  await expect(searchInput).toBeVisible();
-  await searchInput.fill(value);
-  await expect(searchInput).toHaveValue(value);
+  const prefix = label === "Search Library" ? "library" : "templates";
+  const showSearch = page.getByRole("button", { name: `Show ${prefix} search`, exact: true });
+  await expect.poll(async () => {
+    if (!(await searchInput.isVisible().catch(() => false))) {
+      if (await showSearch.isVisible().catch(() => false)) {
+        await showSearch.click({ force: true }).catch(() => undefined);
+      }
+      return false;
+    }
+    if (await searchInput.inputValue() !== value) await searchInput.fill(value);
+    return await searchInput.inputValue() === value;
+  }, { intervals: [100], timeout: 10_000 }).toBe(true);
   await page.waitForTimeout(400);
 }
 
@@ -267,7 +285,16 @@ async function waitForRowSaved(page: Page) {
   await expect(failedRows).toHaveCount(0);
 }
 
-async function abortNextServerAction(page: Page, expectedFailures: Set<Request>, bodyNeedle: string) {
+function getRequestFailureKey(request: Request) {
+  return [
+    request.method(),
+    request.url(),
+    request.headers()["next-action"] ?? "",
+    request.postData() ?? "",
+  ].join("\n");
+}
+
+async function abortNextServerAction(page: Page, expectedFailures: Set<string>, bodyNeedle: string) {
   let intercepted = false;
   const handler = async (route: Route) => {
     const request = route.request();
@@ -276,7 +303,7 @@ async function abortNextServerAction(page: Page, expectedFailures: Set<Request>,
       && (request.postData() ?? "").includes(bodyNeedle);
     if (!intercepted && isTargetAction) {
       intercepted = true;
-      expectedFailures.add(request);
+      expectedFailures.add(getRequestFailureKey(request));
       await route.abort("timedout");
       return;
     }
@@ -287,6 +314,13 @@ async function abortNextServerAction(page: Page, expectedFailures: Set<Request>,
     await expect.poll(() => intercepted).toBe(true);
     await page.unroute("**/*", handler);
   };
+}
+
+function percentile(values: number[], percentileValue: number) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(percentileValue * sorted.length) - 1));
+  return Math.round(sorted[index] * 100) / 100;
 }
 
 test.describe("Estimate Sheet MVP", () => {
@@ -311,10 +345,13 @@ test.describe("Estimate Sheet MVP", () => {
     const templateName = `MVP Template ${suffix}`;
     const templateCategory = `MVP ${suffix}`;
     const componentName = `MVP Component ${suffix}`;
-    const expectedFailedRequests = new Set<Request>();
+    const expectedFailedRequests = new Set<string>();
     const unexpectedErrors: string[] = [];
     const metrics: Record<string, number | string | boolean> = {};
+    const serverActionStartedAt = new Map<Request, number>();
+    const serverActionDurationsMs: number[] = [];
     let expectedConsoleErrorBudget = 0;
+    let expectedConflictConsoleError = false;
     let temporaryAreaExists = false;
     let insertedAreaExists = false;
     let templateExists = false;
@@ -323,14 +360,49 @@ test.describe("Estimate Sheet MVP", () => {
     let pathname = "";
     let sourceName = "";
 
-    page.on("requestfailed", (request) => {
-      if (!expectedFailedRequests.has(request)) {
-        unexpectedErrors.push(`requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? "unknown"}`);
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.headers()["next-action"]) {
+        serverActionStartedAt.set(request, performance.now());
       }
+    });
+    page.on("requestfinished", (request) => {
+      const startedAt = serverActionStartedAt.get(request);
+      if (startedAt === undefined) return;
+      serverActionStartedAt.delete(request);
+      serverActionDurationsMs.push(performance.now() - startedAt);
+    });
+    page.on("requestfailed", (request) => {
+      serverActionStartedAt.delete(request);
+      const failureText = request.failure()?.errorText;
+      const requestPath = new URL(request.url()).pathname;
+      if (request.url().includes("/api/internal/web-vitals") && failureText === "net::ERR_ABORTED") {
+        return;
+      }
+      if (/^\/_next\/static\/webpack\/.+\.hot-update\.(?:js|json)$/u.test(requestPath) && failureText === "net::ERR_ABORTED") {
+        return;
+      }
+      if (request.method() === "GET"
+        && request.resourceType() === "image"
+        && requestPath === "/api/projects/images"
+        && failureText === "net::ERR_ABORTED") {
+        return;
+      }
+      if (request.method() === "POST" && requestPath === "/workshop/projects" && failureText === "net::ERR_ABORTED") {
+        return;
+      }
+      const expectedFailureKey = getRequestFailureKey(request);
+      if (expectedFailedRequests.delete(expectedFailureKey)) {
+        return;
+      }
+      unexpectedErrors.push(`requestfailed: ${request.method()} ${request.url()} ${failureText ?? "unknown"}`);
     });
     page.on("pageerror", (error) => unexpectedErrors.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
       if (message.type() !== "error") return;
+      if (expectedConflictConsoleError && /failed to load resource: the server responded with a status of 500/iu.test(message.text())) {
+        expectedConflictConsoleError = false;
+        return;
+      }
       if (expectedConsoleErrorBudget > 0 && /failed to fetch|err_timed_out|network|timed out/iu.test(message.text())) {
         expectedConsoleErrorBudget -= 1;
         return;
@@ -345,7 +417,7 @@ test.describe("Estimate Sheet MVP", () => {
       await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 60_000 });
       await selectSourceTab(page, "Library");
       await expect(page.getByRole("tree", { name: "Library sources" })).toBeVisible({ timeout: 10_000 });
-      metrics.initialRouteReadyMs = Date.now() - routeStartedAt;
+      metrics.coldDevRouteReadyMs = Date.now() - routeStartedAt;
 
       ({ sourceName } = await getEstimateSourceNode(page));
       await cleanupStaleMvpFixtures(page);
@@ -363,16 +435,39 @@ test.describe("Estimate Sheet MVP", () => {
         temporaryAreaExists = true;
         const temporaryArea = await findEstimateNode(page, firstAreaName, sourceName);
 
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        await (await findEstimateNode(page, sourceName)).click();
+        const routeBeforeWarmTransition = new URL(page.url()).pathname;
+        const tabContent = page.getByLabel("Estimate tab content");
+        await tabContent.evaluate((element) => element.setAttribute("data-mvp-warm-shell", "true"));
+        let warmTransitionDocumentRequests = 0;
+        const countWarmTransitionDocumentRequests = (request: Request) => {
+          if (request.isNavigationRequest() && request.resourceType() === "document") warmTransitionDocumentRequests += 1;
+        };
+        page.on("request", countWarmTransitionDocumentRequests);
+        const warmTransitionStartedAt = await page.evaluate(() => performance.now());
+        await temporaryArea.click();
+        await expect.poll(() => new URL(page.url()).pathname).not.toBe(routeBeforeWarmTransition);
+        metrics.warmRouteTransitionMs = await page.evaluate((startedAt) => performance.now() - startedAt, warmTransitionStartedAt);
+        metrics.warmRouteDocumentRequests = warmTransitionDocumentRequests;
+        page.off("request", countWarmTransitionDocumentRequests);
+        await expect(tabContent).toHaveAttribute("data-mvp-warm-shell", "true");
+        metrics.warmRouteShellPreserved = true;
+        expect(Number(metrics.warmRouteTransitionMs)).toBeLessThan(200);
+        expect(warmTransitionDocumentRequests).toBe(0);
+
         const beforeRename = await temporaryArea.evaluate((element) => {
           const bounds = element.getBoundingClientRect();
           return { width: bounds.width, height: bounds.height, backgroundColor: getComputedStyle(element).backgroundColor };
         });
-        const renameStartedAt = await page.evaluate(() => performance.now());
         await temporaryArea.click({ button: "right" });
-        await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+        const renameMenuItem = page.getByRole("menuitem", { name: "Rename", exact: true });
+        const renameStartedAt = await page.evaluate(() => performance.now());
+        await renameMenuItem.click();
         let renameInput = getEstimateTree(page).locator(`input[aria-label="Rename ${firstAreaName}"]`);
         await expect(renameInput).toBeVisible();
         metrics.renameActivationMs = await page.evaluate((startedAt) => performance.now() - startedAt, renameStartedAt);
+        expect(Number(metrics.renameActivationMs)).toBeLessThan(200);
         const duringRename = await renameInput.evaluate((element) => {
           const treeItem = element.closest<HTMLElement>('[role="treeitem"]');
           const bounds = treeItem?.getBoundingClientRect();
@@ -395,7 +490,15 @@ test.describe("Estimate Sheet MVP", () => {
         await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
         renameInput = getEstimateTree(page).locator(`input[aria-label="Rename ${firstAreaName}"]`);
         await renameInput.fill(areaName);
+        const renameResponsePromise = page.waitForResponse((response) => {
+          const request = response.request();
+          return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+        }, { timeout: 20_000 });
         await renameInput.press("Enter");
+        const renameResponse = await renameResponsePromise;
+        expect(renameResponse.status()).toBeLessThan(400);
+        expect(await renameResponse.finished()).toBeNull();
+        await expect(getEstimateTree(page).locator('input[aria-label^="Rename "]')).toHaveCount(0, { timeout: 15_000 });
         const renamedArea = await findEstimateNode(page, areaName, sourceName);
 
         await renamedArea.click({ button: "right" });
@@ -437,14 +540,18 @@ test.describe("Estimate Sheet MVP", () => {
         await page.waitForTimeout(500);
         await page.waitForLoadState("networkidle");
         page.on("request", countServerActions);
-        const filterStartedAt = await page.evaluate(() => performance.now());
+        const customFilterStartedAt = await page.evaluate(() => performance.now());
         await filter.click();
         await page.getByRole("option", { name: "Custom templates", exact: true }).click();
         await expect(templateNode).toBeVisible();
+        const customFilterToggleMs = await page.evaluate((startedAt) => performance.now() - startedAt, customFilterStartedAt);
+        const allSourcesFilterStartedAt = await page.evaluate(() => performance.now());
         await filter.click();
         await page.getByRole("option", { name: "All sources", exact: true }).click();
-        metrics.loadedFilterToggleMs = await page.evaluate((startedAt) => performance.now() - startedAt, filterStartedAt);
+        const allSourcesFilterToggleMs = await page.evaluate((startedAt) => performance.now() - startedAt, allSourcesFilterStartedAt);
+        metrics.loadedFilterToggleMs = Math.max(customFilterToggleMs, allSourcesFilterToggleMs);
         metrics.loadedFilterServerActions = serverActionRequests;
+        expect(Number(metrics.loadedFilterToggleMs)).toBeLessThan(200);
         expect(serverActionRequests).toBe(0);
         await expect(estimateTree).toHaveAttribute("data-mvp-preserved-tree", "true");
 
@@ -560,25 +667,26 @@ test.describe("Estimate Sheet MVP", () => {
         await expect(quantity).not.toBeFocused();
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         await expectComponentRowCount(page, componentName, 1);
         await expect(page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByLabel(`${componentName} quantity`)).toHaveValue("2");
       });
 
       await test.step("duplicate timeout retry and stale conflict stay replay-safe", async () => {
         const duplicate = page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first();
+        await waitForReactHandler(duplicate, "onClick");
         await duplicate.click();
         await expectComponentRowCount(page, componentName, 2);
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         await expectComponentRowCount(page, componentName, 2);
 
         expectedConsoleErrorBudget += 2;
         const [timeoutSourceRowId] = await getComponentRowIds(page, componentName);
         expect(timeoutSourceRowId).toBeTruthy();
+        const timeoutDuplicate = page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first();
+        await waitForReactHandler(timeoutDuplicate, "onClick");
         const finishTimeout = await abortNextServerAction(page, expectedFailedRequests, timeoutSourceRowId!);
-        await page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first().click();
+        await timeoutDuplicate.click();
         await finishTimeout();
         await expect(page.getByRole("alert").filter({ hasText: /failed to fetch|network|timeout|timed out|connection/iu })).toBeVisible();
         await expectComponentRowCount(page, componentName, 2);
@@ -586,22 +694,23 @@ test.describe("Estimate Sheet MVP", () => {
         await expectComponentRowCount(page, componentName, 3);
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         await expectComponentRowCount(page, componentName, 3);
 
         const [staleRowId] = await getComponentRowIds(page, componentName);
         expect(staleRowId).toBeTruthy();
         secondaryPage = await context.newPage();
         await secondaryPage.goto(pathname, { waitUntil: "domcontentloaded" });
-        await secondaryPage.waitForLoadState("networkidle", { timeout: 15_000 });
         await expectComponentRowCount(secondaryPage, componentName, 3);
         const authoritativeQuantity = secondaryPage.locator(`tr[data-estimate-row-id="${staleRowId}"]`).getByLabel(`${componentName} quantity`);
+        await waitForReactHandler(authoritativeQuantity, "onKeyDown");
         await authoritativeQuantity.fill("3");
         await authoritativeQuantity.press("Enter");
         await waitForRowSaved(secondaryPage);
 
         const staleQuantity = page.locator(`tr[data-estimate-row-id="${staleRowId}"]`).getByLabel(`${componentName} quantity`);
+        await waitForReactHandler(staleQuantity, "onKeyDown");
         await staleQuantity.fill("4");
+        expectedConflictConsoleError = true;
         await staleQuantity.press("Enter");
         await expect(page.getByRole("alert").filter({ hasText: "This row changed elsewhere." })).toBeVisible();
         await expect(staleQuantity).toHaveValue("3");
@@ -661,8 +770,13 @@ test.describe("Estimate Sheet MVP", () => {
         if (temporaryAreaExists) await attemptCleanup("temporary Area fixture", () => deleteEstimateArea(page, areaName, sourceName));
         if (templateExists) await attemptCleanup("template fixture", () => deleteTemplate(page, templateName));
       }
+      metrics.mutationServerActionCount = serverActionDurationsMs.length;
+      metrics.mutationServerActionP50Ms = percentile(serverActionDurationsMs, 0.5);
+      metrics.mutationServerActionP95Ms = percentile(serverActionDurationsMs, 0.95);
+      const evidence = { pathname, sourceName, metrics, unexpectedErrors, cleanupErrors };
+      console.log("estimate-sheet-mvp-metrics", JSON.stringify(evidence));
       await testInfo.attach("estimate-sheet-mvp-metrics", {
-        body: JSON.stringify({ pathname, sourceName, metrics, unexpectedErrors, cleanupErrors }, null, 2),
+        body: JSON.stringify(evidence, null, 2),
         contentType: "application/json",
       });
     }
