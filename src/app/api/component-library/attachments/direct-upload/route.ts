@@ -11,6 +11,7 @@ import {
   finalizeUploadSessionAsset,
   isUploadSessionCapacityExceededError,
   readActiveUploadSessionCapacity,
+  readRecordedUploadAssetForSession,
   readUploadSessionForActor,
   recordPendingUploadSession,
   type UploadSessionForFinalize,
@@ -455,27 +456,30 @@ async function finalizeSignedUpload(currentUser: CurrentUserContext, body: Recor
   }
 
   if (session.status === "finalized") {
-    const existingRecord = await finalizeUploadSessionAsset(db, {
-      uploadSessionId,
-      workspaceId,
-      actorUserId: userId,
-      observedContentType: session.content_type,
-      observedSizeBytes: session.size_bytes,
-      observedChecksumSha256: session.checksum_sha256,
-      observedEtag: null,
-      scanStatus: "pending",
-    });
-    return NextResponse.json({
-      bucket: session.storage_bucket,
-      uploadSessionId: existingRecord.uploadSessionId,
-      assetId: existingRecord.assetId,
-      scanStatus: existingRecord.scanStatus,
-      path: session.storage_path,
-      fileName: session.file_name,
-      contentType: session.content_type,
-      sizeBytes: session.size_bytes,
-      providerProof: "already_finalized",
-    });
+    const existingRecord = await readRecordedUploadAssetForSession(db, uploadSessionId);
+    if (existingRecord) {
+      const reconciledRecord = await finalizeUploadSessionAsset(db, {
+        uploadSessionId,
+        workspaceId,
+        actorUserId: userId,
+        observedContentType: session.content_type,
+        observedSizeBytes: session.size_bytes,
+        observedChecksumSha256: session.checksum_sha256,
+        observedEtag: null,
+        scanStatus: existingRecord.scanStatus,
+      });
+      return NextResponse.json({
+        bucket: session.storage_bucket,
+        uploadSessionId: reconciledRecord.uploadSessionId,
+        assetId: reconciledRecord.assetId,
+        scanStatus: reconciledRecord.scanStatus,
+        path: session.storage_path,
+        fileName: session.file_name,
+        contentType: session.content_type,
+        sizeBytes: session.size_bytes,
+        providerProof: "already_finalized",
+      });
+    }
   }
 
   if (session.expires_at && Date.parse(session.expires_at) <= Date.now()) {

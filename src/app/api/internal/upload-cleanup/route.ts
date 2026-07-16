@@ -9,6 +9,7 @@ import {
   summarizeUploadCleanup,
 } from "@/lib/uploads/cleanup";
 import {
+  createUploadCleanupCoordinator,
   createUploadCleanupStorageFromProvider,
   createUploadCleanupEventWriter,
   listUploadCleanupJobRecords,
@@ -130,6 +131,7 @@ async function handleUploadCleanupJob(request: Request) {
       limit,
       storage: createUploadCleanupStorageFromProvider(storageProvider),
       eventWriter: createUploadCleanupEventWriter(db),
+      coordinator: createUploadCleanupCoordinator(db),
     });
 
     return jsonOk(summarizeUploadCleanupJobResult(result));

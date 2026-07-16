@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 
 import type { UploadSurface } from "./policy";
 
@@ -90,7 +91,7 @@ export async function recordUploadAsset(
   const projectId = projectIdForAsset(input);
   const estimateId = estimateIdForAsset(input);
 
-  await db
+  const sessionStatement = db
     .prepare(
       `
         INSERT INTO upload_sessions (
@@ -131,10 +132,9 @@ export async function recordUploadAsset(
       metadata,
       now,
       now,
-    )
-    .run();
+    );
 
-  await db
+  const assetStatement = db
     .prepare(
       `
         INSERT INTO upload_assets (
@@ -184,10 +184,9 @@ export async function recordUploadAsset(
       metadata,
       now,
       now,
-    )
-    .run();
+    );
 
-  await db
+  const eventStatement = db
     .prepare(
       `
         INSERT INTO upload_events (
@@ -215,8 +214,13 @@ export async function recordUploadAsset(
         scanStatus: input.scanStatus,
       }),
       now,
-    )
-    .run();
+    );
+
+  await runRequiredD1Batch(
+    db,
+    [sessionStatement, assetStatement, eventStatement],
+    "Could not record the upload lifecycle atomically.",
+  );
 
   return {
     uploadSessionId,

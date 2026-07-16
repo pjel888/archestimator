@@ -62,12 +62,14 @@ describe("component library attachment lifecycle governance", () => {
     expect(migration).toContain("grant execute on function public.approve_cost_library_attachment(uuid, integer, uuid, text) to authenticated");
   });
 
-  it("blocks draft storage cleanup from deleting reviewed persisted attachments", () => {
-    const lookupIndex = attachmentRoute.indexOf("FROM component_variant_attachments");
-    const removeIndex = attachmentRoute.indexOf("removeObjects(COMPONENT_ATTACHMENT_BUCKET, removablePaths)");
+  it("blocks reviewed attachments before issuing a deferred removal claim", () => {
+    const deleteRoute = attachmentRoute.slice(attachmentRoute.indexOf("export async function DELETE"));
+    const lookupIndex = deleteRoute.indexOf("readAttachmentRowsForDelete");
+    const claimIndex = deleteRoute.indexOf("claimUploadAssetsForRemoval");
 
     expect(lookupIndex).toBeGreaterThanOrEqual(0);
-    expect(removeIndex).toBeGreaterThan(lookupIndex);
+    expect(claimIndex).toBeGreaterThan(lookupIndex);
+    expect(deleteRoute).not.toContain("removeObjects(");
     expect(attachmentRoute).toContain("SELECT storage_path, review_status, is_current_approved");
     expect(attachmentRoute).toContain("Persisted component attachments cannot be removed from draft cleanup.");
     expect(attachmentRoute).toContain("Could not verify attachment review state.");

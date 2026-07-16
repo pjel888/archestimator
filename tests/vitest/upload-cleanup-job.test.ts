@@ -267,6 +267,75 @@ describe("upload cleanup job runner", () => {
     expect(result.operationalSnapshot.status).toBe("blocked");
   });
 
+  it("rechecks accepted references before physical cleanup", async () => {
+    const storage = {
+      remove: vi.fn(async (targets): Promise<StorageCleanupReport> => ({
+        removed: targets.map((target) => ({ ...target })),
+        rejected: [],
+        failed: [],
+      })),
+    };
+    const eventWriter = { record: vi.fn(async () => undefined) };
+    const coordinator = {
+      prepare: vi.fn(async () => ({
+        action: "retain" as const,
+        reason: "referenced" as const,
+      })),
+      recordResult: vi.fn(async () => undefined),
+    };
+
+    const result = await runUploadCleanupJob({
+      records: [attachmentRecord()],
+      storage,
+      eventWriter,
+      coordinator,
+      now: NOW,
+      runId: "cleanup-run-reference-recheck",
+    });
+
+    expect(coordinator.prepare).toHaveBeenCalledTimes(1);
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(eventWriter.record).not.toHaveBeenCalled();
+    expect(coordinator.recordResult).not.toHaveBeenCalled();
+    expect(result.storageReport.rejected).toEqual([
+      { bucket: "component-attachments", path: ATTACHMENT_PATH },
+    ]);
+  });
+
+  it("records each provider cleanup result before declaring success", async () => {
+    const storage = {
+      remove: vi.fn(async (targets): Promise<StorageCleanupReport> => ({
+        removed: targets.map((target) => ({ ...target })),
+        rejected: [],
+        failed: [],
+      })),
+    };
+    const eventWriter = { record: vi.fn(async () => undefined) };
+    const coordinator = {
+      prepare: vi.fn(async () => ({ action: "remove" as const })),
+      recordResult: vi.fn(async () => undefined),
+    };
+
+    const result = await runUploadCleanupJob({
+      records: [attachmentRecord()],
+      storage,
+      eventWriter,
+      coordinator,
+      now: NOW,
+      runId: "cleanup-run-terminal-result",
+    });
+
+    expect(coordinator.recordResult).toHaveBeenCalledWith(
+      expect.objectContaining({ assetId: ASSET_ID }),
+      expect.objectContaining({ uploadAssetId: ASSET_ID }),
+      expect.objectContaining({
+        outcome: "removed",
+        runId: "cleanup-run-terminal-result",
+      }),
+    );
+    expect(result.audit.succeededCount).toBe(1);
+  });
+
   it("maps persisted deleted or removed assets and expired sessions into cleanup records", async () => {
     const database = new FakeD1Database();
     const removedAssetId = "77777777-7777-4777-8777-777777777777";
@@ -308,8 +377,16 @@ describe("upload cleanup job runner", () => {
 
     const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
-    expect(assetStatement?.sql).toContain("SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at");
-    expect(assetStatement?.values).toEqual(["deleted", "removed", "2026-05-28T03:10:00.000Z", 25]);
+    expect(assetStatement?.sql).toContain("SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, purge_state, cleanup_not_before, updated_at");
+    expect(assetStatement?.values).toEqual([
+      "2026-06-27T03:10:00.000Z",
+      "deleted",
+      "removed",
+      "2026-05-28T03:10:00.000Z",
+      "failed",
+      "2026-06-20T03:10:00.000Z",
+      25,
+    ]);
     expect(sessionStatement?.sql).toContain("SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at");
     expect(sessionStatement?.values).toEqual([
       "reserved",

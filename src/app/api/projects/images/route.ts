@@ -17,7 +17,9 @@ import {
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
+import { logAppError } from "@/lib/observability/logger";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { claimUploadAssetsForRemoval } from "@/lib/uploads/removal-claims";
 import {
   CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
   processUploadImageToWebp,
@@ -494,6 +496,7 @@ export async function DELETE(request: Request) {
   const db = await getCloudflareD1Database();
   if (!db) return uploadMetadataUnavailableResponse();
   const paths: string[] = [];
+  const workspaceIds = new Set<string>();
   const projectIds = Array.from(
     new Set(parsedPaths.map((parsed) => parsed.projectId)),
   );
@@ -506,6 +509,7 @@ export async function DELETE(request: Request) {
         parsed.workspaceId === project.workspace_id,
     );
     if (projectPaths.length === 0) continue;
+    workspaceIds.add(project.workspace_id);
     const canEditProject = await canEditProjectInD1(db, projectId, currentUser);
     for (const parsedPath of projectPaths) {
       if (!parsedPath.estimateId) {
@@ -545,11 +549,32 @@ export async function DELETE(request: Request) {
     return jsonError("No removable image paths were provided.");
   }
 
-  const storageProvider = await createRuntimeUploadStorageProvider();
   try {
-    await storageProvider.removeObjects(PROJECT_IMAGE_BUCKET, paths);
-  } catch {
-    return jsonError("Could not remove uploaded image.", 500);
+    const claim = await claimUploadAssetsForRemoval(db, {
+      workspaceId: [...workspaceIds],
+      actorUserId: currentUser.userId,
+      surface: "project-image",
+      bucket: PROJECT_IMAGE_BUCKET,
+      paths,
+    });
+    if (claim.status === "referenced") {
+      return jsonError("Persisted project images cannot be removed.", 409);
+    }
+    if (claim.status === "not_found") {
+      return jsonError("No removable image uploads were found.", 404);
+    }
+    return NextResponse.json({
+      removedPaths: claim.status === "claimed" ? claim.claimedPaths : paths,
+    });
+  } catch (error) {
+    logAppError(error, {
+      event: "project_image_cleanup_metadata_error",
+      action: "claim_project_image_upload_removal",
+      context: {
+        route: PROJECT_IMAGE_ROUTE,
+        requested_path_count: paths.length,
+      },
+    });
+    return jsonError("Could not update image cleanup state.", 500);
   }
-  return NextResponse.json({ removedPaths: paths });
 }

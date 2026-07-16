@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 
 import type { UploadSurface } from "./policy";
 import type { RecordedUploadAsset, UploadScanStatus } from "./upload-records";
@@ -254,8 +255,8 @@ export async function recordPendingUploadSession(
   const targetEntityId = input.targetEntityId?.trim() || null;
 
   const capacity = input.capacity;
-  const insertResult = capacity
-    ? await db
+  const insertStatement = capacity
+    ? db
       .prepare(
         `
           INSERT INTO upload_sessions (
@@ -324,8 +325,7 @@ export async function recordPendingUploadSession(
         createdAt,
         capacity.maxActiveWorkspaceSessions,
       )
-      .run()
-    : await db
+    : db
       .prepare(
         `
           INSERT INTO upload_sessions (
@@ -367,23 +367,9 @@ export async function recordPendingUploadSession(
         metadataJson,
         createdAt,
         createdAt,
-      )
-      .run();
+      );
 
-  if ((insertResult.meta?.changes ?? 0) === 0) {
-    const currentCapacity = await readActiveUploadSessionCapacity(db, {
-      workspaceId: input.workspaceId,
-      actorUserId: input.actorUserId,
-      surface: input.surface,
-      now,
-    });
-    if (capacity && currentCapacity.actorCount >= capacity.maxActiveActorSessions) {
-      throw new UploadSessionCapacityExceededError("active_actor", "Upload direct session actor capacity exceeded.");
-    }
-    throw new UploadSessionCapacityExceededError("active_workspace", "Upload direct session workspace capacity exceeded.");
-  }
-
-  await db
+  const eventStatement = db
     .prepare(
       `
         INSERT INTO upload_events (
@@ -396,7 +382,13 @@ export async function recordPendingUploadSession(
           metadata_json,
           created_at
         )
-        VALUES (?, ?, NULL, ?, ?, ?, ?, ?)
+        SELECT ?, ?, NULL, ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM upload_sessions
+          WHERE id = ?
+            AND status = 'reserved'
+        )
       `,
     )
     .bind(
@@ -410,8 +402,27 @@ export async function recordPendingUploadSession(
         expiresAt: input.expiresAt,
       }),
       createdAt,
-    )
-    .run();
+      uploadSessionId,
+    );
+
+  const [insertResult] = await runRequiredD1Batch(
+    db,
+    [insertStatement, eventStatement],
+    "Could not reserve the upload session atomically.",
+  );
+
+  if ((insertResult.meta?.changes ?? 0) === 0) {
+    const currentCapacity = await readActiveUploadSessionCapacity(db, {
+      workspaceId: input.workspaceId,
+      actorUserId: input.actorUserId,
+      surface: input.surface,
+      now,
+    });
+    if (capacity && currentCapacity.actorCount >= capacity.maxActiveActorSessions) {
+      throw new UploadSessionCapacityExceededError("active_actor", "Upload direct session actor capacity exceeded.");
+    }
+    throw new UploadSessionCapacityExceededError("active_workspace", "Upload direct session workspace capacity exceeded.");
+  }
 
   return { uploadSessionId, expiresAt: input.expiresAt };
 }
@@ -509,6 +520,19 @@ async function readExistingUploadAsset(db: D1DatabaseLike, uploadSessionId: stri
     .first<ExistingUploadAssetRow>();
 }
 
+export async function readRecordedUploadAssetForSession(
+  db: D1DatabaseLike,
+  uploadSessionId: string,
+): Promise<RecordedUploadAsset | null> {
+  const existing = await readExistingUploadAsset(db, uploadSessionId);
+  if (!existing?.scan_status) return null;
+  return {
+    uploadSessionId: existing.upload_session_id,
+    assetId: existing.id,
+    scanStatus: existing.scan_status,
+  };
+}
+
 export async function finalizeUploadSessionAsset(
   db: D1DatabaseLike,
   input: FinalizeUploadSessionInput,
@@ -520,9 +544,54 @@ export async function finalizeUploadSessionAsset(
   const session = await readUploadSessionForFinalize(db, input);
   if (!session) throw new Error("Upload session was not found.");
 
-  if (session.status === "finalized") {
-    const existing = await readExistingUploadAsset(db, session.id);
-    if (!existing?.scan_status) throw new Error("Finalized upload session has no asset.");
+  const existing = await readExistingUploadAsset(db, session.id);
+  if (existing?.scan_status) {
+    const now = new Date().toISOString();
+    const eventType = existing.scan_status === "pending" ? "scan_pending" : "asset_finalized";
+    await runRequiredD1Batch(
+      db,
+      [
+        db.prepare(
+          `
+            UPDATE upload_sessions
+            SET status = 'finalized',
+                updated_at = ?
+            WHERE id = ?
+              AND workspace_id = ?
+              AND actor_user_id = ?
+              AND status <> 'finalized'
+          `,
+        ).bind(now, session.id, input.workspaceId, input.actorUserId),
+        db.prepare(
+          `
+            INSERT OR IGNORE INTO upload_events (
+              id,
+              upload_session_id,
+              upload_asset_id,
+              workspace_id,
+              actor_user_id,
+              event_type,
+              metadata_json,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+        ).bind(
+          randomUUID(),
+          existing.upload_session_id,
+          existing.id,
+          session.workspace_id,
+          session.actor_user_id,
+          eventType,
+          mergeMetadataJson({}, undefined, {
+            reconciled: true,
+            scanStatus: existing.scan_status,
+          }),
+          now,
+        ),
+      ],
+      "Could not reconcile the finalized upload lifecycle.",
+    );
     return {
       uploadSessionId: existing.upload_session_id,
       assetId: existing.id,
@@ -530,8 +599,10 @@ export async function finalizeUploadSessionAsset(
     };
   }
 
-  if (session.status !== "reserved") throw new Error("Upload session is not reserved.");
-  if (session.expires_at && Date.parse(session.expires_at) <= Date.now()) {
+  if (session.status !== "reserved" && session.status !== "finalized") {
+    throw new Error("Upload session is not reservable or repairable.");
+  }
+  if (session.status === "reserved" && session.expires_at && Date.parse(session.expires_at) <= Date.now()) {
     throw new Error("Upload session expired.");
   }
   if (session.content_type !== input.observedContentType) {
@@ -558,8 +629,7 @@ export async function finalizeUploadSessionAsset(
   const projectId = session.target_entity_type === "project-component"
     ? metadataString(session.metadata, "projectId")
     : null;
-  const updateResult = await db
-    .prepare(
+  const updateStatement = db.prepare(
       `
         UPDATE upload_sessions
         SET status = 'finalized',
@@ -568,26 +638,17 @@ export async function finalizeUploadSessionAsset(
         WHERE id = ?
           AND workspace_id = ?
           AND actor_user_id = ?
-          AND status = 'reserved'
+          AND status IN ('reserved', 'finalized')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM upload_assets
+            WHERE upload_session_id = upload_sessions.id
+          )
       `,
     )
-    .bind(mergedMetadataJson, now, session.id, input.workspaceId, input.actorUserId)
-    .run();
+    .bind(mergedMetadataJson, now, session.id, input.workspaceId, input.actorUserId);
 
-  if ((updateResult.meta?.changes ?? 0) === 0) {
-    const existing = await readExistingUploadAsset(db, session.id);
-    if (existing?.scan_status) {
-      return {
-        uploadSessionId: existing.upload_session_id,
-        assetId: existing.id,
-        scanStatus: existing.scan_status,
-      };
-    }
-    throw new Error("Upload session could not be finalized.");
-  }
-
-  await db
-    .prepare(
+  const assetStatement = db.prepare(
       `
         INSERT INTO upload_assets (
           id,
@@ -612,7 +673,20 @@ export async function finalizeUploadSessionAsset(
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, 'finalized', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+        SELECT ?, ?, ?, ?, NULL, ?, ?, ?, ?, 'finalized', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM upload_sessions
+          WHERE id = ?
+            AND workspace_id = ?
+            AND actor_user_id = ?
+            AND status = 'finalized'
+        )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM upload_assets
+            WHERE upload_session_id = ?
+          )
       `,
     )
     .bind(
@@ -634,11 +708,13 @@ export async function finalizeUploadSessionAsset(
       mergedMetadataJson,
       now,
       now,
-    )
-    .run();
+      session.id,
+      input.workspaceId,
+      input.actorUserId,
+      session.id,
+    );
 
-  await db
-    .prepare(
+  const eventStatement = db.prepare(
       `
         INSERT INTO upload_events (
           id,
@@ -650,7 +726,13 @@ export async function finalizeUploadSessionAsset(
           metadata_json,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM upload_assets
+          WHERE id = ?
+            AND upload_session_id = ?
+        )
       `,
     )
     .bind(
@@ -665,8 +747,36 @@ export async function finalizeUploadSessionAsset(
         providerEtag: observedEtag,
       }),
       now,
-    )
-    .run();
+      assetId,
+      session.id,
+    );
+
+  try {
+    const results = await runRequiredD1Batch(
+      db,
+      [updateStatement, assetStatement, eventStatement],
+      "Could not finalize the upload lifecycle atomically.",
+    );
+    if ((results[1]?.meta?.changes ?? 0) === 0) {
+      const winner = await readExistingUploadAsset(db, session.id);
+      if (!winner?.scan_status) throw new Error("Upload session could not be finalized.");
+      return {
+        uploadSessionId: winner.upload_session_id,
+        assetId: winner.id,
+        scanStatus: winner.scan_status,
+      };
+    }
+  } catch (error) {
+    const winner = await readExistingUploadAsset(db, session.id).catch(() => null);
+    if (winner?.scan_status) {
+      return {
+        uploadSessionId: winner.upload_session_id,
+        assetId: winner.id,
+        scanStatus: winner.scan_status,
+      };
+    }
+    throw error;
+  }
 
   return {
     uploadSessionId: session.id,

@@ -8,6 +8,7 @@ import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { logAppError } from "@/lib/observability/logger";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { claimUploadAssetsForRemoval } from "@/lib/uploads/removal-claims";
 import {
   CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
   processUploadImageToWebp,
@@ -356,51 +357,24 @@ export async function DELETE(request: Request) {
   const body = await request.json().catch(() => null);
   const paths = readStoragePaths(body).filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable image paths were provided.");
-  const pathsJson = JSON.stringify(paths);
 
   try {
-    const persistedReference = await metadataDb.prepare<{ persisted_reference: number }>(
-      `
-        SELECT 1 AS persisted_reference
-        FROM cost_library_item_price_options
-        WHERE workspace_id = ?
-          AND (
-            json_extract(metadata_json, '$.imagePath') IN (
-              SELECT CAST(value AS TEXT) FROM json_each(?)
-            )
-            OR json_extract(metadata_json, '$.imageMetadata.thumbnailStoragePath') IN (
-              SELECT CAST(value AS TEXT) FROM json_each(?)
-            )
-          )
-        LIMIT 1
-      `,
-    ).bind(workspace.id, pathsJson, pathsJson).first<{ persisted_reference: number }>();
-    if (persistedReference) {
+    const claim = await claimUploadAssetsForRemoval(metadataDb, {
+      workspaceId: workspace.id,
+      actorUserId: currentUser.userId,
+      surface: "component-image",
+      bucket: COMPONENT_IMAGE_BUCKET,
+      paths,
+    });
+    if (claim.status === "referenced") {
       return jsonError("Persisted component images cannot be removed from draft cleanup.", 409);
     }
-    await metadataDb.prepare(
-      `
-        UPDATE upload_assets
-        SET status = 'removed',
-            updated_at = ?
-        WHERE workspace_id = ?
-          AND actor_user_id = ?
-          AND surface = 'component-image'
-          AND storage_bucket = ?
-          AND (
-            storage_path IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-            OR thumbnail_path IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-          )
-          AND status IN ('pending', 'finalized')
-      `,
-    ).bind(
-      new Date().toISOString(),
-      workspace.id,
-      currentUser.userId,
-      COMPONENT_IMAGE_BUCKET,
-      pathsJson,
-      pathsJson,
-    ).run();
+    if (claim.status === "not_found") {
+      return jsonError("No removable image uploads were found.", 404);
+    }
+    return NextResponse.json({
+      removedPaths: claim.status === "claimed" ? claim.claimedPaths : paths,
+    });
   } catch (error) {
     logAppError(error, {
       event: "component_image_cleanup_metadata_error",
@@ -412,12 +386,4 @@ export async function DELETE(request: Request) {
     });
     return jsonError("Could not update image cleanup state.", 500);
   }
-
-  const storageProvider = await createRuntimeUploadStorageProvider();
-  try {
-    await storageProvider.removeObjects(COMPONENT_IMAGE_BUCKET, paths);
-  } catch {
-    return jsonError("Could not remove uploaded image.", 500);
-  }
-  return NextResponse.json({ removedPaths: paths });
 }

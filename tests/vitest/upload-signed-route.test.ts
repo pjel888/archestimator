@@ -181,7 +181,10 @@ class FakeD1Statement {
     }
 
     if (this.sql.includes("INSERT INTO upload_events")) {
-      const sessionOnlyEvent = this.values.length === 7;
+      const sessionOnlyEvent = this.sql.includes("SELECT ?, ?, NULL");
+      if (sessionOnlyEvent && this.database.insertSessionChanges === 0) {
+        return { success: true, meta: { changes: 0 } };
+      }
       this.database.insertedEvents.push(sessionOnlyEvent
         ? {
           id: this.values[0],
@@ -211,6 +214,7 @@ class FakeD1Statement {
 class FakeD1Database {
   activeActorSessions: Array<{ expires_at: string }> = [];
   activeWorkspaceSessions: Array<{ expires_at: string }> = [];
+  batchCalls: FakeD1Statement[][] = [];
   existingAssetRow: Record<string, unknown> | null = null;
   insertedAssets: Record<string, unknown>[] = [];
   insertedEvents: Record<string, unknown>[] = [];
@@ -228,6 +232,11 @@ class FakeD1Database {
     const statement = new FakeD1Statement(this, sql);
     this.statements.push(statement);
     return statement;
+  }
+
+  async batch(statements: FakeD1Statement[]) {
+    this.batchCalls.push(statements);
+    return Promise.all(statements.map((statement) => statement.run()));
   }
 }
 
@@ -349,6 +358,8 @@ describe("component attachment signed direct-upload route", () => {
       event_type: "session_reserved",
       upload_asset_id: null,
     })]);
+    expect(database.batchCalls).toHaveLength(1);
+    expect(database.batchCalls[0]).toHaveLength(2);
     expect(JSON.stringify(database.insertedSessions)).not.toContain("secret-token");
     expect(JSON.stringify(database.insertedSessions)).not.toContain("signedUrl");
     expect(JSON.stringify(database.insertedSessions)).not.toContain("uploadUrl");
@@ -677,6 +688,37 @@ describe("component attachment signed direct-upload route", () => {
       upload_session_id: SESSION_ID,
       metadata_json: expect.stringContaining("providerFinalizeProof"),
     })]);
+    expect(database.batchCalls).toHaveLength(1);
+    expect(database.batchCalls[0]).toHaveLength(3);
+  });
+
+  it("repairs a finalized direct-upload session that is missing its asset", async () => {
+    const database = mockUploadMetadataD1({
+      sessionRow: uploadSessionRow({ status: "finalized" }),
+    });
+    const r2 = mockR2Storage();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "finalize",
+      uploadSessionId: SESSION_ID,
+    }));
+
+    expect(response.status).toBe(200);
+    expect(r2.head).toHaveBeenCalledWith(
+      `component-attachments/${WORKSPACE_ID}/${USER_ID}/signed-spec.pdf`,
+    );
+    expect(database.insertedAssets).toEqual([
+      expect.objectContaining({ upload_session_id: SESSION_ID }),
+    ]);
+    expect(database.insertedEvents).toEqual([
+      expect.objectContaining({
+        upload_session_id: SESSION_ID,
+        event_type: "scan_pending",
+      }),
+    ]);
+    expect(database.batchCalls).toHaveLength(1);
+    expect(database.batchCalls[0]).toHaveLength(3);
   });
 
   it("authorizes finalization from the immutable session target and copies project ownership to the asset", async () => {

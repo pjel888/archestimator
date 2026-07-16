@@ -8,6 +8,7 @@ import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/li
 import { logAppError } from "@/lib/observability/logger";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { claimUploadAssetsForRemoval } from "@/lib/uploads/removal-claims";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import { decideUploadScanGate, type UploadScanStatus } from "@/lib/uploads/scanning";
 import { recordUploadAsset } from "@/lib/uploads/upload-records";
@@ -686,26 +687,27 @@ export async function DELETE(request: Request) {
   }).catch(() => null);
   if (!draftAssets) return jsonError("Could not verify removable attachment uploads.", 500);
   const removablePaths = [...new Set(draftAssets.map((asset) => asset.storage_path))];
-  const removableAssetIds = [...new Set(draftAssets.map((asset) => asset.id))];
-  if (removablePaths.length === 0 || removableAssetIds.length === 0) {
+  if (removablePaths.length === 0) {
     return jsonError("No removable attachment uploads were found.", 404);
   }
 
   try {
-    await metadataDb.prepare(
-      `
-        UPDATE upload_assets
-        SET status = 'removed',
-            updated_at = ?
-        WHERE id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-          AND workspace_id = ?
-          AND status IN ('pending', 'finalized')
-      `,
-    ).bind(
-      new Date().toISOString(),
-      JSON.stringify(removableAssetIds),
-      workspace.id,
-    ).run();
+    const claim = await claimUploadAssetsForRemoval(metadataDb, {
+      workspaceId: workspace.id,
+      actorUserId: currentUser.userId,
+      surface: "component-attachment",
+      bucket: COMPONENT_ATTACHMENT_BUCKET,
+      paths: removablePaths,
+    });
+    if (claim.status === "referenced") {
+      return jsonError("Persisted component attachments cannot be removed from draft cleanup.", 409);
+    }
+    if (claim.status === "not_found") {
+      return jsonError("No removable attachment uploads were found.", 404);
+    }
+    return NextResponse.json({
+      removedPaths: claim.status === "claimed" ? claim.claimedPaths : removablePaths,
+    });
   } catch (error) {
     logAppError(error, {
       event: "component_attachment_cleanup_metadata_error",
@@ -717,12 +719,4 @@ export async function DELETE(request: Request) {
     });
     return jsonError("Could not update attachment cleanup state.", 500);
   }
-
-  const storageProvider = await createRuntimeUploadStorageProvider();
-  try {
-    await storageProvider.removeObjects(COMPONENT_ATTACHMENT_BUCKET, removablePaths);
-  } catch {
-    return jsonError("Could not remove uploaded attachment.", 500);
-  }
-  return NextResponse.json({ removedPaths: removablePaths });
 }

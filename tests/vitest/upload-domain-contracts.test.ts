@@ -81,6 +81,7 @@ class FakeD1Statement<
 }
 
 class FakeD1Database implements D1DatabaseLike {
+  readonly batchCalls: D1PreparedStatementLike[][] = [];
   failNextRun: Error | null = null;
   readonly runStatements: Array<{ sql: string; values: D1Value[] }> = [];
   readonly uploadAssetRows: Array<Record<string, D1Value>> = [];
@@ -89,6 +90,13 @@ class FakeD1Database implements D1DatabaseLike {
     sql: string,
   ): D1PreparedStatementLike<T> {
     return new FakeD1Statement<T>(this, sql);
+  }
+
+  async batch<T = Record<string, unknown>>(
+    statements: D1PreparedStatementLike<T>[],
+  ): Promise<D1Result<T>[]> {
+    this.batchCalls.push(statements);
+    return Promise.all(statements.map((statement) => statement.run()));
   }
 }
 
@@ -266,6 +274,8 @@ describe("upload domain contracts", () => {
     expect(d1SqlStatements(database, /INSERT INTO upload_events/)).toHaveLength(
       1,
     );
+    expect(database.batchCalls).toHaveLength(1);
+    expect(database.batchCalls[0]).toHaveLength(3);
     expect(
       database.runStatements.flatMap((statement) => statement.values),
     ).toEqual(
@@ -402,6 +412,7 @@ describe("upload domain contracts", () => {
         scanStatus: "not_required",
       }),
     ).rejects.toThrow("transaction failed");
+    expect(database.batchCalls).toHaveLength(1);
   });
 
   it("accepts pending scan status written through D1", async () => {

@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import type { StorageCleanupReport, StorageCleanupTarget } from "@/lib/mass-deletion/bulk-action";
 
 import {
@@ -15,6 +16,7 @@ import {
   type UploadCleanupRecord,
 } from "./cleanup";
 import { reportUploadCleanupJobTelemetry } from "./operational-telemetry";
+import { uploadAssetAcceptedReferencePredicate } from "./removal-claims";
 import type { UploadStorageProvider } from "./storage-provider";
 
 const STORAGE_REMOVE_CHUNK_SIZE = 100;
@@ -45,6 +47,31 @@ export type UploadCleanupEventWriter = {
 
 export type UploadCleanupStorage = {
   remove: (targets: readonly StorageCleanupTarget[]) => Promise<StorageCleanupReport>;
+};
+
+export type UploadCleanupPreparation =
+  | { action: "remove" }
+  | {
+    action: "retain";
+    reason: "referenced" | "already_purged" | "not_ready" | "missing";
+  };
+
+export type UploadCleanupCoordinator = {
+  prepare: (
+    candidate: UploadCleanupCandidate,
+    record: UploadCleanupJobRecord | undefined,
+    context: { runId: string; now: Date },
+  ) => Promise<UploadCleanupPreparation>;
+  recordResult: (
+    candidate: UploadCleanupCandidate,
+    record: UploadCleanupJobRecord | undefined,
+    result: {
+      outcome: "removed" | "failed" | "rejected";
+      message?: string | null;
+      runId: string;
+      now: Date;
+    },
+  ) => Promise<void>;
 };
 
 export type UploadCleanupJobAuditSummary = {
@@ -96,6 +123,8 @@ type UploadAssetCleanupRow = {
   storage_path: string;
   thumbnail_path: string | null;
   status: string;
+  purge_state?: string | null;
+  cleanup_not_before?: string | null;
   updated_at?: string | null;
 };
 
@@ -108,6 +137,17 @@ type UploadSessionCleanupRow = {
   storage_path: string;
   status: string;
   expires_at: string | null;
+};
+
+type UploadCleanupPreparationRow = {
+  upload_asset_id: string;
+};
+
+type UploadCleanupDiagnosticRow = {
+  status: string;
+  purge_state: string;
+  cleanup_not_before: string | null;
+  referenced: number | boolean | null;
 };
 
 function sha256Hex(value: string) {
@@ -276,10 +316,202 @@ export function createUploadCleanupEventWriter(db: D1DatabaseLike): UploadCleanu
   };
 }
 
+export function createUploadCleanupCoordinator(db: D1DatabaseLike): UploadCleanupCoordinator {
+  return {
+    async prepare(candidate, record, context) {
+      const uploadAssetId = record?.uploadAssetId ?? null;
+      if (!uploadAssetId) return { action: "remove" };
+
+      const timestamp = context.now.toISOString();
+      const prepared = await db.prepare<UploadCleanupPreparationRow>(
+        `
+          INSERT INTO upload_asset_cleanup_objects (
+            id,
+            upload_asset_id,
+            storage_bucket,
+            storage_path,
+            result,
+            cleanup_run_id,
+            attempt_count,
+            last_error_sha256,
+            first_attempted_at,
+            last_attempted_at,
+            removed_at,
+            created_at,
+            updated_at
+          )
+          SELECT ?, asset.id, ?, ?, 'pending', ?, 1, NULL, ?, ?, NULL, ?, ?
+          FROM upload_assets asset
+          WHERE asset.id = ?
+            AND asset.workspace_id = ?
+            AND asset.status IN ('removed', 'deleted', 'failed')
+            AND asset.purge_state <> 'purged'
+            AND (asset.cleanup_not_before IS NULL OR asset.cleanup_not_before <= ?)
+            AND NOT (${uploadAssetAcceptedReferencePredicate("asset")})
+          ON CONFLICT(upload_asset_id, storage_bucket, storage_path) DO UPDATE SET
+            result = 'pending',
+            cleanup_run_id = excluded.cleanup_run_id,
+            attempt_count = upload_asset_cleanup_objects.attempt_count + 1,
+            last_error_sha256 = NULL,
+            last_attempted_at = excluded.last_attempted_at,
+            updated_at = excluded.updated_at
+          RETURNING upload_asset_id
+        `,
+      ).bind(
+        randomUUID(),
+        candidate.target.bucket,
+        candidate.target.path,
+        context.runId,
+        timestamp,
+        timestamp,
+        timestamp,
+        timestamp,
+        uploadAssetId,
+        candidate.workspaceId,
+        timestamp,
+      ).first<UploadCleanupPreparationRow>();
+
+      if (prepared) return { action: "remove" };
+
+      const diagnostic = await db.prepare<UploadCleanupDiagnosticRow>(
+        `
+          SELECT
+            asset.status,
+            asset.purge_state,
+            asset.cleanup_not_before,
+            CASE WHEN (${uploadAssetAcceptedReferencePredicate("asset")}) THEN 1 ELSE 0 END AS referenced
+          FROM upload_assets asset
+          WHERE asset.id = ?
+            AND asset.workspace_id = ?
+          LIMIT 1
+        `,
+      ).bind(uploadAssetId, candidate.workspaceId).first<UploadCleanupDiagnosticRow>();
+
+      if (!diagnostic) return { action: "retain", reason: "missing" };
+      if (Number(diagnostic.referenced ?? 0) > 0) {
+        await db.prepare(
+          `
+            INSERT INTO upload_asset_cleanup_objects (
+              id, upload_asset_id, storage_bucket, storage_path, result,
+              cleanup_run_id, attempt_count, last_error_sha256,
+              first_attempted_at, last_attempted_at, removed_at, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, 'retained', ?, 1, NULL, ?, ?, NULL, ?, ?)
+            ON CONFLICT(upload_asset_id, storage_bucket, storage_path) DO UPDATE SET
+              result = 'retained',
+              cleanup_run_id = excluded.cleanup_run_id,
+              attempt_count = upload_asset_cleanup_objects.attempt_count + 1,
+              last_error_sha256 = NULL,
+              last_attempted_at = excluded.last_attempted_at,
+              updated_at = excluded.updated_at
+          `,
+        ).bind(
+          randomUUID(),
+          uploadAssetId,
+          candidate.target.bucket,
+          candidate.target.path,
+          context.runId,
+          timestamp,
+          timestamp,
+          timestamp,
+          timestamp,
+        ).run();
+        return { action: "retain", reason: "referenced" };
+      }
+      if (diagnostic.purge_state === "purged") {
+        return { action: "retain", reason: "already_purged" };
+      }
+      return { action: "retain", reason: "not_ready" };
+    },
+
+    async recordResult(candidate, record, result) {
+      const uploadAssetId = record?.uploadAssetId ?? null;
+      if (!uploadAssetId) return;
+
+      const timestamp = result.now.toISOString();
+      const cleanupResult = result.outcome === "removed"
+        ? "removed"
+        : result.outcome === "failed" ? "failed" : "retained";
+      const errorSha256 = result.message ? sha256Hex(result.message) : null;
+      const resultStatement = db.prepare(
+        `
+          INSERT INTO upload_asset_cleanup_objects (
+            id, upload_asset_id, storage_bucket, storage_path, result,
+            cleanup_run_id, attempt_count, last_error_sha256,
+            first_attempted_at, last_attempted_at, removed_at, created_at, updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(upload_asset_id, storage_bucket, storage_path) DO UPDATE SET
+            result = excluded.result,
+            cleanup_run_id = excluded.cleanup_run_id,
+            last_error_sha256 = excluded.last_error_sha256,
+            last_attempted_at = excluded.last_attempted_at,
+            removed_at = excluded.removed_at,
+            updated_at = excluded.updated_at
+        `,
+      ).bind(
+        randomUUID(),
+        uploadAssetId,
+        candidate.target.bucket,
+        candidate.target.path,
+        cleanupResult,
+        result.runId,
+        errorSha256,
+        timestamp,
+        timestamp,
+        result.outcome === "removed" ? timestamp : null,
+        timestamp,
+        timestamp,
+      );
+
+      const statements = [resultStatement];
+      if (result.outcome === "removed") {
+        statements.push(db.prepare(
+          `
+            UPDATE upload_assets AS asset
+            SET purge_state = 'purged',
+                purged_at = ?,
+                updated_at = ?
+            WHERE asset.id = ?
+              AND asset.purge_state <> 'purged'
+              AND NOT (${uploadAssetAcceptedReferencePredicate("asset")})
+              AND EXISTS (
+                SELECT 1
+                FROM upload_asset_cleanup_objects object_result
+                WHERE object_result.upload_asset_id = asset.id
+                  AND object_result.storage_bucket = asset.storage_bucket
+                  AND object_result.storage_path = asset.storage_path
+                  AND object_result.result = 'removed'
+              )
+              AND (
+                asset.thumbnail_path IS NULL
+                OR EXISTS (
+                  SELECT 1
+                  FROM upload_asset_cleanup_objects thumbnail_result
+                  WHERE thumbnail_result.upload_asset_id = asset.id
+                    AND thumbnail_result.storage_bucket = asset.storage_bucket
+                    AND thumbnail_result.storage_path = asset.thumbnail_path
+                    AND thumbnail_result.result = 'removed'
+                )
+              )
+          `,
+        ).bind(timestamp, timestamp, uploadAssetId));
+      }
+
+      await runRequiredD1Batch(
+        db,
+        statements,
+        "Could not persist the upload cleanup result.",
+      );
+    },
+  };
+}
+
 export async function runUploadCleanupJob({
   records,
   storage,
   eventWriter,
+  coordinator,
   now = new Date(),
   limit,
   runId = randomUUID(),
@@ -287,6 +519,7 @@ export async function runUploadCleanupJob({
   records: readonly UploadCleanupJobRecord[];
   storage: UploadCleanupStorage;
   eventWriter: UploadCleanupEventWriter;
+  coordinator?: UploadCleanupCoordinator;
   now?: Date;
   limit?: number;
   runId?: string;
@@ -307,12 +540,20 @@ export async function runUploadCleanupJob({
     },
   };
   const queuedCandidates: UploadCleanupCandidate[] = [];
+  const coordinatorRejections: StorageCleanupReport["rejected"] = [];
   const queueFailures: StorageCleanupReport["failed"] = [];
   const auditFailures: StorageCleanupReport["failed"] = [];
 
   for (const candidate of plan.candidates) {
     const record = recordByKey.get(candidateKey(candidate));
     try {
+      if (coordinator) {
+        const preparation = await coordinator.prepare(candidate, record, { runId, now });
+        if (preparation.action === "retain") {
+          coordinatorRejections.push(candidate.target);
+          continue;
+        }
+      }
       await recordCleanupEvent(eventWriter, "cleanup_queued", candidate, record, { runId });
       audit.queuedCount += 1;
       audit.eventTypes.cleanup_queued += 1;
@@ -330,6 +571,7 @@ export async function runUploadCleanupJob({
     ? await storage.remove(queuedCandidates.map((candidate) => candidate.target))
     : emptyStorageReport();
   const removedKeys = new Set(storageReport.removed.map(targetKey));
+  const rejectedKeys = new Set(storageReport.rejected.map(targetKey));
   const failedByKey = new Map(storageReport.failed.map((failure) => [targetKey(failure), failure.message]));
 
   for (const candidate of queuedCandidates) {
@@ -338,12 +580,22 @@ export async function runUploadCleanupJob({
     const failedMessage = failedByKey.get(key);
     const eventType: UploadCleanupEventType = removedKeys.has(key) ? "cleanup_succeeded" : "cleanup_failed";
 
-    if (!failedMessage && eventType === "cleanup_failed") continue;
+    if (!failedMessage && eventType === "cleanup_failed" && !rejectedKeys.has(key)) continue;
 
     try {
+      if (coordinator) {
+        await coordinator.recordResult(candidate, record, {
+          outcome: eventType === "cleanup_succeeded"
+            ? "removed"
+            : rejectedKeys.has(key) ? "rejected" : "failed",
+          message: failedMessage,
+          runId,
+          now,
+        });
+      }
       await recordCleanupEvent(eventWriter, eventType, candidate, record, {
         runId,
-        failureMessage: failedMessage,
+        failureMessage: failedMessage ?? (rejectedKeys.has(key) ? "Storage cleanup rejected target." : null),
       });
 
       if (eventType === "cleanup_succeeded") {
@@ -364,7 +616,7 @@ export async function runUploadCleanupJob({
 
   const combinedReport = combineStorageReports(storageReport, {
     removed: [],
-    rejected: [],
+    rejected: coordinatorRejections,
     failed: [...queueFailures, ...auditFailures],
   });
   const metrics = summarizeUploadCleanup(plan, combinedReport);
@@ -463,15 +715,27 @@ export async function listUploadCleanupJobRecords(
     db
       .prepare<UploadAssetCleanupRow>(
         `
-          SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at
+          SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, purge_state, cleanup_not_before, updated_at
           FROM upload_assets
-          WHERE status IN (?, ?)
-            AND updated_at <= ?
+          WHERE purge_state <> 'purged'
+            AND (cleanup_not_before IS NULL OR cleanup_not_before <= ?)
+            AND (
+              (status IN (?, ?) AND updated_at <= ?)
+              OR (status = ? AND updated_at <= ?)
+            )
           ORDER BY updated_at ASC
           LIMIT ?
         `,
       )
-      .bind("deleted", "removed", cutoffs.deletedAssetsBefore, limit)
+      .bind(
+        now.toISOString(),
+        "deleted",
+        "removed",
+        cutoffs.deletedAssetsBefore,
+        "failed",
+        cutoffs.failedAssetsBefore,
+        limit,
+      )
       .all<UploadAssetCleanupRow>(),
     db
       .prepare<UploadSessionCleanupRow>(
