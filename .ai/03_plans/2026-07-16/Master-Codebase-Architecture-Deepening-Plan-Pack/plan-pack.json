@@ -871,6 +871,7 @@
       "affected_ids": [
         "REQ-001",
         "SEC-001",
+        "DATA-001",
         "REQ-002",
         "REQ-003",
         "REQ-004",
@@ -895,10 +896,11 @@
     {
       "id": "DEC-AUTO-003",
       "status": "ACTIVE",
-      "statement": "The package is conditionally ready and advertises only UNIT-001 through UNIT-003 until named leases clear.",
+      "statement": "The package is conditionally ready and advertises only UNIT-001, UNIT-002, and UNIT-009 until named gates clear.",
       "affected_ids": [
         "UNIT-001",
         "UNIT-002",
+        "UNIT-009",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
@@ -911,13 +913,16 @@
     {
       "id": "DEC-AUTO-004",
       "status": "ACTIVE",
-      "statement": "Dirty Component and Estimate paths are internal single-writer lease gates, not external authorization boundaries.",
+      "statement": "Component, security, and Estimate work use internal single-writer lease gates; UNIT-003 has a separate explicit test-source authorization boundary.",
       "affected_ids": [
+        "UNIT-003",
         "UNIT-004",
         "UNIT-005",
+        "UNIT-006",
         "UNIT-007",
         "UNIT-008",
-        "GATE-LEASE-001"
+        "GATE-LEASE-001",
+        "GATE-TEST-SOURCE-001"
       ],
       "artifact_path": "LOOP_LEDGER.md"
     },
@@ -946,10 +951,11 @@
     {
       "id": "DEC-AUTO-007",
       "status": "ACTIVE",
-      "statement": "Applied migrations, admin work, Legacy Cleanup, estimate import, hosted proof, pagehide cleanup, and unmeasured performance proposals remain outside core scope.",
+      "statement": "Applied migrations, admin work, Legacy Cleanup, estimate import, hosted proof, pagehide cleanup, and unmeasured performance proposals remain outside core scope; verified upload-removal correctness remains auxiliary scope.",
       "affected_ids": [
         "REQ-001",
         "SEC-001",
+        "DATA-001",
         "REQ-002",
         "REQ-003",
         "REQ-004",
@@ -971,12 +977,25 @@
         "TEST-005",
         "TEST-006",
         "TEST-007",
-        "TEST-008"
+        "TEST-008",
+        "TEST-009"
       ],
       "artifact_path": "LOOP_LEDGER.md"
     }
   ],
-  "authorization_boundaries": [],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "statement": "UNIT-003 requires explicit authorization to retarget two test imports and two source-contract assertions; that narrow test-source maintenance does not authorize test execution or assertion expansion.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "GATE-TEST-SOURCE-001",
+        "AC-003",
+        "UNIT-003"
+      ]
+    }
+  ],
   "evidence_index": [
     {
       "id": "EVID-001",
@@ -986,6 +1005,7 @@
       "claim_ids": [
         "REQ-001",
         "SEC-001",
+        "DATA-001",
         "REQ-002",
         "REQ-003",
         "REQ-004",
@@ -1006,6 +1026,7 @@
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
+        "UNIT-009",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
@@ -1020,6 +1041,7 @@
         "AC-006",
         "AC-007",
         "AC-008",
+        "AC-009",
         "TEST-001",
         "TEST-002",
         "TEST-003",
@@ -1027,7 +1049,8 @@
         "TEST-005",
         "TEST-006",
         "TEST-007",
-        "TEST-008"
+        "TEST-008",
+        "TEST-009"
       ],
       "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-plan-2026-07-16",
       "valid_until": null
@@ -1038,6 +1061,7 @@
       "artifact_path": "LOOP_LEDGER.md",
       "sha256": "555c427f11b98e82f632fa51ea8b4f16bc5065253af546c749b2d00fb2ee0cf3",
       "claim_ids": [
+        "GATE-TEST-SOURCE-001",
         "GATE-LEASE-001",
         "GATE-COMPLETION-001",
         "DEC-AUTO-001",
@@ -1059,7 +1083,7 @@
       "unit_ids": [
         "UNIT-001",
         "UNIT-002",
-        "UNIT-003"
+        "UNIT-009"
       ]
     }
   ],
@@ -1071,6 +1095,7 @@
     "estimate-tree-query-or-route-contract-change",
     "row-owned-versus-shared-definition-contract-change",
     "security-rate-limit-table-policy-or-consumer-change",
+    "upload-removal-claim-or-route-contract-change",
     "second-storage-implementation-introduced",
     "planning-schema-validator-or-prompt-suite-change"
   ],
