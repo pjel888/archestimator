@@ -6,10 +6,10 @@
 **Behavior status:** `NOT_EVALUATED`  
 **Objective status:** `NOT_ACHIEVED`  
 **Release status:** `NOT_READY`  
-**Active unit:** `UNIT-005`
-**Last verified unit:** `UNIT-004`
-**Required next unit:** `UNIT-005`
-**Continuation reason:** component/variant lifecycle, bounded permanent delete, retained update intent, atomic fan-out receipts, promotion recovery, folder integrity, and stable Library/project-group rename are verified; replay-safe Template/Project-source insertion and transparent source filtering are the next dependency-ordered unit
+**Active unit:** `UNIT-011`
+**Last verified unit:** `UNIT-007`
+**Required next unit:** `UNIT-011`
+**Continuation reason:** legacy share and Client Portal issuance now use one guarded authoring projection with revision/hash parity, privacy-safe deterministic identities, zero-write stale-source behavior, and exact `TEST-005` proof; whole-route performance measurement plus the final serial `TEST-001`–`TEST-008` gate is next
 
 ## Tracker Rules
 
@@ -31,37 +31,37 @@
 | [x] | `UNIT-002` | `VERIFIED` | `DONE` | row mutation integrity | `TEST-001`, `TEST-002`, applicable `TEST-007` row/keyboard scenarios |
 | [x] | `UNIT-003` | `VERIFIED` | `DONE` | tree/tab topology and rename isolation | `TEST-001`, `TEST-006`, applicable `TEST-007` tree/tab/rename scenarios |
 | [x] | `UNIT-004` | `VERIFIED` | `DONE` | component/variant lifecycle and bounded permanent delete | `TEST-003`, applicable `TEST-008`, real SQLite commit/replay/rollback receipts |
-| [ ] | `UNIT-005` | `IN_PROGRESS` | `YES` | replay-safe Template/Project insertion | `TEST-004` |
-| [ ] | `UNIT-006` | `READY` | `YES — queued behind active UNIT-005` | D1/R2/Images integrity | `TEST-008` plus provider receipts |
-| [ ] | `UNIT-009` | `READY` | `NO — UNIT-004, UNIT-005, UNIT-010` | atomic Template lifecycle | `TEST-004` |
-| [ ] | `UNIT-007` | `READY` | `NO — UNIT-002–006, UNIT-009, UNIT-010` | guarded authoring-to-issued parity | `TEST-005` |
-| [ ] | `UNIT-011` | `READY` | `NO — all implementation units` | whole-route optimization plus all authorized tests | `TEST-001`–`TEST-008` |
+| [x] | `UNIT-005` | `VERIFIED` | `DONE` | replay-safe Template/Project insertion | `TEST-004`, applicable `TEST-006`, focused `TEST-007` DOM/network contracts |
+| [x] | `UNIT-006` | `VERIFIED` | `DONE` | D1/R2/Images integrity | `TEST-008` plus local/preview/hosted environment receipts |
+| [x] | `UNIT-009` | `VERIFIED` | `DONE` | atomic Template lifecycle | `TEST-004`, replay/failure/activity/fallback receipts |
+| [x] | `UNIT-007` | `VERIFIED` | `DONE` | guarded authoring-to-issued parity | `TEST-005`; legacy/client zero-write and revision-read-back receipts |
+| [ ] | `UNIT-011` | `IN_PROGRESS` | `YES` | whole-route optimization plus all authorized tests | `TEST-001`–`TEST-008` |
 | [ ] | `UNIT-008` | `READY` | `NO — UNIT-011` | final action/criterion/objective/release reconciliation | all prior evidence |
 
 ## Requirement Progress
 
 | Done | Requirement | Role | Owner | Current evidence state |
 | --- | --- | --- | --- | --- |
-| [ ] | `REQ-001` | core | `UNIT-001`, `UNIT-008`, `UNIT-009` | planning only |
+| [ ] | `REQ-001` | core | `UNIT-001`, `UNIT-008`, `UNIT-009` | Template lifecycle and source-pack absorption contracts are implemented; final reconciliation remains |
 | [ ] | `REQ-002` | core | `UNIT-003`, `UNIT-008` | tab CRUD/duplicate/delete retry, topology, and route fallback verified; final reconciliation remains |
 | [ ] | `REQ-003` | core | `UNIT-003`, `UNIT-008` | Area CRUD/move/reorder/delete/restore topology and rename semantics verified; final reconciliation remains |
 | [ ] | `REQ-004` | core | `UNIT-002`, `UNIT-008` | UNIT-002 row CRUD/retry/revision/keyboard slice verified; final reconciliation remains |
 | [ ] | `REQ-005` | core | `UNIT-002`, `UNIT-004`, `UNIT-010`, `UNIT-008` | receipt/cache, row ownership, component/variant fan-out, and scoped loading verified; final reconciliation remains |
 | [ ] | `REQ-006` | core | `UNIT-004`, `UNIT-010`, `UNIT-008` | create projection/cache continuity, promotion, archive/permanent delete, folder integrity, and Project-component lifecycle verified; final reconciliation remains |
-| [ ] | `REQ-007` | core | `UNIT-005`, `UNIT-010`, `UNIT-008` | reusable-source receipt/cache foundation verified; source insertion remains |
-| [ ] | `REQ-008` | core | `UNIT-007`, `UNIT-008` | planning only |
-| [ ] | `REQ-009` | core | `UNIT-009`, `UNIT-010`, `UNIT-008` | planning only |
-| [ ] | `DATA-001` | core | mutation units | row, tab/tree, component update, promotion, folder, and permanent-delete contracts verified; Template/source units remain |
-| [ ] | `DATA-002` | core | `UNIT-004`, `UNIT-006`, `UNIT-008` | component-delete attachment reference handling verified; provider upload/image lifecycle remains |
-| [ ] | `DATA-003` | core | `UNIT-010`, mutation units, `UNIT-011`, `UNIT-008` | durable receipt foundation plus row, tab, component update/fan-out, and permanent-delete replay verified; remaining mutation families open |
-| [ ] | `SEC-001` | core | all persistent units | row, tab/tree, component, folder, promotion, delete, and attachment ownership boundaries verified; remaining persistent units open |
-| [ ] | `UX-001` | core | interaction units | row, Area/tab, active-variant, Library-folder, project-group, and Manage Groups commit/loading behavior verified; Template/source interactions remain |
-| [ ] | `UX-002` | core | `UNIT-003`–`UNIT-005`, `UNIT-009`, `UNIT-011`, `UNIT-008` | Area/tab/Library-folder/project-group stable-surface rename verified; Template rename and source filtering remain |
-| [ ] | `PERF-001` | core | row/tree/source units | overlap-aware row coordination, authoritative tab/tree recovery, bounded component fan-out, and object-scoped pending verified; source units remain |
-| [ ] | `PERF-002` | core | rename/filter units | Area/tab/folder/group rename geometry and local draft isolation verified; Template/filter surfaces remain |
+| [ ] | `REQ-007` | core | `UNIT-005`, `UNIT-010`, `UNIT-008` | retained-intent receipt/cache foundation plus arbitrary-target Template/Project-source insertion verified; final reconciliation remains |
+| [ ] | `REQ-008` | core | `UNIT-007`, `UNIT-008` | shared authoring projection, legacy/client field parity, deterministic opaque identity, revision fence, immutable issue, and privacy contracts are verified; final reconciliation remains |
+| [ ] | `REQ-009` | core | `UNIT-009`, `UNIT-010`, `UNIT-008` | atomic Template create/save/duplicate/header/category/editor/composition, truthful browse fallback, and retained intent are verified; final reconciliation remains |
+| [ ] | `DATA-001` | core | mutation units | row, tab/tree, component, Template/source, provider, and guarded publication-replacement mutation contracts are verified; final reconciliation remains |
+| [ ] | `DATA-002` | core | `UNIT-004`, `UNIT-006`, `UNIT-008` | attachment references, removal claims, delayed cleanup, replay, and terminal metadata transitions are verified; final reconciliation remains |
+| [ ] | `DATA-003` | core | `UNIT-010`, mutation units, `UNIT-011`, `UNIT-008` | durable replay/atomicity coverage includes row, tree, component, Template/source, Template lifecycle, upload, and guarded publication families; integrated final gates remain |
+| [ ] | `SEC-001` | core | all persistent units | ownership boundaries, compact issued fields, deterministic opaque IDs, and publication privacy/revision guards are verified; final reconciliation remains |
+| [ ] | `UX-001` | core | interaction units | row, tree, component, source, and Template lifecycle feedback contracts are verified; publication and whole-route reconciliation remain |
+| [ ] | `UX-002` | core | `UNIT-003`–`UNIT-005`, `UNIT-009`, `UNIT-011`, `UNIT-008` | Area/tab/folder/group/Template stable-surface rename and transparent filtering are verified; integrated whole-route proof remains |
+| [ ] | `PERF-001` | core | row/tree/source units | overlap coordination, bounded fan-out/hydration, target pending, local filtering, and Template summary/detail boundaries are verified; whole-route measurements remain |
+| [ ] | `PERF-002` | core | rename/filter units | Area/tab/folder/group/Template rename geometry, local draft isolation, and filter continuity are verified; integrated measurements remain |
 | [ ] | `PERF-003` | core | `UNIT-001`, `UNIT-010`, `UNIT-011`, `UNIT-008` | create-to-use plus same-intent shared-update convergence verified; whole-route budgets remain |
-| [ ] | `OPS-001` | core | `UNIT-001`, `UNIT-006`, `UNIT-009`, `UNIT-008` | planning only |
-| [ ] | `OPS-002` | core | `UNIT-001`, `UNIT-010`, `UNIT-011`, `UNIT-008` | retained-intent replay and mismatch zero-write proof verified for component create/update, row duplicate, and permanent delete; remaining command families open |
+| [ ] | `OPS-001` | core | `UNIT-001`, `UNIT-006`, `UNIT-009`, `UNIT-008` | provider environment identity and Template operational activity receipts are verified; final reconciliation remains |
+| [ ] | `OPS-002` | core | `UNIT-001`, `UNIT-010`, `UNIT-011`, `UNIT-008` | retained-intent replay and mismatch zero-write proof covers component, row, Template/source, Template lifecycle, and upload commands; publication and final sweep remain |
 | [ ] | `UX-003` | auxiliary | optional `UNIT-004` tail | planning only; does not gate core |
 
 ## Mutation Safety Checklist
@@ -77,11 +77,11 @@ For each row, change `OPEN` only after the linked implementation, failure simula
 | [x] | `MUT-05` | row/bulk delete/restore | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
 | [x] | `MUT-06` | component create/update/fan-out | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
 | [x] | `MUT-07` | permanent component delete | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
-| [ ] | `MUT-08` | Template CRUD | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | `OPEN` |
-| [ ] | `MUT-09` | Template create/composition | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | `OPEN` |
-| [ ] | `MUT-10` | Template/Project insert | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | `OPEN` |
-| [ ] | `MUT-11` | upload/image/attachment | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | `OPEN` |
-| [ ] | `MUT-12` | publication replacement | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | `OPEN` |
+| [x] | `MUT-08` | Template CRUD | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
+| [x] | `MUT-09` | Template create/composition | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
+| [x] | `MUT-10` | Template/Project insert | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
+| [x] | `MUT-11` | upload/image/attachment | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
+| [x] | `MUT-12` | publication replacement | [x] | [x] | [x] | [x] | [x] | [x] | `VERIFIED` |
 
 ## Performance Scenario Checklist
 
@@ -95,8 +95,8 @@ For each row, change `OPEN` only after the linked implementation, failure simula
 | [ ] | `PERF-S06` 100-child expand | [ ] | — | — | [ ] | — | `OPEN` |
 | [ ] | `PERF-S07` 500-node tree | [ ] | — | — | [ ] | — | `OPEN` |
 | [ ] | `PERF-S08` 1,000-item search | [ ] | — | — | [ ] | — | `OPEN` |
-| [ ] | `PERF-S09` rename/filter | [x] Area/tab/folder/group | background-shifting controlled inputs, pointer-exit saves, and shared rename state | transparent stable geometry, caret-end focus, pointer-exit no-save, local drafts | [ ] Template/filter owners remain | reuse local inputs and existing menu substrate; no new dependency | `PARTIAL — UNIT-003/004 rename slices verified` |
-| [ ] | `PERF-S10` Template hydration | [ ] | — | — | [ ] | — | `OPEN` |
+| [ ] | `PERF-S09` rename/filter | [x] Area/tab/folder/group/Template/filter | background-shifting controlled inputs, pointer-exit saves, shared rename state, and filter-driven selection/reset risk | transparent stable geometry, caret-end focus, pointer-exit no-save, local drafts, and filter continuity without request/remount | [ ] integrated route measurement remains | reuse local inputs and existing menu substrate; keep filter state local; no new dependency | `PARTIAL — behavior verified through UNIT-009` |
+| [ ] | `PERF-S10` Template hydration | [x] | per-item insertion, synthetic fallback, split lifecycle writes, and ambiguous retry risk | bounded summary/detail hydration, explicit unavailable state, one-batch lifecycle, retained intents, authoritative subtree, and target-only pending | [ ] integrated route measurement remains | preserve one hard D1 batch and local cache/event convergence | `PARTIAL — lifecycle behavior verified` |
 | [ ] | `PERF-S11` 1,500-node/5,000-row behavior | [ ] | — | — | [ ] | — | `OPEN` |
 | [ ] | `PERF-S12` D1 round trips | [ ] | — | — | [ ] | — | `OPEN` |
 
@@ -107,24 +107,24 @@ For each row, change `OPEN` only after the linked implementation, failure simula
 | [x] | `TEST-001` contract/topology/D1 guards | `PASS` | `UNIT-002`, `UNIT-003`, `UNIT-010` | stale component guard ignored version mismatch | timestamp+version component guard, migration `0082`, two-pass tab copy, parent/cycle/destination guards, authoritative recovery | exact group rerun: `3` files / `17` tests passed |
 | [ ] | `TEST-002` row CRUD/retry/concurrency | `PARTIAL_PASS` | `UNIT-002`, `UNIT-011` | duplicate used generic insert without source-revision/replay guarantees | dedicated duplicate operation, retained intent, overlap-aware coordinator, authoritative read-back | UNIT-002 exact group: `6` files / `91` tests passed; UNIT-011 full rerun remains |
 | [x] | `TEST-003` components/variants/delete | `PASS` | `UNIT-004`, `UNIT-010`, `UNIT-011` | missing update/fan-out receipt and bounded delete atomicity | retained update intent, same-batch fan-out/audit/publication receipt, exact permanent-delete set/ceiling, promotion/folder recovery | exact group: `7` files / `27` tests passed; UNIT-011 must rerun as the final regression gate |
-| [ ] | `TEST-004` Templates/reusable sources | `PARTIAL_PASS` | `UNIT-005`, `UNIT-009`, `UNIT-010`, `UNIT-011` | — | generic receipt and cache-convergence foundation covered | UNIT-010 focused slice passed; Template/source cases remain |
-| [ ] | `TEST-005` publication/D1 integrity | `PLANNED` | `UNIT-007`, `UNIT-011` | — | — | — |
-| [x] | `TEST-006` render/large-data performance | `PASS` | `UNIT-003`, `UNIT-011` | production demo seed removal and editable-row-store centralization left stale test harnesses | test-only library fixture, required store providers, and incremental-total expectation | exact group: `6` files / `26` tests passed; UNIT-011 must rerun as the final regression gate |
-| [ ] | `TEST-007` browser Estimate Sheet MVP | `PARTIAL_PASS` | `UNIT-011` | stale Turbopack chunk prevented client hydration during the first receipt attempt | graceful local restart, copied-tab server hydration, stable Area rename, Enter commit, delete fallback, and exact fixture cleanup | applicable UNIT-002 row/keyboard and UNIT-003 tree/tab/rename scenarios passed with no page exception; full UNIT-011 suite remains |
-| [ ] | `TEST-008` storage/provider lifecycle | `PARTIAL_PASS` | `UNIT-004`, `UNIT-006`, `UNIT-011` | — | UNIT-004 attachment ownership/delete-retention slice | exact current group: `6` files / `32` tests passed; UNIT-006 provider lifecycle and final UNIT-011 rerun remain |
+| [x] | `TEST-004` Templates/reusable sources | `PASS` | `UNIT-005`, `UNIT-009`, `UNIT-010`, `UNIT-011` | reusable-source insertion and Template lifecycle lacked one retained atomic command path, complete provenance, and truthful schema fallback | retained intents, authoritative source/target validation, one-batch Template lifecycle/activity receipts, fresh identities, contingency/provenance canonicalization, and explicit unavailable state | exact current group: `7` files / `95` tests passed; lifecycle/action group `3` files / `34`; gallery `14`; UNIT-011 must rerun as final regression gate |
+| [x] | `TEST-005` publication/D1 integrity | `PASS` | `UNIT-007`, `UNIT-011` | legacy and Client Portal used divergent projection/fingerprint paths without one exact source-revision commit fence | shared authoring projector/hash/opaque namespace, revision-aware writer registry, guarded batch commit, zero-write stale-source handling, revision-first stale summary with legacy fallback | exact group: `8` files / `49` tests passed; UNIT-011 must rerun as the final regression gate |
+| [x] | `TEST-006` render/large-data performance | `PASS` | `UNIT-003`, `UNIT-005`, `UNIT-011` | production demo seed removal and editable-row-store centralization left stale test harnesses | test-only library fixture, required store providers, incremental-total expectation, and target-scoped insertion pending isolation | exact group: `6` files / `27` tests passed; UNIT-011 must rerun as the final regression gate |
+| [ ] | `TEST-007` browser Estimate Sheet MVP | `PARTIAL_PASS` | `UNIT-011` | stale Turbopack chunk prevented client hydration during the first receipt attempt; the planned `e2e/estimate-sheet-mvp.spec.ts` is not yet present | graceful local restart, copied-tab server hydration, stable Area rename, Enter commit, delete fallback, exact fixture cleanup, and focused UNIT-005 DOM/network/focus/geometry contracts | applicable UNIT-002 row/keyboard, UNIT-003 tree/tab/rename, and UNIT-005 insertion/filter contracts passed without browser overclaim; UNIT-011 owns creation and execution of the exact full suite |
+| [x] | `TEST-008` storage/provider lifecycle | `PASS` | `UNIT-004`, `UNIT-006`, `UNIT-011` | session/asset/event writes and request-time object deletion could diverge metadata from R2 | one atomic D1 lifecycle, guarded zero-reference removal claims, delayed recheck/terminal cleanup, retained objects, and replay-safe reconciliation | exact current group: `6` files / `32` tests passed; broader provider group `16` files / `185`; UNIT-011 must rerun as final regression gate |
 
 ## Evidence Dimensions
 
 | Done | Dimension | Required signal | Current state |
 | --- | --- | --- | --- |
-| [ ] | source/static | exact owners, types, query/cache paths, diff hygiene | repository type-check and `git diff --check` passed through UNIT-004; scoped UNIT-004 ESLint has `0` errors and `7` known warnings |
-| [ ] | local D1 | before/after, zero-write failures, receipts, authoritative read-back | migrations current through owned `0082`; real SQLite proves component update commit/replay and injected full rollback, while tab/tree integrity counts remain zero |
-| [ ] | focused tests | all `TEST-001`–`TEST-006`, `TEST-008` pass | prior UNIT receipts plus UNIT-004 exact `TEST-003` `27`, current `TEST-008` `32`, focused aggregate `10` files / `113`, and real SQLite `2`; remaining groups open |
+| [ ] | source/static | exact owners, types, query/cache paths, diff hygiene | `git diff --check` passed; scoped UNIT-007 ESLint has `0` errors and `7` untouched workspace-repository warnings; typecheck reaches only two stale generated admin-route imports and three unrelated missing admin `KnowledgeStatusBadge` references |
+| [ ] | local D1 | before/after, zero-write failures, receipts, authoritative read-back | local D1 is current through `0087`; copied/live migration proof has `integrity_check=ok`, zero folder/default/policy/component violations, and zero upload-lifecycle preflight defects |
+| [ ] | focused tests | all `TEST-001`–`TEST-006`, `TEST-008` pass | exact `TEST-005` `8` files / `49`; legacy publication `4` files / `35`; client issuance `2` files / `11`; revision-summary/drawer slice `6` files / `25`; final UNIT-011 serial reruns remain |
 | [ ] | browser | `TEST-007` passes with no console/page errors | UNIT-003 copied tab hydrated without reload, Area rename kept `318×28` transparent bounds and ignored pointer exit, Enter persisted once, and tab delete selected the surviving route with zero residue; full TEST-007 remains open |
-| [ ] | performance | all `PERF-S*` budgets/invariants pass | PERF-S05 verified; PERF-S04 component-update and PERF-S09 Area/tab/folder/group slices verified behaviorally; integrated measurements remain open |
-| [ ] | provider | scoped preview/hosted D1 and R2 evidence where applicable | not evaluated |
-| [ ] | public projection | guarded issue/publication parity and privacy | not evaluated |
-| [ ] | plan/trace | manifest, tracker, ledger, hashes, paths, and validator agree | transitions through UNIT-004 recorded with UNIT-005 active; terminal reconciliation remains open |
+| [ ] | performance | all `PERF-S*` budgets/invariants pass | PERF-S05 verified; PERF-S04 component-update, PERF-S09 rename/filter, and PERF-S10 insertion slices verified behaviorally; integrated measurements remain open |
+| [x] | provider | scoped preview/hosted D1 and R2 evidence where applicable | bound resources and environment parity were audited: local is current through `0087`, preview is empty, hosted D1 is through `0074`, and the hosted Worker predates current source; no deploy or hosted mutation was performed or claimed |
+| [x] | public projection | guarded issue/publication parity and privacy | one canonical authoring projector feeds legacy and Client Portal snapshots; revision/hash fences reject changed source with zero publication writes, issue snapshots remain immutable, IDs are deterministic opaque values, compact fields exclude private source JSON, and revision-aware stale state preserves the timestamp fallback for legacy snapshots |
+| [ ] | plan/trace | manifest, tracker, ledger, hashes, paths, and validator agree | transitions through UNIT-007 are recorded with UNIT-011 active; terminal reconciliation remains open |
 
 ## Unit Verification Receipts
 
@@ -169,6 +169,50 @@ For each row, change `OPEN` only after the linked implementation, failure simula
 - Exact required slices passed: `TEST-003` `7` files / `27` tests and the current `TEST-008` group `6` files / `32` tests; the focused UNIT-004 aggregate passed `10` files / `113` tests, and real in-memory SQLite commit/replay plus injected rollback passed `2` tests.
 - Repository type-check and `git diff --check` passed. Scoped UNIT-004 ESLint returned `0` errors and `7` known warnings: three pre-existing memo dependency warnings in `EstimateSheetContent.tsx`, three pre-existing unused telemetry destructures, and one pre-existing unused D1 row type in `component-library/actions.ts`.
 - Full provider lifecycle remains owned by `UNIT-006`, and the integrated route/performance rerun remains owned by `UNIT-011`; neither is claimed by this receipt.
+
+### `UNIT-005` — 2026-07-15T14:51:15Z
+
+- Made Template and Project-source insertion target-correct for any selected Area/group node, derived tab and estimate ownership authoritatively from that target, and rejected caller target/tab mismatch before writes.
+- Retained one client intent across ambiguous retry, resolved receipts before source load or ID allocation, validated the complete source graph first, rebuilt fresh IDs/topology/order, and committed guard, nodes, rows, publication/history/outbox, and receipt in one bounded D1 batch.
+- Enforced the inclusive `1000`-statement limit without chunking; oversized, invalid-source, invalid-target, and mismatched-tab requests allocate nothing and write nothing.
+- Preserved row-owned selected variant, current canonical pricing, non-null source snapshots/provenance, revision `1`, and authoritative result/event envelopes with a single claimant.
+- Scoped pending feedback to only the insertion target and kept source filtering local, transparent, compact, focus-stable, and selection/expansion/scroll preserving; category insertion now awaits one batch command.
+- Exact `TEST-004` passed `7` files / `90` tests; project-source action passed `1` file / `11` tests; insert authorization/action guards passed `2` files / `37` tests; exact `TEST-006` passed `6` files / `27` tests; scoped ESLint and `git diff --check` passed.
+- Focused DOM/network/focus/geometry tests prove UNIT-005 interaction contracts; the planned `e2e/estimate-sheet-mvp.spec.ts` does not yet exist, so no full `TEST-007` pass is claimed and `UNIT-011` remains its owner.
+
+### `UNIT-006` — 2026-07-15T17:48:56Z
+
+- Unified ordinary/direct upload session, asset, event, replay, reconciliation, and cleanup metadata changes under one atomic D1 batch helper; migrations `0084` and `0087` fail closed on invalid lifecycle, actor, session, storage, and removal-state relationships.
+- Replaced request-time R2 deletion with a zero-reference D1 removal claim, delayed reference recheck, per-object cleanup result, and terminal purged transition; component/project deletes queue cleanup and preserve shared objects.
+- Applied local migrations through `0087` only after synthetic and copied-real-D1 proof; local postflight reports zero default-folder, component-folder, policy-folder, and parent-folder violations with `integrity_check=ok`.
+- Exact `TEST-008` passed `6` files / `32` tests; the broader upload/provider lifecycle group passed `16` files / `185` tests; scoped lint had `0` errors and `git diff --check` passed.
+- Provider identity is explicit: `archestimator-proof`, `ARCH_DB`, `ARCH_UPLOADS_R2`, and `IMAGES`; preview is empty, hosted D1 is through `0074`, and the hosted Worker predates current source, so no hosted mutation, fixture, deploy, or hosted parity claim was made.
+
+### `UNIT-009` — 2026-07-15T17:48:56Z
+
+- Replaced split Template header/graph writes and compensating cleanup with one mandatory D1 batch for create/save/duplicate/header/category/editor/composition intents, including bounded same-batch telemetry and durable replay receipts.
+- Preserved source-workspace authorization, detached fresh identities, authoritative read-back, selected variant and pricing provenance, contingency canonicalization, and one `1000`-statement ceiling; failed batches leave no shell or partial graph.
+- Removed production synthetic Template fallback and the unreachable Template-row reorder export; missing tables now return an explicit schema-unavailable/migration state.
+- Exact `TEST-004` passed `7` files / `95` tests; lifecycle/action tests passed `3` files / `34`, gallery tests `14`, focused intent tests `3`, and new-template/editor tests `3` files / `25`.
+- Scoped lint had `0` errors and only `4` untouched warnings; `git diff --check` passed; typecheck reached only two stale generated admin-route imports and three unrelated missing admin badge references.
+- A broad non-gating component-library UI sweep still contains unrelated stale category-label/summary expectations; exact Template lifecycle gates are green and UNIT-011 owns the final integrated rerun.
+
+### `UNIT-007` — 2026-07-15T18:40:15Z
+
+- Added one canonical authoring-row projector, semantic hash, and project-scoped opaque namespace shared by legacy publication and Client Portal issuance; snapshots now carry schema `1.6`, exact source revision, category/supplier/variant/pricing/totals fields, and privacy-safe deterministic IDs.
+- Added bounded capture/reread loops plus same-batch commit fences. Legacy replacement/rotation and Client Portal issue writes are conditional on the exact project publication revision; a changed source commits no publication header, child rows, audit/outbox, pointer, revoke, activation, or recipient invalidation writes.
+- Completed the issue-visible writer registry for estimate details/bulk deletion and project image/details/location/client-name mutations, with one same-batch `publication_source_revision` increment per affected project; an exact producer registry rejects missing, unknown, or duplicate writer facts.
+- Added revision-first stale/reissue metadata without expanding the CRITICAL shared project reader or changing the CRITICAL timestamp helper; legacy snapshots retain the previous timestamp fallback, and the Publisher drawer renders both warning shapes safely.
+- Exact `TEST-005` passed `8` files / `49` tests. Focused legacy publication passed `4` files / `35`, client publish/issue passed `2` files / `11`, and revision summary plus drawer coverage passed `6` files / `25`.
+- Scoped UNIT-007 ESLint returned `0` errors with `7` untouched workspace-repository warnings; `git diff --check` passed. Typecheck now reaches only two stale generated admin-route imports and three unrelated missing admin `KnowledgeStatusBadge` references.
+- A broader non-gating publication sweep passed `114/115`; its sole stale `SharePageSessionBanner` source assertion also fails against `HEAD` and is unrelated to the UNIT-007 diff, so it was not used as parity evidence or weakened.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-007`
+`ACTIVE = UNIT-011`
+`NEXT = RUN_WHOLE_ROUTE_PERFORMANCE_AND_SERIAL_TEST_GATE`
+`STOP = TEST-001 through TEST-008, PERF-S01 through PERF-S12, scoped static checks, fixture cleanup, and GitNexus change detection are terminal with decisive evidence`
 
 ## Completion Reconciliation
 

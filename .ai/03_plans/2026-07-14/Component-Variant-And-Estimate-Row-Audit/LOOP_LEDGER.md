@@ -630,3 +630,144 @@ Migration ownership is corrected to match dependency order: `UNIT-010` creates s
 `ALSO_ELIGIBLE = UNIT-006`
 `NEXT = IMPLEMENT_REPLAY_SAFE_TEMPLATE_PROJECT_SOURCE_INSERTION_AND_TRANSPARENT_FILTERING`
 `STOP = UNIT-005 target topology, source validation, statement ceiling, retained intent, authoritative subtree, pending scope, filter continuity, TEST-004, and applicable TEST-006/TEST-007 evidence are complete`
+
+## 2026-07-15 — UNIT-005 Replay-Safe Template And Project-Source Insertion Verification
+
+**Status:** `VERIFIED`
+**Mode:** authoritative Template/Project-source D1 insertion, retained-intent replay, target-scoped UI feedback, transparent local filtering, focused Vitest, and scoped static verification
+**Observed at:** `2026-07-15T14:51:15Z`
+
+### Implementation receipt
+
+- accepted any selected Area/group node as the insertion target, derived its tab and estimate authoritatively, and rejected caller target/tab mismatch before mutation;
+- retained one browser intent for an unchanged retry, resolved the durable receipt before source loading or ID allocation, validated the complete source graph, and rebuilt fresh node/row IDs, parent topology, deterministic order, and revision-`1` rows;
+- preserved row-owned selected variant, canonical current pricing, non-null source snapshots, and source provenance while committing guard, nodes, rows, publication/history/outbox, and receipt in one hard D1 batch;
+- enforced the inclusive `1000`-statement ceiling before allocation and rejected oversized or invalid selections without chunking or partial writes;
+- used one versioned external insertion envelope with one claimant, authoritative acknowledgement after mutation resolution, ambiguous-failure intent reuse, and pending feedback only on the selected target; and
+- kept All sources, Custom templates, and Project sources filtering transparent and local without clearing selection, remounting trees, repeating source requests, or losing focus/expansion continuity; category insertion now awaits one batch callback.
+
+### Verification receipt
+
+- exact `TEST-004`: `7` files / `90` tests passed;
+- focused project-source D1 action: `1` file / `11` tests passed;
+- insert authorization/action guard pair: `2` files / `37` tests passed;
+- exact `TEST-006`: `6` files / `27` tests passed, including virtualized target-only pending isolation;
+- focused component-library filter/bulk slice: `1` file / `6` tests passed with no repeated project-source search;
+- scoped UNIT-005 ESLint returned `0` errors, `git diff --check` passed, and repository type-check reached only the unrelated existing missing `KnowledgeStatusBadge` errors in `EstimateSystemKnowledgeGraph.tsx`.
+
+### Evidence boundary
+
+- exact D1 action tests prove one bounded batch, receipt replay before source reload, fresh IDs on a new intent, source/target/tab validation, statement-limit refusal, non-null snapshots/provenance, current option pricing, and authoritative rows;
+- focused DOM/network/focus/geometry tests prove target-scoped pending, event acknowledgement timing, intent reuse, local filter continuity, one awaited category command, and virtualized sibling isolation;
+- the planned `e2e/estimate-sheet-mvp.spec.ts` is absent, so no full browser `TEST-007` pass is claimed; `UNIT-011` owns creation and execution of that suite; and
+- Template CRUD/composition remains owned by `UNIT-009`, provider lifecycle by `UNIT-006`, publication parity by `UNIT-007`, and integrated route/performance completion by `UNIT-011`.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-005`
+`ACTIVE = UNIT-006`
+`ALSO_ELIGIBLE = UNIT-009`
+`NEXT = IMPLEMENT_PROVIDER_STORAGE_INTEGRITY`
+`STOP = UNIT-006 migration pre/post integrity, batched session/asset lifecycle, removal claim, delayed cleanup, provider identity, TEST-008, and environment-scoped receipts are complete`
+
+## 2026-07-15 — UNIT-006 Provider Storage Integrity Verification
+
+**Status:** `VERIFIED`
+**Mode:** atomic upload metadata, delayed object cleanup, local D1 migrations, provider-environment audit, focused Vitest, and scoped static verification
+**Observed at:** `2026-07-15T17:48:56Z`
+
+### Implementation receipt
+
+- unified ordinary/direct upload session, asset, event, replay, reconciliation, and cleanup writes under one atomic D1 batch helper;
+- added fail-closed upload lifecycle and actor/session/storage/removal-state migrations `0084` and `0087`;
+- replaced request-time R2 deletion with zero-reference removal claims, delayed reference rechecks, per-object cleanup results, terminal purged transitions, and safe repeated cleanup;
+- queued component/project object cleanup after committed metadata deletion while retaining any object with an accepted owner; and
+- preserved environment identity and stopped before hosted mutation because deployed Worker/schema parity was absent.
+
+### Verification receipt
+
+- exact `TEST-008`: `6` files / `32` tests passed;
+- broader provider/upload group: `16` files / `185` tests passed;
+- copied real-D1 migration proof passed before local apply;
+- local D1 is current through `0087`, `integrity_check=ok`, and folder/default/component/policy/parent integrity counts are all zero;
+- scoped ESLint returned `0` errors, and `git diff --check` passed; and
+- provider read-only audit identifies `archestimator-proof`, `ARCH_DB`, `ARCH_UPLOADS_R2`, and `IMAGES`; preview is empty, hosted D1 is through `0074`, and hosted Worker source predates current local source.
+
+### Evidence boundary
+
+- local implementation and provider contracts are verified without claiming hosted lifecycle parity;
+- no deploy, hosted D1 mutation, hosted R2 fixture, or production behavior claim was made because the deployed Worker is older than the repaired code; and
+- UNIT-011 remains responsible for final exact test reruns and browser recovery scenarios.
+
+## 2026-07-15 — UNIT-009 Atomic Template Lifecycle Verification
+
+**Status:** `VERIFIED`
+**Mode:** one-batch Template lifecycle, replay/activity receipts, truthful schema fallback, variant/provenance preservation, focused Vitest, and scoped static verification
+**Observed at:** `2026-07-15T17:48:56Z`
+
+### Implementation receipt
+
+- replaced split Template header/graph writes and compensating cleanup with one mandatory D1 batch for create/save/duplicate/header/category/editor/composition;
+- committed bounded operational telemetry and durable mutation receipts in the same batch, resolving replay before allocation or source loading;
+- preserved source-workspace authorization, detached fresh identities, complete read-back, exact selected variant/current pricing, contingency canonicalization, and pricing provenance;
+- removed the production synthetic Template fallback and unreachable row-reorder export, returning an explicit schema-unavailable state instead; and
+- carried retained intent IDs across modal, editor, browse, and tree mutation surfaces.
+
+### Verification receipt
+
+- exact `TEST-004`: `7` files / `95` tests passed;
+- lifecycle/action group: `3` files / `34` tests passed;
+- Template gallery: `1` file / `14` tests passed;
+- focused sidebar Template intents: `3` passed; and
+- new-template/editor group: `3` files / `25` tests passed.
+
+### Evidence boundary
+
+- failed batches leave no Template shell or partial graph; same-intent replay performs no second batch;
+- scoped ESLint returned `0` errors with `4` untouched warnings, `git diff --check` passed, and typecheck reached only two stale generated admin-route imports plus three unrelated missing admin badge references;
+- a broad non-gating component-library UI sweep still contains unrelated stale category-label and summary expectations; and
+- publication parity and final integrated route/performance gates remain open.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-009`
+`ACTIVE = UNIT-007`
+`NEXT = IMPLEMENT_GUARDED_AUTHORING_TO_ISSUED_PARITY`
+`STOP = UNIT-007 writer registry, revision guard, field/tree/totals/privacy parity, TEST-005, and publication read-back evidence are complete`
+
+## 2026-07-15 — UNIT-007 Guarded Authoring-To-Issued Parity Verification
+
+**Status:** `VERIFIED`
+**Mode:** shared authoring projection, revision-aware writer registry, guarded legacy/client issuance, privacy audit, focused Vitest, and scoped static verification
+**Observed at:** `2026-07-15T18:40:15Z`
+
+### Implementation receipt
+
+- introduced one canonical authoring-row projector, canonical semantic hash, and project-scoped opaque namespace for both legacy publication and Client Portal issuance;
+- embedded exact `publication_source_revision`, schema `1.6`, field/tree/totals/category/supplier/variant/pricing parity, and deterministic privacy-safe IDs without exposing full source snapshots;
+- guarded legacy replacement/rotation and Client Portal issue commits against the exact captured project revision in one D1 batch, with zero header, child, audit, outbox, pointer, revoke, activation, or recipient-invalidation writes on stale source;
+- completed the issue-visible revision-fact producer registry for estimate details/bulk deletion and project image/details/location/client-name mutations, rejecting missing, unknown, or duplicate producer facts; and
+- added revision-first stale/reissue metadata with legacy timestamp fallback while preserving the CRITICAL shared project reader and existing CRITICAL timestamp helper.
+
+### Verification receipt
+
+- exact `TEST-005`: `8` files / `49` tests passed;
+- focused legacy publication: `4` files / `35` tests passed;
+- focused Client Portal publish/issue: `2` files / `11` tests passed;
+- revision summary and Publisher drawer: `6` files / `25` tests passed;
+- scoped UNIT-007 ESLint returned `0` errors with `7` untouched workspace-repository warnings; and
+- `git diff --check` passed, while typecheck reached only two stale generated admin-route imports and three unrelated missing admin `KnowledgeStatusBadge` references.
+
+### Evidence boundary
+
+- legacy and Client Portal issuance now consume the same authoring semantics and reject capture/commit races without replacing the last valid publication or mutating immutable issues;
+- the broader publication sweep passed `114/115`; its only failure is a pre-existing `SharePageSessionBanner` source assertion that also fails against `HEAD`, so it is recorded but excluded from UNIT-007 proof rather than weakened;
+- no hosted publication or deploy claim is made; and
+- UNIT-011 owns final serial reruns, exact browser MVP proof, whole-route performance measurements, and fixture cleanup.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-007`
+`ACTIVE = UNIT-011`
+`NEXT = RUN_WHOLE_ROUTE_PERFORMANCE_AND_SERIAL_TEST_GATE`
+`STOP = TEST-001 through TEST-008, PERF-S01 through PERF-S12, scoped static checks, fixture cleanup, and GitNexus change detection are terminal with decisive evidence`

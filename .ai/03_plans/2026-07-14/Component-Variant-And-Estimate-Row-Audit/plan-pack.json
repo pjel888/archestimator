@@ -99,7 +99,7 @@
       "id": "ART-014",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "9f0a82d681ce6afea271a0cbdfb9c9b7866b472e2c500373a0e2237db840a6e3"
+      "sha256": "1f3a0878ecdef6ea74d5479209afe4a4370a5ff0ccb5a192566a780230d23a16"
     },
     {
       "id": "ART-015",
@@ -129,7 +129,7 @@
       "id": "ART-019",
       "role": "implementation-tracker",
       "path": "IMPLEMENTATION_TRACKER.md",
-      "sha256": "85498d8c3cb7318c6301d5f19c9e22e90b5fa7d885ffe76d4d803244ca72e0f0"
+      "sha256": "dfa0325575dec0c25141a95fd2a76bf51ec526cbc77de5258d9d6b9298b1609e"
     }
   ],
   "sources": [
@@ -1489,7 +1489,7 @@
     },
     {
       "id": "TEST-004",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-007",
@@ -1499,12 +1499,12 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-010"
+        "EVID-009"
       ]
     },
     {
       "id": "TEST-005",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-008",
@@ -1513,7 +1513,7 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-010"
+        "EVID-009"
       ]
     },
     {
@@ -1556,7 +1556,7 @@
     },
     {
       "id": "TEST-008",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-006",
@@ -1565,7 +1565,7 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-010"
+        "EVID-009"
       ]
     }
   ],
@@ -1758,7 +1758,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED",
       "goal": "Make Template and Project-source insertion target-correct while streamlining source filtering.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -1792,7 +1792,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "VERIFIED",
       "goal": "Repair D1/R2/Images metadata integrity and collect environment-scoped provider evidence.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -1819,7 +1819,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "VERIFIED",
       "goal": "Harden Template lifecycle plus Template rename, filter, and menu coherence.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -1857,7 +1857,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "VERIFIED",
       "goal": "Align legacy and Client Portal issued projections with authoring.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -1880,12 +1880,13 @@
         "RISK-007"
       ],
       "evidence_ids": [
-        "EVID-003"
+        "EVID-003",
+        "EVID-009"
       ]
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "goal": "Run the whole-route performance and authorized adversarial test gate, repair every in-scope failure, and produce terminal mutation and performance evidence.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -2349,15 +2350,15 @@
       "status": "PASS",
       "method": "Create-Implementation-Prompt compilation plus dependency, owner-path, decision, acceptance, evidence, recovery, and next-state review for every remediation unit.",
       "expected_signal": "Every unit has dependency closure, fixed routine decisions, one executable minimal-fix sequence, exact evidence authority, recovery, and next state.",
-      "actual_signal": "The eleven-unit execution DAG remains dependency-closed; UNIT-001, UNIT-010, UNIT-002, UNIT-003, and UNIT-004 are verified from scoped source, D1, focused-test, route, atomicity, and tracker receipts, and UNIT-005 is the exact active continuation.",
+      "actual_signal": "The eleven-unit execution DAG remains dependency-closed; UNIT-001 through UNIT-007 plus UNIT-009 and UNIT-010 are verified from scoped source, local D1, focused-test, replay, failure, provider-boundary, publication-parity, and tracker receipts, and UNIT-011 is the exact active continuation.",
       "environment": "PLAN_ARTIFACT",
-      "observed_at": "2026-07-15T13:41:38.000Z",
+      "observed_at": "2026-07-15T18:40:15.000Z",
       "source_paths": [
         "IMPLEMENTATION_PLAN.md"
       ],
       "source_fingerprint": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "UNIT_004_VERIFIED_UNIT_005_ACTIVE",
-      "source_revision": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805+unit-004-2026-07-15T13:41:38Z",
+      "result": "UNIT_007_VERIFIED_UNIT_011_ACTIVE",
+      "source_revision": "c29f2ea6e35d8f3a1d35ff0b6c765d104695a90b+unit-007-2026-07-15T18:40:15Z",
       "valid_until": "2026-07-16T07:32:30.000Z"
     },
     {
@@ -2371,9 +2372,9 @@
       "status": "COLLECTED",
       "method": "Reciprocal ID/path/requirement/criterion/unit/evidence manifest review.",
       "expected_signal": "No orphan ID or invalid status tuple and every criterion remains truthful.",
-      "actual_signal": "All twenty-one criteria remain truthfully FAIL pending their complete evidence; twenty core criteria plus auxiliary AC-018 are reciprocally traced, verified unit receipts through UNIT-004 are explicit, and UNIT-005 is the exact active continuation.",
+      "actual_signal": "All twenty-one criteria remain truthfully FAIL pending complete evidence; verified unit receipts now include UNIT-007, UNIT-011 is active, and objective/release status remains nonterminal.",
       "environment": "PLAN_ARTIFACT",
-      "observed_at": "2026-07-15T13:41:38.000Z",
+      "observed_at": "2026-07-15T18:40:15.000Z",
       "source_paths": [
         "TRACEABILITY.md",
         "plan-pack.json"
@@ -2421,18 +2422,18 @@
         "UNIT-009",
         "UNIT-008"
       ],
-      "status": "COLLECTED",
+      "status": "PASS",
       "method": "Full source-pack artifact and manifest review, current-source spot checks, requirement/finding/unit/evidence crosswalk, and path/reference validation.",
       "expected_signal": "All source requirements, findings, units, evidence claims, architecture, flow, and variant contracts are retained with no duplicate active authority.",
-      "actual_signal": "All eight source requirements, ten findings, four source units, and eight evidence claims are retained under one destination authority; the absorbed source folder is absent, the destination revalidates, and product implementation remains unproven.",
+      "actual_signal": "All absorbed Template requirements remain under one destination authority, and UNIT-009 now proves one-batch lifecycle, replay/activity receipts, detached identities, variant/provenance preservation, explicit schema-unavailable behavior, and source-pack absence.",
       "environment": "PLAN_ARTIFACT",
-      "observed_at": "2026-07-15T07:32:30.000Z",
+      "observed_at": "2026-07-15T17:48:56.000Z",
       "source_paths": [
         "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md"
       ],
       "source_fingerprint": "141988a89ea6bf3961c464db97365d26a7ce50f9:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "PLANNING_ONLY_COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+scoped-source-2026-07-15T07:32:30Z",
+      "result": "UNIT_009_TEMPLATE_ABSORPTION_VERIFIED",
+      "source_revision": "c350f8bf85597cfa59008a488b49acdd73d90076+unit-009-2026-07-15T17:48:56Z",
       "valid_until": "2026-07-16T07:32:30.000Z"
     },
     {
@@ -2482,7 +2483,7 @@
       "id": "EVID-009",
       "status": "PASS",
       "artifact_path": "IMPLEMENTATION_TRACKER.md",
-      "sha256": "85498d8c3cb7318c6301d5f19c9e22e90b5fa7d885ffe76d4d803244ca72e0f0",
+      "sha256": "dfa0325575dec0c25141a95fd2a76bf51ec526cbc77de5258d9d6b9298b1609e",
       "claim_ids": [
         "AC-021",
         "UNIT-001",
@@ -2491,13 +2492,19 @@
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
+        "UNIT-006",
+        "UNIT-009",
+        "UNIT-007",
         "UNIT-011",
         "UNIT-008",
         "TEST-001",
         "TEST-003",
-        "TEST-006"
+        "TEST-004",
+        "TEST-005",
+        "TEST-006",
+        "TEST-008"
       ],
-      "source_revision": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805+unit-004-2026-07-15T13:41:38Z",
+      "source_revision": "c29f2ea6e35d8f3a1d35ff0b6c765d104695a90b+unit-007-2026-07-15T18:40:15Z",
       "valid_until": null
     },
     {
@@ -2528,11 +2535,9 @@
         "TEST-001",
         "TEST-002",
         "TEST-003",
-        "TEST-004",
         "TEST-005",
         "TEST-006",
-        "TEST-007",
-        "TEST-008"
+        "TEST-007"
       ],
       "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9",
       "valid_until": null
@@ -2569,17 +2574,17 @@
     "estimate-sheet-whole-route-performance-budget-or-test-contract-change",
     "implementation-tracker-or-completion-state-change"
   ],
-  "next_unit": "UNIT-005",
-  "updated_at": "2026-07-15T13:41:38.000Z",
-  "manifest_sha256": "a5d86a20135ba18c9f4ea6914ea414434950f68e95aa84cd939ddcbb9f02dd8e",
+  "next_unit": "UNIT-011",
+  "updated_at": "2026-07-15T18:40:15.000Z",
+  "manifest_sha256": "7ccceb0ccde013aeddea8737b281f254ed0b96d152bf72ccb48d08e08427ac1f",
   "behavior_status": "NOT_EVALUATED",
   "objective_status": "NOT_ACHIEVED",
   "execution_tracking": {
     "artifact_path": "IMPLEMENTATION_TRACKER.md",
     "current_epoch": "2026-07-15-MVP-PERFORMANCE-PERSISTENCE-HARDENING",
-    "active_unit": "UNIT-005",
-    "last_verified_unit": "UNIT-004",
-    "required_next_unit": "UNIT-005",
+    "active_unit": "UNIT-011",
+    "last_verified_unit": "UNIT-007",
+    "required_next_unit": "UNIT-011",
     "continuation_required": true,
     "core_criteria_total": 20,
     "core_criteria_open": 20,
