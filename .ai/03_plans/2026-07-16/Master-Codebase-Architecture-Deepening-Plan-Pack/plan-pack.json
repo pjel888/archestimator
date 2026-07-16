@@ -50,6 +50,7 @@
       "affected_ids": [
         "REQ-001",
         "SEC-001",
+        "DATA-001",
         "REQ-002",
         "REQ-003",
         "REQ-004",
@@ -65,6 +66,7 @@
       "affected_ids": [
         "REQ-001",
         "SEC-001",
+        "DATA-001",
         "REQ-002",
         "REQ-003",
         "REQ-004",
@@ -80,6 +82,7 @@
       "affected_ids": [
         "REQ-001",
         "SEC-001",
+        "DATA-001",
         "REQ-002",
         "REQ-003",
         "REQ-004",
@@ -124,6 +127,24 @@
       ],
       "criterion_ids": [
         "AC-002"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Make upload-removal eligibility per asset and return disjoint claimed, blocked, and already-removed path sets without changing final purge protection.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
       ]
     },
     {
@@ -350,13 +371,25 @@
     {
       "id": "RISK-008",
       "status": "OPEN",
-      "statement": "Row-store deepening causes render storms, focus loss, optimistic rollback errors, or shared-versus-row-owned mutation drift.",
+      "statement": "Row-store deepening causes render storms, focus loss, optimistic rollback errors, shared-versus-row-owned mutation drift, or a server/client boundary violation.",
       "artifact_path": "LOOP_LEDGER.md",
       "unit_ids": [
         "UNIT-008"
       ],
       "criterion_ids": [
         "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "statement": "Per-asset upload classification creates overlapping result sets or weakens final reference protection.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
       ]
     }
   ],
@@ -413,7 +446,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": "AUTH-001"
     },
     {
       "id": "AC-004",
@@ -504,6 +537,24 @@
         "EVID-002"
       ],
       "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is independent per-asset claim eligibility with disjoint truthful result sets and unchanged final purge protection; cheaper source evidence cannot prove mixed-batch behavior.",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_ids": [
+        "TEST-009"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
     }
   ],
   "tests": [
@@ -541,7 +592,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "command": "bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts"
+      "command": "bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts tests/vitest/live-estimate-node-route.test.ts"
     },
     {
       "id": "TEST-004",
@@ -601,10 +652,34 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "command": "one focused Estimate row-editing contract for four intents, rollback, and selector isolation"
+      "command": "one focused Estimate row-editing contract for four intents, rollback, selector isolation, and client-safe Server Action adapters"
+    },
+    {
+      "id": "TEST-009",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "update and run tests/vitest/upload-removal-claims.test.ts only when test-source editing and execution are explicitly authorized"
     }
   ],
   "gates": [
+    {
+      "id": "GATE-TEST-SOURCE-001",
+      "status": "BOUNDARY",
+      "artifact_path": "LOOP_LEDGER.md",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
     {
       "id": "GATE-LEASE-001",
       "status": "FAIL",
@@ -612,6 +687,7 @@
       "criterion_ids": [
         "AC-004",
         "AC-005",
+        "AC-006",
         "AC-007",
         "AC-008"
       ],
@@ -632,7 +708,8 @@
         "AC-005",
         "AC-006",
         "AC-007",
-        "AC-008"
+        "AC-008",
+        "AC-009"
       ],
       "evidence_ids": [
         "EVID-003"
@@ -674,8 +751,24 @@
       ]
     },
     {
-      "id": "UNIT-003",
+      "id": "UNIT-009",
       "status": "READY",
+      "goal": "Make upload-removal eligibility per asset and return disjoint truthful claimed, blocked, and already-removed path sets.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "PLANNED",
       "goal": "Extract concrete Estimate-tree D1 reads and builders without moving workspace or authorization orchestration.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
@@ -758,9 +851,7 @@
       "status": "PLANNED",
       "goal": "Deepen the existing per-sheet editable-row store into the single owner of row commit routing, dirty state, pending state, and rollback.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "depends_on": [
-        "UNIT-007"
-      ],
+      "depends_on": [],
       "requirement_ids": [
         "REQ-006"
       ],

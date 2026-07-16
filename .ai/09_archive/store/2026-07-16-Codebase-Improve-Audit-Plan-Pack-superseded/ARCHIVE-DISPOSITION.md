@@ -6,9 +6,8 @@
 
 This pack is historical planning evidence, not implementation or release evidence. The master rechecked all twenty units against current source and records an explicit merge, narrowing, rejection, deferral, or existing-owner route for each one in `AUDIT-AND-DISPOSITION.md`.
 
-False or stale migration, test-gate, D1 batch, upload-removal, password-floor, query-deduplication, hard-cap pagination, hosted-proof, and already-owned product-direction claims do not survive as execution authority. Executors must not resume from this archive or treat its old per-finding files, baseline, hashes, or readiness prose as active authority.
+False or stale migration, test-gate, D1 batch, password-floor, query-deduplication, hard-cap pagination, hosted-proof, and already-owned product-direction claims do not survive as execution authority. The verified upload-removal correctness defect survives only as the master's narrowed auxiliary `UNIT-009`; its unmeasured index and reference-table proposals do not. Executors must not resume from this archive or treat its old per-finding files, baseline, hashes, or readiness prose as active authority.
 
 The whole folder is preserved at:
 
 `.ai/09_archive/store/2026-07-16-Codebase-Improve-Audit-Plan-Pack-superseded/`
-
