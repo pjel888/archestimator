@@ -167,6 +167,10 @@ describe("estimate sheet bulk row delete partial failures", () => {
       projectId,
       estimateId,
       rowIds: [cabinetRowId, sinkRowId],
+      expectedRowRevisions: {
+        [cabinetRowId]: cabinetRow.rowRevision,
+        [sinkRowId]: sinkRow.rowRevision,
+      },
     }));
     expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(screen.getByText("Kitchen Sink")).toBeInTheDocument();
@@ -216,7 +220,10 @@ describe("estimate sheet bulk row delete partial failures", () => {
     await user.click(deleteRowButton);
 
     await waitFor(() => {
-      expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(1);
+      expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+        rowId: cabinetRowId,
+        expectedRowRevision: cabinetRow.rowRevision,
+      }));
     });
 
     expect(screen.queryByText("Kitchen Cabinet")).not.toBeInTheDocument();
