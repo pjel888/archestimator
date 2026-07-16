@@ -204,7 +204,21 @@ async function cleanupStaleMvpFixtures(page: Page) {
 }
 
 async function waitForRowSaved(page: Page) {
-  await expect(page.locator("[data-estimate-row-save-status]")).toHaveText("Row changes saved");
+  const globalStatus = page.locator("[data-estimate-row-save-status]");
+  const pendingRows = page.locator('tr[data-estimate-row-mutation-status="pending"]');
+  const failedRows = page.locator('tr[data-estimate-row-mutation-status="failed"]');
+  let settledSince = 0;
+  await expect.poll(async () => {
+    if (await failedRows.count()) return -1;
+    const saving = (await globalStatus.textContent()) === "Saving row changes" || await pendingRows.count() > 0;
+    if (saving) {
+      settledSince = 0;
+      return 0;
+    }
+    if (!settledSince) settledSince = Date.now();
+    return Date.now() - settledSince;
+  }, { intervals: [100], timeout: 15_000 }).toBeGreaterThanOrEqual(500);
+  await expect(failedRows).toHaveCount(0);
 }
 
 async function abortNextServerAction(page: Page, expectedFailures: Set<Request>) {
