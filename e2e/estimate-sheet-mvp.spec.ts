@@ -96,6 +96,7 @@ async function deleteEstimateArea(page: Page, name: string, parentName?: string)
   const deleteResponse = await deleteResponsePromise;
   expect(deleteResponse.status()).toBeLessThan(400);
   expect(await deleteResponse.finished()).toBeNull();
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
   await expect(matchingNodes).toHaveCount(beforeCount - 1, { timeout: 15_000 });
   await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 15_000 });
 }
@@ -344,9 +345,10 @@ test.describe("Estimate Sheet MVP", () => {
         await page.waitForLoadState("networkidle");
         templateExists = true;
 
+        await (await findEstimateNode(page, sourceName)).click();
+        await page.waitForLoadState("networkidle");
         await deleteEstimateArea(page, areaName, sourceName);
         temporaryAreaExists = false;
-        await (await findEstimateNode(page, sourceName)).click();
 
         const estimateTree = getEstimateTree(page);
         await estimateTree.evaluate((element) => element.setAttribute("data-mvp-preserved-tree", "true"));
