@@ -174,6 +174,9 @@ describe("estimate sheet bulk row delete partial failures", () => {
     }));
     expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(screen.getByText("Kitchen Sink")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Select Kitchen Cabinet" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Kitchen Sink" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Clear selection" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /undo/i })).not.toBeInTheDocument();
   });
 

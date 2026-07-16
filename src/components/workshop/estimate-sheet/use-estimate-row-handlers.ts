@@ -1433,7 +1433,10 @@ export function useEstimateRowHandlers({
       estimateId,
       rowIds: selectedRowIds,
       expectedRowRevisions,
-      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      rollback: () => {
+        restoreEstimateState(previousTree, previousRows, rollbackRevision);
+        setBulkSelectedRowIds(new Set(selectedRowIds));
+      },
       onSuccess: (result) => {
         setBulkSelectedRowIds(new Set());
         if (previousLocations.length === 0) return;
