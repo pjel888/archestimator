@@ -386,8 +386,15 @@ test.describe("Estimate Sheet MVP", () => {
         page.off("request", countServerActions);
 
         await templateNode.click({ button: "right" });
+        const templateInsertResponsePromise = page.waitForResponse((response) => {
+          const request = response.request();
+          return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+        }, { timeout: 15_000 });
         await page.getByRole("menuitem", { name: `Add to ${sourceName}`, exact: true }).click();
-        await expect(getEstimateNodeByName(page, areaName)).toBeVisible();
+        const templateInsertResponse = await templateInsertResponsePromise;
+        expect(templateInsertResponse.status()).toBeLessThan(400);
+        expect(await templateInsertResponse.finished()).toBeNull();
+        await expect(getEstimateNodeByName(page, areaName)).toBeVisible({ timeout: 15_000 });
         insertedAreaExists = true;
 
         await page.reload({ waitUntil: "domcontentloaded" });

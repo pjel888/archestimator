@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { AdminAccountMembers } from "@/components/admin/AdminAccountMembers";
 import { AdminAccountStatusControls } from "@/components/admin/AdminAccountStatusControls";
 import { AdminAccountWorkspaces } from "@/components/admin/AdminAccountWorkspaces";
+import { AdminCustomerNotes } from "@/components/admin/AdminCustomerNotes";
 import { Card } from "@/components/ui/card";
+import { listCustomerNotes } from "@/lib/admin/customer-notes-repository";
 import {
   getCorporateAccount,
   listCorporateAccountMembers,
@@ -20,13 +22,14 @@ export default async function AdminAccountDetailPage({
 }) {
   const { accountId } = await params;
 
-  const [accountResult, membersResult, workspacesResult, linkableWorkspacesResult, assignableUsersResult] =
+  const [accountResult, membersResult, workspacesResult, linkableWorkspacesResult, assignableUsersResult, notesResult] =
     await Promise.all([
       getCorporateAccount(accountId),
       listCorporateAccountMembers(accountId),
       listCorporateAccountWorkspaces(accountId),
       listAllWorkspacesForLinking(),
       listAllUsersForAssignment(),
+      listCustomerNotes("account", accountId, 25),
     ]);
 
   if (accountResult.error || !accountResult.data) {
