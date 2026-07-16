@@ -69,20 +69,29 @@ async function findEstimateNode(page: Page, name: string, parentName?: string) {
 }
 
 async function deleteEstimateArea(page: Page, name: string, parentName?: string) {
-  let node = getEstimateNodeByName(page, name).first();
+  const matchingNodes = getEstimateNodeByName(page, name);
+  let node = matchingNodes.first();
   if (!(await node.count()) && parentName) {
     const parent = getEstimateNodeByName(page, parentName).first();
     if (await parent.count()) await expandEstimateNode(parent);
-    node = getEstimateNodeByName(page, name).first();
+    node = matchingNodes.first();
   }
   if (!(await node.count())) return;
+
+  const beforeCount = await matchingNodes.count();
+  const deleteReceipts = page.locator('[data-toast-viewport="true"] [role="status"]')
+    .filter({ hasText: /^\d+ Areas? and \d+ cost rows? deleted\.$/u });
+  while (await deleteReceipts.count()) {
+    await deleteReceipts.first().getByRole("button", { name: "Dismiss notification" }).click();
+  }
 
   await node.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: `Delete ${name}`, exact: true });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(getEstimateNodeByName(page, name)).toHaveCount(0);
+  await expect(deleteReceipts).toHaveCount(1);
+  await expect(matchingNodes).toHaveCount(beforeCount - 1);
 }
 
 async function selectSourceTab(page: Page, name: "Library" | "Templates") {
