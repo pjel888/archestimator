@@ -83,20 +83,21 @@ async function deleteEstimateArea(page: Page, name: string, parentName?: string)
   if (!(await node.count())) return;
 
   const beforeCount = await matchingNodes.count();
-  const deleteReceipts = page.locator('[data-toast-viewport="true"] [role="status"]')
-    .filter({ hasText: /\d+ Areas? and \d+ cost rows? deleted\./u });
-  while (await deleteReceipts.count()) {
-    await deleteReceipts.first().getByRole("button", { name: "Dismiss notification" }).click();
-  }
 
   await node.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: `Delete ${name}`, exact: true });
   await expect(dialog).toBeVisible();
+  const deleteResponsePromise = page.waitForResponse((response) => {
+    const request = response.request();
+    return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+  }, { timeout: 15_000 });
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(deleteReceipts).toHaveCount(1, { timeout: 15_000 });
-  await expect(matchingNodes).toHaveCount(beforeCount - 1);
-  await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 10_000 });
+  const deleteResponse = await deleteResponsePromise;
+  expect(deleteResponse.status()).toBeLessThan(400);
+  expect(await deleteResponse.finished()).toBeNull();
+  await expect(matchingNodes).toHaveCount(beforeCount - 1, { timeout: 15_000 });
+  await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 15_000 });
 }
 
 async function selectSourceTab(page: Page, name: "Library" | "Templates") {
