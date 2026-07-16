@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — archestimator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { curve: "stepAfter" } });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(160deg, #0f172a, #1e293b); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .mod-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+      .arrow-head { marker-end: url(#ah); }
+      .grid-bg { background-image: linear-gradient(#e7e5e4 1px, transparent 1px), linear-gradient(90deg, #e7e5e4 1px, transparent 1px); background-size: 14px 14px; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <!-- HEADER -->
+      <header class="space-y-4">
+        <div class="flex items-baseline justify-between flex-wrap gap-2">
+          <h1 class="text-3xl font-serif tracking-tight">Architecture review — archestimator</h1>
+          <span class="text-sm text-slate-500">2026-07-16 · workshop / estimate-sheet hot belt</span>
+        </div>
+        <p class="text-slate-600 max-w-3xl">
+          Scoped to the code that moved most in the last 60 days. Three structural habits repeat across the hot belt:
+          <b>god-modules</b> (workspace-repository, component-library/actions), <b>pass-through reducers</b> that fail the deletion test,
+          and <b>pure helpers extracted for testability while the orchestrator beside them stays untested</b> (no locality).
+          Domain nouns — <i>Estimate, Row, Component, Variant, Folder, Sheet, Node, Publication</i> — are used as the codebase names them.
+        </p>
+        <!-- legend -->
+        <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-3">
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-3 bg-slate-200 border border-slate-400 rounded-sm"></span> shallow module (wide interface)</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-3 h-6 deep rounded-sm"></span> deep module (narrow interface)</span>
+          <span class="flex items-center gap-2"><svg width="28" height="10"><line x1="0" y1="5" x2="28" y2="5" class="seam" stroke="#475569" stroke-width="2"/></svg> seam</span>
+          <span class="flex items-center gap-2"><svg width="28" height="10"><line x1="0" y1="5" x2="28" y2="5" class="leak" stroke-width="2"/></svg> leakage</span>
+          <span class="flex items-center gap-2"><span class="inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">Strong</span> / <span class="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Worth exploring</span></span>
+        </div>
+      </header>
+
+      <!-- ============ CANDIDATES ============ -->
+      <section id="candidates" class="space-y-10">
+
+        <!-- =================== CARD 1 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">1 · Carve the Estimate-tree read module out of the 4441-line workspace god-file</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">src/lib/repositories/workspace-repository.ts · (bonus deletes: estimate-repository.ts, clearEstimateRouteContextProcessCache)</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <!-- BEFORE -->
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — god-module</div>
+              <div class="rounded-lg border-2 border-slate-400 overflow-hidden">
+                <div class="bg-slate-300 px-3 py-2 mod-label text-slate-700">workspace-repository.ts · 4441 lines · ~40 exports</div>
+                <div class="p-3 space-y-1.5 text-xs">
+                  <div class="bg-rose-50 border border-rose-200 rounded px-2 py-1.5 flex justify-between"><span>estimate-tree read slice</span><span class="text-rose-600">6 entry points, ~1500 lines</span></div>
+                  <div class="bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-slate-500">workspace provisioning</div>
+                  <div class="bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-slate-500">homebase / search</div>
+                  <div class="bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-slate-500">collaboration / publication</div>
+                </div>
+                <div class="px-3 pb-2 text-[10px] text-rose-600">getProjectEstimateTreeByNode exported · 0 callers · clearEstimateRouteContextProcessCache = no-op body, 4 callers</div>
+              </div>
+            </div>
+            <!-- AFTER -->
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — one deep read module</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="bg-slate-200 px-3 py-2 mod-label text-slate-700 flex justify-between"><span>estimate-tree-repository.ts</span><span class="text-slate-500">narrow interface</span></div>
+                <div class="deep p-3 text-slate-100 text-xs space-y-2">
+                  <div class="font-mono">loadEstimateTree(route, options)</div>
+                  <div class="text-slate-300">→ dispatch · BFS subtree · LIMIT+1 guard · access checks · assembly</div>
+                  <div class="text-slate-400 text-[10px]">returns { estimate, tab, tree, loadLimitState } only</div>
+                </div>
+              </div>
+              <div class="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-[10px] text-slate-500">workspace-repository.ts shrinks; 6 publics → thin variants; 2 false seams deleted</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>Estimate-tree reads (~1500 lines, 6 entry points) are smeared across a module that also owns workspace, homebase and publication — callers must learn the dispatch rules just to pick a function, and it is testable only past the whole file.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>One estimate-tree module with a narrow interface that hides tab/node/estimate dispatch, the subtree walk, the over-fetch guard and access checks; collapse the six publics, delete the zero-caller export and the no-op invalidator.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· locality: tree-read knowledge in one module</li>
+            <li>· leverage: one interface, ~25 callers</li>
+            <li>· delete 2 false seams as a bonus</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 2 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">2 · Extract the Component write-repository out of component-library/actions.ts (5545 lines)</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">ports &amp; adapters</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">src/lib/component-library/actions.ts · src/lib/repositories/component-library-repository.ts (reads only)</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — split brain</div>
+              <div class="rounded-lg border border-slate-200 bg-white p-2">
+                <pre class="mermaid">
+flowchart TD
+  A["component-library<br/>actions.ts · 5545 lines"] -- "reads via repo" --> R[("read-repository")]
+  A -- "writes inline SQL" --> DB[("D1")]
+  A -. "leak: row shapes" .-> A
+  class A leak
+                </pre>
+              </div>
+              <p class="text-[10px] text-rose-600">upload_assets ×10, component_variant_attachments ×7, cost_library_item_variant_cost_entries ×6 — all written in the action, absent from the read-repository.</p>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — one seam, both ways</div>
+              <div class="rounded-lg border border-slate-200 bg-white p-2">
+                <pre class="mermaid">
+flowchart TD
+  A["actions.ts<br/>auth + orchestration"] --> WR["write-repository<br/>(new, deep)"]
+  A --> RR[("read-repository")]
+  WR --> DB[("D1")]
+  RR --> DB
+  class WR,RR deep
+                </pre>
+              </div>
+              <p class="text-[10px] text-slate-500">SQL, guard statements, atomic batches and asset lifecycle hide behind the write-repository interface.</p>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>The action module re-implements ~2000 lines of repository work — raw INSERT/UPDATE, ownership guards, batch builders — so SQL row shapes leak across the seam; reads already use a repository, writes bypass it.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>Move all Component/Variant/Row write SQL and batch builders into one deep write-repository mirroring the read-repository; the action becomes a thin auth-plus-orchestration layer.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· locality: write-schema in one module</li>
+            <li>· leverage: one impl, ~25 call sites</li>
+            <li>· interface shrinks; tests hit the repo seam</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 3 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">3 · Collapse the 38-field row-handler hook into a deep RowMutationCoordinator</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts · EstimateSheetContent.tsx</p>
+          <div class="grid md:grid-cols-2 gap-6 items-center">
+            <!-- BEFORE mass diagram -->
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — interface as wide as implementation</div>
+              <div class="flex flex-col items-center">
+                <div class="w-full max-w-[220px]">
+                  <div class="mod-label text-center text-slate-500 mb-1">interface · 38 fields</div>
+                  <div class="h-5 bg-rose-200 border-2 border-rose-400 rounded-t grid grid-cols-3">
+                    <div class="border-r border-rose-300 text-[8px] text-rose-700 text-center pt-1">9 mut</div>
+                    <div class="border-r border-rose-300 text-[8px] text-rose-700 text-center pt-1">6 set</div>
+                    <div class="text-[8px] text-rose-700 text-center pt-1">23 state</div>
+                  </div>
+                  <div class="h-10 bg-slate-100 border-x-2 border-b-2 border-rose-300 grid place-items-center text-[10px] text-slate-500">1503 lines · orchestrator UNTESTED</div>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-1">pure helpers beside it ARE tested → no locality</div>
+              </div>
+            </div>
+            <!-- AFTER mass diagram -->
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — narrow interface, deep implementation</div>
+              <div class="flex flex-col items-center">
+                <div class="w-full max-w-[220px]">
+                  <div class="mod-label text-center text-slate-500 mb-1">interface · ~5 inputs</div>
+                  <div class="mx-auto w-1/3 h-4 bg-emerald-300 border-2 border-emerald-600 rounded-t"></div>
+                  <div class="h-16 deep border-x-2 border-b-2 border-slate-800 grid place-items-center text-[10px] text-slate-200 text-center px-2">rollback · express-draft · merge<br/>all absorbed, all testable</div>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-1">interface is the test surface</div>
+              </div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>The hook's interface (38 fields: 9 mutation fns + 6 setters + 23 state slices) is nearly as wide as its implementation; the orchestrator that owns optimistic-update and rollback is untested while its extracted pure helpers are — the classic no-locality signal.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>A narrow coordinator owning tree-state and rollback accounting internally, exposing insert/replace/move/delete/promote as deep operations; the skip-ref/restore/express-draft plumbing hides behind five inputs.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· locality: rollback bugs concentrate here</li>
+            <li>· interface becomes the test surface</li>
+            <li>· 38 → 5 inputs</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 4 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">4 · Give the Row commit / dirty / routing rules a tested home</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">src/components/workshop/estimate-sheet/rows/row-table.tsx · editable-row-model.ts · editable-row-store.ts</p>
+          <div class="grid md:grid-cols-2 gap-6 items-center">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — rules trapped in a render closure</div>
+              <div class="rounded-lg border-2 border-rose-300 bg-rose-50 p-3 relative">
+                <div class="mod-label text-rose-700 mb-1">EstimateRowItemTableRow · 1050-line component</div>
+                <div class="space-y-1 text-[10px] mono text-rose-800">
+                  <div>commitExpressFields()</div>
+                  <div>commitQuantityFields()</div>
+                  <div>commitRowAdjustmentPercentage()</div>
+                  <div>commitContingencyPercentage()</div>
+                  <div class="text-slate-500">→ onUpdateLinked… vs onUpdateRowItem</div>
+                </div>
+                <div class="text-[10px] text-rose-600 mt-2 border-t border-rose-200 pt-1">test only by mounting the whole Row</div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — rules in a module</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="bg-slate-200 px-2 py-1 mod-label text-slate-700">row-commit-intention.ts</div>
+                <div class="deep p-2 text-[10px] mono text-slate-200 space-y-0.5">
+                  <div>buildRowCommitIntention(item, editableRow)</div>
+                  <div class="text-slate-400">→ { patch, didChange, route }</div>
+                  <div class="text-slate-400">owns dirty / reconcile transitions</div>
+                </div>
+              </div>
+              <div class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-500">Row component = thin caller (~6 one-liners)</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>The real behaviour — what counts as a change, the dirty/reconcile lifecycle, the linked-vs-project routing — lives as local functions inside the Row render closure; a pure sibling model is tested but its orchestrator is not, so the rules have no locality.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>Move diff-against-original, dirty/reconcile transitions and routing into a pure deep module (or lifecycle hook over the existing store); the Row becomes a thin caller.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· locality: commit rules in one module</li>
+            <li>· interface is the test surface</li>
+            <li>· routing bugs get a home</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 5 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">5 · Collapse the four-layer handler prop-drilling and delete the two memo comparators</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">rows/branch.tsx · rows/row-table.tsx · rows/cells.tsx · EstimateSheetContent.tsx</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — re-listed at every layer</div>
+              <div class="space-y-1.5">
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px]"><b>branch</b> · 46 props, 22 handlers · comparator 68 lines</div>
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px] ml-4"><b>table</b> · 32 props · comparator 44 lines</div>
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px] ml-8"><b>row</b> · 30 props</div>
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px] ml-12"><b>cell</b> · 25 props</div>
+                <div class="text-[10px] text-rose-600 mt-1">one Row capability → edit four prop lists; contract test only checks comparator anchor strings</div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — provided once, read at the leaf</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="bg-slate-200 px-2 py-1 mod-label text-slate-700">SheetMutationHandlers · context provider (once)</div>
+                <div class="grid grid-cols-4 gap-px bg-slate-300">
+                  <div class="bg-white p-1 text-[9px] text-center text-slate-500">branch</div>
+                  <div class="bg-white p-1 text-[9px] text-center text-slate-500">table</div>
+                  <div class="bg-white p-1 text-[9px] text-center text-slate-500">row</div>
+                  <div class="bg-white p-1 text-[9px] text-center text-slate-500">cell</div>
+                </div>
+                <div class="bg-slate-100 px-2 py-1 text-[10px] text-slate-500">useContext — per-row render already driven by the store selector</div>
+              </div>
+              <div class="text-[10px] text-emerald-700">delete both comparators + the anchor-string guard test</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>The same ~22 handlers and shared flags are declared as props at four layers, each interface nearly as wide as its implementation; two hand-written comparators mirror the lists field-by-field. Only one adapter exists today, so the comparator tax buys nothing.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>Provide the handlers and flags once via context; branch/table/row/cell read it through useContext. Per-row re-render is already driven by the store subscription, so the comparators become unnecessary and are deleted.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· leverage: one provider, N leaves</li>
+            <li>· delete ~110 lines of comparators + guard</li>
+            <li>· locality: handler shape in one place</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 6 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">6 · Delete the pass-through field-setter reducer pattern (3 files, ~50 wrappers)</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">EstimateSheetTree.tsx (16 cases) · ComponentLibraryManager.tsx (19 wrappers) · EstimateSheetContent.tsx (1 generic + ~24 setters)</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — fails the deletion test</div>
+              <div class="rounded-lg border-2 border-rose-300 overflow-hidden">
+                <div class="bg-rose-100 px-2 py-1 mod-label text-rose-800">interface · 16–19 action variants + resolveStateUpdater</div>
+                <div class="bg-slate-50 p-2 space-y-0.5 text-[9px] mono text-slate-500">
+                  <div>case "xChanged": return {…state, x: resolve(s,a)}</div>
+                  <div>case "yChanged": return {…state, y: resolve(s,a)}</div>
+                  <div>… × 50, each a one-line assignment</div>
+                </div>
+              </div>
+              <div class="text-[10px] text-rose-600">delete it → complexity moves nowhere (it shrinks)</div>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — useState, or a real state machine</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="bg-slate-200 px-2 py-1 mod-label text-slate-700">plain useState per field</div>
+                <div class="bg-slate-50 p-2 space-y-0.5 text-[9px] mono text-slate-600">
+                  <div>const [x, setX] = useState(…)</div>
+                  <div>const [y, setY] = useState(…)</div>
+                  <div class="text-emerald-700">+ useReducer only for delete/move/rename flows that genuinely transition</div>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-500">keeps componentLibrarySheetReducer — it encodes real logic</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>Three modules each carry a reducer plus per-field setter wrappers whose entire behaviour is assigning one field; resolveStateUpdater just re-implements useState's functional-update form. The interface is as complex as the implementation.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>Replace them with useState for independent fields, or 2–3 small useReducers for flows that actually transition (delete, move, rename). Delete the action unions, resolveStateUpdater and ~50 wrappers.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· deletion: complexity vanishes</li>
+            <li>· ~50 wrappers + 3 reducers gone</li>
+            <li>· keep reducers that earn their keep</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 7 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">7 · Hoist the duplicated Component / Folder mutation layer behind one module</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">component-library/index.tsx · component-library-manager/ComponentLibraryManager.tsx · per-item-mutation-queue.ts</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — two adapters, no interface object</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="rounded border-2 border-rose-300 bg-white p-2 text-[10px]">
+                  <div class="font-semibold text-rose-800">Estimate sidebar</div>
+                  <div class="text-slate-500 mono text-[9px] mt-1">createFolder<br/>renameFolder<br/>deleteFolder<br/>moveItem<br/>archiveItems<br/>+ 16 ref lines</div>
+                </div>
+                <div class="rounded border-2 border-rose-300 bg-white p-2 text-[10px]">
+                  <div class="font-semibold text-rose-800">Components page</div>
+                  <div class="text-slate-500 mono text-[9px] mt-1">commitCreateFolder<br/>commitRenameFolder<br/>confirmDeleteFolder<br/>moveComponent<br/>executeArchive<br/>+ 15 ref lines</div>
+                </div>
+              </div>
+              <div class="text-[10px] text-rose-600">same rollback dance ×2 · raw Row shape leaks into both UIs</div>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — one module, two thin adapters</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="grid grid-cols-2 gap-px bg-slate-300">
+                  <div class="bg-white p-1 text-center text-[9px] text-slate-500">sidebar adapter</div>
+                  <div class="bg-white p-1 text-center text-[9px] text-slate-500">page adapter</div>
+                </div>
+                <svg viewBox="0 0 120 14" class="w-full h-4"><path d="M30 0 L60 7 M90 0 L60 7" stroke="#475569" stroke-width="1" fill="none"/></svg>
+                <div class="deep px-2 py-2 text-[10px] text-slate-100">
+                  <div class="mono">ComponentLibraryMutations</div>
+                  <div class="text-slate-300">optimistic update · queue · generation rollback · preview-then-execute</div>
+                </div>
+              </div>
+              <div class="text-[10px] text-emerald-700">Row→domain mapper moves to the repository</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>Two ~3000-line UIs each re-implement the same folder CRUD, move and archive orchestration, including a 31-line generation-tracking rollback copied in both. Two adapters sit at the same seam with no interface object between them, so bugs and rollback rules can drift.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>One ComponentLibraryMutations module owning the optimistic update, per-item queue, generation rollback and correlationId flow; both UIs become thin adapters that inject a cache-patch callback and a toast sink.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· leverage: two adapters → one module</li>
+            <li>· locality: rollback dance in one place</li>
+            <li>· stop leaking Row shapes into UI</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 8 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">8 · Give the last-owner invariant one home</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">src/lib/admin/corporate-account-repository.ts</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — one rule, four encodings</div>
+              <div class="space-y-1.5">
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px]"><b>add</b> member · INSERT … WHERE EXISTS other_owner</div>
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px]"><b>remove</b> member · DELETE … WHERE EXISTS other_owner</div>
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px]"><b>update</b> role · UPDATE … WHERE EXISTS other_owner</div>
+                <div class="rounded border-2 border-rose-300 bg-white px-2 py-1 text-[10px]"><b>isLastOwner</b> · TS helper (a 4th restatement)</div>
+                <div class="text-[10px] text-rose-600 mt-1">four homes → can silently drift · rule change = 3 SQL edits</div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — one guarded primitive</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="deep px-2 py-2 text-[10px] text-slate-100">
+                  <div class="mono">assertOwnerFloor / reassignMemberRole</div>
+                  <div class="text-slate-300">owns the ≥1-owner check once</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-1 mt-1">
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">add →</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">remove →</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">update →</div>
+              </div>
+              <div class="text-[10px] text-emerald-700">SQL predicates collapse to plain statements · delete isLastOwner</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>The domain rule "a corporate account always retains at least one owner" is encoded four different ways — three SQL EXISTS predicates plus a TS helper — so the four can silently drift, and a rule change means editing three statements.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>One guarded-mutation primitive that owns the invariant once; add, remove and updateRole become thin callers, and the SQL predicates collapse to plain unconditional statements.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· locality: invariant in one module</li>
+            <li>· one edit to change the rule</li>
+            <li>· delete the redundant TS helper</li>
+          </ul>
+        </article>
+
+        <!-- =================== CARD 9 =================== -->
+        <article class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <h2 class="text-xl font-serif">9 · Collapse the six BetaOperatingSourceSnapshot adapters into one toSourceSnapshot</h2>
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">local-substitutable</span>
+            </div>
+          </div>
+          <p class="mono text-xs text-slate-500 break-words">app/admin/page.tsx · beta-operating-overview.ts · recovery-overview.ts · release-overview.ts · feedback-aggregate.ts · support-aggregate.ts · activation-cohort-repository.ts</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <div class="mod-label text-rose-700">Before — real seam, six shallow adapters</div>
+              <div class="grid grid-cols-3 gap-1">
+                <div class="rounded border-2 border-rose-300 bg-white p-1 text-[9px] text-center">activation</div>
+                <div class="rounded border-2 border-rose-300 bg-white p-1 text-[9px] text-center">feedback</div>
+                <div class="rounded border-2 border-rose-300 bg-white p-1 text-[9px] text-center">support</div>
+                <div class="rounded border-2 border-rose-300 bg-white p-1 text-[9px] text-center">recovery</div>
+                <div class="rounded border-2 border-rose-300 bg-white p-1 text-[9px] text-center">release</div>
+                <div class="rounded border-2 border-rose-300 bg-white p-1 text-[9px] text-center">incidents</div>
+              </div>
+              <div class="text-[10px] text-rose-600">each re-derives availability/asOf/errorCategory · page reaches past each interface · ~50 dup lines (some byte-identical)</div>
+            </div>
+            <div class="space-y-2">
+              <div class="mod-label text-emerald-700">After — one deep adapter</div>
+              <div class="rounded-lg border-2 border-slate-800 overflow-hidden">
+                <div class="deep px-2 py-2 text-[10px] text-slate-100">
+                  <div class="mono">toSourceSnapshot(aggregate)</div>
+                  <div class="text-slate-300">+ unavailableSnapshot(errorCategory)</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-1 mt-1">
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">activation</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">feedback</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">support</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">recovery</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">release</div>
+                <div class="rounded border border-slate-200 bg-slate-50 px-1 py-1 text-[9px] text-center text-slate-500">incidents</div>
+              </div>
+              <div class="text-[10px] text-emerald-700">page.tsx sources map → four one-liners</div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="mod-label text-slate-400">Problem</span><br>The BetaOperatingSourceSnapshot seam is real — six adapters vary across it — but every adapter is shallow and re-derives the same availability/asOf/errorCategory translation, and the overview page reaches past each aggregate's interface to hand-build the snapshot.</p>
+            <p><span class="mod-label text-slate-400">Solution</span><br>One deep toSourceSnapshot adapter plus a shared unavailableSnapshot constructor that every aggregate and overview module calls, so the translation lives once instead of six times.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid md:grid-cols-3 gap-x-6 gap-y-1">
+            <li>· leverage: six adapters → one module</li>
+            <li>· locality: availability translation once</li>
+            <li>· page stops reaching past interfaces</li>
+          </ul>
+        </article>
+
+      </section>
+
+      <!-- ============ MORE AT A GLANCE ============ -->
+      <section id="more" class="space-y-4">
+        <h2 class="text-xl font-serif">More candidates at a glance</h2>
+        <p class="text-sm text-slate-600">Same codebase, lower priority or smaller scope — kept here so nothing the survey found is lost.</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden bg-white">
+            <thead class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left px-3 py-2">Candidate</th>
+                <th class="text-left px-3 py-2">Files</th>
+                <th class="text-left px-3 py-2">Strength</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr><td class="px-3 py-2">Unify the sheet display-transform pipeline (filter / facet / group) and the identity-preservation invariant into one module</td><td class="px-3 py-2 mono text-xs">EstimateSheetContent.tsx</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800">Strong</span></td></tr>
+              <tr><td class="px-3 py-2">Collapse the two project-activity repositories into one activity-read module (same table, drifted actor labels)</td><td class="px-3 py-2 mono text-xs">project-activity-repository.ts · project-activity-feed-repository.ts</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800">Strong</span></td></tr>
+              <tr><td class="px-3 py-2">Free the Estimate-Row source-snapshot sanitizer from the estimates god-module (sibling sanitizers already extracted)</td><td class="px-3 py-2 mono text-xs">estimates/actions.ts</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Worth exploring</span></td></tr>
+              <tr><td class="px-3 py-2">Excise the self-contained image-upload subsystem from the material-cell god-file</td><td class="px-3 py-2 mono text-xs">rows/cells.tsx</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Worth exploring</span></td></tr>
+              <tr><td class="px-3 py-2">Remove the false estimate-repository seam (0 importers) and the no-op route-context cache invalidator (4 callers, no-op body)</td><td class="px-3 py-2 mono text-xs">estimate-repository.ts · workspace-repository.ts</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Worth exploring</span></td></tr>
+              <tr><td class="px-3 py-2">Collapse the helpers grab-bag: keep the deep accessors, delete the dead filter/sort/CSV/bundle half (0 production importers)</td><td class="px-3 py-2 mono text-xs">component-library/helpers.ts</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Worth exploring</span></td></tr>
+              <tr><td class="px-3 py-2">Deepen the corporate-account actions tier and stop leaking snake_case Row shapes into the UI</td><td class="px-3 py-2 mono text-xs">corporate-account-actions.ts · AdminAccountsList.tsx</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Worth exploring</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ TOP RECOMMENDATION ============ -->
+      <section id="top" class="space-y-4">
+        <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-6 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Top recommendation</span>
+          </div>
+          <h2 class="text-2xl font-serif">Start with <a href="#" class="underline decoration-emerald-400">candidate 1 — carve the Estimate-tree read module out of the workspace god-file</a>.</h2>
+          <p class="text-slate-700">
+            It is the single largest file in the repository (4441 lines), the deepening is clean because it is read-side (lower risk than the write paths in candidate 2),
+            and it pays out three ways at once: locality for ~25 callers, a narrow interface that makes the estimate-tree reads testable through it,
+            and two false seams deleted as a bonus (the zero-importer <span class="mono">estimateRepository</span> and the no-op <span class="mono">clearEstimateRouteContextProcessCache</span>).
+            It also clears the ground for candidate 2 by making the action↔repository layering legible.
+          </p>
+          <p class="text-sm text-slate-600">
+            If the goal is maximum payoff in the actively-churning area instead, do <b>candidate 3</b> (the RowMutationCoordinator) next — the estimate-sheet is the hottest belt in the codebase
+            and its row-mutation brain is currently untested because its interface is too wide to exercise.
+          </p>
+        </div>
+      </section>
+
+      <footer class="text-xs text-slate-400 pt-4 border-t border-slate-200">
+        Generated by <span class="mono">/improve-codebase-architecture</span> · 6 parallel Explore agents over the 60-day hot belt · findings grep-verified before rendering. No source files were modified.
+      </footer>
+
+    </main>
+  </body>
+</html>

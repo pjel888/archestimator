@@ -1,0 +1,1540 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-16-codebase-architecture-deepening",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "NOT_READY",
+  "implementation_status": "INCOMPLETE",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
+  "baseline": {
+    "head": "c3ccce5a09a94b2d40aa11e3f92eaf6d02af297e",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "canonical_execution_artifact": "05-IMPLEMENTATION-ROADMAP.md",
+  "updated_at": "2026-07-16T05:39:00.000Z",
+  "stale_triggers": [
+    "hot-belt churn: EstimateSheetContent.tsx, component-library/actions.ts, workspace-repository.ts actively edited",
+    "Estimate-row handler/rollback contract changes (UNIT-003/004)",
+    "component-library write-path SQL changes (UNIT-002)"
+  ],
+  "next_unit": null,
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "direction",
+      "path": "00-EXECUTIVE-DIRECTION.md",
+      "sha256": "8adb445a5bed92e90b296bbaa3ce5996c8151e85799f85fc371357f2eb378eb5"
+    },
+    {
+      "id": "ART-002",
+      "role": "supporting",
+      "path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0"
+    },
+    {
+      "id": "ART-003",
+      "role": "supporting",
+      "path": "02-BLAST-RADIUS-ANALYSIS.md",
+      "sha256": "8e14d204d4edda959265c394ceace22c72e66445742ace491993a8167dc9094f"
+    },
+    {
+      "id": "ART-004",
+      "role": "supporting",
+      "path": "03-PERFORMANCE-AND-SPEED-STUDY.md",
+      "sha256": "b317e03faebc094fbaec28e7c309d8186e2b82aa91a0ea8cec8941fdc44ef95b"
+    },
+    {
+      "id": "ART-005",
+      "role": "supporting",
+      "path": "04-EXECUTION-SIMULATIONS.md",
+      "sha256": "552d16560dc8e3a8224cc9986bd2f0e150c2640d8c54fc411cbb205f395cc746"
+    },
+    {
+      "id": "ART-006",
+      "role": "canonical-execution",
+      "path": "05-IMPLEMENTATION-ROADMAP.md",
+      "sha256": "d02db30a9b8a9c2b828daf3ae46d64d3b2df41856ad616f7a007b5c03bea59a4"
+    },
+    {
+      "id": "ART-007",
+      "role": "supporting",
+      "path": "06-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "sha256": "18237e49a5638c2b5ee43575d5d8c905bc4e49e4dfcc9d27ffef7f40b2534769"
+    },
+    {
+      "id": "ART-008",
+      "role": "evidence",
+      "path": "07-TRACEABILITY-MATRIX.md",
+      "sha256": "3a9ca773b753687cb2c420a312de33407f2fb6e453e7dc334d8d4e852c2baada"
+    },
+    {
+      "id": "ART-009",
+      "role": "direction",
+      "path": "README.md",
+      "sha256": "9d5f7caaf4ca12a7fd389608490b09e20366e4be8a577e0c7e67e7c768fb18d1"
+    },
+    {
+      "id": "ART-010",
+      "role": "manifest",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "cfcbdf65e9a783e5ab8ead9b960bbc2bd24a7564c6471e93852d5444fece5c49"
+    },
+    {
+      "id": "ART-011",
+      "role": "state",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "422ed58d25d3e31cabdc86d0512a312c6e399060331a9a41e942dc891812e10d"
+    },
+    {
+      "id": "ART-012",
+      "role": "source",
+      "path": "architecture-review.html",
+      "sha256": "2bf40b5dadbc84ad920a53de7743f7b69eec934bdf36ca996010fd62ac8fc9e1"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "architecture-review.html",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "REQ-015"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "label": "UNIT-ARCH-01",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Carve Estimate-tree read module out of workspace god-file (+dead seams).",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "label": "UNIT-ARCH-02",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Extract Component write-repository out of component-library/actions.ts.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "label": "UNIT-ARCH-03",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Collapse ~40-field row-handler hook into RowMutationCoordinator.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "label": "UNIT-ARCH-04",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Give Row commit/dirty/routing rules a tested home.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "label": "UNIT-ARCH-05",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Collapse 4-layer handler prop-drilling; delete memo comparators.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "label": "UNIT-ARCH-06",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Delete pass-through field-setter reducer pattern.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "label": "UNIT-ARCH-07",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Hoist duplicated Component/Folder mutation layer behind one module.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "label": "UNIT-ARCH-08",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Give the last-owner invariant one home.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "label": "UNIT-ARCH-09",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen: Collapse six BetaOperatingSourceSnapshot adapters into toSourceSnapshot.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "label": "UNIT-ARCH-A1",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deepen: (AUX) Unify sheet display-transform pipeline + identity invariant.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "label": "UNIT-ARCH-A2",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deepen: (AUX) Merge two project-activity repositories into one.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "label": "UNIT-ARCH-A3",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deepen: (AUX) Free source-snapshot sanitizer from estimates/actions.ts.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "label": "UNIT-ARCH-A4",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deepen: (AUX) Excise image-upload subsystem from material-cell god-file.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "label": "UNIT-ARCH-A5",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deepen: (AUX) Collapse helpers grab-bag: keep accessors, delete dead half.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-014"
+      ],
+      "criterion_ids": [
+        "AC-014"
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "label": "UNIT-ARCH-A6",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deepen: (AUX) Deepen corporate-account actions tier; stop leaking Row shapes.",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-015"
+      ],
+      "criterion_ids": [
+        "AC-015"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "statement": "Every unit is behavior-preserving: current observable outputs are the regression baseline.",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "statement": "SQL drift or atomicity loss when write SQL is relocated into the write-repository (UNIT-002).",
+      "likelihood": "M",
+      "impact": "H",
+      "mitigation": "Statement-byte-identical relocation first (same SQL text, params, transaction grouping); TEST_PROPOSAL write-parity across the 5 leaked tables.",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "statement": "Optimistic-update / rollback corruption when row-mutation orchestration is rehomed (UNIT-003, UNIT-004).",
+      "likelihood": "M",
+      "impact": "H",
+      "mitigation": "Isolate optimistic+dirty+rollback into the new module; cross-seam behavior test proposed; move as one slice, no half-move.",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "statement": "Generation-tracking rollback race duplicated across two UIs drifts during hoist (UNIT-007).",
+      "likelihood": "M",
+      "impact": "H",
+      "mitigation": "Move generation rollback as one indivisible unit with its mutation; preserve the 31-ref contract verbatim; TEST_PROPOSAL.",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "statement": "Ownership bypass if the last-owner invariant's four encodings diverge (UNIT-008).",
+      "likelihood": "L",
+      "impact": "H",
+      "mitigation": "One SQL predicate + one TS guard behind one function (DEC-009); both remove and update reject last-owner loss; 6 existing tests green.",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "statement": "A 'use server' file exports a non-async function; only next build catches it (UNIT-002, 003, 007).",
+      "likelihood": "M",
+      "impact": "M",
+      "mitigation": "Run next build before claiming these units done; tsc/vitest miss it.",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-007"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "statement": "Selector/context seam regresses render perf; deleting comparators before the cause (UNIT-005).",
+      "likelihood": "H",
+      "impact": "M",
+      "mitigation": "Selector/context seam not a smaller prop list (DEC-006); stabilize handler identity (UNIT-003) before deleting comparators; render-probe baseline + guard.",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "statement": "Phase-2/3 shared-file collision on the estimate sheet (UNIT-003/004/005).",
+      "likelihood": "L",
+      "impact": "M",
+      "mitigation": "Disjoint files where possible; LOOP_LEDGER first-writer-wins on any collision (DEC-004).",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "statement": "Dead-seam / setter deletion order strands a dangling import (UNIT-001, UNIT-006).",
+      "likelihood": "M",
+      "impact": "M",
+      "mitigation": "Delete callers before symbols; re-grep zero-caller symbols immediately before delete.",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-006"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "statement": "Contract test asserts comparator anchor strings, not behavior — false confidence (UNIT-005).",
+      "likelihood": "M",
+      "impact": "M",
+      "mitigation": "Replace the anchor-string assertion with a behavior assertion at the seam.",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-010",
+      "status": "OPEN",
+      "statement": "Adapter collapse drops or mis-maps a snapshot field (UNIT-009).",
+      "likelihood": "L",
+      "impact": "M",
+      "mitigation": "Behavior-preserving bar = identical overview snapshot output; admin-only surface.",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    },
+    {
+      "id": "RISK-011",
+      "status": "OPEN",
+      "statement": "Audit-time-dead symbols gain a caller before execution (UNIT-001, UNIT-014).",
+      "likelihood": "L",
+      "impact": "M",
+      "mitigation": "Re-grep zero-caller/zero-importer symbols immediately before delete; audit-time dead != merge-time dead.",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-014"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-014"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-01: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-02: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-03: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-04: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-05: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-06: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-07: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-08: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-09: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-010",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-A1: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-011",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-A2: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-012",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-012"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-A3: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-013",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-013"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-A4: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-014",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-014"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-A5: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    },
+    {
+      "id": "AC-015",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-015"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Acceptance criterion for UNIT-ARCH-A6: behavior-preserving deepen; evaluation deferred to execution (planning pack).",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "05-IMPLEMENTATION-ROADMAP.md"
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-CONTRACT-01",
+      "status": "N/A",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "GATE-NEXT-01",
+      "status": "N/A",
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "GATE-PERF-01",
+      "status": "N/A",
+      "criterion_ids": [
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "03-PERFORMANCE-AND-SPEED-STUDY.md"
+    },
+    {
+      "id": "GATE-CLEAN-01",
+      "status": "N/A",
+      "criterion_ids": [
+        "AC-001",
+        "AC-006",
+        "AC-014"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "N/A",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "label": "UNIT-ARCH-01",
+      "title": "Carve Estimate-tree read module out of workspace god-file (+dead seams)",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-008",
+        "RISK-011"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-002",
+      "label": "UNIT-ARCH-02",
+      "title": "Extract Component write-repository out of component-library/actions.ts",
+      "status": "PLANNED",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-003",
+      "label": "UNIT-ARCH-03",
+      "title": "Collapse ~40-field row-handler hook into RowMutationCoordinator",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-004",
+      "label": "UNIT-ARCH-04",
+      "title": "Give Row commit/dirty/routing rules a tested home",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-005",
+      "label": "UNIT-ARCH-05",
+      "title": "Collapse 4-layer handler prop-drilling; delete memo comparators",
+      "status": "PLANNED",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [
+        "RISK-006",
+        "RISK-007",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-006",
+      "label": "UNIT-ARCH-06",
+      "title": "Delete pass-through field-setter reducer pattern",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "risk_ids": [
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-007",
+      "label": "UNIT-ARCH-07",
+      "title": "Hoist duplicated Component/Folder mutation layer behind one module",
+      "status": "PLANNED",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-008",
+      "label": "UNIT-ARCH-08",
+      "title": "Give the last-owner invariant one home",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-009",
+      "label": "UNIT-ARCH-09",
+      "title": "Collapse six BetaOperatingSourceSnapshot adapters into toSourceSnapshot",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "risk_ids": [
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-010",
+      "label": "UNIT-ARCH-A1",
+      "title": "(AUX) Unify sheet display-transform pipeline + identity invariant",
+      "status": "PLANNED",
+      "depends_on": [
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-011",
+      "label": "UNIT-ARCH-A2",
+      "title": "(AUX) Merge two project-activity repositories into one",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-012",
+      "label": "UNIT-ARCH-A3",
+      "title": "(AUX) Free source-snapshot sanitizer from estimates/actions.ts",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-012"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-012"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-013",
+      "label": "UNIT-ARCH-A4",
+      "title": "(AUX) Excise image-upload subsystem from material-cell god-file",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-013"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-013"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-014",
+      "label": "UNIT-ARCH-A5",
+      "title": "(AUX) Collapse helpers grab-bag: keep accessors, delete dead half",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-014"
+      ],
+      "risk_ids": [
+        "RISK-011"
+      ],
+      "evidence_ids": [
+        "EVID-014"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    },
+    {
+      "id": "UNIT-015",
+      "label": "UNIT-ARCH-A6",
+      "title": "(AUX) Deepen corporate-account actions tier; stop leaking Row shapes",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-015"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-015"
+      ],
+      "goal": "Deepen the module so its interface shrinks and its behaviour concentrates (locality + leverage).",
+      "owned_paths": "see 02-BLAST-RADIUS-ANALYSIS.md and 05-IMPLEMENTATION-ROADMAP.md",
+      "implementation": "Move-only carve/extraction first; verify behavior-preserving; then narrow the interface.",
+      "acceptance_evidence": "Observable outputs unchanged; module testable through its interface; no new Row/SQL-shape leakage.",
+      "recovery": "Revert the unit; the prior shallow module is restored from git.",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "statement": "Plan pack warranted: high-blast-radius, codebase-wide architecture refactor.",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "statement": "Default test_requirement NOT_REQUIRED; TEST_PROPOSAL recorded (not executed) for high-blast units.",
+      "affected_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-007",
+        "AC-008"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "statement": "Deletion over compatibility (alpha/pre-beta) for dead seams and pass-through reducers.",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-006",
+        "UNIT-014"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "statement": "One writer per shared file; disjoint-file units parallelize; LOOP_LEDGER first-writer-wins on collision.",
+      "affected_ids": [
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-010"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "statement": "Read-side (UNIT-001) precedes write-side (UNIT-002) so the action/repository layering is legible first.",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "statement": "UNIT-005 seam is selector/context, not a smaller prop list.",
+      "affected_ids": [
+        "UNIT-005"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "statement": "Keep the logic-encoding componentLibrarySheetReducer; delete only pass-through reducers.",
+      "affected_ids": [
+        "UNIT-006"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "statement": "Behavior-preserving bar: observable outputs unchanged; tsc + next build clean (build is a surface, not a gate, unless authorized).",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "statement": "UNIT-008 target: one SQL predicate + one TS guard behind one function.",
+      "affected_ids": [
+        "UNIT-008"
+      ],
+      "artifact_path": "00-EXECUTIVE-DIRECTION.md"
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-001"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "8e14d204d4edda959265c394ceace22c72e66445742ace491993a8167dc9094f",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md",
+      "method": "Code audit + grep verification (see 02-BLAST-RADIUS-ANALYSIS.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-002"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "8e14d204d4edda959265c394ceace22c72e66445742ace491993a8167dc9094f",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md",
+      "method": "Code audit + grep verification (see 02-BLAST-RADIUS-ANALYSIS.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-003"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "8e14d204d4edda959265c394ceace22c72e66445742ace491993a8167dc9094f",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md",
+      "method": "Code audit + grep verification (see 02-BLAST-RADIUS-ANALYSIS.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-004"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "8e14d204d4edda959265c394ceace22c72e66445742ace491993a8167dc9094f",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md",
+      "method": "Code audit + grep verification (see 02-BLAST-RADIUS-ANALYSIS.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-005"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b317e03faebc094fbaec28e7c309d8186e2b82aa91a0ea8cec8941fdc44ef95b",
+      "artifact_path": "03-PERFORMANCE-AND-SPEED-STUDY.md",
+      "method": "Code audit + grep verification (see 03-PERFORMANCE-AND-SPEED-STUDY.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-006"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-007"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "8e14d204d4edda959265c394ceace22c72e66445742ace491993a8167dc9094f",
+      "artifact_path": "02-BLAST-RADIUS-ANALYSIS.md",
+      "method": "Code audit + grep verification (see 02-BLAST-RADIUS-ANALYSIS.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-008"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "18237e49a5638c2b5ee43575d5d8c905bc4e49e4dfcc9d27ffef7f40b2534769",
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "method": "Code audit + grep verification (see 06-RISKS-DECISIONS-AND-NON-GOALS.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-009"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-010"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-011",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-011"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-012",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-012"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-013",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-013"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-014",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-014"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    },
+    {
+      "id": "EVID-015",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-015"
+      ],
+      "source_revision": "git HEAD c3ccce5a0 + architecture-review 20260716",
+      "valid_until": null,
+      "sha256": "b85a6c2561c7cffa6e134ca9ed123ac9a3e7d09a9ebe1e71231593e6042848b0",
+      "artifact_path": "01-CURRENT-ARCHITECTURE-AUDIT.md",
+      "method": "Code audit + grep verification (see 01-CURRENT-ARCHITECTURE-AUDIT.md).",
+      "expected_signal": "Deletion-test verdict + caller graph + risk level recorded for this unit."
+    }
+  ],
+  "ready_slices": [],
+  "manifest_sha256": "63fce0631780e940147d471351df85842c447fed1f6dde816c8d53d0ed6486ac"
+}

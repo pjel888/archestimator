@@ -1,0 +1,989 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-16-master-codebase-architecture-deepening",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "CONDITIONALLY_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "baseline": {
+    "head": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c",
+    "scoped_status_sha256": "d11fa888172f01724325b3d51e51ff6a253f25608ac953d05e1384fcf51bfd31",
+    "scoped_diff_sha256": "3e85e837ccf692252988562f583be850ab95e2fd59dd0b6876828862393bfeff"
+  },
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "df9e117156e91ef65d64ecd6a1a00a2616946482359ff7024186f478ef0a934f"
+    },
+    {
+      "id": "ART-002",
+      "role": "evidence",
+      "path": "AUDIT-AND-DISPOSITION.md",
+      "sha256": "1c7da1b9f9e811fd5c71a8ed9b876feb34bfb710570316757ddb064330fb7e8a"
+    },
+    {
+      "id": "ART-003",
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "305b3b7a997ae0b77e07c72158cf0d70b25056df1094ad5085e6cbcd476a6b77"
+    },
+    {
+      "id": "ART-004",
+      "role": "traceability",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "555c427f11b98e82f632fa51ea8b4f16bc5065253af546c749b2d00fb2ee0cf3"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "AUDIT-AND-DISPOSITION.md",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005",
+        "REQ-006"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005",
+        "REQ-006"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "LOOP_LEDGER.md",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005",
+        "REQ-006"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Compile one component-category resolver per folder dataset without changing fallback, workspace, cycle, label, or path outputs.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Centralize the three production upload-route Bearer checks behind one timing-safe server-only boundary while preserving response behavior.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Move the concrete Estimate-tree D1 read and build implementation out of the workspace repository while retaining workspace and authorization orchestration there.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Give component-folder move serialization, generations, confirmed targets, and stale-result decisions one narrow coordinator shared by both real UI adapters.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Move component and folder D1 statement graphs into two concrete deep modules while server actions retain auth, parsing, public errors, and revalidation.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Move durable public rate-limit D1 and engine mechanics to shared security infrastructure while publication and Client Portal policies remain domain-owned and behavior-identical.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Delete the stringly Estimate D1 query and action facade and replace every consumer with concrete typed intent modules.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deepen the existing per-sheet editable-row store into the single owner of row commit intent, dirty, pending, authoritative, optimistic, and rollback state.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "statement": "No second storage implementation currently justifies a generic repository interface or factory for the retained concrete D1 modules.",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005"
+      ],
+      "artifact_path": "AUDIT-AND-DISPOSITION.md"
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "statement": "Dirty Component and Estimate paths remain owned by concurrent work until their current owners land or explicitly release them.",
+      "affected_ids": [
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "GATE-LEASE-001"
+      ],
+      "artifact_path": "AUDIT-AND-DISPOSITION.md"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "statement": "Compiled category resolution changes fallback, cycle, workspace, label, or path behavior.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "statement": "Shared Bearer authorization changes route status, message, scheme parsing, or secret handling.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "statement": "Estimate-tree extraction creates a repository cycle or changes query, access, legacy fallback, limit, ordering, or tree output behavior.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "statement": "An older component-folder move completion overwrites or rolls back a newer optimistic intent.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "statement": "Component D1 relocation changes statement order, fanout, receipts, revision behavior, error translation, or atomicity.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "statement": "Rate-limit relocation changes scope, key, metadata, window, threshold, consumption, clearing, message, or cleanup behavior.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "statement": "Estimate facade retirement changes high-risk row, history, revision, receipt, template, projection, access, or atomic mutation behavior.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "statement": "Row-store deepening causes render storms, focus loss, optimistic rollback errors, or shared-versus-row-owned mutation drift.",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is identical category fallback and path output for every folder topology; cheaper type and source evidence is insufficient to prove behavior parity.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is unchanged 503 and 401 denial behavior across three internal routes; cheaper source inspection is insufficient to prove every response branch.",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is identical Estimate tree, tab, ordering, limit, and legacy fallback output; cheaper import and type evidence is insufficient to prove it.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is latest-intent preservation with authoritative rollback under racing component moves; cheaper static evidence is insufficient to prove promise ordering.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is transaction-coupled component, fanout, revision, receipt, and folder behavior; cheaper source relocation evidence is insufficient to prove atomic parity.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is identical durable lockout, counting, clearing, and retry behavior; cheaper source and import evidence is insufficient to prove it.",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_ids": [
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is identical Estimate write, history, revision, receipt, projection, and authorization behavior after facade deletion; cheaper no-residual evidence is insufficient.",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is correct row-owned versus shared-definition routing with focus-safe optimistic rollback; cheaper prop and selector inspection is insufficient to prove interaction behavior.",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [
+        "TEST-008"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "bunx vitest run tests/vitest/component-category-folders.test.ts"
+    },
+    {
+      "id": "TEST-002",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-runtime-route.test.ts"
+    },
+    {
+      "id": "TEST-003",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts"
+    },
+    {
+      "id": "TEST-004",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "retarget tests/vitest/per-item-mutation-queue.test.ts, then run only that file"
+    },
+    {
+      "id": "TEST-005",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "bunx vitest run tests/vitest/component-library-update-atomicity.test.ts tests/vitest/component-library-folder-actions.test.ts tests/vitest/component-library-actions-revalidation.test.ts"
+    },
+    {
+      "id": "TEST-006",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts"
+    },
+    {
+      "id": "TEST-007",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "refresh and run only the focused Estimate D1 action, history, restore, template, authz, and projection contract files after the active lease closes"
+    },
+    {
+      "id": "TEST-008",
+      "status": "PLANNED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "command": "one focused Estimate row-editing contract for four intents, rollback, and selector isolation"
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-LEASE-001",
+      "status": "FAIL",
+      "artifact_path": "LOOP_LEDGER.md",
+      "criterion_ids": [
+        "AC-004",
+        "AC-005",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-COMPLETION-001",
+      "status": "FAIL",
+      "artifact_path": "LOOP_LEDGER.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "goal": "Compile and reuse one component-category resolver per loaded folder dataset while preserving the isolated-call API.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "goal": "Replace three duplicated production upload-route Bearer checks with one timing-safe server-only boundary and identical route responses.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "goal": "Extract concrete Estimate-tree D1 reads and builders without moving workspace or authorization orchestration.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "PLANNED",
+      "goal": "Replace duplicated component-folder move generations and rollback logic with one narrow framework-free coordinator.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "PLANNED",
+      "goal": "Move component and folder D1 statement graphs into two concrete deep modules while preserving the server-action boundary.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "PLANNED",
+      "goal": "Relocate durable public rate-limit storage and engine mechanics to shared security modules while preserving domain policy semantics.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "risk_ids": [
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "PLANNED",
+      "goal": "Replace the faux Estimate query and string action dispatcher with typed concrete intent modules and delete the facade file.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "PLANNED",
+      "goal": "Deepen the existing per-sheet editable-row store into the single owner of row commit routing, dirty state, pending state, and rollback.",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "risk_ids": [
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "statement": "This master supersedes both predecessor packs; no predecessor backlog item survives without current-source proof and an explicit crosswalk disposition.",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005",
+        "REQ-006"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "statement": "Deep modules hide cohesive implementation; generic factories, compatibility re-exports, and pass-through wrappers are prohibited.",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "statement": "The package is conditionally ready and advertises only UNIT-001 through UNIT-003 until named leases clear.",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "statement": "Dirty Component and Estimate paths are internal single-writer lease gates, not external authorization boundaries.",
+      "affected_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-008",
+        "GATE-LEASE-001"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "statement": "Quantity and selected variant remain row-owned while variant-definition edits remain shared mutations.",
+      "affected_ids": [
+        "REQ-005",
+        "REQ-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "statement": "Rate-limit behavior relocates before any semantic convergence with invite, AI, privacy, admin, upload, or Estimate limiters.",
+      "affected_ids": [
+        "SEC-002",
+        "UNIT-006"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "statement": "Applied migrations, admin work, Legacy Cleanup, estimate import, hosted proof, pagehide cleanup, and unmeasured performance proposals remain outside core scope.",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005",
+        "REQ-006"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "statement": "Every product-test command is a proposal only; the plan-pack authoring run executes no product tests, builds, browser automation, screenshots, or hosted proof.",
+      "affected_ids": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-003",
+        "TEST-004",
+        "TEST-005",
+        "TEST-006",
+        "TEST-007",
+        "TEST-008"
+      ],
+      "artifact_path": "LOOP_LEDGER.md"
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "COLLECTED",
+      "artifact_path": "AUDIT-AND-DISPOSITION.md",
+      "sha256": "1c7da1b9f9e811fd5c71a8ed9b876feb34bfb710570316757ddb064330fb7e8a",
+      "claim_ids": [
+        "REQ-001",
+        "SEC-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "SEC-002",
+        "REQ-005",
+        "REQ-006",
+        "ASSUMP-001",
+        "ASSUMP-002"
+      ],
+      "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-audit-2026-07-16",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "COLLECTED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "305b3b7a997ae0b77e07c72158cf0d70b25056df1094ad5085e6cbcd476a6b77",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "TEST-001",
+        "TEST-002",
+        "TEST-003",
+        "TEST-004",
+        "TEST-005",
+        "TEST-006",
+        "TEST-007",
+        "TEST-008"
+      ],
+      "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-plan-2026-07-16",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "COLLECTED",
+      "artifact_path": "LOOP_LEDGER.md",
+      "sha256": "555c427f11b98e82f632fa51ea8b4f16bc5065253af546c749b2d00fb2ee0cf3",
+      "claim_ids": [
+        "GATE-LEASE-001",
+        "GATE-COMPLETION-001",
+        "DEC-AUTO-001",
+        "DEC-AUTO-002",
+        "DEC-AUTO-003",
+        "DEC-AUTO-004",
+        "DEC-AUTO-005",
+        "DEC-AUTO-006",
+        "DEC-AUTO-007",
+        "DEC-AUTO-008"
+      ],
+      "source_revision": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c+master-architecture-ledger-2026-07-16",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ]
+    }
+  ],
+  "stale_triggers": [
+    "scoped-working-tree-drift",
+    "component-or-estimate-owner-change",
+    "component-library-action-contract-change",
+    "estimate-d1-projection-action-or-receipt-contract-change",
+    "estimate-tree-query-or-route-contract-change",
+    "row-owned-versus-shared-definition-contract-change",
+    "security-rate-limit-table-policy-or-consumer-change",
+    "second-storage-implementation-introduced",
+    "planning-schema-validator-or-prompt-suite-change"
+  ],
+  "next_unit": "UNIT-001",
+  "updated_at": "2026-07-16T05:36:05.000Z",
+  "manifest_sha256": "8e8b4e1c5bfcc63a0f355c51bff3bd9af21714f984d5b7fd6fe984bd49571a70"
+}

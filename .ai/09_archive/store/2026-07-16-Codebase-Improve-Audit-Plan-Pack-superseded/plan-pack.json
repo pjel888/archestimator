@@ -1,0 +1,1467 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-16-codebase-improve-audit",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "NOT_READY",
+  "implementation_status": "INCOMPLETE",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
+  "baseline": {
+    "head": "9a821b51ae35191aa709d7bf1348e270e2993569",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "updated_at": "2026-07-16T05:39:00.000Z",
+  "stale_triggers": [
+    "source-change",
+    "upstream-audit-refresh",
+    "head-advance"
+  ],
+  "canonical_execution_artifact": "README.md",
+  "next_unit": null,
+  "title": "Archestimator Codebase Improve Audit Plan Pack",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "README.md",
+      "sha256": "39e28e890574a21df63af9ec027b38dcdd95698500d03012864ae982bd3b1efe"
+    },
+    {
+      "id": "ART-002",
+      "role": "supporting",
+      "path": "00-EXECUTIVE-DIRECTION.md",
+      "sha256": "c631387fa38aec0d5460fe0150deda52c453a7c395198793ee9241ea411a1773"
+    },
+    {
+      "id": "ART-003",
+      "role": "supporting",
+      "path": "01-AUDIT-FINDINGS-REGISTER.md",
+      "sha256": "8620eaa352cfc4e8430312a37227b86a21b761b9e36c9249fafa11c22be8fd2b"
+    },
+    {
+      "id": "ART-004",
+      "role": "supporting",
+      "path": "02-BLAST-RADIUS-AND-IMPACT-ANALYSIS.md",
+      "sha256": "69a38268fffafd9a20b919491f813066885031e4cf0d85e4ba1e55f10a56ebca"
+    },
+    {
+      "id": "ART-005",
+      "role": "supporting",
+      "path": "03-PERFORMANCE-AND-OPTIMIZATION-STUDY.md",
+      "sha256": "9aca3acc4019e2c85d20d77f4629628c5b0713688cce6f6f03635233c8e8aa54"
+    },
+    {
+      "id": "ART-006",
+      "role": "supporting",
+      "path": "04-DEPLOY-DATA-INTEGRITY-AND-SIMULATIONS.md",
+      "sha256": "0d6c1a2e07b916f94deb6fe23a9a0fcfa1554e8b6b1310ec7d29d9648bbb26ff"
+    },
+    {
+      "id": "ART-007",
+      "role": "supporting",
+      "path": "05-SECURITY-HARDENING-ANALYSIS.md",
+      "sha256": "7d20bc3f2c4ca3245fd9bad170169977c2df2ce7366e5933f963544ecdfe966a"
+    },
+    {
+      "id": "ART-008",
+      "role": "supporting",
+      "path": "06-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "sha256": "c6d3206e6cd96fffebf74acc4eb196a0ee86334cac0795d739b6646d282f9dcd"
+    },
+    {
+      "id": "ART-009",
+      "role": "supporting",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "d97302a217596f75b2ade8d51c2c856451a2ac2de7be226ab1a7d5d85f60fb39"
+    },
+    {
+      "id": "ART-010",
+      "role": "supporting",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "c65cac7dff308adc3fdd9f7ad06ac2eb3699ee673217f8ce5234b7034894f256"
+    },
+    {
+      "id": "ART-011",
+      "role": "supporting",
+      "path": "100-migration-safety.md",
+      "sha256": "2f5b4ca37a200226d1bfacf3c4d99cc71b3d963258b982ab610ab0bda37cccee"
+    },
+    {
+      "id": "ART-012",
+      "role": "supporting",
+      "path": "110-category-folder-map-rebuild.md",
+      "sha256": "ee3535738365521849a9661191657017b2cfcc4ec3f63f48709aefa29081d622"
+    },
+    {
+      "id": "ART-013",
+      "role": "supporting",
+      "path": "120-timing-safe-bearer-secret.md",
+      "sha256": "d34d9af657caced72bd088e598e2e8cefeeadf5302e8bdc85287aa2b383928df"
+    },
+    {
+      "id": "ART-014",
+      "role": "supporting",
+      "path": "130-test-gate-and-coverage.md",
+      "sha256": "b0a1ff3d5fa7267aa1536abcac42bebfb786dd35bd8fff5923b20ade78ffe2df"
+    },
+    {
+      "id": "ART-015",
+      "role": "supporting",
+      "path": "140-d1-batch-limit-guard.md",
+      "sha256": "24a5d873143e74f61e796f6732158a954674c0a389bc3c4f4e0bff0319cec10f"
+    },
+    {
+      "id": "ART-016",
+      "role": "supporting",
+      "path": "150-api-route-auth-contract-test.md",
+      "sha256": "5a60a1e0db92af766efa49bb8928988265aa3b67de8b96111ac1fb190950d6d0"
+    },
+    {
+      "id": "ART-017",
+      "role": "supporting",
+      "path": "160-upload-removal-semantics.md",
+      "sha256": "27ff9c0908ccbc99cf7f4ba15cc6b7d0173f3b4f2d8d97fe8433b034cc259c5a"
+    },
+    {
+      "id": "ART-018",
+      "role": "supporting",
+      "path": "170-action-inbox-snooze-consistency.md",
+      "sha256": "d82e5ab350a10405db69ac94f2970cb51620f4f6a9ecc2d9e8dacd6351a688e0"
+    },
+    {
+      "id": "ART-019",
+      "role": "supporting",
+      "path": "180-publication-password-floor.md",
+      "sha256": "376cc4d28ed20d41a5cac769e4790ed4b3833ca1c72104fdca409d6d7c22e019"
+    },
+    {
+      "id": "ART-020",
+      "role": "supporting",
+      "path": "190-active-recipient-query-dedup.md",
+      "sha256": "4918294e4b2ea200c0bf8063a15ade9bf29ffa39b6628c31fff3efcd485297b1"
+    },
+    {
+      "id": "ART-021",
+      "role": "supporting",
+      "path": "200-web-vitals-pagehide-leak.md",
+      "sha256": "db3ca92a90542b14c7789ddeca2e97c24e9318991de28eb8427be30e9e9ad7ed"
+    },
+    {
+      "id": "ART-022",
+      "role": "supporting",
+      "path": "210-d1-database-null-observability.md",
+      "sha256": "257b97a698b915453a584e9376ea8ab35e02c47628378d8da9e551deb612854e"
+    },
+    {
+      "id": "ART-023",
+      "role": "supporting",
+      "path": "220-component-library-unbounded-load.md",
+      "sha256": "48095cdee479d44cf62899fd9562f4223c9c49bd00c07e9019732701a64b7f1d"
+    },
+    {
+      "id": "ART-024",
+      "role": "supporting",
+      "path": "230-estimate-mutation-god-module-split.md",
+      "sha256": "b488d4ecd0278ee9654aa0be0eeec23c8a6a5a7ef6e7cb07ab3e3cd9f4cdbebf"
+    },
+    {
+      "id": "ART-025",
+      "role": "supporting",
+      "path": "240-hosted-share-link-lockout-characterization.md",
+      "sha256": "9661c00d365094bdf4c451a00cf7ee21d67ae98b01a47ab4d17ab9682684407d"
+    },
+    {
+      "id": "ART-026",
+      "role": "supporting",
+      "path": "250-upload-reference-tracking-table.md",
+      "sha256": "e0517a8d12915d79420d654de454382e72cc1bb8329a75ef1c41150222c557bd"
+    },
+    {
+      "id": "ART-027",
+      "role": "supporting",
+      "path": "260-public-repository-access-security-extract.md",
+      "sha256": "388f9f6c4a7eed03a46bd8f22bdd1893f7e5176adf296838b377bcf9b857ba98"
+    },
+    {
+      "id": "ART-028",
+      "role": "supporting",
+      "path": "300-direction-estimate-system-map.md",
+      "sha256": "c0c513db4c259193b59b7140025e6d89bb9a1b782283b6603f30a1ff27af1661"
+    },
+    {
+      "id": "ART-029",
+      "role": "supporting",
+      "path": "310-direction-estimate-import.md",
+      "sha256": "1651c67437c5204c8c7f580dad7bd0214a1ec4c67519c819eb713daa2e3559b5"
+    },
+    {
+      "id": "ART-030",
+      "role": "supporting",
+      "path": "320-direction-activation-action-inbox.md",
+      "sha256": "26faccc728e5a5419afd1c8b5adb4d91d5e7279c520ae485f14724160b9091a2"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "01-AUDIT-FINDINGS-REGISTER.md",
+      "affected_ids": [
+        "DATA-001",
+        "PERF-001",
+        "SEC-001",
+        "OPS-001",
+        "PERF-002",
+        "SEC-002",
+        "DATA-002",
+        "OPS-002",
+        "SEC-003",
+        "SEC-004",
+        "OPS-003",
+        "OPS-004",
+        "PERF-003",
+        "PERF-004",
+        "SEC-005",
+        "PERF-005",
+        "SEC-006",
+        "REQ-001",
+        "REQ-002",
+        "REQ-003"
+      ],
+      "note": "Vetted audit findings register; each requirement traces to its unit doc."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-001 per 100-migration-safety.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "artifact_path": "100-migration-safety.md"
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-002 per 110-category-folder-map-rebuild.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "artifact_path": "110-category-folder-map-rebuild.md"
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-003 per 120-timing-safe-bearer-secret.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "artifact_path": "120-timing-safe-bearer-secret.md"
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-004 per 130-test-gate-and-coverage.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "artifact_path": "130-test-gate-and-coverage.md"
+    },
+    {
+      "id": "PERF-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-005 per 140-d1-batch-limit-guard.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "artifact_path": "140-d1-batch-limit-guard.md"
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-006 per 150-api-route-auth-contract-test.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "artifact_path": "150-api-route-auth-contract-test.md"
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-007 per 160-upload-removal-semantics.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "artifact_path": "160-upload-removal-semantics.md"
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-008 per 170-action-inbox-snooze-consistency.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "artifact_path": "170-action-inbox-snooze-consistency.md"
+    },
+    {
+      "id": "SEC-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-009 per 180-publication-password-floor.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "artifact_path": "180-publication-password-floor.md"
+    },
+    {
+      "id": "SEC-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-010 per 190-active-recipient-query-dedup.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ],
+      "artifact_path": "190-active-recipient-query-dedup.md"
+    },
+    {
+      "id": "OPS-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-011 per 200-web-vitals-pagehide-leak.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ],
+      "artifact_path": "200-web-vitals-pagehide-leak.md"
+    },
+    {
+      "id": "OPS-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-012 per 210-d1-database-null-observability.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ],
+      "artifact_path": "210-d1-database-null-observability.md"
+    },
+    {
+      "id": "PERF-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-013 per 220-component-library-unbounded-load.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-013"
+      ],
+      "artifact_path": "220-component-library-unbounded-load.md"
+    },
+    {
+      "id": "PERF-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-014 per 230-estimate-mutation-god-module-split.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-014"
+      ],
+      "criterion_ids": [
+        "AC-014"
+      ],
+      "artifact_path": "230-estimate-mutation-god-module-split.md"
+    },
+    {
+      "id": "SEC-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-015 per 240-hosted-share-link-lockout-characterization.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-015"
+      ],
+      "criterion_ids": [
+        "AC-015"
+      ],
+      "artifact_path": "240-hosted-share-link-lockout-characterization.md"
+    },
+    {
+      "id": "PERF-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-016 per 250-upload-reference-tracking-table.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-016"
+      ],
+      "criterion_ids": [
+        "AC-016"
+      ],
+      "artifact_path": "250-upload-reference-tracking-table.md"
+    },
+    {
+      "id": "SEC-006",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Deliver UNIT-017 per 260-public-repository-access-security-extract.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-017"
+      ],
+      "criterion_ids": [
+        "AC-017"
+      ],
+      "artifact_path": "260-public-repository-access-security-extract.md"
+    },
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deliver UNIT-018 per 300-direction-estimate-system-map.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-018"
+      ],
+      "criterion_ids": [
+        "AC-018"
+      ],
+      "artifact_path": "300-direction-estimate-system-map.md"
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deliver UNIT-019 per 310-direction-estimate-import.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-019"
+      ],
+      "criterion_ids": [
+        "AC-019"
+      ],
+      "artifact_path": "310-direction-estimate-import.md"
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "statement": "Deliver UNIT-020 per 320-direction-activation-action-inbox.md.",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-020"
+      ],
+      "criterion_ids": [
+        "AC-020"
+      ],
+      "artifact_path": "320-direction-activation-action-inbox.md"
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "artifact_path": "100-migration-safety.md",
+      "statement": "Residual risk for UNIT-001; see 100-migration-safety.md STOP conditions."
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "unit_ids": [
+        "UNIT-014"
+      ],
+      "criterion_ids": [
+        "AC-014"
+      ],
+      "artifact_path": "230-estimate-mutation-god-module-split.md",
+      "statement": "Residual risk for UNIT-014; see 230-estimate-mutation-god-module-split.md STOP conditions."
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "unit_ids": [
+        "UNIT-015"
+      ],
+      "criterion_ids": [
+        "AC-015"
+      ],
+      "artifact_path": "240-hosted-share-link-lockout-characterization.md",
+      "statement": "Residual risk for UNIT-015; see 240-hosted-share-link-lockout-characterization.md STOP conditions."
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "unit_ids": [
+        "UNIT-016"
+      ],
+      "criterion_ids": [
+        "AC-016"
+      ],
+      "artifact_path": "250-upload-reference-tracking-table.md",
+      "statement": "Residual risk for UNIT-016; see 250-upload-reference-tracking-table.md STOP conditions."
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "100-migration-safety.md"
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "110-category-folder-map-rebuild.md"
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "120-timing-safe-bearer-secret.md"
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "130-test-gate-and-coverage.md"
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "requirement_ids": [
+        "PERF-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "140-d1-batch-limit-guard.md"
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "150-api-route-auth-contract-test.md"
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "160-upload-removal-semantics.md"
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "170-action-inbox-snooze-consistency.md"
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "180-publication-password-floor.md"
+    },
+    {
+      "id": "AC-010",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "190-active-recipient-query-dedup.md"
+    },
+    {
+      "id": "AC-011",
+      "status": "N/A",
+      "requirement_ids": [
+        "OPS-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "200-web-vitals-pagehide-leak.md"
+    },
+    {
+      "id": "AC-012",
+      "status": "N/A",
+      "requirement_ids": [
+        "OPS-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "210-d1-database-null-observability.md"
+    },
+    {
+      "id": "AC-013",
+      "status": "N/A",
+      "requirement_ids": [
+        "PERF-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "220-component-library-unbounded-load.md"
+    },
+    {
+      "id": "AC-014",
+      "status": "N/A",
+      "requirement_ids": [
+        "PERF-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "230-estimate-mutation-god-module-split.md"
+    },
+    {
+      "id": "AC-015",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-005"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "240-hosted-share-link-lockout-characterization.md"
+    },
+    {
+      "id": "AC-016",
+      "status": "N/A",
+      "requirement_ids": [
+        "PERF-005"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "250-upload-reference-tracking-table.md"
+    },
+    {
+      "id": "AC-017",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-006"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "260-public-repository-access-security-extract.md"
+    },
+    {
+      "id": "AC-018",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "300-direction-estimate-system-map.md"
+    },
+    {
+      "id": "AC-019",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "310-direction-estimate-import.md"
+    },
+    {
+      "id": "AC-020",
+      "status": "N/A",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavioral verification is deferred to the unit's Done criteria; automated tests are user-gated per AGENTS.md and are not run during planning.",
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null,
+      "artifact_path": "320-direction-activation-action-inbox.md"
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "goal": "Implement UNIT-001.",
+      "artifact_path": "100-migration-safety.md"
+    },
+    {
+      "id": "UNIT-002",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "goal": "Implement UNIT-002.",
+      "artifact_path": "110-category-folder-map-rebuild.md"
+    },
+    {
+      "id": "UNIT-003",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "goal": "Implement UNIT-003.",
+      "artifact_path": "120-timing-safe-bearer-secret.md"
+    },
+    {
+      "id": "UNIT-004",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "goal": "Implement UNIT-004.",
+      "artifact_path": "130-test-gate-and-coverage.md"
+    },
+    {
+      "id": "UNIT-005",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "PERF-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "goal": "Implement UNIT-005.",
+      "artifact_path": "140-d1-batch-limit-guard.md"
+    },
+    {
+      "id": "UNIT-006",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "goal": "Implement UNIT-006.",
+      "artifact_path": "150-api-route-auth-contract-test.md"
+    },
+    {
+      "id": "UNIT-007",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "goal": "Implement UNIT-007.",
+      "artifact_path": "160-upload-removal-semantics.md"
+    },
+    {
+      "id": "UNIT-008",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "goal": "Implement UNIT-008.",
+      "artifact_path": "170-action-inbox-snooze-consistency.md"
+    },
+    {
+      "id": "UNIT-009",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "goal": "Implement UNIT-009.",
+      "artifact_path": "180-publication-password-floor.md"
+    },
+    {
+      "id": "UNIT-010",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ],
+      "goal": "Implement UNIT-010.",
+      "artifact_path": "190-active-recipient-query-dedup.md"
+    },
+    {
+      "id": "UNIT-011",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "goal": "Implement UNIT-011.",
+      "artifact_path": "200-web-vitals-pagehide-leak.md"
+    },
+    {
+      "id": "UNIT-012",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-012"
+      ],
+      "goal": "Implement UNIT-012.",
+      "artifact_path": "210-d1-database-null-observability.md"
+    },
+    {
+      "id": "UNIT-013",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "PERF-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-013"
+      ],
+      "goal": "Implement UNIT-013.",
+      "artifact_path": "220-component-library-unbounded-load.md"
+    },
+    {
+      "id": "UNIT-014",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "PERF-004"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-014"
+      ],
+      "goal": "Implement UNIT-014.",
+      "artifact_path": "230-estimate-mutation-god-module-split.md"
+    },
+    {
+      "id": "UNIT-015",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-005"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-015"
+      ],
+      "goal": "Implement UNIT-015.",
+      "artifact_path": "240-hosted-share-link-lockout-characterization.md"
+    },
+    {
+      "id": "UNIT-016",
+      "status": "PLANNED",
+      "depends_on": [
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "PERF-005"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-016"
+      ],
+      "goal": "Implement UNIT-016.",
+      "artifact_path": "250-upload-reference-tracking-table.md"
+    },
+    {
+      "id": "UNIT-017",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-006"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-017"
+      ],
+      "goal": "Implement UNIT-017.",
+      "artifact_path": "260-public-repository-access-security-extract.md"
+    },
+    {
+      "id": "UNIT-018",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-018"
+      ],
+      "goal": "Implement UNIT-018.",
+      "artifact_path": "300-direction-estimate-system-map.md"
+    },
+    {
+      "id": "UNIT-019",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-019"
+      ],
+      "goal": "Implement UNIT-019.",
+      "artifact_path": "310-direction-estimate-import.md"
+    },
+    {
+      "id": "UNIT-020",
+      "status": "PLANNED",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-020"
+      ],
+      "goal": "Implement UNIT-020.",
+      "artifact_path": "320-direction-activation-action-inbox.md"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "affected_ids": [
+        "DATA-001",
+        "PERF-001",
+        "SEC-001",
+        "OPS-001"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "decision": "Comprehensive scope over lean default per owner direction; schema/validation preserved."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-014",
+        "UNIT-015"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "decision": "PLAN_ONLY posture; no code/tests/builds run; units PLANNED until a dependency-closed slice is claimed."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "affected_ids": [
+        "REQ-001"
+      ],
+      "artifact_path": "06-RISKS-DECISIONS-AND-NON-GOALS.md",
+      "decision": "Pack placed at .ai/03_plans/2026-07-16/Codebase-Improve-Audit-Plan-Pack (repo convention) per owner."
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-001"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "100-migration-safety.md",
+      "sha256": "2f5b4ca37a200226d1bfacf3c4d99cc71b3d963258b982ab610ab0bda37cccee",
+      "claim": "Plan artifact for UNIT-001 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-002"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "110-category-folder-map-rebuild.md",
+      "sha256": "ee3535738365521849a9661191657017b2cfcc4ec3f63f48709aefa29081d622",
+      "claim": "Plan artifact for UNIT-002 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-003"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "120-timing-safe-bearer-secret.md",
+      "sha256": "d34d9af657caced72bd088e598e2e8cefeeadf5302e8bdc85287aa2b383928df",
+      "claim": "Plan artifact for UNIT-003 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-004"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "130-test-gate-and-coverage.md",
+      "sha256": "b0a1ff3d5fa7267aa1536abcac42bebfb786dd35bd8fff5923b20ade78ffe2df",
+      "claim": "Plan artifact for UNIT-004 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-005"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "140-d1-batch-limit-guard.md",
+      "sha256": "24a5d873143e74f61e796f6732158a954674c0a389bc3c4f4e0bff0319cec10f",
+      "claim": "Plan artifact for UNIT-005 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-006"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "150-api-route-auth-contract-test.md",
+      "sha256": "5a60a1e0db92af766efa49bb8928988265aa3b67de8b96111ac1fb190950d6d0",
+      "claim": "Plan artifact for UNIT-006 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-007"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "160-upload-removal-semantics.md",
+      "sha256": "27ff9c0908ccbc99cf7f4ba15cc6b7d0173f3b4f2d8d97fe8433b034cc259c5a",
+      "claim": "Plan artifact for UNIT-007 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-008"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "170-action-inbox-snooze-consistency.md",
+      "sha256": "d82e5ab350a10405db69ac94f2970cb51620f4f6a9ecc2d9e8dacd6351a688e0",
+      "claim": "Plan artifact for UNIT-008 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-009"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "180-publication-password-floor.md",
+      "sha256": "376cc4d28ed20d41a5cac769e4790ed4b3833ca1c72104fdca409d6d7c22e019",
+      "claim": "Plan artifact for UNIT-009 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-010"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "190-active-recipient-query-dedup.md",
+      "sha256": "4918294e4b2ea200c0bf8063a15ade9bf29ffa39b6628c31fff3efcd485297b1",
+      "claim": "Plan artifact for UNIT-010 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-011",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-011"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "200-web-vitals-pagehide-leak.md",
+      "sha256": "db3ca92a90542b14c7789ddeca2e97c24e9318991de28eb8427be30e9e9ad7ed",
+      "claim": "Plan artifact for UNIT-011 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-012",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-012"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "210-d1-database-null-observability.md",
+      "sha256": "257b97a698b915453a584e9376ea8ab35e02c47628378d8da9e551deb612854e",
+      "claim": "Plan artifact for UNIT-012 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-013",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-013"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "220-component-library-unbounded-load.md",
+      "sha256": "48095cdee479d44cf62899fd9562f4223c9c49bd00c07e9019732701a64b7f1d",
+      "claim": "Plan artifact for UNIT-013 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-014",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-014"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "230-estimate-mutation-god-module-split.md",
+      "sha256": "b488d4ecd0278ee9654aa0be0eeec23c8a6a5a7ef6e7cb07ab3e3cd9f4cdbebf",
+      "claim": "Plan artifact for UNIT-014 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-015",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-015"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "240-hosted-share-link-lockout-characterization.md",
+      "sha256": "9661c00d365094bdf4c451a00cf7ee21d67ae98b01a47ab4d17ab9682684407d",
+      "claim": "Plan artifact for UNIT-015 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-016",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-016"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "250-upload-reference-tracking-table.md",
+      "sha256": "e0517a8d12915d79420d654de454382e72cc1bb8329a75ef1c41150222c557bd",
+      "claim": "Plan artifact for UNIT-016 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-017",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-017"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "260-public-repository-access-security-extract.md",
+      "sha256": "388f9f6c4a7eed03a46bd8f22bdd1893f7e5176adf296838b377bcf9b857ba98",
+      "claim": "Plan artifact for UNIT-017 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-018",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-018"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "300-direction-estimate-system-map.md",
+      "sha256": "c0c513db4c259193b59b7140025e6d89bb9a1b782283b6603f30a1ff27af1661",
+      "claim": "Plan artifact for UNIT-018 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-019",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-019"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "310-direction-estimate-import.md",
+      "sha256": "1651c67437c5204c8c7f580dad7bd0214a1ec4c67519c819eb713daa2e3559b5",
+      "claim": "Plan artifact for UNIT-019 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    },
+    {
+      "id": "EVID-020",
+      "status": "PLANNED",
+      "claim_ids": [
+        "UNIT-020"
+      ],
+      "source_revision": "9a821b51ae35191aa709d7bf1348e270e2993569",
+      "valid_until": null,
+      "artifact_path": "320-direction-activation-action-inbox.md",
+      "sha256": "26faccc728e5a5419afd1c8b5adb4d91d5e7279c520ae485f14724160b9091a2",
+      "claim": "Plan artifact for UNIT-020 at 9a821b51ae35191aa709d7bf1348e270e2993569."
+    }
+  ],
+  "ready_slices": [],
+  "manifest_sha256": "9cebba091bb00d97e62f489978ff20790a330a7687958a10b886a9b8901af941"
+}
