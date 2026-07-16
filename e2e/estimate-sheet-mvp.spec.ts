@@ -80,7 +80,7 @@ async function deleteEstimateArea(page: Page, name: string, parentName?: string)
 
   const beforeCount = await matchingNodes.count();
   const deleteReceipts = page.locator('[data-toast-viewport="true"] [role="status"]')
-    .filter({ hasText: /^\d+ Areas? and \d+ cost rows? deleted\.$/u });
+    .filter({ hasText: /\d+ Areas? and \d+ cost rows? deleted\./u });
   while (await deleteReceipts.count()) {
     await deleteReceipts.first().getByRole("button", { name: "Dismiss notification" }).click();
   }
@@ -102,10 +102,24 @@ async function selectSourceTab(page: Page, name: "Library" | "Templates") {
     await expect(openSearch).toBeHidden();
   }
   const tab = page.getByRole("tab", { name, exact: true });
+  const targetTree = name === "Library"
+    ? page.getByRole("tree", { name: "Library sources" })
+    : page.getByRole("tree", { name: "Reusable estimate sources" });
+  let readySince = 0;
   await expect.poll(async () => {
-    if (await tab.getAttribute("aria-selected") !== "true") await tab.click({ force: true, timeout: 1_000 });
-    return tab.getAttribute("aria-selected");
-  }, { timeout: 10_000 }).toBe("true");
+    const isSelected = await tab.getAttribute("aria-selected") === "true";
+    if (!isSelected) {
+      readySince = 0;
+      await tab.click({ force: true, timeout: 1_000 });
+      return 0;
+    }
+    if (!(await targetTree.isVisible().catch(() => false))) {
+      readySince = 0;
+      return 0;
+    }
+    if (!readySince) readySince = Date.now();
+    return Date.now() - readySince;
+  }, { intervals: [100], timeout: 15_000 }).toBeGreaterThanOrEqual(750);
 }
 
 async function setSourceSearch(page: Page, label: "Search Library" | "Search Templates", value: string) {
