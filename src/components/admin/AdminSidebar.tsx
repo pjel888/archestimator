@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Buildings,
+  Chats,
   ChartLine,
   Coins,
   ClipboardText,
@@ -63,7 +64,10 @@ export const ADMIN_NAV_GROUPS = [
   },
   {
     label: "Communications",
-    items: [{ href: "/admin/notifications", label: "Notifications", icon: Megaphone }],
+    items: [
+      { href: "/admin/communications", label: "Communications", icon: Chats },
+      { href: "/admin/notifications", label: "Notifications", icon: Megaphone },
+    ],
   },
   {
     label: "Governance",
