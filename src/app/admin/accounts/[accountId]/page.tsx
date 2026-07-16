@@ -93,6 +93,19 @@ export default async function AdminAccountDetailPage({
           linkableWorkspaces={linkableWorkspaces}
         />
       </Card>
+
+      <Card className="p-2">
+        <h2 className="text-[11px] font-medium leading-4 text-ink">
+          Founder notes
+          <span className="ml-2 text-[9px] font-normal text-tertiary">
+            {(notesResult ?? []).length} note{(notesResult ?? []).length === 1 ? "" : "s"}
+          </span>
+        </h2>
+        <p className="mt-1 text-[9px] leading-3 text-tertiary">Admin-only context about this account. Append-only.</p>
+        <div className="mt-2">
+          <AdminCustomerNotes targetKind="account" targetId={account.id} initialNotes={notesResult ?? []} />
+        </div>
+      </Card>
     </div>
   );
 }
