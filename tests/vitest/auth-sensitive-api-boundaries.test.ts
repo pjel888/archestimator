@@ -172,11 +172,17 @@ class FakeD1Database {
   };
   readonly statements: FakeD1Statement[] = [];
   readonly runStatements: Array<{ sql: string; values: unknown[] }> = [];
+  readonly batchCalls: FakeD1Statement[][] = [];
 
   prepare(sql: string) {
     const statement = new FakeD1Statement(this, sql);
     this.statements.push(statement);
     return statement;
+  }
+
+  async batch(statements: FakeD1Statement[]) {
+    this.batchCalls.push(statements);
+    return Promise.all(statements.map((statement) => statement.run()));
   }
 
   first(sql: string, values: unknown[]) {
@@ -301,6 +307,20 @@ class FakeD1Database {
   }
 
   all(sql: string, _values: unknown[]) {
+    if (sql.includes("UPDATE upload_assets AS asset")) {
+      const requestedPaths = typeof _values[0] === "string"
+        ? JSON.parse(_values[0]) as string[]
+        : [];
+      return {
+        results: requestedPaths.map((storagePath, index) => ({
+          id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+          storage_path: storagePath,
+          thumbnail_path: null,
+        })),
+        success: true,
+      };
+    }
+
     if (sql.includes("FROM component_variant_attachments")) {
       return { results: this.attachmentRows, success: true };
     }
@@ -1272,7 +1292,10 @@ describe("sensitive API auth boundaries", () => {
       ),
     ).toHaveLength(1);
     expect(
-      d1PreparedStatements(projectLookup.d1, /FROM projects project/),
+      d1PreparedStatements(
+        projectLookup.d1,
+        /SELECT 1 AS allowed[\s\S]*FROM projects project/,
+      ),
     ).toHaveLength(1);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/),
@@ -1495,14 +1518,11 @@ describe("sensitive API auth boundaries", () => {
         "workspace-1/user-1/component-thumb.webp",
       ],
     });
-    expect(storage.from).toHaveBeenCalledWith("component-images");
-    expect(storage.remove).toHaveBeenCalledTimes(2);
-    expect(storage.remove).toHaveBeenNthCalledWith(1, [
-      "workspace-1/user-1/component.webp",
-    ]);
-    expect(storage.remove).toHaveBeenNthCalledWith(2, [
-      "workspace-1/user-1/component-thumb.webp",
-    ]);
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(
+      d1PreparedStatements(storage.d1, /UPDATE upload_assets AS asset/),
+    ).toHaveLength(1);
   });
 
   it("rejects component image deletion when the user cannot manage the library", async () => {
@@ -1714,14 +1734,11 @@ describe("sensitive API auth boundaries", () => {
         "workspace-1/user-1/schedule.xlsx",
       ],
     });
-    expect(storage.from).toHaveBeenCalledWith("component-attachments");
-    expect(storage.remove).toHaveBeenCalledTimes(2);
-    expect(storage.remove).toHaveBeenNthCalledWith(1, [
-      "workspace-1/user-1/spec.pdf",
-    ]);
-    expect(storage.remove).toHaveBeenNthCalledWith(2, [
-      "workspace-1/user-1/schedule.xlsx",
-    ]);
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(
+      d1PreparedStatements(storage.d1, /UPDATE upload_assets AS asset/),
+    ).toHaveLength(1);
   });
 
   it("removes owned component attachment paths through R2 when Cloudflare storage is selected", async () => {
@@ -1756,15 +1773,10 @@ describe("sensitive API auth boundaries", () => {
       ],
     });
     expect(storage.remove).not.toHaveBeenCalled();
-    expect(r2.delete).toHaveBeenCalledTimes(2);
-    expect(r2.delete).toHaveBeenNthCalledWith(
-      1,
-      "component-attachments/workspace-1/user-1/spec.pdf",
-    );
-    expect(r2.delete).toHaveBeenNthCalledWith(
-      2,
-      "component-attachments/workspace-1/user-1/schedule.xlsx",
-    );
+    expect(r2.delete).not.toHaveBeenCalled();
+    expect(
+      d1PreparedStatements(storage.d1, /UPDATE upload_assets AS asset/),
+    ).toHaveLength(1);
   });
 
   it("rejects component attachment deletion when the user cannot manage the library", async () => {
@@ -2388,16 +2400,16 @@ describe("sensitive API auth boundaries", () => {
       ],
     });
     expect(
-      d1PreparedStatements(projectLookup.d1, /FROM projects project/),
+      d1PreparedStatements(
+        projectLookup.d1,
+        /SELECT 1 AS allowed[\s\S]*FROM projects project/,
+      ),
     ).toHaveLength(1);
-    expect(storage.from).toHaveBeenCalledWith("project-images");
-    expect(storage.remove).toHaveBeenCalledTimes(2);
-    expect(storage.remove).toHaveBeenNthCalledWith(1, [
-      `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
-    ]);
-    expect(storage.remove).toHaveBeenNthCalledWith(2, [
-      `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
-    ]);
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(
+      d1PreparedStatements(projectLookup.d1, /UPDATE upload_assets AS asset/),
+    ).toHaveLength(1);
   });
 
   it("removes current-user project image paths from shared project workspaces", async () => {
@@ -2425,10 +2437,16 @@ describe("sensitive API auth boundaries", () => {
     });
     expect(workspaceMocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
     expect(
-      d1PreparedStatements(projectLookup.d1, /FROM projects project/),
+      d1PreparedStatements(
+        projectLookup.d1,
+        /SELECT 1 AS allowed[\s\S]*FROM projects project/,
+      ),
     ).toHaveLength(1);
-    expect(storage.from).toHaveBeenCalledWith("project-images");
-    expect(storage.remove).toHaveBeenCalledWith([imagePath]);
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(
+      d1PreparedStatements(projectLookup.d1, /UPDATE upload_assets AS asset/),
+    ).toHaveLength(1);
   });
 
   it("removes current-user estimate row image paths when estimate edit resolves without project edit", async () => {
@@ -2466,8 +2484,11 @@ describe("sensitive API auth boundaries", () => {
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/),
     ).toHaveLength(1);
-    expect(storage.from).toHaveBeenCalledWith("project-images");
-    expect(storage.remove).toHaveBeenCalledWith([imagePath]);
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(
+      d1PreparedStatements(projectLookup.d1, /UPDATE upload_assets AS asset/),
+    ).toHaveLength(1);
   });
 
   it("rejects collaborator-owned project image paths before project lookup or storage deletion", async () => {

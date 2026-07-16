@@ -120,7 +120,7 @@ describe("project location actions", () => {
       addressText: "Quezon City",
     }));
 
-    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1"]);
     const upsert = findPrepared(database, /INSERT INTO project_locations/);
     expect(upsert.sql).toContain("ON CONFLICT(project_id) DO UPDATE");
     expect(upsert.values.slice(1, 11)).toEqual([
@@ -160,7 +160,7 @@ describe("project location actions", () => {
       displayLabel: "Shared site",
     }));
 
-    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["shared-project", "user-1", "user-1", "user-1"]);
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["shared-project", "user-1", "user-1"]);
     const upsert = findPrepared(database, /INSERT INTO project_locations/);
     expect(upsert.values.slice(1, 3)).toEqual(["shared-project", "workspace-shared"]);
     expect(result).toEqual({ status: "success", message: "Project pin saved." });
@@ -184,7 +184,7 @@ describe("project location actions", () => {
       message: "You do not have permission to edit this project location.",
       fieldErrors: undefined,
     });
-    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1"]);
     expect(database.prepared.some((entry) => /INSERT INTO project_locations/.test(entry.sql))).toBe(false);
     expect(database.prepared.some((entry) => /UPDATE projects/.test(entry.sql))).toBe(false);
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
@@ -220,7 +220,11 @@ describe("project location actions", () => {
       "google",
       "google-place-1",
     ]);
-    expect(findPrepared(database, /UPDATE projects/).values).toEqual([
+    const projectUpdate = findPrepared(database, /UPDATE projects/);
+    expect(projectUpdate.sql).toContain(
+      "publication_source_revision = publication_source_revision + 1",
+    );
+    expect(projectUpdate.values).toEqual([
       "Quezon City, Metro Manila, Philippines",
       expect.any(String),
       "project-1",
@@ -251,7 +255,7 @@ describe("project location actions", () => {
       status: "error",
       message: "You do not have permission to edit this project location.",
     });
-    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1"]);
     expect(database.prepared.some((entry) => /DELETE FROM project_locations/.test(entry.sql))).toBe(false);
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
   });

@@ -55,6 +55,7 @@ type CommandRow = {
 type Fixture = {
   commands: CommandRow[];
   components: Array<Record<string, unknown>>;
+  libraryFolders: Array<Record<string, unknown>>;
   priceOptions: Array<Record<string, unknown>>;
   projects: Array<Record<string, unknown>>;
   estimates: Array<Record<string, unknown>>;
@@ -147,6 +148,9 @@ function allForSql(fixture: Fixture, sql: string, values: unknown[]) {
     const ids = new Set(values.slice(1));
     return fixture.priceOptions.filter((row) => row.workspace_id === workspaceId && ids.has(row.id));
   }
+  if (normalized.includes("FROM library_folders")) {
+    return fixture.libraryFolders.filter((row) => row.workspace_id === values[0]);
+  }
   if (normalized.includes("FROM estimate_row_items") && normalized.includes("node_id IN")) {
     const estimateId = values[0];
     const nodeIds = new Set(values.slice(1));
@@ -197,13 +201,14 @@ function runForSql(fixture: Fixture, sql: string, values: unknown[]) {
       name: values[2],
       description: values[3],
       category: values[4],
-      supplier: values[5],
-      brand: values[6],
-      unit: values[7],
-      unit_cost: values[8],
-      misc_cost: values[9],
-      lifecycle_state: values[10],
-      active_price_option_id: values[11],
+      library_folder_id: values[5],
+      supplier: values[6],
+      brand: values[7],
+      unit: values[8],
+      unit_cost: values[9],
+      misc_cost: values[10],
+      lifecycle_state: values[11],
+      active_price_option_id: values[12],
       metadata_json: values[13],
     });
     return;
@@ -332,6 +337,7 @@ function makeLibraryValidationRows() {
       supplier_id: null,
       category: "Furniture",
       category_node_id: null,
+      library_folder_id: "folder-furniture",
       brand: null,
       brand_id: null,
       unit: "pc",
@@ -353,6 +359,7 @@ function makeLibraryValidationRows() {
       supplier_id: null,
       category: "Sanitary Systems",
       category_node_id: null,
+      library_folder_id: "folder-sanitary-systems",
       brand: null,
       brand_id: null,
       unit: "set",
@@ -372,6 +379,11 @@ function makeFixture(overrides: Partial<Fixture> = {}): Fixture {
   return {
     commands: [],
     components: makeLibraryValidationRows(),
+    libraryFolders: [
+      { id: "folder-uncategorized", workspace_id: WORKSPACE_ID, parent_id: null, name: "Uncategorized", is_default_category: 1 },
+      { id: "folder-furniture", workspace_id: WORKSPACE_ID, parent_id: null, name: "Furniture", is_default_category: 0 },
+      { id: "folder-sanitary-systems", workspace_id: WORKSPACE_ID, parent_id: null, name: "Sanitary Systems", is_default_category: 0 },
+    ],
     priceOptions: [],
     projects: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, name: "Lewis Residence" }],
     estimates: [{ id: ESTIMATE_ID, project_id: PROJECT_ID, name: "Current Estimate" }],
@@ -636,6 +648,7 @@ describe("package-builder Apply", () => {
       recoveryStatus: "completed",
     });
     expect(fixture.components).toHaveLength(1);
+    expect(fixture.components[0]).toMatchObject({ category: "Furniture", library_folder_id: "folder-furniture" });
     expect(fixture.priceOptions).toHaveLength(1);
     expect(fixture.commands[0]).toMatchObject({ command_kind: "library_components_package", status: "completed" });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library");

@@ -6,11 +6,7 @@ import {
   readPackageBuilderMemoryPreferences,
   type PackageBuilderMemoryPreferences,
 } from "@/lib/ai/package-builder/memory";
-import {
-  buildComponentCategoryTreeFromRows,
-  findComponentCategoryPath,
-  type ComponentLibraryCategoryRow,
-} from "@/lib/component-library/taxonomy";
+import { resolveComponentCategory } from "@/lib/component-library/category-folders";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { filterMap, filterMapBy } from "@/lib/util/array";
@@ -142,8 +138,10 @@ export type PackageBuilderComponentSummary = {
   material: string;
   description: string;
   category: string;
+  categoryId?: string | null;
   categoryNodeId?: string | null;
   categoryPath: string[];
+  categoryPathIds?: string[];
   libraryFolderId?: string | null;
   libraryFolderName?: string | null;
   libraryFolderPath?: string[];
@@ -865,10 +863,8 @@ async function searchScopedComponentSummaries({
     [workspaceId, ...search.values, DEFAULT_RESULT_LIMIT * 4],
   );
   const priceOptionByItemId = new Map<string, AiComponentSearchPriceOption>();
-  const categoryPathById = new Map<string, string[]>();
   const folderById = new Map<string, AiLibraryFolderSearchRow>();
   let priceOptionRowsRead = 0;
-  let categoryRowsRead = 0;
   let folderRowsRead = 0;
   const activePriceOptionIds = itemRows.map((item) => item.active_price_option_id).filter((id): id is string => Boolean(id));
   if (activePriceOptionIds.length > 0) {
@@ -888,24 +884,6 @@ async function searchScopedComponentSummaries({
       priceOptionByItemId.set(option.item_id, option);
     }
   }
-  const hasCategoryNodes = itemRows.some((item) => Boolean(item.category_node_id));
-  if (hasCategoryNodes) {
-    const rows = await all<ComponentLibraryCategoryRow>(
-      database,
-      `
-        SELECT id, parent_id, label, node_type, sort_order, code, metadata
-        FROM component_category_nodes
-        ORDER BY sort_order ASC
-      `,
-    );
-    categoryRowsRead = rows.length;
-    const categoryTree = buildComponentCategoryTreeFromRows(rows);
-    for (const item of itemRows) {
-      if (!item.category_node_id || categoryPathById.has(item.category_node_id)) continue;
-      const categoryPath = findComponentCategoryPath(categoryTree, item.category_node_id);
-      if (categoryPath) categoryPathById.set(item.category_node_id, categoryPath);
-    }
-  }
   const hasLibraryFolders = itemRows.some((item) => Boolean(item.library_folder_id));
   if (hasLibraryFolders) {
     const rows = await all<AiLibraryFolderSearchRow>(
@@ -921,35 +899,24 @@ async function searchScopedComponentSummaries({
     folderRowsRead = rows.length;
     for (const folder of rows) folderById.set(folder.id, folder);
   }
-
-  const readFolderPath = (folderId: string | null) => {
-    if (!folderId) return [] as string[];
-    const path: string[] = [];
-    const seen = new Set<string>();
-    let current = folderById.get(folderId);
-    while (current && !seen.has(current.id)) {
-      seen.add(current.id);
-      path.unshift(current.name);
-      current = current.parent_id ? folderById.get(current.parent_id) : undefined;
-    }
-    return path;
-  };
+  const libraryFolders = [...folderById.values()];
 
   const matches = filterMap(itemRows, (item) => {
       const priceOption = priceOptionByItemId.get(item.id);
-      const categoryPath = item.category_node_id ? categoryPathById.get(item.category_node_id) : undefined;
       const folder = item.library_folder_id ? folderById.get(item.library_folder_id) : undefined;
-      const libraryFolderPath = readFolderPath(item.library_folder_id);
+      const category = resolveComponentCategory(libraryFolders, item.library_folder_id, item.category);
       const summary: PackageBuilderComponentSummary = {
         id: item.id,
         material: item.name,
         description: item.description,
-        category: categoryPath?.at(-1) ?? item.category,
+        category: category.category,
+        categoryId: category.categoryId ?? null,
         categoryNodeId: item.category_node_id,
-        categoryPath: categoryPath?.length ? categoryPath : [item.category],
+        categoryPath: category.categoryPath,
+        categoryPathIds: category.categoryPathIds,
         libraryFolderId: item.library_folder_id,
         libraryFolderName: folder?.name ?? null,
-        libraryFolderPath,
+        libraryFolderPath: category.categoryPath,
         supplier: item.supplier,
         supplierId: priceOption?.supplier_id ?? item.supplier_id,
         brand: item.brand,
@@ -972,7 +939,7 @@ async function searchScopedComponentSummaries({
 
   return {
     matches,
-    rowCount: itemRows.length + priceOptionRowsRead + categoryRowsRead + folderRowsRead,
+    rowCount: itemRows.length + priceOptionRowsRead + folderRowsRead,
   };
 }
 
@@ -1585,7 +1552,7 @@ export async function readPackageBuilderTools(
   auditEvents.push(createAuditEvent({
     input,
     toolName: "search_component_library",
-    sourceTables: ["cost_library_items", "cost_library_item_price_options", "component_category_nodes", "library_folders"],
+    sourceTables: ["cost_library_items", "cost_library_item_price_options", "library_folders"],
     rowCount: componentSearch.rowCount,
     filter: { terms },
     safeSummary: "Searched compact workspace component-library summaries for package drafting.",

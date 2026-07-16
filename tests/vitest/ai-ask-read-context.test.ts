@@ -82,7 +82,14 @@ function makeFixture(overrides: Partial<Fixture> = {}) {
         material: "Queen bed frame",
         description: "Bedroom furniture",
         supplier: "Bedroom Supplier",
-        source_snapshot: JSON.stringify({ categoryNodeId: "cat-furniture", supplierId: "supplier-bedroom", supplier: "Bedroom Supplier" }),
+        source_snapshot: JSON.stringify({
+          category: "Furniture",
+          categoryId: "folder-furniture",
+          categoryPath: ["Objects", "Furniture"],
+          categoryPathIds: ["folder-objects", "folder-furniture"],
+          supplierId: "supplier-bedroom",
+          supplier: "Bedroom Supplier",
+        }),
         quantity: 3,
         quantity_base: null,
         quantity_contingency_amount: null,
@@ -102,7 +109,14 @@ function makeFixture(overrides: Partial<Fixture> = {}) {
         material: "Water closet",
         description: "Dual-flush fixture",
         supplier: "Fixture Supply",
-        source_snapshot: JSON.stringify({ categoryNodeId: "cat-sanitary", supplierId: "supplier-fixture", supplier: "Fixture Supply" }),
+        source_snapshot: JSON.stringify({
+          category: "Sanitary Systems",
+          categoryId: "folder-sanitary",
+          categoryPath: ["Sanitary Systems"],
+          categoryPathIds: ["folder-sanitary"],
+          supplierId: "supplier-fixture",
+          supplier: "Fixture Supply",
+        }),
         quantity: 2,
         quantity_base: null,
         quantity_contingency_amount: null,
@@ -615,7 +629,7 @@ describe("AI Ask read context", () => {
               { label: "Toilet and Bath 1", total: 22_800, rowCount: 1 },
             ],
             topCategories: [
-              { label: "Furniture", total: 60_400, rowCount: 1 },
+              { label: "Objects", total: 60_400, rowCount: 1 },
               { label: "Sanitary Systems", total: 22_800, rowCount: 1 },
             ],
             topSuppliers: [
@@ -627,15 +641,15 @@ describe("AI Ask read context", () => {
       },
     });
     const providerJson = JSON.stringify(result.providerContext);
-    for (const leak of [projectId, estimateId, "supplier-bedroom", "cat-furniture", "rowFacts", "nodeFacts", "categoryNodeFacts", "supplierFacts", "unitCost", "quantity", "miscCost", "contingencyPercentage", "sourceSupplierId", "node_id", "source_snapshot"]) {
+    for (const leak of [projectId, estimateId, "supplier-bedroom", "folder-objects", "folder-furniture", "folder-sanitary", "rowFacts", "nodeFacts", "categoryNodeFacts", "supplierFacts", "unitCost", "quantity", "miscCost", "contingencyPercentage", "sourceSupplierId", "node_id", "source_snapshot"]) {
       expect(providerJson).not.toContain(leak);
     }
     expect(result.auditEvents).toEqual([
       expect.objectContaining({
         eventName: "ask_read_project_chart_summary",
-        sourceTables: ["projects", "estimates", "estimate_nodes", "estimate_row_items", "component_category_nodes", "component_suppliers"],
+        sourceTables: ["projects", "estimates", "estimate_nodes", "estimate_row_items", "component_suppliers"],
         filter: expect.objectContaining({ scope: "current_workspace", operation: "project_chart_summary", estimateLimit: 8, rowLimit: 500 }),
-        rowCount: 13,
+        rowCount: 10,
       }),
     ]);
   });

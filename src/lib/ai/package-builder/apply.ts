@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { canEditEstimateInD1, isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { resolveComponentCategory, type ComponentCategoryFolder } from "@/lib/component-library/category-folders";
 import { buildProjectComponentAttachmentDeleteRetentionStatements } from "@/lib/estimates/project-component-attachment-retention";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
@@ -62,7 +63,11 @@ type LibraryValidationRow = {
   supplier: string | null;
   supplier_id: string | null;
   category: string;
+  category_id?: string;
+  category_path?: string[];
+  category_path_ids?: string[];
   category_node_id: string | null;
+  library_folder_id: string | null;
   brand: string | null;
   brand_id: string | null;
   unit: string;
@@ -315,7 +320,7 @@ async function validateLinkedLibraryRows({
   const items = await all<LibraryValidationRow>(
     database,
     `
-      SELECT id, workspace_id, name, description, supplier, supplier_id, category, category_node_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, NULL AS pricing_date, NULL AS pricing_source, NULL AS thumbnail_path
+      SELECT id, workspace_id, name, description, supplier, supplier_id, category, category_node_id, library_folder_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, NULL AS pricing_date, NULL AS pricing_source, NULL AS thumbnail_path
       FROM cost_library_items
       WHERE workspace_id = ?
         AND id IN (${placeholders(itemIds)})
@@ -323,7 +328,23 @@ async function validateLinkedLibraryRows({
     [workspaceId, ...itemIds],
   );
 
-  const itemById = new Map(items.map((item) => [item.id, item]));
+  const folders = await all<ComponentCategoryFolder>(
+    database,
+    `SELECT id, workspace_id, parent_id, name, is_default_category
+     FROM library_folders
+     WHERE workspace_id = ?`,
+    [workspaceId],
+  );
+  const itemById = new Map(items.map((item) => {
+    const category = resolveComponentCategory(folders, item.library_folder_id, item.category);
+    return [item.id, {
+      ...item,
+      category: category.category,
+      category_id: category.categoryId,
+      category_path: category.categoryPath,
+      category_path_ids: category.categoryPathIds,
+    }];
+  }));
   for (const row of linkedRows) {
     const item = row.sourceLibraryItemId ? itemById.get(row.sourceLibraryItemId) : null;
     if (!item) throw new Error(`Library item for row ${row.clientDraftId} is not available in this workspace.`);
@@ -388,7 +409,10 @@ function buildLibrarySourceSnapshot({
     sourceType: "library_item",
     sourceLibraryItemId: item.id,
     category: item.category,
+    categoryId: item.category_id ?? null,
     categoryNodeId: item.category_node_id,
+    categoryPath: item.category_path ?? [item.category],
+    categoryPathIds: item.category_path_ids ?? [],
     brand: item.brand,
     brandId: item.brand_id,
     componentVersionNumber: item.current_version_number,
@@ -1793,6 +1817,16 @@ async function applyComponentCreateDraft({
     throw new Error("Package Apply component creation requires at least one component.");
   }
 
+  const folders = await all<ComponentCategoryFolder>(
+    database,
+    `SELECT id, workspace_id, parent_id, name, is_default_category
+     FROM library_folders
+     WHERE workspace_id = ?`,
+    [workspaceId],
+  );
+  const defaultFolder = folders.find((folder) => folder.is_default_category === 1);
+  if (!defaultFolder) throw new Error("The workspace default component category is missing.");
+
   const timestamp = nowIso();
   const createdComponentIds: string[] = [];
   const statements: Array<{ sql: string; values: unknown[] }> = [];
@@ -1800,6 +1834,13 @@ async function applyComponentCreateDraft({
     const componentId = randomUUID();
     const priceOptionId = randomUUID();
     const priceOption = payload.priceOptions[0];
+    const matchingFolders = folders.filter(
+      (folder) => folder.name.trim().toLocaleLowerCase() === payload.component.category.trim().toLocaleLowerCase(),
+    );
+    const category = resolveComponentCategory(
+      folders,
+      matchingFolders.length === 1 ? matchingFolders[0].id : defaultFolder.id,
+    );
     createdComponentIds.push(componentId);
     statements.push({
       sql: `
@@ -1827,14 +1868,15 @@ async function applyComponentCreateDraft({
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?, NULL, ?, ?, ?, ?, 1, ?, NULL, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, ?, NULL, ?, ?, ?, ?, 1, ?, NULL, ?, ?, ?, ?)
       `,
       values: [
         componentId,
         workspaceId,
         payload.component.name,
         payload.component.description,
-        payload.component.category,
+        category.category,
+        category.categoryId,
         payload.component.supplier,
         payload.component.brand,
         payload.component.unit,

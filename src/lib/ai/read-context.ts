@@ -4,7 +4,6 @@ import { isUuid } from "@/lib/ids";
 import { buildProjectChartSeries } from "@/lib/project-charts/aggregate-project-charts";
 import { filterMap, filterMapBy } from "@/lib/util/array";
 import type {
-  ProjectChartCategoryNodeFact,
   ProjectChartEstimateOption,
   ProjectChartNodeFact,
   ProjectChartRowFact,
@@ -456,14 +455,6 @@ type AiAskChartNodeRow = {
   parent_id: string | null;
   kind: "group" | "area";
   name: string;
-  sort_order: number | null;
-};
-
-type AiAskChartCategoryNodeRow = {
-  id: string;
-  parent_id: string | null;
-  node_type: string | null;
-  label: string;
   sort_order: number | null;
 };
 
@@ -1154,7 +1145,7 @@ async function readAskProjectChartSummary({
   }
 
   const estimateIdSql = placeholders(estimateIds);
-  const [rows, nodes, categories, suppliers] = await Promise.all([
+  const [rows, nodes, suppliers] = await Promise.all([
     all<AiAskChartRowItemRow>(
       database,
       `
@@ -1178,14 +1169,6 @@ async function readAskProjectChartSummary({
       `,
       [...estimateIds, ASK_READ_CONTEXT_CHART_NODE_LIMIT],
     ),
-    allOptional<AiAskChartCategoryNodeRow>(
-      database,
-      `
-        SELECT id, parent_id, node_type, label, sort_order
-        FROM component_category_nodes
-        ORDER BY sort_order ASC, id ASC
-      `,
-    ),
     allOptional<AiAskChartSupplierRow>(
       database,
       `
@@ -1207,6 +1190,10 @@ async function readAskProjectChartSummary({
       estimateId: row.estimate_id,
       nodeId: row.node_id,
       categoryNodeId: readString(sourceSnapshot.categoryNodeId),
+      category: readString(sourceSnapshot.category),
+      categoryId: readString(sourceSnapshot.categoryId),
+      categoryPath: readStringArray(sourceSnapshot.categoryPath),
+      categoryPathIds: readStringArray(sourceSnapshot.categoryPathIds),
       supplierId,
       supplierName: row.supplier,
       sourceSupplierId: supplierId,
@@ -1228,13 +1215,6 @@ async function readAskProjectChartSummary({
     kind: node.kind === "area" ? "Area" : "Group",
     name: node.name,
     sortOrder: node.sort_order ?? 0,
-  }));
-  const categoryNodeFacts: ProjectChartCategoryNodeFact[] = categories.map((category) => ({
-    id: category.id,
-    parentId: category.parent_id,
-    nodeType: category.node_type,
-    label: category.label,
-    sortOrder: category.sort_order ?? 0,
   }));
   const supplierFacts: ProjectChartSupplierFact[] = suppliers.map((supplier) => ({
     id: supplier.id,
@@ -1271,7 +1251,7 @@ async function readAskProjectChartSummary({
           estimates: estimateOptions,
           rows: rowFacts,
           nodes: nodeFacts,
-          categoryNodes: categoryNodeFacts,
+          categoryNodes: [],
           suppliers: supplierFacts,
           estimateId: estimate.id,
           topBucketLimit: ASK_READ_CONTEXT_CHART_BUCKET_LIMIT,
@@ -1291,7 +1271,7 @@ async function readAskProjectChartSummary({
         };
       }),
     } satisfies AiAskProviderProjectCharts,
-    rowCount: 1 + estimates.length + rows.length + nodes.length + categories.length + suppliers.length,
+    rowCount: 1 + estimates.length + rows.length + nodes.length + suppliers.length,
   };
 }
 
@@ -1969,7 +1949,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
     projectCharts = chartSearch.summary;
     auditEvents.push({
       eventName: "ask_read_project_chart_summary",
-      sourceTables: ["projects", "estimates", "estimate_nodes", "estimate_row_items", "component_category_nodes", "component_suppliers"],
+      sourceTables: ["projects", "estimates", "estimate_nodes", "estimate_row_items", "component_suppliers"],
       filter: {
         scope: "current_workspace",
         operation: "project_chart_summary",

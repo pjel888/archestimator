@@ -152,6 +152,7 @@ async function syncProjectAddressInD1(db: D1DatabaseLike, projectId: string, add
       `
         UPDATE projects
         SET location = ?,
+            publication_source_revision = publication_source_revision + 1,
             updated_at = ?
         WHERE id = ?
       `,

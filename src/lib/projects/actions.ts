@@ -20,11 +20,6 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import {
-  cleanupStorageTargets,
-  storageCleanupReportToJson,
-} from "@/lib/mass-deletion/storage-cleanup";
-import {
-  recordMassDeletionStorageCleanupResultInCloudflareD1,
   recordProjectMetadataUpdatedEventInCloudflareD1,
 } from "@/lib/projects/d1-audit";
 import {
@@ -36,8 +31,12 @@ import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository"
 import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
 import type { Json } from "@/lib/types/json";
 import { isUuid } from "@/lib/ids";
-import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
-import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
+import { logAppError } from "@/lib/observability/logger";
+import {
+  claimUploadAssetsForRemoval,
+  getUploadRemovalCleanupNotBefore,
+  uploadAssetAcceptedReferencePredicate,
+} from "@/lib/uploads/removal-claims";
 
 const PROJECT_IMAGE_BUCKET = "project-images";
 
@@ -93,6 +92,40 @@ type ProjectPublicationIdRow = {
 
 type EstimateIdRow = {
   id: string;
+};
+
+type ProjectDeleteUploadAssetRow = {
+  actor_user_id: string | null;
+  id: string;
+  metadata_json: string;
+  project_id: string | null;
+  purge_state: string;
+  status: string;
+  storage_bucket: string;
+  storage_path: string;
+  surface: string;
+  target_entity_id: string | null;
+  target_entity_type: string | null;
+  thumbnail_path: string | null;
+  updated_at: string;
+  upload_session_id: string;
+};
+
+type ProjectDeleteUploadAssetIdentity = {
+  actorUserId: string | null;
+  id: string;
+  metadataJson: string;
+  projectId: string | null;
+  purgeState: string;
+  status: string;
+  storageBucket: string;
+  storagePath: string;
+  surface: string;
+  targetEntityId: string | null;
+  targetEntityType: string | null;
+  thumbnailPath: string | null;
+  updatedAt: string;
+  uploadSessionId: string;
 };
 
 function readRequiredText(formData: FormData, key: string) {
@@ -219,7 +252,7 @@ function assertProjectImagePathForProject(
 }
 
 async function removeStoredProjectImagePaths(
-  storageProvider: Pick<UploadStorageProvider, "removeObjects">,
+  database: D1DatabaseLike,
   paths: string[],
   project: ProjectImagePathOwner,
 ) {
@@ -231,7 +264,12 @@ async function removeStoredProjectImagePaths(
     ),
   );
   if (safePaths.length === 0) return;
-  await storageProvider.removeObjects(PROJECT_IMAGE_BUCKET, safePaths);
+  await claimUploadAssetsForRemoval(database, {
+    workspaceId: project.workspace_id,
+    surface: "project-image",
+    bucket: PROJECT_IMAGE_BUCKET,
+    paths: safePaths,
+  });
 }
 
 function applyProjectImageMetadata(
@@ -305,19 +343,16 @@ async function runBatch(
   statements: Array<{ sql: string; values?: D1Value[] }>,
 ) {
   if (statements.length === 0) return;
-  if (database.batch) {
-    const results = await database.batch(
-      statements.map((statement) =>
-        database.prepare(statement.sql).bind(...(statement.values ?? [])),
-      ),
-    );
-    if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 project action batch failed.");
-    }
-    return;
+  if (!database.batch) {
+    throw new Error("Cloudflare D1 atomic batch support is required for project deletion.");
   }
-  for (const statement of statements) {
-    await run(database, statement.sql, statement.values ?? []);
+  const results = await database.batch(
+    statements.map((statement) =>
+      database.prepare(statement.sql).bind(...(statement.values ?? [])),
+    ),
+  );
+  if (results.some((result) => result.success === false)) {
+    throw new Error("Cloudflare D1 project action batch failed.");
   }
 }
 
@@ -356,7 +391,10 @@ function isActivePublicationRow(row: ProjectDeleteClassificationRow) {
 function createProjectDeletePreviewHash(input: {
   eligibleIds: string[];
   blocked: unknown[];
+  projectRevisions: Array<{ id: string; metadata: string | Record<string, Json> | null; updatedAt: string }>;
+  storageTargets: Array<{ bucket: string; path: string }>;
   summary: Record<string, unknown>;
+  uploadAssets: ProjectDeleteUploadAssetIdentity[];
 }) {
   return createHash("sha256")
     .update(
@@ -365,7 +403,10 @@ function createProjectDeletePreviewHash(input: {
         action: "delete",
         ids: input.eligibleIds,
         blocked: input.blocked,
+        projects: input.projectRevisions,
+        storageTargets: input.storageTargets,
         summary: input.summary,
+        uploadAssets: input.uploadAssets,
       }),
     )
     .digest("hex");
@@ -399,6 +440,196 @@ async function readProjectAttachmentStorageTargets(
     `,
     projectIds,
   );
+}
+
+async function readProjectDeleteUploadAssets(
+  database: D1DatabaseLike,
+  input: {
+    projectIds: string[];
+    storagePaths: string[];
+    workspaceId: string;
+  },
+): Promise<ProjectDeleteUploadAssetIdentity[]> {
+  const rows = await all<ProjectDeleteUploadAssetRow>(
+    database,
+    `
+      SELECT DISTINCT
+        asset.id,
+        asset.upload_session_id,
+        asset.actor_user_id,
+        asset.project_id,
+        asset.surface,
+        asset.target_entity_type,
+        asset.target_entity_id,
+        asset.status,
+        asset.storage_bucket,
+        asset.storage_path,
+        asset.thumbnail_path,
+        asset.purge_state,
+        asset.metadata_json,
+        asset.updated_at
+      FROM upload_assets asset
+      WHERE asset.workspace_id = ?
+        AND (
+          asset.project_id IN (
+            SELECT CAST(value AS TEXT) FROM json_each(?)
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM component_variant_attachments attachment
+            WHERE attachment.upload_asset_id = asset.id
+              AND attachment.owner_scope = 'project'
+              AND attachment.project_id IN (
+                SELECT CAST(value AS TEXT) FROM json_each(?)
+              )
+          )
+          OR (
+            asset.surface = 'project-image'
+            AND asset.storage_bucket = ?
+            AND (
+              asset.storage_path IN (
+                SELECT CAST(value AS TEXT) FROM json_each(?)
+              )
+              OR asset.thumbnail_path IN (
+                SELECT CAST(value AS TEXT) FROM json_each(?)
+              )
+            )
+          )
+        )
+      ORDER BY asset.id
+    `,
+    [
+      input.workspaceId,
+      JSON.stringify(input.projectIds),
+      JSON.stringify(input.projectIds),
+      PROJECT_IMAGE_BUCKET,
+      JSON.stringify(input.storagePaths),
+      JSON.stringify(input.storagePaths),
+    ],
+  );
+
+  return rows.map((row) => ({
+    actorUserId: row.actor_user_id,
+    id: row.id,
+    metadataJson: row.metadata_json,
+    projectId: row.project_id,
+    purgeState: row.purge_state,
+    status: row.status,
+    storageBucket: row.storage_bucket,
+    storagePath: row.storage_path,
+    surface: row.surface,
+    targetEntityId: row.target_entity_id,
+    targetEntityType: row.target_entity_type,
+    thumbnailPath: row.thumbnail_path,
+    updatedAt: row.updated_at,
+    uploadSessionId: row.upload_session_id,
+  }));
+}
+
+function buildProjectDeleteUploadAssetGuardStatement(input: {
+  projectIds: string[];
+  storagePaths: string[];
+  uploadAssets: ProjectDeleteUploadAssetIdentity[];
+  workspaceId: string;
+}) {
+  return {
+    sql: `
+      WITH expected AS (
+        SELECT
+          json_extract(value, '$.id') AS id,
+          json_extract(value, '$.uploadSessionId') AS upload_session_id,
+          json_extract(value, '$.actorUserId') AS actor_user_id,
+          json_extract(value, '$.projectId') AS project_id,
+          json_extract(value, '$.surface') AS surface,
+          json_extract(value, '$.targetEntityType') AS target_entity_type,
+          json_extract(value, '$.targetEntityId') AS target_entity_id,
+          json_extract(value, '$.status') AS status,
+          json_extract(value, '$.storageBucket') AS storage_bucket,
+          json_extract(value, '$.storagePath') AS storage_path,
+          json_extract(value, '$.thumbnailPath') AS thumbnail_path,
+          json_extract(value, '$.purgeState') AS purge_state,
+          json_extract(value, '$.metadataJson') AS metadata_json,
+          json_extract(value, '$.updatedAt') AS updated_at
+        FROM json_each(?)
+      ),
+      actual AS (
+        SELECT DISTINCT
+          asset.id,
+          asset.upload_session_id,
+          asset.actor_user_id,
+          asset.project_id,
+          asset.surface,
+          asset.target_entity_type,
+          asset.target_entity_id,
+          asset.status,
+          asset.storage_bucket,
+          asset.storage_path,
+          asset.thumbnail_path,
+          asset.purge_state,
+          asset.metadata_json,
+          asset.updated_at
+        FROM upload_assets asset
+        WHERE asset.workspace_id = ?
+          AND (
+            asset.project_id IN (
+              SELECT CAST(value AS TEXT) FROM json_each(?)
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM component_variant_attachments attachment
+              WHERE attachment.upload_asset_id = asset.id
+                AND attachment.owner_scope = 'project'
+                AND attachment.project_id IN (
+                  SELECT CAST(value AS TEXT) FROM json_each(?)
+                )
+            )
+            OR (
+              asset.surface = 'project-image'
+              AND asset.storage_bucket = ?
+              AND (
+                asset.storage_path IN (
+                  SELECT CAST(value AS TEXT) FROM json_each(?)
+                )
+                OR asset.thumbnail_path IN (
+                  SELECT CAST(value AS TEXT) FROM json_each(?)
+                )
+              )
+            )
+          )
+      )
+      SELECT CASE WHEN
+        (SELECT COUNT(*) FROM expected) = (SELECT COUNT(*) FROM actual)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM expected
+          LEFT JOIN actual ON actual.id = expected.id
+          WHERE actual.id IS NULL
+            OR actual.upload_session_id IS NOT expected.upload_session_id
+            OR actual.actor_user_id IS NOT expected.actor_user_id
+            OR actual.project_id IS NOT expected.project_id
+            OR actual.surface IS NOT expected.surface
+            OR actual.target_entity_type IS NOT expected.target_entity_type
+            OR actual.target_entity_id IS NOT expected.target_entity_id
+            OR actual.status IS NOT expected.status
+            OR actual.storage_bucket IS NOT expected.storage_bucket
+            OR actual.storage_path IS NOT expected.storage_path
+            OR actual.thumbnail_path IS NOT expected.thumbnail_path
+            OR actual.purge_state IS NOT expected.purge_state
+            OR actual.metadata_json IS NOT expected.metadata_json
+            OR actual.updated_at IS NOT expected.updated_at
+        )
+      THEN 1 ELSE json('') END AS project_delete_upload_asset_guard
+    `,
+    values: [
+      JSON.stringify(input.uploadAssets),
+      input.workspaceId,
+      JSON.stringify(input.projectIds),
+      JSON.stringify(input.projectIds),
+      PROJECT_IMAGE_BUCKET,
+      JSON.stringify(input.storagePaths),
+      JSON.stringify(input.storagePaths),
+    ],
+  };
 }
 
 async function readProjectsForDeletePreview(
@@ -511,6 +742,16 @@ async function previewBulkDeleteProjectsInD1(
     ...await readProjectAttachmentStorageTargets(database, eligibleIds),
   ].map((target) => [`${target.bucket}:${target.path}`, target])).values()]
     .sort((left, right) => left.path.localeCompare(right.path));
+  const storageWorkspaceId = eligibleWorkspaceIds.length === 1
+    ? eligibleWorkspaceIds[0]
+    : null;
+  const uploadAssets = storageWorkspaceId
+    ? await readProjectDeleteUploadAssets(database, {
+      projectIds: eligibleIds,
+      storagePaths: storageTargets.map((target) => target.path),
+      workspaceId: storageWorkspaceId,
+    })
+    : [];
   const estimateCountRow =
     eligibleIds.length > 0
       ? await first<{ count: number }>(
@@ -523,17 +764,23 @@ async function previewBulkDeleteProjectsInD1(
     requestedCount: sortedIds.length,
     eligibleCount: eligibleIds.length,
     blockedCount: blocked.length,
-    storageWorkspaceId: eligibleWorkspaceIds.length === 1
-      ? eligibleWorkspaceIds[0]
-      : null,
+    storageWorkspaceId,
     warningsCount: activePublicationWarnings.length,
     estimateCount: Number(estimateCountRow?.count ?? 0),
     storageTargetCount: storageTargets.length,
+    uploadAssetCount: uploadAssets.length,
   };
   const previewHash = createProjectDeletePreviewHash({
     eligibleIds,
     blocked,
+    projectRevisions: eligibleRows.map((row) => ({
+      id: row.id,
+      metadata: row.metadata,
+      updatedAt: row.updated_at,
+    })),
+    storageTargets,
     summary,
+    uploadAssets,
   });
 
   return {
@@ -546,6 +793,7 @@ async function previewBulkDeleteProjectsInD1(
     issues: [...blocked, ...activePublicationWarnings],
     blocked,
     storageTargets,
+    uploadAssets,
   };
 }
 
@@ -631,8 +879,19 @@ async function executeBulkDeleteProjectsInD1(options: {
   }
 
   const now = new Date().toISOString();
+  const cleanupNotBefore = getUploadRemovalCleanupNotBefore(new Date(now));
   const eventId = randomUUID();
-  const statements: Array<{ sql: string; values?: D1Value[] }> = [];
+  const uploadAssetIdsJson = JSON.stringify(
+    preview.uploadAssets.map((asset) => asset.id),
+  );
+  const statements: Array<{ sql: string; values?: D1Value[] }> = [
+    buildProjectDeleteUploadAssetGuardStatement({
+      projectIds: eligibleIds,
+      storagePaths: preview.storageTargets.map((target) => target.path),
+      uploadAssets: preview.uploadAssets,
+      workspaceId: workspaceRow.workspace_id,
+    }),
+  ];
   const eligibleSql = placeholders(eligibleIds);
 
   if (publicationIds.length > 0) {
@@ -747,28 +1006,6 @@ async function executeBulkDeleteProjectsInD1(options: {
       ],
     },
     {
-      sql: `
-        UPDATE upload_assets
-        SET status = 'removed',
-            updated_at = ?
-        WHERE id IN (
-          SELECT upload_asset_id
-          FROM component_variant_attachments
-          WHERE owner_scope = 'project'
-            AND project_id IN (${eligibleSql})
-        )
-      `,
-      values: [now, ...eligibleIds],
-    },
-    {
-      sql: `UPDATE upload_assets SET project_id = NULL, updated_at = ? WHERE project_id IN (${eligibleSql})`,
-      values: [now, ...eligibleIds],
-    },
-    {
-      sql: `DELETE FROM upload_sessions WHERE target_entity_type = 'project' AND target_entity_id IN (${eligibleSql})`,
-      values: eligibleIds,
-    },
-    {
       sql: `DELETE FROM project_publications WHERE project_id IN (${eligibleSql})`,
       values: eligibleIds,
     },
@@ -807,6 +1044,45 @@ async function executeBulkDeleteProjectsInD1(options: {
     {
       sql: `DELETE FROM projects WHERE id IN (${eligibleSql})`,
       values: eligibleIds,
+    },
+    {
+      sql: `
+        UPDATE upload_assets AS asset
+        SET status = 'removed',
+            project_id = NULL,
+            removal_claim_id = ?,
+            removal_claimed_at = ?,
+            cleanup_not_before = ?,
+            purge_state = 'pending',
+            purged_at = NULL,
+            target_entity_type = 'mass-deletion',
+            target_entity_id = ?,
+            metadata_json = json_set(
+              metadata_json,
+              '$.massDeletionEventId', ?,
+              '$.cleanupRequestedAt', ?,
+              '$.cleanupReason', 'project_permanent_delete'
+            ),
+            updated_at = ?
+        WHERE asset.id IN (
+          SELECT CAST(value AS TEXT) FROM json_each(?)
+        )
+          AND asset.workspace_id = ?
+          AND asset.status NOT IN ('removed', 'deleted')
+          AND asset.purge_state <> 'purged'
+          AND NOT (${uploadAssetAcceptedReferencePredicate("asset")})
+      `,
+      values: [
+        eventId,
+        now,
+        cleanupNotBefore,
+        eventId,
+        eventId,
+        now,
+        now,
+        uploadAssetIdsJson,
+        workspaceRow.workspace_id,
+      ],
     },
   );
   await runBatch(options.database, statements);
@@ -1026,38 +1302,6 @@ export async function executeBulkDeleteProjects(
   }
 
   if (result.ok) {
-    const storageProvider = await createRuntimeUploadStorageProvider();
-    const storageWorkspaceId = typeof result.summary.storageWorkspaceId === "string"
-      ? result.summary.storageWorkspaceId
-      : undefined;
-    const storageCleanup = await cleanupStorageTargets(
-      storageProvider,
-      result.storageTargets,
-      { kind: "project", workspaceId: storageWorkspaceId },
-    );
-    result.storageCleanup = storageCleanup;
-    if (result.auditEventId) {
-      try {
-        const recorded =
-          await recordMassDeletionStorageCleanupResultInCloudflareD1({
-            targetEventId: result.auditEventId,
-            cleanupResult: storageCleanupReportToJson(storageCleanup) as Record<
-              string,
-              Json | undefined
-            >,
-          });
-        if (!recorded) {
-          console.warn(
-            "[projects] mass deletion storage cleanup audit skipped",
-            { auditEventId: result.auditEventId },
-          );
-        }
-      } catch {
-        console.warn("[projects] mass deletion storage cleanup audit skipped", {
-          auditEventId: result.auditEventId,
-        });
-      }
-    }
     revalidateProjectDeletionPaths(
       result.deletedIds?.length ? result.deletedIds : ids,
     );
@@ -1099,16 +1343,43 @@ export async function updateProjectImageMetadata(
     asProjectMetadata(existing.metadata),
     image,
   );
-  await run(
+  const updateResult = await run(
     database,
-    "UPDATE projects SET metadata = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    `
+      UPDATE projects
+      SET metadata = ?,
+          publication_source_revision = publication_source_revision + 1,
+          updated_at = ?
+      WHERE id = ? AND workspace_id = ?
+        AND (
+          ? IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM upload_assets image_asset
+            WHERE image_asset.workspace_id = projects.workspace_id
+              AND image_asset.surface = 'project-image'
+              AND image_asset.storage_bucket = 'project-images'
+              AND image_asset.storage_path = ?
+              AND (? IS NULL OR image_asset.thumbnail_path = ?)
+              AND image_asset.status = 'finalized'
+              AND image_asset.purge_state = 'active'
+          )
+        )
+    `,
     [
       JSON.stringify(metadata),
       new Date().toISOString(),
       projectId,
       project.workspace_id,
+      image.path ?? null,
+      image.path ?? null,
+      image.thumbnailPath ?? null,
+      image.thumbnailPath ?? null,
     ],
   );
+  if ((updateResult.meta?.changes ?? 0) === 0) {
+    throw new Error("Project image is no longer active. Upload it again before saving.");
+  }
 
   revalidatePath("/workshop/projects");
   revalidatePath(`/workshop/projects/${projectId}`);
@@ -1259,7 +1530,7 @@ export async function updateProjectDetails(formData: FormData) {
     });
   }
 
-  await run(
+  const updateResult = await run(
     database,
     `
       UPDATE projects
@@ -1269,8 +1540,23 @@ export async function updateProjectDetails(formData: FormData) {
           project_code = ?,
           currency_code = ?,
           metadata = ?,
+          publication_source_revision = publication_source_revision + 1,
           updated_at = ?
       WHERE id = ? AND workspace_id = ?
+        AND (
+          ? IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM upload_assets image_asset
+            WHERE image_asset.workspace_id = projects.workspace_id
+              AND image_asset.surface = 'project-image'
+              AND image_asset.storage_bucket = 'project-images'
+              AND image_asset.storage_path = ?
+              AND (? IS NULL OR image_asset.thumbnail_path = ?)
+              AND image_asset.status = 'finalized'
+              AND image_asset.purge_state = 'active'
+          )
+        )
     `,
     [
       name,
@@ -1282,8 +1568,15 @@ export async function updateProjectDetails(formData: FormData) {
       new Date().toISOString(),
       projectId,
       existing.workspace_id,
+      projectImagePath,
+      projectImagePath,
+      projectImageThumbnailPath,
+      projectImageThumbnailPath,
     ],
   );
+  if ((updateResult.meta?.changes ?? 0) === 0) {
+    throw new Error("Project image is no longer active. Upload it again before saving.");
+  }
 
   const shouldRemovePreviousImage =
     shouldRemoveProjectImage ||
@@ -1291,12 +1584,20 @@ export async function updateProjectDetails(formData: FormData) {
       previousProjectImagePaths.length > 0 &&
       !previousProjectImagePaths.includes(projectImagePath));
   if (shouldRemovePreviousImage) {
-    const storageProvider = await createRuntimeUploadStorageProvider();
     await removeStoredProjectImagePaths(
-      storageProvider,
+      database,
       getProjectImageStoragePaths(metadata),
       targetProject,
-    );
+    ).catch((error) => {
+      logAppError(error, {
+        event: "project_image_removal_claim_error",
+        action: "claim_replaced_project_image_removal",
+        context: {
+          project_id: projectId,
+          requested_path_count: getProjectImageStoragePaths(metadata).length,
+        },
+      });
+    });
   }
 
   // Audit the edit so "Project renamed/…" rows can surface in the project

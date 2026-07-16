@@ -488,8 +488,10 @@ describe("AI package-builder read tools", () => {
       expect.objectContaining({
         material: "Bedroom bed frame",
         category: "Bedroom Beds",
+        categoryId: "folder-bedroom-beds",
         categoryNodeId: "cat-bedroom-beds",
-        categoryPath: ["Objects", "Furniture", "Bedroom Beds"],
+        categoryPath: ["Furniture", "Bedroom Beds"],
+        categoryPathIds: ["folder-furniture", "folder-bedroom-beds"],
         libraryFolderId: "folder-bedroom-beds",
         libraryFolderName: "Bedroom Beds",
         libraryFolderPath: ["Furniture", "Bedroom Beds"],
@@ -498,7 +500,7 @@ describe("AI package-builder read tools", () => {
         unitCost: 24_500,
       }),
     ]);
-    expect(observed.some((statement) => statement.sql.includes("FROM component_category_nodes"))).toBe(true);
+    expect(observed.some((statement) => statement.sql.includes("FROM component_category_nodes"))).toBe(false);
     expect(observed.some((statement) => statement.sql.includes("FROM library_folders") && statement.values.includes(workspaceId))).toBe(true);
   });
 });

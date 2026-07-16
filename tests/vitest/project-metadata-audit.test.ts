@@ -95,19 +95,22 @@ class FakeD1Statement {
   }
 
   async all<T>() {
+    this.database.allStatements.push(this);
     return { results: [] as T[], success: true };
   }
 
   async run() {
     this.database.runStatements.push(this);
-    return { success: true };
+    return { success: true, meta: { changes: this.database.runChanges } };
   }
 }
 
 class FakeD1Database {
   allowProjectCreatorEditViaSql = false;
   canEditProject = true;
+  runChanges = 1;
   firstStatements: FakeD1Statement[] = [];
+  allStatements: FakeD1Statement[] = [];
   runStatements: FakeD1Statement[] = [];
 
   constructor(readonly existing: Record<string, unknown> = EXISTING) {}
@@ -199,9 +202,15 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
     expect(database.firstStatements[1]?.sql).toContain("FROM projects project");
     expect(database.runStatements[0]?.sql).toContain("UPDATE projects");
     expect(database.runStatements[0]?.sql).toContain(
+      "publication_source_revision = publication_source_revision + 1",
+    );
+    expect(database.runStatements[0]?.sql).toContain(
       "WHERE id = ? AND workspace_id = ?",
     );
-    expect(database.runStatements[0]?.values.slice(-2)).toEqual([
+    expect(database.runStatements[0]?.sql).toContain(
+      "publication_source_revision = publication_source_revision + 1",
+    );
+    expect(database.runStatements[0]?.values.slice(7, 9)).toEqual([
       PROJECT_ID,
       WORKSPACE_ID,
     ]);
@@ -267,10 +276,31 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
     expect(database.runStatements[0]?.sql).toContain(
       "WHERE id = ? AND workspace_id = ?",
     );
-    expect(database.runStatements[0]?.values.slice(-2)).toEqual([
+    expect(database.runStatements[0]?.values.slice(2, 4)).toEqual([
       PROJECT_ID,
       "shared-workspace",
     ]);
+    expect(database.runStatements[0]?.values.slice(-4)).toEqual([
+      `shared-workspace/user-1/project-images/${PROJECT_ID}/cover.webp`,
+      `shared-workspace/user-1/project-images/${PROJECT_ID}/cover.webp`,
+      null,
+      null,
+    ]);
+    expect(database.runStatements[0]?.sql).toContain("image_asset.purge_state = 'active'");
+  });
+
+  it("rejects project image metadata when the active upload guard loses the save race", async () => {
+    const database = new FakeD1Database();
+    database.runChanges = 0;
+    getCloudflareD1Database.mockResolvedValue(database);
+    const path = `${WORKSPACE_ID}/user-1/project-images/${PROJECT_ID}/cover.webp`;
+
+    await expect(updateProjectImageMetadata(PROJECT_ID, {
+      url: `/api/projects/images?path=${path}`,
+      path,
+    })).rejects.toThrow(
+      "Project image is no longer active. Upload it again before saving.",
+    );
   });
 
   it("rejects project image metadata edits when only historical created_by matches", async () => {
@@ -361,14 +391,13 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
     expect(database.runStatements).toHaveLength(0);
   });
 
-  it("updates shared-workspace project image metadata and removes only prior target-project paths", async () => {
+  it("updates shared-workspace project image metadata and claims only prior target-project paths", async () => {
     const previousPath = `shared-workspace/user-1/project-images/${PROJECT_ID}/old-cover.webp`;
     const previousThumbnailPath = `shared-workspace/user-1/project-images/${PROJECT_ID}/old-cover-thumb.webp`;
     const foreignPath =
       "shared-workspace/user-1/project-images/33333333-3333-4333-8333-333333333333/foreign-cover.webp";
     const nextPath = `shared-workspace/user-1/project-images/${PROJECT_ID}/new-cover.webp`;
     const nextThumbnailPath = `shared-workspace/user-1/project-images/${PROJECT_ID}/new-cover-thumb.webp`;
-    const removeObjects = vi.fn(async () => undefined);
     const database = new FakeD1Database({
       ...EXISTING,
       workspace_id: "shared-workspace",
@@ -379,7 +408,6 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
       },
     });
     getCloudflareD1Database.mockResolvedValue(database);
-    createRuntimeUploadStorageProvider.mockResolvedValue({ removeObjects });
 
     await updateProjectDetails(
       formData({
@@ -395,20 +423,28 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
     expect(database.runStatements[0]?.sql).toContain(
       "WHERE id = ? AND workspace_id = ?",
     );
-    expect(database.runStatements[0]?.values.slice(-2)).toEqual([
+    expect(database.runStatements[0]?.values.slice(7, 9)).toEqual([
       PROJECT_ID,
       "shared-workspace",
     ]);
-    expect(removeObjects).toHaveBeenCalledWith("project-images", [
+    expect(database.runStatements[0]?.values.slice(-4)).toEqual([
+      nextPath,
+      nextPath,
+      nextThumbnailPath,
+      nextThumbnailPath,
+    ]);
+    const removalClaim = database.allStatements.find((statement) =>
+      statement.sql.includes("UPDATE upload_assets AS asset"));
+    expect(removalClaim?.values[0]).toBe(JSON.stringify([
       previousPath,
       previousThumbnailPath,
-    ]);
+    ]));
+    expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
   });
 
-  it("removes only target-project image paths from legacy metadata", async () => {
+  it("claims only target-project image paths from legacy metadata", async () => {
     const validPath = `${WORKSPACE_ID}/user-1/project-images/${PROJECT_ID}/old-cover.webp`;
     const foreignPath = `${WORKSPACE_ID}/user-1/project-images/33333333-3333-4333-8333-333333333333/foreign-cover.webp`;
-    const removeObjects = vi.fn(async () => undefined);
     const database = new FakeD1Database({
       ...EXISTING,
       metadata: {
@@ -417,7 +453,6 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
       },
     });
     getCloudflareD1Database.mockResolvedValue(database);
-    createRuntimeUploadStorageProvider.mockResolvedValue({ removeObjects });
 
     await updateProjectDetails(
       formData({
@@ -427,7 +462,26 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
       }),
     );
 
-    expect(removeObjects).toHaveBeenCalledWith("project-images", [validPath]);
+    const removalClaim = database.allStatements.find((statement) =>
+      statement.sql.includes("UPDATE upload_assets AS asset"));
+    expect(removalClaim?.values[0]).toBe(JSON.stringify([validPath]));
+    expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it("rejects project details when a selected upload is no longer active", async () => {
+    const database = new FakeD1Database();
+    database.runChanges = 0;
+    getCloudflareD1Database.mockResolvedValue(database);
+    const path = `${WORKSPACE_ID}/user-1/project-images/${PROJECT_ID}/cover.webp`;
+
+    await expect(updateProjectDetails(formData({
+      ...BASE_FORM,
+      clientName: "Old Client",
+      projectImageUrl: `/api/projects/images?path=${path}`,
+      projectImagePath: path,
+    }))).rejects.toThrow(
+      "Project image is no longer active. Upload it again before saving.",
+    );
   });
 
   it("does not fail the save when the audit insert errors (best-effort)", async () => {

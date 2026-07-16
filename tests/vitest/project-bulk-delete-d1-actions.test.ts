@@ -391,7 +391,7 @@ describe("project bulk deletion D1 actions", () => {
     expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
   });
 
-  it("includes project component attachments in deletion cleanup and removes their assets atomically", async () => {
+  it("includes project component attachments in deletion cleanup and queues their assets atomically", async () => {
     const database = new FakeD1Database();
     const attachmentPath = `${WORKSPACE_ID}/${USER_ID}/cabinet-spec.pdf`;
     database.attachmentTargets = [{
@@ -412,11 +412,18 @@ describe("project bulk deletion D1 actions", () => {
     expect(preview.storageTargets).toContainEqual({ bucket: "component-attachments", path: attachmentPath });
     expect(executed.ok).toBe(true);
     expect(database.batchStatements.some((statement) => (
-      statement.sql.includes("UPDATE upload_assets")
-      && statement.sql.includes("status = 'removed'")
+      statement.sql.includes("project_delete_upload_asset_guard")
       && statement.sql.includes("component_variant_attachments")
     ))).toBe(true);
-    expect(removeObjects).toHaveBeenCalledWith("component-attachments", [attachmentPath]);
+    expect(database.batchStatements.some((statement) => (
+      statement.sql.includes("UPDATE upload_assets AS asset")
+      && statement.sql.includes("status = 'removed'")
+    ))).toBe(true);
+    expect(database.batchStatements.some((statement) => (
+      statement.sql.includes("removal_claim_id")
+      && statement.sql.includes("purge_state = 'pending'")
+    ))).toBe(true);
+    expect(removeObjects).not.toHaveBeenCalled();
   });
 
   it("executes project deletion through a D1 batch and rejects stale previews", async () => {
@@ -456,29 +463,17 @@ describe("project bulk deletion D1 actions", () => {
     expect(
       database.batchStatements.map((statement) => statement.sql).join("\n"),
     ).toContain("DELETE FROM projects");
-    expect(createRuntimeUploadStorageProvider).toHaveBeenCalledTimes(1);
-    expect(removeObjects).toHaveBeenCalledWith("project-images", [
-      `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
-      `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
-    ]);
-    expect(executed.storageCleanup).toEqual({
-      removed: [
-        {
-          bucket: "project-images",
-          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
-        },
-        {
-          bucket: "project-images",
-          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
-        },
-      ],
-      rejected: [],
-      failed: [],
-    });
+    const mutationSql = database.batchStatements.map((statement) => statement.sql).join("\n");
+    expect(mutationSql).toContain("removal_claim_id");
+    expect(mutationSql).toContain("purge_state = 'pending'");
+    expect(mutationSql).not.toContain("DELETE FROM upload_sessions");
+    expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+    expect(removeObjects).not.toHaveBeenCalled();
+    expect(executed.storageCleanup).toBeUndefined();
     expect(revalidatePath).toHaveBeenCalledWith("/workshop/projects");
   });
 
-  it("keeps D1 project deletion successful when R2 cleanup fails and reports cleanup failures", async () => {
+  it("does not touch R2 inside project deletion even when the provider is unavailable", async () => {
     const database = new FakeD1Database();
     const removeObjects = vi.fn(async () => {
       throw new Error("R2 unavailable");
@@ -499,21 +494,8 @@ describe("project bulk deletion D1 actions", () => {
     expect(
       database.batchStatements.map((statement) => statement.sql).join("\n"),
     ).toContain("DELETE FROM projects");
-    expect(executed.storageCleanup).toEqual({
-      removed: [],
-      rejected: [],
-      failed: [
-        {
-          bucket: "project-images",
-          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
-          message: "R2 unavailable",
-        },
-        {
-          bucket: "project-images",
-          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
-          message: "R2 unavailable",
-        },
-      ],
-    });
+    expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+    expect(removeObjects).not.toHaveBeenCalled();
+    expect(executed.storageCleanup).toBeUndefined();
   });
 });

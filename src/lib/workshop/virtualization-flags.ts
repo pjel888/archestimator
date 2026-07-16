@@ -34,7 +34,7 @@ export const WORKSHOP_VIRTUALIZATION_DEFAULTS = {
   estimateMasterColumnEstimateSectionHeight: 192,
   estimateMasterColumnOverscan: 5,
   libraryComponentsMinRows: 500,
-  libraryComponentsEstimateRowHeight: 44,
+  libraryComponentsEstimateRowHeight: 64,
   libraryComponentsOverscan: 10,
 } as const;
 
