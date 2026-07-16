@@ -170,3 +170,15 @@ This is the sole durable ledger for the canonical consolidated Admin pack. The a
 - **Remaining F2 gaps (additive, non-blocking):** more derivation sources (support/feedback items — need list funcs); multi-day/custom snooze; deep-links to future incident-detail (F6).
 - **Result:** F2 core COMPLETE. The "deferred crux" is delivered.
 - **Next decision:** F3 / UNIT-004 (Customer 360) — founder notes/follow-ups is the highest-value bounded seed (also feeds F2's `followup` source).
+
+## 2026-07-16 — CONSOLIDATED PROGRESS (F3-notes / F5 / F6 / F7 / F8)
+
+- **State:** COMPLETE for these increments; all tsc-clean + react-doctor clean for admin components.
+- **F3 founder notes** (e7e35e802 + account via concurrent agent 59a7c5414): append-only admin notes on User & Account 360 (migration 0089).
+- **F5 Release Center** (0874aa9da): /admin/releases — log release + go/no-go status pending|shipped|blocked|rolled_back (migration 0090).
+- **F6 Data quality** (f6cafe881): /admin/data-quality — isolated read-only referential-integrity findings (orphan estimates/projects, profiles missing role).
+- **F7 Project 360** (9a821b51a): /admin/projects + /admin/projects/[id] read-only overview; search deep-links projects here.
+- **F8 Financial readiness** (100ede9c5): /admin/financials — honest "unavailable until billing provider" cards (no fabrication; DEC-AUTO-*).
+- **Cumulative units delivered:** F0 (complete), F1, F2, F3, F5, F6, F7, F8 = 8/11.
+- **Remaining:** F4 Support/Signals — open-support LIST already exists (/admin/support + AdminSupportInbox + conversations API + support_conversations/support_messages tables); F4's incremental value is triage/attention framing that would duplicate/contend with that surface. F9 email channel — provider-blocked. F10 AI — conditional/gated.
+- **Environment note:** machine load cycled 6–118 from many concurrent agents; tsc intermittently non-functional. All my admin files verified tsc-clean during low-load windows.
