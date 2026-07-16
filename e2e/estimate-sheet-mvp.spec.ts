@@ -378,6 +378,8 @@ test.describe("Estimate Sheet MVP", () => {
         const countServerActions = (request: Request) => {
           if (request.method() === "POST" && request.headers()["next-action"]) serverActionRequests += 1;
         };
+        await page.waitForTimeout(500);
+        await page.waitForLoadState("networkidle");
         page.on("request", countServerActions);
         const filterStartedAt = await page.evaluate(() => performance.now());
         await filter.click();
