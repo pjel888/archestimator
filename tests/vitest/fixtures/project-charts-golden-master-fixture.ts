@@ -8,8 +8,8 @@
  *   - SPACE: attribute each row to its OWN owning node (kind-agnostic). A row
  *     with a null node falls into "Unassigned space"; a row on a non-area node
  *     (e.g. r4 on the "House" Group) buckets to that node, not an area ancestor.
- *   - CATEGORY: walk to the highest `category` node; organizer-only / null fall
- *     into "Uncategorized".
+ *   - CATEGORY: resolve the captured folder path root; legacy missing labels fall
+ *     into "Uncategorized" without a live taxonomy lookup.
  *   - SUPPLIER: prefer the resolved supplier, then the source_snapshot supplier
  *     name, then the legacy `supplier` text, else "No supplier".
  *   - A bucket present in only one estimate → `deltaPercent === null` ("new").
@@ -55,9 +55,9 @@ export const GOLDEN_SUPPLIERS: ProjectChartSupplierFact[] = [
 export const GOLDEN_ROWS: ProjectChartRowFact[] = [
   // estimate-a
   // r1: Ground Floor / Masonry(top of CHB) / BuildMart; total = 2*100 + 25 = 225
-  { id: "r1", estimateId: "estimate-a", nodeId: "area-ground-a", categoryNodeId: "subcat-chb", supplierId: "supplier-bm", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 2, unitCost: 100, miscCost: 25 },
+  { id: "r1", estimateId: "estimate-a", nodeId: "area-ground-a", categoryNodeId: "subcat-chb", category: "CHB", categoryId: "subcat-chb", categoryPath: ["Masonry", "CHB"], categoryPathIds: ["cat-masonry", "subcat-chb"], supplierId: "supplier-bm", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 2, unitCost: 100, miscCost: 25 },
   // r2: Roof / Concrete / source_snapshot supplier "Acme Steel"; total = 100
-  { id: "r2", estimateId: "estimate-a", nodeId: "area-roof-a", categoryNodeId: "cat-concrete", supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: "Acme Steel", quantity: 1, unitCost: 100, miscCost: 0 },
+  { id: "r2", estimateId: "estimate-a", nodeId: "area-roof-a", categoryNodeId: "cat-concrete", category: "Concrete", categoryId: "cat-concrete", categoryPath: ["Concrete"], categoryPathIds: ["cat-concrete"], supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: "Acme Steel", quantity: 1, unitCost: 100, miscCost: 0 },
   // r3: null node / organizer-only / no supplier; total = 50  -> Unassigned space, Uncategorized, No supplier
   { id: "r3", estimateId: "estimate-a", nodeId: null, categoryNodeId: "organizer", supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 50, miscCost: 0 },
   // r4: Group node "House" (no Area ancestor) / null category / legacy supplier text "Legacy Co"; total = 30
@@ -65,9 +65,9 @@ export const GOLDEN_ROWS: ProjectChartRowFact[] = [
   { id: "r4", estimateId: "estimate-a", nodeId: "group-house-a", categoryNodeId: null, supplierId: null, supplierName: "Legacy Co", sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 30, miscCost: 0 },
   // estimate-b
   // r5: Ground Floor / Masonry / BuildMart; total = 100
-  { id: "r5", estimateId: "estimate-b", nodeId: "area-ground-b", categoryNodeId: "subcat-chb", supplierId: "supplier-bm", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 100, miscCost: 0 },
+  { id: "r5", estimateId: "estimate-b", nodeId: "area-ground-b", categoryNodeId: "subcat-chb", category: "CHB", categoryId: "subcat-chb", categoryPath: ["Masonry", "CHB"], categoryPathIds: ["cat-masonry", "subcat-chb"], supplierId: "supplier-bm", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 100, miscCost: 0 },
   // r6: MEP / Concrete / "Acme Steel"; total = 200
-  { id: "r6", estimateId: "estimate-b", nodeId: "area-mep-b", categoryNodeId: "cat-concrete", supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: "Acme Steel", quantity: 2, unitCost: 100, miscCost: 0 },
+  { id: "r6", estimateId: "estimate-b", nodeId: "area-mep-b", categoryNodeId: "cat-concrete", category: "Concrete", categoryId: "cat-concrete", categoryPath: ["Concrete"], categoryPathIds: ["cat-concrete"], supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: "Acme Steel", quantity: 2, unitCost: 100, miscCost: 0 },
 ];
 
 export const GOLDEN_AGGREGATION_INPUT = {
@@ -103,7 +103,7 @@ export const GOLDEN_EXPECTED: Record<
     "estimate-a": [
       { id: "cat-masonry", label: "Masonry", total: 225, rowCount: 1 },
       { id: "cat-concrete", label: "Concrete", total: 100, rowCount: 1 },
-      { id: "uncategorized", label: "Uncategorized", total: 80, rowCount: 2 },
+      { id: "legacy:uncategorized", label: "Uncategorized", total: 80, rowCount: 2 },
     ],
     "estimate-b": [
       { id: "cat-concrete", label: "Concrete", total: 200, rowCount: 1 },

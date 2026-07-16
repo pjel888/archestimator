@@ -24,14 +24,12 @@ import type {
  */
 type BucketLookups = {
   nodeById: Map<string, ProjectChartNodeFact>;
-  categoryById: Map<string, ProjectChartCategoryNodeFact>;
   supplierById: Map<string, ProjectChartSupplierFact>;
 };
 
 function createBucketLookups(input: ProjectChartsAggregationBase): BucketLookups {
   return {
     nodeById: new Map(input.nodes.map((node) => [node.id, node])),
-    categoryById: new Map(input.categoryNodes.map((node) => [node.id, node])),
     supplierById: new Map(input.suppliers.map((supplier) => [supplier.id, supplier])),
   };
 }
@@ -40,6 +38,7 @@ type ProjectChartsAggregationBase = {
   estimates: ProjectChartEstimateOption[];
   rows: ProjectChartRowFact[];
   nodes: ProjectChartNodeFact[];
+  /** @deprecated Retained for raw-facts API compatibility; category aggregation ignores it. */
   categoryNodes: ProjectChartCategoryNodeFact[];
   suppliers: ProjectChartSupplierFact[];
   groupingMode: ProjectChartGroupingMode;
@@ -208,7 +207,9 @@ function buildSeries(
     tableRows:
       input.groupingMode === "space"
         ? buildSpaceTableRows(input, estimateId, allBuckets, total)
-        : allBuckets.map((bucket) => ({
+        : input.groupingMode === "category"
+          ? buildCategoryTableRows(input.rows, estimateId, total)
+          : allBuckets.map((bucket) => ({
             id: bucket.id,
             label: bucket.label,
             total: bucket.total,
@@ -227,7 +228,7 @@ function resolveBucket(input: ProjectChartsAggregationBase, lookups: BucketLooku
   }
 
   if (input.groupingMode === "category") {
-    return resolveCategoryBucket(lookups.categoryById, row);
+    return resolveCategoryBucket(row);
   }
 
   return resolveSupplierBucket(lookups.supplierById, row);
@@ -395,26 +396,169 @@ function buildSpaceTableRows(
   }));
 }
 
-function resolveCategoryBucket(nodeById: Map<string, ProjectChartCategoryNodeFact>, row: ProjectChartRowFact): ResolvedBucket {
-  let current = row.categoryNodeId ? nodeById.get(row.categoryNodeId) : undefined;
-  let topCategory: ProjectChartCategoryNodeFact | undefined;
+type CategoryPathSegment = {
+  id: string;
+  label: string;
+};
 
-  while (current) {
-    if (current.nodeType === "category") {
-      topCategory = current;
-    }
+type CategoryTreeNode = {
+  pathKey: string;
+  rootBucketId: string;
+  label: string;
+  ownTotal: number;
+  ownRowCount: number;
+  children: Map<string, CategoryTreeNode>;
+};
 
-    if (!current.parentId) {
-      break;
-    }
+function resolveCategoryBucket(row: ProjectChartRowFact): ResolvedBucket {
+  const root = resolveCategoryPath(row)[0] ?? {
+    id: legacyCategoryId("Uncategorized"),
+    label: "Uncategorized",
+  };
+  return { id: root.id, label: root.label };
+}
 
-    current = nodeById.get(current.parentId);
+function resolveCategoryPath(row: ProjectChartRowFact): CategoryPathSegment[] {
+  const labels = normalizeCategoryPathValues(row.categoryPath);
+  const ids = normalizeCategoryPathValues(row.categoryPathIds);
+
+  if (labels.length > 0 && labels.length === ids.length) {
+    return labels.map((label, index) => ({ id: ids[index] ?? legacyCategoryId(label), label }));
   }
 
-  return {
-    id: topCategory?.id ?? "uncategorized",
-    label: topCategory?.label ?? "Uncategorized",
-  };
+  if (labels.length > 0) {
+    const leafId = labels.length === 1 ? normalizeCategoryLabel(row.categoryId) : null;
+    if (leafId) return [{ id: leafId, label: labels[0] ?? "Uncategorized" }];
+    return labels.map((label) => ({ id: legacyCategoryId(label), label }));
+  }
+
+  const capturedLeafLabel = normalizeCategoryLabel(row.category);
+  const leafLabel = capturedLeafLabel ?? "Uncategorized";
+  const leafId = capturedLeafLabel
+    ? normalizeCategoryLabel(row.categoryId) ?? legacyCategoryId(leafLabel)
+    : legacyCategoryId(leafLabel);
+  return [{ id: leafId, label: leafLabel }];
+}
+
+function buildCategoryTableRows(
+  rows: ProjectChartRowFact[],
+  estimateId: string,
+  seriesTotal: number,
+): ProjectChartTableRow[] {
+  const roots = new Map<string, CategoryTreeNode>();
+
+  for (const row of rows) {
+    if (row.estimateId !== estimateId) continue;
+
+    const path = resolveCategoryPath(row);
+    const pathIds: string[] = [];
+    let siblings = roots;
+    let leaf: CategoryTreeNode | null = null;
+
+    for (const segment of path) {
+      pathIds.push(segment.id);
+      const pathKey = pathIds.join("/");
+      const existing = siblings.get(pathKey);
+      leaf = existing ?? {
+        pathKey,
+        rootBucketId: path[0]?.id ?? legacyCategoryId("Uncategorized"),
+        label: segment.label,
+        ownTotal: 0,
+        ownRowCount: 0,
+        children: new Map(),
+      };
+      siblings.set(pathKey, leaf);
+      siblings = leaf.children;
+    }
+
+    if (leaf) {
+      leaf.ownTotal += calculateProjectChartRowTotal(row);
+      leaf.ownRowCount += 1;
+    }
+  }
+
+  function renderNode(node: CategoryTreeNode, depth: number): {
+    rows: ProjectChartTableRow[];
+    total: number;
+    rowCount: number;
+  } {
+    const renderedChildren = [...node.children.values()]
+      .sort((left, right) => left.label.localeCompare(right.label) || left.pathKey.localeCompare(right.pathKey))
+      .map((child) => renderNode(child, depth + 1));
+    const descendantTotal = renderedChildren.reduce((sum, child) => sum + child.total, 0);
+    const descendantRowCount = renderedChildren.reduce((sum, child) => sum + child.rowCount, 0);
+    const total = node.ownTotal + descendantTotal;
+    const rowCount = node.ownRowCount + descendantRowCount;
+    const color = colorForBucket(node.rootBucketId);
+
+    if (renderedChildren.length === 0) {
+      return {
+        total,
+        rowCount,
+        rows: [{
+          id: `category:${node.pathKey}`,
+          label: node.label,
+          total,
+          share: getShare(total, seriesTotal),
+          rowCount,
+          color,
+          depth,
+          kind: "bucket",
+        }],
+      };
+    }
+
+    const tableRows: ProjectChartTableRow[] = [{
+      id: `category:${node.pathKey}`,
+      label: node.label,
+      total,
+      share: getShare(total, seriesTotal),
+      rowCount,
+      color: null,
+      depth,
+      kind: "group",
+    }];
+
+    if (node.ownRowCount > 0) {
+      tableRows.push({
+        id: `category:${node.pathKey}:own`,
+        label: "Own items",
+        total: node.ownTotal,
+        share: getShare(node.ownTotal, seriesTotal),
+        rowCount: node.ownRowCount,
+        color,
+        depth: depth + 1,
+        kind: "bucket",
+      });
+    }
+
+    for (const child of renderedChildren) {
+      tableRows.push(...child.rows);
+    }
+
+    return { rows: tableRows, total, rowCount };
+  }
+
+  return [...roots.values()]
+    .sort((left, right) => left.label.localeCompare(right.label) || left.pathKey.localeCompare(right.pathKey))
+    .flatMap((root) => renderNode(root, 0).rows);
+}
+
+function normalizeCategoryPathValues(values: string[] | undefined): string[] {
+  return Array.isArray(values)
+    ? values.map((value) => normalizeCategoryLabel(value)).filter((value): value is string => value !== null)
+    : [];
+}
+
+function normalizeCategoryLabel(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function legacyCategoryId(label: string): string {
+  const normalized = label.trim().toLowerCase().replace(/\s+/g, " ");
+  return `legacy:${encodeURIComponent(normalized || "uncategorized")}`;
 }
 
 function resolveSupplierBucket(supplierById: Map<string, ProjectChartSupplierFact>, row: ProjectChartRowFact): ResolvedBucket {

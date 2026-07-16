@@ -102,6 +102,10 @@ describe("project charts D1 repository", () => {
         node_id: "area-1",
         source_snapshot_json: JSON.stringify({
           categoryNodeId: "category-1",
+          category: "Flooring",
+          categoryId: "folder-flooring",
+          categoryPath: ["Finishes", "Flooring"],
+          categoryPathIds: ["folder-finishes", "folder-flooring"],
           supplierId: "supplier-1",
           supplier: "Acme Supply",
         }),
@@ -113,15 +117,6 @@ describe("project charts D1 repository", () => {
         contingency_percentage: 0,
         adjustment_percentage: 0,
         misc_cost: 5,
-      },
-    ];
-    database.categoryNodes = [
-      {
-        id: "category-1",
-        parent_id: null,
-        node_type: "category",
-        label: "Finishes",
-        sort_order: 1,
       },
     ];
     database.suppliers = [
@@ -149,6 +144,7 @@ describe("project charts D1 repository", () => {
     expect(findPrepared(database, /FROM estimates/).values).toEqual(["project-1", 101]);
     expect(findPrepared(database, /FROM estimate_row_items/).values).toEqual(["estimate-1", 5001]);
     expect(findPrepared(database, /FROM component_suppliers/).values).toEqual(["workspace-1", 1001]);
+    expect(database.prepared.some((entry) => entry.sql.includes("component_category_nodes"))).toBe(false);
     expect(result?.estimateOptions).toEqual([
       {
         id: "estimate-1",
@@ -162,6 +158,7 @@ describe("project charts D1 repository", () => {
     ]);
     expect(result?.seriesByEstimateId["estimate-1"]?.space.total).toBe(65);
     expect(result?.seriesByEstimateId["estimate-1"]?.category.allBuckets[0]?.label).toBe("Finishes");
+    expect(result?.seriesByEstimateId["estimate-1"]?.category.allBuckets[0]?.id).toBe("folder-finishes");
     expect(result?.seriesByEstimateId["estimate-1"]?.supplier.allBuckets[0]?.label).toBe("Acme Supply");
   });
 

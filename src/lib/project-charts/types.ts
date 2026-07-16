@@ -15,6 +15,10 @@ export type ProjectChartRowFact = {
   estimateId: string;
   nodeId: string | null;
   categoryNodeId: string | null;
+  category?: string | null;
+  categoryId?: string | null;
+  categoryPath?: string[];
+  categoryPathIds?: string[];
   supplierId: string | null;
   supplierName: string | null;
   sourceSupplierId: string | null;
@@ -38,6 +42,7 @@ export type ProjectChartNodeFact = {
   sortOrder: number;
 };
 
+/** @deprecated Category charts use captured row snapshot paths, not live taxonomy facts. */
 export type ProjectChartCategoryNodeFact = {
   id: string;
   parentId: string | null;
@@ -81,8 +86,8 @@ export type ProjectChartEstimateSeries = Record<ProjectChartGroupingMode, Projec
 /**
  * The charts data contract. Aggregation now runs server-side (`02` DB-4 /
  * `01` PERF-2): the repository ships pre-bucketed series per loaded estimate, NOT
- * the raw `estimate_row_items` / `estimate_nodes` / `component_category_nodes` /
- * `component_suppliers` facts. This closes the data-minimization finding
+ * the raw `estimate_row_items` / `estimate_nodes` / `component_suppliers` facts.
+ * Category identity is resolved from captured row snapshots. This closes the data-minimization finding
  * (`05` SEC-1 / M5) — qty / unit cost / supplier ids never cross the wire — and
  * collapses the payload from ~MB of rows to ~KB of buckets.
  */

@@ -29,6 +29,7 @@ const ROW_ID = "44444444-4444-4444-8444-444444444444";
 const ITEM_ID = "55555555-5555-4555-8555-555555555555";
 const PRICE_OPTION_ID = "66666666-6666-4666-8666-666666666666";
 const COST_ENTRY_ID = "77777777-7777-4777-8777-777777777777";
+const LIBRARY_FOLDER_ID = "88888888-8888-4888-8888-888888888888";
 
 function createOverviewPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -66,6 +67,19 @@ function createCategoryRows() {
   ];
 }
 
+function createLibraryFolderRow() {
+  return {
+    id: LIBRARY_FOLDER_ID,
+    workspace_id: WORKSPACE.id,
+    parent_id: null,
+    name: "Concrete",
+    sort_order: 10,
+    source_category_node_id: null,
+    folder_kind: "custom",
+    is_default_category: 0,
+  };
+}
+
 function createCostLibraryItemRow(overrides: Record<string, unknown> = {}) {
   return {
     id: ITEM_ID,
@@ -78,7 +92,7 @@ function createCostLibraryItemRow(overrides: Record<string, unknown> = {}) {
     brand_id: null,
     category: "Concrete",
     category_node_id: "category-concrete",
-    library_folder_id: null,
+    library_folder_id: LIBRARY_FOLDER_ID,
     unit: "bag",
     unit_cost: 100,
     misc_cost: 5,
@@ -249,7 +263,7 @@ function createComponentLibraryD1Payload(overrides: Partial<ComponentLibraryD1Pa
         sort_order: 1,
       },
     ],
-    libraryFolders: [],
+    libraryFolders: [createLibraryFolderRow()],
     itemRows: [createCostLibraryItemRow()],
     priceOptions: [createPriceOptionRow()],
     costEntries: [createCostEntryRow()],
@@ -339,8 +353,8 @@ class FakeComponentLibraryD1Database {
     if (sql.includes("COUNT(*) AS count FROM cost_library_items")) {
       return { count: overview.componentCount } as T;
     }
-    if (sql.includes("COUNT(*) AS count FROM component_category_nodes")) {
-      const count = this.payload.categoryRows.filter((row) => row.parent_id === null).length;
+    if (sql.includes("COUNT(*) AS count FROM library_folders")) {
+      const count = this.payload.libraryFolders.filter((row) => row.parent_id === null).length;
       return { count } as T;
     }
     if (sql.includes("COUNT(*) AS count FROM component_suppliers")) {
@@ -488,7 +502,7 @@ describe("component library Cloudflare D1 app-path contract", () => {
     expect(database.prepared.map((entry) => entry.sql)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("FROM cost_library_items"),
-        expect.stringContaining("FROM component_category_nodes"),
+        expect.stringContaining("FROM library_folders"),
         expect.stringContaining("FROM component_suppliers"),
         expect.stringContaining("FROM component_brands"),
         expect.stringContaining("FROM estimate_templates"),
@@ -562,7 +576,7 @@ describe("component library browse and template D1 contract", () => {
 
     expect(database.prepared.map((entry) => entry.sql)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("FROM component_category_nodes"),
+        expect.stringContaining("FROM library_folders"),
         expect.stringContaining("FROM cost_library_items"),
         expect.stringContaining("FROM cost_library_item_price_options"),
         expect.stringContaining("FROM cost_library_item_variant_cost_entries"),

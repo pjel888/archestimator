@@ -14,15 +14,13 @@ import type {
 /**
  * Cache freshness contract (`09` P2.8 / `13` R-3 / `10` D-13).
  *
- * The project data surface reads shared taxonomy/supplier facts. The freshness guarantee
+ * The project data surface reads captured category snapshots and shared supplier facts.
  * is two-fold and proven here:
- *   1. Labels are derived from the live category/supplier facts at aggregation
- *      time — changing a label changes the bucket output, so nothing stale is baked
- *      into a returned bucket.
+ *   1. Category labels remain immutable from the estimate-row snapshot while supplier
+ *      labels continue to resolve from current supplier facts.
  *   2. The route renders dynamically (per-request server client + searchParams), so
  *      there is no static page cache for a component-library mutation to stale.
- * Together these mean a category/supplier rename can NOT leave a stale data route
- * — no extra revalidation of the charts path is required.
+ * Together these mean category history remains stable while supplier renames stay fresh.
  */
 
 const estimates: ProjectChartEstimateOption[] = [
@@ -32,7 +30,7 @@ const nodes: ProjectChartNodeFact[] = [
   { id: "area-1", estimateId: "estimate-a", parentId: null, kind: "Area", name: "Ground Floor", sortOrder: 1 },
 ];
 const rows: ProjectChartRowFact[] = [
-  { id: "r1", estimateId: "estimate-a", nodeId: "area-1", categoryNodeId: "cat-1", supplierId: "sup-1", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 100, miscCost: 0 },
+  { id: "r1", estimateId: "estimate-a", nodeId: "area-1", categoryNodeId: "cat-1", category: "Masonry", categoryId: "cat-1", categoryPath: ["Masonry"], categoryPathIds: ["cat-1"], supplierId: "sup-1", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 100, miscCost: 0 },
 ];
 
 function categoryFacts(label: string): ProjectChartCategoryNodeFact[] {
@@ -43,7 +41,7 @@ function supplierFacts(name: string): ProjectChartSupplierFact[] {
 }
 
 describe("project data cache freshness (P2.8 / R-3)", () => {
-  it("derives category bucket labels from the current category facts (no stale label)", () => {
+  it("keeps category bucket labels from the captured row snapshot", () => {
     const before = buildSeriesByEstimate(
       { estimates, rows, nodes, categoryNodes: categoryFacts("Masonry"), suppliers: supplierFacts("BuildMart") },
       ["estimate-a"],
@@ -53,7 +51,7 @@ describe("project data cache freshness (P2.8 / R-3)", () => {
       ["estimate-a"],
     );
     expect(before["estimate-a"].category.allBuckets[0].label).toBe("Masonry");
-    expect(after["estimate-a"].category.allBuckets[0].label).toBe("Concrete Works");
+    expect(after["estimate-a"].category.allBuckets[0].label).toBe("Masonry");
   });
 
   it("derives supplier bucket labels from the current supplier facts (no stale label)", () => {

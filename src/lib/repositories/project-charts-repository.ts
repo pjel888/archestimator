@@ -4,7 +4,6 @@ import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total"
 import { buildSeriesByEstimate } from "../project-charts/project-comparison-view";
 import { getCurrentWorkspaceProject } from "./workspace-repository";
 import type {
-  ProjectChartCategoryNodeFact,
   ProjectChartEstimateOption,
   ProjectChartNodeFact,
   ProjectChartRowFact,
@@ -16,7 +15,6 @@ const ESTIMATE_CHART_LIMIT = 20;
 const ESTIMATE_OPTION_LIMIT = 100;
 const ESTIMATE_ROW_LIMIT = 5000;
 const ESTIMATE_NODE_LIMIT = 1500;
-const CATEGORY_FACT_LIMIT = 1000;
 const SUPPLIER_FACT_LIMIT = 1000;
 const SELECTED_ESTIMATE_LOAD_LIMIT = 3;
 
@@ -50,13 +48,6 @@ type EstimateNodeChartRow = {
   id: string;
   kind: string | null;
   name: string | null;
-  parent_id: string | null;
-  sort_order: number | null;
-};
-type ComponentCategoryNodeD1Row = {
-  id: string;
-  label: string | null;
-  node_type: string | null;
   parent_id: string | null;
   sort_order: number | null;
 };
@@ -121,15 +112,13 @@ export async function getProjectChartsData(
         : defaultEstimateIds
       : estimates.map((estimate) => estimate.id);
 
-  const [rowFactsResult, nodeFactsResult, categoryNodeFactsResult, supplierFactsResult] = await Promise.all([
+  const [rowFactsResult, nodeFactsResult, supplierFactsResult] = await Promise.all([
     loadRowFacts(database, estimateIdsToLoad),
     loadNodeFacts(database, estimateIdsToLoad),
-    loadCategoryFacts(database),
     loadSupplierFacts(database, workspace.id),
   ]);
   const rowFacts = rowFactsResult.rows;
   const nodeFacts = nodeFactsResult.rows;
-  const categoryNodeFacts = categoryNodeFactsResult.rows;
   const supplierFacts = supplierFactsResult.rows;
   const didHitRowLimit = rowFactsResult.didHitLimit;
   const didHitNodeLimit = nodeFactsResult.didHitLimit;
@@ -155,7 +144,7 @@ export async function getProjectChartsData(
   });
 
   // Aggregate server-side and ship only pre-bucketed series (`02` DB-4 / `01`
-  // PERF-2). The raw rowFacts / nodeFacts / categoryNodeFacts / supplierFacts stay
+  // PERF-2). The raw rowFacts / nodeFacts / supplierFacts stay
   // on the server — qty, unit cost, contingency, and supplier ids never cross the
   // wire (`05` SEC-1). This is the repository-reduce form of PERF-2; an equivalent
   // `get_project_chart_buckets` RPC is provided as a ready migration for a future
@@ -165,7 +154,7 @@ export async function getProjectChartsData(
       estimates: estimateOptions,
       rows: rowFacts,
       nodes: nodeFacts,
-      categoryNodes: categoryNodeFacts,
+      categoryNodes: [],
       suppliers: supplierFacts,
     },
     estimateIdsToLoad,
@@ -174,7 +163,6 @@ export async function getProjectChartsData(
   const didTruncate =
     didHitRowLimit
     || didHitNodeLimit
-    || categoryNodeFactsResult.didHitLimit
     || supplierFactsResult.didHitLimit;
 
   return {
@@ -246,11 +234,17 @@ async function loadRowFacts(
       const sourceSnapshot = readJsonRecord(row.source_snapshot_json);
       const metadata = readJsonRecord(row.metadata_json);
       const supplierId = readString(sourceSnapshot.supplierId);
+      const categoryPath = readStringArray(sourceSnapshot.categoryPath);
+      const categoryPathIds = readStringArray(sourceSnapshot.categoryPathIds);
       return {
         id: row.id,
         estimateId: row.estimate_id,
         nodeId: row.node_id,
         categoryNodeId: readString(sourceSnapshot.categoryNodeId),
+        category: readString(sourceSnapshot.category),
+        categoryId: readString(sourceSnapshot.categoryId),
+        categoryPath,
+        categoryPathIds,
         supplierId,
         supplierName: readString(sourceSnapshot.supplier),
         sourceSupplierId: supplierId,
@@ -293,36 +287,6 @@ async function loadNodeFacts(
       parentId: node.parent_id,
       kind: node.kind === "area" ? "Area" : "Group",
       name: node.name ?? "",
-      sortOrder: node.sort_order ?? 0,
-    })),
-  };
-}
-
-async function loadCategoryFacts(
-  database: D1DatabaseLike,
-): Promise<LimitedLoadResult<ProjectChartCategoryNodeFact>> {
-  // `component_category_nodes` is a GLOBAL taxonomy by design — it has no
-  // workspace_id column and a `using(true)` read policy (`02` DB-1). The absence
-  // of a workspace filter here is intentional, NOT a leak: buckets key on the
-  // global category id, so two workspaces using the same category share a bucket.
-  // Do not "fix" this into a workspace filter unless the taxonomy becomes scoped.
-  const data = await allOptional<ComponentCategoryNodeD1Row>(
-    database,
-    `SELECT id, parent_id, node_type, label, sort_order
-     FROM component_category_nodes
-     ORDER BY sort_order ASC, id ASC
-     LIMIT ?`,
-    [CATEGORY_FACT_LIMIT + 1],
-  );
-
-  const limitedRows = limitLoadedRows(data, CATEGORY_FACT_LIMIT);
-  return {
-    didHitLimit: limitedRows.didHitLimit,
-    rows: limitedRows.rows.map((node) => ({
-      id: node.id,
-      parentId: node.parent_id,
-      nodeType: node.node_type,
-      label: node.label ?? "Uncategorized",
       sortOrder: node.sort_order ?? 0,
     })),
   };
@@ -385,6 +349,13 @@ function readJsonRecord(value: unknown): JsonRecord {
 
 function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => readString(entry))
+    .filter((entry): entry is string => entry !== null);
 }
 
 function finite(value: number): number {

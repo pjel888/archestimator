@@ -69,8 +69,8 @@ describe("project chart aggregation", () => {
     expect(repositorySource).toContain("ESTIMATE_OPTION_LIMIT + 1");
     expect(repositorySource).toContain("ESTIMATE_ROW_LIMIT + 1");
     expect(repositorySource).toContain("ESTIMATE_NODE_LIMIT + 1");
-    expect(repositorySource).toContain("CATEGORY_FACT_LIMIT + 1");
     expect(repositorySource).toContain("SUPPLIER_FACT_LIMIT + 1");
+    expect(repositorySource).not.toContain("component_category_nodes");
     expect(repositorySource).toContain("defaultEstimateIds");
     expect(repositorySource).toContain("didHitRowLimit");
     expect(repositorySource).toContain("didHitNodeLimit");
@@ -92,10 +92,19 @@ describe("project chart aggregation", () => {
     ).toBe(10.01);
   });
 
-  it("groups rows by their OWN owning node, top category, and supplier label precedence", () => {
+  it("groups rows by their OWN owning node, captured root category, and supplier label precedence", () => {
     const rows: ProjectChartRowFact[] = [
-      row("estimate-a", "row-a", "group-1", "subcategory-1", "supplier-1", 2, 100, 25),
+      row("estimate-a", "row-a", "group-1", "subcategory-1", "supplier-1", 2, 100, 25, {
+        category: "CHB",
+        categoryId: "subcategory-1",
+        categoryPath: ["Masonry", "CHB"],
+        categoryPathIds: ["category-1", "subcategory-1"],
+      }),
       row("estimate-b", "row-b", "group-2", "subcategory-1", null, 3, 100, 0, {
+        category: "CHB",
+        categoryId: "subcategory-1",
+        categoryPath: ["Masonry", "CHB"],
+        categoryPathIds: ["category-1", "subcategory-1"],
         sourceSupplierName: "Snapshot Supplier",
       }),
     ];
@@ -143,10 +152,12 @@ describe("project chart aggregation", () => {
     ).toMatchObject({ id: "supplier-1", label: "BuildMart" });
   });
 
-  it("does not report organizers as category buckets", () => {
+  it("uses captured legacy labels instead of resolving legacy taxonomy ids", () => {
     const comparison = buildProjectChartComparison({
       estimates,
-      rows: [row("estimate-a", "row-a", "group-1", "organizer", null, 1, 100, 0)],
+      rows: [row("estimate-a", "row-a", "group-1", "organizer", null, 1, 100, 0, {
+        category: "General Requirements",
+      })],
       nodes,
       categoryNodes,
       suppliers,
@@ -155,7 +166,10 @@ describe("project chart aggregation", () => {
       rightEstimateId: "estimate-b",
     });
 
-    expect(comparison.left.allBuckets[0]).toMatchObject({ id: "uncategorized", label: "Uncategorized" });
+    expect(comparison.left.allBuckets[0]).toMatchObject({
+      id: "legacy:general%20requirements",
+      label: "General Requirements",
+    });
   });
 
   it("aligns same-named spaces across duplicated estimate trees", () => {
@@ -267,6 +281,52 @@ describe("project chart aggregation", () => {
     expect(tableRows.some((r) => r.id === "area:group-mix:own" && r.total === 90)).toBe(true);
   });
 
+  it("keeps captured category paths distinct and rolls hierarchy totals without double-counting", () => {
+    const comparison = buildProjectChartComparison({
+      estimates,
+      rows: [
+        row("estimate-a", "root-own", "group-1", null, null, 1, 30, 0, {
+          category: "Trades",
+          categoryId: "root-a",
+          categoryPath: ["Trades"],
+          categoryPathIds: ["root-a"],
+        }),
+        row("estimate-a", "leaf-a", "group-1", null, null, 1, 100, 0, {
+          category: "Flooring",
+          categoryId: "shared-leaf",
+          categoryPath: ["Trades", "Flooring"],
+          categoryPathIds: ["root-a", "shared-leaf"],
+        }),
+        row("estimate-a", "leaf-b", "group-1", null, null, 1, 50, 0, {
+          category: "Flooring",
+          categoryId: "shared-leaf",
+          categoryPath: ["Interiors", "Flooring"],
+          categoryPathIds: ["root-b", "shared-leaf"],
+        }),
+      ],
+      nodes,
+      categoryNodes,
+      suppliers,
+      groupingMode: "category",
+      leftEstimateId: "estimate-a",
+      rightEstimateId: "estimate-b",
+    });
+
+    expect(comparison.left.allBuckets).toEqual([
+      expect.objectContaining({ id: "root-a", label: "Trades", total: 130, rowCount: 2 }),
+      expect.objectContaining({ id: "root-b", label: "Interiors", total: 50, rowCount: 1 }),
+    ]);
+    expect(comparison.left.tableRows).toEqual([
+      expect.objectContaining({ id: "category:root-b", label: "Interiors", kind: "group", total: 50 }),
+      expect.objectContaining({ id: "category:root-b/shared-leaf", label: "Flooring", kind: "bucket", total: 50 }),
+      expect.objectContaining({ id: "category:root-a", label: "Trades", kind: "group", total: 130 }),
+      expect.objectContaining({ id: "category:root-a:own", label: "Own items", kind: "bucket", total: 30 }),
+      expect.objectContaining({ id: "category:root-a/shared-leaf", label: "Flooring", kind: "bucket", total: 100 }),
+    ]);
+    const moneyRows = comparison.left.tableRows.filter((tableRow) => tableRow.kind === "bucket");
+    expect(moneyRows.reduce((sum, tableRow) => sum + tableRow.total, 0)).toBe(comparison.left.total);
+  });
+
   it("collapses visual chart buckets after the top eight while table rows keep all buckets", () => {
     const rows: ProjectChartRowFact[] = Array.from({ length: 10 }, (_, index) =>
       row("estimate-a", `row-${index}`, "group-1", "subcategory-1", `supplier-${index}`, 1, 100 - index, 0, {
@@ -294,7 +354,12 @@ describe("project chart aggregation", () => {
   it("marks delta percent as new when the baseline bucket is zero", () => {
     const comparison = buildProjectChartComparison({
       estimates,
-      rows: [row("estimate-b", "row-b", "group-2", "subcategory-1", null, 1, 100, 0)],
+      rows: [row("estimate-b", "row-b", "group-2", "subcategory-1", null, 1, 100, 0, {
+        category: "CHB",
+        categoryId: "subcategory-1",
+        categoryPath: ["Masonry", "CHB"],
+        categoryPathIds: ["category-1", "subcategory-1"],
+      })],
       nodes,
       categoryNodes,
       suppliers,

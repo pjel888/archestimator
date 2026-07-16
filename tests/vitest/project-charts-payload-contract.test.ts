@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 
 import { buildSeriesByEstimate } from "@/lib/project-charts/project-comparison-view";
 import type {
-  ProjectChartCategoryNodeFact,
   ProjectChartEstimateOption,
   ProjectChartNodeFact,
   ProjectChartRowFact,
@@ -66,8 +65,8 @@ describe("project charts payload contract (P2.4 / R-2)", () => {
   });
 });
 
-describe("project charts global taxonomy invariant (`02` DB-1)", () => {
-  it("builds category buckets from the global component_category_nodes taxonomy without workspace/project filtering", () => {
+describe("project charts captured category invariant", () => {
+  it("builds category buckets from each estimate row's captured folder path", () => {
     // Simulate two estimates belonging to different workspaces/projects.
     const estimateA: ProjectChartEstimateOption = {
       id: "ws-a-proj-1-estimate",
@@ -88,12 +87,6 @@ describe("project charts global taxonomy invariant (`02` DB-1)", () => {
       totalCost: 0,
     };
 
-    // Global taxonomy nodes — the same ids would be shared across all workspaces.
-    const globalCategories: ProjectChartCategoryNodeFact[] = [
-      { id: "global-cat-concrete", parentId: null, nodeType: "category", label: "Concrete", sortOrder: 0 },
-      { id: "global-cat-steel", parentId: null, nodeType: "category", label: "Steel", sortOrder: 1 },
-    ];
-
     const nodes: ProjectChartNodeFact[] = [
       { id: "node-a-1", estimateId: estimateA.id, parentId: null, kind: "Area", name: "Area A1", sortOrder: 0 },
       { id: "node-b-1", estimateId: estimateB.id, parentId: null, kind: "Area", name: "Area B1", sortOrder: 0 },
@@ -110,6 +103,10 @@ describe("project charts global taxonomy invariant (`02` DB-1)", () => {
         estimateId: estimateA.id,
         nodeId: "node-a-1",
         categoryNodeId: "global-cat-concrete",
+        category: "Ready Mix",
+        categoryId: "folder-ready-mix",
+        categoryPath: ["Concrete", "Ready Mix"],
+        categoryPathIds: ["folder-concrete", "folder-ready-mix"],
         supplierId: "supplier-a",
         supplierName: null,
         sourceSupplierId: null,
@@ -123,6 +120,10 @@ describe("project charts global taxonomy invariant (`02` DB-1)", () => {
         estimateId: estimateB.id,
         nodeId: "node-b-1",
         categoryNodeId: "global-cat-steel",
+        category: "Structural Steel",
+        categoryId: "folder-structural-steel",
+        categoryPath: ["Steel", "Structural Steel"],
+        categoryPathIds: ["folder-steel", "folder-structural-steel"],
         supplierId: "supplier-b",
         supplierName: null,
         sourceSupplierId: null,
@@ -138,7 +139,7 @@ describe("project charts global taxonomy invariant (`02` DB-1)", () => {
         estimates: [estimateA, estimateB],
         rows,
         nodes,
-        categoryNodes: globalCategories,
+        categoryNodes: [],
         suppliers,
       },
       [estimateA.id, estimateB.id],
@@ -147,14 +148,11 @@ describe("project charts global taxonomy invariant (`02` DB-1)", () => {
     const categoryBucketsA = seriesByEstimateId[estimateA.id]?.category.allBuckets ?? [];
     const categoryBucketsB = seriesByEstimateId[estimateB.id]?.category.allBuckets ?? [];
 
-    // Each estimate should resolve its row against the same global category ids,
-    // proving the taxonomy is not scoped or filtered by workspace/project.
-    expect(categoryBucketsA.map((bucket) => bucket.id)).toContain("global-cat-concrete");
-    expect(categoryBucketsB.map((bucket) => bucket.id)).toContain("global-cat-steel");
+    expect(categoryBucketsA.map((bucket) => bucket.id)).toContain("folder-concrete");
+    expect(categoryBucketsB.map((bucket) => bucket.id)).toContain("folder-steel");
 
-    // Labels come from the global taxonomy, not from estimate/workspace context.
-    expect(categoryBucketsA.find((bucket) => bucket.id === "global-cat-concrete")?.label).toBe("Concrete");
-    expect(categoryBucketsB.find((bucket) => bucket.id === "global-cat-steel")?.label).toBe("Steel");
+    expect(categoryBucketsA.find((bucket) => bucket.id === "folder-concrete")?.label).toBe("Concrete");
+    expect(categoryBucketsB.find((bucket) => bucket.id === "folder-steel")?.label).toBe("Steel");
 
     // No workspace/project identifiers should leak into category bucket ids.
     for (const bucket of [...categoryBucketsA, ...categoryBucketsB]) {
