@@ -46,6 +46,12 @@ function getEstimateNodeByName(page: Page, name: string) {
     .filter({ has: page.getByText(name, { exact: true }) });
 }
 
+function getTemplateNodeByName(page: Page, name: string) {
+  return page.getByRole("tree", { name: "Reusable estimate sources" })
+    .locator('[role="treeitem"]')
+    .filter({ has: page.getByText(name, { exact: true }) });
+}
+
 async function expandEstimateNode(node: Locator) {
   await node.focus();
   await node.press("ArrowRight");
@@ -106,8 +112,7 @@ async function setSourceSearch(page: Page, label: "Search Library" | "Search Tem
 async function deleteTemplate(page: Page, templateName: string) {
   await selectSourceTab(page, "Templates");
   await setSourceSearch(page, "Search Templates", templateName);
-  const templateTree = page.getByRole("tree", { name: "Reusable estimate sources" });
-  const templateNode = templateTree.getByRole("treeitem", { name: templateName, exact: true }).first();
+  const templateNode = getTemplateNodeByName(page, templateName).first();
   if (!(await templateNode.count())) return;
 
   await templateNode.click({ button: "right" });
@@ -115,7 +120,7 @@ async function deleteTemplate(page: Page, templateName: string) {
   const dialog = page.getByRole("alertdialog", { name: "Delete template" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Delete template", exact: true }).click();
-  await expect(templateTree.getByRole("treeitem", { name: templateName, exact: true })).toHaveCount(0);
+  await expect(getTemplateNodeByName(page, templateName)).toHaveCount(0);
 }
 
 async function permanentlyDeleteComponent(page: Page, componentName: string) {
@@ -154,7 +159,8 @@ async function cleanupStaleMvpFixtures(page: Page) {
   const templateTree = page.getByRole("tree", { name: "Reusable estimate sources" });
   const staleTemplateNames = (await templateTree.getByRole("treeitem").evaluateAll((nodes) => nodes
     .map((node) => node.getAttribute("aria-label")?.trim() ?? "")
-    .filter((name) => name.startsWith("MVP Template "))));
+    .filter((name) => name.startsWith("MVP Template ") && name.endsWith(" estimate template"))
+    .map((name) => name.slice(0, -" estimate template".length))));
   for (const name of staleTemplateNames) await deleteTemplate(page, name);
 
   await selectSourceTab(page, "Library");
@@ -316,8 +322,7 @@ test.describe("Estimate Sheet MVP", () => {
         await estimateTree.evaluate((element) => element.setAttribute("data-mvp-preserved-tree", "true"));
         await selectSourceTab(page, "Templates");
         await setSourceSearch(page, "Search Templates", templateName);
-        const reusableTree = page.getByRole("tree", { name: "Reusable estimate sources" });
-        const templateNode = reusableTree.getByRole("treeitem", { name: templateName, exact: true }).first();
+        const templateNode = getTemplateNodeByName(page, templateName).first();
         await expect(templateNode).toBeVisible();
 
         const filter = page.getByRole("combobox", { name: "Reusable source filter" });
