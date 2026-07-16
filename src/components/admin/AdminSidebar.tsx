@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Buildings,
   ChartLine,
+  Coins,
   ClipboardText,
   Flag,
   FolderOpen,
@@ -48,6 +49,7 @@ export const ADMIN_NAV_GROUPS = [
       { href: "/admin/projects", label: "Projects", icon: FolderOpen },
       { href: "/admin/estimate-system", label: "Estimate System", icon: TreeStructure },
       { href: "/admin/analytics", label: "Analytics", icon: ChartLine },
+      { href: "/admin/financials", label: "Financials", icon: Coins },
     ],
   },
   {
