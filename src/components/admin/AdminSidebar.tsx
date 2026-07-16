@@ -13,6 +13,7 @@ import {
   Lightning,
   Megaphone,
   Pulse,
+  Rocket,
   SidebarSimple,
   TreeStructure,
   Users,
@@ -51,7 +52,10 @@ export const ADMIN_NAV_GROUPS = [
   },
   {
     label: "Operations",
-    items: [{ href: "/admin/observability", label: "Observability", icon: Pulse }],
+    items: [
+      { href: "/admin/releases", label: "Releases", icon: Rocket },
+      { href: "/admin/observability", label: "Observability", icon: Pulse },
+    ],
   },
   {
     label: "Communications",
