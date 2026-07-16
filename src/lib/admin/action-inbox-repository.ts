@@ -4,6 +4,7 @@ import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { emitLogRecord } from "@/lib/observability/logger";
 import { listOpenIncidents, type OperationalIncidentRow } from "@/lib/admin/incidents-repository";
 import { listOpenSupportConversations } from "@/lib/admin/support-attention-repository";
+import { listHighSeverityFeedback } from "@/lib/admin/feedback-attention-repository";
 
 // F2 (UNIT-003) Founder Action Inbox. Durable, deduped action items derived from
 // operational sources. v1 source: open incidents. The derivation is idempotent
@@ -72,17 +73,19 @@ export async function deriveActionItemsFromSources(): Promise<boolean> {
   if (!db || !db.batch) return false;
 
   try {
-    const [incidentsResult, supportResult] = await Promise.all([
+    const [incidentsResult, supportResult, feedbackResult] = await Promise.all([
       listOpenIncidents(),
       listOpenSupportConversations(),
+      listHighSeverityFeedback(),
     ]);
     const incidents = incidentsResult.data ?? [];
     const support = supportResult;
+    const feedback = feedbackResult;
     const now = new Date().toISOString();
 
     const buildUpsert = (
       derivedKey: string,
-      sourceKind: "incident" | "support",
+      sourceKind: "incident" | "support" | "feedback",
       sourceId: string,
       title: string,
       detail: string | null,
@@ -164,10 +167,23 @@ export async function deriveActionItemsFromSources(): Promise<boolean> {
           "/admin/support",
         ),
       ),
+      // F4/F2: high-severity beta feedback (blocker/high) becomes action items.
+      ...feedback.map((item) =>
+        buildUpsert(
+          `feedback:${item.id}`,
+          "feedback",
+          item.id,
+          `${item.severity} feedback: ${item.feedback_type}`,
+          item.page_path ? `page: ${item.page_path}` : null,
+          item.severity === "blocker" ? "critical" : "warning",
+          item.severity === "blocker" ? 15 : 45,
+          "/admin",
+        ),
+      ),
     ];
 
     // Auto-resolve items whose source is no longer open, per source kind.
-    const buildResolve = (sourceKind: "incident" | "support", openIds: string[]) => {
+    const buildResolve = (sourceKind: "incident" | "support" | "feedback", openIds: string[]) => {
       if (openIds.length > 0) {
         const placeholders = openIds.map(() => "?").join(", ");
         return db
@@ -196,6 +212,7 @@ export async function deriveActionItemsFromSources(): Promise<boolean> {
       ...upserts,
       buildResolve("incident", incidents.map((i) => i.id)),
       buildResolve("support", support.map((c) => c.id)),
+      buildResolve("feedback", feedback.map((f) => f.id)),
     ]);
     return true;
   } catch (error) {
