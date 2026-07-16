@@ -3,11 +3,17 @@
 **Canonical route:** `/workshop/projects/[projectId]/estimates/[nodeId]`
 **Observed surface:** the Lewis Residence estimate route supplied in the audit request
 **Observed source date:** 2026-07-15
-**Purpose:** canonical inventory of user-visible actions, mutation boundaries, recovery behavior, and proof still required for the MVP Estimate Sheet.
+**Purpose:** canonical inventory of user-visible actions, mutation boundaries, recovery behavior, and terminal implementation proof for the MVP Estimate Sheet.
+
+## Terminal Implementation Reconciliation — 2026-07-16
+
+The inventory remains canonical, while its row-level status cells are preserved as the 2026-07-15 audit baseline. The integrated implementation is `COMPLETE`, behavior is `VERIFIED`, and every core action family is reconciled through `UNIT-001`–`UNIT-011`, `TEST-001`–`TEST-008`, and `EVID-011`–`EVID-014`. Auxiliary favorites remain non-gating. Release remains `NOT_READY` only because no current-source deploy or hosted-revision proof was produced.
 
 ## Authority And Status Vocabulary
 
 This matrix is the current feature inventory for this pack. It supersedes narrower completion language in artifacts `01` through `08` when the documents disagree.
+
+The vocabulary below describes historical row classifications. Current terminal state is owned by `IMPLEMENTATION_TRACKER.md` and `TRACEABILITY.md`.
 
 | Status | Meaning |
 | --- | --- |

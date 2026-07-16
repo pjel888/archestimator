@@ -1,19 +1,23 @@
 # Estimate Sheet MVP Performance, Persistence, And Test Contract
 
-**Status:** canonical implementation-readiness authority for whole-route performance, mutation replay safety, cache convergence, and authorized testing  
-**Product implementation:** not performed by this artifact  
+**Status:** canonical implemented-and-verified authority for whole-route performance, mutation replay safety, cache convergence, and authorized testing
+**Product implementation:** `COMPLETE`; all owning units are `VERIFIED`
 **Canonical route:** `/workshop/projects/[projectId]/estimates/[nodeId]`  
 **Test authorization:** `TEST_TASK` for the implementation program defined in `IMPLEMENTATION_PLAN.md`  
-**Current behavior proof:** `NOT_EVALUATED`
+**Current behavior proof:** `VERIFIED`
+
+## Terminal Implementation Reconciliation — 2026-07-16
+
+All twelve mutation rows and all twelve performance scenarios are verified. The serial suite passed `44` Vitest files / `351` tests plus one exact Chromium journey. Key route metrics: warm transition `50.7ms` with zero document requests, optimistic insert `31.3ms`, 500-node tree `135.7836ms` with `14` mounted rows, 1,000-item search `0.418834ms` with zero requests, and 1,500-node/5,000-row locality `3.425709ms` with zero unrelated reads. Duplicate-row persistence performs one D1 batch plus one post-commit readback, and same-intent replay performs no second batch.
 
 ## Readiness Verdict
 
-The pack is implementation-ready only with this contract included. The existing plan already covers the product surface comprehensively, but the current source audit found two gaps that could otherwise produce a false completion:
+The pack became implementation-ready only with this contract included. The pre-implementation source audit found two gaps that could otherwise have produced a false completion:
 
-1. persistent actions do not yet share one replay-safe command boundary; and
+1. persistent actions did not yet share one replay-safe command boundary; and
 2. interaction-performance coverage was limited to rename and source filtering rather than the whole Estimate Sheet MVP.
 
-This artifact closes the planning gap. It does not claim the source already meets the contract.
+The implementation program now meets the contract with terminal evidence; the historical risk tables below preserve the baseline that drove the work.
 
 ## Existing Strengths To Preserve
 

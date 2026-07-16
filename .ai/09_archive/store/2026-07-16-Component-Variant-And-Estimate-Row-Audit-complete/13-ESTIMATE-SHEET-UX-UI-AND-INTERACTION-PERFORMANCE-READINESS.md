@@ -1,9 +1,13 @@
 # Estimate Sheet UX, UI, And Interaction-Performance Readiness
 
-**Status:** canonical planning authority for dense Estimate Sheet interaction styling and render-scope readiness  
-**Product implementation:** not performed by this artifact  
+**Status:** canonical implemented-and-verified authority for dense Estimate Sheet interaction styling and render-scope behavior
+**Product implementation:** `COMPLETE`; terminal verification performed by the integrated implementation program
 **Primary route observed:** `/workshop/projects/[projectId]/estimates/[nodeId]`  
-**Current proof level:** source review plus read-only in-app browser inspection; implementation and release proof remain open
+**Current proof level:** source, focused render tests, and exact Chromium journey; hosted release proof remains open
+
+## Terminal Implementation Reconciliation — 2026-07-16
+
+Stable-surface rename behavior is verified across dense Estimate Sheet editors: entering edit mode does not introduce a background-color shift, Enter commits once, Escape cancels, blur deduplicates, pointer exit does not save, and focus/geometry remain stable. Source-family filtering uses the compact transparent treatment and remains local. Browser metrics recorded rename activation at `67ms` and loaded filtering at `105.1ms` with zero server actions and preserved continuity; the filter meets the declared `<200ms` hard invariant while its preferred `<100ms` target remains a watch item.
 
 ## Outcome
 
@@ -17,7 +21,7 @@ This artifact turns that direction into one implementation contract for:
 - dense row, tree, and sidebar interaction feedback; and
 - render isolation, layout stability, deferred filtering, and existing virtualization boundaries.
 
-It does not redesign the Estimate Sheet, replace the current primitives, or add a new dependency. This planning artifact runs no product tests, but the integrated implementation program now treats the focused browser/render/network checks below as authorized `TEST_TASK` evidence.
+It does not redesign the Estimate Sheet, replace the current primitives, or add a new dependency. The integrated implementation program ran the focused browser/render/network checks below as required `TEST_TASK` evidence.
 
 ## Evidence And Limits
 

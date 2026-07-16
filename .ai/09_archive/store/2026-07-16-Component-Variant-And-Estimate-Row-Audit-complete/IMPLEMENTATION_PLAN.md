@@ -9,7 +9,10 @@
 **Canonical performance/persistence/test contract:** `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md`
 **Canonical execution tracker:** `IMPLEMENTATION_TRACKER.md`
 **Plan status:** `IMPLEMENTATION_READY`
-**Implementation status:** `IN_PROGRESS`
+**Implementation status:** `COMPLETE`
+**Behavior status:** `VERIFIED`
+**Objective status:** `ACHIEVED`
+**Release status:** `NOT_READY` — local implementation is complete; no hosted deploy/parity claim is made
 **Release status:** `NOT_READY`
 **Last verified unit:** `UNIT-004`
 **Exact next unit:** `UNIT-005`
@@ -102,8 +105,8 @@ UNIT-001 through UNIT-007 + UNIT-009 through UNIT-011
 | `UNIT-006` | Repair D1/R2/Images metadata integrity and collect provider-layer evidence. | `UNIT-001`, `UNIT-004`, `UNIT-010` | `F-003`, `F-004`, `F-024` | `READY` |
 | `UNIT-009` | Harden Template lifecycle plus Template rename, filter, and menu coherence. | `UNIT-001`, `UNIT-004`, `UNIT-005`, `UNIT-010` | `TPL-F-001`, `TPL-F-004`–`TPL-F-009`, `UI-F-001`, `UI-F-003`–`UI-F-005`, `UI-F-009`, `PP-F-004` | `READY` |
 | `UNIT-007` | Align legacy and Client Portal issued projections with authoring. | `UNIT-001`–`UNIT-006`, `UNIT-009`, `UNIT-010` | `F-006`, `PP-F-006` | `READY` |
-| `UNIT-011` | Measure and optimize the whole route, then execute every authorized adversarial test. | `UNIT-001`–`UNIT-007`, `UNIT-009`, `UNIT-010` | `PP-F-007`–`PP-F-012` plus all unresolved behavior proof | `READY` |
-| `UNIT-008` | Reconcile every action/finding/test/criterion and make truthful objective/release decisions. | `UNIT-001`–`UNIT-007`, `UNIT-009`–`UNIT-011` | All open core findings and criteria | `READY` |
+| `UNIT-011` | Measure and optimize the whole route, then execute every authorized adversarial test. | `UNIT-001`–`UNIT-007`, `UNIT-009`, `UNIT-010` | `PP-F-007`–`PP-F-012` plus all unresolved behavior proof | `VERIFIED` |
+| `UNIT-008` | Reconcile every action/finding/test/criterion and make truthful objective/release decisions. | `UNIT-001`–`UNIT-007`, `UNIT-009`–`UNIT-011` | All open core findings and criteria | `VERIFIED` |
 
 ## `UNIT-001` — Fresh Baseline And Incident Verification
 
@@ -607,7 +610,7 @@ The user explicitly authorized implementation testing for this pack. The executo
 | `TEST-003` | Component/variant CRUD, fan-out, attachment lifecycle, projection, and row-details behavior | `bun x vitest run tests/vitest/component-library-manager-concurrency.test.tsx tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/component-library-d1-store.test.ts tests/vitest/project-component-projection.test.ts tests/vitest/project-component-projection-d1.test.ts tests/vitest/estimate-component-fan-out.test.ts tests/vitest/estimate-sheet-row-details-crud.test.tsx --maxWorkers=1` |
 | `TEST-004` | Template create/edit/browse/repository/insert/drop behavior | `bun x vitest run tests/vitest/new-template-modal.test.tsx tests/vitest/template-editor.test.tsx tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-templates-repository.test.ts tests/vitest/estimate-template-trusted-insert.test.ts tests/vitest/estimate-template-drop-zones.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1` |
 | `TEST-005` | Estimate integrity, revision facts, publication fence, and client-portal parity | `bun x vitest run tests/vitest/estimate-repository.test.ts tests/vitest/estimate-schema-compat.test.ts tests/vitest/estimate-revision-fact-producers.test.ts tests/vitest/estimate-unification-oracle.test.ts tests/vitest/client-portal-publish-service.test.ts tests/vitest/client-portal-issue-builder.test.ts tests/vitest/project-publication-snapshot.test.ts tests/vitest/client-portal-estimate-browser.test.ts --maxWorkers=1` |
-| `TEST-006` | Lean render isolation, memoization, active-tab, virtualization, and Template-tree budgets | `bun x vitest run tests/vitest/estimate-sheet-sidebar-render-isolation.test.tsx tests/vitest/perf/estimate-sheet-memoization.test.tsx tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx tests/vitest/estimate-branch-virtualization.test.tsx tests/vitest/estimate-row-table-virtualization.test.tsx tests/vitest/templates-tree-performance.test.ts --maxWorkers=1` |
+| `TEST-006` | Lean render isolation, memoization, active-tab, virtualization, and Template/Library-tree budgets | `bun x vitest run tests/vitest/estimate-sheet-sidebar-render-isolation.test.tsx tests/vitest/perf/estimate-sheet-memoization.test.tsx tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx tests/vitest/estimate-branch-virtualization.test.tsx tests/vitest/estimate-row-table-virtualization.test.tsx tests/vitest/templates-tree-performance.test.ts tests/vitest/library-tree-performance.test.ts --maxWorkers=1` |
 | `TEST-007` | Exact-route browser behavior, continuity, keyboard/focus, failure/retry, reload, and measured scenario proof | `bun x playwright test e2e/estimate-sheet-mvp.spec.ts --project=chromium --workers=1 --retries=0` |
 | `TEST-008` | Component image/attachment persistence, ownership, retention, and R2 provider contracts | `bun x vitest run tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/component-attachment-ownership-migration.test.ts tests/vitest/project-component-attachment-retention.test.ts tests/vitest/estimate-linked-library-image-upload.test.tsx tests/vitest/cloudflare-r2-storage-provider.test.ts tests/vitest/upload-component-attachment-client.test.ts --maxWorkers=1` |
 

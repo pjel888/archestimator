@@ -2,8 +2,12 @@
 
 **Audit date:** 2026-07-15  
 **Evidence posture:** current source, migrations, dirty worktree, GitNexus/code-review graphs, and user-reported incidents  
-**Product tests/browser/provider operations:** not run  
+**Product tests/browser/provider operations:** terminal local suite and scoped provider regressions completed on 2026-07-16
 **Authority:** this artifact corrects finding premises and selects the smallest coherent repair; artifact `10` remains the ranked register and `IMPLEMENTATION_PLAN.md` remains the execution order.
+
+## Terminal Implementation Reconciliation — 2026-07-16
+
+The selected minimal resolutions for every core finding were implemented and verified by their owning units. Exact serial evidence passed `44` Vitest files / `351` tests plus one Chromium journey; mutation, performance, static, local D1, provider-lifecycle, and GitNexus receipts are indexed as `EVID-011`–`EVID-014`. The matrices below intentionally preserve the pre-implementation root-cause and alternative analysis. `F-018` remains auxiliary and non-gating; release remains `NOT_READY` without current-source hosted proof.
 
 ## Executive Result
 
@@ -13,7 +17,7 @@ The deep audit keeps all 24 finding IDs for traceability, but it corrects five s
 - **15 P1 findings:** nine open/reframed correctness risks, one partially remediated routing risk, one unevaluated provider risk, three source-verified fixes awaiting runtime proof, and one partial implementation.
 - **2 P2 findings:** account-preference durability and confirmed dead editor code.
 
-The plan remains `IMPLEMENTATION_READY`, implementation remains `NOT_STARTED` for the remediation DAG, and release remains `NOT_READY`. Source presence is not runtime proof.
+This was the pre-implementation distribution. The remediation DAG is now `COMPLETE`, behavior is `VERIFIED`, and the objective is `ACHIEVED`; release remains separately `NOT_READY`.
 
 ## Corrections To The Previous Register
 

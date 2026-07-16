@@ -1,35 +1,35 @@
 # Estimate Sheet MVP Traceability And Evidence Model
 
-**Current decision:** the remediation plan is implementation-ready and active. `UNIT-004` is the last verified unit, `UNIT-005` is the exact continuation, behavior is not yet verified end to end, the objective is not achieved, and release is not ready. Every criterion below remains `FAIL` until its complete named evidence is reconciled; partial unit receipts live in `IMPLEMENTATION_TRACKER.md` and do not manufacture criterion PASS.
+**Terminal reconciliation:** `IMPLEMENTATION_READY / COMPLETE / VERIFIED / ACHIEVED / NOT_READY` as of 2026-07-16. All core units and criteria are verified; no implementation continuation remains. Release is separately `NOT_READY` because no current-source deploy or current-revision hosted D1/R2/browser proof was requested or produced.
 
 ## Status Vocabulary
 
 | Record | Current meaning |
 | --- | --- |
-| Requirement `ACCEPTED` | The product/data/UX/operations contract is fixed and owned. |
-| Unit `READY` | Goal, dependencies, paths, acceptance, evidence, and recovery are executable. |
-| Criterion `FAIL` | Required implementation or decisive evidence is still missing. |
-| Evidence `COLLECTED` | Current planning/source evidence exists; it is not implementation or release proof. |
-| `TEST_TASK` | The user explicitly authorized the linked focused test; it is required implementation work and must pass before its criterion can pass. |
-| Behavior `NOT_EVALUATED` | Source may be authored, but the required product and performance behavior has not been executed. |
-| Objective `NOT_ACHIEVED` | At least one core unit, criterion, mutation row, performance scenario, or required test remains nonterminal. |
-| Release `NOT_READY` | One or more core criteria remain `FAIL` or an environment layer is unproved. |
+| Requirement `ACCEPTED` | The contract is implemented, owned, and supported by terminal evidence. |
+| Unit `VERIFIED` | Implementation and the unit's named evidence gates are complete. |
+| Criterion `PASS` | The complete named implementation and decisive evidence exist. |
+| Evidence `PASS` | The artifact hash, source revision, method, and actual signal reconcile. |
+| `TEST_TASK` | The explicitly authorized test was run and passed for this implementation epoch. |
+| Behavior `VERIFIED` | Required product, mutation, browser, and performance behavior was executed successfully. |
+| Objective `ACHIEVED` | Every core unit, criterion, mutation row, performance scenario, and required test is terminal. |
+| Release `NOT_READY` | Local implementation is complete, but current-source hosted deployment/provider/browser proof is absent. |
 
 ## Current Source Authority
 
 | Source | Authority | Requirements informed |
 | --- | --- | --- |
-| `SRC-001` | `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` — current action inventory and status. | `REQ-001`–`REQ-007`, `UX-001`–`UX-003`, `PERF-001`–`PERF-003`, `DATA-003`, `SEC-001` |
-| `SRC-002` | `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` — mutation findings, D1/R2 risks, and publication gap. | `REQ-004`–`REQ-008`, `DATA-001`–`DATA-003`, `SEC-001`, `UX-001`, `UX-003`, `PERF-001`, `OPS-001` |
-| `SRC-003` | `README.md` — goal, product decisions, scope boundaries, test authorization, and stop condition. | `REQ-001`, `REQ-006`–`REQ-009`, `DATA-003`, `SEC-001`, `UX-002`, `PERF-002`, `PERF-003`, `OPS-001`, `OPS-002` |
-| `SRC-004` | `IMPLEMENTATION_PLAN.md` — dependency-closed implementation and evidence sequence. | all requirements |
-| `SRC-005` | `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` — corrected premises, failure/race/partial-failure simulations, alternatives, selected fixes, and residual risks for `F-001`–`F-024`. | `REQ-001`–`REQ-008`, `DATA-001`, `DATA-002`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
-| `SRC-006` | `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` — retained Template architecture, create/browse/editor/insert flows, variant/source trust, ten-finding disposition, source-unit crosswalk, and source-pack removal proof. | `REQ-001`, `REQ-005`, `REQ-007`, `REQ-009`, `DATA-001`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
-| `SRC-007` | `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` — read-only live-route baseline, stable-surface rename contract, compact-filter/menu contract, broader UX streamlining, render isolation, and continuity evidence requirements. | `REQ-001`, `REQ-003`, `REQ-006`, `REQ-007`, `REQ-009`, `UX-001`, `UX-002`, `PERF-001`, `PERF-002` |
-| `SRC-008` | `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md` — whole-route budgets, create-to-use cache flow, mutation safety, durable intent receipts, D1 limits, failure simulations, and authorized tests. | `DATA-003`, `PERF-003`, `OPS-002` |
-| `SRC-009` | `IMPLEMENTATION_TRACKER.md` — current epoch, dependency eligibility, units, requirements, mutation/performance/test checklists, evidence dimensions, and continuation state. | `OPS-002` |
+| `SRC-001` | `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` — canonical action inventory plus terminal reconciliation. | `REQ-001`–`REQ-007`, `UX-001`–`UX-003`, `PERF-001`–`PERF-003`, `DATA-003`, `SEC-001` |
+| `SRC-002` | `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` — mutation findings plus terminal integrity evidence. | `REQ-004`–`REQ-008`, `DATA-001`–`DATA-003`, `SEC-001`, `UX-001`, `UX-003`, `PERF-001`, `OPS-001` |
+| `SRC-003` | `README.md` — goal, product decisions, terminal outcome, scope boundaries, and release boundary. | `REQ-001`, `REQ-006`–`REQ-009`, `DATA-003`, `SEC-001`, `UX-002`, `PERF-002`, `PERF-003`, `OPS-001`, `OPS-002` |
+| `SRC-004` | `IMPLEMENTATION_PLAN.md` — dependency-closed implementation and evidence sequence with all units verified. | all requirements |
+| `SRC-005` | `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` — finding contracts plus terminal unit reconciliation. | `REQ-001`–`REQ-008`, `DATA-001`, `DATA-002`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
+| `SRC-006` | `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` — retained Template authority plus verified lifecycle result. | `REQ-001`, `REQ-005`, `REQ-007`, `REQ-009`, `DATA-001`, `SEC-001`, `UX-001`, `PERF-001`, `OPS-001` |
+| `SRC-007` | `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` — UX baseline/contracts plus terminal browser/performance result. | `REQ-001`, `REQ-003`, `REQ-006`, `REQ-007`, `REQ-009`, `UX-001`, `UX-002`, `PERF-001`, `PERF-002` |
+| `SRC-008` | `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md` — whole-route budgets, persistence contracts, and terminal results. | `DATA-003`, `PERF-003`, `OPS-002` |
+| `SRC-009` | `IMPLEMENTATION_TRACKER.md` — terminal units, requirements, mutation/performance/test checklists, receipts, and null continuation. | `OPS-002` |
 
-Artifacts `01` through `08` are dated baseline/deep-dive sources only. They cannot close a current criterion without a fresh receipt in this trace.
+Artifacts `01` through `08` remain dated baseline/deep-dive sources. Terminal closure comes from the fresh receipts indexed below, not from baseline prose alone.
 
 ## Requirement Coverage
 
@@ -59,35 +59,38 @@ Artifacts `01` through `08` are dated baseline/deep-dive sources only. They cann
 
 ## Acceptance Criteria
 
-All criteria start `FAIL`. The named evidence and any linked `TEST_TASK` must exist before status changes; an implementation diff alone cannot pass a criterion.
+All twenty core criteria are terminal `PASS` on named implementation and verification evidence. Auxiliary `AC-018` remains `FAIL` and does not gate the achieved core objective.
 
 | Criterion | Pass condition | Decisive evidence | Test decision | Current result |
 | --- | --- | --- | --- | --- |
-| `AC-001` | Inventory, trace, tracker, and manifest have one current owner and no orphan ID or stale authority. | route/source inventory, path checks, tracker/manifest validation | `NOT_REQUIRED` | `FAIL` — baseline is frozen, but final inventory and terminal reconciliation remain open. |
-| `AC-002` | Area/tree CRUD, DnD, delete/restore, and route fallback reject invalid topology and reconcile authoritative state. | D1 topology/history/read-back | `TEST_TASK` — `TEST-001`, `TEST-007` | `FAIL` |
-| `AC-003` | Tab CRUD/duplicate/reorder and shell preserve deep topology, selection, order, and partial-tree meaning. | deep-tree read-back and route proof | `TEST_TASK` — `TEST-001`, `TEST-007` | `FAIL` |
-| `AC-004` | Row CRUD, duplicate, move, replace, delete/restore, and keyboard commits are revision-safe, replay-safe, history-complete, snapshot-valid, and authoritative. | D1 receipts, latch/intent state, read-back | `TEST_TASK` — `TEST-001`, `TEST-002`, `TEST-007` | `FAIL` |
-| `AC-005` | Component/variant edits fan out only to accepted stable scopes and reconcile selected variants and pending state. | affected-row/source/cache receipts | `TEST_TASK` — `TEST-003`, `TEST-007` | `FAIL` |
-| `AC-006` | Archive preserves links; bounded permanent delete uses exact preview, same-batch guard/audit, attachment safety, and complete cache removal. | 400/401, stale-preview, atomic-failure, read-back | `TEST_TASK` — `TEST-003`, `TEST-007`, `TEST-008` | `FAIL` |
-| `AC-007` | Template/Project insert is one complete replay-safe target-valid subtree or zero writes within fixed statement limits. | replay/limit/topology/receipt/read-back | `TEST_TASK` — `TEST-004`, `TEST-007` | `FAIL` |
-| `AC-008` | Legacy and Client Portal issuance agree on one guarded source revision and private/public meaning. | writer registry, revision fence, zero-write race, parity/privacy | `TEST_TASK` — `TEST-005`, `TEST-007` | `FAIL` |
-| `AC-009` | D1 integrity is valid and destructive/shared mutations preserve ownership, revisions, history/outbox, receipts, and read-back. | pre/post queries and mutation receipts | `TEST_TASK` — `TEST-001`–`TEST-005` | `FAIL` |
-| `AC-010` | Upload metadata and stored objects cannot drift or delete referenced content. | D1/R2 lifecycle evidence | `TEST_TASK` — `TEST-008` | `FAIL` |
-| `AC-011` | Server authorization blocks cross-scope/view-only mutation and public projections contain no private identities/paths. | scope reads and privacy audit | `TEST_TASK` — `TEST-001`, `TEST-005`, `TEST-007`, `TEST-008` | `FAIL` |
-| `AC-012` | Enter/Escape, focus, DnD, loading, conflict/offline, retry, and rollback show exact object state with no false success. | route behavior plus authoritative read-back | `TEST_TASK` — `TEST-002`–`TEST-004`, `TEST-007` | `FAIL` |
-| `AC-013` | Lazy/partial loading and bulk/shared fan-out stay bounded with correct totals and object-scoped loading. | query/work/render counts and read-back | `TEST_TASK` — `TEST-006`, `TEST-007` | `FAIL` |
-| `AC-014` | Source, D1, tests, browser, performance, provider, and public evidence are fresh, labeled, and non-substitutable. | evidence ledger, test receipts, provider identity, validator | `TEST_TASK` — `TEST-007` | `FAIL` |
-| `AC-015` | Template graph lifecycle is atomic, bounded, topology-valid, replay-safe, truthful, detached, and provenance-complete. | failure injection, graph/activity/cache read-back | `TEST_TASK` — `TEST-004`, `TEST-007` | `FAIL` |
-| `AC-016` | Dense rename/menu states preserve surface, geometry, focus, and consistent keyboard/pointer behavior. | DOM/class ownership and browser behavior | `TEST_TASK` — `TEST-007` | `FAIL` |
-| `AC-017` | Rename/filter transitions meet local latency, rerender, request, remount, geometry, continuity, and dependency budgets. | render/network/layout receipts | `TEST_TASK` — `TEST-006`, `TEST-007` | `FAIL` |
-| `AC-018` | Favorite set/unset changes only intended preference membership and reconciles item state. | preference-row and cache read-back | `NOT_REQUIRED` — auxiliary | `FAIL` — does not gate core. |
-| `AC-019` | Every `MUT-01`–`MUT-12` row proves applicable ownership, atomicity, intent replay, revision/fingerprint guard, side effects, authoritative read-back, cache convergence, and recovery. | mutation matrix plus D1/cache/failure receipts | `TEST_TASK` — `TEST-001`–`TEST-005`, `TEST-008` | `FAIL` |
-| `AC-020` | Every `PERF-S01`–`PERF-S12` budget/invariant passes on its named fixture; conditional optimizations are metric-backed and retired machinery stays absent. | before/after work, render, network, route, and D1 receipts | `TEST_TASK` — `TEST-006`, `TEST-007` | `FAIL` |
-| `AC-021` | Tracker and manifest always name current epoch, active/next unit, last verified unit, open criteria/tests, continuation, and true blocker; no nonterminal program closes. | tracker/manifest/ledger reconciliation | `NOT_REQUIRED` — document/static proof is decisive | `FAIL` |
+| `AC-001` | Inventory, trace, tracker, and manifest have one current owner and no orphan ID or stale authority. | route/source inventory, path checks, tracker/manifest validation | `NOT_REQUIRED` | `PASS` — canonical inventory, tracker/manifest reciprocity, hashes, and validators reconcile. |
+| `AC-002` | Area/tree CRUD, DnD, delete/restore, and route fallback reject invalid topology and reconcile authoritative state. | D1 topology/history/read-back | `TEST_TASK` — `TEST-001`, `TEST-007` | `PASS` — TEST-001 and TEST-007 topology/delete/restore receipts. |
+| `AC-003` | Tab CRUD/duplicate/reorder and shell preserve deep topology, selection, order, and partial-tree meaning. | deep-tree read-back and route proof | `TEST_TASK` — `TEST-001`, `TEST-007` | `PASS` — TEST-001 and TEST-007 deep-copy, route, and selection receipts. |
+| `AC-004` | Row CRUD, duplicate, move, replace, delete/restore, and keyboard commits are revision-safe, replay-safe, history-complete, snapshot-valid, and authoritative. | D1 receipts, latch/intent state, read-back | `TEST_TASK` — `TEST-001`, `TEST-002`, `TEST-007` | `PASS` — TEST-001, TEST-002, and TEST-007 row/retry/keyboard receipts. |
+| `AC-005` | Component/variant edits fan out only to accepted stable scopes and reconcile selected variants and pending state. | affected-row/source/cache receipts | `TEST_TASK` — `TEST-003`, `TEST-007` | `PASS` — TEST-003 and TEST-007 fan-out, selected-variant, and scoped-pending receipts. |
+| `AC-006` | Archive preserves links; bounded permanent delete uses exact preview, same-batch guard/audit, attachment safety, and complete cache removal. | 400/401, stale-preview, atomic-failure, read-back | `TEST_TASK` — `TEST-003`, `TEST-007`, `TEST-008` | `PASS` — TEST-003, TEST-007, TEST-008, and atomic failure/read-back receipts. |
+| `AC-007` | Template/Project insert is one complete replay-safe target-valid subtree or zero writes within fixed statement limits. | replay/limit/topology/receipt/read-back | `TEST_TASK` — `TEST-004`, `TEST-007` | `PASS` — TEST-004 and TEST-007 retained-intent/topology/limit receipts. |
+| `AC-008` | Legacy and Client Portal issuance agree on one guarded source revision and private/public meaning. | writer registry, revision fence, zero-write race, parity/privacy | `TEST_TASK` — `TEST-005`, `TEST-007` | `PASS` — TEST-005 and TEST-007 writer-registry, zero-write race, parity, and privacy receipts. |
+| `AC-009` | D1 integrity is valid and destructive/shared mutations preserve ownership, revisions, history/outbox, receipts, and read-back. | pre/post queries and mutation receipts | `TEST_TASK` — `TEST-001`–`TEST-005` | `PASS` — TEST-001 through TEST-005 plus D1 receipt/read-back evidence. |
+| `AC-010` | Upload metadata and stored objects cannot drift or delete referenced content. | D1/R2 lifecycle evidence | `TEST_TASK` — `TEST-008` | `PASS` — TEST-008 attachment/provider lifecycle, delayed cleanup, and replay receipts. |
+| `AC-011` | Server authorization blocks cross-scope/view-only mutation and public projections contain no private identities/paths. | scope reads and privacy audit | `TEST_TASK` — `TEST-001`, `TEST-005`, `TEST-007`, `TEST-008` | `PASS` — authorization suites and privacy-safe public projection/browser receipts. |
+| `AC-012` | Enter/Escape, focus, DnD, loading, conflict/offline, retry, and rollback show exact object state with no false success. | route behavior plus authoritative read-back | `TEST_TASK` — `TEST-002`–`TEST-004`, `TEST-007` | `PASS` — TEST-002 through TEST-004 and TEST-007 exact-object interaction/recovery receipts. |
+| `AC-013` | Lazy/partial loading and bulk/shared fan-out stay bounded with correct totals and object-scoped loading. | query/work/render counts and read-back | `TEST_TASK` — `TEST-006`, `TEST-007` | `PASS` — TEST-006, TEST-007, and PERF-S03/S06/S07/S10/S11 bounded-work receipts. |
+| `AC-014` | Source, D1, tests, browser, performance, provider, and public evidence are fresh, labeled, and non-substitutable. | evidence ledger, test receipts, provider identity, validator | `TEST_TASK` — `TEST-007` | `PASS` — EVID-011 through EVID-014 reconcile source, D1, tests, browser, performance, provider, and validators. |
+| `AC-015` | Template graph lifecycle is atomic, bounded, topology-valid, replay-safe, truthful, detached, and provenance-complete. | failure injection, graph/activity/cache read-back | `TEST_TASK` — `TEST-004`, `TEST-007` | `PASS` — TEST-004 and TEST-007 atomic Template graph/activity/cache receipts. |
+| `AC-016` | Dense rename/menu states preserve surface, geometry, focus, and consistent keyboard/pointer behavior. | DOM/class ownership and browser behavior | `TEST_TASK` — `TEST-007` | `PASS` — TEST-007 stable-surface rename, compact-menu, focus, and pointer receipts. |
+| `AC-017` | Rename/filter transitions meet local latency, rerender, request, remount, geometry, continuity, and dependency budgets. | render/network/layout receipts | `TEST_TASK` — `TEST-006`, `TEST-007` | `PASS` — TEST-006, TEST-007, and PERF-S09 render/network/geometry/continuity receipts. |
+| `AC-018` | Favorite set/unset changes only intended preference membership and reconciles item state. | preference-row and cache read-back | `NOT_REQUIRED` — auxiliary | `FAIL` — auxiliary favorite durability remains intentionally non-gating. |
+| `AC-019` | Every `MUT-01`–`MUT-12` row proves applicable ownership, atomicity, intent replay, revision/fingerprint guard, side effects, authoritative read-back, cache convergence, and recovery. | mutation matrix plus D1/cache/failure receipts | `TEST_TASK` — `TEST-001`–`TEST-005`, `TEST-008` | `PASS` — MUT-01 through MUT-12 and TEST-001 through TEST-005/TEST-008 are verified. |
+| `AC-020` | Every `PERF-S01`–`PERF-S12` budget/invariant passes on its named fixture; conditional optimizations are metric-backed and retired machinery stays absent. | before/after work, render, network, route, and D1 receipts | `TEST_TASK` — `TEST-006`, `TEST-007` | `PASS` — PERF-S01 through PERF-S12 meet their target or declared hard invariant. |
+| `AC-021` | Tracker and manifest always name current epoch, active/next unit, last verified unit, open criteria/tests, continuation, and true blocker; no nonterminal program closes. | tracker/manifest/ledger reconciliation | `NOT_REQUIRED` — document/static proof is decisive | `PASS` — tracker, ledger, manifest, validators, terminal tuple, and null continuation reconcile. |
 
-No product test was run by this planning refresh. The user has explicitly authorized the implementation program to create, repair, and run `TEST-001` through `TEST-008`; those tests are now mandatory, not proposals.
+The authorized implementation program ran TEST-001 through TEST-008 serially. Final result: 44 Vitest files / 351 tests and one exact Chromium journey passed.
 
 ## Finding Disposition Map
+
+All selected core resolutions below were implemented and verified by their owning units. The disposition prose is retained as the historical repair contract; `IMPLEMENTATION_TRACKER.md` carries the terminal receipts. `F-018` remains the only auxiliary, non-gating item.
+
 
 | Finding | Requirement/criterion | Primary unit | Current disposition |
 | --- | --- | --- | --- |
@@ -129,34 +132,38 @@ No product test was run by this planning refresh. The user has explicitly author
 
 ## Evidence Index
 
-| Evidence | Artifact | What it currently proves | Status |
+| Evidence | Artifact | Terminal proof | Status |
 | --- | --- | --- | --- |
-| `EVID-001` | `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` | The current discoverable action inventory and open-status classification. | `COLLECTED` |
-| `EVID-002` | `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` | Current source/migration/binding findings and evidence gaps. | `COLLECTED` |
-| `EVID-003` | `IMPLEMENTATION_PLAN.md` | Dependency-closed unit scopes, acceptance, evidence, and recovery are specified. | `COLLECTED` |
-| `EVID-004` | `TRACEABILITY.md` | Twenty-one requirements/criteria, eleven units, eight tests, findings, and current evidence are reciprocally mapped, with `UX-003`/`AC-018` explicitly auxiliary. | `COLLECTED` |
-| `EVID-005` | `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` | Every finding has a current-source disposition, failure/race/partial-failure simulation, alternatives, selected minimal resolution, and residual risk. | `COLLECTED` |
-| `EVID-006` | `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` | All eight source requirements, ten findings, four units, eight evidence claims, architecture/flow/variant contracts, conflicts, and source-pack removal gates are retained under current authority. | `COLLECTED` |
-| `EVID-007` | `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` | The live/source baseline, nine UX findings, exact rename/filter budgets, interaction contracts, existing strengths, unit owners, and required test evidence are current. | `COLLECTED` |
-| `EVID-008` | `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md` | Twelve current performance/persistence findings, twelve mutation rows, twelve performance scenarios, cache/receipt/D1/index contracts, fifteen failure simulations, and the authorized test policy are current. | `COLLECTED` |
-| `EVID-009` | `IMPLEMENTATION_TRACKER.md` | Current epoch, dependency eligibility, units, requirements, mutation/performance/test checklists, evidence dimensions, and completion reconciliation are explicit. | `COLLECTED` |
-| `EVID-010` | `IMPLEMENTATION_PLAN.md` | Exact `TEST-001`–`TEST-008` commands and expected signals are authored but unrun. | `PLANNED` |
-
-These records prove plan readiness only. `EVID-007` and `EVID-008` prove observed/source baselines and planned contracts, not corrected behavior. `EVID-010` is planned evidence, not a test result. None proves product implementation, local D1 mutations, preview/hosted provider behavior, or public-share behavior.
+| `EVID-001` | `09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md` | Canonical action inventory is reconciled against implemented unit families. | `PASS` |
+| `EVID-002` | `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` | Mutation, D1/R2, and publication findings have terminal implementation receipts. | `PASS` |
+| `EVID-003` | `IMPLEMENTATION_PLAN.md` | All dependency-closed units and exact evidence gates are `VERIFIED`. | `PASS` |
+| `EVID-004` | `TRACEABILITY.md` | Requirements, criteria, units, tests, findings, evidence, and terminal tuple reciprocally map. | `PASS` |
+| `EVID-005` | `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` | Core finding resolutions map to verified owning units and regression evidence. | `PASS` |
+| `EVID-006` | `12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md` | Absorbed Template authority and lifecycle contracts are implemented and verified. | `PASS` |
+| `EVID-007` | `13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md` | Stable-surface editing, compact filtering, browser behavior, and interaction budgets are verified. | `PASS` |
+| `EVID-008` | `14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md` | Twelve mutation rows and twelve performance scenarios have terminal receipts. | `PASS` |
+| `EVID-009` | `IMPLEMENTATION_TRACKER.md` | Current epoch, terminal units, test counts, performance metrics, and completion reconciliation are explicit. | `PASS` |
+| `EVID-010` | `IMPLEMENTATION_PLAN.md` | Exact `TEST-001`–`TEST-008` commands/signals are authored and their results are reconciled. | `PASS` |
+| `EVID-011` | `IMPLEMENTATION_TRACKER.md` | Final serial run passed 44 Vitest files / 351 tests and one exact Chromium journey. | `PASS` |
+| `EVID-012` | `IMPLEMENTATION_TRACKER.md`, artifact `14` | `PERF-S01`–`PERF-S12` meet their target or declared hard invariant with raw metrics. | `PASS` |
+| `EVID-013` | `IMPLEMENTATION_TRACKER.md`, `LOOP_LEDGER.md` | Typecheck, scoped ESLint, diff checks, local D1/provider regression, and GitNexus scope checks pass. | `PASS` |
+| `EVID-014` | `README.md`, `TRACEABILITY.md`, `plan-pack.json` | Terminal package/implementation/behavior/objective/release tuple and hashes reconcile. | `PASS` |
 
 ## Release And Resume Decision
 
 - Package: `IMPLEMENTATION_READY`
-- Implementation: `IN_PROGRESS`
-- Behavior: `NOT_EVALUATED`
-- Objective: `NOT_ACHIEVED`
+- Implementation: `COMPLETE`
+- Behavior: `VERIFIED`
+- Objective: `ACHIEVED`
 - Release: `NOT_READY`
-- Lifecycle: `ACTIVE`
-- Terminal: `ACTIVE`
-- Last verified unit: `UNIT-004`
-- Exact next unit: `UNIT-005`
-- Ready slice: all eleven units are fully authored; `UNIT-005` is active, `UNIT-006` is dependency-eligible but queued, `UNIT-011` remains the required test/performance gate, and `UNIT-008` remains final reconciliation
-- Required tests: current partial/pass receipts are recorded in `IMPLEMENTATION_TRACKER.md`; the integrated `UNIT-011` sequence remains mandatory
-- Current blocker: none; all missing implementation, testing, and proof is repository-controlled planned work
+- Lifecycle: `ARCHIVED`
+- Terminal: `ACHIEVED`
+- Last verified unit: `UNIT-008`
+- Exact next unit: `NONE`
+- Ready slices: none
+- Required tests: `TEST-001`–`TEST-008` all `PASS`
+- Current blocker: none
+- Continuation required: `false`
+- Release boundary: no current-source deploy or current-revision hosted D1/R2/browser proof was requested or produced
 
-If source changes after a unit receipt, mark only the affected source/evidence stale and reopen the smallest impacted requirement/unit mapping. Never preserve a PASS by updating only a hash.
+If later source changes invalidate a receipt, reopen only the smallest affected requirement, criterion, unit, test, and evidence record. Never preserve a `PASS` by updating only a hash.

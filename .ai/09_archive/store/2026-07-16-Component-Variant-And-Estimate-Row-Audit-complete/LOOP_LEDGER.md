@@ -771,3 +771,88 @@ Migration ownership is corrected to match dependency order: `UNIT-010` creates s
 `ACTIVE = UNIT-011`
 `NEXT = RUN_WHOLE_ROUTE_PERFORMANCE_AND_SERIAL_TEST_GATE`
 `STOP = TEST-001 through TEST-008, PERF-S01 through PERF-S12, scoped static checks, fixture cleanup, and GitNexus change detection are terminal with decisive evidence`
+
+## 2026-07-16 — UNIT-011 Whole-Route Performance And Serial Test Verification
+
+**Status:** `VERIFIED`
+
+**Mode:** retained duplicate-row intent, deterministic large-fixture measurements, exact serial regression groups, one exact Chromium journey, and scoped static/GitNexus review
+**Observed at:** `2026-07-16T07:42:59Z`
+
+### Implementation receipt
+
+- retained one duplicate-row command identity across ambiguous outcomes and retry, including row ID, mutation ID, source revision, target node, active tab, and exact optimistic item;
+- made optimistic append idempotent, rollback exact-row-only, deliberate rejection intent-releasing, and success reconciliation authoritative;
+- preserved one D1 mutation batch plus one post-commit row readback, with same-intent replay returning the committed result without a second batch; and
+- narrowed browser request-failure classification to exact expected aborted server-action identities and browser-cancelled GET image resources without masking unrelated failures.
+
+### Verification receipt
+
+- final serial Vitest result: `44` files / `351` tests across `TEST-001`–`TEST-006` and `TEST-008`;
+- exact `TEST-007` Chromium journey: `1/1` passed in `1.2m` test time with zero unexpected errors and zero cleanup errors;
+- route metrics: warm transition `50.7ms`, optimistic insert `31.3ms`, rename activation `67ms`, loaded filter `105.1ms`, zero warm document requests, zero filter server actions, and preserved shell/continuity;
+- deterministic fixtures: `101`-node branch `31.8453ms` / `14` mounted, `500`-node tree `135.7836ms` / `14` mounted, `1,000`-item search `0.418834ms` / zero requests, and `1,500` nodes / `5,000` rows / zero unrelated reads in `3.425709ms`; and
+- `bun run type-check`, scoped ESLint, scoped/global `git diff --check`, attachment/provider regressions, and affected-flow GitNexus review passed.
+
+### Evidence boundary
+
+- every `PERF-S01`–`PERF-S12` target or declared hard invariant passes;
+- loaded filtering remains an explicit watch item against the preferred `<100ms` target because the observed `105.1ms` result passes the declared `<200ms` completion invariant rather than the preferred target;
+- browser server-action p50 `285.84ms` and p95 `925.18ms` are diagnostics, not completion budgets; and
+- no current-source deployment or hosted D1/R2/browser proof is claimed.
+
+### Resume marker
+
+`LAST_VERIFIED = UNIT-011`
+
+`ACTIVE = UNIT-008`
+
+`NEXT = RECONCILE_TERMINAL_PACK_STATE`
+`STOP = tracker, traceability, artifacts, ledger, manifest hashes, criteria, evidence, and canonical validators reconcile`
+
+## 2026-07-16 — UNIT-008 Final Reconciliation Verification
+
+**Status:** `VERIFIED`
+
+**Mode:** terminal requirement/criterion/unit/evidence reconciliation and fail-closed manifest hash refresh
+**Observed at:** `2026-07-16T07:42:59Z`
+
+### Reconciliation receipt
+
+- reconciled all eleven units, twenty core requirements, twelve mutation rows, twelve performance scenarios, eight authorized tests, and twenty core criteria;
+- kept auxiliary `UX-003` / `AC-018` explicitly non-gating rather than manufacturing a false core dependency;
+- set the terminal tuple to `IMPLEMENTATION_READY / COMPLETE / VERIFIED / ACHIEVED / NOT_READY`, with lifecycle `N/A`, terminal status `ACHIEVED`, last unit `UNIT-008`, no next unit, no ready slices, and no continuation;
+- preserved release `NOT_READY` because no current-source deploy or current-revision hosted D1/R2/browser proof was requested or produced; and
+- required the canonical final validator output from this exact artifact state as the acceptance boundary for `EVID-014`.
+
+### Terminal marker
+
+`LAST_VERIFIED = UNIT-008`
+
+`ACTIVE = NONE`
+
+`NEXT = NONE`
+
+`CONTINUATION_REQUIRED = false`
+`STOP = objective achieved; reopen only on source drift or an explicitly authorized hosted-release task`
+
+## 2026-07-16 — Canonical Archive Transition
+
+**Status:** `ARCHIVED`
+
+**Observed at:** `2026-07-16T08:03:05Z`
+
+### Eligibility receipt
+
+- requirement-by-requirement reconciliation remains terminal: all eleven units are `VERIFIED`, all twenty core criteria are `PASS`, all eight authorized tests are `PASS`, and fourteen evidence records are `PASS`;
+- the package remains `IMPLEMENTATION_READY / COMPLETE / VERIFIED / ACHIEVED / NOT_READY` with no next unit, ready slice, active execution unit, or continuation;
+- `NOT_READY` remains the truthful release boundary because no current-source deployment or current-revision hosted D1/R2/browser proof was requested or produced; and
+- the canonical archive destination is `.ai/09_archive/store/2026-07-16-Component-Variant-And-Estimate-Row-Audit-complete/`.
+
+### Archive marker
+
+`PLAN_LIFECYCLE = ARCHIVED`
+
+`ACTIVE_PATH = NONE`
+
+`CANONICAL_ARCHIVE = .ai/09_archive/store/2026-07-16-Component-Variant-And-Estimate-Row-Audit-complete/`

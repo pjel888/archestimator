@@ -2,12 +2,16 @@
 
 **Audit date:** 2026-07-15
 **Scope:** current source and current shared worktree for the Estimate Sheet route
-**Product tests/browser QA:** not run in this planning pass
-**Hosted Cloudflare queries/mutations:** not run in this planning pass
+**Product tests/browser QA:** terminal local suite completed on 2026-07-16; `44` Vitest files / `351` tests and one exact Chromium journey passed
+**Hosted Cloudflare queries/mutations:** environment identity audited; no current-source deploy or hosted mutation was performed
+
+## Terminal Implementation Reconciliation — 2026-07-16
+
+All core integrity findings in this dated register are mitigated by verified owning units. Row and bulk mutations now carry retained intent, revision/fingerprint guards, atomic history/receipt boundaries, authoritative read-back, and precise cache rollback/convergence. Attachment/provider and guarded publication families pass their focused regressions. The ranked findings below remain the audit baseline, not the current implementation status; auxiliary favorites remain non-gating and release remains `NOT_READY` pending separately authorized current-source hosted proof.
 
 ## Executive Verdict
 
-The Estimate Sheet has a broad implemented source surface, but it is not release-proven and the previous pack status overstated readiness. The plan validator passed a structurally valid manifest whose 23 criteria all pointed to one blanket evidence record, while that same pack described browser and hosted proof as not run. Subsequent user-reported defects and current source changes invalidate the old `COMPLETE` claim.
+At the 2026-07-15 audit baseline, the Estimate Sheet had a broad implemented source surface but was not release-proven, and the previous pack status overstated readiness. The terminal reconciliation above supersedes that historical implementation assessment while preserving the original finding rationale.
 
 The highest current risks are:
 

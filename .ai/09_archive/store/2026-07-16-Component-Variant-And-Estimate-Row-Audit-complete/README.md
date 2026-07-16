@@ -1,21 +1,23 @@
 # Estimate Sheet MVP Feature Inventory, CRUD/Data/UI Audit, And Readiness
 
 **Canonical route:** `/workshop/projects/[projectId]/estimates/[nodeId]`
-**Package posture:** implementation-ready remediation plan, compiled and re-audited against `Create-Implementation-Prompt.md`
-**Implementation status:** `IN_PROGRESS`
-**Behavior status:** `NOT_EVALUATED`
-**Objective status:** `NOT_ACHIEVED`
+**Package posture:** implementation-ready remediation plan, implemented and reconciled against the canonical execution contract
+**Implementation status:** `COMPLETE`
+**Behavior status:** `VERIFIED`
+**Objective status:** `ACHIEVED`
 **Release status:** `NOT_READY`
-**Browser/visual proof:** `PARTIAL` — verified unit receipts exist through `UNIT-004`; the integrated `TEST-007` route gate remains open
-**Local/preview/hosted Cloudflare proof:** `NOT_EVALUATED`
-**Implementation test authorization:** `TEST_TASK` — focused deterministic, D1, integration, browser, and performance tests are required by `UNIT-011`
-**Last verified unit:** `UNIT-004`
-**Exact next unit:** `UNIT-005`
-**Current execution authority:** `IMPLEMENTATION_TRACKER.md`
+**Plan lifecycle:** `ARCHIVED`
+**Canonical archive:** `.ai/09_archive/store/2026-07-16-Component-Variant-And-Estimate-Row-Audit-complete/`
+**Browser/visual proof:** `PASS` — exact `TEST-007` completed with zero unexpected or cleanup errors
+**Local/preview/hosted Cloudflare proof:** `SCOPED` — local/provider contracts are verified; preview/hosted identity was audited read-only, but current code was not deployed
+**Implementation test authorization:** `TEST_TASK` — `TEST-001` through `TEST-008` all passed serially
+**Last verified unit:** `UNIT-008`
+**Exact next unit:** `NONE`
+**Archived execution record:** `IMPLEMENTATION_TRACKER.md`
 
 ## Outcome
 
-This pack is the canonical Estimate Sheet system inventory and remediation plan for the MVP authoring route. It replaces the previous narrow posture centered on one Project-component variant defect and separates the route into three primary surfaces:
+This archived pack preserves the completed Estimate Sheet system inventory, remediation contract, and terminal evidence for the MVP authoring route. Current source is the implementation authority; this archive remains the durable requirement-to-evidence record. It replaces the previous narrow posture centered on one Project-component variant defect and separates the route into three primary surfaces:
 
 1. **Left sidebar** — Estimate tree, Area CRUD, bulk delete, move/reorder, search/filter, lazy loading, template handoff, and external drops.
 2. **Center Estimate Sheet** — tabs, search/filter/grouping, row and component CRUD, inline editing, variants, duplicate/move/replace/delete/restore, history, totals, export handoff, and error/recovery behavior.
@@ -37,17 +39,16 @@ At reopening, the refreshed plan treated dirty fixes as `FIX_PRESENT_UNVERIFIED`
 
 The current core register contains **7 P0 mission-critical findings, 15 P1 important findings, and 2 P2 non-mission-critical cleanup/quality findings**. Every `F-001` through `F-024` has a corrected premise, failure simulation, blast radius, selected resolution, and required evidence. Artifact `12` preserves all ten absorbed Template findings (`TPL-F-001` through `TPL-F-010`). Artifact `13` adds nine UI/readiness findings (`UI-F-001` through `UI-F-009`). Artifact `14` adds twelve performance/persistence readiness findings (`PP-F-001` through `PP-F-012`), including six mission-critical replay/atomicity gaps that must be fixed before objective completion.
 
-## Current Highest-Risk Remaining Work
+## Implementation Result
 
-| Priority | Finding | Required unit |
+| Priority | Closed result | Evidence owner |
 | --- | --- | --- |
-| `P0` | Project image deletion can remove referenced R2 objects; component image deletion has a separate save-versus-delete race. | `UNIT-006` |
-| `P0` | Upload session, asset, and event metadata can partially commit. | `UNIT-006` |
-| `P0` | Legacy and Client Portal publication do not share one authoring/privacy projection, consistency-fence, and deterministic semantic-identity contract. | `UNIT-007` |
-| `P1` | Template/Project insertion still needs target-derived topology, retained-intent replay, hard statement-ceiling enforcement, and authoritative subtree reconciliation. | `UNIT-005` |
-| `P2` | Saving an Estimate node/tab as a Template still pre-commits the Template header before the node/row batch and relies on compensating deletion. | `UNIT-009` |
-| `P2` | Template rename/menu/filter behavior and production fallback truth still need the integrated lifecycle pass. | `UNIT-009` |
-| `P1` | Whole-route render, request, remount, D1 round-trip, retry, and adversarial behavior still require the final measured gate. | `UNIT-011` |
+| `P0` | Upload, attachment, Images/R2 ownership and delayed cleanup are atomic and reference-safe. | `UNIT-006`, `TEST-008` |
+| `P0` | Legacy and Client Portal issuance share one guarded, privacy-safe authoring projection. | `UNIT-007`, `TEST-005` |
+| `P0/P1` | Row, tree, component, Template, source-insert, and publication commands retain intent and reconcile authoritative results. | `UNIT-002`–`UNIT-010`, `TEST-001`–`TEST-005` |
+| `P1` | Duplicate-row timeout replay preserves row ID, mutation ID, source revision, target, tab, and exact optimistic item; rollback removes only that duplicate. | `UNIT-011`, `TEST-002`, `TEST-007` |
+| `P1` | Named whole-route performance fixtures meet their target or hard invariant without speculative infrastructure. | `UNIT-011`, `TEST-006`, `TEST-007` |
+| `P2/P3` | Template atomicity, provenance, fallback truth, rename, and filter/menu contracts are integrated under this single authority. | `UNIT-009`, `TEST-004`, `TEST-007` |
 
 See `10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md` for the complete ranked register and `11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md` for corrected premises, failure simulations, alternatives, and selected fixes.
 
@@ -85,8 +86,6 @@ The user's explicit product rule is authoritative:
 
 ### Excluded
 
-- implementation work in this planning turn;
-- product tests or product mutations in this planning turn; the implementation program is authorized and required to execute the focused tests in `UNIT-011`;
 - deployment or live production mutation;
 - unrelated Admin Estimate System Map work.
 
@@ -113,24 +112,13 @@ The folder is intentionally not renamed during concurrent work. No tracked inbou
 
 ## Evidence Boundary
 
-Current evidence combines the frozen planning/source baseline with verified implementation receipts through `UNIT-004`:
+The implementation objective is proven locally by all eleven verified units, `44` Vitest files / `351` tests across `TEST-001`–`TEST-006` and `TEST-008`, the exact Playwright route journey in `TEST-007`, named `PERF-S01`–`PERF-S12` receipts, type-check, scoped ESLint, clean diff checks, and GitNexus change detection. The browser journey covered create, edit, duplicate, ambiguous retry, stale conflict, failed bulk rollback, Template use, permanent cleanup, rename/filter continuity, and authoritative reload.
 
-- route/component/action source;
-- D1 migrations and action transport;
-- `wrangler.jsonc` bindings;
-- current scoped worktree diff;
-- user-reported runtime incidents from the live Estimate Sheet;
-- the fully read Component Templates audit, reclassified through artifact `12` because its legacy manifest does not satisfy the current canonical validator; and
-- a read-only in-app browser baseline of active Area rename and the Templates source-family trigger/menu, plus the current source styles and render boundaries consolidated in artifact `13`.
-- current-source hot-path, persistence-boundary, query/cache, and historical lean-performance analysis consolidated in artifact `14`; and
-- an implementation tracker that records verified row, tab/tree, component lifecycle, permanent-delete, replay, cache, and focused-test receipts through `UNIT-004`; and
-- an exact continuation at `UNIT-005`, while whole-route behavior, provider, publication, and final release evidence remain open.
+Release remains `NOT_READY` because the current local source was not deployed and no current-revision hosted D1/R2 lifecycle or hosted route proof was collected. Preview/hosted resource identity and migration drift remain truthfully recorded as provider boundary evidence, not implementation failure.
 
-The completed unit receipts prove only their named slices. They do not prove the full Estimate Sheet objective, every failure/performance path, Cloudflare preview/hosted `ARCH_DB`/`ARCH_UPLOADS_R2`, or public-share parity. Those evidence levels remain mandatory under artifacts `10`, `13`, and `14`.
+## Completion Result
 
-## Stop Condition
-
-The remediation program is complete only when:
+The remediation program completed with the following reconciled result:
 
 1. every matrix action has one current source owner and one decisive result;
 2. all P0/P1 findings are fixed, explicitly accepted, or removed by a product decision;
@@ -143,3 +131,5 @@ The remediation program is complete only when:
 9. every `MUT-*` and `PERF-S*` row satisfies `DATA-003`/`AC-019` and `PERF-003`/`AC-020` with required test evidence;
 10. `IMPLEMENTATION_TRACKER.md` satisfies `OPS-002`/`AC-021`, every required test is `PASS`, and no repository-controlled continuation is left unresolved; and
 11. `plan-pack.json` has claim-level evidence rather than blanket PASS records.
+
+All eleven conditions are satisfied for local implementation and objective completion. Hosted deployment/parity remains a separate release boundary, so release is deliberately `NOT_READY` rather than falsely promoted.

@@ -33,7 +33,7 @@
       "id": "ART-003",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3c2192b0cd76be78e77d34306110d6fed737b7e33dbff89993585bb2dea59fd2"
+      "sha256": "0e4fd968ece33063afd55f66888ce567606b614ed355e7adf983e85896629751"
     },
     {
       "id": "ART-004",
@@ -1006,13 +1006,13 @@
         "AC-009"
       ],
       "status": "COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+legacy-cleanup-plan-freeze-2026-07-15",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-reference-repair-2026-07-16T08:03:05Z",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3c2192b0cd76be78e77d34306110d6fed737b7e33dbff89993585bb2dea59fd2",
+      "sha256": "0e4fd968ece33063afd55f66888ce567606b614ed355e7adf983e85896629751",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -1027,7 +1027,7 @@
         "TEST-001"
       ],
       "status": "COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+legacy-cleanup-plan-freeze-2026-07-15",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-reference-repair-2026-07-16T08:03:05Z",
       "valid_until": null
     },
     {
@@ -1041,7 +1041,7 @@
         "GATE-CALLBACK-DEPLOY-001"
       ],
       "status": "COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+legacy-cleanup-plan-freeze-2026-07-15",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-reference-repair-2026-07-16T08:03:05Z",
       "valid_until": null
     }
   ],
@@ -1078,5 +1078,5 @@
   ],
   "next_unit": "UNIT-002",
   "updated_at": "2026-07-15T07:00:00.000Z",
-  "manifest_sha256": "dee084b4ac2eacf2ae1163c96db313edcf85f08d29863d4c32c35c4cb396acc0"
+  "manifest_sha256": "253ebcb5a3748db431871497e2d66bcb71ded6a54bac9ef34503873534252cb6"
 }

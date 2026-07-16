@@ -3,17 +3,21 @@
 **Absorption date:** 2026-07-15  
 **Absorbed source:** `.ai/03_plans/2026-07-15/Component-Templates/`  
 **Canonical owner after absorption:** this Estimate Sheet plan pack  
-**Product implementation status:** `NOT_STARTED` under the refreshed remediation DAG  
-**Verification class:** source, migration, graph, artifact, and manifest inspection only; no product tests, browser QA, provider mutation, or deployment was run
+**Product implementation status:** `COMPLETE`; owning units `UNIT-005`, `UNIT-009`, `UNIT-010`, `UNIT-011`, and `UNIT-008` are `VERIFIED`
+**Verification class:** source, migration, graph, focused tests, exact browser journey, performance receipts, and terminal manifest reconciliation; no deployment was run
+
+## Terminal Implementation Reconciliation — 2026-07-16
+
+The absorbed Template contracts are implemented and verified: lifecycle writes are atomic and replay-safe, summary browse is bounded, selected detail hydrates on demand, saved provenance/contingency semantics are canonical, insertion retains intent and validates arbitrary selected targets, unavailable schema/source states are explicit, and cache convergence is target-scoped. `TEST-004`, `TEST-006`, and `TEST-007` pass. Historical `CONFIRMED_OPEN` rows below remain the absorption baseline and no longer represent current implementation status.
 
 ## Authority And Disposition
 
 This artifact preserves the complete useful content of the absorbed Component Templates audit while translating it into the current plan-pack schema and the wider Estimate Sheet identity, mutation, and evidence contracts.
 
-The absorbed pack was complete as an **audit deliverable**: its eight requested research requirements, architecture map, end-to-end flows, ten findings, four proposed units, variant analysis, and eight source-evidence claims were present. It did **not** prove that its proposed product fixes were implemented. Its manifest reported `IMPLEMENTATION_READY / NOT_STARTED`, and the current canonical validator rejects that legacy manifest with 99 schema/reciprocity/status issues. Therefore:
+The absorbed pack was complete as an **audit deliverable**: its eight requested research requirements, architecture map, end-to-end flows, ten findings, four proposed units, variant analysis, and eight source-evidence claims were present. At absorption time it did **not** prove that its proposed product fixes were implemented. Its legacy manifest reported `IMPLEMENTATION_READY / NOT_STARTED` and failed the current schema. The terminal integrated pack now supplies that implementation proof. Therefore:
 
 1. its source-verified content is retained here;
-2. its implementation claims are not promoted beyond planning readiness;
+2. its historical implementation claims are promoted only through the integrated pack's fresh terminal evidence;
 3. conflicts are resolved in favor of the newer integrated Estimate Sheet contracts;
 4. the separate source folder may be removed only after this artifact, the action inventory, implementation DAG, traceability, and manifest validate together; and
 5. this pack becomes the sole active planning authority for Template create, browse, editor, lifecycle, and insertion interoperability.

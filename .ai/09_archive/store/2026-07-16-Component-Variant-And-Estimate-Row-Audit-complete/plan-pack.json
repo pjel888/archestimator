@@ -6,10 +6,10 @@
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "IMPLEMENT_LOCAL",
   "package_status": "IMPLEMENTATION_READY",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "COMPLETE",
   "release_status": "NOT_READY",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
   "baseline": {
     "head": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -21,7 +21,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "14892795508e476fdf8c16ecc28e49d5c90902e0a575ab6e4c30cf145fe75c45"
+      "sha256": "f8b0f940df9478d3336560c04036ead94c1725b58609ceeab27545576ad3b94d"
     },
     {
       "id": "ART-002",
@@ -75,61 +75,61 @@
       "id": "ART-010",
       "role": "canonical-inventory",
       "path": "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md",
-      "sha256": "1045bee82ac47bf382b0c5a32b8e614427cd618dbefe56118bdf35ba07ba8916"
+      "sha256": "acdd410d8712c44f7c9ef1815ea40a8835778cae81140629a3347e5628694f95"
     },
     {
       "id": "ART-011",
       "role": "canonical-audit",
       "path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
-      "sha256": "65c7c7e72f3c0073722c8807cbb4230344314f96ba82e3ad73d1c54e972dabb4"
+      "sha256": "a880263353d72fe7b1797c61d94fd6c43f3dc492731b1f79154f644bfa959454"
     },
     {
       "id": "ART-012",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3545daa35621a97d3bdf6b63193cdee7693d22ae11f29b98dee69f5c24d62c3a"
+      "sha256": "905a96bd913236536c57123e29b336801880d990aa1a68cd89fc72d0fa26734d"
     },
     {
       "id": "ART-013",
       "role": "traceability",
       "path": "TRACEABILITY.md",
-      "sha256": "b0fe4718fa1466b01866fdfc97868a4a0ce12fb6d8b96d5e2492207b833fb281"
+      "sha256": "7d94480a26fe8210903a8002b3f25cfca94784c67fe47346b7e6f9db8bfe0803"
     },
     {
       "id": "ART-014",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "1f3a0878ecdef6ea74d5479209afe4a4370a5ff0ccb5a192566a780230d23a16"
+      "sha256": "2002d3e0dae30505e51800677a73f172d1f585dff34ef2f74b79572f7e9706df"
     },
     {
       "id": "ART-015",
       "role": "canonical-resolution",
       "path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
-      "sha256": "7c26a9b517c07dc5d0b9e81a5c338261654b2b62afc82bff7b04074d2ba1fb8a"
+      "sha256": "f244f5c4195271a7c9cab47baac0c98247a83990f1ba422c1fc0b15cf85e0e31"
     },
     {
       "id": "ART-016",
       "role": "canonical-template-lifecycle",
       "path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
-      "sha256": "cddd94eec32dda4aa490758b03b6bebca45f19a2676f0cb5fc0420501cf809f6"
+      "sha256": "b40c79c6a4a1dea82edcea823cb0bef371ed0fc0ac8f3aac577aec8905cf22c3"
     },
     {
       "id": "ART-017",
       "role": "canonical-ux-ui-performance-readiness",
       "path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
-      "sha256": "4d530ef2fbaf3f77b2a0d34a6524b4ec16af80a376d57ae36ba76d6cd4ca2789"
+      "sha256": "1a74cf0389cd5cc4197c62a4c73f35c9fea3c3ce8b997ad983b3a55dbf580fc0"
     },
     {
       "id": "ART-018",
       "role": "canonical-performance-persistence-test-contract",
       "path": "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
-      "sha256": "cda89f1cd715f7e4b581cc39d6eb20299416f7365998e4bf6a3bf682feb02a64"
+      "sha256": "e03086fb1ac72ff35c1181ffa5da895e6faa7b3ed44f609a37a1ea8fabd5edd1"
     },
     {
       "id": "ART-019",
       "role": "implementation-tracker",
       "path": "IMPLEMENTATION_TRACKER.md",
-      "sha256": "dfa0325575dec0c25141a95fd2a76bf51ec526cbc77de5258d9d6b9298b1609e"
+      "sha256": "378e489bce49951331cc2781ca4aea3ad500f3cd1c7a0d79defb6e204774b419"
     }
   ],
   "sources": [
@@ -802,7 +802,7 @@
   "risks": [
     {
       "id": "RISK-001",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Invalid node/tab/folder topology can orphan or misplace rows, copied subtrees, and Library folders.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -825,7 +825,7 @@
     },
     {
       "id": "RISK-002",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Permanent component deletion can partially destroy data or omit non-restorable audit evidence.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -842,7 +842,7 @@
     },
     {
       "id": "RISK-003",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "D1 upload metadata and R2/Images objects can drift or delete referenced assets.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -858,7 +858,7 @@
     },
     {
       "id": "RISK-004",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Preflight-only revision, fingerprint, or correlation checks allow concurrency duplicates and stale writes.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -879,7 +879,7 @@
     },
     {
       "id": "RISK-005",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Legacy and Client Portal readers/serializers can mix source revisions, issue different authoring meaning, produce unstable semantic identity, or expose controlled data through direct or derived fields.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -893,7 +893,7 @@
     },
     {
       "id": "RISK-006",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Concurrent dirty work and non-executable source/diff evidence freshness can preserve false completion claims.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -910,7 +910,7 @@
     },
     {
       "id": "RISK-007",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Client-supplied IDs or public projections can cross workspace, project, estimate, or privacy boundaries.",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
       "unit_ids": [
@@ -939,7 +939,7 @@
     },
     {
       "id": "RISK-008",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Template lifecycle behavior can drift across save, bounded browse, editor, source/variant fields, insertion, and shared command contracts when ownership or evidence is split.",
       "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
       "unit_ids": [
@@ -962,7 +962,7 @@
     },
     {
       "id": "RISK-009",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Retry can replay domain statements, allocate duplicate IDs, or leave client caches divergent from the committed D1 result when intent identity and authoritative outcomes are not durable.",
       "artifact_path": "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
       "unit_ids": [
@@ -980,7 +980,7 @@
     },
     {
       "id": "RISK-010",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "Whole-route regressions or speculative optimization can make the Estimate Sheet slower, less predictable, or more complex despite isolated component-level improvements.",
       "artifact_path": "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
       "unit_ids": [
@@ -994,7 +994,7 @@
     },
     {
       "id": "RISK-011",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "statement": "An executor can declare completion while required tests, mutation contracts, performance scenarios, or status reconciliation remain open.",
       "artifact_path": "IMPLEMENTATION_TRACKER.md",
       "unit_ids": [
@@ -1010,7 +1010,7 @@
   "criteria": [
     {
       "id": "AC-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
@@ -1021,13 +1021,14 @@
       "test_ids": [],
       "evidence_ids": [
         "EVID-001",
-        "EVID-006"
+        "EVID-006",
+        "EVID-014"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-002",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1047,7 +1048,7 @@
     },
     {
       "id": "AC-003",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1067,7 +1068,7 @@
     },
     {
       "id": "AC-004",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1089,7 +1090,7 @@
     },
     {
       "id": "AC-005",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1110,7 +1111,7 @@
     },
     {
       "id": "AC-006",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1132,7 +1133,7 @@
     },
     {
       "id": "AC-007",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1153,7 +1154,7 @@
     },
     {
       "id": "AC-008",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1173,7 +1174,7 @@
     },
     {
       "id": "AC-009",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1196,7 +1197,7 @@
     },
     {
       "id": "AC-010",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1215,7 +1216,7 @@
     },
     {
       "id": "AC-011",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1237,7 +1238,7 @@
     },
     {
       "id": "AC-012",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1261,7 +1262,7 @@
     },
     {
       "id": "AC-013",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1283,7 +1284,7 @@
     },
     {
       "id": "AC-014",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1299,13 +1300,14 @@
         "EVID-004",
         "EVID-005",
         "EVID-006",
-        "EVID-010"
+        "EVID-010",
+        "EVID-013"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-015",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1325,7 +1327,7 @@
     },
     {
       "id": "AC-016",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1344,7 +1346,7 @@
     },
     {
       "id": "AC-017",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1381,7 +1383,7 @@
     },
     {
       "id": "AC-019",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1405,7 +1407,7 @@
     },
     {
       "id": "AC-020",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "TEST_TASK",
       "test_trigger": "EXPLICIT_TEST_TASK",
@@ -1419,13 +1421,14 @@
       ],
       "evidence_ids": [
         "EVID-008",
-        "EVID-010"
+        "EVID-010",
+        "EVID-012"
       ],
       "authorization_boundary_id": null
     },
     {
       "id": "AC-021",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
@@ -1436,7 +1439,8 @@
       "test_ids": [],
       "evidence_ids": [
         "EVID-008",
-        "EVID-009"
+        "EVID-009",
+        "EVID-014"
       ],
       "authorization_boundary_id": null
     }
@@ -1455,12 +1459,13 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ]
     },
     {
       "id": "TEST-002",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-004",
@@ -1469,7 +1474,8 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-010"
+        "EVID-010",
+        "EVID-011"
       ]
     },
     {
@@ -1484,7 +1490,8 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ]
     },
     {
@@ -1499,7 +1506,8 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ]
     },
     {
@@ -1513,7 +1521,8 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ]
     },
     {
@@ -1526,12 +1535,13 @@
         "AC-020"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ]
     },
     {
       "id": "TEST-007",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-002",
@@ -1551,7 +1561,8 @@
         "AC-020"
       ],
       "evidence_ids": [
-        "EVID-010"
+        "EVID-010",
+        "EVID-011"
       ]
     },
     {
@@ -1565,14 +1576,15 @@
         "AC-019"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ]
     }
   ],
   "gates": [
     {
       "id": "GATE-READINESS-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "TRACEABILITY.md",
       "criterion_ids": [
         "AC-001",
@@ -1597,7 +1609,8 @@
         "AC-021"
       ],
       "evidence_ids": [
-        "EVID-004"
+        "EVID-004",
+        "EVID-014"
       ],
       "authorization_boundary_id": null
     }
@@ -1886,7 +1899,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "IN_PROGRESS",
+      "status": "VERIFIED",
       "goal": "Run the whole-route performance and authorized adversarial test gate, repair every in-scope failure, and produce terminal mutation and performance evidence.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -1913,12 +1926,15 @@
       "evidence_ids": [
         "EVID-008",
         "EVID-009",
-        "EVID-010"
+        "EVID-010",
+        "EVID-011",
+        "EVID-012",
+        "EVID-013"
       ]
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "VERIFIED",
       "goal": "Reconcile every action, finding, environment, UX/performance contract, and criterion into a truthful release decision.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
@@ -1973,7 +1989,8 @@
         "EVID-006",
         "EVID-007",
         "EVID-008",
-        "EVID-009"
+        "EVID-009",
+        "EVID-014"
       ]
     }
   ],
@@ -2275,7 +2292,7 @@
     {
       "id": "EVID-001",
       "artifact_path": "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md",
-      "sha256": "1045bee82ac47bf382b0c5a32b8e614427cd618dbefe56118bdf35ba07ba8916",
+      "sha256": "acdd410d8712c44f7c9ef1815ea40a8835778cae81140629a3347e5628694f95",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -2284,24 +2301,24 @@
         "AC-013",
         "AC-018"
       ],
-      "status": "COLLECTED",
+      "status": "PASS",
       "method": "Current route/source action inventory with artifact and scoped-worktree fingerprint comparison.",
       "expected_signal": "Every discoverable action has one owner/status and historical completion claims are not reused.",
-      "actual_signal": "The 133-row matrix is current at the observed scoped source revision; product behavior is not proven.",
+      "actual_signal": "The canonical action inventory is reconciled to verified owning units and terminal interaction/mutation evidence.",
       "environment": "WORKTREE_SOURCE",
-      "observed_at": "2026-07-15T07:32:30.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "09-ESTIMATE-SHEET-FEATURE-ACTION-MATRIX.md"
       ],
       "source_fingerprint": "141988a89ea6bf3961c464db97365d26a7ce50f9:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "PLANNING_ONLY_COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+scoped-source-2026-07-15T07:32:30Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-002",
       "artifact_path": "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md",
-      "sha256": "65c7c7e72f3c0073722c8807cbb4230344314f96ba82e3ad73d1c54e972dabb4",
+      "sha256": "a880263353d72fe7b1797c61d94fd6c43f3dc492731b1f79154f644bfa959454",
       "claim_ids": [
         "AC-004",
         "AC-005",
@@ -2316,24 +2333,24 @@
         "AC-014",
         "AC-018"
       ],
-      "status": "COLLECTED",
+      "status": "PASS",
       "method": "Current source, migration, binding, graph-impact, and incident review grouped by mutation boundary.",
       "expected_signal": "Every ranked finding has current evidence and no stale premise is preserved.",
-      "actual_signal": "Twenty-four findings remain traceable; corrected premises and unresolved evidence gaps are explicit.",
+      "actual_signal": "All core data-integrity, provider-lifecycle, and publication findings have verified implementation and regression receipts.",
       "environment": "WORKTREE_SOURCE",
-      "observed_at": "2026-07-15T07:32:30.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "10-DATA-INTEGRITY-BUG-AND-READINESS-AUDIT.md"
       ],
       "source_fingerprint": "141988a89ea6bf3961c464db97365d26a7ce50f9:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "PLANNING_ONLY_COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+scoped-source-2026-07-15T07:32:30Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-003",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3545daa35621a97d3bdf6b63193cdee7693d22ae11f29b98dee69f5c24d62c3a",
+      "sha256": "905a96bd913236536c57123e29b336801880d990aa1a68cd89fc72d0fa26734d",
       "claim_ids": [
         "UNIT-001",
         "UNIT-010",
@@ -2350,65 +2367,65 @@
       "status": "PASS",
       "method": "Create-Implementation-Prompt compilation plus dependency, owner-path, decision, acceptance, evidence, recovery, and next-state review for every remediation unit.",
       "expected_signal": "Every unit has dependency closure, fixed routine decisions, one executable minimal-fix sequence, exact evidence authority, recovery, and next state.",
-      "actual_signal": "The eleven-unit execution DAG remains dependency-closed; UNIT-001 through UNIT-007 plus UNIT-009 and UNIT-010 are verified from scoped source, local D1, focused-test, replay, failure, provider-boundary, publication-parity, and tracker receipts, and UNIT-011 is the exact active continuation.",
+      "actual_signal": "All eleven dependency-closed units are VERIFIED and no implementation continuation remains.",
       "environment": "PLAN_ARTIFACT",
-      "observed_at": "2026-07-15T18:40:15.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "IMPLEMENTATION_PLAN.md"
       ],
       "source_fingerprint": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "UNIT_007_VERIFIED_UNIT_011_ACTIVE",
-      "source_revision": "c29f2ea6e35d8f3a1d35ff0b6c765d104695a90b+unit-007-2026-07-15T18:40:15Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-004",
       "artifact_path": "TRACEABILITY.md",
-      "sha256": "b0fe4718fa1466b01866fdfc97868a4a0ce12fb6d8b96d5e2492207b833fb281",
+      "sha256": "7d94480a26fe8210903a8002b3f25cfca94784c67fe47346b7e6f9db8bfe0803",
       "claim_ids": [
         "AC-014",
         "GATE-READINESS-001"
       ],
-      "status": "COLLECTED",
+      "status": "PASS",
       "method": "Reciprocal ID/path/requirement/criterion/unit/evidence manifest review.",
       "expected_signal": "No orphan ID or invalid status tuple and every criterion remains truthful.",
-      "actual_signal": "All twenty-one criteria remain truthfully FAIL pending complete evidence; verified unit receipts now include UNIT-007, UNIT-011 is active, and objective/release status remains nonterminal.",
+      "actual_signal": "Twenty core criteria are PASS, auxiliary AC-018 remains explicitly non-gating, and all reciprocal mappings reconcile.",
       "environment": "PLAN_ARTIFACT",
-      "observed_at": "2026-07-15T18:40:15.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "TRACEABILITY.md",
         "plan-pack.json"
       ],
       "source_fingerprint": "141988a89ea6bf3961c464db97365d26a7ce50f9:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "PLAN_PACK_VALIDATION_PASSED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+scoped-source-2026-07-15T07:32:30Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-005",
       "artifact_path": "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md",
-      "sha256": "7c26a9b517c07dc5d0b9e81a5c338261654b2b62afc82bff7b04074d2ba1fb8a",
+      "sha256": "f244f5c4195271a7c9cab47baac0c98247a83990f1ba422c1fc0b15cf85e0e31",
       "claim_ids": [
         "AC-014"
       ],
-      "status": "COLLECTED",
+      "status": "PASS",
       "method": "Five bounded read-only audit clusters plus integrator synthesis and adversarial review of root cause, blast radius, options, and recovery.",
       "expected_signal": "Every F-001 through F-024 has a corrected premise, failure/race/partial-failure simulation, selected smallest coherent repair, rejected alternatives, decisive evidence, and residual risk.",
-      "actual_signal": "All twenty-four findings are covered; five stale premises and three partial/source-fix dispositions are corrected without product-code changes.",
+      "actual_signal": "The selected minimal resolutions for every core finding were implemented and verified by their owning units.",
       "environment": "WORKTREE_SOURCE",
-      "observed_at": "2026-07-15T07:32:30.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "11-ISSUE-BY-ISSUE-ROOT-CAUSE-BLAST-RADIUS-AND-FIX-SIMULATIONS.md"
       ],
       "source_fingerprint": "141988a89ea6bf3961c464db97365d26a7ce50f9:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "PLANNING_ONLY_COLLECTED",
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+scoped-source-2026-07-15T07:32:30Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-006",
       "artifact_path": "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md",
-      "sha256": "cddd94eec32dda4aa490758b03b6bebca45f19a2676f0cb5fc0420501cf809f6",
+      "sha256": "b40c79c6a4a1dea82edcea823cb0bef371ed0fc0ac8f3aac577aec8905cf22c3",
       "claim_ids": [
         "AC-001",
         "AC-004",
@@ -2425,21 +2442,21 @@
       "status": "PASS",
       "method": "Full source-pack artifact and manifest review, current-source spot checks, requirement/finding/unit/evidence crosswalk, and path/reference validation.",
       "expected_signal": "All source requirements, findings, units, evidence claims, architecture, flow, and variant contracts are retained with no duplicate active authority.",
-      "actual_signal": "All absorbed Template requirements remain under one destination authority, and UNIT-009 now proves one-batch lifecycle, replay/activity receipts, detached identities, variant/provenance preservation, explicit schema-unavailable behavior, and source-pack absence.",
+      "actual_signal": "Absorbed Template lifecycle, browse, editor, provenance, insertion, retry, and fallback contracts are implemented and verified.",
       "environment": "PLAN_ARTIFACT",
-      "observed_at": "2026-07-15T17:48:56.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "12-COMPONENT-TEMPLATES-ABSORPTION-AND-LIFECYCLE-CONTRACT.md"
       ],
       "source_fingerprint": "141988a89ea6bf3961c464db97365d26a7ce50f9:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "UNIT_009_TEMPLATE_ABSORPTION_VERIFIED",
-      "source_revision": "c350f8bf85597cfa59008a488b49acdd73d90076+unit-009-2026-07-15T17:48:56Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-007",
       "artifact_path": "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md",
-      "sha256": "4d530ef2fbaf3f77b2a0d34a6524b4ec16af80a376d57ae36ba76d6cd4ca2789",
+      "sha256": "1a74cf0389cd5cc4197c62a4c73f35c9fea3c3ce8b997ad983b3a55dbf580fc0",
       "claim_ids": [
         "AC-016",
         "AC-017",
@@ -2453,22 +2470,22 @@
       "status": "PASS",
       "method": "Read-only live-route inspection plus current-source review of Area, tab, folder, project-group, Template filter, shared dropdown, tree-render, deferred-search, bounded-hydration, and virtualization paths.",
       "expected_signal": "Rename and compact-filter behavior has one stable interaction contract, exact local budgets, current strengths, owners, and an explicit required-versus-user-gated proof split.",
-      "actual_signal": "The exact route rendered cleanly after local migration parity repair; current rename/filter owners, deferred search, bounded hydration, virtualization thresholds, and local latency/rerender/request/remount/geometry/dependency budgets are frozen without claiming corrected downstream behavior.",
+      "actual_signal": "Stable-surface editing, transparent filtering, focus/geometry continuity, and browser interaction behavior are verified.",
       "environment": "WORKTREE_SOURCE",
-      "observed_at": "2026-07-15T08:37:05.000Z",
+      "observed_at": "2026-07-16T07:42:59.000Z",
       "source_paths": [
         "13-ESTIMATE-SHEET-UX-UI-AND-INTERACTION-PERFORMANCE-READINESS.md"
       ],
       "source_fingerprint": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "result": "UNIT_001_UX_PERFORMANCE_BASELINE_VERIFIED",
-      "source_revision": "43ca19ea960c6eb5c48d9b2e79d5dd5e96dd2805+unit-001-2026-07-15T08:37:05Z",
-      "valid_until": "2026-07-16T07:32:30.000Z"
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
     },
     {
       "id": "EVID-008",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
-      "sha256": "cda89f1cd715f7e4b581cc39d6eb20299416f7365998e4bf6a3bf682feb02a64",
+      "sha256": "e03086fb1ac72ff35c1181ffa5da895e6faa7b3ed44f609a37a1ea8fabd5edd1",
       "claim_ids": [
         "AC-019",
         "AC-020",
@@ -2476,14 +2493,17 @@
         "UNIT-011",
         "UNIT-008"
       ],
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9+estimate-sheet-readiness-hardening-2026-07-15",
-      "valid_until": null
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null,
+      "actual_signal": "MUT-01 through MUT-12 and PERF-S01 through PERF-S12 have terminal receipts; every performance target or hard invariant passes.",
+      "result": "PASS",
+      "observed_at": "2026-07-16T07:42:59.000Z"
     },
     {
       "id": "EVID-009",
       "status": "PASS",
       "artifact_path": "IMPLEMENTATION_TRACKER.md",
-      "sha256": "dfa0325575dec0c25141a95fd2a76bf51ec526cbc77de5258d9d6b9298b1609e",
+      "sha256": "378e489bce49951331cc2781ca4aea3ad500f3cd1c7a0d79defb6e204774b419",
       "claim_ids": [
         "AC-021",
         "UNIT-001",
@@ -2504,14 +2524,17 @@
         "TEST-006",
         "TEST-008"
       ],
-      "source_revision": "c29f2ea6e35d8f3a1d35ff0b6c765d104695a90b+unit-007-2026-07-15T18:40:15Z",
-      "valid_until": null
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null,
+      "actual_signal": "Tracker records all units, core requirements, mutation rows, scenarios, tests, evidence dimensions, receipts, and null continuation as terminal.",
+      "result": "PASS",
+      "observed_at": "2026-07-16T07:42:59.000Z"
     },
     {
       "id": "EVID-010",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3545daa35621a97d3bdf6b63193cdee7693d22ae11f29b98dee69f5c24d62c3a",
+      "sha256": "905a96bd913236536c57123e29b336801880d990aa1a68cd89fc72d0fa26734d",
       "claim_ids": [
         "AC-002",
         "AC-003",
@@ -2539,28 +2562,116 @@
         "TEST-006",
         "TEST-007"
       ],
-      "source_revision": "141988a89ea6bf3961c464db97365d26a7ce50f9",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null,
+      "actual_signal": "The exact TEST-001 through TEST-008 commands were run serially: 44 Vitest files / 351 tests and one exact Chromium journey passed.",
+      "result": "PASS",
+      "observed_at": "2026-07-16T07:42:59.000Z"
+    },
+    {
+      "id": "EVID-011",
+      "artifact_path": "IMPLEMENTATION_TRACKER.md",
+      "sha256": "378e489bce49951331cc2781ca4aea3ad500f3cd1c7a0d79defb6e204774b419",
+      "claim_ids": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-003",
+        "TEST-004",
+        "TEST-005",
+        "TEST-006",
+        "TEST-007",
+        "TEST-008",
+        "UNIT-011"
+      ],
+      "status": "PASS",
+      "method": "Exact serial execution of the eight authorized test groups with browser error and cleanup capture.",
+      "expected_signal": "All required groups pass serially with no unexpected skip, flaky-green browser result, unexpected browser error, or cleanup error.",
+      "actual_signal": "44 Vitest files / 351 tests and one exact Chromium journey passed with zero unexpected errors and zero cleanup errors.",
+      "environment": "LOCAL_WORKTREE",
+      "observed_at": "2026-07-16T07:42:59.000Z",
+      "source_paths": [
+        "IMPLEMENTATION_TRACKER.md",
+        "e2e/estimate-sheet-mvp.spec.ts"
+      ],
+      "source_fingerprint": "9155a8ea0ccac1659c951504bf2518f3132a259d+unit-011-008-final-2026-07-16T07:42:59Z",
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-012",
+      "artifact_path": "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
+      "sha256": "e03086fb1ac72ff35c1181ffa5da895e6faa7b3ed44f609a37a1ea8fabd5edd1",
+      "claim_ids": [
+        "AC-020",
+        "UNIT-011"
+      ],
+      "status": "PASS",
+      "method": "Deterministic render/work fixtures plus exact-route browser timing and D1 round-trip inspection for PERF-S01 through PERF-S12.",
+      "expected_signal": "Every performance scenario meets its target or declared hard invariant without speculative production infrastructure.",
+      "actual_signal": "All twelve scenarios passed; PERF-S09 filter measured 105.1ms and met the declared <200ms hard invariant while remaining a <100ms watch item.",
+      "environment": "LOCAL_WORKTREE",
+      "observed_at": "2026-07-16T07:42:59.000Z",
+      "source_paths": [
+        "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
+        "IMPLEMENTATION_TRACKER.md"
+      ],
+      "source_fingerprint": "9155a8ea0ccac1659c951504bf2518f3132a259d+unit-011-008-final-2026-07-16T07:42:59Z",
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-013",
+      "artifact_path": "LOOP_LEDGER.md",
+      "sha256": "2002d3e0dae30505e51800677a73f172d1f585dff34ef2f74b79572f7e9706df",
+      "claim_ids": [
+        "AC-014",
+        "UNIT-011"
+      ],
+      "status": "PASS",
+      "method": "Scoped static validation, local D1/provider regression evidence, diff hygiene, and GitNexus affected-flow review.",
+      "expected_signal": "Typecheck, scoped lint, diff checks, local integrity/provider regressions, and affected-flow review pass without unrelated scope expansion.",
+      "actual_signal": "Typecheck, scoped ESLint, scoped/global diff checks, local D1/attachment/provider regressions, and GitNexus affected-flow review passed.",
+      "environment": "LOCAL_WORKTREE",
+      "observed_at": "2026-07-16T07:42:59.000Z",
+      "source_paths": [
+        "LOOP_LEDGER.md",
+        "IMPLEMENTATION_TRACKER.md"
+      ],
+      "source_fingerprint": "9155a8ea0ccac1659c951504bf2518f3132a259d+unit-011-008-final-2026-07-16T07:42:59Z",
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-014",
+      "artifact_path": "TRACEABILITY.md",
+      "sha256": "7d94480a26fe8210903a8002b3f25cfca94784c67fe47346b7e6f9db8bfe0803",
+      "claim_ids": [
+        "AC-001",
+        "AC-021",
+        "GATE-READINESS-001",
+        "UNIT-008"
+      ],
+      "status": "PASS",
+      "method": "Fail-closed archive lifecycle and artifact hash refresh followed by validation on the canonical archived copy.",
+      "expected_signal": "Tracker, ledger, traceability, artifact hashes, manifest states, archive destination, and validators reconcile with no active duplicate or continuation.",
+      "actual_signal": "Archive lifecycle and canonical destination are frozen; validation on the moved archived copy is the decisive final boundary.",
+      "environment": "LOCAL_WORKTREE",
+      "observed_at": "2026-07-16T07:42:59.000Z",
+      "source_paths": [
+        "TRACEABILITY.md",
+        "README.md",
+        "plan-pack.json"
+      ],
+      "source_fingerprint": "9155a8ea0ccac1659c951504bf2518f3132a259d+unit-011-008-final-2026-07-16T07:42:59Z",
+      "result": "PASS",
+      "source_revision": "9155a8ea0ccac1659c951504bf2518f3132a259d+archive-2026-07-16T08:03:05Z",
       "valid_until": null
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-010",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-009",
-        "UNIT-007",
-        "UNIT-011",
-        "UNIT-008"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "stale_triggers": [
     "estimate-sheet-action-or-route-contract-change",
     "estimate-tab-tree-row-or-history-contract-change",
@@ -2574,22 +2685,12 @@
     "estimate-sheet-whole-route-performance-budget-or-test-contract-change",
     "implementation-tracker-or-completion-state-change"
   ],
-  "next_unit": "UNIT-011",
+  "next_unit": null,
   "updated_at": "2026-07-15T18:40:15.000Z",
-  "manifest_sha256": "7ccceb0ccde013aeddea8737b281f254ed0b96d152bf72ccb48d08e08427ac1f",
-  "behavior_status": "NOT_EVALUATED",
-  "objective_status": "NOT_ACHIEVED",
-  "execution_tracking": {
-    "artifact_path": "IMPLEMENTATION_TRACKER.md",
-    "current_epoch": "2026-07-15-MVP-PERFORMANCE-PERSISTENCE-HARDENING",
-    "active_unit": "UNIT-011",
-    "last_verified_unit": "UNIT-007",
-    "required_next_unit": "UNIT-011",
-    "continuation_required": true,
-    "core_criteria_total": 20,
-    "core_criteria_open": 20,
-    "test_authorization": "TEST_TASK"
-  },
+  "manifest_sha256": "25dfc52df95295fb701c22f1f5b56c3136169d007ccc239b3c78dff98f8bde4f",
+  "behavior_status": "VERIFIED",
+  "objective_status": "ACHIEVED",
+  "execution_tracking": null,
   "performance_contract": {
     "artifact_path": "14-ESTIMATE-SHEET-MVP-PERFORMANCE-PERSISTENCE-AND-TEST-CONTRACT.md",
     "scenario_ids": [

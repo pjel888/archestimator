@@ -69,6 +69,7 @@ task-specific history. Do not linear-read the detailed history below.
   blocker registry. Resolve every repository-controlled prerequisite in the run;
   only exact prohibited external actions may remain as narrow release boundaries.
 - **Admin Founder Homebase:** `.ai/03_plans/2026-07-12/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack/` is the canonical consolidated `/admin` plan. It absorbs the July 11 Admin control-plane predecessor, starts at `13-IMPLEMENTATION-ROADMAP.md` `UNIT-001`, prioritizes founder shell/search/Action Inbox/customer/release/data-quality value before advanced campaigns, and preserves the user test authorization gate.
+- **Estimate Sheet MVP audit:** `.ai/09_archive/store/2026-07-16-Component-Variant-And-Estimate-Row-Audit-complete/` is the canonical completed archive. Its terminal tuple is `IMPLEMENTATION_READY / COMPLETE / VERIFIED / ACHIEVED / NOT_READY / ARCHIVED`; release remains `NOT_READY` only because current-source hosted D1/R2/browser proof was not produced.
 - **Proposals:** `.ai/09_archive/store/2026-07-12-Proposals-Page-Audit-unresolved/`
   is archived by owner direction as `CANCELLED / INCOMPLETE / BOUNDARY`. Its
   open `/workshop/proposals` findings are preserved in `ARCHIVE-DISPOSITION.md`;
