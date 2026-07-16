@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AdminCustomerNotes } from "@/components/admin/AdminCustomerNotes";
 import { AdminUserDetailActions } from "@/components/admin/AdminUserDetailActions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { listUserCorporateAccounts } from "@/lib/admin/corporate-account-repository";
+import { listCustomerNotes } from "@/lib/admin/customer-notes-repository";
 import { getAdminUser, listAdminUserAuditActivity } from "@/lib/admin/users-repository";
 
 export default async function AdminUserDetailPage({
@@ -14,10 +16,11 @@ export default async function AdminUserDetailPage({
 }) {
   const { userId } = await params;
 
-  const [userResult, activityResult, corporateResult] = await Promise.all([
+  const [userResult, activityResult, corporateResult, notesResult] = await Promise.all([
     getAdminUser(userId),
     listAdminUserAuditActivity(userId, 50),
     listUserCorporateAccounts(userId),
+    listCustomerNotes("user", userId, 25),
   ]);
 
   if (userResult.error || !userResult.data) {

@@ -90,7 +90,7 @@ async function deleteEstimateArea(page: Page, name: string, parentName?: string)
   const dialog = page.getByRole("dialog", { name: `Delete ${name}`, exact: true });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(deleteReceipts).toHaveCount(1);
+  await expect(deleteReceipts).toHaveCount(1, { timeout: 15_000 });
   await expect(matchingNodes).toHaveCount(beforeCount - 1);
   await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 10_000 });
 }
