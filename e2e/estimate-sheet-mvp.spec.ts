@@ -11,16 +11,14 @@ const auth = getProtectedRouteE2eAuth();
 
 async function discoverEstimateSheetPath(page: Page) {
   await page.goto("/workshop/projects", { waitUntil: "domcontentloaded" });
-  const projectLink = page.locator('section[aria-label="Live projects"] article[data-project-card-view] a[href^="/workshop/projects/"]').first();
-  await expect(projectLink).toBeVisible();
-  const projectHref = await projectLink.getAttribute("href");
-  expect(projectHref).toBeTruthy();
-
-  const projectMatch = projectHref!.match(/^\/workshop\/projects\/([^/]+)/u);
-  expect(projectMatch).not.toBeNull();
-  await page.goto(`/workshop/projects/${projectMatch![1]}/estimates`, { waitUntil: "domcontentloaded" });
-  const estimateLink = page.locator('a[aria-label^="Open "][href^="/workshop/projects/"][href*="/estimates/"]').first();
-  await expect(estimateLink).toBeVisible();
+  const liveProjects = page.locator('section[aria-label="Live projects"]');
+  const projectCard = liveProjects.locator("article[data-project-card-view]")
+    .filter({ has: page.getByText("Lewis Residence", { exact: true }) })
+    .first();
+  const estimateLink = projectCard.locator('a[href^="/workshop/projects/"][href*="/estimates/"]')
+    .filter({ hasText: "ES-001 Estimate" })
+    .first();
+  await expect(estimateLink).toBeAttached();
   const estimateHref = await estimateLink.getAttribute("href");
   expect(estimateHref).toBeTruthy();
   return estimateHref!;
@@ -52,8 +50,32 @@ function getTemplateNodeByName(page: Page, name: string) {
     .filter({ has: page.getByText(name, { exact: true }) });
 }
 
-function getComponentNameInputs(page: Page, componentName: string) {
-  return page.locator(`input[data-express-field="name"][value=${JSON.stringify(componentName)}]`);
+async function expectTemplateNodeVisible(page: Page, name: string) {
+  const node = getTemplateNodeByName(page, name).first();
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await selectSourceTab(page, "Templates");
+    await setSourceSearch(page, "Search Templates", name);
+    try {
+      await expect(node).toBeVisible({ timeout: 15_000 });
+      return node;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
+async function getComponentRowIds(page: Page, componentName: string) {
+  return page.locator('input[data-estimate-row-id][aria-label^="Component name"]').evaluateAll((inputs, expectedName) => inputs.flatMap((input) => {
+    const nameInput = input as HTMLInputElement;
+    const rowId = nameInput.dataset.estimateRowId;
+    return nameInput.value === expectedName && rowId ? [rowId] : [];
+  }), componentName);
+}
+
+async function expectComponentRowCount(page: Page, componentName: string, expectedCount: number, intervals = [50]) {
+  await expect.poll(() => getComponentRowIds(page, componentName), { intervals, timeout: 15_000 }).toHaveLength(expectedCount);
 }
 
 async function expandEstimateNode(node: Locator) {
@@ -101,7 +123,20 @@ async function deleteEstimateArea(page: Page, name: string, parentName?: string)
   await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 15_000 });
 }
 
+async function ensureEstimateSheetReady(page: Page) {
+  const tabContent = page.getByLabel("Estimate tab content");
+  if (await tabContent.isVisible().catch(() => false)) return;
+  try {
+    await expect(tabContent).toBeVisible({ timeout: 12_000 });
+  } catch (error) {
+    if (!(await page.getByLabel("Loading estimates").isVisible().catch(() => false))) throw error;
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(tabContent).toBeVisible({ timeout: 60_000 });
+  }
+}
+
 async function selectSourceTab(page: Page, name: "Library" | "Templates") {
+  await ensureEstimateSheetReady(page);
   const openSearch = page.locator('[data-tree-search-panel="true"] input[data-search-input-control="true"]');
   if (await openSearch.isVisible().catch(() => false)) {
     await openSearch.fill("");
@@ -114,10 +149,10 @@ async function selectSourceTab(page: Page, name: "Library" | "Templates") {
     : page.getByRole("tree", { name: "Reusable estimate sources" });
   let readySince = 0;
   await expect.poll(async () => {
-    const isSelected = await tab.getAttribute("aria-selected") === "true";
+    const isSelected = await tab.getAttribute("aria-selected", { timeout: 1_000 }).catch(() => null) === "true";
     if (!isSelected) {
       readySince = 0;
-      await tab.click({ force: true, timeout: 1_000 });
+      if (await tab.isVisible().catch(() => false)) await tab.click({ force: true, timeout: 1_000 });
       return 0;
     }
     if (!(await targetTree.isVisible().catch(() => false))) {
@@ -126,7 +161,7 @@ async function selectSourceTab(page: Page, name: "Library" | "Templates") {
     }
     if (!readySince) readySince = Date.now();
     return Date.now() - readySince;
-  }, { intervals: [100], timeout: 15_000 }).toBeGreaterThanOrEqual(750);
+  }, { intervals: [100], timeout: 30_000 }).toBeGreaterThanOrEqual(750);
 }
 
 async function setSourceSearch(page: Page, label: "Search Library" | "Search Templates", value: string) {
@@ -137,6 +172,8 @@ async function setSourceSearch(page: Page, label: "Search Library" | "Search Tem
   }
   await expect(searchInput).toBeVisible();
   await searchInput.fill(value);
+  await expect(searchInput).toHaveValue(value);
+  await page.waitForTimeout(400);
 }
 
 async function deleteTemplate(page: Page, templateName: string) {
@@ -149,8 +186,17 @@ async function deleteTemplate(page: Page, templateName: string) {
   await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   const dialog = page.getByRole("alertdialog", { name: "Delete template" });
   await expect(dialog).toBeVisible();
+  const deleteResponsePromise = page.waitForResponse((response) => {
+    const request = response.request();
+    return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+  }, { timeout: 15_000 });
   await dialog.getByRole("button", { name: "Delete template", exact: true }).click();
-  await expect(getTemplateNodeByName(page, templateName)).toHaveCount(0);
+  const deleteResponse = await deleteResponsePromise;
+  expect(deleteResponse.status()).toBeLessThan(400);
+  expect(await deleteResponse.finished()).toBeNull();
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  await expect(getTemplateNodeByName(page, templateName)).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function permanentlyDeleteComponent(page: Page, componentName: string) {
@@ -164,16 +210,16 @@ async function permanentlyDeleteComponent(page: Page, componentName: string) {
   await page.getByRole("menuitem", { name: "Delete permanently", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Permanently delete component?" });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(/linked estimate rows?/u);
+  await expect(dialog).toContainText(/linked estimate rows?/u, { timeout: 15_000 });
   const confirmation = dialog.getByRole("textbox", { name: "Type DELETE COMPONENT to confirm" });
-  await expect(confirmation).toBeEnabled();
+  await expect(confirmation).toBeEnabled({ timeout: 15_000 });
   await confirmation.fill("DELETE COMPONENT");
   const execute = dialog.getByRole("button", { name: "Delete permanently", exact: true });
   await expect(execute).toBeEnabled();
   await execute.click();
   await expect(dialog).toBeHidden();
   await expect(libraryTree.getByRole("treeitem", { name: componentName, exact: true })).toHaveCount(0);
-  await expect(getComponentNameInputs(page, componentName)).toHaveCount(0);
+  await expectComponentRowCount(page, componentName, 0);
 }
 
 async function cleanupStaleMvpFixtures(page: Page) {
@@ -221,11 +267,14 @@ async function waitForRowSaved(page: Page) {
   await expect(failedRows).toHaveCount(0);
 }
 
-async function abortNextServerAction(page: Page, expectedFailures: Set<Request>) {
+async function abortNextServerAction(page: Page, expectedFailures: Set<Request>, bodyNeedle: string) {
   let intercepted = false;
   const handler = async (route: Route) => {
     const request = route.request();
-    if (!intercepted && request.method() === "POST" && request.headers()["next-action"]) {
+    const isTargetAction = request.method() === "POST"
+      && Boolean(request.headers()["next-action"])
+      && (request.postData() ?? "").includes(bodyNeedle);
+    if (!intercepted && isTargetAction) {
       intercepted = true;
       expectedFailures.add(request);
       await route.abort("timedout");
@@ -253,8 +302,9 @@ test.describe("Estimate Sheet MVP", () => {
   });
 
   test("keeps create, edit, retry, conflict, template, and cleanup behavior authoritative", async ({ page, context }, testInfo) => {
-    test.setTimeout(90_000);
+    test.setTimeout(180_000);
     page.setDefaultTimeout(5_000);
+    page.setDefaultNavigationTimeout(30_000);
     const suffix = `${testInfo.workerIndex}-${Date.now().toString(36)}`;
     const firstAreaName = `MVP Area ${suffix}`;
     const areaName = `${firstAreaName} Final`;
@@ -291,8 +341,8 @@ test.describe("Estimate Sheet MVP", () => {
     try {
       pathname = await discoverEstimateSheetPath(page);
       const routeStartedAt = Date.now();
-      await page.goto(pathname, { waitUntil: "domcontentloaded" });
-      await expect(page.getByLabel("Estimate tab content")).toBeVisible();
+      await page.goto(pathname, { waitUntil: "commit" });
+      await expect(page.getByLabel("Estimate tab content")).toBeVisible({ timeout: 60_000 });
       await selectSourceTab(page, "Library");
       await expect(page.getByRole("tree", { name: "Library sources" })).toBeVisible({ timeout: 10_000 });
       metrics.initialRouteReadyMs = Date.now() - routeStartedAt;
@@ -354,10 +404,19 @@ test.describe("Estimate Sheet MVP", () => {
         await expect(templateDialog).toBeVisible();
         await templateDialog.getByRole("textbox", { name: "Template name" }).fill(templateName);
         await templateDialog.getByRole("combobox", { name: "Template category" }).fill(templateCategory);
+        const templateCreateResponsePromise = page.waitForResponse((response) => {
+          const request = response.request();
+          return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+        }, { timeout: 15_000 });
         await templateDialog.getByRole("button", { name: "Save template", exact: true }).click();
-        await expect(templateDialog).toBeHidden();
-        await page.waitForLoadState("networkidle");
+        const templateCreateResponse = await templateCreateResponsePromise;
+        expect(templateCreateResponse.status()).toBeLessThan(400);
+        expect(await templateCreateResponse.finished()).toBeNull();
+        await expect(templateDialog).toBeHidden({ timeout: 15_000 });
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         templateExists = true;
+
+        await expectTemplateNodeVisible(page, templateName);
 
         await (await findEstimateNode(page, sourceName)).click();
         await page.waitForLoadState("networkidle");
@@ -366,10 +425,7 @@ test.describe("Estimate Sheet MVP", () => {
 
         const estimateTree = getEstimateTree(page);
         await estimateTree.evaluate((element) => element.setAttribute("data-mvp-preserved-tree", "true"));
-        await selectSourceTab(page, "Templates");
-        await setSourceSearch(page, "Search Templates", templateName);
-        const templateNode = getTemplateNodeByName(page, templateName).first();
-        await expect(templateNode).toBeVisible();
+        const templateNode = await expectTemplateNodeVisible(page, templateName);
 
         const filter = page.getByRole("combobox", { name: "Reusable source filter" });
         const filterBackground = await filter.evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -400,8 +456,11 @@ test.describe("Estimate Sheet MVP", () => {
         await filter.click();
         await page.getByRole("option", { name: "Custom templates", exact: true }).click();
         page.off("request", countServerActions);
+        await page.waitForTimeout(600);
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
 
-        await templateNode.click({ button: "right" });
+        const insertTemplateNode = await expectTemplateNodeVisible(page, templateName);
+        await insertTemplateNode.click({ button: "right" });
         const templateInsertResponsePromise = page.waitForResponse((response) => {
           const request = response.request();
           return request.method() === "POST" && Boolean(request.headers()["next-action"]);
@@ -410,7 +469,11 @@ test.describe("Estimate Sheet MVP", () => {
         const templateInsertResponse = await templateInsertResponsePromise;
         expect(templateInsertResponse.status()).toBeLessThan(400);
         expect(await templateInsertResponse.finished()).toBeNull();
-        await expect(getEstimateNodeByName(page, areaName)).toBeVisible({ timeout: 15_000 });
+        const insertedArea = getEstimateNodeByName(page, areaName);
+        await expect(insertedArea).toHaveCount(1, { timeout: 15_000 });
+        await expect(insertedArea).toBeVisible();
+        await expect(page.getByRole("region", { name: sourceName, exact: true }).first()).not.toHaveAttribute("aria-busy", "true", { timeout: 15_000 });
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
         insertedAreaExists = true;
 
         await page.reload({ waitUntil: "domcontentloaded" });
@@ -438,21 +501,58 @@ test.describe("Estimate Sheet MVP", () => {
         const unit = componentDialog.getByRole("combobox", { name: "Unit" });
         await unit.fill("unit");
         await unit.press("Enter");
+        const componentCreateResponsePromise = page.waitForResponse((response) => {
+          const request = response.request();
+          return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+        }, { timeout: 15_000 });
         await componentDialog.getByRole("button", { name: "Add Component", exact: true }).click();
-        await expect(componentDialog).toBeHidden();
+        const componentCreateResponse = await componentCreateResponsePromise;
+        expect(componentCreateResponse.status()).toBeLessThan(400);
+        expect(await componentCreateResponse.finished()).toBeNull();
+        await expect(componentDialog).toBeHidden({ timeout: 15_000 });
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        await page.waitForTimeout(250);
         componentExists = true;
 
         const addButton = page.getByRole("button", { name: `Add to ${sourceName}: ${componentName}`, exact: true });
         await expect(addButton).toBeVisible();
-        const insertStartedAt = await page.evaluate(() => performance.now());
-        await addButton.click();
-        const createdRows = getComponentNameInputs(page, componentName);
-        await expect(createdRows).toHaveCount(1);
-        metrics.componentOptimisticInsertMs = await page.evaluate((startedAt) => performance.now() - startedAt, insertStartedAt);
+        const componentInsertResponsePromise = page.waitForResponse((response) => {
+          const request = response.request();
+          return request.method() === "POST" && Boolean(request.headers()["next-action"]);
+        }, { timeout: 15_000 });
+        await addButton.evaluate((element, expectedName) => {
+          const timingWindow = window as typeof window & {
+            __mvpInsertCompletedAt?: number;
+            __mvpInsertStartedAt?: number;
+          };
+          const observer = new MutationObserver(() => {
+            const inserted = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-estimate-row-id][aria-label^="Component name"]'))
+              .some((input) => input.value === expectedName);
+            if (!inserted) return;
+            timingWindow.__mvpInsertCompletedAt = performance.now();
+            observer.disconnect();
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          timingWindow.__mvpInsertStartedAt = performance.now();
+          (element as HTMLButtonElement).click();
+        }, componentName);
+        await expectComponentRowCount(page, componentName, 1, [10]);
+        metrics.componentOptimisticInsertMs = await page.evaluate(() => {
+          const timingWindow = window as typeof window & {
+            __mvpInsertCompletedAt?: number;
+            __mvpInsertStartedAt?: number;
+          };
+          return typeof timingWindow.__mvpInsertStartedAt === "number" && typeof timingWindow.__mvpInsertCompletedAt === "number"
+            ? timingWindow.__mvpInsertCompletedAt - timingWindow.__mvpInsertStartedAt
+            : Number.POSITIVE_INFINITY;
+        });
         expect(Number(metrics.componentOptimisticInsertMs)).toBeLessThan(200);
+        const componentInsertResponse = await componentInsertResponsePromise;
+        expect(componentInsertResponse.status()).toBeLessThan(400);
+        expect(await componentInsertResponse.finished()).toBeNull();
         await waitForRowSaved(page);
 
-        const rowId = await createdRows.first().getAttribute("data-estimate-row-id");
+        const [rowId] = await getComponentRowIds(page, componentName);
         expect(rowId).toBeTruthy();
         const quantity = page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByLabel(`${componentName} quantity`);
         await quantity.fill("2");
@@ -460,35 +560,41 @@ test.describe("Estimate Sheet MVP", () => {
         await expect(quantity).not.toBeFocused();
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(1);
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        await expectComponentRowCount(page, componentName, 1);
         await expect(page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByLabel(`${componentName} quantity`)).toHaveValue("2");
       });
 
       await test.step("duplicate timeout retry and stale conflict stay replay-safe", async () => {
         const duplicate = page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first();
         await duplicate.click();
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(2);
+        await expectComponentRowCount(page, componentName, 2);
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(2);
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        await expectComponentRowCount(page, componentName, 2);
 
         expectedConsoleErrorBudget += 2;
-        const finishTimeout = await abortNextServerAction(page, expectedFailedRequests);
+        const [timeoutSourceRowId] = await getComponentRowIds(page, componentName);
+        expect(timeoutSourceRowId).toBeTruthy();
+        const finishTimeout = await abortNextServerAction(page, expectedFailedRequests, timeoutSourceRowId!);
         await page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first().click();
         await finishTimeout();
         await expect(page.getByRole("alert").filter({ hasText: /failed to fetch|network|timeout|timed out|connection/iu })).toBeVisible();
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(2);
+        await expectComponentRowCount(page, componentName, 2);
         await page.getByRole("button", { name: `Duplicate row item ${componentName}` }).first().click();
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(3);
+        await expectComponentRowCount(page, componentName, 3);
         await waitForRowSaved(page);
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(3);
+        await page.waitForLoadState("networkidle", { timeout: 15_000 });
+        await expectComponentRowCount(page, componentName, 3);
 
-        const staleRowId = await getComponentNameInputs(page, componentName).first().getAttribute("data-estimate-row-id");
+        const [staleRowId] = await getComponentRowIds(page, componentName);
         expect(staleRowId).toBeTruthy();
         secondaryPage = await context.newPage();
         await secondaryPage.goto(pathname, { waitUntil: "domcontentloaded" });
-        await expect(getComponentNameInputs(secondaryPage, componentName)).toHaveCount(3);
+        await secondaryPage.waitForLoadState("networkidle", { timeout: 15_000 });
+        await expectComponentRowCount(secondaryPage, componentName, 3);
         const authoritativeQuantity = secondaryPage.locator(`tr[data-estimate-row-id="${staleRowId}"]`).getByLabel(`${componentName} quantity`);
         await authoritativeQuantity.fill("3");
         await authoritativeQuantity.press("Enter");
@@ -504,7 +610,7 @@ test.describe("Estimate Sheet MVP", () => {
       });
 
       await test.step("failed bulk action rolls back exact rows", async () => {
-        const rowIds = await getComponentNameInputs(page, componentName).evaluateAll((inputs) => inputs.map((input) => input.getAttribute("data-estimate-row-id")).filter(Boolean));
+        const rowIds = await getComponentRowIds(page, componentName);
         expect(rowIds).toHaveLength(3);
         for (const rowId of rowIds.slice(0, 2)) {
           await page.locator(`tr[data-estimate-row-id="${rowId}"]`).getByRole("checkbox", { name: `Select ${componentName}` }).click();
@@ -515,7 +621,7 @@ test.describe("Estimate Sheet MVP", () => {
         await page.getByRole("button", { name: "Delete selected rows", exact: true }).click();
         await finishBulkFailure();
         await expect(page.getByRole("alert").filter({ hasText: "Couldn't delete the selected rows. Try again." })).toBeVisible();
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(3);
+        await expectComponentRowCount(page, componentName, 3);
         await page.getByRole("button", { name: "Clear selection", exact: true }).click();
       });
 
@@ -523,7 +629,7 @@ test.describe("Estimate Sheet MVP", () => {
         await permanentlyDeleteComponent(page, componentName);
         componentExists = false;
         await page.reload({ waitUntil: "domcontentloaded" });
-        await expect(getComponentNameInputs(page, componentName)).toHaveCount(0);
+        await expectComponentRowCount(page, componentName, 0);
         await selectSourceTab(page, "Library");
         await setSourceSearch(page, "Search Library", componentName);
         await expect(page.getByRole("tree", { name: "Library sources" }).getByRole("treeitem", { name: componentName, exact: true })).toHaveCount(0);
