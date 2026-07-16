@@ -144,6 +144,21 @@ export default async function AdminUserDetailPage({
 
       <Card className="p-2">
         <h2 className="text-[11px] font-medium leading-4 text-ink">
+          Founder notes
+          <span className="ml-2 text-[9px] font-normal text-tertiary">
+            {(notesResult ?? []).length} note{(notesResult ?? []).length === 1 ? "" : "s"}
+          </span>
+        </h2>
+        <p className="mt-1 text-[9px] leading-3 text-tertiary">
+          Admin-only context about this customer. Append-only.
+        </p>
+        <div className="mt-2">
+          <AdminCustomerNotes targetKind="user" targetId={user.id} initialNotes={notesResult ?? []} />
+        </div>
+      </Card>
+
+      <Card className="p-2">
+        <h2 className="text-[11px] font-medium leading-4 text-ink">
           Admin audit activity
           <span className="ml-2 text-[9px] font-normal text-tertiary">
             {activities.length} event{activities.length === 1 ? "" : "s"}
