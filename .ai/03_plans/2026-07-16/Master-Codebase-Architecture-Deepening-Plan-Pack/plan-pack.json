@@ -11,7 +11,7 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b",
+    "head": "68b869c8f42c6894af7e6379be98b84013650916",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
@@ -21,25 +21,25 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "9010ef8a9d140a8f3abbe858e9893c8fad08e5ccc9684a71d6d01e7ebd588b34"
+      "sha256": "1060c07f766527b87685925bbdbea94f629356a8c9a981486a8c0bb9e5f0766a"
     },
     {
       "id": "ART-002",
       "role": "evidence",
       "path": "AUDIT-AND-DISPOSITION.md",
-      "sha256": "500a61ba4c884573336b042b9a02f6a715d85fa04e1fa95ff6ff26e60bee2d66"
+      "sha256": "0484c99b32c8211ed4baa619c2a09fea27a8b70df4c0659fc3c6ecf8579be292"
     },
     {
       "id": "ART-003",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "e227d7f890ca115ed60423ec36f9d9caad763411e932c778edf9e3254efbf018"
+      "sha256": "5e3825ac220bc30170320942a071bee9f2786c8df785a414bfeaebf5ca9d8916"
     },
     {
       "id": "ART-004",
       "role": "traceability",
       "path": "LOOP_LEDGER.md",
-      "sha256": "89f81804bb5c851b9bba5603ef911e773e4cfc66a81eb2d7382d3353ce5ad350"
+      "sha256": "b9dba8af70f1c63f50df2b91bc705d6e701c128374a39c1ca2025c75633ef237"
     }
   ],
   "sources": [
@@ -132,7 +132,7 @@
     {
       "id": "DATA-001",
       "status": "ACCEPTED",
-      "completion_role": "AUXILIARY",
+      "completion_role": "CORE",
       "statement": "Make upload-removal eligibility per asset and return disjoint claimed, blocked, and already-removed path sets without changing final purge protection.",
       "artifact_path": "LOOP_LEDGER.md",
       "source_ids": [
@@ -272,13 +272,13 @@
     {
       "id": "ASSUMP-002",
       "status": "ACTIVE",
-      "statement": "Dirty Component and Estimate paths remain owned by concurrent work until their current owners land or explicitly release them.",
+      "statement": "All previously active codebase-agent owners are terminal and the frozen worktree is clean; implementation remains valid only inside a standalone write window.",
       "affected_ids": [
         "REQ-003",
         "REQ-004",
         "REQ-005",
         "REQ-006",
-        "GATE-LEASE-001"
+        "GATE-EXCLUSIVE-001"
       ],
       "artifact_path": "AUDIT-AND-DISPOSITION.md"
     }
@@ -371,7 +371,7 @@
     {
       "id": "RISK-008",
       "status": "OPEN",
-      "statement": "Row-store deepening causes render storms, focus loss, optimistic rollback errors, shared-versus-row-owned mutation drift, or a server/client boundary violation.",
+      "statement": "Row-store deepening causes render storms, focus loss, duplicate-retry identity or rollback drift, shared-versus-row-owned mutation drift, or a server/client boundary violation.",
       "artifact_path": "LOOP_LEDGER.md",
       "unit_ids": [
         "UNIT-008"
@@ -526,7 +526,7 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "The critical invariant is correct row-owned versus shared-definition routing with focus-safe optimistic rollback; cheaper prop and selector inspection is insufficient to prove interaction behavior.",
+      "test_rationale": "The critical invariant is correct row-owned versus shared-definition routing with focus-safe optimistic rollback and preserved duplicate retry identity; cheaper prop and selector inspection is insufficient to prove interaction behavior.",
       "requirement_ids": [
         "REQ-006"
       ],
@@ -652,7 +652,7 @@
       "evidence_ids": [
         "EVID-002"
       ],
-      "command": "one focused Estimate row-editing contract for four intents, rollback, selector isolation, and client-safe Server Action adapters"
+      "command": "after separately authorized source-contract maintenance, run bunx vitest run tests/vitest/estimate-sheet-unit-003-contracts.test.ts tests/vitest/estimate-sheet-library-insert.test.tsx only under explicit execution authorization"
     },
     {
       "id": "TEST-009",
@@ -677,6 +677,7 @@
         "AC-004",
         "AC-006",
         "AC-007",
+        "AC-008",
         "AC-009"
       ],
       "evidence_ids": [
@@ -685,8 +686,8 @@
       "authorization_boundary_id": null
     },
     {
-      "id": "GATE-LEASE-001",
-      "status": "FAIL",
+      "id": "GATE-EXCLUSIVE-001",
+      "status": "PASS",
       "artifact_path": "LOOP_LEDGER.md",
       "criterion_ids": [
         "AC-004",
@@ -701,7 +702,7 @@
     },
     {
       "id": "GATE-ADMIN-MAP-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "LOOP_LEDGER.md",
       "criterion_ids": [
         "AC-007"
@@ -815,7 +816,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "PLANNED",
+      "status": "READY",
       "goal": "Move component and folder D1 statement graphs into two concrete deep modules while preserving the server-action boundary.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
@@ -864,7 +865,7 @@
     {
       "id": "UNIT-008",
       "status": "PLANNED",
-      "goal": "Deepen the existing per-sheet editable-row store into the single owner of row commit routing, dirty state, pending state, and rollback.",
+      "goal": "Deepen the existing per-sheet editable-row store into the single owner of row commit routing, dirty state, pending state, and rollback while preserving duplicate retry identity and isolated rollback.",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -911,7 +912,7 @@
     {
       "id": "DEC-AUTO-003",
       "status": "ACTIVE",
-      "statement": "The package is conditionally ready and advertises only UNIT-001 and UNIT-002, while only the exact next_unit may start.",
+      "statement": "The package is conditionally ready and advertises UNIT-001, UNIT-002, and UNIT-005, while only the exact next_unit may start.",
       "affected_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -928,7 +929,7 @@
     {
       "id": "DEC-AUTO-004",
       "status": "ACTIVE",
-      "statement": "Component and Estimate work use evidence-backed single-writer lease gates; UNIT-003, UNIT-004, UNIT-006, UNIT-007, and UNIT-009 have explicit test-source authorization boundaries.",
+      "statement": "Implementation runs in one standalone write window; historical leases are cleared, while UNIT-003, UNIT-004, UNIT-006, UNIT-007, UNIT-008, and UNIT-009 retain exact test-source authorization boundaries.",
       "affected_ids": [
         "UNIT-003",
         "UNIT-004",
@@ -937,7 +938,7 @@
         "UNIT-007",
         "UNIT-008",
         "UNIT-009",
-        "GATE-LEASE-001",
+        "GATE-EXCLUSIVE-001",
         "GATE-TEST-SOURCE-001"
       ],
       "artifact_path": "LOOP_LEDGER.md"
@@ -967,7 +968,7 @@
     {
       "id": "DEC-AUTO-007",
       "status": "ACTIVE",
-      "statement": "Applied migrations, admin feature or content work, Legacy Cleanup, estimate import, hosted proof, pagehide cleanup, and unmeasured performance proposals remain outside core scope; verified upload-removal correctness remains auxiliary scope.",
+      "statement": "Applied migrations, admin feature or content work, Legacy Cleanup, estimate import, hosted proof, and unmeasured performance proposals remain outside core scope; preserved valid findings have stable follow-up IDs and upload-removal correctness is core.",
       "affected_ids": [
         "REQ-001",
         "SEC-001",
@@ -984,7 +985,7 @@
     {
       "id": "DEC-AUTO-008",
       "status": "ACTIVE",
-      "statement": "Every product-test command is a proposal only; the plan-pack authoring run executes no product tests, builds, browser automation, screenshots, or hosted proof.",
+      "statement": "Every product-test command is a proposal only; the authoring run executes no product tests, and a criterion declaring static evidence insufficient cannot pass without an authorized fresh test receipt.",
       "affected_ids": [
         "TEST-001",
         "TEST-002",
@@ -1001,7 +1002,7 @@
     {
       "id": "DEC-AUTO-009",
       "status": "ACTIVE",
-      "statement": "Admin Estimate System feature and content work stays excluded, but UNIT-007 must coordinate the exact sources.persistence retarget to d1-intents/database.ts before deleting the facade that entry names.",
+      "statement": "Admin Estimate System feature and content work stays excluded; UNIT-007 owns the exact sources.persistence retarget to d1-intents/database.ts before deleting the facade that entry names.",
       "affected_ids": [
         "UNIT-007",
         "AC-007",
@@ -1016,7 +1017,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "AUDIT-AND-DISPOSITION.md",
-      "sha256": "500a61ba4c884573336b042b9a02f6a715d85fa04e1fa95ff6ff26e60bee2d66",
+      "sha256": "0484c99b32c8211ed4baa619c2a09fea27a8b70df4c0659fc3c6ecf8579be292",
       "claim_ids": [
         "REQ-001",
         "SEC-001",
@@ -1030,14 +1031,14 @@
         "ASSUMP-001",
         "ASSUMP-002"
       ],
-      "source_revision": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b+master-architecture-audit-admin-handoff-reproof-2026-07-16",
+      "source_revision": "68b869c8f42c6894af7e6379be98b84013650916+master-architecture-readiness-hardening-2026-07-16",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "COLLECTED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "e227d7f890ca115ed60423ec36f9d9caad763411e932c778edf9e3254efbf018",
+      "sha256": "5e3825ac220bc30170320942a071bee9f2786c8df785a414bfeaebf5ca9d8916",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -1067,17 +1068,17 @@
         "TEST-008",
         "TEST-009"
       ],
-      "source_revision": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b+master-architecture-plan-admin-handoff-reproof-2026-07-16",
+      "source_revision": "68b869c8f42c6894af7e6379be98b84013650916+master-architecture-readiness-hardening-2026-07-16",
       "valid_until": null
     },
     {
       "id": "EVID-003",
-      "status": "COLLECTED",
+      "status": "PASS",
       "artifact_path": "LOOP_LEDGER.md",
-      "sha256": "89f81804bb5c851b9bba5603ef911e773e4cfc66a81eb2d7382d3353ce5ad350",
+      "sha256": "b9dba8af70f1c63f50df2b91bc705d6e701c128374a39c1ca2025c75633ef237",
       "claim_ids": [
         "GATE-TEST-SOURCE-001",
-        "GATE-LEASE-001",
+        "GATE-EXCLUSIVE-001",
         "GATE-ADMIN-MAP-001",
         "GATE-COMPLETION-001",
         "DEC-AUTO-001",
@@ -1090,7 +1091,7 @@
         "DEC-AUTO-008",
         "DEC-AUTO-009"
       ],
-      "source_revision": "2afd71c0aa24fdebe6007b6927be1a5d6e1c446b+master-architecture-ledger-admin-handoff-reproof-2026-07-16",
+      "source_revision": "68b869c8f42c6894af7e6379be98b84013650916+master-architecture-readiness-hardening-2026-07-16",
       "valid_until": null
     }
   ],
@@ -1099,24 +1100,26 @@
       "id": "SLICE-001",
       "unit_ids": [
         "UNIT-001",
-        "UNIT-002"
+        "UNIT-002",
+        "UNIT-005"
       ]
     }
   ],
   "stale_triggers": [
     "scoped-working-tree-drift",
-    "component-or-estimate-owner-change",
+    "new-write-capable-codebase-agent-or-owned-path-contention",
     "component-library-action-contract-change",
     "estimate-d1-projection-action-or-receipt-contract-change",
-    "admin-estimate-system-source-pointer-or-owner-change",
+    "admin-estimate-system-source-pointer-change",
     "estimate-tree-query-or-route-contract-change",
     "row-owned-versus-shared-definition-contract-change",
+    "duplicate-row-retry-identity-or-rollback-contract-change",
     "security-rate-limit-table-policy-or-consumer-change",
     "upload-removal-claim-or-route-contract-change",
     "second-storage-implementation-introduced",
     "planning-schema-validator-or-prompt-suite-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-16T06:35:43.000Z",
-  "manifest_sha256": "36e2b1cfc195627a78fef6722b8e0d8a0e9fa543ee470c601f9bc85b7cc8a3df"
+  "updated_at": "2026-07-16T08:51:18.000Z",
+  "manifest_sha256": "b14bf26f3ed9e9e907e6a2ff29e6f29cedb39f00844a65be28adc4190bb71075"
 }

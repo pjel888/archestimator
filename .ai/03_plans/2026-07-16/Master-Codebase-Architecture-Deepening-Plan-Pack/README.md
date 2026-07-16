@@ -20,12 +20,13 @@ Their current-source-valid findings were re-audited, narrowed, merged, or reject
 
 ## Ready Shape
 
-The package is conditionally ready because two clean, dependency-free units are implementation-ready while five units require explicit test-source maintenance authorization and the contested Component/Estimate surfaces retain evidence-backed leases. `UNIT-001` is the only authorized start; `UNIT-002` is fallback inventory that requires a recorded `next_unit` update before use.
+The package is conditionally ready against clean repository revision `68b869c8f42c6894af7e6379be98b84013650916`. All previously recorded codebase-agent owners are terminal, the worktree is clean, and the former Component, Estimate, and Admin handoff gates are cleared. Three dependency-free units are implementation-ready; six units require explicit test-source maintenance authorization. `UNIT-001` is the only authorized start. `UNIT-002` and `UNIT-005` are fallback inventory that require a recorded `next_unit` update before use.
 
 1. `UNIT-001` compiles the component-category folder resolver once per dataset.
 2. `UNIT-002` centralizes the three production upload-route Bearer checks behind one timing-safe server boundary.
+3. `UNIT-005` moves component and folder D1 statement graphs into two concrete deep modules.
 
-`UNIT-003`, `UNIT-004`, `UNIT-006`, `UNIT-007`, and `UNIT-009` remain `PLANNED` until their exact test-source import/mock/contract maintenance is authorized. `UNIT-004` and `UNIT-007` also need their UI/action leases; `UNIT-005` and `UNIT-008` need their named single-writer leases. Before `UNIT-007` deletes the old façade, it also needs the Admin Estimate System owner to release one narrow `sources.persistence` pointer retarget; no broader admin feature or content work enters this pack. `UNIT-006` has no formal security lease—its paths were clean and uncontested at authoring—but remains planned solely because deleting the old rate-limit exports requires test-source retargets. A lease is an internal coordination condition, not a request for product direction or external authorization.
+`UNIT-003`, `UNIT-004`, `UNIT-006`, `UNIT-007`, `UNIT-008`, and core correctness `UNIT-009` remain `PLANNED` until their exact test-source import/mock/contract maintenance is authorized. Test-source edit authorization does not authorize test execution or broad assertion expansion. The later implementation run must be standalone: if another write-capable codebase agent starts or any owned path becomes dirty, execution pauses and the affected unit is rebaselined before further edits. No broader Admin Estimate System feature or content work enters this pack; `UNIT-007` owns only the exact `sources.persistence` retarget made necessary by deleting the old façade.
 
 ## Deep-Module Contract
 
@@ -42,7 +43,7 @@ The package is conditionally ready because two clean, dependency-free units are 
 | Artifact | Purpose |
 |---|---|
 | `README.md` | Entrypoint, package state, and execution boundary. |
-| `AUDIT-AND-DISPOSITION.md` | Current-source evidence, blast radius, predecessor crosswalk, rejected findings, and leases. |
+| `AUDIT-AND-DISPOSITION.md` | Current-source evidence, blast radius, predecessor crosswalk, rejected findings, and exclusivity boundaries. |
 | `IMPLEMENTATION_PLAN.md` | Canonical unit DAG with exact paths, changes, evidence, recovery, and next state. |
 | `LOOP_LEDGER.md` | Requirement, acceptance, risk, unit, and resume traceability. |
 | `plan-pack.json` | Validator-readable state, fingerprints, and exact next unit. |
@@ -53,6 +54,8 @@ This authoring run is `PLAN_ONLY`. No product tests, builds, browser automation,
 
 Every future product-test command in the canonical plan is a `TEST_PROPOSAL`, not standing authorization. An implementation executor must follow the repo's user-controlled test gate for that execution task.
 
+A unit whose acceptance criterion says static evidence is insufficient may become source-complete, but it remains `IN_PROGRESS` with its criterion failing until an explicitly authorized fresh test receipt proves the invariant. Static validators alone never promote this package to `COMPLETE / ACHIEVED`.
+
 ## Stop Condition
 
-Architecture implementation is complete only when all core units are `VERIFIED`, the auxiliary security and upload-correctness units are either verified or explicitly deferred without blocking the core result, obsolete predecessor seams are absent, every receipt identifies the exact source revision, scoped validators are green, and this pack can truthfully transition to `COMPLETE / ACHIEVED`. No hosted or release-readiness claim is implied.
+Architecture implementation is complete only when all core units, including per-asset upload-removal correctness, are `VERIFIED`; the auxiliary Bearer-security unit is verified or explicitly deferred; obsolete predecessor seams are absent; every receipt identifies the exact source revision; scoped validators are green; and this pack can truthfully transition to `COMPLETE / ACHIEVED`. No hosted or release-readiness claim is implied.

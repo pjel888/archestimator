@@ -5,28 +5,29 @@
 1. Start with `bun run supermemory:ensure`, the `FAST PATH` block in `.ai/10_state/current-state.md`, and `git status --short --branch`.
 2. Read this file, `plan-pack.json`, and the unit's owned paths immediately before editing.
 3. Execute only `next_unit`. The advertised ready slice is fallback inventory, not permission to skip. If `next_unit` is stale or blocked, record the evidence and explicitly update `next_unit` in `plan-pack.json` and `LOOP_LEDGER.md` before editing another ready unit.
-4. Do not overwrite unfamiliar changes. A dirty owned path means refresh the unit baseline and coordinate a single writer; it is not permission to stash, reset, revert, or fork a competing implementation.
+4. Run this architecture program in a standalone write window with no other write-capable codebase agent active. Do not overwrite unfamiliar changes. A dirty owned path or newly active writer pauses the affected unit and requires a refreshed baseline; it is not permission to stash, reset, revert, or fork a competing implementation.
 5. Use GitNexus impact before editing each named symbol. Treat the current graph as directional until its index is current; verify every decision in source.
 6. Keep domain behavior in one deep implementation. Do not introduce generic factories, compatibility re-exports, or pass-through wrappers.
-7. Product tests are user-controlled. Commands below are `TEST_PROPOSAL` only. A unit that requires test-source edits stays `PLANNED` until those edits are explicitly authorized; import maintenance never authorizes test execution or assertion expansion. Static source, scoped lint/type evidence, `git diff --check`, and plan/manifest validators are allowed.
+7. Product tests are user-controlled. Commands below are `TEST_PROPOSAL` only. A unit that requires test-source edits stays `PLANNED` until those exact edits are explicitly authorized; import maintenance never authorizes test execution or unrelated assertion expansion. Static source, scoped lint/type evidence, `git diff --check`, and plan/manifest validators are allowed.
 8. Record one sanitized receipt per unit under this pack's future `evidence/` directory, then update the manifest/ledger without claiming unrun tests.
+9. When a criterion says static evidence is insufficient, implementation without an authorized fresh test receipt is source-complete but not verified: keep the unit `IN_PROGRESS` and its criterion `FAIL`. Do not promote the unit or package from static validators alone.
 
 ## 2. Unit DAG
 
 ```text
 UNIT-001  component category resolver                 READY   ┐
-UNIT-002  internal Bearer boundary                    READY   ┘─ SLICE-001
+UNIT-002  internal Bearer boundary                    READY   ├─ SLICE-001
+UNIT-005  component-library D1 mutation modules       READY   ┘
 
 UNIT-003  Estimate-tree D1 read module                PLANNED (test-source edit authorization)
-UNIT-004  component-folder move coordinator           PLANNED (component UI lease + test-source edit authorization)
-UNIT-005  component-library D1 mutation modules       PLANNED (component action lease)
-UNIT-006  durable public rate-limit modules           PLANNED (test-source edit authorization; no formal lease)
-UNIT-007  typed Estimate D1 intent modules             PLANNED (Estimate lease + test-source authorization + Admin map handoff)
-UNIT-008  provider-owned Estimate row editing          PLANNED (Estimate UI lease)
-UNIT-009  per-asset upload-removal results            PLANNED (test-source edit authorization)
+UNIT-004  component-folder move coordinator           PLANNED (test-source edit authorization)
+UNIT-006  durable public rate-limit modules           PLANNED (test-source edit authorization)
+UNIT-007  typed Estimate D1 intent modules             PLANNED (test-source edit authorization)
+UNIT-008  provider-owned Estimate row editing          PLANNED (test-source edit authorization)
+UNIT-009  per-asset upload-removal results             PLANNED (test-source edit authorization; core correctness)
 ```
 
-`UNIT-001` and `UNIT-002` are mutually independent and are the only advertised ready units. No technical dependency edge is invented between the planned units; their gates are authorization or single-writer scheduling conditions.
+`UNIT-001`, `UNIT-002`, and `UNIT-005` are mutually independent and are the only advertised ready units. No technical dependency edge is invented between the planned units; their remaining gates are exact test-source authorization boundaries. `UNIT-001` remains the sole exact start.
 
 ## 3. Receipt Contract
 
@@ -85,7 +86,7 @@ Revert only the four owned-path edits. Because the public convenience signature 
 
 ### Completion and next state
 
-Mark `UNIT-001` `VERIFIED` only from fresh source/static evidence and any separately authorized test receipt. Set `next_unit` to `UNIT-002` if it remains eligible. If it is stale or blocked, record why and stop until a planned unit's named gate clears and `next_unit` is explicitly updated; no other unit is currently ready.
+After the source change and static checks, keep `UNIT-001` `IN_PROGRESS` until an explicitly authorized fresh `TEST-001` receipt proves `AC-001`; its criterion states static evidence is insufficient. Once verified, set `next_unit` to `UNIT-002` if it remains eligible. If it is stale or blocked, explicitly select another advertised ready unit in the manifest and ledger before editing.
 
 ## UNIT-002 — Centralize Production Upload Bearer Authorization
 
@@ -126,13 +127,13 @@ Restore the three local helpers and delete the new shared file. No stored creden
 
 ### Completion and next state
 
-This auxiliary unit does not block core architecture completion. If verified, do not choose among planned units: advance only after a named gate receipt promotes one unit and the manifest/ledger explicitly records it as `next_unit`. If deferred, record the reason and update package state before continuing.
+This auxiliary unit does not block core architecture completion. After the source change and static checks, keep it `IN_PROGRESS` until an explicitly authorized fresh `TEST-002` receipt proves `AC-002`. If it is deferred instead, record the accepted risk. In either case, advance only after the manifest/ledger explicitly records the next advertised ready unit.
 
 ## UNIT-009 — Make Upload Removal Per-Asset and Truthful
 
 **Status:** `PLANNED`
 **Depends on:** none  
-**Requirement:** `DATA-001` (auxiliary)  
+**Requirement:** `DATA-001` (core correctness)
 **Risk:** `RISK-009`
 
 ### Test-source authorization gate
@@ -175,7 +176,7 @@ Restore the previous claim result type, whole-set query, and three route respons
 
 ### Completion and next state
 
-This auxiliary correctness unit does not block core architecture completion. If verified, advance only to the manifest's already-recorded `next_unit`. If deferred, record why the verified defect remains accepted risk rather than reviving the archived predecessor wholesale.
+This core correctness unit blocks architecture completion. After the source change and static checks, keep it `IN_PROGRESS` until an explicitly authorized fresh `TEST-009` receipt proves mixed-batch classification and truthful route results. It cannot be deferred while preserving the package outcome.
 
 ## UNIT-003 — Extract the Concrete Estimate-Tree D1 Read Module
 
@@ -225,7 +226,7 @@ Move the extracted implementation back into `workspace-repository.ts` and restor
 
 ### Completion and next state
 
-When verified, record the explicit test-source authorization receipt and refresh the package baseline. The package remains `CONDITIONALLY_READY` until every planned unit's authorization or lease gate is truthfully resolved.
+After extraction and static checks, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-003` receipt proves tree/tab/legacy-output parity. Record the separate test-source authorization receipt and refresh the package baseline. The package remains `CONDITIONALLY_READY` until every planned unit's test-source gate is truthfully resolved.
 
 ## UNIT-004 — Deepen the Component-Folder Move Coordinator
 
@@ -234,13 +235,13 @@ When verified, record the explicit test-source authorization receipt and refresh
 **Requirement:** `REQ-003`  
 **Risk:** `RISK-004`
 
-### Lease gate
+### Pre-edit exclusivity check
 
-Do not start while `src/components/workshop/component-library/index.tsx` is dirty or another Component/Workshop Library owner is active on either adapter. Re-read both adapters after the lease clears and refresh the scoped hashes; behavior drift invalidates this unit.
+The earlier Component/Workshop Library owner is finished and both adapters are clean at baseline. Immediately before editing, confirm the standalone write window, re-read both adapters, and refresh scoped hashes. New contention or behavior drift pauses and invalidates only this unit.
 
 ### Test-source authorization gate
 
-Retargeting `tests/vitest/per-item-mutation-queue.test.ts` is required source maintenance, but the current plan-only task did not authorize test-source edits. Promote this unit only when both the lease clears and the implementation task explicitly authorizes that one-file contract/import retarget. Test-source edit authorization does not authorize executing the test or expanding its assertions.
+Retargeting `tests/vitest/per-item-mutation-queue.test.ts` is required source maintenance, but the current plan-only task did not authorize test-source edits. Promote this unit only when the implementation task explicitly authorizes that one-file contract/import retarget. Test-source edit authorization does not authorize executing the test or expanding its assertions.
 
 ### Owned paths
 
@@ -274,25 +275,26 @@ Restore the two adapter-local protocols and the original queue. The action API a
 
 ### Completion and next state
 
-Mark verified only after both real adapters use the coordinator. Do not expand this unit into folder CRUD, archive dialogs, or a universal mutation hook.
+After both real adapters use the coordinator and static checks pass, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-004` receipt proves the racing latest-intent invariant. Do not expand this unit into folder CRUD, archive dialogs, or a universal mutation hook.
 
 ## UNIT-005 — Extract Concrete Component-Library D1 Mutation Modules
 
-**Status:** `PLANNED`
+**Status:** `READY`
 **Depends on:** none  
 **Requirement:** `REQ-004`  
 **Risk:** `RISK-005`
 
-### Lease gate
+### Pre-edit exclusivity check
 
-Obtain a single writer for `src/lib/component-library/actions.ts` after the active Component Variant/Workshop Library write-path owner closes. Refresh the current action inventory and GitNexus impacts before editing.
+The Component Variant/Workshop Library write-path owner is finished and `actions.ts` is clean at baseline. Immediately before editing, confirm the standalone write window, refresh the action inventory, and rerun GitNexus impact on the named entrypoints. New contention or material source drift pauses and invalidates this unit.
 
 ### Owned paths
 
 - new `src/lib/component-library/component-mutation-d1.ts`
 - new `src/lib/component-library/folder-mutation-d1.ts`
 - `src/lib/component-library/actions.ts`
-- direct server-side imports required by the moved implementation
+
+Existing imported helper/type modules are read-only inputs to this unit. If the move proves that an existing helper must change, stop before editing it, add that exact path and rationale to this pack, refresh hashes, and revalidate the unit; “direct server-side imports required” is not an open-ended ownership grant.
 
 ### Exact change
 
@@ -323,7 +325,7 @@ Move the D1 implementations back into `actions.ts` and delete the two new module
 
 ### Completion and next state
 
-The unit completes only when both aggregate modules are deep and all relocated helpers are deleted from `actions.ts`. A partial “new module plus old implementation” state remains `IN_PROGRESS`, never `VERIFIED`.
+The source move is complete only when both aggregate modules are deep and all relocated helpers are deleted from `actions.ts`. A partial “new module plus old implementation” state remains `IN_PROGRESS`. Because `AC-005` says static relocation evidence is insufficient, the completed source move remains `IN_PROGRESS` until an explicitly authorized fresh `TEST-005` receipt proves atomic fanout/revalidation parity; only then may it become `VERIFIED`.
 
 ## UNIT-006 — Extract Durable Public Rate-Limit Infrastructure
 
@@ -334,7 +336,7 @@ The unit completes only when both aggregate modules are deep and all relocated h
 
 ### Pre-edit coordination check
 
-No security, Client Portal, Publisher, or compliance contention was recorded at authoring, and the named owned paths were clean at the final source freeze. Immediately before editing, recheck current owners, consumers, and owned-path status. New contention or behavior drift requires a refreshed baseline; this check is not a standing formal lease gate.
+No security, Client Portal, Publisher, or compliance contention exists at the current freeze, and the named owned paths are clean. Immediately before editing, confirm the standalone write window and recheck consumers and owned-path status. New contention or behavior drift requires a refreshed unit baseline.
 
 ### Test-source authorization gate
 
@@ -408,7 +410,7 @@ Move the engine, store methods, and policy wrappers back to their original modul
 
 ### Completion and next state
 
-Verify only after the original blocks are deleted and behavior is unchanged. Advance only to the manifest's already-recorded `next_unit`. Semantic convergence with other domain limiters requires a new measured unit, not follow-on improvisation here.
+After the original blocks are deleted and static checks pass, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-006` receipt proves lockout/count/clear parity. Advance only to the manifest's already-recorded `next_unit`. Semantic convergence with other domain limiters requires a new measured unit, not follow-on improvisation here.
 
 ## UNIT-007 — Replace the Stringly Estimate D1 Façade with Typed Intent Modules
 
@@ -417,17 +419,17 @@ Verify only after the original blocks are deleted and behavior is unchanged. Adv
 **Requirement:** `REQ-005`  
 **Risk:** `RISK-007`
 
-### Lease gate
+### Pre-edit exclusivity check
 
-Do not start until the active Estimate/Component Variant unit is terminal and `src/lib/estimates/d1-action-client.ts` is no longer dirty under another owner. Re-read the final projection and receipt contracts, refresh GitNexus impact, and freeze new scoped hashes.
+The Estimate/Component Variant and Admin programs are terminal, and every owned production path is clean at baseline. Immediately before editing, confirm the standalone write window, re-read the final projection/receipt contracts and Admin pointer, refresh GitNexus impact, and freeze new scoped hashes. New contention or material drift pauses and invalidates this unit.
 
 ### Test-source authorization gate
 
-Deleting `d1-action-client.ts` requires the exact import/mock/source-contract retargets listed below. Promote this unit only when the Estimate lease clears and the implementation task explicitly authorizes those maintenance edits. Test-source authorization does not authorize execution or assertion expansion.
+Deleting `d1-action-client.ts` requires the exact import/mock/source-contract retargets listed below. Promote this unit only when the implementation task explicitly authorizes those maintenance edits. Test-source authorization does not authorize execution or unrelated assertion expansion.
 
-### Admin map handoff gate
+### Admin map scope boundary
 
-The active Admin Estimate System program owns `src/lib/admin/estimate-system-knowledge-data.ts`, whose `sources.persistence` entry points at the façade this unit deletes. Before the deletion checkpoint, obtain an explicit release from that owner and record the handoff receipt. Under that release, change only the `sources.persistence` entry to point at `src/lib/estimates/d1-intents/database.ts` and update its note to say that the file owns shared execution primitives while sibling typed-intent modules own guarded mutations, history, cascades, and template materialization. Do not change any node, relation, operation, page, feature, or other source entry.
+`src/lib/admin/estimate-system-knowledge-data.ts` is uncontested at baseline, and its `sources.persistence` entry points at the façade this unit deletes. Change only that entry to `src/lib/estimates/d1-intents/database.ts` and update only its note to say that the file owns shared execution primitives while sibling typed-intent modules own guarded mutations, history, cascades, and template materialization. Do not change any node, relation, operation, page, feature, or other source entry.
 
 ### Owned paths
 
@@ -445,7 +447,7 @@ The active Admin Estimate System program owns `src/lib/admin/estimate-system-kno
 - `src/lib/estimates/actions.ts`
 - `src/lib/reusable-sources/actions.ts`
 - `src/lib/cloudflare/estimate-history-proof-router.ts`
-- `src/lib/admin/estimate-system-knowledge-data.ts` — coordinated `sources.persistence` entry retarget only, under the Admin owner's explicit release
+- `src/lib/admin/estimate-system-knowledge-data.ts` — exact `sources.persistence` entry retarget only
 - delete `src/lib/estimates/d1-action-client.ts` after zero callers remain
 - test-source maintenance, under explicit authorization:
   - `tests/vitest/activity-durable-write.test.ts`
@@ -473,11 +475,51 @@ The active Admin Estimate System program owns `src/lib/admin/estimate-system-kno
 1. Create concrete, intent-named functions grouped by the ten operation families above. Functions accept the current D1 database/actor inputs and return typed domain results; do not create interfaces or classes for a hypothetical second store.
 2. `database.ts` owns only shared D1 execution/row-normalization primitives used by at least two family modules. It may not expose `.from`, table strings, projection strings, or action-name dispatch.
 3. `access.ts` owns edit/project checks, image-asset validation, and activity-retention metrics. `estimate-records.ts` owns estimate create/duplicate/details. The other modules own their named mutation families, including their transaction-coupled history, publication revision, receipts, guards, and authoritative return rows.
+
+The dispatcher-to-export mapping is fixed; the executor may use private helpers inside each target module but may not rename, regroup, or leave any string-dispatched compatibility entry:
+
+| Retired action name | Target exported function |
+|---|---|
+| `can_edit_estimate` | `access.ts:canEditEstimate` |
+| `can_edit_project` | `access.ts:canEditProject` |
+| `validate_estimate_row_image_asset` | `access.ts:validateEstimateRowImageAsset` |
+| `get_estimate_activity_retention_metrics` | `access.ts:getEstimateActivityRetentionMetrics` |
+| `preview_estimate_component_edit_impact` | `component-impact.ts:previewEstimateComponentEditImpact` |
+| `update_estimate_details_with_history` | `estimate-records.ts:updateEstimateDetailsWithHistory` |
+| `update_estimate_sheet_adjustment_with_history` | `estimate-records.ts:updateEstimateSheetAdjustmentWithHistory` |
+| `create_estimate_tab_with_history` | `tabs.ts:createEstimateTabWithHistory` |
+| `rename_estimate_tab_with_history` | `tabs.ts:renameEstimateTabWithHistory` |
+| `reorder_estimate_tabs_with_history` | `tabs.ts:reorderEstimateTabsWithHistory` |
+| `duplicate_estimate_tab_with_history` | `tabs.ts:duplicateEstimateTabWithHistory` |
+| `archive_estimate_tab_with_history` | `tabs.ts:archiveEstimateTabWithHistory` |
+| `delete_estimate_tab_with_history` | `tabs.ts:deleteEstimateTabWithHistory` |
+| `create_estimate_node_with_history` | `nodes.ts:createEstimateNodeWithHistory` |
+| `rename_estimate_node_with_history` | `nodes.ts:renameEstimateNodeWithHistory` |
+| `reorder_estimate_nodes_with_history` | `nodes.ts:reorderEstimateNodesWithHistory` |
+| `delete_estimate_node_with_history` and `delete_estimate_nodes_bulk_with_history` | `nodes.ts:deleteEstimateNodesWithHistory` |
+| `restore_deleted_estimate_nodes_with_history` | `nodes.ts:restoreDeletedEstimateNodesWithHistory` |
+| `insert_estimate_row_item_with_history` | `rows.ts:insertEstimateRowItemWithHistory` |
+| `duplicate_estimate_row_item_with_history` | `rows.ts:duplicateEstimateRowItemWithHistory` |
+| `update_estimate_row_item_with_history` | `rows.ts:updateEstimateRowItemWithHistory` |
+| `replace_estimate_row_item_with_history` | `rows.ts:replaceEstimateRowItemWithHistory` |
+| `delete_estimate_row_item_with_history` | `rows.ts:deleteEstimateRowItemWithHistory` |
+| `delete_estimate_row_items_bulk_with_history` | `rows.ts:deleteEstimateRowItemsBulkWithHistory` |
+| `move_estimate_row_item_with_history` | `rows.ts:moveEstimateRowItemWithHistory` |
+| `move_estimate_row_component_with_history` | `rows.ts:moveEstimateRowComponentWithHistory` |
+| `restore_deleted_estimate_rows_with_history` | `rows.ts:restoreDeletedEstimateRowsWithHistory` |
+| `insert_estimate_template_into_estimate_with_history` | `templates.ts:insertEstimateTemplateIntoEstimateWithHistory` |
+| `insert_estimate_templates_into_estimate_with_history` | `templates.ts:insertEstimateTemplatesIntoEstimateWithHistory` |
+| `insert_estimate_template_node_into_estimate_with_history` | `templates.ts:insertEstimateTemplateNodeIntoEstimateWithHistory` |
+| `preview_bulk_delete_estimate_sheets` | `bulk-sheets.ts:previewBulkDeleteEstimateSheets` |
+| `execute_bulk_delete_estimate_sheets` | `bulk-sheets.ts:executeBulkDeleteEstimateSheets` |
+
+The faux-query table families are fixed as well: `estimates` reads/inserts move to `estimate-records.ts`; `estimate_tabs` to `tabs.ts`; `estimate_nodes` to `nodes.ts`; `estimate_row_items` to `rows.ts`; `estimate_sheet_events` to `history-events.ts`; and the `cost_library_items`, price-option, and cost-entry reads used only to validate or materialize an Estimate row move to private `rows.ts` helpers. Cross-estimate component-impact projections belong only to `component-impact.ts`. Preserve the existing exported `prepareHistoryEventInsert`, `insertHistoryEvent`, and `runMutationWithHistory` names when moving them to `history-events.ts` so direct consumers do not invent another vocabulary.
+
 4. Preserve `src/lib/estimates/mutation-receipts.ts` as the existing receipt module; import it where needed and do not duplicate it.
 5. Migrate in four fixed checkpoints within this unit: access/record calls; tab/node/template/bulk-sheet calls; row/component/history calls; proof-router and reusable-source calls. At each checkpoint, delete the retired façade branch before proceeding.
 6. Replace every `dataStore.from(...)`, `.select(...)`, `.call(...)`, `new EstimateActionsD1Client`, and `createEstimateActionsD1Client` use with a typed intent function.
 7. Update the proof router to call the exact row-history intent directly with its injected D1/actor context.
-8. After `database.ts` exists and the Admin owner release is recorded, retarget only `sources.persistence` in `src/lib/admin/estimate-system-knowledge-data.ts` from `d1-action-client.ts` to `src/lib/estimates/d1-intents/database.ts`; update only that entry's note with the sibling-module ownership wording above.
+8. After `database.ts` exists, retarget only `sources.persistence` in `src/lib/admin/estimate-system-knowledge-data.ts` from `d1-action-client.ts` to `src/lib/estimates/d1-intents/database.ts`; update only that entry's note with the sibling-module ownership wording above.
 9. Delete `EstimateActionD1Query`, `EstimateActionsD1Client`, the string dispatcher, unused query-emulation types/helpers, and finally `d1-action-client.ts`. Do not leave a re-export or compatibility façade, and do not delete the file before the Admin map retarget lands.
 10. Preserve all SQL, statement ordering, atomicity, revision/history/outbox/receipt behavior, projection fields, error names, actor rules, statement-limit assertions, and returned shapes during the move.
 
@@ -486,7 +528,7 @@ The active Admin Estimate System program owns `src/lib/admin/estimate-system-kno
 - `rg -n "EstimateActionD1Query|EstimateActionsD1Client|createEstimateActionsD1Client|dataStore\.(call|from|select)\(" src/lib/estimates/actions.ts src/lib/reusable-sources/actions.ts src/lib/estimates` is empty.
 - `rg -n "EstimateActionsD1Client|(client|viewerClient|strangerClient)\.call\(" src/lib/cloudflare/estimate-history-proof-router.ts` is empty; unrelated uses such as `hasOwnProperty.call` are outside the façade residue check.
 - `rg -n "d1-action-client|EstimateActionD1Query|EstimateActionsD1Client" src/lib/admin/estimate-system-knowledge-data.ts` is empty, the `sources.persistence` entry names the existing `src/lib/estimates/d1-intents/database.ts`, and its note names sibling typed-intent ownership.
-- `git diff -- src/lib/admin/estimate-system-knowledge-data.ts` changes only the `sources.persistence` entry, and the handoff receipt identifies the Admin owner's release.
+- `git diff -- src/lib/admin/estimate-system-knowledge-data.ts` changes only the `sources.persistence` entry.
 - `d1-action-client.ts` is absent and all new modules are concrete intent implementations.
 - No module exposes raw table/action/projection strings as a public API.
 - A before/after action inventory accounts for every old dispatcher name and direct-table operation exactly once.
@@ -504,7 +546,7 @@ Recover at the last completed checkpoint by restoring the old family branch and 
 
 ### Completion and next state
 
-The unit is verified only when the old file and every shallow call surface are gone and the released Admin map pointer targets the new concrete persistence boundary. On verification, refresh `UNIT-008` against the stable client-callable server-action adapters and promote it to `READY` if its independent UI lease is clear.
+After the old file and every shallow call surface are gone, the Admin map points to the new concrete persistence boundary, and static checks pass, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-007` receipt proves the Estimate write/history/revision invariants. On verification, refresh `UNIT-008` against the stable client-callable Server Action adapters; it still requires its own exact test-source authorization.
 
 ## UNIT-008 — Deepen the Existing Estimate Row Editing Store
 
@@ -513,9 +555,13 @@ The unit is verified only when the old file and every shallow call surface are g
 **Requirement:** `REQ-006`  
 **Risk:** `RISK-008`
 
-### Lease gate
+### Pre-edit exclusivity check
 
-`EstimateSheetContent.tsx`, `editable-row-store.ts`, `use-estimate-row-handlers.ts`, `use-estimate-row-mutations.ts`, row table/branch files, and their current active owner must be clean or explicitly single-writer leased. Refresh the prop/store and client-mutation-adapter inventory after that lease clears. `UNIT-007` is useful prior context but is not a technical dependency because the client store must never import server-only D1 intents.
+The previous Estimate-row owner is finished and every owned path is clean at baseline. Immediately before editing, confirm the standalone write window and refresh the prop/store, client-mutation-adapter, and duplicate-retry inventories. `UNIT-007` is useful prior context but is not a technical dependency because the client store must never import server-only D1 intents.
+
+### Test-source authorization gate
+
+`tests/vitest/estimate-sheet-unit-003-contracts.test.ts` asserts the comparator and reconciliation source shape that this unit deliberately changes. Promote this unit only when the implementation task explicitly authorizes retargeting that exact source-contract test to selector/store ownership. The edit may remove superseded source-string assertions and add equivalent intent/store assertions; it does not authorize executing tests or unrelated assertion expansion.
 
 ### Owned paths
 
@@ -526,6 +572,7 @@ The unit is verified only when the old file and every shallow call surface are g
 - `src/components/workshop/estimate-sheet/rows/row-table.tsx`
 - `src/components/workshop/estimate-sheet/rows/branch.tsx`
 - `src/components/workshop/EstimateSheetContent.tsx`
+- `tests/vitest/estimate-sheet-unit-003-contracts.test.ts` (comparator/reconciliation contract retarget only, under explicit test-source authorization)
 
 ### Exact change
 
@@ -536,7 +583,8 @@ The unit is verified only when the old file and every shallow call surface are g
 5. Keep insert, delete, restore, move, picker, promotion, and toast orchestration in `use-estimate-row-handlers` unless it is directly required by a row commit. Narrow the hook input only by removing state/handlers now owned by the store.
 6. Make row table/branch components select their own row values/status/actions from the store. Retain structural node/row identity and layout props.
 7. Remove handler prop drilling and memo-comparator clauses only after the corresponding selector owns the dependency. Do not delete comparators merely to reduce line count.
-8. Preserve focus, keyboard commit, optimistic editing, failed persistence rollback, duplicate-row behavior, source snapshot, linked-row impact, and the current in-row editing model.
+8. Preserve focus, keyboard commit, optimistic editing, failed persistence rollback, source snapshot, linked-row impact, and the current in-row editing model.
+9. Preserve the landed duplicate-row convergence contract exactly: an ambiguous retry reuses the same mutation ID, source row revision, target node ID, active tab ID, and optimistic row; repeated activation cannot insert a second optimistic copy; explicit rejection releases the retained identity; and rollback removes only the failed duplicate without reverting an unrelated row edit.
 
 ### Acceptance evidence
 
@@ -547,11 +595,12 @@ The unit is verified only when the old file and every shallow call surface are g
 - The selected-variant/shared-definition rule and both Library/shared-project definition scopes are named in source and the unit receipt.
 - Client modules import only client-safe action adapters; server-only D1 intent modules remain below the Server Action boundary.
 - Any removed comparator entry has a corresponding selector subscription.
+- The duplicate-row receipt accounts for retained mutation identity, source revision, target node/tab, optimistic item, ambiguity classification, explicit-release behavior, and isolated rollback.
 - `git diff --check` is clean.
 
 ### Test decision
 
-`TEST_PROPOSAL`: one focused row-editing contract covering the four commit intents, failed rollback, selector isolation, and linked-versus-row-owned routing. A render-count probe is proposal-only and cannot become a mandatory gate without explicit user authorization.
+`TEST_PROPOSAL`: after the separately authorized source-contract retarget, run `tests/vitest/estimate-sheet-unit-003-contracts.test.ts` and `tests/vitest/estimate-sheet-library-insert.test.tsx` only under explicit execution authorization. Together they must cover the four commit intents, failed rollback, selector isolation, linked-versus-row-owned routing, and the retained duplicate retry/rollback invariants. A render-count probe remains proposal-only and cannot become a mandatory gate without explicit user authorization.
 
 ### Recovery
 
@@ -559,13 +608,14 @@ Restore the prior hook/table routing and the earlier editable-row store together
 
 ### Completion and next state
 
-After verification, reconcile all unit receipts, close or accept residual risks, rerun static plan/manifest/reference/hash checks, and promote the package only if every core requirement has a verified unit. Archive the master only after truthful `COMPLETE / ACHIEVED` status.
+After the source change and static checks, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-008` receipt proves the interaction and duplicate-retry invariants. After verification, reconcile all unit receipts, close or accept residual risks, rerun static plan/manifest/reference/hash checks, and promote the package only if every core requirement has a verified unit. Archive the master only after truthful `COMPLETE / ACHIEVED` status.
 
 ## 4. Closeout Verification
 
 The implementation closeout must prove:
 
 - every core unit is `VERIFIED` and every auxiliary outcome is explicit;
+- every `MVP_CRITICAL_INVARIANT` criterion has an explicitly authorized fresh test receipt; source-complete units with unrun proposals remain `IN_PROGRESS`/`FAIL`;
 - all old imports/classes/string dispatchers/pass-through seams named by the units are absent;
 - no concurrent unrelated changes entered a unit receipt;
 - no mandatory test/build/browser/hosted claim was made without authorization and a fresh receipt;
