@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { Card } from "@/components/ui/card";
+import { AdminProjectsTable } from "@/components/admin/AdminProjectsTable";
 import { listAdminProjects } from "@/lib/admin/projects-overview-repository";
 
 // F7 (UNIT-008) Projects list — entry point to read-only Project 360 views.
@@ -18,23 +17,7 @@ export default async function AdminProjectsPage() {
       </div>
 
       <Card className="p-2">
-        {projects.length === 0 ? (
-          <p className="text-[10px] leading-4 text-tertiary">No projects found.</p>
-        ) : (
-          <ul className="space-y-1">
-            {projects.map((project) => (
-              <li key={project.id} className="flex items-center justify-between gap-2 border-b border-hairline pb-1 text-[10px] leading-4 last:border-b-0">
-                <Link href={`/admin/projects/${project.id}`} className="truncate font-medium text-ink hover:underline">
-                  {project.name}
-                </Link>
-                <span className="shrink-0 text-[9px] text-tertiary">
-                  {project.project_code ? `${project.project_code} · ` : ""}
-                  {new Date(project.created_at).toLocaleDateString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <AdminProjectsTable projects={projects} />
       </Card>
     </div>
   );

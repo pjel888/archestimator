@@ -1,7 +1,13 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+
+import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import type { CorporateAccountWithCountRow } from "@/lib/admin/corporate-account-repository";
 import { Badge } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/search-input";
 
 export function AdminAccountsList({
   accounts,
@@ -10,55 +16,75 @@ export function AdminAccountsList({
   accounts: CorporateAccountWithCountRow[];
   archived?: boolean;
 }) {
-  if (accounts.length === 0) {
-    return (
-      <p className="py-4 text-center text-[10px] text-tertiary">
-        {archived ? "No archived corporate accounts." : "No corporate accounts yet. Create one above."}
-      </p>
-    );
-  }
+  const [search, setSearch] = useState("");
+
+  const columns = useMemo<ColumnDef<CorporateAccountWithCountRow, unknown>[]>(
+    () => [
+      {
+        id: "name",
+        accessorFn: (row) => `${row.name} ${row.description ?? ""}`,
+        header: "Name",
+        cell: ({ row }) => {
+          const account = row.original;
+          return (
+            <Link href={`/admin/accounts/${account.id}`} className="block hover:underline">
+              <p className="text-[10px] font-medium leading-4 text-ink">{account.name}</p>
+              {account.description ? (
+                <p className="text-[9px] leading-3 text-tertiary">{account.description}</p>
+              ) : null}
+            </Link>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge tone={row.original.status === "active" ? "success" : "warning"} size="xs" className="min-w-0 px-1">
+            {row.original.status}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "member_count",
+        header: "Members",
+        cell: ({ row }) => <span className="text-tertiary">{row.original.member_count}</span>,
+      },
+      {
+        accessorKey: "workspace_count",
+        header: "Workspaces",
+        cell: ({ row }) => <span className="text-tertiary">{row.original.workspace_count}</span>,
+      },
+      {
+        accessorKey: "created_at",
+        header: "Created",
+        cell: ({ row }) => (
+          <span className="text-[9px] leading-3 text-tertiary">
+            {new Date(row.original.created_at).toLocaleDateString()}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
-    <div className="overflow-auto">
-      <table className="w-full border-collapse">
-        <thead className="sticky top-0 bg-white">
-          <tr className="border-b border-hairline">
-            <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Name</th>
-            <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Status</th>
-            <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Members</th>
-            <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Workspaces</th>
-            <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accounts.map((account) => (
-            <tr key={account.id} className="border-b border-hairline hover:bg-surfaceMuted">
-              <td className="px-2 py-1">
-                <Link href={`/admin/accounts/${account.id}`} className="block hover:underline">
-                  <p className="text-[10px] font-medium leading-4 text-ink">{account.name}</p>
-                  {account.description && (
-                    <p className="text-[9px] leading-3 text-tertiary">{account.description}</p>
-                  )}
-                </Link>
-              </td>
-              <td className="px-2 py-1">
-                <Badge tone={account.status === "active" ? "success" : "warning"} size="xs" className="min-w-0 px-1">
-                  {account.status}
-                </Badge>
-              </td>
-              <td className="px-2 py-1 text-[10px] text-tertiary">
-                {account.member_count}
-              </td>
-              <td className="px-2 py-1 text-[10px] text-tertiary">
-                {account.workspace_count}
-              </td>
-              <td className="px-2 py-1 text-[9px] leading-3 text-tertiary">
-                {new Date(account.created_at).toLocaleDateString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-2">
+      <SearchInput
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        onClear={() => setSearch("")}
+        placeholder="Search accounts…"
+        aria-label="Filter accounts"
+        wrapperClassName="w-full max-w-xs border border-hairline bg-white"
+      />
+      <AdminDataTable
+        data={accounts}
+        columns={columns}
+        getRowId={(row) => row.id}
+        globalFilter={search}
+        emptyMessage={archived ? "No archived corporate accounts." : "No corporate accounts yet. Create one above."}
+      />
     </div>
   );
 }

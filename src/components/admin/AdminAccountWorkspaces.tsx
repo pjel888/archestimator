@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { LinkBreak } from "@phosphor-icons/react/dist/ssr";
+import type { ColumnDef } from "@tanstack/react-table";
 
+import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import {
   linkWorkspaceAction,
   unlinkWorkspaceAction,
@@ -28,7 +30,6 @@ export function AdminAccountWorkspaces({
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Workspaces not already linked to this account.
   const linkedIds = new Set(workspaces.map((w) => w.id));
   const available = linkableWorkspaces.filter((w) => !linkedIds.has(w.id));
 
@@ -54,10 +55,58 @@ export function AdminAccountWorkspaces({
     });
   }
 
+  const columns: ColumnDef<WorkspaceSummaryRow, unknown>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <span className="text-[10px] font-medium leading-4 text-ink">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: "slug",
+      header: "Slug",
+      cell: ({ row }) => (
+        <span className="text-[9px] leading-3 text-tertiary">{row.original.slug ?? "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ row }) => (
+        <span className="text-[9px] leading-3 text-tertiary">
+          {new Date(row.original.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      meta: { align: "right" },
+      cell: ({ row }) => {
+        const ws = row.original;
+        return (
+          <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
+            <Button
+              size="icon-xs"
+              variant="secondary"
+              disabled={isPending}
+              onClick={() => handleUnlink(ws.id)}
+              aria-label={`Unlink ${ws.name}`}
+              title="Unlink"
+            >
+              <LinkBreak aria-hidden size={13} />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Link workspace */}
-      {available.length > 0 && (
+      {available.length > 0 ? (
         <form onSubmit={handleLink} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-1 flex-col gap-1">
             <span className="text-[9px] font-medium uppercase leading-3 text-tertiary">Workspace</span>
@@ -69,7 +118,8 @@ export function AdminAccountWorkspaces({
               <option value="">Select a workspace…</option>
               {available.map((ws) => (
                 <option key={ws.id} value={ws.id}>
-                  {ws.name} - {ws.corporate_account_id
+                  {ws.name} -{" "}
+                  {ws.corporate_account_id
                     ? `Move from ${ws.corporate_account_name ?? "another account"}`
                     : "No corporate account"}
                 </option>
@@ -80,48 +130,16 @@ export function AdminAccountWorkspaces({
             Link workspace
           </Button>
         </form>
-      )}
+      ) : null}
 
-      {notice && <span className="text-[9px] leading-3 text-tertiary">{notice}</span>}
+      {notice ? <span className="text-[9px] leading-3 text-tertiary">{notice}</span> : null}
 
-      {/* Workspaces list */}
-      {workspaces.length === 0 ? (
-        <p className="py-2 text-center text-[10px] text-tertiary">No linked workspaces.</p>
-      ) : (
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-hairline">
-              <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Name</th>
-              <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Slug</th>
-              <th scope="col" className="px-2 py-1 text-left text-[9px] font-medium uppercase leading-3 text-tertiary">Created</th>
-              <th scope="col" className="px-2 py-1 text-right text-[9px] font-medium uppercase leading-3 text-tertiary"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {workspaces.map((ws) => (
-              <tr key={ws.id} className="border-b border-hairline">
-                <td className="px-2 py-1 text-[10px] font-medium leading-4 text-ink">{ws.name}</td>
-                <td className="px-2 py-1 text-[9px] leading-3 text-tertiary">{ws.slug ?? "—"}</td>
-                <td className="px-2 py-1 text-[9px] leading-3 text-tertiary">
-                  {new Date(ws.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-2 py-1 text-right">
-                  <Button
-                    size="icon-xs"
-                    variant="secondary"
-                    disabled={isPending}
-                    onClick={() => handleUnlink(ws.id)}
-                    aria-label={`Unlink ${ws.name}`}
-                    title="Unlink"
-                  >
-                    <LinkBreak aria-hidden size={13} />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <AdminDataTable
+        data={workspaces}
+        columns={columns}
+        getRowId={(row) => row.id}
+        emptyMessage="No linked workspaces."
+      />
     </div>
   );
 }

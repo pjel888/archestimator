@@ -1,6 +1,9 @@
 "use client";
 
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
+import { useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+
+import { AdminDataTable } from "@/components/admin/AdminDataTable";
 
 // F0-4: rows are fetched server-side from the real audit repository
 // (listAuditEvents) and passed in as plain serializable data. The raw
@@ -15,27 +18,40 @@ export type AuditRow = {
 };
 
 export function AdminAuditTable({ rows, error }: { rows: AuditRow[]; error?: string | null }) {
-  const columns: ColumnDef<AuditRow>[] = [
-    { id: "actor", header: "Actor", cell: (row) => row.actor },
-    { id: "action", header: "Action", cell: (row) => <span className="font-medium">{row.action}</span> },
-    { id: "target", header: "Target", cell: (row) => row.target || "—" },
-    {
-      id: "occurredAt",
-      header: "When",
-      cell: (row) => (row.occurredAt ? new Date(row.occurredAt).toLocaleString() : "—"),
-    },
-  ];
+  const columns = useMemo<ColumnDef<AuditRow, unknown>[]>(
+    () => [
+      {
+        accessorKey: "actor",
+        header: "Actor",
+        cell: ({ row }) => row.original.actor,
+      },
+      {
+        accessorKey: "action",
+        header: "Action",
+        cell: ({ row }) => <span className="font-medium">{row.original.action}</span>,
+      },
+      {
+        accessorKey: "target",
+        header: "Target",
+        cell: ({ row }) => row.original.target || "—",
+      },
+      {
+        accessorKey: "occurredAt",
+        header: "When",
+        cell: ({ row }) =>
+          row.original.occurredAt ? new Date(row.original.occurredAt).toLocaleString() : "—",
+      },
+    ],
+    [],
+  );
 
   return (
-    <DataTable
+    <AdminDataTable
       data={rows}
       columns={columns}
-      keyExtractor={(row) => row.id}
-      emptyState={{
-        title: error ? "Audit log unreadable" : "No audit events",
-        description: error ?? "No admin audit events recorded yet.",
-      }}
-      className="min-h-0 flex-1 rounded-xs border border-hairline"
+      getRowId={(row) => row.id}
+      emptyMessage={error ? `Audit log unreadable: ${error}` : "No admin audit events recorded yet."}
+      className="min-h-0 flex-1"
     />
   );
 }
