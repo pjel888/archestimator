@@ -13,7 +13,21 @@ const mocks = vi.hoisted(() => ({
   recordProjectPublicationPasswordFailure: vi.fn(),
 }));
 
-vi.mock("@/lib/publication/public-repository", () => mocks);
+vi.mock("@/lib/publication/public-repository", () => ({
+  recordProjectPublicationAnalyticsEvent: mocks.recordProjectPublicationAnalyticsEvent,
+  recordProjectPublicationEvent: mocks.recordProjectPublicationEvent,
+  resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
+  resolveProjectPublicationSnapshotByToken: mocks.resolveProjectPublicationSnapshotByToken,
+  verifyProjectPublicationPasswordByToken: mocks.verifyProjectPublicationPasswordByToken,
+}));
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkProjectPublicationEventRateLimit: mocks.checkProjectPublicationEventRateLimit,
+  checkProjectPublicationPasswordRateLimit: mocks.checkProjectPublicationPasswordRateLimit,
+  checkProjectPublicationSnapshotRateLimit: mocks.checkProjectPublicationSnapshotRateLimit,
+  clearProjectPublicationPasswordFailures: mocks.clearProjectPublicationPasswordFailures,
+  recordProjectPublicationPasswordFailure: mocks.recordProjectPublicationPasswordFailure,
+}));
 
 const nextServerMocks = vi.hoisted(() => {
   const afterCallbacks: Array<() => unknown> = [];

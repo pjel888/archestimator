@@ -4,7 +4,7 @@ import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/p
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";
-import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
+import { checkProposalExportRateLimit } from "@/lib/publication/public-rate-limits";
 import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { isWorkspaceMemberInD1 } from "@/lib/authz/d1-access";

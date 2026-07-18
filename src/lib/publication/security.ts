@@ -111,6 +111,18 @@ export function readPublicationTokenHashSecret() {
   return "archestimator-local-publication-hash-secret";
 }
 
+// SEC-02 (AC-SEC-02): public IP and user-agent telemetry must use a keyed HMAC.
+// A bare SHA-256 digest is reversible over the small IPv4 input space. Prefer a
+// dedicated telemetry pepper while retaining the existing local/CI fallback.
+function readTelemetryHashPepper() {
+  return process.env.ARCHESTIMATOR_TELEMETRY_HASH_PEPPER?.trim() || readPublicationTokenHashSecret();
+}
+
+export function hashPublicTelemetryValue(value: string | null) {
+  if (!value) return null;
+  return createHmac("sha256", readTelemetryHashPepper()).update(value).digest("base64url");
+}
+
 export function readPublicationAccessCookieSecret() {
   const configured =
     process.env.PUBLICATION_ACCESS_COOKIE_SECRET?.trim() ??

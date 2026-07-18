@@ -7,7 +7,7 @@ import {
   checkClientPortalPasswordRateLimit,
   clearClientPortalPasswordFailures,
   recordClientPortalPasswordFailure,
-} from "@/lib/publication/public-repository";
+} from "@/lib/client-portal/public-rate-limits";
 
 export async function clientPortalPasswordResponse(request: Request, token: string) {
   const origin = assertSameOriginPublicPost(request);

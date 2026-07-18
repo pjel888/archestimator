@@ -2,11 +2,11 @@ import { after, NextResponse } from "next/server";
 
 import { logAppError } from "@/lib/observability/logger";
 import {
-  checkSharedLinkSessionStartRateLimit,
   recordProjectPublicationAnalyticsEvent,
   resolveProjectPublicationAccessByToken,
   verifySharedLinkRecipientToken,
 } from "@/lib/publication/public-repository";
+import { checkSharedLinkSessionStartRateLimit } from "@/lib/publication/public-rate-limits";
 import {
   assertSameOriginPublicDelete,
   assertSameOriginPublicPost,

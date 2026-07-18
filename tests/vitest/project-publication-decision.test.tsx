@@ -27,6 +27,7 @@ vi.mock("@/lib/publication/security", () => ({
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
+  hashPublicTelemetryValue: vi.fn(() => "hashed-request-value"),
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
 }));
@@ -41,9 +42,13 @@ vi.mock("@/lib/publication/public-repository", async () => {
     ...actual,
     resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
     submitSharedLinkDecision: mocks.submitSharedLinkDecision,
-    checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
   };
 });
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkSharedLinkDecisionReadRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
+}));
 
 vi.mock("@/lib/client-portal/public-repository", () => ({
   isClientPortalToken: mocks.isClientPortalToken,

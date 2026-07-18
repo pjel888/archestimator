@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
-const publicationD1Store = readFileSync("src/lib/publication/d1-store.ts", "utf8");
 const validPublicationToken = "a".repeat(43);
 const publicationAccessRow = {
   id: "publication-1",
@@ -50,9 +49,6 @@ function publicationWriteContext(overrides: Record<string, unknown> = {}) {
 
 function createMockPublicationStore(overrides: Record<string, unknown> = {}) {
   return {
-    cleanupExpiredRateLimitEvents: vi.fn().mockResolvedValue(undefined),
-    countRateLimitEvents: vi.fn().mockResolvedValue(1),
-    deleteRateLimitEvents: vi.fn().mockResolvedValue(undefined),
     getComment: vi.fn().mockResolvedValue({
       id: "comment-id",
       created_at: "2026-06-03T01:10:00.000Z",
@@ -78,7 +74,6 @@ function createMockPublicationStore(overrides: Record<string, unknown> = {}) {
     incrementPublicationOpen: vi.fn().mockResolvedValue(undefined),
     insertClientComment: vi.fn().mockResolvedValue("comment-id"),
     insertPublicationEvent: vi.fn().mockResolvedValue(undefined),
-    insertRateLimitEvent: vi.fn().mockResolvedValue(undefined),
     insertSharedLinkEvent: vi.fn().mockResolvedValue(undefined),
     listPublicActivityComments: vi.fn().mockResolvedValue([]),
     listPublicComments: vi.fn().mockResolvedValue([]),
@@ -234,110 +229,6 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     await expect(repository.resolveProjectPublicationSnapshotByToken("client-token")).resolves.toBeNull();
     await expect(repository.verifyProjectPublicationPasswordByToken("client-token", "secret")).resolves.toBe(false);
     expect(createPublicationD1Store).not.toHaveBeenCalled();
-  });
-
-  it("does not delete expired rate-limit events on every recorded attempt", async () => {
-    vi.spyOn(Date, "now").mockReturnValue(1_717_000_000_000);
-    const store = createMockPublicationStore();
-    const { repository } = await importRepositoryWithStore(store);
-    const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "cf-connecting-ip": "203.0.113.10" },
-    });
-
-    await expect(repository.checkProjectPublicationEventRateLimit({ token: "client-token", request })).resolves.toEqual({ allowed: true });
-    await expect(repository.checkProjectPublicationEventRateLimit({ token: "client-token", request })).resolves.toEqual({ allowed: true });
-
-    expect(store.insertRateLimitEvent).toHaveBeenCalledTimes(2);
-    expect(store.countRateLimitEvents).toHaveBeenCalledTimes(2);
-    expect(store.cleanupExpiredRateLimitEvents).toHaveBeenCalledTimes(1);
-  });
-
-  it("runs expired rate-limit cleanup as a single in-process flight under concurrent checks", async () => {
-    vi.spyOn(Date, "now").mockReturnValue(1_717_000_000_000);
-    let resolveCleanup: (() => void) | null = null;
-    const cleanupFinished = new Promise<void>((resolve) => {
-      resolveCleanup = resolve;
-    });
-    const store = createMockPublicationStore({
-      cleanupExpiredRateLimitEvents: vi.fn(() => cleanupFinished),
-    });
-    const { repository } = await importRepositoryWithStore(store);
-    const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "cf-connecting-ip": "203.0.113.10" },
-    });
-
-    const first = repository.checkProjectPublicationEventRateLimit({ token: "client-token", request });
-    const second = repository.checkProjectPublicationEventRateLimit({ token: "client-token", request });
-    expect(store.cleanupExpiredRateLimitEvents).toHaveBeenCalledTimes(1);
-
-    resolveCleanup?.();
-
-    await expect(Promise.all([first, second])).resolves.toEqual([{ allowed: true }, { allowed: true }]);
-    expect(store.insertRateLimitEvent).toHaveBeenCalledTimes(2);
-    expect(store.countRateLimitEvents).toHaveBeenCalledTimes(2);
-    expect(store.cleanupExpiredRateLimitEvents).toHaveBeenCalledTimes(1);
-  });
-
-  it("blocks publication password attempts from durable D1 failure rows", async () => {
-    const now = 1_717_000_000_000;
-    vi.spyOn(Date, "now").mockReturnValue(now);
-    const store = createMockPublicationStore({
-      countRateLimitEvents: vi.fn().mockResolvedValue(5),
-    });
-    const { repository } = await importRepositoryWithStore(store);
-    const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "cf-connecting-ip": "203.0.113.10" },
-    });
-
-    await expect(repository.checkProjectPublicationPasswordRateLimit({ token: "client-token", request })).resolves.toEqual({
-      allowed: false,
-      message: "Too many attempts. Please wait 3600 seconds.",
-      retryAfter: 3600,
-    });
-
-    expect(store.countRateLimitEvents).toHaveBeenCalledWith({
-      activeAt: new Date(now).toISOString(),
-      keyHash: expect.any(String),
-      scope: "project_publication_password",
-      since: new Date(now - 60 * 60 * 1000).toISOString(),
-    });
-    expect(publicationD1Store).toContain("AND expires_at > ?");
-    expect(store.insertRateLimitEvent).not.toHaveBeenCalled();
-  });
-
-  it("records publication password failures as durable D1 rows without holding the request open", async () => {
-    const now = 1_717_000_000_000;
-    vi.spyOn(Date, "now").mockReturnValue(now);
-    const store = createMockPublicationStore();
-    const { repository } = await importRepositoryWithStore(store);
-    const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "cf-connecting-ip": "203.0.113.10" },
-    });
-
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      await repository.recordProjectPublicationPasswordFailure({ token: "client-token", request });
-    }
-
-    expect(store.insertRateLimitEvent).toHaveBeenCalledTimes(6);
-    expect(store.insertRateLimitEvent).toHaveBeenCalledWith({
-      keyHash: expect.any(String),
-      metadata: { route: "password", success: false },
-      scope: "project_publication_password",
-      ttlSeconds: 60 * 60,
-    });
-    expect(store.countRateLimitEvents).not.toHaveBeenCalled();
-  });
-
-  it("clears durable publication password failure rows after successful unlock", async () => {
-    const store = createMockPublicationStore();
-    const { repository } = await importRepositoryWithStore(store);
-    const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "cf-connecting-ip": "203.0.113.10" },
-    });
-
-    await repository.clearProjectPublicationPasswordFailures({ token: "client-token", request });
-
-    expect(store.deleteRateLimitEvents).toHaveBeenCalledWith("project_publication_password", expect.any(String));
   });
 
   it("preserves duplicate decision conflicts when the D1 submit returns no id", async () => {

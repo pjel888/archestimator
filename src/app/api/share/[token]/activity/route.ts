@@ -20,7 +20,8 @@ import {
   readSharedLinkRecipientDisplayName,
   resolveSharedLinkStoredTargetMetadata,
 } from "@/lib/publication/activity-helpers";
-import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
+import { checkProjectPublicationActivityRateLimit } from "@/lib/publication/public-rate-limits";
+import { createPublicationServiceClient } from "@/lib/publication/public-repository";
 import { filterMap } from "@/lib/util/array";
 import type { NextRequest } from "next/server";
 

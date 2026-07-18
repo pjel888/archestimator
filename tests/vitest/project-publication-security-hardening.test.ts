@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const publicRepositorySource = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+const publicationSecuritySource = readFileSync("src/lib/publication/security.ts", "utf8");
 const d1StoreSource = readFileSync("src/lib/publication/d1-store.ts", "utf8");
 
 function buildMockPublicationStore(overrides: Record<string, unknown> = {}) {
@@ -124,18 +125,20 @@ describe("SEC-02 (AC-SEC-02) — keyed HMAC for ip_hash / user_agent_hash", () =
   it("static guard: ip/user-agent hashing goes through a keyed HMAC, never a bare sha256(value)", () => {
     // The telemetry hash helper must use createHmac, and must be the value passed to the
     // ip_hash / user_agent_hash columns.
-    expect(publicRepositorySource).toContain('import { createHash, createHmac } from "node:crypto"');
-    expect(publicRepositorySource).toMatch(/function hashRequestValue\([\s\S]*?createHmac\("sha256", readTelemetryHashPepper\(\)\)/);
-    expect(publicRepositorySource).toContain("ARCHESTIMATOR_TELEMETRY_HASH_PEPPER");
+    expect(publicationSecuritySource).toContain("export function hashPublicTelemetryValue");
+    expect(publicationSecuritySource).toMatch(/hashPublicTelemetryValue\([\s\S]*?createHmac\("sha256", readTelemetryHashPepper\(\)\)/);
+    expect(publicationSecuritySource).toContain("ARCHESTIMATOR_TELEMETRY_HASH_PEPPER");
+    expect(publicRepositorySource).not.toContain("function readTelemetryHashPepper");
+    expect(publicRepositorySource).not.toContain("export function hashPublicTelemetryValue");
 
-    // The ip_hash / user_agent_hash fields are only ever assigned from hashRequestValue(...)
+    // The ip_hash / user_agent_hash fields are only ever assigned from hashPublicTelemetryValue(...)
     // output (no bare createHash("sha256")(ip) path for those telemetry columns).
     const ipHashAssignments = publicRepositorySource.match(/const ipHash = [^\n;]+/g) ?? [];
     const uaHashAssignments = publicRepositorySource.match(/const userAgentHash = [^\n;]+/g) ?? [];
     expect(ipHashAssignments.length).toBeGreaterThan(0);
     expect(uaHashAssignments.length).toBeGreaterThan(0);
     for (const line of [...ipHashAssignments, ...uaHashAssignments]) {
-      expect(line).toContain("hashRequestValue(");
+      expect(line).toContain("hashPublicTelemetryValue(");
       expect(line).not.toContain('createHash("sha256")');
     }
     // No bare createHash("sha256") on an ip-ish or user-agent-ish value anywhere in the module.

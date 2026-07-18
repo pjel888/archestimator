@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import { CLIENT_PORTAL_NO_STORE_HEADERS, getClientPortalBrandAsset, hasClientPortalPasswordSession } from "@/lib/client-portal/public-repository";
-import { checkClientPortalPublicReadRateLimit } from "@/lib/publication/public-repository";
+import { checkClientPortalPublicReadRateLimit } from "@/lib/client-portal/public-rate-limits";
 
 export const dynamic = "force-dynamic";
 

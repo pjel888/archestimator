@@ -39,7 +39,7 @@ describe("Codex publication and public-surface hardening contracts", () => {
       },
       {
         path: "src/app/api/share/[token]/decision/route.ts",
-        marker: "export async function POST",
+        marker: "async function legacyDecisionPost",
         guard: "assertSameOriginPublicPost(request)",
         downstream: "checkSharedLinkDecisionRateLimit",
       },
@@ -56,6 +56,12 @@ describe("Codex publication and public-surface hardening contracts", () => {
       expect(handler).toContain(guard);
       expect(handler.indexOf(guard)).toBeLessThan(handler.indexOf(downstream));
     }
+
+    const decisionRoute = read("src/app/api/share/[token]/decision/route.ts");
+    const decisionPost = decisionRoute.slice(decisionRoute.indexOf("export async function POST"));
+    expect(decisionPost).toContain("isClientPortalToken(token)");
+    expect(decisionPost).toContain("submitClientPortalDecisionResponse(request, token)");
+    expect(decisionPost).toContain("legacyDecisionPost(request");
 
     const unsubscribeRoute = read("src/app/api/share/[token]/unsubscribe/route.ts");
     const unsubscribeGet = unsubscribeRoute.slice(
@@ -162,9 +168,11 @@ describe("Codex publication and public-surface hardening contracts", () => {
     const commentRoute = read("src/app/api/share/[token]/comment/route.ts");
     const decisionRoute = read("src/app/api/share/[token]/decision/route.ts");
     const publicRepository = read("src/lib/publication/public-repository.ts");
+    const publicationSecurity = read("src/lib/publication/security.ts");
 
-    expect(publicRepository).toContain("export function hashPublicTelemetryValue");
-    expect(publicRepository).toContain('createHmac("sha256", readTelemetryHashPepper())');
+    expect(publicationSecurity).toContain("export function hashPublicTelemetryValue");
+    expect(publicationSecurity).toContain('createHmac("sha256", readTelemetryHashPepper())');
+    expect(publicRepository).not.toContain("export function hashPublicTelemetryValue");
     for (const routeSource of [commentRoute, decisionRoute]) {
       expect(routeSource).toContain("hashPublicTelemetryValue(ip)");
       expect(routeSource).not.toMatch(/createHash\(["']sha256["']\)\.update\(ip\)/);
@@ -263,7 +271,11 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(projectImageRoute).not.toContain(".getPublicUrl(path)");
     expect(projectActions).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(storageCleanup).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
-    expect(publicationImageUrl).toContain('if (imageUrl.pathname.includes("/project-images/")) return null');
+    expect(publicationImageUrl).toContain('imageUrl.pathname === "/api/projects/images"');
+    expect(publicationImageUrl).toContain("isSafeProjectImagePath(path)");
+    expect(publicationImageUrl).toContain("if (!imageUrl || LOCAL_BROKERED_IMAGE_ROUTE_PATTERN.test(imageUrl)) return null");
+    expect(projectImageRoute).toContain('requestUrl.searchParams.get("path")');
+    expect(projectImageRoute).toContain("parseProjectImageStoragePath");
     expect(nextConfig).not.toContain("/storage/v1/object/public/project-images/**");
     expect(privateProjectImageMigration).toContain("'project-images'");
     expect(privateProjectImageMigration).toContain("public = false");
@@ -278,12 +290,12 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
   it("sanitizes estimate row source snapshot image URLs before persistence and legacy rendering", () => {
     const estimateActions = read("src/lib/estimates/actions.ts");
-    const workspaceRepository = read("src/lib/repositories/workspace-repository.ts");
+    const estimateTreeReadRepository = read("src/lib/estimates/estimate-tree-read-repository.ts");
     const estimateActivityHistory = read("src/components/workshop/estimate-sheet/activity-history.tsx");
 
     expect(estimateActions).toContain("return sanitizeEstimateRowSourceSnapshot({");
     expect(estimateActions).toContain("source_snapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot)");
-    expect(workspaceRepository).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
+    expect(estimateTreeReadRepository).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
     expect(estimateActivityHistory).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
   });
 });

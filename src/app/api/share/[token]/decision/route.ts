@@ -7,19 +7,18 @@ import {
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
   hasPublicationAccessCookie,
+  hashPublicTelemetryValue,
   readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
 import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 import {
-  checkSharedLinkDecisionReadRateLimit,
-  checkSharedLinkDecisionRateLimit,
   loadSharedLinkRecipientDecision,
   resolveProjectPublicationAccessByToken,
   submitSharedLinkDecision,
-  hashPublicTelemetryValue,
   LegacyPublicationWriteFrozenError,
 } from "@/lib/publication/public-repository";
+import { checkSharedLinkDecisionReadRateLimit, checkSharedLinkDecisionRateLimit } from "@/lib/publication/public-rate-limits";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";

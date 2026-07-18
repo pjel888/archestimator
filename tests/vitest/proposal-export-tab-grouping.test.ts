@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { groupEstimateTabTrees, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
+import {
+  groupEstimateTabTrees,
+  type EstimateTreeNodeQueryRow,
+  type EstimateTreeRowItemQueryRow,
+} from "@/lib/estimates/estimate-tree-read-repository";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 
 const createdAt = "2026-05-20T00:00:00.000Z";

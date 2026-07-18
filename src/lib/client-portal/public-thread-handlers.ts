@@ -6,7 +6,7 @@ import { CLIENT_PORTAL_NO_STORE_HEADERS, readClientPortalRecipientSession, requi
 import { ClientPortalThreadError, createClientPortalRecipientThread, editClientPortalRecipientMessage, listClientPortalRecipientThreadMessages, listClientPortalRecipientThreads, markClientPortalRecipientThreadRead, replyToClientPortalThread, setClientPortalRecipientThreadStatus, tombstoneClientPortalRecipientMessage } from "@/lib/client-portal/thread-repository";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
-import { checkClientPortalThreadRateLimit, checkClientPortalThreadReadRateLimit } from "@/lib/publication/public-repository";
+import { checkClientPortalThreadRateLimit, checkClientPortalThreadReadRateLimit } from "@/lib/client-portal/public-rate-limits";
 
 function unavailable() { return Response.json({ error: "Client Portal discussion unavailable." }, { status: 404, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }
 function invalid(message: string) { return Response.json({ error: message }, { status: 400, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }

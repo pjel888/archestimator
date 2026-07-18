@@ -11,7 +11,7 @@ import {
 } from "@/lib/client-portal/public-repository";
 import { listClientPortalClientSafeActivity, recordClientPortalAnalyticsEvent } from "@/lib/client-portal/activity-service";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
-import { checkClientPortalPublicReadRateLimit } from "@/lib/publication/public-repository";
+import { checkClientPortalPublicReadRateLimit } from "@/lib/client-portal/public-rate-limits";
 
 function issueNumber(request: Request) {
   const value = new URL(request.url).searchParams.get("issue");

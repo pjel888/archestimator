@@ -27,12 +27,15 @@ vi.mock("@/lib/publication/public-repository", () => ({
   resolveProjectPublicationSnapshotByToken: mocks.resolveProjectPublicationSnapshotByToken,
   resolveSharedLinkRecipientIdentity: mocks.resolveSharedLinkRecipientIdentity,
   unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
-  checkSharedLinkUnsubscribeRateLimit: mocks.checkSharedLinkUnsubscribeRateLimit,
   verifySharedLinkRecipientToken: mocks.verifySharedLinkRecipientToken,
-  checkSharedLinkSessionStartRateLimit: mocks.checkSharedLinkSessionStartRateLimit,
-  checkProjectPublicationEventRateLimit: mocks.checkProjectPublicationEventRateLimit,
   recordProjectPublicationEvent: mocks.recordProjectPublicationEvent,
   recordProjectPublicationAnalyticsEvent: mocks.recordProjectPublicationAnalyticsEvent,
+}));
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkProjectPublicationEventRateLimit: mocks.checkProjectPublicationEventRateLimit,
+  checkSharedLinkSessionStartRateLimit: mocks.checkSharedLinkSessionStartRateLimit,
+  checkSharedLinkUnsubscribeRateLimit: mocks.checkSharedLinkUnsubscribeRateLimit,
 }));
 
 vi.mock("next/navigation", () => ({

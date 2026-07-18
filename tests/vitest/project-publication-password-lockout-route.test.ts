@@ -96,7 +96,16 @@ function passwordRequest(password: string, ip = "203.0.113.42") {
 
 async function importPasswordRouteAfterModuleReset() {
   vi.resetModules();
-  vi.doMock("@/lib/publication/public-repository", () => durableMocks);
+  vi.doMock("@/lib/publication/public-repository", () => ({
+    recordProjectPublicationAnalyticsEvent: durableMocks.recordProjectPublicationAnalyticsEvent,
+    recordProjectPublicationEvent: durableMocks.recordProjectPublicationEvent,
+    verifyProjectPublicationPasswordByToken: durableMocks.verifyProjectPublicationPasswordByToken,
+  }));
+  vi.doMock("@/lib/publication/public-rate-limits", () => ({
+    checkProjectPublicationPasswordRateLimit: durableMocks.checkProjectPublicationPasswordRateLimit,
+    clearProjectPublicationPasswordFailures: durableMocks.clearProjectPublicationPasswordFailures,
+    recordProjectPublicationPasswordFailure: durableMocks.recordProjectPublicationPasswordFailure,
+  }));
   vi.doMock("next/server", async (importOriginal) => {
     const actual = await importOriginal<typeof import("next/server")>();
     return {
@@ -122,6 +131,7 @@ describe("publication password route durable lockout", () => {
 
   afterEach(() => {
     vi.doUnmock("@/lib/publication/public-repository");
+    vi.doUnmock("@/lib/publication/public-rate-limits");
     vi.doUnmock("next/server");
     vi.useRealTimers();
     vi.restoreAllMocks();

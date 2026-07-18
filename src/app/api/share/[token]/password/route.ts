@@ -1,9 +1,11 @@
 import {
   checkProjectPublicationPasswordRateLimit,
   clearProjectPublicationPasswordFailures,
+  recordProjectPublicationPasswordFailure,
+} from "@/lib/publication/public-rate-limits";
+import {
   recordProjectPublicationAnalyticsEvent,
   recordProjectPublicationEvent,
-  recordProjectPublicationPasswordFailure,
   verifyProjectPublicationPasswordByToken,
 } from "@/lib/publication/public-repository";
 import {

@@ -1,6 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { CloudflareEstimateHistoryProofEnv } from "@/lib/cloudflare/estimate-history-proof-router";
 
 import { latestFunction, latestMigrationBySuffix, migrationText, read } from "./security-findings-test-helpers";
+
+const estimateHistoryProofIntentMocks = vi.hoisted(() => ({
+  canEditEstimate: vi.fn(),
+  updateEstimateRowItemWithHistory: vi.fn(),
+}));
+
+vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/estimates/d1-intents/access", () => ({
+  canEditEstimate: estimateHistoryProofIntentMocks.canEditEstimate,
+}));
+
+vi.mock("@/lib/estimates/d1-intents/rows", () => ({
+  updateEstimateRowItemWithHistory: estimateHistoryProofIntentMocks.updateEstimateRowItemWithHistory,
+}));
 
 function sourceBlock(source: string, startMarker: string, endMarker: string) {
   const start = source.indexOf(startMarker);
@@ -8,6 +25,105 @@ function sourceBlock(source: string, startMarker: string, endMarker: string) {
   const end = source.indexOf(endMarker, start + startMarker.length);
   expect(end).toBeGreaterThan(start);
   return source.slice(start, end);
+}
+
+class EstimateHistoryProofDatabase {
+  cleanupRuns = 0;
+  editorUserId: string | null = null;
+  readonly eventIdsByCorrelationId = new Map<string, string>();
+  readonly row = {
+    quantity: 1,
+    rowRevision: 1,
+    unitCost: 100,
+  };
+
+  prepare(sql: string) {
+    let values: unknown[] = [];
+    const statement = {
+      bind: (...nextValues: unknown[]) => {
+        values = nextValues;
+        return statement;
+      },
+      first: async () => this.first(sql, values),
+      all: async () => ({ results: [], success: true }),
+      run: async () => this.run(sql),
+    };
+    return statement;
+  }
+
+  async batch(statements: Array<{ run(): Promise<{ success?: boolean }> }>) {
+    return Promise.all(statements.map((statement) => statement.run()));
+  }
+
+  async exec(sql: string) {
+    if (sql.includes("__archestimator_missing_rollback_guard")) {
+      throw new Error("no such table: __archestimator_missing_rollback_guard");
+    }
+    return undefined;
+  }
+
+  private async first(sql: string, values: unknown[]) {
+    if (sql.includes("AS workspaces") && sql.includes("AS estimateAdjustments")) {
+      return {
+        workspaces: 0,
+        profiles: 0,
+        workspaceMembers: 0,
+        projects: 0,
+        estimates: 0,
+        estimateTabs: 0,
+        estimateNodes: 0,
+        estimateRows: 0,
+        estimateEvents: 0,
+        estimateAdjustments: 0,
+      };
+    }
+    if (sql.includes("SELECT id, quantity, row_revision, unit_cost FROM estimate_row_items")) {
+      return {
+        id: String(values[1] ?? ""),
+        quantity: this.row.quantity,
+        row_revision: this.row.rowRevision,
+        unit_cost: this.row.unitCost,
+      };
+    }
+    if (sql.includes("FROM estimate_sheet_events WHERE estimate_id = ? AND correlation_id = ?")) {
+      return { count: this.eventIdsByCorrelationId.has(String(values[1] ?? "")) ? 1 : 0 };
+    }
+    if (sql.includes("SELECT COUNT(*) AS count")) return { count: 0 };
+    return null;
+  }
+
+  private async run(sql: string) {
+    if (/DELETE FROM workspaces WHERE slug LIKE \?/m.test(sql)) this.cleanupRuns += 1;
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+function installEstimateHistoryProofIntentBehavior() {
+  estimateHistoryProofIntentMocks.canEditEstimate.mockImplementation(
+    async (database: EstimateHistoryProofDatabase, actor: { userId: string }) =>
+      actor.userId === database.editorUserId,
+  );
+  estimateHistoryProofIntentMocks.updateEstimateRowItemWithHistory.mockImplementation(
+    async (
+      database: EstimateHistoryProofDatabase,
+      actor: { userId: string },
+      input: {
+        rowId: string;
+        correlationId: string;
+        rowPatch: { quantity?: number };
+      },
+    ) => {
+      database.editorUserId ??= actor.userId;
+      if (actor.userId !== database.editorUserId) throw new Error("Estimate edit access denied.");
+      const existingEventId = database.eventIdsByCorrelationId.get(input.correlationId);
+      if (existingEventId) return { eventId: existingEventId, rowId: input.rowId };
+      const eventId = `proof-event-${database.eventIdsByCorrelationId.size + 1}`;
+      database.eventIdsByCorrelationId.set(input.correlationId, eventId);
+      database.row.quantity = Number(input.rowPatch.quantity ?? database.row.quantity);
+      database.row.rowRevision += 1;
+      return { eventId, rowId: input.rowId };
+    },
+  );
 }
 
 describe("Codex auth and estimate-access hardening contracts", () => {
@@ -111,11 +227,14 @@ describe("Codex auth and estimate-access hardening contracts", () => {
       "export async function updateEstimateRowItem",
     );
     const insertRpc = latestFunction("insert_estimate_row_item_with_history");
-    const actionGuardIndex = insertAction.indexOf("await assertCanEditEstimate(dataStore, estimateId);");
+    const actionGuardIndex = insertAction.indexOf("await assertCanEditEstimate(database, estimateId);");
+    const typedIntentIndex = insertAction.indexOf("insertEstimateRowItemWithHistory(database, currentUser, {");
 
     expect(actionGuardIndex).toBeGreaterThanOrEqual(0);
-    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('.from("estimate_nodes")'));
-    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('dataStore.call("insert_estimate_row_item_with_history"'));
+    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf("getEstimateNodeForProject(database, {"));
+    expect(actionGuardIndex).toBeLessThan(typedIntentIndex);
+    expect(typedIntentIndex).toBeGreaterThanOrEqual(0);
+    expect(insertAction).not.toMatch(/dataStore\.call|\.from\(/);
     expect(insertRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(insertRpc).not.toContain("resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);");
   });
@@ -181,8 +300,9 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     const adjustmentRpc = latestFunction("update_estimate_sheet_adjustment_with_history");
     const adjustmentHardening = latestMigrationBySuffix("_harden_estimate_sheet_adjustment_writes.sql");
 
-    expect(adjustmentAction).toContain("await assertCanEditEstimate(dataStore, estimateId);");
-    expect(adjustmentAction).toContain('dataStore.call("update_estimate_sheet_adjustment_with_history"');
+    expect(adjustmentAction).toContain("await assertCanEditEstimate(database, estimateId);");
+    expect(adjustmentAction).toContain("updateEstimateSheetAdjustmentWithHistory(database, currentUser, {");
+    expect(adjustmentAction).not.toContain("dataStore.call");
     expect(adjustmentAction).not.toContain('.from("estimate_sheet_adjustments")');
     expect(adjustmentRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(adjustmentRpc).toContain("public.estimate_sheet_event_result(target_estimate_id, correlation_id)");
@@ -198,13 +318,23 @@ describe("Codex auth and estimate-access hardening contracts", () => {
       "export async function insertEstimateTemplateNodeIntoEstimate",
       "export async function insertEstimateRowItemFromLibrary",
     );
+    const templateIntents = read("src/lib/estimates/d1-intents/templates.ts");
+    const atomicCopyIntent = sourceBlock(
+      templateIntents,
+      "async function copyTemplateNodes",
+      "export async function insertEstimateTemplateIntoEstimateWithHistory",
+    );
     const hardeningMigration = latestMigrationBySuffix("_estimate_sheet_bulk_delete_and_edit_rpc_hardening.sql");
     const insertNodeRpc = latestFunction("insert_estimate_template_node_into_estimate_with_history");
 
-    expect(insertNodeAction).toContain("await assertCanEditEstimate(dataStore, estimateId);");
-    expect(insertNodeAction).toContain('dataStore.call("insert_estimate_template_node_into_estimate_with_history"');
-    expect(insertNodeAction).not.toContain('dataStore.call("create_estimate_node_with_history"');
-    expect(insertNodeAction).not.toContain('dataStore.call("insert_estimate_row_item_with_history"');
+    expect(insertNodeAction).toContain("insertEstimateTemplateNodeIntoEstimateWithHistory(database, currentUser, {");
+    expect(insertNodeAction).not.toContain("dataStore.call");
+    expect(atomicCopyIntent.indexOf("prepareEstimateMutationIntent<TemplateInsertedResult>(")).toBeGreaterThanOrEqual(0);
+    expect(atomicCopyIntent.indexOf("prepareEstimateMutationIntent<TemplateInsertedResult>("))
+      .toBeLessThan(atomicCopyIntent.indexOf("await runD1Batch(database, statements);"));
+    expect(atomicCopyIntent).toContain("history.statement");
+    expect(atomicCopyIntent).toContain("history.outboxStatement");
+    expect(atomicCopyIntent).toContain("buildEstimateMutationReceiptStatement(");
     expect(insertNodeRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(insertNodeRpc).toContain("public.create_estimate_node_with_history");
     expect(insertNodeRpc).toContain("public.insert_estimate_row_item_with_history");
@@ -244,7 +374,14 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(metadataRpcHardening).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(metadataRpcHardening).toContain("raise exception 'public.update_estimate_details_with_history is missing estimate edit authorization.'");
     expect(metadataRpcHardening).toContain("grant execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) to authenticated");
-    expect(estimateActions).toContain("await assertCanEditEstimate(dataStore, input.estimateId);");
+    const updateDetailsAction = sourceBlock(
+      estimateActions,
+      "export async function updateEstimateDetails",
+      "export async function regenerateEstimateSheetCode",
+    );
+    expect(updateDetailsAction).toContain("await assertCanEditEstimate(database, input.estimateId);");
+    expect(updateDetailsAction).toContain("updateEstimateDetailsWithHistory(database, currentUser, {");
+    expect(updateDetailsAction).not.toMatch(/dataStore\.call|\.from\(/);
     expect(metadataStrip).toContain("canEditEstimate: canEditEstimate === true");
     expect(metadataStrip).toContain("if (!metadata || !canEditEstimate) return;");
     expect(metadataStrip).toContain("disabled={!metadata || !canEditEstimate || isPending}");
@@ -273,5 +410,83 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(originalCollaborationMigration).not.toContain("public.can_access_project(e.project_id)");
     expect(latestCanAccessEstimate).toContain("public.current_project_access_rank(e.project_id) > 0");
     expect(latestCanAccessEstimate).not.toContain("public.can_access_project(e.project_id)");
+  });
+
+  describe("hosted estimate-history proof intent boundary", () => {
+    beforeEach(() => {
+      estimateHistoryProofIntentMocks.canEditEstimate.mockReset();
+      estimateHistoryProofIntentMocks.updateEstimateRowItemWithHistory.mockReset();
+      installEstimateHistoryProofIntentBehavior();
+    });
+
+    it("imports typed access and row intents directly without retaining the action façade", () => {
+      const proofRouter = read("src/lib/cloudflare/estimate-history-proof-router.ts");
+
+      expect(proofRouter).toContain('import { canEditEstimate } from "@/lib/estimates/d1-intents/access";');
+      expect(proofRouter).toContain('import { updateEstimateRowItemWithHistory } from "@/lib/estimates/d1-intents/rows";');
+      expect(proofRouter).toContain("export async function captureEstimateHistoryProofIntent<T>(");
+      expect(proofRouter).toContain("typed Estimate intents");
+      expect(proofRouter).not.toMatch(/d1-action-client|EstimateActionsD1Client|EstimateActionD1Query|\.call\s*\(/);
+    });
+
+    it("keeps expected edit denials as proof data and cleans up the successful proof path", async () => {
+      const { routeCloudflareEstimateHistoryProofRequest } = await import(
+        "@/lib/cloudflare/estimate-history-proof-router"
+      );
+      const database = new EstimateHistoryProofDatabase();
+      const response = await routeCloudflareEstimateHistoryProofRequest(
+        new Request("https://proof.example/__cloudflare/estimate-history-proof", {
+          headers: { authorization: "Bearer proof-secret" },
+        }),
+        {
+          ARCH_DB: database as unknown as NonNullable<CloudflareEstimateHistoryProofEnv["ARCH_DB"]>,
+          CRON_SECRET: "proof-secret",
+        },
+      );
+      const body = await response!.json() as {
+        passed: boolean;
+        denialProof: {
+          passed: boolean;
+          viewerMutationError: string | null;
+          strangerMutationError: string | null;
+        };
+      };
+
+      expect(response?.status).toBe(200);
+      expect(body.passed).toBe(true);
+      expect(body.denialProof).toMatchObject({
+        passed: true,
+        viewerMutationError: "Estimate edit access denied.",
+        strangerMutationError: "Estimate edit access denied.",
+      });
+      expect(database.cleanupRuns).toBe(2);
+    });
+
+    it("returns 500 for an unexpected typed-intent failure and still runs final cleanup", async () => {
+      const { routeCloudflareEstimateHistoryProofRequest } = await import(
+        "@/lib/cloudflare/estimate-history-proof-router"
+      );
+      const database = new EstimateHistoryProofDatabase();
+      estimateHistoryProofIntentMocks.updateEstimateRowItemWithHistory.mockRejectedValueOnce(
+        new Error("unexpected typed-intent failure"),
+      );
+      const response = await routeCloudflareEstimateHistoryProofRequest(
+        new Request("https://proof.example/__cloudflare/estimate-history-proof", {
+          headers: { authorization: "Bearer proof-secret" },
+        }),
+        {
+          ARCH_DB: database as unknown as NonNullable<CloudflareEstimateHistoryProofEnv["ARCH_DB"]>,
+          CRON_SECRET: "proof-secret",
+        },
+      );
+      const body = await response!.json() as { error: string | null; passed: boolean };
+
+      expect(response?.status).toBe(500);
+      expect(body).toMatchObject({
+        error: "unexpected typed-intent failure",
+        passed: false,
+      });
+      expect(database.cleanupRuns).toBe(2);
+    });
   });
 });

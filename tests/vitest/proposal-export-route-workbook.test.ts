@@ -23,7 +23,7 @@ vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: mocks.getCurrentUserContext,
 }));
 
-vi.mock("@/lib/publication/public-repository", () => ({
+vi.mock("@/lib/publication/public-rate-limits", () => ({
   checkProposalExportRateLimit: mocks.checkProposalExportRateLimit,
 }));
 

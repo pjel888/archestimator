@@ -4,19 +4,18 @@ import {
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
   hasPublicationAccessCookie,
+  hashPublicTelemetryValue,
   readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
 import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 import {
-  checkSharedLinkCommentReadRateLimit,
-  checkSharedLinkCommentRateLimit,
   insertSharedLinkComment,
   LegacyPublicationWriteFrozenError,
   loadSharedLinkPublicComments,
   resolveProjectPublicationAccessByToken,
-  hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
+import { checkSharedLinkCommentReadRateLimit, checkSharedLinkCommentRateLimit } from "@/lib/publication/public-rate-limits";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 import { parseSharedLinkActivityCursor } from "@/lib/publication/activity-helpers";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";

@@ -12,13 +12,13 @@ import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanne
 import { ClientPortalShell } from "@/components/client-portal/ClientPortalShell";
 
 import {
-  checkProjectPublicationEventRateLimit,
   recordProjectPublicationAnalyticsEvent,
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
   resolveSharedLinkRecipientIdentity,
 } from "@/lib/publication/public-repository";
+import { checkProjectPublicationEventRateLimit } from "@/lib/publication/public-rate-limits";
 import {
   createPublicationAccessCookieName,
   createPublicationViewToken,

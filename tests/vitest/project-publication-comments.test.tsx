@@ -25,6 +25,7 @@ vi.mock("@/lib/publication/security", () => ({
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
+  hashPublicTelemetryValue: vi.fn(() => "hashed-request-value"),
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
 }));
@@ -38,10 +39,14 @@ vi.mock("@/lib/publication/public-repository", async () => {
   return {
     ...actual,
     insertSharedLinkComment: mocks.insertSharedLinkComment,
-    checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
     resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
   };
 });
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkSharedLinkCommentReadRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
+}));
 
 // The modules under test (will fail import / behavior until P6 impl — red first)
 import { POST } from "@/app/api/share/[token]/comment/route";

@@ -23,21 +23,26 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
+  hashPublicTelemetryValue: vi.fn(() => "hashed-request-value"),
+  isPublicationTokenShape: vi.fn(() => false),
   readPublicationTokenEncryptionSecret: mocks.readPublicationTokenEncryptionSecret,
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
-  checkSharedLinkCommentReadRateLimit: mocks.checkSharedLinkCommentReadRateLimit,
-  checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
   insertSharedLinkComment: mocks.insertSharedLinkComment,
   loadSharedLinkPublicComments: mocks.loadSharedLinkPublicComments,
-  checkSharedLinkDecisionReadRateLimit: mocks.checkSharedLinkDecisionReadRateLimit,
-  checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
   loadSharedLinkRecipientDecision: mocks.loadSharedLinkRecipientDecision,
   resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
   submitSharedLinkDecision: mocks.submitSharedLinkDecision,
+}));
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkSharedLinkCommentReadRateLimit: mocks.checkSharedLinkCommentReadRateLimit,
+  checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
+  checkSharedLinkDecisionReadRateLimit: mocks.checkSharedLinkDecisionReadRateLimit,
+  checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
 }));
 
 import * as commentRoute from "@/app/api/share/[token]/comment/route";

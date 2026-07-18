@@ -1,6 +1,8 @@
 import {
   checkProjectPublicationEventRateLimit,
   checkProjectPublicationSnapshotRateLimit,
+} from "@/lib/publication/public-rate-limits";
+import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,

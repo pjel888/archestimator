@@ -1,7 +1,5 @@
-import {
-  checkSharedLinkUnsubscribeRateLimit,
-  unsubscribeSharedLinkRecipientByToken,
-} from "@/lib/publication/public-repository";
+import { checkSharedLinkUnsubscribeRateLimit } from "@/lib/publication/public-rate-limits";
+import { unsubscribeSharedLinkRecipientByToken } from "@/lib/publication/public-repository";
 import {
   assertSameOriginPublicFormPost,
   createPublicFormCsrfToken,

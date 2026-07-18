@@ -118,10 +118,6 @@ type RawActivityEventRow = Omit<SharedLinkActivityEventD1Row, "metadata_json"> &
   metadata_json: string | null;
 };
 
-type RateLimitCountRow = {
-  count: number;
-};
-
 function parseJson(value: string | null | undefined, fallback: JsonValue): JsonValue {
   if (!value) return fallback;
   try {
@@ -292,54 +288,6 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
         [publicationId],
       );
       return row ? parseJson(row.snapshot_json, {}) : null;
-    },
-
-    async insertRateLimitEvent(input: {
-      keyHash: string;
-      metadata?: Record<string, JsonValue>;
-      scope: string;
-      ttlSeconds: number;
-    }) {
-      const db = await getDb();
-      const at = nowIso();
-      await execute(
-        db,
-        `INSERT INTO security_rate_limit_events (id, scope, key_hash, metadata_json, occurred_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          randomUUID(),
-          input.scope,
-          input.keyHash,
-          jsonText(input.metadata ?? {}, {}),
-          at,
-          new Date(Date.now() + input.ttlSeconds * 1000).toISOString(),
-        ],
-      );
-    },
-
-    async countRateLimitEvents(input: { activeAt?: string; keyHash: string; scope: string; since: string }) {
-      const db = await getDb();
-      const activeFilter = input.activeAt ? " AND expires_at > ?" : "";
-      const row = await first<RateLimitCountRow>(
-        db,
-        `SELECT COUNT(*) AS count
-         FROM security_rate_limit_events
-         WHERE scope = ? AND key_hash = ? AND occurred_at >= ?${activeFilter}`,
-        input.activeAt
-          ? [input.scope, input.keyHash, input.since, input.activeAt]
-          : [input.scope, input.keyHash, input.since],
-      );
-      return row?.count ?? 0;
-    },
-
-    async deleteRateLimitEvents(scope: string, keyHash: string) {
-      const db = await getDb();
-      await execute(db, "DELETE FROM security_rate_limit_events WHERE scope = ? AND key_hash = ?", [scope, keyHash]);
-    },
-
-    async cleanupExpiredRateLimitEvents(now = Date.now()) {
-      const db = await getDb();
-      await execute(db, "DELETE FROM security_rate_limit_events WHERE expires_at < ?", [new Date(now).toISOString()]);
     },
 
     async insertPublicationEvent(input: {

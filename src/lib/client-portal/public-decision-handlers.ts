@@ -5,7 +5,7 @@ import { ClientPortalDecisionError, submitClientPortalDecision, summarizeClientP
 import { CLIENT_PORTAL_NO_STORE_HEADERS, readClientPortalRecipientSession, requiresClientPortalPassword } from "@/lib/client-portal/public-repository";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
-import { checkClientPortalDecisionRateLimit, checkClientPortalDecisionReadRateLimit } from "@/lib/publication/public-repository";
+import { checkClientPortalDecisionRateLimit, checkClientPortalDecisionReadRateLimit } from "@/lib/client-portal/public-rate-limits";
 
 function unavailable() { return Response.json({ error: "Client Portal decision unavailable." }, { status: 404, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }
 function rateLimited(message: string, retryAfter: number) { return Response.json({ error: message }, { status: 429, headers: { ...CLIENT_PORTAL_NO_STORE_HEADERS, "Retry-After": String(retryAfter) } }); }

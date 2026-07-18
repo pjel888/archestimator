@@ -6,8 +6,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
-  checkSharedLinkUnsubscribeRateLimit: mocks.checkSharedLinkUnsubscribeRateLimit,
   unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
+}));
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkSharedLinkUnsubscribeRateLimit: mocks.checkSharedLinkUnsubscribeRateLimit,
 }));
 
 import { GET, POST } from "@/app/api/share/[token]/unsubscribe/route";

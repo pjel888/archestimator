@@ -45,7 +45,7 @@ vi.mock("@/lib/publication/security", () => ({
   createPublicationAccessCookie: vi.fn(),
   createSharedLinkSessionCookie: vi.fn(),
 }));
-vi.mock("@/lib/publication/public-repository", () => ({
+vi.mock("@/lib/client-portal/public-rate-limits", () => ({
   checkClientPortalDecisionRateLimit: mocks.decisionRateLimit,
   checkClientPortalDecisionReadRateLimit: mocks.decisionReadRateLimit,
   checkClientPortalPasswordRateLimit: mocks.passwordRateLimit,

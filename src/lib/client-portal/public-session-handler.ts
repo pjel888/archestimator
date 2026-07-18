@@ -7,7 +7,7 @@ import {
   resolveClientPortalRecipientActor,
 } from "@/lib/client-portal/public-repository";
 import { assertSameOriginPublicPost, createSharedLinkSessionCookie } from "@/lib/publication/security";
-import { checkClientPortalSessionStartRateLimit } from "@/lib/publication/public-repository";
+import { checkClientPortalSessionStartRateLimit } from "@/lib/client-portal/public-rate-limits";
 
 export async function clientPortalRecipientVerificationResponse(request: Request, token: string) {
   const origin = assertSameOriginPublicPost(request);

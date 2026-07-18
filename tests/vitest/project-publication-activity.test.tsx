@@ -54,11 +54,14 @@ vi.mock("@/lib/publication/public-repository", async () => {
   const actual = await vi.importActual("@/lib/publication/public-repository");
   return {
     ...actual,
-    checkProjectPublicationActivityRateLimit: mocks.checkProjectPublicationActivityRateLimit,
     createPublicationServiceClient: mocks.createPublicationServiceClient,
     recordProjectPublicationEvent: mocks.recordProjectPublicationEvent,
   };
 });
+
+vi.mock("@/lib/publication/public-rate-limits", () => ({
+  checkProjectPublicationActivityRateLimit: mocks.checkProjectPublicationActivityRateLimit,
+}));
 
 vi.mock("@/lib/email/transactional-email-client", () => ({
   sendEmail: mocks.sendEmail,
