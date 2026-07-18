@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-16 (final end-of-pass)
 **Author:** Claude (autonomous implementation pass)
-**Plan pack:** `.ai/03_plans/2026-07-12/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack`
+**Plan pack:** `.ai/09_archive/store/2026-07-12-Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack-complete/` (archived 2026-07-18)
 **Scope:** UNIT-001–011 (F0–F10)
 **Execution ledger:** `…/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack/LOOP_LEDGER.md`
 
