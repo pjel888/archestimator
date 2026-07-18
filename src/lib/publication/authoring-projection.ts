@@ -110,9 +110,6 @@ export function projectPublicationAuthoringRow(source: PublicationAuthoringRowSo
     miscCost: finiteNumber(source.miscCost),
     contingencyPercentage: finiteNumber(source.contingencyPercentage),
     adjustmentPercentage: finiteNumber(source.adjustmentPercentage),
-    laborRate: typeof metadata.laborUnitCost === "number" && Number.isFinite(metadata.laborUnitCost)
-      ? metadata.laborUnitCost
-      : undefined,
     scopeStatus: normalizeScopeStatus(metadata.scopeStatus),
   };
 }

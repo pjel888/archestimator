@@ -143,7 +143,6 @@ function calculateProjectChartRowCostParts(row: ProjectChartRowFact): ProjectCha
     quantity_base: row.quantityBase,
     quantity_contingency_amount: row.quantityContingencyAmount,
     unit_cost: unitCost,
-    labor_rate: toFiniteNumber(row.laborRate ?? 0),
     adjustment_percentage: toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage),
     misc_cost: miscCost,
     currency_code: "PHP",

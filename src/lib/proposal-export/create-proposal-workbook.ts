@@ -72,19 +72,12 @@ function withCurrencyNumberFormats(columns: readonly ProposalWorkbookColumn[], c
   );
 }
 
-// F-01 (P1-T9): until real labor data lands (P3-T1/D1), labor is exported as 0. A visible
-// in-file caveat keeps a LABOR=0 column from silently implying labor is priced at zero.
-const LABOR_DISCLAIMER_NOTE =
-  "NOTE: LABOR is not yet captured in the source estimate — figures reflect MATERIAL-ONLY pricing. Capture labor before issuing this bid.";
-
 export const BID_FORM_COLUMNS = [
   { key: "item", header: "ITEM", width: 9, style: { numFmt: TEXT_FORMAT } },
   { key: "particulars", header: "PARTICULARS", width: 42, style: { numFmt: TEXT_FORMAT } },
   { key: "unit", header: "UNIT", width: 10, style: { numFmt: TEXT_FORMAT } },
   { key: "quantity", header: "QTY", width: 12, style: { numFmt: QUANTITY_FORMAT } },
   { key: "material", header: "MATERIAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
-  { key: "labor", header: "LABOR", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
-  { key: "costTotal", header: "COST TOTAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "lineTotal", header: "LINE TOTAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "scope", header: "SCOPE", width: 16, style: { numFmt: TEXT_FORMAT } },
   { key: "remarks", header: "NOTES / REMARKS", width: 42, style: { numFmt: TEXT_FORMAT } },
@@ -112,9 +105,7 @@ const BREAKDOWN_COLUMNS = [
   { key: "quantity", header: "QTY", width: 12, style: { numFmt: QUANTITY_FORMAT } },
   { key: "unit", header: "UNIT", width: 10, style: { numFmt: TEXT_FORMAT } },
   { key: "materialUnitCost", header: "MATERIAL UNIT COST", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
-  { key: "laborUnitCost", header: "LABOR UNIT COST", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "materialSubtotal", header: "MATERIAL SUBTOTAL", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
-  { key: "laborSubtotal", header: "LABOR SUBTOTAL", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "contingencySubtotal", header: "CONTINGENCY / DISCOUNT", width: 20, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "miscSubtotal", header: "MISC / OTHER", width: 16, style: { numFmt: PHP_FORMAT }, currency: true },
   { key: "costAmount", header: "COST AMOUNT", width: 18, style: { numFmt: PHP_FORMAT }, currency: true },
@@ -269,7 +260,7 @@ function setPrintLayout(worksheet: Worksheet) {
   };
 }
 
-function addGeneralNotes(worksheet: Worksheet, options: { includeLaborDisclaimer: boolean }) {
+function addGeneralNotes(worksheet: Worksheet) {
   // P2-T4: the two blank spacer rows were trimmed so the expanded title block (Owner/Client,
   // Bidder, Project Ref, Subject) fits without pushing DETAIL_HEADER_ROW past 17 — the pad
   // loop backfills to the same target either way, keeping the data rows at their tested rows.
@@ -286,13 +277,6 @@ function addGeneralNotes(worksheet: Worksheet, options: { includeLaborDisclaimer
     styleSubtleRow(row);
     worksheet.mergeCells(row.number, 1, row.number, 10);
   });
-
-  if (options.includeLaborDisclaimer) {
-    const disclaimerRow = worksheet.addRow([LABOR_DISCLAIMER_NOTE]);
-    disclaimerRow.font = { bold: true, size: 10, color: { argb: "FFB45309" } };
-    disclaimerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
-    worksheet.mergeCells(disclaimerRow.number, 1, disclaimerRow.number, 10);
-  }
 }
 
 type BidSectionRange = {
@@ -314,7 +298,6 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
       printTitlesRow: `${DETAIL_HEADER_ROW}:${DETAIL_HEADER_ROW}`,
     },
   });
-  const laborCompatibilityMode = model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode");
   const includeFormulas = model.settings.includeFormulas;
   const columns = withCurrencyNumberFormats(BID_FORM_COLUMNS, model.metadata.currency);
   applyColumnDefinitions(worksheet, columns);
@@ -329,14 +312,11 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
   addHeaderField(worksheet, "Subject", model.metadata.subject ?? "");
   addHeaderField(worksheet, "Estimate / Revision", `${model.metadata.estimateName} (${model.metadata.versionLabel})`);
   addHeaderField(worksheet, "Date Submitted", model.generatedAt.slice(0, 10));
-  addGeneralNotes(worksheet, { includeLaborDisclaimer: laborCompatibilityMode });
+  addGeneralNotes(worksheet);
 
   while (worksheet.rowCount < DETAIL_HEADER_ROW - 1) worksheet.addRow([]);
   const headerRow = worksheet.addRow(columns.map((column) => column.header));
   styleHeaderRow(headerRow);
-  if (laborCompatibilityMode) {
-    headerRow.getCell(6).note = LABOR_DISCLAIMER_NOTE; // LABOR column (F)
-  }
   const sectionRanges: BidSectionRange[] = [];
 
   model.summaryRows.forEach((summaryRow, sectionIndex) => {
@@ -357,14 +337,12 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
         formulaAmountSuffix(proposalRow.miscSubtotal),
       ].join("") || "+0";
       const scopeRef = `${col.scope}${rowNumber}`;
-      // F-? (recalc parity): the model pins costAmount = round(materialUnit*qty) +
-      // round(laborUnit*qty) + contingency + misc — each product rounded to 2dp SEPARATELY
-      // before summing (build-proposal-export-model.ts normalizeSourceRow). The live LINE
-      // TOTAL formula must reproduce that exactly, else a fractional quantity makes the
-      // recalculated value (and the SUM subtotals / Grand Total / amount-in-words derived
-      // from it) drift a centavo from the pinned figures on open. So round each product in
-      // the formula too rather than computing qty*(material+labor) in one multiplication.
-      const lineCostFormula = `ROUND(${col.quantity}${rowNumber}*${col.material}${rowNumber},2)+ROUND(${col.quantity}${rowNumber}*${col.labor}${rowNumber},2)${directCostAdjustments}`;
+      // Recalc parity: the model pins costAmount = round(materialUnit*qty) + contingency +
+      // misc — the product rounded to 2dp before summing (build-proposal-export-model.ts
+      // normalizeSourceRow). The live LINE TOTAL formula must reproduce that exactly, else a
+      // fractional quantity makes the recalculated value (and the SUM subtotals / Grand Total
+      // / amount-in-words derived from it) drift a centavo from the pinned figures on open.
+      const lineCostFormula = `ROUND(${col.quantity}${rowNumber}*${col.material}${rowNumber},2)${directCostAdjustments}`;
       const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE"),0,${lineCostFormula})`;
       const remarks = [
         proposalRow.contingencySubtotal ? `Contingency: ${formatCurrency(proposalRow.contingencySubtotal, model.metadata.currency)}` : null,
@@ -379,8 +357,6 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
         proposalRow.unit,
         proposalRow.quantity,
         proposalRow.materialUnitCost,
-        proposalRow.laborUnitCost,
-        formulaCell(includeFormulas, `${col.material}${rowNumber}+${col.labor}${rowNumber}`, proposalRow.materialUnitCost + proposalRow.laborUnitCost),
         formulaCell(includeFormulas, lineFormula, proposalRow.includedInTotal ? proposalRow.costAmount : 0),
         scopeLabel(proposalRow.scopeStatus),
         remarks,
@@ -392,8 +368,6 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
     const subtotalRow = worksheet.addRow([
       "",
       `${summaryRow.sectionLabel} subtotal`,
-      "",
-      "",
       "",
       "",
       "",
@@ -425,8 +399,6 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
         proposalRow.unit,
         proposalRow.quantity,
         proposalRow.materialUnitCost,
-        proposalRow.laborUnitCost,
-        roundMoney(proposalRow.materialUnitCost + proposalRow.laborUnitCost),
         0,
         scopeLabel(proposalRow.scopeStatus),
         proposalRow.remarks,
@@ -673,9 +645,7 @@ function breakdownRowValues(breakdownRow: ProposalSourceBreakdownRow, tabName: s
     breakdownRow.quantity,
     breakdownRow.unit,
     breakdownRow.materialUnitCost,
-    breakdownRow.laborUnitCost,
     breakdownRow.materialSubtotal,
-    breakdownRow.laborSubtotal,
     breakdownRow.contingencySubtotal,
     breakdownRow.miscSubtotal,
     breakdownRow.costAmount,

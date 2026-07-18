@@ -37,7 +37,6 @@ export type EstimateRowCostInput = {
   quantity_contingency_amount?: number | string | null;
   unit_cost: number | string | null;
   material_rate?: number | string | null;
-  labor_rate?: number | string | null;
   contingency_percentage?: number | string | null;
   adjustment_percentage?: number | string | null;
   misc_cost: number | string | null;
@@ -56,7 +55,6 @@ export type EstimateRowCostParts = {
   currencyScale: typeof ESTIMATE_CALCULATION_CURRENCY_SCALE;
   quantity: number;
   materialMinorUnits: number;
-  laborMinorUnits: number;
   adjustmentMinorUnits: number;
   miscMinorUnits: number;
   totalMinorUnits: number;
@@ -160,7 +158,6 @@ function validateQuantityContingency(
 export function validateEstimateCalculationInput(input: EstimateCalculationInput): EstimateCalculationResult<{
   quantity: number;
   materialRate: number;
-  laborRate: number;
   miscCost: number;
   adjustmentPercentage: number;
   currencyCode: string;
@@ -174,8 +171,6 @@ export function validateEstimateCalculationInput(input: EstimateCalculationInput
 
   const materialRate = parseNonNegative(input.material_rate ?? input.unit_cost, "unit_cost");
   if (!materialRate.ok) return materialRate;
-  const laborRate = parseNonNegative(input.labor_rate, "labor_rate");
-  if (!laborRate.ok) return laborRate;
   const miscCost = parseNonNegative(input.misc_cost, "misc_cost");
   if (!miscCost.ok) return miscCost;
   const adjustmentPercentage = parsePercentage(
@@ -193,7 +188,6 @@ export function validateEstimateCalculationInput(input: EstimateCalculationInput
     value: {
       quantity: normalizedQuantity.value,
       materialRate: materialRate.value,
-      laborRate: laborRate.value,
       miscCost: miscCost.value,
       adjustmentPercentage: adjustmentPercentage.value,
       currencyCode: currencyCode.value,
@@ -206,20 +200,14 @@ export function computeEstimateRowCostParts(input: EstimateCalculationInput): Es
   const validated = validateEstimateCalculationInput(input);
   if (!validated.ok) return validated;
 
-  const { quantity, materialRate, laborRate, miscCost, adjustmentPercentage, currencyCode } = validated.value;
+  const { quantity, materialRate, miscCost, adjustmentPercentage, currencyCode } = validated.value;
   const material = toMinorUnits(quantity * materialRate, "material");
   if (!material.ok) return material;
-  const labor = toMinorUnits(quantity * laborRate, "labor");
-  if (!labor.ok) return labor;
-  const adjustmentBase = checkedAdd(material.value, labor.value, "adjustment_base");
-  if (!adjustmentBase.ok) return adjustmentBase;
-  const adjustment = toMinorUnits((adjustmentBase.value / MINOR_UNIT_FACTOR) * (adjustmentPercentage / 100), "adjustment");
+  const adjustment = toMinorUnits((material.value / MINOR_UNIT_FACTOR) * (adjustmentPercentage / 100), "adjustment");
   if (!adjustment.ok) return adjustment;
   const misc = toMinorUnits(miscCost, "misc_cost");
   if (!misc.ok) return misc;
-  const withMaterial = checkedAdd(material.value, labor.value, "row_total");
-  if (!withMaterial.ok) return withMaterial;
-  const withAdjustment = checkedAdd(withMaterial.value, adjustment.value, "row_total");
+  const withAdjustment = checkedAdd(material.value, adjustment.value, "row_total");
   if (!withAdjustment.ok) return withAdjustment;
   const total = checkedAdd(withAdjustment.value, misc.value, "row_total");
   if (!total.ok) return total;
@@ -232,7 +220,6 @@ export function computeEstimateRowCostParts(input: EstimateCalculationInput): Es
       currencyScale: ESTIMATE_CALCULATION_CURRENCY_SCALE,
       quantity,
       materialMinorUnits: material.value,
-      laborMinorUnits: labor.value,
       adjustmentMinorUnits: adjustment.value,
       miscMinorUnits: misc.value,
       totalMinorUnits: total.value,
@@ -322,12 +309,11 @@ export function computeEstimateTotals(
 export function computeEstimateRowLineTotal(row: EstimateRowCostInput): number {
   const quantity = Number(row.quantity ?? 0);
   const unitCost = Number(row.unit_cost ?? 0);
-  const laborRate = Number(row.labor_rate ?? 0);
   const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
   const legacyAdjustmentPercentage = quantityBase === null ? Number(row.contingency_percentage ?? 0) : 0;
   const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
   const miscCost = Number(row.misc_cost ?? 0);
-  const subTotal = quantity * (unitCost + laborRate);
+  const subTotal = quantity * unitCost;
   return subTotal + miscCost + (subTotal * adjustmentPercentage) / 100;
 }
 

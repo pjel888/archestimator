@@ -134,7 +134,6 @@ export async function getProjectChartsData(
           quantity_base: row.quantityBase,
           quantity_contingency_amount: row.quantityContingencyAmount,
           unit_cost: row.unitCost,
-          labor_rate: row.laborRate,
           contingency_percentage: row.contingencyPercentage,
           adjustment_percentage: row.adjustmentPercentage,
           misc_cost: row.miscCost,
@@ -232,7 +231,6 @@ async function loadRowFacts(
     didHitLimit: limitedRows.didHitLimit,
     rows: limitedRows.rows.map((row) => {
       const sourceSnapshot = readJsonRecord(row.source_snapshot_json);
-      const metadata = readJsonRecord(row.metadata_json);
       const supplierId = readString(sourceSnapshot.supplierId);
       const categoryPath = readStringArray(sourceSnapshot.categoryPath);
       const categoryPathIds = readStringArray(sourceSnapshot.categoryPathIds);
@@ -253,7 +251,6 @@ async function loadRowFacts(
         quantityBase: row.quantity_base === null ? null : finite(Number(row.quantity_base)),
         quantityContingencyAmount: row.quantity_base === null ? null : finite(Number(row.quantity_contingency_amount ?? 0)),
         unitCost: finite(Number(row.unit_cost)),
-        laborRate: finite(Number(metadata.laborUnitCost ?? 0)),
         contingencyPercentage: finite(Number(row.contingency_percentage ?? 0)),
         adjustmentPercentage: finite(Number(row.adjustment_percentage ?? 0)),
         miscCost: finite(Number(row.misc_cost)),

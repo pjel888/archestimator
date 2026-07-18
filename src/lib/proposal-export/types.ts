@@ -95,9 +95,7 @@ export type ProposalNormalizedSourceRow = {
   quantityContingencyAmount?: number | null;
   unit: string;
   materialUnitCost: number;
-  laborUnitCost: number;
   materialSubtotal: number;
-  laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
@@ -117,7 +115,6 @@ export type ProposalExportSourceReference = {
   quantityBase?: number | null;
   quantityContingencyAmount?: number | null;
   materialSubtotal: number;
-  laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
@@ -135,9 +132,7 @@ export type ProposalExportRow = {
   quantityContingencyAmount?: number | null;
   unit: string;
   materialUnitCost: number;
-  laborUnitCost: number;
   materialSubtotal: number;
-  laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
@@ -155,7 +150,6 @@ export type ProposalSummaryRow = {
   rowCount: number;
   totalQuantity: number;
   materialSubtotal: number;
-  laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
@@ -172,9 +166,7 @@ export type ProposalSourceBreakdownRow = {
   quantity: number;
   unit: string;
   materialUnitCost: number;
-  laborUnitCost: number;
   materialSubtotal: number;
-  laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
@@ -182,7 +174,6 @@ export type ProposalSourceBreakdownRow = {
 
 export type ProposalExportTotals = {
   materialSubtotal: number;
-  laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
   grandTotal: number; // Direct Cost — sum of line cost amounts before sheet/project charges.

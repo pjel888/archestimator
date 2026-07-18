@@ -50,7 +50,6 @@ export type SnapshotRowInput = {
   miscCost: number;
   contingencyPercentage: number;
   adjustmentPercentage?: number;
-  laborRate?: number;
   scopeStatus?: "included" | "excluded" | "by_owner";
   // P9: source_snapshot.imageUrl extracted at publish (additive)
   imageUrl?: string | null;
@@ -249,7 +248,6 @@ function calculateRowCostParts(row: SnapshotRowInput, currencyCode: string) {
     quantity_base: row.quantityBase,
     quantity_contingency_amount: row.quantityContingencyAmount,
     unit_cost: toFiniteNumber(row.unitCost),
-    labor_rate: toFiniteNumber(row.laborRate ?? 0),
     misc_cost: toFiniteNumber(row.miscCost),
     adjustment_percentage: toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage),
     currency_code: currencyCode,

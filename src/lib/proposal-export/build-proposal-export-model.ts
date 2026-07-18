@@ -104,7 +104,6 @@ function normalizeSourceRow(
     quantity_base: quantityBase,
     quantity_contingency_amount: quantityContingencyAmount,
     unit_cost: sourceRow.itemCost,
-    labor_rate: sourceRow.laborUnitCost ?? 0,
     adjustment_percentage: adjustmentPercentage,
     misc_cost: sourceRow.miscCost,
     currency_code: currencyCode,
@@ -117,10 +116,7 @@ function normalizeSourceRow(
   const { value: costParts } = calculation;
   const quantity = costParts.quantity;
   const materialUnitCost = roundMoney(sourceRow.itemCost);
-  // P3-T1: interim labor rate from row metadata (else 0, with a visible disclaimer).
-  const laborUnitCost = roundMoney(sourceRow.laborUnitCost ?? 0);
   const materialSubtotal = costParts.materialMinorUnits / 100;
-  const laborSubtotal = costParts.laborMinorUnits / 100;
   const contingencySubtotal = costParts.adjustmentMinorUnits / 100;
   const miscSubtotal = costParts.miscMinorUnits / 100;
   const costAmount = costParts.total;
@@ -145,9 +141,7 @@ function normalizeSourceRow(
     quantityContingencyAmount,
     unit: normalizeWhitespace(sourceRow.unit) || "unit",
     materialUnitCost,
-    laborUnitCost,
     materialSubtotal,
-    laborSubtotal,
     contingencySubtotal,
     miscSubtotal,
     costAmount,
@@ -165,7 +159,6 @@ function consolidationKey(row: ProposalNormalizedSourceRow) {
     keyText(row.particulars),
     keyText(row.unit),
     row.materialUnitCost,
-    row.laborUnitCost,
     keyText(row.remarks),
     row.scopeStatus,
     row.includedInTotal,
@@ -184,7 +177,6 @@ function createSourceReference(row: ProposalNormalizedSourceRow): ProposalExport
     quantityBase: row.quantityBase,
     quantityContingencyAmount: row.quantityContingencyAmount,
     materialSubtotal: row.materialSubtotal,
-    laborSubtotal: row.laborSubtotal,
     contingencySubtotal: row.contingencySubtotal,
     miscSubtotal: row.miscSubtotal,
     costAmount: row.costAmount,
@@ -278,9 +270,7 @@ function buildSourceBreakdownRows(proposalRows: ProposalExportRow[]): ProposalSo
       quantityContingencyAmount: source.quantityContingencyAmount,
       unit: proposalRow.unit,
       materialUnitCost: proposalRow.materialUnitCost,
-      laborUnitCost: proposalRow.laborUnitCost,
       materialSubtotal: source.materialSubtotal,
-      laborSubtotal: source.laborSubtotal,
       contingencySubtotal: source.contingencySubtotal,
       miscSubtotal: source.miscSubtotal,
       costAmount: source.costAmount,
@@ -301,7 +291,6 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
       rowCount: 0,
       totalQuantity: 0,
       materialSubtotal: 0,
-      laborSubtotal: 0,
       contingencySubtotal: 0,
       miscSubtotal: 0,
       costAmount: 0,
@@ -310,7 +299,6 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
     current.rowCount += 1;
     current.totalQuantity = roundQuantity(current.totalQuantity + row.quantity);
     current.materialSubtotal = roundMoney(current.materialSubtotal + row.materialSubtotal);
-    current.laborSubtotal = roundMoney(current.laborSubtotal + row.laborSubtotal);
     current.contingencySubtotal = roundMoney(current.contingencySubtotal + row.contingencySubtotal);
     current.miscSubtotal = roundMoney(current.miscSubtotal + row.miscSubtotal);
     current.costAmount = roundMoney(current.costAmount + row.costAmount);
@@ -326,7 +314,6 @@ function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExport
       if (!row.includedInTotal) return totals;
       return {
         materialSubtotal: roundMoney(totals.materialSubtotal + row.materialSubtotal),
-        laborSubtotal: roundMoney(totals.laborSubtotal + row.laborSubtotal),
         contingencySubtotal: roundMoney(totals.contingencySubtotal + row.contingencySubtotal),
         miscSubtotal: roundMoney(totals.miscSubtotal + row.miscSubtotal),
         grandTotal: roundMoney(totals.grandTotal + row.costAmount),
@@ -334,7 +321,6 @@ function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExport
     },
     {
       materialSubtotal: 0,
-      laborSubtotal: 0,
       contingencySubtotal: 0,
       miscSubtotal: 0,
       grandTotal: 0,
@@ -414,9 +400,7 @@ export function consolidateProposalRows(
         quantityContingencyAmount: normalizedRow.quantityContingencyAmount,
         unit: normalizedRow.unit,
         materialUnitCost: normalizedRow.materialUnitCost,
-        laborUnitCost: normalizedRow.laborUnitCost,
         materialSubtotal: normalizedRow.materialSubtotal,
-        laborSubtotal: normalizedRow.laborSubtotal,
         contingencySubtotal: normalizedRow.contingencySubtotal,
         miscSubtotal: normalizedRow.miscSubtotal,
         costAmount: normalizedRow.costAmount,
@@ -439,7 +423,6 @@ export function consolidateProposalRows(
       current.quantityContingencyAmount = null;
     }
     current.materialSubtotal = roundMoney(current.materialSubtotal + normalizedRow.materialSubtotal);
-    current.laborSubtotal = roundMoney(current.laborSubtotal + normalizedRow.laborSubtotal);
     current.contingencySubtotal = roundMoney(current.contingencySubtotal + normalizedRow.contingencySubtotal);
     current.miscSubtotal = roundMoney(current.miscSubtotal + normalizedRow.miscSubtotal);
     current.costAmount = roundMoney(current.costAmount + normalizedRow.costAmount);
@@ -472,18 +455,6 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
       severity: "warning",
       code: "empty_estimate",
       message: "No area row items are available for proposal export.",
-    });
-  }
-
-  // P3-T1: only flag the material-only compatibility mode (which drives the visible LABOR
-  // disclaimer) when no row actually carries a labor rate — so the caveat auto-clears once
-  // real labor data lands via metadata.
-  if (proposalRows.length > 0 && proposalRows.every((row) => row.laborUnitCost === 0)) {
-    validationIssues.push({
-      severity: "info",
-      code: "cost_split_compatibility_mode",
-      message:
-        "Current estimate rows do not yet separate material and labor unit costs. Existing item cost is exported as material unit cost, labor is exported as 0, and misc cost is shown separately.",
     });
   }
 

@@ -151,9 +151,8 @@ export type EstimateRowItem = {
   lastUsedAt?: string;
   pricingSource: string;
   pricingDate: string;
-  // P3-T1/T2 (read-side via estimate_row_items.metadata JSONB; typed columns DB-gated):
-  // interim labor unit rate and per-row scope for the proposal export. Absent → 0 / included.
-  laborUnitCost?: number;
+  // P3-T2 (read-side via estimate_row_items.metadata JSONB; typed columns DB-gated):
+  // per-row scope for the proposal export. Absent → included.
   scopeStatus?: string;
 };
 

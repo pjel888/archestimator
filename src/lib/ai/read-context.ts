@@ -1183,7 +1183,6 @@ async function readAskProjectChartSummary({
 
   const rowFacts: ProjectChartRowFact[] = rows.map((row) => {
     const sourceSnapshot = readJsonRecord(row.source_snapshot);
-    const metadata = readJsonRecord(row.metadata_json);
     const supplierId = readString(sourceSnapshot.supplierId);
     return {
       id: row.id,
@@ -1202,7 +1201,6 @@ async function readAskProjectChartSummary({
       quantityBase: row.quantity_base === null ? null : finiteNumber(Number(row.quantity_base)),
       quantityContingencyAmount: row.quantity_base === null ? null : finiteNumber(Number(row.quantity_contingency_amount ?? 0)),
       unitCost: finiteNumber(Number(row.unit_cost)),
-      laborRate: finiteNumber(Number(metadata.laborUnitCost ?? 0)),
       contingencyPercentage: finiteNumber(Number(row.contingency_percentage ?? 0)),
       adjustmentPercentage: finiteNumber(readEstimateRowAdjustmentPercentage(row)),
       miscCost: finiteNumber(Number(row.misc_cost)),
