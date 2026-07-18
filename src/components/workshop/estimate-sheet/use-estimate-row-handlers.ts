@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { flushSync } from "react-dom";
 
-import type { useEstimateRowMutations, EstimateRowMutationStatus, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
+import type { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
 import {
@@ -12,6 +12,8 @@ import {
   findEstimateRowItemInTree,
   patchComponentInstanceRowsInTree,
   patchEstimateRowItemInTree,
+  patchEstimateRowItemsInTree,
+  pickSharedComponentPatch,
 } from "@/lib/estimates/estimate-row-tree-patch";
 import {
   isExpressComponentRow,
@@ -34,7 +36,6 @@ import {
   isBlankEstimateRowItem,
 } from "./activity-history-model";
 import {
-  canMakeProjectSpecific,
   canPromoteEstimateRowToLibrary,
 } from "./rows/cells-model";
 import {
@@ -48,6 +49,7 @@ import {
   cloneLibraryItemForEstimate,
   createEstimateRowItemId,
 } from "./template-insertion-model";
+import type { EditableRowStore } from "./rows/editable-row-store";
 
 type EstimateRowMutations = ReturnType<typeof useEstimateRowMutations>;
 type EstimateTreeUpdater = (updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => number;
@@ -56,6 +58,10 @@ type RestoreEstimateState = (
   previousRows: Record<string, EditableRowValue>,
   expectedRevision?: number,
 ) => void;
+type RestoreEstimateTreeState = (
+  previousTree: EstimateTreeNode[],
+  expectedRevision?: number,
+) => boolean;
 type Toast = (input: {
   id?: string;
   tone?: "neutral" | "loading" | "success" | "error";
@@ -64,12 +70,19 @@ type Toast = (input: {
   action?: { label: string; onClick: () => void };
 }) => string;
 
-type CommitRowItemUpdateOptions = {
+export type CommitRowItemUpdateOptions = {
   componentMutationIntent?: "variant-selection";
+  sharedComponentAffectedRowIds?: readonly string[];
   expectedComponentImpactFingerprint?: string;
   removedPriceOptionReplacements?: Record<string, string>;
   makeProjectSpecific?: boolean;
-  onPersisted?: () => void;
+  onPersisted?: (rows: Record<string, EditableRowValue>) => void;
+  onPersistenceError?: (error: Error) => void;
+};
+
+export type ReplaceRowItemOptions = {
+  commitOwnedByEditableRowStore?: boolean;
+  onPersisted?: (rows: Record<string, EditableRowValue>) => void;
   onPersistenceError?: (error: Error) => void;
 };
 
@@ -85,6 +98,7 @@ export type ExpressInsertDraft = {
   mutationId: string;
   status: "creating" | "failed";
   bufferedPatch?: Partial<EditableRowValue>;
+  bufferedCommitOptions?: CommitRowItemUpdateOptions;
   errorMessage?: string;
 };
 
@@ -107,17 +121,11 @@ type UseEstimateRowHandlersInput = {
   estimateId?: string;
   activeTabId?: string | null;
   estimateTree: EstimateTreeNode[];
-  editableRows: Record<string, EditableRowValue>;
-  getEditableRows?: () => Record<string, EditableRowValue>;
-  saveState: EstimateSaveState;
-  rowMutationStatuses: EstimateRowMutationStatusMap;
+  editableRowStore: EditableRowStore;
   insertTargetNodeId: string;
   expressInsertDrafts: Record<string, ExpressInsertDraft>;
   bulkSelectedRowIds: Set<string>;
   rowComponentPicker: RowComponentPickerState | null;
-  projectSpecificRowItem: EstimateRowItem | null;
-  markRowDirtyNow: EstimateRowMutations["markRowDirty"];
-  markRowCleanNow: EstimateRowMutations["markRowClean"];
   insertRow: EstimateRowMutations["insertRow"];
   replaceRow: EstimateRowMutations["replaceRow"];
   moveRows: EstimateRowMutations["moveRows"];
@@ -129,91 +137,22 @@ type UseEstimateRowHandlersInput = {
   restoreDeletedRows: EstimateRowMutations["restoreDeletedRows"];
   updateRow: EstimateRowMutations["updateRow"];
   setEstimateTree: EstimateTreeUpdater;
-  setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   setExpressInsertDrafts: Dispatch<SetStateAction<Record<string, ExpressInsertDraft>>>;
   setBulkSelectedRowIds: Dispatch<SetStateAction<Set<string>>>;
-  setProjectSpecificRowId: Dispatch<SetStateAction<string>>;
   setPromotingRowId: Dispatch<SetStateAction<string | null>>;
-  skipEditableRowsSyncRef: MutableRefObject<number>;
   getEstimateTreeRevision: () => number;
   restoreEstimateState: RestoreEstimateState;
+  restoreEstimateTreeState: RestoreEstimateTreeState;
   closeRowComponentPicker: () => void;
   handleLibraryDataChanged: () => void;
   recordReadOnlyLibraryMutationAttempt: (action: string) => void;
   toast: Toast;
 };
 
-const EDITABLE_ROW_FIELDS: Array<keyof EditableRowValue> = [
-  "quantity",
-  "quantityExpression",
-  "quantityBase",
-  "quantityContingencyAmount",
-  "contingencyMode",
-  "contingencyPercentage",
-  "adjustmentPercentage",
-  "miscCost",
-  "name",
-  "description",
-  "brand",
-  "supplier",
-  "unit",
-  "unitCost",
-  "imageUrl",
-  "sourceUrl",
-];
-
-function editableRowsEqual(a: EditableRowValue, b: EditableRowValue) {
-  return EDITABLE_ROW_FIELDS.every((field) => a[field] === b[field]);
-}
-
-function isOfflineRowMutationFailure(status: EstimateRowMutationStatus | undefined) {
-  return status?.phase === "failed" && /offline/i.test(status.message ?? status.label);
-}
-
 function nullableTrimmedText(value: string | null | undefined) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed || null;
-}
-
-function shouldPreserveLocalEditableRow(input: {
-  rowId: string;
-  currentRow: EditableRowValue;
-  baselineRow?: EditableRowValue;
-  syncedRow: EditableRowValue | undefined;
-  status: EstimateRowMutationStatus | undefined;
-  activeExpressRowId: string;
-}) {
-  if (!input.syncedRow || editableRowsEqual(input.currentRow, input.syncedRow)) return false;
-  if (input.activeExpressRowId === input.rowId) return true;
-  if (input.status?.phase === "pending") return true;
-  if (isOfflineRowMutationFailure(input.status)) return true;
-  return Boolean(input.baselineRow && !editableRowsEqual(input.currentRow, input.baselineRow));
-}
-
-function mergeSyncedEditableRows(
-  currentRows: Record<string, EditableRowValue>,
-  nextRows: Record<string, EditableRowValue>,
-  rowMutationStatuses: EstimateRowMutationStatusMap,
-  activeExpressRowId: string,
-  baselineRows?: Record<string, EditableRowValue>,
-) {
-  let mergedRows = nextRows;
-  for (const [rowId, currentRow] of Object.entries(currentRows)) {
-    const syncedRow = nextRows[rowId];
-    const status = rowMutationStatuses[rowId];
-    if (!shouldPreserveLocalEditableRow({
-      rowId,
-      currentRow,
-      baselineRow: baselineRows?.[rowId],
-      syncedRow,
-      status,
-      activeExpressRowId,
-    })) continue;
-    if (mergedRows === nextRows) mergedRows = { ...nextRows };
-    mergedRows[rowId] = currentRow;
-  }
-  return mergedRows;
 }
 
 export function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItem | null {
@@ -336,14 +275,6 @@ function replaceEstimateRowItemsInTree(nodes: EstimateTreeNode[], replacements: 
   }));
 }
 
-function getActiveExpressEditorRowId() {
-  if (typeof document === "undefined") return "";
-  const activeElement = document.activeElement;
-  if (!(activeElement instanceof HTMLElement)) return "";
-  if (!activeElement.dataset.expressField) return "";
-  return activeElement.dataset.estimateRowId || activeElement.closest<HTMLElement>("[data-estimate-row-id]")?.dataset.estimateRowId || "";
-}
-
 function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
   if (!editableRow) return libraryItem;
 
@@ -414,17 +345,11 @@ export function useEstimateRowHandlers({
   estimateId,
   activeTabId,
   estimateTree,
-  editableRows,
-  getEditableRows = () => editableRows,
-  saveState,
-  rowMutationStatuses,
+  editableRowStore,
   insertTargetNodeId,
   expressInsertDrafts,
   bulkSelectedRowIds,
   rowComponentPicker,
-  projectSpecificRowItem,
-  markRowDirtyNow,
-  markRowCleanNow,
   insertRow,
   replaceRow,
   moveRows,
@@ -436,21 +361,18 @@ export function useEstimateRowHandlers({
   restoreDeletedRows,
   updateRow,
   setEstimateTree,
-  setEditableRows,
   setExpressInsertDrafts: setExpressInsertDraftsState,
   setBulkSelectedRowIds,
-  setProjectSpecificRowId,
   setPromotingRowId,
-  skipEditableRowsSyncRef,
   getEstimateTreeRevision,
   restoreEstimateState,
+  restoreEstimateTreeState,
   closeRowComponentPicker,
   handleLibraryDataChanged,
   recordReadOnlyLibraryMutationAttempt,
   toast,
 }: UseEstimateRowHandlersInput) {
   const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>(expressInsertDrafts);
-  const saveStateRef = useRef(saveState);
   const pendingFocusRowIdRef = useRef("");
   const pendingFocusTargetRef = useRef<"name" | "quantity">("name");
   const pendingFocusFrameIdRef = useRef(0);
@@ -465,10 +387,6 @@ export function useEstimateRowHandlers({
   }>());
 
   useEffect(() => {
-    saveStateRef.current = saveState;
-  }, [saveState]);
-
-  useEffect(() => {
     expressInsertDraftsRef.current = expressInsertDrafts;
   }, [expressInsertDrafts]);
 
@@ -477,41 +395,12 @@ export function useEstimateRowHandlers({
     expressInsertDraftsRef.current = next;
     setExpressInsertDraftsState(next);
   });
-
-  const markRowDirty = useStableCallback(() => {
-    saveStateRef.current = "dirty";
-    markRowDirtyNow();
+  const getEditableRows = useStableCallback(() => editableRowStore.getState().rows);
+  const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
+    const currentRows = editableRowStore.getState().rows;
+    const nextRows = resolveSetStateAction(currentRows, value);
+    editableRowStore.getState().replaceRows(nextRows);
   });
-  const reconcileRowDirty = useStableCallback(() => {
-    queueMicrotask(() => {
-      if (saveStateRef.current === "saving") return;
-      if (Object.keys(expressInsertDraftsRef.current).length > 0) return;
-      const baselineRows = collectEditableRows(estimateTree);
-      const currentRows = getEditableRows();
-      const currentRowIds = Object.keys(currentRows);
-      const isClean = currentRowIds.length === Object.keys(baselineRows).length
-        && currentRowIds.every((rowId) => baselineRows[rowId] && editableRowsEqual(currentRows[rowId], baselineRows[rowId]));
-      if (!isClean) return;
-      saveStateRef.current = "idle";
-      markRowCleanNow();
-    });
-  });
-
-  useEffect(() => {
-    if (saveState === "dirty" || saveState === "saving") return;
-    if (skipEditableRowsSyncRef.current > 0) {
-      skipEditableRowsSyncRef.current -= 1;
-      return;
-    }
-    queueMicrotask(() => {
-      if (saveStateRef.current === "dirty" || saveStateRef.current === "saving") return;
-      const nextRows = collectEditableRows(estimateTree);
-      const activeExpressRowId = getActiveExpressEditorRowId();
-      setEditableRows((currentRows) => {
-        return mergeSyncedEditableRows(currentRows, nextRows, rowMutationStatuses, activeExpressRowId);
-      });
-    });
-  }, [estimateTree, rowMutationStatuses, saveState, setEditableRows, skipEditableRowsSyncRef]);
 
   const requestPendingRowFocus = useStableCallback((rowId: string, target: "name" | "quantity" = "name") => {
     pendingFocusRowIdRef.current = rowId;
@@ -753,14 +642,21 @@ export function useEstimateRowHandlers({
           || options.removedPriceOptionReplacements !== undefined;
         let patchedTree = estimateTree;
         setEstimateTree((current) => {
-          patchedTree = options.makeProjectSpecific || variantScopedComponentUpdate
-            ? patchEstimateRowItemInTree(current, result.rowId, serverPatch)
-            : patchComponentInstanceRowsInTree(current, result.rowId, serverPatch);
+          if (options.sharedComponentAffectedRowIds?.length) {
+            const sharedPatch = pickSharedComponentPatch(serverPatch);
+            const affectedPatches = Object.fromEntries(options.sharedComponentAffectedRowIds.map((affectedRowId) => [
+              affectedRowId,
+              affectedRowId === result.rowId ? serverPatch : sharedPatch,
+            ]));
+            patchedTree = patchEstimateRowItemsInTree(current, affectedPatches);
+          } else {
+            patchedTree = options.makeProjectSpecific || variantScopedComponentUpdate
+              ? patchEstimateRowItemInTree(current, result.rowId, serverPatch)
+              : patchComponentInstanceRowsInTree(current, result.rowId, serverPatch);
+          }
           return patchedTree;
         });
         const nextRows = collectEditableRows(patchedTree);
-        const activeExpressRowId = getActiveExpressEditorRowId();
-        setEditableRows((currentRows) => mergeSyncedEditableRows(currentRows, nextRows, rowMutationStatuses, activeExpressRowId, previousRows));
         if (options.makeProjectSpecific) {
           const omittedAttachmentCount = projectSpecificPriceOptionCopy.omittedAttachmentCount;
           toast({
@@ -770,22 +666,15 @@ export function useEstimateRowHandlers({
               : "Project component created and updated for this estimate.",
           });
         }
-        options.onPersisted?.();
+        options.onPersisted?.(nextRows);
       },
       onError: (error) => {
         options.onPersistenceError?.(error);
-        if (/offline/i.test(error.message)) return;
-        setEditableRows((currentRows) => {
-          const currentRow = currentRows[rowItemId];
-          const previousRow = previousRows[rowItemId];
-          if (!currentRow || !previousRow || !editableRowsEqual(currentRow, nextEditableRow)) return currentRows;
-          return { ...currentRows, [rowItemId]: previousRow };
-        });
         if (options.expectedComponentImpactFingerprint !== undefined) {
           toast({ tone: "error", message: error.message || "Could not save the shared component edit." });
         }
       },
-      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      rollback: () => restoreEstimateTreeState(previousTree, rollbackRevision),
     });
   });
 
@@ -807,6 +696,7 @@ export function useEstimateRowHandlers({
               ...(draft.bufferedPatch ?? {}),
               ...values,
             },
+            bufferedCommitOptions: options,
           },
         };
       });
@@ -819,6 +709,7 @@ export function useEstimateRowHandlers({
   const handleExpressInsertSuccess = useStableCallback((rowItemId: string) => {
     const draft = expressInsertDraftsRef.current[rowItemId];
     const bufferedPatch = draft?.bufferedPatch;
+    const bufferedCommitOptions = draft?.bufferedCommitOptions;
     setExpressInsertDrafts((current) => {
       const next = { ...current };
       delete next[rowItemId];
@@ -826,7 +717,7 @@ export function useEstimateRowHandlers({
     });
     recordExpressComponentEvent("insert_succeeded", { projectId, estimateId, rowId: rowItemId });
     if (bufferedPatch && Object.keys(bufferedPatch).length > 0) {
-      queueMicrotask(() => commitRowItemUpdate(rowItemId, bufferedPatch));
+      queueMicrotask(() => commitRowItemUpdate(rowItemId, bufferedPatch, bufferedCommitOptions));
     }
   });
 
@@ -1036,7 +927,11 @@ export function useEstimateRowHandlers({
     return insertLibraryItem(targetNodeId, createExpressEstimateRowTemplate());
   });
 
-  const commitReplaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
+  const commitReplaceRowItem = useStableCallback((
+    rowItemId: string,
+    libraryItem: EstimateRowItem,
+    options: ReplaceRowItemOptions = {},
+  ) => {
     const previousTree = estimateTree;
     const previousRows = getEditableRows();
     const editableReplacement = previousRows[rowItemId];
@@ -1057,31 +952,55 @@ export function useEstimateRowHandlers({
       }),
     );
     const shouldResetInlineEditor = isBlankEstimateRowItem(replacementItem) || isExpressComponentRow(replacementItem);
-    setEditableRows((current) => ({
-      ...current,
-      [rowItemId]: shouldResetInlineEditor
-        ? getInitialEditableRow(replacementItem)
-        : current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
-    }));
+    if (!options.commitOwnedByEditableRowStore) {
+      setEditableRows((current) => ({
+        ...current,
+        [rowItemId]: shouldResetInlineEditor
+          ? getInitialEditableRow(replacementItem)
+          : current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
+      }));
+    }
     if (projectId && estimateId) {
       replaceRow({
         projectId,
         estimateId,
         rowId: rowItemId,
         libraryItem: replacementLibraryItem,
-        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onError: () => toast({ tone: "error", message: "Couldn't replace the component. Try again." }),
+        rollback: options.commitOwnedByEditableRowStore
+          ? () => restoreEstimateTreeState(previousTree, rollbackRevision)
+          : () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        onSuccess: (result) => {
+          const persistedItem = applyEstimateRowItemPatch(replacementItem, estimateRowMutationResultToPatch(result));
+          setEstimateTree((current) => patchEstimateRowItemInTree(current, rowItemId, estimateRowMutationResultToPatch(result)));
+          options.onPersisted?.({
+            ...getEditableRows(),
+            [rowItemId]: getInitialEditableRow(persistedItem),
+          });
+        },
+        onError: (error) => {
+          options.onPersistenceError?.(error);
+          toast({ tone: "error", message: "Couldn't replace the component. Try again." });
+        },
+      });
+    } else {
+      options.onPersisted?.({
+        ...getEditableRows(),
+        [rowItemId]: getInitialEditableRow(replacementItem),
       });
     }
     return true;
   });
 
-  const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
+  const replaceRowItem = useStableCallback((
+    rowItemId: string,
+    libraryItem: EstimateRowItem,
+    options: ReplaceRowItemOptions = {},
+  ) => {
     if (!canEditEstimate) {
       recordReadOnlyLibraryMutationAttempt("replace_row");
       return false;
     }
-    return commitReplaceRowItem(rowItemId, libraryItem);
+    return commitReplaceRowItem(rowItemId, libraryItem, options);
   });
 
   const clearRowComponent = useStableCallback((rowItemId: string) => {
@@ -1135,12 +1054,6 @@ export function useEstimateRowHandlers({
         rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
       });
     }
-  });
-
-  const requestProjectSpecific = useStableCallback((rowItemId: string) => {
-    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
-    if (!rowItem || !canMakeProjectSpecific(rowItem)) return;
-    setProjectSpecificRowId(rowItemId);
   });
 
   const promoteRowToLibrary = useStableCallback((rowItemId: string) => {
@@ -1198,29 +1111,6 @@ export function useEstimateRowHandlers({
         setPromotingRowId(null);
         toast({ tone: "error", message: error.message || "Could not promote component." });
       },
-    });
-  });
-
-  const confirmProjectSpecific = useStableCallback(() => {
-    if (!projectId || !estimateId || !projectSpecificRowItem) {
-      setProjectSpecificRowId("");
-      return;
-    }
-
-    const rowItemId = projectSpecificRowItem.id;
-    const currentEditableRow = getEditableRows()[rowItemId] ?? getInitialEditableRow(projectSpecificRowItem);
-    setProjectSpecificRowId("");
-    updateRowItem(rowItemId, {
-      name: currentEditableRow.name,
-      description: currentEditableRow.description,
-      brand: currentEditableRow.brand,
-      supplier: currentEditableRow.supplier,
-      unit: currentEditableRow.unit,
-      unitCost: currentEditableRow.unitCost,
-      imageUrl: currentEditableRow.imageUrl,
-      sourceUrl: currentEditableRow.sourceUrl,
-    }, {
-      makeProjectSpecific: true,
     });
   });
 
@@ -1529,22 +1419,18 @@ export function useEstimateRowHandlers({
 
   return {
     clearRowComponent,
-    confirmProjectSpecific,
     deleteExpressDraft,
     deleteRowItem,
     deleteSelectedRows,
     insertBlankRow,
     insertIntoSelectedNode,
     insertLibraryItem,
-    markRowDirty,
-    reconcileRowDirty,
     moveFromComponentPicker,
     moveRowComponent,
     moveRowItemToNode,
     promoteRowToLibrary,
     replaceFromComponentPicker,
     replaceRowItem,
-    requestProjectSpecific,
     retryExpressDraft,
     updateRowItem,
   };

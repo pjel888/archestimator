@@ -10,7 +10,7 @@ import { ControlInput } from "@/components/ui/control-input";
 import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
-import type { EstimateRowMutationStatus, EstimateRowMutationStatusMap } from "@/hooks/use-estimate-row-mutations";
+import type { EstimateRowMutationStatus } from "@/hooks/use-estimate-row-mutations";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import {
   EMPTY_ESTIMATE_COLUMN_WIDTHS,
@@ -54,7 +54,11 @@ import {
   toEditableContingencyPercentage,
   type EditableRowValue,
 } from "./editable-row-model";
-import { useEditableRowStore } from "./editable-row-store";
+import {
+  selectEditableRowCommitState,
+  selectExternalRowMutationStatus,
+  useEditableRowStore,
+} from "./editable-row-store";
 
 const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";
 const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
@@ -62,14 +66,6 @@ const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
 const ESTIMATE_LOWER_RIGHT_META_CLASS = "absolute top-18 right-1 max-w-[calc(100%-8px)] truncate text-right !text-[10px] font-medium leading-3 tabular-nums text-tertiary";
 const ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS =
   "h-[10px] w-7 border-0 !bg-transparent p-0 !text-[8px] font-medium leading-[10px] tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
-function getVariantImageUrl(option: MaterialVariantOption, fallbackImageUrl?: string) {
-  const thumbnailPath = option.thumbnailPath?.trim();
-  if (thumbnailPath && /^(https?:|data:|blob:|\/)/.test(thumbnailPath)) return thumbnailPath;
-  const imagePath = option.imagePath?.trim();
-  if (imagePath && /^(https?:|data:|blob:|\/)/.test(imagePath)) return imagePath;
-  return fallbackImageUrl;
-}
 
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
@@ -83,18 +79,11 @@ export type EstimateRowItemsTableProps = {
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
-  onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
-  onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
-  onMarkRowDirty: (rowItemId: string) => void;
-  onReconcileRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
-  onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
-  rowMutationStatuses?: EstimateRowMutationStatusMap;
-  componentSyncPendingRowIds?: ReadonlySet<string>;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -141,14 +130,9 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
     prev.onReplaceRowItem !== next.onReplaceRowItem ||
     prev.onDeleteRowItem !== next.onDeleteRowItem ||
-    prev.onUpdateRowItem !== next.onUpdateRowItem ||
-    prev.onUpdateLinkedLibraryComponent !== next.onUpdateLinkedLibraryComponent ||
-    prev.onMarkRowDirty !== next.onMarkRowDirty ||
-    prev.onReconcileRowDirty !== next.onReconcileRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
-    prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.onMoveRowItem !== next.onMoveRowItem ||
@@ -165,8 +149,6 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
   }
   for (const item of next.items) {
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return false;
-    if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return false;
-    if (prev.componentSyncPendingRowIds?.has(item.id) !== next.componentSyncPendingRowIds?.has(item.id)) return false;
     if ((prev.promotingRowId === item.id) !== (next.promotingRowId === item.id)) return false;
     if (prev.expressInsertDraftStates?.[item.id] !== next.expressInsertDraftStates?.[item.id]) return false;
   }
@@ -301,18 +283,11 @@ type EstimateRowItemTableRowProps = {
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
-  onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
-  onUpdateLinkedLibraryComponent?: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void | Promise<void>;
-  onMarkRowDirty: (rowItemId: string) => void;
-  onReconcileRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
-  onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
-  rowMutationStatus?: EstimateRowMutationStatus;
-  componentSyncPending?: boolean;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -346,18 +321,11 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onInsertLibraryItem,
   onReplaceRowItem,
   onDeleteRowItem,
-  onUpdateRowItem,
-  onUpdateLinkedLibraryComponent,
-  onMarkRowDirty,
-  onReconcileRowDirty,
   onOpenRowDetails,
   onOpenComponentEditor,
   onClearRowComponent,
-  onRequestProjectSpecific,
   onPromoteRowToLibrary,
   promotingRowId,
-  rowMutationStatus,
-  componentSyncPending = false,
   onMoveRowComponent,
   onMoveRowItem,
   onOpenMoveRowItemDialog,
@@ -376,12 +344,30 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   reportEstimateRowItemRender(item.id);
   const editableRowStore = useEditableRowStore();
   const storedEditableRow = useStore(editableRowStore, (state) => state.rows[item.id]);
+  const rowCommitState = useStore(editableRowStore, (state) => selectEditableRowCommitState(state, item.id));
+  const externalRowMutationStatus = useStore(editableRowStore, (state) => selectExternalRowMutationStatus(state, item.id));
+  const componentSyncPending = useStore(editableRowStore, (state) => state.componentSyncPendingRowIds.has(item.id));
+  const rowMutationStatus: EstimateRowMutationStatus | undefined = rowCommitState.phase === "pending"
+    || rowCommitState.phase === "awaiting-confirmation"
+    ? {
+        phase: "pending",
+        label: rowCommitState.phase === "awaiting-confirmation" ? "Awaiting confirmation" : "Saving row changes",
+        startedAt: 0,
+      }
+    : rowCommitState.phase === "failed"
+      ? {
+          phase: "failed",
+          label: rowCommitState.error ?? "Could not save the row change.",
+          message: rowCommitState.error ?? undefined,
+          startedAt: 0,
+        }
+      : externalRowMutationStatus;
   const isLinkedSharedComponent = Boolean(item.sourceLibraryItemId)
     && item.linkState !== "detached"
     && item.linkState !== "unlinked";
   const isInlineEditableComponentRow = isExpressComponentRow(item)
     || isBlankEstimateRowItem(item)
-    || (isLinkedSharedComponent && canManageLibrary && Boolean(onUpdateLinkedLibraryComponent));
+    || (isLinkedSharedComponent && canManageLibrary);
   const computedItem = useMemo(() => {
     const resolvedEditableRow = storedEditableRow ?? getInitialEditableRow(item);
     const amountEditableRow = isInlineEditableComponentRow ? resolvedEditableRow : { ...resolvedEditableRow, unitCost: String(item.itemCost) };
@@ -502,8 +488,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
 
   function updateExpressEditableRow(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
-    editableRowStore.getState().updateRow(item, values);
-    if (!isLinkedSharedComponent) onMarkRowDirty(item.id);
+    editableRowStore.getState().stageRow(item, values);
   }
 
   function commitExpressFields(values: Partial<EditableRowValue>) {
@@ -522,20 +507,15 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     if (values.imageAsset !== undefined) patch.imageAsset = values.imageAsset;
     if (values.sourceUrl !== undefined && nextValues.sourceUrl !== (item.sourceUrl ?? "")) patch.sourceUrl = nextValues.sourceUrl;
     if (Object.keys(patch).length === 0) {
-      onReconcileRowDirty(item.id);
+      editableRowStore.getState().commitRowFields(item, {});
       return;
     }
-    if (isLinkedSharedComponent && onUpdateLinkedLibraryComponent) {
-      void onUpdateLinkedLibraryComponent(item, patch);
-      return;
-    }
-    onUpdateRowItem(item.id, patch);
+    editableRowStore.getState().commitRowFields(item, patch);
   }
 
   function updateQuantityFields(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
-    editableRowStore.getState().updateRow(computedItem, values);
-    onMarkRowDirty(computedItem.id);
+    editableRowStore.getState().stageRow(computedItem, values);
   }
 
   function updateQuantityDraft(value: string) {
@@ -553,10 +533,10 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       || nextAmounts.quantityBase !== computedItem.storedQuantityBase
       || nextAmounts.quantityContingencyAmount !== computedItem.storedQuantityContingencyAmount;
     if (!didQuantityChange) {
-      onReconcileRowDirty(computedItem.id);
+      editableRowStore.getState().commitRowFields(computedItem, {});
       return;
     }
-    onUpdateRowItem(computedItem.id, {
+    editableRowStore.getState().commitRowFields(computedItem, {
       quantity: String(nextAmounts.quantity),
       quantityExpression: nextRow.quantityExpression,
       quantityBase: nextAmounts.quantityBase === null ? "" : String(nextAmounts.quantityBase),
@@ -578,32 +558,30 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   function updateContingencyPercentageDraft(value: string) {
     if (!canEditEstimate) return;
     const draft = readSignedPercentageDraft(value);
-    editableRowStore.getState().updateRow(computedItem, {
+    editableRowStore.getState().stageRow(computedItem, {
       contingencyMode: draft.mode,
       contingencyPercentage: draft.percentage,
     });
-    onMarkRowDirty(computedItem.id);
   }
 
   function updateAdjustmentPercentageDraft(value: string) {
     if (!canEditEstimate) return;
-    editableRowStore.getState().updateRow(computedItem, {
+    editableRowStore.getState().stageRow(computedItem, {
       adjustmentPercentage: normalizeSignedPercentageDraft(value),
     });
-    onMarkRowDirty(computedItem.id);
   }
 
   function commitRowAdjustmentPercentage(sourceValue: string) {
     if (!canEditEstimate) return;
     const nextAdjustmentPercentage = toEditableAdjustmentPercentage(parseEditableAdjustmentPercentage(normalizeSignedPercentageDraft(sourceValue)));
-    editableRowStore.getState().updateRow(computedItem, {
+    editableRowStore.getState().stageRow(computedItem, {
       adjustmentPercentage: nextAdjustmentPercentage,
     });
     if (parseEditableAdjustmentPercentage(nextAdjustmentPercentage) === computedItem.storedAdjustmentPercentage) {
-      onReconcileRowDirty(computedItem.id);
+      editableRowStore.getState().commitRowFields(computedItem, {});
       return;
     }
-    onUpdateRowItem(computedItem.id, {
+    editableRowStore.getState().commitRowFields(computedItem, {
       adjustmentPercentage: nextAdjustmentPercentage,
     });
   }
@@ -611,60 +589,21 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   function commitContingencyPercentage(sourceValue: string) {
     if (!canEditEstimate) return;
     if (!computedItem.isQuantityContingency && parseEditableAdjustmentPercentage(sourceValue) === 0) {
-      editableRowStore.getState().updateRow(computedItem, {
+      editableRowStore.getState().stageRow(computedItem, {
         contingencyMode: "contingency",
         contingencyPercentage: "0",
       });
-      onReconcileRowDirty(computedItem.id);
+      editableRowStore.getState().commitRowFields(computedItem, {});
       return;
     }
     const baseQuantityValue = computedItem.editableQuantityBase || computedItem.editableQuantity;
     const patch = buildEditableQuantityContingencyPercentagePatch(baseQuantityValue, sourceValue);
-    editableRowStore.getState().updateRow(computedItem, patch);
+    editableRowStore.getState().stageRow(computedItem, patch);
     commitQuantityFields(patch);
   }
 
   function selectMaterialVariant(priceOption: MaterialVariantOption) {
-    const nextImageUrl = getVariantImageUrl(priceOption, computedItem.imageUrl) ?? "";
-    if (computedItem.source === "project" || !computedItem.sourceLibraryItemId) {
-      onUpdateRowItem(computedItem.id, {
-        description: priceOption.variantDescription ?? computedItem.description,
-        unit: priceOption.unit || computedItem.unit,
-        unitCost: String(priceOption.unitCost),
-        imageUrl: nextImageUrl,
-        sku: priceOption.sku ?? computedItem.sku ?? null,
-        sourceUrl: priceOption.sourceUrl ?? computedItem.sourceUrl ?? "",
-        pricingDate: priceOption.pricingDate ?? computedItem.pricingDate ?? null,
-        pricingSource: priceOption.pricingSource ?? computedItem.pricingSource ?? null,
-        priceOptionId: priceOption.id,
-        priceOptionLabel: priceOption.label,
-        priceOptions: computedItem.priceOptions,
-      });
-      return;
-    }
-
-    onReplaceRowItem(computedItem.id, {
-      ...computedItem,
-      description: priceOption.variantDescription ?? computedItem.description,
-      unit: priceOption.unit || computedItem.unit,
-      itemCost: priceOption.unitCost,
-      price: priceOption.unitCost,
-      imageUrl: nextImageUrl,
-      sku: priceOption.sku ?? computedItem.sku,
-      sourceUrl: priceOption.sourceUrl ?? computedItem.sourceUrl,
-      pricingDate: priceOption.pricingDate ?? computedItem.pricingDate,
-      pricingSource: priceOption.pricingSource ?? computedItem.pricingSource,
-      priceOptionId: priceOption.id,
-      priceOptionLabel: priceOption.label,
-      quantity: computedItem.quantity,
-      quantityBase: computedItem.quantityBase,
-      quantityContingencyAmount: computedItem.quantityContingencyAmount,
-      contingencyPercentage: computedItem.contingencyPercentage,
-      contingencyValue: computedItem.contingencyValue,
-      adjustmentPercentage: computedItem.adjustmentPercentage,
-      adjustmentValue: computedItem.adjustmentValue,
-      miscCost: computedItem.miscCost,
-    });
+    editableRowStore.getState().commitSelectedVariant(computedItem, priceOption);
   }
 
 
@@ -751,9 +690,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onExpressFieldCommit={commitExpressFields}
           onExpressFieldRevert={(field) => {
             const initialRow = getInitialEditableRow(item);
-            editableRowStore.getState().updateRow(item, { [field]: initialRow[field] });
+            editableRowStore.getState().stageRow(item, { [field]: initialRow[field] });
             onExpressEditorActiveChange(computedItem.id, false);
-            onReconcileRowDirty(computedItem.id);
+            editableRowStore.getState().commitRowFields(computedItem, {});
           }}
           onReplaceDragOver={() => setReplaceTargetRowId(computedItem.id)}
           onReplaceDragLeave={() => setReplaceTargetRowId((current) => (current === computedItem.id ? "" : current))}
@@ -774,7 +713,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             if (isInlineEditableComponentRow) onDeleteRowItem(computedItem.id);
             else onClearRowComponent(computedItem.id);
           }}
-          onRequestProjectSpecific={() => onRequestProjectSpecific(computedItem.id)}
+          onRequestProjectSpecific={() => editableRowStore.getState().requestMakeProjectSpecific(computedItem)}
           onPromoteToLibrary={() => onPromoteRowToLibrary(computedItem.id)}
           promoteToLibraryPending={promotingRowId === computedItem.id}
           onMoveComponent={onMoveRowComponent}
@@ -828,7 +767,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                 contingencyMode: initialRow.contingencyMode,
                 contingencyPercentage: initialRow.contingencyPercentage,
               });
-              onReconcileRowDirty(computedItem.id);
+              editableRowStore.getState().commitRowFields(computedItem, {});
               return;
             }
             updateQuantityFields(parsed.patch);
@@ -985,15 +924,17 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           disabled={!canEditEstimate}
           align="center"
           onChange={(value) => {
-            editableRowStore.getState().updateRow(computedItem, { miscCost: value });
-            onMarkRowDirty(computedItem.id);
+            editableRowStore.getState().stageRow(computedItem, { miscCost: value });
           }}
           ariaLabel={`${computedItemLabel} misc cost`}
           onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 3 })}
           onBlur={() => {
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 3 ? null : current));
-            if (computedItem.miscCost !== computedItem.storedMiscCost) onUpdateRowItem(computedItem.id, { miscCost: computedItem.editableMiscCost });
-            else onReconcileRowDirty(computedItem.id);
+            if (computedItem.miscCost !== computedItem.storedMiscCost) {
+              editableRowStore.getState().commitRowFields(computedItem, { miscCost: computedItem.editableMiscCost });
+            } else {
+              editableRowStore.getState().commitRowFields(computedItem, {});
+            }
           }}
           onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 3, rowIds, onRequestFocusByRowId)}
           data-estimate-row-index={rowIndex}
@@ -1079,18 +1020,11 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onInsertLibraryItem,
   onReplaceRowItem,
   onDeleteRowItem,
-  onUpdateRowItem,
-  onUpdateLinkedLibraryComponent,
-  onMarkRowDirty,
-  onReconcileRowDirty,
   onOpenRowDetails,
   onOpenComponentEditor,
   onClearRowComponent,
-  onRequestProjectSpecific,
   onPromoteRowToLibrary,
   promotingRowId,
-  rowMutationStatuses,
-  componentSyncPendingRowIds,
   onMoveRowComponent,
   onMoveRowItem,
   onOpenMoveRowItemDialog,
@@ -1355,18 +1289,11 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onInsertLibraryItem={onInsertLibraryItem}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
-                onUpdateRowItem={onUpdateRowItem}
-                onUpdateLinkedLibraryComponent={onUpdateLinkedLibraryComponent}
-                onMarkRowDirty={onMarkRowDirty}
-                onReconcileRowDirty={onReconcileRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
                 onOpenComponentEditor={onOpenComponentEditor}
                 onClearRowComponent={onClearRowComponent}
-                onRequestProjectSpecific={onRequestProjectSpecific}
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
-                rowMutationStatus={rowMutationStatuses?.[item.id]}
-                componentSyncPending={componentSyncPendingRowIds?.has(item.id)}
                 onMoveRowComponent={onMoveRowComponent}
                 onMoveRowItem={onMoveRowItem}
                 onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}
