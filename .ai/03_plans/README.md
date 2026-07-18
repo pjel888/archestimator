@@ -1,6 +1,6 @@
 - `.ai/09_archive/store/2026-07-12-Archestimator-Client-Portal-Audit-Plan-Pack-unresolved/` — archived by owner direction as `CANCELLED / INCOMPLETE / BOUNDARY`; its remaining live-cutover requirements are explicitly preserved in `ARCHIVE-DISPOSITION.md` and `LOOP_LEDGER.md`.
 - `.ai/09_archive/store/2026-07-12-Publisher-Page-Audit-complete/` — archived completed Publisher audit; it is historical context only and does not certify the unresolved Client Portal cutover.
-- `.ai/03_plans/2026-07-12/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack/` — canonical active Admin Founder Homebase and Control Plane plan, conditionally ready with dependency-closed `UNIT-001`. It consolidates the July 11 Admin predecessor, starts at `13-IMPLEMENTATION-ROADMAP.md`, keeps advanced campaigns/providers/AI conditional, and uses `plan-pack.json` plus `LOOP_LEDGER.md` for status/resume.
+- `.ai/09_archive/store/2026-07-12-Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack-complete/` — archived 2026-07-18 by owner direction. Founder Homebase slices F0–F8 delivered (8/11); F4 (duplicates `/admin/support`), F9 (email, provider-blocked), F10 (AI, conditional) deferred. See its `ARCHIVE-DISPOSITION.md`; deferred detail in `.ai/04_tasks/2026-07-16-Admin-Founder-Homebase-Deferred-Blocked-Skipped.md`.
 - `.ai/09_archive/store/2026-07-12-Admin-Feature-Improvement-superseded/` — archived planning-only Admin predecessor after its useful correctness, identity, User 360, notification durability, security/privacy, migration, overlap, and provider-proof contracts were reconciled into the canonical Founder Homebase pack. Historical test commands and fixed staffing are not standing execution authority.
 - `.ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/` — archived predecessor audit after all relevant current findings were reconciled into the canonical Client Portal pack's `21-SHARED-ESTIMATE-PAGE-AUDIT-DELTA.md`. Historical audit completion does not claim its remediation backlog was implemented.
 - `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete/` — implemented estimate tree reorder hotfix, Move dialog parity, handle-only drag, D1 atomic restore/reorder history, and hook extraction. Local Vitest 192 + type-check green; hosted D1/authenticated browser remain release boundaries.
@@ -103,6 +103,19 @@ These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/` on 202
 - `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/` — Cloudflare migration planning package.
 - `.ai/09_archive/2026-07-02-Karpathy-Skills-Workflow-Contract/` — Karpathy skills workflow contract plan pack.
 - `.ai/09_archive/2026-07-05-Brand-And-Landing-Page/` — Brand and landing page planning package.
+
+Archived 2026-07-18 (plans-folder cleanup):
+
+These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/store/` on 2026-07-18 by owner direction. Each archive folder carries an `ARCHIVE-DISPOSITION.md` with its terminal state.
+
+- `.ai/09_archive/store/2026-07-12-Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack-complete/` — Admin Founder Homebase; F0–F8 delivered (8/11), three units deferred.
+- `.ai/09_archive/store/2026-07-12-Workshop-Library-Audit-complete/` — Workshop Library audit (v12 complete); first-user remediation remains open.
+- `.ai/09_archive/store/2026-07-13-Shared-Link-Page-complete/` — shared-link client-presentation workspace; implementation complete.
+- `.ai/09_archive/store/2026-07-15-Estimate-System-Map-complete/` — Estimate System Map; terminal `ACHIEVED`.
+- `.ai/09_archive/store/2026-07-15-Legacy-Cleanup-unresolved/` — repository legacy-cleanup; planning-ready, not executed.
+- `.ai/09_archive/store/2026-07-16-Admin-Shadcn-UI-Migration-Plan-Pack-complete/` — Admin shadcn UI migration; terminal `ACHIEVED` (all six units verified).
+
+The `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/` residual (two duplicate evidence files whose canonical copy already lived in `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/`) was removed in the same pass; the archive copy is canonical.
 
 Archived closeout / superseded plans:
 

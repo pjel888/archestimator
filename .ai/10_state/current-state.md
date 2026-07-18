@@ -69,7 +69,7 @@ task-specific history. Do not linear-read the detailed history below.
   blocker registry. Resolve every repository-controlled prerequisite in the run;
   only exact prohibited external actions may remain as narrow release boundaries.
 - **Master architecture deepening:** `.ai/09_archive/store/2026-07-16-Master-Codebase-Architecture-Deepening-Plan-Pack-complete/` is the canonical completed archive. All nine units are verified; the terminal tuple is `IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED / ARCHIVED / ACHIEVED`.
-- **Admin Founder Homebase:** `.ai/03_plans/2026-07-12/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack/` is the canonical consolidated `/admin` plan. It absorbs the July 11 Admin control-plane predecessor, starts at `13-IMPLEMENTATION-ROADMAP.md` `UNIT-001`, prioritizes founder shell/search/Action Inbox/customer/release/data-quality value before advanced campaigns, and preserves the user test authorization gate.
+- **Admin Founder Homebase:** `.ai/09_archive/store/2026-07-12-Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack-complete/` is the canonical consolidated `/admin` plan. It absorbs the July 11 Admin control-plane predecessor, starts at `13-IMPLEMENTATION-ROADMAP.md` `UNIT-001`, prioritizes founder shell/search/Action Inbox/customer/release/data-quality value before advanced campaigns, and preserves the user test authorization gate.
 - **Estimate Sheet MVP audit:** `.ai/09_archive/store/2026-07-16-Component-Variant-And-Estimate-Row-Audit-complete/` is the canonical completed archive. Its terminal tuple is `IMPLEMENTATION_READY / COMPLETE / VERIFIED / ACHIEVED / NOT_READY / ARCHIVED`; release remains `NOT_READY` only because current-source hosted D1/R2/browser proof was not produced.
 - **Proposals:** `.ai/09_archive/store/2026-07-12-Proposals-Page-Audit-unresolved/`
   is archived by owner direction as `CANCELLED / INCOMPLETE / BOUNDARY`. Its
@@ -2130,7 +2130,7 @@ Stable current truth (verify against git/source before relying on a detail):
   warning about script tags in `AuthStateMismatchRecoveryScript` is fixed by
   rendering through `next/script` with `beforeInteractive`. Focused auth
   regressions passed `5` files / `56` tests. Sanitized evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
 - Cloudflare migration wrap-up assessment as of 2026-07-02 14:07 UTC:
   no known P0 app-runtime blocker remains. App-side Cloudflare closed-beta
   runtime readiness is about 99.7/100; overall migration including provider
@@ -2142,7 +2142,7 @@ Stable current truth (verify against git/source before relying on a detail):
   until real non-owner Google proof, real recipient mailbox proof or accepted
   deferral, latest-branch deploy/smoke as needed, old-provider exports/backups,
   downgrade/cancel sequencing, and post-exit smoke are complete. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-wrap-up-assessment.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-wrap-up-assessment.*`.
 - Cloudflare migration independent verification refresh as of 2026-07-03:
   the follow-up QA ledger now records a fresh verification and narrow
   test-maintenance pass. `bun run type-check`, `bun run test`, scoped
@@ -2210,7 +2210,7 @@ Stable current truth (verify against git/source before relying on a detail):
   until real non-owner Google proof, real recipient mailbox proof or accepted
   deferral, provider-export/post-exit evidence, and any latest-deploy/smoke
   requirements are closed. Current source ledger:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md`.
 - Cloudflare migration continuation verification as of 2026-07-03 04:28 UTC:
   repo-wide `bun run lint` now completes and exits 0 with warnings only after
   generated/local runtime output ignores were expanded to include the actual
@@ -2266,9 +2266,9 @@ Stable current truth (verify against git/source before relying on a detail):
   of 2026-07-03 12:27 UTC:
   `scripts/check-cloudflare-latest-deploy-source-smoke.ts` and package script
   `cf:check-latest-deploy-source-smoke` now generate
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*`.
   Package script `cf:latest-deploy-source-smoke-template` also writes
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`
   as a sanitized starter for the future current-source deploy lane; the
   template is not proof and remains open until real post-deploy production
   version, hosted-route, and release-gate fields replace placeholders.
@@ -2373,7 +2373,7 @@ Stable current truth (verify against git/source before relying on a detail):
   mutate providers, read secrets, run browser automation, stage, commit, prove
   external operator status, prove a persona, or prove recipient mailbox receipt.
 - Cloudflare final static UltraQA review refresh as of 2026-07-03 14:28 UTC:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.*`
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.*`
   points at the current provider-exit pack generated
   `2026-07-03T14:28:11.721Z` and the latest deploy/source-smoke artifact
   generated `2026-07-03T14:27:41.764Z`. Verdict remains `PARTIAL`: strict
@@ -2426,7 +2426,7 @@ Stable current truth (verify against git/source before relying on a detail):
   receipt.
 - Cloudflare migration implementation completion audit refresh as of
   2026-07-03 14:28 UTC:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*`
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*`
   maps current plan-pack requirements to proof classes and statuses. Verdict:
   `NEAR-COMPLETE, NOT FULLY IMPLEMENTED`. Independent read-only verifier Jason
   (`019f27a6-30a1-72a1-a69f-a473bc96093d`) returned `PARTIAL` and confirmed the
@@ -2922,7 +2922,7 @@ Stable current truth (verify against git/source before relying on a detail):
   Google-side test-user block for non-owner accounts; a real non-owner Google
   account completion remains a P1 external-persona proof item because this run
   did not have a second human Google session/inbox. Sanitized evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-google-oauth-local-production-readback.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-google-oauth-local-production-readback.*`.
   Fresh local browser-suite verification on 2026-07-02 restored the default
   Cloudflare-compatible Playwright path: old Supabase-only E2E specs are now
   quarantined behind `ARCHESTIMATOR_E2E_ENABLE_LEGACY_SUPABASE=1`. The
@@ -2948,9 +2948,9 @@ Stable current truth (verify against git/source before relying on a detail):
   current Better Auth config, so use `http://localhost:3000` for developer
   browser login unless host-dynamic auth configuration is added. Completed
   local callback/session is superseded by the real Chrome proof recorded in
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
   Sanitized start evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-start-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-start-proof.*`.
 - Latest Cloudflare deploy and hosted D1/share proof as of 2026-07-02
   04:31 UTC: `archestimator-proof` Worker version
   `d47bcd1d-37f0-41e3-864a-05a90b28518b` is deployed at 100% on
@@ -2969,7 +2969,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `985f6690-741e-4136-9fa1-a4896cd364e4`, snapshot total `397.90404`, and
   unauthenticated `/share/...` HTML now shows `PHP 397.90`, row quantity
   `3.16`, and `Hosted D1 browser row mutation proof`. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`.
 - Latest hosted route/upload refresh as of 2026-07-02 07:25 UTC:
   `2026-07-02-cloudflare-hosted-route-proof-final-refresh.*` passes the
   credential-free route matrix with no blockers;
@@ -3160,7 +3160,7 @@ Stable current truth (verify against git/source before relying on a detail):
   starting Google OAuth creates a fresh `__Secure-better-auth.state` cookie
   and sends `redirect_uri=https://archestimator.com/api/auth/callback/google`
   to Google with a 32-character state. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-root-shell-deploy.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-root-shell-deploy.*`.
 - Cloudflare root-shell refresh as of 2026-07-02 02:50 UTC: live curl still
   proves the exact owner-reported `https://archestimator.com/?error=state_mismatch`
   URL first-hops to the clean reset URL and follows to
@@ -3207,7 +3207,7 @@ Stable current truth (verify against git/source before relying on a detail):
   No app service worker/cache trap was found. The signed-in desktop Chrome
   session was preserved on `/workshop/publisher` for workflow QA instead of
   forcing a reset that clears cookies/storage. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck-0121.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck-0121.*`.
 - OAuth `www` state-mismatch first-hop recovery as of 2026-07-02 00:30 UTC:
   the latest user-visible `state_mismatch` path was traced to Cloudflare Single
   Redirect ordering, not the apex Worker recovery. The existing catch-all
@@ -3228,7 +3228,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `redirect_uri=https://archestimator.com/api/auth/callback/google` and a
   32-character Google `state` matching the fresh
   `__Secure-better-auth.state` cookie. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-www-state-mismatch-redirect-rule.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-www-state-mismatch-redirect-rule.*`.
 - Cloudflare authz/cache hardening checkpoint as of 2026-07-02 00:39 UTC:
   local P0 authz findings are fixed/verified for stale default workspace IDs,
   central project UUID lookup fail-closed behavior, estimate/sheet-list D1
@@ -3242,7 +3242,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `/login?next=%2Fworkshop` and private no-store, `bun run type-check` passed,
   and `git diff --check` passed. The later hosted auth synthetic cookie matrix
   closes the allowed/denied/revoked/expired fixture gap. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-authz-cache-hardening.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-authz-cache-hardening.*`.
 - State-mismatch live recheck as of 2026-07-02 01:06 UTC: after the owner
   again reported `https://archestimator.com/?error=state_mismatch`, fresh
   production probes still recover cleanly. Curl follows the exact URL to
@@ -3259,7 +3259,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `aaee7b3f-a120-4e5e-ada2-5950c57831df` at 100%. Cloudflare observability
   keys/values queries returned a Cloudflare API request failure, so no log claim
   is made from that surface. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck-0106.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck-0106.*`.
 - State-mismatch live recheck as of 2026-07-02 00:51 UTC: after the owner
   again reported `https://archestimator.com/?error=state_mismatch`, fresh
   production curl, no-cache curl, and a fresh no-cookie Playwright browser all
@@ -3270,7 +3270,7 @@ Stable current truth (verify against git/source before relying on a detail):
   available desktop Chrome tab was already authenticated in the hosted project
   estimates view, so it was not force-navigated through the stale-state reset
   because that route intentionally clears OAuth/session storage. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck.*`.
 - Hosted D1 note refresh as of 2026-07-02 00:51 UTC: the signed-in Chrome
   production session on `archestimator.com` updated `ES-001 Estimate`
   (`985f6690-741e-4136-9fa1-a4896cd364e4`) in project
@@ -3283,7 +3283,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `updated_at=2026-07-02T00:50:13.126Z`, served by `v3-prod` in `APAC` /
   `SIN` primary, with `rows_read=1`, `rows_written=0`, and `changed_db=false`.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-refresh-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-refresh-proof.*`.
 - Hosted component custom-category proof as of 2026-07-02 01:11 UTC: the
   signed-in production browser created component
   `f7007706-def3-4f7a-bd7c-020b2eb8bbbe` from
@@ -3298,7 +3298,7 @@ Stable current truth (verify against git/source before relying on a detail):
   primary. This closes the hosted custom/free-typed category create proof;
   later hosted artifacts close folder mutation, scratch template creation,
   template insertion, and viewer-denial proof. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-custom-category-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-custom-category-proof.*`.
 - Hosted publication owner/public proof as of 2026-07-02 01:29 UTC: the
   signed-in production Publisher UI generated a shared page for project
   `Codex Cloudflare Smoke 2026-07-01`
@@ -3317,7 +3317,7 @@ Stable current truth (verify against git/source before relying on a detail):
   04:45 UTC hosted synthetic recipient proof closed the Cloudflare runtime
   session/comment/decision path, and the 04:51 UTC hosted recipient composer
   proof closed the owner-side UI mutation/dispatch path. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`.
 - OAuth normalizer recovery hotfix as of 2026-07-01 23:44 UTC: after the user
   again reported `https://archestimator.com/?error=state_mismatch`, production
   was rechecked and the active desktop Chrome tab was already authenticated at a
@@ -3335,7 +3335,7 @@ Stable current truth (verify against git/source before relying on a detail):
   callback/redirect hardening and passed tests/typecheck/build/dry-run, but the
   full main Worker Wrangler publish hung after upload and did not create a new
   version; production protection is currently the normalizer Worker. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-normalizer-recovery-hotfix.md`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-normalizer-recovery-hotfix.md`.
 - Login/auth no-store hardening as of 2026-07-01 23:21 UTC: after the user
   again reported `https://archestimator.com/?error=state_mismatch`, the active
   Worker was rebuilt and deployed at 100% on version
@@ -3352,7 +3352,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `state_mismatch`. `bun run cf:build` shows `/login` as dynamic, targeted
   Vitest passed, `bun run type-check` passed, hosted route proof passed,
   `bun run cf:release-gates` passed, and `git diff --check` passed. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-login-auth-no-store-deploy.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-login-auth-no-store-deploy.*`.
 - Main Worker current-source deploy and OAuth state-mismatch production recheck
   as of 2026-07-01 22:49 UTC: the `archestimator-proof` upload blocker is
   resolved after removing runtime ExcelJS from the Worker bundle and replacing
@@ -3373,7 +3373,7 @@ Stable current truth (verify against git/source before relying on a detail):
   (`5` files / `55` tests), and `git diff --check` passed. The
   `archestimator-auth-callback-normalizer` edge adapter remains active only as
   defense-in-depth; the main Worker is no longer stale. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`.
 - Cloudflare migration status as of 2026-07-01 09:56 UTC: app/config runtime
   source is Cloudflare-only; Google OAuth production callbacks and Worker
   secrets are set; Worker version `b1a9f0a9-7c5e-47c1-a333-fcf11e71c784` is
@@ -3416,7 +3416,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `52` tests) and `git diff --check` passed. Keep the edge adapter active until
   the main `archestimator-proof` Worker accepts current-source deploys.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-cache-storage-reset.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-cache-storage-reset.*`.
 - OAuth state-mismatch terminal cleanup hop as of 2026-07-01 21:47 UTC: after
   the user still saw `https://archestimator.com/?error=state_mismatch`, the
   `archestimator-auth-callback-normalizer` edge adapter was redeployed at
@@ -3431,7 +3431,7 @@ Stable current truth (verify against git/source before relying on a detail):
   passed (`5` files / `63` tests) and `git diff --check` passed. Keep the edge
   adapter active until main `archestimator-proof` Worker current-source deploy
   succeeds. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-reset-terminal-hop.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-reset-terminal-hop.*`.
 - OAuth state-mismatch fallback hardening as of 2026-07-01 19:58 UTC: after
   the user still reported the exact visible URL
   `https://archestimator.com/?error=state_mismatch`, the broad
@@ -3447,7 +3447,7 @@ Stable current truth (verify against git/source before relying on a detail):
   the body. Main `archestimator-proof` Worker deployment is still stale because
   the full OpenNext Worker upload path remains blocked, so keep the edge
   adapter active. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-fallback-hardening.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-fallback-hardening.*`.
 - OAuth state-mismatch follow-up as of 2026-07-01 20:18 UTC: after the user
   again reported `https://archestimator.com/?error=state_mismatch`, fresh
   Chromium from that exact URL landed on
@@ -3465,7 +3465,7 @@ Stable current truth (verify against git/source before relying on a detail):
   exact error URL to `/workshop` as Philip Lewis with visible project data and
   no sign-in prompt. Keep the edge adapter active until the main Worker
   current-source deploy blocker is resolved. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-followup-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-followup-proof.*`.
 - OAuth state-mismatch live recheck as of 2026-07-01 20:58 UTC: live `curl`
   against the latest reported root URL returned `302` to
   `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1`,
@@ -3479,7 +3479,7 @@ Stable current truth (verify against git/source before relying on a detail):
   adapter is catching the reported URL; keep the adapter live because the main
   `archestimator-proof` Worker still has not accepted a current-source
   OpenNext deploy. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-live-recheck.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-live-recheck.*`.
 - Post-hotfix Cloudflare QA refresh as of 2026-07-01 20:04 UTC: hosted route
   refresh on `archestimator.com` passes, release gates still report
   `productionCutoverReady=true` with blockers empty, and hosted auth smoke
@@ -3492,7 +3492,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `archestimator-proof` current-source Worker upload also still stalls at
   Cloudflare/Wrangler version ingestion, so the edge adapter remains live.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-post-hotfix-parallel-qa-refresh.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-post-hotfix-parallel-qa-refresh.*`.
 - Hosted estimate area/row/history proof as of 2026-07-01 20:29 UTC: using
   the authenticated in-app browser session on `archestimator.com`, the hosted
   estimate UI created area `Cloudflare QA Area 2026-07-02 04:24`, inserted row
@@ -3503,7 +3503,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `changed_db=false` and `rows_written=0`. Later hosted artifacts now cover tab
   lifecycle, rollback residue, idempotent retry replay, viewer denial, and
   cross-workspace denial. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`.
 - Hosted component library proof as of 2026-07-01 20:56 UTC: production Add
   Component initially failed with `D1_ERROR: FOREIGN KEY constraint failed`
   because remote D1 had zero `component_category_nodes` rows. The canonical
@@ -3517,7 +3517,7 @@ Stable current truth (verify against git/source before relying on a detail):
   component, price option, current cost entry, version, and category rows.
   Custom/free-typed category create still needs the main Worker source patch to
   deploy. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-library-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-library-proof.*`.
 - OAuth hotfix as of 2026-07-01 10:17 UTC: Google sign-in on
   `archestimator.com` no longer redirects through the Worker subdomain. Worker
   URL/origin secrets now use `https://archestimator.com` as canonical with
@@ -3548,7 +3548,7 @@ Stable current truth (verify against git/source before relying on a detail):
   response timeouts for both `www` and apex, which remains a performance and
   reliability watch item rather than evidence of the old state-cookie mismatch.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-auth-www-canonical-probe.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-auth-www-canonical-probe.*`.
 - OAuth retry cleanup and callback normalization as of 2026-07-01 17:12 UTC:
   after the user still saw `https://archestimator.com/?error=state_mismatch`,
   Cloudflare HTTP Response Header Transform Rule
@@ -3570,7 +3570,7 @@ Stable current truth (verify against git/source before relying on a detail):
   stalls/fails at Cloudflare upload/deployment endpoints. Keep the callback
   normalizer active until the main Worker source fix is live.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-retry-cleanup.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-retry-cleanup.*`.
 - OAuth stale-callback hardening as of 2026-07-01 17:39 UTC: after another
   user report of `https://archestimator.com/?error=state_mismatch`, the
   path-specific `archestimator-auth-callback-normalizer` Worker was updated and
@@ -3599,7 +3599,7 @@ Stable current truth (verify against git/source before relying on a detail):
   deploy path is reliable enough to fold the behavior back into the main
   bundle.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-stale-callback-hardening.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-stale-callback-hardening.*`.
 - OAuth root retry edge adapter as of 2026-07-01 17:59 UTC: after the user
   still reached `https://archestimator.com/?error=state_mismatch`, the small
   `archestimator-auth-callback-normalizer` Worker was broadened into an edge
@@ -3626,7 +3626,7 @@ Stable current truth (verify against git/source before relying on a detail):
   adapter active until the main Worker deploy path is reliable and the behavior
   is folded into `archestimator-proof`.
   Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-root-retry-edge-adapter.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-root-retry-edge-adapter.*`.
 - OAuth state-mismatch browser recovery refresh as of 2026-07-01 18:38 UTC:
   after the user still reported `https://archestimator.com/?error=state_mismatch`,
   the broad `archestimator-auth-callback-normalizer` edge adapter was updated
@@ -3644,7 +3644,7 @@ Stable current truth (verify against git/source before relying on a detail):
   upload and no new `archestimator-proof` version appeared; active main Worker
   remains `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`, so keep the edge adapter
   active. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-mismatch-browser-recovery.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-mismatch-browser-recovery.*`.
 - OAuth state-mismatch recovery hardening as of 2026-07-01 18:55 UTC:
   after the user again saw `https://archestimator.com/?error=state_mismatch`,
   the broad `archestimator-auth-callback-normalizer` edge adapter was hardened
@@ -3664,7 +3664,7 @@ Stable current truth (verify against git/source before relying on a detail):
   tests passed (`3` files / `18` tests). Main Worker deploy remains stale at
   `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`, so keep this adapter active until
   the large OpenNext Worker deploy path is repaired. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-mismatch-recovery-hardening.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-mismatch-recovery-hardening.*`.
 - OAuth clean-reset URL hardening as of 2026-07-01 19:07 UTC: after the user
   still reported seeing `https://archestimator.com/?error=state_mismatch`, the
   broad `archestimator-auth-callback-normalizer` edge adapter was updated and
@@ -3683,7 +3683,7 @@ Stable current truth (verify against git/source before relying on a detail):
   adapter/auth tests passed (`4` files / `27` tests). Main Worker deploy remains
   stale at `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`, so keep this adapter active
   until the large OpenNext Worker deploy path is repaired. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-clean-reset-url.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-clean-reset-url.*`.
 - OAuth global state-mismatch recovery as of 2026-07-01 19:48 UTC: after the
   user still saw `https://archestimator.com/?error=state_mismatch`, the broad
   `archestimator-auth-callback-normalizer` edge adapter was hardened again and
@@ -3703,7 +3703,7 @@ Stable current truth (verify against git/source before relying on a detail):
   source also has an app-level middleware fallback, but production still relies
   on the small edge adapter until the large OpenNext Worker upload/deploy path
   is repaired. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-global-recovery.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-global-recovery.*`.
 - Magic-link UI mailbox proof as of 2026-07-01 19:14 UTC: production
   `https://archestimator.com/login?next=%2Fworkshop` submitted a magic-link
   request for `philipjonlewis@gmail.com` and reached
@@ -3714,7 +3714,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `/workshop`. A fresh browser context opened the redacted one-time link and
   landed on `/workshop` as Philip Lewis with secure HttpOnly
   `__Secure-better-auth.session_token` and no auth error. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-magic-link-ui-mailbox-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-magic-link-ui-mailbox-proof.*`.
 - Hosted estimate Notes mutation proof as of 2026-07-01 19:33 UTC: a signed-in
   Chrome production session on `archestimator.com` edited `ES-001 Estimate`
   (`985f6690-741e-4136-9fa1-a4896cd364e4`) in project
@@ -3728,7 +3728,7 @@ Stable current truth (verify against git/source before relying on a detail):
   mutation path; later hosted estimate artifacts now extend coverage to
   area/row/history, tab lifecycle, rollback residue, idempotent retry replay,
   viewer denial, and cross-workspace denial. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-mutation-proof.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-mutation-proof.*`.
 - Remaining post-cutover hosted-flow gaps as of 2026-07-02 Manila: refreshed
   local D1 estimate-history and component-library proofs pass. QA-DATA-02 now
   has hosted production UI/remote-D1 proof for an authenticated estimate-list
@@ -3764,9 +3764,9 @@ Stable current truth (verify against git/source before relying on a detail):
   hardening and was not proven to preserve OpenNext assets runtime parity. Keep
   the edge auth adapter active until the main Worker upload path is repaired or
   a direct API upload with asset-runtime parity is proven. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-worker-split-upload-attempt.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-worker-split-upload-attempt.*`.
 - Post-cutover QA refresh as of 2026-07-01 13:46 UTC: active ledger is
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/33_POST_CUTOVER_FULL_APP_QA_LEDGER.md`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/33_POST_CUTOVER_FULL_APP_QA_LEDGER.md`.
   Fresh typecheck, focused auth/Cloudflare Vitest, hosted route proof, Better
   Auth provider/aggregate proof, D1/Auth/Realtime aggregate, provider resource
   readback, DNS delegation, R2/Images provider runtime proof, jobs runtime
@@ -3782,7 +3782,7 @@ Stable current truth (verify against git/source before relying on a detail):
   project: `Codex Cloudflare Smoke 2026-07-01`,
   `bd9a8e68-4e24-49d8-aeed-e4651b7cab0b`, code `Q5M2XN6L`. The smoke project
   remains in production intentionally for audit visibility. Evidence:
-  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-browser-google-project-smoke.*`.
+  `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-browser-google-project-smoke.*`.
 - DB autonomy mandate ACTIVE for Supabase project `ebxxqidacheyapmmzavr` only
   (create/edit/apply migrations, scoped SQL, RLS/RPC/types, fix forward — no
   per-change approval). Hard boundaries: no other provider projects, no
@@ -3916,7 +3916,7 @@ grep, don't linear-read).
 - Worker/provider blockers are concrete: the Cloudflare Worker secret list is missing `BETTER_AUTH_GOOGLE_CLIENT_ID` and `BETTER_AUTH_GOOGLE_CLIENT_SECRET`; Google OAuth production cutover therefore remains incomplete even though magic link/session proof passes.
 - DNS blocker is concrete: public nameservers still resolve through the registrar (`dns1.registrar-servers.com`, `dns2.registrar-servers.com`) instead of Cloudflare (`carl.ns.cloudflare.com`, `ziggy.ns.cloudflare.com`), and public `www.archestimator.com` still resolves through the Vercel DNS path in the 2026-07-01 DNS artifact.
 - Publish blocker is concrete: local `cf:build` passes and writes `.open-next/worker.js`, but `wrangler deploy --keep-vars`, `wrangler versions upload --keep-vars` on Wrangler `4.105.0`, `wrangler@4.106.0 versions upload --keep-vars`, and a final `wrangler@4.106.0 deploy --keep-vars` all reached Worker bundle upload and then hung without creating a new Worker version/deployment. The final attempt uploaded 11 fresh static assets, reached `Total Upload: 31246.68 KiB / gzip: 6362.54 KiB`, waited five minutes at the Worker upload/version boundary, then was stopped. `wrangler deployments list --name archestimator-proof` still shows the latest deployment as the 2026-07-01T04:18:13.768Z `Secret Change` deployment, version `f815a673-97d4-458a-bff0-d09515213d8a`.
-- Fresh evidence files: `2026-07-01-cloudflare-worker-secret-list.json`, `2026-07-01-cloudflare-worker-readiness.json`, `2026-07-01-cloudflare-provider-resource-readback.json`, `2026-07-01-cloudflare-dns-delegation.json`, `2026-07-01-cloudflare-provider-readiness.json`, `2026-07-01-cloudflare-better-auth-provider-proof.json`, `2026-07-01-cloudflare-better-auth-proof.json`, `2026-07-01-cloudflare-d1-auth-realtime-readiness.json`, `2026-07-01-cloudflare-worker-deploy-attempt.json`, and `2026-07-01-cloudflare-release-gates.json` under `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/`.
+- Fresh evidence files: `2026-07-01-cloudflare-worker-secret-list.json`, `2026-07-01-cloudflare-worker-readiness.json`, `2026-07-01-cloudflare-provider-resource-readback.json`, `2026-07-01-cloudflare-dns-delegation.json`, `2026-07-01-cloudflare-provider-readiness.json`, `2026-07-01-cloudflare-better-auth-provider-proof.json`, `2026-07-01-cloudflare-better-auth-proof.json`, `2026-07-01-cloudflare-d1-auth-realtime-readiness.json`, `2026-07-01-cloudflare-worker-deploy-attempt.json`, and `2026-07-01-cloudflare-release-gates.json` under `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/`.
 - Verification for this checkpoint passed: `NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit --pretty false`; targeted Vitest matrix (`8` files / `79` tests); `NODE_OPTIONS=--max-old-space-size=8192 bun run cf:build`; active app/config provider-marker scan; `git diff --check`; refreshed `cf:check-readiness`, `cf:better-auth-proof`, `cf:check-d1-auth-realtime`, and `cf:release-gates`.
 
 **Cloudflare D1 migration checkpoint: workspace repository moved off Supabase runtime (2026-07-01 local / 2026-07-01 UTC evidence):**
@@ -4414,13 +4414,13 @@ grep, don't linear-read).
 
 - 2026-06-30 Better Auth hosted provider proof is now real provider evidence, not just local scaffolding: proof Worker `archestimator-proof` deployed version `d23f08f3-c0bd-4a06-943c-710fb1854610` (`Deploy Better Auth provider proof`) and `POST /__cloudflare/better-auth-proof` passed on `https://archestimator-proof.philipjonlewis.workers.dev`. Evidence `2026-06-30-cloudflare-better-auth-provider-proof.{json,md}` shows hosted D1 schema/index readback for `account`, `session`, `user`, `verification`, Worker Better Auth secret/base URL/trusted-origin readiness, one ephemeral D1 session fixture readback, and cleanup with `rowsRemaining=0`. `cf:better-auth-proof` now consumes that provider artifact, so `2026-06-30-cloudflare-better-auth-route-gate-proof.{json,md}` records `localOnly=false`, `providerBacked=true`, `hostedBetterAuthD1SchemaProofReady=true`, `betterAuthSecretProviderReady=true`, `providerBackedSessionFixtureReady=true`, and `betterAuthProviderProofReady=true`; it still keeps `productionBetterAuthReady=false` because OAuth/magic-link callback flow, provider-backed callback/session cutover tests, and Supabase callback/actions/session removal remain incomplete. `cf:check-d1-auth-realtime` now has every D1/Auth/Realtime subgate green except `authReplacementReady`; production cutover remains NO-GO. Hosted route matrix was refreshed against the new Worker and passed, but a warmed credential-free performance rerun failed p95 budgets for `home`, `login`, `trust`, `terms`, and invalid share; retained as `2026-06-30-cloudflare-hosted-performance-rerun-failed.{json,md}` while release gates still use the earlier passing hosted credential-free artifact and continue to block production on full authenticated/data-route performance and cost inputs.
 - 2026-06-30 hosted static public route speed pass: public marketing/auth entry routes (`/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, `/terms`, `/trust`, `/login`, `/signup`) build as static `○` routes in `bun run cf:build`, skip Supabase/auth lookups in the Worker request proxy, and now return `s-maxage=31536000` on the deployed proof Worker. The earlier Worker version upload blocker is superseded: full OpenNext uploads completed after long waits, and version `79e6814f-51d5-42b2-8d1d-35a643a691ee` (`public-static-cache-policy`) deployed 100% at `2026-06-30T06:25:27.458601Z` on `https://archestimator-proof.philipjonlewis.workers.dev` before later proof deployments. Hosted route matrix passed and hosted credential-free p95 performance passed (`/` p95 134.25ms, `/features` 80.99ms, `/trust` 208.27ms, `/workshop` signed-out redirect 438.52ms under its 600ms budget). Evidence: `evidence/2026-06-30-cloudflare-static-public-routes.{json,md}`, `evidence/2026-06-30-cloudflare-worker-version-upload-resolved.{json,md}`, `evidence/2026-06-30-cloudflare-hosted-route-proof.{json,md}`, and `evidence/2026-06-30-cloudflare-hosted-performance.{json,md}`. Production cutover remains NO-GO because custom-domain/DNS cutover, Better Auth live cutover, full authenticated/data-route performance proof, and production cost inputs are still incomplete.
-- Planning-only package `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/` now treats a full Cloudflare-native prelaunch redesign as the preferred proof target, with hybrid/current providers retained as fallback and comparison surfaces until proof passes.
+- Planning-only package `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/` now treats a full Cloudflare-native prelaunch redesign as the preferred proof target, with hybrid/current providers retained as fallback and comparison surfaces until proof passes.
 - New planning docs cover the full target (`22_FULL_CLOUDFLARE_NATIVE_TARGET.md`), Supabase-to-D1/Auth/Realtime redesign (`23_D1_AUTH_REALTIME_REDESIGN_PLAN.md`), and speed budgets/proof (`24_SUPERFAST_CLOUDFLARE_PERFORMANCE_PLAN.md`).
 - Second-pass hardening adds execution-readiness scoring (`25_EXECUTION_READINESS_SCORECARD.md`), inventory worksheets (`26_INVENTORY_WORKSHEETS.md`), proof-spike backlog (`27_PROOF_SPIKE_BACKLOG.md`), and cost/performance workbook template (`28_COST_AND_PERFORMANCE_WORKBOOK_TEMPLATE.md`).
 - Final planning-quality pass adds a current evidence inventory (`29_CURRENT_EVIDENCE_INVENTORY.md`) and completion audit (`30_COMPLETION_AUDIT.md`); the docs loop is PASS for planning quality but still NO-GO for production migration.
 - Owner setup follow-up adds `31_OWNER_CLOUDFLARE_SETUP_AND_ANALYTICS_RUNBOOK.md`: Workers Paid is the minimum practical Cloudflare subscription for the full target, Cloudflare zone setup should not change nameservers until DNS import is reviewed, Vercel cancellation remains last, and GA4/Clarity can stay consent-gated while Vercel Analytics/Speed Insights are replaced by Cloudflare Web Analytics/Workers Observability.
 - Freshest local D1/Auth/Realtime evidence refresh on 2026-06-30 clears the remaining local per-RPC rewrite-map gaps: `cf:d1-rpc-map` now maps `80`/`80` RPCs with golden fixtures, `transactionProofReady=true`, `rollbackProofReady=true`, `idempotencyProofReady=true`, and empty blockers. The final local references came from contract proof for `record_mass_deletion_storage_cleanup_result` atomic/idempotent cleanup result handling and `ensure_current_user_profile` fail-closed RPC usage. `cf:check-d1-auth-realtime` now records `rpcRewritePlanReady=true` while keeping `authReplacementReady=false`, `performanceProofReady=false`, and `productionD1AuthRealtimeReady=false`; production remains NO-GO because Better Auth hosted D1 schema/provider-secret/provider-backed callback-session/Supabase-removal cutover, hosted Worker+D1 performance, provider proof, and cost/performance proof are still incomplete.
-- First local Workers/OpenNext proof scaffolding now exists (`wrangler.jsonc`, `open-next.config.ts`, Cloudflare scripts, Edge-compatible auth middleware bridge). `cf:typegen`, focused auth/proxy tests, `type-check`, `bun run cf:build`, and local `opennextjs-cloudflare preview` smoke now pass. A reusable local Worker route probe now exists at `scripts/verify-cloudflare-worker-preview-routes.ts` with package script `cf:verify-preview-routes`; `.dev.vars.example` now lists the publication secret bindings needed for local/deployed Worker proof, and the ignored local `.dev.vars` carries placeholder preview values. Evidence in `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.{json,md}` shows signed-out local Worker probes passed for `/api/health`, `/`, `/login`, `/pricing`, `/features`, `/about`, `/contact`, `/trust`, `/privacy`, `/terms`, `/signup`, `/access-required`, `/workshop`, invalid `/share/[token]`, invalid `/api/share/[token]`, and missing-path private project image access. `scripts/check-cloudflare-worker-readiness.ts` and package script `cf:check-readiness` now guard Cloudflare manifest/env-name/observability drift without printing secret values; evidence in `evidence/2026-06-29-cloudflare-worker-readiness.{json,md}` shows local manifest readiness, `wrangler.jsonc` observability sampling, and ignored `.dev.vars` preview readiness pass, while deployment readiness remains false because no sanitized Cloudflare Worker secret-list/provider evidence was supplied. `scripts/generate-cloudflare-migration-inventory.ts` and package script `cf:inventory` now generate a repeatable local route/provider/RPC/script/SQL inventory without reading env files or printing secret values; evidence in `evidence/2026-06-30-cloudflare-migration-inventory.{json,md}` shows `70` App Router route entries, `91` provider-coupled source files, `80` distinct app-code RPC names, `88` package scripts, `104` script files, `25` Cloudflare package scripts, and current SQL/RLS counts for slice selection. `scripts/generate-cloudflare-pricing-snapshot.ts` and package script `cf:pricing` now validate a dated official Cloudflare pricing source; evidence in `evidence/2026-06-30-cloudflare-official-pricing-source.json`, `evidence/2026-06-30-cloudflare-official-pricing-snapshot.{json,md}` covers `13` required Cloudflare product surfaces with `officialCloudflarePricingRefreshed=true` and `productionCostDecisionReady=false`. `scripts/check-cloudflare-platform-toolchain.ts` and package script `cf:check-toolchain` now snapshot local Wrangler/OpenNext/schema/typegen readiness; evidence in `evidence/2026-06-30-cloudflare-platform-toolchain.{json,md}` shows `localToolchainSnapshotReady=true`, Wrangler `4.105.0`, `@opennextjs/cloudflare` `1.20.1`, compatibility date `2026-06-29`, `nodejs_compat`, typed `ARCH_DB`/`ARCH_UPLOADS_R2`/`ASSETS`/`COLLAB_ROOMS`/`IMAGES`/`UPLOAD_JOBS_QUEUE` bindings, direct `@cloudflare/workers-types` missing, Workers Observability configured with 10% top-level/log sampling and 5% traces sampling, and `productionDeployReady=false`. `scripts/check-cloudflare-wrangler-deploy-dry-run.ts` and package script `cf:check-deploy-dry-run` now run sanitized `wrangler deploy --dry-run` evidence; `evidence/2026-06-30-cloudflare-wrangler-deploy-dry-run.{json,md}` shows `localWranglerDryRunReady=true`, dry-run exit code `0`, `302` asset files read, required D1/R2/Assets/Durable Object/Images/Queue bindings present, bundle estimate `20431.97 KiB` / gzip `4432.50 KiB`, no Wrangler dry-run warnings, and `productionDeployReady=false`. `scripts/generate-cloudflare-cost-performance-workbook.ts` and package script `cf:workbook` now generate a repeatable local cost/performance workbook scaffold; evidence in `evidence/2026-06-30-cloudflare-cost-performance-workbook.{json,md}` records `cloudflarePricingRefreshed=true`, missing provider-cost/hosted-proof gates, and local-only Worker preview duration rows (`168.47ms` home, `13.68ms` pricing/features, `13.07ms` login, `327.35ms` invalid share, `4.03ms` signed-out workshop p95). `scripts/check-cloudflare-provider-readiness.ts` and package script `cf:check-provider` now evaluate sanitized dashboard facts; evidence in `evidence/2026-06-30-cloudflare-provider-readiness-source.json`, `evidence/2026-06-30-cloudflare-provider-readiness.{json,md}` shows dashboard inventory ready but Workers deployment, storage/media, jobs, analytics receipt, and production cutover false. `scripts/generate-cloudflare-d1-restore-rehearsal.ts` and package script `cf:d1-restore-rehearsal` now generate a local-only D1 restore rehearsal; evidence in `evidence/2026-06-30-cloudflare-d1-restore-rehearsal.{json,md}` shows `d1ExportReady=true`, `d1ImportReady=true`, `restoreRehearsalReady=true`, `destructiveRestoreDocumented=true`, `localOnly=true`, `providerBacked=false`, `11` source/restored rows, matching checksums, and zero foreign-key violations. `scripts/generate-cloudflare-d1-performance-proof.ts` and package script `cf:d1-performance-proof` now generate a local-only D1 performance scaffold; evidence in `evidence/2026-06-30-cloudflare-d1-performance-proof.{json,md}` shows `queryCountBudgetsReady=true`, `p95RouteProofReady=true`, `hostedWorkerD1PerformanceReady=false`, `localOnly=true`, `providerBacked=false`, `132` rows seeded, and four indexed query surfaces passing local p95 budgets. `wrangler.jsonc`, `worker.ts`, `src/lib/cloudflare/collaboration-room.ts`, and `src/lib/cloudflare/collaboration-room-router.ts` now provide a local Durable Objects/WebSockets scaffold with typed binding `COLLAB_ROOMS`, class `CollaborationRoom`, and fail-closed local proof route `/__cloudflare/collaboration-room/:roomName`. `scripts/generate-cloudflare-d1-rpc-transaction-proof.ts` and package script `cf:d1-rpc-proof` now generate local-only D1 RPC transaction mechanics proof; evidence in `evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.{json,md}` shows `localTransactionMechanicsReady=true`, `localRollbackMechanicsReady=true`, `localIdempotencyMechanicsReady=true`, `localRpcMechanicsProofReady=true`, `productionRpcRewriteReady=false`, `0` rollback residue rows, and `0` duplicate side effects. `scripts/generate-cloudflare-d1-beta-feedback-proof.ts` and package script `cf:d1-beta-feedback-proof` now generate local-only D1 beta-feedback domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-beta-feedback-proof.{json,md}` shows `schemaReady=true`, `enumParityReady=true`, `appLayerAuthzReady=true`, `localBetaFeedbackD1SliceReady=true`, `productionBetaFeedbackD1Ready=false`, `0` forged workspace rows, `0` mismatched project rows, `0` rollback residue rows, `0` duplicate status-audit rows, review-queue index proof, and three local query surfaces passing p95 budgets. `scripts/generate-cloudflare-d1-collaboration-invitation-proof.ts` and package script `cf:d1-collaboration-invitation-proof` now generate local-only D1 collaboration-invitation domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.{json,md}` shows `localCollaborationInvitationD1SliceReady=true`, `productionCollaborationInvitationD1Ready=false`, `5` affected invitation RPCs, wrong-account membership rows `0`, rollback residue rows `0`, duplicate accept audit rows `0`, and replay-blocked audit rows `1`. `scripts/generate-cloudflare-d1-closed-beta-proof.ts` and package script `cf:d1-closed-beta-proof` now generate local-only D1 closed-beta allowlist domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-closed-beta-proof.{json,md}` shows `localClosedBetaD1SliceReady=true`, `productionClosedBetaD1Ready=false`, `4` affected closed-beta RPCs, non-admin queue rows `0`, non-admin create rows `0`, duplicate create rows `0`, rollback residue rows `0`, and four local query surfaces passing p95 budgets. `scripts/generate-cloudflare-d1-component-library-proof.ts` and package script `cf:d1-component-library-proof` now generate local-only D1 component-library domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-component-library-proof.{json,md}` shows `localComponentLibraryD1SliceReady=true`, `productionComponentLibraryD1Ready=false`, `6` affected component-library mutation RPCs, editor guard/folder delete/reorder/component update/lifecycle/price-option/bulk-archive proof, rollback residue rows `0`, duplicate price history rows `0`, duplicate bulk archive event rows `0`, and four local query surfaces passing p95 budgets. `scripts/generate-cloudflare-d1-estimate-history-proof.ts` and package script `cf:d1-estimate-history-proof` now generate local-only D1 estimate-history domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-estimate-history-proof.{json,md}` shows `localEstimateHistoryD1SliceReady=true`, `productionEstimateHistoryD1Ready=false`, `12` affected estimate-history mutation RPCs, editor guard/tab mutation/subtree insert/row move/sheet adjustment/package apply/promote-to-library proof, rollback residue rows `0`, duplicate subtree operation rows `1`, project and library package command rows `1` each, restored history rows `11`, and four local query surfaces passing p95 budgets. `scripts/check-cloudflare-d1-auth-realtime-readiness.ts` and package script `cf:check-d1-auth-realtime` now generate a local D1/Auth/Realtime blocker report; evidence in `evidence/2026-06-30-cloudflare-d1-auth-realtime-readiness.{json,md}` shows `databaseInventoryReady=true`, `d1BindingReady=true`, `betterAuthLocalProofReady=true`, `appLayerAuthzSpecReady=true`, `localRpcTransactionMechanicsReady=true`, `localBetaFeedbackD1SliceReady=true`, `localCollaborationInvitationD1SliceReady=true`, `localClosedBetaD1SliceReady=true`, `localComponentLibraryD1SliceReady=true`, `localEstimateHistoryD1SliceReady=true`, `realtimeReplacementReady=true`, `restoreProofReady=true`, `localRedesignReadinessReportReady=true`, and still `authReplacementReady=false`, `performanceProofReady=false`, and `productionD1AuthRealtimeReady=false`, with `rpcRewritePlanReady=true`, because Better Auth production cutover and hosted Worker+D1 performance proof are missing. `scripts/check-cloudflare-release-gates.ts` and package script `cf:release-gates` now aggregate the current local/sanitized evidence; `evidence/2026-06-30-cloudflare-release-gates.{json,md}` shows `planningInputsReady=true`, `localRuntimeProofReady=true`, `providerDashboardInventoryReady=true`, `localReleaseGateReportReady=true`, and still `dataAuthRealtimeProofReady=false`, `providerProofReady=false`, `costPerformanceProofReady=false`, `productionCutoverReady=false`. This is local Worker preview/readiness/inventory/pricing/toolchain/dry-run/workbook/provider-readiness/D1-restore/D1-performance/Durable Objects scaffold/Better Auth local scaffold/local RPC mechanics/local beta-feedback D1 domain proof/local collaboration-invitation D1 domain proof/local closed-beta D1 domain proof/local component-library D1 domain proof/local estimate-history D1 domain proof/D1-auth-realtime/release-gate evidence only, not hosted custom-domain route parity, Cloudflare observability receipt, D1/Auth/Realtime production readiness, hosted D1 restore/provider proof, hosted Worker+D1 performance proof, real D1 database creation/provider proof, a production Supabase Realtime replacement, or production cost proof. The native `sharp` image-processing path is isolated behind a shared helper plus Cloudflare-only Turbopack alias; Cloudflare proof builds now have an opt-in `ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=cloudflare-images` path that uses the `IMAGES` binding for raw-byte WebP resize/thumbnail generation and fails closed with the existing 501 route behavior when that provider or binding is absent. Cloudflare Web Analytics now has opt-in, consent-gated public-page wiring through `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` plus CSP allowances; GA4/Clarity remain consent-gated and Vercel Analytics/Speed Insights remain active until provider metrics proof passes.
+- First local Workers/OpenNext proof scaffolding now exists (`wrangler.jsonc`, `open-next.config.ts`, Cloudflare scripts, Edge-compatible auth middleware bridge). `cf:typegen`, focused auth/proxy tests, `type-check`, `bun run cf:build`, and local `opennextjs-cloudflare preview` smoke now pass. A reusable local Worker route probe now exists at `scripts/verify-cloudflare-worker-preview-routes.ts` with package script `cf:verify-preview-routes`; `.dev.vars.example` now lists the publication secret bindings needed for local/deployed Worker proof, and the ignored local `.dev.vars` carries placeholder preview values. Evidence in `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.{json,md}` shows signed-out local Worker probes passed for `/api/health`, `/`, `/login`, `/pricing`, `/features`, `/about`, `/contact`, `/trust`, `/privacy`, `/terms`, `/signup`, `/access-required`, `/workshop`, invalid `/share/[token]`, invalid `/api/share/[token]`, and missing-path private project image access. `scripts/check-cloudflare-worker-readiness.ts` and package script `cf:check-readiness` now guard Cloudflare manifest/env-name/observability drift without printing secret values; evidence in `evidence/2026-06-29-cloudflare-worker-readiness.{json,md}` shows local manifest readiness, `wrangler.jsonc` observability sampling, and ignored `.dev.vars` preview readiness pass, while deployment readiness remains false because no sanitized Cloudflare Worker secret-list/provider evidence was supplied. `scripts/generate-cloudflare-migration-inventory.ts` and package script `cf:inventory` now generate a repeatable local route/provider/RPC/script/SQL inventory without reading env files or printing secret values; evidence in `evidence/2026-06-30-cloudflare-migration-inventory.{json,md}` shows `70` App Router route entries, `91` provider-coupled source files, `80` distinct app-code RPC names, `88` package scripts, `104` script files, `25` Cloudflare package scripts, and current SQL/RLS counts for slice selection. `scripts/generate-cloudflare-pricing-snapshot.ts` and package script `cf:pricing` now validate a dated official Cloudflare pricing source; evidence in `evidence/2026-06-30-cloudflare-official-pricing-source.json`, `evidence/2026-06-30-cloudflare-official-pricing-snapshot.{json,md}` covers `13` required Cloudflare product surfaces with `officialCloudflarePricingRefreshed=true` and `productionCostDecisionReady=false`. `scripts/check-cloudflare-platform-toolchain.ts` and package script `cf:check-toolchain` now snapshot local Wrangler/OpenNext/schema/typegen readiness; evidence in `evidence/2026-06-30-cloudflare-platform-toolchain.{json,md}` shows `localToolchainSnapshotReady=true`, Wrangler `4.105.0`, `@opennextjs/cloudflare` `1.20.1`, compatibility date `2026-06-29`, `nodejs_compat`, typed `ARCH_DB`/`ARCH_UPLOADS_R2`/`ASSETS`/`COLLAB_ROOMS`/`IMAGES`/`UPLOAD_JOBS_QUEUE` bindings, direct `@cloudflare/workers-types` missing, Workers Observability configured with 10% top-level/log sampling and 5% traces sampling, and `productionDeployReady=false`. `scripts/check-cloudflare-wrangler-deploy-dry-run.ts` and package script `cf:check-deploy-dry-run` now run sanitized `wrangler deploy --dry-run` evidence; `evidence/2026-06-30-cloudflare-wrangler-deploy-dry-run.{json,md}` shows `localWranglerDryRunReady=true`, dry-run exit code `0`, `302` asset files read, required D1/R2/Assets/Durable Object/Images/Queue bindings present, bundle estimate `20431.97 KiB` / gzip `4432.50 KiB`, no Wrangler dry-run warnings, and `productionDeployReady=false`. `scripts/generate-cloudflare-cost-performance-workbook.ts` and package script `cf:workbook` now generate a repeatable local cost/performance workbook scaffold; evidence in `evidence/2026-06-30-cloudflare-cost-performance-workbook.{json,md}` records `cloudflarePricingRefreshed=true`, missing provider-cost/hosted-proof gates, and local-only Worker preview duration rows (`168.47ms` home, `13.68ms` pricing/features, `13.07ms` login, `327.35ms` invalid share, `4.03ms` signed-out workshop p95). `scripts/check-cloudflare-provider-readiness.ts` and package script `cf:check-provider` now evaluate sanitized dashboard facts; evidence in `evidence/2026-06-30-cloudflare-provider-readiness-source.json`, `evidence/2026-06-30-cloudflare-provider-readiness.{json,md}` shows dashboard inventory ready but Workers deployment, storage/media, jobs, analytics receipt, and production cutover false. `scripts/generate-cloudflare-d1-restore-rehearsal.ts` and package script `cf:d1-restore-rehearsal` now generate a local-only D1 restore rehearsal; evidence in `evidence/2026-06-30-cloudflare-d1-restore-rehearsal.{json,md}` shows `d1ExportReady=true`, `d1ImportReady=true`, `restoreRehearsalReady=true`, `destructiveRestoreDocumented=true`, `localOnly=true`, `providerBacked=false`, `11` source/restored rows, matching checksums, and zero foreign-key violations. `scripts/generate-cloudflare-d1-performance-proof.ts` and package script `cf:d1-performance-proof` now generate a local-only D1 performance scaffold; evidence in `evidence/2026-06-30-cloudflare-d1-performance-proof.{json,md}` shows `queryCountBudgetsReady=true`, `p95RouteProofReady=true`, `hostedWorkerD1PerformanceReady=false`, `localOnly=true`, `providerBacked=false`, `132` rows seeded, and four indexed query surfaces passing local p95 budgets. `wrangler.jsonc`, `worker.ts`, `src/lib/cloudflare/collaboration-room.ts`, and `src/lib/cloudflare/collaboration-room-router.ts` now provide a local Durable Objects/WebSockets scaffold with typed binding `COLLAB_ROOMS`, class `CollaborationRoom`, and fail-closed local proof route `/__cloudflare/collaboration-room/:roomName`. `scripts/generate-cloudflare-d1-rpc-transaction-proof.ts` and package script `cf:d1-rpc-proof` now generate local-only D1 RPC transaction mechanics proof; evidence in `evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.{json,md}` shows `localTransactionMechanicsReady=true`, `localRollbackMechanicsReady=true`, `localIdempotencyMechanicsReady=true`, `localRpcMechanicsProofReady=true`, `productionRpcRewriteReady=false`, `0` rollback residue rows, and `0` duplicate side effects. `scripts/generate-cloudflare-d1-beta-feedback-proof.ts` and package script `cf:d1-beta-feedback-proof` now generate local-only D1 beta-feedback domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-beta-feedback-proof.{json,md}` shows `schemaReady=true`, `enumParityReady=true`, `appLayerAuthzReady=true`, `localBetaFeedbackD1SliceReady=true`, `productionBetaFeedbackD1Ready=false`, `0` forged workspace rows, `0` mismatched project rows, `0` rollback residue rows, `0` duplicate status-audit rows, review-queue index proof, and three local query surfaces passing p95 budgets. `scripts/generate-cloudflare-d1-collaboration-invitation-proof.ts` and package script `cf:d1-collaboration-invitation-proof` now generate local-only D1 collaboration-invitation domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.{json,md}` shows `localCollaborationInvitationD1SliceReady=true`, `productionCollaborationInvitationD1Ready=false`, `5` affected invitation RPCs, wrong-account membership rows `0`, rollback residue rows `0`, duplicate accept audit rows `0`, and replay-blocked audit rows `1`. `scripts/generate-cloudflare-d1-closed-beta-proof.ts` and package script `cf:d1-closed-beta-proof` now generate local-only D1 closed-beta allowlist domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-closed-beta-proof.{json,md}` shows `localClosedBetaD1SliceReady=true`, `productionClosedBetaD1Ready=false`, `4` affected closed-beta RPCs, non-admin queue rows `0`, non-admin create rows `0`, duplicate create rows `0`, rollback residue rows `0`, and four local query surfaces passing p95 budgets. `scripts/generate-cloudflare-d1-component-library-proof.ts` and package script `cf:d1-component-library-proof` now generate local-only D1 component-library domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-component-library-proof.{json,md}` shows `localComponentLibraryD1SliceReady=true`, `productionComponentLibraryD1Ready=false`, `6` affected component-library mutation RPCs, editor guard/folder delete/reorder/component update/lifecycle/price-option/bulk-archive proof, rollback residue rows `0`, duplicate price history rows `0`, duplicate bulk archive event rows `0`, and four local query surfaces passing p95 budgets. `scripts/generate-cloudflare-d1-estimate-history-proof.ts` and package script `cf:d1-estimate-history-proof` now generate local-only D1 estimate-history domain proof; evidence in `evidence/2026-06-30-cloudflare-d1-estimate-history-proof.{json,md}` shows `localEstimateHistoryD1SliceReady=true`, `productionEstimateHistoryD1Ready=false`, `12` affected estimate-history mutation RPCs, editor guard/tab mutation/subtree insert/row move/sheet adjustment/package apply/promote-to-library proof, rollback residue rows `0`, duplicate subtree operation rows `1`, project and library package command rows `1` each, restored history rows `11`, and four local query surfaces passing p95 budgets. `scripts/check-cloudflare-d1-auth-realtime-readiness.ts` and package script `cf:check-d1-auth-realtime` now generate a local D1/Auth/Realtime blocker report; evidence in `evidence/2026-06-30-cloudflare-d1-auth-realtime-readiness.{json,md}` shows `databaseInventoryReady=true`, `d1BindingReady=true`, `betterAuthLocalProofReady=true`, `appLayerAuthzSpecReady=true`, `localRpcTransactionMechanicsReady=true`, `localBetaFeedbackD1SliceReady=true`, `localCollaborationInvitationD1SliceReady=true`, `localClosedBetaD1SliceReady=true`, `localComponentLibraryD1SliceReady=true`, `localEstimateHistoryD1SliceReady=true`, `realtimeReplacementReady=true`, `restoreProofReady=true`, `localRedesignReadinessReportReady=true`, and still `authReplacementReady=false`, `performanceProofReady=false`, and `productionD1AuthRealtimeReady=false`, with `rpcRewritePlanReady=true`, because Better Auth production cutover and hosted Worker+D1 performance proof are missing. `scripts/check-cloudflare-release-gates.ts` and package script `cf:release-gates` now aggregate the current local/sanitized evidence; `evidence/2026-06-30-cloudflare-release-gates.{json,md}` shows `planningInputsReady=true`, `localRuntimeProofReady=true`, `providerDashboardInventoryReady=true`, `localReleaseGateReportReady=true`, and still `dataAuthRealtimeProofReady=false`, `providerProofReady=false`, `costPerformanceProofReady=false`, `productionCutoverReady=false`. This is local Worker preview/readiness/inventory/pricing/toolchain/dry-run/workbook/provider-readiness/D1-restore/D1-performance/Durable Objects scaffold/Better Auth local scaffold/local RPC mechanics/local beta-feedback D1 domain proof/local collaboration-invitation D1 domain proof/local closed-beta D1 domain proof/local component-library D1 domain proof/local estimate-history D1 domain proof/D1-auth-realtime/release-gate evidence only, not hosted custom-domain route parity, Cloudflare observability receipt, D1/Auth/Realtime production readiness, hosted D1 restore/provider proof, hosted Worker+D1 performance proof, real D1 database creation/provider proof, a production Supabase Realtime replacement, or production cost proof. The native `sharp` image-processing path is isolated behind a shared helper plus Cloudflare-only Turbopack alias; Cloudflare proof builds now have an opt-in `ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=cloudflare-images` path that uses the `IMAGES` binding for raw-byte WebP resize/thumbnail generation and fails closed with the existing 501 route behavior when that provider or binding is absent. Cloudflare Web Analytics now has opt-in, consent-gated public-page wiring through `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` plus CSP allowances; GA4/Clarity remain consent-gated and Vercel Analytics/Speed Insights remain active until provider metrics proof passes.
 - Latest inventory refresh supersedes earlier Cloudflare inventory counts in this block: `evidence/2026-06-30-cloudflare-migration-inventory.{json,md}` now records `71` App Router route entries, `93` provider-coupled source files, `80` distinct app-code RPC names, `94` package scripts, `110` script files, and `31` Cloudflare package scripts after adding the hosted route and provider resource readback harnesses.
 - Hosted Worker route proof harness now exists with `scripts/verify-cloudflare-hosted-routes.ts` and package script `cf:verify-hosted-routes`. The harness requires `CLOUDFLARE_HOSTED_ROUTE_BASE_URL` or `CLOUDFLARE_HOSTED_WORKER_BASE_URL` to be an HTTPS non-local deployed Worker URL, rejects localhost/private hosts, does not call provider APIs/read secrets/deploy/change DNS/mutate billing, and mirrors the local signed-out Worker route matrix. Latest evidence in `evidence/2026-06-30-cloudflare-hosted-route-proof.{json,md}` records `configured=true`, `providerBacked=true`, `routeContractReady=true`, `hostedRouteProofReady=true`, and no failed required routes against `https://archestimator-proof.philipjonlewis.workers.dev`.
 - Hosted Worker performance proof harness now exists with `scripts/verify-cloudflare-hosted-performance.ts`, package script `cf:verify-hosted-performance`, and workbook ingestion through `scripts/generate-cloudflare-cost-performance-workbook.ts`. The harness requires `CLOUDFLARE_HOSTED_PERFORMANCE_BASE_URL` to be an HTTPS non-local deployed Worker URL, rejects localhost/private hosts, does not call provider APIs/read secrets/deploy/change DNS/mutate billing, and only proves credential-free hosted route contract plus p95 timing. Latest evidence in `evidence/2026-06-30-cloudflare-hosted-performance.{json,md}` records `routeContractReady=true`, `p95BudgetReady=true`, `hostedCredentialFreePerformanceReady=true`, and `passed=true`; full `hostedPerformanceReady` remains false because authenticated D1/Auth/Realtime route/action performance and production usage proof are separate gates.
