@@ -18,7 +18,7 @@ Register of stale claims found during this audit. Severity classification: **har
 | DRIFT-12 | 12 eslint errors fail `bun run lint` (exit 1) | see `artifacts/raw/lint-errors.txt` (not written — captured in chat) | code drift | **MISLEADING** — `bun run validate` cannot pass until lint passes; `27-...md` regression gate #5 ("type-check must pass") is moot | Resolve the 12 errors (or document accepted warnings); add a unit test to keep lint at exit 0 |
 | DRIFT-13 | `.open-next/` artifacts are 6 days stale (Jul 12) | `.open-next/worker.js` mtime | build drift | **MISLEADING** — bundle-size claims derived from these artifacts would not reflect current HEAD | Regenerate via `bun run cf:build` (W0) |
 | DRIFT-14 | `GitNexus: 300 execution flows` claim | `AGENTS.md` (gitnexus block) | stat drift | **HARMLESS** — matches current index | No change |
-| DRIFT-15 | `RealtimeAuthBridge` "Kept as a provider-level mount while realtime moves to Cloudflare Durable Objects" | `src/components/realtime-auth-bridge.tsx:3-7` | transitional-state drift | **HARMLEESS** — comment is honest, but the migration is done (DOs are in production) and the file returns null | Remove the file (W2-4) |
+| DRIFT-15 | `RealtimeAuthBridge` "Kept as a provider-level mount while realtime moves to Cloudflare Durable Objects" | `src/components/realtime-auth-bridge.tsx:3-7` | transitional-state drift | **HARMLESS** — comment is honest, but the migration is done (DOs are in production) and the file returns null | Remove the file (W2-4) |
 | DRIFT-16 | `package.json` lists `exceljs: ^4.4.0` as a dependency | `package.json:151` | dep drift | **HARMLESS** — dep is installed but unused; XLSX export uses custom OOXML writer | Verify with bundle baseline; remove if truly unused (W4) |
 | DRIFT-17 | `package.json` lists `@supabase/ssr` referenced by budget doc | not in package.json (removed) but still in budget doc | cross-doc drift | covered by DRIFT-05 | covered by DRIFT-05 |
 | DRIFT-18 | `migrations/0056-0092` (squashed slots) — README and current-state may cite old counts | various | stat drift | **HARMLESS** — count drift in `27-...md` | Optional |
@@ -31,7 +31,7 @@ Register of stale claims found during this audit. Severity classification: **har
 ## Severity summary
 
 - **Operationally dangerous**: 1 (DRIFT-01 — CI claims).
-- **Misleading**: 6 (DRIFT-02, 03, 04, 05, 06, 07, 12, 13).
+- **Misleading**: 8 (DRIFT-02, 03, 04, 05, 06, 07, 12, 13).
 - **Harmless**: 14 (the rest).
 
 ## Recommended cleanup ordering

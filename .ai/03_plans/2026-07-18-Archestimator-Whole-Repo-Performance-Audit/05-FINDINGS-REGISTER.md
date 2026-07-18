@@ -141,7 +141,7 @@ Each finding follows the prompt's required field set. Findings are also captured
 | Effort | S |
 | Risk | Low |
 | Dependencies | None |
-| Verification | Add `EXPLAIN QUERY PLAN` for the new query against `idx_estimate_row_items_*`; instrument statement count via `assertD1MutationStatementLimit` (read-side equivalent). |
+| Verification | The fix is correct by inspection (mirrors the sibling batched path at `rows.ts:3281-3285`). `EXPLAIN QUERY PLAN` for the new query against `idx_estimate_row_items_*` is verification nice-to-have, not an implementation dependency. Existing characterization test `tests/vitest/estimate-actions-d1-row-restore-history.test.ts` should still pass. |
 | Existing-plan relation | **Extends existing Plan 023** — original plan identified this exact issue; verified still current |
 
 ---
@@ -198,13 +198,7 @@ Each finding follows the prompt's required field set. Findings are also captured
 
 ## PERF-CRON-003 — `reconcileActivityOutbox` N+1 also runs on every 5-minute drain (was daily only)
 
-| Field | Value |
-|---|---|
-| Status | STATIC-CONFIRMED (rolled into PERF-D1-002 above; separate ID for tracking) |
-| Priority | P2 |
-| Surface | `worker.ts:273` (daily retention only — NOT 5-min drain) |
-
-**Correction during audit**: `reconcileActivityOutbox` is called only from `worker.ts:273` inside the `30 3 * * *` retention branch, NOT from the `*/5 * * * *` drain. So it runs once/day, not 288×/day. The per-invocation cost (up to 1,500 statements) is still material — see PERF-D1-002 — but the frequency is daily.
+**Folded into PERF-D1-002 during 2nd-pass consolidation.** Originally filed under a wrong assumption (that the N+1 ran on the 5-min cron). Correction during audit: `reconcileActivityOutbox` is called only from `worker.ts:273` inside the `30 3 * * *` retention branch, NOT from the `*/5 * * * *` drain. So it runs once/day, not 288×/day. The per-invocation cost (up to 1,500 statements) is captured by PERF-D1-002. This ID is retained only as a redirect for traceability; it is **not** an additional actionable finding and is not counted in the summary.
 
 ---
 
@@ -227,7 +221,7 @@ Each finding follows the prompt's required field set. Findings are also captured
 | Constraints | Must not break the hibernation model. Preserve the 100-connection room cap. |
 | Effort | S |
 | Risk | Low |
-| Dependencies | Hosted load test to validate threshold (BLOCKED without credentials) |
+| Dependencies | Hosted load test only for **threshold tuning** — the *fix* (add `if (ws.bufferedAmount > BACKPRESSURE_THRESHOLD) return;` with a conservative 64 KB default) does not need a hosted test and can ship with the conservative threshold; tune later. (2nd-pass correction: original framing overstated the gate.) |
 | Verification | Hosted WS load test with artificial slow consumer; observe close codes. |
 | Existing-plan relation | New |
 
@@ -253,7 +247,7 @@ Each finding follows the prompt's required field set. Findings are also captured
 | Effort | S |
 | Risk | Low |
 | Dependencies | None |
-| Verification | React Profiler with `reportEstimateRowItemRender` probe (already exists) during typing and scroll — count row renders before/after. (Browser gate — BLOCKED for hosted proof; can be done locally if user authorizes browser session.) |
+| Verification | The fix (5-line `useMemo` keyed on `[virtualRow.start, scrollMargin, virtualEnabled]`) does not need a browser gate. React Profiler with `reportEstimateRowItemRender` probe (already exists) during typing and scroll is the magnitude verification (TEST_PROPOSAL) — counts row renders before/after. That magnitude verification needs the browser gate, but the fix itself does not. |
 | Existing-plan relation | **Extends existing Plan 022** — original plan identified the issue; this audit confirms it persists and adds the inner-memo gap |
 
 ---
@@ -417,7 +411,7 @@ Each finding follows the prompt's required field set. Findings are also captured
 | Surface | `src/lib/repositories/component-library-repository.ts:561-575` |
 | Impact | Medium. The legacy full-library load path (when `itemLimit` and `itemIds` are both undefined) paginates 1,000 rows/page through `cost_library_items` ordered by `(category ASC, name ASC) LIMIT ? OFFSET ?` in a while loop. Existing indexes (`(workspace_id, lifecycle_state, updated_at DESC)`, `(workspace_id, library_folder_id, name)`, partial `(workspace_id, created_at DESC, id ASC) WHERE lifecycle_state <> 'archived'` from migration 0083) **do not cover `ORDER BY category, name`**. Each page = full workspace scan + sort. At the Large tier (10,000 items) this is 10 full scans. |
 | Evidence | `component-library-repository.ts:561-575` while-loop; `:542,555,570` ORDER BY `category ASC, name ASC`; migrations `0026:67-73` + `0083:1-3` confirm no `(workspace_id, category, name)` index exists. |
-| Source | `src/lib/repositories/component-library-repository.ts:542,555,561-575,293`; `migrations/0026_cost_library_indexes.sql:67-73`; `migrations/0083_component_library_browse_cursor_index.sql:1-3` |
+| Source | `src/lib/repositories/component-library-repository.ts:542,555,561-575,293`; supporting index evidence at `migrations/0083_component_library_browse_cursor_index.sql:1-3` (cursor index `(workspace_id, created_at DESC, id ASC) WHERE lifecycle_state <> 'archived'`); the existing `(workspace_id, library_folder_id, name)` index comes from an earlier migration. **2nd-pass correction**: an earlier draft cited `migrations/0026_cost_library_indexes.sql` which does not exist; the real filename is `0026_component_promotion_support.sql`. The index claims are unaffected — they rest on `0083` and the older library-folder index. |
 | Reproduction | `sed -n '540,580p' src/lib/repositories/component-library-repository.ts` |
 | Baseline | Each 1,000-row page is a full workspace scan + sort; ~10 scans at Large tier |
 | Target | Index that covers `(workspace_id, lifecycle_state, category, name)` OR redesign the load path to use the existing cursor index |
