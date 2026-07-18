@@ -408,6 +408,56 @@ Each finding follows the prompt's required field set. Findings are also captured
 
 ---
 
+## PERF-D1-003 — Library full-load paginated scan has no covering index for `ORDER BY category, name`
+
+| Field | Value |
+|---|---|
+| Status | STATIC-CONFIRMED |
+| Priority | **P2** |
+| Surface | `src/lib/repositories/component-library-repository.ts:561-575` |
+| Impact | Medium. The legacy full-library load path (when `itemLimit` and `itemIds` are both undefined) paginates 1,000 rows/page through `cost_library_items` ordered by `(category ASC, name ASC) LIMIT ? OFFSET ?` in a while loop. Existing indexes (`(workspace_id, lifecycle_state, updated_at DESC)`, `(workspace_id, library_folder_id, name)`, partial `(workspace_id, created_at DESC, id ASC) WHERE lifecycle_state <> 'archived'` from migration 0083) **do not cover `ORDER BY category, name`**. Each page = full workspace scan + sort. At the Large tier (10,000 items) this is 10 full scans. |
+| Evidence | `component-library-repository.ts:561-575` while-loop; `:542,555,570` ORDER BY `category ASC, name ASC`; migrations `0026:67-73` + `0083:1-3` confirm no `(workspace_id, category, name)` index exists. |
+| Source | `src/lib/repositories/component-library-repository.ts:542,555,561-575,293`; `migrations/0026_cost_library_indexes.sql:67-73`; `migrations/0083_component_library_browse_cursor_index.sql:1-3` |
+| Reproduction | `sed -n '540,580p' src/lib/repositories/component-library-repository.ts` |
+| Baseline | Each 1,000-row page is a full workspace scan + sort; ~10 scans at Large tier |
+| Target | Index that covers `(workspace_id, lifecycle_state, category, name)` OR redesign the load path to use the existing cursor index |
+| Root cause | Browse path added a `(workspace_id, created_at DESC, id ASC)` cursor index in 0083 but the legacy full-load path was not migrated to use it |
+| Recommendation | (1) Confirm with `EXPLAIN QUERY PLAN` (BLOCKED — hosted credentials) whether the existing cursor index is being used or bypassed. (2) If bypassed, migrate the legacy load path to use the cursor index. (3) If a new compound index is justified by EXPLAIN, add `(workspace_id, lifecycle_state, category, name)` with a migration and write-plan. **Do not add the index speculatively** — needs EXPLAIN before/after per AGENTS.md. |
+| Expected improvement | HYPOTHESIS — page latency drops if scan eliminated; magnitude needs EXPLAIN. |
+| Constraints | Preserve exact ordering semantics; preserve workspace scoping; preserve lifecycle filter. |
+| Effort | S (path migration) / M (new index with EXPLAIN proof) |
+| Risk | Low (path) / Medium (new index — write/storage cost) |
+| Dependencies | EXPLAIN QUERY PLAN against representative data (BLOCKED W0-6) |
+| Verification | `EXPLAIN QUERY PLAN` before/after; query latency p50/p95 at Large tier (10,000 items). |
+| Existing-plan relation | New — discovered by D1 agent recon |
+
+---
+
+## PERF-D1-004 — Component-source guard issues 15+ `json_extract` correlations per propagation job
+
+| Field | Value |
+|---|---|
+| Status | STATIC-CONFIRMED |
+| Priority | **P3** |
+| Surface | `src/lib/component-library/template-propagation-d1.ts:472-502,503-519` |
+| Impact | Low-medium. Inside each propagation job's atomic batch, two guards (`component-source` and `row-revision`) issue nested `json_each` driving into three joined tables (`cost_library_items`, `cost_library_item_price_options`, `cost_library_item_variant_cost_entries`) with ~15 `json_extract` predicates each. D1 will iterate the expected array and re-scan each table per element. Scales with components-per-template × active linked instances. |
+| Evidence | `template-propagation-d1.ts:472-502` (component-source guard); `:503-519` (row-revision guard). Both inside `applyClaimedJob` batch. |
+| Source | `src/lib/component-library/template-propagation-d1.ts:472-519` |
+| Reproduction | `sed -n '470,520p' src/lib/component-library/template-propagation-d1.ts` |
+| Baseline | ~15 json_extract predicates × 3 joined tables per guard; 2 guards per propagation job |
+| Target | Either pre-resolve the expected array into a temp table, or restructure as a single set-based anti-join |
+| Root cause | JSON-driven guard pattern matching each expected component field-by-field |
+| Recommendation | (1) Confirm with EXPLAIN (BLOCKED). (2) If the guard is hot, consider pre-resolving the expected array into a `WITH expected(itemId, ...) AS (SELECT json_extract(value, '$.itemId'), ... FROM json_each(?))` CTE so each table scans once. |
+| Expected improvement | HYPOTHESIS — propagation job wall-time reduction at large component counts. |
+| Constraints | Preserve guard correctness (must catch missing/drifted component sources). |
+| Effort | M |
+| Risk | Medium (mutation correctness surface) |
+| Dependencies | EXPLAIN QUERY PLAN (BLOCKED); K-10 fanout proof |
+| Verification | EXPLAIN before/after; propagation convergence time at 500-instance / 100-row-template tier. |
+| Existing-plan relation | New (sub-finding of K-10) |
+
+---
+
 ## REJECTED findings (recorded so they are not re-audited)
 
 | ID | Claim | Why rejected |
@@ -421,7 +471,7 @@ Each finding follows the prompt's required field set. Findings are also captured
 
 | Status | Count |
 |---|---:|
-| STATIC-CONFIRMED | 11 |
+| STATIC-CONFIRMED | 13 |
 | MEASURED | 0 (all browser/D1 runtime claims are HYPOTHESIS/BLOCKED without user gates) |
 | HYPOTHESIS | 0 (the HYPOTHESIS-tagged improvements above are sub-fields of STATIC-CONFIRMED findings) |
 | BLOCKED | 0 as a top-level status (blocked evidence is enumerated in `10-BLOCKED-EVIDENCE-AND-AUTHORIZATION-NEEDED.md`) |
@@ -432,8 +482,8 @@ Each finding follows the prompt's required field set. Findings are also captured
 |---|---:|
 | P0 | 1 |
 | P1 | 2 |
-| P2 | 8 |
-| P3 | 3 |
-| **TOTAL actionable** | **14** |
+| P2 | 9 |
+| P3 | 4 |
+| **TOTAL actionable** | **16** |
 
 Findings machine-readable: `artifacts/findings.json`.

@@ -245,6 +245,38 @@
       "risk": "Low",
       "dependencies": [],
       "existing_plan_relation": "new (extends K-15)"
+    },
+    {
+      "id": "PERF-D1-003",
+      "title": "Library full-load paginated scan has no covering index for ORDER BY category, name",
+      "status": "STATIC-CONFIRMED",
+      "priority": "P2",
+      "surface": "src/lib/repositories/component-library-repository.ts:561-575",
+      "impact": "Legacy full-library load paginates 1000 rows/page ordered by (category, name) with no supporting index; ~10 full workspace scans at Large tier (10000 items)",
+      "evidence": ["component-library-repository.ts:561-575 while-loop", ":542,555,570 ORDER BY category,name", "migrations 0026 + 0083 confirm no (workspace_id, category, name) index"],
+      "source": ["src/lib/repositories/component-library-repository.ts:542,555,561-575,293", "migrations/0026_cost_library_indexes.sql:67-73", "migrations/0083_component_library_browse_cursor_index.sql:1-3"],
+      "root_cause": "Browse cursor index from 0083 not used by legacy full-load path",
+      "recommendation": "Confirm with EXPLAIN QUERY PLAN; migrate path to cursor index OR add (workspace_id, lifecycle_state, category, name) compound index with EXPLAIN before/after proof",
+      "effort": "S/M",
+      "risk": "Low/Medium",
+      "dependencies": ["EXPLAIN QUERY PLAN BLOCKED (W0-6)"],
+      "existing_plan_relation": "new"
+    },
+    {
+      "id": "PERF-D1-004",
+      "title": "Component-source guard issues 15+ json_extract correlations per propagation job",
+      "status": "STATIC-CONFIRMED",
+      "priority": "P3",
+      "surface": "src/lib/component-library/template-propagation-d1.ts:472-519",
+      "impact": "Each propagation job batch includes 2 guards with ~15 json_extract predicates each over 3 joined tables; scales with components-per-template × active instances",
+      "evidence": ["template-propagation-d1.ts:472-502 component-source guard", ":503-519 row-revision guard"],
+      "source": ["src/lib/component-library/template-propagation-d1.ts:472-519"],
+      "root_cause": "JSON-driven guard pattern matching field-by-field",
+      "recommendation": "Confirm with EXPLAIN; if hot, pre-resolve expected array via WITH expected(...) AS (SELECT ... FROM json_each(?)) CTE",
+      "effort": "M",
+      "risk": "Medium",
+      "dependencies": ["EXPLAIN BLOCKED (W0-6)", "K-10 fanout proof"],
+      "existing_plan_relation": "new (sub-finding of K-10)"
     }
   ],
   "rejected": [
@@ -254,8 +286,8 @@
     {"id": "REJ-04", "claim": "Static page Worker cache duplicates ASSETS binding", "reason": "ASSETS serves JS/CSS/images pre-Worker; Worker cache is for HTML route responses"}
   ],
   "summary": {
-    "by_status": {"STATIC-CONFIRMED": 11, "STALE": 2, "REJECTED": 4},
-    "by_priority": {"P0": 1, "P1": 2, "P2": 8, "P3": 3},
-    "total_actionable": 14
+    "by_status": {"STATIC-CONFIRMED": 13, "STALE": 2, "REJECTED": 4},
+    "by_priority": {"P0": 1, "P1": 2, "P2": 9, "P3": 4},
+    "total_actionable": 16
   }
 }
