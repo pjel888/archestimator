@@ -9,7 +9,7 @@
 
 1. **`11-EXECUTIVE-SUMMARY.md`** — TL;DR; five largest risks; three best-return changes; readiness verdict; what NOT to optimize yet; one-page scorecard.
 2. **`00-AUDIT-METADATA.md`** — environment, what was/wasn't measured, scope decisions.
-3. **`05-FINDINGS-REGISTER.md`** — 14 actionable findings (1 P0 / 2 P1 / 8 P2 / 3 P3) + 4 rejected, each with `file:line` source, root cause, recommendation, constraints, effort, risk, dependencies, verification, and existing-plan relation.
+3. **`05-FINDINGS-REGISTER.md`** — 16 actionable findings (1 P0 / 2 P1 / 9 P2 / 4 P3) + 4 rejected, each with `file:line` source, root cause, recommendation, constraints, effort, risk, dependencies, verification, and existing-plan relation.
 4. **`01-EXISTING-AUDIT-RECONCILIATION.md`** — plan-by-plan status of the existing 33-plan improve-audit pack against 16 commits of drift (27 still valid, 2 verified DONE, 0 stale on core claims).
 5. **`06-QUICK-WINS-AND-HIGH-LEVERAGE-CHANGES.md`** — ranked XS-M changes with priority scores.
 6. **`07-OPTIMIZATION-ROADMAP.md`** — Wave 0-4 plan with dependencies, acceptance criteria, rollback, impact per item.
@@ -42,7 +42,9 @@
 - **P2 — PERF-FE-001**: virtualized row `style` prop rebuilt per render (existing Plan 022, confirmed current).
 - **P2 — PERF-FE-002**: global `AppProviders` ships 8 providers to every route incl. public marketing.
 - **P2 — PERF-EXP-001**: XLSX export does 2× memory copy + STORE-mode uncompressed ZIP.
+- **P2 — PERF-D1-003**: library full-load paginated scan has no covering index for `ORDER BY category, name` (~10 full workspace scans at Large tier).
 - **P2 — PERF-PUB-001**: recipient invitation emails block the publication request path (existing Plan 021, confirmed current).
+- **P3 — PERF-D1-004**: component-source guard issues 15+ `json_extract` correlations per propagation job.
 - **P3 — PERF-FE-003**: `useEstimateRowUpdateBroadcast` is dead code.
 - **P3 — PERF-DOC-001**: provider-era perf scripts still reference Supabase/psql.
 - **P3 — PERF-DOC-002**: performance budget doc has Postgres/Vercel/Supabase-era assumptions.

@@ -78,17 +78,33 @@ For each BLOCKED baseline, the lead provides the **exact command** in `10-BLOCKE
 
 ### STATIC-CONFIRMED query shapes (read from source)
 
-| Operation | File:line | Est. statements | Notes |
+Per-operation D1 statement counts (conservative — one `.prepare(...).first|.all|.run` or one element of `database.batch([...])` counts as one execution). Full detail in `artifacts/raw/d1-schema-intents-map.md`.
+
+| Operation | File:function | Est. statements | Notes |
 |---|---|---|---|
 | Authenticated workshop request (session+beta+profile) | `auth/better-auth-cloudflare.ts:317-319`, `auth/session.ts:65-77` | 3 | `disableCookieCache: true` forces session lookup |
-| Estimate row mutation (insert/move/edit/delete/restore) | `estimates/d1-intents/rows.ts` (mutations) | varies; bounded by `assertD1MutationStatementLimit` | intent + history + outbox batched atomically |
-| Estimate cold open (tree assembly) | `estimates/estimate-tree-read-repository.ts` | multiple SELECTs in parallel | not yet counted — BLOCKED on `cf:d1-runtime-proof` extension |
-| Restore-replay idempotent path | `rows.ts:3187-3191` | up to 100 single-row SELECTs | PERF-D1-001 |
-| Restore fresh path | `rows.ts:3201-3294` | ~10-15 batched statements | correct pattern |
-| `reconcileActivityOutbox` daily pass | `activity-outbox.ts:105-157` | up to 1,500 (500 × 3) | PERF-D1-002 |
-| 5-min drain cron | `worker.ts:205-237` | ≥4 even on no-op | PERF-CRON-001 |
-| Linked Template propagation job | `template-propagation-d1.ts:720-764` | ~5-10 per instance | batched, lease-token |
-| Web-vitals write | `observability-repository.ts:198-237` | 1 INSERT per POST | PERF-OBS-001 |
+| Insert estimate row | `rows.ts:1904 insertEstimateRowItemWithHistory` | ~13-16 | 6 pre-batch + 6-9 batch + 1 post |
+| Update (patch) estimate row | `rows.ts:2496` → `patchEstimateRowItem :2252` | ~13-20+ | grows with component fanout |
+| Delete estimate row (single) | `rows.ts:2533` | ~12 | |
+| Bulk delete rows | `rows.ts:2643` | ~11 | **more efficient per row than N singles** |
+| Move/reorder rows | `rows.ts:2760` | ~11 + N | one UPDATE per moved row |
+| Restore deleted rows (fresh) | `rows.ts:3104` | ~15 | correct batched pattern |
+| Restore deleted rows (replay) | `rows.ts:3187-3191` | ~5 + up to 100 | **N+1 — PERF-D1-001** |
+| Create estimate node | `nodes.ts:375` | ~10-11 | |
+| Estimate cold open (tab tree) | `estimate-tree-read-repository.ts:734` | **~6** | 4 reads + 2 RBAC |
+| Subtree lazy expand | `estimate-tree-read-repository.ts:823` | ~D + 3 | per depth level |
+| Publication create | `publication/actions.ts:876` → `admin-d1-client.ts:522` | ~8 (no retry) to ~21 (with retries) | source-revision retries ×3 |
+| Add shared-link recipients (N) | `publication/actions.ts:1453` | 1 + 2N | bounded-concurrency 4, NOT batched — **PERF-PUB-001** |
+| Library list (full) | `component-library-repository.ts:1289` | min 8; scales `ceil(item_count/1000)` | **PERF-D1-003** — no covering index |
+| Library list (lite / sidebar) | `getCurrentWorkspaceComponentLibraryLite :2395` | ~6 | |
+| Project dashboard (workshop render) | `workspace-repository.ts:2165` | **~18-22** | matches `perf:dashboard-query-count` target |
+| Linked Template propagation — single job (success) | `template-propagation-d1.ts:297` | ~19-21 per instance | |
+| Linked Template propagation — single job (failure) | `:659` | ~3 | |
+| Linked Template propagation — per cron tick | `:720` | 1 + K × (1 + ~20 success or 3 failure); default K=25 → ~526; worst K=100 → ~2,101 | batched per-job |
+| Linked Template Template-mutation fanout | `template-linked-mutation-d1.ts:13` | exactly 6 + K rows by statement 5 | set-based, not per-instance |
+| `reconcileActivityOutbox` daily pass | `activity-outbox.ts:105-157` | up to 1,500 (500 × 3) | **N+1 — PERF-D1-002** |
+| 5-min drain cron | `worker.ts:205-237` | ≥4 even on no-op | **PERF-CRON-001** |
+| Web-vitals write | `observability-repository.ts:198-237` | 1 INSERT per POST | **PERF-OBS-001** |
 
 ### BLOCKED (hosted credentials + representative data)
 
@@ -98,14 +114,20 @@ For each BLOCKED baseline, the lead provides the **exact command** in `10-BLOCKE
 
 ### D1 EXPLAIN candidates (read-shape inventory, not yet proof)
 
-Candidates for hosted `EXPLAIN QUERY PLAN` once authorized:
+Candidates for hosted `EXPLAIN QUERY PLAN` once authorized (full detail in `artifacts/raw/d1-schema-intents-map.md`):
 
-1. `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND id IN (placeholders)` — `rows.ts:3283`. Should hit covering index `idx_estimate_row_items_*`.
-2. `SELECT COUNT(*) FROM estimates WHERE project_id NOT IN (SELECT id FROM projects)` — `data-quality-repository.ts:44`. NOT IN anti-join; admin-only but verify plan.
-3. `reconcileActivityOutbox` verification SELECT + UPDATE — `activity-outbox.ts:127,136,146`.
-4. `MAX(updated_at) ... IN (placeholders)` optimistic-concurrency guards — `templates.ts:704-714`, `actions.ts:2178-2180,2389`.
-5. `json_each(?)` IN-expansion queries — `estimate-tree-read-repository.ts:382`, `templates.ts:548-607`.
-6. `reconcileTemplatePropagationJobs` lease-token claim UPDATE — `template-propagation-d1.ts:744-751`.
+1. **Library full-load paginated scan** — `component-library-repository.ts:561-575`. `ORDER BY category, name` with no covering index. **PERF-D1-003.**
+2. **Component-source guard with 15+ `json_extract` correlations** — `template-propagation-d1.ts:472-502`. Nested `json_each` over 3 tables. **PERF-D1-004.**
+3. **`MAX(sort_order)` correlated per node** — `rows.ts:1950-1954`, `nodes.ts:413-423`. Index lacks `sort_order`.
+4. **`json_each` IN-lists against instance mapping tables** — `rows.ts:1803-1816`. Issued on every bulk delete.
+5. **Template-link projection 4-CTE with window functions** — `estimate-tree-read-repository.ts:336-385`. SQLite materializes.
+6. **Activity history search with 8 `json_extract ... LIKE` OR'd** — `history-events.ts:270-288`. JSON scan over unbounded table.
+7. **Dashboard IN-with-EXISTS access probes** — `workspace-repository.ts:2467-2493, 1312-1345`. 3 correlated EXISTS per candidate.
+8. **`group_concat` over all active instances in mutation guard** — `template-linked-mutation-d1.ts:25-46`. O(instances/template) per mutation.
+9. **Restore-replay batched re-read** — `rows.ts:3283`. Should hit `idx_estimate_row_items_*`.
+10. **`reconcileActivityOutbox` SELECT + UPDATE** — `activity-outbox.ts:127,136,146`. (Will be eliminated by PERF-D1-002 fix.)
+11. **`MAX(updated_at) ... IN (placeholders)` optimistic-concurrency guards** — `templates.ts:704-714`, `actions.ts:2178-2180,2389`.
+12. **`reconcileTemplatePropagationJobs` lease-token claim UPDATE** — `template-propagation-d1.ts:744-751`.
 
 ### HYPOTHESIS — D1 proof scope (K-09)
 
