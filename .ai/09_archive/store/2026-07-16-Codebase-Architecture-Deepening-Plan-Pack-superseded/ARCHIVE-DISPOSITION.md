@@ -2,7 +2,7 @@
 
 **Archived:** 2026-07-16 by owner direction.  
 **Terminal state:** `CANCELLED / INCOMPLETE`.  
-**Superseded by:** `.ai/03_plans/2026-07-16/Master-Codebase-Architecture-Deepening-Plan-Pack/`.
+**Superseded by:** `.ai/09_archive/store/2026-07-16-Master-Codebase-Architecture-Deepening-Plan-Pack-complete/`.
 
 This pack is historical planning evidence, not implementation or release evidence. Its useful current-source findings were re-audited and dispositioned requirement-by-requirement in the master's `AUDIT-AND-DISPOSITION.md`.
 
@@ -11,4 +11,3 @@ The master rejects this pack's shallow coordinator, reducer, generic-repository,
 The whole folder is preserved at:
 
 `.ai/09_archive/store/2026-07-16-Codebase-Architecture-Deepening-Plan-Pack-superseded/`
-

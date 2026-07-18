@@ -4,7 +4,7 @@
 
 This is a fresh current-source audit of the two predecessor packs, not a merge-by-concatenation. The audit used:
 
-- repository source frozen at clean baseline `68b869c8f42c6894af7e6379be98b84013650916` after all previously active codebase-agent owners finished;
+- repository source rebaselined for implementation at clean revision `0a2667db998607917932ad7832e9a6a5bd7e066a` after all previously active codebase-agent owners finished; this revision adds only the final pack hardening commit above the audited product-source freeze `68b869c8f42c6894af7e6379be98b84013650916`;
 - scoped product-source working-tree status hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
 - scoped product-source diff hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
 - both predecessor plan packs and their validator receipts, frozen at:
@@ -21,6 +21,8 @@ The previously contested paths and all master-pack artifacts were clean at the f
 - `src/lib/estimates/d1-action-client.ts`
 
 Their landed changes preserved the audited seams: the Estimate façade remains 6,281 lines, the component move queue remains shallow, and the existing editable-row store remains the correct client-side nucleus. The earlier formal leases and Admin-owner handoff are obsolete: the prior tasks are terminal, `main` equals `origin/main`, and the worktree is clean at this freeze. The future implementation must nevertheless run in an exclusive write window. New agent contention or owned-path dirtiness invalidates the affected unit baseline and pauses that unit; it does not revive a historical lease.
+
+The active implementation goal now explicitly authorizes every exact test-source maintenance edit and focused test command in the canonical plan. That current-task grant clears the former test-source gate for `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-006`, `UNIT-007`, `UNIT-008`, and `UNIT-009`, including the three component-mutation ownership retargets, coordinator race assertions, and the twentieth Estimate security source-contract file discovered during execution rebaseline, without expanding unrelated production or assertion scope.
 
 Commit `866cbedc7` landed after the original consolidation and hardened duplicate-row retry convergence in `use-estimate-row-handlers.ts` and `use-estimate-row-mutations.ts`. It retains one mutation ID, source revision, target node/tab, and optimistic row across ambiguous retry; prevents duplicate optimistic insertion; and rolls back only the failed duplicate. `UNIT-008` now names those invariants and the source-contract test that must be maintained if selector/comparator ownership changes.
 

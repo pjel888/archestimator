@@ -8,26 +8,25 @@
 4. Run this architecture program in a standalone write window with no other write-capable codebase agent active. Do not overwrite unfamiliar changes. A dirty owned path or newly active writer pauses the affected unit and requires a refreshed baseline; it is not permission to stash, reset, revert, or fork a competing implementation.
 5. Use GitNexus impact before editing each named symbol. Treat the current graph as directional until its index is current; verify every decision in source.
 6. Keep domain behavior in one deep implementation. Do not introduce generic factories, compatibility re-exports, or pass-through wrappers.
-7. Product tests are user-controlled. Commands below are `TEST_PROPOSAL` only. A unit that requires test-source edits stays `PLANNED` until those exact edits are explicitly authorized; import maintenance never authorizes test execution or unrelated assertion expansion. Static source, scoped lint/type evidence, `git diff --check`, and plan/manifest validators are allowed.
+7. Product tests are user-controlled. The active implementation goal explicitly authorizes every exact test-source maintenance edit and focused command below as `TEST_TASK` work. That authority is limited to the named contracts and does not permit unrelated assertion or suite expansion. Static source, scoped lint/type evidence, `git diff --check`, and plan/manifest validators remain required supporting evidence.
 8. Record one sanitized receipt per unit under this pack's future `evidence/` directory, then update the manifest/ledger without claiming unrun tests.
 9. When a criterion says static evidence is insufficient, implementation without an authorized fresh test receipt is source-complete but not verified: keep the unit `IN_PROGRESS` and its criterion `FAIL`. Do not promote the unit or package from static validators alone.
 
 ## 2. Unit DAG
 
 ```text
-UNIT-001  component category resolver                 READY   ┐
-UNIT-002  internal Bearer boundary                    READY   ├─ SLICE-001
-UNIT-005  component-library D1 mutation modules       READY   ┘
-
-UNIT-003  Estimate-tree D1 read module                PLANNED (test-source edit authorization)
-UNIT-004  component-folder move coordinator           PLANNED (test-source edit authorization)
-UNIT-006  durable public rate-limit modules           PLANNED (test-source edit authorization)
-UNIT-007  typed Estimate D1 intent modules             PLANNED (test-source edit authorization)
-UNIT-008  provider-owned Estimate row editing          PLANNED (test-source edit authorization)
-UNIT-009  per-asset upload-removal results             PLANNED (test-source edit authorization; core correctness)
+UNIT-001  component category resolver                 VERIFIED    ┐
+UNIT-002  internal Bearer boundary                    VERIFIED    │
+UNIT-005  component-library D1 mutation modules       READY       │  ← next
+UNIT-003  Estimate-tree D1 read module                READY       ├─ SLICE-001
+UNIT-004  component-folder move coordinator           READY       │
+UNIT-006  durable public rate-limit modules           READY       │
+UNIT-007  typed Estimate D1 intent modules             READY       │
+UNIT-008  provider-owned Estimate row editing          READY       │
+UNIT-009  per-asset upload-removal results             READY       ┘
 ```
 
-`UNIT-001`, `UNIT-002`, and `UNIT-005` are mutually independent and are the only advertised ready units. No technical dependency edge is invented between the planned units; their remaining gates are exact test-source authorization boundaries. `UNIT-001` remains the sole exact start.
+All nine units are dependency-independent under the active goal's explicit test-source and test-execution authorization. No artificial dependency edge is invented; `UNIT-001` and `UNIT-002` are verified, `UNIT-005` is the sole exact next unit, and every later unit waits for a recorded `next_unit` advance.
 
 ## 3. Receipt Contract
 
@@ -48,7 +47,7 @@ Never store secrets, authorization headers, private URLs, raw provider output, o
 
 ## UNIT-001 — Compile the Component Category Resolver Once
 
-**Status:** `READY`
+**Status:** `VERIFIED`  
 **Depends on:** none  
 **Requirement:** `REQ-001`  
 **Risk:** `RISK-001`
@@ -78,7 +77,7 @@ Never store secrets, authorization headers, private URLs, raw provider output, o
 
 ### Test decision
 
-`TEST_PROPOSAL`: `bunx vitest run tests/vitest/component-category-folders.test.ts`. It is not authorized by this plan-pack task and must not run unless the implementation task grants test scope.
+`TEST_TASK`: `bunx vitest run tests/vitest/component-category-folders.test.ts`.
 
 ### Recovery
 
@@ -86,11 +85,11 @@ Revert only the four owned-path edits. Because the public convenience signature 
 
 ### Completion and next state
 
-After the source change and static checks, keep `UNIT-001` `IN_PROGRESS` until an explicitly authorized fresh `TEST-001` receipt proves `AC-001`; its criterion states static evidence is insufficient. Once verified, set `next_unit` to `UNIT-002` if it remains eligible. If it is stale or blocked, explicitly select another advertised ready unit in the manifest and ledger before editing.
+Verified by `evidence/UNIT-001.md`: the focused category-folder contract passed, TypeScript passed, scoped lint had no errors, scoped diff checks passed, and the three batch consumers contain no residual per-item wrapper call. `next_unit` is now `UNIT-002`.
 
 ## UNIT-002 — Centralize Production Upload Bearer Authorization
 
-**Status:** `READY`  
+**Status:** `VERIFIED`  
 **Depends on:** none  
 **Requirement:** `SEC-001` (auxiliary)  
 **Risk:** `RISK-002`
@@ -119,7 +118,7 @@ After the source change and static checks, keep `UNIT-001` `IN_PROGRESS` until a
 
 ### Test decision
 
-`TEST_PROPOSAL`: `bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-runtime-route.test.ts`. The critical invariant is unchanged route denial/configuration behavior; cheaper source inspection cannot prove every response branch.
+`TEST_TASK`: `bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-runtime-route.test.ts`. The critical invariant is unchanged route denial/configuration behavior; cheaper source inspection cannot prove every response branch.
 
 ### Recovery
 
@@ -127,18 +126,18 @@ Restore the three local helpers and delete the new shared file. No stored creden
 
 ### Completion and next state
 
-This auxiliary unit does not block core architecture completion. After the source change and static checks, keep it `IN_PROGRESS` until an explicitly authorized fresh `TEST-002` receipt proves `AC-002`. If it is deferred instead, record the accepted risk. In either case, advance only after the manifest/ledger explicitly records the next advertised ready unit.
+Verified by `evidence/UNIT-002.md`: all three focused route suites passed, TypeScript and scoped lint passed, route-local helpers are absent, and response/authentication contracts remain unchanged. `next_unit` is now `UNIT-005`.
 
 ## UNIT-009 — Make Upload Removal Per-Asset and Truthful
 
-**Status:** `PLANNED`
+**Status:** `READY`
 **Depends on:** none  
 **Requirement:** `DATA-001` (core correctness)
 **Risk:** `RISK-009`
 
 ### Test-source authorization gate
 
-The existing `tests/vitest/upload-removal-claims.test.ts` asserts the current collapsed result/status contract and must change with the production result type. Promote this unit only when the implementation task explicitly authorizes that one-file contract update. The authorization does not allow route-test expansion or test execution.
+Satisfied by the active implementation goal for the exact result-contract update in `tests/vitest/upload-removal-claims.test.ts` and its focused execution. Route-test expansion remains outside this unit.
 
 ### Owned paths
 
@@ -168,7 +167,7 @@ The existing `tests/vitest/upload-removal-claims.test.ts` asserts the current co
 
 ### Test decision
 
-`TEST_PROPOSAL`: under separate edit authorization, update `tests/vitest/upload-removal-claims.test.ts` for mixed `[referenced, free, already removed]`, all-referenced, all-free, and zero-match inputs. Run that file only under separate execution authorization. Route response assertions are outside this unit unless separately authorized.
+`TEST_TASK`: update and run `tests/vitest/upload-removal-claims.test.ts` for mixed `[referenced, free, already removed]`, all-referenced, all-free, and zero-match inputs. Route response assertions remain outside this unit.
 
 ### Recovery
 
@@ -176,24 +175,24 @@ Restore the previous claim result type, whole-set query, and three route respons
 
 ### Completion and next state
 
-This core correctness unit blocks architecture completion. After the source change and static checks, keep it `IN_PROGRESS` until an explicitly authorized fresh `TEST-009` receipt proves mixed-batch classification and truthful route results. It cannot be deferred while preserving the package outcome.
+This core correctness unit blocks architecture completion. After the source change and static checks, keep it `IN_PROGRESS` until the authorized fresh `TEST-009` receipt proves mixed-batch classification and disjoint result sets, and scoped static route-branch evidence proves every handler maps those sets truthfully. The focused test does not claim route-response coverage. The unit cannot be deferred while preserving the package outcome.
 
 ## UNIT-003 — Extract the Concrete Estimate-Tree D1 Read Module
 
-**Status:** `PLANNED`
+**Status:** `READY`
 **Depends on:** none  
 **Requirement:** `REQ-002`  
 **Risk:** `RISK-003`
 
 ### Authorization gate
 
-The extraction requires import-only maintenance in two focused tests and source-contract maintenance in two more. The current plan authoring task did not authorize test-source edits. Promote this unit to `READY` only when the implementation task explicitly authorizes those four narrow maintenance edits; that authorization does not imply permission to run tests or expand assertions.
+Satisfied by the active implementation goal for the four narrow import/source-contract maintenance edits and the focused test command. Unrelated assertion expansion remains outside scope.
 
 ### Owned paths
 
 - new `src/lib/estimates/estimate-tree-read-repository.ts`
 - `src/lib/repositories/workspace-repository.ts`
-- `tests/vitest/workspace-repository-estimate-tree.test.ts` (import retarget only)
+- `tests/vitest/workspace-repository-estimate-tree.test.ts` (builder/type import and source-contract ownership retarget)
 - `tests/vitest/proposal-export-tab-grouping.test.ts` (import retarget only)
 - `tests/vitest/estimate-tabs-domain.test.ts` (source-contract retarget only)
 - `tests/vitest/live-estimate-node-route.test.ts` (source-contract retarget only)
@@ -203,7 +202,7 @@ The extraction requires import-only maintenance in two focused tests and source-
 1. Create a concrete D1 read module. It owns the current Estimate tab/node/row query helpers, load-limit normalization, legacy-tab normalization, optional adjustment read, tree/subtree construction, and batched tab grouping.
 2. Export only the D1-level operations required by `workspace-repository.ts` plus the pure `buildEstimateTree` and `groupEstimateTabTrees` utilities used directly by focused consumers/tests.
 3. Keep current workspace/project lookup, current-user context, edit/access decisions, and public route orchestration in `workspace-repository.ts`. The new module must not import `workspace-repository.ts`.
-4. Under explicit test-source edit authorization, retarget the two pure-builder/type imports to the new module and retarget the two source-contract assertions to the new ownership boundary. Do not expand test behavior or re-export the builders from `workspace-repository.ts`.
+4. Under the active test-source authorization, retarget the pure-builder/type imports to the new module and retarget every source-contract assertion that names the old ownership boundary, including the source read in `workspace-repository-estimate-tree.test.ts`. Do not expand unrelated test behavior or re-export the builders from `workspace-repository.ts`.
 5. Preserve all public orchestration signatures and legacy-fallback conditions. Do not remove `clearEstimateRouteContextProcessCache` or `readEstimateNodeRouteContextD1FastPath` in this unit; their current source-contract tests make that a separate cleanup decision.
 6. Do not change query columns, ordering, limits, access checks, trace labels, tab fallback semantics, selected-node behavior, or row-total calculations.
 
@@ -218,7 +217,7 @@ The extraction requires import-only maintenance in two focused tests and source-
 
 ### Test decision
 
-`TEST_PROPOSAL`: `bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts tests/vitest/live-estimate-node-route.test.ts`. The critical invariant is byte-equivalent tree/tab output and legacy fallback; import/type inspection alone cannot prove it.
+`TEST_TASK`: `bunx vitest run tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/proposal-export-tab-grouping.test.ts tests/vitest/estimate-tabs-domain.test.ts tests/vitest/live-estimate-node-route.test.ts`. The critical invariant is byte-equivalent tree/tab output and legacy fallback; import/type inspection alone cannot prove it.
 
 ### Recovery
 
@@ -226,11 +225,11 @@ Move the extracted implementation back into `workspace-repository.ts` and restor
 
 ### Completion and next state
 
-After extraction and static checks, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-003` receipt proves tree/tab/legacy-output parity. Record the separate test-source authorization receipt and refresh the package baseline. The package remains `CONDITIONALLY_READY` until every planned unit's test-source gate is truthfully resolved.
+After extraction and static checks, keep the unit `IN_PROGRESS` until a fresh authorized `TEST-003` receipt proves tree/tab/legacy-output parity. Record the receipt and refresh the package baseline; the current implementation goal has already cleared the former test-source gate.
 
 ## UNIT-004 — Deepen the Component-Folder Move Coordinator
 
-**Status:** `PLANNED`  
+**Status:** `READY`  
 **Depends on:** none  
 **Requirement:** `REQ-003`  
 **Risk:** `RISK-004`
@@ -241,14 +240,14 @@ The earlier Component/Workshop Library owner is finished and both adapters are c
 
 ### Test-source authorization gate
 
-Retargeting `tests/vitest/per-item-mutation-queue.test.ts` is required source maintenance, but the current plan-only task did not authorize test-source edits. Promote this unit only when the implementation task explicitly authorizes that one-file contract/import retarget. Test-source edit authorization does not authorize executing the test or expanding its assertions.
+Satisfied by the active implementation goal for the one-file contract/import retarget, the exact stale-result coordinator assertions required by `AC-004`, and focused execution. Unrelated assertion expansion remains outside scope.
 
 ### Owned paths
 
 - replace `src/components/workshop/component-library/per-item-mutation-queue.ts` with `component-folder-move-coordinator.ts`
 - `src/components/workshop/component-library/index.tsx`
 - `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
-- `tests/vitest/per-item-mutation-queue.test.ts` (contract/import retarget only, under explicit test-source authorization)
+- `tests/vitest/per-item-mutation-queue.test.ts` (retarget to the coordinator and prove stale success, stale failure, and newest-failure rollback)
 
 ### Exact change
 
@@ -257,6 +256,7 @@ Retargeting `tests/vitest/per-item-mutation-queue.test.ts` is required source ma
 3. Its `move` call accepts `componentId`, `currentConfirmedFolderId`, `targetFolderId`, and a persistence callback. It returns a discriminated outcome containing attempted target, authoritative confirmed target, and whether the caller should keep or roll back its optimistic view.
 4. Seed confirmed state on the first pending move only. A successful stale generation advances confirmed state but cannot overwrite the UI's newer optimistic target. Only the newest failed generation requests rollback to the authoritative confirmed target.
 5. Each adapter keeps local cache writes, selection, pending display, toast wording, and permission handling. Delete its generation/confirmed/queue refs and duplicated stale-result branches.
+6. Replace the queue-only test contract with coordinator assertions that retain same-component serialization and different-component independence while adding: an older success cannot replace the newest optimistic target; an older failure cannot roll back or block its successor; and only the newest failure requests rollback to the latest confirmed target.
 
 ### Acceptance evidence
 
@@ -267,7 +267,7 @@ Retargeting `tests/vitest/per-item-mutation-queue.test.ts` is required source ma
 
 ### Test decision
 
-`TEST_PROPOSAL`: after separate test-source edit authorization retargets `tests/vitest/per-item-mutation-queue.test.ts`, run that one focused file only if test execution is also explicitly authorized. No browser/render suite is proposed.
+`TEST_TASK`: retarget and run `tests/vitest/per-item-mutation-queue.test.ts`. No browser/render suite is included.
 
 ### Recovery
 
@@ -288,11 +288,18 @@ After both real adapters use the coordinator and static checks pass, keep the un
 
 The Component Variant/Workshop Library write-path owner is finished and `actions.ts` is clean at baseline. Immediately before editing, confirm the standalone write window, refresh the action inventory, and rerun GitNexus impact on the named entrypoints. New contention or material source drift pauses and invalidates this unit.
 
+### Test-source authorization gate
+
+Satisfied by the active implementation goal for the three exact ownership/source-contract retargets discovered during execution preflight and the eight focused test files listed below. The assertions move with the SQL/helper ownership; their behavior and unrelated migration contracts do not expand.
+
 ### Owned paths
 
 - new `src/lib/component-library/component-mutation-d1.ts`
 - new `src/lib/component-library/folder-mutation-d1.ts`
 - `src/lib/component-library/actions.ts`
+- `tests/vitest/component-library-versioning-schema.test.ts` (retarget moved price-option/history SQL and helper ownership only)
+- `tests/vitest/component-library-cost-governance-actions.test.ts` (retarget moved cost-entry/history SQL ownership only)
+- `tests/vitest/mass-deletion-action-contract.test.ts` (keep public archive action/revalidation assertions on `actions.ts`; retarget moved hash/SQL ownership only)
 
 Existing imported helper/type modules are read-only inputs to this unit. If the move proves that an existing helper must change, stop before editing it, add that exact path and rationale to this pack, refresh hashes, and revalidate the unit; “direct server-side imports required” is not an open-ended ownership grant.
 
@@ -305,6 +312,7 @@ Existing imported helper/type modules are read-only inputs to this unit. If the 
 5. Keep transaction-coupled history/receipts/fanout inside the D1 modules. Do not split them into post-write callbacks.
 6. Keep existing template mutation modules untouched. Do not combine the two new modules into another large `write-repository.ts`.
 7. After all calls move, delete the relocated private SQL planners/helpers from `actions.ts`; no pass-through wrapper may remain there.
+8. Retarget only the three source-contract tests that currently require moved SQL/helpers to remain in `actions.ts`. Keep public action names, auth, revalidation, migration, and repository assertions on their current owning sources.
 
 ### Acceptance evidence
 
@@ -317,7 +325,7 @@ Existing imported helper/type modules are read-only inputs to this unit. If the 
 
 ### Test decision
 
-`TEST_PROPOSAL`: `bunx vitest run tests/vitest/component-library-update-atomicity.test.ts tests/vitest/component-library-folder-actions.test.ts tests/vitest/component-library-actions-revalidation.test.ts`. The critical invariant is atomic write/fanout plus unchanged action revalidation; source relocation evidence is insufficient.
+`TEST_TASK`: `bunx vitest run tests/vitest/component-library-update-atomicity.test.ts tests/vitest/component-library-folder-actions.test.ts tests/vitest/component-library-actions-revalidation.test.ts tests/vitest/component-library-d1-bind-budget.test.ts tests/vitest/component-permanent-delete-action.test.ts tests/vitest/component-library-versioning-schema.test.ts tests/vitest/component-library-cost-governance-actions.test.ts tests/vitest/mass-deletion-action-contract.test.ts`. The critical invariant is atomic write/fanout, archive bind limits, permanent-delete replay, unchanged action revalidation, and truthful ownership assertions; source relocation evidence alone is insufficient.
 
 ### Recovery
 
@@ -329,7 +337,7 @@ The source move is complete only when both aggregate modules are deep and all re
 
 ## UNIT-006 — Extract Durable Public Rate-Limit Infrastructure
 
-**Status:** `PLANNED`
+**Status:** `READY`
 **Depends on:** none  
 **Requirement:** `SEC-002`  
 **Risk:** `RISK-006`
@@ -340,7 +348,7 @@ No security, Client Portal, Publisher, or compliance contention exists at the cu
 
 ### Test-source authorization gate
 
-Deleting the old `public-repository.ts` rate-limit exports and moving route/handler imports requires the exact mock/import/source-contract retargets listed below. Promote this unit only when those maintenance edits are explicitly authorized. That authorization does not permit test execution or assertion expansion.
+Satisfied by the active implementation goal for the exact mock/import/source-contract retargets and focused test execution listed below. Unrelated assertion expansion remains outside scope.
 
 ### Owned paths
 
@@ -402,7 +410,7 @@ Deleting the old `public-repository.ts` rate-limit exports and moving route/hand
 
 ### Test decision
 
-`TEST_PROPOSAL`: after separately authorized mock/import retargets, run `bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts` only under explicit execution authorization. The critical invariant is identical durable lockout and clearing behavior; static import proof cannot establish it.
+`TEST_TASK`: after the exact mock/import retargets, run `bunx vitest run tests/vitest/client-portal-public-rate-limit.test.ts tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-password-lockout-route.test.ts`. The critical invariant is identical durable lockout and clearing behavior; static import proof cannot establish it.
 
 ### Recovery
 
@@ -414,7 +422,7 @@ After the original blocks are deleted and static checks pass, keep the unit `IN_
 
 ## UNIT-007 — Replace the Stringly Estimate D1 Façade with Typed Intent Modules
 
-**Status:** `PLANNED`  
+**Status:** `READY`  
 **Depends on:** none  
 **Requirement:** `REQ-005`  
 **Risk:** `RISK-007`
@@ -425,7 +433,7 @@ The Estimate/Component Variant and Admin programs are terminal, and every owned 
 
 ### Test-source authorization gate
 
-Deleting `d1-action-client.ts` requires the exact import/mock/source-contract retargets listed below. Promote this unit only when the implementation task explicitly authorizes those maintenance edits. Test-source authorization does not authorize execution or unrelated assertion expansion.
+Satisfied by the active implementation goal for the exact import/mock/source-contract retargets and twenty-file focused test execution listed below. Unrelated assertion expansion remains outside scope.
 
 ### Admin map scope boundary
 
@@ -468,6 +476,7 @@ Deleting `d1-action-client.ts` requires the exact import/mock/source-contract re
   - `tests/vitest/estimate-sheet-version-control-actions.test.ts`
   - `tests/vitest/estimate-template-trusted-insert.test.ts`
   - `tests/vitest/mass-deletion-contract.test.ts`
+  - `tests/vitest/security-findings-auth-contracts.test.ts`
   - `tests/vitest/upload-domain-contracts.test.ts`
 
 ### Exact change
@@ -513,7 +522,7 @@ The dispatcher-to-export mapping is fixed; the executor may use private helpers 
 | `preview_bulk_delete_estimate_sheets` | `bulk-sheets.ts:previewBulkDeleteEstimateSheets` |
 | `execute_bulk_delete_estimate_sheets` | `bulk-sheets.ts:executeBulkDeleteEstimateSheets` |
 
-The faux-query table families are fixed as well: `estimates` reads/inserts move to `estimate-records.ts`; `estimate_tabs` to `tabs.ts`; `estimate_nodes` to `nodes.ts`; `estimate_row_items` to `rows.ts`; `estimate_sheet_events` to `history-events.ts`; and the `cost_library_items`, price-option, and cost-entry reads used only to validate or materialize an Estimate row move to private `rows.ts` helpers. Cross-estimate component-impact projections belong only to `component-impact.ts`. Preserve the existing exported `prepareHistoryEventInsert`, `insertHistoryEvent`, and `runMutationWithHistory` names when moving them to `history-events.ts` so direct consumers do not invent another vocabulary.
+The faux-query table families are fixed as well: `estimates` reads/inserts move to `estimate-records.ts`; `estimate_tabs` to `tabs.ts`; `estimate_nodes` to `nodes.ts`; `estimate_row_items` to `rows.ts`; `estimate_sheet_events` to `history-events.ts`; and the `cost_library_items`, price-option, and cost-entry reads used only to validate or materialize an Estimate row move to private `rows.ts` helpers. The `profiles` read used only by `resolveActivityActorLabels` moves to a private `history-events.ts` actor-label helper. Cross-estimate component-impact projections belong only to `component-impact.ts`. Preserve the existing exported `prepareHistoryEventInsert`, `insertHistoryEvent`, and `runMutationWithHistory` names when moving them to `history-events.ts` so direct consumers do not invent another vocabulary.
 
 4. Preserve `src/lib/estimates/mutation-receipts.ts` as the existing receipt module; import it where needed and do not duplicate it.
 5. Migrate in four fixed checkpoints within this unit: access/record calls; tab/node/template/bulk-sheet calls; row/component/history calls; proof-router and reusable-source calls. At each checkpoint, delete the retired façade branch before proceeding.
@@ -525,7 +534,9 @@ The faux-query table families are fixed as well: `estimates` reads/inserts move 
 
 ### Acceptance evidence
 
-- `rg -n "EstimateActionD1Query|EstimateActionsD1Client|createEstimateActionsD1Client|dataStore\.(call|from|select)\(" src/lib/estimates/actions.ts src/lib/reusable-sources/actions.ts src/lib/estimates` is empty.
+- `rg -n "d1-action-client|EstimateActionD1Query|EstimateActionsD1Client|createEstimateActionsD1Client|callEstimateAction" src/lib/estimates src/lib/reusable-sources/actions.ts src/lib/cloudflare/estimate-history-proof-router.ts src/lib/admin/estimate-system-knowledge-data.ts tests/vitest` is empty.
+- `rg -n '(dataStore|[A-Za-z_][A-Za-z0-9_]*(Query|Client))\.(call|from|select)\(' src/lib/estimates/actions.ts src/lib/reusable-sources/actions.ts src/lib/cloudflare/estimate-history-proof-router.ts` is empty.
+- `rg -n '"(profiles|estimates|estimate_tabs|estimate_nodes|estimate_row_items|estimate_sheet_events|cost_library_items|cost_library_item_price_options|cost_library_item_variant_cost_entries)"' src/lib/estimates/actions.ts src/lib/reusable-sources/actions.ts src/lib/cloudflare/estimate-history-proof-router.ts` is empty.
 - `rg -n "EstimateActionsD1Client|(client|viewerClient|strangerClient)\.call\(" src/lib/cloudflare/estimate-history-proof-router.ts` is empty; unrelated uses such as `hasOwnProperty.call` are outside the façade residue check.
 - `rg -n "d1-action-client|EstimateActionD1Query|EstimateActionsD1Client" src/lib/admin/estimate-system-knowledge-data.ts` is empty, the `sources.persistence` entry names the existing `src/lib/estimates/d1-intents/database.ts`, and its note names sibling typed-intent ownership.
 - `git diff -- src/lib/admin/estimate-system-knowledge-data.ts` changes only the `sources.persistence` entry.
@@ -538,7 +549,7 @@ The faux-query table families are fixed as well: `estimates` reads/inserts move 
 
 ### Test decision
 
-`TEST_PROPOSAL`: after separately authorized import/mock/source-contract retargets, run exactly the nineteen listed files only under explicit execution authorization. They cover access, projections, statement batching, atomic row/history/revision behavior, templates, authz, mass deletion, and upload-domain coupling; no broader suite is proposed.
+`TEST_TASK`: after the exact import/mock/source-contract retargets, run exactly the twenty listed files. They cover access, projections, statement batching, atomic row/history/revision behavior, templates, authz, security source contracts, mass deletion, and upload-domain coupling; no broader suite is included.
 
 ### Recovery
 
@@ -546,11 +557,11 @@ Recover at the last completed checkpoint by restoring the old family branch and 
 
 ### Completion and next state
 
-After the old file and every shallow call surface are gone, the Admin map points to the new concrete persistence boundary, and static checks pass, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-007` receipt proves the Estimate write/history/revision invariants. On verification, refresh `UNIT-008` against the stable client-callable Server Action adapters; it still requires its own exact test-source authorization.
+After the old file and every shallow call surface are gone, the Admin map points to the new concrete persistence boundary, and static checks pass, keep the unit `IN_PROGRESS` until the authorized fresh `TEST-007` receipt proves the Estimate write/history/revision invariants. On verification, refresh `UNIT-008` against the stable client-callable Server Action adapters.
 
 ## UNIT-008 — Deepen the Existing Estimate Row Editing Store
 
-**Status:** `PLANNED`  
+**Status:** `READY`
 **Depends on:** none  
 **Requirement:** `REQ-006`  
 **Risk:** `RISK-008`
@@ -561,7 +572,7 @@ The previous Estimate-row owner is finished and every owned path is clean at bas
 
 ### Test-source authorization gate
 
-`tests/vitest/estimate-sheet-unit-003-contracts.test.ts` asserts the comparator and reconciliation source shape that this unit deliberately changes. Promote this unit only when the implementation task explicitly authorizes retargeting that exact source-contract test to selector/store ownership. The edit may remove superseded source-string assertions and add equivalent intent/store assertions; it does not authorize executing tests or unrelated assertion expansion.
+Satisfied by the active implementation goal for retargeting the exact source-contract test to selector/store ownership, adding the narrow linked-Library shared-definition assertion needed to close the current proof gap, and running the two focused files. Unrelated assertion expansion remains outside scope.
 
 ### Owned paths
 
@@ -573,6 +584,7 @@ The previous Estimate-row owner is finished and every owned path is clean at bas
 - `src/components/workshop/estimate-sheet/rows/branch.tsx`
 - `src/components/workshop/EstimateSheetContent.tsx`
 - `tests/vitest/estimate-sheet-unit-003-contracts.test.ts` (comparator/reconciliation contract retarget only, under explicit test-source authorization)
+- `tests/vitest/estimate-sheet-library-insert.test.tsx` (preserve duplicate/row-owned/shared-project coverage and add only the missing linked-Library shared-definition assertion if source inspection confirms it remains absent)
 
 ### Exact change
 
@@ -600,7 +612,7 @@ The previous Estimate-row owner is finished and every owned path is clean at bas
 
 ### Test decision
 
-`TEST_PROPOSAL`: after the separately authorized source-contract retarget, run `tests/vitest/estimate-sheet-unit-003-contracts.test.ts` and `tests/vitest/estimate-sheet-library-insert.test.tsx` only under explicit execution authorization. Together they must cover the four commit intents, failed rollback, selector isolation, linked-versus-row-owned routing, and the retained duplicate retry/rollback invariants. A render-count probe remains proposal-only and cannot become a mandatory gate without explicit user authorization.
+`TEST_TASK`: after the source-contract retarget and the narrow linked-Library shared-definition proof repair, run `tests/vitest/estimate-sheet-unit-003-contracts.test.ts` and `tests/vitest/estimate-sheet-library-insert.test.tsx`. Together they must cover the four commit intents, failed rollback, selector isolation, both linked-Library and shared-project definition routing, row-owned selected-variant routing, and the retained duplicate retry/rollback invariants. A render-count probe remains outside the mandatory gate.
 
 ### Recovery
 
@@ -608,7 +620,7 @@ Restore the prior hook/table routing and the earlier editable-row store together
 
 ### Completion and next state
 
-After the source change and static checks, keep the unit `IN_PROGRESS` until an explicitly authorized fresh `TEST-008` receipt proves the interaction and duplicate-retry invariants. After verification, reconcile all unit receipts, close or accept residual risks, rerun static plan/manifest/reference/hash checks, and promote the package only if every core requirement has a verified unit. Archive the master only after truthful `COMPLETE / ACHIEVED` status.
+After the source change and static checks, keep the unit `IN_PROGRESS` until the authorized fresh `TEST-008` receipt proves the interaction and duplicate-retry invariants. After verification, reconcile all unit receipts, close or accept residual risks, rerun static plan/manifest/reference/hash checks, and promote the package only if every core requirement has a verified unit. Archive the master only after truthful `COMPLETE / ACHIEVED` status.
 
 ## 4. Closeout Verification
 

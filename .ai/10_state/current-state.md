@@ -68,6 +68,7 @@ task-specific history. Do not linear-read the detailed history below.
 - **Plan-pack execution:** an authorized pack is an execution commitment, not a
   blocker registry. Resolve every repository-controlled prerequisite in the run;
   only exact prohibited external actions may remain as narrow release boundaries.
+- **Master architecture deepening:** `.ai/09_archive/store/2026-07-16-Master-Codebase-Architecture-Deepening-Plan-Pack-complete/` is the canonical completed archive. All nine units are verified; the terminal tuple is `IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED / ARCHIVED / ACHIEVED`.
 - **Admin Founder Homebase:** `.ai/03_plans/2026-07-12/Archestimator-Admin-Founder-Homebase-Supplement-Plan-Pack/` is the canonical consolidated `/admin` plan. It absorbs the July 11 Admin control-plane predecessor, starts at `13-IMPLEMENTATION-ROADMAP.md` `UNIT-001`, prioritizes founder shell/search/Action Inbox/customer/release/data-quality value before advanced campaigns, and preserves the user test authorization gate.
 - **Estimate Sheet MVP audit:** `.ai/09_archive/store/2026-07-16-Component-Variant-And-Estimate-Row-Audit-complete/` is the canonical completed archive. Its terminal tuple is `IMPLEMENTATION_READY / COMPLETE / VERIFIED / ACHIEVED / NOT_READY / ARCHIVED`; release remains `NOT_READY` only because current-source hosted D1/R2/browser proof was not produced.
 - **Proposals:** `.ai/09_archive/store/2026-07-12-Proposals-Page-Audit-unresolved/`
@@ -76,6 +77,12 @@ task-specific history. Do not linear-read the detailed history below.
   any future implementation requires a new active execution surface.
 
 <!-- FAST PATH:END -->
+
+### 2026-07-17 - Master Codebase Architecture Deepening Complete
+
+- `.ai/09_archive/store/2026-07-16-Master-Codebase-Architecture-Deepening-Plan-Pack-complete/` is the canonical completed archive after all nine implementation units passed their scoped evidence gates and final adversarial review.
+- Terminal truth is `IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED / ARCHIVED / ACHIEVED`; release and hosted deployment readiness were not evaluated or claimed.
+- The two July 16 predecessor packs remain archived as superseded historical evidence and now point to this completed successor.
 
 ### 2026-07-12 - Lean Estimate Sheet Performance Refactor
 

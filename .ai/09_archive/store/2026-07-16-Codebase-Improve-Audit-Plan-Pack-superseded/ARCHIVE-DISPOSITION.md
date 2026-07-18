@@ -2,7 +2,7 @@
 
 **Archived:** 2026-07-16 by owner direction.  
 **Terminal state:** `CANCELLED / INCOMPLETE`.  
-**Superseded by:** `.ai/03_plans/2026-07-16/Master-Codebase-Architecture-Deepening-Plan-Pack/`.
+**Superseded by:** `.ai/09_archive/store/2026-07-16-Master-Codebase-Architecture-Deepening-Plan-Pack-complete/`.
 
 This pack is historical planning evidence, not implementation or release evidence. The master rechecked all twenty units against current source and records an explicit merge, narrowing, rejection, deferral, or existing-owner route for each one in `AUDIT-AND-DISPOSITION.md`.
 
