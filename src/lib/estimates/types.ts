@@ -1,4 +1,5 @@
 import type { EstimateRowMetadata } from "@/lib/estimates/express-components";
+import type { EstimateTemplateLinkProjection } from "@/lib/component-library/template-link-types";
 
 export type EstimateRowItemSource = "project" | "supplier" | "library";
 export type EstimateRowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "detached" | "source-changed";
@@ -166,6 +167,7 @@ export type EstimateTreeNode = {
   estimateRowItems?: EstimateRowItem[];
   childrenLoaded?: boolean;
   rowItemsLoaded?: boolean;
+  templateLink?: EstimateTemplateLinkProjection;
 };
 
 export type EstimateTabSummary = {

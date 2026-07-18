@@ -52,6 +52,8 @@ describe("Cloudflare scheduled upload jobs", () => {
     expect(source).toContain("runCloudflareScheduledUploadJobs");
     expect(source).toContain('CLIENT_PORTAL_NOTIFICATION_DISPATCH_CRON = "*/5 * * * *"');
     expect(source).toContain("enqueuePendingClientPortalNotifications(env)");
+    expect(source).toContain("reconcileExpiredTemplateMutationIntents(env.ARCH_DB)");
+    expect(source).toContain("reconcileTemplatePropagationJobs(env.ARCH_DB)");
     expect(source).toContain("queue(batch");
     expect(source).toContain("runCloudflareUploadJobQueueBatch");
     expect(source).toContain("openNextWorker.fetch(request, env, ctx)");

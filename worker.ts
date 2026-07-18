@@ -5,6 +5,8 @@ import {
 import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
 import { reconcileActivityOutbox } from "./src/lib/activity/activity-outbox";
 import { reconcileActivationOutbox } from "./src/lib/onboarding/activation-outbox";
+import { reconcileTemplatePropagationJobs } from "./src/lib/component-library/template-propagation-d1";
+import { reconcileExpiredTemplateMutationIntents } from "./src/lib/component-library/template-intent-recovery-d1";
 import { enqueuePendingClientPortalNotifications, runClientPortalNotificationQueueBatch, type ClientPortalNotificationQueueEnv, CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME } from "./src/lib/cloudflare/client-portal-notification-queue";
 import { purgeExpiredActivationData } from "./src/lib/onboarding/activation-retention";
 import { normalizePathForLog } from "./src/lib/observability/safe-path";
@@ -202,10 +204,17 @@ export default {
 
     if (cronName === CLIENT_PORTAL_NOTIFICATION_DISPATCH_CRON) {
       ctx.waitUntil(
-        enqueuePendingClientPortalNotifications(env).then((summary) => {
-          console.log("Client Portal notification outbox enqueue completed", JSON.stringify(summary));
+        Promise.all([
+          enqueuePendingClientPortalNotifications(env),
+          reconcileExpiredTemplateMutationIntents(env.ARCH_DB),
+          reconcileTemplatePropagationJobs(env.ARCH_DB),
+        ]).then(([notificationSummary, templateIntentSummary, templatePropagationSummary]) => {
+          console.log("Client Portal notification outbox enqueue completed", JSON.stringify(notificationSummary));
+          console.log("Template mutation intent reconciliation completed", JSON.stringify(templateIntentSummary));
+          console.log("Template propagation reconciliation completed", JSON.stringify(templatePropagationSummary));
+          const summary = { notificationSummary, templateIntentSummary, templatePropagationSummary };
           return recordCronRunEvent({
-            cronName: `client-portal-notifications:${cronName}`,
+            cronName: `five-minute-drain:${cronName}`,
             startedAt,
             finishedAt: new Date().toISOString(),
             status: "ok",
@@ -213,9 +222,9 @@ export default {
             errorClass: null,
           });
         }).catch((error) => {
-          console.error("Client Portal notification outbox enqueue failed", error);
+          console.error("Five-minute scheduled drain failed", error);
           return recordCronRunEvent({
-            cronName: `client-portal-notifications:${cronName}`,
+            cronName: `five-minute-drain:${cronName}`,
             startedAt,
             finishedAt: new Date().toISOString(),
             status: "error",

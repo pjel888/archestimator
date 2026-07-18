@@ -20,6 +20,8 @@ export type TemplateMutationIdentity = {
   intentId: string;
   actorUserId: string;
   requestFingerprint: string;
+  normalizedRequest: unknown;
+  executionLeaseToken: string;
 };
 
 export type TemplatePricingProvenanceOrigin =
@@ -70,6 +72,8 @@ export function createTemplateMutationIdentity(input: {
     intentId: resolveTemplateMutationIntentId(input.intentId),
     actorUserId: input.actorUserId,
     requestFingerprint: createMutationRequestFingerprint(input.request),
+    normalizedRequest: input.request,
+    executionLeaseToken: randomUUID(),
   };
 }
 

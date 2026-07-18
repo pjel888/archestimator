@@ -17,6 +17,7 @@ import type {
   EstimateTabSummary,
   EstimateTreeNode,
 } from "@/lib/estimates/types";
+import type { EstimateTemplateLinkProjection } from "@/lib/component-library/template-link-types";
 import { traced } from "@/lib/perf/server-timing";
 import {
   normalizeEstimateRecord,
@@ -311,6 +312,97 @@ async function readEstimateRows(
   return (options.limit ? rows.slice(0, options.limit) : rows).map(normalizeEstimateTreeRowItem);
 }
 
+type EstimateTemplateLinkProjectionRow = {
+  estimate_node_id: string;
+  instance_id: string;
+  template_id: string;
+  template_name: string;
+  link_state: "linked" | "updating" | "failed";
+  applied_version_number: number | string;
+  target_version_number: number | string;
+  failure_class: EstimateTemplateLinkProjection["failureClass"];
+  retryable: boolean | number | string | null;
+  root_ordinal: number | string | null;
+  root_count: number | string;
+};
+
+async function readEstimateTemplateLinkProjections(
+  database: D1DatabaseLike,
+  estimateId: string,
+  nodeIds: string[],
+) {
+  if (nodeIds.length === 0) return new Map<string, EstimateTemplateLinkProjection>();
+  try {
+    const rows = await all<EstimateTemplateLinkProjectionRow>(
+      database,
+      `WITH active_mappings AS (
+         SELECT mapping.instance_id, mapping.estimate_node_id, mapping.template_node_id,
+                instance.template_id, instance.target_parent_node_id,
+                instance.link_state, instance.applied_version_number,
+                instance.target_version_number, template.name AS template_name
+         FROM estimate_template_instance_nodes AS mapping
+         INNER JOIN estimate_template_instances AS instance
+           ON instance.id = mapping.instance_id
+          AND instance.workspace_id = mapping.workspace_id
+          AND instance.estimate_id = mapping.estimate_id
+         INNER JOIN estimate_templates AS template
+           ON template.id = instance.template_id
+          AND template.workspace_id = instance.workspace_id
+         WHERE instance.estimate_id = ?
+           AND instance.link_state IN ('linked', 'updating', 'failed')
+       ), instance_roots AS (
+         SELECT mapping.instance_id, mapping.estimate_node_id,
+                ROW_NUMBER() OVER (
+                  PARTITION BY mapping.instance_id
+                  ORDER BY node.sort_order ASC, mapping.template_node_id ASC
+                ) AS root_ordinal,
+                COUNT(*) OVER (PARTITION BY mapping.instance_id) AS root_count
+         FROM active_mappings AS mapping
+         INNER JOIN estimate_nodes AS node
+           ON node.id = mapping.estimate_node_id AND node.estimate_id = ?
+         WHERE node.parent_id IS mapping.target_parent_node_id
+       )
+       SELECT mapping.estimate_node_id, mapping.instance_id, mapping.template_id,
+              mapping.template_name, mapping.link_state,
+              mapping.applied_version_number, mapping.target_version_number,
+              job.failure_class, job.retryable,
+              root.root_ordinal,
+              COALESCE(root.root_count, counts.root_count, 0) AS root_count
+       FROM active_mappings AS mapping
+       LEFT JOIN instance_roots AS root
+         ON root.instance_id = mapping.instance_id
+        AND root.estimate_node_id = mapping.estimate_node_id
+       LEFT JOIN (
+         SELECT instance_id, COUNT(*) AS root_count
+         FROM instance_roots GROUP BY instance_id
+       ) AS counts ON counts.instance_id = mapping.instance_id
+       LEFT JOIN estimate_template_propagation_jobs AS job
+         ON job.instance_id = mapping.instance_id
+       WHERE mapping.estimate_node_id IN (
+         SELECT value FROM json_each(?)
+       )`,
+      [estimateId, estimateId, JSON.stringify(nodeIds)],
+    );
+    return new Map(rows.map((row) => [row.estimate_node_id, {
+      instanceId: row.instance_id,
+      templateId: row.template_id,
+      templateName: row.template_name,
+      linkState: row.link_state,
+      appliedVersionNumber: Number(row.applied_version_number),
+      targetVersionNumber: Number(row.target_version_number),
+      failureClass: row.failure_class ?? null,
+      retryable: readD1Boolean(row.retryable),
+      isInstanceRoot: row.root_ordinal !== null,
+      rootOrdinal: row.root_ordinal === null ? null : Number(row.root_ordinal),
+      rootCount: Number(row.root_count),
+      isPrimaryRoot: Number(row.root_ordinal) === 1,
+    } satisfies EstimateTemplateLinkProjection]));
+  } catch (error) {
+    if (isMissingOptionalTable(error)) return new Map<string, EstimateTemplateLinkProjection>();
+    throw error;
+  }
+}
+
 async function readEstimateTab(database: D1DatabaseLike, estimateId: string, tabId: string): Promise<EstimateTabQueryRow | null> {
   const row = await first<EstimateTabQueryRow>(
     database,
@@ -499,7 +591,11 @@ export function isEstimateTabsSchemaMissing(error: unknown) {
   );
 }
 
-export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: EstimateTreeRowItemQueryRow[]): EstimateTreeNode[] {
+export function buildEstimateTree(
+  nodes: EstimateTreeNodeQueryRow[],
+  rows: EstimateTreeRowItemQueryRow[],
+  templateLinkByNodeId: ReadonlyMap<string, EstimateTemplateLinkProjection> = new Map(),
+): EstimateTreeNode[] {
   const rowItemsByNode = new Map<string, EstimateRowItem[]>();
   for (const row of rows) {
     const current = rowItemsByNode.get(row.node_id) ?? [];
@@ -519,6 +615,7 @@ export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: Estim
       total: formatPeso(0),
       children: [],
       estimateRowItems: rowItemsByNode.get(node.id) ?? [],
+      templateLink: templateLinkByNodeId.get(node.id),
     });
   }
 
@@ -605,6 +702,11 @@ export async function readLegacyEstimateTreeD1(
   ]);
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
+  const templateLinks = await readEstimateTemplateLinkProjections(
+    database,
+    estimate.id,
+    limitedNodes.rows.map((node) => node.id),
+  );
   const loadLimitState = maxNodeCount || maxRowItemCount
     ? {
         maxNodeCount,
@@ -616,7 +718,7 @@ export async function readLegacyEstimateTreeD1(
       }
     : undefined;
   const nodes = limitedNodes.rows;
-  const tree = buildEstimateTree(nodes, limitedRows.rows);
+  const tree = buildEstimateTree(nodes, limitedRows.rows, templateLinks);
   const selectedNodeId = preferredNodeId && rawNodes.some((node) => node.id === preferredNodeId)
     ? preferredNodeId
     : tree[0]?.id ?? null;
@@ -648,12 +750,15 @@ export async function readEstimateTabTreePayloadD1(
   ]);
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
   const nodeIds = limitedNodes.rows.map((node) => node.id);
-  const rawRows = nodeIds.length > 0
-    ? await readEstimateRows(database, estimate.id, {
-        nodeIds,
-        limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-      })
-    : [];
+  const [rawRows, templateLinks] = await Promise.all([
+    nodeIds.length > 0
+      ? readEstimateRows(database, estimate.id, {
+          nodeIds,
+          limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+        })
+      : Promise.resolve([]),
+    readEstimateTemplateLinkProjections(database, estimate.id, nodeIds),
+  ]);
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
     ? {
@@ -666,7 +771,7 @@ export async function readEstimateTabTreePayloadD1(
       }
     : undefined;
   const tree = await traced("estimate-tab-tree.build", async () =>
-    buildEstimateTree(limitedNodes.rows, limitedRows.rows),
+    buildEstimateTree(limitedNodes.rows, limitedRows.rows, templateLinks),
   );
   return {
     estimate: normalizeEstimateRecord(estimate),
@@ -775,12 +880,15 @@ export async function readEstimateNodeSubtreeD1(
 
   const limitedNodes = limitTreeRows(nodeRows, maxNodeCount);
   const nodeIds = limitedNodes.rows.map((node) => node.id);
-  const rawRows = nodeIds.length > 0
-    ? await readEstimateRows(database, estimate.id, {
-        nodeIds,
-        limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-      })
-    : [];
+  const [rawRows, templateLinks] = await Promise.all([
+    nodeIds.length > 0
+      ? readEstimateRows(database, estimate.id, {
+          nodeIds,
+          limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+        })
+      : Promise.resolve([]),
+    readEstimateTemplateLinkProjections(database, estimate.id, nodeIds),
+  ]);
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const completeness: EstimateTreeSubtreeCompleteness = {
     childrenLoaded: !limitedNodes.didExceedLimit,
@@ -789,7 +897,7 @@ export async function readEstimateNodeSubtreeD1(
     didExceedRowItemLimit: limitedRows.didExceedLimit,
   };
   const subtree = annotateEstimateSubtreeCompleteness(
-    buildEstimateTree(limitedNodes.rows, limitedRows.rows),
+    buildEstimateTree(limitedNodes.rows, limitedRows.rows, templateLinks),
     completeness,
   );
   const payload = buildEstimateTreeSubtreePayload({
@@ -814,6 +922,7 @@ export function groupEstimateTabTrees(
   tabs: EstimateTabSummary[],
   nodes: Array<EstimateTreeNodeQueryRow & { estimate_tab_id?: string | null }>,
   rows: EstimateTreeRowItemQueryRow[],
+  templateLinkByNodeId: ReadonlyMap<string, EstimateTemplateLinkProjection> = new Map(),
 ): EstimateTabTree[] {
   const nodesByTab = new Map<string, EstimateTreeNodeQueryRow[]>();
   const nodeIdToTab = new Map<string, string>();
@@ -835,7 +944,7 @@ export function groupEstimateTabTrees(
   }
   return tabs.map((tab) => ({
     tab,
-    tree: buildEstimateTree(nodesByTab.get(tab.id) ?? [], rowsByTab.get(tab.id) ?? []),
+    tree: buildEstimateTree(nodesByTab.get(tab.id) ?? [], rowsByTab.get(tab.id) ?? [], templateLinkByNodeId),
   }));
 }
 
@@ -864,12 +973,15 @@ export async function readEstimateTreesForTabsD1(
   ]);
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
   const nodeIds = limitedNodes.rows.map((node) => node.id);
-  const rawRows = nodeIds.length > 0
-    ? await readEstimateRows(database, estimate.id, {
-        nodeIds,
-        limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-      })
-    : [];
+  const [rawRows, templateLinks] = await Promise.all([
+    nodeIds.length > 0
+      ? readEstimateRows(database, estimate.id, {
+          nodeIds,
+          limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+        })
+      : Promise.resolve([]),
+    readEstimateTemplateLinkProjections(database, estimate.id, nodeIds),
+  ]);
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
     ? {
@@ -884,7 +996,7 @@ export async function readEstimateTreesForTabsD1(
   return {
     estimate: normalizeEstimateRecord(estimate),
     sheetAdjustment,
-    tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows),
+    tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows, templateLinks),
     loadLimitState,
   };
 }

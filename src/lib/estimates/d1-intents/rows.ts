@@ -1720,6 +1720,7 @@ type EstimateDestinationNodeRow = {
   estimate_tab_id: string | null;
   kind: string;
   archived_at: string | null;
+  linked_instance_destination: boolean | number;
 };
 
 async function validateEstimateDestinationNodes(
@@ -1732,7 +1733,18 @@ async function validateEstimateDestinationNodes(
   if (uniqueNodeIds.length === 0) throw new Error("An estimate row destination is required.");
   const nodes = await allD1Rows<EstimateDestinationNodeRow>(
     database,
-    `SELECT node.id, node.estimate_tab_id, node.kind, tab.archived_at
+    `SELECT node.id, node.estimate_tab_id, node.kind, tab.archived_at,
+            EXISTS (
+              SELECT 1
+              FROM estimate_template_instance_nodes AS mapping
+              INNER JOIN estimate_template_instances AS instance
+                ON instance.id = mapping.instance_id
+               AND instance.workspace_id = mapping.workspace_id
+               AND instance.estimate_id = mapping.estimate_id
+              WHERE mapping.estimate_id = node.estimate_id
+                AND mapping.estimate_node_id = node.id
+                AND instance.link_state IN ('linked', 'updating', 'failed')
+            ) AS linked_instance_destination
      FROM estimate_nodes node
      LEFT JOIN estimate_tabs tab ON tab.id = node.estimate_tab_id AND tab.estimate_id = node.estimate_id
      WHERE node.estimate_id = ? AND node.id IN (${placeholders(uniqueNodeIds)})`,
@@ -1749,6 +1761,9 @@ async function validateEstimateDestinationNodes(
     if (activeTabId && node.estimate_tab_id !== activeTabId) {
       throw new Error("Estimate rows cannot move across tabs.");
     }
+    if (Boolean(node.linked_instance_destination)) {
+      throw new Error("Linked Template content must be edited from its source Template.");
+    }
   }
   return {
     nodes,
@@ -1762,10 +1777,60 @@ async function validateEstimateDestinationNodes(
           AND node.kind IN ('group', 'area')
           AND (node.estimate_tab_id IS NULL OR (tab.id IS NOT NULL AND tab.archived_at IS NULL))
           AND (? IS NULL OR node.estimate_tab_id = ?)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM estimate_template_instance_nodes AS mapping
+            INNER JOIN estimate_template_instances AS instance
+              ON instance.id = mapping.instance_id
+             AND instance.workspace_id = mapping.workspace_id
+             AND instance.estimate_id = mapping.estimate_id
+            WHERE mapping.estimate_id = node.estimate_id
+              AND mapping.estimate_node_id = node.id
+              AND instance.link_state IN ('linked', 'updating', 'failed')
+          )
       ) = ? THEN 1 ELSE json('') END AS estimate_destination_guard`,
       values: [estimateId, ...uniqueNodeIds, activeTabId ?? null, activeTabId ?? null, uniqueNodeIds.length],
     } satisfies D1IntentStatement,
   };
+}
+
+async function validateRowsOutsideActiveTemplateInstances(
+  database: D1DatabaseLike,
+  estimateId: string,
+  rowIds: readonly string[],
+) {
+  const uniqueRowIds = [...new Set(rowIds.filter(Boolean))];
+  const mapping = await firstD1Row<{ instance_id: string }>(
+    database,
+    `SELECT mapping.instance_id
+     FROM estimate_template_instance_rows AS mapping
+     INNER JOIN estimate_template_instances AS instance
+       ON instance.id = mapping.instance_id
+      AND instance.workspace_id = mapping.workspace_id
+      AND instance.estimate_id = mapping.estimate_id
+     WHERE mapping.estimate_id = ?
+       AND mapping.estimate_row_item_id IN (SELECT value FROM json_each(?))
+       AND instance.link_state IN ('linked', 'updating', 'failed')
+     LIMIT 1`,
+    [estimateId, JSON.stringify(uniqueRowIds)],
+  );
+  if (mapping) {
+    throw new Error("Linked Template rows must be changed from the source Template or detached first.");
+  }
+  return {
+    sql: `SELECT CASE WHEN NOT EXISTS (
+      SELECT 1
+      FROM estimate_template_instance_rows AS mapping
+      INNER JOIN estimate_template_instances AS instance
+        ON instance.id = mapping.instance_id
+       AND instance.workspace_id = mapping.workspace_id
+       AND instance.estimate_id = mapping.estimate_id
+      WHERE mapping.estimate_id = ?
+        AND mapping.estimate_row_item_id IN (SELECT value FROM json_each(?))
+        AND instance.link_state IN ('linked', 'updating', 'failed')
+    ) THEN 1 ELSE json('') END AS estimate_template_row_ownership_guard`,
+    values: [estimateId, JSON.stringify(uniqueRowIds)],
+  } satisfies D1IntentStatement;
 }
 
 function buildEstimateNodeTabGuardStatement(
@@ -2046,6 +2111,11 @@ export async function duplicateEstimateRowItemWithHistory(
   if (sourceRow.node_id !== input.targetNodeId) {
     throw new Error("Estimate row duplication target changed. Refresh and try again.");
   }
+  const ownershipGuard = await validateRowsOutsideActiveTemplateInstances(
+    database,
+    input.estimateId,
+    [input.sourceRowId],
+  );
   const destination = await validateEstimateDestinationNodes(
     database,
     input.estimateId,
@@ -2137,6 +2207,7 @@ export async function duplicateEstimateRowItemWithHistory(
   }
   const statements: D1IntentStatement[] = [
     destination.guard,
+    ownershipGuard,
     buildRowRevisionGuardStatement(input.estimateId, [{
       rowId: input.sourceRowId,
       rowRevision: input.expectedSourceRowRevision,
@@ -2223,6 +2294,35 @@ async function patchEstimateRowItem(
   }
   const row = await readRowById(database, input.estimateId, input.rowId);
   if (!row) throw new Error("Estimate row item not found in the current project.");
+  const linkedTemplateMapping = await firstD1Row<{ instance_id: string }>(
+    database,
+    `SELECT mapping.instance_id
+     FROM estimate_template_instance_rows AS mapping
+     INNER JOIN estimate_template_instances AS instance
+       ON instance.id = mapping.instance_id
+      AND instance.workspace_id = mapping.workspace_id
+      AND instance.estimate_id = mapping.estimate_id
+     WHERE mapping.estimate_id = ? AND mapping.estimate_row_item_id = ?
+       AND instance.link_state IN ('linked', 'updating', 'failed')
+     LIMIT 1`,
+    [input.estimateId, input.rowId],
+  );
+  const linkedInstanceOwnedFields = new Set([
+    "quantity",
+    "quantityBase",
+    "quantityContingencyAmount",
+    "contingencyPercentage",
+    "adjustmentPercentage",
+  ]);
+  if (linkedTemplateMapping) {
+    const sharedFields = Object.keys(rowPatch).filter((field) => (
+      field !== "linkState" && !linkedInstanceOwnedFields.has(field)
+    ));
+    if (eventType === "row_replaced" || input.componentMutationIntent || sharedFields.length > 0) {
+      throw new Error("This row is owned by a linked Template. Detach the instance before changing shared fields.");
+    }
+    delete rowPatch.linkState;
+  }
   const expected = input.expectedRowRevision === null ? row.row_revision : input.expectedRowRevision;
   const removedPriceOptionReplacements = readRemovedPriceOptionReplacements(input.removedPriceOptionReplacements);
   if (input.componentMutationIntent && input.componentMutationIntent !== "variant-selection") {
@@ -2465,6 +2565,22 @@ export async function deleteEstimateRowItemWithHistory(
   }
   const row = await readRowById(database, input.estimateId, input.rowId);
   if (!row) throw new Error("Estimate row item not found in the current project.");
+  const linkedTemplateMapping = await firstD1Row<{ instance_id: string }>(
+    database,
+    `SELECT mapping.instance_id
+     FROM estimate_template_instance_rows AS mapping
+     INNER JOIN estimate_template_instances AS instance
+       ON instance.id = mapping.instance_id
+      AND instance.workspace_id = mapping.workspace_id
+      AND instance.estimate_id = mapping.estimate_id
+     WHERE mapping.estimate_id = ? AND mapping.estimate_row_item_id = ?
+       AND instance.link_state IN ('linked', 'updating', 'failed')
+     LIMIT 1`,
+    [input.estimateId, input.rowId],
+  );
+  if (linkedTemplateMapping) {
+    throw new Error("This row is owned by a linked Template. Delete it from the Template or detach the instance first.");
+  }
   if (row.row_revision !== input.expectedRowRevision) throw new Error(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
   const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
@@ -2573,6 +2689,7 @@ export async function deleteEstimateRowItemsBulkWithHistory(
     [input.estimateId, ...rowIds],
   )).map(serializeRow);
   if (hasRowRevisionConflict(rows, expectedRows)) return rowRevisionConflictResult(rows, expectedRows);
+  const ownershipGuard = await validateRowsOutsideActiveTemplateInstances(database, input.estimateId, rowIds);
   const deletedAt = nowIso();
   const history = await prepareHistoryEventInsert(database, {
     projectId: input.projectId,
@@ -2599,6 +2716,7 @@ export async function deleteEstimateRowItemsBulkWithHistory(
   };
   const statements: D1IntentStatement[] = [
     buildRowRevisionGuardStatement(input.estimateId, expectedRows),
+    ownershipGuard,
     ...buildProjectComponentAttachmentDeleteRetentionStatements({
       workspaceId: intent.workspaceId,
       projectId: input.projectId,

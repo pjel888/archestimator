@@ -49,12 +49,19 @@ class FakeD1Statement {
     if (this.sql.includes("FROM workspace_members")) {
       return (this.database.isEditor ? { allowed: 1 } : null) as T | null;
     }
+    if (this.sql.includes("FROM estimate_template_mutation_intents")) {
+      return (this.database.mutationIntents.get(String(this.values[0])) ?? null) as T | null;
+    }
     if (this.sql.includes("FROM estimate_templates")) {
       return {
         id: String(this.values[0]),
         workspace_id: workspaceId,
         name: "Editor-safe template",
+        description: "",
+        category: "General",
+        current_version_number: this.database.currentVersionNumber,
         updated_at: this.database.templateUpdatedAt,
+        archived_at: null,
       } as T;
     }
     if (this.sql.includes("FROM estimate_template_nodes")) {
@@ -78,6 +85,9 @@ class FakeD1Statement {
 
   async all<T>() {
     this.database.executedStatements.push(this);
+    if (this.sql.includes("FROM estimate_template_instances AS instance")) {
+      return { results: [] as T[], success: true };
+    }
     if (this.sql.includes("FROM estimate_template_nodes")) {
       const rows = this.values[0] === sourceTemplateId ? this.database.sourceNodes : this.database.targetNodes;
       return { results: rows as T[], success: true };
@@ -96,6 +106,30 @@ class FakeD1Statement {
 
   async run() {
     this.database.executedStatements.push(this);
+    if (this.sql.includes("INSERT INTO estimate_template_mutation_intents")) {
+      const intentId = String(this.values[0]);
+      if (!this.database.mutationIntents.has(intentId)) {
+        this.database.mutationIntents.set(intentId, {
+          request_fingerprint: String(this.values[4]),
+          expected_version_number: Number(this.values[6]),
+          impact_fingerprint: String(this.values[7]),
+          state: "pending",
+          execution_lease_token: String(this.values[8]),
+          execution_lease_expires_at: String(this.values[9]),
+        });
+      }
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (this.sql.includes("UPDATE estimate_template_mutation_intents")) {
+      const notApplied = this.sql.includes("state = 'not_applied'");
+      const intentId = String(this.values[notApplied ? 3 : 4]);
+      const retained = this.database.mutationIntents.get(intentId);
+      if (retained) {
+        retained.state = notApplied ? "not_applied" : "committed";
+        retained.execution_lease_token = null;
+        retained.execution_lease_expires_at = null;
+      }
+    }
     if (this.sql.includes("UPDATE estimate_template_row_items")) {
       this.database.row = {
         ...this.database.row,
@@ -133,8 +167,9 @@ class FakeD1Statement {
         updated_at: String(this.values[23]),
       });
     }
-    if (this.sql.includes("UPDATE estimate_templates") && this.sql.includes("SET updated_at")) {
-      this.database.templateUpdatedAt = String(this.values[0]);
+    if (this.sql.includes("UPDATE estimate_templates") && this.sql.includes("current_version_number")) {
+      this.database.currentVersionNumber = Number(this.values[0]);
+      this.database.templateUpdatedAt = String(this.values[1]);
     }
     if (this.sql.includes("INSERT INTO estimate_mutation_receipts")) {
       this.database.receipts.set(this.values.slice(1, 4).join(":"), {
@@ -161,6 +196,15 @@ class FakeD1Database {
     result_json: string;
     status: string;
   }>();
+  mutationIntents = new Map<string, {
+    request_fingerprint: string;
+    expected_version_number: number;
+    impact_fingerprint: string;
+    state: string;
+    execution_lease_token: string | null;
+    execution_lease_expires_at: string | null;
+  }>();
+  currentVersionNumber = 1;
   templateUpdatedAt = "2026-07-01T00:00:00.000Z";
   failBatch = false;
   row = {
@@ -366,6 +410,7 @@ describe("template editor server action authorization", () => {
     expect(database.row.material).toBe("Existing row");
     expect(database.receipts.size).toBe(0);
     expect(database.executedStatements.some((statement) => statement.sql.includes("UPDATE estimate_template_row_items"))).toBe(false);
+    expect(database.mutationIntents.get("00000000-0000-4000-8000-000000000011")?.state).toBe("not_applied");
   });
 
   it("copies a detached Template graph, telemetry, and receipt in one replay-safe batch", async () => {

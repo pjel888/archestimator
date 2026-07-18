@@ -94,6 +94,9 @@ type EstimateTemplateRow = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  current_version_number?: number | string;
+  archived_at?: string | null;
+  archived_by?: string | null;
 };
 type EstimateTemplateNodeRow = {
   id: string;
@@ -1212,6 +1215,9 @@ export function buildEstimateTemplatesFromRows(input: BuildEstimateTemplatesInpu
         nodes: roots,
         updatedAt: template.updated_at,
         sortOrder: template.sort_order,
+        currentVersionNumber: Number(template.current_version_number ?? 1),
+        archivedAt: template.archived_at ?? null,
+        archivedBy: template.archived_by ?? null,
       };
     });
 }
@@ -1243,6 +1249,9 @@ export function buildEstimateTemplateSummariesFromRows(input: {
       summary,
       updatedAt: template.updated_at,
       sortOrder: template.sort_order,
+      currentVersionNumber: Number(template.current_version_number ?? 1),
+      archivedAt: template.archived_at ?? null,
+      archivedBy: template.archived_by ?? null,
     };
   });
 }
@@ -1476,7 +1485,8 @@ async function loadCurrentWorkspaceEstimateTemplatesAppPath({
       database,
       `SELECT *
        FROM estimate_templates
-       WHERE workspace_id = ?${templateId ? " AND id = ?" : ""}
+       WHERE workspace_id = ?
+         AND archived_at IS NULL${templateId ? " AND id = ?" : ""}
        ORDER BY sort_order ASC, name ASC`,
       templateId ? [workspaceId, templateId] : [workspaceId],
     );
@@ -1531,6 +1541,7 @@ async function loadCurrentWorkspaceEstimateTemplateSummaries({
       `SELECT *
        FROM estimate_templates
        WHERE workspace_id = ?
+         AND archived_at IS NULL
        ORDER BY sort_order ASC, name ASC
        LIMIT ?`,
       [workspaceId, boundedLimit],
@@ -1572,6 +1583,50 @@ async function loadCurrentWorkspaceEstimateTemplateSummaries({
   } catch (error) {
     rethrowEstimateTemplateSchemaError(error);
   }
+}
+
+async function loadCurrentWorkspaceArchivedEstimateTemplateSummaries({
+  database,
+  workspaceId,
+  limit = ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT,
+}: {
+  database: D1DatabaseLike;
+  workspaceId: string;
+  limit?: number;
+}): Promise<EstimateTemplate[]> {
+  const boundedLimit = Math.max(1, Math.min(Math.trunc(limit), ESTIMATE_TEMPLATE_SUMMARY_PAGE_LIMIT));
+  const templates = await all<EstimateTemplateRow>(
+    database,
+    `SELECT * FROM estimate_templates
+     WHERE workspace_id = ? AND archived_at IS NOT NULL
+     ORDER BY archived_at DESC, name ASC LIMIT ?`,
+    [workspaceId, boundedLimit],
+  );
+  if (templates.length === 0) return [];
+  const templateIds = templates.map((template) => template.id);
+  const [nodeSummaries, costSummaries] = await Promise.all([
+    all<EstimateTemplateNodeSummaryRow>(
+      database,
+      `SELECT template_id,
+              SUM(CASE WHEN kind = 'group' THEN 1 ELSE 0 END) AS group_count,
+              SUM(CASE WHEN kind = 'area' THEN 1 ELSE 0 END) AS area_count
+       FROM estimate_template_nodes
+       WHERE template_id IN (${placeholders(templateIds)})
+       GROUP BY template_id`,
+      templateIds,
+    ),
+    all<EstimateTemplateCostSummaryRow>(
+      database,
+      `SELECT template_id, COUNT(*) AS row_count,
+              COALESCE(SUM((quantity * unit_cost) + misc_cost
+                + ((quantity * unit_cost) * COALESCE(adjustment_percentage, contingency_percentage, 0) / 100.0)), 0) AS total
+       FROM estimate_template_row_items
+       WHERE template_id IN (${placeholders(templateIds)})
+       GROUP BY template_id`,
+      templateIds,
+    ),
+  ]);
+  return buildEstimateTemplateSummariesFromRows({ templates, nodeSummaries, costSummaries });
 }
 
 async function loadCurrentWorkspaceEstimateTemplates({
@@ -1736,6 +1791,11 @@ export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTe
     throw new EstimateTemplateSchemaUnavailableError(seed.missingTables);
   }
   return seed.templates;
+}
+
+export async function getCurrentWorkspaceArchivedEstimateTemplates(): Promise<EstimateTemplate[]> {
+  const [{ workspace }, database] = await Promise.all([ensureDefaultWorkspace(), requireComponentLibraryRepositoryD1Database()]);
+  return loadCurrentWorkspaceArchivedEstimateTemplateSummaries({ database, workspaceId: workspace.id });
 }
 
 /** Pricing-date age beyond which a component price counts as stale on the Overview health line. */
@@ -2106,13 +2166,14 @@ async function getLibraryOverviewAppPath(): Promise<LibraryOverview> {
       `SELECT *
        FROM estimate_templates
        WHERE workspace_id = ?
+         AND archived_at IS NULL
        ORDER BY updated_at DESC
        LIMIT 5`,
       [workspaceId],
     ),
     all<Pick<EstimateTemplateRow, "category">>(
       database,
-      "SELECT category FROM estimate_templates WHERE workspace_id = ?",
+      "SELECT category FROM estimate_templates WHERE workspace_id = ? AND archived_at IS NULL",
       [workspaceId],
     ),
     first<CountRow>(
@@ -2269,7 +2330,7 @@ export async function getLibraryDashboardSpotlight(): Promise<LibraryDashboardSp
     ),
     first<CountRow>(
       database,
-      "SELECT COUNT(*) AS count FROM estimate_templates WHERE workspace_id = ?",
+      "SELECT COUNT(*) AS count FROM estimate_templates WHERE workspace_id = ? AND archived_at IS NULL",
       [workspaceId],
     ),
   ]);

@@ -23,6 +23,7 @@ const COMPONENT_ID = "88888888-8888-4888-8888-888888888888";
 const PRICE_OPTION_ID = "99999999-9999-4999-8999-999999999999";
 const TARGET_TAB_ID = "abababab-abab-4bab-8bab-abababababab";
 const INSERT_INTENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const LINK_INTENT_ID = "bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc";
 
 function currentUser(): CurrentUserContext {
   const now = "2026-07-14T00:00:00.000Z";
@@ -70,6 +71,23 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
     if (this.sql.includes("SELECT estimate.id")) {
       return { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: WORKSPACE_ID } as R;
     }
+    if (this.sql.includes("FROM estimate_tabs")) {
+      return this.database.activeTab ? { id: TARGET_TAB_ID } as R : null;
+    }
+    if (this.sql.includes("FROM estimate_templates")) {
+      this.database.sourceReadCount += 1;
+      return {
+        id: TEMPLATE_ID,
+        workspace_id: WORKSPACE_ID,
+        name: "Living room Template",
+        description: "Linked Template fixture",
+        category: "Interior",
+        current_version_number: 1,
+        archived_at: null,
+        created_by: currentUser().userId,
+        updated_at: "2026-07-14T00:00:00.000Z",
+      } as R;
+    }
     if (this.sql.includes("FROM estimate_nodes")) {
       return {
         id: PARENT_NODE_ID,
@@ -89,7 +107,9 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
   async all<R = T>(): Promise<D1Result<R>> {
     if (this.sql.includes("FROM estimate_templates")) {
       this.database.sourceReadCount += 1;
-      const requestedTemplateIds = new Set(this.values.slice(1).map(String));
+      const requestedTemplateIds = new Set(
+        JSON.parse(String(this.values[1] ?? "[]")) as string[],
+      );
       return {
         success: true,
         results: [TEMPLATE_ID, SECOND_TEMPLATE_ID]
@@ -191,6 +211,7 @@ class TemplateInsertDatabase implements D1DatabaseLike {
   }>();
   parentKind = "group";
   parentTabId: string | null = TARGET_TAB_ID;
+  activeTab = true;
   templateNodes = [{
     id: TEMPLATE_NODE_ID,
     template_id: TEMPLATE_ID,
@@ -276,7 +297,101 @@ function insertMany(database: D1DatabaseLike, templateIds: string[], correlation
   });
 }
 
+function insertLinked(
+  database: D1DatabaseLike,
+  overrides: Partial<{ correlationId: string; targetTabId: string | undefined }> = {},
+) {
+  return insertEstimateTemplateIntoEstimateWithHistory(database, currentUser(), {
+    projectId: PROJECT_ID,
+    estimateId: ESTIMATE_ID,
+    targetParentNodeId: PARENT_NODE_ID,
+    templateId: TEMPLATE_ID,
+    unavailableSourcePolicy: "cancel",
+    correlationId: LINK_INTENT_ID,
+    targetTabId: TARGET_TAB_ID,
+    mode: "linked",
+    ...overrides,
+  });
+}
+
 describe("trusted estimate template insertion", () => {
+  it("returns a typed copy fallback without writes when linked insertion has no active tab", async () => {
+    const database = new TemplateInsertDatabase("available");
+    database.parentTabId = null;
+
+    const result = await insertLinked(database, { targetTabId: undefined });
+
+    expect(result).toEqual({
+      status: "requires_active_tab",
+      code: "template_link_requires_active_tab",
+      estimateId: ESTIMATE_ID,
+      targetParentNodeId: PARENT_NODE_ID,
+    });
+    expect(database.batches).toHaveLength(0);
+  });
+
+  it("links one whole Template through a constant-count set-based batch", async () => {
+    const database = new TemplateInsertDatabase("available");
+
+    const result = await insertLinked(database);
+
+    expect(result).toMatchObject({
+      status: "inserted",
+      mode: "linked",
+      instanceId: expect.any(String),
+      templateId: TEMPLATE_ID,
+      estimateTabId: TARGET_TAB_ID,
+      insertedNodeCount: 1,
+      insertedRowItemCount: 1,
+      appliedVersionNumber: 1,
+      targetVersionNumber: 1,
+      statementCount: 11,
+    });
+    expect(database.batches).toHaveLength(1);
+    expect(database.batches[0]).toHaveLength(11);
+    expect(database.batches[0][0]?.sql).toContain("estimate_template_link_source_guard");
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_nodes"))).toHaveLength(1);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_row_items"))).toHaveLength(1);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_template_instance_nodes"))).toHaveLength(1);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_template_instance_rows"))).toHaveLength(1);
+    const versionInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_template_versions"));
+    const nodeInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_nodes"));
+    const rowInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_row_items"));
+    const instanceInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_template_instances"));
+    expect(versionInsert).toBeDefined();
+    expect(nodeInsert).toBeDefined();
+    expect(rowInsert).toBeDefined();
+    expect(instanceInsert).toBeDefined();
+    const snapshot = JSON.parse(String(versionInsert!.values[3]));
+    expect(snapshot.rows[0]).toEqual({
+      id: TEMPLATE_ROW_ID,
+      rowKind: "component",
+      templateNodeId: TEMPLATE_NODE_ID,
+      sortOrder: 0,
+      sourceLibraryItemId: COMPONENT_ID,
+      selectedVariantId: PRICE_OPTION_ID,
+      initialTakeoffDefaults: {
+        quantity: 2,
+        contingencyPercentage: 0,
+        adjustmentPercentage: 10,
+      },
+    });
+    expect(JSON.parse(String(nodeInsert!.values[2]))).toHaveLength(1);
+    expect(JSON.parse(String(rowInsert!.values[2]))).toHaveLength(1);
+  });
+
+  it("replays a committed linked insertion without another source read or batch", async () => {
+    const database = new TemplateInsertDatabase("available");
+
+    const first = await insertLinked(database);
+    const sourceReadCount = database.sourceReadCount;
+    const replay = await insertLinked(database);
+
+    expect(replay).toEqual(first);
+    expect(database.sourceReadCount).toBe(sourceReadCount);
+    expect(database.batches).toHaveLength(1);
+  });
+
   it("rejects missing atomic support before auth, receipt, or source reads", async () => {
     const database = new TemplateInsertDatabase("available");
     Object.defineProperty(database, "batch", { value: undefined });
@@ -321,6 +436,9 @@ describe("trusted estimate template insertion", () => {
     expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_sheet_events"))).toHaveLength(1);
     expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO activity_event_outbox"))).toHaveLength(1);
     expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toHaveLength(1);
+    for (const statement of database.batches[0]) {
+      expect(statement.sql.match(/\?/g)?.length ?? 0).toBe(statement.values.length);
+    }
   });
 
   it("uses the current available component and selected active variant in one atomic D1 batch", async () => {

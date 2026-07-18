@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -95,6 +97,32 @@ beforeEach(() => {
 });
 
 describe("component library Cloudflare D1 bind budget", () => {
+  it("keeps Template insertion and propagation collection binds in JSON payloads", () => {
+    const insertSource = readFileSync("src/lib/estimates/d1-intents/templates.ts", "utf8");
+    const propagationSource = readFileSync("src/lib/component-library/template-propagation-d1.ts", "utf8");
+    const treeReadSource = readFileSync("src/lib/estimates/estimate-tree-read-repository.ts", "utf8");
+    const instanceActionSource = readFileSync("src/lib/component-library/template-instance-actions.ts", "utf8");
+    const rowIntentSource = readFileSync("src/lib/estimates/d1-intents/rows.ts", "utf8");
+    const linkedMutationSource = readFileSync("src/lib/component-library/template-linked-mutation-d1.ts", "utf8");
+    const editorActionSource = readFileSync("src/lib/component-library/template-editor-actions.ts", "utf8");
+    const lifecycleActionSource = readFileSync("src/lib/component-library/template-lifecycle-actions.ts", "utf8");
+
+    expect(insertSource).not.toContain("${placeholders(");
+    expect(propagationSource).not.toContain("${placeholders(");
+    expect(insertSource).toContain("requested_template_ids(id) AS (SELECT value FROM json_each(?))");
+    expect(insertSource).toContain("expected_source_ids(id)");
+    expect(propagationSource).toContain("NOT IN (SELECT value FROM json_each(?))");
+    expect(propagationSource).toContain("propagation_failure_lease_guard");
+    expect(propagationSource).toContain('terminal ? "failed" : "updating"');
+    expect(treeReadSource).toContain("mapping.estimate_node_id IN (\n         SELECT value FROM json_each(?)");
+    expect(instanceActionSource).toContain("row_item.row_revision = json_extract(expected.value, '$.sourceRowRevision')");
+    expect(rowIntentSource).toContain("Linked Template content must be edited from its source Template.");
+    expect(rowIntentSource).toContain("mapping.estimate_node_id = node.id");
+    expect(linkedMutationSource).toContain("AND state = 'pending' AND execution_lease_token = ?");
+    expect(editorActionSource).toContain("estimate_template_mutation_intents.execution_lease_expires_at <= excluded.updated_at");
+    expect(lifecycleActionSource).toContain("AND execution_lease_expires_at > ?");
+  });
+
   it("previews and archives the full 500-component UI batch without exceeding 100 binds per statement", async () => {
     const database = createD1Fixture();
     const actions = await import("@/lib/component-library/actions");

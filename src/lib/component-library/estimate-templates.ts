@@ -13,6 +13,9 @@ export type EstimateTemplate = {
   updatedAt?: string;
   /** Stored sibling order within the workspace template list. */
   sortOrder?: number;
+  currentVersionNumber?: number;
+  archivedAt?: string | null;
+  archivedBy?: string | null;
 };
 
 export type EstimateTemplateSummary = {

@@ -2541,7 +2541,7 @@ export async function renameEstimateTemplate(input: { intentId?: string; templat
   return { templateId: template.id, name: templateName };
 }
 
-/** Deletes a workspace estimate template; nodes and rows cascade. */
+/** Archives a workspace Estimate Template without affecting linked instances. */
 export async function deleteEstimateTemplate(input: { intentId?: string; templateId: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
@@ -2550,7 +2550,7 @@ export async function deleteEstimateTemplate(input: { intentId?: string; templat
   await assertCanManageLibrary(database, workspace.id, currentUser);
   const identity = createTemplateMutationIdentity({
     workspaceId: workspace.id,
-    commandKind: "template.delete",
+    commandKind: "template.archive",
     intentId: input.intentId,
     actorUserId: currentUser.userId,
     request: { templateId: input.templateId },
@@ -2558,30 +2558,97 @@ export async function deleteEstimateTemplate(input: { intentId?: string; templat
   const replay = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
   if (replay) return { templateId: replay.templateId };
 
-  const template = await first<{ id: string; updated_at: string }>(
+  const template = await first<{ id: string; updated_at: string; archived_at: string | null }>(
     database,
-    "SELECT id, updated_at FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    "SELECT id, updated_at, archived_at FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
     [input.templateId, workspace.id],
   );
   if (!template) throw new Error("Template not found in the current workspace.");
+  if (template.archived_at) return { templateId: template.id };
   const timestamp = nowIso();
   const result: TemplateHeaderMutationReceipt = { templateId: template.id };
   const statements: TemplateMutationStatement[] = [
     {
       sql: `SELECT CASE WHEN EXISTS (
         SELECT 1 FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?
-      ) THEN 1 ELSE json('') END AS template_delete_guard`,
+          AND archived_at IS NULL
+      ) THEN 1 ELSE json('') END AS template_archive_guard`,
       values: [template.id, workspace.id, template.updated_at],
     },
     {
-      sql: "DELETE FROM estimate_templates WHERE id = ? AND workspace_id = ? AND updated_at = ?",
-      values: [template.id, workspace.id, template.updated_at],
+      sql: `UPDATE estimate_templates
+            SET archived_at = ?, archived_by = ?, updated_at = ?
+            WHERE id = ? AND workspace_id = ? AND updated_at = ? AND archived_at IS NULL`,
+      values: [timestamp, currentUser.userId, timestamp, template.id, workspace.id, template.updated_at],
     },
     buildTemplateMutationTelemetryStatement({
       actorUserId: currentUser.userId,
       workspaceId: workspace.id,
       templateId: template.id,
-      action: "delete",
+      action: "archive",
+      intentId: identity.intentId,
+      timestamp,
+    }),
+    buildTemplateMutationReceiptStatement({
+      ...identity,
+      templateId: template.id,
+      result,
+      timestamp,
+    }),
+  ];
+  try {
+    await runTemplateAtomicBatch(database, statements);
+  } catch (error) {
+    const committed = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+    if (committed) return { templateId: committed.templateId };
+    throw error;
+  }
+  revalidateTemplateSurfaces();
+  return { templateId: template.id };
+}
+
+export async function restoreEstimateTemplate(input: { intentId?: string; templateId: string }) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  const identity = createTemplateMutationIdentity({
+    workspaceId: workspace.id,
+    commandKind: "template.restore",
+    intentId: input.intentId,
+    actorUserId: currentUser.userId,
+    request: { templateId: input.templateId },
+  });
+  const replay = await readCommittedTemplateMutation(database, identity, parseTemplateHeaderMutationReceipt);
+  if (replay) return { templateId: replay.templateId };
+  const template = await first<{ id: string; updated_at: string; archived_at: string | null }>(
+    database,
+    "SELECT id, updated_at, archived_at FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    [input.templateId, workspace.id],
+  );
+  if (!template) throw new Error("Template not found in the current workspace.");
+  if (!template.archived_at) return { templateId: template.id };
+  const timestamp = nowIso();
+  const result: TemplateHeaderMutationReceipt = { templateId: template.id };
+  const statements: TemplateMutationStatement[] = [
+    {
+      sql: `SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM estimate_templates
+        WHERE id = ? AND workspace_id = ? AND updated_at = ? AND archived_at IS NOT NULL
+      ) THEN 1 ELSE json('') END AS template_restore_guard`,
+      values: [template.id, workspace.id, template.updated_at],
+    },
+    {
+      sql: `UPDATE estimate_templates
+            SET archived_at = NULL, archived_by = NULL, updated_at = ?
+            WHERE id = ? AND workspace_id = ? AND updated_at = ? AND archived_at IS NOT NULL`,
+      values: [timestamp, template.id, workspace.id, template.updated_at],
+    },
+    buildTemplateMutationTelemetryStatement({
+      actorUserId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: template.id,
+      action: "restore",
       intentId: identity.intentId,
       timestamp,
     }),
@@ -2980,12 +3047,14 @@ export async function listEstimateInsertTargets(): Promise<{ projects: EstimateI
 type EstimateInsertTargetNodeRow = {
   id: string;
   parent_id: string | null;
+  estimate_tab_id: string | null;
   kind: string;
   name: string;
 };
 
 export type EstimateTemplateInsertTargetResolution = {
   targetParentNodeId: string | null;
+  targetTabId: string | null;
   targetParentNodeName: string | null;
   targetParentNodeKind: "group" | "area" | null;
   targetParentNodePath: string[] | null;
@@ -3015,7 +3084,7 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
   const nodeRows = await all<EstimateInsertTargetNodeRow>(
     database,
     `
-      SELECT id, parent_id, kind, name
+      SELECT id, parent_id, estimate_tab_id, kind, name
       FROM estimate_nodes
       WHERE estimate_id = ?
       ORDER BY sort_order ASC
@@ -3048,6 +3117,7 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
     if (isRoot) {
       return {
         targetParentNodeId: node.id,
+        targetTabId: node.estimate_tab_id,
         targetParentNodeName: node.name,
         targetParentNodeKind: kind,
         targetParentNodePath: nodePath(node),
@@ -3056,6 +3126,7 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
   }
   return {
     targetParentNodeId: null,
+    targetTabId: null,
     targetParentNodeName: null,
     targetParentNodeKind: null,
     targetParentNodePath: null,

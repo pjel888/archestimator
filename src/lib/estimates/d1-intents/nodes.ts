@@ -348,6 +348,30 @@ export async function getEstimateNodeForProject(
   return node ? serializeNode(node) : null;
 }
 
+async function assertNodesAreNotActivelyTemplateLinked(
+  database: D1DatabaseLike,
+  estimateId: string,
+  nodeIds: string[],
+  message: string,
+) {
+  if (nodeIds.length === 0) return;
+  const mapping = await firstD1Row<{ instance_id: string }>(
+    database,
+    `SELECT mapping.instance_id
+     FROM estimate_template_instance_nodes AS mapping
+     INNER JOIN estimate_template_instances AS instance
+       ON instance.id = mapping.instance_id
+      AND instance.workspace_id = mapping.workspace_id
+      AND instance.estimate_id = mapping.estimate_id
+     WHERE mapping.estimate_id = ?
+       AND mapping.estimate_node_id IN (${placeholders(nodeIds)})
+       AND instance.link_state IN ('linked', 'updating', 'failed')
+     LIMIT 1`,
+    [estimateId, ...nodeIds],
+  );
+  if (mapping) throw new Error(message);
+}
+
 export async function createEstimateNodeWithHistory(
   database: D1DatabaseLike,
   actor: EstimateD1Actor,
@@ -367,6 +391,14 @@ export async function createEstimateNodeWithHistory(
   }
   if (parentNode && !normalizeEstimateTreeNodeKind(parentNode.kind)) {
     throw new Error("Unsupported estimate node kind.");
+  }
+  if (parentNode) {
+    await assertNodesAreNotActivelyTemplateLinked(
+      database,
+      input.estimateId,
+      [parentNode.id],
+      "This structure is owned by a linked Template. Detach the instance before adding local Areas inside it.",
+    );
   }
   const estimateTabId = parentNode?.estimate_tab_id ?? input.estimateTabId;
   if (parentNode && input.estimateTabId && parentNode.estimate_tab_id !== input.estimateTabId) {
@@ -452,6 +484,12 @@ export async function renameEstimateNodeWithHistory(
   const context = await requireScopedEstimate(database, actor, input);
   const node = await readNodeById(database, input.estimateId, input.nodeId);
   if (!node) throw new Error("Estimate tree node not found in the current project.");
+  await assertNodesAreNotActivelyTemplateLinked(
+    database,
+    input.estimateId,
+    [input.nodeId],
+    "This Area is owned by a linked Template. Rename it in the Template or detach the instance first.",
+  );
   const name = input.name.trim();
   if (!name) throw new Error("Estimate tree node name is required.");
   if (name === node.name) return { nodeId: input.nodeId };
@@ -512,6 +550,12 @@ export async function reorderEstimateNodesWithHistory(
     return current.parent_id !== update.parentId || readNumber(current.sort_order) !== update.sortOrder;
   });
   if (changedUpdates.length === 0) return { updatedNodeCount: 0 };
+  await assertNodesAreNotActivelyTemplateLinked(
+    database,
+    input.estimateId,
+    [...new Set(changedUpdates.flatMap((update) => [update.id, ...(update.parentId ? [update.parentId] : [])]))],
+    "Linked Template structure cannot be moved locally. Detach the instance before changing its placement.",
+  );
   const affectedTabIds = [...new Set(changedUpdates.flatMap((update) => {
     const nodeTabId = currentById.get(update.id)?.estimate_tab_id;
     const parentTabId = update.parentId ? currentById.get(update.parentId)?.estimate_tab_id : nodeTabId;
@@ -714,6 +758,12 @@ export async function deleteEstimateNodesWithHistory(
   if (rootTabIds.size !== 1) throw new Error("Estimate tree nodes cannot be deleted across tabs in one action.");
   const rootTabId = rootNodes[0]?.estimate_tab_id ?? null;
   const deletedNodeIds = await collectDescendantNodeIds(database, input.estimateId, rootIds);
+  await assertNodesAreNotActivelyTemplateLinked(
+    database,
+    input.estimateId,
+    deletedNodeIds,
+    "Linked Template structure cannot be deleted locally. Delete the whole instance or detach it first.",
+  );
   const deletedNodes = deletedNodeIds.length > 0
     ? await allD1Rows<EstimateNodeRow>(
         database,

@@ -204,6 +204,7 @@ type InsertEstimateTemplateIntoEstimateInput = {
   // tab the user is actually editing. Omitted for legacy (no-tab) estimates.
   targetTabId?: string;
   unavailableSourcePolicy?: EstimateTemplateUnavailableSourcePolicy;
+  mode?: "linked" | "copy";
 };
 
 export type EstimateTemplateUnavailableSourcePolicy = "cancel" | "use_saved_snapshot_unlinked";
@@ -222,11 +223,23 @@ export type InsertEstimateTemplateRequiresConfirmationResult = {
 
 type InsertEstimateTemplateInsertedResult = {
   status: "inserted";
+  mode: "linked" | "copy";
   tree: EstimateTreeNode[];
   insertedRootNodeIds: string[];
+  instanceId?: string;
 };
 
-type InsertEstimateTemplateIntoEstimateResult = InsertEstimateTemplateInsertedResult | InsertEstimateTemplateRequiresConfirmationResult;
+export type InsertEstimateTemplateRequiresActiveTabResult = {
+  status: "requires_active_tab";
+  code: "template_link_requires_active_tab";
+  estimateId: string;
+  targetParentNodeId: string;
+};
+
+type InsertEstimateTemplateIntoEstimateResult =
+  | InsertEstimateTemplateInsertedResult
+  | InsertEstimateTemplateRequiresConfirmationResult
+  | InsertEstimateTemplateRequiresActiveTabResult;
 
 type InsertEstimateTemplatesIntoEstimateInput = {
   projectId: string;
@@ -2355,6 +2368,7 @@ export async function insertEstimateTemplateIntoEstimate({
   intentId,
   targetTabId,
   unavailableSourcePolicy = "cancel",
+  mode = "linked",
 }: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -2371,12 +2385,14 @@ export async function insertEstimateTemplateIntoEstimate({
       templateId,
       correlationId: assertPersistedUuid(intentId, "Template insert intent"),
       unavailableSourcePolicy,
+      mode,
       ...(targetTabId ? { targetTabId } : {}),
     });
   } catch (error) {
     throw new Error(`Could not insert estimate template: ${error instanceof Error ? error.message : String(error)}`);
   }
 
+  if (copyResult.status === "requires_active_tab") return copyResult;
   const confirmation = readTemplateInsertConfirmation(copyResult);
   if (confirmation) return confirmation;
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
@@ -2386,7 +2402,15 @@ export async function insertEstimateTemplateIntoEstimate({
   if (!refreshedProject || !refreshedEstimate) {
     throw new Error("Estimate not found after inserting the template.");
   }
-  return { status: "inserted", tree, insertedRootNodeIds };
+  return {
+    status: "inserted",
+    mode,
+    tree,
+    insertedRootNodeIds,
+    ...("instanceId" in copyResult && typeof copyResult.instanceId === "string"
+      ? { instanceId: copyResult.instanceId }
+      : {}),
+  };
 }
 
 /**
@@ -2437,7 +2461,7 @@ export async function insertEstimateTemplatesIntoEstimate({
   if (!refreshedProject || !refreshedEstimate) {
     throw new Error("Estimate not found after inserting the templates.");
   }
-  return { status: "inserted", tree, insertedRootNodeIds };
+  return { status: "inserted", mode: "copy", tree, insertedRootNodeIds };
 }
 
 type InsertEstimateTemplateNodeIntoEstimateInput = {
