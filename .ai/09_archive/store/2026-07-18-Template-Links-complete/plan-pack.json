@@ -1,0 +1,1191 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-18-template-links",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "baseline": {
+    "head": "e1f29ac4644fe839c932473bc3c208bd7dc7ffd1",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "canonical_execution_artifact": "00-PLAN.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "6a3ef7c6fff9d81875e9c5d376f0e682c036854862035c7757068f76d0d744ac"
+    },
+    {
+      "id": "ART-002",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "4b98b0b8d4fd833d2e245b2bddc86db4f975fb5d1bfb2b32c97f431be02a6b17"
+    },
+    {
+      "id": "ART-003",
+      "role": "architecture-evidence",
+      "path": "01-ARCHITECTURE-AND-D1.md",
+      "sha256": "c56a005c67e904a67dbc0987c2e2dacdb42c6ffadd39bcb63705f66fb7db8312"
+    },
+    {
+      "id": "ART-004",
+      "role": "product-ux-performance",
+      "path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "sha256": "f1ac24a58787409156cbaef2e2e3b731d91239c0576043c6605723d4e2258052"
+    },
+    {
+      "id": "ART-005",
+      "role": "traceability",
+      "path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "sha256": "88d4eaa9845fe8b8c55873332e474cdfe278241a3883d21b8c497852dd16ba01"
+    },
+    {
+      "id": "ART-006",
+      "role": "recovery",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "861183a8da98169824ff843f706f97cd01783672756755823d7c326931159579"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "DATA-001",
+        "PERF-001",
+        "OPS-001",
+        "SEC-001"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "affected_ids": [
+        "REQ-003",
+        "UX-001",
+        "PERF-001",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "affected_ids": [
+        "REQ-002",
+        "DATA-001",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "UX-001",
+        "DATA-001",
+        "PERF-001",
+        "OPS-001",
+        "SEC-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Persist a versioned Template master, durable linked instance identity, and stable master-to-Estimate node/row mappings.",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Propagate each confirmed master-owned mutation to every active instance while skipping detached instances and exposing query-safe current, updating, retryable-failed, and terminal-failed convergence state.",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Route master-owned Estimate Sheet and Template Editor actions through zero-one-many impact preview, one-owner bulk classification, explicit confirmation, stale reconfirmation, receipt-first same-intent outcome resolution, and authoritative reconciliation.",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-002",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Give linked instances distinct, accessible, virtualization-safe treatment with deterministic multi-root ownership, global Template progress, focus recovery, and clear current, updating, failed, and detached semantics.",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "source_ids": [
+        "SRC-002",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Preserve atomicity, idempotency, tenant authorization, server-authoritative topology, field ownership, live Component-source precedence, history, and publication correctness.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Keep Estimate reads materialized and bounded, use set-based linked writes and indexed recovery, avoid N+1 work and broad React invalidation, and recover fan-out without long user-blocking transactions.",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Define every linked/copy insertion entry point, empty-source rule, detach/retry/delete, archive/restore, atomic permanent delete, duplicate, legacy-copy, and composition lifecycle behavior.",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Enforce workspace, project, estimate, tab, parent, mapping, job, and Template ownership on every preview, mutation, reconciliation, detach, and delete path.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "statement": "A source or impact race can commit against a stale instance set.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "statement": "Partial global propagation can be mistaken for completed consistency.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "statement": "Template propagation can overwrite project takeoff data or a newer Component version.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "statement": "Template link projection can broaden React rerenders or destabilize virtualization geometry.",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "MITIGATED",
+      "statement": "Delete or detach races can orphan mappings or remove Estimate content unexpectedly.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "MITIGATED",
+      "statement": "Five-minute cron recovery can become too slow at future scale.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "MITIGATED",
+      "statement": "Historical copied branches can be incorrectly inferred as linked instances.",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "MITIGATED",
+      "statement": "A missing workspace guard can read or mutate another workspace during fan-out.",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly authorized focused implementation testing; the scoped Template Links suite passed.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly authorized focused implementation testing; the scoped Template Links suite passed.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly authorized focused implementation testing; the scoped Template Links suite passed.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Implementation review can first prove stable scalar props, fixed geometry, labels, and virtualization integration; browser or visual automation remains a separate unapproved proposal.",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly authorized focused implementation testing; the scoped Template Links suite passed.",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly authorized focused implementation testing; the scoped Template Links suite passed.",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly authorized focused implementation testing; the scoped Template Links suite passed.",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Workspace and resource ownership can be established first through exact guarded SQL/action review and static negative-path evidence without running an automated product test in this planning task.",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "command": "bunx vitest run tests/vitest/template-editor-actions-authz.test.ts tests/vitest/template-editor.test.tsx tests/vitest/cloudflare-scheduled-upload-jobs.test.ts tests/vitest/estimate-template-trusted-insert.test.ts tests/vitest/library-template-insert-picker.test.tsx tests/vitest/estimate-sheet-branch-header-ui.test.tsx tests/vitest/component-library-d1-bind-budget.test.ts tests/vitest/template-intent-recovery.test.ts --maxWorkers=1"
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-DATA-001",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-005",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-UX-001",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "criterion_ids": [
+        "AC-003",
+        "AC-004",
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-001",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "goal": "Add tenant-constrained linked Template schema, durable server-owned mutation intents, explicit retry classes, ownership-safe snapshots, no-inference legacy-tab policy, version-one backfill, domain types, and compact read contracts.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "DATA-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-005",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "goal": "Create replay-safe set-based non-empty whole-Template linked insertion with an active-tab preflight and explicit entry-point matrix while preserving copy behavior.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "goal": "Add zero-one-many impact preview, one-owner bulk classification, server-owned receipt-first same-intent outcome resolution, immutable source commit, and complete target job creation.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-003",
+        "DATA-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "goal": "Reconcile each instance atomically and idempotently with Component precedence and field ownership.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "DATA-001",
+        "PERF-001",
+        "OPS-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "VERIFIED",
+      "goal": "Add complete confirmation/outcome states, multi-root and global progress ownership, retryable-terminal recovery, recoverable dirty deletion, and targeted cache convergence without broad rerenders.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "REQ-003",
+        "UX-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "VERIFIED",
+      "goal": "Implement explicit current-updating-failed detach, class-safe retry, duplicate, archive/restore IA, instance delete, and atomic master permanent delete with a surviving committed receipt.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "OPS-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-007",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "VERIFIED",
+      "goal": "Integrate immediate and scheduled intent/job draining, lease recovery, retryable-terminal failure classification, observability, and bounded performance contracts.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "DATA-001",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "VERIFIED",
+      "goal": "Collect scoped static and authorized focused evidence, complete independent review, and reconcile package truth.",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "UX-001",
+        "DATA-001",
+        "PERF-001",
+        "OPS-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "decision": "Keep Estimate data materialized and reject live Template read-through.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-001",
+        "DATA-001",
+        "PERF-001",
+        "UNIT-001",
+        "UNIT-004"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "decision": "Only whole-Template insertion creates a linked instance in the MVP; explicit copy paths remain independent.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-002",
+        "RISK-007"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "decision": "Template structure and content are master-owned while quantities and takeoff adjustments are instance-owned.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-003",
+        "DATA-001",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "RISK-003"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "decision": "Use a D1 propagation job with immediate bounded draining and the existing five-minute schedule; add or repurpose no Queue.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-002",
+        "PERF-001",
+        "UNIT-007",
+        "RISK-006",
+        "AUTH-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "decision": "Do not infer links for historical Template copies; linking starts with new linked insertions.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001",
+        "UNIT-001",
+        "UNIT-002",
+        "RISK-007"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "decision": "Detach is whole-instance and one-way in the MVP; partial detach and relink are excluded.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-002",
+        "OPS-001",
+        "UNIT-006",
+        "RISK-005"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "decision": "Component Library linkage remains independently authoritative for linked Component fields and versions.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "DATA-001",
+        "UNIT-004",
+        "RISK-003"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "decision": "Master permanent delete detaches active instances first and preserves their Estimate content.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "OPS-001",
+        "SEC-001",
+        "UNIT-006",
+        "RISK-005"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "decision": "Propagation is per-instance atomic and globally eventual with visible current, updating, and failed states.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-002",
+        "DATA-001",
+        "SEC-001",
+        "UNIT-004",
+        "UNIT-007",
+        "RISK-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "decision": "Nested linked Templates and AI package-builder links are excluded; those paths remain snapshot copies.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-006"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-011",
+      "status": "ACTIVE",
+      "decision": "Use stable branch-level scalar link state and fixed geometry for recursive and virtualized rendering.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "UX-001",
+        "PERF-001",
+        "UNIT-005",
+        "RISK-004"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "decision": "The user authorized focused implementation tests; the scoped 64-test Vitest suite passed.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-003",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "UNIT-008"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "decision": "A bulk command has one field owner and at most one Template master; mixed or multi-master mutations fail before optimistic state, and shared commits never enter local Undo.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-003",
+        "DATA-001",
+        "OPS-001",
+        "UNIT-003",
+        "UNIT-005",
+        "AC-003",
+        "AC-005",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-014",
+      "status": "ACTIVE",
+      "decision": "Propagated topology is server-authoritative; a deleted dirty row leaves the graph immediately while a bounded session draft remains recoverable.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "DATA-001",
+        "UX-001",
+        "UNIT-004",
+        "UNIT-005",
+        "AC-004",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-015",
+      "status": "ACTIVE",
+      "decision": "Every insertion entry point declares linked versus copy behavior; empty Templates and legacy tabless targets cannot create ambiguous linked instances and receive explicit copy fallbacks.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001",
+        "UNIT-002",
+        "AC-001",
+        "AC-007",
+        "RISK-007"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-016",
+      "status": "ACTIVE",
+      "decision": "Multi-root instances use one deterministic visual owner and one sheet announcer; the Template Editor persistently owns global propagation progress and failure.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-002",
+        "UX-001",
+        "UNIT-005",
+        "UNIT-007",
+        "AC-002",
+        "AC-004",
+        "RISK-002",
+        "RISK-004"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-017",
+      "status": "ACTIVE",
+      "decision": "Detach works from current, updating, and failed without replaying a pending edit; archive and restore are discoverable, and detach-all permanent delete is one atomic transaction.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "OPS-001",
+        "DATA-001",
+        "UNIT-006",
+        "AC-005",
+        "AC-007",
+        "RISK-005"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-018",
+      "status": "ACTIVE",
+      "decision": "D1 owns the normalized payload for one pending Template intent; post-submit disconnects resolve by receipt-first intent-ID replay into committed, definitely not applied, or still unknown.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-003",
+        "DATA-001",
+        "UNIT-003",
+        "UNIT-005",
+        "AC-003",
+        "AC-005",
+        "RISK-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-019",
+      "status": "ACTIVE",
+      "decision": "Progress and instance failures use one retryable-terminal taxonomy; progress-query failure is separate, and bulk retry targets only server-eligible retryable instances.",
+      "artifact_path": "README.md",
+      "affected_ids": [
+        "REQ-002",
+        "UX-001",
+        "DATA-001",
+        "OPS-001",
+        "UNIT-005",
+        "UNIT-007",
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-007",
+        "RISK-002"
+      ]
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "RESOLVED",
+      "boundary": "Local repository implementation uses bound ARCH_DB and the existing Worker schedule; remote apply, deployment, hosted mutation, paid services, and new Queue resources remain outside this pack.",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DEC-AUTO-004",
+        "OPS-001",
+        "UNIT-007",
+        "UNIT-008"
+      ]
+    }
+  ],
+  "ready_slices": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "01-ARCHITECTURE-AND-D1.md",
+      "sha256": "c56a005c67e904a67dbc0987c2e2dacdb42c6ffadd39bcb63705f66fb7db8312",
+      "claim_ids": [
+        "SRC-001",
+        "SRC-003",
+        "REQ-001",
+        "REQ-002",
+        "DATA-001",
+        "PERF-001",
+        "OPS-001",
+        "SEC-001"
+      ],
+      "source_revision": "e1f29ac4644fe839c932473bc3c208bd7dc7ffd1",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "02-PRODUCT-CRUD-UX-AND-PERFORMANCE.md",
+      "sha256": "f1ac24a58787409156cbaef2e2e3b731d91239c0576043c6605723d4e2258052",
+      "claim_ids": [
+        "SRC-002",
+        "REQ-003",
+        "UX-001",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "source_revision": "e1f29ac4644fe839c932473bc3c208bd7dc7ffd1",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "03-IMPLEMENTATION-UNITS-AND-TRACEABILITY.md",
+      "sha256": "88d4eaa9845fe8b8c55873332e474cdfe278241a3883d21b8c497852dd16ba01",
+      "claim_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "GATE-DATA-001",
+        "GATE-UX-001",
+        "GATE-VERIFY-001",
+        "TEST-001",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "source_revision": "e1f29ac4644fe839c932473bc3c208bd7dc7ffd1",
+      "valid_until": null,
+      "actual_signal": "Implementation traceability was reconciled against current source and focused verification.",
+      "result": "PASS",
+      "observed_at": "2026-07-18T08:00:00.000Z"
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "LOOP_LEDGER.md",
+      "sha256": "861183a8da98169824ff843f706f97cd01783672756755823d7c326931159579",
+      "claim_ids": [
+        "AC-002",
+        "AC-005",
+        "DATA-001",
+        "GATE-DATA-001",
+        "GATE-VERIFY-001",
+        "REQ-002",
+        "TEST-001",
+        "UNIT-004",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "source_revision": "e1f29ac4644fe839c932473bc3c208bd7dc7ffd1",
+      "valid_until": null,
+      "actual_signal": "Ledger records completed units, passing gates, and fresh local verification.",
+      "result": "PASS",
+      "observed_at": "2026-07-18T08:00:00.000Z"
+    }
+  ],
+  "stale_triggers": [
+    "template-schema-crud-or-insertion-contract-change",
+    "linked-component-propagation-or-detach-contract-change",
+    "estimate-tree-read-row-mutation-or-virtualization-contract-change",
+    "worker-cron-queue-binding-or-provider-limit-change",
+    "publication-history-receipt-or-cache-convergence-contract-change",
+    "planning-suite-validator-change",
+    "scoped-working-tree-drift"
+  ],
+  "next_unit": null,
+  "updated_at": "2026-07-18T08:15:00.000Z",
+  "manifest_sha256": "6e40d6b65b96e978d3d5abb25571d8e151fba25a40f8f4f032f57556b62a1d6a"
+}

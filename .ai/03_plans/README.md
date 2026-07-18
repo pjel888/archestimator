@@ -114,6 +114,7 @@ These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/store/` 
 - `.ai/09_archive/store/2026-07-15-Estimate-System-Map-complete/` — Estimate System Map; terminal `ACHIEVED`.
 - `.ai/09_archive/store/2026-07-15-Legacy-Cleanup-unresolved/` — repository legacy-cleanup; planning-ready, not executed.
 - `.ai/09_archive/store/2026-07-16-Admin-Shadcn-UI-Migration-Plan-Pack-complete/` — Admin shadcn UI migration; terminal `ACHIEVED` (all six units verified).
+- `.ai/09_archive/store/2026-07-18-Template-Links-complete/` — linked Estimate Template instances; all eight units verified with durable D1 propagation, lifecycle/recovery UX, and 64 focused tests. Terminal `ACHIEVED`; release remains `NOT_EVALUATED`.
 
 The `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/` residual (two duplicate evidence files whose canonical copy already lived in `.ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/`) was removed in the same pass; the archive copy is canonical.
 
