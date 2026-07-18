@@ -352,6 +352,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
         // The row table keeps its own border, so each node's data grid stays
         // framed at every depth.
         estimateSurfaceClass(surfaceVariant, "gridNodeSurface"),
+        node.templateLink && "border-l-2 border-brand-orange/70",
         (templateDragActive || componentDragActive) && branchDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
@@ -410,6 +411,25 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
           <div className="min-w-0 flex-1">
             <p className={nodeNameClasses(depth)} role="heading" aria-level={headingLevel}>{node.name}</p>
           </div>
+          {node.templateLink?.isPrimaryRoot ? (
+            <span
+              className={cn(
+                "shrink-0 rounded-xs px-1.5 py-0.5 text-[8px] font-medium",
+                node.templateLink.linkState === "failed" ? "bg-dangerSoft text-danger" : "bg-brand-orange/10 text-brand-orange",
+              )}
+              title={`Linked to ${node.templateLink.templateName}; quantities and adjustments are project-specific.`}
+            >
+              {node.templateLink.linkState === "updating"
+                ? `Updating v${node.templateLink.targetVersionNumber}`
+                : node.templateLink.linkState === "failed"
+                  ? "Update failed"
+                  : `Linked v${node.templateLink.appliedVersionNumber}`}
+            </span>
+          ) : node.templateLink?.isInstanceRoot ? (
+            <span className="shrink-0 text-[8px] text-brand-orange" title={`Linked part ${node.templateLink.rootOrdinal} of ${node.templateLink.rootCount}`}>
+              {node.templateLink.rootOrdinal}/{node.templateLink.rootCount}
+            </span>
+          ) : null}
           {sourceInsertPending ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-normal text-tertiary" role="status">
               <span className="size-1 animate-pulse rounded-full bg-current" aria-hidden="true" />

@@ -4,10 +4,13 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from "react";
 import {
   ArrowsOutCardinal,
+  ArrowClockwise,
   Check,
   FunnelSimple,
   Log,
   PencilSimple,
+  LinkBreak,
+  LinkSimple,
   StackPlus,
   Trash,
   X,
@@ -61,6 +64,13 @@ import { useEstimateTreeSubtreeHydration } from "./estimate-tree/use-estimate-tr
 import { useEstimateTreeRenameEditor } from "./estimate-tree/use-estimate-tree-rename-editor";
 import { useEstimateTreeCrud } from "./estimate-tree/use-estimate-tree-crud";
 import { useEstimateTreeExternalDrops } from "./estimate-tree/use-estimate-tree-external-drops";
+import {
+  deleteEstimateTemplateInstance,
+  detachEstimateTemplateInstance,
+  duplicateEstimateTemplateInstance,
+  readEstimateTemplateInstanceStatuses,
+  retryEstimateTemplateInstance,
+} from "@/lib/component-library/template-instance-actions";
 
 type EstimateSheetTreeProps = {
   projectId: string;
@@ -90,6 +100,25 @@ function AddTreeActionIcon() {
 
 function isOptimisticEstimateNodeId(nodeId: string) {
   return nodeId.startsWith("optimistic-");
+}
+
+function summarizeTemplateLinkStatus(nodes: EstimateTreeNode[]) {
+  const instances = new Map<string, NonNullable<EstimateTreeNode["templateLink"]>>();
+  const visit = (items: EstimateTreeNode[]) => {
+    for (const node of items) {
+      if (node.templateLink) instances.set(node.templateLink.instanceId, node.templateLink);
+      visit(node.children ?? []);
+    }
+  };
+  visit(nodes);
+  const updatingLinks = [...instances.values()].filter((link) => link.linkState === "updating");
+  const failedCount = [...instances.values()].filter((link) => link.linkState === "failed").length;
+  const statusMessage = failedCount > 0
+    ? `${failedCount} linked Template ${failedCount === 1 ? "instance needs" : "instances need"} attention.`
+    : updatingLinks.length > 0
+      ? `${updatingLinks.length} linked Template ${updatingLinks.length === 1 ? "instance is" : "instances are"} updating.`
+      : "";
+  return { updatingLinks, statusMessage };
 }
 
 type UiTreeModel = {
@@ -385,6 +414,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     undefined,
     createEstimateSheetTreeState,
   );
+  const [detachTargetNode, setDetachTargetNode] = useState<EstimateTreeNode | null>(null);
+  const [deleteInstanceTargetNode, setDeleteInstanceTargetNode] = useState<EstimateTreeNode | null>(null);
+  const [templateLinkActionPending, setTemplateLinkActionPending] = useState(false);
+  const templateLinkStatus = useMemo(() => summarizeTemplateLinkStatus(localNodes), [localNodes]);
   const {
     reorderStatus,
     editingNodeId,
@@ -403,6 +436,38 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     treeSearchQuery,
     treeFilter,
   } = treeState;
+  useEffect(() => {
+    if (templateLinkStatus.updatingLinks.length === 0) return;
+    let cancelled = false;
+    let timeoutId: number | undefined;
+    const localStatuses = new Map(templateLinkStatus.updatingLinks.map((link) => [link.instanceId, link]));
+    const poll = async () => {
+      try {
+        const statuses = await readEstimateTemplateInstanceStatuses({
+          estimateId,
+          instanceIds: [...localStatuses.keys()],
+        });
+        if (cancelled) return;
+        const changed = statuses.length !== localStatuses.size || statuses.some((status) => {
+          const local = localStatuses.get(status.instanceId);
+          return !local
+            || status.linkState !== local.linkState
+            || status.appliedVersionNumber !== local.appliedVersionNumber
+            || status.targetVersionNumber !== local.targetVersionNumber;
+        });
+        if (changed) await refreshAuthoritativeTree();
+      } catch {
+        if (cancelled) return;
+      } finally {
+        if (!cancelled) timeoutId = window.setTimeout(poll, 4_000);
+      }
+    };
+    timeoutId = window.setTimeout(poll, 4_000);
+    return () => {
+      cancelled = true;
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [estimateId, refreshAuthoritativeTree, templateLinkStatus]);
   const setReorderStatus = useCallback((reorderStatus: EstimateTreeReorderStatus) => {
     dispatchTreeState({ type: "reorderStatusChanged", reorderStatus });
   }, []);
@@ -786,6 +851,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     if (!contextMenuNode) return [];
     const nodeIsPendingCreate = isOptimisticEstimateNodeId(contextMenuNode.id);
     const editDisabledReason = canEditEstimate ? undefined : VIEW_ONLY_ESTIMATE_REASON;
+    const templateLink = contextMenuNode.templateLink;
+    const linkedSharedEditReason = templateLink
+      ? `This structure is linked to ${templateLink.templateName}. Edit the source Template or detach it before editing locally.`
+      : undefined;
 
     return [
       // P6 single-node model: "Add area inside" is UNCONDITIONAL on every node —
@@ -798,8 +867,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             id: "add-area-inside",
             label: "Add area inside",
             icon: <Log size={12} weight="regular" aria-hidden="true" />,
-            disabled: !canEditEstimate,
-            disabledReason: editDisabledReason,
+            disabled: !canEditEstimate || Boolean(templateLink),
+            disabledReason: editDisabledReason ?? linkedSharedEditReason,
             onSelect: () => {
               armContextMenuRenameHandoff();
               handleAddTreeNode(contextMenuNode.id);
@@ -828,17 +897,19 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             id: "rename",
             label: "Rename",
             icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
-            disabled: !canEditEstimate || isTreeMutationSaving,
-            disabledReason: editDisabledReason ?? "Finish the current tree save before renaming another node.",
+            disabled: !canEditEstimate || isTreeMutationSaving || Boolean(templateLink),
+            disabledReason: editDisabledReason ?? linkedSharedEditReason ?? "Finish the current tree save before renaming another node.",
             onSelect: () => beginRenameNode(contextMenuNode, { fromContextMenu: true }),
           },
           {
             id: "move",
             label: "Move...",
             icon: <ArrowsOutCardinal size={12} weight="regular" aria-hidden="true" />,
-            disabled: !canEditEstimate || !canReorderNow || treeSearchActive || nodeIsPendingCreate,
+            disabled: !canEditEstimate || !canReorderNow || treeSearchActive || nodeIsPendingCreate || Boolean(templateLink),
             disabledReason: editDisabledReason ?? (treeSearchActive
               ? "Clear tree search before moving areas."
+              : templateLink
+                ? `Detach the linked ${templateLink.templateName} instance before moving its structure.`
               : nodeIsPendingCreate
                 ? "Wait for this area to finish saving first."
                 : isTreeMutationSaving
@@ -848,6 +919,90 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           },
         ],
       },
+      ...(templateLink ? [{
+        id: "template-link-actions",
+        items: [
+          {
+            id: "edit-source-template",
+            label: "Edit source Template",
+            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            disabled: templateLinkActionPending,
+            onSelect: () => globalThis.location.assign(`/workshop/library/templates/${templateLink.templateId}`),
+          },
+          ...(templateLink.linkState === "failed" && templateLink.retryable ? [{
+            id: "retry-template-link",
+            label: `Retry update to v${templateLink.targetVersionNumber}`,
+            icon: <ArrowClockwise size={12} weight="regular" aria-hidden="true" />,
+            disabled: !canEditEstimate || templateLinkActionPending,
+            disabledReason: editDisabledReason,
+            onSelect: () => {
+              setTemplateLinkActionPending(true);
+              void retryEstimateTemplateInstance({ instanceId: templateLink.instanceId })
+                .then(async () => {
+                  await refreshAuthoritativeTree();
+                  toast({ tone: "success", message: `Retrying ${templateLink.templateName}.` });
+                })
+                .catch((error: unknown) => toast({ tone: "error", message: error instanceof Error ? error.message : "Could not retry the Template update." }))
+                .finally(() => setTemplateLinkActionPending(false));
+            },
+          }] : []),
+          {
+            id: "duplicate-template-link",
+            label: "Duplicate as linked instance",
+            icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+            disabled: !canEditEstimate || templateLinkActionPending,
+            disabledReason: editDisabledReason,
+            onSelect: () => {
+              setTemplateLinkActionPending(true);
+              void duplicateEstimateTemplateInstance({
+                instanceId: templateLink.instanceId,
+                intentId: globalThis.crypto.randomUUID(),
+                mode: "linked",
+              }).then(async () => {
+                await refreshAuthoritativeTree();
+                toast({ tone: "success", message: `Duplicated ${templateLink.templateName} as a linked instance.` });
+              }).catch((error: unknown) => toast({ tone: "error", message: error instanceof Error ? error.message : "Could not duplicate the linked Template." }))
+                .finally(() => setTemplateLinkActionPending(false));
+            },
+          },
+          {
+            id: "duplicate-template-copy",
+            label: "Duplicate as local copy",
+            icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+            disabled: !canEditEstimate || templateLinkActionPending,
+            disabledReason: editDisabledReason,
+            onSelect: () => {
+              setTemplateLinkActionPending(true);
+              void duplicateEstimateTemplateInstance({
+                instanceId: templateLink.instanceId,
+                intentId: globalThis.crypto.randomUUID(),
+                mode: "copy",
+              }).then(async () => {
+                await refreshAuthoritativeTree();
+                toast({ tone: "success", message: `Duplicated ${templateLink.templateName} as local content.` });
+              }).catch((error: unknown) => toast({ tone: "error", message: error instanceof Error ? error.message : "Could not duplicate the Template content." }))
+                .finally(() => setTemplateLinkActionPending(false));
+            },
+          },
+          {
+            id: "detach-template-link",
+            label: "Detach this instance...",
+            icon: <LinkBreak size={12} weight="regular" aria-hidden="true" />,
+            disabled: !canEditEstimate || templateLinkActionPending,
+            disabledReason: editDisabledReason,
+            onSelect: () => setDetachTargetNode(contextMenuNode),
+          },
+          {
+            id: "delete-template-link-instance",
+            label: "Delete linked instance...",
+            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            tone: "destructive" as const,
+            disabled: !canEditEstimate || templateLinkActionPending,
+            disabledReason: editDisabledReason,
+            onSelect: () => setDeleteInstanceTargetNode(contextMenuNode),
+          },
+        ],
+      }] satisfies ActionMenuGroup[] : []),
       {
         id: "node-danger",
         items: [
@@ -856,14 +1011,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             label: "Delete",
             icon: <Trash size={12} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
-            disabled: !canEditEstimate || isTreeMutationSaving,
-            disabledReason: editDisabledReason ?? "Finish the current tree save before deleting another node.",
+            disabled: !canEditEstimate || isTreeMutationSaving || Boolean(templateLink),
+            disabledReason: editDisabledReason ?? linkedSharedEditReason ?? "Finish the current tree save before deleting another node.",
             onSelect: () => setDeleteTargetNode(contextMenuNode),
           },
         ],
       },
     ];
-  }, [armContextMenuRenameHandoff, beginRenameNode, canEditEstimate, canReorderNow, contextMenuNode, handleAddTreeNode, isTreeMutationSaving, openTreeMoveDialog, setDeleteTargetNode, treeSearchActive]);
+  }, [armContextMenuRenameHandoff, beginRenameNode, canEditEstimate, canReorderNow, contextMenuNode, handleAddTreeNode, isTreeMutationSaving, openTreeMoveDialog, refreshAuthoritativeTree, setDeleteTargetNode, templateLinkActionPending, toast, treeSearchActive]);
 
   const renderEstimateTreeRowLabel = useCallback((treeNode: UiTreeNode) => {
     const node = (treeNode.data?.node as EstimateTreeNode | undefined) ?? findEstimateNode(localNodes, treeNode.id);
@@ -872,8 +1027,31 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
     if (editingNodeId !== node.id) {
       return (
-        <span className="flex min-w-0 flex-1 items-center gap-1 text-left">
+        <span className={cn(
+          "flex min-w-0 flex-1 items-center gap-1 text-left",
+          node.templateLink ? "border-l-2 border-brand-orange/70 pl-1" : "",
+        )}>
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          {node.templateLink?.isPrimaryRoot ? (
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-0.5 rounded-xs px-1 text-[8px] font-medium leading-3",
+                node.templateLink.linkState === "failed" ? "bg-dangerSoft text-danger" : "bg-brand-orange/10 text-brand-orange",
+              )}
+              title={`Linked to ${node.templateLink.templateName}; quantities and adjustments are project-specific.`}
+            >
+              <LinkSimple size={9} weight="bold" aria-hidden="true" />
+              {node.templateLink.linkState === "updating"
+                ? `Updating v${node.templateLink.targetVersionNumber}`
+                : node.templateLink.linkState === "failed"
+                  ? "Update failed"
+                  : `Linked v${node.templateLink.appliedVersionNumber}`}
+            </span>
+          ) : node.templateLink?.isInstanceRoot ? (
+            <span className="shrink-0 text-[8px] font-medium leading-3 text-tertiary">
+              {node.templateLink.rootOrdinal}/{node.templateLink.rootCount}
+            </span>
+          ) : null}
           {subtreeLoadState?.status === "loading" ? (
             <output aria-live="polite" className="shrink-0 text-[9px] font-medium leading-3 text-tertiary">
               Loading...
@@ -1114,6 +1292,9 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           >
             <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
               <nav aria-label={`${projectName} estimate areas`}>
+                <output aria-live="polite" className="sr-only">
+                  {templateLinkStatus.statusMessage}
+                </output>
                 <ContextMenu onOpenChange={setContextMenuOpen}>
                   <ContextMenuTrigger asChild>
                     <div
@@ -1219,6 +1400,102 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         </div>
         </div>
       </ResizableSidePanel>
+      <Modal
+        open={Boolean(detachTargetNode)}
+        title={detachTargetNode?.templateLink ? `Detach ${detachTargetNode.templateLink.templateName}` : "Detach linked Template"}
+        description="Keep the last complete content as local Estimate data and stop future Template updates. This cannot be relinked."
+        onOpenChange={(open) => {
+          if (!open && !templateLinkActionPending) setDetachTargetNode(null);
+        }}
+        closeLabel="Cancel detach"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-tertiary">
+            {detachTargetNode?.templateLink ? (
+              detachTargetNode.templateLink.targetVersionNumber > detachTargetNode.templateLink.appliedVersionNumber
+                ? `Keep the last complete v${detachTargetNode.templateLink.appliedVersionNumber} content. The v${detachTargetNode.templateLink.targetVersionNumber} update will be abandoned.`
+                : `Keep the current v${detachTargetNode.templateLink.appliedVersionNumber} content as local Estimate data.`
+            ) : null}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" disabled={templateLinkActionPending} onClick={() => setDetachTargetNode(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={!canEditEstimate || templateLinkActionPending || !detachTargetNode?.templateLink}
+              onClick={() => {
+                const templateLink = detachTargetNode?.templateLink;
+                if (!templateLink) return;
+                setTemplateLinkActionPending(true);
+                void detachEstimateTemplateInstance({
+                  instanceId: templateLink.instanceId,
+                  expectedAppliedVersionNumber: templateLink.appliedVersionNumber,
+                  expectedTargetVersionNumber: templateLink.targetVersionNumber,
+                }).then(async () => {
+                  setDetachTargetNode(null);
+                  await refreshAuthoritativeTree();
+                  toast({ tone: "success", message: "Detached. Repeat your edit to apply it locally." });
+                }).catch((error: unknown) => {
+                  toast({ tone: "error", message: error instanceof Error ? error.message : "Could not detach the linked Template." });
+                  void refreshAuthoritativeTree().catch(() => undefined);
+                }).finally(() => setTemplateLinkActionPending(false));
+              }}
+            >
+              Detach instance
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        open={Boolean(deleteInstanceTargetNode)}
+        title={deleteInstanceTargetNode?.templateLink ? `Delete ${deleteInstanceTargetNode.templateLink.templateName} instance` : "Delete linked Template instance"}
+        description="Delete the complete linked instance and all of its Estimate rows. Other linked instances and the master Template stay unchanged."
+        onOpenChange={(open) => {
+          if (!open && !templateLinkActionPending) setDeleteInstanceTargetNode(null);
+        }}
+        closeLabel="Cancel instance delete"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-tertiary">
+            This removes every root and row owned by this linked instance. This action cannot be undone from the Estimate Sheet.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" disabled={templateLinkActionPending} onClick={() => setDeleteInstanceTargetNode(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={!canEditEstimate || templateLinkActionPending || !deleteInstanceTargetNode?.templateLink}
+              onClick={() => {
+                const templateLink = deleteInstanceTargetNode?.templateLink;
+                if (!templateLink) return;
+                setTemplateLinkActionPending(true);
+                void deleteEstimateTemplateInstance({
+                  instanceId: templateLink.instanceId,
+                  expectedAppliedVersionNumber: templateLink.appliedVersionNumber,
+                  expectedTargetVersionNumber: templateLink.targetVersionNumber,
+                }).then(async () => {
+                  setDeleteInstanceTargetNode(null);
+                  await refreshAuthoritativeTree();
+                  toast({ tone: "success", message: `Deleted the ${templateLink.templateName} instance.` });
+                }).catch((error: unknown) => {
+                  toast({ tone: "error", message: error instanceof Error ? error.message : "Could not delete the linked Template instance." });
+                  void refreshAuthoritativeTree().catch(() => undefined);
+                }).finally(() => setTemplateLinkActionPending(false));
+              }}
+            >
+              Delete instance
+            </Button>
+          </div>
+        </div>
+      </Modal>
       <Modal
         open={bulkDeleteConfirmOpen}
         title={`Delete ${bulkSelectionCount} selected ${bulkSelectionCount === 1 ? "Area" : "Areas"}`}

@@ -1741,6 +1741,7 @@ describe("estimate sheet library insertion persistence", () => {
         detail: { targetParentNodeId: groupNodeId, templateIds: [starterTemplate.id] },
       }));
     });
+    fireEvent.click(await screen.findByRole("button", { name: "Insert linked" }));
 
     await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
     expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
@@ -1751,6 +1752,7 @@ describe("estimate sheet library insertion persistence", () => {
       intentId: expect.any(String),
       targetTabId: undefined,
       unavailableSourcePolicy: "cancel",
+      mode: "linked",
     });
     expect(await screen.findByLabelText("Interior Fit-Out")).toBeInTheDocument();
   });
@@ -1775,6 +1777,7 @@ describe("estimate sheet library insertion persistence", () => {
         detail: { targetParentNodeId: groupNodeId, templateIds: [starterTemplate.id] },
       }));
     });
+    fireEvent.click(await screen.findByRole("button", { name: "Insert linked" }));
 
     await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).toMatchObject({
@@ -1915,6 +1918,7 @@ describe("estimate sheet library insertion persistence", () => {
         detail: { targetParentNodeId: groupNodeId, templateIds: [starterTemplate.id] },
       }));
     });
+    fireEvent.click(await screen.findByRole("button", { name: "Insert linked" }));
 
     const confirmation = await screen.findByRole("dialog", { name: "Use saved template values?" });
     fireEvent.click(within(confirmation).getByRole("button", { name: "Insert saved values" }));
@@ -1924,7 +1928,10 @@ describe("estimate sheet library insertion persistence", () => {
     }));
     expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenNthCalledWith(2, expect.objectContaining({
       unavailableSourcePolicy: "use_saved_snapshot_unlinked",
+      mode: "copy",
     }));
+    expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[1]?.[0].intentId)
+      .not.toBe(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0]?.[0].intentId);
   });
 
   it("batches template drop events with multiple template ids into one action call", async () => {

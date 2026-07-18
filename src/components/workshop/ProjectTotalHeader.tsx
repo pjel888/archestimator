@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { getBudgetHealthGradientStop } from "@/lib/project-charts/budget-health-gradient";
 import {
@@ -66,6 +66,26 @@ function useProjectBudget(plannedBudget: number, isEstimateSheetRoute: boolean) 
     isEstimateSheetRoute ? subscribeToProjectBudgetChange : subscribeToInactiveProjectBudgetChange,
     () => (isEstimateSheetRoute ? getActiveEstimateProjectBudget(plannedBudget) : plannedBudget),
     () => plannedBudget,
+  );
+}
+
+function getActiveEstimateProjectTotal() {
+  if (typeof window === "undefined") return 0;
+  const storedTotal = (window as ProjectBudgetWindow).__archestimatorProjectTotal;
+  return typeof storedTotal === "number" ? storedTotal : 0;
+}
+
+function subscribeToProjectTotalChange(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(PROJECT_TOTAL_CHANGE_EVENT, onStoreChange);
+  return () => window.removeEventListener(PROJECT_TOTAL_CHANGE_EVENT, onStoreChange);
+}
+
+function useProjectTotal(isEstimateSheetRoute: boolean) {
+  return useSyncExternalStore(
+    isEstimateSheetRoute ? subscribeToProjectTotalChange : subscribeToInactiveProjectBudgetChange,
+    () => (isEstimateSheetRoute ? getActiveEstimateProjectTotal() : 0),
+    () => 0,
   );
 }
 
@@ -222,21 +242,9 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
     ? Boolean(pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`))
     : true;
   const budget = useProjectBudget(plannedBudget, isEstimateSheetRoute);
-  const [total, setTotal] = useState(0);
+  const total = useProjectTotal(isEstimateSheetRoute);
   const healthState = getBudgetHealthState(budget > 0 ? (Math.max(0, total) / Math.max(0, budget)) * 100 : 0, budget > 0, Math.max(0, total));
   const totalValueClassName = budgetHealthTotalValueClass(healthState);
-
-  useEffect(() => {
-    if (!isEstimateSheetRoute) return;
-
-    function handleProjectTotalChange(event: Event) {
-      const customEvent = event as CustomEvent<{ total: number }>;
-      if (typeof customEvent.detail?.total === "number") setTotal(customEvent.detail.total);
-    }
-
-    window.addEventListener(PROJECT_TOTAL_CHANGE_EVENT, handleProjectTotalChange);
-    return () => window.removeEventListener(PROJECT_TOTAL_CHANGE_EVENT, handleProjectTotalChange);
-  }, [isEstimateSheetRoute]);
 
   if (!isEstimateSheetRoute) return null;
 

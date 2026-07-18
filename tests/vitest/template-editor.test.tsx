@@ -54,8 +54,10 @@ const actionMocks = vi.hoisted(() => ({
   deleteEstimateTemplateNode: vi.fn(),
   insertTemplateIntoTemplate: vi.fn(),
   moveEstimateTemplateNode: vi.fn(),
+  previewEstimateTemplateMutation: vi.fn(),
   removeEstimateTemplateRowItem: vi.fn(),
   renameEstimateTemplateNode: vi.fn(),
+  resolveEstimateTemplateMutationIntent: vi.fn(),
   updateEstimateTemplateRowItem: vi.fn(),
 }));
 
@@ -159,10 +161,97 @@ describe("TemplateEditorClient", () => {
     actionMocks.createEstimateTemplateAllowanceRow.mockResolvedValue({ row: {} });
     actionMocks.createEstimateTemplateNode.mockResolvedValue({ node: {} });
     actionMocks.deleteEstimateTemplateNode.mockResolvedValue({ deletedNodeIds: [] });
+    actionMocks.resolveEstimateTemplateMutationIntent.mockResolvedValue({
+      state: "not_applied",
+      committedVersionNumber: null,
+      result: null,
+      notAppliedCode: "batch_not_committed",
+    });
+    actionMocks.previewEstimateTemplateMutation.mockResolvedValue({
+      templateId: "template-1",
+      templateName: "Powder Room Basic",
+      currentVersionNumber: 1,
+      activeInstanceCount: 0,
+      affectedProjectCount: 0,
+      affectedEstimateCount: 0,
+      labels: [],
+      hasMoreLabels: false,
+      fingerprint: "no-linked-instances",
+      activeInstanceSignature: "",
+    });
   });
 
   afterEach(() => {
+    globalThis.sessionStorage.clear();
     vi.restoreAllMocks();
+  });
+
+  it("restores and resolves an outcome-unknown shared Template intent", async () => {
+    actionMocks.previewEstimateTemplateMutation.mockResolvedValue({
+      templateId: "template-1",
+      templateName: "Powder Room Basic",
+      currentVersionNumber: 1,
+      activeInstanceCount: 2,
+      affectedProjectCount: 2,
+      affectedEstimateCount: 2,
+      labels: [],
+      hasMoreLabels: false,
+      fingerprint: "linked-impact",
+      activeInstanceSignature: "instance-signature",
+    });
+    actionMocks.updateEstimateTemplateRowItem.mockRejectedValue(new Error(
+      "We couldn't confirm whether the linked Template updated. Retry this same action to resolve its retained intent.",
+    ));
+    actionMocks.resolveEstimateTemplateMutationIntent.mockResolvedValue({
+      state: "committed",
+      committedVersionNumber: 2,
+      result: {},
+      notAppliedCode: null,
+    });
+    renderEditor(buildTemplate());
+
+    fireEvent.change(screen.getByLabelText("GROHE Lavatory Faucet quantity"), { target: { value: "3" } });
+    fireEvent.blur(screen.getByLabelText("GROHE Lavatory Faucet quantity"));
+    fireEvent.click(await screen.findByRole("button", { name: "Update linked instances" }));
+
+    expect(await screen.findByRole("region", { name: "Outcome unknown" })).toBeInTheDocument();
+    expect(globalThis.sessionStorage.getItem("template-mutation-outcome:template-1")).toContain("intentId");
+
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+    await waitFor(() => expect(actionMocks.resolveEstimateTemplateMutationIntent).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Outcome unknown" })).not.toBeInTheDocument());
+    expect(globalThis.sessionStorage.getItem("template-mutation-outcome:template-1")).toBeNull();
+    expect(navigationMocks.refresh).toHaveBeenCalled();
+  });
+
+  it("keeps a confirmed linked mutation saving until its request settles", async () => {
+    actionMocks.previewEstimateTemplateMutation.mockResolvedValue({
+      templateId: "template-1",
+      templateName: "Powder Room Basic",
+      currentVersionNumber: 1,
+      activeInstanceCount: 1,
+      affectedProjectCount: 1,
+      affectedEstimateCount: 1,
+      labels: [],
+      hasMoreLabels: false,
+      fingerprint: "linked-impact",
+      activeInstanceSignature: "instance-signature",
+    });
+    let resolveMutation: (() => void) | undefined;
+    actionMocks.updateEstimateTemplateRowItem.mockImplementation(() => new Promise<void>((resolve) => {
+      resolveMutation = resolve;
+    }));
+    renderEditor(buildTemplate());
+
+    fireEvent.change(screen.getByLabelText("GROHE Lavatory Faucet quantity"), { target: { value: "3" } });
+    fireEvent.blur(screen.getByLabelText("GROHE Lavatory Faucet quantity"));
+    fireEvent.click(await screen.findByRole("button", { name: "Update linked instances" }));
+
+    await waitFor(() => expect(actionMocks.updateEstimateTemplateRowItem).toHaveBeenCalledTimes(1));
+    expect(useLibraryEditorChrome.getState().saveState).toEqual({ state: "saving" });
+
+    await act(async () => resolveMutation?.());
+    await waitFor(() => expect(useLibraryEditorChrome.getState().saveState).toEqual({ state: "saved" }));
   });
 
   it("publishes the breadcrumb chrome and renders the sheet", () => {

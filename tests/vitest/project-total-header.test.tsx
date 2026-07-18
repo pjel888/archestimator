@@ -28,7 +28,18 @@ function renderProjectTotalHeader(plannedBudget = 1_000_000) {
 describe("ProjectTotalHeader", () => {
   afterEach(() => {
     pathnameMock.current = estimatePath;
-    delete (window as Window & { __archestimatorProjectBudget?: number }).__archestimatorProjectBudget;
+    delete (
+      window as Window & {
+        __archestimatorProjectBudget?: number;
+        __archestimatorProjectTotal?: number;
+      }
+    ).__archestimatorProjectBudget;
+    delete (
+      window as Window & {
+        __archestimatorProjectBudget?: number;
+        __archestimatorProjectTotal?: number;
+      }
+    ).__archestimatorProjectTotal;
     delete (
       window as Window & {
         __archestimatorProjectEstimateMetadata?: { projectBudget?: unknown } | null;
@@ -82,6 +93,16 @@ describe("ProjectTotalHeader", () => {
     expect(meter).toHaveAttribute("aria-valuetext", "₱ 250,000.00 remaining · 75% used");
     expect(activeSegments).toHaveLength(108);
     expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-tone", "amber");
+  });
+
+  it("hydrates a project total published before the footer mounts", () => {
+    act(() => dispatchProjectTotalChange(750_000));
+
+    renderProjectTotalHeader();
+
+    const header = screen.getByLabelText("Estimate running totals");
+    expect(within(header).getByText("₱ 750,000.00")).toBeInTheDocument();
+    expect(header.querySelector("[data-budget-health-state]")).toHaveAttribute("data-budget-health-state", "success");
   });
 
   it("uses a smooth multi-stop color ramp across active budget health segments", () => {

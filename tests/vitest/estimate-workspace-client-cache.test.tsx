@@ -31,7 +31,7 @@ vi.mock("@/lib/estimates/actions", () => ({
 
 const INITIAL_TABS: EstimateTabSummary[] = [{ id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }];
 
-function renderClient(queryClient: QueryClient) {
+function renderClient(queryClient: QueryClient, canEditEstimate = true) {
   return render(
     <QueryClientProvider client={queryClient}>
       <EstimateWorkspaceClient
@@ -42,7 +42,7 @@ function renderClient(queryClient: QueryClient) {
         nodes={[]}
         estimateTabs={INITIAL_TABS}
         activeTabId="tab-main"
-        canEditEstimate
+        canEditEstimate={canEditEstimate}
       />
     </QueryClientProvider>,
   );
@@ -95,5 +95,15 @@ describe("EstimateWorkspaceClient tab-cache reconciliation", () => {
     expect(notice).not.toHaveAttribute("tabindex");
     expect(notice).toHaveTextContent("Estimate editing works best on a desktop-width screen.");
     expect(notice).toHaveTextContent("Side panels open as compact drawers on this width; use a wider display for full three-panel editing.");
+  });
+
+  it("keeps a server-authoritative read-only capability without refetching on mount", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    renderClient(queryClient, false);
+
+    await waitFor(() => expect(typeof captured.onEstimateTabsChange).toBe("function"));
+    expect(queryClient.getQueryData(estimateQueryKeys.editCapability("estimate-1"))).toBe(false);
+    expect(fetchEstimateEditCapability).not.toHaveBeenCalled();
   });
 });

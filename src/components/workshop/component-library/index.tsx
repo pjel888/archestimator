@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { Drawer } from "@/components/ui/overlays/sheet-drawer";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { type ToastTone, useToast } from "@/components/ui/toast";
@@ -31,11 +32,14 @@ import {
   previewBulkArchiveLibraryComponents,
   previewBulkDeleteLibraryComponents,
   recordComponentLibraryTelemetryEvent,
-  renameEstimateTemplate,
   renameLibraryFolder,
   reorderLibraryFolders,
   type ComponentLibraryUserPreferences,
 } from "@/lib/component-library/actions";
+import {
+  previewEstimateTemplateMutation,
+  renameLinkedEstimateTemplate,
+} from "@/lib/component-library/template-editor-actions";
 import { setLibraryTelemetrySink } from "@/lib/component-library/library-telemetry";
 import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -1064,11 +1068,15 @@ function useEstimateRightSidebarContent({
   const [componentModalOptionUsageCounts, setComponentModalOptionUsageCounts] = useState<Record<string, number>>({});
   const [addComponentFolderId, setAddComponentFolderId] = useState<string | null>(null);
   const [duplicateComponentPendingId, setDuplicateComponentPendingId] = useState<string | null>(null);
+  const [renameTemplateImpact, setRenameTemplateImpact] = useState<Awaited<ReturnType<typeof previewEstimateTemplateMutation>> | null>(null);
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<LibraryFolderRecord | null>(null);
   const [deleteFolderPending, setDeleteFolderPending] = useState(false);
   const [deleteFolderError, setDeleteFolderError] = useState("");
   const closeBulkDeleteConfirmDialog = useCallback(() => setBulkDeleteConfirmOpen(false), [setBulkDeleteConfirmOpen]);
-  const closeRenameTemplateDialog = useCallback(() => setRenameTemplateTarget(null), [setRenameTemplateTarget]);
+  const closeRenameTemplateDialog = useCallback(() => {
+    setRenameTemplateImpact(null);
+    setRenameTemplateTarget(null);
+  }, [setRenameTemplateTarget]);
   const closeDeleteTemplateDialog = useCallback(() => setDeleteTemplateTarget(null), [setDeleteTemplateTarget]);
   const closeDeleteComponentDialog = useCallback(() => setDeleteCandidate(null), [setDeleteCandidate]);
   const closeDeleteFolderDialog = useCallback(() => {
@@ -2452,7 +2460,9 @@ function useEstimateRightSidebarContent({
     setRenameTemplateError("");
   }, [setRenameTemplateError, setRenameTemplateName, setRenameTemplateTarget]);
 
-  const commitRenameTemplate = useCallback(async () => {
+  const commitRenameTemplate = useCallback(async (
+    confirmedImpact?: Awaited<ReturnType<typeof previewEstimateTemplateMutation>>,
+  ) => {
     if (!renameTemplateTarget || renameTemplatePending) return;
     const nextName = renameTemplateName.trim();
     if (!nextName) {
@@ -2467,15 +2477,27 @@ function useEstimateRightSidebarContent({
     setRenameTemplatePending(true);
     setRenameTemplateError("");
     try {
-      const confirmed = await renameEstimateTemplate({
+      const impact = confirmedImpact ?? await previewEstimateTemplateMutation({ templateId: renameTemplateTarget.id });
+      if (impact.activeInstanceCount > 0 && !confirmedImpact) {
+        setRenameTemplateImpact(impact);
+        return;
+      }
+      const confirmed = await renameLinkedEstimateTemplate({
         intentId: globalThis.crypto.randomUUID(),
         templateId: renameTemplateTarget.id,
         name: nextName,
+        ...(impact.activeInstanceCount > 0 ? {
+          confirmation: {
+            expectedVersionNumber: impact.currentVersionNumber,
+            impactFingerprint: impact.fingerprint,
+          },
+        } : {}),
       });
       setTemplateList((current) =>
         current.map((template) => (template.id === confirmed.templateId ? { ...template, name: confirmed.name } : template)),
       );
       setLastActionMessage(`${renameTemplateTarget.name} renamed to ${confirmed.name}.`);
+      setRenameTemplateImpact(null);
       setRenameTemplateTarget(null);
       onLibraryDataChanged?.();
     } catch (error) {
@@ -2507,11 +2529,11 @@ function useEstimateRightSidebarContent({
     try {
       await deleteEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: deleteTemplateTarget.id });
       removeTemplateLocally(deleteTemplateTarget.id);
-      setLastActionMessage(`${deleteTemplateTarget.name} deleted from templates.`);
+      setLastActionMessage(`${deleteTemplateTarget.name} archived.`);
       setDeleteTemplateTarget(null);
       onLibraryDataChanged?.();
     } catch (error) {
-      setDeleteTemplateError(error instanceof Error ? error.message : "Could not delete template.");
+      setDeleteTemplateError(error instanceof Error ? error.message : "Could not archive template.");
     } finally {
       setDeleteTemplatePending(false);
     }
@@ -3484,21 +3506,34 @@ function useEstimateRightSidebarContent({
           </dialog>
         ) : null}
 
-        {/* Delete template confirmation */}
+        {renameTemplateTarget && renameTemplateImpact ? (
+          <ConfirmDialog
+            open
+            onOpenChange={(open) => {
+              if (!open && !renameTemplatePending) setRenameTemplateImpact(null);
+            }}
+            title={`Rename ${renameTemplateTarget.name}?`}
+            description={`This updates ${renameTemplateImpact.activeInstanceCount} linked ${renameTemplateImpact.activeInstanceCount === 1 ? "instance" : "instances"} across ${renameTemplateImpact.affectedEstimateCount} ${renameTemplateImpact.affectedEstimateCount === 1 ? "Estimate" : "Estimates"}.`}
+            confirmLabel="Rename and update linked instances"
+            onConfirm={() => void commitRenameTemplate(renameTemplateImpact)}
+          />
+        ) : null}
+
+        {/* Archive template confirmation */}
         {deleteTemplateTarget ? (
           <dialog
             ref={deleteTemplateDialogRef}
             role="alertdialog"
-            aria-label="Delete template"
+            aria-label="Archive template"
             className="z-40 m-auto w-full max-w-72 border border-hairline bg-white p-3 text-ink shadow-xl outline-none backdrop:bg-black/25"
             onCancel={(event) => {
               event.preventDefault();
               closeDeleteTemplateDialog();
             }}
           >
-            <h3 className="text-[11px] font-medium text-ink">Delete template?</h3>
+            <h3 className="text-[11px] font-medium text-ink">Archive template?</h3>
             <p className="mt-1 text-[9px] leading-4 text-tertiary">
-              Remove {deleteTemplateTarget.name} from this workspace&apos;s templates. Estimates already built from it keep their nodes and rows.
+              Move {deleteTemplateTarget.name} out of Active Templates. Existing linked instances remain intact.
             </p>
             {deleteTemplateError ? (
               <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">{deleteTemplateError}</p>
@@ -3514,13 +3549,13 @@ function useEstimateRightSidebarContent({
                 Cancel
               </Button>
               <Button
-                variant="danger"
+                variant="primary"
                 size="sm"
                 className="h-6 min-h-6 text-[9px]"
                 disabled={deleteTemplatePending}
                 onClick={() => void confirmDeleteTemplate()}
               >
-                {deleteTemplatePending ? "Deleting…" : "Delete template"}
+                {deleteTemplatePending ? "Archiving…" : "Archive template"}
               </Button>
             </div>
           </dialog>

@@ -43,10 +43,14 @@ import {
 import {
   deleteEstimateTemplate,
   duplicateEstimateTemplate,
-  moveEstimateTemplateToCategory,
-  renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
+import {
+  moveLinkedEstimateTemplateToCategory,
+  previewEstimateTemplateMutation,
+  renameLinkedEstimateTemplate,
+} from "@/lib/component-library/template-editor-actions";
+import type { EstimateTemplateMutationImpact } from "@/lib/component-library/template-link-impact-d1";
 import { loadCurrentWorkspaceEstimateTemplateGraph } from "@/lib/component-library/template-browse-actions";
 import type { ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
@@ -59,6 +63,11 @@ const NewTemplateModal = dynamic(
 
 const InsertIntoEstimatePicker = dynamic(
   () => import("./InsertIntoEstimatePicker").then((module) => module.InsertIntoEstimatePicker),
+  { loading: () => null },
+);
+
+const ArchivedTemplatesDialog = dynamic(
+  () => import("./ArchivedTemplatesDialog").then((module) => module.ArchivedTemplatesDialog),
   { loading: () => null },
 );
 
@@ -588,6 +597,10 @@ type TemplatesBrowseManagerState = {
   deletePending: boolean;
 };
 
+type PendingLinkedTemplateAction =
+  | { kind: "rename"; template: EstimateTemplate; value: string; impact: EstimateTemplateMutationImpact }
+  | { kind: "move"; template: EstimateTemplate; value: string; impact: EstimateTemplateMutationImpact };
+
 type TemplatesBrowseManagerAction =
   | { type: "templateItemsUpdated"; source: EstimateTemplate[]; baseItems: EstimateTemplate[]; updater: (items: EstimateTemplate[]) => EstimateTemplate[] }
   | { type: "allSelected" }
@@ -763,6 +776,8 @@ export function TemplatesBrowseManager({
   const syncTemplatesCache = onTemplatesMutated;
   const [state, dispatch] = useReducer(templatesBrowseManagerReducer, templates, createInitialTemplatesBrowseManagerState);
   const [selectedTemplateGraph, setSelectedTemplateGraph] = useState<EstimateTemplate | null>(null);
+  const [archivedTemplatesOpen, setArchivedTemplatesOpen] = useState(false);
+  const [pendingLinkedTemplateAction, setPendingLinkedTemplateAction] = useState<PendingLinkedTemplateAction | null>(null);
   const selectedTemplateGraphRequestIdRef = useRef(0);
   const {
     templateState,
@@ -891,16 +906,25 @@ export function TemplatesBrowseManager({
     [localTemplates, syncTemplatesCache, templates],
   );
 
-  const applyRenameTemplate = useCallback(
-    (template: EstimateTemplate, name: string) => {
-      if (name === template.name) return;
+  const commitRenameTemplate = useCallback(
+    (template: EstimateTemplate, name: string, impact: EstimateTemplateMutationImpact) => {
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
       dispatch({ type: "statusChanged", status: { state: "saving", message: "Renaming template…" } });
-      renameEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: template.id, name })
-        .then(() => {
+      void renameLinkedEstimateTemplate({
+        intentId: globalThis.crypto.randomUUID(),
+        templateId: template.id,
+        name,
+        ...(impact.activeInstanceCount > 0 ? {
+          confirmation: {
+            expectedVersionNumber: impact.currentVersionNumber,
+            impactFingerprint: impact.fingerprint,
+          },
+        } : {}),
+      })
+        .then((confirmed) => {
           dispatch({ type: "statusChanged", status: { state: "saved", message: "Template renamed." } });
-          syncTemplatesCache((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
+          syncTemplatesCache((items) => items.map((entry) => (entry.id === confirmed.templateId ? { ...entry, name: confirmed.name } : entry)));
         })
         .catch((error: unknown) => {
           setItems((items) => items.map((entry) => (entry.id === previous.id ? previous : entry)));
@@ -914,6 +938,29 @@ export function TemplatesBrowseManager({
         });
     },
     [syncTemplatesCache, setItems],
+  );
+
+  const applyRenameTemplate = useCallback(
+    (template: EstimateTemplate, name: string) => {
+      if (name === template.name) return;
+      dispatch({ type: "statusChanged", status: { state: "saving", message: "Reviewing linked instances…" } });
+      void previewEstimateTemplateMutation({ templateId: template.id })
+        .then((impact) => {
+          if (impact.activeInstanceCount > 0) {
+            setPendingLinkedTemplateAction({ kind: "rename", template, value: name, impact });
+            dispatch({ type: "statusChanged", status: { state: "saved", message: "Rename needs confirmation." } });
+            return;
+          }
+          commitRenameTemplate(template, name, impact);
+        })
+        .catch((error: unknown) => {
+          dispatch({
+            type: "statusChanged",
+            status: { state: "error", message: error instanceof Error ? error.message : "Could not review linked instances." },
+          });
+        });
+    },
+    [commitRenameTemplate],
   );
 
   const renameTemplate = useCallback(
@@ -952,14 +999,22 @@ export function TemplatesBrowseManager({
     [syncTemplatesCache, setItems],
   );
 
-  const moveTemplateToCategory = useCallback(
-    (template: EstimateTemplate, category: string) => {
-      const nextCategory = category.trim();
-      if (!nextCategory || nextCategory === template.category) return;
+  const commitMoveTemplateToCategory = useCallback(
+    (template: EstimateTemplate, nextCategory: string, impact: EstimateTemplateMutationImpact) => {
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, category: nextCategory } : entry)));
       dispatch({ type: "statusChanged", status: { state: "saving", message: "Moving template…" } });
-      moveEstimateTemplateToCategory({ intentId: globalThis.crypto.randomUUID(), templateId: template.id, category: nextCategory })
+      void moveLinkedEstimateTemplateToCategory({
+        intentId: globalThis.crypto.randomUUID(),
+        templateId: template.id,
+        category: nextCategory,
+        ...(impact.activeInstanceCount > 0 ? {
+          confirmation: {
+            expectedVersionNumber: impact.currentVersionNumber,
+            impactFingerprint: impact.fingerprint,
+          },
+        } : {}),
+      })
         .then(() => {
           dispatch({ type: "statusChanged", status: { state: "saved", message: `Moved to ${nextCategory}.` } });
           syncTemplatesCache((items) =>
@@ -979,6 +1034,30 @@ export function TemplatesBrowseManager({
         });
     },
     [onTemplatesInvalidated, syncTemplatesCache, setItems],
+  );
+
+  const moveTemplateToCategory = useCallback(
+    (template: EstimateTemplate, category: string) => {
+      const nextCategory = category.trim();
+      if (!nextCategory || nextCategory === template.category) return;
+      dispatch({ type: "statusChanged", status: { state: "saving", message: "Reviewing linked instances…" } });
+      void previewEstimateTemplateMutation({ templateId: template.id })
+        .then((impact) => {
+          if (impact.activeInstanceCount > 0) {
+            setPendingLinkedTemplateAction({ kind: "move", template, value: nextCategory, impact });
+            dispatch({ type: "statusChanged", status: { state: "saved", message: "Move needs confirmation." } });
+            return;
+          }
+          commitMoveTemplateToCategory(template, nextCategory, impact);
+        })
+        .catch((error: unknown) => {
+          dispatch({
+            type: "statusChanged",
+            status: { state: "error", message: error instanceof Error ? error.message : "Could not review linked instances." },
+          });
+        });
+    },
+    [commitMoveTemplateToCategory],
   );
 
   const moveTemplatePrompt = useCallback(
@@ -1053,12 +1132,12 @@ export function TemplatesBrowseManager({
     const template = deleteTarget;
     if (!template || deletePending) return;
     dispatch({ type: "deletePendingChanged", pending: true });
-    dispatch({ type: "statusChanged", status: { state: "saving", message: "Deleting template…" } });
+    dispatch({ type: "statusChanged", status: { state: "saving", message: "Archiving template…" } });
     deleteEstimateTemplate({ intentId: globalThis.crypto.randomUUID(), templateId: template.id })
       .then(() => {
         setItems((items) => items.filter((entry) => entry.id !== template.id));
         if (selectedTemplateId === template.id) dispatch({ type: "templateSelected", templateId: null });
-        dispatch({ type: "statusChanged", status: { state: "saved", message: "Template deleted." } });
+        dispatch({ type: "statusChanged", status: { state: "saved", message: "Template archived." } });
         syncTemplatesCache((items) => items.filter((entry) => entry.id !== template.id));
       })
       .catch((error: unknown) => {
@@ -1066,7 +1145,7 @@ export function TemplatesBrowseManager({
           type: "statusChanged",
           status: {
             state: "error",
-            message: error instanceof Error ? error.message : "Could not delete template.",
+            message: error instanceof Error ? error.message : "Could not archive template.",
           },
         });
       })
@@ -1124,6 +1203,7 @@ export function TemplatesBrowseManager({
               onDuplicateTemplate={duplicateTemplate}
               onRequestDeleteTemplate={requestDeleteTemplate}
               onNewTemplate={openNewTemplateForSelection}
+              onOpenArchived={() => setArchivedTemplatesOpen(true)}
             />
           </div>
           <div className="hidden min-h-0 lg:flex" data-template-source-dock="true">
@@ -1177,12 +1257,23 @@ export function TemplatesBrowseManager({
           onOpenChange={(open) => {
             if (!open && !deletePending) dispatch({ type: "deleteTargetChanged", template: null });
           }}
-          title="Delete template?"
-          description={`"${deleteTarget.name}" will be removed from the library. Estimates already built from it keep their rows.`}
-          tone="destructive"
-          confirmLabel="Delete template"
+          title="Archive template?"
+          description={`"${deleteTarget.name}" will move out of Active Templates. Existing linked instances remain intact.`}
+          confirmLabel="Archive template"
           busy={deletePending}
           onConfirm={confirmDeleteTemplate}
+        />
+      ) : null}
+
+      {archivedTemplatesOpen ? (
+        <ArchivedTemplatesDialog
+          open
+          onOpenChange={setArchivedTemplatesOpen}
+          onRestored={(template) => {
+            setItems((items) => [...items, template]);
+            syncTemplatesCache((items) => [...items.filter((item) => item.id !== template.id), template]);
+            dispatch({ type: "statusChanged", status: { state: "saved", message: `${template.name} restored to Active Templates.` } });
+          }}
         />
       ) : null}
 
@@ -1213,6 +1304,29 @@ export function TemplatesBrowseManager({
             />
           </div>
         </ConfirmDialog>
+      ) : null}
+
+      {pendingLinkedTemplateAction ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingLinkedTemplateAction(null);
+              dispatch({ type: "statusChanged", status: { state: "saved", message: `${pendingLinkedTemplateAction.kind === "rename" ? "Rename" : "Move"} cancelled.` } });
+            }
+          }}
+          title={pendingLinkedTemplateAction.kind === "rename"
+            ? `Rename ${pendingLinkedTemplateAction.template.name}?`
+            : `Move ${pendingLinkedTemplateAction.template.name} to ${pendingLinkedTemplateAction.value}?`}
+          description={`This updates ${pendingLinkedTemplateAction.impact.activeInstanceCount} linked ${pendingLinkedTemplateAction.impact.activeInstanceCount === 1 ? "instance" : "instances"} across ${pendingLinkedTemplateAction.impact.affectedEstimateCount} ${pendingLinkedTemplateAction.impact.affectedEstimateCount === 1 ? "Estimate" : "Estimates"}.`}
+          confirmLabel={pendingLinkedTemplateAction.kind === "rename" ? "Rename and update linked instances" : "Move and update linked instances"}
+          onConfirm={() => {
+            const pending = pendingLinkedTemplateAction;
+            setPendingLinkedTemplateAction(null);
+            if (pending.kind === "rename") commitRenameTemplate(pending.template, pending.value, pending.impact);
+            else commitMoveTemplateToCategory(pending.template, pending.value, pending.impact);
+          }}
+        />
       ) : null}
 
       {movePrompt ? (

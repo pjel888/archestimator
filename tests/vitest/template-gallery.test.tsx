@@ -30,6 +30,12 @@ const estimateActionMocks = vi.hoisted(() => ({
   insertEstimateTemplateIntoEstimate: vi.fn(),
 }));
 
+const templateEditorActionMocks = vi.hoisted(() => ({
+  moveLinkedEstimateTemplateToCategory: vi.fn(),
+  previewEstimateTemplateMutation: vi.fn(),
+  renameLinkedEstimateTemplate: vi.fn(),
+}));
+
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
@@ -69,6 +75,8 @@ vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
 }));
 
 vi.mock("@/lib/estimates/actions", () => estimateActionMocks);
+
+vi.mock("@/lib/component-library/template-editor-actions", () => templateEditorActionMocks);
 
 vi.mock("@/lib/reusable-sources/actions", () => reusableSourceActionMocks);
 
@@ -209,7 +217,20 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     navigationMocks.replace.mockReset();
     for (const mock of Object.values(componentLibraryActionMocks)) mock.mockReset();
     for (const mock of Object.values(reusableSourceActionMocks)) mock.mockReset();
+    for (const mock of Object.values(templateEditorActionMocks)) mock.mockReset();
     estimateActionMocks.insertEstimateTemplateIntoEstimate.mockReset();
+    templateEditorActionMocks.previewEstimateTemplateMutation.mockResolvedValue({
+      templateId: "template-condo",
+      templateName: "Condo Starter",
+      currentVersionNumber: 1,
+      activeInstanceCount: 0,
+      affectedProjectCount: 0,
+      affectedEstimateCount: 0,
+      labels: [],
+      hasMoreLabels: false,
+      fingerprint: "impact-fingerprint",
+      activeInstanceSignature: "",
+    });
     vi.spyOn(window, "prompt").mockReturnValue(null);
   });
 
@@ -292,6 +313,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     });
     componentLibraryActionMocks.resolveEstimateTemplateInsertTarget.mockResolvedValue({
       targetParentNodeId: "node-root-group",
+      targetTabId: "tab-active",
       targetParentNodeName: "Interior Fit-Out",
       targetParentNodeKind: "group",
       targetParentNodePath: ["Interior Fit-Out"],
@@ -336,15 +358,17 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
         projectId: "project-1",
         estimateId: "estimate-1",
         targetParentNodeId: "node-root-group",
+        targetTabId: "tab-active",
         templateId: "template-condo",
         unavailableSourcePolicy: "cancel",
+        mode: "linked",
       });
     });
     expect(await screen.findByText("Inserted into Main Estimate.")).toBeInTheDocument();
   });
 
-  it("renames a template from the row kebab through the existing action", async () => {
-    componentLibraryActionMocks.renameEstimateTemplate.mockResolvedValue({
+  it("renames a template from the row kebab through the linked mutation action", async () => {
+    templateEditorActionMocks.renameLinkedEstimateTemplate.mockResolvedValue({
       templateId: "template-condo",
       name: "Condo Premium",
     });
@@ -360,7 +384,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 
     await waitFor(() => {
-      expect(componentLibraryActionMocks.renameEstimateTemplate).toHaveBeenCalledWith({
+      expect(templateEditorActionMocks.renameLinkedEstimateTemplate).toHaveBeenCalledWith({
         intentId: expect.any(String),
         templateId: "template-condo",
         name: "Condo Premium",
@@ -369,20 +393,20 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(within(getGallery()).getByText("Condo Premium")).toBeInTheDocument();
   });
 
-  it("deletes a template from the row kebab after the verbatim confirm", async () => {
+  it("archives a template from the row kebab after confirmation", async () => {
     componentLibraryActionMocks.deleteEstimateTemplate.mockResolvedValue({ templateId: "template-condo" });
     renderManager();
 
     fireEvent.click(screen.getByRole("button", { name: "Condo Starter actions" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Archive" }));
 
-    const dialog = await screen.findByRole("alertdialog", { name: "Delete template?" });
+    const dialog = await screen.findByRole("dialog", { name: "Archive template?" });
     expect(
       within(dialog).getByText(
-        '"Condo Starter" will be removed from the library. Estimates already built from it keep their rows.',
+        '"Condo Starter" will move out of Active Templates. Existing linked instances remain intact.',
       ),
     ).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Delete template" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Archive template" }));
 
     await waitFor(() => {
       expect(componentLibraryActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({
@@ -433,7 +457,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
   });
 
   it("moves a template between groups by dragging in the tree", async () => {
-    componentLibraryActionMocks.moveEstimateTemplateToCategory.mockResolvedValue({
+    templateEditorActionMocks.moveLinkedEstimateTemplateToCategory.mockResolvedValue({
       templateId: "template-condo",
       category: "Exterior",
       sortOrder: 0,
@@ -450,7 +474,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.drop(categoryRow, { dataTransfer });
 
     await waitFor(() => {
-      expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+      expect(templateEditorActionMocks.moveLinkedEstimateTemplateToCategory).toHaveBeenCalledWith({
         intentId: expect.any(String),
         templateId: "template-condo",
         category: "Exterior",
@@ -460,7 +484,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
   });
 
   it("offers a keyboard move equivalent through the Move to group modal", async () => {
-    componentLibraryActionMocks.moveEstimateTemplateToCategory.mockResolvedValue({
+    templateEditorActionMocks.moveLinkedEstimateTemplateToCategory.mockResolvedValue({
       templateId: "template-condo",
       category: "Exterior",
       sortOrder: 0,
@@ -478,7 +502,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move" }));
 
     await waitFor(() => {
-      expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+      expect(templateEditorActionMocks.moveLinkedEstimateTemplateToCategory).toHaveBeenCalledWith({
         intentId: expect.any(String),
         templateId: "template-condo",
         category: "Exterior",
@@ -487,7 +511,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
   });
 
   it("creates a new template group from the move combobox", async () => {
-    componentLibraryActionMocks.moveEstimateTemplateToCategory.mockResolvedValue({
+    templateEditorActionMocks.moveLinkedEstimateTemplateToCategory.mockResolvedValue({
       templateId: "template-condo",
       category: "Premium",
       sortOrder: 0,
@@ -504,7 +528,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move" }));
 
     await waitFor(() => {
-      expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+      expect(templateEditorActionMocks.moveLinkedEstimateTemplateToCategory).toHaveBeenCalledWith({
         intentId: expect.any(String),
         templateId: "template-condo",
         category: "Premium",

@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import { EstimateSheetBranch } from "@/components/workshop/estimate-sheet/rows/branch";
 import { EstimateSheetExpansionContext } from "@/components/workshop/estimate-sheet/rows/expansion";
 import { EstimateSurfaceVariantProvider, type EstimateSurfaceVariant } from "@/components/workshop/estimate-surface-variant";
-import type { EditableRowValue } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
+import { collectEditableRows, type EditableRowValue } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
+import { createEditableRowStore, EditableRowStoreContext } from "@/components/workshop/estimate-sheet/rows/editable-row-store";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
@@ -24,11 +25,13 @@ function renderBranch(ancestorPath: { id: string; name: string }[] = [], surface
   function Harness() {
     const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
     const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>({});
+    const [editableRowStore] = useState(() => createEditableRowStore({}, [node]));
 
     return (
       <EstimateSurfaceVariantProvider variant={surfaceVariant}>
-        <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
-          <EstimateSheetBranch
+        <EditableRowStoreContext.Provider value={editableRowStore}>
+          <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
+            <EstimateSheetBranch
             node={node}
             nodeCode="01.01.01"
             ancestorPath={ancestorPath}
@@ -50,8 +53,9 @@ function renderBranch(ancestorPath: { id: string; name: string }[] = [], surface
             selectedRowIds={new Set()}
             onToggleRowSelection={noop}
             onToggleRowsSelection={noop}
-          />
-        </EstimateSheetExpansionContext.Provider>
+            />
+          </EstimateSheetExpansionContext.Provider>
+        </EditableRowStoreContext.Provider>
       </EstimateSurfaceVariantProvider>
     );
   }
@@ -63,10 +67,12 @@ function renderBranchTree(node: EstimateTreeNode) {
   function Harness() {
     const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
     const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>({});
+    const [editableRowStore] = useState(() => createEditableRowStore(collectEditableRows([node]), [node]));
 
     return (
-      <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
-        <EstimateSheetBranch
+      <EditableRowStoreContext.Provider value={editableRowStore}>
+        <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
+          <EstimateSheetBranch
           node={node}
           nodeCode="01"
           ancestorPath={[]}
@@ -88,8 +94,9 @@ function renderBranchTree(node: EstimateTreeNode) {
           selectedRowIds={new Set()}
           onToggleRowSelection={noop}
           onToggleRowsSelection={noop}
-        />
-      </EstimateSheetExpansionContext.Provider>
+          />
+        </EstimateSheetExpansionContext.Provider>
+      </EditableRowStoreContext.Provider>
     );
   }
 
@@ -209,5 +216,36 @@ describe("estimate sheet branch header chrome", () => {
     expect((dividers[0] as HTMLElement).style.marginLeft).toBe("24px");
     expect(screen.getByRole("heading", { name: "First Child", level: 2 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Second Child", level: 2 })).toBeInTheDocument();
+  });
+
+  it("renders virtualization-safe linked rails and primary status text", () => {
+    renderBranchTree({
+      id: "linked-root",
+      name: "Linked Root",
+      kind: "group",
+      total: "₱0.00",
+      estimateRowItems: [],
+      children: [],
+      templateLink: {
+        instanceId: "instance-1",
+        templateId: "template-1",
+        templateName: "Standard Fit-Out",
+        linkState: "updating",
+        appliedVersionNumber: 2,
+        targetVersionNumber: 3,
+        failureClass: null,
+        retryable: false,
+        isInstanceRoot: true,
+        rootOrdinal: 1,
+        rootCount: 1,
+        isPrimaryRoot: true,
+      },
+    });
+
+    expect(screen.getByLabelText("Linked Root")).toHaveClass("border-l-2", "border-brand-orange/70");
+    expect(screen.getByText("Updating v3")).toHaveAttribute(
+      "title",
+      "Linked to Standard Fit-Out; quantities and adjustments are project-specific.",
+    );
   });
 });

@@ -192,7 +192,7 @@ export function useEstimateEditCapabilityQuery({
   const { data, ...query } = useQuery({
     queryKey: estimateQueryKeys.editCapability(estimateId ?? "local-estimate"),
     queryFn: () => (projectId && estimateId ? fetchEstimateEditCapability({ projectId, estimateId }) : Promise.resolve(initialCanEdit === true)),
-    initialData: initialCanEdit === true ? true : undefined,
+    initialData: initialCanEdit,
     enabled: enabled && Boolean(projectId && estimateId),
     refetchOnMount: false,
     staleTime: 5 * 60_000,

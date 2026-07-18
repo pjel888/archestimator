@@ -112,6 +112,7 @@ describe("InsertIntoEstimatePicker", () => {
     mockTargets();
     componentLibraryActionMocks.resolveEstimateTemplateInsertTarget.mockResolvedValue({
       targetParentNodeId: "node-root-group",
+      targetTabId: "tab-active",
       targetParentNodeName: "Interior Fit-Out",
       targetParentNodeKind: "group",
       targetParentNodePath: ["Interior Fit-Out"],
@@ -141,14 +142,77 @@ describe("InsertIntoEstimatePicker", () => {
       estimateId: "estimate-1",
     });
     await waitFor(() => {
-      expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
+      expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith(expect.objectContaining({
         projectId: "project-1",
         estimateId: "estimate-1",
         targetParentNodeId: "node-root-group",
+        targetTabId: "tab-active",
         templateId: "template-condo",
         unavailableSourcePolicy: "cancel",
-      });
+        mode: "linked",
+        intentId: expect.any(String),
+      }));
     });
+  });
+
+  it("offers an independent copy without losing the resolved target when no active tab exists", async () => {
+    estimateActionMocks.insertEstimateTemplateIntoEstimate
+      .mockResolvedValueOnce({
+        status: "requires_active_tab",
+        code: "template_link_requires_active_tab",
+        estimateId: "estimate-1",
+        targetParentNodeId: "node-root-group",
+      })
+      .mockResolvedValueOnce({ status: "inserted", mode: "copy", tree: [], insertedRootNodeIds: ["inserted-1"] });
+    renderPicker();
+
+    const dialog = await chooseOnlyTarget();
+    await within(dialog).findByText("Target group: Interior Fit-Out");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Insert template" }));
+
+    await waitFor(() => expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
+
+    const confirmation = await screen.findByRole("dialog", { name: "Insert an independent copy?" });
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Insert copy instead" }));
+
+    await waitFor(() => expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(2));
+    const linkedInput = estimateActionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0]?.[0];
+    const copyInput = estimateActionMocks.insertEstimateTemplateIntoEstimate.mock.calls[1]?.[0];
+    expect(linkedInput).toEqual(expect.objectContaining({
+      mode: "linked",
+      targetParentNodeId: "node-root-group",
+    }));
+    expect(copyInput).toEqual(expect.objectContaining({
+      mode: "copy",
+      targetParentNodeId: "node-root-group",
+    }));
+    expect(copyInput.intentId).not.toBe(linkedInput.intentId);
+  });
+
+  it("uses the explicit copy mode without attempting a linked insertion", async () => {
+    renderPicker();
+
+    const dialog = await chooseOnlyTarget();
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Insert copy/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Insert template" }));
+
+    await waitFor(() => {
+      expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1);
+    });
+    expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith(expect.objectContaining({
+      mode: "copy",
+      targetParentNodeId: "node-root-group",
+    }));
+  });
+
+  it("disables linked mode for an empty Template while keeping copy available", async () => {
+    renderPicker({ ...makeTemplate(), nodes: [] });
+
+    const dialog = await chooseOnlyTarget();
+    expect(within(dialog).getByRole("radio", { name: /Insert linked/ })).toBeDisabled();
+    expect(within(dialog).getByText(/This Template is empty/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Insert copy/ }));
+    expect(within(dialog).getByRole("button", { name: "Insert template" })).not.toBeDisabled();
   });
 
   it("inserts saved values as unlinked rows only after explicit confirmation", async () => {
@@ -173,8 +237,11 @@ describe("InsertIntoEstimatePicker", () => {
     await waitFor(() => {
       expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenNthCalledWith(2, expect.objectContaining({
         unavailableSourcePolicy: "use_saved_snapshot_unlinked",
+        mode: "copy",
       }));
     });
+    expect(estimateActionMocks.insertEstimateTemplateIntoEstimate.mock.calls[1]?.[0].intentId)
+      .not.toBe(estimateActionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0]?.[0].intentId);
   });
 
   it("cancels cleanly when saved snapshot insertion is declined", async () => {

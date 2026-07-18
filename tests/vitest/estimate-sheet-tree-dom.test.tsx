@@ -540,7 +540,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(groundFloor).toHaveAttribute("data-tree-drop-state", "valid");
     expect(groundFloor).toHaveAttribute("data-tree-drop-position", "inside");
     expect(groundFloor).not.toHaveAttribute("data-tree-drop-reason");
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-tree-drop-status]")).not.toBeInTheDocument();
   });
 
   it("shows invalid styling and status for blocked internal estimate-tree drops", () => {
@@ -558,7 +558,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(kitchen).toHaveAttribute("data-tree-drop-state", "invalid");
     expect(kitchen).toHaveAttribute("data-tree-drop-position", "inside");
     expect(kitchen).toHaveAttribute("data-tree-drop-reason", "Cannot move a node inside its own descendant.");
-    expect(screen.getByRole("status")).toHaveTextContent("Cannot move a node inside its own descendant.");
+    expect(document.querySelector("[data-tree-drop-status]")).toHaveTextContent("Cannot move a node inside its own descendant.");
   });
 
   it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {

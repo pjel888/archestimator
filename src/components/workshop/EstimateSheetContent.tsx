@@ -2735,7 +2735,11 @@ export function EstimateSheetContent({
     insertTemplateNodeIntoParentById,
     insertTemplateNodeIntoSelectedGroup,
     templateInsertPendingNodeIds,
+    templateInsertModeChoice,
+    templateCopyFallbackRequested,
     templateSnapshotUnavailableSourceCount,
+    resolveTemplateCopyFallbackConfirmation,
+    resolveTemplateInsertModeChoice,
     resolveTemplateSnapshotConfirmation,
   } = useEstimateTemplateInsertion({
     canEditEstimate,
@@ -3664,6 +3668,54 @@ export function EstimateSheetContent({
           </>
         )}
       </section>
+      <Modal
+        open={templateInsertModeChoice !== null}
+        title="Insert Template"
+        description={templateInsertModeChoice ? `Choose how to insert ${templateInsertModeChoice.templateName}.` : undefined}
+        closeLabel="Cancel Template insert"
+        className="max-w-md"
+        onOpenChange={(open) => {
+          if (!open) resolveTemplateInsertModeChoice(null);
+        }}
+      >
+        <div className="grid gap-3">
+          <p className="text-[10px] leading-4 text-secondary">
+            Linked instances follow future Template changes. Quantities and adjustments remain specific to this Estimate.
+          </p>
+          {!templateInsertModeChoice?.canLink ? (
+            <p className="rounded-xs border border-warning/30 bg-warning/10 p-2 text-[9px] text-secondary">
+              This Template is empty, so it can only be inserted as an independent copy.
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => resolveTemplateInsertModeChoice(null)}>Cancel</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => resolveTemplateInsertModeChoice("copy")}>Insert copy</Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={!templateInsertModeChoice?.canLink}
+              onClick={() => resolveTemplateInsertModeChoice("linked")}
+            >
+              Insert linked
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      <ConfirmDialog
+        open={templateCopyFallbackRequested}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) resolveTemplateCopyFallbackConfirmation(false);
+        }}
+        title="Insert an independent copy?"
+        description="Linked templates require an active estimate tab. You can insert the same template into this target as an independent copy instead."
+        confirmLabel="Insert copy instead"
+        cancelLabel="Cancel insert"
+        tone="warning"
+        initialFocus="cancel"
+        onConfirm={() => resolveTemplateCopyFallbackConfirmation(true)}
+        onCancel={() => resolveTemplateCopyFallbackConfirmation(false)}
+      />
       <ConfirmDialog
         open={templateSnapshotUnavailableSourceCount !== null}
         onOpenChange={(nextOpen) => {

@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
@@ -19,6 +21,10 @@ import { librarySurfaceClass } from "@/components/workshop/library/library-surfa
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
+import {
+  loadEstimateTemplateLinkedInstanceStatus,
+  retryEstimateTemplateLinkedInstances,
+} from "@/lib/component-library/template-editor-actions";
 import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
@@ -125,6 +131,106 @@ function TemplateEditorReadOnlySourceDock() {
         </section>
       </aside>
     </ResizableSidePanel>
+  );
+}
+
+function TemplateLinkedInstancesStatus({ templateId, canEdit }: { templateId: string; canEdit: boolean }) {
+  const queryClient = useQueryClient();
+  const queryKey = ["estimate-template-linked-instances", templateId] as const;
+  const statusQuery = useQuery({
+    queryKey,
+    queryFn: () => loadEstimateTemplateLinkedInstanceStatus({ templateId }),
+    refetchInterval: (query) => query.state.data?.updatingCount ? 4_000 : false,
+  });
+  const [retrying, setRetrying] = useState(false);
+  const status = statusQuery.data;
+  if (statusQuery.isPending && !status) {
+    return <Skeleton className="mx-2 mt-2 h-9 shrink-0" aria-label="Loading linked instance status" />;
+  }
+  if (!status) {
+    return (
+      <section className="mx-2 mt-2 shrink-0 rounded-xs border border-dangerSoft p-2 text-[9px] text-danger">
+        <p>Couldn&apos;t load linked-instance status.</p>
+        <Button type="button" variant="secondary" size="xs" className="mt-1" onClick={() => void statusQuery.refetch()}>Retry</Button>
+      </section>
+    );
+  }
+  if (status.activeCount === 0) return null;
+  const stale = statusQuery.isError;
+  return (
+    <section className="mx-2 mt-2 shrink-0 rounded-xs border border-hairline bg-surfaceMuted/35 px-2 py-1.5" aria-label="Linked instances">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[9px] font-medium text-ink">Linked instances · v{status.currentVersionNumber}</p>
+          <p className="truncate text-[8px] text-tertiary">
+            {status.failedCount > 0
+              ? `${status.failedCount} of ${status.activeCount} need attention`
+              : status.updatingCount > 0
+                ? `${status.updatingCount} updating · ${status.currentCount} current`
+                : `All ${status.activeCount} linked instances updated`}
+            {stale ? " · Status may be outdated" : ""}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {status.retryableCount > 0 && canEdit ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="xs"
+              disabled={retrying}
+              onClick={() => {
+                setRetrying(true);
+                void retryEstimateTemplateLinkedInstances({ templateId })
+                  .then(() => queryClient.invalidateQueries({ queryKey }))
+                  .finally(() => setRetrying(false));
+              }}
+            >
+              {retrying ? "Retrying…" : `Retry ${status.retryableCount}`}
+            </Button>
+          ) : null}
+          <Button type="button" variant="ghost" size="xs" onClick={() => void statusQuery.refetch()}>Refresh</Button>
+        </div>
+      </div>
+      <details className="mt-1 text-[8px] text-secondary">
+        <summary className="cursor-pointer select-none">View affected Estimates</summary>
+        <VirtualizedLinkedInstanceList items={status.items} />
+      </details>
+    </section>
+  );
+}
+
+type LinkedInstanceStatusItem = Awaited<ReturnType<typeof loadEstimateTemplateLinkedInstanceStatus>>["items"][number];
+
+function VirtualizedLinkedInstanceList({ items }: { items: LinkedInstanceStatusItem[] }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 24,
+    overscan: 5,
+  });
+  return (
+    <div ref={scrollRef} className="mt-1 max-h-32 overflow-auto" data-template-linked-instance-virtual-list="true">
+      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((virtualItem) => {
+          const item = items[virtualItem.index];
+          if (!item) return null;
+          return (
+            <Link
+              key={item.instanceId}
+              href={`/workshop/projects/${item.projectId}/estimates/${item.estimateId}`}
+              className="absolute left-0 top-0 flex h-6 w-full items-center justify-between gap-2 rounded-xs px-1 hover:bg-surfaceMuted"
+              style={{ transform: `translateY(${virtualItem.start}px)` }}
+            >
+              <span className="min-w-0 truncate">{item.projectName} · {item.estimateName}</span>
+              <span className={item.linkState === "failed" ? "text-danger" : "text-tertiary"}>
+                {item.linkState === "linked" ? `v${item.appliedVersionNumber}` : item.linkState === "updating" ? `v${item.appliedVersionNumber}→${item.targetVersionNumber}` : "Failed"}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -499,7 +605,38 @@ function TemplateEditorSurface({
           </div>
         </div>
       </ResizableSidePanel>
-      <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} canEdit={canEditTemplate} />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {editor.outcomeUnknown ? (
+          editor.outcomeUnknownCollapsed ? (
+            <button
+              type="button"
+              className="mx-2 mt-2 shrink-0 rounded-xs border border-warningSoft bg-warningSoft/30 px-2 py-1 text-left text-[9px] font-medium text-ink"
+              onClick={editor.expandUnknownOutcome}
+            >
+              Outcome unknown · check retained Template update
+            </button>
+          ) : (
+            <section
+              className="mx-2 mt-2 shrink-0 rounded-xs border border-warningSoft bg-warningSoft/30 p-2 text-[9px] text-ink"
+              aria-label="Outcome unknown"
+              aria-live="polite"
+            >
+              <p className="font-medium">Outcome unknown</p>
+              <p className="mt-0.5 text-tertiary">
+                We couldn&apos;t confirm whether “{editor.outcomeUnknown.actionLabel}” applied. New shared edits stay blocked until this retained intent resolves.
+              </p>
+              <div className="mt-1 flex items-center gap-1">
+                <Button type="button" variant="secondary" size="xs" disabled={editor.resolvingOutcome} onClick={() => void editor.checkUnknownOutcome()}>
+                  {editor.resolvingOutcome ? "Checking…" : "Check again"}
+                </Button>
+                <Button type="button" variant="ghost" size="xs" onClick={editor.collapseUnknownOutcome}>Close and check later</Button>
+              </div>
+            </section>
+          )
+        ) : null}
+        <TemplateLinkedInstancesStatus templateId={template.id} canEdit={canEditTemplate} />
+        <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} canEdit={canEditTemplate} />
+      </div>
       {!canEditTemplate ? (
         <TemplateEditorReadOnlySourceDock />
       ) : dockRequested && libraryData ? (
@@ -539,6 +676,25 @@ function TemplateEditorSurface({
           tone="destructive"
           confirmLabel="Delete"
           onConfirm={confirmDeleteNode}
+        />
+      ) : null}
+
+      {editor.pendingSharedMutation ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) editor.cancelSharedMutation();
+          }}
+          title={`${editor.pendingSharedMutation.actionLabel}?`}
+          description={
+            `${editor.pendingSharedMutation.impact.activeInstanceCount} linked ${editor.pendingSharedMutation.impact.activeInstanceCount === 1 ? "instance" : "instances"} `
+            + `across ${editor.pendingSharedMutation.impact.affectedProjectCount} ${editor.pendingSharedMutation.impact.affectedProjectCount === 1 ? "project" : "projects"} `
+            + `and ${editor.pendingSharedMutation.impact.affectedEstimateCount} ${editor.pendingSharedMutation.impact.affectedEstimateCount === 1 ? "estimate" : "estimates"} will update.`
+          }
+          confirmLabel="Update linked instances"
+          onConfirm={() => {
+            void editor.confirmSharedMutation();
+          }}
         />
       ) : null}
 

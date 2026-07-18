@@ -23,6 +23,7 @@ type TargetsState =
 
 type ResolvedInsertTarget = {
   targetParentNodeId: string;
+  targetTabId: string | null;
   targetParentNodeName: string;
   targetParentNodeKind: "group" | "area";
   targetParentNodePath: string[];
@@ -122,6 +123,7 @@ function normalizeResolvedTarget(result: EstimateTemplateInsertTargetResolution)
   const name = result.targetParentNodeName?.trim() || (kind === "area" ? "Selected area" : "First root group");
   return {
     targetParentNodeId: result.targetParentNodeId,
+    targetTabId: result.targetTabId,
     targetParentNodeName: name,
     targetParentNodeKind: kind,
     targetParentNodePath: result.targetParentNodePath?.length ? result.targetParentNodePath : [name],
@@ -142,6 +144,22 @@ function formatInsertError(error: unknown, estimateName: string) {
   return message;
 }
 
+function readTemplateDependencyLifecycle(template: EstimateTemplate) {
+  let archived = 0;
+  let discontinued = 0;
+  const visit = (nodes: EstimateTemplate["nodes"]) => {
+    for (const node of nodes) {
+      for (const row of node.estimateRowItems ?? []) {
+        if (row.lifecycleState === "archived") archived += 1;
+        if (row.lifecycleState === "discontinued") discontinued += 1;
+      }
+      visit(node.children ?? []);
+    }
+  };
+  visit(template.nodes);
+  return { archived, discontinued };
+}
+
 /**
  * Project → estimate picker for inserting a template from the Library
  * browse view. Resolves the estimate's first root group via
@@ -157,7 +175,11 @@ export function InsertIntoEstimatePicker(props: InsertIntoEstimatePickerProps) {
 function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted }: InsertIntoEstimatePickerProps) {
   const [pickerState, dispatchPicker] = useReducer(insertPickerReducer, getInitialInsertPickerState());
   const snapshotConfirmationResolverRef = useRef<((confirmed: boolean) => void) | null>(null);
+  const copyFallbackResolverRef = useRef<((confirmed: boolean) => void) | null>(null);
   const [snapshotUnavailableSourceCount, setSnapshotUnavailableSourceCount] = useState<number | null>(null);
+  const [copyFallbackRequested, setCopyFallbackRequested] = useState(false);
+  const [discontinuedDependenciesReviewed, setDiscontinuedDependenciesReviewed] = useState(false);
+  const [insertMode, setInsertMode] = useState<"linked" | "copy">("linked");
   const {
     targets,
     selectedProjectId,
@@ -187,6 +209,8 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
   useEffect(() => () => {
     snapshotConfirmationResolverRef.current?.(false);
     snapshotConfirmationResolverRef.current = null;
+    copyFallbackResolverRef.current?.(false);
+    copyFallbackResolverRef.current = null;
   }, []);
 
   const requestSnapshotConfirmation = useCallback((count: number) => new Promise<boolean>((resolve) => {
@@ -198,6 +222,17 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     const resolve = snapshotConfirmationResolverRef.current;
     snapshotConfirmationResolverRef.current = null;
     setSnapshotUnavailableSourceCount(null);
+    resolve?.(confirmed);
+  }, []);
+  const requestCopyFallbackConfirmation = useCallback(() => new Promise<boolean>((resolve) => {
+    copyFallbackResolverRef.current?.(false);
+    copyFallbackResolverRef.current = resolve;
+    setCopyFallbackRequested(true);
+  }), []);
+  const resolveCopyFallbackConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = copyFallbackResolverRef.current;
+    copyFallbackResolverRef.current = null;
+    setCopyFallbackRequested(false);
     resolve?.(confirmed);
   }, []);
 
@@ -212,6 +247,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     [projects, selectedProjectId],
   );
   const estimates = useMemo(() => selectedProject?.estimates ?? [], [selectedProject]);
+  const dependencyLifecycle = useMemo(() => readTemplateDependencyLifecycle(template), [template]);
   const selectedEstimate = estimates.find((estimate) => estimate.id === selectedEstimateId) ?? null;
   const selectedProjectIdForResolution = selectedProject?.id ?? "";
   const selectedEstimateIdForResolution = selectedEstimate?.id ?? "";
@@ -315,26 +351,58 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
         selectedEstimate.id,
         resolvedTarget.targetParentNodeId,
         template.id,
+        insertMode,
       ].join(":");
       const intentId = resolveRetainedInsertIntent(intentSignature);
-      const insert = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateIntoEstimate({
-        projectId: selectedProject.id,
-        estimateId: selectedEstimate.id,
-        targetParentNodeId: resolvedTarget.targetParentNodeId,
-        templateId: template.id,
-        intentId,
-        unavailableSourcePolicy,
-      });
-      let result = await insert("cancel");
+      const insert = (
+        mode: "linked" | "copy",
+        insertIntentId: string,
+        unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked",
+      ) => insertEstimateTemplateIntoEstimate({
+          projectId: selectedProject.id,
+          estimateId: selectedEstimate.id,
+          targetParentNodeId: resolvedTarget.targetParentNodeId,
+          ...(resolvedTarget.targetTabId ? { targetTabId: resolvedTarget.targetTabId } : {}),
+          templateId: template.id,
+          intentId: insertIntentId,
+          unavailableSourcePolicy,
+          mode,
+        });
+      let result = await insert(insertMode, intentId, "cancel");
+      let copyIntentSignature: string | null = null;
       if (result.status === "requires_saved_snapshot_confirmation") {
         if (!await requestSnapshotConfirmation(result.unavailableSourceCount)) {
           retainedInsertIntentBySignature.delete(intentSignature);
           return;
         }
-        result = await insert("use_saved_snapshot_unlinked");
+        if (insertMode === "linked") {
+          copyIntentSignature = `${intentSignature}:copy`;
+          const copyIntentId = resolveRetainedInsertIntent(copyIntentSignature);
+          result = await insert("copy", copyIntentId, "use_saved_snapshot_unlinked");
+        } else {
+          result = await insert("copy", intentId, "use_saved_snapshot_unlinked");
+        }
+      }
+      if (insertMode === "linked" && result.status === "requires_active_tab") {
+        if (!await requestCopyFallbackConfirmation()) {
+          retainedInsertIntentBySignature.delete(intentSignature);
+          return;
+        }
+        copyIntentSignature ??= `${intentSignature}:copy`;
+        const copyIntentId = resolveRetainedInsertIntent(copyIntentSignature);
+        result = await insert("copy", copyIntentId, "cancel");
+        if (result.status === "requires_saved_snapshot_confirmation") {
+          if (!await requestSnapshotConfirmation(result.unavailableSourceCount)) {
+            retainedInsertIntentBySignature.delete(intentSignature);
+            retainedInsertIntentBySignature.delete(copyIntentSignature);
+            return;
+          }
+          result = await insert("copy", copyIntentId, "use_saved_snapshot_unlinked");
+        }
       }
       if (result.status !== "inserted") return;
       retainedInsertIntentBySignature.delete(intentSignature);
+      if (copyIntentSignature) retainedInsertIntentBySignature.delete(copyIntentSignature);
       onInserted(selectedEstimate.name);
       onOpenChange(false);
     } catch (error) {
@@ -350,10 +418,16 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     selectedProject,
     selectedTargetKey,
     template.id,
+    insertMode,
     requestSnapshotConfirmation,
+    requestCopyFallbackConfirmation,
   ]);
 
-  const canSubmit = targetResolution.state === "resolved" && !pending;
+  const canSubmit = targetResolution.state === "resolved"
+    && (insertMode === "copy" || template.nodes.length > 0)
+    && dependencyLifecycle.archived === 0
+    && (dependencyLifecycle.discontinued === 0 || discontinuedDependenciesReviewed)
+    && !pending;
 
   return (
     <>
@@ -369,6 +443,68 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
         {submitError ? (
           <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{submitError}</p>
         ) : null}
+
+        {dependencyLifecycle.archived > 0 ? (
+          <div className="rounded-xs border border-dangerSoft bg-dangerSoft/35 p-2" role="alert">
+            <p className="text-[10px] font-medium text-danger">Archived dependency</p>
+            <p className="mt-0.5 text-[9px] leading-3 text-danger">
+              {dependencyLifecycle.archived} archived Component {dependencyLifecycle.archived === 1 ? "dependency blocks" : "dependencies block"} this insertion.
+            </p>
+          </div>
+        ) : dependencyLifecycle.discontinued > 0 ? (
+          <div className="rounded-xs border border-warning/30 bg-warning/10 p-2">
+            <p className="text-[10px] font-medium text-ink">Discontinued dependency</p>
+            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
+              {dependencyLifecycle.discontinued} discontinued Component {dependencyLifecycle.discontinued === 1 ? "dependency requires" : "dependencies require"} review.
+            </p>
+            <label className="mt-1.5 flex items-center gap-1.5 text-[9px] text-secondary">
+              <input
+                type="checkbox"
+                checked={discontinuedDependenciesReviewed}
+                onChange={(event) => setDiscontinuedDependenciesReviewed(event.currentTarget.checked)}
+                className="size-3 rounded-xs accent-brand-orange"
+              />
+              Insert anyway after reviewing dependency warnings
+            </label>
+          </div>
+        ) : null}
+
+        <fieldset className="grid gap-1.5 rounded-xs border border-hairline p-2">
+          <legend className="px-1 text-[9px] font-medium uppercase tracking-normal text-tertiary">Insert mode</legend>
+          <label className="flex cursor-pointer items-start gap-2 text-[10px] text-ink">
+            <input
+              type="radio"
+              name="template-insert-mode"
+              value="linked"
+              checked={insertMode === "linked"}
+              disabled={pending || template.nodes.length === 0}
+              onChange={() => setInsertMode("linked")}
+              className="mt-0.5 size-3 accent-brand-orange"
+            />
+            <span>
+              <span className="block font-medium">Insert linked</span>
+              <span className="block text-[9px] leading-3 text-tertiary">Template changes update every linked Estimate. Quantities and adjustments stay project-specific.</span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2 text-[10px] text-ink">
+            <input
+              type="radio"
+              name="template-insert-mode"
+              value="copy"
+              checked={insertMode === "copy"}
+              disabled={pending}
+              onChange={() => setInsertMode("copy")}
+              className="mt-0.5 size-3 accent-brand-orange"
+            />
+            <span>
+              <span className="block font-medium">Insert copy</span>
+              <span className="block text-[9px] leading-3 text-tertiary">Creates independent Estimate content with no future Template updates.</span>
+            </span>
+          </label>
+          {template.nodes.length === 0 ? (
+            <p className="text-[9px] leading-3 text-warning">This Template is empty, so linked insertion is unavailable. Add a root in the Template Editor or insert a copy.</p>
+          ) : null}
+        </fieldset>
 
         <div className="rounded-xs border border-hairline bg-surfaceMuted/60 p-2" aria-live="polite">
           {selectedProject && selectedEstimate ? (
@@ -453,14 +589,29 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
             variant="primary"
             size="sm"
             disabled={!canSubmit}
+            aria-label="Insert template"
             aria-busy={pending ? "true" : undefined}
             onClick={handleSubmit}
           >
-            {pending ? "Inserting template…" : "Insert template"}
+            {pending ? "Inserting template…" : insertMode === "linked" ? "Insert linked" : "Insert copy"}
           </Button>
         </div>
       </div>
       </Modal>
+      <ConfirmDialog
+        open={copyFallbackRequested}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) resolveCopyFallbackConfirmation(false);
+        }}
+        title="Insert an independent copy?"
+        description="Linked templates require an active estimate tab. You can insert this template into the selected estimate as an independent copy instead."
+        confirmLabel="Insert copy instead"
+        cancelLabel="Cancel insert"
+        tone="warning"
+        initialFocus="cancel"
+        onConfirm={() => resolveCopyFallbackConfirmation(true)}
+        onCancel={() => resolveCopyFallbackConfirmation(false)}
+      />
       <ConfirmDialog
         open={snapshotUnavailableSourceCount !== null}
         onOpenChange={(nextOpen) => {

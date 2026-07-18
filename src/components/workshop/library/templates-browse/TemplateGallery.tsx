@@ -264,7 +264,7 @@ const TemplateGalleryRow = memo(function TemplateGalleryRow({
           >
             <DropdownMenu.Item label="Rename" onClick={() => onRename(template)} />
             <DropdownMenu.Item label="Duplicate" onClick={() => onDuplicate(template)} />
-            <DropdownMenu.Item label="Delete" destructive onClick={() => onRequestDelete(template)} />
+            <DropdownMenu.Item label="Archive" onClick={() => onRequestDelete(template)} />
           </DropdownMenu>
         </div>
       </div>
@@ -286,6 +286,7 @@ export type TemplateGalleryProps = {
   onDuplicateTemplate: (template: EstimateTemplate) => void;
   onRequestDeleteTemplate: (template: EstimateTemplate) => void;
   onNewTemplate: () => void;
+  onOpenArchived: () => void;
 };
 
 /**
@@ -307,6 +308,7 @@ export function TemplateGallery({
   onDuplicateTemplate,
   onRequestDeleteTemplate,
   onNewTemplate,
+  onOpenArchived,
 }: TemplateGalleryProps) {
   const surfaceVariant = useLibrarySurfaceVariant();
   const [searchQuery, setSearchQuery] = useState("");
@@ -358,6 +360,13 @@ export function TemplateGallery({
           searchInputRef={searchInputRef}
           showDefaultActions={false}
           addActions={[
+            {
+              label: "Archived Templates",
+              visibleLabel: "Archived",
+              showVisibleLabel: true,
+              icon: null,
+              onClick: onOpenArchived,
+            },
             {
               label: "New template",
               visibleLabel: "New template",

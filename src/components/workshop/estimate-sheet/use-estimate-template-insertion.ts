@@ -69,6 +69,56 @@ function useSavedTemplateSnapshotConfirmation() {
   return { unavailableSourceCount, requestConfirmation, resolveConfirmation };
 }
 
+function useLinkedTemplateCopyFallbackConfirmation() {
+  const resolverRef = useRef<((confirmed: boolean) => void) | null>(null);
+  const [requested, setRequested] = useState(false);
+
+  const requestConfirmation = useCallback(() => new Promise<boolean>((resolve) => {
+    resolverRef.current?.(false);
+    resolverRef.current = resolve;
+    setRequested(true);
+  }), []);
+  const resolveConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = resolverRef.current;
+    resolverRef.current = null;
+    setRequested(false);
+    resolve?.(confirmed);
+  }, []);
+
+  useEffect(() => () => {
+    resolverRef.current?.(false);
+    resolverRef.current = null;
+  }, []);
+
+  return { requested, requestConfirmation, resolveConfirmation };
+}
+
+type TemplateInsertModeChoice = {
+  templateName: string;
+  canLink: boolean;
+} | null;
+
+function useTemplateInsertModeChoice() {
+  const resolverRef = useRef<((mode: "linked" | "copy" | null) => void) | null>(null);
+  const [choice, setChoice] = useState<TemplateInsertModeChoice>(null);
+  const requestChoice = useCallback((template: EstimateTemplate) => new Promise<"linked" | "copy" | null>((resolve) => {
+    resolverRef.current?.(null);
+    resolverRef.current = resolve;
+    setChoice({ templateName: template.name, canLink: template.nodes.length > 0 });
+  }), []);
+  const resolveChoice = useCallback((mode: "linked" | "copy" | null) => {
+    const resolve = resolverRef.current;
+    resolverRef.current = null;
+    setChoice(null);
+    resolve?.(mode);
+  }, []);
+  useEffect(() => () => {
+    resolverRef.current?.(null);
+    resolverRef.current = null;
+  }, []);
+  return { choice, requestChoice, resolveChoice };
+}
+
 type UseEstimateTemplateInsertionInput = {
   canEditEstimate: boolean;
   projectId?: string;
@@ -106,6 +156,16 @@ export function useEstimateTemplateInsertion({
     requestConfirmation: requestTemplateSnapshotConfirmation,
     resolveConfirmation: resolveTemplateSnapshotConfirmation,
   } = useSavedTemplateSnapshotConfirmation();
+  const {
+    requested: templateCopyFallbackRequested,
+    requestConfirmation: requestTemplateCopyFallbackConfirmation,
+    resolveConfirmation: resolveTemplateCopyFallbackConfirmation,
+  } = useLinkedTemplateCopyFallbackConfirmation();
+  const {
+    choice: templateInsertModeChoice,
+    requestChoice: requestTemplateInsertModeChoice,
+    resolveChoice: resolveTemplateInsertModeChoice,
+  } = useTemplateInsertModeChoice();
   const retainedTemplateInsertIntentsRef = useRef<Map<string, string> | null>(null);
   if (retainedTemplateInsertIntentsRef.current === null) retainedTemplateInsertIntentsRef.current = new Map();
   const pendingTargetCountsRef = useRef<Map<string, number> | null>(null);
@@ -131,33 +191,71 @@ export function useEstimateTemplateInsertion({
       setSelectedNodeId(targetParentNodeId);
 
       if (projectId && estimateId) {
-        const intentSignature = ["template", projectId, estimateId, targetParentNodeId, template.id].join(":");
+        const insertMode = await requestTemplateInsertModeChoice(template);
+        if (!insertMode) return false;
+        const intentSignature = ["template", projectId, estimateId, targetParentNodeId, template.id, insertMode].join(":");
         const intentId = resolveRetainedTemplateInsertIntent(
           retainedTemplateInsertIntentsRef.current!,
           intentSignature,
           requestedIntentId,
         );
-        const persist = (unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked") => insertEstimateTemplateIntoEstimate({
-          projectId,
-          estimateId,
-          targetParentNodeId,
-          templateId: template.id,
-          intentId,
-          targetTabId: dataTabId,
-          unavailableSourcePolicy,
-        });
+        const persist = (
+          mode: "linked" | "copy",
+          persistIntentId: string,
+          unavailableSourcePolicy: "cancel" | "use_saved_snapshot_unlinked",
+        ) => insertEstimateTemplateIntoEstimate({
+            projectId,
+            estimateId,
+            targetParentNodeId,
+            templateId: template.id,
+            intentId: persistIntentId,
+            targetTabId: dataTabId,
+            unavailableSourcePolicy,
+            mode,
+          });
         setTemplateTargetPending(targetParentNodeId, true);
         try {
-          let result = await persist("cancel");
+          let result = await persist(insertMode, intentId, "cancel");
+          let copyIntentSignature: string | null = null;
           if (result.status === "requires_saved_snapshot_confirmation") {
             if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) {
               retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
               return false;
             }
-            result = await persist("use_saved_snapshot_unlinked");
+            if (insertMode === "linked") {
+              copyIntentSignature = `${intentSignature}:copy`;
+              const copyIntentId = resolveRetainedTemplateInsertIntent(
+                retainedTemplateInsertIntentsRef.current!,
+                copyIntentSignature,
+              );
+              result = await persist("copy", copyIntentId, "use_saved_snapshot_unlinked");
+            } else {
+              result = await persist("copy", intentId, "use_saved_snapshot_unlinked");
+            }
+          }
+          if (insertMode === "linked" && result.status === "requires_active_tab") {
+            if (!await requestTemplateCopyFallbackConfirmation()) {
+              retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+              return false;
+            }
+            copyIntentSignature ??= `${intentSignature}:copy`;
+            const copyIntentId = resolveRetainedTemplateInsertIntent(
+              retainedTemplateInsertIntentsRef.current!,
+              copyIntentSignature,
+            );
+            result = await persist("copy", copyIntentId, "cancel");
+            if (result.status === "requires_saved_snapshot_confirmation") {
+              if (!await requestTemplateSnapshotConfirmation(result.unavailableSourceCount)) {
+                retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+                retainedTemplateInsertIntentsRef.current!.delete(copyIntentSignature);
+                return false;
+              }
+              result = await persist("copy", copyIntentId, "use_saved_snapshot_unlinked");
+            }
           }
           if (result.status !== "inserted") {
             retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+            if (copyIntentSignature) retainedTemplateInsertIntentsRef.current!.delete(copyIntentSignature);
             return false;
           }
           setEstimateTree((currentTree) => reconcileAuthoritativeInsertedRoots({
@@ -168,6 +266,7 @@ export function useEstimateTemplateInsertion({
           }));
           setEditableRows((current) => ({ ...current, ...collectEditableRows(result.tree) }));
           retainedTemplateInsertIntentsRef.current!.delete(intentSignature);
+          if (copyIntentSignature) retainedTemplateInsertIntentsRef.current!.delete(copyIntentSignature);
           return true;
         } catch (error: unknown) {
           console.error("[estimate] template insert failed", error);
@@ -459,7 +558,11 @@ export function useEstimateTemplateInsertion({
     insertTemplateNodeIntoParentById,
     insertTemplateNodeIntoSelectedGroup,
     templateInsertPendingNodeIds,
+    templateInsertModeChoice,
+    templateCopyFallbackRequested,
     templateSnapshotUnavailableSourceCount,
+    resolveTemplateCopyFallbackConfirmation,
+    resolveTemplateInsertModeChoice,
     resolveTemplateSnapshotConfirmation,
   };
 }
