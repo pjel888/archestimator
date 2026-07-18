@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { logAppError } from "@/lib/observability/logger";
+import { authorizeBearerRequest } from "@/lib/security/bearer-auth";
 import { createConfiguredUploadScannerProvider } from "@/lib/uploads/clamd-scanner";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import {
@@ -26,20 +27,6 @@ function jsonError(error: string, status: number) {
 
 function jsonOk(body: Record<string, unknown>) {
   return NextResponse.json(body, { headers: NO_STORE_HEADERS });
-}
-
-function readScanSecrets() {
-  const configuredSecrets = [
-    process.env.CRON_SECRET?.trim(),
-    process.env.UPLOAD_SCAN_JOB_SECRET?.trim(),
-  ].filter((secret): secret is string => Boolean(secret));
-
-  return Array.from(new Set(configuredSecrets));
-}
-
-function isAuthorized(request: Request, secrets: string[]) {
-  const authHeader = request.headers.get("authorization");
-  return secrets.some((secret) => authHeader === `Bearer ${secret}`);
 }
 
 function readLimit(request: Request) {
@@ -85,9 +72,12 @@ function summarizeUploadScanDryRun(records: Awaited<ReturnType<typeof listUpload
 }
 
 async function handleUploadScanJob(request: Request) {
-  const secrets = readScanSecrets();
-  if (secrets.length === 0) return jsonError("Upload scan job is not configured.", 503);
-  if (!isAuthorized(request, secrets)) return jsonError("Unauthorized.", 401);
+  const authorization = authorizeBearerRequest(request, [
+    process.env.CRON_SECRET,
+    process.env.UPLOAD_SCAN_JOB_SECRET,
+  ]);
+  if (authorization.status === "missing-secret") return jsonError("Upload scan job is not configured.", 503);
+  if (authorization.status === "invalid-secret") return jsonError("Unauthorized.", 401);
 
   try {
     const limit = readLimit(request);

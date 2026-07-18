@@ -35,6 +35,9 @@ class FakeD1Statement {
   }
 
   async first<R>() {
+    if (this.sql.includes("INSERT INTO upload_asset_cleanup_objects") && this.sql.includes("RETURNING upload_asset_id")) {
+      return { upload_asset_id: ASSET_ID } as R;
+    }
     return null as R | null;
   }
 

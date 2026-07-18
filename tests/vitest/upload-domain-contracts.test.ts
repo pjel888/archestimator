@@ -9,7 +9,7 @@ import type {
   D1Result,
   D1Value,
 } from "@/lib/cloudflare/d1";
-import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import { validateEstimateRowImageAsset } from "@/lib/estimates/d1-intents/access";
 import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
 import { getUploadPolicy } from "@/lib/uploads/policy";
 import { recordUploadAsset } from "@/lib/uploads/upload-records";
@@ -368,27 +368,22 @@ describe("upload domain contracts", () => {
       }),
     });
 
-    const client = new EstimateActionsD1Client(database, null);
-
     await expect(
-      client.call("validate_estimate_row_image_asset", {
-        target_asset_id: assetId,
-        target_upload_session_id: uploadSessionId,
-        target_project_id: projectId,
-        target_estimate_id: estimateId,
-        target_row_id: rowId,
-      }),
-    ).resolves.toMatchObject({
-      data: {
-        kind: "upload-asset",
+      validateEstimateRowImageAsset(database, {
         assetId,
         uploadSessionId,
-        bucket: "project-images",
-        fileName: "reference.png",
-        width: 800,
-        height: 600,
-      },
-      error: null,
+        projectId,
+        estimateId,
+        rowId,
+      }),
+    ).resolves.toMatchObject({
+      kind: "upload-asset",
+      assetId,
+      uploadSessionId,
+      bucket: "project-images",
+      fileName: "reference.png",
+      width: 800,
+      height: 600,
     });
   });
 

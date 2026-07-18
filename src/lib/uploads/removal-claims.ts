@@ -17,21 +17,28 @@ type ClaimedAssetRow = {
 };
 
 type RemovalClaimDiagnosticRow = {
-  matched_count: number | boolean | null;
-  referenced_count: number | boolean | null;
-  already_claimed_count: number | boolean | null;
+  id: string;
+  storage_path: string;
+  thumbnail_path: string | null;
+  is_referenced: number | boolean | null;
+  is_already_removed: number | boolean | null;
 };
 
 export type UploadRemovalClaimStatus =
   | "claimed"
+  | "partial"
   | "referenced"
   | "already_claimed"
   | "not_found";
 
 export type UploadRemovalClaimResult = {
   status: UploadRemovalClaimStatus;
-  assetIds: string[];
+  claimedAssetIds: string[];
   claimedPaths: string[];
+  blockedAssetIds: string[];
+  blockedPaths: string[];
+  alreadyRemovedAssetIds: string[];
+  alreadyRemovedPaths: string[];
 };
 
 export type ClaimUploadAssetsForRemovalInput = {
@@ -197,6 +204,14 @@ function matchedAssetCte(actorScoped: boolean) {
           asset.storage_path IN (SELECT path FROM requested_paths)
           OR asset.thumbnail_path IN (SELECT path FROM requested_paths)
         )
+        AND (
+          (
+            asset.status IN ('pending', 'finalized')
+            AND asset.purge_state = 'active'
+          )
+          OR asset.status IN ('removed', 'deleted')
+          OR asset.purge_state <> 'active'
+        )
     )
   `;
 }
@@ -215,8 +230,40 @@ function matchedAssetValues(
   ];
 }
 
-function emptyClaimResult(status: Exclude<UploadRemovalClaimStatus, "claimed">): UploadRemovalClaimResult {
-  return { status, assetIds: [], claimedPaths: [] };
+function emptyClaimResult(status: "not_found"): UploadRemovalClaimResult {
+  return {
+    status,
+    claimedAssetIds: [],
+    claimedPaths: [],
+    blockedAssetIds: [],
+    blockedPaths: [],
+    alreadyRemovedAssetIds: [],
+    alreadyRemovedPaths: [],
+  };
+}
+
+function assetObjectPaths(rows: readonly ClaimedAssetRow[]) {
+  return normalizeStrings(
+    rows.flatMap((row) => [row.storage_path, row.thumbnail_path ?? ""]),
+  );
+}
+
+function deriveClaimStatus({
+  claimedAssetIds,
+  blockedAssetIds,
+  alreadyRemovedAssetIds,
+}: Pick<
+  UploadRemovalClaimResult,
+  "claimedAssetIds" | "blockedAssetIds" | "alreadyRemovedAssetIds"
+>): UploadRemovalClaimStatus {
+  if (claimedAssetIds.length > 0) {
+    return blockedAssetIds.length > 0 || alreadyRemovedAssetIds.length > 0
+      ? "partial"
+      : "claimed";
+  }
+  if (blockedAssetIds.length > 0) return "referenced";
+  if (alreadyRemovedAssetIds.length > 0) return "already_claimed";
+  return "not_found";
 }
 
 export async function claimUploadAssetsForRemoval(
@@ -253,7 +300,7 @@ export async function claimUploadAssetsForRemoval(
         AND NOT EXISTS (
           SELECT 1
           FROM upload_assets candidate
-          WHERE candidate.id IN (SELECT id FROM matched_assets)
+          WHERE candidate.id = asset.id
             AND (${referencePredicate})
         )
       RETURNING id, storage_path, thumbnail_path
@@ -268,30 +315,83 @@ export async function claimUploadAssetsForRemoval(
 
   if (claimResult.success === false) throw new Error("Could not claim upload assets for removal.");
   const claimedRows = claimResult.results ?? [];
-  if (claimedRows.length > 0) {
-    return {
-      status: "claimed",
-      assetIds: normalizeStrings(claimedRows.map((row) => row.id)),
-      claimedPaths: normalizeStrings(claimedRows.flatMap((row) => [
-        row.storage_path,
-        row.thumbnail_path ?? "",
-      ])),
-    };
-  }
+  const claimedAssetIds = normalizeStrings(claimedRows.map((row) => row.id));
+  const claimedPaths = assetObjectPaths(claimedRows);
+  const claimedAssetIdSet = new Set(claimedAssetIds);
+  const claimedPathSet = new Set(claimedPaths);
 
-  const diagnostic = await db.prepare<RemovalClaimDiagnosticRow>(
+  const diagnosticResult = await db.prepare<RemovalClaimDiagnosticRow>(
     `
       ${cte}
       SELECT
-        COUNT(*) AS matched_count,
-        COALESCE(SUM(CASE WHEN (${uploadAssetAcceptedReferencePredicate("asset")}) THEN 1 ELSE 0 END), 0) AS referenced_count,
-        COALESCE(SUM(CASE WHEN asset.status IN ('removed', 'deleted') OR asset.purge_state <> 'active' THEN 1 ELSE 0 END), 0) AS already_claimed_count
+        asset.id,
+        asset.storage_path,
+        asset.thumbnail_path,
+        CASE WHEN (${uploadAssetAcceptedReferencePredicate("asset")}) THEN 1 ELSE 0 END AS is_referenced,
+        CASE
+          WHEN asset.status IN ('removed', 'deleted') OR asset.purge_state <> 'active'
+          THEN 1
+          ELSE 0
+        END AS is_already_removed
       FROM upload_assets asset
       WHERE asset.id IN (SELECT id FROM matched_assets)
+        AND asset.id NOT IN (
+          SELECT CAST(value AS TEXT)
+          FROM json_each(?)
+        )
     `,
-  ).bind(...baseValues).first<RemovalClaimDiagnosticRow>();
+  ).bind(...baseValues, JSON.stringify(claimedAssetIds)).all<RemovalClaimDiagnosticRow>();
 
-  if (Number(diagnostic?.referenced_count ?? 0) > 0) return emptyClaimResult("referenced");
-  if (Number(diagnostic?.already_claimed_count ?? 0) > 0) return emptyClaimResult("already_claimed");
-  return emptyClaimResult("not_found");
+  if (diagnosticResult.success === false) {
+    throw new Error("Could not classify upload assets after removal claim.");
+  }
+
+  const blockedRows: ClaimedAssetRow[] = [];
+  const alreadyRemovedRows: ClaimedAssetRow[] = [];
+  const classifiedAssetIds = new Set(claimedAssetIdSet);
+  for (const row of diagnosticResult.results ?? []) {
+    const id = row.id.trim();
+    if (!id || classifiedAssetIds.has(id)) continue;
+    const assetRow: ClaimedAssetRow = {
+      id,
+      storage_path: row.storage_path,
+      thumbnail_path: row.thumbnail_path,
+    };
+    if (Boolean(row.is_referenced)) {
+      blockedRows.push(assetRow);
+      classifiedAssetIds.add(id);
+      continue;
+    }
+    if (Boolean(row.is_already_removed)) {
+      alreadyRemovedRows.push(assetRow);
+      classifiedAssetIds.add(id);
+      continue;
+    }
+    throw new Error("Could not classify an unmatched upload asset after removal claim.");
+  }
+
+  const blockedAssetIds = normalizeStrings(blockedRows.map((row) => row.id));
+  const blockedPaths = assetObjectPaths(blockedRows).filter(
+    (path) => !claimedPathSet.has(path),
+  );
+  const blockedPathSet = new Set(blockedPaths);
+  const alreadyRemovedAssetIds = normalizeStrings(
+    alreadyRemovedRows.map((row) => row.id),
+  );
+  const alreadyRemovedPaths = assetObjectPaths(alreadyRemovedRows).filter(
+    (path) => !claimedPathSet.has(path) && !blockedPathSet.has(path),
+  );
+  const resultSets = {
+    claimedAssetIds,
+    claimedPaths,
+    blockedAssetIds,
+    blockedPaths,
+    alreadyRemovedAssetIds,
+    alreadyRemovedPaths,
+  };
+
+  return {
+    status: deriveClaimStatus(resultSets),
+    ...resultSets,
+  };
 }

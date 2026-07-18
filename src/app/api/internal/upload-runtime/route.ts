@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { authorizeBearerRequest } from "@/lib/security/bearer-auth";
 import { readRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 
 export const runtime = "nodejs";
@@ -56,20 +57,6 @@ function readRuntimeString(env: UploadRuntimeEnv | null, key: string, fallbackTo
   if (typeof envValue === "string" && envValue.trim()) return envValue.trim();
   if (!fallbackToProcess) return undefined;
   return process.env[key]?.trim() || undefined;
-}
-
-function readRuntimeSecrets() {
-  const configuredSecrets = [
-    process.env.CRON_SECRET?.trim(),
-    process.env.UPLOAD_RUNTIME_PROOF_SECRET?.trim(),
-  ].filter((secret): secret is string => Boolean(secret));
-
-  return Array.from(new Set(configuredSecrets));
-}
-
-function isAuthorized(request: Request, secrets: string[]) {
-  const authHeader = request.headers.get("authorization");
-  return secrets.some((secret) => authHeader === `Bearer ${secret}`);
 }
 
 function parseOptionalNumber(value: string | undefined) {
@@ -198,9 +185,12 @@ async function measureStorageLatency(env: UploadRuntimeEnv | null) {
 }
 
 async function handleUploadRuntimeProof(request: Request) {
-  const secrets = readRuntimeSecrets();
-  if (secrets.length === 0) return jsonError("Upload runtime proof is not configured.", 503);
-  if (!isAuthorized(request, secrets)) return jsonError("Unauthorized.", 401);
+  const authorization = authorizeBearerRequest(request, [
+    process.env.CRON_SECRET,
+    process.env.UPLOAD_RUNTIME_PROOF_SECRET,
+  ]);
+  if (authorization.status === "missing-secret") return jsonError("Upload runtime proof is not configured.", 503);
+  if (authorization.status === "invalid-secret") return jsonError("Unauthorized.", 401);
 
   const startedAt = performance.now();
   const memoryBefore = memorySnapshot();
