@@ -65,9 +65,15 @@ type TemplateFormAction =
   | { type: "submit:success" }
   | { type: "submit:error"; message: string };
 
-function getInitialTemplateFormState(defaultCategory = ""): TemplateFormState {
+function getInitialTemplateFormState({
+  defaultCategory = "",
+  defaultName = "",
+}: {
+  defaultCategory?: string;
+  defaultName?: string;
+}): TemplateFormState {
   return {
-    name: "",
+    name: defaultName,
     category: defaultCategory,
     description: "",
     error: "",
@@ -127,18 +133,21 @@ export function NewTemplateModal({
   onCreated,
   mode = "estimate-node",
 }: NewTemplateModalProps) {
+  const scratchMode = mode === "scratch";
+  const tabMode = mode === "estimate-tab";
+  const sourceLabel = sourceDisplayName ?? sourceNode?.name ?? "";
   // Consumers mount this modal per open, so the default lands on first render.
   const [formState, dispatchForm] = useReducer(
     templateFormReducer,
-    defaultCategory,
+    {
+      defaultCategory,
+      defaultName: scratchMode ? "" : sourceLabel,
+    },
     getInitialTemplateFormState,
   );
   const { name, category, description, error, pending } = formState;
 
-  const scratchMode = mode === "scratch";
-  const tabMode = mode === "estimate-tab";
   const summary = useMemo(() => (sourceNode ? summarizeSourceNode(sourceNode) : null), [sourceNode]);
-  const sourceLabel = sourceDisplayName ?? sourceNode?.name ?? "";
   const canSubmit = scratchMode
     ? !pending
     : tabMode
