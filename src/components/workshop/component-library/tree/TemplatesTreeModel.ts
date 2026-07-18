@@ -199,7 +199,7 @@ function projectFallbackName(prefix: string, id: string) {
   return `${prefix} ${id.slice(0, 8)}`;
 }
 
-function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNode): UiTreeNode {
+function toTemplateInnerUiChildren(template: EstimateTemplate, node: EstimateTreeNode): UiTreeNode[] {
   const childNodes = (node.children ?? []).map((child) => toTemplateInnerUiNodes(template, child));
   const rowNodes = (node.estimateRowItems ?? []).map((item, index) => ({
     id: templateInnerRowId(template.id, node.id, item.id, index),
@@ -210,17 +210,28 @@ function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNo
     data: { templatesNode: { type: "template-row", template, item } satisfies TemplatesTreeDatum },
   } satisfies UiTreeNode));
 
+  return [...childNodes, ...rowNodes];
+}
+
+function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNode): UiTreeNode {
+  const children = toTemplateInnerUiChildren(template, node);
+
   // Inner groups/areas drag out as their own subtree and join selection:
   // every row in this tree is a draggable, selectable unit.
   return {
     id: templateInnerNodeId(template.id, node.id),
     label: node.name,
     ariaLabel: `${node.name} template area`,
-    isLeaf: childNodes.length === 0 && rowNodes.length === 0,
+    isLeaf: children.length === 0,
     icon: nodeKindIcon(),
-    children: [...childNodes, ...rowNodes],
+    children,
     data: { templatesNode: { type: "template-node", template, node } satisfies TemplatesTreeDatum },
   };
+}
+
+function toTemplateUiChildren(template: EstimateTemplate) {
+  if (template.nodes.length === 1) return toTemplateInnerUiChildren(template, template.nodes[0]);
+  return template.nodes.map((node) => toTemplateInnerUiNodes(template, node));
 }
 
 function buildTemplateCategoryTreeNodes(templates: EstimateTemplate[], customTemplateCategories: string[] = []): UiTreeNode[] {
@@ -244,18 +255,21 @@ function buildTemplateCategoryTreeNodes(templates: EstimateTemplate[], customTem
     data: { templatesNode: { type: "category", category } satisfies TemplatesTreeDatum },
     children: categoryTemplates
       .sort((left, right) => left.name.localeCompare(right.name))
-      .map((template) => ({
-        id: toTemplateTreeItemId(template.id),
-        label: template.name,
-        ariaLabel: `${template.name} estimate template`,
-        isLeaf: template.nodes.length === 0
-          && (template.summary?.groupCount ?? 0) === 0
-          && (template.summary?.areaCount ?? 0) === 0
-          && (template.summary?.rowCount ?? 0) === 0,
-        icon: templateRootIcon(template),
-        children: template.nodes.map((node) => toTemplateInnerUiNodes(template, node)),
-        data: { templatesNode: { type: "template", template } satisfies TemplatesTreeDatum },
-      })),
+      .map((template) => {
+        const children = toTemplateUiChildren(template);
+        const hasSummaryContent = (template.summary?.groupCount ?? 0) > 0
+          || (template.summary?.areaCount ?? 0) > 0
+          || (template.summary?.rowCount ?? 0) > 0;
+        return {
+          id: toTemplateTreeItemId(template.id),
+          label: template.name,
+          ariaLabel: `${template.name} estimate template`,
+          isLeaf: template.nodes.length > 0 ? children.length === 0 : !hasSummaryContent,
+          icon: templateRootIcon(template),
+          children,
+          data: { templatesNode: { type: "template", template } satisfies TemplatesTreeDatum },
+        };
+      }),
   }));
 }
 

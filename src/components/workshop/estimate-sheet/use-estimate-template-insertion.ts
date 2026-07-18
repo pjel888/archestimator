@@ -286,8 +286,9 @@ export function useEstimateTemplateInsertion({
   const insertTemplateNodeIntoParent = useStableCallback(
     async (
       targetParentNodeId: string,
-      template: EstimateTemplate,
-      templateNode: EstimateTreeNode,
+      templateId: string,
+      templateNodeId: string,
+      templateNode?: EstimateTreeNode,
       requestedIntentId?: string,
     ) => {
       if (!canEditEstimate) {
@@ -305,8 +306,8 @@ export function useEstimateTemplateInsertion({
           projectId,
           estimateId,
           targetParentNodeId,
-          template.id,
-          templateNode.id,
+          templateId,
+          templateNodeId,
         ].join(":");
         const intentId = resolveRetainedTemplateInsertIntent(
           retainedTemplateInsertIntentsRef.current!,
@@ -317,8 +318,8 @@ export function useEstimateTemplateInsertion({
           projectId,
           estimateId,
           targetParentNodeId,
-          templateId: template.id,
-          templateNodeId: templateNode.id,
+          templateId,
+          templateNodeId,
           intentId,
           targetTabId: dataTabId,
           unavailableSourcePolicy,
@@ -355,6 +356,7 @@ export function useEstimateTemplateInsertion({
         }
       }
 
+      if (!templateNode) return false;
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
       setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
       setEditableRows((current) => ({ ...current, ...collectEditableRows(optimisticTemplateNodes) }));
@@ -365,10 +367,14 @@ export function useEstimateTemplateInsertion({
   const insertTemplateNodeIntoParentById = useCallback(
     (targetParentNodeId: string, templateId: string, templateNodeId: string, requestedIntentId?: string) => {
       const template = templateById.get(templateId);
-      if (!template) return false;
-      const templateNode = findEstimateNode(template.nodes, templateNodeId);
-      if (!templateNode) return false;
-      return insertTemplateNodeIntoParent(targetParentNodeId, template, templateNode, requestedIntentId);
+      const templateNode = template ? findEstimateNode(template.nodes, templateNodeId) : undefined;
+      return insertTemplateNodeIntoParent(
+        targetParentNodeId,
+        templateId,
+        templateNodeId,
+        templateNode,
+        requestedIntentId,
+      );
     },
     [insertTemplateNodeIntoParent, templateById],
   );
@@ -389,7 +395,12 @@ export function useEstimateTemplateInsertion({
     (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
       // P6: insert directly into the selected node (any kind), no area-wrap.
       if (!templateTargetParentNode) return false;
-      return insertTemplateNodeIntoParent(templateTargetParentNode.id, template, templateNode);
+      return insertTemplateNodeIntoParent(
+        templateTargetParentNode.id,
+        template.id,
+        templateNode.id,
+        templateNode,
+      );
     },
     [insertTemplateNodeIntoParent, templateTargetParentNode],
   );
