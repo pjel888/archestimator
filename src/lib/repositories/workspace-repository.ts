@@ -11,15 +11,25 @@ import {
   type AppPlatformRole,
 } from "@/lib/auth/roles";
 import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
-import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
-import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
-import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
+import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
-import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
-import { readEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
+import {
+  isEstimateTabsSchemaMissing,
+  readDefaultEstimateTabD1,
+  readEstimateNodeSubtreeD1,
+  readEstimateTabsD1,
+  readEstimateTabTreeD1,
+  readEstimateTabTreePayloadD1,
+  readEstimateTreesForTabsD1,
+  readLegacyEstimateTreeD1,
+  type EstimateTabTree,
+  type EstimateTreeLoadLimitState,
+  type EstimateTreeLoadOptions,
+} from "@/lib/estimates/estimate-tree-read-repository";
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
+import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { traced } from "@/lib/perf/server-timing";
 import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import {
@@ -378,8 +388,6 @@ const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
 const MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT =
   MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT * MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT * 4;
-// D1 rejects wide IN clauses well before the estimate tree's 1,500-node load cap.
-const ESTIMATE_TREE_ROW_NODE_BATCH_SIZE = 64;
 const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
   "assembly",
   "lot",
@@ -451,11 +459,6 @@ function readD1Boolean(value: boolean | number | string | null | undefined, fall
   if (typeof value === "number") return value !== 0;
   if (typeof value === "string") return value === "1" || value.toLowerCase() === "true";
   return fallback;
-}
-
-function isMissingD1TableError(error: unknown, tableName?: string) {
-  const message = error instanceof Error ? error.message.toLowerCase() : isRecord(error) && typeof error.message === "string" ? error.message.toLowerCase() : "";
-  return message.includes("no such table") && (!tableName || message.includes(tableName.toLowerCase()));
 }
 
 function normalizeProjectRow(project: ProjectRow & { metadata?: Json | string | null }): ProjectRow {
@@ -3217,55 +3220,6 @@ export async function listProjectEstimateSheets(projectId: string, options: { li
   return filterAccessibleEstimates(database, sheets, context);
 }
 
-type EstimateTabQueryRow = {
-  id: string;
-  estimate_id: string;
-  name: string;
-  sort_order: number;
-  is_default: boolean | number;
-  archived_at: string | null;
-  metadata: Json;
-  created_at: string;
-  updated_at: string;
-};
-
-// Estimate-sheet tree loads fetch every node and row of the estimate, so the
-// column list is explicit: only fields consumed by buildEstimateTree/toUiRow.
-// source_snapshot stays — linked-row display (image, category, price option,
-// lifecycle, pricing provenance) reads it. If toUiRow gains a field, add the
-// column here or the Pick types below fail the build.
-const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id, sort_order";
-const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
-  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot_json AS source_snapshot, metadata_json AS metadata, created_at";
-
-export type EstimateTreeNodeQueryRow = Pick<EstimateNodeRow, "id" | "kind" | "name" | "parent_id" | "sort_order">;
-export type EstimateTreeRowItemQueryRow = Pick<
-  EstimateRowItemRow,
-  | "id"
-  | "node_id"
-  | "sort_order"
-  | "material"
-  | "description"
-  | "supplier"
-  | "supplier_id"
-  | "unit"
-  | "unit_cost"
-  | "quantity"
-  | "quantity_base"
-  | "quantity_contingency_amount"
-  | "contingency_percentage"
-  | "adjustment_percentage"
-  | "misc_cost"
-  | "row_revision"
-  | "category_node_id"
-  | "discipline"
-  | "designation"
-  | "source_library_item_id"
-  | "link_state"
-  | "source_snapshot"
-  | "metadata"
-  | "created_at"
->;
 type LiveEstimateTreeResult = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects"> | null;
@@ -3276,32 +3230,12 @@ type LiveEstimateTreeResult = {
   loadLimitState?: LiveEstimateTreeLoadLimitState;
 };
 
-type LiveEstimateTreeLoadOptions = {
-  maxNodeCount?: number;
-  maxRowItemCount?: number;
-  /**
-   * Opt-in read-only fallback for the reusable-source / export paths: when the
-   * `estimate_tabs` schema is not yet applied to the live database, synthesize a
-   * single "Main" tab from the legacy whole-estimate tree instead of throwing.
-   * Only read paths set this; tab-CRUD mutation callers must NOT (U1-RO) so they
-   * never operate on a synthetic tab.
-   */
-  allowLegacyFallback?: boolean;
-};
-
-type LiveEstimateTreeLoadLimitState = {
-  maxNodeCount: number | null;
-  maxRowItemCount: number | null;
-  fetchedNodeCount: number;
-  fetchedRowItemCount: number;
-  didExceedNodeLimit: boolean;
-  didExceedRowItemLimit: boolean;
-};
+type LiveEstimateTreeLoadOptions = EstimateTreeLoadOptions;
+type LiveEstimateTreeLoadLimitState = EstimateTreeLoadLimitState;
 
 type LiveEstimateTabTreeResult = LiveEstimateTreeResult & {
   tab: EstimateTabSummary | null;
 };
-type EstimateTabTreePayload = Pick<LiveEstimateTabTreeResult, "estimate" | "selectedNodeId" | "tree" | "sheetAdjustment" | "loadLimitState">;
 
 type LiveEstimateNodeSubtreeResult = LiveEstimateTreeResult & {
   tab: EstimateTabSummary | null;
@@ -3318,6 +3252,7 @@ type EstimateTabRouteContext = LiveEstimateTabTreeResult & {
   // the same authoritative helper before enabling edit controls.
   canEditEstimate?: boolean;
 };
+
 type ResolvedProjectEstimateInput = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects">;
@@ -3337,386 +3272,14 @@ async function readEstimateForProject(database: D1DatabaseLike, estimateId: stri
   return estimate ? normalizeEstimateRow(estimate) : null;
 }
 
-function normalizeEstimateTabRow(row: EstimateTabQueryRow & { metadata?: Json | string | null }): EstimateTabQueryRow {
-  return {
-    ...row,
-    is_default: readD1Boolean(row.is_default),
-    metadata: readD1Json(row.metadata),
-  };
-}
-
-function normalizeEstimateTreeNodeRow(row: EstimateTreeNodeQueryRow): EstimateTreeNodeQueryRow {
-  return {
-    ...row,
-    kind: normalizeEstimateTreeNodeKind(row.kind) ?? row.kind,
-  };
-}
-
-function normalizeEstimateTreeRowItem(row: EstimateTreeRowItemQueryRow): EstimateTreeRowItemQueryRow {
-  return {
-    ...row,
-    node_id: row.node_id ?? "",
-    supplier: row.supplier ?? "",
-    supplier_id: row.supplier_id ?? null,
-    unit: row.unit ?? "",
-    unit_cost: Number(row.unit_cost ?? 0),
-    quantity: Number(row.quantity ?? 0),
-    quantity_base: row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base),
-    quantity_contingency_amount: row.quantity_contingency_amount === null || row.quantity_contingency_amount === undefined
-      ? null
-      : Number(row.quantity_contingency_amount),
-    contingency_percentage: Number(row.contingency_percentage ?? 0),
-    adjustment_percentage: Number(row.adjustment_percentage ?? 0),
-    misc_cost: Number(row.misc_cost ?? 0),
-    row_revision: Number(row.row_revision ?? 0),
-    category_node_id: row.category_node_id ?? null,
-    discipline: row.discipline ?? "",
-    designation: row.designation ?? "",
-    source_library_item_id: row.source_library_item_id ?? null,
-    link_state: row.link_state ?? "unlinked",
-    source_snapshot: readD1Json(row.source_snapshot),
-    metadata: readD1Json(row.metadata),
-  };
-}
-
-async function readEstimateNodes(
-  database: D1DatabaseLike,
-  estimateId: string,
-  options: { tabId?: string | null; nodeIds?: string[]; parentIds?: string[]; limit?: number | null } = {},
-): Promise<EstimateTreeNodeQueryRow[]> {
-  const filters: string[] = ["estimate_id = ?"];
-  const values: unknown[] = [estimateId];
-  if (options.tabId) {
-    filters.push("estimate_tab_id = ?");
-    values.push(options.tabId);
-  }
-  if (options.nodeIds?.length) {
-    filters.push(`id IN (${placeholders(options.nodeIds)})`);
-    values.push(...options.nodeIds);
-  }
-  if (options.parentIds?.length) {
-    filters.push(`parent_id IN (${placeholders(options.parentIds)})`);
-    values.push(...options.parentIds);
-  }
-  const limitSql = options.limit ? " LIMIT ?" : "";
-  if (options.limit) values.push(options.limit);
-  const rows = await all<EstimateTreeNodeQueryRow>(
-    database,
-    `SELECT ${ESTIMATE_TREE_NODE_COLUMNS}
-     FROM estimate_nodes
-     WHERE ${filters.join(" AND ")}
-     ORDER BY sort_order ASC, id ASC${limitSql}`,
-    values,
-  );
-  return rows.map(normalizeEstimateTreeNodeRow);
-}
-
-async function readEstimateRows(
-  database: D1DatabaseLike,
-  estimateId: string,
-  options: { nodeIds?: string[]; limit?: number | null } = {},
-): Promise<EstimateTreeRowItemQueryRow[]> {
-  const nodeIdBatches = options.nodeIds?.length
-    ? Array.from({ length: Math.ceil(options.nodeIds.length / ESTIMATE_TREE_ROW_NODE_BATCH_SIZE) }, (_, index) =>
-        options.nodeIds!.slice(index * ESTIMATE_TREE_ROW_NODE_BATCH_SIZE, (index + 1) * ESTIMATE_TREE_ROW_NODE_BATCH_SIZE),
-      )
-    : [undefined];
-  const batches = await Promise.all(nodeIdBatches.map(async (nodeIds) => {
-    const filters: string[] = ["estimate_id = ?", "node_id IS NOT NULL"];
-    const values: unknown[] = [estimateId];
-    if (nodeIds) {
-      filters.push(`node_id IN (${placeholders(nodeIds)})`);
-      values.push(...nodeIds);
-    }
-    return await all<EstimateTreeRowItemQueryRow>(
-      database,
-      `SELECT ${ESTIMATE_TREE_ROW_ITEM_COLUMNS}
-       FROM estimate_row_items
-       WHERE ${filters.join(" AND ")}
-       ORDER BY sort_order ASC, id ASC`,
-      values,
-    );
-  }));
-  const rows = batches.flat()
-    .sort((left, right) => left.sort_order - right.sort_order || left.id.localeCompare(right.id));
-  return (options.limit ? rows.slice(0, options.limit) : rows).map(normalizeEstimateTreeRowItem);
-}
-
-async function readEstimateTabsForEstimateRows(
-  database: D1DatabaseLike,
-  estimateId: string,
-  options: { maxTabCount?: number } = {},
-): Promise<EstimateTabQueryRow[]> {
-  const maxTabCount = normalizeTreeLoadLimit(options.maxTabCount);
-  const rows = await all<EstimateTabQueryRow>(
-    database,
-    `SELECT id, estimate_id, name, sort_order, is_default, archived_at, '{}' AS metadata, created_at, updated_at
-     FROM estimate_tabs
-     WHERE estimate_id = ?
-       AND archived_at IS NULL
-     ORDER BY sort_order ASC, id ASC${maxTabCount ? " LIMIT ?" : ""}`,
-    maxTabCount ? [estimateId, maxTabCount + 1] : [estimateId],
-  );
-  return rows.map(normalizeEstimateTabRow);
-}
-
-async function readEstimateTab(database: D1DatabaseLike, estimateId: string, tabId: string): Promise<EstimateTabQueryRow | null> {
-  const row = await first<EstimateTabQueryRow>(
-    database,
-    `SELECT id, estimate_id, name, sort_order, is_default, archived_at, '{}' AS metadata, created_at, updated_at
-     FROM estimate_tabs
-     WHERE id = ?
-       AND estimate_id = ?
-       AND archived_at IS NULL
-     LIMIT 1`,
-    [tabId, estimateId],
-  );
-  return row ? normalizeEstimateTabRow(row) : null;
-}
-
-function getDisplayNodeKind(kind: EstimateNodeKind): EstimateTreeNode["kind"] | null {
-  return normalizeEstimateTreeNodeKind(kind);
-}
-
-function formatPeso(value: number) {
-  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 }).format(value);
-}
-
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  const parsed = typeof value === "string" ? readD1Json(value) : value;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-  return parsed as Record<string, unknown>;
-}
-
-function createDefaultEstimateSheetAdjustment(estimateId: string): EstimateSheetAdjustment {
-  return {
-    estimateId,
-    mode: "contingency",
-    percentage: 0,
-    rowRevision: 0,
-    updatedAt: undefined,
-    updatedBy: null,
-  };
-}
-
-function toEstimateSheetAdjustment(row: Tables<"estimate_sheet_adjustments">): EstimateSheetAdjustment {
-  return {
-    estimateId: row.estimate_id,
-    mode: row.mode,
-    percentage: Number(row.percentage ?? 0),
-    rowRevision: row.row_revision,
-    updatedAt: row.updated_at,
-    updatedBy: row.updated_by,
-  };
-}
-
-async function readOptionalEstimateSheetAdjustment(
-  database: D1DatabaseLike,
-  estimateId: string,
-): Promise<EstimateSheetAdjustment> {
-  try {
-    const data = await first<Tables<"estimate_sheet_adjustments">>(
-      database,
-      `SELECT estimate_id, mode, percentage, row_revision, updated_at, updated_by
-       FROM estimate_sheet_adjustments
-       WHERE estimate_id = ?
-       LIMIT 1`,
-      [estimateId],
-    );
-    return data ? toEstimateSheetAdjustment(data) : createDefaultEstimateSheetAdjustment(estimateId);
-  } catch (error) {
-    if (isMissingOptionalCollaborationTable(error)) return createDefaultEstimateSheetAdjustment(estimateId);
-    throw error;
-  }
-}
-
-function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
-  const quantity = Number(row.quantity);
-  const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
-  const quantityContingencyAmount = quantityBase === null ? null : Number(row.quantity_contingency_amount ?? 0);
-  const itemCost = Number(row.unit_cost);
-  const miscCost = Number(row.misc_cost);
-  const subTotal = itemCost * quantity;
-  const legacyAdjustmentPercentage = quantityBase === null ? Number(row.contingency_percentage ?? 0) : 0;
-  const contingencyPercentage = quantityBase === null
-    ? 0
-    : quantityBase > 0 ? ((quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0;
-  const contingencyValue = 0;
-  const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
-  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
-  const sourceSnapshot = readJsonRecord(row.source_snapshot);
-  const priceOptions = readEstimateRowPriceOptionsSnapshot(sourceSnapshot.priceOptions);
-  const metadata = readJsonRecord(row.metadata);
-  const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
-    ? sourceSnapshot.category
-    : "General";
-  const categoryId = typeof sourceSnapshot.categoryId === "string" ? sourceSnapshot.categoryId : undefined;
-  const categoryNodeId = row.category_node_id ?? (typeof sourceSnapshot.categoryNodeId === "string" ? sourceSnapshot.categoryNodeId : undefined);
-  const categoryPath = Array.isArray(sourceSnapshot.categoryPath)
-    ? sourceSnapshot.categoryPath.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-    : undefined;
-  const categoryPathIds = Array.isArray(sourceSnapshot.categoryPathIds)
-    ? sourceSnapshot.categoryPathIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-    : undefined;
-  const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
-  const tags = Array.isArray(metadata.tags) ? metadata.tags.filter((tag): tag is string => typeof tag === "string") : undefined;
-  const componentVersionNumber = typeof sourceSnapshot.componentVersionNumber === "number" ? sourceSnapshot.componentVersionNumber : undefined;
-  // P3-T1/T2: interim read of labor rate + per-row scope from row metadata (typed columns
-  // are DB-gated). Absent → undefined, so the proposal model falls back to 0 / "included".
-  const laborUnitCost = typeof metadata.laborUnitCost === "number" && Number.isFinite(metadata.laborUnitCost) ? metadata.laborUnitCost : undefined;
-  const scopeStatus = typeof metadata.scopeStatus === "string" && metadata.scopeStatus.trim() ? metadata.scopeStatus : undefined;
-
-  return {
-    id: row.id,
-    sortOrder: row.sort_order,
-    material: row.material,
-    laborUnitCost,
-    scopeStatus,
-    description: row.description,
-    supplier: row.supplier || "No supplier",
-    supplierId: supplierId ?? undefined,
-    // Detach retains the historical library ID for provenance, while link_state
-    // determines whether the row is still a live library projection.
-    source: row.source_library_item_id && row.link_state !== "detached" && row.link_state !== "unlinked" ? "library" : "project",
-    unit: row.unit,
-    itemCost,
-    quantity,
-    quantityBase,
-    quantityContingencyAmount,
-    subTotal,
-    contingencyPercentage,
-    contingencyValue,
-    adjustmentPercentage,
-    adjustmentValue,
-    miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
-    rowRevision: row.row_revision,
-    category,
-    categoryId,
-    categoryNodeId: categoryNodeId ?? undefined,
-    categoryPath,
-    categoryPathIds,
-    brand: typeof sourceSnapshot.brand === "string" ? sourceSnapshot.brand : undefined,
-    brandId: typeof sourceSnapshot.brandId === "string" ? sourceSnapshot.brandId : undefined,
-    discipline: row.discipline ?? undefined,
-    designation: row.designation ?? undefined,
-    tags,
-    imageUrl: normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl) ?? undefined,
-    sourceUrl: typeof sourceSnapshot.sourceUrl === "string" ? sourceSnapshot.sourceUrl : undefined,
-    sourceLibraryItemId: row.source_library_item_id,
-    metadata: readEstimateRowMetadata(row.metadata),
-    linkState: row.link_state,
-    componentVersionId: typeof sourceSnapshot.componentVersionId === "string" ? sourceSnapshot.componentVersionId : undefined,
-    componentVersionNumber,
-    priceOptionId: typeof sourceSnapshot.priceOptionId === "string" ? sourceSnapshot.priceOptionId : undefined,
-    priceOptionLabel: typeof sourceSnapshot.priceOptionLabel === "string" ? sourceSnapshot.priceOptionLabel : undefined,
-    priceOptions,
-    lifecycleState: typeof sourceSnapshot.lifecycleState === "string" ? sourceSnapshot.lifecycleState as EstimateRowItem["lifecycleState"] : undefined,
-    updatedAt: typeof sourceSnapshot.sourceUpdatedAt === "string" ? sourceSnapshot.sourceUpdatedAt : undefined,
-    pricingSource: typeof sourceSnapshot.pricingSource === "string" ? sourceSnapshot.pricingSource : "Estimate row snapshot",
-    pricingDate: typeof sourceSnapshot.pricingDate === "string" ? sourceSnapshot.pricingDate : "",
-  };
-}
-
-function normalizeTreeLoadLimit(value: number | undefined): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
-}
-
-function limitTreeRows<T>(rows: T[], limit: number | null): { rows: T[]; didExceedLimit: boolean } {
-  if (!limit) return { rows, didExceedLimit: false };
-  return {
-    rows: rows.slice(0, limit),
-    didExceedLimit: rows.length > limit,
-  };
-}
-
-function toEstimateTabSummary(row: EstimateTabQueryRow): EstimateTabSummary {
-  return {
-    id: row.id,
-    name: row.name,
-    sortOrder: row.sort_order,
-    isDefault: readD1Boolean(row.is_default),
-  };
-}
-
 /**
  * Synthetic single-tab id used by the read-only legacy fallback when the
- * `estimate_tabs` schema is not yet applied. Mirrors the AI read-context
- * convention (`src/lib/ai/read-context.ts`) so every fallback agrees on the
- * same id/name.
+ * estimate-tabs schema is not yet applied.
  */
 export const LEGACY_MAIN_TAB_ID = "legacy-main";
 
 function syntheticMainTab(): EstimateTabSummary {
   return { id: LEGACY_MAIN_TAB_ID, name: "Main", sortOrder: 0, isDefault: true };
-}
-
-function isEstimateTabsSchemaMissing(error: unknown) {
-  const message = error instanceof Error ? error.message.toLowerCase() : isRecord(error) && typeof error.message === "string" ? error.message.toLowerCase() : "";
-  return (
-    isMissingD1TableError(error, "estimate_tabs") ||
-    message.includes("no such column: estimate_tab_id") ||
-    message.includes("no such column: archived_at")
-  );
-}
-
-export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: EstimateTreeRowItemQueryRow[]): EstimateTreeNode[] {
-  const rowItemsByNode = new Map<string, EstimateRowItem[]>();
-  for (const row of rows) {
-    const current = rowItemsByNode.get(row.node_id) ?? [];
-    current.push(toUiRow(row));
-    rowItemsByNode.set(row.node_id, current);
-  }
-
-  const nodeMap = new Map<string, EstimateTreeNode>();
-  for (const node of nodes) {
-    const kind = getDisplayNodeKind(node.kind);
-    if (!kind) continue;
-    nodeMap.set(node.id, {
-      id: node.id,
-      name: node.name,
-      kind,
-      sortOrder: node.sort_order,
-      total: formatPeso(0),
-      children: [],
-      estimateRowItems: rowItemsByNode.get(node.id) ?? [],
-    });
-  }
-
-  const roots: EstimateTreeNode[] = [];
-  for (const node of nodes) {
-    const uiNode = nodeMap.get(node.id);
-    if (!uiNode) continue;
-    const parent = node.parent_id ? nodeMap.get(node.parent_id) : undefined;
-    if (parent) parent.children = [...(parent.children ?? []), uiNode];
-    else roots.push(uiNode);
-  }
-
-  function computeTotals(node: EstimateTreeNode): number {
-    const rowTotal = (node.estimateRowItems ?? []).reduce((total, row) => total + row.totalItemCosts, 0);
-    const childTotal = (node.children ?? []).reduce((total, child) => total + computeTotals(child), 0);
-    const total = rowTotal + childTotal;
-    node.total = formatPeso(total);
-    return total;
-  }
-
-  // Sibling order is the stored sort_order (the node query orders by it):
-  // the tree, the sheet, and node codes all read this one order, so no
-  // display-side re-sorting (e.g. groups-before-areas) may reorder siblings.
-  roots.forEach(computeTotals);
-  return roots;
-}
-
-function annotateEstimateSubtreeCompleteness(
-  nodes: EstimateTreeNode[],
-  completeness: EstimateTreeSubtreeCompleteness,
-): EstimateTreeNode[] {
-  return nodes.map((node) => ({
-    ...node,
-    childrenLoaded: completeness.childrenLoaded,
-    rowItemsLoaded: completeness.rowItemsLoaded,
-    children: node.children?.length ? annotateEstimateSubtreeCompleteness(node.children, completeness) : node.children,
-  }));
 }
 
 async function getProjectEstimateTreeByEstimateLegacy(
@@ -3735,36 +3298,17 @@ async function getProjectEstimateTreeByEstimateLegacy(
     return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
   }
 
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-
-  const [rawNodes, rawRows, sheetAdjustment] = await Promise.all([
-    readEstimateNodes(database, estimate.id, { limit: maxNodeCount ? maxNodeCount + 1 : null }),
-    readEstimateRows(database, estimate.id, { limit: maxRowItemCount ? maxRowItemCount + 1 : null }),
-    readOptionalEstimateSheetAdjustment(database, estimate.id),
-  ]);
-
-  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
-  const loadLimitState = maxNodeCount || maxRowItemCount
-    ? {
-      maxNodeCount,
-      maxRowItemCount,
-      fetchedNodeCount: rawNodes.length,
-      fetchedRowItemCount: rawRows.length,
-      didExceedNodeLimit: limitedNodes.didExceedLimit,
-      didExceedRowItemLimit: limitedRows.didExceedLimit,
-    }
-    : undefined;
-  const nodes = limitedNodes.rows;
-  const tree = buildEstimateTree(nodes, limitedRows.rows);
-  return { workspace, project, estimate, selectedNodeId: tree[0]?.id ?? null, tree, sheetAdjustment, loadLimitState };
+  return {
+    workspace,
+    project,
+    ...await readLegacyEstimateTreeD1(database, estimate, null, options),
+  };
 }
 
 /**
  * Read-only legacy fallback for the reusable-source / export paths: present the
  * whole-estimate legacy tree as a single synthetic "Main" tab when
- * `estimate_tabs` is not yet applied. Forwards load-limit options so export
+ * estimate_tabs is not yet applied. Forwards load-limit options so export
  * limit enforcement is unchanged (U1-4).
  */
 async function buildLegacyTabTree(
@@ -3791,11 +3335,8 @@ export async function getEstimateTabs(
   if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) return [];
 
   try {
-    return await readEstimateTabsForEstimate(database, estimate.id, options);
+    return await readEstimateTabsD1(database, estimate.id, options);
   } catch (error) {
-    // Strictly gated on the missing-schema signal so a real data error (schema
-    // present, zero tabs) is never masked as legacy (U1-2/U1-3). The synthetic
-    // tab is read-only: only opt-in read callers reach this branch.
     if (options.allowLegacyFallback && isEstimateTabsSchemaMissing(error)) {
       return [syntheticMainTab()];
     }
@@ -3803,22 +3344,9 @@ export async function getEstimateTabs(
   }
 }
 
-async function readEstimateTabsForEstimate(
-  database: D1DatabaseLike,
-  estimateId: string,
-  options: { maxTabCount?: number } = {},
-): Promise<EstimateTabSummary[]> {
-  const rows = await readEstimateTabsForEstimateRows(database, estimateId, options);
-  return rows.map(toEstimateTabSummary);
-}
-
 /**
  * Resolves whether the current user can edit this estimate using the same
- * `can_edit_estimate` RPC that RLS and `assertCanEditEstimate` rely on, so the
- * client-side edit gate can never diverge from server enforcement. This is UX
- * gating only — the server (RLS + `assert_can_edit_estimate_for_history`) stays
- * authoritative. Fails closed (returns `false`) on any error so a transient
- * failure hides edit affordances rather than exposing ones that error on use.
+ * can_edit_estimate RPC that RLS and assertCanEditEstimate rely on.
  */
 export async function resolveEstimateEditCapability(estimateId: string): Promise<boolean> {
   if (await isDevAdminDatabaseBypassActiveForRequest()) return true;
@@ -3836,17 +3364,7 @@ export async function resolveEstimateEditCapability(estimateId: string): Promise
 
 export async function getDefaultEstimateTab(estimateId: string): Promise<EstimateTabSummary | null> {
   const database = await requireWorkspaceRepositoryD1Database();
-  const data = await first<EstimateTabQueryRow>(
-    database,
-    `SELECT id, estimate_id, name, sort_order, is_default, archived_at, '{}' AS metadata, created_at, updated_at
-     FROM estimate_tabs
-     WHERE estimate_id = ?
-       AND is_default = 1
-       AND archived_at IS NULL
-     LIMIT 1`,
-    [estimateId],
-  );
-  return data ? toEstimateTabSummary(normalizeEstimateTabRow(data)) : null;
+  return readDefaultEstimateTabD1(database, estimateId);
 }
 
 export async function getEstimateTabTree(
@@ -3855,8 +3373,6 @@ export async function getEstimateTabTree(
   tabId: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<LiveEstimateTabTreeResult> {
-  // A synthetic "Main" tab id maps straight to the legacy whole-estimate loader
-  // — never a literal estimate_tabs lookup on a non-existent id (U1-2).
   if (options.allowLegacyFallback && tabId === LEGACY_MAIN_TAB_ID) {
     return buildLegacyTabTree(projectId, estimateId, options);
   }
@@ -3872,12 +3388,11 @@ export async function getEstimateTabTree(
     return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
   }
 
-  return getEstimateTabTreeForResolvedEstimate(
-    database,
-    { workspace, project, estimate },
-    tabId,
-    options,
-  );
+  return {
+    workspace,
+    project,
+    ...await readEstimateTabTreeD1(database, estimate, tabId, options),
+  };
 }
 
 export async function getEstimateNodeSubtree(
@@ -3890,7 +3405,6 @@ export async function getEstimateNodeSubtree(
     options?: LiveEstimateTreeLoadOptions;
   },
 ): Promise<LiveEstimateNodeSubtreeResult> {
-  const options = input.options ?? {};
   const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
 
@@ -3902,114 +3416,11 @@ export async function getEstimateNodeSubtree(
     return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
   }
 
-  const requestedTabId = input.tabId ?? null;
-  const tabScopedId = requestedTabId && requestedTabId !== LEGACY_MAIN_TAB_ID ? requestedTabId : null;
-  let tab: EstimateTabSummary | null = null;
-
-  if (tabScopedId) {
-    try {
-      const tabRow = await readEstimateTab(database, estimate.id, tabScopedId);
-      if (!tabRow) return { workspace, project, estimate, tab: null, selectedNodeId: null, tree: [], payload: null };
-      tab = toEstimateTabSummary(tabRow);
-    } catch (error) {
-      if (options.allowLegacyFallback && isEstimateTabsSchemaMissing(error)) {
-        tab = syntheticMainTab();
-      } else {
-        throw error;
-      }
-    }
-  } else if (requestedTabId === LEGACY_MAIN_TAB_ID) {
-    tab = syntheticMainTab();
-  }
-
-  const rootNode = (await readEstimateNodes(database, estimate.id, { tabId: tabScopedId, nodeIds: [nodeId], limit: 1 }))[0] ?? null;
-  if (!rootNode) return { workspace, project, estimate, tab, selectedNodeId: null, tree: [], payload: null };
-
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const nodeRows: EstimateTreeNodeQueryRow[] = [rootNode as EstimateTreeNodeQueryRow];
-  let frontierIds = [rootNode.id];
-
-  while (frontierIds.length > 0) {
-    const remainingNodeBudget = maxNodeCount ? (maxNodeCount + 1) - nodeRows.length : null;
-    if (remainingNodeBudget !== null && remainingNodeBudget <= 0) break;
-
-    const childRows = await readEstimateNodes(
-      database,
-      estimate.id,
-      {
-        tabId: tabScopedId,
-        parentIds: frontierIds,
-        limit: remainingNodeBudget,
-      },
-    );
-    if (childRows.length === 0) break;
-    nodeRows.push(...childRows);
-    frontierIds = childRows.map((node) => node.id);
-  }
-
-  const limitedNodes = limitTreeRows(nodeRows, maxNodeCount);
-  const nodeIds = limitedNodes.rows.map((node) => node.id);
-  let rawRows: EstimateTreeRowItemQueryRow[] = [];
-
-  if (nodeIds.length > 0) {
-    rawRows = await readEstimateRows(database, estimate.id, {
-      nodeIds,
-      limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-    });
-  }
-
-  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
-  const completeness: EstimateTreeSubtreeCompleteness = {
-    childrenLoaded: !limitedNodes.didExceedLimit,
-    rowItemsLoaded: !limitedRows.didExceedLimit,
-    didExceedNodeLimit: limitedNodes.didExceedLimit,
-    didExceedRowItemLimit: limitedRows.didExceedLimit,
-  };
-  const subtree = annotateEstimateSubtreeCompleteness(buildEstimateTree(limitedNodes.rows, limitedRows.rows), completeness);
-  const payload = buildEstimateTreeSubtreePayload({
-    estimateId,
-    tabId: requestedTabId,
-    rootNodeId: rootNode.id,
-    parentNodeId: rootNode.parent_id,
-    requestId: input.requestId,
-    tree: subtree,
-    completeness,
-  });
-
   return {
     workspace,
     project,
-    estimate,
-    tab,
-    selectedNodeId: subtree[0]?.id ?? null,
-    tree: subtree,
-    payload,
+    ...await readEstimateNodeSubtreeD1(database, estimate, nodeId, input),
   };
-}
-
-async function getEstimateTabTreeForResolvedEstimate(
-  database: D1DatabaseLike,
-  resolved: ResolvedProjectEstimateInput,
-  tabId: string,
-  options: LiveEstimateTreeLoadOptions = {},
-): Promise<LiveEstimateTabTreeResult> {
-  const { workspace, project, estimate } = resolved;
-
-  try {
-    const tab = await readEstimateTab(database, estimate.id, tabId);
-    if (!tab) return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tab: null, selectedNodeId: null, tree: [] };
-
-    return getEstimateTabTreeForResolvedEstimateTab(database, resolved, toEstimateTabSummary(tab), options);
-  } catch (error) {
-    // Read-only fallback only on the missing-schema signal (the tab lookup or
-    // the estimate_tab_id node predicate). Real errors and non-opt-in callers
-    // keep throwing — no working path changes (U1-2/U1-3/U1-RO).
-    if (options.allowLegacyFallback && isEstimateTabsSchemaMissing(error)) {
-      return buildLegacyTabTree(project.id, estimate.id, options);
-    }
-    throw error;
-  }
 }
 
 async function getEstimateTabTreeForResolvedEstimateTab(
@@ -4028,62 +3439,10 @@ async function getEstimateTabTreeForResolvedTabId(
   tabId: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<Omit<LiveEstimateTabTreeResult, "tab">> {
-  const { workspace, project, estimate } = resolved;
-  const payload = await readEstimateTabTreePayloadForResolvedTabId(database, estimate, tabId, options);
   return {
-    workspace,
-    project,
-    ...payload,
-  };
-}
-
-async function readEstimateTabTreePayloadForResolvedTabId(
-  database: D1DatabaseLike,
-  estimate: EstimateRecordWithLegacy,
-  tabId: string,
-  options: LiveEstimateTreeLoadOptions = {},
-): Promise<EstimateTabTreePayload> {
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const [rawNodes, sheetAdjustment] = await Promise.all([
-    traced("estimate-tab-tree.nodes", () =>
-      readEstimateNodes(database, estimate.id, {
-        tabId,
-        limit: maxNodeCount ? maxNodeCount + 1 : null,
-      }),
-    ),
-    readOptionalEstimateSheetAdjustment(database, estimate.id),
-  ]);
-
-  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const nodeIds = limitedNodes.rows.map((node) => node.id);
-  const rawRows = nodeIds.length > 0
-    ? await readEstimateRows(database, estimate.id, {
-        nodeIds,
-        limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-      })
-    : [];
-
-  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
-  const loadLimitState = maxNodeCount || maxRowItemCount
-    ? {
-      maxNodeCount,
-      maxRowItemCount,
-      fetchedNodeCount: rawNodes.length,
-      fetchedRowItemCount: rawRows.length,
-      didExceedNodeLimit: limitedNodes.didExceedLimit,
-      didExceedRowItemLimit: limitedRows.didExceedLimit,
-    }
-    : undefined;
-  const tree = await traced("estimate-tab-tree.build", async () =>
-    buildEstimateTree(limitedNodes.rows, limitedRows.rows),
-  );
-  return {
-    estimate: normalizeEstimateRecord(estimate),
-    selectedNodeId: tree[0]?.id ?? null,
-    tree,
-    sheetAdjustment,
-    loadLimitState,
+    workspace: resolved.workspace,
+    project: resolved.project,
+    ...await readEstimateTabTreePayloadD1(database, resolved.estimate, tabId, options),
   };
 }
 
@@ -4103,7 +3462,7 @@ async function readEstimateNodeRouteContextD1FastPath(
   return null;
 }
 
-export type LiveEstimateTabTree = { tab: EstimateTabSummary; tree: EstimateTreeNode[] };
+export type LiveEstimateTabTree = EstimateTabTree;
 export type LiveEstimateTreesForTabsResult = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects"> | null;
@@ -4113,43 +3472,8 @@ export type LiveEstimateTreesForTabsResult = {
   loadLimitState?: LiveEstimateTreeLoadLimitState;
 };
 
-// F-14 (P2-T7): pure grouping of a single batched nodes+rows fetch into per-tab trees, exported
-// so the partition logic is unit-tested without a DB. Nodes carry estimate_tab_id; rows are
-// attached to their tab via their node. Tab order follows the passed `tabs`.
-export function groupEstimateTabTrees(
-  tabs: EstimateTabSummary[],
-  nodes: Array<EstimateTreeNodeQueryRow & { estimate_tab_id?: string | null }>,
-  rows: EstimateTreeRowItemQueryRow[],
-): LiveEstimateTabTree[] {
-  const nodesByTab = new Map<string, EstimateTreeNodeQueryRow[]>();
-  const nodeIdToTab = new Map<string, string>();
-  for (const node of nodes) {
-    const tabId = node.estimate_tab_id;
-    if (!tabId) continue;
-    nodeIdToTab.set(node.id, tabId);
-    const list = nodesByTab.get(tabId) ?? [];
-    list.push(node);
-    nodesByTab.set(tabId, list);
-  }
-  const rowsByTab = new Map<string, EstimateTreeRowItemQueryRow[]>();
-  for (const row of rows) {
-    const tabId = nodeIdToTab.get(row.node_id);
-    if (!tabId) continue;
-    const list = rowsByTab.get(tabId) ?? [];
-    list.push(row);
-    rowsByTab.set(tabId, list);
-  }
-  return tabs.map((tab) => ({
-    tab,
-    tree: buildEstimateTree(nodesByTab.get(tab.id) ?? [], rowsByTab.get(tab.id) ?? []),
-  }));
-}
-
-// F-14/F-24 (P2-T7): NEW additive function (no existing signature changes). Replaces the per-tab
-// getEstimateTabTree fan-out for the all-tabs export with one estimate lookup + one batched
-// nodes query + one batched rows query, preserving the LIMIT max+1 over-fetch guard so the
-// total (not per-tab) count is capped and the 413 fires early. Takes the already-resolved tab
-// summaries so it does not re-query estimate_tabs.
+// F-14/F-24 (P2-T7): keeps project/auth orchestration here while the batched
+// post-authorization D1 read and grouping live in the Estimate read module.
 export async function getEstimateTreesForTabs(
   projectId: string,
   estimateId: string,
@@ -4167,54 +3491,10 @@ export async function getEstimateTreesForTabs(
     return { workspace, project, estimate: null, tabs: [] };
   }
 
-  const tabIds = tabs.map((tab) => tab.id);
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-
-  const [rawNodes, sheetAdjustment] = await Promise.all([
-    tabIds.length > 0
-      ? all<EstimateTreeNodeQueryRow & { estimate_tab_id: string | null }>(
-          database,
-          `SELECT ${ESTIMATE_TREE_NODE_COLUMNS}, estimate_tab_id
-           FROM estimate_nodes
-           WHERE estimate_id = ?
-             AND estimate_tab_id IN (${placeholders(tabIds)})
-           ORDER BY sort_order ASC, id ASC${maxNodeCount ? " LIMIT ?" : ""}`,
-          maxNodeCount ? [estimate.id, ...tabIds, maxNodeCount + 1] : [estimate.id, ...tabIds],
-        )
-      : Promise.resolve([]),
-    readOptionalEstimateSheetAdjustment(database, estimate.id),
-  ]);
-  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const nodeIds = limitedNodes.rows.map((node) => node.id);
-
-  let rawRows: EstimateTreeRowItemQueryRow[] = [];
-  if (nodeIds.length > 0) {
-    rawRows = await readEstimateRows(database, estimate.id, {
-      nodeIds,
-      limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-    });
-  }
-  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
-
-  const loadLimitState = maxNodeCount || maxRowItemCount
-    ? {
-      maxNodeCount,
-      maxRowItemCount,
-      fetchedNodeCount: rawNodes.length,
-      fetchedRowItemCount: rawRows.length,
-      didExceedNodeLimit: limitedNodes.didExceedLimit,
-      didExceedRowItemLimit: limitedRows.didExceedLimit,
-    }
-    : undefined;
-
   return {
     workspace,
     project,
-    estimate,
-    sheetAdjustment,
-    tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows),
-    loadLimitState,
+    ...await readEstimateTreesForTabsD1(database, estimate, tabs, options),
   };
 }
 
@@ -4295,9 +3575,9 @@ export async function resolveEstimateTabRouteContext(
     const selectedTabId = selectedNode.estimate_tab_id;
     const [treePayload, tabs] = await Promise.all([
       traced("estimate-route-context.tab-tree", () =>
-        readEstimateTabTreePayloadForResolvedTabId(database, estimate, selectedTabId, options),
+        readEstimateTabTreePayloadD1(database, estimate, selectedTabId, options),
       ),
-      traced("estimate-route-context.tabs-list", () => readEstimateTabsForEstimate(database, selectedNode.estimate_id)),
+      traced("estimate-route-context.tabs-list", () => readEstimateTabsD1(database, selectedNode.estimate_id)),
     ]);
     const selectedTab = tabs.find((candidate) => candidate.id === selectedTabId) ?? null;
     return {
@@ -4330,7 +3610,7 @@ export async function resolveEstimateTabRouteContext(
     }
 
     const tabs = await traced("estimate-route-context.estimate-tabs-list", () =>
-      readEstimateTabsForEstimate(database, resolvedEstimate.id),
+      readEstimateTabsD1(database, resolvedEstimate.id),
     );
     const defaultTab = tabs.find((candidate) => candidate.isDefault) ?? null;
     if (defaultTab) {
@@ -4382,15 +3662,11 @@ async function getProjectEstimateTreeByNodeLegacy(projectId: string, nodeId: str
   if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
     return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
   }
-  const [nodes, rows] = await Promise.all([
-    readEstimateNodes(database, selectedNode.estimate_id),
-    readEstimateRows(database, selectedNode.estimate_id),
-  ]);
-
-  const tree = buildEstimateTree(nodes, rows);
-  const selectedNodeId = nodes.some((node) => node.id === nodeId) ? nodeId : tree[0]?.id ?? null;
-
-  return { workspace, project, estimate, selectedNodeId, tree };
+  return {
+    workspace,
+    project,
+    ...await readLegacyEstimateTreeD1(database, estimate, nodeId),
+  };
 }
 
 export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
@@ -4429,13 +3705,9 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
   if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
     return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
   }
-  const [nodes, rows] = await Promise.all([
-    readEstimateNodes(database, selectedNode.estimate_id),
-    readEstimateRows(database, selectedNode.estimate_id),
-  ]);
-
-  const tree = buildEstimateTree(nodes, rows);
-  const selectedNodeId = nodes.some((node) => node.id === nodeId) ? nodeId : tree[0]?.id ?? null;
-
-  return { workspace, project, estimate, selectedNodeId, tree };
+  return {
+    workspace,
+    project,
+    ...await readLegacyEstimateTreeD1(database, estimate, nodeId),
+  };
 }

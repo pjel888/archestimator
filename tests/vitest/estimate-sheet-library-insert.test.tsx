@@ -43,9 +43,20 @@ const reusableSourceMocks = vi.hoisted(() => ({
   insertProjectSourceIntoEstimate: vi.fn(),
 }));
 
+const componentLibraryActionMocks = vi.hoisted(() => ({
+  updateCostLibraryComponentWithPriceOptions: vi.fn(),
+}));
+
 vi.mock("@/lib/estimates/actions", () => actionMocks);
 vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
 vi.mock("@/lib/reusable-sources/actions", () => reusableSourceMocks);
+vi.mock("@/lib/component-library/actions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/component-library/actions")>();
+  return {
+    ...actual,
+    updateCostLibraryComponentWithPriceOptions: componentLibraryActionMocks.updateCostLibraryComponentWithPriceOptions,
+  };
+});
 
 const projectId = "22222222-2222-4222-8222-222222222222";
 const estimateId = "77777777-7777-4777-8777-777777777719";
@@ -505,7 +516,10 @@ function makeQueryClient() {
   });
 }
 
-function renderPersistedEstimateSheet(sheetNodes = nodes) {
+function renderPersistedEstimateSheet(
+  sheetNodes = nodes,
+  options: { canManageLibrary?: boolean } = {},
+) {
   const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
@@ -515,6 +529,7 @@ function renderPersistedEstimateSheet(sheetNodes = nodes) {
         projectId={projectId}
         estimateId={estimateId}
         canEditEstimate={true}
+        canManageLibrary={options.canManageLibrary}
         renderSidebar={false}
       />
     </QueryClientProvider>,
@@ -993,6 +1008,137 @@ describe("estimate sheet library insertion persistence", () => {
     });
   });
 
+  it("confirms and converges a shared linked-Library definition update through the versioned Library action", async () => {
+    const user = userEvent.setup();
+    const libraryComponentId = "99999999-9999-4999-8999-999999999901";
+    const priceOptionId = "88888888-8888-4888-8888-888888888881";
+    const expectedUpdatedAt = "2026-07-16T10:00:00.000Z";
+    const persistedUpdatedAt = "2026-07-17T02:00:00.000Z";
+    const priceOptions: NonNullable<EstimateRowItem["priceOptions"]> = [{
+      id: priceOptionId,
+      label: "Default",
+      variantDescription: "Base cabinet",
+      unit: "lm",
+      unitCost: 100,
+      miscCost: 0,
+      currency: "PHP",
+      isActive: true,
+      isDefault: true,
+    }];
+    const linkedRows = nodesWithDuplicateLinkedRows[0].estimateRowItems!.map((item) => ({
+      ...item,
+      sourceLibraryItemId: libraryComponentId,
+      componentVersionNumber: 7,
+      updatedAt: expectedUpdatedAt,
+      priceOptionId,
+      priceOptionLabel: "Default",
+      priceOptions,
+    }));
+    const linkedNodes: EstimateTreeNode[] = [{
+      ...nodesWithDuplicateLinkedRows[0],
+      estimateRowItems: linkedRows,
+    }];
+    const persistedLinkedNodes: EstimateTreeNode[] = [{
+      ...nodesWithDuplicateLinkedRows[0],
+      estimateRowItems: linkedRows.map((item) => ({
+        ...item,
+        material: "Shared Cabinet",
+        componentVersionNumber: 8,
+        updatedAt: persistedUpdatedAt,
+        linkState: "linked-clean",
+        rowRevision: item.id === cabinetRowId ? 8 : 4,
+      })),
+    }];
+    actionMocks.fetchEstimateTree.mockResolvedValueOnce(persistedLinkedNodes);
+    actionMocks.getEstimateComponentEditImpact.mockResolvedValueOnce({
+      componentKind: "library",
+      fingerprint: "library-component-impact-fingerprint",
+      instanceCount: 2,
+      projectCount: 1,
+      estimateCount: 1,
+      optionUsageCounts: { [priceOptionId]: 2 },
+      affectedEstimates: [{
+        projectId,
+        projectName: "Modern Bungalow",
+        estimateId,
+        estimateName: "Main Estimate",
+        instanceCount: 2,
+        optionUsageCounts: { [priceOptionId]: 2 },
+      }],
+    });
+    componentLibraryActionMocks.updateCostLibraryComponentWithPriceOptions.mockResolvedValueOnce({
+      itemId: libraryComponentId,
+      activePriceOptionId: priceOptionId,
+      versionNumber: 8,
+      updatedAt: persistedUpdatedAt,
+      affectedEstimates: [{ projectId, estimateId }],
+      rowRevisions: { [cabinetRowId]: 8, [sinkRowId]: 4 },
+      rowPatches: {
+        [cabinetRowId]: {
+          material: "Shared Cabinet",
+          componentVersionNumber: 8,
+          updatedAt: persistedUpdatedAt,
+          priceOptions,
+          linkState: "linked-clean",
+          rowRevision: 8,
+        },
+        [sinkRowId]: {
+          material: "Shared Cabinet",
+          componentVersionNumber: 8,
+          updatedAt: persistedUpdatedAt,
+          priceOptions,
+          linkState: "linked-clean",
+          rowRevision: 4,
+        },
+      },
+      updatedRowCount: 2,
+      component: {
+        ...linkedRows[0],
+        id: libraryComponentId,
+        material: "Shared Cabinet",
+        componentVersionNumber: 8,
+        updatedAt: persistedUpdatedAt,
+        priceOptions,
+      },
+    });
+
+    renderPersistedEstimateSheet(linkedNodes, { canManageLibrary: true });
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const nameInputs = await within(kitchenSection).findAllByLabelText("Component name") as HTMLInputElement[];
+    expect(nameInputs).toHaveLength(2);
+
+    fireEvent.focus(nameInputs[0]);
+    fireEvent.change(nameInputs[0], { target: { value: "Shared Cabinet" } });
+    fireEvent.blur(nameInputs[0]);
+
+    const confirmation = await screen.findByRole("dialog", { name: "Update shared component?" });
+    expect(componentLibraryActionMocks.updateCostLibraryComponentWithPriceOptions).not.toHaveBeenCalled();
+    await user.click(within(confirmation).getByRole("button", { name: "Update all 2 instances" }));
+
+    await waitFor(() => expect(componentLibraryActionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(1));
+    expect(componentLibraryActionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledWith(
+      libraryComponentId,
+      expect.objectContaining({
+        name: "Shared Cabinet",
+        expectedUpdatedAt,
+        expectedVersionNumber: 7,
+        expectedComponentImpactFingerprint: "library-component-impact-fingerprint",
+        intentId: expect.any(String),
+        priceOptions: expect.arrayContaining([
+          expect.objectContaining({ id: priceOptionId, label: "Default", unit: "lm", unitCost: 100 }),
+        ]),
+      }),
+    );
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+    expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
+    await waitFor(() => {
+      const convergedInputs = within(kitchenSection).getAllByLabelText("Component name") as HTMLInputElement[];
+      expect(convergedInputs).toHaveLength(2);
+      expect(convergedInputs[0]).toHaveValue("Shared Cabinet");
+      expect(convergedInputs[1]).toHaveValue("Shared Cabinet");
+    });
+  });
+
   it("maps Enter, multiline Enter, Mod+Enter, and Escape to the estimate field contract", () => {
     const onRevert = vi.fn();
     const makeEvent = (tagName: "INPUT" | "TEXTAREA", input: { key: string; metaKey?: boolean; ctrlKey?: boolean }) => {
@@ -1380,20 +1526,31 @@ describe("estimate sheet library insertion persistence", () => {
   it("keeps failed express drafts visible with retry and delete recovery", async () => {
     process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "true";
     const user = userEvent.setup();
-    actionMocks.insertEstimateRowItemFromLibrary.mockRejectedValueOnce(new Error("Network offline"));
+    const firstInsert = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateRowItemFromLibrary>>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(firstInsert.promise);
     renderPersistedEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+    const firstInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    const nameInput = await screen.findByLabelText("Component name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Custom Vanity");
+    fireEvent.blur(nameInput);
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      firstInsert.reject(new Error("Network offline"));
+      await firstInsert.promise.catch(() => undefined);
+    });
 
     expect(await screen.findByText("Component row was not created. Retry or delete this draft.")).toBeInTheDocument();
-    const firstInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValueOnce({
-        rowId: firstInput.rowId,
-        nodeId: targetNodeId,
-        material: "",
-        description: "",
-        supplier: "",
-        unit: "",
+      rowId: firstInput.rowId,
+      nodeId: targetNodeId,
+      material: "",
+      description: "",
+      supplier: "",
+      unit: "",
       quantity: 1,
       itemCost: 0,
       contingencyPercentage: 0,
@@ -1404,6 +1561,23 @@ describe("estimate sheet library insertion persistence", () => {
       linkState: "unlinked",
       rowRevision: 1,
     });
+    actionMocks.updateEstimateRowItem.mockImplementationOnce(async (input) => ({
+      rowId: input.rowId,
+      nodeId: targetNodeId,
+      material: input.material ?? "",
+      description: "",
+      supplier: "",
+      unit: "",
+      quantity: 1,
+      itemCost: 0,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 0,
+      sourceSnapshot: null,
+      metadata: firstInput.libraryItem.metadata,
+      linkState: "unlinked",
+      rowRevision: 2,
+    }));
 
     await user.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
@@ -1411,6 +1585,12 @@ describe("estimate sheet library insertion persistence", () => {
     expect(retryInput.rowId).toBe(firstInput.rowId);
     expect(retryInput.mutationId).toBe(firstInput.mutationId);
     await waitFor(() => expect(screen.queryByText("Component row was not created. Retry or delete this draft.")).not.toBeInTheDocument());
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: firstInput.rowId,
+      material: "Custom Vanity",
+      expectedRowRevision: 1,
+    })));
+    await waitFor(() => expect(screen.queryByText("Network offline")).not.toBeInTheDocument());
 
     actionMocks.insertEstimateRowItemFromLibrary.mockRejectedValueOnce(new Error("Still offline"));
     await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));

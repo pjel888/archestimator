@@ -4,18 +4,18 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const d1ClientSource = readFileSync(resolve(root, "src/lib/estimates/d1-action-client.ts"), "utf8");
+const rowIntentSource = readFileSync(resolve(root, "src/lib/estimates/d1-intents/rows.ts"), "utf8");
 const activityHistorySource = readFileSync(resolve(root, "src/components/workshop/estimate-sheet/activity-history.tsx"), "utf8");
 
 describe("activity variant and propagation contract", () => {
   it("records typed variant identity and a bounded before/after fan-out fact set", () => {
-    expect(d1ClientSource).toContain("MAX_PROPAGATED_ACTIVITY_FACTS = 100");
-    expect(d1ClientSource).toContain("function getVariantActivityIdentity");
-    expect(d1ClientSource).toContain('changedFields.push("variant_changed")');
-    expect(d1ClientSource).toContain("propagatedRowFacts: propagation.facts");
-    expect(d1ClientSource).toContain("propagatedRowFactsTruncated: propagation.truncatedCount");
-    expect(d1ClientSource).toContain("before: {");
-    expect(d1ClientSource).toContain("after: {");
+    expect(rowIntentSource).toContain("MAX_PROPAGATED_ACTIVITY_FACTS = 100");
+    expect(rowIntentSource).toContain("function getVariantActivityIdentity");
+    expect(rowIntentSource).toContain('changedFields.push("variant_changed")');
+    expect(rowIntentSource).toContain("propagatedRowFacts: propagation.facts");
+    expect(rowIntentSource).toContain("propagatedRowFactsTruncated: propagation.truncatedCount");
+    expect(rowIntentSource).toContain("before: {");
+    expect(rowIntentSource).toContain("after: {");
   });
 
   it("renders the propagated count without rendering raw propagated row IDs", () => {

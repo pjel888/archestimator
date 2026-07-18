@@ -11,6 +11,12 @@ function sourceBetween(source: string, start: string, end: string) {
   return source.slice(startIndex, endIndex);
 }
 
+function sourceFrom(source: string, start: string) {
+  const startIndex = source.indexOf(start);
+  expect(startIndex).toBeGreaterThanOrEqual(0);
+  return source.slice(startIndex);
+}
+
 describe("estimate revision-fact producer registry (UNIT-001 red baseline)", () => {
   it("freezes the forward event producer inventory", () => {
     expect(ESTIMATE_REVISION_FACT_PRODUCERS).toEqual([
@@ -51,11 +57,15 @@ describe("publication source revision writer registry", () => {
   });
 
   it("keeps estimate metadata and sheet deletion in the authoritative revision batch", () => {
-    const estimateActions = readFileSync("src/lib/estimates/d1-action-client.ts", "utf8");
+    const estimateRecords = readFileSync("src/lib/estimates/d1-intents/estimate-records.ts", "utf8");
+    const bulkSheets = readFileSync("src/lib/estimates/d1-intents/bulk-sheets.ts", "utf8");
 
-    expect(sourceBetween(estimateActions, "async function updateEstimateDetails", "async function createEstimateTab"))
-      .toContain("buildProjectPublicationRevisionForScope");
-    expect(sourceBetween(estimateActions, "async function executeBulkDeleteEstimateSheets", "type EstimateComponentEditImpactD1Row"))
+    expect(sourceBetween(
+      estimateRecords,
+      "export async function updateEstimateDetailsWithHistory",
+      "export async function updateEstimateSheetAdjustmentWithHistory",
+    )).toContain("buildProjectPublicationRevisionForEstimate");
+    expect(sourceFrom(bulkSheets, "export async function executeBulkDeleteEstimateSheets"))
       .toContain("buildProjectPublicationRevisionForProject");
   });
 });

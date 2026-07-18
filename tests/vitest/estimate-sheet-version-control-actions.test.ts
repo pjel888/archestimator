@@ -1,6 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type {
+  D1DatabaseLike,
+  D1PreparedStatementLike,
+  D1Result,
+  D1Value,
+} from "@/lib/cloudflare/d1";
+import type { EstimateRowItem } from "@/lib/estimates/types";
 
 const repositoryMocks = vi.hoisted(() => ({
   clearEstimateRouteContextProcessCache: vi.fn(),
@@ -9,8 +18,36 @@ const repositoryMocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
 
-const estimateActionsD1ClientMocks = vi.hoisted(() => ({
-  createEstimateActionsD1Client: vi.fn(),
+const databaseMocks = vi.hoisted(() => ({
+  requireEstimateD1Database: vi.fn(),
+}));
+
+const rowIntentMocks = vi.hoisted(() => ({
+  deleteEstimateRowItemWithHistory: vi.fn(),
+  deleteEstimateRowItemsBulkWithHistory: vi.fn(),
+  getEstimateRowForProject: vi.fn(),
+  insertEstimateRowItemWithHistory: vi.fn(),
+  moveEstimateRowComponentWithHistory: vi.fn(),
+  replaceEstimateRowItemWithHistory: vi.fn(),
+  restoreDeletedEstimateRowsWithHistory: vi.fn(),
+  updateEstimateRowItemWithHistory: vi.fn(),
+}));
+
+const recordIntentMocks = vi.hoisted(() => ({
+  getEstimateRecordForProject: vi.fn(),
+  updateEstimateDetailsWithHistory: vi.fn(),
+}));
+
+const nodeIntentMocks = vi.hoisted(() => ({
+  createEstimateNodeWithHistory: vi.fn(),
+  getEstimateNodeForProject: vi.fn(),
+  reorderEstimateNodesWithHistory: vi.fn(),
+  resolveEstimateActivityNodeScope: vi.fn(),
+}));
+
+const accessIntentMocks = vi.hoisted(() => ({
+  canEditEstimate: vi.fn(),
+  getEstimateActivityRetentionMetrics: vi.fn(),
 }));
 
 const authMocks = vi.hoisted(() => ({
@@ -18,48 +55,194 @@ const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
 }));
 
-const nextCacheMocks = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-}));
-
-const nextNavigationMocks = vi.hoisted(() => ({
-  redirect: vi.fn(),
-}));
+const nextCacheMocks = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
+const nextNavigationMocks = vi.hoisted(() => ({ redirect: vi.fn() }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
-vi.mock("@/lib/estimates/d1-action-client", () => estimateActionsD1ClientMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
+vi.mock("@/lib/estimates/d1-intents/database", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/estimates/d1-intents/database")>(),
+  requireEstimateD1Database: databaseMocks.requireEstimateD1Database,
+}));
+vi.mock("@/lib/estimates/d1-intents/rows", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/estimates/d1-intents/rows")>(),
+  ...rowIntentMocks,
+}));
+vi.mock("@/lib/estimates/d1-intents/estimate-records", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/estimates/d1-intents/estimate-records")>(),
+  ...recordIntentMocks,
+}));
+vi.mock("@/lib/estimates/d1-intents/nodes", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/estimates/d1-intents/nodes")>(),
+  ...nodeIntentMocks,
+}));
+vi.mock("@/lib/estimates/d1-intents/access", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/estimates/d1-intents/access")>(),
+  ...accessIntentMocks,
+}));
 
-type QueryResult<T> = { data: T; error: Error | null };
+const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
+const ESTIMATE_ID = "22222222-2222-4222-8222-222222222222";
+const ROW_ID = "33333333-3333-4333-8333-333333333333";
+const TARGET_ROW_ID = "44444444-4444-4444-8444-444444444444";
+const NODE_ID = "55555555-5555-4555-8555-555555555555";
+const USER_ID = "66666666-6666-4666-8666-666666666666";
+const MUTATION_ID = "77777777-7777-4777-8777-777777777777";
 
-function queryResult<T>(result: QueryResult<T>) {
-  const builder = {
-    select: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    is: vi.fn(() => builder),
-    not: vi.fn(() => builder),
-    or: vi.fn(() => builder),
-    gte: vi.fn(() => builder),
-    lte: vi.fn(() => builder),
-    ilike: vi.fn(() => builder),
-    order: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    in: vi.fn(() => builder),
-    insert: vi.fn(() => builder),
-    update: vi.fn(() => builder),
-    delete: vi.fn(() => builder),
-    maybeSingle: vi.fn(async () => result),
-    single: vi.fn(async () => result),
-    then: (resolve: (value: QueryResult<T>) => void) => Promise.resolve(result).then(resolve),
-  };
-  return builder;
+const actor = { role: "member" as const, userId: USER_ID };
+
+type CapturedRead = { sql: string; values: D1Value[] };
+
+type HistoryRow = {
+  id: string;
+  event_type: string;
+  event_source: string;
+  created_at: string;
+  actor_user_id: string | null;
+  estimate_tab_id: string | null;
+  target_row_id: string | null;
+  estimate_node_id: string | null;
+  row_context: string;
+  old_snapshot: string | null;
+  new_snapshot: string | null;
+  changed_fields: string;
+  total_delta: number | null;
+  payload: string;
+  correlation_id: string;
+};
+
+class HistoryStatement<T = Record<string, unknown>> implements D1PreparedStatementLike<T> {
+  values: D1Value[] = [];
+
+  constructor(private readonly database: HistoryDatabase, readonly sql: string) {}
+
+  bind(...values: D1Value[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R = T>(): Promise<R | null> {
+    return this.database.first(this.sql, this.values) as R | null;
+  }
+
+  async all<R = T>(): Promise<D1Result<R>> {
+    return { success: true, results: this.database.all(this.sql, this.values) as R[] };
+  }
+
+  async run(): Promise<D1Result<T>> {
+    throw new Error("History read tests must not write.");
+  }
 }
 
-function makeLibraryItem(overrides: Record<string, unknown> = {}) {
+class HistoryDatabase implements D1DatabaseLike {
+  reads: CapturedRead[] = [];
+  sheetRows: HistoryRow[] = [];
+  rowRows: HistoryRow[] = [];
+  nodeRows: HistoryRow[] = [];
+  profiles: Array<{ id: string; display_name: string | null; email: string | null }> = [];
+
+  prepare<T = Record<string, unknown>>(sql: string): D1PreparedStatementLike<T> {
+    return new HistoryStatement<T>(this, sql);
+  }
+
+  first(sql: string, values: D1Value[]) {
+    this.reads.push({ sql, values: [...values] });
+    return null;
+  }
+
+  all(sql: string, values: D1Value[]) {
+    this.reads.push({ sql, values: [...values] });
+    if (sql.includes("FROM profiles")) return this.profiles;
+    if (!sql.includes("FROM estimate_sheet_events")) return [];
+    if (sql.includes("target_row_id = ?")) return this.rowRows;
+    if (sql.includes("estimate_node_id = ?") || sql.includes("estimate_node_id IN")) return this.nodeRows;
+    return this.sheetRows;
+  }
+
+  eventReads() {
+    return this.reads.filter((read) => read.sql.includes("FROM estimate_sheet_events"));
+  }
+}
+
+function makeDatabaseRow(id = ROW_ID, overrides: Record<string, unknown> = {}) {
   return {
-    id: "11111111-1111-4111-8111-111111111111",
+    id,
+    estimate_id: ESTIMATE_ID,
+    node_id: NODE_ID,
+    description: "Existing description",
+    designation: "Floor finish",
+    discipline: "Architectural",
+    material: "Existing material",
+    supplier: "Supplier",
+    supplier_id: null,
+    quantity: 1,
+    quantity_base: null,
+    quantity_contingency_amount: null,
+    unit: "sqm",
+    unit_cost: 950,
+    misc_cost: 300,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
+    source_snapshot: {},
+    sort_order: 1000,
+    row_revision: 7,
+    category_node_id: null,
+    source_library_item_id: "88888888-8888-4888-8888-888888888888",
+    link_state: "linked-clean",
+    metadata: {},
+    pricing_provenance_origin: "recorded",
+    ...overrides,
+  };
+}
+
+function makeAuthoritativeRow(id = ROW_ID, overrides: Record<string, unknown> = {}) {
+  return {
+    id,
+    nodeId: NODE_ID,
+    material: "Porcelain Tile",
+    description: "600 x 600 tile",
+    supplier: "Tile Supplier",
+    unit: "sqm",
+    quantity: 12,
+    quantityBase: null,
+    quantityContingencyAmount: null,
+    unitCost: 950,
+    contingencyPercentage: 15,
+    contingencyValue: 1710,
+    adjustmentPercentage: 0,
+    adjustmentValue: 0,
+    miscCost: 450,
+    sourceLibraryItemId: "88888888-8888-4888-8888-888888888888",
+    sourceSnapshot: {},
+    metadata: {},
+    linkState: "linked-overridden",
+    rowRevision: 8,
+    ...overrides,
+  };
+}
+
+function makeEstimateRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: ESTIMATE_ID,
+    project_id: PROJECT_ID,
+    name: "Client estimate",
+    sheet_code: "ES-002",
+    currency_code: "PHP",
+    notes: null,
+    project_budget: null,
+    metadata: {},
+    created_by: USER_ID,
+    created_at: "2026-05-24T00:00:00.000Z",
+    updated_at: "2026-05-24T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function makeLibraryItem(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
+  return {
+    id: "88888888-8888-4888-8888-888888888888",
     material: "Porcelain Tile",
     description: "600 x 600 tile",
     supplier: "Tile Supplier",
@@ -71,17 +254,11 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
     miscCost: 300,
     totalItemCosts: 3150,
     category: "Finishes",
-    categoryNodeId: "finishes-flooring",
-    brand: "Tile Brand",
-    brandId: "55555555-5555-4555-8555-555555555555",
-    supplierId: "22222222-2222-4222-8222-222222222222",
     discipline: "Architectural",
     designation: "Floor Finish",
-    tags: ["tile"],
-    sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-    componentVersionId: "33333333-3333-4333-8333-333333333333",
+    sourceLibraryItemId: "88888888-8888-4888-8888-888888888888",
     componentVersionNumber: 2,
-    priceOptionId: "44444444-4444-4444-8444-444444444444",
+    priceOptionId: "99999999-9999-4999-8999-999999999999",
     pricingSource: "Supplier quote",
     pricingDate: "2026-05-24",
     lifecycleState: "available",
@@ -89,1129 +266,518 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const CURRENT_LIBRARY_SOURCE_ROW = {
-  id: "11111111-1111-4111-8111-111111111111",
-  workspace_id: "workspace-1",
-  active_price_option_id: "44444444-4444-4444-8444-444444444444",
-  current_version_number: 2,
-  updated_at: null,
-  lifecycle_state: "available",
-  unit: "sqm",
-  unit_cost: 950,
-  misc_cost: 300,
-};
-
-const CURRENT_LIBRARY_PRICE_OPTION_ROW = {
-  id: "44444444-4444-4444-8444-444444444444",
-  item_id: "11111111-1111-4111-8111-111111111111",
-  label: "Option 1",
-  unit: "sqm",
-  unit_cost: 950,
-  misc_cost: 300,
-  is_active: 1,
-  updated_at: "2026-05-24T00:00:00.000Z",
-};
-
-const CURRENT_LIBRARY_VARIANT_COST_ROW = {
-  id: "55555555-5555-4555-8555-555555555555",
-  price_option_id: "44444444-4444-4444-8444-444444444444",
-  unit_cost: 950,
-  misc_cost: 300,
-  updated_at: "2026-05-24T00:00:00.000Z",
-};
-
-function getRpcArgs(supabase: { rpc: { mock: { calls: [string, Record<string, unknown>][] } } }, fn: string) {
-  const call = supabase.rpc.mock.calls.find(([name]) => name === fn);
-  expect(call).toBeDefined();
-  return call?.[1] ?? {};
-}
-
-function mockEstimateActionsDataStore<T extends { rpc: (name: string, args?: Record<string, unknown>) => unknown }>(store: T) {
-  estimateActionsD1ClientMocks.createEstimateActionsD1Client.mockResolvedValue({
-    ...store,
-    call: (name: string, args: Record<string, unknown>) => store.rpc(name, args),
-  });
-}
-
-function makeSupabase({
-  rowRevision = 7,
-  sourceLibraryItemId = "33333333-3333-4333-8333-333333333333",
-  rowMetadata = {},
-  canEditEstimate = true,
-  librarySource = CURRENT_LIBRARY_SOURCE_ROW,
-  rpcData,
-  rpcError = null,
-}: {
-  rowRevision?: number;
-  sourceLibraryItemId?: string | null;
-  rowMetadata?: Record<string, unknown>;
-  canEditEstimate?: boolean;
-  librarySource?: Record<string, unknown> | null;
-  rpcData?: unknown;
-  rpcError?: (Error & { code?: string }) | null;
-} = {}) {
-  const rowQuery = queryResult({
-    data: {
-      id: "row-1",
-      node_id: "node-1",
-      estimate_id: "estimate-1",
-      source_library_item_id: sourceLibraryItemId,
-      metadata: rowMetadata,
-      link_state: sourceLibraryItemId ? "linked-clean" : "unlinked",
-      row_revision: rowRevision,
-      estimate_nodes: { id: "node-1", kind: "area", estimates: { project_id: "project-1" } },
-    },
-    error: null,
-  });
-  const targetNodeQuery = queryResult({
-    data: {
-      id: "node-1",
-      estimate_id: "estimate-1",
-      kind: "area",
-      estimates: { project_id: "project-1" },
-    },
-    error: null,
-  });
-  const existingRowsQuery = queryResult({ data: [{ sort_order: 4 }], error: null });
-  const librarySourceQuery = queryResult({ data: librarySource, error: null });
-  const libraryPriceOptionQuery = queryResult({ data: CURRENT_LIBRARY_PRICE_OPTION_ROW, error: null });
-  const libraryVariantCostQuery = queryResult({ data: CURRENT_LIBRARY_VARIANT_COST_ROW, error: null });
-  const supabase = {
-    rpc: vi.fn(async (fn: string) => {
-      if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
-      if (rpcError) return { data: null, error: rpcError };
-      if (fn === "delete_estimate_row_item_with_history") {
-        return {
-          data: {
-            eventId: "delete-event-1",
-            rowId: "row-1",
-            deletedRow: canonicalMovedRow("row-1", { rowRevision }),
-          },
-          error: null,
-        };
-      }
-
-      return {
-        data: rpcData ?? {
-        rowId: "row-1",
-        row: {
-          id: "row-1",
-          nodeId: "node-1",
-          quantity: 12,
-          unitCost: 950,
-          contingencyPercentage: 15,
-          contingencyValue: 1710,
-          miscCost: 450,
-          linkState: "linked-overridden",
-          rowRevision: rowRevision + 1,
-        },
-      },
-        error: null,
-      };
-    }),
-    from: vi.fn((table: string) => {
-      if (table === "estimate_row_items") return rowQuery;
-      if (table === "estimate_nodes") return targetNodeQuery;
-      if (table === "cost_library_items") return librarySourceQuery;
-      if (table === "cost_library_item_price_options") return libraryPriceOptionQuery;
-      if (table === "cost_library_item_variant_cost_entries") return libraryVariantCostQuery;
-      throw new Error(`Unexpected table ${table}`);
-    }),
-    rowQuery,
-    targetNodeQuery,
-    existingRowsQuery,
-    librarySourceQuery,
-  };
-  rowQuery.order.mockImplementation(() => existingRowsQuery);
-  existingRowsQuery.limit.mockImplementation(() => existingRowsQuery);
-  return supabase;
-}
-
-function makeAtomicRowSupabase({
-  sourceRowRevision = 11,
-  targetRowRevision = 17,
-  canEditEstimate = true,
-  moveRpcData,
-  bulkDeleteRpcData,
-  bulkDeleteRpcError = null,
-  restoreRpcData,
-}: {
-  sourceRowRevision?: number;
-  targetRowRevision?: number;
-  canEditEstimate?: boolean;
-  moveRpcData?: unknown;
-  bulkDeleteRpcData?: unknown;
-  bulkDeleteRpcError?: unknown;
-  restoreRpcData?: unknown;
-} = {}) {
-  const rowQuery = queryResult({
-    data: {
-      id: "row-1",
-      node_id: "node-1",
-      estimate_id: "estimate-1",
-      source_library_item_id: null,
-      metadata: {},
-      link_state: "unlinked",
-      row_revision: sourceRowRevision,
-      estimate_nodes: { id: "node-1", kind: "area", estimates: { project_id: "project-1" } },
-    },
-    error: null,
-  });
-  const sourceLibraryQuery = queryResult({
-    data: CURRENT_LIBRARY_SOURCE_ROW,
-    error: null,
-  });
-  const libraryPriceOptionQuery = queryResult({ data: CURRENT_LIBRARY_PRICE_OPTION_ROW, error: null });
-  const libraryVariantCostQuery = queryResult({ data: CURRENT_LIBRARY_VARIANT_COST_ROW, error: null });
-  const bulkRowsQuery = queryResult({
-    data: [
-      { id: "source-row", row_revision: sourceRowRevision },
-      { id: "target-row", row_revision: targetRowRevision },
-    ],
-    error: null,
-  });
-  const supabase = {
-    rpc: vi.fn(async (fn: string) => {
-      if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
-      if (fn === "move_estimate_row_component_with_history") {
-        return {
-          data: moveRpcData ?? {
-            status: "applied",
-            eventId: "move-event-1",
-            sourceRowId: "source-row",
-            targetRowId: "target-row",
-            sourceRow: canonicalMovedRow("source-row", { material: "", rowRevision: sourceRowRevision + 1 }),
-            targetRow: canonicalMovedRow("target-row", { material: "Porcelain Tile", rowRevision: targetRowRevision + 1 }),
-          },
-          error: null,
-        };
-      }
-      if (fn === "delete_estimate_row_items_bulk_with_history") {
-        return {
-          data: bulkDeleteRpcData ?? { status: "applied", eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 },
-          error: bulkDeleteRpcError,
-        };
-      }
-      if (fn === "restore_deleted_estimate_rows_with_history") {
-        return {
-          data: restoreRpcData ?? {
-            eventId: "restore-event-1",
-            sourceEventId: "bulk-delete-event-1",
-            restoredRowIds: ["source-row", "target-row"],
-            restoredRowCount: 2,
-            restoredRows: [
-              canonicalMovedRow("source-row", { rowRevision: sourceRowRevision + 1 }),
-              canonicalMovedRow("target-row", { rowRevision: targetRowRevision + 1 }),
-            ],
-          },
-          error: null,
-        };
-      }
-      return { data: null, error: null };
-    }),
-    from: vi.fn((table: string) => {
-      if (table === "estimate_row_items") return rowQuery;
-      if (table === "cost_library_items") return sourceLibraryQuery;
-      if (table === "cost_library_item_price_options") return libraryPriceOptionQuery;
-      if (table === "cost_library_item_variant_cost_entries") return libraryVariantCostQuery;
-      throw new Error(`Unexpected table ${table}`);
-    }),
-    rowQuery,
-    sourceLibraryQuery,
-    bulkRowsQuery,
-  };
-  rowQuery.in.mockImplementation(() => bulkRowsQuery);
-  return supabase;
-}
-
-function canonicalMovedRow(rowId: string, overrides: Record<string, unknown> = {}) {
+function historyRow(id: string, createdAt: string, overrides: Partial<HistoryRow> = {}): HistoryRow {
   return {
-    id: rowId,
-    nodeId: "node-1",
-    material: "Moved component",
-    description: "Moved description",
-    supplier: "Moved supplier",
-    unit: "unit",
-    quantity: 1,
-    unitCost: 100,
-    contingencyPercentage: 0,
-    contingencyValue: 0,
-    miscCost: 0,
-    sourceSnapshot: null,
-    metadata: {},
-    linkState: "unlinked",
-    rowRevision: 1,
+    id,
+    event_type: "row_updated",
+    event_source: "server_action",
+    created_at: createdAt,
+    actor_user_id: null,
+    estimate_tab_id: "tab-main",
+    target_row_id: ROW_ID,
+    estimate_node_id: NODE_ID,
+    row_context: "{}",
+    old_snapshot: null,
+    new_snapshot: null,
+    changed_fields: "[]",
+    total_delta: null,
+    payload: "{}",
+    correlation_id: MUTATION_ID,
     ...overrides,
   };
 }
 
-function makeEstimateRecord(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "estimate-1",
-    project_id: "project-1",
-    name: "Client estimate",
-    sheet_code: "ES-002",
-    currency_code: "PHP",
-    metadata: {},
-    created_by: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    created_at: "2026-05-24T00:00:00.000Z",
-    updated_at: "2026-05-24T00:00:00.000Z",
-    ...overrides,
-  };
-}
+let database: HistoryDatabase;
 
-function makeEstimateSupabase({
-  rpcData = { eventId: "event-1", versionId: "version-1", versionNumber: 2, versionLabel: "V2", summary: { total: 1000 } },
-  estimate = makeEstimateRecord(),
-  estimateCodes = [{ id: "estimate-1", sheet_code: "ES-001" }],
-}: {
-  rpcData?: unknown;
-  estimate?: Record<string, unknown>;
-  estimateCodes?: Array<Record<string, unknown>>;
-} = {}) {
-  const estimateQueries = [
-    queryResult({ data: estimateCodes, error: null }),
-    queryResult({ data: estimate, error: null }),
-  ];
-  const supabase = {
-    rpc: vi.fn(async (fn: string) => {
-      // P3-3: updateEstimateDetails/regenerate now assert edit access first.
-      if (fn === "can_edit_estimate") return { data: true, error: null };
-      return { data: rpcData, error: null };
-    }),
-    from: vi.fn((table: string) => {
-      if (table === "estimates") return estimateQueries.shift() ?? queryResult({ data: estimate, error: null });
-      throw new Error(`Unexpected table ${table}`);
-    }),
-  };
-  return supabase;
-}
-
-describe("estimate sheet version control server actions", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
-    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
-    repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
-      project: { id: "project-1" },
-      estimate: { id: "estimate-1" },
-      tree: [],
-    });
-    authMocks.requireAuth.mockResolvedValue({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
-    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
+beforeEach(() => {
+  vi.clearAllMocks();
+  database = new HistoryDatabase();
+  databaseMocks.requireEstimateD1Database.mockResolvedValue(database);
+  authMocks.requireAuth.mockResolvedValue({ id: USER_ID });
+  authMocks.requireCurrentUserContext.mockResolvedValue(actor);
+  repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({
+    project: { id: PROJECT_ID, name: "Lewis Residence", currency_code: "PHP" },
   });
+  repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({
+    project: { id: PROJECT_ID, name: "Lewis Residence", currency_code: "PHP" },
+  });
+  repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
+    project: { id: PROJECT_ID }, estimate: { id: ESTIMATE_ID }, tree: [],
+  });
+  accessIntentMocks.canEditEstimate.mockResolvedValue(true);
+  accessIntentMocks.getEstimateActivityRetentionMetrics.mockResolvedValue({
+    workspaceEventBytes: 1024,
+    workspaceVersionBytes: 2048,
+    largestEventPayloadBytes: 512,
+    maxEstimateEventCount: 120,
+    estimatesOverEventThreshold: 0,
+    workspaceStorageOverThreshold: false,
+  });
+  recordIntentMocks.getEstimateRecordForProject.mockResolvedValue(makeEstimateRecord());
+  recordIntentMocks.updateEstimateDetailsWithHistory.mockResolvedValue({ eventId: "details-event" });
+  nodeIntentMocks.getEstimateNodeForProject.mockResolvedValue({
+    id: NODE_ID, estimate_id: ESTIMATE_ID, estimate_tab_id: null, kind: "area", name: "Flooring",
+  });
+  nodeIntentMocks.resolveEstimateActivityNodeScope.mockResolvedValue({ nodeIds: [NODE_ID], rowIds: [] });
+  rowIntentMocks.getEstimateRowForProject.mockImplementation(async (_db, input) => makeDatabaseRow(input.rowId));
+  rowIntentMocks.updateEstimateRowItemWithHistory.mockResolvedValue({
+    eventId: "update-event", rowId: ROW_ID, row: makeAuthoritativeRow(),
+  });
+  rowIntentMocks.replaceEstimateRowItemWithHistory.mockResolvedValue({
+    eventId: "replace-event", rowId: ROW_ID, row: makeAuthoritativeRow(),
+  });
+  rowIntentMocks.deleteEstimateRowItemWithHistory.mockResolvedValue({
+    eventId: "delete-event", rowId: ROW_ID, deletedRow: makeAuthoritativeRow(),
+  });
+  rowIntentMocks.moveEstimateRowComponentWithHistory.mockResolvedValue({
+    status: "applied",
+    eventId: "move-event",
+    sourceRow: makeAuthoritativeRow(ROW_ID, { rowRevision: 12 }),
+    targetRow: makeAuthoritativeRow(TARGET_ROW_ID, { rowRevision: 18 }),
+  });
+  rowIntentMocks.deleteEstimateRowItemsBulkWithHistory.mockResolvedValue({
+    status: "applied", eventId: "bulk-delete-event", deletedRowIds: [ROW_ID, TARGET_ROW_ID], deletedRowCount: 2,
+  });
+  rowIntentMocks.restoreDeletedEstimateRowsWithHistory.mockResolvedValue({
+    eventId: "restore-event",
+    sourceEventId: "bulk-delete-event",
+    restoredRowIds: [ROW_ID, TARGET_ROW_ID],
+    restoredRowCount: 2,
+    restoredRows: [makeAuthoritativeRow(ROW_ID), makeAuthoritativeRow(TARGET_ROW_ID)],
+  });
+  rowIntentMocks.insertEstimateRowItemWithHistory.mockResolvedValue({
+    eventId: "insert-event", rowId: ROW_ID, row: makeAuthoritativeRow(ROW_ID),
+  });
+});
 
-  it("rejects optimistic tree parent ids before creating estimate nodes", async () => {
-    const supabase = {
-      from: vi.fn(),
-      rpc: vi.fn(),
-    };
-    mockEstimateActionsDataStore(supabase);
+describe("estimate action typed row adapters", () => {
+  it("rejects optimistic tree parent ids before any database intent", async () => {
     const formData = new FormData();
     formData.set("kind", "area");
     formData.set("name", "New Area Node");
     formData.set("parentId", "optimistic-group-mijv3k-l1a2b3");
-    const { createEstimateNode } = await import("@/lib/estimates/actions");
+    const { createEstimateNode, reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
-    await expect(createEstimateNode("project-1", "estimate-1", formData)).rejects.toThrow("Parent estimate node id is invalid.");
-    expect(supabase.from).not.toHaveBeenCalled();
-    expect(supabase.rpc).not.toHaveBeenCalled();
-  });
-
-  it("rejects optimistic tree parent ids before reordering estimate nodes", async () => {
-    const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
-
-    await expect(reorderEstimateTreeNodes("project-1", "estimate-1", {
-      updates: [{
-        id: "11111111-1111-4111-8111-111111111111",
-        parentId: "optimistic-group-mijv3k-l1a2b3",
-        sortOrder: 10,
-      }],
+    await expect(createEstimateNode(PROJECT_ID, ESTIMATE_ID, formData)).rejects.toThrow("Parent estimate node id is invalid.");
+    await expect(reorderEstimateTreeNodes(PROJECT_ID, ESTIMATE_ID, {
+      updates: [{ id: NODE_ID, parentId: "optimistic-group-mijv3k-l1a2b3", sortOrder: 10 }],
     })).rejects.toThrow("Estimate tree update parent id is invalid.");
 
-    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
-    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).not.toHaveBeenCalled();
-    expect(estimateActionsD1ClientMocks.createEstimateActionsD1Client).not.toHaveBeenCalled();
+    expect(nodeIntentMocks.createEstimateNodeWithHistory).not.toHaveBeenCalled();
+    expect(nodeIntentMocks.reorderEstimateNodesWithHistory).not.toHaveBeenCalled();
   });
 
-  it("updates row scalar fields through the history RPC with row revision and mutation id", async () => {
-    const supabase = makeSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("passes normalized scalar updates, the authoritative revision, and correlation to the typed row intent", async () => {
     const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
     const result = await updateEstimateRowItem({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
       quantity: 12,
       contingencyPercentage: 15,
       miscCost: 450,
-      mutationId: "55555555-5555-4555-8555-555555555555",
+      mutationId: MUTATION_ID,
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("update_estimate_row_item_with_history", {
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_row_id: "row-1",
-      expected_row_revision: 7,
-      row_patch: { quantity: 12, contingencyPercentage: 15, miscCost: 450, linkState: "linked-overridden" },
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "55555555-5555-4555-8555-555555555555",
+    expect(rowIntentMocks.updateEstimateRowItemWithHistory).toHaveBeenCalledWith(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      expectedRowRevision: 7,
+      rowPatch: { quantity: 12, contingencyPercentage: 15, miscCost: 450, linkState: "linked-overridden" },
+      correlationId: MUTATION_ID,
     });
     expect(result.rowRevision).toBe(8);
   });
 
-  it("rejects invalid row calculation values before the history RPC", async () => {
-    const supabase = makeSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("rejects invalid calculation values before invoking the typed row intent", async () => {
     const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
     await expect(updateEstimateRowItem({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      quantity: -1,
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, quantity: -1,
     })).rejects.toMatchObject({ code: "invalid_calculation_input", field: "quantity" });
 
-    expect(supabase.rpc).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
+    expect(rowIntentMocks.updateEstimateRowItemWithHistory).not.toHaveBeenCalled();
   });
 
-  it("keeps manual row scalar updates unlinked in the history RPC patch", async () => {
-    const supabase = makeSupabase({ sourceLibraryItemId: null });
-    mockEstimateActionsDataStore(supabase);
+  it("keeps manual rows unlinked while preserving the current row revision", async () => {
+    rowIntentMocks.getEstimateRowForProject.mockResolvedValue(makeDatabaseRow(ROW_ID, {
+      source_library_item_id: null,
+      link_state: "unlinked",
+    }));
     const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
     await updateEstimateRowItem({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      miscCost: 450,
-      mutationId: "55555555-5555-4555-8555-555555555555",
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, miscCost: 450, mutationId: MUTATION_ID,
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.objectContaining({
-      row_patch: { miscCost: 450 },
+    expect(rowIntentMocks.updateEstimateRowItemWithHistory).toHaveBeenCalledWith(database, actor, expect.objectContaining({
+      expectedRowRevision: 7,
+      rowPatch: { miscCost: 450 },
     }));
   });
 
-  it("maps raw row revision conflicts to a stable stale-data error code", async () => {
-    const conflict = Object.assign(new Error("estimate_sheet_row_revision_conflict"), { code: "P0001" });
-    const supabase = makeSupabase({ rpcError: conflict });
-    mockEstimateActionsDataStore(supabase);
-    const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
+  it("maps raw and structured revision failures to the stable stale-row error", async () => {
+    const rawConflict = Object.assign(new Error("estimate_sheet_row_revision_conflict"), { code: "P0001" });
+    rowIntentMocks.updateEstimateRowItemWithHistory.mockRejectedValueOnce(rawConflict);
+    const { deleteEstimateRowItemsBulk, updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
-    try {
-      await updateEstimateRowItem({
-        projectId: "project-1",
-        estimateId: "estimate-1",
-        rowId: "row-1",
-        quantity: 9,
-        expectedRowRevision: 6,
-      });
-      throw new Error("Expected row revision conflict to throw.");
-    } catch (error) {
-      expect(error).toMatchObject({
-        name: "EstimateRowRevisionConflictError",
-        code: "estimate_sheet_row_revision_conflict",
-      });
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain("This row changed elsewhere");
-    }
-  });
-
-  it("maps structured Supabase row revision conflicts to a stable stale-data error code", async () => {
-    const supabase = makeAtomicRowSupabase({
-      bulkDeleteRpcError: {
-        code: "P0001",
-        message: "estimate row RPC failed",
-        details: "{\"code\":\"estimate_sheet_row_revision_conflict\",\"rowId\":\"row-1\"}",
-      },
+    await expect(updateEstimateRowItem({
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, quantity: 9, expectedRowRevision: 6,
+    })).rejects.toMatchObject({
+      name: "EstimateRowRevisionConflictError",
+      code: "estimate_sheet_row_revision_conflict",
     });
-    mockEstimateActionsDataStore(supabase);
-    const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
 
+    rowIntentMocks.deleteEstimateRowItemsBulkWithHistory.mockRejectedValueOnce({
+      code: "P0001",
+      message: "estimate row mutation failed",
+      details: "{\"code\":\"estimate_sheet_row_revision_conflict\",\"rowId\":\"row-1\"}",
+    });
     await expect(deleteEstimateRowItemsBulk({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowIds: ["source-row", "target-row"],
-      expectedRowRevisions: { "source-row": 1, "target-row": 1 },
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+      expectedRowRevisions: { [ROW_ID]: 7, [TARGET_ROW_ID]: 17 },
     })).rejects.toMatchObject({
       name: "EstimateRowRevisionConflictError",
       code: "estimate_sheet_row_revision_conflict",
     });
   });
 
-  it("shows stale-data copy and actively refetches the active tree on row revision conflicts", () => {
+  it("keeps stale-row recovery copy and active-tree refetch behavior", () => {
     const hookSource = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8");
 
-    expect(hookSource).toContain('import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict"');
     expect(hookSource).toContain("This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.");
-    expect(hookSource).toContain("isRowRevisionConflictError(error) ? \"active\" : \"none\"");
     expect(hookSource).toContain("await recoverAuthoritativeTreeAfterConflict(input)");
     expect(hookSource).toContain('const refetchType = rowRevisionConflict && !recoveredAuthoritativeTree ? "active" : "none"');
   });
 
-  it("replaces row source through the history RPC with the existing row revision", async () => {
-    const supabase = makeSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("builds replacement payloads inside the action and delegates raw Library identity to the typed row owner", async () => {
+    const libraryItem = makeLibraryItem();
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
     const result = await replaceEstimateRowItemWithLibrary({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      libraryItem: makeLibraryItem(),
-      mutationId: "66666666-6666-4666-8666-666666666666",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      libraryItem,
+      mutationId: MUTATION_ID,
     });
 
-    expect(result).toMatchObject({ rowId: "row-1", rowRevision: 8 });
-    expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_row_id: "row-1",
-      expected_row_revision: 7,
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "66666666-6666-4666-8666-666666666666",
-    }));
-    expect(getRpcArgs(supabase, "replace_estimate_row_item_with_history").replacement_payload).toMatchObject({
-      material: "Porcelain Tile",
-      sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-      sourceSnapshot: expect.objectContaining({
-        brand: "Tile Brand",
-        brandId: "55555555-5555-4555-8555-555555555555",
-        supplier: "Tile Supplier",
+    expect(rowIntentMocks.replaceEstimateRowItemWithHistory).toHaveBeenCalledWith(database, actor, expect.objectContaining({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      expectedRowRevision: 7,
+      correlationId: MUTATION_ID,
+      librarySource: libraryItem,
+      replacementPayload: expect.objectContaining({
+        material: "Porcelain Tile",
+        sourceLibraryItemId: libraryItem.sourceLibraryItemId,
+        linkState: "linked-clean",
       }),
-      contingencyPercentage: 0,
-      linkState: "linked-clean",
-    });
+    }));
+    expect(result).toMatchObject({ rowId: ROW_ID, rowRevision: 8 });
   });
 
-  it("blocks stale library source commits before the history RPC", async () => {
-    const supabase = makeSupabase({
-      librarySource: {
-        ...CURRENT_LIBRARY_SOURCE_ROW,
-        updated_at: "2026-06-22T08:00:00.000Z",
-      },
-    });
-    mockEstimateActionsDataStore(supabase);
+  it("removes stale express metadata when a row is replaced by a Library component", async () => {
+    rowIntentMocks.getEstimateRowForProject.mockResolvedValue(makeDatabaseRow(ROW_ID, {
+      source_library_item_id: null,
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+    }));
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
-    await expect(replaceEstimateRowItemWithLibrary({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      libraryItem: makeLibraryItem({ updatedAt: "2026-06-21T08:00:00.000Z" }),
-    })).rejects.toThrow(/library source changed/i);
-
-    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
-  });
-
-  it("replaces express row source through the history RPC with the existing row revision", async () => {
-    const supabase = makeSupabase({
-      sourceLibraryItemId: null,
-      rowMetadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-    });
-    mockEstimateActionsDataStore(supabase);
-    const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
-
-    const result = await replaceEstimateRowItemWithLibrary({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      libraryItem: makeLibraryItem(),
-      mutationId: "66666666-6666-4666-8666-666666666666",
+    await replaceEstimateRowItemWithLibrary({
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem: makeLibraryItem(),
     });
 
-    expect(result).toMatchObject({ rowId: "row-1", rowRevision: 8 });
-    expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_row_id: "row-1",
-      expected_row_revision: 7,
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "66666666-6666-4666-8666-666666666666",
-    }));
-    expect(getRpcArgs(supabase, "replace_estimate_row_item_with_history").replacement_payload).toMatchObject({
-      material: "Porcelain Tile",
-      sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-      metadata: expect.objectContaining({
-        sourceComponentId: "11111111-1111-4111-8111-111111111111",
-      }),
-      linkState: "linked-clean",
-    });
-    expect(getRpcArgs(supabase, "replace_estimate_row_item_with_history").replacement_payload.metadata).not.toHaveProperty("expressComponent");
-  });
-
-  it("deletes row items through the history RPC before removing data", async () => {
-    const supabase = makeSupabase();
-    mockEstimateActionsDataStore(supabase);
-    const { deleteEstimateRowItem } = await import("@/lib/estimates/actions");
-
-    const result = await deleteEstimateRowItem({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      mutationId: "77777777-7777-4777-8777-777777777777",
-    });
-
-    expect(result).toMatchObject({ eventId: "delete-event-1", deletedRowId: "row-1" });
-    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_item_with_history", {
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_row_id: "row-1",
-      expected_row_revision: 7,
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "77777777-7777-4777-8777-777777777777",
+    const input = rowIntentMocks.replaceEstimateRowItemWithHistory.mock.calls[0]?.[2];
+    expect(input.replacementPayload.metadata).not.toHaveProperty("expressComponent");
+    expect(input.replacementPayload.metadata).toMatchObject({
+      sourceComponentId: "88888888-8888-4888-8888-888888888888",
     });
   });
 
-  it("moves a center row component through one atomic history RPC", async () => {
-    const supabase = makeAtomicRowSupabase();
-    mockEstimateActionsDataStore(supabase);
-    const { moveEstimateRowComponentWithHistory } = await import("@/lib/estimates/actions");
+  it("delegates delete and component move to one typed mutation each", async () => {
+    const { deleteEstimateRowItem, moveEstimateRowComponentWithHistory } = await import("@/lib/estimates/actions");
+    const sourceLibraryItem = makeLibraryItem({ id: "source-project-row", source: "project", sourceLibraryItemId: null });
+    const targetLibraryItem = makeLibraryItem();
 
-    const result = await moveEstimateRowComponentWithHistory({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      sourceRowId: "source-row",
-      targetRowId: "target-row",
-      sourceLibraryItem: makeLibraryItem({
-        id: "blank-row-template",
-        source: "project",
-        sourceLibraryItemId: null,
-        material: "",
-        description: "",
-        supplier: "",
-        unit: "unit",
-        itemCost: 0,
-        quantity: 1,
-        miscCost: 0,
-        category: "General",
-      }),
-      targetLibraryItem: makeLibraryItem(),
+    const deleted = await deleteEstimateRowItem({
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, mutationId: MUTATION_ID,
+    });
+    const moved = await moveEstimateRowComponentWithHistory({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceRowId: ROW_ID,
+      targetRowId: TARGET_ROW_ID,
+      sourceLibraryItem,
+      targetLibraryItem,
       expectedSourceRowRevision: 11,
       expectedTargetRowRevision: 17,
-      mutationId: "99999999-9999-4999-8999-999999999999",
+      mutationId: MUTATION_ID,
     });
 
-    expect(result.sourceRow).toMatchObject({ rowId: "source-row", rowRevision: 12 });
-    expect(result.targetRow).toMatchObject({ rowId: "target-row", rowRevision: 18 });
-    expect(supabase.rpc).toHaveBeenCalledWith("move_estimate_row_component_with_history", expect.objectContaining({
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      source_row_id: "source-row",
-      target_row_id: "target-row",
-      expected_source_row_revision: 11,
-      expected_target_row_revision: 17,
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "99999999-9999-4999-8999-999999999999",
+    expect(deleted).toMatchObject({ eventId: "delete-event", deletedRowId: ROW_ID });
+    expect(rowIntentMocks.deleteEstimateRowItemWithHistory).toHaveBeenCalledTimes(1);
+    expect(rowIntentMocks.moveEstimateRowComponentWithHistory).toHaveBeenCalledWith(database, actor, expect.objectContaining({
+      sourceRowId: ROW_ID,
+      targetRowId: TARGET_ROW_ID,
+      expectedSourceRowRevision: 11,
+      expectedTargetRowRevision: 17,
+      sourceLibraryItem,
+      targetLibraryItem,
     }));
-    const moveArgs = getRpcArgs(supabase, "move_estimate_row_component_with_history");
-    expect(moveArgs.source_replacement_payload).toMatchObject({
-      sourceLibraryItemId: null,
-      material: "",
-      linkState: "unlinked",
+    expect(moved).toMatchObject({
+      status: "applied",
+      sourceRow: { rowId: ROW_ID, rowRevision: 12 },
+      targetRow: { rowId: TARGET_ROW_ID, rowRevision: 18 },
     });
-    expect(moveArgs.target_replacement_payload).toMatchObject({
-      sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-      material: "Porcelain Tile",
-      linkState: "linked-clean",
-    });
-    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
   });
 
-  it("bulk-deletes center rows through one all-or-nothing history RPC", async () => {
-    const supabase = makeAtomicRowSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("bulk-deletes in one typed intent and preserves conflict results as values", async () => {
     const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
-
-    const result = await deleteEstimateRowItemsBulk({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowIds: ["source-row", "target-row"],
-      expectedRowRevisions: { "source-row": 11, "target-row": 17 },
-      mutationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    const applied = await deleteEstimateRowItemsBulk({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+      expectedRowRevisions: { [ROW_ID]: 7, [TARGET_ROW_ID]: 17 },
+      mutationId: MUTATION_ID,
     });
 
-    expect(result).toEqual({ status: "applied", eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 });
-    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
-    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
-    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", {
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_row_ids: ["source-row", "target-row"],
-      expected_row_revisions: { "source-row": 11, "target-row": 17 },
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    expect(applied).toEqual({
+      status: "applied", eventId: "bulk-delete-event", deletedRowIds: [ROW_ID, TARGET_ROW_ID], deletedRowCount: 2,
     });
-    expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.anything());
+    expect(rowIntentMocks.deleteEstimateRowItemsBulkWithHistory).toHaveBeenCalledTimes(1);
+
+    rowIntentMocks.deleteEstimateRowItemsBulkWithHistory.mockResolvedValueOnce({
+      status: "conflict",
+      conflictRowIds: [TARGET_ROW_ID],
+      authoritativeRows: [makeAuthoritativeRow(TARGET_ROW_ID, { material: "Authoritative Tile", rowRevision: 18 })],
+    });
+    const conflict = await deleteEstimateRowItemsBulk({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+      expectedRowRevisions: { [ROW_ID]: 7, [TARGET_ROW_ID]: 17 },
+    });
+    expect(conflict).toMatchObject({
+      status: "conflict",
+      conflictRowIds: [TARGET_ROW_ID],
+      authoritativeRows: [{ rowId: TARGET_ROW_ID, material: "Authoritative Tile", rowRevision: 18 }],
+    });
   });
 
-  it("refuses bulk delete when any selected row revision is missing", async () => {
-    const supabase = makeAtomicRowSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("refuses bulk delete before the typed intent when any revision is missing", async () => {
     const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
 
     await expect(deleteEstimateRowItemsBulk({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowIds: ["source-row", "target-row"],
-      expectedRowRevisions: { "source-row": 11 },
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+      expectedRowRevisions: { [ROW_ID]: 7 },
     })).rejects.toThrow("current revision for every selected row");
 
-    expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", expect.anything());
+    expect(rowIntentMocks.deleteEstimateRowItemsBulkWithHistory).not.toHaveBeenCalled();
   });
 
-  it("returns authoritative rows for atomic bulk-delete conflicts", async () => {
-    const supabase = makeAtomicRowSupabase({
-      bulkDeleteRpcData: {
-        status: "conflict",
-        conflictRowIds: ["target-row"],
-        authoritativeRows: [canonicalMovedRow("target-row", { material: "Authoritative Tile", rowRevision: 18 })],
-      },
-    });
-    mockEstimateActionsDataStore(supabase);
-    const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
-
-    const result = await deleteEstimateRowItemsBulk({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowIds: ["source-row", "target-row"],
-      expectedRowRevisions: { "source-row": 11, "target-row": 17 },
-    });
-
-    expect(result).toMatchObject({
-      status: "conflict",
-      conflictRowIds: ["target-row"],
-      authoritativeRows: [{ rowId: "target-row", material: "Authoritative Tile", rowRevision: 18 }],
-    });
-  });
-
-  it("restores deleted center rows through the row restore history RPC", async () => {
-    const supabase = makeAtomicRowSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("adapts typed restore results including authoritative restored rows", async () => {
     const { restoreDeletedEstimateRows } = await import("@/lib/estimates/actions");
 
     const result = await restoreDeletedEstimateRows({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      sourceEventId: "bulk-delete-event-1",
-      rowIds: ["source-row", "target-row"],
-      mutationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceEventId: "bulk-delete-event",
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+      mutationId: MUTATION_ID,
     });
 
+    expect(rowIntentMocks.restoreDeletedEstimateRowsWithHistory).toHaveBeenCalledWith(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      activeTabId: null,
+      sourceEventId: "bulk-delete-event",
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+      correlationId: MUTATION_ID,
+    });
     expect(result).toMatchObject({
-      eventId: "restore-event-1",
-      sourceEventId: "bulk-delete-event-1",
-      restoredRowIds: ["source-row", "target-row"],
+      eventId: "restore-event",
+      sourceEventId: "bulk-delete-event",
+      restoredRowIds: [ROW_ID, TARGET_ROW_ID],
       restoredRowCount: 2,
     });
     expect(result.restoredRows).toHaveLength(2);
-    expect(supabase.rpc).toHaveBeenCalledWith("restore_deleted_estimate_rows_with_history", {
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      source_delete_event_id: "bulk-delete-event-1",
-      target_row_ids: ["source-row", "target-row"],
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-    });
   });
 
-  it("inserts library rows through the history RPC with a compact row payload", async () => {
-    const supabase = makeSupabase();
-    mockEstimateActionsDataStore(supabase);
+  it("inserts Library rows through the typed owner with compact row payload and raw source", async () => {
+    const libraryItem = makeLibraryItem();
     const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
 
     await insertEstimateRowItemFromLibrary({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      targetNodeId: "node-1",
-      rowId: "99999999-9999-4999-8999-999999999999",
-      libraryItem: makeLibraryItem(),
-      mutationId: "88888888-8888-4888-8888-888888888888",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      targetNodeId: NODE_ID,
+      rowId: ROW_ID,
+      libraryItem,
+      mutationId: MUTATION_ID,
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      target_node_id: "node-1",
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      correlation_id: "88888888-8888-4888-8888-888888888888",
+    expect(rowIntentMocks.insertEstimateRowItemWithHistory).toHaveBeenCalledWith(database, actor, expect.objectContaining({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      nodeId: NODE_ID,
+      librarySource: libraryItem,
+      correlationId: MUTATION_ID,
+      rowPayload: expect.objectContaining({
+        id: ROW_ID,
+        material: "Porcelain Tile",
+        sourceLibraryItemId: libraryItem.sourceLibraryItemId,
+      }),
     }));
-    expect(getRpcArgs(supabase, "insert_estimate_row_item_with_history").row_payload).toMatchObject({
-      id: "99999999-9999-4999-8999-999999999999",
-      material: "Porcelain Tile",
-      contingencyPercentage: 0,
-      sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-    });
   });
 
-  it("updates estimate details through the history RPC", async () => {
-    const supabase = makeEstimateSupabase({ estimate: makeEstimateRecord({ name: "Renamed estimate", sheet_code: "ES-009" }) });
-    mockEstimateActionsDataStore(supabase);
+  it("updates estimate details through the typed record owner and returns the authoritative readback", async () => {
+    recordIntentMocks.getEstimateRecordForProject.mockResolvedValue(makeEstimateRecord({ name: "Updated estimate" }));
     const { updateEstimateDetails } = await import("@/lib/estimates/actions");
 
     const result = await updateEstimateDetails({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      name: "Renamed estimate",
-      sheetCode: "ES-009",
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, name: " Updated estimate ", notes: " Client note ",
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("update_estimate_details_with_history", expect.objectContaining({
-      target_project_id: "project-1",
-      target_estimate_id: "estimate-1",
-      estimate_patch: { name: "Renamed estimate", sheetCode: "ES-009" },
-      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    expect(recordIntentMocks.updateEstimateDetailsWithHistory).toHaveBeenCalledWith(database, actor, expect.objectContaining({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      patch: { name: "Updated estimate", notes: "Client note" },
     }));
-    // P-1.2: updateEstimateDetails returns a scalar-only canonical reconciliation
-    // payload ({ estimate }), not the full estimate record.
-    expect(result.estimate.name).toBe("Renamed estimate");
-    expect(result.estimate.sheet_code).toBe("ES-009");
+    expect(recordIntentMocks.getEstimateRecordForProject).toHaveBeenLastCalledWith(database, {
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID,
+    });
+    expect(result.estimate.name).toBe("Updated estimate");
   });
 
-  it("does not expose named sheet version RPC helpers from estimate actions", async () => {
+  it("uses typed owners without exposing version mutations or façade dispatch", async () => {
     const actions = await import("@/lib/estimates/actions");
+    const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
+    const historySource = readFileSync(join(process.cwd(), "src/lib/estimates/d1-intents/history-events.ts"), "utf8");
 
     expect(actions).not.toHaveProperty("createEstimateSheetVersion");
     expect(actions).not.toHaveProperty("restoreEstimateSheetVersionAsCopy");
+    expect(actionsSource).toContain("return readEstimateSheetVersionControl(database");
+    expect(actionsSource).not.toContain("d1-action-client");
+    expect(actionsSource).not.toContain("dataStore.call(");
+    expect(historySource).toContain("FROM estimate_sheet_events");
+    expect(historySource).toContain("ORDER BY created_at DESC, id DESC");
   });
+});
 
-  it("keeps hardcoded history procedure names aligned with the Cloudflare D1 action client", () => {
+describe("typed version-control history reads", () => {
+  it("owns the bounded cursor contract in the history module and type-re-exports it from actions", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
-    const d1ActionClientSource = readFileSync(join(process.cwd(), "src/lib/estimates/d1-action-client.ts"), "utf8");
-    const rpcNames = Array.from(actionsSource.matchAll(/dataStore\.call\(\s*"([^"]+_with_history|update_estimate_details_with_history)"/g))
-      .map((match) => match[1])
-      .sort();
+    const historySource = readFileSync(join(process.cwd(), "src/lib/estimates/d1-intents/history-events.ts"), "utf8");
 
-    const uniqueRpcNames = Array.from(new Set(rpcNames));
-
-    expect(uniqueRpcNames.length).toBeGreaterThan(0);
-    expect(actionsSource).not.toContain("asEstimateHistoryRpcClient");
-    for (const rpcName of uniqueRpcNames) {
-      expect(d1ActionClientSource).toContain(`name === "${rpcName}"`);
-    }
-  });
-
-  it("documents the current bounded cursor version-control read contract", () => {
-    const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
-
-    expect(actionsSource).toContain("export type EstimateSheetHistoryCursor = {");
-    expect(actionsSource).toContain("type FetchEstimateSheetVersionControlInput = {");
-    expect(actionsSource).toContain("rowId?: string;");
-    expect(actionsSource).toContain("nodeId?: string;");
-    expect(actionsSource).toContain("includeDescendants?: boolean;");
-    expect(actionsSource).toContain("eventTypes?: string[];");
-    expect(actionsSource).toContain("dateFrom?: string;");
-    expect(actionsSource).toContain("dateTo?: string;");
-    expect(actionsSource).toContain("search?: string;");
-    expect(actionsSource).toContain("eventLimit?: number;");
-    expect(actionsSource).toContain("sheetCursor?: EstimateSheetHistoryCursor | null;");
-    expect(actionsSource).toContain("rowCursor?: EstimateSheetHistoryCursor | null;");
-    expect(actionsSource).toContain("scope?: EstimateSheetHistoryReadScope;");
-    expect(actionsSource).toContain("export type EstimateSheetVersionControlData = {");
-    expect(actionsSource).toContain("events: EstimateSheetHistoryEvent[];");
-    expect(actionsSource).toContain("estimateTabId: string | null;");
-    expect(actionsSource).toContain("actor_user_id, estimate_tab_id, target_row_id");
-    expect(actionsSource).toContain("rowEvents: EstimateSheetHistoryEvent[];");
-    expect(actionsSource).toContain("nodeEvents: EstimateSheetHistoryEvent[];");
-    expect(actionsSource).toContain("nextCursor: EstimateSheetHistoryCursor | null;");
-    expect(actionsSource).toContain("rowNextCursor: EstimateSheetHistoryCursor | null;");
-    expect(actionsSource).toContain("nodeNextCursor: EstimateSheetHistoryCursor | null;");
+    expect(actionsSource).toContain("EstimateSheetHistoryCursor,");
     expect(actionsSource).toContain("const boundedEventLimit = Math.min(Math.max(Math.trunc(eventLimit), 1), 100)");
-    expect(actionsSource).toContain(".limit(boundedEventLimit + 1)");
-    expect(actionsSource).toContain("function normalizeHistoryCursor");
-    expect(actionsSource).toContain("function buildHistoryCursorFilter");
-    expect(actionsSource).toContain("DORMANT_NAMED_VERSION_EVENT_TYPES");
-    expect(actionsSource).toContain("export async function fetchEstimateActivityRetentionMetrics");
+    expect(historySource).toContain("nextCursor: EstimateSheetHistoryCursor | null;");
+    expect(historySource).toContain("input.eventLimit + 1");
+    expect(historySource).toContain("DORMANT_NAMED_VERSION_EVENT_TYPES");
   });
 
-  it("returns a next cursor from limit-plus-one sheet activity reads", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const eventRows = [
-      {
-        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        event_type: "row_updated",
-        event_source: "server_action",
-        created_at: "2026-05-24T03:00:00.000Z",
-        actor_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        estimate_tab_id: "tab-main",
-        target_row_id: "row-1",
-        estimate_node_id: "node-1",
-        row_context: {},
-        old_snapshot: null,
-        new_snapshot: null,
-        changed_fields: [],
-        total_delta: null,
-        payload: {},
-        correlation_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-      },
-      {
-        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
-        event_type: "row_updated",
-        event_source: "server_action",
-        created_at: "2026-05-24T02:00:00.000Z",
-        actor_user_id: null,
-        estimate_tab_id: "tab-main",
-        target_row_id: "row-2",
-        estimate_node_id: "node-1",
-        row_context: {},
-        old_snapshot: null,
-        new_snapshot: null,
-        changed_fields: [],
-        total_delta: null,
-        payload: {},
-        correlation_id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-      },
-    ];
-    const eventsQuery = queryResult({ data: eventRows, error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
+  it("returns limit-plus-one pagination, excludes dormant events, and preserves cursor precision", async () => {
+    database.sheetRows = [
+      historyRow("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "2026-05-24T03:00:00.000Z"),
+      historyRow("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "2026-05-24T02:30:00.000Z", {
+        event_type: "sheet_version_created",
       }),
-    };
-    mockEstimateActionsDataStore(supabase);
+      historyRow("cccccccc-cccc-4ccc-8ccc-cccccccccccc", "2026-05-24T02:00:00.000Z", {
+        event_type: "sheet_code_updated",
+      }),
+    ];
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
       eventLimit: 1,
       sheetCursor: {
-        createdAt: "2026-05-24T04:00:00.000Z",
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        createdAt: "2026-05-24T04:00:00.123456+00:00",
+        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
       },
     });
 
-    expect(eventsQuery.limit).toHaveBeenCalledWith(2);
-    expect(eventsQuery.not).toHaveBeenCalledWith("event_type", "in", "(sheet_version_created,sheet_restored_as_copy)");
-    expect(eventsQuery.or).toHaveBeenCalledWith(
-      "created_at.lt.2026-05-24T04:00:00.000Z,and(created_at.eq.2026-05-24T04:00:00.000Z,id.lt.aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa)",
-    );
+    const query = database.eventReads()[0]!;
+    expect(query.values.at(-1)).toBe(2);
+    expect(query.values).toEqual(expect.arrayContaining([
+      "sheet_version_created",
+      "sheet_restored_as_copy",
+      "2026-05-24T04:00:00.123456+00:00",
+    ]));
     expect(result.events).toHaveLength(1);
     expect(result.events[0]?.estimateTabId).toBe("tab-main");
     expect(result.nextCursor).toEqual({
       createdAt: "2026-05-24T03:00:00.000Z",
-      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     });
     expect(result.rowEvents).toEqual([]);
-    expect(result.rowNextCursor).toBeNull();
   });
 
-  it("preserves cursor timestamp precision in keyset filters", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const eventsQuery = queryResult({ data: [], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
+  it("runs only the selected row or direct-node lane", async () => {
+    database.rowRows = [historyRow("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "2026-05-24T03:00:00.000Z")];
+    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
+
+    const rowResult = await fetchEstimateSheetVersionControl({
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, scope: "row",
+    });
+    expect(database.eventReads()).toHaveLength(1);
+    expect(database.eventReads()[0]?.sql).toContain("target_row_id = ?");
+    expect(rowResult.events).toEqual([]);
+    expect(rowResult.rowEvents).toHaveLength(1);
+
+    database.reads = [];
+    database.nodeRows = [historyRow("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "2026-05-24T02:00:00.000Z")];
+    const nodeResult = await fetchEstimateSheetVersionControl({
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, nodeId: NODE_ID, scope: "node",
+    });
+    expect(database.eventReads()).toHaveLength(1);
+    expect(database.eventReads()[0]?.sql).toContain("estimate_node_id = ?");
+    expect(nodeResult.events).toEqual([]);
+    expect(nodeResult.nodeEvents).toHaveLength(1);
+  });
+
+  it("passes descendant node scope into the typed history owner", async () => {
+    nodeIntentMocks.resolveEstimateActivityNodeScope.mockResolvedValue({
+      nodeIds: [NODE_ID, "area-1", "area-2"],
+      rowIds: [ROW_ID, TARGET_ROW_ID],
+    });
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      eventLimit: 1,
-      sheetCursor: {
-        createdAt: "2026-05-24T04:00:00.123456+00:00",
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      },
-    });
-
-    expect(eventsQuery.or).toHaveBeenCalledWith(
-      "created_at.lt.2026-05-24T04:00:00.123456+00:00,and(created_at.eq.2026-05-24T04:00:00.123456+00:00,id.lt.aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa)",
-    );
-  });
-
-  it("filters dormant named-version event rows out of returned Activity data", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const eventRows = [
-      {
-        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        event_type: "sheet_version_created",
-        event_source: "server_action",
-        created_at: "2026-05-24T03:00:00.000Z",
-        actor_user_id: null,
-        target_row_id: null,
-        estimate_node_id: null,
-        row_context: {},
-        old_snapshot: null,
-        new_snapshot: null,
-        changed_fields: [],
-        total_delta: null,
-        payload: { versionLabel: "V2" },
-        correlation_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-      },
-      {
-        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
-        event_type: "sheet_restored_as_copy",
-        event_source: "server_action",
-        created_at: "2026-05-24T02:30:00.000Z",
-        actor_user_id: null,
-        target_row_id: null,
-        estimate_node_id: null,
-        row_context: {},
-        old_snapshot: null,
-        new_snapshot: null,
-        changed_fields: [],
-        total_delta: null,
-        payload: { newSheetCode: "QA-ROLLBACK-0524" },
-        correlation_id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-      },
-      {
-        id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
-        event_type: "sheet_code_updated",
-        event_source: "server_action",
-        created_at: "2026-05-24T02:00:00.000Z",
-        actor_user_id: null,
-        target_row_id: null,
-        estimate_node_id: null,
-        row_context: {},
-        old_snapshot: { sheetCode: "ES-001" },
-        new_snapshot: { sheetCode: "ES-002" },
-        changed_fields: ["sheetCode"],
-        total_delta: null,
-        payload: {},
-        correlation_id: "99999999-9999-4999-8999-999999999999",
-      },
-    ];
-    const eventsQuery = queryResult({ data: eventRows, error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
-    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
-
-    const result = await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      eventLimit: 10,
-    });
-
-    expect(eventsQuery.not).toHaveBeenCalledWith("event_type", "in", "(sheet_version_created,sheet_restored_as_copy)");
-    expect(result.events.map((event) => event.eventType)).toEqual(["sheet_code_updated"]);
-  });
-
-  it("supports row-only reads without querying the sheet activity lane", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const rowEventsQuery = queryResult({ data: [], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return rowEventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
-    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
-
-    const result = await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      rowId: "row-1",
-      scope: "row",
-    });
-
-    expect(supabase.from).toHaveBeenCalledTimes(2);
-    expect(rowEventsQuery.eq).toHaveBeenCalledWith("target_row_id", "row-1");
-    expect(result.events).toEqual([]);
-    expect(result.nodeEvents).toEqual([]);
-    expect(result.nextCursor).toBeNull();
-  });
-
-  it("supports direct node-scoped reads without querying unused sheet or row lanes", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const nodeQuery = queryResult({ data: { id: "node-1", estimate_id: "estimate-1", parent_id: null, kind: "area", estimates: { project_id: "project-1" } }, error: null });
-    const nodeEventsQuery = queryResult({ data: [], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_nodes") return nodeQuery;
-        if (table === "estimate_sheet_events") return nodeEventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
-    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
-
-    const result = await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      nodeId: "node-1",
-      scope: "node",
-    });
-
-    expect(supabase.from).toHaveBeenCalledTimes(3);
-    expect(nodeEventsQuery.eq).toHaveBeenCalledWith("estimate_node_id", "node-1");
-    expect(result.events).toEqual([]);
-    expect(result.rowEvents).toEqual([]);
-    expect(result.nodeEvents).toEqual([]);
-  });
-
-  it("supports descendant node-scoped reads by filtering descendant node and row ids", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const nodeQuery = queryResult({ data: { id: "group-1", estimate_id: "estimate-1", parent_id: null, kind: "group", estimates: { project_id: "project-1" } }, error: null });
-    const descendantsQuery = queryResult({
-      data: [
-        { id: "group-1", parent_id: null, kind: "group" },
-        { id: "area-1", parent_id: "group-1", kind: "area" },
-        { id: "area-2", parent_id: "group-1", kind: "area" },
-      ],
-      error: null,
-    });
-    const rowsQuery = queryResult({ data: [{ id: "row-1" }, { id: "row-2" }], error: null });
-    const nodeEventsQuery = queryResult({ data: [], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_nodes") return nodeQuery;
-        if (table === "estimate_row_items") return rowsQuery;
-        if (table === "estimate_sheet_events") return nodeEventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    nodeQuery.select.mockImplementationOnce(() => nodeQuery).mockImplementationOnce(() => descendantsQuery);
-    descendantsQuery.eq.mockImplementation(() => descendantsQuery);
-    rowsQuery.select.mockImplementation(() => rowsQuery);
-    mockEstimateActionsDataStore(supabase);
-    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
-
-    await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      nodeId: "group-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      nodeId: NODE_ID,
       includeDescendants: true,
       scope: "node",
     });
 
-    expect(nodeEventsQuery.or).toHaveBeenCalledWith("estimate_node_id.in.(group-1,area-1,area-2),target_row_id.in.(row-1,row-2)");
+    expect(nodeIntentMocks.resolveEstimateActivityNodeScope).toHaveBeenCalledWith(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      nodeId: NODE_ID,
+      includeDescendants: true,
+    });
+    const query = database.eventReads()[0]!;
+    expect(query.sql).toContain("estimate_node_id IN (?, ?, ?)");
+    expect(query.sql).toContain("target_row_id IN (?, ?)");
+    expect(query.values).toEqual(expect.arrayContaining([NODE_ID, "area-1", "area-2", ROW_ID, TARGET_ROW_ID]));
   });
 
-  it("applies validated event filters, date ranges, and search filters", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const eventsQuery = queryResult({ data: [], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
+  it("applies canonical event filters, date range, and safe search in D1 SQL", async () => {
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
       scope: "sheet",
       eventTypes: ["row_updated", "template_inserted"],
       dateFrom: "2026-05-01T00:00:00.000Z",
@@ -1219,179 +785,80 @@ describe("estimate sheet version control server actions", () => {
       search: "hardwood",
     });
 
-    expect(eventsQuery.in).toHaveBeenCalledWith("event_type", [
+    const query = database.eventReads()[0]!;
+    expect(query.sql).toContain("event_type IN (?, ?, ?, ?, ?)");
+    expect(query.sql).toContain("created_at >= ?");
+    expect(query.sql).toContain("created_at <= ?");
+    expect(query.sql).toContain("json_extract(row_context, '$.material') LIKE ? COLLATE NOCASE");
+    expect(query.values).toEqual(expect.arrayContaining([
       "row_updated",
       "estimate_row_updated",
       "template_inserted",
       "estimate_template_inserted",
       "template_node_subtree_inserted",
-    ]);
-    expect(eventsQuery.gte).toHaveBeenCalledWith("created_at", "2026-05-01T00:00:00.000Z");
-    expect(eventsQuery.lte).toHaveBeenCalledWith("created_at", "2026-05-25T00:00:00.000Z");
-    expect(eventsQuery.or).toHaveBeenCalledWith(expect.stringContaining("event_type.ilike.%hardwood%"));
-    expect(eventsQuery.or).toHaveBeenCalledWith(expect.stringContaining("row_context->>material.ilike.%hardwood%"));
+      "2026-05-01T00:00:00.000Z",
+      "2026-05-25T00:00:00.000Z",
+      "%hardwood%",
+    ]));
   });
 
-  it("rejects unsafe activity search before querying event rows", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") throw new Error("Event rows should not be queried with unsafe search.");
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
+  it("rejects unsafe search and invalid cursor values before event SQL", async () => {
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await expect(fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      search: "bad,value",
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, search: "bad,value",
     })).rejects.toThrow("Activity search contains unsupported characters.");
+    await expect(fetchEstimateSheetVersionControl({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sheetCursor: { createdAt: "not-a-date", id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+    })).rejects.toThrow("Estimate activity cursor timestamp is invalid.");
+
+    expect(database.eventReads()).toHaveLength(0);
   });
 
-  it("enriches activity events with safe actor labels from visible profiles", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const eventsQuery = queryResult({
-      data: [
-        {
-          id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          event_type: "row_updated",
-          event_source: "server_action",
-          created_at: "2026-05-24T03:00:00.000Z",
-          actor_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          target_row_id: "row-1",
-          estimate_node_id: "node-1",
-          row_context: {},
-          old_snapshot: null,
-          new_snapshot: null,
-          changed_fields: [],
-          total_delta: null,
-          payload: {},
-          correlation_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        },
-      ],
-      error: null,
-    });
-    const profilesQuery = queryResult({ data: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", display_name: "Philip Lewis", email: "philipjonlewis@gmail.com" }], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return eventsQuery;
-        if (table === "profiles") return profilesQuery;
-        throw new Error(`Unexpected table ${table}`);
+  it("enriches actors from visible profile name or normalized email", async () => {
+    database.sheetRows = [
+      historyRow("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "2026-05-24T03:00:00.000Z", {
+        actor_user_id: USER_ID,
       }),
-    };
-    mockEstimateActionsDataStore(supabase);
+      historyRow("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "2026-05-24T02:00:00.000Z", {
+        actor_user_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      }),
+    ];
+    database.profiles = [
+      { id: USER_ID, display_name: "Philip Lewis", email: "owner@example.test" },
+      { id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", display_name: null, email: "philipjonlewis@gmail.com" },
+    ];
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      scope: "sheet",
+      projectId: PROJECT_ID, estimateId: ESTIMATE_ID, scope: "sheet",
     });
 
-    expect(profilesQuery.in).toHaveBeenCalledWith("id", ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
-    expect(profilesQuery.select).toHaveBeenCalledWith("id, display_name, email");
-    expect(result.events[0]?.actorLabel).toBe("Philip Lewis");
+    expect(database.reads.find((read) => read.sql.includes("FROM profiles"))?.values).toEqual([
+      USER_ID, "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    ]);
+    expect(result.events.map((event) => event.actorLabel)).toEqual(["Philip Lewis", "Philip Lewis"]);
+    expect(result.events[0]).not.toHaveProperty("actorEmail");
+    expect(result.events[1]).not.toHaveProperty("actorEmail");
+    expect(JSON.stringify(result.events)).not.toContain("owner@example.test");
+    expect(JSON.stringify(result.events)).not.toContain("philipjonlewis@gmail.com");
   });
 
-  it("uses profile email as the actor label source when display name is missing", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const eventsQuery = queryResult({
-      data: [
-        {
-          id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          event_type: "row_updated",
-          event_source: "server_action",
-          created_at: "2026-05-24T03:00:00.000Z",
-          actor_user_id: "4e23801d-6fc2-4886-b980-d15ca2b164b8",
-          target_row_id: "row-1",
-          estimate_node_id: "node-1",
-          row_context: {},
-          old_snapshot: null,
-          new_snapshot: null,
-          changed_fields: [],
-          total_delta: null,
-          payload: {},
-          correlation_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        },
-      ],
-      error: null,
-    });
-    const profilesQuery = queryResult({
-      data: [{ id: "4e23801d-6fc2-4886-b980-d15ca2b164b8", display_name: null, email: "philipjonlewis@gmail.com" }],
-      error: null,
-    });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") return eventsQuery;
-        if (table === "profiles") return profilesQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
-    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
-
-    const result = await fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      scope: "sheet",
-    });
-
-    expect(result.events[0]?.actorLabel).toBe("Philip Lewis");
-    expect(result.events[0]?.actorLabel).not.toMatch(/^User /);
-  });
-
-  it("returns read-only Activity retention metrics with threshold flags", async () => {
-    const metricsResult = {
-      data: [
-        {
-          workspace_event_bytes: 1024,
-          workspace_version_bytes: 2048,
-          largest_event_payload_bytes: 512,
-          max_estimate_event_count: 120,
-          estimates_over_event_threshold: 0,
-          workspace_storage_over_threshold: false,
-        },
-      ],
-      error: null,
-    };
-    const supabase = {
-      rpc: vi.fn(async () => metricsResult),
-    };
-    mockEstimateActionsDataStore(supabase);
+  it("returns typed read-only retention metrics", async () => {
     const { fetchEstimateActivityRetentionMetrics } = await import("@/lib/estimates/actions");
 
-    const result = await fetchEstimateActivityRetentionMetrics({ projectId: "project-1" });
+    const result = await fetchEstimateActivityRetentionMetrics({ projectId: PROJECT_ID });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("get_estimate_activity_retention_metrics", { target_project_id: "project-1" });
-    expect(result.workspaceEventBytes).toBe(1024);
-    expect(result.workspaceVersionBytes).toBe(2048);
-    expect(result.workspaceStorageOverThreshold).toBe(false);
-  });
-
-  it("rejects invalid history cursors before querying event rows", async () => {
-    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimates") return estimateQuery;
-        if (table === "estimate_sheet_events") throw new Error("Event rows should not be queried with an invalid cursor.");
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    mockEstimateActionsDataStore(supabase);
-    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
-
-    await expect(fetchEstimateSheetVersionControl({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      sheetCursor: {
-        createdAt: "not-a-date",
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      },
-    })).rejects.toThrow("Estimate activity cursor timestamp is invalid.");
+    expect(accessIntentMocks.getEstimateActivityRetentionMetrics).toHaveBeenCalledWith(database, { projectId: PROJECT_ID });
+    expect(result).toEqual({
+      workspaceEventBytes: 1024,
+      workspaceVersionBytes: 2048,
+      largestEventPayloadBytes: 512,
+      maxEstimateEventCount: 120,
+      estimatesOverEventThreshold: 0,
+      workspaceStorageOverThreshold: false,
+    });
   });
 });

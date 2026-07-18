@@ -55,6 +55,37 @@ function canonicalRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function authoritativeEstimateRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: ROW_ID,
+    estimate_id: ESTIMATE_ID,
+    node_id: NODE_ID,
+    material: "Express component",
+    description: "Express description",
+    designation: null,
+    discipline: null,
+    supplier: "Supplier",
+    supplier_id: null,
+    quantity: 1,
+    quantity_base: null,
+    quantity_contingency_amount: null,
+    unit: "unit",
+    unit_cost: 125,
+    misc_cost: 0,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
+    source_snapshot: null,
+    sort_order: 0,
+    row_revision: 1,
+    category_node_id: null,
+    source_library_item_id: null,
+    link_state: "unlinked",
+    metadata: {},
+    pricing_provenance_origin: null,
+    ...overrides,
+  };
+}
+
 function canonicalImageAssetDescriptor(overrides: Record<string, unknown> = {}) {
   return {
     kind: "upload-asset",
@@ -80,29 +111,64 @@ function uploadedEstimateRowImageUrl(path: string) {
 
 const requireAuth = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
-const fromSpy = vi.hoisted(() => vi.fn());
-const rpcSpy = vi.hoisted(() => vi.fn());
-const createEstimateActionsD1Client = vi.hoisted(() => vi.fn());
+const requireEstimateD1Database = vi.hoisted(() => vi.fn());
+const firstD1Row = vi.hoisted(() => vi.fn());
+const getEstimateRowForProject = vi.hoisted(() => vi.fn());
+const insertEstimateRowItemWithHistoryIntent = vi.hoisted(() => vi.fn());
+const duplicateEstimateRowItemWithHistoryIntent = vi.hoisted(() => vi.fn());
+const updateEstimateRowItemWithHistoryIntent = vi.hoisted(() => vi.fn());
+const replaceEstimateRowItemWithHistoryIntent = vi.hoisted(() => vi.fn());
+const deleteEstimateRowItemWithHistoryIntent = vi.hoisted(() => vi.fn());
+const deleteEstimateRowItemsBulkWithHistoryIntent = vi.hoisted(() => vi.fn());
+const moveEstimateRowItemWithHistoryIntent = vi.hoisted(() => vi.fn());
+const moveEstimateRowComponentWithHistoryIntent = vi.hoisted(() => vi.fn());
+const restoreDeletedEstimateRowsWithHistoryIntent = vi.hoisted(() => vi.fn());
+const previewEstimateComponentEditImpact = vi.hoisted(() => vi.fn());
+const canEditEstimate = vi.hoisted(() => vi.fn());
+const canEditProject = vi.hoisted(() => vi.fn());
+const validateEstimateRowImageAsset = vi.hoisted(() => vi.fn());
 const clearEstimateRouteContextProcessCache = vi.hoisted(() => vi.fn());
 const getCurrentWorkspaceProject = vi.hoisted(() => vi.fn());
 const getCurrentWorkspaceProjectForEstimate = vi.hoisted(() => vi.fn());
+const getProjectEstimateTreeByEstimate = vi.hoisted(() => vi.fn());
+const canEditEstimateInD1 = vi.hoisted(() => vi.fn());
+const canEditProjectInD1 = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/session", () => ({
   requireAuth,
   requireCurrentUserContext,
   getCurrentUserContext: requireCurrentUserContext,
 }));
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => ({
-    from: fromSpy,
-    rest: { rpc: rpcSpy },
-    rpc(this: { rest: { rpc: typeof rpcSpy } }, ...args: Parameters<typeof rpcSpy>) {
-      return this.rest.rpc(...args);
-    },
-  })),
+vi.mock("@/lib/estimates/d1-intents/database", () => ({
+  requireEstimateD1Database,
+  firstD1Row,
 }));
-vi.mock("@/lib/estimates/d1-action-client", () => ({
-  createEstimateActionsD1Client,
+vi.mock("@/lib/estimates/d1-intents/rows", () => ({
+  deleteEstimateRowItemWithHistory: deleteEstimateRowItemWithHistoryIntent,
+  deleteEstimateRowItemsBulkWithHistory: deleteEstimateRowItemsBulkWithHistoryIntent,
+  duplicateEstimateRowItemWithHistory: duplicateEstimateRowItemWithHistoryIntent,
+  getEstimateRowForProject,
+  insertEstimateRowItemWithHistory: insertEstimateRowItemWithHistoryIntent,
+  moveEstimateRowComponentWithHistory: moveEstimateRowComponentWithHistoryIntent,
+  moveEstimateRowItemWithHistory: moveEstimateRowItemWithHistoryIntent,
+  replaceEstimateRowItemWithHistory: replaceEstimateRowItemWithHistoryIntent,
+  restoreDeletedEstimateRowsWithHistory: restoreDeletedEstimateRowsWithHistoryIntent,
+  updateEstimateRowItemWithHistory: updateEstimateRowItemWithHistoryIntent,
+}));
+vi.mock("@/lib/estimates/d1-intents/access", () => ({
+  canEditEstimate,
+  canEditProject,
+  getEstimateActivityRetentionMetrics: vi.fn(),
+  validateEstimateRowImageAsset,
+}));
+vi.mock("@/lib/estimates/d1-intents/component-impact", () => ({
+  previewEstimateComponentEditImpact,
+}));
+vi.mock("@/lib/authz/d1-access", () => ({
+  canEditEstimateInD1,
+  canEditEstimateStrictInD1: canEditEstimateInD1,
+  canEditProjectInD1,
+  canEditProjectStrictInD1: canEditProjectInD1,
 }));
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   clearEstimateRouteContextProcessCache,
@@ -110,7 +176,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabs: vi.fn(async () => []),
   getEstimateTabTree: vi.fn(async () => []),
   getCurrentWorkspaceProjectForEstimate,
-  getProjectEstimateTreeByEstimate: vi.fn(async () => ({ tree: [] })),
+  getProjectEstimateTreeByEstimate,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
@@ -126,6 +192,8 @@ import {
   deleteEstimateTab,
   duplicateEstimateSheet,
   duplicateEstimateTab,
+  fetchEstimateEditCapability,
+  getEstimateComponentEditImpact,
   insertEstimateRowItemFromLibrary,
   moveEstimateRowComponentWithHistory,
   moveEstimateRowItemWithHistory,
@@ -135,31 +203,39 @@ import {
   renameEstimateNode,
   reorderEstimateTabs,
   reorderEstimateTreeNodes,
+  restoreDeletedEstimateRows,
   updateEstimateDetails,
   updateEstimateRowItem,
 } from "@/lib/estimates/actions";
 
-function chain(single: unknown) {
-  const c: Record<string, unknown> = {};
-  for (const method of ["select", "eq", "in", "order", "is", "insert", "update", "limit"]) {
-    c[method] = () => c;
-  }
-  c.maybeSingle = async () => ({ data: single, error: null });
-  c.single = async () => ({ data: single, error: null });
-  c.then = (resolve: (value: { data: unknown[]; error: null }) => unknown) => resolve({ data: [], error: null });
-  return c;
-}
-
-const writeTables = new Set(["estimate_nodes", "estimate_tabs", "estimate_row_items"]);
+const database = { prepare: vi.fn(), batch: vi.fn() };
 
 describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   beforeEach(() => {
-    fromSpy.mockReset();
-    rpcSpy.mockReset();
-    createEstimateActionsD1Client.mockReset();
+    database.prepare.mockReset();
+    database.batch.mockReset();
+    requireEstimateD1Database.mockReset();
+    firstD1Row.mockReset();
+    getEstimateRowForProject.mockReset();
+    insertEstimateRowItemWithHistoryIntent.mockReset();
+    duplicateEstimateRowItemWithHistoryIntent.mockReset();
+    updateEstimateRowItemWithHistoryIntent.mockReset();
+    replaceEstimateRowItemWithHistoryIntent.mockReset();
+    deleteEstimateRowItemWithHistoryIntent.mockReset();
+    deleteEstimateRowItemsBulkWithHistoryIntent.mockReset();
+    moveEstimateRowItemWithHistoryIntent.mockReset();
+    moveEstimateRowComponentWithHistoryIntent.mockReset();
+    restoreDeletedEstimateRowsWithHistoryIntent.mockReset();
+    previewEstimateComponentEditImpact.mockReset();
+    canEditEstimate.mockReset();
+    canEditProject.mockReset();
+    validateEstimateRowImageAsset.mockReset();
     clearEstimateRouteContextProcessCache.mockReset();
     getCurrentWorkspaceProject.mockReset();
     getCurrentWorkspaceProjectForEstimate.mockReset();
+    getProjectEstimateTreeByEstimate.mockReset();
+    canEditEstimateInD1.mockReset();
+    canEditProjectInD1.mockReset();
     requireAuth.mockResolvedValue(undefined);
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
@@ -174,56 +250,112 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       workspace: { id: "ws-1", name: "WS", createdBy: "u1" },
       project: { id: PROJECT_ID, workspaceId: "ws-1", name: "Proj", currencyCode: "PHP", metadata: {} },
     });
-    createEstimateActionsD1Client.mockResolvedValue({
-      from: fromSpy,
-      call: rpcSpy,
+    getProjectEstimateTreeByEstimate.mockResolvedValue({
+      project: { id: PROJECT_ID },
+      estimate: { id: ESTIMATE_ID },
+      tree: [{ id: NODE_ID, children: [] }],
     });
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimates") return chain({ id: ESTIMATE_ID, project_id: PROJECT_ID });
-      return chain(null);
+    firstD1Row.mockImplementation(async (_database: unknown, sql: string) => {
+      if (sql.includes("FROM estimates WHERE id = ? AND project_id = ?")) {
+        return {
+          id: ESTIMATE_ID,
+          project_id: PROJECT_ID,
+          name: "Estimate",
+          currency_code: "PHP",
+          created_by: "11111111-1111-4111-8111-111111111111",
+          created_at: "2026-07-16T00:00:00.000Z",
+          updated_at: "2026-07-16T00:00:00.000Z",
+          metadata: {},
+          sheet_code: "ES-001",
+          notes: null,
+          project_budget: null,
+        };
+      }
+      if (sql.includes("FROM estimate_nodes node")) {
+        return {
+          id: NODE_ID,
+          estimate_id: ESTIMATE_ID,
+          estimate_tab_id: ACTIVE_TAB_ID,
+          parent_id: null,
+          kind: "area",
+          name: "Area",
+          sort_order: 0,
+          metadata_json: {},
+          created_at: "2026-07-16T00:00:00.000Z",
+          updated_at: "2026-07-16T00:00:00.000Z",
+        };
+      }
+      return null;
     });
-    // Read-only collaborator: both edit checks deny.
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_project" || fn === "can_edit_estimate") return Promise.resolve({ data: false, error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    requireEstimateD1Database.mockResolvedValue(database);
+    getEstimateRowForProject.mockResolvedValue(null);
+    insertEstimateRowItemWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    duplicateEstimateRowItemWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    updateEstimateRowItemWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    replaceEstimateRowItemWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    deleteEstimateRowItemWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    deleteEstimateRowItemsBulkWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    moveEstimateRowItemWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    moveEstimateRowComponentWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    restoreDeletedEstimateRowsWithHistoryIntent.mockRejectedValue(new Error("Estimate edit access denied."));
+    canEditEstimate.mockResolvedValue(false);
+    canEditProject.mockResolvedValue(false);
+    canEditEstimateInD1.mockResolvedValue(false);
+    canEditProjectInD1.mockResolvedValue(false);
+    validateEstimateRowImageAsset.mockResolvedValue(null);
   });
 
   function assertNoWrite() {
-    const touchedWriteTable = fromSpy.mock.calls.some(([table]) => writeTables.has(table as string));
-    expect(touchedWriteTable).toBe(false);
+    expect(database.batch).not.toHaveBeenCalled();
   }
 
   it("createEstimateSheetDraft denies a viewer with a clean error before any write", async () => {
     await expect(createEstimateSheetDraft(PROJECT_ID)).rejects.toThrow(/edit access denied/i);
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
+    expect(canEditProject).toHaveBeenCalledWith(database, expect.objectContaining({ userId: expect.any(String) }), PROJECT_ID);
     assertNoWrite();
   });
 
   it("duplicateEstimateSheet denies a viewer before copying the source", async () => {
     await expect(duplicateEstimateSheet({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID })).rejects.toThrow(/edit access denied/i);
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
+    expect(canEditEstimate).toHaveBeenCalledWith(database, expect.objectContaining({ userId: expect.any(String) }), ESTIMATE_ID);
     assertNoWrite();
   });
 
-  it("updateEstimateDetails denies a viewer before the history RPC", async () => {
+  it("fetchEstimateEditCapability adapts a typed access failure to false", async () => {
+    const authError = new Error("estimate auth probe failed");
+    canEditEstimate.mockRejectedValueOnce(authError);
+
+    await expect(fetchEstimateEditCapability({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+    })).resolves.toBe(false);
+
+    expect(canEditEstimate).toHaveBeenCalledWith(
+      database,
+      expect.objectContaining({ userId: expect.any(String) }),
+      ESTIMATE_ID,
+    );
+    assertNoWrite();
+  });
+
+  it("updateEstimateDetails denies a viewer before the typed history intent writes", async () => {
     await expect(
       updateEstimateDetails({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, name: "New" }),
     ).rejects.toThrow(/edit access denied/i);
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
-    expect(rpcSpy).not.toHaveBeenCalledWith("update_estimate_details_with_history", expect.anything());
+    expect(canEditEstimate).toHaveBeenCalledWith(database, expect.objectContaining({ userId: expect.any(String) }), ESTIMATE_ID);
+    assertNoWrite();
   });
 
-  it("regenerateEstimateSheetCode denies a viewer before the history RPC", async () => {
+  it("regenerateEstimateSheetCode denies a viewer before the typed history intent writes", async () => {
     await expect(
       regenerateEstimateSheetCode({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID }),
     ).rejects.toThrow(/edit access denied/i);
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
+    expect(canEditEstimate).toHaveBeenCalledWith(database, expect.objectContaining({ userId: expect.any(String) }), ESTIMATE_ID);
+    assertNoWrite();
   });
 
-  it("insert/update/replace/delete row actions deny a viewer before row writes", async () => {
+  it("row actions deny a viewer before every typed row and component-impact intent", async () => {
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow());
     await expect(insertEstimateRowItemFromLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, targetNodeId: NODE_ID, rowId: ROW_ID, libraryItem })).rejects.toThrow(/edit access denied/i);
     await expect(updateEstimateRowItem({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, quantity: 2 })).rejects.toThrow(/edit access denied/i);
     await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).rejects.toThrow(/edit access denied/i);
@@ -249,16 +381,30 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
       rowIds: [ROW_ID],
+      expectedRowRevisions: { [ROW_ID]: 1 },
+    })).rejects.toThrow(/edit access denied/i);
+    await expect(restoreDeletedEstimateRows({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceEventId: EVENT_ID,
+      rowIds: [ROW_ID],
+    })).rejects.toThrow(/edit access denied/i);
+    await expect(getEstimateComponentEditImpact({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
     })).rejects.toThrow(/edit access denied/i);
 
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
-    expect(rpcSpy).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_component_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_item_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", expect.anything());
+    expect(canEditEstimate).toHaveBeenCalledWith(database, expect.objectContaining({ userId: expect.any(String) }), ESTIMATE_ID);
+    expect(insertEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
+    expect(updateEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
+    expect(replaceEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
+    expect(deleteEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
+    expect(moveEstimateRowComponentWithHistoryIntent).not.toHaveBeenCalled();
+    expect(moveEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
+    expect(deleteEstimateRowItemsBulkWithHistoryIntent).not.toHaveBeenCalled();
+    expect(restoreDeletedEstimateRowsWithHistoryIntent).not.toHaveBeenCalled();
+    expect(previewEstimateComponentEditImpact).not.toHaveBeenCalled();
   });
 
   it("tree mutation actions deny a viewer before tree writes", async () => {
@@ -276,16 +422,11 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       }),
     ).rejects.toThrow(/edit access denied/i);
 
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
-    expect(rpcSpy).not.toHaveBeenCalledWith("create_estimate_node_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("rename_estimate_node_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_node_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_nodes_bulk_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.anything());
+    expect(canEditEstimateInD1).toHaveBeenCalledWith(database, ESTIMATE_ID, expect.objectContaining({ userId: expect.any(String) }));
     assertNoWrite();
   });
 
-  it("tab mutation actions deny a viewer before tab history RPCs", async () => {
+  it("tab mutation actions deny a viewer before typed history writes", async () => {
     await expect(createEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, name: "Page 002" })).rejects.toThrow(/edit access denied/i);
     await expect(renameEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID, name: "Renamed Page" })).rejects.toThrow(/edit access denied/i);
     await expect(reorderEstimateTabs({
@@ -297,75 +438,46 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     await expect(archiveEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
     await expect(deleteEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
 
-    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
-    expect(rpcSpy).not.toHaveBeenCalledWith("create_estimate_tab_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("rename_estimate_tab_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("reorder_estimate_tabs_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("duplicate_estimate_tab_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("archive_estimate_tab_with_history", expect.anything());
-    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_tab_with_history", expect.anything());
+    expect(canEditEstimateInD1).toHaveBeenCalledWith(database, ESTIMATE_ID, expect.objectContaining({ userId: expect.any(String) }));
+    assertNoWrite();
   });
 
   it("updateEstimateRowItem omits sourceSnapshot and metadata for routine edits", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: "66666666-6666-4666-8666-666666666666",
-          link_state: "linked-clean",
-          row_revision: 1,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      source_library_item_id: "66666666-6666-4666-8666-666666666666",
+      link_state: "linked-clean",
+    }));
+    updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow());
 
     const result = await updateEstimateRowItem({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, quantity: 2 });
-    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
+    const updateCall = updateEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as {
+      projectId: string;
+      estimateId: string;
+      rowId: string;
+      rowPatch: Record<string, unknown>;
+    } | undefined;
 
     expect(result).toMatchObject({ rowId: ROW_ID, material: "Express component", itemCost: 125, rowRevision: 2 });
-    expect(updateCall?.[1]).toMatchObject({
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: ROW_ID,
-      row_patch: { quantity: 2, linkState: "linked-overridden" },
+    expect(updateCall).toMatchObject({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      rowPatch: { quantity: 2, linkState: "linked-overridden" },
     });
-    expect(updateCall?.[1].row_patch).not.toHaveProperty("sourceSnapshot");
-    expect(updateCall?.[1].row_patch).not.toHaveProperty("metadata");
+    expect(updateCall?.rowPatch).not.toHaveProperty("sourceSnapshot");
+    expect(updateCall?.rowPatch).not.toHaveProperty("metadata");
   });
 
 
   it("updateEstimateRowItem merges source snapshot patches before writing JSON", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: null,
-          source_snapshot: { category: "Cabinetry", sourceUrl: "https://example.com/original" },
-          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-          link_state: "unlinked",
-          row_revision: 4,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({ sourceSnapshot: { category: "Cabinetry", sourceUrl: "https://example.com/original", imageUrl: "/component-thumbnails/reference.webp" } }), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      source_snapshot: { category: "Cabinetry", sourceUrl: "https://example.com/original" },
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+      row_revision: 4,
+    }));
+    updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow({ sourceSnapshot: { category: "Cabinetry", sourceUrl: "https://example.com/original", imageUrl: "/component-thumbnails/reference.webp" } }));
 
     await updateEstimateRowItem({
       projectId: PROJECT_ID,
@@ -373,9 +485,9 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       rowId: ROW_ID,
       sourceSnapshot: { imageUrl: "/component-thumbnails/reference.webp" },
     });
-    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
+    const updateCall = updateEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as { rowPatch: Record<string, unknown> } | undefined;
 
-    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+    expect(updateCall?.rowPatch.sourceSnapshot).toEqual({
       category: "Cabinetry",
       sourceUrl: "https://example.com/original",
       imageUrl: "/component-thumbnails/reference.webp",
@@ -383,35 +495,20 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   });
 
   it("updateEstimateRowItem strips unsafe source snapshot patch fields before writing JSON", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: null,
-          source_snapshot: {
-            category: "Cabinetry",
-            sourceUrl: "https://example.com/original",
-            signedUrl: "https://storage.example/signed-token",
-            storagePath: "workspace/private/path.webp",
-            tags: ["built-in", "\u0000bad"],
-            componentVersionNumber: 3,
-          },
-          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-          link_state: "unlinked",
-          row_revision: 4,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      source_snapshot: {
+        category: "Cabinetry",
+        sourceUrl: "https://example.com/original",
+        signedUrl: "https://storage.example/signed-token",
+        storagePath: "workspace/private/path.webp",
+        tags: ["built-in", "\u0000bad"],
+        componentVersionNumber: 3,
+      },
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+      row_revision: 4,
+    }));
+    updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow());
 
     await updateEstimateRowItem({
       projectId: PROJECT_ID,
@@ -427,9 +524,9 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
         unexpectedPrivateKey: "secret",
       },
     });
-    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
+    const updateCall = updateEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as { rowPatch: Record<string, unknown> } | undefined;
 
-    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+    expect(updateCall?.rowPatch.sourceSnapshot).toEqual({
       category: "Cabinetry",
       sourceUrl: null,
       tags: ["built-in"],
@@ -439,33 +536,17 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   });
 
   it("updateEstimateRowItem drops tainted existing image asset descriptors before re-saving source snapshots", async () => {
+    canEditEstimate.mockResolvedValue(true);
     const taintedDescriptor = canonicalImageAssetDescriptor({ path: "workspace-evil/user-evil/tampered.webp" });
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: null,
-          source_snapshot: {
-            category: "Cabinetry",
-            imageAsset: taintedDescriptor,
-          },
-          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-          link_state: "unlinked",
-          row_revision: 4,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "validate_estimate_row_image_asset") return Promise.resolve({ data: null, error: null });
-      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      source_snapshot: {
+        category: "Cabinetry",
+        imageAsset: taintedDescriptor,
+      },
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+      row_revision: 4,
+    }));
+    updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow());
 
     await updateEstimateRowItem({
       projectId: PROJECT_ID,
@@ -474,60 +555,40 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       sourceSnapshot: { sourceUrl: "https://example.com/reference" },
     });
 
-    expect(rpcSpy).toHaveBeenCalledWith("validate_estimate_row_image_asset", {
-      target_asset_id: UPLOAD_ASSET_ID,
-      target_upload_session_id: UPLOAD_SESSION_ID,
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: ROW_ID,
+    expect(validateEstimateRowImageAsset).toHaveBeenCalledWith(database, {
+      assetId: UPLOAD_ASSET_ID,
+      uploadSessionId: UPLOAD_SESSION_ID,
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
     });
-    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
-    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+    const updateCall = updateEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as { rowPatch: Record<string, unknown> } | undefined;
+    expect(updateCall?.rowPatch.sourceSnapshot).toEqual({
       category: "Cabinetry",
       sourceUrl: "https://example.com/reference",
     });
   });
 
   it("updateEstimateRowItem canonicalizes uploaded reference image asset descriptors before writing source snapshots", async () => {
+    canEditEstimate.mockResolvedValue(true);
     const canonicalDescriptor = canonicalImageAssetDescriptor({
       path: `11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111/project-images/${PROJECT_ID}/estimate-row-images/${ESTIMATE_ID}/reference.webp`,
       thumbnailPath: `11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111/project-images/${PROJECT_ID}/estimate-row-images/${ESTIMATE_ID}/reference-thumb.webp`,
     });
     const imageUrl = uploadedEstimateRowImageUrl(String(canonicalDescriptor.thumbnailPath));
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: null,
-          source_snapshot: { category: "Cabinetry" },
-          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-          link_state: "unlinked",
-          row_revision: 4,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "validate_estimate_row_image_asset") return Promise.resolve({ data: canonicalDescriptor, error: null });
-      if (fn === "update_estimate_row_item_with_history") {
-        return Promise.resolve({
-          data: canonicalRow({
-            sourceSnapshot: {
-              category: "Cabinetry",
-              imageUrl,
-              imageAsset: canonicalDescriptor,
-            },
-          }),
-          error: null,
-        });
-      }
-      return Promise.resolve({ data: null, error: null });
-    });
+    validateEstimateRowImageAsset.mockResolvedValue(canonicalDescriptor);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      source_snapshot: { category: "Cabinetry" },
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+      row_revision: 4,
+    }));
+    updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow({
+      sourceSnapshot: {
+        category: "Cabinetry",
+        imageUrl,
+        imageAsset: canonicalDescriptor,
+      },
+    }));
 
     await updateEstimateRowItem({
       projectId: PROJECT_ID,
@@ -542,15 +603,15 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       },
     });
 
-    expect(rpcSpy).toHaveBeenCalledWith("validate_estimate_row_image_asset", {
-      target_asset_id: UPLOAD_ASSET_ID,
-      target_upload_session_id: UPLOAD_SESSION_ID,
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: ROW_ID,
+    expect(validateEstimateRowImageAsset).toHaveBeenCalledWith(database, {
+      assetId: UPLOAD_ASSET_ID,
+      uploadSessionId: UPLOAD_SESSION_ID,
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
     });
-    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
-    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+    const updateCall = updateEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as { rowPatch: Record<string, unknown> } | undefined;
+    expect(updateCall?.rowPatch.sourceSnapshot).toEqual({
       category: "Cabinetry",
       imageUrl,
       imageAsset: canonicalDescriptor,
@@ -558,29 +619,11 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   });
 
   it("updateEstimateRowItem rejects uploaded reference image asset descriptors that fail row validation", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: null,
-          source_snapshot: null,
-          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-          link_state: "unlinked",
-          row_revision: 4,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "validate_estimate_row_image_asset") return Promise.resolve({ data: null, error: null });
-      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+      row_revision: 4,
+    }));
 
     await expect(updateEstimateRowItem({
       projectId: PROJECT_ID,
@@ -592,28 +635,17 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       },
     })).rejects.toThrow("Reference image asset is not valid for this estimate row.");
 
-    expect(rpcSpy).toHaveBeenCalledWith("validate_estimate_row_image_asset", expect.objectContaining({
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: ROW_ID,
+    expect(validateEstimateRowImageAsset).toHaveBeenCalledWith(database, expect.objectContaining({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
     }));
-    expect(rpcSpy).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
+    expect(updateEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
   });
 
-  it("insertEstimateRowItemFromLibrary returns the canonical row when the RPC returns it", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-		if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-		if (table === "estimate_nodes") return chain({ id: NODE_ID, estimate_id: ESTIMATE_ID, kind: "area", estimates: { project_id: PROJECT_ID } });
-		if (table === "estimate_row_items") return chain({ sort_order: 4 });
-		if (table === "cost_library_items") return chain({ id: libraryItem.id, updated_at: null, lifecycle_state: "available" });
-		return chain(null);
-	});
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "insert_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({ rowRevision: 1 }), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+  it("insertEstimateRowItemFromLibrary returns the canonical row from the typed intent", async () => {
+    canEditEstimate.mockResolvedValue(true);
+    insertEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow({ rowRevision: 1 }));
 
     await expect(insertEstimateRowItemFromLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, targetNodeId: NODE_ID, rowId: ROW_ID, libraryItem })).resolves.toMatchObject({
       rowId: ROW_ID,
@@ -622,39 +654,23 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       sourceSnapshot: { sourceType: "express_component" },
     });
 
-    const insertCall = rpcSpy.mock.calls.find(([fn]) => fn === "insert_estimate_row_item_with_history") as [string, { row_payload: { sourceSnapshot: Record<string, unknown> } }] | undefined;
-    expect(insertCall?.[1].row_payload.sourceSnapshot.sourceUpdatedAt).toBe(libraryItem.updatedAt);
+    const insertCall = insertEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as {
+      rowPayload: { sourceSnapshot: Record<string, unknown> };
+    } | undefined;
+    expect(insertCall?.rowPayload.sourceSnapshot.sourceUpdatedAt).toBe(libraryItem.updatedAt);
   });
 
-  it("replaceEstimateRowItemWithLibrary replaces express rows through the history RPC", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-		if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-		if (table === "cost_library_items") return chain({ id: libraryItem.id, updated_at: null, lifecycle_state: "available" });
-		if (table === "estimate_row_items") {
-			return chain({
-          id: ROW_ID,
-          node_id: NODE_ID,
-          estimate_id: ESTIMATE_ID,
-          source_library_item_id: null,
-          source_snapshot: null,
-          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-          link_state: "unlinked",
-          row_revision: 1,
-        });
-      }
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "replace_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({
-        material: libraryItem.material,
-        sourceSnapshot: { sourceType: "library_component", sourceComponentId: libraryItem.id },
-        linkState: "linked-clean",
-        rowRevision: 2,
-      }), error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+  it("replaceEstimateRowItemWithLibrary replaces express rows through the typed intent", async () => {
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow({
+      metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+    }));
+    replaceEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow({
+      material: libraryItem.material,
+      sourceSnapshot: { sourceType: "library_component", sourceComponentId: libraryItem.id },
+      linkState: "linked-clean",
+      rowRevision: 2,
+    }));
 
     await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).resolves.toMatchObject({
       rowId: ROW_ID,
@@ -663,43 +679,36 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       rowRevision: 2,
     });
 
-    const replaceCall = rpcSpy.mock.calls.find(([fn]) => fn === "replace_estimate_row_item_with_history") as [string, { replacement_payload: Record<string, unknown> }] | undefined;
-    expect(replaceCall?.[1]).toMatchObject({
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: ROW_ID,
-      expected_row_revision: 1,
-      replacement_payload: expect.objectContaining({
+    const replaceCall = replaceEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as {
+      projectId: string;
+      estimateId: string;
+      rowId: string;
+      expectedRowRevision: number;
+      replacementPayload: Record<string, unknown>;
+    } | undefined;
+    expect(replaceCall).toMatchObject({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      expectedRowRevision: 1,
+      replacementPayload: expect.objectContaining({
         sourceLibraryItemId: libraryItem.id,
         material: libraryItem.material,
         linkState: "linked-clean",
       }),
     });
-    expect(replaceCall?.[1].replacement_payload.metadata).not.toHaveProperty("expressComponent");
+    expect(replaceCall?.replacementPayload.metadata).not.toHaveProperty("expressComponent");
   });
 
-  it("moveEstimateRowItemWithHistory calls the dedicated RPC without a caller-supplied actor", async () => {
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      return chain(null);
-    });
-    rpcSpy.mockImplementation((fn: string) => {
-      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "move_estimate_row_item_with_history") {
-        return Promise.resolve({
-          data: {
-            eventId: EVENT_ID,
-            updatedRowCount: 2,
-            rows: [
-              { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, rowRevision: 3 },
-              { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, rowRevision: 4 },
-            ],
-          },
-          error: null,
-        });
-      }
-      return Promise.resolve({ data: null, error: null });
+  it("moveEstimateRowItemWithHistory calls the typed intent without a caller-supplied actor", async () => {
+    canEditEstimate.mockResolvedValue(true);
+    moveEstimateRowItemWithHistoryIntent.mockResolvedValue({
+      eventId: EVENT_ID,
+      updatedRowCount: 2,
+      rows: [
+        { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, rowRevision: 3 },
+        { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, rowRevision: 4 },
+      ],
     });
 
     const result = await moveEstimateRowItemWithHistory({
@@ -716,7 +725,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       ],
     });
 
-    const moveCall = rpcSpy.mock.calls.find(([fn]) => fn === "move_estimate_row_item_with_history") as [string, Record<string, unknown>] | undefined;
+    const moveCall = moveEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as Record<string, unknown> | undefined;
 
     expect(result).toEqual({
       eventId: EVENT_ID,
@@ -726,23 +735,26 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
         { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, rowRevision: 4 },
       ],
     });
-    expect(moveCall?.[1]).toEqual({
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_active_tab_id: ACTIVE_TAB_ID,
-      moved_row_id: ROW_ID,
-      source_node_id: NODE_ID,
-      target_node_id: TARGET_NODE_ID,
-      move_updates: [
+    expect(moveCall).toEqual({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      activeTabId: ACTIVE_TAB_ID,
+      movedRowId: ROW_ID,
+      sourceNodeId: NODE_ID,
+      targetNodeId: TARGET_NODE_ID,
+      updates: [
         { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, expectedRowRevision: 2 },
         { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, expectedRowRevision: 3 },
       ],
-      correlation_id: MUTATION_ID,
+      correlationId: MUTATION_ID,
     });
-    expect(moveCall?.[1]).not.toHaveProperty("acting_user_id");
+    expect(moveCall).not.toHaveProperty("actingUserId");
+    expect(moveEstimateRowItemWithHistoryIntent.mock.calls[0]?.[1]).toEqual(expect.objectContaining({
+      userId: "11111111-1111-4111-8111-111111111111",
+    }));
   });
 
-  it("moveEstimateRowItemWithHistory rejects malformed local move payloads before the RPC", async () => {
+  it("moveEstimateRowItemWithHistory rejects malformed local move payloads before the typed intent", async () => {
     await expect(moveEstimateRowItemWithHistory({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
@@ -752,6 +764,6 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       updates: [],
     })).rejects.toThrow(/at least one row order update/i);
 
-    expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_item_with_history", expect.anything());
+    expect(moveEstimateRowItemWithHistoryIntent).not.toHaveBeenCalled();
   });
 });

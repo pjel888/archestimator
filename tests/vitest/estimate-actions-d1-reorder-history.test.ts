@@ -2,7 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentUserContext } from "@/lib/auth/session";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
-import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import { previewEstimateComponentEditImpact } from "@/lib/estimates/d1-intents/component-impact";
+import {
+  createEstimateNodeWithHistory,
+  deleteEstimateNodesWithHistory,
+  readEstimateNodesForDuplication,
+  renameEstimateNodeWithHistory,
+  reorderEstimateNodesWithHistory,
+  restoreDeletedEstimateNodesWithHistory,
+} from "@/lib/estimates/d1-intents/nodes";
+import { updateEstimateRowItemWithHistory } from "@/lib/estimates/d1-intents/rows";
+import { duplicateEstimateTabWithHistory } from "@/lib/estimates/d1-intents/tabs";
 
 vi.mock("server-only", () => ({}));
 
@@ -12,6 +22,7 @@ const USER_ID = "33333333-3333-4333-8333-333333333333";
 const ESTIMATE_ID = "44444444-4444-4444-8444-444444444444";
 const NODE_ID = "55555555-5555-4555-8555-555555555555";
 const OTHER_PROJECT_ID = "66666666-6666-4666-8666-666666666666";
+const SPOOF_ACTOR_ID = "99999999-9999-4999-8999-999999999999";
 
 type FakeProjectRow = {
   id: string;
@@ -193,6 +204,21 @@ function createCurrentUserContext(): CurrentUserContext {
   };
 }
 
+async function captureIntent<T>(run: () => Promise<T>) {
+  try {
+    return { data: await run(), error: null };
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+  }
+}
+
+function captureRowUpdate(
+  database: D1DatabaseLike,
+  input: Parameters<typeof updateEstimateRowItemWithHistory>[2],
+) {
+  return captureIntent(() => updateEstimateRowItemWithHistory(database, createCurrentUserContext(), input));
+}
+
 function makeProjectComponentVariantRow(input: {
   id: string;
   selectedPriceOptionId: string;
@@ -291,7 +317,12 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return existing ? ({ id: existing.id, payload: JSON.stringify(existing.payload) } as R) : null;
     }
 
-    if (this.sql.includes("SELECT *") && this.sql.includes("FROM estimate_sheet_events")) {
+    if (
+      this.sql.includes("FROM estimate_sheet_events")
+      && this.sql.includes("event_type")
+      && this.sql.includes("old_snapshot")
+      && this.sql.includes("project_id = ?")
+    ) {
       const eventId = String(this.values[0] ?? "");
       const estimateId = String(this.values[1] ?? "");
       const projectId = String(this.values[2] ?? "");
@@ -317,11 +348,28 @@ class FakeD1Statement<T = Record<string, unknown>> {
         : null;
     }
 
-    if (this.sql.includes("SELECT *") && this.sql.includes("FROM estimate_tabs")) {
+    if (this.sql.includes("FROM estimate_tabs") && this.sql.includes("AND id = ?")) {
       const estimateId = String(this.values[0] ?? "");
       const tabId = String(this.values[1] ?? "");
       const tab = this.database.tabs.get(tabId);
       return tab && tab.estimate_id === estimateId ? ({ ...tab } as R) : null;
+    }
+
+    if (this.sql.includes("FROM estimate_nodes") && this.sql.includes("AND id = ?")) {
+      const estimateId = String(this.values[0] ?? "");
+      const nodeId = String(this.values[1] ?? "");
+      const node = this.database.nodes.get(nodeId);
+      return node && node.estimate_id === estimateId ? ({ ...node } as R) : null;
+    }
+
+    if (this.sql.includes("SELECT MAX(sort_order) AS max_sort_order") && this.sql.includes("FROM estimate_nodes")) {
+      const [estimateId, tabId, parentId] = this.values;
+      const sortOrders = [...this.database.nodes.values()]
+        .filter((node) => node.estimate_id === estimateId
+          && (node.estimate_tab_id ?? null) === tabId
+          && node.parent_id === parentId)
+        .map((node) => node.sort_order);
+      return ({ max_sort_order: sortOrders.length > 0 ? Math.max(...sortOrders) : null } as R);
     }
 
     if (this.sql.includes("SELECT MAX(sort_order) AS max_sort_order FROM estimate_tabs")) {
@@ -347,6 +395,29 @@ class FakeD1Statement<T = Record<string, unknown>> {
       const project = estimate ? this.database.projects.get(estimate.project_id) : null;
       return row && row.estimate_id === estimateId && estimate?.project_id === projectId && project
         ? ({ ...row, workspace_id: project.workspace_id } as R)
+        : null;
+    }
+
+    if (
+      this.sql.includes("row_item.row_revision")
+      && this.sql.includes("project.workspace_id")
+      && this.sql.includes("FROM estimate_row_items row_item")
+    ) {
+      const rowId = String(this.values[0] ?? "");
+      const estimateId = String(this.values[1] ?? "");
+      const projectId = String(this.values[2] ?? "");
+      const row = this.database.rowItems.get(rowId);
+      const estimate = this.database.estimates.get(estimateId);
+      const project = estimate ? this.database.projects.get(estimate.project_id) : null;
+      return row && row.estimate_id === estimateId && estimate?.project_id === projectId && project
+        ? ({
+            row_revision: row.row_revision,
+            link_state: row.link_state ?? null,
+            source_library_item_id: row.source_library_item_id ?? null,
+            source_snapshot_json: row.source_snapshot_json ?? null,
+            metadata_json: row.metadata_json ?? null,
+            workspace_id: project.workspace_id,
+          } as R)
         : null;
     }
 
@@ -518,7 +589,7 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return { success: true, meta: { changes: 1 } };
     }
 
-    if (this.sql.startsWith("INSERT INTO estimate_tabs")) {
+    if (this.sql.includes("INSERT INTO estimate_tabs")) {
       const columns = this.sql.slice(this.sql.indexOf("(") + 1, this.sql.indexOf(")")).split(",").map((column) => column.trim());
       const record = Object.fromEntries(columns.map((column, index) => [column, this.values[index]]));
       this.database.tabs.set(String(record.id), {
@@ -554,7 +625,7 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return { success: true, meta: { changes: 1 } };
     }
 
-    if (this.sql.startsWith("INSERT INTO estimate_nodes")) {
+    if (this.sql.includes("INSERT INTO estimate_nodes")) {
       const columns = this.sql.slice(this.sql.indexOf("(") + 1, this.sql.indexOf(")")).split(",").map((column) => column.trim());
       const rowCount = Math.max(1, Math.floor(this.values.length / Math.max(columns.length, 1)));
       for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
@@ -576,7 +647,7 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return { success: true, meta: { changes: rowCount } };
     }
 
-    if (this.sql.startsWith("INSERT INTO estimate_row_items")) {
+    if (this.sql.includes("INSERT INTO estimate_row_items")) {
       const columns = this.sql.slice(this.sql.indexOf("(") + 1, this.sql.indexOf(")")).split(",").map((column) => column.trim());
       const rowCount = Math.max(1, Math.floor(this.values.length / Math.max(columns.length, 1)));
       for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
@@ -593,6 +664,16 @@ class FakeD1Statement<T = Record<string, unknown>> {
       if (node && node.estimate_id === estimateId) {
         node.parent_id = parentId === null ? null : String(parentId);
         node.sort_order = Number(sortOrder);
+      }
+      return { success: true, meta: { changes: node ? 1 : 0 } };
+    }
+
+    if (this.sql.includes("UPDATE estimate_nodes SET name = ?")) {
+      const [name, updatedAt, nodeId, estimateId] = this.values;
+      const node = this.database.nodes.get(String(nodeId));
+      if (node && node.estimate_id === estimateId) {
+        node.name = String(name);
+        node.updated_at = String(updatedAt);
       }
       return { success: true, meta: { changes: node ? 1 : 0 } };
     }
@@ -813,19 +894,323 @@ function makeDuplicateSourceRow(
   } satisfies FakeRowItem;
 }
 
-describe("EstimateActionsD1Client reorder history", () => {
+describe("typed estimate node and tab intents", () => {
+  it("rejects tab duplication without atomic support before auth or receipt reads", async () => {
+    const database = new FakeD1Database();
+    Object.defineProperty(database, "batch", { value: undefined });
+
+    await expect(duplicateEstimateTabWithHistory(database, createCurrentUserContext(), {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceTabId: "tab-a",
+      correlationId: "no-atomic-tab-copy",
+    })).rejects.toThrow("Estimate tab duplication requires atomic D1 batch support.");
+    expect(database.firstStatements).toEqual([]);
+    expect(database.batchStatements).toEqual([]);
+  });
+
+  it("creates and renames nodes through direct owners while deriving history and activation actors only from the injected actor", async () => {
+    const database = new FakeD1Database();
+    const spoofedCreateInput = {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      parentNodeId: null,
+      estimateTabId: "tab-a",
+      kind: "area" as const,
+      name: "Direct area",
+      correlationId: "direct-node-create",
+      acting_user_id: SPOOF_ACTOR_ID,
+      actorUserId: SPOOF_ACTOR_ID,
+    };
+
+    const created = await createEstimateNodeWithHistory(
+      database,
+      createCurrentUserContext(),
+      spoofedCreateInput,
+    );
+    const renamed = await renameEstimateNodeWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        nodeId: created.nodeId,
+        name: "Renamed direct area",
+        correlationId: "direct-node-rename",
+        acting_user_id: SPOOF_ACTOR_ID,
+      } as Parameters<typeof renameEstimateNodeWithHistory>[2],
+    );
+
+    expect(renamed).toEqual({ nodeId: created.nodeId });
+    expect(database.nodes.get(created.nodeId)).toMatchObject({
+      estimate_id: ESTIMATE_ID,
+      estimate_tab_id: "tab-a",
+      parent_id: null,
+      kind: "area",
+      name: "Renamed direct area",
+      sort_order: 1000,
+    });
+    expect(database.historyEvents.map((event) => ({
+      eventType: event.event_type,
+      actorUserId: event.actor_user_id,
+    }))).toEqual([
+      { eventType: "estimate_node_created", actorUserId: USER_ID },
+      { eventType: "estimate_node_renamed", actorUserId: USER_ID },
+    ]);
+    const activation = database.batchStatements.find((statement) => statement.sql.includes("INSERT INTO beta_activation_outbox"));
+    expect(activation?.values[2]).toBe(USER_ID);
+    expect(database.batchStatements.flatMap((statement) => statement.values)).not.toContain(SPOOF_ACTOR_ID);
+  });
+
+  it("computes a new node sort order from the maximum existing sibling in the direct owner", async () => {
+    const database = new FakeD1Database();
+    database.nodes.set("root-sibling", {
+      id: "root-sibling",
+      estimate_id: ESTIMATE_ID,
+      estimate_tab_id: "tab-a",
+      parent_id: null,
+      kind: "group",
+      name: "Existing root",
+      sort_order: 3500,
+      metadata_json: "{}",
+      created_at: "2026-07-06T00:00:00.000Z",
+      updated_at: "2026-07-06T00:00:00.000Z",
+    });
+    database.nodes.set("unrelated-child", {
+      id: "unrelated-child",
+      estimate_id: ESTIMATE_ID,
+      estimate_tab_id: "tab-a",
+      parent_id: "root-sibling",
+      kind: "area",
+      name: "Unrelated child",
+      sort_order: 9000,
+      metadata_json: "{}",
+      created_at: "2026-07-06T00:00:00.000Z",
+      updated_at: "2026-07-06T00:00:00.000Z",
+    });
+
+    const result = await createEstimateNodeWithHistory(database, createCurrentUserContext(), {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      parentNodeId: null,
+      estimateTabId: "tab-a",
+      kind: "group",
+      name: "Next root",
+      correlationId: "direct-node-max-sibling-sort",
+    });
+
+    expect(database.nodes.get(result.nodeId)).toMatchObject({
+      estimate_tab_id: "tab-a",
+      parent_id: null,
+      sort_order: 4500,
+    });
+    expect(database.firstStatements.find((statement) => statement.sql.includes("SELECT MAX(sort_order) AS max_sort_order"))?.values)
+      .toEqual([ESTIMATE_ID, "tab-a", null]);
+  });
+
+  it("creates a child beneath a legacy parent while preserving the legacy tabless scope", async () => {
+    const database = new FakeD1Database();
+    database.nodes.set("legacy-level", {
+      id: "legacy-level",
+      estimate_id: ESTIMATE_ID,
+      estimate_tab_id: null,
+      parent_id: null,
+      kind: "level",
+      name: "Legacy level",
+      sort_order: 1000,
+      metadata_json: "{}",
+      created_at: "2026-07-06T00:00:00.000Z",
+      updated_at: "2026-07-06T00:00:00.000Z",
+    });
+    database.nodes.set("legacy-child", {
+      id: "legacy-child",
+      estimate_id: ESTIMATE_ID,
+      estimate_tab_id: null,
+      parent_id: "legacy-level",
+      kind: "area",
+      name: "Existing legacy child",
+      sort_order: 4000,
+      metadata_json: "{}",
+      created_at: "2026-07-06T00:00:00.000Z",
+      updated_at: "2026-07-06T00:00:00.000Z",
+    });
+
+    const result = await createEstimateNodeWithHistory(database, createCurrentUserContext(), {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      parentNodeId: "legacy-level",
+      estimateTabId: null,
+      kind: "area",
+      name: "New legacy child",
+      correlationId: "direct-node-legacy-parent",
+    });
+
+    expect(database.nodes.get(result.nodeId)).toMatchObject({
+      estimate_tab_id: null,
+      parent_id: "legacy-level",
+      kind: "area",
+      name: "New legacy child",
+      sort_order: 5000,
+    });
+  });
+
+  it("rejects invalid parent and tab scopes in the direct node owner before writes", async () => {
+    const cases: Array<{
+      configure: (database: FakeD1Database) => void;
+      input: Parameters<typeof createEstimateNodeWithHistory>[2];
+      message: string;
+    }> = [
+      {
+        configure: () => undefined,
+        input: {
+          projectId: PROJECT_ID,
+          estimateId: ESTIMATE_ID,
+          parentNodeId: "missing-parent",
+          estimateTabId: null,
+          kind: "area",
+          name: "Missing parent child",
+          correlationId: "direct-node-missing-parent",
+        },
+        message: "Parent estimate node not found in the current estimate.",
+      },
+      {
+        configure: (database) => {
+          database.tabs.set("tab-b", {
+            id: "tab-b",
+            estimate_id: ESTIMATE_ID,
+            name: "Page 002",
+            sort_order: 1000,
+            is_default: 0,
+            archived_at: null,
+            created_at: "2026-07-06T00:00:00.000Z",
+            updated_at: "2026-07-06T00:00:00.000Z",
+          });
+          database.nodes.set("tab-a-parent", {
+            id: "tab-a-parent",
+            estimate_id: ESTIMATE_ID,
+            estimate_tab_id: "tab-a",
+            parent_id: null,
+            kind: "group",
+            name: "Tab A parent",
+            sort_order: 1000,
+            created_at: "2026-07-06T00:00:00.000Z",
+            updated_at: "2026-07-06T00:00:00.000Z",
+          });
+        },
+        input: {
+          projectId: PROJECT_ID,
+          estimateId: ESTIMATE_ID,
+          parentNodeId: "tab-a-parent",
+          estimateTabId: "tab-b",
+          kind: "area",
+          name: "Cross-tab child",
+          correlationId: "direct-node-cross-tab-parent",
+        },
+        message: "Estimate tree nodes cannot be created across tabs.",
+      },
+      {
+        configure: () => undefined,
+        input: {
+          projectId: PROJECT_ID,
+          estimateId: ESTIMATE_ID,
+          parentNodeId: null,
+          estimateTabId: "missing-tab",
+          kind: "group",
+          name: "Missing tab root",
+          correlationId: "direct-node-missing-tab",
+        },
+        message: "Estimate tab not found in the current estimate.",
+      },
+      {
+        configure: (database) => {
+          database.tabs.set("tab-archived", {
+            id: "tab-archived",
+            estimate_id: ESTIMATE_ID,
+            name: "Archived page",
+            sort_order: 2000,
+            is_default: 0,
+            archived_at: "2026-07-06T00:00:00.000Z",
+            created_at: "2026-07-06T00:00:00.000Z",
+            updated_at: "2026-07-06T00:00:00.000Z",
+          });
+        },
+        input: {
+          projectId: PROJECT_ID,
+          estimateId: ESTIMATE_ID,
+          parentNodeId: null,
+          estimateTabId: "tab-archived",
+          kind: "group",
+          name: "Archived tab root",
+          correlationId: "direct-node-archived-tab",
+        },
+        message: "Estimate tree nodes cannot be created in an archived tab.",
+      },
+    ];
+
+    for (const testCase of cases) {
+      const database = new FakeD1Database();
+      testCase.configure(database);
+      await expect(createEstimateNodeWithHistory(database, createCurrentUserContext(), testCase.input))
+        .rejects.toThrow(testCase.message);
+      expect(database.batchStatements).toEqual([]);
+      expect(database.historyEvents).toEqual([]);
+    }
+  });
+
+  it("scopes direct node rename to the requested project and estimate before writes", async () => {
+    const crossEstimateDatabase = new FakeD1Database();
+    crossEstimateDatabase.estimates.set("other-estimate", { id: "other-estimate", project_id: PROJECT_ID });
+    crossEstimateDatabase.nodes.set("other-estimate-node", {
+      id: "other-estimate-node",
+      estimate_id: "other-estimate",
+      estimate_tab_id: null,
+      parent_id: null,
+      kind: "area",
+      name: "Other estimate node",
+      sort_order: 1000,
+      created_at: "2026-07-06T00:00:00.000Z",
+      updated_at: "2026-07-06T00:00:00.000Z",
+    });
+
+    await expect(renameEstimateNodeWithHistory(crossEstimateDatabase, createCurrentUserContext(), {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      nodeId: "other-estimate-node",
+      name: "Escaped rename",
+      correlationId: "direct-node-cross-estimate-rename",
+    })).rejects.toThrow("Estimate tree node not found in the current project.");
+    expect(crossEstimateDatabase.nodes.get("other-estimate-node")?.name).toBe("Other estimate node");
+    expect(crossEstimateDatabase.batchStatements).toEqual([]);
+    expect(crossEstimateDatabase.historyEvents).toEqual([]);
+
+    const crossProjectDatabase = new FakeD1Database();
+    crossProjectDatabase.projects.set(OTHER_PROJECT_ID, { id: OTHER_PROJECT_ID, workspace_id: WORKSPACE_ID });
+    await expect(renameEstimateNodeWithHistory(crossProjectDatabase, createCurrentUserContext(), {
+      projectId: OTHER_PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      nodeId: NODE_ID,
+      name: "Wrong project rename",
+      correlationId: "direct-node-cross-project-rename",
+    })).rejects.toThrow("Estimate not found in the current project.");
+    expect(crossProjectDatabase.nodes.get(NODE_ID)?.name).toBeUndefined();
+    expect(crossProjectDatabase.batchStatements).toEqual([]);
+    expect(crossProjectDatabase.historyEvents).toEqual([]);
+  });
+
   it("writes scoped reorder history with project and workspace context", async () => {
     const database = new FakeD1Database();
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-    const updates = [{ id: NODE_ID, parent_id: null, sort_order: 20 }];
+    const updates = [{ id: NODE_ID, parentId: null, sortOrder: 20 }];
 
-    const result = await client.call<{ updatedNodeCount: number }>("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: updates,
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-correlation-1",
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        updates,
+        correlationId: "reorder-correlation-1",
+      },
+    ));
 
     expect(result.error).toBeNull();
     expect(result.data).toEqual({ updatedNodeCount: 1 });
@@ -841,29 +1226,31 @@ describe("EstimateActionsD1Client reorder history", () => {
       correlation_id: "reorder-correlation-1",
       actor_user_id: USER_ID,
       changed_fields: ["parent_id", "sort_order"],
-      payload: { updates },
+      payload: { updates: [{ id: NODE_ID, parent_id: null, sort_order: 20 }] },
     });
   });
 
   it.each([
-    ["missing", {}],
-    ["empty", { target_project_id: "" }],
-    ["unknown", { target_project_id: OTHER_PROJECT_ID }],
-  ])("rejects %s target_project_id before mutating reordered nodes", async (_label, projectScope) => {
+    ["missing", ""],
+    ["empty", ""],
+    ["unknown", OTHER_PROJECT_ID],
+  ])("rejects %s projectId before mutating reordered nodes", async (_label, projectId) => {
     const database = new FakeD1Database();
     const before = { ...database.nodes.get(NODE_ID) };
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("reorder_estimate_nodes_with_history", {
-      ...projectScope,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: NODE_ID, parent_id: null, sort_order: 20 }],
-      acting_user_id: USER_ID,
-      correlation_id: `reorder-preflight-${_label}`,
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId,
+        estimateId: ESTIMATE_ID,
+        updates: [{ id: NODE_ID, parentId: null, sortOrder: 20 }],
+        correlationId: `reorder-preflight-${_label}`,
+      },
+    ));
 
     expect(result.data).toBeNull();
-    expect(result.error?.message).toBe("Estimate history event workspace could not be resolved.");
+    expect(result.error?.message).toBe("Estimate not found in the current project.");
     expect(database.nodes.get(NODE_ID)).toEqual(before);
     expect(database.batchStatements).toEqual([]);
     expect(database.historyEvents).toEqual([]);
@@ -873,15 +1260,17 @@ describe("EstimateActionsD1Client reorder history", () => {
     const database = new FakeD1Database();
     database.projects.set(OTHER_PROJECT_ID, { id: OTHER_PROJECT_ID, workspace_id: WORKSPACE_ID });
     const before = { ...database.nodes.get(NODE_ID) };
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: OTHER_PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: NODE_ID, parent_id: null, sort_order: 20 }],
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-wrong-project",
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: OTHER_PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        updates: [{ id: NODE_ID, parentId: null, sortOrder: 20 }],
+        correlationId: "reorder-wrong-project",
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Estimate not found in the current project.");
@@ -891,20 +1280,22 @@ describe("EstimateActionsD1Client reorder history", () => {
   });
 
   it.each([
-    ["an unknown updated node", [{ id: "missing-node", parent_id: null, sort_order: 10 }], "Estimate tree update node not found in the current estimate."],
-    ["an unknown parent", [{ id: NODE_ID, parent_id: "missing-parent", sort_order: 10 }], "Estimate tree update parent not found in the current estimate."],
+    ["an unknown updated node", [{ id: "missing-node", parentId: null, sortOrder: 10 }], "Estimate tree update node not found in the current estimate."],
+    ["an unknown parent", [{ id: NODE_ID, parentId: "missing-parent", sortOrder: 10 }], "Estimate tree update parent not found in the current estimate."],
   ])("rejects %s before mutating D1", async (_label, moveUpdates, expectedMessage) => {
     const database = new FakeD1Database();
     const before = [...database.nodes.entries()];
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: moveUpdates,
-      acting_user_id: USER_ID,
-      correlation_id: `reorder-invalid-${_label}`,
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        updates: moveUpdates,
+        correlationId: `reorder-invalid-${_label}`,
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe(expectedMessage);
@@ -923,15 +1314,17 @@ describe("EstimateActionsD1Client reorder history", () => {
       sort_order: 10,
     });
     const before = [...database.nodes.entries()];
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: "other-node", parent_id: null, sort_order: 20 }],
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-cross-estimate",
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        updates: [{ id: "other-node", parentId: null, sortOrder: 20 }],
+        correlationId: "reorder-cross-estimate",
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Estimate tree update node not found in the current estimate.");
@@ -946,31 +1339,29 @@ describe("EstimateActionsD1Client reorder history", () => {
       ["node-b", { id: "node-b", estimate_id: ESTIMATE_ID, parent_id: null, sort_order: 20 }],
       ["node-a", { id: "node-a", estimate_id: ESTIMATE_ID, parent_id: null, sort_order: 10 }],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const reorder = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
+    const reorder = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
       // DEC-AUTO-008: the planner dense-renumbers sibling slots. Equal slots
       // remain deterministic on read via the id tiebreaker; they are not rejected.
-      move_updates: [
-        { id: "node-c", parent_id: null, sort_order: 10 },
-        { id: "node-b", parent_id: null, sort_order: 10 },
-        { id: "node-a", parent_id: null, sort_order: 20 },
+      updates: [
+        { id: "node-c", parentId: null, sortOrder: 10 },
+        { id: "node-b", parentId: null, sortOrder: 10 },
+        { id: "node-a", parentId: null, sortOrder: 20 },
       ],
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-readback",
+      correlationId: "reorder-readback",
+      },
+    ));
+    const readback = await readEstimateNodesForDuplication(database, {
+      estimateId: ESTIMATE_ID,
+      tabIds: [],
     });
-    const readback = await client
-      .from("estimate_nodes")
-      .select("*")
-      .eq("estimate_id", ESTIMATE_ID)
-      .order("sort_order", { ascending: true })
-      .order("id", { ascending: true });
 
     expect(reorder.error).toBeNull();
-    expect(readback.error).toBeNull();
-    expect((readback.data as FakeNodeRow[] | null)?.map((node) => node.id)).toEqual(["node-b", "node-c", "node-a"]);
+    expect(readback.map((node) => node.id)).toEqual(["node-b", "node-c", "node-a"]);
   });
 
   it("restores a deleted node subtree and its rows from D1 history snapshots", async () => {
@@ -992,23 +1383,20 @@ describe("EstimateActionsD1Client reorder history", () => {
       sort_order: 10,
       row_revision: 1,
     });
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const deletion = await client.call<{ eventId: string }>("delete_estimate_node_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_node_id: "ground-floor",
-      acting_user_id: USER_ID,
-      correlation_id: "delete-for-restore",
-    });
-    const restore = await client.call("restore_deleted_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      source_delete_event_id: deletion.data?.eventId,
-      target_node_ids: ["ground-floor"],
-      acting_user_id: USER_ID,
-      correlation_id: "restore-deleted-tree",
-    });
+    const actor = createCurrentUserContext();
+    const deletion = await captureIntent(() => deleteEstimateNodesWithHistory(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      nodeIds: ["ground-floor"],
+      correlationId: "delete-for-restore",
+    }));
+    const restore = await captureIntent(() => restoreDeletedEstimateNodesWithHistory(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceEventId: deletion.data?.eventId ?? "",
+      nodeIds: ["ground-floor"],
+      correlationId: "restore-deleted-tree",
+    }));
 
     expect(deletion.error).toBeNull();
     expect(database.historyEvents[0]?.old_snapshot).toMatchObject({
@@ -1057,16 +1445,17 @@ describe("EstimateActionsD1Client reorder history", () => {
       },
       payload: {},
     });
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("restore_deleted_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      source_delete_event_id: "delete-event-with-collision",
-      target_node_ids: [NODE_ID],
-      acting_user_id: USER_ID,
-      correlation_id: "restore-collision",
-    });
+    const result = await captureIntent(() => restoreDeletedEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        sourceEventId: "delete-event-with-collision",
+        nodeIds: [NODE_ID],
+        correlationId: "restore-collision",
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("One or more estimate nodes to restore already exist.");
@@ -1144,14 +1533,12 @@ describe("EstimateActionsD1Client reorder history", () => {
         updated_at: "2026-07-06T00:00:00.000Z",
       }],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         material: "Updated shared cabinet",
         quantity: 9,
         unitCost: 150,
@@ -1162,8 +1549,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           brand: "Updated brand",
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "row-update-correlation-1",
+      correlationId: "row-update-correlation-1",
     });
 
     expect(result.error).toBeNull();
@@ -1267,14 +1653,12 @@ describe("EstimateActionsD1Client reorder history", () => {
         priceOptions: previousPriceOptions,
       })],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         material: "Project cabinet",
         description: "Standard cabinet",
         unit: "lm",
@@ -1288,8 +1672,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           priceOptions: nextPriceOptions,
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "project-variant-option-2-update",
+      correlationId: "project-variant-option-2-update",
     });
 
     expect(result.error).toBeNull();
@@ -1398,14 +1781,12 @@ describe("EstimateActionsD1Client reorder history", () => {
       storage_path: attachment.path,
       metadata_json: JSON.stringify({ projectId: PROJECT_ID, projectComponentId: "project-component-variants" }),
     });
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         description: "Standard cabinet",
         unit: "lm",
         unitCost: 100,
@@ -1418,8 +1799,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           priceOptions: nextPriceOptions,
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "project-variant-attachment-save",
+      correlationId: "project-variant-attachment-save",
     });
 
     expect(result.error).toBeNull();
@@ -1523,14 +1903,12 @@ describe("EstimateActionsD1Client reorder history", () => {
         metadata_json: JSON.stringify({ projectId: PROJECT_ID }),
       });
     }
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         description: "Standard",
         unit: "lm",
         unitCost: 100,
@@ -1546,8 +1924,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           ],
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "project-variant-attachment-remove",
+      correlationId: "project-variant-attachment-remove",
     });
 
     expect(result.error).toBeNull();
@@ -1575,15 +1952,13 @@ describe("EstimateActionsD1Client reorder history", () => {
         id: "row-2", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 250, quantity: 9, miscCost: 30, rowRevision: 3, priceOptions: previousPriceOptions,
       })],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      removed_price_option_replacements: { "variant-2": "variant-1" },
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      removedPriceOptionReplacements: { "variant-2": "variant-1" },
+      rowPatch: {
         description: "Standard",
         unit: "lm",
         unitCost: 100,
@@ -1596,8 +1971,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           priceOptions: nextPriceOptions,
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "project-variant-option-2-replaced",
+      correlationId: "project-variant-option-2-replaced",
     });
 
     expect(result.error).toBeNull();
@@ -1630,14 +2004,12 @@ describe("EstimateActionsD1Client reorder history", () => {
         id: "row-2", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 250, quantity: 9, rowRevision: 3, priceOptions: previousPriceOptions,
       })],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         description: "Standard",
         unit: "lm",
         unitCost: 100,
@@ -1650,8 +2022,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           priceOptions: [previousPriceOptions[0]],
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "project-variant-option-2-rejected",
+      correlationId: "project-variant-option-2-rejected",
     });
 
     expect(result.data).toBeNull();
@@ -1678,13 +2049,15 @@ describe("EstimateActionsD1Client reorder history", () => {
         id: "row-3", selectedPriceOptionId: "variant-2", description: "Premium", unit: "set", unitCost: 250, quantity: 4, rowRevision: 3, priceOptions,
       })],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("preview_estimate_component_edit_impact", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-    });
+    const result = await captureIntent(() => previewEstimateComponentEditImpact(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        rowId: "row-1",
+      },
+    ));
 
     expect(result.error).toBeNull();
     expect(result.data).toMatchObject({
@@ -1765,14 +2138,12 @@ describe("EstimateActionsD1Client reorder history", () => {
         updated_at: "2026-07-06T00:00:00.000Z",
       }],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         material: "Pergo Flooring 2",
         quantity: 9,
         sourceSnapshot: {
@@ -1782,8 +2153,7 @@ describe("EstimateActionsD1Client reorder history", () => {
           brand: "Pergo Updated",
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "row-update-correlation-snapshot-identity",
+      correlationId: "row-update-correlation-snapshot-identity",
     });
 
     expect(result.error).toBeNull();
@@ -1870,20 +2240,17 @@ describe("EstimateActionsD1Client reorder history", () => {
         updated_at: "2026-07-06T00:00:00.000Z",
       }],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("update_estimate_row_item_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      target_row_id: "row-1",
-      expected_row_revision: 1,
-      row_patch: {
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      rowPatch: {
         sourceSnapshot: {
           imageUrl: "https://assets.example.test/pergo.webp",
         },
       },
-      acting_user_id: USER_ID,
-      correlation_id: "row-update-correlation-image",
+      correlationId: "row-update-correlation-image",
     });
 
     expect(result.error).toBeNull();
@@ -1914,22 +2281,19 @@ describe("EstimateActionsD1Client reorder history", () => {
       ["ground-floor", { id: "ground-floor", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "project-scope", sort_order: 20 }],
       ["kitchen", { id: "kitchen", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "ground-floor", sort_order: 30 }],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const selfResult = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: "kitchen", parent_id: "kitchen", sort_order: 10 }],
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-correlation-self",
-    });
-    const cycleResult = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: "ground-floor", parent_id: "kitchen", sort_order: 10 }],
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-correlation-cycle",
-    });
+    const actor = createCurrentUserContext();
+    const selfResult = await captureIntent(() => reorderEstimateNodesWithHistory(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      updates: [{ id: "kitchen", parentId: "kitchen", sortOrder: 10 }],
+      correlationId: "reorder-correlation-self",
+    }));
+    const cycleResult = await captureIntent(() => reorderEstimateNodesWithHistory(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      updates: [{ id: "ground-floor", parentId: "kitchen", sortOrder: 10 }],
+      correlationId: "reorder-correlation-cycle",
+    }));
 
     expect(selfResult.data).toBeNull();
     expect(selfResult.error?.message).toBe("An estimate tree node cannot be moved inside itself or one of its descendants.");
@@ -1946,15 +2310,16 @@ describe("EstimateActionsD1Client reorder history", () => {
       ["kitchen", { id: "kitchen", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "ground-floor", sort_order: 20 }],
       ["site-works", { id: "site-works", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-b", parent_id: null, sort_order: 30 }],
     ]);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
-
-    const result = await client.call("reorder_estimate_nodes_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: "kitchen", parent_id: "site-works", sort_order: 10 }],
-      acting_user_id: USER_ID,
-      correlation_id: "reorder-correlation-cross-tab",
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        updates: [{ id: "kitchen", parentId: "site-works", sortOrder: 10 }],
+        correlationId: "reorder-correlation-cross-tab",
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Estimate tree nodes cannot be moved across tabs.");
@@ -1963,46 +2328,54 @@ describe("EstimateActionsD1Client reorder history", () => {
   });
 
   it.each([
-    ["missing", {}],
-    ["empty", { target_project_id: "" }],
-    ["unknown", { target_project_id: OTHER_PROJECT_ID }],
-  ])("rejects %s target_project_id before appending reorder history", async (_label, projectScope) => {
+    ["missing", ""],
+    ["empty", ""],
+    ["unknown", OTHER_PROJECT_ID],
+  ])("rejects %s projectId before appending reorder history", async (_label, projectId) => {
     const database = new FakeD1Database();
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("reorder_estimate_nodes_with_history", {
-      ...projectScope,
-      target_estimate_id: ESTIMATE_ID,
-      move_updates: [{ id: NODE_ID, parent_id: null, sort_order: 20 }],
-      acting_user_id: USER_ID,
-      correlation_id: `reorder-correlation-${_label}`,
-    });
+    const result = await captureIntent(() => reorderEstimateNodesWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId,
+        estimateId: ESTIMATE_ID,
+        updates: [{ id: NODE_ID, parentId: null, sortOrder: 20 }],
+        correlationId: `reorder-correlation-${_label}`,
+      },
+    ));
 
     expect(result.data).toBeNull();
-    expect(result.error?.message).toBe("Estimate history event workspace could not be resolved.");
+    expect(result.error?.message).toBe("Estimate not found in the current project.");
     expect(database.historyEvents).toEqual([]);
   });
 
   it("duplicates a deep irregular tab with fresh identities and replays one committed receipt", async () => {
     const database = new FakeD1Database();
     seedDeepSourceTab(database);
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
     const args = {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      source_tab_id: "tab-source",
-      next_name: "Irregular Copy",
-      acting_user_id: USER_ID,
-      correlation_id: "duplicate-tab-intent-1",
-    };
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceTabId: "tab-source",
+      name: "Irregular Copy",
+      correlationId: "duplicate-tab-intent-1",
+      acting_user_id: SPOOF_ACTOR_ID,
+    } as Parameters<typeof duplicateEstimateTabWithHistory>[2];
 
-    const firstResult = await client.call<{
+    const firstResult = await captureIntent(() => duplicateEstimateTabWithHistory(
+      database,
+      createCurrentUserContext(),
+      args,
+    )) as {
+      data: {
       estimateTabId: string;
       sourceFingerprint: string;
       copiedNodeCount: number;
       copiedRowCount: number;
       eventId: string;
-    }>("duplicate_estimate_tab_with_history", args);
+      } | null;
+      error: Error | null;
+    };
 
     expect(firstResult.error).toBeNull();
     expect(firstResult.data).toMatchObject({ copiedNodeCount: 5, copiedRowCount: 3 });
@@ -2031,10 +2404,19 @@ describe("EstimateActionsD1Client reorder history", () => {
       expect.objectContaining({ sourceEstimateRowId: "row-b-child" }),
     ]));
     expect(database.historyEvents).toHaveLength(1);
+    expect(database.historyEvents[0]?.actor_user_id).toBe(USER_ID);
     expect(database.mutationReceipts.size).toBe(1);
+    expect([...database.mutationReceipts.values()]).toEqual([
+      expect.objectContaining({ actor_user_id: USER_ID }),
+    ]);
+    expect(database.batchStatements.flatMap((statement) => statement.values)).not.toContain(SPOOF_ACTOR_ID);
     const batchStatementCount = database.batchStatements.length;
 
-    const replayResult = await client.call<typeof firstResult.data>("duplicate_estimate_tab_with_history", args);
+    const replayResult = await captureIntent(() => duplicateEstimateTabWithHistory(
+      database,
+      createCurrentUserContext(),
+      args,
+    ));
 
     expect(replayResult).toEqual(firstResult);
     expect(database.tabs.size).toBe(3);
@@ -2050,15 +2432,17 @@ describe("EstimateActionsD1Client reorder history", () => {
       const sourceRow = database.rowItems.get("row-root-a");
       if (sourceRow) sourceRow.updated_at = "2026-07-15T00:00:00.000Z";
     };
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("duplicate_estimate_tab_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      source_tab_id: "tab-source",
-      acting_user_id: USER_ID,
-      correlation_id: "duplicate-tab-source-race",
-    });
+    const result = await captureIntent(() => duplicateEstimateTabWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        sourceTabId: "tab-source",
+        correlationId: "duplicate-tab-source-race",
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Cloudflare D1 estimate action batch failed.");
@@ -2073,15 +2457,17 @@ describe("EstimateActionsD1Client reorder history", () => {
     const database = new FakeD1Database();
     seedDeepSourceTab(database);
     database.nodes.get("a-child")!.parent_id = "outside-tab";
-    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
 
-    const result = await client.call("duplicate_estimate_tab_with_history", {
-      target_project_id: PROJECT_ID,
-      target_estimate_id: ESTIMATE_ID,
-      source_tab_id: "tab-source",
-      acting_user_id: USER_ID,
-      correlation_id: "duplicate-tab-invalid-parent",
-    });
+    const result = await captureIntent(() => duplicateEstimateTabWithHistory(
+      database,
+      createCurrentUserContext(),
+      {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        sourceTabId: "tab-source",
+        correlationId: "duplicate-tab-invalid-parent",
+      },
+    ));
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Estimate tab contains a node whose parent is outside the source tab.");

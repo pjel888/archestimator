@@ -5,6 +5,8 @@ const appLayout = readFileSync("src/app/layout.tsx", "utf8");
 const workshopLayout = readFileSync("src/app/workshop/layout.tsx", "utf8");
 const estimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
 const estimateTree = readFileSync("src/components/workshop/EstimateSheetTree.tsx", "utf8");
+const estimateTreeCrud = readFileSync("src/components/workshop/estimate-tree/use-estimate-tree-crud.ts", "utf8");
+const estimateTreeReorder = readFileSync("src/components/workshop/estimate-tree/use-estimate-tree-reorder.ts", "utf8");
 const treeVisualStyle = readFileSync("src/components/workshop/tree-visual-style.ts", "utf8");
 const estimateContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
 const estimateWorkspaceClient = readFileSync("src/components/workshop/EstimateWorkspaceClient.tsx", "utf8");
@@ -12,6 +14,7 @@ const estimateRowHandlers = readFileSync("src/components/workshop/estimate-sheet
 const projectEstimatesTable = readFileSync("src/components/workshop/ProjectEstimatesTable.tsx", "utf8");
 const projectEstimatesTableUtils = readFileSync("src/components/workshop/project-estimates-table/utils.ts", "utf8");
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+const estimateTreeReadRepository = readFileSync("src/lib/estimates/estimate-tree-read-repository.ts", "utf8");
 const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
 describe("live estimate node route", () => {
@@ -56,9 +59,9 @@ describe("live estimate node route", () => {
     expect(appLayout).not.toContain("lenis/dist/lenis.css");
     expect(estimateTree).toContain("useEstimateAreaTreeQuery");
     expect(estimateContent).toContain("useEstimateAreaTreeQuery");
-    expect(estimateTree).toContain("setLocalNodes(nextNodes)");
-    expect(estimateTree).toContain("setLocalNodes(previousNodes)");
-    expect(estimateTree).toContain('setReorderStatus({ state: "saving"');
+    expect(estimateTreeCrud).toContain("setLocalNodes(nextNodes)");
+    expect(estimateTreeReorder).toContain("setLocalNodes(previousNodes)");
+    expect(estimateTreeReorder).toContain('setReorderStatus({ state: "saving"');
     expect(estimateTree).not.toContain("router.refresh");
     expect(estimateTree).not.toContain("renderDragBetweenLine");
     expect(estimateTree).not.toContain("data-estimate-tree-insertion-zone");
@@ -88,9 +91,9 @@ describe("live estimate node route", () => {
   });
 
   it("keeps scalar tree rename reconciliation client-local instead of full-tree route refresh", () => {
-    const renameStart = estimateTree.indexOf("const commitRenameNode = useCallback");
-    const deleteStart = estimateTree.indexOf("const replaceEstimateRoute =");
-    const renameBlock = estimateTree.slice(renameStart, deleteStart);
+    const renameStart = estimateTreeCrud.indexOf("const commitRenameNode = useCallback");
+    const deleteStart = estimateTreeCrud.indexOf("const replaceEstimateRoute =");
+    const renameBlock = estimateTreeCrud.slice(renameStart, deleteStart);
     const renameActionStart = estimateActions.indexOf("export async function renameEstimateNode");
     const deleteActionStart = estimateActions.indexOf("export async function deleteEstimateNode");
     const renameActionBlock = estimateActions.slice(renameActionStart, deleteActionStart);
@@ -148,7 +151,7 @@ describe("live estimate node route", () => {
     expect(workspaceRepository).toContain("AND estimate.project_id = ?");
     expect(workspaceRepository).toContain("getCurrentWorkspaceProjectForEstimate(projectId, selectedNode.estimate_id)");
     expect(workspaceRepository).toContain("return getProjectEstimateTreeByEstimate(projectId, nodeId)");
-    expect(workspaceRepository).toContain("buildEstimateTree");
+    expect(estimateTreeReadRepository).toContain("buildEstimateTree");
   });
 
   it("opens empty estimates by estimate id instead of looping back to the estimate list", () => {
@@ -163,7 +166,8 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("selectedNodeId: string | null");
     expect(estimateContent).toContain("selectedNodeId: string | null");
     expect(estimateContent).not.toContain("No estimate tree yet");
-    expect(estimateContent).toContain("estimateTree.reduce");
+    expect(estimateContent).toContain("fallbackNode: estimateTree[0]");
+    expect(estimateContent).toContain("findEstimateNode(estimateTree, nodeId)");
   });
 
   it("persists component-library area inserts through a project-scoped server action", () => {

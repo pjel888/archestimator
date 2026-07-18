@@ -74,6 +74,10 @@ describe("mass deletion server action contract", () => {
       "src/lib/component-library/actions.ts",
       "utf8",
     );
+    const componentMutationD1 = readFileSync(
+      "src/lib/component-library/component-mutation-d1.ts",
+      "utf8",
+    );
     const repository = readFileSync(
       "src/lib/repositories/component-library-repository.ts",
       "utf8",
@@ -81,9 +85,9 @@ describe("mass deletion server action contract", () => {
 
     expect(actions).toContain("previewBulkArchiveLibraryComponents");
     expect(actions).toContain("executeBulkArchiveLibraryComponents");
-    expect(actions).toContain("createBulkArchivePreviewHash");
-    expect(actions).toContain("UPDATE cost_library_items");
-    expect(actions).toContain("lifecycle_state = 'archived'");
+    expect(componentMutationD1).toContain("createBulkArchivePreviewHash");
+    expect(componentMutationD1).toContain("UPDATE cost_library_items");
+    expect(componentMutationD1).toContain("lifecycle_state = 'archived'");
     expect(actions).not.toMatch(/preview_bulk_archive_library_components|execute_bulk_archive_library_components|supabase\.rpc/);
     expect(actions).toContain("expectedPreviewHash");
     expect(actions).toContain("revalidateLibraryRoutes()");

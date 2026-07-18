@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { CurrentUserContext } from "@/lib/auth/session";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
-import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import {
+  duplicateEstimateRowItemWithHistory,
+  restoreDeletedEstimateRowsWithHistory,
+} from "@/lib/estimates/d1-intents/rows";
 
 vi.mock("server-only", () => ({}));
 
@@ -37,16 +39,8 @@ function parseJson(value: unknown) {
   return JSON.parse(value) as unknown;
 }
 
-function user(): CurrentUserContext {
-  const now = "2026-07-11T00:00:00.000Z";
-  return {
-    avatarUrl: null,
-    displayName: "Owner",
-    email: "owner@example.test",
-    profile: { avatar_url: null, created_at: now, default_workspace_id: WORKSPACE_ID, display_name: "Owner", email: "owner@example.test", id: USER_ID, role: "member", updated_at: now },
-    role: "member",
-    userId: USER_ID,
-  };
+function user() {
+  return { role: "member", userId: USER_ID };
 }
 
 class Statement<T = Record<string, unknown>> {
@@ -65,13 +59,29 @@ class Statement<T = Record<string, unknown>> {
     if (this.sql.includes("FROM estimate_mutation_receipts")) {
       return (this.database.receipts.get(this.database.receiptKey(this.values[0], this.values[1], this.values[2])) ?? null) as R | null;
     }
-    if (this.sql.includes("SELECT id, payload") && this.sql.includes("correlation_id")) {
+    if (this.sql.includes("SELECT id, event_type, target_row_id, payload") && this.sql.includes("correlation_id")) {
       const event = this.database.events.find((candidate) => candidate.estimate_id === this.values[0] && candidate.correlation_id === this.values[1]);
-      return event ? { id: event.id, payload: JSON.stringify(event.payload) } as R : null;
+      return event ? {
+        id: event.id,
+        event_type: event.event_type,
+        target_row_id: null,
+        payload: JSON.stringify(event.payload),
+      } as R : null;
     }
     if (this.sql.includes("SELECT id, estimate_id") && this.sql.includes("new_snapshot")) {
       const event = this.database.events.find((candidate) => candidate.estimate_id === this.values[0] && candidate.correlation_id === this.values[1]);
       return event ? { ...event, payload: JSON.stringify(event.payload), new_snapshot: JSON.stringify(event.new_snapshot ?? null) } as R : null;
+    }
+    if (this.sql.includes("SELECT id, event_type, old_snapshot") && this.sql.includes("FROM estimate_sheet_events")) {
+      const event = this.database.events.find((candidate) => candidate.id === this.values[0]
+        && candidate.estimate_id === this.values[1]
+        && candidate.project_id === this.values[2]
+        && candidate.workspace_id === this.values[3]);
+      return event ? {
+        id: event.id,
+        event_type: event.event_type,
+        old_snapshot: JSON.stringify(event.old_snapshot),
+      } as R : null;
     }
     if (this.sql.includes("SELECT *") && this.sql.includes("FROM estimate_sheet_events")) {
       const event = this.database.events.find((candidate) => candidate.id === this.values[0]
@@ -84,7 +94,7 @@ class Statement<T = Record<string, unknown>> {
       return this.values[0] === PROJECT_ID ? { id: PROJECT_ID, workspace_id: WORKSPACE_ID } as R : null;
     }
     if (this.sql.includes("SELECT estimate.id")) {
-      return this.values[0] === ESTIMATE_ID && this.values[1] === PROJECT_ID
+      return this.values[0] === ESTIMATE_ID && (this.values[1] === undefined || this.values[1] === PROJECT_ID)
         ? { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: WORKSPACE_ID } as R
         : null;
     }
@@ -222,20 +232,27 @@ function seedDeleteEvent(database: RestoreDatabase, rows = [snapshotRow("row-1")
   });
 }
 
-function restore(client: EstimateActionsD1Client, correlationId = "restore-correlation", rowIds?: string[]) {
-  return client.call("restore_deleted_estimate_rows_with_history", {
-    target_project_id: PROJECT_ID,
-    target_estimate_id: ESTIMATE_ID,
-    source_delete_event_id: "delete-event-1",
-    target_row_ids: rowIds,
-    acting_user_id: USER_ID,
-    correlation_id: correlationId,
-    target_active_tab_id: TAB_ID,
-  });
+async function capture<T>(operation: Promise<T>) {
+  try {
+    return { data: await operation, error: null as Error | null };
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+  }
+}
+
+function restore(database: D1DatabaseLike, correlationId = "restore-correlation", rowIds?: string[]) {
+  return capture(restoreDeletedEstimateRowsWithHistory(database, user(), {
+    projectId: PROJECT_ID,
+    estimateId: ESTIMATE_ID,
+    sourceEventId: "delete-event-1",
+    rowIds,
+    correlationId,
+    activeTabId: TAB_ID,
+  }));
 }
 
 function duplicate(
-  client: EstimateActionsD1Client,
+  database: D1DatabaseLike,
   options: {
     correlationId?: string;
     duplicatedRowId?: string;
@@ -245,17 +262,16 @@ function duplicate(
     activeTabId?: string;
   } = {},
 ) {
-  return client.call("duplicate_estimate_row_item_with_history", {
-    target_project_id: PROJECT_ID,
-    target_estimate_id: ESTIMATE_ID,
-    source_row_id: options.sourceRowId ?? "row-source",
-    expected_source_row_revision: options.expectedSourceRowRevision ?? 4,
-    target_node_id: options.targetNodeId ?? "node-1",
-    duplicated_row_id: options.duplicatedRowId ?? DUPLICATED_ROW_ID,
-    acting_user_id: USER_ID,
-    correlation_id: options.correlationId ?? "duplicate-correlation",
-    target_active_tab_id: options.activeTabId ?? TAB_ID,
-  });
+  return capture(duplicateEstimateRowItemWithHistory(database, user(), {
+    projectId: PROJECT_ID,
+    estimateId: ESTIMATE_ID,
+    sourceRowId: options.sourceRowId ?? "row-source",
+    expectedSourceRowRevision: options.expectedSourceRowRevision ?? 4,
+    targetNodeId: options.targetNodeId ?? "node-1",
+    duplicatedRowId: options.duplicatedRowId ?? DUPLICATED_ROW_ID,
+    correlationId: options.correlationId ?? "duplicate-correlation",
+    activeTabId: options.activeTabId ?? TAB_ID,
+  }));
 }
 
 function duplicateSourceRow(): Row {
@@ -293,14 +309,12 @@ function duplicateSourceRow(): Row {
   };
 }
 
-describe("EstimateActionsD1Client row restore history", () => {
+describe("typed row restore history intent", () => {
   it("reconstructs selected rows and replays the persisted result without duplicates", async () => {
     const database = new RestoreDatabase();
     seedDeleteEvent(database);
-    const client = new EstimateActionsD1Client(database, user());
-
-    const first = await restore(client, "restore-idempotent", ["row-2"]);
-    const replay = await restore(client, "restore-idempotent", ["row-2"]);
+    const first = await restore(database, "restore-idempotent", ["row-2"]);
+    const replay = await restore(database, "restore-idempotent", ["row-2"]);
 
     expect(first.error).toBeNull();
     expect(first.data).toMatchObject({ sourceEventId: "delete-event-1", restoredRowIds: ["row-2"], restoredRowCount: 1 });
@@ -324,7 +338,7 @@ describe("EstimateActionsD1Client row restore history", () => {
       const database = new RestoreDatabase();
       seedDeleteEvent(database);
       testCase.configure(database);
-      const result = await restore(new EstimateActionsD1Client(database, user()));
+      const result = await restore(database);
       expect(result.data, testCase.name).toBeNull();
       expect(result.error?.message, testCase.name).toBe(testCase.message);
       expect(database.batchCount, testCase.name).toBe(0);
@@ -337,7 +351,7 @@ describe("EstimateActionsD1Client row restore history", () => {
     seedDeleteEvent(database);
     database.failNextBatch = true;
 
-    const result = await restore(new EstimateActionsD1Client(database, user()));
+    const result = await restore(database);
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe("Cloudflare D1 estimate action batch failed.");
@@ -346,15 +360,13 @@ describe("EstimateActionsD1Client row restore history", () => {
   });
 });
 
-describe("EstimateActionsD1Client row duplicate history", () => {
+describe("typed row duplicate history intent", () => {
   it("copies every persisted row-owned value into one revision-one row, event, and receipt", async () => {
     const database = new RestoreDatabase();
     database.rows.set("row-source", duplicateSourceRow());
-    const client = new EstimateActionsD1Client(database, user());
-
-    const first = await duplicate(client, { correlationId: "duplicate-idempotent" });
+    const first = await duplicate(database, { correlationId: "duplicate-idempotent" });
     const firstOperationLog = [...database.operationLog];
-    const replay = await duplicate(client, { correlationId: "duplicate-idempotent" });
+    const replay = await duplicate(database, { correlationId: "duplicate-idempotent" });
 
     expect(first.error).toBeNull();
     expect(first.data).toMatchObject({
@@ -418,23 +430,22 @@ describe("EstimateActionsD1Client row duplicate history", () => {
   it("rejects stale source, invalid target, and changed replay payloads before another write", async () => {
     const staleDatabase = new RestoreDatabase();
     staleDatabase.rows.set("row-source", duplicateSourceRow());
-    const stale = await duplicate(new EstimateActionsD1Client(staleDatabase, user()), { expectedSourceRowRevision: 3 });
+    const stale = await duplicate(staleDatabase, { expectedSourceRowRevision: 3 });
     expect(stale.data).toBeNull();
     expect(stale.error?.message).toBe("estimate_sheet_row_revision_conflict");
     expect(staleDatabase.batchCount).toBe(0);
 
     const invalidTargetDatabase = new RestoreDatabase();
     invalidTargetDatabase.rows.set("row-source", { ...duplicateSourceRow(), node_id: "node-missing" });
-    const invalidTarget = await duplicate(new EstimateActionsD1Client(invalidTargetDatabase, user()), { targetNodeId: "node-missing" });
+    const invalidTarget = await duplicate(invalidTargetDatabase, { targetNodeId: "node-missing" });
     expect(invalidTarget.data).toBeNull();
     expect(invalidTargetDatabase.batchCount).toBe(0);
     expect(invalidTargetDatabase.events).toHaveLength(0);
 
     const replayDatabase = new RestoreDatabase();
     replayDatabase.rows.set("row-source", duplicateSourceRow());
-    const replayClient = new EstimateActionsD1Client(replayDatabase, user());
-    const committed = await duplicate(replayClient, { correlationId: "duplicate-mismatch" });
-    const mismatch = await duplicate(replayClient, {
+    const committed = await duplicate(replayDatabase, { correlationId: "duplicate-mismatch" });
+    const mismatch = await duplicate(replayDatabase, {
       correlationId: "duplicate-mismatch",
       duplicatedRowId: "66666666-6666-4666-8666-666666666670",
     });

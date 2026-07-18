@@ -15,11 +15,11 @@ describe("activity history lifecycle contract", () => {
   });
 
   it("inserts an idempotent outbox record with a newly inserted history event", () => {
-    const source = readFileSync("src/lib/estimates/d1-action-client.ts", "utf8");
+    const source = readFileSync("src/lib/estimates/d1-intents/history-events.ts", "utf8");
 
     expect(source).toContain("INSERT INTO activity_event_outbox");
     expect(source).toContain("ON CONFLICT(event_id) DO NOTHING");
-    expect(source).toContain("runBatch(database, [prepared.statement, prepared.outboxStatement])");
+    expect(source).toContain("runD1Batch(database, [prepared.statement, prepared.outboxStatement])");
   });
 
   it("retention excludes events held under an active legal hold", () => {

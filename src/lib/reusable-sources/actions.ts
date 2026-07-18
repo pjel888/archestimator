@@ -4,8 +4,14 @@ import { randomUUID } from "node:crypto";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { canAccessEstimateInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
-import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
-import { prepareHistoryEventInsert } from "@/lib/estimates/d1-action-client";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import {
+  allD1Rows,
+  firstD1Row,
+  runD1Batch,
+  type D1IntentStatement,
+} from "@/lib/estimates/d1-intents/database";
+import { prepareHistoryEventInsert } from "@/lib/estimates/d1-intents/history-events";
 import {
   assertD1MutationStatementLimit,
   buildCommittedMutationReceiptStatement,
@@ -137,14 +143,6 @@ function isD1MissingTableError(error: unknown, tableName: string) {
   return message.includes(`no such table: ${tableName}`);
 }
 
-function normalizeD1Value(value: unknown): D1Value {
-  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value instanceof ArrayBuffer) {
-    return value;
-  }
-  if (value === undefined) return null;
-  return JSON.stringify(value);
-}
-
 function readJsonRecord(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
     try {
@@ -173,34 +171,24 @@ async function requireReusableSourcesD1Database() {
   return database;
 }
 
-async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
-  return database.prepare<T>(sql).bind(...values).first<T>();
-}
-
-async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
-  const result = await database.prepare<T>(sql).bind(...values).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 reusable source read failed.");
-  return result.results ?? [];
-}
-
-async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
-  const result = await database.prepare(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Cloudflare D1 reusable source write failed.");
-  return result;
-}
-
-async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: string; values?: D1Value[] }>) {
-  if (statements.length === 0) return;
-  if (database.batch) {
-    const results = await database.batch(
-      statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
-    );
-    if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 reusable source batch failed.");
-    }
-    return;
+function throwReusableSourceReadError(error: unknown): never {
+  if (error instanceof Error && error.message === "Cloudflare D1 estimate action read failed.") {
+    throw new Error("Cloudflare D1 reusable source read failed.");
   }
-  for (const statement of statements) await run(database, statement.sql, statement.values ?? []);
+  throw error;
+}
+
+function reusableSourceBatchError(error: unknown) {
+  if (
+    error instanceof Error
+    && [
+      "Cloudflare D1 estimate action batch failed.",
+      "Cloudflare D1 estimate action write failed.",
+    ].includes(error.message)
+  ) {
+    return new Error("Cloudflare D1 reusable source batch failed.");
+  }
+  return error;
 }
 
 function normalizeReusableSourceSearchQuery(query: string) {
@@ -335,7 +323,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     return tabs;
   }
 
-  const matchingNodeRows = await all<{ estimate_id: string | null }>(
+  const matchingNodeRows = await allD1Rows<{ estimate_id: string | null }>(
     database,
     `
       SELECT DISTINCT estimate_id
@@ -346,7 +334,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
       LIMIT ?
     `,
     [...accessibleEstimateIds, likePattern, REUSABLE_SOURCE_SEARCH_NODE_MATCH_LIMIT + 1],
-  );
+  ).catch(throwReusableSourceReadError);
   for (const row of matchingNodeRows) {
     if (row.estimate_id) estimatesToMaterialize.add(row.estimate_id);
   }
@@ -354,7 +342,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   // Tab-name matches use estimate_tabs (added by the foundation; tolerate its absence
   // on the legacy schema, where the synthetic "Main" tab carries no searchable name).
   try {
-    const matchingTabRows = await all<{ estimate_id: string | null }>(
+    const matchingTabRows = await allD1Rows<{ estimate_id: string | null }>(
       database,
       `
         SELECT DISTINCT estimate_id
@@ -365,7 +353,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         LIMIT ?
       `,
       [...accessibleEstimateIds, likePattern, REUSABLE_SOURCE_SEARCH_TAB_MATCH_LIMIT + 1],
-    );
+    ).catch(throwReusableSourceReadError);
     for (const row of matchingTabRows) {
       if (row.estimate_id) estimatesToMaterialize.add(row.estimate_id);
     }
@@ -504,7 +492,7 @@ function readInsertedRootNodeIds(result: unknown): string[] {
 }
 
 async function readEstimateContext(database: D1DatabaseLike, estimateId: string) {
-  return first<ReusableSourceEstimateContextRow>(
+  return firstD1Row<ReusableSourceEstimateContextRow>(
     database,
     `
       SELECT estimate.id, estimate.project_id, project.workspace_id
@@ -666,7 +654,7 @@ async function copyProjectSourceSubtreeInD1(
   const canReadSource = await canAccessEstimateInD1(database, input.source.estimateId, { userId: currentUserId });
   if (!canReadSource) throw new Error("This project source is no longer available.");
 
-  const targetParent = await first<ReusableSourceNodeD1Row>(
+  const targetParent = await firstD1Row<ReusableSourceNodeD1Row>(
     database,
     `
       SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order, metadata_json, updated_at
@@ -684,7 +672,7 @@ async function copyProjectSourceSubtreeInD1(
     throw new Error("Project-source target tab does not match the selected estimate node.");
   }
 
-  const sourceTab = await first<{ id: string; updated_at: string }>(
+  const sourceTab = await firstD1Row<{ id: string; updated_at: string }>(
     database,
     `
       SELECT id, updated_at
@@ -698,7 +686,7 @@ async function copyProjectSourceSubtreeInD1(
   );
   if (!sourceTab) throw new Error("This project source is no longer available.");
 
-  const sourceNodes = await all<ReusableSourceNodeD1Row>(
+  const sourceNodes = await allD1Rows<ReusableSourceNodeD1Row>(
     database,
     `
       SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order, metadata_json, updated_at
@@ -708,10 +696,10 @@ async function copyProjectSourceSubtreeInD1(
       ORDER BY sort_order ASC, id ASC
     `,
     [input.source.estimateId, input.source.tabId],
-  );
+  ).catch(throwReusableSourceReadError);
 
   const allSourceRows = sourceNodes.length > 0
-    ? await all<ReusableSourceRowItemD1Row>(
+    ? await allD1Rows<ReusableSourceRowItemD1Row>(
         database,
         `
           SELECT *
@@ -721,7 +709,7 @@ async function copyProjectSourceSubtreeInD1(
           ORDER BY sort_order ASC, id ASC
         `,
         [input.source.estimateId, ...sourceNodes.map((node) => node.id)],
-      )
+      ).catch(throwReusableSourceReadError)
     : [];
   validateReusableSourceTopology(sourceNodes, allSourceRows, input);
   const nodeById = new Map(sourceNodes.map((node) => [node.id, node]));
@@ -754,7 +742,7 @@ async function copyProjectSourceSubtreeInD1(
   const copiedSourceNodeIdSet = new Set(copiedSourceNodeIds);
   const sourceRows = allSourceRows.filter((row) => row.node_id && copiedSourceNodeIdSet.has(row.node_id));
 
-  const sibling = await first<{ sort_order: number | string | null }>(
+  const sibling = await firstD1Row<{ sort_order: number | string | null }>(
     database,
     `
       SELECT COALESCE(MAX(sort_order), 0) AS sort_order
@@ -781,7 +769,7 @@ async function copyProjectSourceSubtreeInD1(
     (total, row) => total + Math.max(1, Math.trunc(readNumber(row.row_revision, 1))),
     0,
   );
-  const sourceGuard = {
+  const sourceGuard: D1IntentStatement = {
     sql: `
       SELECT CASE WHEN
         EXISTS (
@@ -852,7 +840,7 @@ async function copyProjectSourceSubtreeInD1(
     sourceKind: "project",
   };
 
-  const nodeStatements = nodesToCopy.map((node) => {
+  const nodeStatements: D1IntentStatement[] = nodesToCopy.map((node) => {
     const isRoot = rootIds.has(node.id);
     return {
       sql: `
@@ -872,11 +860,11 @@ async function copyProjectSourceSubtreeInD1(
         mergeJsonRecord(node.metadata_json, { ...provenance, sourceNodeId: node.id }),
         now,
         now,
-      ] as D1Value[],
+      ],
     };
   });
 
-  const rowStatements = sourceRows.map((row) => {
+  const rowStatements: D1IntentStatement[] = sourceRows.map((row) => {
     const sourceNodeId = row.node_id ?? "";
     const copiedNodeId = idMap.get(sourceNodeId);
     if (!copiedNodeId) throw new Error("This project source is no longer available.");
@@ -919,7 +907,7 @@ async function copyProjectSourceSubtreeInD1(
         mergeJsonRecord(row.metadata_json, { ...provenance, sourceRowId: row.id }),
         now,
         now,
-      ] as D1Value[],
+      ],
     };
   });
 
@@ -974,11 +962,11 @@ async function copyProjectSourceSubtreeInD1(
   ];
   assertReusableSourceStatementLimit(statements.length);
   try {
-    await runBatch(database, statements);
+    await runD1Batch(database, statements);
   } catch (error) {
     const concurrentReceipt = await readCommittedMutationReceipt(database, receiptIdentity, readReusableSourceReceiptResult);
     if (concurrentReceipt) return concurrentReceipt;
-    throw error;
+    throw reusableSourceBatchError(error);
   }
   return result;
 }

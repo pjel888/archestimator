@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { CurrentUserContext } from "@/lib/auth/session";
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import {
   canAccessEstimateInD1,
@@ -9,7 +8,7 @@ import {
   canEditEstimateInD1,
   canEditProjectInD1,
 } from "@/lib/authz/d1-access";
-import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import { canEditEstimate, canEditProject } from "@/lib/estimates/d1-intents/access";
 
 vi.mock("server-only", () => ({}));
 
@@ -41,26 +40,23 @@ function createAuthzProbeDatabase({
   return { db, queries };
 }
 
-function createCurrentUserContext(userId: string): CurrentUserContext {
-  const email = `${userId}@example.test`;
-  const now = "2026-07-03T00:00:00.000Z";
-  return {
-    avatarUrl: null,
-    displayName: userId,
-    email,
-    profile: {
-      avatar_url: null,
-      created_at: now,
-      default_workspace_id: null,
-      display_name: userId,
-      email,
-      id: userId,
-      role: "member",
-      updated_at: now,
-    },
-    role: "member",
-    userId,
+function createFailingAuthzDatabase(stage: "prepare" | "first", error: Error) {
+  const db: D1DatabaseLike = {
+    prepare: vi.fn((sql: string) => {
+      if (stage === "prepare") throw error;
+      const statement = {
+        bind: vi.fn(() => statement),
+        first: vi.fn(async () => {
+          throw error;
+        }),
+        all: vi.fn(async () => ({ results: [] })),
+        run: vi.fn(async () => ({ success: true, meta: { changes: 0 } })),
+        sql,
+      };
+      return statement;
+    }),
   };
+  return db;
 }
 
 describe("D1 created-by authorization", () => {
@@ -87,19 +83,41 @@ describe("D1 created-by authorization", () => {
     expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1"]);
   });
 
-  it("does not grant project edit through the D1 estimate action client from created_by metadata", async () => {
-    const user = createCurrentUserContext("user-1");
+  it("does not grant project edit through the typed Estimate access intent from created_by metadata", async () => {
+    const user = { userId: "user-1", role: "member" as const };
     const editProbe = createAuthzProbeDatabase({
       allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values.includes(user.userId),
     });
-    const client = new EstimateActionsD1Client(editProbe.db, user);
 
-    await expect(client.call("can_edit_project", { target_project_id: "project-1" })).resolves.toEqual({
-      data: false,
-      error: null,
-    });
+    await expect(canEditProject(editProbe.db, user, "project-1")).resolves.toBe(false);
     expect(editProbe.queries[0]?.sql).not.toContain("project.created_by = ?");
     expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1"]);
+  });
+
+  it("returns false for a null Estimate actor without preparing SQL", async () => {
+    const estimateProbe = createAuthzProbeDatabase({ allowWhen: () => true });
+    const projectProbe = createAuthzProbeDatabase({ allowWhen: () => true });
+
+    const { canEditEstimate } = await import("@/lib/estimates/d1-intents/access");
+    await expect(canEditEstimate(estimateProbe.db, null, "estimate-1")).resolves.toBe(false);
+    await expect(canEditProject(projectProbe.db, null, "project-1")).resolves.toBe(false);
+    expect(estimateProbe.db.prepare).not.toHaveBeenCalled();
+    expect(projectProbe.db.prepare).not.toHaveBeenCalled();
+  });
+
+  it("propagates original D1 prepare and first failures from non-null typed edit probes", async () => {
+    const user = { userId: "user-1", role: "member" as const };
+    const probes = [canEditEstimate, canEditProject] as const;
+
+    for (const probe of probes) {
+      const prepareError = new Error("auth prepare failed");
+      await expect(probe(createFailingAuthzDatabase("prepare", prepareError), user, "resource-1"))
+        .rejects.toBe(prepareError);
+
+      const firstError = new Error("auth first failed");
+      await expect(probe(createFailingAuthzDatabase("first", firstError), user, "resource-1"))
+        .rejects.toBe(firstError);
+    }
   });
 
   it("does not grant estimate access or edit rights from estimate or inherited project created_by metadata", async () => {

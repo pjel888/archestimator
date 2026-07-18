@@ -3,7 +3,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
-import { buildEstimateTree, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
+import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
+import {
+  buildEstimateTree,
+  readEstimateTabTreePayloadD1,
+  type EstimateTreeNodeQueryRow,
+  type EstimateTreeRowItemQueryRow,
+} from "@/lib/estimates/estimate-tree-read-repository";
 
 const createdAt = "2026-05-20T00:00:00.000Z";
 
@@ -427,8 +433,54 @@ describe("estimate landing-node selection", () => {
 });
 
 describe("workspace repository estimate tree readback", () => {
+  it("binds tab-scoped node reads in estimate, tab, limit order", async () => {
+    const boundStatements: Array<{ sql: string; values: D1Value[] }> = [];
+    const database = {
+      prepare(sql: string) {
+        const statement = {
+          bind(...values: D1Value[]) {
+            boundStatements.push({ sql, values });
+            return statement;
+          },
+          async first() {
+            return null;
+          },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            return { success: true };
+          },
+        };
+        return statement;
+      },
+    } as D1DatabaseLike;
+
+    await readEstimateTabTreePayloadD1(
+      database,
+      {
+        id: "estimate-1",
+        project_id: "project-1",
+        name: "Estimate",
+        sheet_code: "ES-001",
+        notes: null,
+        project_budget: null,
+        currency_code: "PHP",
+        metadata: {},
+        created_by: null,
+        created_at: createdAt,
+        updated_at: createdAt,
+      },
+      "tab-1",
+      { maxNodeCount: 10 },
+    );
+
+    const nodeStatement = boundStatements.find(({ sql }) => sql.includes("FROM estimate_nodes"));
+    expect(nodeStatement?.values).toEqual(["estimate-1", "tab-1", 11]);
+  });
+
   it("reads estimate tree nodes with deterministic sort_order then id ordering", () => {
-    const repositorySource = readFileSync(join(process.cwd(), "src/lib/repositories/workspace-repository.ts"), "utf8");
+    const repositorySource = readFileSync(join(process.cwd(), "src/lib/estimates/estimate-tree-read-repository.ts"), "utf8");
 
     expect(repositorySource).toContain("function readEstimateNodes(");
     expect(repositorySource).toContain("ORDER BY sort_order ASC, id ASC${limitSql}");

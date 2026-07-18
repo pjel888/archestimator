@@ -159,6 +159,14 @@ async function runAllowedProbe(operation: () => Promise<{ allowed: number | bool
   }
 }
 
+async function runBooleanProbe(operation: () => Promise<boolean>) {
+  try {
+    return await operation();
+  } catch {
+    return false;
+  }
+}
+
 export async function readProjectFromD1(db: D1DatabaseLike, projectId: string) {
   return db
     .prepare<D1ProjectAccessRow>(
@@ -294,16 +302,15 @@ export async function canAccessWholeProjectInD1(
   );
 }
 
-export async function canEditProjectInD1(
+async function readProjectEditAllowedInD1(
   db: D1DatabaseLike,
   projectId: string,
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  return runAllowedProbe(() =>
-    db
-      .prepare<{ allowed: number }>(
-        `
+  const row = await db
+    .prepare<{ allowed: number }>(
+      `
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
@@ -325,10 +332,26 @@ export async function canEditProjectInD1(
           )
         LIMIT 1
       `,
-      )
-      .bind(projectId, user.userId, user.userId)
-      .first<{ allowed: number }>(),
-  );
+    )
+    .bind(projectId, user.userId, user.userId)
+    .first<{ allowed: number }>();
+  return readAllowed(row);
+}
+
+export async function canEditProjectStrictInD1(
+  db: D1DatabaseLike,
+  projectId: string,
+  user: CurrentUserAccessContext,
+) {
+  return readProjectEditAllowedInD1(db, projectId, user);
+}
+
+export async function canEditProjectInD1(
+  db: D1DatabaseLike,
+  projectId: string,
+  user: CurrentUserAccessContext,
+) {
+  return runBooleanProbe(() => readProjectEditAllowedInD1(db, projectId, user));
 }
 
 export async function canAccessEstimateInD1(
@@ -380,16 +403,15 @@ export async function canAccessEstimateInD1(
   );
 }
 
-export async function canEditEstimateInD1(
+async function readEstimateEditAllowedInD1(
   db: D1DatabaseLike,
   estimateId: string,
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  return runAllowedProbe(() =>
-    db
-      .prepare<{ allowed: number }>(
-        `
+  const row = await db
+    .prepare<{ allowed: number }>(
+      `
         SELECT 1 AS allowed
         FROM estimates estimate
         JOIN projects project ON project.id = estimate.project_id
@@ -426,10 +448,26 @@ export async function canEditEstimateInD1(
           )
         LIMIT 1
       `,
-      )
-      .bind(estimateId, user.userId, user.userId, user.userId)
-      .first<{ allowed: number }>(),
-  );
+    )
+    .bind(estimateId, user.userId, user.userId, user.userId)
+    .first<{ allowed: number }>();
+  return readAllowed(row);
+}
+
+export async function canEditEstimateStrictInD1(
+  db: D1DatabaseLike,
+  estimateId: string,
+  user: CurrentUserAccessContext,
+) {
+  return readEstimateEditAllowedInD1(db, estimateId, user);
+}
+
+export async function canEditEstimateInD1(
+  db: D1DatabaseLike,
+  estimateId: string,
+  user: CurrentUserAccessContext,
+) {
+  return runBooleanProbe(() => readEstimateEditAllowedInD1(db, estimateId, user));
 }
 
 export async function isWorkspaceEditorInD1(

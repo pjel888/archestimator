@@ -1,31 +1,18 @@
-import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
-import type { CurrentUserProfile } from "@/lib/auth/profile-d1-store";
-import type { CurrentUserContext } from "@/lib/auth/session";
+import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
+import { canEditEstimate } from "@/lib/estimates/d1-intents/access";
+import { updateEstimateRowItemWithHistory } from "@/lib/estimates/d1-intents/rows";
 
-type D1Value = string | number | boolean | null;
-
-type D1Result<T = Record<string, unknown>> = {
-  results?: T[];
-  success?: boolean;
-  meta?: {
-    changes?: number;
-  };
-};
-
-type D1PreparedStatementLike<T = Record<string, unknown>> = {
-  bind(...values: D1Value[]): D1PreparedStatementLike<T>;
-  first<R = T>(): Promise<R | null>;
-  all<R = T>(): Promise<D1Result<R>>;
-  run(): Promise<D1Result<T>>;
-};
-
-type D1DatabaseLike = {
+type ProofD1Database = D1DatabaseLike & {
   exec?(sql: string): Promise<unknown>;
-  prepare<T = Record<string, unknown>>(sql: string): D1PreparedStatementLike<T>;
 };
+
+type ProofEstimateActor = Readonly<{
+  userId: string;
+  role: "member";
+}>;
 
 export type CloudflareEstimateHistoryProofEnv = {
-  ARCH_DB?: D1DatabaseLike;
+  ARCH_DB?: ProofD1Database;
   CRON_SECRET?: string;
 };
 
@@ -77,21 +64,12 @@ function proofEmail(label: string, runId: string) {
   return `${PROOF_SLUG_PREFIX}${label}-${runId.replace(/-/g, "")}@${EMAIL_DOMAIN}`;
 }
 
-async function runStatement(db: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+async function runStatement(db: ProofD1Database, sql: string, values: D1Value[] = []) {
   return db.prepare(sql).bind(...values).run();
 }
 
-async function queryRows<T extends Record<string, unknown>>(
-  db: D1DatabaseLike,
-  sql: string,
-  values: D1Value[] = [],
-) {
-  const result = await db.prepare<T>(sql).bind(...values).all();
-  return result.results ?? [];
-}
-
 async function firstRow<T extends Record<string, unknown>>(
-  db: D1DatabaseLike,
+  db: ProofD1Database,
   sql: string,
   values: D1Value[] = [],
 ) {
@@ -118,7 +96,7 @@ function emptyCleanupCounts(): CleanupCounts {
   };
 }
 
-async function countProofRows(db: D1DatabaseLike): Promise<CleanupCounts> {
+async function countProofRows(db: ProofD1Database): Promise<CleanupCounts> {
   const row = await firstRow<Record<keyof CleanupCounts, number>>(
     db,
     `
@@ -176,7 +154,7 @@ function cleanupPassed(counts: CleanupCounts) {
   return Object.values(counts).every((value) => value === 0);
 }
 
-async function cleanupProofRows(db: D1DatabaseLike) {
+async function cleanupProofRows(db: ProofD1Database) {
   const slugPattern = `${PROOF_SLUG_PREFIX}%`;
   await runStatement(db, "DELETE FROM estimate_sheet_events WHERE workspace_id IN (SELECT id FROM workspaces WHERE slug LIKE ?)", [slugPattern]);
   await runStatement(
@@ -269,36 +247,28 @@ async function cleanupProofRows(db: D1DatabaseLike) {
   await runStatement(db, "DELETE FROM workspaces WHERE slug LIKE ?", [slugPattern]);
 }
 
-function createCurrentUserContext(input: {
-  avatarUrl?: string | null;
-  defaultWorkspaceId: string | null;
-  displayName: string;
-  email: string;
-  userId: string;
-}): CurrentUserContext {
-  const now = nowIso();
-  const profile: CurrentUserProfile = {
-    account_status: "active",
-    avatar_url: input.avatarUrl ?? null,
-    created_at: now,
-    default_workspace_id: input.defaultWorkspaceId,
-    display_name: input.displayName,
-    email: input.email,
-    id: input.userId,
-    role: "member",
-    updated_at: now,
-  };
-  return {
-    userId: input.userId,
-    email: input.email,
-    role: "member",
-    profile,
-    displayName: input.displayName,
-    avatarUrl: input.avatarUrl ?? null,
-  };
+function createProofEstimateActor(userId: string): ProofEstimateActor {
+  return { userId, role: "member" };
 }
 
-async function seedFixture(db: D1DatabaseLike, ids: Record<string, string>) {
+export async function captureEstimateHistoryProofIntent<T>(
+  operation: () => Promise<T>,
+): Promise<{ data: T | null; error: Error | null }> {
+  try {
+    return { data: await operation(), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+}
+
+function isExpectedEstimateEditDenial(error: Error | null) {
+  return error?.message === "Estimate edit access denied.";
+}
+
+async function seedFixture(db: ProofD1Database, ids: Record<string, string>) {
   const now = nowIso();
   const metadata = JSON.stringify({ source: "cloudflare_estimate_history_proof" });
   await runStatement(
@@ -397,7 +367,7 @@ async function seedFixture(db: D1DatabaseLike, ids: Record<string, string>) {
   );
 }
 
-async function readRowSummary(db: D1DatabaseLike, estimateId: string, rowId: string) {
+async function readRowSummary(db: ProofD1Database, estimateId: string, rowId: string) {
   return firstRow<{ id: string; quantity: number; row_revision: number; unit_cost: number }>(
     db,
     "SELECT id, quantity, row_revision, unit_cost FROM estimate_row_items WHERE estimate_id = ? AND id = ? LIMIT 1",
@@ -405,7 +375,7 @@ async function readRowSummary(db: D1DatabaseLike, estimateId: string, rowId: str
   );
 }
 
-async function eventCount(db: D1DatabaseLike, estimateId: string, correlationId: string) {
+async function eventCount(db: ProofD1Database, estimateId: string, correlationId: string) {
   const row = await firstRow<{ count: number }>(
     db,
     "SELECT COUNT(*) AS count FROM estimate_sheet_events WHERE estimate_id = ? AND correlation_id = ?",
@@ -414,78 +384,92 @@ async function eventCount(db: D1DatabaseLike, estimateId: string, correlationId:
   return numberValue(row?.count);
 }
 
-async function runIdempotencyProof(db: D1DatabaseLike, ids: Record<string, string>, editor: CurrentUserContext) {
-  const client = new EstimateActionsD1Client(db, editor);
+async function runIdempotencyProof(db: ProofD1Database, ids: Record<string, string>, editor: ProofEstimateActor) {
   const before = await readRowSummary(db, ids.estimateId, ids.rowId);
-  const args = {
-    target_project_id: ids.projectId,
-    target_estimate_id: ids.estimateId,
-    target_row_id: ids.rowId,
-    expected_row_revision: before?.row_revision ?? 1,
-    row_patch: { quantity: 2.5 },
-    acting_user_id: editor.userId,
-    correlation_id: ids.idempotencyCorrelationId,
+  const input = {
+    projectId: ids.projectId,
+    estimateId: ids.estimateId,
+    rowId: ids.rowId,
+    expectedRowRevision: before?.row_revision ?? 1,
+    rowPatch: { quantity: 2.5 },
+    correlationId: ids.idempotencyCorrelationId,
   };
-  const first = await client.call("update_estimate_row_item_with_history", args);
-  const second = await client.call("update_estimate_row_item_with_history", args);
+  const first = await captureEstimateHistoryProofIntent(() =>
+    updateEstimateRowItemWithHistory(db, editor, input)
+  );
+  if (first.error) throw first.error;
+  const second = await captureEstimateHistoryProofIntent(() =>
+    updateEstimateRowItemWithHistory(db, editor, input)
+  );
+  if (second.error) throw second.error;
   const after = await readRowSummary(db, ids.estimateId, ids.rowId);
   const events = await eventCount(db, ids.estimateId, ids.idempotencyCorrelationId);
   const firstEventId = typeof first.data === "object" && first.data ? (first.data as { eventId?: unknown }).eventId : null;
   const secondEventId = typeof second.data === "object" && second.data ? (second.data as { eventId?: unknown }).eventId : null;
+  const replayReturnedSameEvent = Boolean(firstEventId && secondEventId && firstEventId === secondEventId);
   return {
-    passed: !first.error && !second.error && events === 1 && numberValue(after?.row_revision) === numberValue(before?.row_revision) + 1 && numberValue(after?.quantity) === 2.5,
-    firstError: first.error?.message ?? null,
-    secondError: second.error?.message ?? null,
+    passed: events === 1
+      && numberValue(after?.row_revision) === numberValue(before?.row_revision) + 1
+      && numberValue(after?.quantity) === 2.5
+      && replayReturnedSameEvent,
+    firstError: null,
+    secondError: null,
     before,
     after,
     eventCount: events,
-    replayReturnedSameEvent: Boolean(firstEventId && secondEventId && firstEventId === secondEventId),
+    replayReturnedSameEvent,
   };
 }
 
 async function runDenialProof(
-  db: D1DatabaseLike,
+  db: ProofD1Database,
   ids: Record<string, string>,
-  viewer: CurrentUserContext,
-  stranger: CurrentUserContext,
+  viewer: ProofEstimateActor,
+  stranger: ProofEstimateActor,
 ) {
   const before = await readRowSummary(db, ids.estimateId, ids.rowId);
-  const viewerClient = new EstimateActionsD1Client(db, viewer);
-  const strangerClient = new EstimateActionsD1Client(db, stranger);
-  const viewerCanEdit = await viewerClient.call<boolean>("can_edit_estimate", { target_estimate_id: ids.estimateId });
-  const strangerCanEdit = await strangerClient.call<boolean>("can_edit_estimate", { target_estimate_id: ids.estimateId });
-  const viewerMutation = await viewerClient.call("update_estimate_row_item_with_history", {
-    target_project_id: ids.projectId,
-    target_estimate_id: ids.estimateId,
-    target_row_id: ids.rowId,
-    expected_row_revision: before?.row_revision ?? 1,
-    row_patch: { quantity: 9 },
-    acting_user_id: viewer.userId,
-    correlation_id: ids.viewerCorrelationId,
-  });
-  const strangerMutation = await strangerClient.call("update_estimate_row_item_with_history", {
-    target_project_id: ids.projectId,
-    target_estimate_id: ids.estimateId,
-    target_row_id: ids.rowId,
-    expected_row_revision: before?.row_revision ?? 1,
-    row_patch: { quantity: 10 },
-    acting_user_id: stranger.userId,
-    correlation_id: ids.strangerCorrelationId,
-  });
+  const viewerCanEdit = await canEditEstimate(db, viewer, ids.estimateId);
+  const strangerCanEdit = await canEditEstimate(db, stranger, ids.estimateId);
+  const viewerMutation = await captureEstimateHistoryProofIntent(() =>
+    updateEstimateRowItemWithHistory(db, viewer, {
+      projectId: ids.projectId,
+      estimateId: ids.estimateId,
+      rowId: ids.rowId,
+      expectedRowRevision: before?.row_revision ?? 1,
+      rowPatch: { quantity: 9 },
+      correlationId: ids.viewerCorrelationId,
+    })
+  );
+  const strangerMutation = await captureEstimateHistoryProofIntent(() =>
+    updateEstimateRowItemWithHistory(db, stranger, {
+      projectId: ids.projectId,
+      estimateId: ids.estimateId,
+      rowId: ids.rowId,
+      expectedRowRevision: before?.row_revision ?? 1,
+      rowPatch: { quantity: 10 },
+      correlationId: ids.strangerCorrelationId,
+    })
+  );
+  if (viewerMutation.error && !isExpectedEstimateEditDenial(viewerMutation.error)) {
+    throw viewerMutation.error;
+  }
+  if (strangerMutation.error && !isExpectedEstimateEditDenial(strangerMutation.error)) {
+    throw strangerMutation.error;
+  }
   const after = await readRowSummary(db, ids.estimateId, ids.rowId);
   const viewerEvents = await eventCount(db, ids.estimateId, ids.viewerCorrelationId);
   const strangerEvents = await eventCount(db, ids.estimateId, ids.strangerCorrelationId);
   return {
-    passed: viewerCanEdit.data === false
-      && strangerCanEdit.data === false
+    passed: viewerCanEdit === false
+      && strangerCanEdit === false
       && Boolean(viewerMutation.error)
       && Boolean(strangerMutation.error)
       && viewerEvents === 0
       && strangerEvents === 0
       && numberValue(after?.row_revision) === numberValue(before?.row_revision)
       && numberValue(after?.quantity) === numberValue(before?.quantity),
-    viewerCanEdit: viewerCanEdit.data === true,
-    strangerCanEdit: strangerCanEdit.data === true,
+    viewerCanEdit,
+    strangerCanEdit,
     viewerMutationError: viewerMutation.error?.message ?? null,
     strangerMutationError: strangerMutation.error?.message ?? null,
     viewerEventCount: viewerEvents,
@@ -495,7 +479,7 @@ async function runDenialProof(
   };
 }
 
-async function runRollbackProof(db: D1DatabaseLike, ids: Record<string, string>) {
+async function runRollbackProof(db: ProofD1Database, ids: Record<string, string>) {
   if (!db.exec) {
     return {
       passed: false,
@@ -674,24 +658,9 @@ export async function routeCloudflareEstimateHistoryProofRequest(
     cleanupBefore = await countProofRows(db);
     await seedFixture(db, ids);
 
-    const editor = createCurrentUserContext({
-      defaultWorkspaceId: ids.workspaceId,
-      displayName: "Codex Estimate Proof editor",
-      email: proofEmail("editor", runId),
-      userId: ids.editorUserId,
-    });
-    const viewer = createCurrentUserContext({
-      defaultWorkspaceId: ids.workspaceId,
-      displayName: "Codex Estimate Proof viewer",
-      email: proofEmail("viewer", runId),
-      userId: ids.viewerUserId,
-    });
-    const stranger = createCurrentUserContext({
-      defaultWorkspaceId: ids.strangerWorkspaceId,
-      displayName: "Codex Estimate Proof stranger",
-      email: proofEmail("stranger", runId),
-      userId: ids.strangerUserId,
-    });
+    const editor = createProofEstimateActor(ids.editorUserId);
+    const viewer = createProofEstimateActor(ids.viewerUserId);
+    const stranger = createProofEstimateActor(ids.strangerUserId);
 
     idempotencyProof = await runIdempotencyProof(db, ids, editor);
     denialProof = await runDenialProof(db, ids, viewer, stranger);
@@ -738,6 +707,6 @@ export async function routeCloudflareEstimateHistoryProofRequest(
     cleanupPassed: cleanupPassed(cleanupAfter),
     passed,
     error,
-    note: "Secret-gated hosted proof. It creates only codex-estimate-proof-* fixtures, exercises the deployed Worker D1 binding and app D1 action client, then verifies exact cleanup. No session tokens or provider secrets are returned.",
+    note: "Secret-gated hosted proof. It creates only codex-estimate-proof-* fixtures, exercises the deployed Worker D1 binding and typed Estimate intents, then verifies exact cleanup. No session tokens or provider secrets are returned.",
   }, passed ? 200 : 500);
 }

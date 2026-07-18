@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CurrentUserContext } from "@/lib/auth/session";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
-import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import {
+  insertEstimateTemplateIntoEstimateWithHistory,
+  insertEstimateTemplatesIntoEstimateWithHistory,
+} from "@/lib/estimates/d1-intents/templates";
 
 vi.mock("server-only", () => ({}));
 
@@ -11,8 +14,11 @@ const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
 const PARENT_NODE_ID = "44444444-4444-4444-8444-444444444444";
 const TEMPLATE_ID = "55555555-5555-4555-8555-555555555555";
+const SECOND_TEMPLATE_ID = "56565656-5656-4565-8565-565656565656";
 const TEMPLATE_NODE_ID = "66666666-6666-4666-8666-666666666666";
+const SECOND_TEMPLATE_NODE_ID = "67676767-6767-4676-8676-676767676767";
 const TEMPLATE_ROW_ID = "77777777-7777-4777-8777-777777777777";
+const SECOND_TEMPLATE_ROW_ID = "78787878-7878-4787-8787-787878787878";
 const COMPONENT_ID = "88888888-8888-4888-8888-888888888888";
 const PRICE_OPTION_ID = "99999999-9999-4999-8999-999999999999";
 const TARGET_TAB_ID = "abababab-abab-4bab-8bab-abababababab";
@@ -83,9 +89,12 @@ class FakeStatement<T = Record<string, unknown>> implements D1PreparedStatementL
   async all<R = T>(): Promise<D1Result<R>> {
     if (this.sql.includes("FROM estimate_templates")) {
       this.database.sourceReadCount += 1;
+      const requestedTemplateIds = new Set(this.values.slice(1).map(String));
       return {
         success: true,
-        results: [{ id: TEMPLATE_ID, workspace_id: WORKSPACE_ID, updated_at: "2026-07-14T00:00:00.000Z" }] as R[],
+        results: [TEMPLATE_ID, SECOND_TEMPLATE_ID]
+          .filter((id) => requestedTemplateIds.has(id))
+          .map((id) => ({ id, workspace_id: WORKSPACE_ID, updated_at: "2026-07-14T00:00:00.000Z" })) as R[],
       };
     }
     if (this.sql.includes("FROM estimate_template_nodes")) {
@@ -241,29 +250,84 @@ class TemplateInsertDatabase implements D1DatabaseLike {
 }
 
 function insert(
-  client: EstimateActionsD1Client,
+  database: D1DatabaseLike,
   unavailableSourcePolicy?: "cancel" | "use_saved_snapshot_unlinked",
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<{ correlationId: string; targetTabId: string }> = {},
 ) {
-  return client.call("insert_estimate_template_into_estimate_with_history", {
-    target_project_id: PROJECT_ID,
-    target_estimate_id: ESTIMATE_ID,
-    target_parent_node_id: PARENT_NODE_ID,
-    source_template_id: TEMPLATE_ID,
-    unavailable_source_policy: unavailableSourcePolicy,
-    acting_user_id: currentUser().userId,
-    correlation_id: INSERT_INTENT_ID,
+  return insertEstimateTemplateIntoEstimateWithHistory(database, currentUser(), {
+    projectId: PROJECT_ID,
+    estimateId: ESTIMATE_ID,
+    targetParentNodeId: PARENT_NODE_ID,
+    templateId: TEMPLATE_ID,
+    unavailableSourcePolicy: unavailableSourcePolicy ?? "cancel",
+    correlationId: INSERT_INTENT_ID,
     ...overrides,
   });
 }
 
+function insertMany(database: D1DatabaseLike, templateIds: string[], correlationId = INSERT_INTENT_ID) {
+  return insertEstimateTemplatesIntoEstimateWithHistory(database, currentUser(), {
+    projectId: PROJECT_ID,
+    estimateId: ESTIMATE_ID,
+    targetParentNodeId: PARENT_NODE_ID,
+    templateIds,
+    unavailableSourcePolicy: "cancel",
+    correlationId,
+  });
+}
+
 describe("trusted estimate template insertion", () => {
+  it("rejects missing atomic support before auth, receipt, or source reads", async () => {
+    const database = new TemplateInsertDatabase("available");
+    Object.defineProperty(database, "batch", { value: undefined });
+
+    await expect(insert(database)).rejects.toThrow("Estimate template insertion requires atomic D1 batch support.");
+    expect(database.sourceReadCount).toBe(0);
+    expect(database.batches).toEqual([]);
+  });
+
+  it("copies multiple templates through the plural intent in one ordered history, outbox, and receipt batch", async () => {
+    const database = new TemplateInsertDatabase("available");
+    database.templateNodes.push({
+      id: SECOND_TEMPLATE_NODE_ID,
+      template_id: SECOND_TEMPLATE_ID,
+      parent_id: null,
+      kind: "area",
+      name: "Dining",
+      sort_order: 1000,
+      metadata: "{}",
+      updated_at: "2026-07-14T00:00:00.000Z",
+    });
+    database.templateRows.push({
+      ...database.templateRows[0],
+      id: SECOND_TEMPLATE_ROW_ID,
+      template_id: SECOND_TEMPLATE_ID,
+      template_node_id: SECOND_TEMPLATE_NODE_ID,
+      material: "Second saved material",
+    });
+
+    const result = await insertMany(database, [TEMPLATE_ID, SECOND_TEMPLATE_ID]);
+
+    expect(result).toMatchObject({
+      status: "inserted",
+      insertedNodeCount: 2,
+      insertedRowItemCount: 2,
+      statementCount: 9,
+    });
+    expect(database.batches).toHaveLength(1);
+    expect(database.batches[0]).toHaveLength(9);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_nodes"))).toHaveLength(2);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_row_items"))).toHaveLength(2);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_sheet_events"))).toHaveLength(1);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO activity_event_outbox"))).toHaveLength(1);
+    expect(database.batches[0].filter((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toHaveLength(1);
+  });
+
   it("uses the current available component and selected active variant in one atomic D1 batch", async () => {
     const database = new TemplateInsertDatabase("available");
-    const result = await insert(new EstimateActionsD1Client(database, currentUser()));
+    const result = await insert(database);
 
-    expect(result.error).toBeNull();
-    expect(result.data).toMatchObject({
+    expect(result).toMatchObject({
       status: "inserted",
       insertedRootNodeIds: [expect.any(String)],
       estimateTabId: TARGET_TAB_ID,
@@ -275,8 +339,8 @@ describe("trusted estimate template insertion", () => {
     expect(database.batches[0].some((statement) => statement.sql.includes("publication_source_revision"))).toBe(true);
     expect(database.batches[0].some((statement) => statement.sql.includes("INSERT INTO activity_event_outbox"))).toBe(true);
     expect(database.batches[0].some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
-    const nodeInsert = database.batches[0].find((statement) => statement.sql.startsWith("INSERT INTO estimate_nodes"));
-    const rowInsert = database.batches[0].find((statement) => statement.sql.startsWith("INSERT INTO estimate_row_items"));
+    const nodeInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_nodes"));
+    const rowInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_row_items"));
     expect(nodeInsert).toBeDefined();
     expect(rowInsert).toBeDefined();
     const nodeRecord = recordFromInsert(nodeInsert!);
@@ -311,10 +375,9 @@ describe("trusted estimate template insertion", () => {
 
   it("returns an explicit confirmation requirement without writes when the source is unavailable", async () => {
     const database = new TemplateInsertDatabase("discontinued");
-    const result = await insert(new EstimateActionsD1Client(database, currentUser()));
+    const result = await insert(database);
 
-    expect(result.error).toBeNull();
-    expect(result.data).toEqual({
+    expect(result).toEqual({
       status: "requires_saved_snapshot_confirmation",
       unavailableSourceCount: 1,
       unavailableRows: [{
@@ -329,14 +392,13 @@ describe("trusted estimate template insertion", () => {
   it("inserts an explicitly accepted saved snapshot as unlinked and project-specific", async () => {
     const database = new TemplateInsertDatabase("archived");
     const result = await insert(
-      new EstimateActionsD1Client(database, currentUser()),
+      database,
       "use_saved_snapshot_unlinked",
     );
 
-    expect(result.error).toBeNull();
-    expect(result.data).toMatchObject({ status: "inserted" });
+    expect(result).toMatchObject({ status: "inserted" });
     expect(database.batches).toHaveLength(1);
-    const rowInsert = database.batches[0].find((statement) => statement.sql.startsWith("INSERT INTO estimate_row_items"));
+    const rowInsert = database.batches[0].find((statement) => statement.sql.includes("INSERT INTO estimate_row_items"));
     const rowRecord = recordFromInsert(rowInsert!);
     expect(rowRecord).toMatchObject({
       source_library_item_id: null,
@@ -356,48 +418,43 @@ describe("trusted estimate template insertion", () => {
 
   it("replays the same committed intent without source reads or another batch", async () => {
     const database = new TemplateInsertDatabase("available");
-    const client = new EstimateActionsD1Client(database, currentUser());
 
-    const first = await insert(client);
+    const first = await insert(database);
     const sourceReadCount = database.sourceReadCount;
-    const replay = await insert(client);
+    const replay = await insert(database);
 
-    expect(replay.data).toEqual(first.data);
+    expect(replay).toEqual(first);
     expect(database.batches).toHaveLength(1);
     expect(database.sourceReadCount).toBe(sourceReadCount);
   });
 
   it("uses a fresh destination id for a new intent", async () => {
     const database = new TemplateInsertDatabase("available");
-    const client = new EstimateActionsD1Client(database, currentUser());
 
-    const first = await insert(client);
-    const second = await insert(client, undefined, { correlation_id: "dededede-dede-4ede-8ede-dededededede" });
+    const first = await insert(database);
+    const second = await insert(database, undefined, { correlationId: "dededede-dede-4ede-8ede-dededededede" });
 
     expect(database.batches).toHaveLength(2);
-    expect((second.data as { insertedRootNodeIds: string[] }).insertedRootNodeIds)
-      .not.toEqual((first.data as { insertedRootNodeIds: string[] }).insertedRootNodeIds);
+    expect((second as { insertedRootNodeIds: string[] }).insertedRootNodeIds)
+      .not.toEqual((first as { insertedRootNodeIds: string[] }).insertedRootNodeIds);
   });
 
   it("accepts any selected estimate node as the destination parent", async () => {
     const database = new TemplateInsertDatabase("available");
     database.parentKind = "area";
 
-    const result = await insert(new EstimateActionsD1Client(database, currentUser()));
+    const result = await insert(database);
 
-    expect(result.error).toBeNull();
-    expect(result.data).toMatchObject({ status: "inserted" });
+    expect(result).toMatchObject({ status: "inserted" });
     expect(database.batches).toHaveLength(1);
   });
 
   it("rejects a caller tab mismatch with zero writes", async () => {
     const database = new TemplateInsertDatabase("available");
 
-    const result = await insert(new EstimateActionsD1Client(database, currentUser()), undefined, {
-      target_tab_id: "efefefef-efef-4fef-8fef-efefefefefef",
-    });
-
-    expect(result.error?.message).toContain("Template insert target tab does not match the selected estimate node.");
+    await expect(insert(database, undefined, {
+      targetTabId: "efefefef-efef-4fef-8fef-efefefefefef",
+    })).rejects.toThrow("Template insert target tab does not match the selected estimate node.");
     expect(database.batches).toHaveLength(0);
   });
 
@@ -415,11 +472,7 @@ describe("trusted estimate template insertion", () => {
     }));
     database.templateRows = [];
 
-    const result = await insert(new EstimateActionsD1Client(database, currentUser()));
-
-    expect(result.error).toMatchObject({
-      message: expect.stringContaining("selection_too_large"),
-    });
+    await expect(insertMany(database, [TEMPLATE_ID])).rejects.toThrow("selection_too_large");
     expect(database.batches).toHaveLength(0);
   });
 });

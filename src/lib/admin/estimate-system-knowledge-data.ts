@@ -10,7 +10,7 @@ import {
 const source = (file: string, note: string): EstimateSystemKnowledgeSource => ({ file, note });
 const sources = {
   estimates: source("src/lib/estimates/actions.ts", "Estimate, hierarchy, row, template insertion, and publication-facing source actions"),
-  persistence: source("src/lib/estimates/d1-action-client.ts", "Guarded D1 mutations, history records, cascade behavior, and template materialization"),
+  persistence: source("src/lib/estimates/d1-intents/database.ts", "Shared D1 persistence and execution primitives; sibling typed-intent modules own guarded mutations, history, cascades, and template materialization"),
   rowUi: source("src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts", "Optimistic estimate-row editing, deletion, undo, localization, and promotion flows"),
   totals: source("src/lib/estimates/estimate-row-total.ts", "Canonical row and estimate calculation rules"),
   projection: source("src/lib/component-library/project-component-projection.ts", "Project-bounded component projection semantics"),

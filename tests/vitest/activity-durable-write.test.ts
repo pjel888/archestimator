@@ -5,7 +5,7 @@ import {
   prepareHistoryEventInsert,
   runMutationWithHistory,
   type HistoryEventInput,
-} from "@/lib/estimates/d1-action-client";
+} from "@/lib/estimates/d1-intents/history-events";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result } from "@/lib/cloudflare/d1";
 
 type RecordedStatement = { sql: string; values: unknown[] };

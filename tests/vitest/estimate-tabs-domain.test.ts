@@ -68,7 +68,7 @@ describe("estimate tab repository compatibility wrappers", () => {
     // query instead of adding a blocking server tail.
     expect(routeSource).toContain("const estimateTabs = tabs ?? []");
     expect(routeSource).not.toContain("tab ? await getEstimateTabs(project.id, estimate.id) : []");
-    expect(routeSource).not.toContain("Promise.all([");
+    expect(routeSource).toContain("const [resolvedCanEditEstimate, canManageLibrary] = await Promise.all([");
     // Routing Page Optimization P26: selected-node route context may omit edit
     // capability, so the page resolves it in a named post-context phase before
     // enabling edit controls; server writes still use authoritative D1 checks.
@@ -83,15 +83,15 @@ describe("estimate tab repository compatibility wrappers", () => {
     expect(repositorySource).toContain("WHERE node.id = ?");
     expect(repositorySource).toContain("AND estimate.project_id = ?");
     expect(repositorySource).toContain("readEstimateForProject(database, selectedNode.estimate_id, project.id)");
-    expect(repositorySource).toContain("readEstimateTabsForEstimate(database, resolvedEstimate.id)");
+    expect(repositorySource).toContain("readEstimateTabsD1(database, resolvedEstimate.id)");
     expect(repositorySource).toContain("getEstimateTabTreeForResolvedEstimateTab(");
     // U21 / Routing Page Optimization P3-T3/P25: the tab-present branch resolves
     // the tab tree and tab list in parallel, and the selected-node query carries
     // the active tab list through its existing project-scoped join. Edit
     // capability stays in the named page tail instead of route context.
     expect(repositorySource).toContain("const selectedTabId = selectedNode.estimate_tab_id;");
-    expect(repositorySource).toContain("readEstimateTabTreePayloadForResolvedTabId(database, estimate, selectedTabId, options)");
-    expect(repositorySource).toContain("readEstimateTabsForEstimate(database, selectedNode.estimate_id)");
+    expect(repositorySource).toContain("readEstimateTabTreePayloadD1(database, estimate, selectedTabId, options)");
+    expect(repositorySource).toContain("readEstimateTabsD1(database, selectedNode.estimate_id)");
     expect(repositorySource).not.toContain('projects!inner(*, workspaces(*)), estimate_tabs(');
     expect(repositorySource).not.toContain("splitProjectWorkspaceJoin");
     expect(repositorySource).not.toContain("stripEstimateProjectJoin");
@@ -105,6 +105,7 @@ describe("estimate tab repository compatibility wrappers", () => {
 
   it("keeps route-context and tab-tree latency phases traceable for benchmark diagnosis", () => {
     const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+    const treeReadSource = readFileSync("src/lib/estimates/estimate-tree-read-repository.ts", "utf8");
 
     [
       "estimate-route-context.project",
@@ -117,16 +118,17 @@ describe("estimate tab repository compatibility wrappers", () => {
       "estimate-route-context.estimate-tabs-list",
       "estimate-route-context.default-tab-tree",
       "estimate-route-context.default-fallback",
-      "estimate-tab-tree.nodes",
-      "estimate-tab-tree.build",
       "workspace-project.ensure-default-workspace",
       "workspace-project.project-lookup",
     ].forEach((label) => {
       expect(repositorySource).toContain(label);
     });
-    expect(repositorySource).toContain("readEstimateNodes(database, estimate.id");
-    expect(repositorySource).toContain("readEstimateRows(database, estimate.id");
-    expect(repositorySource).toContain("buildEstimateTree(limitedNodes.rows, limitedRows.rows)");
+    ["estimate-tab-tree.nodes", "estimate-tab-tree.build"].forEach((label) => {
+      expect(treeReadSource).toContain(label);
+    });
+    expect(treeReadSource).toContain("readEstimateNodes(database, estimate.id");
+    expect(treeReadSource).toContain("readEstimateRows(database, estimate.id");
+    expect(treeReadSource).toContain("buildEstimateTree(limitedNodes.rows, limitedRows.rows)");
     expect(repositorySource).not.toContain('.select("*, workspaces(*)")');
     expect(repositorySource).not.toContain("ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS");
     expect(repositorySource).not.toContain('estimate_row_items!estimate_row_items_node_id_fkey');

@@ -10,19 +10,22 @@ const repositoryMocks = vi.hoisted(() => ({
   listProjectEstimateSheets: vi.fn(),
 }));
 
-const estimateActionClientMocks = vi.hoisted(() => ({
-  createEstimateActionsD1Client: vi.fn(),
-}));
-
 const d1Mocks = vi.hoisted(() => ({
   getCloudflareD1Database: vi.fn(),
 }));
 
-const authzMocks = vi.hoisted(() => ({
-  canEditEstimateInD1: vi.fn(),
-  isWorkspaceEditorInD1: vi.fn(),
-  isWorkspaceMemberInD1: vi.fn(),
-}));
+const authzMocks = vi.hoisted(() => {
+  const canEditEstimateInD1 = vi.fn();
+  const canEditProjectInD1 = vi.fn();
+  return {
+    canEditEstimateInD1,
+    canEditEstimateStrictInD1: canEditEstimateInD1,
+    canEditProjectInD1,
+    canEditProjectStrictInD1: canEditProjectInD1,
+    isWorkspaceEditorInD1: vi.fn(),
+    isWorkspaceMemberInD1: vi.fn(),
+  };
+});
 
 const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
@@ -33,7 +36,6 @@ const nextCacheMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
-vi.mock("@/lib/estimates/d1-action-client", () => estimateActionClientMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
@@ -67,6 +69,7 @@ function createD1Fixture(options: {
   const allResults = [...(options.allResults ?? [])];
   const statements: Array<{ sql: string; values: unknown[] }> = [];
   const database = {
+    batch: vi.fn(async (preparedStatements: unknown[]) => preparedStatements.map(() => ({ success: true }))),
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...values: unknown[]) => {
         statements.push({ sql, values });
@@ -81,20 +84,6 @@ function createD1Fixture(options: {
   };
   d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
   return database;
-}
-
-function createEstimateActionsD1ClientFixture(options: {
-  canEditEstimate?: boolean;
-} = {}) {
-  const call = vi.fn(async (name: string) => {
-    if (name === "can_edit_estimate") {
-      return { data: options.canEditEstimate ?? true, error: null };
-    }
-    throw new Error(`denied insert must not call ${name}`);
-  });
-  const dataStore = { call };
-  estimateActionClientMocks.createEstimateActionsD1Client.mockResolvedValue(dataStore);
-  return dataStore;
 }
 
 beforeEach(() => {
@@ -185,7 +174,8 @@ describe("library estimate insert-target authorization", () => {
   });
 
   it("denies a viewer before inserting a whole template into an estimate", async () => {
-    const dataStore = createEstimateActionsD1ClientFixture({ canEditEstimate: false });
+    const d1 = createD1Fixture();
+    authzMocks.canEditEstimateInD1.mockResolvedValue(false);
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -198,13 +188,18 @@ describe("library estimate insert-target authorization", () => {
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
-    expect(dataStore.call).toHaveBeenCalledTimes(1);
-    expect(dataStore.call).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
+    expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(
+      expect.anything(),
+      ESTIMATE_ID,
+      expect.objectContaining({ userId: USER_ID }),
+    );
+    expect(d1.statements).toHaveLength(0);
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 
   it("denies a viewer before inserting a template node subtree into an estimate", async () => {
-    const dataStore = createEstimateActionsD1ClientFixture({ canEditEstimate: false });
+    const d1 = createD1Fixture();
+    authzMocks.canEditEstimateInD1.mockResolvedValue(false);
     const { insertEstimateTemplateNodeIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -218,8 +213,12 @@ describe("library estimate insert-target authorization", () => {
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
-    expect(dataStore.call).toHaveBeenCalledTimes(1);
-    expect(dataStore.call).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
+    expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(
+      expect.anything(),
+      ESTIMATE_ID,
+      expect.objectContaining({ userId: USER_ID }),
+    );
+    expect(d1.statements).toHaveLength(0);
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 });

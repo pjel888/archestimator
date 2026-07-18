@@ -5,21 +5,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
-import { normalizeEventType, storedEventTypesForCanonicalEventType } from "@/lib/activity/event-type-normalization";
+import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { storedEventTypesForCanonicalEventType } from "@/lib/activity/event-type-normalization";
 import { assertEstimateActionRateLimit } from "@/lib/estimates/action-rate-limit";
 import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { LEGACY_BLANK_ROW_TAG, getProjectComponentIdentity, isExpressComponentRow, readEstimateRowMetadata, readExpressComponentMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata, type EstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
-import { createMutationRequestFingerprint } from "@/lib/estimates/mutation-receipts";
 import { normalizeEstimateRowImageUrl, sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   omitEstimateRowPriceOptionAttachments,
   sanitizeEstimateRowPriceOptionsSnapshot,
 } from "@/lib/estimates/source-snapshot-price-options";
-import {
-  normalizeEstimateTreeNodeKind,
-  selectFirstEstimateNodeIds,
-} from "@/lib/estimates/tree-hierarchy";
 import {
   buildProjectEstimateListRow,
   projectEstimateListRowSource,
@@ -29,62 +25,87 @@ import {
   isEstimateRowRevisionConflict,
 } from "@/lib/estimates/row-revision-conflict";
 import { recordEstimateMutationEvent } from "@/lib/estimates/estimate-mutation-telemetry";
-import { applySheetAdjustment, sumEstimateRowLineTotals, validateEstimateCalculationInput } from "@/lib/estimates/estimate-row-total";
-import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
-import { ESTIMATE_TREE_SORT_ORDER_STEP, validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
+import { applySheetAdjustment, validateEstimateCalculationInput } from "@/lib/estimates/estimate-row-total";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { isUuid } from "@/lib/ids";
 import {
   buildRejectedPreviewResult,
-  coerceBulkExecutionResult,
-  coerceBulkPreviewResult,
   normalizeBulkActionIds,
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getCurrentWorkspaceProjectForEstimate, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import {
-  createEstimateActionsD1Client,
-  type EstimateActionsD1Client,
+  canEditEstimate,
+  canEditProject,
+  getEstimateActivityRetentionMetrics,
+  validateEstimateRowImageAsset,
+  type EstimateActivityRetentionMetrics,
+  type EstimateRowImageAssetDescriptor,
+} from "@/lib/estimates/d1-intents/access";
+import { requireEstimateD1Database } from "@/lib/estimates/d1-intents/database";
+import {
+  readEstimateSheetVersionControl,
+  type EstimateSheetHistoryCursor,
+  type EstimateSheetVersionControlData,
+} from "@/lib/estimates/d1-intents/history-events";
+import {
+  previewEstimateComponentEditImpact,
   type EstimateComponentEditImpact,
-} from "@/lib/estimates/d1-action-client";
+} from "@/lib/estimates/d1-intents/component-impact";
+import {
+  executeBulkDeleteEstimateSheets as executeBulkDeleteEstimateSheetsIntent,
+  previewBulkDeleteEstimateSheets as previewBulkDeleteEstimateSheetsIntent,
+} from "@/lib/estimates/d1-intents/bulk-sheets";
+import {
+  createEstimateRecordWithDefaultTab,
+  duplicateEstimateRecordGraph,
+  getEstimateRecordForProject,
+  getNextEstimateSheetCode,
+  updateEstimateDetailsWithHistory,
+  updateEstimateSheetAdjustmentWithHistory,
+} from "@/lib/estimates/d1-intents/estimate-records";
+import {
+  createEstimateNodeWithHistory,
+  deleteEstimateNodesWithHistory,
+  getEstimateNodeForProject,
+  renameEstimateNodeWithHistory,
+  reorderEstimateNodesWithHistory,
+  resolveEstimateActivityNodeScope as resolveEstimateActivityNodeScopeIntent,
+  restoreDeletedEstimateNodesWithHistory,
+} from "@/lib/estimates/d1-intents/nodes";
+import {
+  archiveEstimateTabWithHistory,
+  createEstimateTabWithHistory,
+  deleteEstimateTabWithHistory,
+  duplicateEstimateTabWithHistory,
+  renameEstimateTabWithHistory,
+  reorderEstimateTabsWithHistory,
+} from "@/lib/estimates/d1-intents/tabs";
+import {
+  deleteEstimateRowItemWithHistory,
+  deleteEstimateRowItemsBulkWithHistory,
+  duplicateEstimateRowItemWithHistory,
+  getEstimateRowForProject,
+  insertEstimateRowItemWithHistory,
+  moveEstimateRowComponentWithHistory as moveEstimateRowComponentIntent,
+  moveEstimateRowItemWithHistory as moveEstimateRowItemIntent,
+  replaceEstimateRowItemWithHistory,
+  restoreDeletedEstimateRowsWithHistory,
+  updateEstimateRowItemWithHistory,
+} from "@/lib/estimates/d1-intents/rows";
+import {
+  insertEstimateTemplateIntoEstimateWithHistory,
+  insertEstimateTemplateNodeIntoEstimateWithHistory,
+  insertEstimateTemplatesIntoEstimateWithHistory,
+} from "@/lib/estimates/d1-intents/templates";
 import type { EstimateRow as EstimateDatabaseRow, ProjectRow as ProjectDatabaseRow } from "@/lib/types/database";
 import type { Json } from "@/lib/types/json";
-
-type CreateEstimateNodeWithHistoryArgs = {
-  target_project_id: string;
-  target_estimate_id: string;
-  parent_node_id: string | null;
-  node_kind: CreateEstimateNodeKind;
-  node_name: string;
-  initial_sort_order: number;
-  acting_user_id: string;
-  correlation_id: string;
-  target_tab_id?: string;
-};
 
 type EstimateActionTables = {
   projects: ProjectDatabaseRow;
   estimates: EstimateDatabaseRow;
-  estimate_sheet_events: {
-    id: string;
-    event_type: string;
-    event_source: string;
-    created_at: string;
-    actor_user_id: string | null;
-    estimate_tab_id: string | null;
-    target_row_id: string | null;
-    estimate_node_id: string | null;
-    row_context: Json;
-    old_snapshot: Json | null;
-    new_snapshot: Json | null;
-    changed_fields: Json;
-    total_delta: number | null;
-    payload: Json;
-    correlation_id: string;
-  };
   estimate_tabs: {
     id: string;
     estimate_id: string;
@@ -132,7 +153,6 @@ type EstimateActionTables = {
 };
 
 type Tables<T extends keyof EstimateActionTables> = EstimateActionTables[T];
-type TablesInsert<T extends keyof EstimateActionTables> = Partial<EstimateActionTables[T]> & Record<string, unknown>;
 type TablesUpdate<T extends keyof EstimateActionTables> = Partial<EstimateActionTables[T]>;
 
 function throwEstimateRowMutationError(error: unknown): never {
@@ -254,25 +274,7 @@ type GetEstimateComponentEditImpactInput = {
   rowId: string;
 };
 
-export type { EstimateComponentEditImpact } from "@/lib/estimates/d1-action-client";
-
-type EstimateRowImageAssetDescriptor = {
-  kind: "upload-asset";
-  schemaVersion: 1;
-  assetId: string;
-  uploadSessionId: string;
-  bucket: string;
-  path: string;
-  thumbnailPath?: string | null;
-  fileName?: string | null;
-  contentType: string;
-  sizeBytes: number;
-  scanStatus: string;
-  width?: number | null;
-  height?: number | null;
-  thumbnailWidth?: number | null;
-  thumbnailHeight?: number | null;
-};
+export type { EstimateComponentEditImpact } from "@/lib/estimates/d1-intents/component-impact";
 
 type UpdateEstimateSheetAdjustmentInput = {
   projectId: string;
@@ -461,10 +463,11 @@ export type DeleteEstimateSheetInput = {
   correlationId?: string;
 };
 
-export type EstimateSheetHistoryCursor = {
-  createdAt: string;
-  id: string;
-};
+export type {
+  EstimateSheetHistoryCursor,
+  EstimateSheetHistoryEvent,
+  EstimateSheetVersionControlData,
+} from "@/lib/estimates/d1-intents/history-events";
 
 type EstimateSheetHistoryReadScope = "sheet" | "row" | "node" | "both";
 
@@ -485,42 +488,7 @@ type FetchEstimateSheetVersionControlInput = {
   scope?: EstimateSheetHistoryReadScope;
 };
 
-export type EstimateSheetHistoryEvent = {
-  id: string;
-  eventType: string;
-  eventSource: string;
-  createdAt: string;
-  actorUserId: string | null;
-  actorLabel: string;
-  estimateTabId: string | null;
-  targetRowId: string | null;
-  estimateNodeId: string | null;
-  rowContext: Record<string, unknown>;
-  oldSnapshot: Json | null;
-  newSnapshot: Json | null;
-  changedFields: string[];
-  totalDelta: number | null;
-  payload: Record<string, unknown>;
-  correlationId: string;
-};
-
-export type EstimateSheetVersionControlData = {
-  events: EstimateSheetHistoryEvent[];
-  rowEvents: EstimateSheetHistoryEvent[];
-  nodeEvents: EstimateSheetHistoryEvent[];
-  nextCursor: EstimateSheetHistoryCursor | null;
-  rowNextCursor: EstimateSheetHistoryCursor | null;
-  nodeNextCursor: EstimateSheetHistoryCursor | null;
-};
-
-export type EstimateActivityRetentionMetrics = {
-  workspaceEventBytes: number;
-  workspaceVersionBytes: number;
-  largestEventPayloadBytes: number;
-  maxEstimateEventCount: number;
-  estimatesOverEventThreshold: number;
-  workspaceStorageOverThreshold: boolean;
-};
+export type { EstimateActivityRetentionMetrics } from "@/lib/estimates/d1-intents/access";
 
 type FetchEstimateTreeInput = {
   projectId: string;
@@ -575,24 +543,6 @@ type ReorderEstimateTreeNodesResult = {
   tree: EstimateTreeNode[];
 };
 
-type ReorderEstimateNodeRow = {
-  id: string;
-  estimate_id: string;
-  estimate_tab_id?: string | null;
-  parent_id: string | null;
-  kind: string;
-};
-
-type ValidatedEstimateNodeRow = {
-  id: string;
-  estimate_id: string;
-  estimate_tab_id?: string | null;
-  parent_id: string | null;
-  kind: string;
-};
-
-type EstimateIdProjectRow = Pick<Tables<"estimates">, "id" | "project_id">;
-
 type RenameEstimateNodeResult = {
   nodeId: string;
   name: string;
@@ -616,12 +566,6 @@ type DeleteEstimateNodeResult = {
 };
 
 type CreateEstimateNodeKind = "group" | "area";
-
-type CreateEstimateNodeSiblingRow = {
-  id: string;
-  kind: string;
-  sort_order: number;
-};
 
 function readInsertedRootNodeIds(value: unknown): string[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
@@ -861,26 +805,11 @@ function readRestoreDeletedRowsResult(value: unknown): RestoreDeletedEstimateRow
   };
 }
 
-function readRestoreDeletedNodesResult(value: unknown): Omit<RestoreDeletedEstimateNodesResult, "tree"> {
-  if (!value || typeof value !== "object") throw new Error("Deleted node restore RPC returned an invalid result.");
-  const result = value as Record<string, unknown>;
-  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
-  const restoredNodeIds = readBulkDeletedRowIds(result.restoredNodeIds ?? payload.restoredNodeIds);
-  const restoredRootNodeIds = readBulkDeletedRowIds(result.restoredRootNodeIds ?? payload.restoredRootNodeIds);
-  const restoredRowIds = readBulkDeletedRowIds(result.restoredRowIds ?? payload.restoredRowIds);
 
-  return {
-    eventId: readStringResult(result.eventId ?? payload.eventId, "Deleted node restore RPC did not return a history event id."),
-    sourceEventId: readStringResult(result.sourceEventId ?? payload.sourceEventId, "Deleted node restore RPC did not return the source event id."),
-    restoredNodeIds,
-    restoredRootNodeIds,
-    restoredNodeCount: readNumber(result.restoredNodeCount ?? payload.restoredNodeCount, restoredNodeIds.length),
-    restoredRowIds,
-    restoredRowCount: readNumber(result.restoredRowCount ?? payload.restoredRowCount, restoredRowIds.length),
-  };
-}
-
-async function assertCanEditEstimate(dataStore: EstimateActionsD1Client, estimateId: string) {
+async function assertCanEditEstimate(
+  database: D1DatabaseLike,
+  estimateId: string,
+) {
   let currentUser: Awaited<ReturnType<typeof requireCurrentUserContext>>;
   try {
     currentUser = await requireCurrentUserContext();
@@ -893,9 +822,11 @@ async function assertCanEditEstimate(dataStore: EstimateActionsD1Client, estimat
     throw error;
   }
 
-  const { data, error } = await dataStore.call("can_edit_estimate", { target_estimate_id: estimateId });
-  if (error) {
-    const errorRecord = error as unknown as { code?: unknown };
+  let allowed: boolean;
+  try {
+    allowed = await canEditEstimate(database, currentUser, estimateId);
+  } catch (error) {
+    const errorRecord = error as { code?: unknown };
     const errorCode = typeof errorRecord.code === "string" ? errorRecord.code : undefined;
     recordEstimateMutationEvent("authz_denied", {
       operation: "authz_check",
@@ -905,7 +836,7 @@ async function assertCanEditEstimate(dataStore: EstimateActionsD1Client, estimat
     });
     throw error;
   }
-  if (data !== true) {
+  if (!allowed) {
     recordEstimateMutationEvent("authz_denied", {
       operation: "authz_check",
       estimateId,
@@ -999,11 +930,14 @@ function readEstimateSheetAdjustmentRpcResult(value: unknown): EstimateSheetAdju
 // Project-scoped edit guard for sheet creation (no estimate id exists yet). RLS
 // still backstops the insert; this returns a clean app-level denial first so a
 // read-only collaborator never sees a raw RLS error (F15 / P3-3).
-async function assertCanEditProject(dataStore: EstimateActionsD1Client, projectId: string) {
-  const { data, error } = await dataStore.call("can_edit_project", { target_project_id: projectId });
-  if (error) throw error;
-  if (data !== true) throw new Error("Project edit access denied.");
+async function assertCanEditProject(
+  database: D1DatabaseLike,
+  projectId: string,
+) {
   const currentUser = await requireCurrentUserContext();
+  if (!await canEditProject(database, currentUser, projectId)) {
+    throw new Error("Project edit access denied.");
+  }
   assertEstimateActionRateLimit({
     resourceId: projectId,
     surface: "project-estimate-create",
@@ -1023,81 +957,6 @@ function readJsonRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function readStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
-function readDeleteEstimateNodeRpcResult(
-  value: unknown,
-  fallbackDeletedNodeIds: string[],
-  fallbackNodeId: string | null,
-): Pick<DeleteEstimateNodeResult, "eventId" | "deletedNodeIds" | "deletedNodeCount" | "deletedRowCount" | "fallbackNodeId"> {
-  if (!value || typeof value !== "object") {
-    throw new Error("Tree delete RPC returned an invalid result.");
-  }
-
-  const result = value as Record<string, unknown>;
-  const payload = readJsonRecord(result.payload);
-  const deletedNodeIds = readStringArray(result.deletedNodeIds ?? payload.deletedNodeIds);
-  const nextFallbackNodeId = result.fallbackNodeId ?? payload.fallbackNodeId;
-
-  return {
-    eventId: readStringResult(result.eventId ?? payload.eventId, "Tree delete RPC did not return a history event id."),
-    deletedNodeIds: deletedNodeIds.length ? deletedNodeIds : fallbackDeletedNodeIds,
-    deletedNodeCount: readNumber(result.deletedNodeCount ?? payload.deletedNodeCount, deletedNodeIds.length || fallbackDeletedNodeIds.length),
-    deletedRowCount: readNumber(result.deletedRowCount ?? payload.deletedRowCount),
-    fallbackNodeId: typeof nextFallbackNodeId === "string" ? nextFallbackNodeId : fallbackNodeId,
-  };
-}
-
-function getFallbackActorLabel(actorUserId: string | null) {
-  return actorUserId ? "Unknown user" : "System/backfill";
-}
-
-function readProfileActorLabel(value: unknown) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed || null;
-}
-
-function readProfileEmailActorLabel(value: unknown) {
-  const email = readProfileActorLabel(value)?.toLowerCase();
-  if (!email) return null;
-  if (email === "philipjonlewis@gmail.com") return "Philip Lewis";
-
-  const [localPart] = email.split("@");
-  const spacedLocalPart = localPart?.replace(/[._-]+/g, " ").trim();
-  if (!spacedLocalPart) return null;
-  if (!spacedLocalPart.includes(" ")) return email;
-
-  return spacedLocalPart
-    .split(/\s+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function normalizeHistoryEvent(row: Tables<"estimate_sheet_events">, actorLabels = new Map<string, string>()): EstimateSheetHistoryEvent {
-  const actorUserId = row.actor_user_id;
-  return {
-    id: row.id,
-    eventType: normalizeEventType(row.event_type, { changedFields: readStringArray(row.changed_fields) }),
-    eventSource: row.event_source,
-    createdAt: row.created_at,
-    actorUserId,
-    actorLabel: actorUserId ? actorLabels.get(actorUserId) ?? getFallbackActorLabel(actorUserId) : getFallbackActorLabel(null),
-    estimateTabId: row.estimate_tab_id ?? null,
-    targetRowId: row.target_row_id,
-    estimateNodeId: row.estimate_node_id,
-    rowContext: readJsonRecord(row.row_context),
-    oldSnapshot: row.old_snapshot,
-    newSnapshot: row.new_snapshot,
-    changedFields: readStringArray(row.changed_fields),
-    totalDelta: row.total_delta === null ? null : Number(row.total_delta),
-    payload: readJsonRecord(row.payload),
-    correlationId: row.correlation_id,
-  };
-}
-
 function normalizeHistoryCursor(cursor: EstimateSheetHistoryCursor | null | undefined, label: string): EstimateSheetHistoryCursor | null {
   if (!cursor) return null;
   if (!isUuid(cursor.id)) throw new Error(`${label} cursor id is invalid.`);
@@ -1111,45 +970,15 @@ function normalizeHistoryCursor(cursor: EstimateSheetHistoryCursor | null | unde
   };
 }
 
-function buildHistoryCursorFilter(cursor: EstimateSheetHistoryCursor) {
-  return `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`;
-}
-
-const DORMANT_NAMED_VERSION_EVENT_TYPES = ["sheet_version_created", "sheet_restored_as_copy"] as const;
-
 function isDormantNamedVersionEventType(eventType: string) {
   return eventType === "sheet_version_created" || eventType === "sheet_restored_as_copy";
-}
-
-function buildHistoryEventPageRows(rows: Tables<"estimate_sheet_events">[], limit: number) {
-  const filteredRows = rows.filter((row) => !isDormantNamedVersionEventType(row.event_type));
-  const pageRows = filteredRows.slice(0, limit);
-  const lastRow = pageRows.at(-1);
-
-  return {
-    rows: pageRows,
-    nextCursor: filteredRows.length > limit && lastRow ? { createdAt: lastRow.created_at, id: lastRow.id } : null,
-  };
-}
-
-function applySupportedActivityEventFilter<TQuery extends { not: (column: string, operator: string, value: string) => TQuery }>(query: TQuery) {
-  return query.not("event_type", "in", `(${DORMANT_NAMED_VERSION_EVENT_TYPES.join(",")})`);
 }
 
 type ActivityReadFilters = {
   eventTypes: string[];
   dateFrom: string | null;
   dateTo: string | null;
-  searchTerm: string | null;
   searchPattern: string | null;
-};
-
-type ActivityReadFilterQuery<TSelf> = {
-  not: (column: string, operator: string, value: string) => TSelf;
-  in: (column: string, values: string[]) => TSelf;
-  gte: (column: string, value: string) => TSelf;
-  lte: (column: string, value: string) => TSelf;
-  or: (filters: string) => TSelf;
 };
 
 function normalizeActivityDate(value: string | undefined, label: string) {
@@ -1179,80 +1008,13 @@ function normalizeActivityReadFilters(input: FetchEstimateSheetVersionControlInp
     }
   }
 
+  const searchTerm = normalizeActivitySearch(input.search);
   return {
     eventTypes,
     dateFrom: normalizeActivityDate(input.dateFrom, "Activity start date"),
     dateTo: normalizeActivityDate(input.dateTo, "Activity end date"),
-    searchTerm: normalizeActivitySearch(input.search),
-    searchPattern: normalizeActivitySearch(input.search)?.replace(/\s+/g, "%") ?? null,
+    searchPattern: searchTerm?.replace(/\s+/g, "%") ?? null,
   };
-}
-
-function applyActivityReadFilters<TQuery extends ActivityReadFilterQuery<TQuery>>(query: TQuery, filters: ActivityReadFilters): TQuery {
-  let filteredQuery = applySupportedActivityEventFilter(query);
-
-  if (filters.eventTypes.length > 0) {
-    filteredQuery = filteredQuery.in("event_type", filters.eventTypes) as TQuery;
-  }
-
-  if (filters.dateFrom) {
-    filteredQuery = filteredQuery.gte("created_at", filters.dateFrom) as TQuery;
-  }
-
-  if (filters.dateTo) {
-    filteredQuery = filteredQuery.lte("created_at", filters.dateTo) as TQuery;
-  }
-
-  if (filters.searchPattern) {
-    const ilikePattern = `%${filters.searchPattern}%`;
-    const searchFilters = [
-      `event_type.ilike.${ilikePattern}`,
-      `row_context->>material.ilike.${ilikePattern}`,
-      `row_context->>supplier.ilike.${ilikePattern}`,
-      `row_context->>category.ilike.${ilikePattern}`,
-      `payload->>material.ilike.${ilikePattern}`,
-      `payload->>name.ilike.${ilikePattern}`,
-      `old_snapshot->>material.ilike.${ilikePattern}`,
-      `new_snapshot->>material.ilike.${ilikePattern}`,
-    ];
-
-    if (filters.searchTerm && isUuid(filters.searchTerm)) {
-      searchFilters.push(
-        `id.eq.${filters.searchTerm}`,
-        `correlation_id.eq.${filters.searchTerm}`,
-        `target_row_id.eq.${filters.searchTerm}`,
-        `estimate_node_id.eq.${filters.searchTerm}`,
-      );
-    }
-
-    filteredQuery = filteredQuery.or(searchFilters.join(",")) as TQuery;
-  }
-
-  return filteredQuery;
-}
-
-async function resolveActivityActorLabels(
-  dataStore: EstimateActionsD1Client,
-  rows: Tables<"estimate_sheet_events">[],
-) {
-  const actorUserIds = Array.from(new Set(rows.map((row) => row.actor_user_id).filter((id): id is string => typeof id === "string" && id.length > 0)));
-  if (!actorUserIds.length) return new Map<string, string>();
-
-  try {
-    const { data, error } = await dataStore
-      .from("profiles")
-      .select("id, display_name, email")
-      .in("id", actorUserIds);
-
-    if (error) return new Map<string, string>();
-
-    return new Map(
-      ((data ?? []) as Array<{ id: string; display_name: string | null; email: string | null }>)
-        .map((profile) => [profile.id, readProfileActorLabel(profile.display_name) ?? readProfileEmailActorLabel(profile.email) ?? getFallbackActorLabel(profile.id)] as const),
-    );
-  } catch {
-    return new Map<string, string>();
-  }
 }
 
 type EstimateActivityNodeScope = {
@@ -1260,152 +1022,39 @@ type EstimateActivityNodeScope = {
   rowIds: string[];
 };
 
-type EstimateActivityNodeRow = {
-  id: string;
-  estimate_id?: string;
-  parent_id: string | null;
-  kind: string;
-};
-
-type EstimateActivityRowScopeRow = {
-  id: string;
-};
-
-function collectDescendantNodeIds(nodes: EstimateActivityNodeRow[], rootNodeId: string) {
-  const childrenByParent = new Map<string | null, EstimateActivityNodeRow[]>();
-  for (const node of nodes) {
-    const children = childrenByParent.get(node.parent_id) ?? [];
-    children.push(node);
-    childrenByParent.set(node.parent_id, children);
-  }
-
-  const descendantIds: string[] = [];
-  const queue = [rootNodeId];
-  const seen = new Set<string>();
-  while (queue.length) {
-    const currentId = queue.shift();
-    if (!currentId || seen.has(currentId)) continue;
-    seen.add(currentId);
-    descendantIds.push(currentId);
-    for (const child of childrenByParent.get(currentId) ?? []) {
-      queue.push(child.id);
-    }
-  }
-
-  return descendantIds;
-}
-
-function buildNodeScopeEventFilter(scope: EstimateActivityNodeScope) {
-  const nodeFilter = scope.nodeIds.length ? `estimate_node_id.in.(${scope.nodeIds.join(",")})` : "";
-  const rowFilter = scope.rowIds.length ? `target_row_id.in.(${scope.rowIds.join(",")})` : "";
-  return [nodeFilter, rowFilter].filter(Boolean).join(",");
-}
-
 async function resolveEstimateActivityNodeScope({
-  dataStore,
+  database,
   estimateId,
   projectId,
   nodeId,
   includeDescendants,
 }: {
-  dataStore: EstimateActionsD1Client;
+  database: D1DatabaseLike;
   estimateId: string;
   projectId: string;
   nodeId: string;
   includeDescendants: boolean;
 }): Promise<EstimateActivityNodeScope> {
-  const { data: node, error: nodeError } = await dataStore
-    .from("estimate_nodes")
-    .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
-    .eq("id", nodeId)
-    .eq("estimate_id", estimateId)
-    .eq("estimates.project_id", projectId)
-    .maybeSingle<EstimateActivityNodeRow>();
-
-  if (nodeError) throw nodeError;
-  if (!node) throw new Error("Estimate activity node not found in the current estimate.");
-
-  if (!includeDescendants) {
-    return { nodeIds: [nodeId], rowIds: [] };
-  }
-
-  const { data: descendantNodes, error: descendantsError } = await dataStore
-    .from("estimate_nodes")
-    .select("id, parent_id, kind")
-    .eq("estimate_id", estimateId);
-
-  if (descendantsError) throw descendantsError;
-
-  const nodeIds = collectDescendantNodeIds((descendantNodes ?? []) as EstimateActivityNodeRow[], nodeId);
-  if (!nodeIds.length) nodeIds.push(nodeId);
-  const { data: rows, error: rowsError } = await dataStore
-    .from("estimate_row_items")
-    .select("id")
-    .eq("estimate_id", estimateId)
-    .in("node_id", nodeIds);
-
-  if (rowsError) throw rowsError;
-
-  return {
-    nodeIds,
-    rowIds: ((rows ?? []) as EstimateActivityRowScopeRow[]).map((row) => row.id),
-  };
+  return resolveEstimateActivityNodeScopeIntent(database, {
+    projectId,
+    estimateId,
+    nodeId,
+    includeDescendants,
+  });
 }
 
 async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string, options?: { requireEdit?: boolean }) {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  if (options?.requireEdit) await assertCanEditEstimate(dataStore, estimateId);
-  const { data: row, error } = await dataStore
-    .from("estimate_row_items")
-    .select("id, node_id, estimate_id, source_library_item_id, source_snapshot, metadata, link_state, row_revision, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
-    .eq("id", rowId)
-    .eq("estimate_id", estimateId)
-    .eq("estimate_nodes.estimates.project_id", project.id)
-    .maybeSingle<Tables<"estimate_row_items">>();
-
-  if (error) throw error;
+  const database = await requireEstimateD1Database();
+  if (options?.requireEdit) await assertCanEditEstimate(database, estimateId);
+  const row = await getEstimateRowForProject(database, { projectId: project.id, estimateId, rowId });
   if (!row) throw new Error("Estimate row item not found in the current project.");
 
-  return { project, dataStore, row };
+  return { project, database, row };
 }
 
-async function getValidatedEstimateNode(
-  projectId: string,
-  estimateId: string,
-  nodeId: string,
-  options?: { requireEdit?: boolean },
-) {
-  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
-  if (!project) throw new Error("Project not found in the current workspace.");
-
-  const dataStore = await createEstimateActionsD1Client();
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateIdProjectRow>();
-
-  if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate not found in the current project.");
-  if (options?.requireEdit) await assertCanEditEstimate(dataStore, estimate.id);
-
-  const { data: node, error: nodeError } = await dataStore
-    .from("estimate_nodes")
-    .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
-    .eq("id", nodeId)
-    .eq("estimate_id", estimate.id)
-    .eq("estimates.project_id", project.id)
-    .maybeSingle<ValidatedEstimateNodeRow>();
-
-  if (nodeError) throw nodeError;
-  if (!node) throw new Error("Estimate tree node not found in the current project.");
-
-  return { project, estimate, dataStore, node };
-}
 
 function readEstimateNodeName(input: FormData | string) {
   if (typeof input === "string") return normalizeEditableText(input, "Estimate tree node name");
@@ -1721,13 +1370,13 @@ function isEstimateRowImageAssetDescriptor(value: unknown): value is EstimateRow
 }
 
 async function validateEstimateRowImageAssetPatch({
-  dataStore,
+  database,
   projectId,
   estimateId,
   rowId,
   sourceSnapshotPatch,
 }: {
-  dataStore: EstimateActionsD1Client;
+  database: D1DatabaseLike;
   projectId: string;
   estimateId: string;
   rowId: string;
@@ -1742,15 +1391,13 @@ async function validateEstimateRowImageAssetPatch({
   const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
   if (!assetId || !uploadSessionId) throw new Error("Reference image asset is invalid.");
 
-  const { data, error } = await dataStore.call("validate_estimate_row_image_asset", {
-    target_asset_id: assetId,
-    target_upload_session_id: uploadSessionId,
-    target_project_id: projectId,
-    target_estimate_id: estimateId,
-    target_row_id: rowId,
+  const data = await validateEstimateRowImageAsset(database, {
+    assetId,
+    uploadSessionId,
+    projectId,
+    estimateId,
+    rowId,
   });
-
-  if (error) throw new Error(error.message ?? "Could not validate reference image asset.");
   if (!isEstimateRowImageAssetDescriptor(data)) {
     throw new Error("Reference image asset is not valid for this estimate row.");
   }
@@ -1762,13 +1409,13 @@ async function validateEstimateRowImageAssetPatch({
 }
 
 async function removeUnvalidatedEstimateRowImageAsset({
-  dataStore,
+  database,
   projectId,
   estimateId,
   rowId,
   sourceSnapshot,
 }: {
-  dataStore: EstimateActionsD1Client;
+  database: D1DatabaseLike;
   projectId: string;
   estimateId: string;
   rowId: string;
@@ -1786,15 +1433,13 @@ async function removeUnvalidatedEstimateRowImageAsset({
   const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
   if (!assetId || !uploadSessionId) return withoutImageAsset;
 
-  const { data, error } = await dataStore.call("validate_estimate_row_image_asset", {
-    target_asset_id: assetId,
-    target_upload_session_id: uploadSessionId,
-    target_project_id: projectId,
-    target_estimate_id: estimateId,
-    target_row_id: rowId,
+  const data = await validateEstimateRowImageAsset(database, {
+    assetId,
+    uploadSessionId,
+    projectId,
+    estimateId,
+    rowId,
   });
-
-  if (error) throw new Error(error.message ?? "Could not validate reference image asset.");
   if (!isEstimateRowImageAssetDescriptor(data)) return withoutImageAsset;
 
   return {
@@ -1896,194 +1541,6 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
   };
 }
 
-async function assertCurrentLibrarySourceForEstimateCommit(
-  dataStore: EstimateActionsD1Client,
-  libraryItem: EstimateRowItem,
-) {
-  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
-  if (!sourceLibraryItemId) return null;
-
-  const { data, error } = await dataStore
-    .from("cost_library_items")
-    .select("id, workspace_id, active_price_option_id, current_version_number, updated_at, lifecycle_state, unit, unit_cost, misc_cost")
-    .eq("id", sourceLibraryItemId)
-    .maybeSingle<{
-      id: string;
-      workspace_id: string;
-      active_price_option_id: string | null;
-      current_version_number: number | string;
-      updated_at: string | null;
-      lifecycle_state: string | null;
-      unit: string;
-      unit_cost: number | string;
-      misc_cost: number | string;
-    }>();
-
-  if (error) throw error;
-  if (!data) {
-    throw new Error("Library source changed. Refresh the estimate before committing this component.");
-  }
-  if (data.lifecycle_state === "archived") {
-    throw new Error("Library source is archived. Refresh the estimate before committing this component.");
-  }
-  if (libraryItem.lifecycleState && data.lifecycle_state !== libraryItem.lifecycleState) {
-    throw new Error("Library source changed. Refresh the estimate before committing this component.");
-  }
-  if (
-    libraryItem.componentVersionNumber !== undefined
-    && Number(data.current_version_number) !== libraryItem.componentVersionNumber
-  ) {
-    throw new Error("Library source changed. Refresh the estimate before committing this component.");
-  }
-  const sourceUpdatedAt = typeof data.updated_at === "string" ? data.updated_at : null;
-  if (libraryItem.updatedAt && sourceUpdatedAt && sourceUpdatedAt !== libraryItem.updatedAt) {
-    throw new Error("Library source changed. Refresh the estimate before committing this component.");
-  }
-  const selectedOptionId = libraryItem.priceOptionId ?? data.active_price_option_id;
-  type CurrentLibraryPriceOptionRow = {
-    id: string;
-    item_id: string;
-    label: string;
-    unit: string;
-    unit_cost: number | string;
-    misc_cost: number | string;
-    is_active: number | boolean;
-    updated_at: string;
-  };
-  type CurrentLibraryVariantCostRow = {
-    id: string;
-    price_option_id: string;
-    unit_cost: number | string;
-    misc_cost: number | string;
-    updated_at: string;
-  };
-  let option: CurrentLibraryPriceOptionRow | null = null;
-  let costEntry: CurrentLibraryVariantCostRow | null = null;
-  if (selectedOptionId) {
-    const optionResult = await dataStore
-      .from("cost_library_item_price_options")
-      .select("id, item_id, label, unit, unit_cost, misc_cost, is_active, updated_at")
-      .eq("id", selectedOptionId)
-      .eq("item_id", sourceLibraryItemId)
-      .maybeSingle<CurrentLibraryPriceOptionRow>();
-    if (optionResult.error) throw optionResult.error;
-    option = optionResult.data;
-    if (!option || !(option.is_active === true || Number(option.is_active) === 1)) {
-      throw new Error("Library variant changed. Refresh the estimate before committing this component.");
-    }
-    const costResult = await dataStore
-      .from("cost_library_item_variant_cost_entries")
-      .select("id, price_option_id, unit_cost, misc_cost, updated_at")
-      .eq("price_option_id", selectedOptionId)
-      .eq("is_current", 1)
-      .is("deleted_at", null)
-      .maybeSingle<CurrentLibraryVariantCostRow>();
-    if (costResult.error) throw costResult.error;
-    costEntry = costResult.data;
-  }
-  const resolvedUnit = option?.unit ?? data.unit;
-  const resolvedUnitCost = Number(costEntry?.unit_cost ?? option?.unit_cost ?? data.unit_cost);
-  const resolvedMiscCost = Number(costEntry?.misc_cost ?? option?.misc_cost ?? data.misc_cost);
-  if (
-    libraryItem.unit !== resolvedUnit
-    || libraryItem.itemCost !== resolvedUnitCost
-    || libraryItem.miscCost !== resolvedMiscCost
-    || (libraryItem.priceOptionLabel !== undefined && option?.label !== libraryItem.priceOptionLabel)
-  ) {
-    throw new Error("Library variant pricing changed. Refresh the estimate before committing this component.");
-  }
-  const receipt = {
-    sourceLibraryItemId,
-    workspaceId: data.workspace_id,
-    itemVersion: Number(data.current_version_number),
-    itemUpdatedAt: sourceUpdatedAt,
-    lifecycleState: data.lifecycle_state,
-    itemUnit: data.unit,
-    itemUnitCost: Number(data.unit_cost),
-    itemMiscCost: Number(data.misc_cost),
-    itemActivePriceOptionId: data.active_price_option_id,
-    selectedOptionId: option?.id ?? null,
-    optionLabel: option?.label ?? null,
-    optionUnit: option?.unit ?? null,
-    optionUnitCost: option ? Number(option.unit_cost) : null,
-    optionMiscCost: option ? Number(option.misc_cost) : null,
-    optionUpdatedAt: option?.updated_at ?? null,
-    activeCostEntryId: costEntry?.id ?? null,
-    activeCostEntryUnitCost: costEntry ? Number(costEntry.unit_cost) : null,
-    activeCostEntryMiscCost: costEntry ? Number(costEntry.misc_cost) : null,
-    activeCostEntryUpdatedAt: costEntry?.updated_at ?? null,
-    resolvedUnit,
-    resolvedUnitCost,
-    resolvedMiscCost,
-  };
-  return {
-    ...receipt,
-    fingerprint: createMutationRequestFingerprint(receipt),
-  };
-}
-
-async function insertEstimateWithSheetCodeFallback(
-  dataStore: EstimateActionsD1Client,
-  payload: TablesInsert<"estimates">,
-  sheetCode: string,
-) {
-  // legacy "sheet_code" name kept for compatibility; see plan 2026-06-12 §01-17
-  const nextPayload = { ...payload };
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const currentResult = await dataStore.from("estimates").insert(nextPayload).select("*").single<EstimateRecordWithLegacy>();
-    if (!currentResult.error) return normalizeEstimateRecord(currentResult.data as EstimateRecordWithLegacy);
-
-    if (isMissingColumnError(currentResult.error, "sheet_code")) break;
-    if (isMissingColumnError(currentResult.error, "notes") && "notes" in nextPayload) {
-      delete nextPayload.notes;
-      continue;
-    }
-    if (isMissingColumnError(currentResult.error, "project_budget") && "project_budget" in nextPayload) {
-      delete nextPayload.project_budget;
-      continue;
-    }
-    throw currentResult.error;
-  }
-
-  const currentResult = await dataStore.from("estimates").insert(nextPayload).select("*").single<EstimateRecordWithLegacy>();
-  if (!currentResult.error) return normalizeEstimateRecord(currentResult.data as EstimateRecordWithLegacy);
-  if (!isMissingColumnError(currentResult.error, "sheet_code")) throw currentResult.error;
-
-  const legacyPayload = { ...nextPayload };
-  delete legacyPayload.sheet_code;
-  delete legacyPayload.project_budget;
-  delete legacyPayload.notes;
-  const legacyEstimatePayload = { ...legacyPayload, revision_label: sheetCode };
-  const legacyResult = await dataStore
-    .from("estimates")
-    .insert(legacyEstimatePayload as never)
-    .select("*")
-    .single<EstimateRecordWithLegacy>();
-
-  if (legacyResult.error) throw legacyResult.error;
-  return normalizeEstimateRecord(legacyResult.data as EstimateRecordWithLegacy);
-}
-
-type ProjectEstimateCodeRow = {
-  id: string;
-  sheetCode: string;
-};
-
-function readLegacyEstimateCodeRows(value: unknown): ProjectEstimateCodeRow[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const record = item as Record<string, unknown>;
-    const id = typeof record.id === "string" ? record.id : "";
-    if (!id) return [];
-    return [{
-      id,
-      sheetCode: typeof record.revision_label === "string" ? record.revision_label : "",
-    }];
-  });
-}
-
 type UpdateEstimateDetailsInput = {
   projectId: string;
   estimateId: string;
@@ -2097,12 +1554,6 @@ type DuplicateEstimateSheetInput = {
   projectId: string;
   estimateId: string;
 };
-
-type DuplicateEstimateTabRow = Pick<Tables<"estimate_tabs">, "id" | "is_default" | "metadata" | "name" | "sort_order">;
-type DuplicateEstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_tab_id" | "kind" | "metadata" | "name" | "parent_id" | "sort_order">;
-type DuplicateEstimateRowItemRow = Tables<"estimate_row_items">;
-
-const GENERATED_SHEET_CODE_PREFIX = "ES";
 
 function normalizeEditableText(value: string | undefined, label: string) {
   const text = String(value ?? "").trim();
@@ -2123,168 +1574,6 @@ function normalizeEditableBudget(value: number | null | undefined, label: string
   const budget = Number(value);
   if (!Number.isFinite(budget) || budget < 0) throw new Error(`${label} must be a valid positive number.`);
   return budget;
-}
-
-function readLegacyProjectBudget(metadata: Json): number | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  const value = (metadata as Record<string, Json>).projectBudget;
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
-}
-
-async function listProjectEstimateCodes(
-  dataStore: EstimateActionsD1Client,
-  projectId: string,
-): Promise<ProjectEstimateCodeRow[]> {
-  const currentResult = await dataStore
-    .from("estimates")
-    .select("id, sheet_code")
-    .eq("project_id", projectId);
-
-  if (!currentResult.error) {
-    const estimates = (currentResult.data ?? []) as Array<{ id: string; sheet_code?: string | null }>;
-    return estimates.map((estimate) => ({
-      id: estimate.id,
-      sheetCode: estimate.sheet_code ?? "",
-    }));
-  }
-
-  if (!isMissingColumnError(currentResult.error, "sheet_code")) throw currentResult.error;
-
-  const legacyResult = await dataStore
-    .from("estimates")
-    .select("id, revision_label")
-    .eq("project_id", projectId);
-
-  if (legacyResult.error) throw legacyResult.error;
-  return readLegacyEstimateCodeRows(legacyResult.data);
-}
-
-function getNextGeneratedSheetCode(existingCodes: string[]) {
-  const generatedCodePattern = new RegExp(`^${GENERATED_SHEET_CODE_PREFIX}-(\\d+)$`, "i");
-  const nextNumber = existingCodes.reduce((highest, code) => {
-    const match = code.trim().match(generatedCodePattern);
-    if (!match) return highest;
-    const parsed = Number(match[1]);
-    return Number.isFinite(parsed) ? Math.max(highest, parsed) : highest;
-  }, 0) + 1;
-
-  return `${GENERATED_SHEET_CODE_PREFIX}-${String(nextNumber).padStart(3, "0")}`;
-}
-
-async function generateNextEstimateSheetCode(
-  dataStore: EstimateActionsD1Client,
-  projectId: string,
-  excludedEstimateId?: string,
-) {
-  const estimateCodes = await listProjectEstimateCodes(dataStore, projectId);
-  const existingCodes = estimateCodes
-    .flatMap((estimate) => {
-      if (estimate.id === excludedEstimateId) return [];
-      const sheetCode = estimate.sheetCode.trim();
-      return sheetCode ? [sheetCode] : [];
-    });
-  const existingCodeSet = new Set(existingCodes.map((code) => code.toLocaleLowerCase()));
-  let candidate = getNextGeneratedSheetCode(existingCodes);
-
-  while (existingCodeSet.has(candidate.toLocaleLowerCase())) {
-    candidate = getNextGeneratedSheetCode([...existingCodes, candidate]);
-  }
-
-  return candidate;
-}
-
-async function assertEstimateSheetCodeIsAvailable(
-  dataStore: EstimateActionsD1Client,
-  projectId: string,
-  sheetCode: string,
-  currentEstimateId?: string,
-) {
-  const estimateCodes = await listProjectEstimateCodes(dataStore, projectId);
-  const normalizedSheetCode = sheetCode.trim().toLocaleLowerCase();
-  const duplicate = estimateCodes.find(
-    (estimate) => estimate.id !== currentEstimateId && estimate.sheetCode.trim().toLocaleLowerCase() === normalizedSheetCode,
-  );
-
-  if (duplicate) throw new Error(`Estimate code ${sheetCode} already exists in this project.`);
-}
-
-async function getEstimateRecordAfterMutation(
-  dataStore: EstimateActionsD1Client,
-  estimateId: string,
-  projectId: string,
-) {
-  const currentResult = await dataStore
-    .from("estimates")
-    .select("*")
-    .eq("id", estimateId)
-    .eq("project_id", projectId)
-    .maybeSingle<EstimateRecordWithLegacy>();
-
-  if (!currentResult.error) {
-    if (!currentResult.data) throw new Error("Estimate not found in the current project.");
-    return normalizeEstimateRecord(currentResult.data as EstimateRecordWithLegacy);
-  }
-
-  if (!isMissingColumnError(currentResult.error, "sheet_code")) throw currentResult.error;
-
-  const legacyResult = await dataStore
-    .from("estimates")
-    .select("*")
-    .eq("id", estimateId)
-    .eq("project_id", projectId)
-    .maybeSingle<EstimateRecordWithLegacy>();
-
-  if (legacyResult.error) throw legacyResult.error;
-  if (!legacyResult.data) throw new Error("Estimate not found in the current project.");
-  return normalizeEstimateRecord(legacyResult.data as EstimateRecordWithLegacy);
-}
-
-async function createEstimateWithDefaultTab({
-  dataStore,
-  project,
-  name,
-  sheetCode,
-  createdBy,
-}: {
-  dataStore: EstimateActionsD1Client;
-  project: Tables<"projects">;
-  name: string;
-  sheetCode: string;
-  createdBy: string | null;
-}) {
-  await assertEstimateSheetCodeIsAvailable(dataStore, project.id, sheetCode);
-
-  const estimate = await insertEstimateWithSheetCodeFallback(
-    dataStore,
-    {
-      project_id: project.id,
-      created_by: createdBy,
-      name,
-      notes: null,
-      project_budget: readLegacyProjectBudget(project.metadata),
-      sheet_code: sheetCode,
-      currency_code: project.currency_code,
-      metadata: {},
-    },
-    sheetCode,
-  );
-
-  const { data: defaultTab, error: defaultTabError } = await dataStore
-    .from("estimate_tabs")
-    .insert({
-      estimate_id: estimate.id,
-      name: "Main",
-      sort_order: 0,
-      is_default: true,
-      created_by: createdBy,
-    })
-    .select("id")
-    .single<{ id: string }>();
-
-  if (defaultTabError) throw defaultTabError;
-  if (!defaultTab?.id) throw new Error("Default estimate tab was not created.");
-
-  return { estimate, firstNodeId: null, nodeCount: 0 };
 }
 
 function revalidateProjectEstimatePaths(projectId: string) {
@@ -2310,20 +1599,16 @@ export async function fetchEstimateEditCapability({ projectId, estimateId }: Fet
   await requireAuth();
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return false;
-
-  const dataStore = await createEstimateActionsD1Client();
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<{ id: string }>();
-
-  if (estimateError || !estimate) return false;
-
-  const { data, error } = await dataStore.call("can_edit_estimate", { target_estimate_id: estimate.id });
-  if (error) return false;
-  return data === true;
+  try {
+    const [database, currentUser] = await Promise.all([
+      requireEstimateD1Database(),
+      requireCurrentUserContext(),
+    ]);
+    const estimate = await getEstimateRecordForProject(database, { projectId: project.id, estimateId });
+    return estimate ? await canEditEstimate(database, currentUser, estimate.id) : false;
+  } catch {
+    return false;
+  }
 }
 
 export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: FetchEstimateTabTreeInput) {
@@ -2354,15 +1639,11 @@ export async function fetchEstimateSheetVersionControl({
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateIdProjectRow>();
-
-  if (estimateError) throw estimateError;
+  const database = await requireEstimateD1Database();
+  const estimate = await getEstimateRecordForProject(database, {
+    projectId: project.id,
+    estimateId,
+  });
   if (!estimate) throw new Error("Estimate not found in the current project.");
 
   const boundedEventLimit = Math.min(Math.max(Math.trunc(eventLimit), 1), 100);
@@ -2375,113 +1656,29 @@ export async function fetchEstimateSheetVersionControl({
   const normalizedSheetCursor = shouldFetchSheetEvents ? normalizeHistoryCursor(sheetCursor, "Estimate activity") : null;
   const normalizedRowCursor = targetRowId ? normalizeHistoryCursor(rowCursor, "Row history") : null;
   const normalizedNodeCursor = targetNodeId ? normalizeHistoryCursor(nodeCursor, "Node activity") : null;
-  const eventSelect = "id, event_type, event_source, created_at, actor_user_id, estimate_tab_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id";
-  const emptyEventsResult = Promise.resolve({ data: [], error: null });
-  const sheetEventsPromise = shouldFetchSheetEvents
-    ? (() => {
-      let sheetEventsQuery = applyActivityReadFilters(dataStore
-        .from("estimate_sheet_events")
-        .select(eventSelect)
-        .eq("estimate_id", estimate.id), activityFilters)
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .limit(boundedEventLimit + 1);
-
-      if (normalizedSheetCursor) {
-        sheetEventsQuery = sheetEventsQuery.or(buildHistoryCursorFilter(normalizedSheetCursor));
-      }
-
-      return sheetEventsQuery;
-    })()
-    : emptyEventsResult;
-  const rowEventsPromise = targetRowId
-    ? (() => {
-      let rowEventsQuery = applyActivityReadFilters(dataStore
-        .from("estimate_sheet_events")
-        .select(eventSelect)
-        .eq("estimate_id", estimate.id)
-        .eq("target_row_id", targetRowId), activityFilters)
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .limit(boundedEventLimit + 1);
-
-      if (normalizedRowCursor) {
-        rowEventsQuery = rowEventsQuery.or(buildHistoryCursorFilter(normalizedRowCursor));
-      }
-
-      return rowEventsQuery;
-    })()
-    : emptyEventsResult;
-  const nodeScopePromise = targetNodeId
+  const nodeScope = targetNodeId
     ? resolveEstimateActivityNodeScope({
-      dataStore,
+      database,
       estimateId: estimate.id,
       projectId: project.id,
       nodeId: targetNodeId,
       includeDescendants,
     })
     : Promise.resolve<EstimateActivityNodeScope | null>(null);
-  const nodeEventsPromise = targetNodeId
-    ? (async () => {
-      const nodeScope = await nodeScopePromise;
-      if (!nodeScope) return emptyEventsResult;
-      let nodeEventsQuery = applyActivityReadFilters(dataStore
-        .from("estimate_sheet_events")
-        .select(eventSelect)
-        .eq("estimate_id", estimate.id), activityFilters)
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .limit(boundedEventLimit + 1);
-
-      if (includeDescendants) {
-        const nodeScopeFilter = buildNodeScopeEventFilter(nodeScope);
-        if (nodeScopeFilter) {
-          nodeEventsQuery = nodeEventsQuery.or(nodeScopeFilter);
-        }
-      } else {
-        nodeEventsQuery = nodeEventsQuery.eq("estimate_node_id", targetNodeId);
-      }
-
-      if (normalizedNodeCursor) {
-        nodeEventsQuery = nodeEventsQuery.or(buildHistoryCursorFilter(normalizedNodeCursor));
-      }
-
-      return nodeEventsQuery;
-    })()
-    : emptyEventsResult;
-
-  const [sheetEventsResult, rowEventsResult, nodeEventsResult] = await Promise.all([
-    sheetEventsPromise,
-    rowEventsPromise,
-    nodeEventsPromise,
-  ]);
-
-  if (sheetEventsResult.error) throw sheetEventsResult.error;
-  if (rowEventsResult.error) throw rowEventsResult.error;
-  if (nodeEventsResult.error) throw nodeEventsResult.error;
-
-  const sheetEventsPageRows = buildHistoryEventPageRows((sheetEventsResult.data ?? []) as Tables<"estimate_sheet_events">[], boundedEventLimit);
-  const rowEventsPageRows = buildHistoryEventPageRows((rowEventsResult.data ?? []) as Tables<"estimate_sheet_events">[], boundedEventLimit);
-  const nodeEventsPageRows = buildHistoryEventPageRows((nodeEventsResult.data ?? []) as Tables<"estimate_sheet_events">[], boundedEventLimit);
-  const actorLabels = await resolveActivityActorLabels(dataStore, [
-    ...sheetEventsPageRows.rows,
-    ...rowEventsPageRows.rows,
-    ...nodeEventsPageRows.rows,
-  ]);
-
-  return {
-    events: sheetEventsPageRows.rows.map((row) => normalizeHistoryEvent(row, actorLabels)),
-    rowEvents: rowEventsPageRows.rows.map((row) => normalizeHistoryEvent(row, actorLabels)),
-    nodeEvents: nodeEventsPageRows.rows.map((row) => normalizeHistoryEvent(row, actorLabels)),
-    nextCursor: sheetEventsPageRows.nextCursor,
-    rowNextCursor: rowEventsPageRows.nextCursor,
-    nodeNextCursor: nodeEventsPageRows.nextCursor,
-  };
-}
-
-function readRetentionMetricNumber(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return readEstimateSheetVersionControl(database, {
+    projectId: project.id,
+    estimateId: estimate.id,
+    eventLimit: boundedEventLimit,
+    filters: activityFilters,
+    fetchSheetEvents: shouldFetchSheetEvents,
+    targetRowId: targetRowId ?? null,
+    targetNodeId: targetNodeId ?? null,
+    includeDescendants,
+    nodeScope: await nodeScope,
+    sheetCursor: normalizedSheetCursor,
+    rowCursor: normalizedRowCursor,
+    nodeCursor: normalizedNodeCursor,
+  });
 }
 
 export async function fetchEstimateActivityRetentionMetrics({
@@ -2493,21 +1690,14 @@ export async function fetchEstimateActivityRetentionMetrics({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  const { data, error } = await dataStore.call("get_estimate_activity_retention_metrics", {
-    target_project_id: project.id,
-  });
-
-  if (error) throw error;
-
-  const row = Array.isArray(data) ? readJsonRecord(data[0]) : readJsonRecord(data);
-  return {
-    workspaceEventBytes: readRetentionMetricNumber(row.workspace_event_bytes),
-    workspaceVersionBytes: readRetentionMetricNumber(row.workspace_version_bytes),
-    largestEventPayloadBytes: readRetentionMetricNumber(row.largest_event_payload_bytes),
-    maxEstimateEventCount: readRetentionMetricNumber(row.max_estimate_event_count),
-    estimatesOverEventThreshold: readRetentionMetricNumber(row.estimates_over_event_threshold),
-    workspaceStorageOverThreshold: row.workspace_storage_over_threshold === true,
+  const database = await requireEstimateD1Database();
+  return await getEstimateActivityRetentionMetrics(database, { projectId: project.id }) ?? {
+    workspaceEventBytes: 0,
+    workspaceVersionBytes: 0,
+    largestEventPayloadBytes: 0,
+    maxEstimateEventCount: 0,
+    estimatesOverEventThreshold: 0,
+    workspaceStorageOverThreshold: false,
   };
 }
 
@@ -2518,104 +1708,39 @@ export async function reorderEstimateTreeNodes(
 ): Promise<ReorderEstimateTreeNodesResult> {
   await requireAuth();
   if (!input.updates.length) throw new Error("At least one estimate tree node update is required.");
-
   const updateIds = new Set<string>();
   for (const update of input.updates) {
     if (updateIds.has(update.id)) throw new Error(`Duplicate estimate tree node update: ${update.id}.`);
     updateIds.add(update.id);
     assertNotOptimisticEstimateNodeId(update.id, "Estimate tree update node");
     if (update.parentId) assertNotOptimisticEstimateNodeId(update.parentId, "Estimate tree update parent");
-    if (!Number.isFinite(update.sortOrder) || update.sortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative number.");
+    if (!Number.isFinite(update.sortOrder) || update.sortOrder < 0) {
+      throw new Error("Estimate tree node sort order must be a non-negative number.");
+    }
   }
 
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
-
-  const dataStore = await createEstimateActionsD1Client();
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateIdProjectRow>();
-
-  if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(dataStore, estimate.id);
-
-  const tabScopedNodeResult = await dataStore
-    .from("estimate_nodes")
-    .select("id, estimate_id, estimate_tab_id, parent_id, kind")
-    .eq("estimate_id", estimate.id);
-  let referencedNodes: unknown = tabScopedNodeResult.data;
-  let nodeError = tabScopedNodeResult.error;
-
-  if (nodeError && isMissingColumnError(nodeError, "estimate_tab_id")) {
-    const legacyResult = await dataStore
-      .from("estimate_nodes")
-      .select("id, estimate_id, parent_id, kind")
-      .eq("estimate_id", estimate.id);
-    referencedNodes = legacyResult.data;
-    nodeError = legacyResult.error;
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  try {
+    await reorderEstimateNodesWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      updates: input.updates,
+      correlationId: randomUUID(),
+    });
+  } catch (error) {
+    throw new Error(`Could not reorder estimate tree: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  if (nodeError) throw nodeError;
-
-  const referencedNodeRows = (referencedNodes ?? []) as ReorderEstimateNodeRow[];
-  const nodesById = new Map(referencedNodeRows.map((node) => [node.id, node]));
-  const projectedTreeValidation = validateProjectedEstimateTreeReorder({
-    estimateId: estimate.id,
-    nodes: referencedNodeRows.map((node) => ({
-      id: node.id,
-      estimateId: node.estimate_id,
-      parentId: node.parent_id,
-      tabId: node.estimate_tab_id ?? null,
-    })),
-    updates: input.updates.map((update) => ({
-      id: update.id,
-      parentId: update.parentId,
-    })),
-  });
-  if (!projectedTreeValidation.ok) throw new Error(projectedTreeValidation.message);
-
-  for (const update of input.updates) {
-    const node = nodesById.get(update.id);
-    if (!node || node.estimate_id !== estimate.id) throw new Error("Estimate tree update node not found in the current estimate.");
-
-    const parentNode = update.parentId ? nodesById.get(update.parentId) : null;
-    if (update.parentId && (!parentNode || parentNode.estimate_id !== estimate.id)) {
-      throw new Error("Estimate tree update parent not found in the current estimate.");
-    }
-    if (parentNode && node.estimate_tab_id && parentNode.estimate_tab_id && node.estimate_tab_id !== parentNode.estimate_tab_id) {
-      throw new Error("Estimate tree nodes cannot be moved across tabs.");
-    }
-
-    // P6 single-node model: any node may parent any node. The kind label is no
-    // longer a nesting discriminant, so the only structural rules left here are
-    // same-estimate ownership, cross-tab isolation, and projected cycle
-    // detection enforced before the write.
-    if (!normalizeEstimateTreeNodeKind(node.kind)) throw new Error("Unsupported estimate node kind.");
-    if (parentNode && !normalizeEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, input.targetTabId);
+  if (!refreshedProject || !refreshedEstimate) {
+    throw new Error("Estimate not found after reordering the tree.");
   }
-
-  const moveUpdates = input.updates.map((update) => ({
-    id: update.id,
-    parent_id: update.parentId,
-    sort_order: update.sortOrder,
-  }));
-  const currentUser = await requireCurrentUserContext();
-  const rpcPayload = {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    move_updates: moveUpdates,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
-  };
-  const { error: rpcError } = await dataStore.call("reorder_estimate_nodes_with_history", rpcPayload);
-  if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
-
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, input.targetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after reordering the tree.");
   return { tree };
 }
 
@@ -2623,19 +1748,19 @@ export async function createEstimate(projectId: string, formData: FormData) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditProject(dataStore, project.id);
-  const currentUser = await requireCurrentUserContext();
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditProject(database, project.id);
   const name = readRequiredText(formData, "name");
   const requestedSheetCode = readOptionalText(formData, "sheetCode") ?? readOptionalText(formData, "revisionLabel");
-  const sheetCode = requestedSheetCode ?? (await generateNextEstimateSheetCode(dataStore, project.id));
+  const sheetCode = requestedSheetCode ?? (await getNextEstimateSheetCode(database, { projectId: project.id }));
 
-  const { estimate, firstNodeId } = await createEstimateWithDefaultTab({
-    dataStore,
-    project,
+  const { estimate, firstNodeId } = await createEstimateRecordWithDefaultTab(database, currentUser, {
+    project: project as ProjectDatabaseRow,
     name,
     sheetCode,
-    createdBy: currentUser.userId,
   });
 
   revalidateProjectEstimatePaths(project.id);
@@ -2646,18 +1771,18 @@ export async function createEstimateSheetDraft(projectId: string, input?: { name
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditProject(dataStore, project.id);
-  const currentUser = await requireCurrentUserContext();
-  const sheetCode = await generateNextEstimateSheetCode(dataStore, project.id);
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditProject(database, project.id);
+  const sheetCode = await getNextEstimateSheetCode(database, { projectId: project.id });
   const requestedName = typeof input?.name === "string" ? input.name.trim() : "";
 
-  const { estimate, firstNodeId, nodeCount } = await createEstimateWithDefaultTab({
-    dataStore,
-    project,
+  const { estimate, firstNodeId, nodeCount } = await createEstimateRecordWithDefaultTab(database, currentUser, {
+    project: project as ProjectDatabaseRow,
     name: requestedName || `${sheetCode} Estimate`,
     sheetCode,
-    createdBy: currentUser.userId,
   });
 
   revalidateProjectEstimatePaths(project.id);
@@ -2678,201 +1803,32 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   const { project } = await getCurrentWorkspaceProject(input.projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, input.estimateId);
-  const currentUser = await requireCurrentUserContext();
-
-  const { data: sourceEstimate, error: sourceEstimateError } = await dataStore
-    .from("estimates")
-    .select("*")
-    .eq("id", input.estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateRecordWithLegacy>();
-
-  if (sourceEstimateError) throw sourceEstimateError;
-  if (!sourceEstimate) throw new Error("Estimate not found in the current project.");
-  const normalizedSourceEstimate = normalizeEstimateRecord(sourceEstimate as EstimateRecordWithLegacy);
-
-  const sheetCode = await generateNextEstimateSheetCode(dataStore, project.id);
-  const duplicatedEstimate = await insertEstimateWithSheetCodeFallback(
-    dataStore,
-    {
-      project_id: project.id,
-      created_by: currentUser.userId,
-      name: `${normalizedSourceEstimate.name} Copy`,
-      notes: normalizedSourceEstimate.notes,
-      project_budget: normalizedSourceEstimate.project_budget,
-      sheet_code: sheetCode,
-      currency_code: normalizedSourceEstimate.currency_code,
-      metadata: normalizedSourceEstimate.metadata,
-    },
-    sheetCode,
-  );
-
-  const { data: sourceTabs, error: sourceTabsError } = await dataStore
-    .from("estimate_tabs")
-    .select("id, is_default, metadata, name, sort_order")
-    .eq("estimate_id", normalizedSourceEstimate.id)
-    .is("archived_at", null)
-    .order("sort_order", { ascending: true });
-
-  if (sourceTabsError) throw sourceTabsError;
-
-  const sourceTabRows = (sourceTabs ?? []) as DuplicateEstimateTabRow[];
-  const sourceTabsToDuplicate: DuplicateEstimateTabRow[] = sourceTabRows.length > 0
-    ? sourceTabRows
-    : [{
-        id: "__legacy_default_tab__",
-        is_default: true,
-        metadata: {},
-        name: "Main",
-        sort_order: 0,
-      }];
-  const defaultSourceTabId = sourceTabsToDuplicate.find((tab) => tab.is_default)?.id ?? sourceTabsToDuplicate[0]?.id;
-  const tabIdBySourceId = new Map<string, string>();
-  const duplicatedTabs = sourceTabsToDuplicate.map((tab) => {
-    const nextTabId = randomUUID();
-    tabIdBySourceId.set(tab.id, nextTabId);
-    return {
-      archived_at: null,
-      created_by: currentUser.userId,
-      estimate_id: duplicatedEstimate.id,
-      id: nextTabId,
-      is_default: tab.is_default,
-      metadata: tab.metadata,
-      name: tab.name,
-      sort_order: tab.sort_order,
-    } satisfies TablesInsert<"estimate_tabs">;
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditEstimate(database, input.estimateId);
+  const duplicated = await duplicateEstimateRecordGraph(database, currentUser, {
+    projectId: project.id,
+    estimateId: input.estimateId,
   });
-
-  const { error: insertTabsError } = await dataStore.from("estimate_tabs").insert(duplicatedTabs);
-  if (insertTabsError) throw insertTabsError;
-
-  const sourceNodeTabIds = sourceTabRows.map((tab) => tab.id);
-  let sourceNodesQuery = dataStore
-    .from("estimate_nodes")
-    .select("id, estimate_tab_id, kind, metadata, name, parent_id, sort_order")
-    .eq("estimate_id", normalizedSourceEstimate.id);
-
-  if (sourceNodeTabIds.length > 0) {
-    sourceNodesQuery = sourceNodesQuery.in("estimate_tab_id", sourceNodeTabIds);
-  }
-
-  const { data: sourceNodes, error: sourceNodesError } = await sourceNodesQuery.order("sort_order", { ascending: true });
-
-  if (sourceNodesError) throw sourceNodesError;
-
-  const nodeIdBySourceId = new Map<string, string>();
-  const sourceNodeRows = (sourceNodes ?? []) as DuplicateEstimateNodeRow[];
-  const pendingNodes = [...sourceNodeRows];
-  const fallbackDuplicatedTabId = defaultSourceTabId ? tabIdBySourceId.get(defaultSourceTabId) : duplicatedTabs[0]?.id;
-  if (!fallbackDuplicatedTabId) throw new Error("Could not duplicate estimate tabs because no tab mapping was created.");
-
-  while (pendingNodes.length > 0) {
-    let nextIndex = -1;
-    for (let index = 0; index < pendingNodes.length; index += 1) {
-      const node = pendingNodes[index];
-      if (node.parent_id === null || nodeIdBySourceId.has(node.parent_id)) {
-        nextIndex = index;
-        break;
-      }
-    }
-    if (nextIndex === -1) throw new Error("Could not duplicate estimate tree because the source hierarchy is invalid.");
-
-    const [node] = pendingNodes.splice(nextIndex, 1);
-    const nextNodeId = randomUUID();
-    const nextEstimateTabId = (node.estimate_tab_id ? tabIdBySourceId.get(node.estimate_tab_id) : undefined) ?? fallbackDuplicatedTabId;
-    nodeIdBySourceId.set(node.id, nextNodeId);
-
-    const { error: insertNodeError } = await dataStore.from("estimate_nodes").insert({
-      id: nextNodeId,
-      estimate_id: duplicatedEstimate.id,
-      estimate_tab_id: nextEstimateTabId,
-      parent_id: node.parent_id ? nodeIdBySourceId.get(node.parent_id) ?? null : null,
-      kind: node.kind,
-      metadata: node.metadata,
-      name: node.name,
-      sort_order: node.sort_order,
-    });
-
-    if (insertNodeError) throw insertNodeError;
-  }
-
-  const { data: sourceRows, error: sourceRowsError } = await dataStore
-    .from("estimate_row_items")
-    .select("*")
-    .eq("estimate_id", normalizedSourceEstimate.id)
-    .order("sort_order", { ascending: true });
-
-  if (sourceRowsError) throw sourceRowsError;
-
-  const duplicatedRows = ((sourceRows ?? []) as DuplicateEstimateRowItemRow[]).flatMap((row) => {
-    const nodeId = nodeIdBySourceId.get(row.node_id);
-    if (!nodeId) return [];
-
-    return [{
-      category_node_id: row.category_node_id,
-      description: row.description,
-      designation: row.designation,
-      discipline: row.discipline,
-      estimate_id: duplicatedEstimate.id,
-      id: randomUUID(),
-      link_state: row.link_state,
-      material: row.material,
-      metadata: row.metadata,
-      contingency_percentage: row.contingency_percentage,
-      adjustment_percentage: row.adjustment_percentage ?? 0,
-      misc_cost: row.misc_cost,
-      node_id: nodeId,
-      quantity: row.quantity,
-      quantity_base: row.quantity_base,
-      quantity_contingency_amount: row.quantity_contingency_amount,
-      sort_order: row.sort_order,
-      source_library_item_id: row.source_library_item_id,
-      source_snapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot) as Json | null,
-      supplier: row.supplier,
-      supplier_id: row.supplier_id,
-      unit: row.unit,
-      unit_cost: row.unit_cost,
-    } satisfies TablesInsert<"estimate_row_items">];
-  });
-
-  if (duplicatedRows.length > 0) {
-    const { error: insertRowsError } = await dataStore.from("estimate_row_items").insert(duplicatedRows);
-    if (insertRowsError) throw insertRowsError;
-  }
 
   revalidateProjectEstimatePaths(project.id);
-
-  // Map the source nodes (in sort_order) onto their duplicated ids so the
-  // landing node is chosen by the same depth-first, area-first oracle the list
-  // route uses — not a flat "first inserted row" heuristic (ADV-011 parity).
-  const duplicatedNodeRowsInOrder = sourceNodeRows.flatMap((node) => {
-    const id = nodeIdBySourceId.get(node.id);
-    if (!id) return [];
-    return [{
-      id,
-      estimate_id: duplicatedEstimate.id,
-      kind: node.kind,
-      parent_id: node.parent_id ? nodeIdBySourceId.get(node.parent_id) ?? null : null,
-    }];
-  });
-  const firstNodeId = selectFirstEstimateNodeIds(duplicatedNodeRowsInOrder).get(duplicatedEstimate.id) ?? null;
-
-  // Canonical list row for optimistic reconciliation (P-1.2 / P0-5). The total
-  // mirrors the source estimate because the rows are copied verbatim.
-  const row = buildProjectEstimateListRow(duplicatedEstimate, {
-    firstNodeId,
-    nodeCount: nodeIdBySourceId.size,
-    rowItemCount: duplicatedRows.length,
-    totalProjectCost: sumEstimateRowLineTotals(duplicatedRows),
+  const row = buildProjectEstimateListRow(duplicated.estimate, {
+    firstNodeId: duplicated.firstNodeId,
+    nodeCount: duplicated.nodeCount,
+    rowItemCount: duplicated.rowCount,
+    totalProjectCost: duplicated.totalProjectCost,
     isFavorite: false,
     favoriteCreatedAt: null,
   });
-
-  return { row, estimateId: duplicatedEstimate.id, firstNodeId, sheetCode };
+  return {
+    row,
+    estimateId: duplicated.estimate.id,
+    firstNodeId: duplicated.firstNodeId,
+    sheetCode: duplicated.sheetCode,
+  };
 }
-
 export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateSheetsInput): Promise<BulkActionPreviewResult> {
   if (!isUuid(input.projectId)) {
     return buildRejectedPreviewResult("estimate_sheet", [], [{
@@ -2894,24 +1850,21 @@ export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateS
     }]);
   }
 
-  const [dataStore, currentUser] = await Promise.all([
-    createEstimateActionsD1Client(),
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
     requireCurrentUserContext(),
   ]);
-  const { data, error } = await dataStore.call("preview_bulk_delete_estimate_sheets", {
-    target_project_id: project.id,
-    target_estimate_ids: ids,
-    acting_user_id: currentUser.userId,
-  });
-
-  if (error) {
+  try {
+    return await previewBulkDeleteEstimateSheetsIntent(database, currentUser, {
+      projectId: project.id,
+      estimateIds: ids,
+    });
+  } catch (error) {
     return buildRejectedPreviewResult("estimate_sheet", ids, [{
       code: "rpc_error",
-      message: `Could not preview estimate deletion: ${error.message}`,
+      message: `Could not preview estimate deletion: ${error instanceof Error ? error.message : String(error)}`,
     }]);
   }
-
-  return coerceBulkPreviewResult(data, { targetType: "estimate_sheet", ids });
 }
 
 export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEstimateSheetsInput): Promise<BulkActionExecutionResult> {
@@ -2946,18 +1899,19 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
     };
   }
 
-  const [dataStore] = await Promise.all([
-    createEstimateActionsD1Client(),
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
     requireCurrentUserContext(),
   ]);
-  const { data, error } = await dataStore.call("execute_bulk_delete_estimate_sheets", {
-    target_project_id: project.id,
-    target_estimate_ids: ids,
-    expected_preview_hash: input.expectedPreviewHash,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-
-  if (error) {
+  let result: BulkActionExecutionResult;
+  try {
+    result = await executeBulkDeleteEstimateSheetsIntent(database, currentUser, {
+      projectId: project.id,
+      estimateIds: ids,
+      expectedPreviewHash: input.expectedPreviewHash,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+  } catch (error) {
     return {
       ok: false,
       targetType: "estimate_sheet",
@@ -2966,12 +1920,10 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
       summary: { requestedCount: ids.length, eligibleCount: 0, blockedCount: 1 },
       issues: [{
         code: "rpc_error",
-        message: `Could not delete estimates: ${error.message}`,
+        message: `Could not delete estimates: ${error instanceof Error ? error.message : String(error)}`,
       }],
     };
   }
-
-  const result = coerceBulkExecutionResult(data, { targetType: "estimate_sheet", ids });
   if (result.ok) {
     revalidateProjectEstimatePaths(project.id);
     for (const estimateId of result.deletedIds?.length ? result.deletedIds : ids) {
@@ -2995,9 +1947,11 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   const { project } = await getCurrentWorkspaceProjectForEstimate(input.projectId, input.estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, input.estimateId);
-  const currentUser = await requireCurrentUserContext();
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditEstimate(database, input.estimateId);
   const payload: TablesUpdate<"estimates"> = {};
   const estimatePatch: Record<string, Json | undefined> = {};
 
@@ -3008,7 +1962,6 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   }
   if (input.sheetCode !== undefined) {
     const sheetCode = normalizeEditableText(input.sheetCode, "Estimate code");
-    await assertEstimateSheetCodeIsAvailable(dataStore, project.id, sheetCode, input.estimateId);
     payload.sheet_code = sheetCode;
     estimatePatch.sheetCode = sheetCode;
   }
@@ -3025,16 +1978,17 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
 
   if (Object.keys(payload).length === 0) throw new Error("No estimate changes provided.");
 
-  const { error } = await dataStore.call("update_estimate_details_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: input.estimateId,
-    estimate_patch: estimatePatch,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
+  await updateEstimateDetailsWithHistory(database, currentUser, {
+    projectId: project.id,
+    estimateId: input.estimateId,
+    patch: estimatePatch,
+    correlationId: randomUUID(),
+  }).catch((error) => {
+    throw new Error(`Could not update estimate details: ${error instanceof Error ? error.message : String(error)}`);
   });
-  if (error) throw new Error(`Could not update estimate details: ${error.message}`);
 
-  const estimate = await getEstimateRecordAfterMutation(dataStore, input.estimateId, project.id);
+  const estimate = await getEstimateRecordForProject(database, { estimateId: input.estimateId, projectId: project.id });
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   revalidateProjectEstimatePaths(project.id);
   // Scalar-only canonical reconciliation payload: the client patches these
   // fields and keeps its existing summary (no sensitive columns shipped) — P-1.2.
@@ -3045,20 +1999,26 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
   const { project } = await getCurrentWorkspaceProjectForEstimate(input.projectId, input.estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, input.estimateId);
-  const currentUser = await requireCurrentUserContext();
-  const sheetCode = await generateNextEstimateSheetCode(dataStore, project.id, input.estimateId);
-  const { error } = await dataStore.call("update_estimate_details_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: input.estimateId,
-    estimate_patch: { sheetCode },
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditEstimate(database, input.estimateId);
+  const sheetCode = await getNextEstimateSheetCode(database, {
+    projectId: project.id,
+    excludedEstimateId: input.estimateId,
   });
-  if (error) throw new Error(`Could not regenerate estimate code: ${error.message}`);
+  await updateEstimateDetailsWithHistory(database, currentUser, {
+    projectId: project.id,
+    estimateId: input.estimateId,
+    patch: { sheetCode },
+    correlationId: randomUUID(),
+  }).catch((error) => {
+    throw new Error(`Could not regenerate estimate code: ${error instanceof Error ? error.message : String(error)}`);
+  });
 
-  const estimate = await getEstimateRecordAfterMutation(dataStore, input.estimateId, project.id);
+  const estimate = await getEstimateRecordForProject(database, { estimateId: input.estimateId, projectId: project.id });
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   revalidateProjectEstimatePaths(project.id);
   return { estimate: projectEstimateListRowSource(estimate) };
 }
@@ -3070,7 +2030,7 @@ function readEstimateTabMutationResult(value: unknown, fallbackTabId?: string): 
     : typeof record.tabId === "string"
       ? record.tabId
       : fallbackTabId ?? "";
-  if (!estimateTabId) throw new Error("Estimate tab RPC did not return a tab id.");
+  if (!estimateTabId) throw new Error("Estimate tab mutation did not return a tab id.");
   return {
     estimateTabId,
     replacementTabId: typeof record.replacementTabId === "string" ? record.replacementTabId : null,
@@ -3081,51 +2041,48 @@ async function getProjectScopedEstimateActionContext(projectId: string, estimate
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateIdProjectRow>();
-
-  if (estimateError) throw estimateError;
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  const estimate = await getEstimateRecordForProject(database, { projectId: project.id, estimateId });
   if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(dataStore, estimate.id);
-
-  const currentUser = await requireCurrentUserContext();
-  return { project, estimate, dataStore, currentUser };
+  return { project, estimate, database, currentUser };
 }
 
 export async function createEstimateTab(input: CreateEstimateTabInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { project, estimate, database, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
-  const { data, error } = await dataStore.call("create_estimate_tab_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    tab_name: name,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-  if (error) throw new Error(`Could not create estimate tab: ${error.message}`);
-  return { ...readEstimateTabMutationResult(data), tabs: await getEstimateTabs(project.id, estimate.id) };
+  try {
+    const result = await createEstimateTabWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId: estimate.id,
+      name,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+    return { ...readEstimateTabMutationResult(result), tabs: await getEstimateTabs(project.id, estimate.id) };
+  } catch (error) {
+    throw new Error(`Could not create estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { project, estimate, database, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
-  const { data, error } = await dataStore.call("rename_estimate_tab_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    target_tab_id: input.tabId,
-    next_name: name,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-  if (error) throw new Error(`Could not rename estimate tab: ${error.message}`);
-  return { ...readEstimateTabMutationResult(data, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+  try {
+    const result = await renameEstimateTabWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId: estimate.id,
+      tabId: input.tabId,
+      name,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+    return { ...readEstimateTabMutationResult(result, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+  } catch (error) {
+    throw new Error(`Could not rename estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Promise<EstimateTabMutationResult> {
@@ -3136,152 +2093,102 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
     if (seen.has(update.id)) throw new Error(`Duplicate estimate tab update: ${update.id}.`);
     seen.add(update.id);
   }
-  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { error } = await dataStore.call("reorder_estimate_tabs_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    sort_updates: input.updates.map((update) => ({ id: update.id, sort_order: update.sortOrder })),
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-  if (error) throw new Error(`Could not reorder estimate tabs: ${error.message}`);
+  const { project, estimate, database, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  try {
+    await reorderEstimateTabsWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId: estimate.id,
+      updates: input.updates,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+  } catch (error) {
+    throw new Error(`Could not reorder estimate tabs: ${error instanceof Error ? error.message : String(error)}`);
+  }
   const tabs = await getEstimateTabs(project.id, estimate.id);
   return { estimateTabId: input.updates[0]?.id ?? estimate.id, tabs };
 }
 
 export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { project, estimate, database, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const nextName = input.name ? normalizeEditableText(input.name, "Estimate tab name") : undefined;
-  const { data, error } = await dataStore.call("duplicate_estimate_tab_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    source_tab_id: input.tabId,
-    next_name: nextName,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-  if (error) throw new Error(`Could not duplicate estimate tab: ${error.message}`);
-  return { ...readEstimateTabMutationResult(data), tabs: await getEstimateTabs(project.id, estimate.id) };
+  try {
+    const result = await duplicateEstimateTabWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId: estimate.id,
+      sourceTabId: input.tabId,
+      name: nextName,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+    return { ...readEstimateTabMutationResult(result), tabs: await getEstimateTabs(project.id, estimate.id) };
+  } catch (error) {
+    throw new Error(`Could not duplicate estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export async function archiveEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await dataStore.call("archive_estimate_tab_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    target_tab_id: input.tabId,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-  if (error) throw new Error(`Could not archive estimate tab: ${error.message}`);
-  return { ...readEstimateTabMutationResult(data, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+  const { project, estimate, database, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  try {
+    const result = await archiveEstimateTabWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId: estimate.id,
+      tabId: input.tabId,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+    return { ...readEstimateTabMutationResult(result, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+  } catch (error) {
+    throw new Error(`Could not archive estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await dataStore.call("delete_estimate_tab_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    target_tab_id: input.tabId,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(input.correlationId),
-  });
-  if (error) throw new Error(`Could not delete estimate tab: ${error.message}`);
-  return { ...readEstimateTabMutationResult(data, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+  const { project, estimate, database, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  try {
+    const result = await deleteEstimateTabWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId: estimate.id,
+      tabId: input.tabId,
+      correlationId: getMutationCorrelationId(input.correlationId),
+    });
+    return { ...readEstimateTabMutationResult(result, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+  } catch (error) {
+    throw new Error(`Could not delete estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export async function createEstimateNode(projectId: string, estimateId: string, formData: FormData) {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  const currentUser = await requireCurrentUserContext();
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
   const name = readRequiredText(formData, "name");
   const kind = readEstimateNodeKind(formData);
   const parentId = readOptionalText(formData, "parentId");
   const estimateTabId = readOptionalText(formData, "estimateTabId");
   if (parentId) assertNotOptimisticEstimateNodeId(parentId, "Parent estimate node");
 
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateIdProjectRow>();
-
-  if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(dataStore, estimate.id);
-
-  if (parentId) {
-    const { data: parentNode, error: parentError } = await dataStore
-      .from("estimate_nodes")
-      .select("id, kind, estimate_id, estimates!inner(project_id)")
-      .eq("id", parentId)
-      .eq("estimate_id", estimate.id)
-      .eq("estimates.project_id", project.id)
-      .maybeSingle<Pick<ValidatedEstimateNodeRow, "id" | "estimate_id" | "kind">>();
-
-    if (parentError) throw parentError;
-    if (!parentNode) throw new Error("Parent estimate node not found in the current project.");
-    // P6 single-node model: any node may parent any node, so there is no
-    // parent-kind nesting rule to enforce. We still normalize to reject a DB
-    // row carrying an unknown/legacy-unmappable kind.
-    if (!normalizeEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
+  let nodeResult: Awaited<ReturnType<typeof createEstimateNodeWithHistory>>;
+  try {
+    nodeResult = await createEstimateNodeWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      parentNodeId: parentId,
+      estimateTabId,
+      kind,
+      name,
+      correlationId: randomUUID(),
+    });
+  } catch (error) {
+    throw new Error(`Could not create estimate tree node: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  const siblingQuery = dataStore
-    .from("estimate_nodes")
-    .select("id, kind, sort_order")
-    .eq("estimate_id", estimate.id)
-    .order("sort_order", { ascending: true });
-  const scopedSiblingQuery = parentId
-    ? siblingQuery.eq("parent_id", parentId)
-    : siblingQuery.is("parent_id", null);
-  const tabScopedSiblingQuery = !parentId && estimateTabId
-    ? scopedSiblingQuery.eq("estimate_tab_id", estimateTabId)
-    : scopedSiblingQuery;
-  const { data: siblings, error: siblingsError } = await tabScopedSiblingQuery;
-
-  if (siblingsError) throw siblingsError;
-
-  const siblingRows = (siblings ?? []) as CreateEstimateNodeSiblingRow[];
-  const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), 0);
-  const createNodePayload: CreateEstimateNodeWithHistoryArgs = {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    parent_node_id: parentId,
-    node_kind: kind,
-    node_name: name,
-    initial_sort_order: maxSiblingSortOrder + ESTIMATE_TREE_SORT_ORDER_STEP,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
-    ...(estimateTabId ? { target_tab_id: estimateTabId } : {}),
-  };
-  const { data: nodeResult, error: rpcError } = await dataStore.call(
-    "create_estimate_node_with_history",
-    createNodePayload,
-  );
-  if (rpcError) {
-    throw new Error(`Could not create estimate tree node: ${rpcError.message}`);
-  }
-  const nodeResultRecord = readJsonRecord(nodeResult);
-  const nodeResultPayload = readJsonRecord(nodeResultRecord.payload);
-  const nodeId = typeof nodeResultRecord.nodeId === "string"
-    ? nodeResultRecord.nodeId
-    : typeof nodeResultPayload.nodeId === "string"
-      ? nodeResultPayload.nodeId
-      : "";
-  if (!nodeId) throw new Error("Estimate node history RPC did not return the created node id.");
-
-  // No revalidatePath/redirect here: the client reconciles its optimistic node
-  // with this id in place, so a server-driven navigation would remount the
-  // whole workspace mid-edit.
   return {
-    nodeId,
+    nodeId: nodeResult.nodeId,
     name,
     kind,
     parentId: parentId ?? null,
@@ -3297,21 +2204,20 @@ export async function renameEstimateNode(
 ): Promise<RenameEstimateNodeResult> {
   assertNotOptimisticEstimateNodeId(nodeId, "Estimate node");
   const name = readEstimateNodeName(formDataOrName);
-  const { estimate, dataStore, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
-  const currentUser = await requireCurrentUserContext();
-
-  const { error } = await dataStore.call("rename_estimate_node_with_history", {
-    target_project_id: projectId,
-    target_estimate_id: estimate.id,
-    target_node_id: node.id,
-    next_name: name,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await renameEstimateNodeWithHistory(database, currentUser, {
+    projectId: project.id,
+    estimateId,
+    nodeId,
+    name,
+    correlationId: randomUUID(),
   });
-
-  if (error) throw error;
-
-  return { nodeId: node.id, name };
+  return { nodeId, name };
 }
 
 export async function deleteEstimateNode(
@@ -3320,37 +2226,38 @@ export async function deleteEstimateNode(
   nodeId: string,
   targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
-  const { project, estimate, dataStore, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
-  const currentUser = await requireCurrentUserContext();
-  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
-  if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the tree node.");
+  assertNotOptimisticEstimateNodeId(nodeId, "Estimate node");
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  let deleted: Awaited<ReturnType<typeof deleteEstimateNodesWithHistory>>;
+  try {
+    deleted = await deleteEstimateNodesWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      nodeIds: [nodeId],
+      correlationId: randomUUID(),
+    });
+  } catch (error) {
+    throw new Error(`Could not delete estimate tree node: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
-  const deletePlan = planEstimateTreeDelete(currentTree, node.id, node.id);
-  const { data: deleteResult, error } = await dataStore.call("delete_estimate_node_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    target_node_id: node.id,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
-  });
-
-  if (error) throw new Error(`Could not delete estimate tree node: ${error.message}`);
-
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
-  const authoritativeDelete = readDeleteEstimateNodeRpcResult(
-    deleteResult,
-    Array.from(deletePlan.deletedNodeIds),
-    deletePlan.fallbackNodeId,
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(
+    project.id,
+    estimateId,
+    targetTabId,
   );
-
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
   return {
-    eventId: authoritativeDelete.eventId,
+    eventId: deleted.eventId,
     tree,
-    deletedNodeIds: authoritativeDelete.deletedNodeIds,
-    deletedNodeCount: authoritativeDelete.deletedNodeCount,
-    deletedRowCount: authoritativeDelete.deletedRowCount,
-    fallbackNodeId: authoritativeDelete.fallbackNodeId,
+    deletedNodeIds: deleted.deletedNodeIds,
+    deletedNodeCount: deleted.deletedNodeCount,
+    deletedRowCount: deleted.deletedRowCount,
+    fallbackNodeId: deleted.fallbackNodeId,
   };
 }
 
@@ -3365,73 +2272,60 @@ export async function deleteEstimateNodesBulk(
     const trimmed = nodeId.trim();
     return trimmed ? [trimmed] : [];
   }))];
-  if (requestedNodeIds.length === 0) throw new Error("At least one estimate tree node is required for bulk delete.");
+  if (requestedNodeIds.length === 0) {
+    throw new Error("At least one estimate tree node is required for bulk delete.");
+  }
 
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
-
-  const dataStore = await createEstimateActionsD1Client();
-  const { data: estimate, error: estimateError } = await dataStore
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle<EstimateIdProjectRow>();
-
-  if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(dataStore, estimate.id);
-
-  const { data: scopedNodes, error: nodeError } = await dataStore
-    .from("estimate_nodes")
-    .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
-    .eq("estimate_id", estimate.id)
-    .eq("estimates.project_id", project.id)
-    .in("id", requestedNodeIds);
-
-  if (nodeError) throw nodeError;
-  const scopedNodeIds = new Set(((scopedNodes ?? []) as ValidatedEstimateNodeRow[]).map((node) => node.id));
-  const missingNodeId = requestedNodeIds.find((requestedNodeId) => !scopedNodeIds.has(requestedNodeId));
-  if (missingNodeId) throw new Error(`Estimate tree node not found in the current project: ${missingNodeId}.`);
-
-  const currentUser = await requireCurrentUserContext();
-  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
-  if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the selected tree nodes.");
-
-  const rootNodeIds = dedupeSelectedRoots(currentTree as TreeSelectionNode[], new Set(requestedNodeIds));
-  if (rootNodeIds.length === 0) throw new Error("No selectable estimate tree nodes were found for bulk delete.");
-
-  let plannedTree = currentTree;
-  let fallbackNodeId: string | null = rootNodeIds[0] ?? null;
-  const deletedNodeIds = new Set<string>();
-  for (const rootNodeId of rootNodeIds) {
-    const deletePlan = planEstimateTreeDelete(plannedTree, rootNodeId, fallbackNodeId);
-    deletePlan.deletedNodeIds.forEach((deletedNodeId) => deletedNodeIds.add(deletedNodeId));
-    plannedTree = deletePlan.nextNodes;
-    fallbackNodeId = deletePlan.fallbackNodeId;
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  const scopedNodes = await Promise.all(requestedNodeIds.map((nodeId) => getEstimateNodeForProject(database, {
+    projectId: project.id,
+    estimateId,
+    nodeId,
+  })));
+  const missingNodeIndex = scopedNodes.findIndex((node) => node === null);
+  if (missingNodeIndex >= 0) {
+    throw new Error(`Estimate tree node not found in the current project: ${requestedNodeIds[missingNodeIndex]}.`);
   }
 
-  const { data: deleteResult, error } = await dataStore.call("delete_estimate_nodes_bulk_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimate.id,
-    target_node_ids: rootNodeIds,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
-  });
+  const { project: currentProject, estimate: currentEstimate, tree: currentTree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  if (!currentProject || !currentEstimate) {
+    throw new Error("Estimate not found before deleting the selected tree nodes.");
+  }
+  const rootNodeIds = dedupeSelectedRoots(currentTree as TreeSelectionNode[], new Set(requestedNodeIds));
+  if (rootNodeIds.length === 0) {
+    throw new Error("No selectable estimate tree nodes were found for bulk delete.");
+  }
 
-  if (error) throw new Error(`Could not delete selected estimate tree nodes: ${error.message}`);
+  let deleted: Awaited<ReturnType<typeof deleteEstimateNodesWithHistory>>;
+  try {
+    deleted = await deleteEstimateNodesWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      nodeIds: rootNodeIds,
+      correlationId: randomUUID(),
+    });
+  } catch (error) {
+    throw new Error(`Could not delete selected estimate tree nodes: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
-  const authoritativeDelete = readDeleteEstimateNodeRpcResult(deleteResult, Array.from(deletedNodeIds), fallbackNodeId);
-
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  if (!refreshedProject || !refreshedEstimate) {
+    throw new Error("Estimate not found after deleting the selected tree nodes.");
+  }
   return {
-    eventId: authoritativeDelete.eventId,
+    eventId: deleted.eventId,
     tree,
-    deletedNodeIds: authoritativeDelete.deletedNodeIds,
-    deletedNodeCount: authoritativeDelete.deletedNodeCount,
-    deletedRowCount: authoritativeDelete.deletedRowCount,
-    fallbackNodeId: authoritativeDelete.fallbackNodeId,
+    deletedNodeIds: deleted.deletedNodeIds,
+    deletedNodeCount: deleted.deletedNodeCount,
+    deletedRowCount: deleted.deletedRowCount,
+    fallbackNodeId: deleted.fallbackNodeId,
   };
 }
 
@@ -3464,33 +2358,34 @@ export async function insertEstimateTemplateIntoEstimate({
 }: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
-
-  const dataStore = await createEstimateActionsD1Client();
-  const currentUser = await requireCurrentUserContext();
-  // U4 (SEC-1): deny a workspace-member *viewer* on a restricted estimate before
-  // any write. Defense-in-depth with the hardened RPC gate; the app gate ships
-  // immediately even before the RPC migration applies.
-  await assertCanEditEstimate(dataStore, estimateId);
-  const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_template_into_estimate_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_parent_node_id: targetParentNodeId,
-    source_template_id: templateId,
-    acting_user_id: currentUser.userId,
-    correlation_id: assertPersistedUuid(intentId, "Template insert intent"),
-    unavailable_source_policy: unavailableSourcePolicy,
-    ...(targetTabId ? { target_tab_id: targetTabId } : {}),
-  });
-
-  if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  let copyResult: Awaited<ReturnType<typeof insertEstimateTemplateIntoEstimateWithHistory>>;
+  try {
+    copyResult = await insertEstimateTemplateIntoEstimateWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      targetParentNodeId,
+      templateId,
+      correlationId: assertPersistedUuid(intentId, "Template insert intent"),
+      unavailableSourcePolicy,
+      ...(targetTabId ? { targetTabId } : {}),
+    });
+  } catch (error) {
+    throw new Error(`Could not insert estimate template: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   const confirmation = readTemplateInsertConfirmation(copyResult);
   if (confirmation) return confirmation;
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
   const resolvedTargetTabId = readInsertedEstimateTabId(copyResult);
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
-
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
+  if (!refreshedProject || !refreshedEstimate) {
+    throw new Error("Estimate not found after inserting the template.");
+  }
   return { status: "inserted", tree, insertedRootNodeIds };
 }
 
@@ -3512,33 +2407,36 @@ export async function insertEstimateTemplatesIntoEstimate({
   unavailableSourcePolicy = "cancel",
 }: InsertEstimateTemplatesIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
-
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  let copyResult: Awaited<ReturnType<typeof insertEstimateTemplatesIntoEstimateWithHistory>>;
+  try {
+    copyResult = await insertEstimateTemplatesIntoEstimateWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      targetParentNodeId,
+      templateIds,
+      correlationId: assertPersistedUuid(intentId, "Template insert intent"),
+      unavailableSourcePolicy,
+      ...(targetTabId ? { targetTabId } : {}),
+    });
+  } catch (error) {
+    throw new Error(`Could not insert estimate templates: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
-  const dataStore = await createEstimateActionsD1Client();
-  const currentUser = await requireCurrentUserContext();
-  await assertCanEditEstimate(dataStore, estimateId);
-
-  const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_templates_into_estimate_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_parent_node_id: targetParentNodeId,
-    source_template_ids: templateIds,
-    acting_user_id: currentUser.userId,
-    correlation_id: assertPersistedUuid(intentId, "Template insert intent"),
-    unavailable_source_policy: unavailableSourcePolicy,
-    ...(targetTabId ? { target_tab_id: targetTabId } : {}),
-  });
-  if (copyError) throw new Error(`Could not insert estimate templates: ${copyError.message}`);
   const confirmation = readTemplateInsertConfirmation(copyResult);
   if (confirmation) return confirmation;
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
-
   const resolvedTargetTabId = readInsertedEstimateTabId(copyResult);
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the templates.");
-
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
+  if (!refreshedProject || !refreshedEstimate) {
+    throw new Error("Estimate not found after inserting the templates.");
+  }
   return { status: "inserted", tree, insertedRootNodeIds };
 }
 
@@ -3580,26 +2478,25 @@ export async function insertEstimateTemplateNodeIntoEstimate({
 }: InsertEstimateTemplateNodeIntoEstimateInput): Promise<InsertEstimateTemplateNodeIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
-
-  const dataStore = await createEstimateActionsD1Client();
-  const currentUser = await requireCurrentUserContext();
-  // U4 (SEC-1): this path is invoked directly from the panel (not only via the
-  // gated wrap flow), so it needs its own edit gate before any create/insert RPC
-  // — otherwise a workspace-member viewer could insert a template-node subtree.
-  await assertCanEditEstimate(dataStore, estimateId);
-
-  const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_template_node_into_estimate_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_parent_node_id: targetParentNodeId,
-    source_template_id: templateId,
-    source_template_node_id: templateNodeId,
-    acting_user_id: currentUser.userId,
-    correlation_id: assertPersistedUuid(intentId, "Template insert intent"),
-    unavailable_source_policy: unavailableSourcePolicy,
-    ...(targetTabId ? { target_tab_id: targetTabId } : {}),
-  });
-  if (copyError) throw new Error(`Could not insert the template node: ${copyError.message}`);
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  let copyResult: Awaited<ReturnType<typeof insertEstimateTemplateNodeIntoEstimateWithHistory>>;
+  try {
+    copyResult = await insertEstimateTemplateNodeIntoEstimateWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      targetParentNodeId,
+      templateId,
+      templateNodeId,
+      correlationId: assertPersistedUuid(intentId, "Template insert intent"),
+      unavailableSourcePolicy,
+      ...(targetTabId ? { targetTabId } : {}),
+    });
+  } catch (error) {
+    throw new Error(`Could not insert the template node: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   const confirmation = readTemplateInsertConfirmation(copyResult);
   if (confirmation) return confirmation;
@@ -3612,9 +2509,11 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   if (!insertedRootNodeId) throw new Error("Template node insertion did not produce a root node.");
 
   const resolvedTargetTabId = readInsertedEstimateTabId(copyResult);
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template node.");
-
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, resolvedTargetTabId);
+  if (!refreshedProject || !refreshedEstimate) {
+    throw new Error("Estimate not found after inserting the template node.");
+  }
   return { status: "inserted", tree, insertedRootNodeId };
 }
 
@@ -3643,8 +2542,8 @@ async function duplicateEstimateRowItemFromSource({
   activeTabId,
   duplicatedRowId,
   mutationId,
-  actingUserId,
-  dataStore,
+  currentUser,
+  database,
 }: {
   projectId: string;
   estimateId: string;
@@ -3654,33 +2553,36 @@ async function duplicateEstimateRowItemFromSource({
   activeTabId?: string | null;
   duplicatedRowId: string;
   mutationId?: string;
-  actingUserId: string;
-  dataStore: EstimateActionsD1Client;
+  currentUser: Awaited<ReturnType<typeof requireCurrentUserContext>>;
+  database: D1DatabaseLike;
 }) {
   if (expectedSourceRowRevision === undefined) throw new EstimateRowRevisionConflictError();
-  const { data: insertData, error: insertError } = await dataStore.call("duplicate_estimate_row_item_with_history", {
-    target_project_id: projectId,
-    target_estimate_id: estimateId,
-    target_node_id: assertPersistedUuid(targetNodeId, "Duplicate target node"),
-    target_active_tab_id: activeTabId ? assertPersistedUuid(activeTabId, "Duplicate active tab") : null,
-    source_row_id: sourceRowId,
-    expected_source_row_revision: expectedSourceRowRevision,
-    duplicated_row_id: assertPersistedUuid(duplicatedRowId, "Duplicated estimate row"),
-    acting_user_id: actingUserId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (insertError) throwEstimateRowMutationError(insertError);
-  return insertData ? readHistoryRowResult(insertData) : undefined;
+  try {
+    const result = await duplicateEstimateRowItemWithHistory(database, currentUser, {
+      projectId,
+      estimateId,
+      targetNodeId: assertPersistedUuid(targetNodeId, "Duplicate target node"),
+      activeTabId: activeTabId ? assertPersistedUuid(activeTabId, "Duplicate active tab") : null,
+      sourceRowId,
+      expectedSourceRowRevision,
+      duplicatedRowId: assertPersistedUuid(duplicatedRowId, "Duplicated estimate row"),
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readHistoryRowResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, activeTabId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, estimateId);
-  const currentUser = await requireCurrentUserContext();
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditEstimate(database, estimateId);
   const duplicateRequest = readDuplicateEstimateRowItemRequest(libraryItem);
   if (duplicateRequest) {
     return duplicateEstimateRowItemFromSource({
@@ -3692,26 +2594,20 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       activeTabId,
       duplicatedRowId: rowId,
       mutationId,
-      actingUserId: currentUser.userId,
-      dataStore,
+      currentUser,
+      database,
     });
   }
   // P6 single-node model: a row may be inserted into ANY node, not only the
   // former "area" kind. We still scope the target to a node that exists in this
   // estimate/project; the relaxed insert_estimate_row_item_with_history RPC
   // enforces the existence/orphan invariant server-side.
-  const { data: targetNode, error: nodeError } = await dataStore
-    .from("estimate_nodes")
-    .select("id, estimate_id, kind, name, estimates!inner(project_id)")
-    .eq("id", targetNodeId)
-    .eq("estimate_id", estimateId)
-    .eq("estimates.project_id", project.id)
-    .maybeSingle<Pick<ValidatedEstimateNodeRow, "id" | "estimate_id" | "kind"> & { name: string }>();
-
-  if (nodeError) throw nodeError;
+  const targetNode = await getEstimateNodeForProject(database, {
+    projectId: project.id,
+    estimateId,
+    nodeId: targetNodeId,
+  });
   if (!targetNode) throw new Error("Target estimate node not found in the current project.");
-
-  await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
 
   const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
   const persistedLibraryItem = localizeProjectComponentForTargetProject(libraryItem, {
@@ -3739,12 +2635,13 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   const sourceSnapshot = getSourceSnapshot(persistedLibraryItem);
   const sourceLibraryItemId = getSourceLibraryItemId(persistedLibraryItem);
 
-  const { data: insertData, error: insertError } = await dataStore.call("insert_estimate_row_item_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_node_id: targetNodeId,
-    target_active_tab_id: activeTabId ?? null,
-    row_payload: {
+  const insertData = await insertEstimateRowItemWithHistory(database, currentUser, {
+    projectId: project.id,
+    estimateId,
+    nodeId: targetNodeId,
+    activeTabId: activeTabId ?? null,
+    librarySource: persistedLibraryItem,
+    rowPayload: {
       id: persistedRowId,
       sourceLibraryItemId,
       sourceSnapshot,
@@ -3767,12 +2664,9 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
       pricingProvenanceOrigin: sourceLibraryItemId ? "recorded" : "missing",
     },
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
+    correlationId: getMutationCorrelationId(mutationId),
   });
-
-  if (insertError) throw insertError;
-  return insertData ? readHistoryRowResult(insertData) : undefined;
+  return readHistoryRowResult(insertData);
 }
 
 export async function updateEstimateSheetAdjustment({
@@ -3786,23 +2680,28 @@ export async function updateEstimateSheetAdjustment({
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, estimateId);
-  const currentUser = await requireCurrentUserContext();
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  await assertCanEditEstimate(database, estimateId);
   const normalizedMode = normalizeEstimateSheetAdjustmentMode(mode);
   const normalizedPercentage = normalizeEstimateSheetAdjustmentPercentage(percentage, normalizedMode);
   assertValidEstimateSheetAdjustment(normalizedMode, normalizedPercentage);
 
-  const { data: adjustmentResult, error } = await dataStore.call("update_estimate_sheet_adjustment_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    adjustment_mode: normalizedMode,
-    adjustment_percentage: normalizedPercentage,
-    expected_row_revision: expectedRowRevision ?? null,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-  if (error) throwEstimateRowMutationError(error);
+  let adjustmentResult: Awaited<ReturnType<typeof updateEstimateSheetAdjustmentWithHistory>>;
+  try {
+    adjustmentResult = await updateEstimateSheetAdjustmentWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      mode: normalizedMode,
+      percentage: normalizedPercentage,
+      expectedRowRevision: expectedRowRevision ?? null,
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 
   clearEstimateRouteContextProcessCache(project.id);
   revalidateProjectEstimatePaths(project.id);
@@ -3810,7 +2709,7 @@ export async function updateEstimateSheetAdjustment({
 }
 
 export async function updateEstimateRowItem({ projectId, estimateId, rowId, componentMutationIntent, material, description, supplier, unit, unitCost, priceOptionLabel, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  const { project, database, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
   if (sourceSnapshot === null) {
@@ -3819,7 +2718,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
     const rawSourceSnapshotInput = readJsonObject(sourceSnapshot);
     const patchIncludesImageAsset = Object.prototype.hasOwnProperty.call(rawSourceSnapshotInput, "imageAsset");
     const sourceSnapshotInput = await validateEstimateRowImageAssetPatch({
-      dataStore,
+      database,
       projectId: project.id,
       estimateId,
       rowId: row.id,
@@ -3828,7 +2727,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
     let mergedSourceSnapshot = readJsonObject(mergeJsonObject(row.source_snapshot, sourceSnapshotInput));
     if (!patchIncludesImageAsset) {
       mergedSourceSnapshot = await removeUnvalidatedEstimateRowImageAsset({
-        dataStore,
+        database,
         projectId: project.id,
         estimateId,
         rowId: row.id,
@@ -3879,34 +2778,27 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
     ...(row.source_library_item_id && linkState === undefined ? { linkState: "linked-overridden" } : {}),
   };
 
-  const { data, error } = await dataStore.call("update_estimate_row_item_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_row_id: row.id,
-    expected_row_revision: expectedRowRevision ?? row.row_revision,
-    row_patch: rowPatch,
-    ...(componentMutationIntent !== undefined
-      ? { component_mutation_intent: componentMutationIntent }
-      : {}),
-    ...(expectedComponentImpactFingerprint !== undefined
-      ? { expected_component_impact_fingerprint: expectedComponentImpactFingerprint }
-      : {}),
-    ...(removedPriceOptionReplacements !== undefined
-      ? { removed_price_option_replacements: removedPriceOptionReplacements }
-      : {}),
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-  if (error) throwEstimateRowMutationError(error);
-
-  const updatedRow = readHistoryRowResult(data);
-  return updatedRow;
+  try {
+    const result = await updateEstimateRowItemWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      rowId: row.id,
+      expectedRowRevision: expectedRowRevision ?? row.row_revision,
+      rowPatch,
+      ...(componentMutationIntent !== undefined ? { componentMutationIntent } : {}),
+      ...(expectedComponentImpactFingerprint !== undefined ? { expectedComponentImpactFingerprint } : {}),
+      ...(removedPriceOptionReplacements !== undefined ? { removedPriceOptionReplacements } : {}),
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readHistoryRowResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  const { project, database, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  const sourceCommitReceipt = await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
   const persistedLibraryItem = localizeProjectComponentForTargetProject(libraryItem, {
     targetProjectId: project.id,
     targetProjectName: project.name,
@@ -3926,19 +2818,20 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
     misc_cost: replacementPayload.miscCost,
     currency_code: project.currency_code,
   });
-  const { data, error } = await dataStore.call("replace_estimate_row_item_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_row_id: row.id,
-    expected_row_revision: expectedRowRevision ?? row.row_revision,
-    replacement_payload: replacementPayload,
-    expected_library_source_receipt: sourceCommitReceipt,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (error) throwEstimateRowMutationError(error);
-  return readHistoryRowResult(data);
+  try {
+    const result = await replaceEstimateRowItemWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      rowId: row.id,
+      expectedRowRevision: expectedRowRevision ?? row.row_revision,
+      replacementPayload,
+      librarySource: libraryItem,
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readHistoryRowResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 export async function getEstimateComponentEditImpact({
@@ -3946,31 +2839,31 @@ export async function getEstimateComponentEditImpact({
   estimateId,
   rowId,
 }: GetEstimateComponentEditImpactInput): Promise<EstimateComponentEditImpact> {
-  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
-  await assertCanEditEstimate(dataStore, estimateId);
-  const { data, error } = await dataStore.call<EstimateComponentEditImpact>("preview_estimate_component_edit_impact", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_row_id: row.id,
+  const { project, database, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  await assertCanEditEstimate(database, estimateId);
+  const currentUser = await requireCurrentUserContext();
+  return previewEstimateComponentEditImpact(database, currentUser, {
+    projectId: project.id,
+    estimateId,
+    rowId: row.id,
   });
-  if (error) throw error;
-  if (!data) throw new Error("Could not determine where this component is used.");
-  return data;
 }
 
 export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput): Promise<DeleteEstimateRowItemResult> {
-  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  const { project, database, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  const { data, error } = await dataStore.call("delete_estimate_row_item_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_row_id: row.id,
-    expected_row_revision: expectedRowRevision ?? row.row_revision,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-  if (error) throwEstimateRowMutationError(error);
-  return readDeletedRowResult(data);
+  try {
+    const result = await deleteEstimateRowItemWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      rowId: row.id,
+      expectedRowRevision: expectedRowRevision ?? row.row_revision,
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readDeletedRowResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 export async function moveEstimateRowComponentWithHistory({
@@ -3989,25 +2882,23 @@ export async function moveEstimateRowComponentWithHistory({
   const sourceRow = await getValidatedEstimateRow(projectId, estimateId, sourceRowId, { requireEdit: true });
   const targetRow = await getValidatedEstimateRow(projectId, estimateId, targetRowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  await assertCurrentLibrarySourceForEstimateCommit(targetRow.dataStore, sourceLibraryItem);
-  await assertCurrentLibrarySourceForEstimateCommit(targetRow.dataStore, targetLibraryItem);
-
-  const { data, error } = await targetRow.dataStore.call("move_estimate_row_component_with_history", {
-    target_project_id: targetRow.project.id,
-    target_estimate_id: estimateId,
-    target_active_tab_id: activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null,
-    source_row_id: sourceRowId,
-    target_row_id: targetRowId,
-    expected_source_row_revision: expectedSourceRowRevision ?? sourceRow.row.row_revision,
-    expected_target_row_revision: expectedTargetRowRevision ?? targetRow.row.row_revision,
-    source_replacement_payload: buildEstimateRowReplacementPayload(sourceLibraryItem) as Json,
-    target_replacement_payload: buildEstimateRowReplacementPayload(targetLibraryItem) as Json,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (error) throwEstimateRowMutationError(error);
-  return readMovedRowResult(data);
+  try {
+    const result = await moveEstimateRowComponentIntent(targetRow.database, currentUser, {
+      projectId: targetRow.project.id,
+      estimateId,
+      activeTabId: activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null,
+      sourceRowId,
+      targetRowId,
+      expectedSourceRowRevision: expectedSourceRowRevision ?? sourceRow.row.row_revision,
+      expectedTargetRowRevision: expectedTargetRowRevision ?? targetRow.row.row_revision,
+      sourceLibraryItem,
+      targetLibraryItem,
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readMovedRowResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 function normalizeEstimateRowMoveUpdates(updates: MoveEstimateRowItemUpdateInput[]) {
@@ -4051,22 +2942,24 @@ export async function moveEstimateRowItemWithHistory({
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, estimateId);
-
-  const { data, error } = await dataStore.call("move_estimate_row_item_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_active_tab_id: normalizedActiveTabId,
-    move_updates: moveUpdates,
-    moved_row_id: normalizedMovedRowId,
-    source_node_id: normalizedSourceNodeId,
-    target_node_id: normalizedTargetNodeId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (error) throwEstimateRowMutationError(error);
-  const result = readMovedRowItemResult(data);
+  const database = await requireEstimateD1Database();
+  await assertCanEditEstimate(database, estimateId);
+  const currentUser = await requireCurrentUserContext();
+  let result: MoveEstimateRowItemWithHistoryResult;
+  try {
+    result = readMovedRowItemResult(await moveEstimateRowItemIntent(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      activeTabId: normalizedActiveTabId,
+      updates: moveUpdates,
+      movedRowId: normalizedMovedRowId,
+      sourceNodeId: normalizedSourceNodeId,
+      targetNodeId: normalizedTargetNodeId,
+      correlationId: getMutationCorrelationId(mutationId),
+    }));
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
   clearEstimateRouteContextProcessCache(project.id);
   return result;
 }
@@ -4111,28 +3004,29 @@ export async function deleteEstimateRowItemsBulk({
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, estimateId);
+  const database = await requireEstimateD1Database();
+  await assertCanEditEstimate(database, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const expectedRevisionPayload = Object.fromEntries(normalizedRowIds.map((rowId) => {
+  const expectedRevisionPayload = Object.fromEntries(normalizedRowIds.map((rowId): [string, number] => {
     const rowRevision = expectedRowRevisions?.[rowId];
     if (!Number.isInteger(rowRevision) || Number(rowRevision) < 1) {
       throw new Error("Bulk row delete requires the current revision for every selected row.");
     }
-    return [rowId, rowRevision];
+    return [rowId, Number(rowRevision)];
   }));
 
-  const { data, error } = await dataStore.call("delete_estimate_row_items_bulk_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_row_ids: normalizedRowIds,
-    expected_row_revisions: expectedRevisionPayload,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (error) throwEstimateRowMutationError(error);
-  return readDeleteRowsBulkResult(data);
+  try {
+    const result = await deleteEstimateRowItemsBulkWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      rowIds: normalizedRowIds,
+      expectedRowRevisions: expectedRevisionPayload,
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readDeleteRowsBulkResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 export async function restoreDeletedEstimateRows({
@@ -4146,22 +3040,23 @@ export async function restoreDeletedEstimateRows({
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const normalizedRowIds = rowIds && rowIds.length > 0 ? normalizeEstimateRowIdSelection(rowIds) : null;
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, estimateId);
+  const normalizedRowIds = rowIds && rowIds.length > 0 ? normalizeEstimateRowIdSelection(rowIds) : undefined;
+  const database = await requireEstimateD1Database();
+  await assertCanEditEstimate(database, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const { data, error } = await dataStore.call("restore_deleted_estimate_rows_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    target_active_tab_id: activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null,
-    source_delete_event_id: sourceEventId,
-    target_row_ids: normalizedRowIds,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
-
-  if (error) throwEstimateRowMutationError(error);
-  return readRestoreDeletedRowsResult(data);
+  try {
+    const result = await restoreDeletedEstimateRowsWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      activeTabId: activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null,
+      sourceEventId,
+      rowIds: normalizedRowIds,
+      correlationId: getMutationCorrelationId(mutationId),
+    });
+    return readRestoreDeletedRowsResult(result);
+  } catch (error) {
+    throwEstimateRowMutationError(error);
+  }
 }
 
 export async function restoreDeletedEstimateNodes({
@@ -4175,23 +3070,28 @@ export async function restoreDeletedEstimateNodes({
   const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const normalizedNodeIds = nodeIds && nodeIds.length > 0 ? normalizeEstimateNodeIdSelection(nodeIds) : null;
-  const dataStore = await createEstimateActionsD1Client();
-  await assertCanEditEstimate(dataStore, estimateId);
-  const currentUser = await requireCurrentUserContext();
-  const { data, error } = await dataStore.call("restore_deleted_estimate_nodes_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    source_delete_event_id: sourceEventId,
-    target_node_ids: normalizedNodeIds,
-    acting_user_id: currentUser.userId,
-    correlation_id: getMutationCorrelationId(mutationId),
-  });
+  const normalizedNodeIds = nodeIds && nodeIds.length > 0 ? normalizeEstimateNodeIdSelection(nodeIds) : undefined;
+  const [database, currentUser] = await Promise.all([
+    requireEstimateD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  let restored: Awaited<ReturnType<typeof restoreDeletedEstimateNodesWithHistory>>;
+  try {
+    restored = await restoreDeletedEstimateNodesWithHistory(database, currentUser, {
+      projectId: project.id,
+      estimateId,
+      sourceEventId,
+      correlationId: getMutationCorrelationId(mutationId),
+      ...(normalizedNodeIds ? { nodeIds: normalizedNodeIds } : {}),
+    });
+  } catch (error) {
+    throw new Error(`Could not restore deleted estimate tree nodes: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
-  if (error) throw new Error(`Could not restore deleted estimate tree nodes: ${error.message}`);
-  const restored = readRestoreDeletedNodesResult(data);
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after restoring the deleted tree nodes.");
-
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } =
+    await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  if (!refreshedProject || !refreshedEstimate) {
+    throw new Error("Estimate not found after restoring the deleted tree nodes.");
+  }
   return { ...restored, tree };
 }
