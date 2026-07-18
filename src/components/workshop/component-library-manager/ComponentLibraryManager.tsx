@@ -55,7 +55,10 @@ import {
   previewBulkArchiveLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
-import { enqueuePerItemMutation } from "@/components/workshop/component-library/per-item-mutation-queue";
+import {
+  createComponentFolderMoveCoordinator,
+  type ComponentFolderMoveOutcome,
+} from "@/components/workshop/component-library/component-folder-move-coordinator";
 import {
   buildComponentRouteStateHref,
   COMPONENT_ROUTE_PARAM,
@@ -1530,7 +1533,10 @@ function ComponentLibraryTreePanel({
   onSelectFolder: (folderId: string) => void;
   onToggleSelected: (itemId: string) => void;
   canManageLibrary: boolean;
-  onMoveComponentToFolder: (item: EstimateRowItem, targetFolderId: string) => Promise<void>;
+  onMoveComponentToFolder: (
+    item: EstimateRowItem,
+    targetFolderId: string,
+  ) => Promise<ComponentFolderMoveOutcome | void> | ComponentFolderMoveOutcome | void;
   onViewModeChange: (mode: ComponentViewMode) => void;
   onFoldersChange: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus: (status: ReorderStatus) => void;
@@ -2148,9 +2154,8 @@ export function ComponentLibraryManager({
   const selectedRouteTelemetryRef = useRef<string | null>(null);
   const handledAddComponentRouteRequestRef = useRef<string | null>(null);
   const componentEditorRequestIdRef = useRef(0);
-  const componentFolderMoveQueueRef = useRef(new Map<string, Promise<void>>());
-  const componentFolderMoveGenerationRef = useRef(new Map<string, number>());
-  const confirmedComponentFolderRef = useRef(new Map<string, string | null>());
+  const componentFolderMoveCoordinatorRef = useRef(createComponentFolderMoveCoordinator());
+  const currentLocalComponentFolderTargetRef = useRef(new Map<string, string | null>());
   const detailHydratedItemIdsRef = useRef<Set<string> | null>(null);
   if (detailHydratedItemIdsRef.current === null) detailHydratedItemIdsRef.current = new Set<string>();
   const normalizedPropFolders = useMemo(
@@ -2909,48 +2914,48 @@ export function ComponentLibraryManager({
     }
     if (item.libraryFolderId === targetFolderId) return;
     const previousFolderId = item.libraryFolderId ?? null;
-    if (!confirmedComponentFolderRef.current.has(item.id)) {
-      confirmedComponentFolderRef.current.set(item.id, previousFolderId);
-    }
-    const generation = (componentFolderMoveGenerationRef.current.get(item.id) ?? 0) + 1;
-    componentFolderMoveGenerationRef.current.set(item.id, generation);
 
+    currentLocalComponentFolderTargetRef.current.set(item.id, targetFolderId);
     updateLocalLibraryItems((items) =>
       items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
     );
 
-    try {
-      await enqueuePerItemMutation(componentFolderMoveQueueRef.current, item.id, async () => {
-        try {
-          await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
-          confirmedComponentFolderRef.current.set(item.id, targetFolderId);
-          setSelectedFolderId(targetFolderId);
-          syncLibraryItemsCache((items) =>
-            items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
-          );
-        } catch (error) {
-          if (componentFolderMoveGenerationRef.current.get(item.id) === generation) {
-            const confirmedFolderId = confirmedComponentFolderRef.current.get(item.id) ?? null;
-            updateLocalLibraryItems((items) =>
-              items.map((entry) => (
-                entry.id === item.id && entry.libraryFolderId === targetFolderId
-                  ? { ...entry, libraryFolderId: confirmedFolderId ?? undefined }
-                  : entry
-              )),
-            );
-          }
-          throw error;
-        }
-      });
-    } finally {
-      if (
-        componentFolderMoveGenerationRef.current.get(item.id) === generation
-        && !componentFolderMoveQueueRef.current.has(item.id)
-      ) {
-        componentFolderMoveGenerationRef.current.delete(item.id);
-        confirmedComponentFolderRef.current.delete(item.id);
+    const outcome = await componentFolderMoveCoordinatorRef.current.move({
+      componentId: item.id,
+      currentConfirmedFolderId: previousFolderId,
+      targetFolderId,
+      persist: () => moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId }),
+    });
+
+    if (outcome.type === "latest-success") {
+      if (currentLocalComponentFolderTargetRef.current.get(item.id) === outcome.attemptedTargetFolderId) {
+        syncLibraryItemsCache((items) =>
+          items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
+        );
+        currentLocalComponentFolderTargetRef.current.delete(item.id);
       }
+    } else if (outcome.type === "latest-failure") {
+      if (currentLocalComponentFolderTargetRef.current.get(item.id) !== outcome.attemptedTargetFolderId) {
+        return outcome;
+      }
+      updateLocalLibraryItems((items) =>
+        items.map((entry) => (
+          entry.id === item.id && (entry.libraryFolderId ?? null) === outcome.attemptedTargetFolderId
+            ? { ...entry, libraryFolderId: outcome.authoritativeConfirmedFolderId ?? undefined }
+            : entry
+        )),
+      );
+      syncLibraryItemsCache((items) =>
+        items.map((entry) => (
+          entry.id === item.id
+            ? { ...entry, libraryFolderId: outcome.authoritativeConfirmedFolderId ?? undefined }
+            : entry
+        )),
+      );
+      currentLocalComponentFolderTargetRef.current.delete(item.id);
     }
+
+    return outcome;
   }
 
   return (

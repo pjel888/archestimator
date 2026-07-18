@@ -15,6 +15,7 @@ const migration = latestMigration("_library_trust_governance.sql");
 const variantAssetsMigration = latestMigration("_component_variant_assets_cost_entries.sql");
 const d1ActionSupportMigration = readFileSync(join(process.cwd(), "migrations/0028_component_library_action_support.sql"), "utf8");
 const actions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
+const componentMutationD1 = readFileSync(join(process.cwd(), "src/lib/component-library/component-mutation-d1.ts"), "utf8");
 
 describe("component library cost governance actions", () => {
   it("adds durable cost-review status, assignments, locks, and event history", () => {
@@ -76,8 +77,8 @@ describe("component library cost governance actions", () => {
     expect(d1ActionSupportMigration).toContain("misc_cost REAL NOT NULL DEFAULT 0 CHECK (misc_cost >= 0)");
     expect(d1ActionSupportMigration).toContain("is_current INTEGER NOT NULL DEFAULT 0 CHECK (is_current IN (0, 1))");
     expect(d1ActionSupportMigration).toContain("CREATE INDEX IF NOT EXISTS idx_cost_library_variant_cost_entries_option_current");
-    expect(actions).toContain("INSERT INTO cost_library_item_variant_cost_entries");
-    expect(actions).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
+    expect(componentMutationD1).toContain("INSERT INTO cost_library_item_variant_cost_entries");
+    expect(componentMutationD1).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
     expect(actions).not.toMatch(/assign_cost_library_cost_refresh|accept_cost_library_cost_entry|lock_cost_library_cost_entry|unlock_cost_library_cost_entry|reject_cost_library_cost_entry|supersede_cost_library_cost_entry|supabase\.rpc/);
   });
 });

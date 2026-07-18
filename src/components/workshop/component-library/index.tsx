@@ -185,7 +185,7 @@ import {
   readJsonStorage,
   safeSetJsonStorage,
 } from "./helpers";
-import { enqueuePerItemMutation } from "./per-item-mutation-queue";
+import { createComponentFolderMoveCoordinator } from "./component-folder-move-coordinator";
 
 const DEFAULT_LIBRARY_TREE_TABS: readonly EstimateLibraryTab[] = ["components", "project", "templates"];
 const PUBLIC_LIBRARY_TREE_TABS: readonly EstimateLibraryTab[] = ["components", "templates"];
@@ -1042,9 +1042,7 @@ function useEstimateRightSidebarContent({
   const componentEditorRequestIdRef = useRef(0);
   const permanentDeletePreviewRequestIdRef = useRef(0);
   const permanentDeleteCorrelationIdRef = useRef<string | null>(null);
-  const componentFolderMoveQueueRef = useRef(new Map<string, Promise<void>>());
-  const componentFolderMoveGenerationRef = useRef(new Map<string, number>());
-  const confirmedComponentFolderRef = useRef(new Map<string, string | null>());
+  const componentFolderMoveCoordinatorRef = useRef(createComponentFolderMoveCoordinator());
   const projectEstimateLoadInFlightRef = useRef(new Set<string>());
   const estimateOutlineLoadInFlightRef = useRef(new Set<string>());
   const templateGraphRequestIdRef = useRef(0);
@@ -2674,42 +2672,30 @@ function useEstimateRightSidebarContent({
     if (componentViewMode !== "default" || (item.libraryFolderId ?? null) === targetFolderId) return;
     const previousFolderId = item.libraryFolderId ?? null;
     const nextFolderId = targetFolderId ?? undefined;
-    if (!confirmedComponentFolderRef.current.has(item.id)) {
-      confirmedComponentFolderRef.current.set(item.id, previousFolderId);
-    }
-    const generation = (componentFolderMoveGenerationRef.current.get(item.id) ?? 0) + 1;
-    componentFolderMoveGenerationRef.current.set(item.id, generation);
     setLibraryItems((items) => items.map((entry) => (
       entry.id === item.id ? { ...entry, libraryFolderId: nextFolderId } : entry
     )));
 
-    const pending = enqueuePerItemMutation(componentFolderMoveQueueRef.current, item.id, async () => {
-      try {
-        await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
-        confirmedComponentFolderRef.current.set(item.id, targetFolderId);
-        onLibraryDataChanged?.();
-        if (componentFolderMoveGenerationRef.current.get(item.id) === generation) {
-          setLastActionMessage(targetFolderId ? `${getComponentName(item)} moved.` : `${getComponentName(item)} moved to the top level.`);
-        }
-      } catch (error) {
-        if (componentFolderMoveGenerationRef.current.get(item.id) !== generation) throw error;
-        const confirmedFolderId = confirmedComponentFolderRef.current.get(item.id) ?? null;
+    void componentFolderMoveCoordinatorRef.current.move({
+      componentId: item.id,
+      currentConfirmedFolderId: previousFolderId,
+      targetFolderId,
+      persist: () => moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId }),
+    }).then((outcome) => {
+      if (outcome.type === "latest-failure") {
         setLibraryItems((items) => items.map((entry) => (
-          entry.id === item.id && entry.libraryFolderId === nextFolderId
-            ? { ...entry, libraryFolderId: confirmedFolderId ?? undefined }
+          entry.id === item.id && (entry.libraryFolderId ?? null) === outcome.attemptedTargetFolderId
+            ? { ...entry, libraryFolderId: outcome.authoritativeConfirmedFolderId ?? undefined }
             : entry
         )));
         setLastActionMessage("Could not move the component. You may not have permission to manage library folders.");
-        throw error;
+        onLibraryDataChanged?.();
+        return;
       }
-    });
-    void pending.catch(() => undefined).finally(() => {
-      if (
-        componentFolderMoveGenerationRef.current.get(item.id) === generation
-        && !componentFolderMoveQueueRef.current.has(item.id)
-      ) {
-        componentFolderMoveGenerationRef.current.delete(item.id);
-        confirmedComponentFolderRef.current.delete(item.id);
+
+      if (outcome.type === "latest-success") {
+        setLastActionMessage(targetFolderId ? `${getComponentName(item)} moved.` : `${getComponentName(item)} moved to the top level.`);
+        onLibraryDataChanged?.();
       }
     });
   }, [componentViewMode, onLibraryDataChanged, setLastActionMessage, setLibraryItems]);

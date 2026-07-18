@@ -52,6 +52,7 @@ if (!identityMigrationPath) throw new Error("Missing component library identity 
 const identityMigration = readFileSync(join(process.cwd(), "supabase/migrations", identityMigrationPath), "utf8");
 const repository = readFileSync(join(process.cwd(), "src/lib/repositories/component-library-repository.ts"), "utf8");
 const actions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
+const componentMutationD1 = readFileSync(join(process.cwd(), "src/lib/component-library/component-mutation-d1.ts"), "utf8");
 const manager = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
 const addModal = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
 const d1PromotionMigration = readFileSync(join(process.cwd(), "migrations/0026_component_promotion_support.sql"), "utf8");
@@ -184,11 +185,11 @@ describe("component library item versioning schema", () => {
     expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_options to authenticated");
     expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_history to authenticated");
     expect(priceAuditGrantMigration).toContain("grant execute on function public.upsert_cost_library_component_price_option(uuid, uuid, jsonb) to authenticated");
-    expect(actions).toContain("buildComponentPriceOptionWritePlan");
+    expect(componentMutationD1).toContain("buildComponentPriceOptionWritePlan");
     expect(actions).toContain("updateCostLibraryComponentWithPriceOptions");
-    expect(actions).toContain("runAtomicBatch");
-    expect(actions).toContain("INSERT INTO cost_library_item_price_options");
-    expect(actions).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
+    expect(componentMutationD1).toContain("runAtomicBatch");
+    expect(componentMutationD1).toContain("INSERT INTO cost_library_item_price_options");
+    expect(componentMutationD1).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
     expect(actions).not.toContain('supabase.rpc("upsert_cost_library_component_price_option"');
     expect(actions).not.toContain('.from("cost_library_item_price_options")');
   });

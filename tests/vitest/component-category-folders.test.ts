@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveComponentCategory } from "@/lib/component-library/category-folders";
+import {
+  createComponentCategoryResolver,
+  resolveComponentCategory,
+} from "@/lib/component-library/category-folders";
 
 const folders = [
   { id: "root", workspace_id: "workspace-1", parent_id: null, name: "Finishes" },
@@ -15,6 +18,15 @@ describe("component category folders", () => {
       category: "Timber",
       categoryPath: ["Finishes", "Flooring", "Timber"],
       categoryPathIds: ["root", "middle", "leaf"],
+    });
+
+    const resolveCategory = createComponentCategoryResolver(folders);
+    expect(resolveCategory("leaf")).toEqual(resolveComponentCategory(folders, "leaf"));
+    expect(resolveCategory("middle")).toEqual({
+      categoryId: "middle",
+      category: "Flooring",
+      categoryPath: ["Finishes", "Flooring"],
+      categoryPathIds: ["root", "middle"],
     });
   });
 

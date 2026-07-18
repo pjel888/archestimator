@@ -155,12 +155,6 @@ type AttachmentDownloadLookupResult = {
   lookupFailed: boolean;
 };
 
-type AttachmentCleanupRow = {
-  storage_path: string | null;
-  review_status?: string | null;
-  is_current_approved?: boolean | number | null;
-};
-
 type AttachmentCleanupAssetRow = {
   id: string;
   storage_path: string;
@@ -432,20 +426,6 @@ async function recordAttachmentDownloadIssued(
   return true;
 }
 
-async function readAttachmentRowsForDelete(db: D1DatabaseLike, workspaceId: string, paths: string[]) {
-  if (paths.length === 0) return [];
-  return d1All<AttachmentCleanupRow>(
-    db,
-    `
-      SELECT storage_path, review_status, is_current_approved
-      FROM component_variant_attachments
-      WHERE workspace_id = ?
-        AND storage_path IN (${placeholders(paths)})
-    `,
-    [workspaceId, ...paths.map(d1Value)],
-  );
-}
-
 async function readDraftAttachmentAssetsForDelete(
   db: D1DatabaseLike,
   input: {
@@ -475,7 +455,11 @@ async function readDraftAttachmentAssetsForDelete(
         AND surface = 'component-attachment'
         AND storage_bucket = ?
         AND storage_path IN (${placeholders(input.paths)})
-        AND status IN ('pending', 'finalized')
+        AND (
+          (status IN ('pending', 'finalized') AND purge_state = 'active')
+          OR status IN ('removed', 'deleted')
+          OR purge_state <> 'active'
+        )
         ${targetClause}
     `,
     [
@@ -660,25 +644,6 @@ export async function DELETE(request: Request) {
   const paths = readStoragePaths(body).filter((path) => isOwnedAttachmentPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");
 
-  let attachmentRows: AttachmentCleanupRow[];
-  try {
-    attachmentRows = await readAttachmentRowsForDelete(metadataDb, workspace.id, paths);
-  } catch (error) {
-    logAppError(error, {
-      event: "component_attachment_cleanup_review_lookup_error",
-      action: "read_component_attachment_rows_for_delete",
-      context: {
-        route: "/api/component-library/attachments",
-        requested_path_count: paths.length,
-      },
-    });
-    return jsonError("Could not verify attachment review state.", 500);
-  }
-
-  if (attachmentRows.length > 0) {
-    return jsonError("Persisted component attachments cannot be removed from draft cleanup.", 409);
-  }
-
   const draftAssets = await readDraftAttachmentAssetsForDelete(metadataDb, {
     workspaceId: workspace.id,
     actorUserId: currentUser.userId,
@@ -706,7 +671,9 @@ export async function DELETE(request: Request) {
       return jsonError("No removable attachment uploads were found.", 404);
     }
     return NextResponse.json({
-      removedPaths: claim.status === "claimed" ? claim.claimedPaths : removablePaths,
+      removedPaths: claim.claimedPaths,
+      blockedPaths: claim.blockedPaths,
+      alreadyRemovedPaths: claim.alreadyRemovedPaths,
     });
   } catch (error) {
     logAppError(error, {

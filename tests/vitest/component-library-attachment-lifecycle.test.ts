@@ -14,6 +14,7 @@ function latestMigration(suffix: string) {
 const migration = latestMigration("_library_trust_governance.sql");
 const d1AttachmentMigration = readFileSync(join(process.cwd(), "migrations/0076_component_attachment_ownership.sql"), "utf8");
 const attachmentRoute = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
+const removalClaims = readFileSync(join(process.cwd(), "src/lib/uploads/removal-claims.ts"), "utf8");
 const uploadLifecycleProofRouter = readFileSync(join(process.cwd(), "src/lib/cloudflare/upload-lifecycle-proof-router.ts"), "utf8");
 
 describe("component library attachment lifecycle governance", () => {
@@ -62,17 +63,21 @@ describe("component library attachment lifecycle governance", () => {
     expect(migration).toContain("grant execute on function public.approve_cost_library_attachment(uuid, integer, uuid, text) to authenticated");
   });
 
-  it("blocks reviewed attachments before issuing a deferred removal claim", () => {
+  it("delegates per-asset deferred-removal protection to the shared claim owner", () => {
     const deleteRoute = attachmentRoute.slice(attachmentRoute.indexOf("export async function DELETE"));
-    const lookupIndex = deleteRoute.indexOf("readAttachmentRowsForDelete");
     const claimIndex = deleteRoute.indexOf("claimUploadAssetsForRemoval");
+    const preClaimRoute = deleteRoute.slice(0, claimIndex);
+    const postClaimRoute = deleteRoute.slice(claimIndex);
 
-    expect(lookupIndex).toBeGreaterThanOrEqual(0);
-    expect(claimIndex).toBeGreaterThan(lookupIndex);
+    expect(claimIndex).toBeGreaterThanOrEqual(0);
+    expect(preClaimRoute).not.toContain("readAttachmentRowsForDelete");
+    expect(preClaimRoute).not.toContain("Persisted component attachments cannot be removed from draft cleanup.");
+    expect(postClaimRoute).toContain('if (claim.status === "referenced")');
+    expect(postClaimRoute).toContain("Persisted component attachments cannot be removed from draft cleanup.");
     expect(deleteRoute).not.toContain("removeObjects(");
-    expect(attachmentRoute).toContain("SELECT storage_path, review_status, is_current_approved");
-    expect(attachmentRoute).toContain("Persisted component attachments cannot be removed from draft cleanup.");
-    expect(attachmentRoute).toContain("Could not verify attachment review state.");
+    expect(removalClaims).toContain("FROM component_variant_attachments attachment");
+    expect(removalClaims).toContain("attachment.upload_asset_id = ${assetAlias}.id");
+    expect(removalClaims).toContain("candidate.id = asset.id");
   });
 
   it("allows newly saved uploaded attachments through the private scan-validated broker", () => {

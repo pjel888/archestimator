@@ -55,6 +55,7 @@ const COST_ENTRY_ID = "66666666-6666-4666-8666-666666666666";
 const ROW_ID = "77777777-7777-4777-8777-777777777777";
 const ACTOR_ID = "88888888-8888-4888-8888-888888888888";
 const INTENT_ID = "99999999-9999-4999-8999-999999999999";
+const DEFAULT_FOLDER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const ORIGINAL_TIME = "2026-07-13T09:00:00.000Z";
 const UPDATED_TIME = "2026-07-15T12:00:00.000Z";
 
@@ -144,6 +145,15 @@ function seedDatabase(database: SqliteDatabase) {
     VALUES (?, 'Workspace', ?, ?, ?)
   `).run(WORKSPACE_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
   database.prepare(`
+    UPDATE library_folders
+    SET id = ?,
+        created_by = ?,
+        created_at = ?,
+        updated_at = ?
+    WHERE workspace_id = ?
+      AND is_default_category = 1
+  `).run(DEFAULT_FOLDER_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME, WORKSPACE_ID);
+  database.prepare(`
     INSERT INTO projects (id, workspace_id, name, created_by, created_at, updated_at)
     VALUES (?, ?, 'Project', ?, ?, ?)
   `).run(PROJECT_ID, WORKSPACE_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
@@ -153,11 +163,11 @@ function seedDatabase(database: SqliteDatabase) {
   `).run(ESTIMATE_ID, PROJECT_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
   database.prepare(`
     INSERT INTO cost_library_items (
-      id, workspace_id, name, description, category, unit, unit_cost, misc_cost,
+      id, workspace_id, name, description, category, library_folder_id, unit, unit_cost, misc_cost,
       current_version_number, active_price_option_id, lifecycle_state, metadata_json,
       created_by, created_at, updated_at
-    ) VALUES (?, ?, 'Original component', 'Original description', 'Flooring', 'box', 100, 0, 1, ?, 'available', '{}', ?, ?, ?)
-  `).run(COMPONENT_ID, WORKSPACE_ID, PRICE_OPTION_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
+    ) VALUES (?, ?, 'Original component', 'Original description', 'Flooring', ?, 'box', 100, 0, 1, ?, 'available', '{}', ?, ?, ?)
+  `).run(COMPONENT_ID, WORKSPACE_ID, DEFAULT_FOLDER_ID, PRICE_OPTION_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
   database.prepare(`
     INSERT INTO cost_library_item_price_options (
       id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,

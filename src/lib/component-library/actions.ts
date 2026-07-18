@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { canEditEstimateInD1, isWorkspaceEditorInD1, isWorkspaceMemberInD1 } from "@/lib/authz/d1-access";
-import { getCloudflareD1Database, type D1DatabaseLike, type D1Result, type D1Value } from "@/lib/cloudflare/d1";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import {
   buildRejectedPreviewResult,
   coerceBulkExecutionResult,
@@ -34,9 +34,7 @@ import {
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
   assertD1MutationStatementLimit,
-  buildCommittedMutationReceiptStatement,
   createMutationRequestFingerprint,
-  readCommittedMutationReceipt,
 } from "@/lib/estimates/mutation-receipts";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import type { EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
@@ -53,11 +51,17 @@ import {
   saveComponentLibraryUserPreferencesInCloudflareD1,
 } from "@/lib/component-library/d1-store";
 import {
-  LIBRARY_FOLDER_SORT_ORDER_STEP,
-  getLibraryFolderCreateSortOrder,
-  planLibraryFolderDelete,
   type LibraryFolderCreatePlacement,
 } from "./library-folder-reorder";
+import {
+  createLibraryFolderInD1,
+  deleteLibraryFolderInD1,
+  moveCostLibraryComponentToFolderInD1,
+  renameLibraryFolderInD1,
+  reorderLibraryFoldersInD1,
+  resolveLibraryFolderInWorkspaceD1,
+  type LibraryFolderMutationRow,
+} from "./folder-mutation-d1";
 import {
   assertQuickAddComponentInput,
   normalizeQuickAddText,
@@ -82,14 +86,23 @@ import {
   type TemplatePricingProvenanceOrigin,
 } from "./template-mutations";
 import {
-  buildComponentPermanentDeletePreview,
-  buildComponentPermanentDeleteStatements,
-  componentPermanentDeleteReceiptResult,
-  getComponentPermanentDeleteReceiptOwners,
-  loadComponentPermanentDeleteImpact,
-  readComponentPermanentDeleteReceipt,
-  type ComponentPermanentDeleteImpact,
-} from "./component-permanent-delete";
+  archiveLibraryComponentsInD1,
+  createCostLibraryComponentInD1,
+  executePermanentDeleteLibraryComponentsInD1,
+  findCostLibraryComponentDuplicateInD1,
+  isComponentPermanentDeleteD1Error,
+  loadComponentMutationImpactInD1,
+  loadComponentUpdateContextInD1,
+  previewBulkArchiveLibraryComponentsInD1,
+  previewPermanentDeleteLibraryComponentsInD1,
+  readCreatedComponentReceiptInD1,
+  readUpdatedComponentReceiptInD1,
+  updateCostLibraryComponentInD1,
+  type ComponentDuplicateIdentity,
+  type ComponentPermanentDeleteOwners,
+  type CreateCostLibraryComponentReceiptResult,
+  type UpdateCostLibraryComponentReceiptResult,
+} from "./component-mutation-d1";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 type CurrentUserForD1 = Awaited<ReturnType<typeof requireCurrentUserContext>>;
@@ -97,51 +110,6 @@ type EstimateTemplateBuildInput = Parameters<typeof buildEstimateTemplatesFromRo
 type EstimateTemplateTableRow = EstimateTemplateBuildInput["templates"][number];
 type EstimateTemplateNodeTableRow = EstimateTemplateBuildInput["nodes"][number];
 type EstimateTemplateRowItemTableRow = EstimateTemplateBuildInput["rowItems"][number];
-
-type LibraryFolderRow = {
-  id: string;
-  workspace_id: string;
-  parent_id: string | null;
-  name: string;
-  sort_order: number;
-  source_category_node_id: string | null;
-  folder_kind: "taxonomy" | "custom";
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-  is_default_category: number;
-};
-
-type ComponentItemD1Row = {
-  id: string;
-  workspace_id: string;
-  name: string;
-  unit: string;
-  unit_cost: number | string | null;
-  misc_cost: number | string | null;
-  current_version_number: number | string | null;
-  active_price_option_id: string | null;
-  pricing_source: string | null;
-  pricing_date: string | null;
-  thumbnail_path: string | null;
-  metadata_json: string | null;
-  lifecycle_state: ComponentLifecycleState | string;
-  updated_at: string;
-};
-
-type LibraryPriceOptionProjectionD1Row = {
-  id: string;
-  label: string;
-  unit: string;
-  unit_cost: number | string | null;
-  misc_cost: number | string | null;
-  currency: string;
-  is_active: number | boolean;
-  is_default: number | boolean;
-  pricing_source: string | null;
-  metadata_json: string | null;
-  updated_at: string;
-};
 
 export type LibraryComponentInstanceSyncResult = {
   affectedEstimates: Array<{ projectId: string; estimateId: string }>;
@@ -164,19 +132,6 @@ function placeholders(values: readonly unknown[]) {
   return values.map(() => "?").join(", ");
 }
 
-// Cloudflare D1 permits at most 100 bound parameters per statement. Component
-// ID mutations reserve up to four additional bindings (timestamps, actor, and
-// workspace), so one conservative batch size is shared by every ID-list query.
-const D1_COMPONENT_ID_BATCH_SIZE = 96;
-
-function chunkD1ComponentIds(ids: readonly string[]) {
-  const batches: string[][] = [];
-  for (let index = 0; index < ids.length; index += D1_COMPONENT_ID_BATCH_SIZE) {
-    batches.push(ids.slice(index, index + D1_COMPONENT_ID_BATCH_SIZE));
-  }
-  return batches;
-}
-
 function jsonText(value: unknown, fallback: Record<string, unknown> | unknown[] = {}) {
   return JSON.stringify(value ?? fallback);
 }
@@ -197,10 +152,6 @@ function readJsonValue(value: unknown, fallback: Json = {}) {
 function readJsonRecord(value: unknown): Record<string, Json | undefined> {
   const parsed = readJsonValue(value, {});
   return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, Json | undefined> : {};
-}
-
-function boolInt(value: boolean | undefined) {
-  return value === true ? 1 : 0;
 }
 
 function numberValue(value: unknown, fallback = 0) {
@@ -228,32 +179,6 @@ async function run<T = Record<string, unknown>>(database: D1DatabaseLike, sql: s
   const result = await database.prepare<T>(sql).bind(...values).run();
   if (result.success === false) throw new Error("Cloudflare D1 component library write failed.");
   return result;
-}
-
-async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: string; values?: D1Value[] }>) {
-  if (statements.length === 0) return;
-  if (database.batch) {
-    const results = await database.batch(
-      statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
-    );
-    if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 component library batch failed.");
-    }
-    return;
-  }
-  for (const statement of statements) await run(database, statement.sql, statement.values ?? []);
-}
-
-async function runAtomicBatch(
-  database: D1DatabaseLike,
-  statements: Array<{ sql: string; values?: D1Value[] }>,
-): Promise<D1Result[]> {
-  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for component updates.");
-  const results = await database.batch(
-    statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
-  );
-  if (results.some((result) => result.success === false)) throw new Error("Cloudflare D1 component update batch failed.");
-  return results;
 }
 
 // U11 (DATA-2/DATA-3): one place to revalidate every server-rendered surface that
@@ -391,7 +316,7 @@ export type SaveCostLibraryComponentDraftResult = {
 };
 
 export type LibraryFolderActionResult = {
-  folder: LibraryFolderRow;
+  folder: LibraryFolderMutationRow;
 };
 
 export type CreateLibraryFolderOptions = {
@@ -434,465 +359,6 @@ function revalidateLibraryRoutes() {
   revalidatePath("/workshop/library/components");
 }
 
-function readBoolean(value: unknown) {
-  return value === true || value === 1 || value === "1";
-}
-
-type LinkedEstimateRowTarget = {
-  row_id: string;
-  row_revision: number | string;
-  project_id: string;
-  estimate_id: string;
-  link_state: string | null;
-  selected_price_option_id: string | null;
-  source_snapshot_json: string | null;
-  metadata_json: string | null;
-};
-
-type ComponentPriceOptionImpactRow = {
-  id: string;
-  updated_at: string;
-  is_active: number | boolean;
-  is_default: number | boolean;
-};
-
-type LibraryComponentSyncOption = {
-  id: string;
-  label: string;
-  variantDescription: string;
-  sku: string | null;
-  unit: string;
-  unitCost: number;
-  miscCost: number;
-  currency: string;
-  pricingSource: string | null;
-  pricingDate: string | null;
-  sourceUrl: string | null;
-  thumbnailPath: string | null;
-  isActive: boolean;
-  isDefault: boolean;
-  snapshot: Record<string, Json | undefined>;
-};
-
-type LinkedEstimateRowSyncPlan = {
-  rowId: string;
-  expectedRowRevision: number;
-  projectId: string;
-  estimateId: string;
-  isOverridden: boolean;
-  material: string;
-  description: string;
-  supplier: string | null;
-  supplierId: string | null;
-  unit: string;
-  unitCost: number;
-  sourceSnapshot: Record<string, Json | undefined>;
-  metadata: Record<string, Json | undefined>;
-  patch: EstimateRowItemPatch;
-};
-
-const STALE_COMPONENT_IMPACT_ERROR = "Component usage changed while this edit was open. Review the latest impact and try again.";
-
-function buildLinkedEstimateRowsRevisionFingerprint(
-  rows: LinkedEstimateRowTarget[],
-  priceOptions: ComponentPriceOptionImpactRow[],
-) {
-  const rowFingerprint = [...rows]
-    .sort((left, right) => left.row_id.localeCompare(right.row_id))
-    .map((row) => [
-      row.row_id,
-      numberValue(row.row_revision, 1),
-      row.link_state ?? "linked-clean",
-      row.selected_price_option_id ?? "",
-    ].join(":"))
-    .join("|");
-  const optionFingerprint = [...priceOptions]
-    .sort((left, right) => left.id.localeCompare(right.id))
-    .map((option) => [
-      option.id,
-      option.updated_at,
-      boolInt(readBoolean(option.is_active)),
-      boolInt(readBoolean(option.is_default)),
-    ].join(":"))
-    .join("|");
-  return `rows[${rowFingerprint}]|options[${optionFingerprint}]`;
-}
-
-async function listLinkedEstimateRowTargets(database: D1DatabaseLike, workspaceId: string, itemId: string) {
-  return all<LinkedEstimateRowTarget>(
-    database,
-    `
-      SELECT
-        row_item.id AS row_id,
-        row_item.row_revision,
-        project.id AS project_id,
-        estimate.id AS estimate_id,
-        row_item.link_state,
-        COALESCE(
-          NULLIF(json_extract(row_item.source_snapshot_json, '$.priceOptionId'), ''),
-          NULLIF(json_extract(row_item.metadata_json, '$.priceOptionId'), '')
-        ) AS selected_price_option_id,
-        row_item.source_snapshot_json,
-        row_item.metadata_json
-      FROM estimate_row_items row_item
-      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-      INNER JOIN projects project ON project.id = estimate.project_id
-      WHERE project.workspace_id = ?
-        AND row_item.source_library_item_id = ?
-        AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
-      ORDER BY row_item.id
-    `,
-    [workspaceId, itemId],
-  );
-}
-
-async function listComponentPriceOptionImpactRows(database: D1DatabaseLike, workspaceId: string, itemId: string) {
-  return all<ComponentPriceOptionImpactRow>(
-    database,
-    `
-      SELECT id, updated_at, is_active, is_default
-      FROM cost_library_item_price_options
-      WHERE workspace_id = ?
-        AND item_id = ?
-      ORDER BY id
-    `,
-    [workspaceId, itemId],
-  );
-}
-
-function buildLinkedEstimateRowsRevisionGuardStatement(input: {
-  workspaceId: string;
-  itemId: string;
-  expectedFingerprint: string;
-}) {
-  return {
-    sql: `
-      SELECT CASE WHEN (
-        'rows[' || COALESCE((
-        SELECT GROUP_CONCAT(component_revision, '|')
-        FROM (
-          SELECT
-            row_item.id || ':' ||
-            CAST(row_item.row_revision AS TEXT) || ':' ||
-            COALESCE(row_item.link_state, 'linked-clean') || ':' ||
-            COALESCE(
-              NULLIF(json_extract(row_item.source_snapshot_json, '$.priceOptionId'), ''),
-              NULLIF(json_extract(row_item.metadata_json, '$.priceOptionId'), ''),
-              ''
-            ) AS component_revision
-          FROM estimate_row_items row_item
-          INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
-          INNER JOIN projects project ON project.id = estimate.project_id
-          WHERE project.workspace_id = ?
-            AND row_item.source_library_item_id = ?
-            AND (row_item.link_state IS NULL OR row_item.link_state NOT IN ('detached', 'unlinked'))
-          ORDER BY row_item.id
-        )
-      ), '') || ']|options[' || COALESCE((
-        SELECT GROUP_CONCAT(option_revision, '|')
-        FROM (
-          SELECT
-            option_row.id || ':' || option_row.updated_at || ':' ||
-            CAST(option_row.is_active AS TEXT) || ':' || CAST(option_row.is_default AS TEXT) AS option_revision
-          FROM cost_library_item_price_options option_row
-          WHERE option_row.workspace_id = ?
-            AND option_row.item_id = ?
-          ORDER BY option_row.id
-        )
-      ), '') || ']'
-      ) = ? THEN 1 ELSE json('') END AS component_impact_guard
-    `,
-    values: [
-      input.workspaceId,
-      input.itemId,
-      input.workspaceId,
-      input.itemId,
-      input.expectedFingerprint,
-    ] as D1Value[],
-  };
-}
-
-function buildLinkedEstimateRowsSyncStatement(input: {
-  workspaceId: string;
-  itemId: string;
-  rowPlans: LinkedEstimateRowSyncPlan[];
-  updatedAt: string;
-}) {
-  const serializedPlans = input.rowPlans.map((plan) => ({
-    rowId: plan.rowId,
-    expectedRowRevision: plan.expectedRowRevision,
-    isOverridden: plan.isOverridden,
-    material: plan.material,
-    description: plan.description,
-    supplier: plan.supplier,
-    supplierId: plan.supplierId,
-    unit: plan.unit,
-    unitCost: plan.unitCost,
-    sourceSnapshot: plan.sourceSnapshot,
-    metadata: plan.metadata,
-  }));
-  return {
-    sql: `
-      WITH sync_rows AS (
-        SELECT value AS sync_row
-        FROM json_each(?)
-      )
-      UPDATE estimate_row_items
-      SET material = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN material
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.material')
-          END,
-          description = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN description
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.description')
-          END,
-          supplier = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN supplier
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.supplier')
-          END,
-          supplier_id = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN supplier_id
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.supplierId')
-          END,
-          unit = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN unit
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.unit')
-          END,
-          unit_cost = CASE
-            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN unit_cost
-            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.unitCost')
-          END,
-          source_snapshot_json = json_extract(
-            (SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id),
-            '$.sourceSnapshot'
-          ),
-          metadata_json = json_extract(
-            (SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id),
-            '$.metadata'
-          ),
-          row_revision = row_revision + 1,
-          updated_at = ?
-      WHERE source_library_item_id = ?
-        AND (link_state IS NULL OR link_state IN ('linked-clean', 'linked-overridden'))
-        AND EXISTS (
-          SELECT 1
-          FROM sync_rows
-          WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id
-            AND json_extract(sync_row, '$.expectedRowRevision') = estimate_row_items.row_revision
-        )
-        AND estimate_id IN (
-          SELECT estimate.id
-          FROM estimates estimate
-          INNER JOIN projects project ON project.id = estimate.project_id
-          WHERE project.workspace_id = ?
-        )
-      RETURNING id, row_revision
-    `,
-    values: [
-      jsonText(serializedPlans, []),
-      input.updatedAt,
-      input.itemId,
-      input.workspaceId,
-    ] as D1Value[],
-  };
-}
-
-function buildLibraryComponentSyncOption(input: {
-  id: string;
-  label: string;
-  unit: string;
-  unitCost: number;
-  miscCost: number;
-  currency: string;
-  isActive: boolean;
-  isDefault: boolean;
-  pricingSource: string | null;
-  pricingDate: string | null;
-  thumbnailPath: string | null;
-  snapshot: Record<string, unknown>;
-}): LibraryComponentSyncOption {
-  const snapshot = readJsonRecord(input.snapshot);
-  const rowSafeSnapshot = { ...snapshot };
-  delete rowSafeSnapshot.attachments;
-  delete rowSafeSnapshot.imageBucket;
-  delete rowSafeSnapshot.imageMetadata;
-  delete rowSafeSnapshot.imagePath;
-  return {
-    id: input.id,
-    label: input.label,
-    variantDescription: typeof snapshot.variantDescription === "string" ? snapshot.variantDescription : "",
-    sku: typeof snapshot.sku === "string" ? snapshot.sku : null,
-    unit: input.unit,
-    unitCost: input.unitCost,
-    miscCost: input.miscCost,
-    currency: input.currency,
-    pricingSource: input.pricingSource,
-    pricingDate: input.pricingDate,
-    sourceUrl: typeof snapshot.sourceUrl === "string" ? snapshot.sourceUrl : null,
-    thumbnailPath: input.thumbnailPath,
-    isActive: input.isActive,
-    isDefault: input.isDefault,
-    snapshot: { ...rowSafeSnapshot, id: input.id },
-  };
-}
-
-function buildLinkedEstimateRowSyncPlans(input: {
-  rows: LinkedEstimateRowTarget[];
-  itemId: string;
-  material: string;
-  componentDescription: string;
-  brand: string | null;
-  brandId: string | null;
-  supplier: string | null;
-  supplierId: string | null;
-  lifecycleState: ComponentLifecycleState;
-  componentVersionNumber: number;
-  componentThumbnailPath: string | null;
-  priceOptions: LibraryComponentSyncOption[];
-  defaultPriceOptionId: string;
-  removedPriceOptionReplacements?: Record<string, string>;
-  updatedAt: string;
-}) {
-  const activeOptions = input.priceOptions.filter((option) => option.isActive);
-  const optionById = new Map(activeOptions.map((option) => [option.id, option]));
-  const defaultOption = optionById.get(input.defaultPriceOptionId)
-    ?? activeOptions.find((option) => option.isDefault)
-    ?? activeOptions[0];
-  if (!defaultOption) throw new Error("At least one active component variant is required.");
-  const catalogue = activeOptions.map((option) => option.snapshot);
-  const plans: LinkedEstimateRowSyncPlan[] = [];
-
-  for (const row of input.rows) {
-    if (row.link_state && !["linked-clean", "linked-overridden"].includes(row.link_state)) continue;
-    const previousSelectedId = row.selected_price_option_id;
-    const replacementId = previousSelectedId
-      ? input.removedPriceOptionReplacements?.[previousSelectedId]
-      : undefined;
-    const selectedOption = (previousSelectedId ? optionById.get(previousSelectedId) : null)
-      ?? (replacementId ? optionById.get(replacementId) : null)
-      ?? (!previousSelectedId ? defaultOption : null);
-    if (!selectedOption) {
-      throw new Error(`Variant ${previousSelectedId ?? "selection"} is still used by an estimate row. Choose an explicit replacement before deleting it.`);
-    }
-    if (replacementId && replacementId === previousSelectedId) {
-      throw new Error("A deleted variant must be replaced with a different active variant.");
-    }
-
-    const rowDescription = selectedOption.variantDescription || input.componentDescription;
-    const imageUrl = selectedOption.thumbnailPath || input.componentThumbnailPath;
-    const sourceSnapshotPatch = {
-      brand: input.brand,
-      brandId: input.brandId,
-      componentDescription: input.componentDescription,
-      componentVersionNumber: input.componentVersionNumber,
-      description: rowDescription,
-      imageUrl,
-      lifecycleState: input.lifecycleState,
-      material: input.material,
-      priceOptionId: selectedOption.id,
-      priceOptionLabel: selectedOption.label,
-      priceOptions: catalogue,
-      pricingDate: selectedOption.pricingDate,
-      pricingSource: selectedOption.pricingSource,
-      sku: selectedOption.sku,
-      sourceComponentId: input.itemId,
-      sourceLibraryItemId: input.itemId,
-      sourceType: "library_component",
-      sourceUpdatedAt: input.updatedAt,
-      sourceUrl: selectedOption.sourceUrl,
-      supplier: input.supplier,
-      supplierId: input.supplierId,
-      unit: selectedOption.unit,
-      unit_cost: selectedOption.unitCost,
-    };
-    const metadataPatch = {
-      brandId: input.brandId,
-      componentVersionNumber: input.componentVersionNumber,
-      priceOptionId: selectedOption.id,
-      sourceComponentId: input.itemId,
-      supplierId: input.supplierId,
-    };
-    const sourceSnapshot = { ...readJsonRecord(row.source_snapshot_json), ...sourceSnapshotPatch };
-    const metadata = { ...readJsonRecord(row.metadata_json), ...metadataPatch };
-    const isOverridden = row.link_state === "linked-overridden";
-    const patch: EstimateRowItemPatch = {
-      rowRevision: numberValue(row.row_revision, 1) + 1,
-      sourceSnapshot,
-      metadata,
-      priceOptionId: selectedOption.id,
-      priceOptionLabel: selectedOption.label,
-      priceOptions: catalogue as EstimateRowItem["priceOptions"],
-      componentVersionNumber: input.componentVersionNumber,
-      updatedAt: input.updatedAt,
-      ...(isOverridden ? {} : {
-        material: input.material,
-        description: rowDescription,
-        brand: input.brand,
-        supplier: input.supplier ?? "",
-        unit: selectedOption.unit,
-        itemCost: selectedOption.unitCost,
-        imageUrl,
-        sourceUrl: selectedOption.sourceUrl,
-        brandId: input.brandId,
-        supplierId: input.supplierId,
-        sku: selectedOption.sku,
-        pricingDate: selectedOption.pricingDate,
-        pricingSource: selectedOption.pricingSource,
-        lifecycleState: input.lifecycleState,
-      }),
-    };
-    plans.push({
-      rowId: row.row_id,
-      expectedRowRevision: numberValue(row.row_revision, 1),
-      projectId: row.project_id,
-      estimateId: row.estimate_id,
-      isOverridden,
-      material: input.material,
-      description: rowDescription,
-      supplier: input.supplier,
-      supplierId: input.supplierId,
-      unit: selectedOption.unit,
-      unitCost: selectedOption.unitCost,
-      sourceSnapshot,
-      metadata,
-      patch,
-    });
-  }
-  return plans;
-}
-
-function emptyLibraryComponentInstanceSyncResult(): LibraryComponentInstanceSyncResult {
-  return { affectedEstimates: [], rowRevisions: {}, rowPatches: {}, updatedRowCount: 0 };
-}
-
-function buildLibraryComponentInstanceSyncResult(
-  rowPlans: LinkedEstimateRowSyncPlan[],
-  result: D1Result<{ id: string; row_revision: number | string }>,
-): LibraryComponentInstanceSyncResult {
-  const affectedEstimateKeys = new Set<string>();
-  const affectedEstimates: LibraryComponentInstanceSyncResult["affectedEstimates"] = [];
-  for (const row of rowPlans) {
-    const key = `${row.projectId}:${row.estimateId}`;
-    if (affectedEstimateKeys.has(key)) continue;
-    affectedEstimateKeys.add(key);
-    affectedEstimates.push({ projectId: row.projectId, estimateId: row.estimateId });
-  }
-  const rowRevisions = Object.fromEntries((result.results ?? []).map((row) => [row.id, numberValue(row.row_revision)]));
-  return {
-    affectedEstimates,
-    rowRevisions,
-    rowPatches: Object.fromEntries(rowPlans
-      .filter((plan) => rowRevisions[plan.rowId] !== undefined)
-      .map((plan) => [plan.rowId, { ...plan.patch, rowRevision: rowRevisions[plan.rowId] }])),
-    updatedRowCount: result.meta?.changes ?? 0,
-  };
-}
-
-function revalidateLinkedEstimateRows(rows: LinkedEstimateRowTarget[]) {
-  const paths = new Set(rows.map((row) => `/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`));
-  for (const path of paths) revalidatePath(path);
-}
-
 function readFolderName(name: string) {
   const value = name.trim();
   if (!value) throw new Error("Folder name is required.");
@@ -903,50 +369,6 @@ function readLibraryFolderId(value: string, errorMessage: string) {
   const folderId = value.trim();
   if (!folderId || folderId.length > 256) throw new Error(errorMessage);
   return folderId;
-}
-
-type LibraryFolderGraphIdentity = {
-  id: string;
-  parent_id: string | null;
-  sort_order: number;
-  updated_at: string;
-  is_default_category?: number;
-};
-
-function buildLibraryFolderGraphGuardStatement(input: {
-  actualSql: string;
-  actualValues: D1Value[];
-  expectedRows: LibraryFolderGraphIdentity[];
-  guardName: string;
-}) {
-  return {
-    sql: `
-      WITH expected AS (
-        SELECT
-          json_extract(value, '$.id') AS id,
-          json_extract(value, '$.parent_id') AS parent_id,
-          json_extract(value, '$.sort_order') AS sort_order,
-          json_extract(value, '$.updated_at') AS updated_at
-        FROM json_each(?)
-      ),
-      actual AS (
-        ${input.actualSql}
-      )
-      SELECT CASE WHEN
-        (SELECT COUNT(*) FROM expected) = (SELECT COUNT(*) FROM actual)
-        AND NOT EXISTS (
-          SELECT 1
-          FROM expected
-          LEFT JOIN actual ON actual.id = expected.id
-          WHERE actual.id IS NULL
-            OR actual.parent_id IS NOT expected.parent_id
-            OR actual.sort_order <> expected.sort_order
-            OR actual.updated_at <> expected.updated_at
-        )
-      THEN 1 ELSE json('') END AS ${input.guardName}
-    `,
-    values: [JSON.stringify([...input.expectedRows].sort((left, right) => left.id.localeCompare(right.id))), ...input.actualValues],
-  };
 }
 
 async function assertCanManageLibraryFolders(
@@ -1005,7 +427,6 @@ async function assertCanPublishEstimateTemplateFromEstimate(
 // Library Optimization Plan P3 T19 (F24): a generous per-workspace creation quota so a
 // runaway client / abuse cannot create unbounded library rows. Enforced at the app layer
 // (a head count, no migration). The caps are far above any legitimate workspace today.
-const LIBRARY_COMPONENT_CAP = 10_000;
 const LIBRARY_TEMPLATE_CAP = 2_000;
 const LIBRARY_COMPONENT_DRAFT_CAP = 100;
 const LIBRARY_COMPONENT_DRAFT_RETAIN_BEFORE_INSERT = LIBRARY_COMPONENT_DRAFT_CAP - 1;
@@ -1353,91 +774,12 @@ function normalizeComponentDuplicateIdentityValue(value: string | null | undefin
   return normalizeQuickAddText(value).replace(/\s+/g, " ").toLowerCase();
 }
 
-function componentDuplicateIdentitySql(column: "name" | "category" | "supplier" | "brand") {
-  let expression = `REPLACE(REPLACE(REPLACE(COALESCE(${column}, ''), CHAR(9), ' '), CHAR(10), ' '), CHAR(13), ' ')`;
-  for (let index = 0; index < 8; index += 1) expression = `REPLACE(${expression}, '  ', ' ')`;
-  return `LOWER(TRIM(${expression}))`;
-}
-
-const COMPONENT_DUPLICATE_NAME_SQL = componentDuplicateIdentitySql("name");
-const COMPONENT_DUPLICATE_CATEGORY_SQL = componentDuplicateIdentitySql("category");
-const COMPONENT_DUPLICATE_SUPPLIER_SQL = componentDuplicateIdentitySql("supplier");
-const COMPONENT_DUPLICATE_BRAND_SQL = componentDuplicateIdentitySql("brand");
-
-function buildComponentDuplicateIdentityPredicate(input: CostLibraryComponentDuplicateCheckInput) {
-  const name = normalizeComponentDuplicateIdentityValue(input.name);
-  const category = normalizeComponentDuplicateIdentityValue(input.category);
-  const supplier = normalizeComponentDuplicateIdentityValue(input.supplier);
-  const brand = normalizeComponentDuplicateIdentityValue(input.brand);
-  if (!name || !category || (!supplier && !brand)) return null;
+function normalizeComponentDuplicateIdentity(input: CostLibraryComponentDuplicateCheckInput): ComponentDuplicateIdentity {
   return {
-    sql: `
-      ${COMPONENT_DUPLICATE_NAME_SQL} = ?
-      AND ${COMPONENT_DUPLICATE_CATEGORY_SQL} = ?
-      AND (
-        (? <> '' AND ${COMPONENT_DUPLICATE_SUPPLIER_SQL} = ?)
-        OR (? <> '' AND ${COMPONENT_DUPLICATE_BRAND_SQL} = ?)
-      )
-    `,
-    values: [name, category, supplier, supplier, brand, brand] as D1Value[],
-  };
-}
-
-async function findCostLibraryComponentDuplicateInWorkspace(
-  database: D1DatabaseLike,
-  workspaceId: string,
-  input: CostLibraryComponentDuplicateCheckInput,
-): Promise<CostLibraryComponentDuplicateMatch | null> {
-  const predicate = buildComponentDuplicateIdentityPredicate(input);
-  if (!predicate) return null;
-  const matches = await all<{
-    id: string;
-    name: string;
-    category: string;
-    supplier: string | null;
-    brand: string | null;
-  }>(
-    database,
-    `
-      SELECT id, name, category, supplier, brand
-      FROM cost_library_items
-      WHERE workspace_id = ?
-        AND lifecycle_state <> 'archived'
-        AND ${predicate.sql}
-      ORDER BY updated_at DESC, id ASC
-      LIMIT 1
-    `,
-    [workspaceId, ...predicate.values],
-  );
-  const match = matches[0];
-  return match ? {
-    itemId: match.id,
-    name: match.name,
-    category: match.category,
-    supplier: match.supplier,
-    brand: match.brand,
-  } : null;
-}
-
-function buildComponentDuplicateGuardStatement(input: {
-  workspaceId: string;
-  itemId: string;
-  component: CostLibraryComponentDuplicateCheckInput;
-}) {
-  const predicate = buildComponentDuplicateIdentityPredicate(input.component);
-  if (!predicate) return null;
-  return {
-    sql: `
-      SELECT CASE WHEN NOT EXISTS (
-        SELECT 1
-        FROM cost_library_items
-        WHERE workspace_id = ?
-          AND id <> ?
-          AND lifecycle_state <> 'archived'
-          AND ${predicate.sql}
-      ) THEN 1 ELSE json('') END AS component_duplicate_guard
-    `,
-    values: [input.workspaceId, input.itemId, ...predicate.values] as D1Value[],
+    name: normalizeComponentDuplicateIdentityValue(input.name),
+    category: normalizeComponentDuplicateIdentityValue(input.category),
+    supplier: normalizeComponentDuplicateIdentityValue(input.supplier),
+    brand: normalizeComponentDuplicateIdentityValue(input.brand),
   };
 }
 
@@ -1573,690 +915,6 @@ function readMetadataObject(metadata: Json | undefined): { [key: string]: Json |
   return {};
 }
 
-function createBulkArchivePreviewHash(input: {
-  eligibleIds: string[];
-  blocked: unknown[];
-  summary: Record<string, unknown>;
-}) {
-  return createHash("sha256")
-    .update(JSON.stringify({
-      targetType: "library_component",
-      action: "archive",
-      ids: input.eligibleIds,
-      blocked: input.blocked,
-      summary: input.summary,
-    }))
-    .digest("hex");
-}
-
-function componentSnapshot(component: ReturnType<typeof normalizeComponentInput>, patch: Record<string, unknown> = {}) {
-  return {
-    name: component.name,
-    description: component.description,
-    supplier: component.supplier ?? null,
-    supplierId: component.supplierId ?? null,
-    brand: component.brand ?? null,
-    brandId: component.brandId ?? null,
-    unit: component.unit,
-    thumbnailPath: component.thumbnailPath ?? null,
-    lifecycleState: component.lifecycleState,
-    metadata: readMetadataObject(component.metadata),
-    ...patch,
-  };
-}
-
-function priceOptionSnapshot(priceOption: ReturnType<typeof normalizePriceOptionInput>) {
-  return {
-    label: priceOption.label,
-    sku: priceOption.sku,
-    variantDescription: priceOption.variantDescription,
-    variantSortOrder: priceOption.variantSortOrder,
-    unit: priceOption.unit,
-    unitCost: priceOption.unitCost,
-    miscCost: priceOption.miscCost,
-    currency: priceOption.currency,
-    pricingSource: priceOption.pricingSource,
-    pricingDate: priceOption.pricingDate,
-    sourceUrl: priceOption.sourceUrl,
-    notes: priceOption.notes,
-    supplierId: priceOption.supplierId,
-    packageQuantity: priceOption.packageQuantity,
-    packageUnit: priceOption.packageUnit,
-    dimensionLength: priceOption.dimensionLength,
-    dimensionWidth: priceOption.dimensionWidth,
-    dimensionHeight: priceOption.dimensionHeight,
-    dimensionUnit: priceOption.dimensionUnit,
-    mass: priceOption.mass,
-    massUnit: priceOption.massUnit,
-    imageBucket: priceOption.imageBucket,
-    imagePath: priceOption.imagePath,
-    thumbnailPath: priceOption.thumbnailPath,
-    imageMetadata: priceOption.imageMetadata,
-    attachments: priceOption.attachments,
-    variantMetadata: priceOption.variantMetadata,
-    isActive: priceOption.isActive,
-    isDefault: priceOption.isDefault,
-    activeCostEntryId: priceOption.activeCostEntryId,
-  };
-}
-
-async function readComponentItem(database: D1DatabaseLike, workspaceId: string, itemId: string) {
-  return first<ComponentItemD1Row>(
-    database,
-    `
-      SELECT id, workspace_id, name, unit, unit_cost, misc_cost, current_version_number,
-        active_price_option_id, pricing_source, pricing_date, thumbnail_path, metadata_json, lifecycle_state, updated_at
-      FROM cost_library_items
-      WHERE id = ?
-        AND workspace_id = ?
-      LIMIT 1
-    `,
-    [itemId, workspaceId],
-  );
-}
-
-const STALE_COMPONENT_REVISION_ERROR = "This component changed after you opened it. Refresh and try again.";
-
-function assertExpectedComponentRevision(
-  existing: ComponentItemD1Row,
-  expectedUpdatedAt: string,
-  expectedVersionNumber: number,
-) {
-  if (
-    existing.updated_at !== expectedUpdatedAt
-    || !Number.isInteger(expectedVersionNumber)
-    || expectedVersionNumber < 1
-    || numberValue(existing.current_version_number, 1) !== expectedVersionNumber
-  ) {
-    throw new Error(STALE_COMPONENT_REVISION_ERROR);
-  }
-}
-
-function buildComponentRevisionGuardStatement(input: {
-  workspaceId: string;
-  itemId: string;
-  expectedUpdatedAt: string;
-  expectedVersionNumber: number;
-}) {
-  return {
-    sql: `
-      UPDATE cost_library_items
-      SET current_version_number = CASE
-        WHEN updated_at = ? AND current_version_number = ? THEN current_version_number
-        ELSE 0
-      END
-      WHERE id = ?
-        AND workspace_id = ?
-    `,
-    values: [input.expectedUpdatedAt, input.expectedVersionNumber, input.itemId, input.workspaceId] as D1Value[],
-  };
-}
-
-async function runComponentRevisionGuardedBatch(
-  database: D1DatabaseLike,
-  statements: Array<{ sql: string; values?: D1Value[] }>,
-  input: {
-    workspaceId: string;
-    itemId: string;
-    expectedUpdatedAt: string;
-    expectedVersionNumber: number;
-    expectedComponentImpactFingerprint?: string;
-  },
-) {
-  const guardStatements = [
-    buildComponentRevisionGuardStatement(input),
-    ...(input.expectedComponentImpactFingerprint !== undefined
-      ? [buildLinkedEstimateRowsRevisionGuardStatement({
-          workspaceId: input.workspaceId,
-          itemId: input.itemId,
-          expectedFingerprint: input.expectedComponentImpactFingerprint,
-        })]
-      : []),
-  ];
-  try {
-    const results = await runAtomicBatch(database, [...guardStatements, ...statements]);
-    return results.slice(guardStatements.length);
-  } catch (error) {
-    const current = await readComponentItem(database, input.workspaceId, input.itemId);
-    if (current) {
-      assertExpectedComponentRevision(current, input.expectedUpdatedAt, input.expectedVersionNumber);
-    }
-    if (input.expectedComponentImpactFingerprint !== undefined) {
-      const [currentLinkedRows, currentPriceOptions] = await Promise.all([
-        listLinkedEstimateRowTargets(database, input.workspaceId, input.itemId),
-        listComponentPriceOptionImpactRows(database, input.workspaceId, input.itemId),
-      ]);
-      if (buildLinkedEstimateRowsRevisionFingerprint(currentLinkedRows, currentPriceOptions) !== input.expectedComponentImpactFingerprint) {
-        throw new Error(STALE_COMPONENT_IMPACT_ERROR);
-      }
-    }
-    throw error;
-  }
-}
-
-async function ensureDefaultLibraryCategoryFolder(database: D1DatabaseLike, workspaceId: string) {
-  const existing = await first<Pick<LibraryFolderRow, "id" | "name">>(
-    database,
-    `SELECT id, name
-     FROM library_folders
-     WHERE workspace_id = ?
-       AND is_default_category = 1
-     ORDER BY id ASC
-     LIMIT 1`,
-    [workspaceId],
-  );
-  if (existing) return existing;
-
-  const folderId = randomUUID();
-  const timestamp = nowIso();
-  await run(
-    database,
-    `INSERT OR IGNORE INTO library_folders (
-       id, workspace_id, parent_id, name, sort_order, folder_kind,
-       created_by, created_at, updated_at, is_default_category
-     ) VALUES (?, ?, NULL, ?, 0, 'custom', NULL, ?, ?, 1)`,
-    [folderId, workspaceId, UNCATEGORIZED_CATEGORY_LABEL, timestamp, timestamp],
-  );
-  const created = await first<Pick<LibraryFolderRow, "id" | "name">>(
-    database,
-    "SELECT id, name FROM library_folders WHERE workspace_id = ? AND is_default_category = 1 LIMIT 1",
-    [workspaceId],
-  );
-  if (!created) throw new Error("Could not create the workspace default category.");
-  return created;
-}
-
-async function resolveLibraryFolderInWorkspace(database: D1DatabaseLike, workspaceId: string, folderId: string | null | undefined) {
-  if (!folderId) return ensureDefaultLibraryCategoryFolder(database, workspaceId);
-  const normalizedFolderId = readLibraryFolderId(folderId, "Library folder not found in the current workspace.");
-  const folder = await first<Pick<LibraryFolderRow, "id" | "name">>(
-    database,
-    `
-      SELECT id, name
-      FROM library_folders
-      WHERE id = ?
-        AND workspace_id = ?
-      LIMIT 1
-    `,
-    [normalizedFolderId, workspaceId],
-  );
-  if (!folder) throw new Error("Library folder not found in the current workspace.");
-  return folder;
-}
-
-type ComponentPriceOptionWriteInput = {
-  workspaceId: string;
-  itemId: string;
-  priceOption: ReturnType<typeof normalizePriceOptionInput>;
-  userId: string;
-  effectiveAt: string;
-  writeHistory: boolean;
-};
-
-function buildComponentPriceOptionWritePlan(
-  input: ComponentPriceOptionWriteInput,
-  options: { oldSnapshotJson?: string | null; priceOptionId?: string; timestamp?: string } = {},
-) {
-  const priceOptionId = options.priceOptionId
-    ?? (input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID());
-  const timestamp = options.timestamp ?? nowIso();
-  const costEntries = input.priceOption.costEntries
-    .filter((candidate) => candidate.deletedAt === null)
-    .map((entry) => ({
-      ...entry,
-      id: entry.clientId && isUuid(entry.clientId) ? entry.clientId : randomUUID(),
-    }));
-  const currentCostEntry = costEntries.find((entry) => entry.isCurrent) ?? costEntries[0];
-  const attachments = input.priceOption.attachments.map((attachment) => ({
-    ...attachment,
-    id: attachment.id && isUuid(attachment.id) ? attachment.id : randomUUID(),
-    isExisting: Boolean(attachment.id && isUuid(attachment.id)),
-  }));
-  const persistedPriceOption = {
-    ...input.priceOption,
-    id: priceOptionId,
-    activeCostEntryId: currentCostEntry?.id ?? null,
-    attachments: attachments.map(({ isExisting, ...attachment }) => {
-      void isExisting;
-      return attachment;
-    }),
-  };
-  const metadata = priceOptionSnapshot(persistedPriceOption);
-  const guardStatements: Array<{ sql: string; values: D1Value[] }> = [{
-    sql: `
-      SELECT CASE WHEN NOT EXISTS (
-        SELECT 1
-        FROM cost_library_item_price_options
-        WHERE id = ?
-          AND (item_id <> ? OR workspace_id <> ?)
-      ) THEN 1 ELSE json('') END AS price_option_ownership_guard
-    `,
-    values: [priceOptionId, input.itemId, input.workspaceId],
-  }];
-  const statements: Array<{ sql: string; values: D1Value[] }> = [];
-
-  if (input.priceOption.imagePath) {
-    const imageMetadata = readMetadataObject(input.priceOption.imageMetadata);
-    const imageAssetId = typeof imageMetadata.assetId === "string" && isUuid(imageMetadata.assetId)
-      ? imageMetadata.assetId
-      : "";
-    guardStatements.push({
-      sql: `
-        SELECT CASE WHEN EXISTS (
-          SELECT 1
-          FROM cost_library_item_price_options
-          WHERE id = ?
-            AND item_id = ?
-            AND workspace_id = ?
-            AND json_extract(metadata_json, '$.imagePath') = ?
-        ) OR EXISTS (
-          SELECT 1
-          FROM upload_assets
-          WHERE id = ?
-            AND workspace_id = ?
-            AND surface = 'component-image'
-            AND status = 'finalized'
-            AND scan_status = 'not_required'
-            AND storage_bucket = ?
-            AND storage_path = ?
-        ) THEN 1 ELSE json('') END AS component_image_ownership_guard
-      `,
-      values: [
-        priceOptionId,
-        input.itemId,
-        input.workspaceId,
-        input.priceOption.imagePath,
-        imageAssetId,
-        input.workspaceId,
-        input.priceOption.imageBucket ?? "component-images",
-        input.priceOption.imagePath,
-      ],
-    });
-    statements.push({
-      sql: `
-        UPDATE upload_assets
-        SET target_entity_type = 'cost-library-component',
-            target_entity_id = ?,
-            updated_at = ?
-        WHERE id = ?
-          AND workspace_id = ?
-          AND surface = 'component-image'
-          AND status = 'finalized'
-      `,
-      values: [input.itemId, timestamp, imageAssetId, input.workspaceId],
-    });
-  }
-
-  if (input.priceOption.isDefault) {
-    statements.push({
-      sql: `
-        UPDATE cost_library_item_price_options
-        SET is_default = 0
-        WHERE item_id = ?
-          AND workspace_id = ?
-          AND id <> ?
-      `,
-      values: [input.itemId, input.workspaceId, priceOptionId],
-    });
-  }
-
-  statements.push({
-    sql: `
-      INSERT INTO cost_library_item_price_options (
-        id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,
-        is_active, is_default, updated_at, supplier_id, pricing_source,
-        metadata_json, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        label = excluded.label,
-        unit = excluded.unit,
-        unit_cost = excluded.unit_cost,
-        misc_cost = excluded.misc_cost,
-        currency = excluded.currency,
-        is_active = excluded.is_active,
-        is_default = excluded.is_default,
-        updated_at = excluded.updated_at,
-        supplier_id = excluded.supplier_id,
-        pricing_source = excluded.pricing_source,
-        metadata_json = excluded.metadata_json
-      WHERE cost_library_item_price_options.item_id = excluded.item_id
-        AND cost_library_item_price_options.workspace_id = excluded.workspace_id
-    `,
-    values: [
-      priceOptionId,
-      input.workspaceId,
-      input.itemId,
-      input.priceOption.label,
-      input.priceOption.unit,
-      input.priceOption.unitCost,
-      input.priceOption.miscCost,
-      input.priceOption.currency,
-      boolInt(input.priceOption.isActive),
-      boolInt(input.priceOption.isDefault),
-      timestamp,
-      input.priceOption.supplierId,
-      input.priceOption.pricingSource,
-      jsonText(metadata),
-      timestamp,
-    ],
-  });
-
-  statements.push({
-    sql: `
-      UPDATE cost_library_item_variant_cost_entries
-      SET is_current = 0,
-          updated_at = ?
-      WHERE workspace_id = ?
-        AND item_id = ?
-        AND price_option_id = ?
-        AND deleted_at IS NULL
-    `,
-    values: [timestamp, input.workspaceId, input.itemId, priceOptionId],
-  });
-
-  for (const entry of costEntries) {
-    guardStatements.push({
-      sql: `
-        SELECT CASE WHEN NOT EXISTS (
-          SELECT 1
-          FROM cost_library_item_variant_cost_entries
-          WHERE id = ?
-            AND (workspace_id <> ? OR item_id <> ? OR price_option_id <> ?)
-        ) THEN 1 ELSE json('') END AS component_cost_entry_ownership_guard
-      `,
-      values: [entry.id, input.workspaceId, input.itemId, priceOptionId],
-    });
-    statements.push({
-      sql: `
-        INSERT INTO cost_library_item_variant_cost_entries (
-          id, workspace_id, item_id, price_option_id, unit_cost, misc_cost, currency,
-          pricing_source, pricing_date, source_url, notes, is_current,
-          deleted_at, metadata_json, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-          unit_cost = excluded.unit_cost,
-          misc_cost = excluded.misc_cost,
-          currency = excluded.currency,
-          pricing_source = excluded.pricing_source,
-          pricing_date = excluded.pricing_date,
-          source_url = excluded.source_url,
-          notes = excluded.notes,
-          is_current = excluded.is_current,
-          deleted_at = excluded.deleted_at,
-          metadata_json = excluded.metadata_json,
-          updated_at = excluded.updated_at
-        WHERE cost_library_item_variant_cost_entries.workspace_id = excluded.workspace_id
-          AND cost_library_item_variant_cost_entries.item_id = excluded.item_id
-          AND cost_library_item_variant_cost_entries.price_option_id = excluded.price_option_id
-      `,
-      values: [
-        entry.id,
-        input.workspaceId,
-        input.itemId,
-        priceOptionId,
-        entry.unitCost,
-        entry.miscCost,
-        entry.currency,
-        entry.pricingSource,
-        entry.pricingDate,
-        entry.sourceUrl,
-        entry.notes,
-        boolInt(entry.isCurrent),
-        entry.deletedAt,
-        jsonText({ source: "component-library-action" }),
-        timestamp,
-        timestamp,
-      ],
-    });
-  }
-
-  const retainedAttachmentIds = attachments.map((attachment) => attachment.id);
-  for (const attachment of attachments) {
-    if (attachment.bucket !== "component-attachments") {
-      throw new Error("Variant attachments must use the component attachment bucket.");
-    }
-    if (attachment.isExisting) {
-      guardStatements.push({
-        sql: `
-          SELECT CASE WHEN EXISTS (
-            SELECT 1
-            FROM component_variant_attachments attachment
-            INNER JOIN upload_assets asset ON asset.id = attachment.upload_asset_id
-            WHERE attachment.id = ?
-              AND attachment.owner_scope = 'library'
-              AND attachment.workspace_id = ?
-              AND attachment.item_id = ?
-              AND attachment.price_option_id = ?
-              AND attachment.storage_bucket = ?
-              AND attachment.storage_path = ?
-              AND asset.workspace_id = attachment.workspace_id
-              AND asset.surface = 'component-attachment'
-              AND asset.status = 'finalized'
-              AND asset.storage_bucket = attachment.storage_bucket
-              AND asset.storage_path = attachment.storage_path
-              AND (
-                asset.scan_status IN ('pending', 'clean')
-                OR (
-                  asset.scan_status = 'override_approved'
-                  AND datetime(asset.scan_override_expires_at) > datetime(?)
-                )
-              )
-          ) THEN 1 ELSE json('') END AS existing_component_attachment_guard
-        `,
-        values: [
-          attachment.id,
-          input.workspaceId,
-          input.itemId,
-          priceOptionId,
-          attachment.bucket,
-          attachment.path,
-          timestamp,
-        ],
-      });
-      statements.push({
-        sql: `
-          UPDATE component_variant_attachments
-          SET file_name = ?,
-              content_type = ?,
-              size_bytes = ?,
-              attachment_kind = ?,
-              metadata_json = json_patch(?, json_object(
-                'assetId', upload_asset_id,
-                'scanStatus', (
-                  SELECT scan_status FROM upload_assets WHERE id = upload_asset_id
-                )
-              )),
-              applicable_cost_entry_id = ?,
-              updated_at = ?
-          WHERE id = ?
-            AND owner_scope = 'library'
-            AND workspace_id = ?
-            AND item_id = ?
-            AND price_option_id = ?
-        `,
-        values: [
-          attachment.fileName,
-          attachment.contentType,
-          attachment.sizeBytes,
-          attachment.kind,
-          jsonText(attachment.metadata),
-          currentCostEntry?.id ?? null,
-          timestamp,
-          attachment.id,
-          input.workspaceId,
-          input.itemId,
-          priceOptionId,
-        ],
-      });
-      continue;
-    }
-
-    if (!attachment.assetId || !isUuid(attachment.assetId)) {
-      throw new Error("A finalized upload asset is required for every new variant attachment.");
-    }
-    guardStatements.push({
-      sql: `
-        SELECT CASE WHEN EXISTS (
-          SELECT 1
-          FROM upload_assets
-          WHERE id = ?
-            AND workspace_id = ?
-            AND surface = 'component-attachment'
-            AND status = 'finalized'
-            AND storage_bucket = ?
-            AND storage_path = ?
-            AND file_name = ?
-            AND content_type = ?
-            AND size_bytes = ?
-            AND (
-              scan_status IN ('pending', 'clean')
-              OR (
-                scan_status = 'override_approved'
-                AND datetime(scan_override_expires_at) > datetime(?)
-              )
-            )
-        ) THEN 1 ELSE json('') END AS new_component_attachment_guard
-      `,
-      values: [
-        attachment.assetId,
-        input.workspaceId,
-        attachment.bucket,
-        attachment.path,
-        attachment.fileName,
-        attachment.contentType,
-        attachment.sizeBytes,
-        timestamp,
-      ],
-    });
-    statements.push({
-      sql: `
-        INSERT INTO component_variant_attachments (
-          id, owner_scope, price_option_id, item_id, workspace_id, upload_asset_id,
-          storage_bucket, storage_path, file_name, content_type, size_bytes,
-          attachment_kind, metadata_json, created_by, review_status,
-          applicable_cost_entry_id, is_current_approved, review_revision,
-          created_at, updated_at
-        )
-        VALUES (?, 'library', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, json_patch(?, json_object(
-          'assetId', ?,
-          'scanStatus', (SELECT scan_status FROM upload_assets WHERE id = ?)
-        )), ?, 'uploaded', ?, 0, 1, ?, ?)
-      `,
-      values: [
-        attachment.id,
-        priceOptionId,
-        input.itemId,
-        input.workspaceId,
-        attachment.assetId,
-        attachment.bucket,
-        attachment.path,
-        attachment.fileName,
-        attachment.contentType,
-        attachment.sizeBytes,
-        attachment.kind,
-        jsonText(attachment.metadata),
-        attachment.assetId,
-        attachment.assetId,
-        input.userId,
-        currentCostEntry?.id ?? null,
-        timestamp,
-        timestamp,
-      ],
-    });
-  }
-
-  statements.push({
-    sql: `
-      UPDATE upload_assets
-      SET status = 'removed',
-          updated_at = ?
-      WHERE id IN (
-        SELECT upload_asset_id
-        FROM component_variant_attachments
-        WHERE workspace_id = ?
-          AND owner_scope = 'library'
-          AND item_id = ?
-          AND price_option_id = ?
-          AND upload_asset_id IS NOT NULL
-          AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-          AND review_status <> 'superseded'
-      )
-    `,
-    values: [timestamp, input.workspaceId, input.itemId, priceOptionId, jsonText(retainedAttachmentIds, [])],
-  }, {
-    sql: `
-      UPDATE component_variant_attachments
-      SET review_status = 'superseded',
-          is_current_approved = 0,
-          reviewed_by = ?,
-          reviewed_at = ?,
-          review_note = 'Removed from component variant',
-          review_revision = review_revision + 1,
-          updated_at = ?
-      WHERE workspace_id = ?
-        AND owner_scope = 'library'
-        AND item_id = ?
-        AND price_option_id = ?
-        AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-        AND review_status <> 'superseded'
-    `,
-    values: [
-      input.userId,
-      timestamp,
-      timestamp,
-      input.workspaceId,
-      input.itemId,
-      priceOptionId,
-      jsonText(retainedAttachmentIds, []),
-    ],
-  });
-
-  if (input.writeHistory) {
-    statements.push({
-      sql: `
-        INSERT OR IGNORE INTO cost_library_item_price_history (
-          id, price_option_id, item_id, workspace_id, operation_key, old_snapshot,
-          new_snapshot, change_reason, effective_at, created_by, created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      values: [
-        randomUUID(),
-        priceOptionId,
-        input.itemId,
-        input.workspaceId,
-        `${input.itemId}:${priceOptionId}:${input.effectiveAt}`,
-        options.oldSnapshotJson ?? null,
-        jsonText(metadata),
-        input.priceOption.changeReason,
-        input.effectiveAt,
-        input.userId,
-        timestamp,
-      ],
-    });
-  }
-
-  return {
-    persisted: {
-      id: priceOptionId,
-      label: input.priceOption.label,
-      isDefault: input.priceOption.isDefault,
-      isActive: input.priceOption.isActive,
-      unit: input.priceOption.unit,
-      unitCost: input.priceOption.unitCost,
-      miscCost: input.priceOption.miscCost,
-      pricingSource: input.priceOption.pricingSource,
-      pricingDate: input.priceOption.pricingDate,
-      thumbnailPath: input.priceOption.thumbnailPath,
-      snapshot: metadata,
-    },
-    guardStatements,
-    statements,
-  };
-}
-
 // Lazy estimate-sheet path: the sheet renders without the library dataset and
 // the client fetches it on demand. requireCurrentUserContext keeps this server
 // action fail-closed for anonymous callers, matching the page-load auth gate.
@@ -2325,22 +983,12 @@ export async function loadCostLibraryComponentEditorDetail(itemId: string): Prom
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
   if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
-  const [component, linkedRows, priceOptions] = await Promise.all([
+  const [component, impact] = await Promise.all([
     getCurrentWorkspaceComponentRowDetail(itemId),
-    listLinkedEstimateRowTargets(database, workspace.id, itemId),
-    listComponentPriceOptionImpactRows(database, workspace.id, itemId),
+    loadComponentMutationImpactInD1(database, workspace.id, itemId),
   ]);
   if (!component) throw new Error("Component not found in the current workspace.");
-  const optionUsageCounts: Record<string, number> = {};
-  for (const row of linkedRows) {
-    if (!row.selected_price_option_id) continue;
-    optionUsageCounts[row.selected_price_option_id] = (optionUsageCounts[row.selected_price_option_id] ?? 0) + 1;
-  }
-  return {
-    component,
-    expectedComponentImpactFingerprint: buildLinkedEstimateRowsRevisionFingerprint(linkedRows, priceOptions),
-    optionUsageCounts,
-  };
+  return { component, ...impact };
 }
 
 // Library Optimization Plan P0 T3: client-callable loader for the Templates browse tab.
@@ -2355,7 +1003,7 @@ export async function findCurrentWorkspaceCostLibraryComponentDuplicate(
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
-  return findCostLibraryComponentDuplicateInWorkspace(database, workspace.id, input);
+  return findCostLibraryComponentDuplicateInD1(database, workspace.id, normalizeComponentDuplicateIdentity(input));
 }
 
 export async function duplicateCostLibraryComponent(input: { itemId: string }) {
@@ -2479,57 +1127,6 @@ export async function duplicateCostLibraryComponent(input: { itemId: string }) {
   return { ...result, omittedAttachmentCount, omittedImageCount };
 }
 
-type CreateCostLibraryComponentReceiptResult = {
-  itemId: string;
-  versionNumber: number;
-  activePriceOptionId: string;
-  priceOptions: Array<{ id: string; label: string; isDefault: boolean }>;
-  createdAt: string;
-  updatedAt: string;
-};
-
-function readCreateCostLibraryComponentReceiptResult(value: unknown): CreateCostLibraryComponentReceiptResult {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("The committed component creation receipt is invalid.");
-  }
-  const result = value as Record<string, unknown>;
-  const priceOptions = Array.isArray(result.priceOptions)
-    ? result.priceOptions.map((candidate) => {
-        if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-          throw new Error("The committed component creation receipt is invalid.");
-        }
-        const option = candidate as Record<string, unknown>;
-        const optionId = typeof option.id === "string" ? option.id : "";
-        if (!isUuid(optionId) || typeof option.label !== "string" || typeof option.isDefault !== "boolean") {
-          throw new Error("The committed component creation receipt is invalid.");
-        }
-        return { id: optionId, label: option.label, isDefault: option.isDefault };
-      })
-    : null;
-  const itemId = typeof result.itemId === "string" ? result.itemId : "";
-  const activePriceOptionId = typeof result.activePriceOptionId === "string" ? result.activePriceOptionId : "";
-  const createdAt = typeof result.createdAt === "string" ? result.createdAt : "";
-  const updatedAt = typeof result.updatedAt === "string" ? result.updatedAt : "";
-  if (
-    !isUuid(itemId)
-    || result.versionNumber !== 1
-    || !isUuid(activePriceOptionId)
-    || !priceOptions?.length
-    || !createdAt
-    || !updatedAt
-  ) {
-    throw new Error("The committed component creation receipt is invalid.");
-  }
-  return {
-    itemId,
-    versionNumber: result.versionNumber,
-    activePriceOptionId,
-    priceOptions,
-    createdAt,
-    updatedAt,
-  };
-}
-
 async function loadCreatedCostLibraryComponentResult(result: CreateCostLibraryComponentReceiptResult) {
   const component = await getCurrentWorkspaceComponentRowDetail(result.itemId);
   if (!component) throw new Error("Component was saved but could not be reloaded.");
@@ -2544,25 +1141,20 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   if (!isUuid(intentId)) throw new Error("Component creation intent is invalid.");
   const { intentId: ignoredIntentId, ...request } = input;
   void ignoredIntentId;
-  const requestFingerprint = createMutationRequestFingerprint(request);
   const receiptIdentity = {
     workspaceId: workspace.id,
     commandKind: "component.create",
     intentId,
     actorUserId: currentUser.userId,
-    requestFingerprint,
+    requestFingerprint: createMutationRequestFingerprint(request),
   };
-  const committedReceipt = await readCommittedMutationReceipt(
-    database,
-    receiptIdentity,
-    readCreateCostLibraryComponentReceiptResult,
-  );
+  const committedReceipt = await readCreatedComponentReceiptInD1(database, receiptIdentity);
   if (committedReceipt) return loadCreatedCostLibraryComponentResult(committedReceipt);
+
   const priceOptionInputs = input.priceOptions;
   validatePriceOptions(priceOptionInputs);
-  const componentInput = readComponentInputForCreate(input);
   const normalizedComponent = normalizeComponentInput({
-    ...componentInput,
+    ...readComponentInputForCreate(input),
     metadata: {
       ...readMetadataObject(input.metadata),
       source: "library",
@@ -2570,7 +1162,10 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       createdFrom: "workshop-library",
     },
   });
-  const targetFolder = await resolveLibraryFolderInWorkspace(database, workspace.id, normalizedComponent.libraryFolderId);
+  const targetFolderId = normalizedComponent.libraryFolderId
+    ? readLibraryFolderId(normalizedComponent.libraryFolderId, "Library folder not found in the current workspace.")
+    : null;
+  const targetFolder = await resolveLibraryFolderInWorkspaceD1(database, workspace.id, targetFolderId);
   const component = {
     ...normalizedComponent,
     category: targetFolder.name,
@@ -2603,135 +1198,31 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     pricingSource: defaultPriceOption?.pricingSource,
     libraryFolderId: component.libraryFolderId,
   });
+
   const allowDuplicate = input.allowDuplicate === true;
+  const duplicateIdentity = normalizeComponentDuplicateIdentity(component);
   if (!allowDuplicate) {
-    const duplicate = await findCostLibraryComponentDuplicateInWorkspace(database, workspace.id, component);
+    const duplicate = await findCostLibraryComponentDuplicateInD1(database, workspace.id, duplicateIdentity);
     if (duplicate) throw componentDuplicateError(duplicate);
   }
-  const normalizedPriceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
-  const priceOptions = normalizedPriceOptions;
-  const itemId = component.id && isUuid(component.id) ? component.id : randomUUID();
-  const timestamp = nowIso();
-  await assertWithinLibraryQuota(database, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
-  const priceOptionPlans = priceOptions.map((priceOption) => buildComponentPriceOptionWritePlan({
-    workspaceId: workspace.id,
-    itemId,
-    priceOption,
-    userId: currentUser.userId,
-    effectiveAt: priceOption.effectiveAt,
-    writeHistory: false,
-  }, { timestamp }));
-  const persistedPriceOptions = priceOptionPlans.map((plan) => plan.persisted);
-  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
-  if (!activePriceOption) throw new Error("At least one active component variant is required.");
-  const duplicateGuard = allowDuplicate ? null : buildComponentDuplicateGuardStatement({
-    workspaceId: workspace.id,
-    itemId,
-    component,
-  });
-  const statements: Array<{ sql: string; values: D1Value[] }> = [
-    ...(duplicateGuard ? [duplicateGuard] : []),
-    ...priceOptionPlans.flatMap((plan) => plan.guardStatements),
-    {
-      sql: `
-      INSERT INTO cost_library_items (
-        id, workspace_id, name, description, category, category_node_id,
-        library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost,
-        misc_cost, lifecycle_state, current_version_number, active_price_option_id,
-        pricing_source, pricing_date, thumbnail_path, metadata_json,
-        created_by, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    values: [
-      itemId,
-      workspace.id,
-      component.name,
-      component.description,
-      component.category,
-      component.categoryNodeId ?? null,
-      targetFolder.id,
-      component.supplier,
-      component.supplierId ?? null,
-      component.brand,
-      component.brandId ?? null,
-      activePriceOption.unit,
-      activePriceOption.unitCost,
-      activePriceOption.miscCost,
-      component.lifecycleState,
-      1,
-      activePriceOption.id,
-      activePriceOption.pricingSource,
-      activePriceOption.pricingDate,
-      component.thumbnailPath,
-      jsonText(readMetadataObject(component.metadata)),
-      currentUser.userId,
-      timestamp,
-      timestamp,
-    ],
-    },
-  ];
-  for (const plan of priceOptionPlans) statements.push(...plan.statements);
-  statements.push({
-    sql: `
-      INSERT INTO cost_library_item_versions (
-        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
-        change_reason, effective_at, created_by, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    values: [
-      randomUUID(),
-      itemId,
-      workspace.id,
-      1,
-      jsonText(componentSnapshot(component, { priceOptions: persistedPriceOptions })),
-      "Component created",
-      component.changeReason,
-      component.effectiveAt,
-      currentUser.userId,
-      timestamp,
-    ],
-  });
-  const receiptResult: CreateCostLibraryComponentReceiptResult = {
-    itemId,
-    versionNumber: 1,
-    activePriceOptionId: activePriceOption.id,
-    priceOptions: persistedPriceOptions.map((option) => ({
-      id: option.id,
-      label: option.label,
-      isDefault: option.isDefault,
-    })),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-  statements.push(buildCommittedMutationReceiptStatement({
-    ...receiptIdentity,
-    resourceType: "cost_library_component",
-    resourceId: itemId,
-    result: receiptResult,
-    timestamp,
+  const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({
+    ...option,
+    unit: option.unit || component.unit,
   }));
-  assertD1MutationStatementLimit(statements.length);
-  try {
-    await runAtomicBatch(database, statements);
-  } catch (error) {
-    const concurrentReceipt = await readCommittedMutationReceipt(
-      database,
-      receiptIdentity,
-      readCreateCostLibraryComponentReceiptResult,
-    );
-    if (concurrentReceipt) return loadCreatedCostLibraryComponentResult(concurrentReceipt);
-    if (!allowDuplicate) {
-      const duplicate = await findCostLibraryComponentDuplicateInWorkspace(database, workspace.id, component);
-      if (duplicate) throw componentDuplicateError(duplicate);
-    }
-    throw error;
-  }
+  const mutation = await createCostLibraryComponentInD1(database, {
+    workspaceId: workspace.id,
+    actorUserId: currentUser.userId,
+    receiptIdentity,
+    component,
+    priceOptions,
+    duplicateIdentity,
+    allowDuplicate,
+  });
+  if (mutation.kind === "duplicate") throw componentDuplicateError(mutation.match);
+  if (mutation.kind === "replayed") return loadCreatedCostLibraryComponentResult(mutation.receipt);
   revalidateLibraryRoutes();
-  return loadCreatedCostLibraryComponentResult(receiptResult);
+  return loadCreatedCostLibraryComponentResult(mutation.receipt);
 }
-
 export async function saveCostLibraryComponentDraft(input: SaveCostLibraryComponentDraftInput): Promise<SaveCostLibraryComponentDraftResult> {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
@@ -2771,89 +1262,6 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
   return { draftId, savedAt: timestamp };
 }
 
-type UpdateCostLibraryComponentReceiptResult = {
-  itemId: string;
-  versionNumber: number;
-  activePriceOptionId: string;
-  priceOptions: Array<{ id: string; label: string; isDefault: boolean }>;
-  updatedAt: string;
-  affectedEstimates: Array<{ projectId: string; estimateId: string }>;
-  rowRevisions: Record<string, number>;
-  updatedRowCount: number;
-};
-
-function readUpdateCostLibraryComponentReceiptResult(value: unknown): UpdateCostLibraryComponentReceiptResult {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("The committed component update receipt is invalid.");
-  }
-  const result = value as Record<string, unknown>;
-  const itemId = typeof result.itemId === "string" ? result.itemId : "";
-  const activePriceOptionId = typeof result.activePriceOptionId === "string" ? result.activePriceOptionId : "";
-  const updatedAt = typeof result.updatedAt === "string" ? result.updatedAt : "";
-  const versionNumber = numberValue(result.versionNumber);
-  const updatedRowCount = numberValue(result.updatedRowCount, -1);
-  const priceOptions = Array.isArray(result.priceOptions)
-    ? result.priceOptions.map((candidate) => {
-        if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-          throw new Error("The committed component update receipt is invalid.");
-        }
-        const option = candidate as Record<string, unknown>;
-        const id = typeof option.id === "string" ? option.id : "";
-        if (!isUuid(id) || typeof option.label !== "string" || typeof option.isDefault !== "boolean") {
-          throw new Error("The committed component update receipt is invalid.");
-        }
-        return { id, label: option.label, isDefault: option.isDefault };
-      })
-    : null;
-  const affectedEstimates = Array.isArray(result.affectedEstimates)
-    ? result.affectedEstimates.map((candidate) => {
-        if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-          throw new Error("The committed component update receipt is invalid.");
-        }
-        const estimate = candidate as Record<string, unknown>;
-        const projectId = typeof estimate.projectId === "string" ? estimate.projectId : "";
-        const estimateId = typeof estimate.estimateId === "string" ? estimate.estimateId : "";
-        if (!projectId || !estimateId) throw new Error("The committed component update receipt is invalid.");
-        return { projectId, estimateId };
-      })
-    : null;
-  const rowRevisionsValue = result.rowRevisions;
-  if (!rowRevisionsValue || typeof rowRevisionsValue !== "object" || Array.isArray(rowRevisionsValue)) {
-    throw new Error("The committed component update receipt is invalid.");
-  }
-  const rowRevisions = Object.fromEntries(Object.entries(rowRevisionsValue).map(([rowId, revision]) => {
-    const parsedRevision = numberValue(revision);
-    if (!rowId || !Number.isSafeInteger(parsedRevision) || parsedRevision < 1) {
-      throw new Error("The committed component update receipt is invalid.");
-    }
-    return [rowId, parsedRevision];
-  }));
-  if (
-    !isUuid(itemId)
-    || !Number.isSafeInteger(versionNumber)
-    || versionNumber < 1
-    || !isUuid(activePriceOptionId)
-    || !priceOptions?.length
-    || !updatedAt
-    || !affectedEstimates
-    || !Number.isSafeInteger(updatedRowCount)
-    || updatedRowCount < 0
-    || Object.keys(rowRevisions).length !== updatedRowCount
-  ) {
-    throw new Error("The committed component update receipt is invalid.");
-  }
-  return {
-    itemId,
-    versionNumber,
-    activePriceOptionId,
-    priceOptions,
-    updatedAt,
-    affectedEstimates,
-    rowRevisions,
-    updatedRowCount,
-  };
-}
-
 async function loadUpdatedCostLibraryComponentResult(result: UpdateCostLibraryComponentReceiptResult) {
   const component = await getCurrentWorkspaceComponentRowDetail(result.itemId);
   if (!component) throw new Error("Component was saved but could not be reloaded.");
@@ -2862,146 +1270,6 @@ async function loadUpdatedCostLibraryComponentResult(result: UpdateCostLibraryCo
   }
   revalidateLibraryRoutes();
   return { ...result, component, rowPatches: {} as Record<string, EstimateRowItemPatch> };
-}
-
-function buildUpdateCostLibraryComponentReceiptResult(input: {
-  itemId: string;
-  versionNumber: number;
-  activePriceOptionId: string;
-  priceOptions: Array<{ id: string; label: string; isDefault: boolean }>;
-  updatedAt: string;
-  rowPlans: LinkedEstimateRowSyncPlan[];
-}): UpdateCostLibraryComponentReceiptResult {
-  const affectedEstimateKeys = new Set<string>();
-  const affectedEstimates: UpdateCostLibraryComponentReceiptResult["affectedEstimates"] = [];
-  for (const row of input.rowPlans) {
-    const key = `${row.projectId}:${row.estimateId}`;
-    if (affectedEstimateKeys.has(key)) continue;
-    affectedEstimateKeys.add(key);
-    affectedEstimates.push({ projectId: row.projectId, estimateId: row.estimateId });
-  }
-  return {
-    itemId: input.itemId,
-    versionNumber: input.versionNumber,
-    activePriceOptionId: input.activePriceOptionId,
-    priceOptions: input.priceOptions,
-    updatedAt: input.updatedAt,
-    affectedEstimates,
-    rowRevisions: Object.fromEntries(input.rowPlans.map((row) => [row.rowId, row.expectedRowRevision + 1])),
-    updatedRowCount: input.rowPlans.length,
-  };
-}
-
-function buildUpdateCostLibraryComponentFanOutStatements(input: {
-  workspaceId: string;
-  itemId: string;
-  versionNumber: number;
-  actorUserId: string;
-  intentId: string;
-  rowPlans: LinkedEstimateRowSyncPlan[];
-  timestamp: string;
-}) {
-  if (input.rowPlans.length === 0) return [];
-  const rowImpactJson = jsonText(input.rowPlans.map((row) => ({
-    rowId: row.rowId,
-    projectId: row.projectId,
-    estimateId: row.estimateId,
-    previousRowRevision: row.expectedRowRevision,
-    rowRevision: row.expectedRowRevision + 1,
-    priceOptionId: row.patch.priceOptionId ?? null,
-  })), []);
-  return [{
-    sql: `
-      WITH expected(row_json) AS (
-        SELECT value FROM json_each(?)
-      ),
-      grouped AS (
-        SELECT
-          json_extract(row_json, '$.estimateId') AS estimate_id,
-          json_extract(row_json, '$.projectId') AS project_id,
-          COUNT(*) AS row_count,
-          json_group_array(json(row_json)) AS rows_json
-        FROM expected
-        GROUP BY estimate_id, project_id
-      )
-      INSERT INTO estimate_sheet_events (
-        id, estimate_id, workspace_id, project_id, estimate_node_id, estimate_tab_id,
-        target_row_id, event_type, event_source, correlation_id, actor_user_id,
-        changed_fields, row_context, old_snapshot, new_snapshot, payload, metadata,
-        total_delta, created_at
-      )
-      SELECT
-        lower(hex(randomblob(16))),
-        estimate_id,
-        ?,
-        project_id,
-        NULL,
-        NULL,
-        NULL,
-        'library_component_rows_synced',
-        'server_action',
-        ? || ':estimate:' || estimate_id,
-        ?,
-        '["component","variant","source_snapshot"]',
-        json_object('componentId', ?, 'rowCount', row_count),
-        NULL,
-        json_object('componentId', ?, 'componentVersionNumber', ?),
-        json_object(
-          'componentId', ?,
-          'componentVersionNumber', ?,
-          'rowCount', row_count,
-          'rows', json(rows_json)
-        ),
-        json_object('source', 'component-library-update', 'intentId', ?),
-        NULL,
-        ?
-      FROM grouped
-    `,
-    values: [
-      rowImpactJson,
-      input.workspaceId,
-      input.intentId,
-      input.actorUserId,
-      input.itemId,
-      input.itemId,
-      input.versionNumber,
-      input.itemId,
-      input.versionNumber,
-      input.intentId,
-      input.timestamp,
-    ] as D1Value[],
-  }, {
-    sql: `
-      INSERT INTO activity_event_outbox (
-        id, workspace_id, event_id, status, attempt_count, available_at, created_at, updated_at
-      )
-      SELECT lower(hex(randomblob(16))), ?, event.id, 'pending', 0, ?, ?, ?
-      FROM estimate_sheet_events event
-      WHERE event.workspace_id = ?
-        AND event.event_type = 'library_component_rows_synced'
-        AND json_extract(event.metadata, '$.intentId') = ?
-      ON CONFLICT(event_id) DO NOTHING
-    `,
-    values: [
-      input.workspaceId,
-      input.timestamp,
-      input.timestamp,
-      input.timestamp,
-      input.workspaceId,
-      input.intentId,
-    ] as D1Value[],
-  }, {
-    sql: `
-      UPDATE projects
-      SET publication_source_revision = publication_source_revision + 1
-      WHERE workspace_id = ?
-        AND id IN (
-          SELECT DISTINCT json_extract(value, '$.projectId')
-          FROM json_each(?)
-        )
-    `,
-    values: [input.workspaceId, rowImpactJson] as D1Value[],
-  }];
 }
 
 export async function updateCostLibraryComponentWithPriceOptions(itemId: string, input: UpdateCostLibraryComponentWithPriceOptionsInput) {
@@ -3013,46 +1281,28 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   if (!isUuid(intentId)) throw new Error("Component update intent is invalid.");
   const { intentId: ignoredIntentId, ...requestInput } = input;
   void ignoredIntentId;
-  const requestFingerprint = createMutationRequestFingerprint({ itemId, ...requestInput });
   const receiptIdentity = {
     workspaceId: workspace.id,
     commandKind: "component.update",
     intentId,
     actorUserId: currentUser.userId,
-    requestFingerprint,
+    requestFingerprint: createMutationRequestFingerprint({ itemId, ...requestInput }),
   };
-  const committedReceipt = await readCommittedMutationReceipt(
-    database,
-    receiptIdentity,
-    readUpdateCostLibraryComponentReceiptResult,
-  );
+  const committedReceipt = await readUpdatedComponentReceiptInD1(database, receiptIdentity);
   if (committedReceipt) return loadUpdatedCostLibraryComponentResult(committedReceipt);
-  const existing = await readComponentItem(database, workspace.id, itemId);
-  if (!existing) throw new Error("Component not found in the current workspace.");
-  assertExpectedComponentRevision(existing, input.expectedUpdatedAt, input.expectedVersionNumber);
 
-  const [existingPriceOptionRows, affectedRows] = await Promise.all([
-    all<LibraryPriceOptionProjectionD1Row>(
-      database,
-      `
-        SELECT id, label, unit, unit_cost, misc_cost, currency, is_active, is_default,
-          pricing_source, metadata_json, updated_at
-        FROM cost_library_item_price_options
-        WHERE item_id = ?
-          AND workspace_id = ?
-        ORDER BY id
-      `,
-      [itemId, workspace.id],
-    ),
-    listLinkedEstimateRowTargets(database, workspace.id, itemId),
-  ]);
-  const currentImpactFingerprint = buildLinkedEstimateRowsRevisionFingerprint(affectedRows, existingPriceOptionRows);
-  if (currentImpactFingerprint !== input.expectedComponentImpactFingerprint) {
-    throw new Error(STALE_COMPONENT_IMPACT_ERROR);
-  }
-
+  const context = await loadComponentUpdateContextInD1(database, {
+    workspaceId: workspace.id,
+    itemId,
+    expectedUpdatedAt: input.expectedUpdatedAt,
+    expectedVersionNumber: input.expectedVersionNumber,
+    expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
+  });
   const normalizedComponent = normalizeComponentInput(input);
-  const targetFolder = await resolveLibraryFolderInWorkspace(database, workspace.id, normalizedComponent.libraryFolderId);
+  const targetFolderId = normalizedComponent.libraryFolderId
+    ? readLibraryFolderId(normalizedComponent.libraryFolderId, "Library folder not found in the current workspace.")
+    : null;
+  const targetFolder = await resolveLibraryFolderInWorkspaceD1(database, workspace.id, targetFolderId);
   const component = {
     ...normalizedComponent,
     category: targetFolder.name,
@@ -3060,329 +1310,50 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     libraryFolderId: targetFolder.id,
   };
   const metadataJson = input.metadata === undefined
-    ? existing.metadata_json ?? "{}"
+    ? context.existing.metadata_json ?? "{}"
     : jsonText(readMetadataObject(component.metadata));
   const priceOptionInputs = input.priceOptions;
   validatePriceOptions(priceOptionInputs);
-  const existingPriceOptionIds = new Set(existingPriceOptionRows.map((option) => option.id));
+  const existingPriceOptionIds = new Set(context.existingPriceOptionRows.map((option) => option.id));
   for (const priceOption of priceOptionInputs) {
     if (!priceOption.id) continue;
     if (!isUuid(priceOption.id) || !existingPriceOptionIds.has(priceOption.id)) {
       throw new Error("A submitted component variant no longer belongs to this component. Refresh and try again.");
     }
   }
-  const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
-  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
-  const timestamp = nowIso();
-  const priceOptionPlans = priceOptions.map((priceOption) => buildComponentPriceOptionWritePlan({
-    workspaceId: workspace.id,
-    itemId,
-    priceOption,
-    userId: currentUser.userId,
-    effectiveAt: priceOption.effectiveAt,
-    writeHistory: false,
-  }, { timestamp }));
-  const persistedPriceOptions = priceOptionPlans.map((plan) => plan.persisted);
-  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
-  if (!activePriceOption) throw new Error("At least one active component variant is required.");
-  const retainedPriceOptionIds = persistedPriceOptions.map((option) => option.id);
-  const retainedPriceOptionIdSet = new Set(retainedPriceOptionIds);
-  const retainedImageAssetIds = priceOptions.flatMap((option) => {
-    const imageMetadata = readMetadataObject(option.imageMetadata);
-    const assetId = imageMetadata.assetId;
-    return typeof assetId === "string" && isUuid(assetId) ? [assetId] : [];
-  });
-  const removedPriceOptionIds = new Set(existingPriceOptionRows
-    .filter((option) => readBoolean(option.is_active) && !retainedPriceOptionIdSet.has(option.id))
-    .map((option) => option.id));
-  const removedPriceOptionReplacements = input.removedPriceOptionReplacements ?? {};
-  for (const [removedId, replacementId] of Object.entries(removedPriceOptionReplacements)) {
-    if (!removedPriceOptionIds.has(removedId)) throw new Error("A variant replacement targets a variant that is not being deleted.");
-    if (!isUuid(replacementId) || !retainedPriceOptionIdSet.has(replacementId) || replacementId === removedId) {
-      throw new Error("A deleted variant must be replaced with a different active variant from this component.");
-    }
-  }
-  const syncOptions = persistedPriceOptions.map((option) => buildLibraryComponentSyncOption({
-    id: option.id,
-    label: option.label,
-    unit: option.unit,
-    unitCost: option.unitCost,
-    miscCost: option.miscCost,
-    currency: typeof option.snapshot.currency === "string" ? option.snapshot.currency : "PHP",
-    isActive: option.isActive,
-    isDefault: option.isDefault,
-    pricingSource: option.pricingSource,
-    pricingDate: option.pricingDate,
-    thumbnailPath: option.thumbnailPath,
-    snapshot: option.snapshot,
+  const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({
+    ...option,
+    unit: option.unit || component.unit,
   }));
-  const sourcePriceOptions = syncOptions.map((option) => option.snapshot);
-  const rowPlans = buildLinkedEstimateRowSyncPlans({
-    rows: affectedRows,
-    itemId,
-    material: component.name,
-    componentDescription: component.description,
-    brand: component.brand,
-    brandId: component.brandId,
-    supplier: component.supplier,
-    supplierId: component.supplierId,
-    lifecycleState: component.lifecycleState,
-    componentVersionNumber: nextVersion,
-    componentThumbnailPath: component.thumbnailPath,
-    priceOptions: syncOptions,
-    defaultPriceOptionId: activePriceOption.id,
-    removedPriceOptionReplacements,
-    updatedAt: timestamp,
-  });
-  const statements: Array<{ sql: string; values: D1Value[] }> = [
-    ...priceOptionPlans.flatMap((plan) => plan.guardStatements),
-    {
-      sql: `
-      UPDATE cost_library_items
-      SET name = ?,
-          description = ?,
-          category = ?,
-          category_node_id = ?,
-          library_folder_id = ?,
-          supplier = ?,
-          supplier_id = ?,
-          brand = ?,
-          brand_id = ?,
-          unit = ?,
-          thumbnail_path = ?,
-          lifecycle_state = ?,
-          current_version_number = ?,
-          metadata_json = ?,
-          updated_at = ?
-      WHERE id = ?
-        AND workspace_id = ?
-    `,
-      values: [
-        component.name,
-        component.description,
-        component.category,
-        component.categoryNodeId ?? null,
-        targetFolder.id,
-        component.supplier,
-        component.supplierId ?? null,
-        component.brand,
-        component.brandId ?? null,
-        component.unit,
-        component.thumbnailPath,
-        component.lifecycleState,
-        nextVersion,
-        metadataJson,
-        timestamp,
-        itemId,
-        workspace.id,
-      ],
-    },
-    {
-      sql: `
-        UPDATE upload_assets
-        SET status = 'removed',
-            updated_at = ?
-        WHERE workspace_id = ?
-          AND surface = 'component-image'
-          AND status = 'finalized'
-          AND id IN (
-            SELECT json_extract(metadata_json, '$.imageMetadata.assetId')
-            FROM cost_library_item_price_options
-            WHERE workspace_id = ?
-              AND item_id = ?
-              AND json_type(metadata_json, '$.imageMetadata.assetId') = 'text'
-          )
-          AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-          AND NOT EXISTS (
-            SELECT 1
-            FROM cost_library_item_price_options retained_option
-            WHERE retained_option.workspace_id = ?
-              AND retained_option.item_id <> ?
-              AND json_extract(retained_option.metadata_json, '$.imageMetadata.assetId') = upload_assets.id
-          )
-      `,
-      values: [
-        timestamp,
-        workspace.id,
-        workspace.id,
-        itemId,
-        jsonText(retainedImageAssetIds, []),
-        workspace.id,
-        itemId,
-      ],
-    },
-  ];
-  for (const plan of priceOptionPlans) statements.push(...plan.statements);
-  if (removedPriceOptionIds.size > 0) {
-    const removedPriceOptionIdsJson = jsonText([...removedPriceOptionIds], []);
-    statements.push({
-      sql: `
-        UPDATE upload_assets
-        SET status = 'removed',
-            updated_at = ?
-        WHERE id IN (
-          SELECT upload_asset_id
-          FROM component_variant_attachments
-          WHERE workspace_id = ?
-            AND owner_scope = 'library'
-            AND item_id = ?
-            AND price_option_id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-            AND upload_asset_id IS NOT NULL
-            AND review_status <> 'superseded'
-        )
-      `,
-      values: [timestamp, workspace.id, itemId, removedPriceOptionIdsJson],
-    }, {
-      sql: `
-        UPDATE component_variant_attachments
-        SET review_status = 'superseded',
-            is_current_approved = 0,
-            reviewed_by = ?,
-            reviewed_at = ?,
-            review_note = 'Variant removed from component',
-            review_revision = review_revision + 1,
-            updated_at = ?
-        WHERE workspace_id = ?
-          AND owner_scope = 'library'
-          AND item_id = ?
-          AND price_option_id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-          AND review_status <> 'superseded'
-      `,
-      values: [
-        currentUser.userId,
-        timestamp,
-        timestamp,
-        workspace.id,
-        itemId,
-        removedPriceOptionIdsJson,
-      ],
-    });
-  }
-  statements.push({
-    sql: `
-        UPDATE cost_library_item_price_options
-        SET is_active = 0,
-            is_default = 0,
-            updated_at = ?
-        WHERE item_id = ?
-          AND workspace_id = ?
-          AND id NOT IN (SELECT CAST(value AS TEXT) FROM json_each(?))
-      `,
-    values: [timestamp, itemId, workspace.id, jsonText(retainedPriceOptionIds, [])],
-  }, {
-    sql: `
-      UPDATE cost_library_items
-      SET active_price_option_id = ?,
-          unit = ?,
-          unit_cost = ?,
-          misc_cost = ?,
-          pricing_source = ?,
-          pricing_date = ?,
-          updated_at = ?
-      WHERE id = ?
-        AND workspace_id = ?
-    `,
-    values: [
-      activePriceOption.id,
-      activePriceOption.unit,
-      activePriceOption.unitCost,
-      activePriceOption.miscCost,
-      activePriceOption.pricingSource,
-      activePriceOption.pricingDate,
-      timestamp,
-      itemId,
-      workspace.id,
-    ],
-  }, {
-    sql: `
-      INSERT INTO cost_library_item_versions (
-        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
-        change_reason, effective_at, created_by, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    values: [
-      randomUUID(),
-      itemId,
-      workspace.id,
-      nextVersion,
-      jsonText(componentSnapshot(component, { priceOptions: sourcePriceOptions })),
-      "Component and variants updated",
-      component.changeReason,
-      component.effectiveAt,
-      currentUser.userId,
-      timestamp,
-    ],
-  });
-  const syncStatementIndex = rowPlans.length > 0 ? statements.length : -1;
-  if (rowPlans.length > 0) {
-    statements.push(buildLinkedEstimateRowsSyncStatement({
-      workspaceId: workspace.id,
-      itemId,
-      rowPlans,
-      updatedAt: timestamp,
-    }));
-  }
-  const receiptResult = buildUpdateCostLibraryComponentReceiptResult({
-    itemId,
-    versionNumber: nextVersion,
-    activePriceOptionId: activePriceOption.id,
-    priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
-    updatedAt: timestamp,
-    rowPlans,
-  });
-  statements.push(...buildUpdateCostLibraryComponentFanOutStatements({
+  const mutation = await updateCostLibraryComponentInD1(database, {
     workspaceId: workspace.id,
-    itemId,
-    versionNumber: nextVersion,
     actorUserId: currentUser.userId,
+    itemId,
     intentId,
-    rowPlans,
-    timestamp,
-  }));
-  statements.push(buildCommittedMutationReceiptStatement({
-    ...receiptIdentity,
-    resourceType: "cost_library_component",
-    resourceId: itemId,
-    result: receiptResult,
-    timestamp,
-  }));
-  assertD1MutationStatementLimit(statements.length + 2);
-  let results: D1Result[];
-  try {
-    results = await runComponentRevisionGuardedBatch(database, statements, {
-      workspaceId: workspace.id,
-      itemId,
-      expectedUpdatedAt: input.expectedUpdatedAt,
-      expectedVersionNumber: input.expectedVersionNumber,
-      expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
-    });
-  } catch (error) {
-    const concurrentReceipt = await readCommittedMutationReceipt(
-      database,
-      receiptIdentity,
-      readUpdateCostLibraryComponentReceiptResult,
-    );
-    if (concurrentReceipt) return loadUpdatedCostLibraryComponentResult(concurrentReceipt);
-    throw error;
+    receiptIdentity,
+    context,
+    component,
+    priceOptions,
+    metadataJson,
+    expectedUpdatedAt: input.expectedUpdatedAt,
+    expectedVersionNumber: input.expectedVersionNumber,
+    expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
+    removedPriceOptionReplacements: input.removedPriceOptionReplacements ?? {},
+  });
+  if (mutation.kind === "replayed") return loadUpdatedCostLibraryComponentResult(mutation.receipt);
+
+  for (const affectedEstimate of mutation.receipt.affectedEstimates) {
+    revalidatePath(`/workshop/projects/${affectedEstimate.projectId}/estimates/${affectedEstimate.estimateId}`);
   }
-  const instanceSync = syncStatementIndex >= 0
-    ? buildLibraryComponentInstanceSyncResult(
-        rowPlans,
-        results[syncStatementIndex] as D1Result<{ id: string; row_revision: number | string }>,
-      )
-    : emptyLibraryComponentInstanceSyncResult();
-  revalidateLinkedEstimateRows(affectedRows);
   const persistedComponent = await getCurrentWorkspaceComponentRowDetail(itemId);
   if (!persistedComponent) throw new Error("Component was saved but could not be reloaded.");
   revalidateLibraryRoutes();
   return {
-    ...receiptResult,
+    ...mutation.receipt,
     component: persistedComponent,
-    ...instanceSync,
+    ...mutation.sync,
   };
 }
-
 export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibraryComponentsInput): Promise<BulkActionPreviewResult> {
   const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
   if (issues.length > 0) return buildRejectedPreviewResult("library_component", ids, issues);
@@ -3392,50 +1363,17 @@ export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibr
     requireCurrentUserContext(),
   ]);
   const database = await requireComponentLibraryActionsD1Database();
-  const sortedIds = [...ids].sort();
-  const rows: Array<{ id: string; name: string; lifecycle_state: string }> = [];
-  for (const idBatch of chunkD1ComponentIds(sortedIds)) {
-    rows.push(...await all<{ id: string; name: string; lifecycle_state: string }>(
-      database,
-      `
-        SELECT id, name, lifecycle_state
-        FROM cost_library_items
-        WHERE workspace_id = ?
-          AND id IN (${placeholders(idBatch)})
-      `,
-      [workspace.id, ...idBatch],
-    ));
-  }
-  const byId = new Map(rows.map((row) => [row.id, row]));
-  const eligibleIds: string[] = [];
-  const blocked = [];
-  for (const id of sortedIds) {
-    const row = byId.get(id);
-    if (!row) {
-      blocked.push({ id, code: "not_found", message: "Component was not found in this workspace." });
-      continue;
-    }
-    if (row.lifecycle_state === "archived") {
-      blocked.push({ id, name: row.name, code: "blocked", message: "Component is already archived." });
-      continue;
-    }
-    eligibleIds.push(id);
-  }
-  const summary = {
-    requestedCount: sortedIds.length,
-    eligibleCount: eligibleIds.length,
-    blockedCount: blocked.length,
-  };
+  const preview = await previewBulkArchiveLibraryComponentsInD1(database, workspace.id, ids);
   return coerceBulkPreviewResult({
-    ok: eligibleIds.length > 0 && blocked.length === 0,
+    ok: preview.eligibleIds.length > 0 && preview.blocked.length === 0,
     targetType: "library_component",
-    ids: sortedIds,
-    eligibleIds,
-    previewHash: createBulkArchivePreviewHash({ eligibleIds, blocked, summary }),
-    summary,
-    issues: blocked,
-    blocked,
-  }, { targetType: "library_component", ids: sortedIds });
+    ids: preview.sortedIds,
+    eligibleIds: preview.eligibleIds,
+    previewHash: preview.previewHash,
+    summary: preview.summary,
+    issues: preview.blocked,
+    blocked: preview.blocked,
+  }, { targetType: "library_component", ids: preview.sortedIds });
 }
 
 export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArchiveLibraryComponentsInput): Promise<BulkActionExecutionResult> {
@@ -3472,19 +1410,11 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
     };
   }
   const archivedIds = preview.eligibleIds;
-  const timestamp = nowIso();
-  await runBatch(database, chunkD1ComponentIds(archivedIds).map((idBatch) => ({
-    sql: `
-        UPDATE cost_library_items
-        SET lifecycle_state = 'archived',
-            lifecycle_state_changed_at = ?,
-            lifecycle_state_changed_by = ?,
-            updated_at = ?
-        WHERE workspace_id = ?
-          AND id IN (${placeholders(idBatch)})
-      `,
-    values: [timestamp, currentUser.userId, timestamp, workspace.id, ...idBatch],
-  })));
+  await archiveLibraryComponentsInD1(database, {
+    workspaceId: workspace.id,
+    actorUserId: currentUser.userId,
+    itemIds: archivedIds,
+  });
   const result = coerceBulkExecutionResult({
     ok: true,
     targetType: "library_component",
@@ -3510,8 +1440,8 @@ export async function previewBulkDeleteLibraryComponents(input: BulkDeleteLibrar
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibrary(database, workspace.id, currentUser);
   try {
-    const impact = await loadComponentPermanentDeleteImpact(database, workspace.id, ids);
-    return coerceBulkPreviewResult(buildComponentPermanentDeletePreview(impact), {
+    const preview = await previewPermanentDeleteLibraryComponentsInD1(database, workspace.id, ids);
+    return coerceBulkPreviewResult(preview, {
       targetType: "library_component",
       ids,
     });
@@ -3561,22 +1491,7 @@ function getComponentPermanentDeleteCorrelationId(input: {
   })).digest("hex")}`;
 }
 
-function getComponentPermanentDeleteOwners(impact: ComponentPermanentDeleteImpact) {
-  const affectedEstimateKeys = new Set<string>();
-  const affectedEstimates: Array<{ estimateId: string; projectId: string }> = [];
-  for (const row of impact.estimateRows) {
-    const key = `${row.projectId}:${row.estimateId}`;
-    if (affectedEstimateKeys.has(key)) continue;
-    affectedEstimateKeys.add(key);
-    affectedEstimates.push({ estimateId: row.estimateId, projectId: row.projectId });
-  }
-  return { affectedEstimates, hasTemplateRows: impact.templateRows.length > 0 };
-}
-
-function revalidateComponentPermanentDeleteSurfaces(input: {
-  affectedEstimates: Array<{ estimateId: string; projectId: string }>;
-  hasTemplateRows: boolean;
-}) {
+function revalidateComponentPermanentDeleteSurfaces(input: ComponentPermanentDeleteOwners) {
   for (const owner of input.affectedEstimates) {
     revalidatePath(`/workshop/projects/${owner.projectId}/estimates/${owner.estimateId}`);
   }
@@ -3615,90 +1530,34 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
     );
   }
 
-  const replayReceipt = await readComponentPermanentDeleteReceipt(database, workspace.id, correlationId);
-  if (replayReceipt) {
-    const replay = componentPermanentDeleteReceiptResult({
-      actorUserId: currentUser.userId,
-      expectedPreviewHash: input.expectedPreviewHash,
-      itemIds: ids,
-      receipt: replayReceipt,
-    });
-    if (!replay.ok) return replay;
-    revalidateComponentPermanentDeleteSurfaces(getComponentPermanentDeleteReceiptOwners(replayReceipt));
-    return replay;
-  }
-
-  let impact: ComponentPermanentDeleteImpact;
   try {
-    impact = await loadComponentPermanentDeleteImpact(database, workspace.id, ids);
+    const execution = await executePermanentDeleteLibraryComponentsInD1(database, {
+      workspaceId: workspace.id,
+      actorUserId: currentUser.userId,
+      itemIds: ids,
+      expectedPreviewHash: input.expectedPreviewHash,
+      correlationId,
+    });
+    const result = execution.kind === "fresh_commit"
+      ? coerceBulkExecutionResult(execution.result, {
+          targetType: "library_component",
+          ids,
+        })
+      : execution.result;
+    if (result.ok && execution.owners) {
+      revalidateComponentPermanentDeleteSurfaces(execution.owners);
+    }
+    return result;
   } catch (error) {
+    if (!isComponentPermanentDeleteD1Error(error)) throw error;
     return buildComponentPermanentDeleteFailure(
       ids,
       "rpc_error",
-      `Could not load component deletion impact: ${error instanceof Error ? error.message : "Cloudflare D1 preview failed."}`,
+      error.phase === "impact"
+        ? `Could not load component deletion impact: ${error.message}`
+        : `Could not permanently delete components: ${error.message}`,
     );
   }
-  const preview = buildComponentPermanentDeletePreview(impact);
-  if (preview.previewHash !== input.expectedPreviewHash) {
-    return {
-      ...preview,
-      ok: false,
-      deletedIds: [],
-      issues: [
-        ...preview.issues,
-        { code: "stale_preview", message: "Preview changed; refresh the deletion preview." },
-      ],
-    };
-  }
-  if (!preview.ok || !preview.previewHash) return { ...preview, deletedIds: [] };
-
-  const eventId = randomUUID();
-  const statements = buildComponentPermanentDeleteStatements({
-    actorUserId: currentUser.userId,
-    correlationId,
-    eventId,
-    impact,
-    preview,
-    previewHash: preview.previewHash,
-    timestamp: nowIso(),
-  });
-  assertD1MutationStatementLimit(statements.length);
-  try {
-    await runAtomicBatch(database, statements);
-  } catch (error) {
-    const committedReceipt = await readComponentPermanentDeleteReceipt(database, workspace.id, correlationId);
-    if (!committedReceipt) {
-      return buildComponentPermanentDeleteFailure(
-        ids,
-        "rpc_error",
-        `Could not permanently delete components: ${error instanceof Error ? error.message : "Cloudflare D1 delete failed."}`,
-      );
-    }
-    const replay = componentPermanentDeleteReceiptResult({
-      actorUserId: currentUser.userId,
-      expectedPreviewHash: input.expectedPreviewHash,
-      itemIds: ids,
-      receipt: committedReceipt,
-    });
-    if (!replay.ok) return replay;
-    revalidateComponentPermanentDeleteSurfaces(getComponentPermanentDeleteReceiptOwners(committedReceipt));
-    return replay;
-  }
-
-  const result: BulkActionExecutionResult = {
-    ok: true,
-    targetType: "library_component",
-    ids,
-    deletedIds: preview.eligibleIds,
-    auditEventId: eventId,
-    previewHash: preview.previewHash,
-    summary: preview.summary,
-    issues: [],
-    blocked: [],
-    storageTargets: preview.storageTargets,
-  };
-  revalidateComponentPermanentDeleteSurfaces(getComponentPermanentDeleteOwners(impact));
-  return coerceBulkExecutionResult(result, { targetType: "library_component", ids });
 }
 
 export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {
@@ -3708,89 +1567,15 @@ export async function createLibraryFolder(parentId: string | null, name: string,
   const normalizedParentId = parentId === null
     ? null
     : readLibraryFolderId(parentId, "Parent folder not found in the current workspace.");
-  const scopedFolders = await all<LibraryFolderGraphIdentity>(
-    database,
-    `
-      SELECT id, parent_id, sort_order, updated_at
-      FROM library_folders
-      WHERE workspace_id = ?
-        AND (id IS ? OR parent_id IS ?)
-      ORDER BY id
-    `,
-    [workspace.id, normalizedParentId, normalizedParentId],
-  );
-  if (normalizedParentId && !scopedFolders.some((folder) => folder.id === normalizedParentId)) {
-    throw new Error("Parent folder not found in the current workspace.");
-  }
-
-  const placement = options.placement ?? "bottom";
-  const siblingRows = scopedFolders.filter((folder) => folder.parent_id === normalizedParentId);
-  const nextSortOrder = getLibraryFolderCreateSortOrder(siblingRows, placement);
-  const folderId = randomUUID();
-  const timestamp = nowIso();
-  const statements: Array<{ sql: string; values: D1Value[] }> = [
-    buildLibraryFolderGraphGuardStatement({
-      actualSql: `
-        SELECT id, parent_id, sort_order, updated_at
-        FROM library_folders
-        WHERE workspace_id = ?
-          AND (id IS ? OR parent_id IS ?)
-      `,
-      actualValues: [workspace.id, normalizedParentId, normalizedParentId],
-      expectedRows: scopedFolders,
-      guardName: "library_folder_create_graph_guard",
-    }),
-  ];
-  if (placement === "top" && siblingRows.some((sibling) => sibling.sort_order === nextSortOrder)) {
-    const sortedSiblings = [...siblingRows].sort((left, right) => right.sort_order - left.sort_order);
-    for (const sibling of sortedSiblings) {
-      statements.push({
-        sql: `
-          UPDATE library_folders
-          SET sort_order = ?, updated_at = ?
-          WHERE id = ?
-            AND workspace_id = ?
-            AND updated_at = ?
-        `,
-        values: [
-          sibling.sort_order + LIBRARY_FOLDER_SORT_ORDER_STEP,
-          timestamp,
-          sibling.id,
-          workspace.id,
-          sibling.updated_at,
-        ],
-      });
-    }
-  }
-  statements.push({
-    sql: `
-      INSERT INTO library_folders (
-        id, workspace_id, parent_id, name, sort_order, folder_kind,
-        created_by, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, 'custom', ?, ?, ?)
-    `,
-    values: [
-      folderId,
-      workspace.id,
-      normalizedParentId,
-      readFolderName(name),
-      nextSortOrder,
-      currentUser.userId,
-      timestamp,
-      timestamp,
-    ],
+  const folder = await createLibraryFolderInD1(database, {
+    workspaceId: workspace.id,
+    actorUserId: currentUser.userId,
+    parentId: normalizedParentId,
+    name: readFolderName(name),
+    placement: options.placement ?? "bottom",
   });
-  assertD1MutationStatementLimit(statements.length);
-  await runAtomicBatch(database, statements);
-  const data = await first<LibraryFolderRow>(
-    database,
-    "SELECT * FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1",
-    [folderId, workspace.id],
-  );
-  if (!data) throw new Error("Could not create folder.");
   revalidateLibraryRoutes();
-  return { folder: data };
+  return { folder };
 }
 
 export async function renameLibraryFolder(folderId: string, name: string): Promise<LibraryFolderActionResult> {
@@ -3798,25 +1583,13 @@ export async function renameLibraryFolder(folderId: string, name: string): Promi
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
   const nextName = readFolderName(name);
-  const defaultFolder = await ensureDefaultLibraryCategoryFolder(database, workspace.id);
-  if (folderId === defaultFolder.id && nextName !== UNCATEGORIZED_CATEGORY_LABEL) {
-    throw new Error(`The default category must remain ${UNCATEGORIZED_CATEGORY_LABEL}.`);
-  }
-  const timestamp = nowIso();
-  await runAtomicBatch(database, [
-    {
-      sql: "UPDATE library_folders SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-      values: [nextName, timestamp, folderId, workspace.id],
-    },
-    {
-      sql: "UPDATE cost_library_items SET category = ?, category_node_id = NULL, updated_at = ? WHERE workspace_id = ? AND library_folder_id = ?",
-      values: [nextName, timestamp, workspace.id, folderId],
-    },
-  ]);
-  const data = await first<LibraryFolderRow>(database, "SELECT * FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1", [folderId, workspace.id]);
-  if (!data) throw new Error("Folder not found in the current workspace.");
+  const folder = await renameLibraryFolderInD1(database, {
+    workspaceId: workspace.id,
+    folderId,
+    name: nextName,
+  });
   revalidateLibraryRoutes();
-  return { folder: data };
+  return { folder };
 }
 
 export async function deleteLibraryFolder(folderId: string): Promise<void> {
@@ -3824,58 +1597,7 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const database = await requireComponentLibraryActionsD1Database();
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
   const normalizedFolderId = readLibraryFolderId(folderId, "Library folder not found in the current workspace.");
-
-  const folders = await all<LibraryFolderRow>(
-    database,
-    "SELECT * FROM library_folders WHERE workspace_id = ?",
-    [workspace.id],
-  );
-  const deletePlan = planLibraryFolderDelete(folders, normalizedFolderId);
-  if (!deletePlan) throw new Error("Library folder not found in the current workspace.");
-  if (deletePlan.deletedFolder.is_default_category === 1) throw new Error("The default category cannot be deleted.");
-  const defaultFolder = deletePlan.deletedFolder.parent_id
-    ? null
-    : await ensureDefaultLibraryCategoryFolder(database, workspace.id);
-  const rehomeFolder = deletePlan.deletedFolder.parent_id
-    ? folders.find((folder) => folder.id === deletePlan.deletedFolder.parent_id)
-    : defaultFolder;
-  if (!rehomeFolder) throw new Error("The parent category no longer exists.");
-  const timestamp = nowIso();
-  const statements: Array<{ sql: string; values: D1Value[] }> = [
-    ...deletePlan.liftedChildUpdates.map((update) => ({
-      sql: "UPDATE library_folders SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
-      values: [update.parentId, update.sortOrder, timestamp, update.id, workspace.id],
-    })),
-    {
-      sql: "UPDATE cost_library_items SET library_folder_id = ?, category = ?, category_node_id = NULL, updated_at = ? WHERE workspace_id = ? AND library_folder_id = ?",
-      values: [rehomeFolder.id, rehomeFolder.name, timestamp, workspace.id, normalizedFolderId],
-    },
-    {
-      sql: `DELETE FROM workspace_price_freshness_policies
-            WHERE workspace_id = ?
-              AND category_folder_id = ?
-              AND EXISTS (
-                SELECT 1
-                FROM workspace_price_freshness_policies AS destination
-                WHERE destination.workspace_id = ?
-                  AND destination.category_folder_id = ?
-              )`,
-      values: [workspace.id, normalizedFolderId, workspace.id, rehomeFolder.id],
-    },
-    {
-      sql: `UPDATE workspace_price_freshness_policies
-            SET category_folder_id = ?, category_node_id = NULL, updated_at = ?
-            WHERE workspace_id = ? AND category_folder_id = ?`,
-      values: [rehomeFolder.id, timestamp, workspace.id, normalizedFolderId],
-    },
-    {
-      sql: "DELETE FROM library_folders WHERE id = ? AND workspace_id = ?",
-      values: [normalizedFolderId, workspace.id],
-    },
-  ];
-  assertD1MutationStatementLimit(statements.length);
-  await runAtomicBatch(database, statements);
-
+  await deleteLibraryFolderInD1(database, { workspaceId: workspace.id, folderId: normalizedFolderId });
   revalidateLibraryRoutes();
 }
 
@@ -3901,88 +1623,7 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
     return { ...update, id: folderId, parentId };
   });
   assertD1MutationStatementLimit(validUpdates.length);
-
-  const folders = await all<LibraryFolderGraphIdentity>(
-    database,
-    "SELECT id, parent_id, sort_order, updated_at, is_default_category FROM library_folders WHERE workspace_id = ?",
-    [workspace.id],
-  );
-  const folderById = new Map(folders.map((folder) => [folder.id, folder]));
-  for (const update of validUpdates) {
-    if (!folderById.has(update.id)) throw new Error("Library folder not found in the current workspace.");
-    if (update.parentId && !folderById.has(update.parentId)) {
-      throw new Error("Parent folder not found in the current workspace.");
-    }
-    if (folderById.get(update.id)?.is_default_category === 1 && update.parentId !== null) {
-      throw new Error("The default category must remain at the root.");
-    }
-  }
-
-  const affectedParentIds = new Set<string | null>();
-  const finalFolderById = new Map(folders.map((folder) => [folder.id, { ...folder }]));
-  for (const update of validUpdates) {
-    const folder = finalFolderById.get(update.id)!;
-    affectedParentIds.add(folder.parent_id);
-    affectedParentIds.add(update.parentId);
-    finalFolderById.set(update.id, {
-      ...folder,
-      parent_id: update.parentId,
-      sort_order: update.sortOrder,
-    });
-  }
-  for (const parentId of affectedParentIds) {
-    const usedSortOrders = new Set<number>();
-    for (const folder of finalFolderById.values()) {
-      if (folder.parent_id !== parentId) continue;
-      if (usedSortOrders.has(folder.sort_order)) {
-        throw new Error("Library folder sort order collides with another folder.");
-      }
-      usedSortOrders.add(folder.sort_order);
-    }
-  }
-
-  const parentById = new Map(folders.map((folder) => [folder.id, folder.parent_id]));
-  for (const update of validUpdates) parentById.set(update.id, update.parentId);
-  for (const update of validUpdates) {
-    const visited = new Set<string>([update.id]);
-    let ancestorId = parentById.get(update.id) ?? null;
-    while (ancestorId) {
-      if (visited.has(ancestorId)) {
-        throw new Error("A library folder cannot be moved inside one of its descendants.");
-      }
-      visited.add(ancestorId);
-      ancestorId = parentById.get(ancestorId) ?? null;
-    }
-  }
-
-  const timestamp = nowIso();
-  const statements: Array<{ sql: string; values: D1Value[] }> = [
-    buildLibraryFolderGraphGuardStatement({
-      actualSql: "SELECT id, parent_id, sort_order, updated_at, is_default_category FROM library_folders WHERE workspace_id = ?",
-      actualValues: [workspace.id],
-      expectedRows: folders,
-      guardName: "library_folder_reorder_graph_guard",
-    }),
-    ...validUpdates.map((update) => ({
-      sql: `
-        UPDATE library_folders
-        SET parent_id = ?, sort_order = ?, updated_at = ?
-        WHERE id = ?
-          AND workspace_id = ?
-          AND updated_at = ?
-      `,
-      values: [
-        update.parentId,
-        update.sortOrder,
-        timestamp,
-        update.id,
-        workspace.id,
-        folderById.get(update.id)!.updated_at,
-      ],
-    })),
-  ];
-  assertD1MutationStatementLimit(statements.length);
-  await runAtomicBatch(database, statements);
+  await reorderLibraryFoldersInD1(database, { workspaceId: workspace.id, updates: validUpdates });
   revalidateLibraryRoutes();
 }
 
@@ -3995,15 +1636,14 @@ export async function moveCostLibraryComponentToFolder(input: MoveCostLibraryCom
   await assertCanManageLibraryFolders(database, workspace.id, currentUser);
 
   if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
-
-  const targetFolder = await resolveLibraryFolderInWorkspace(database, workspace.id, input.libraryFolderId);
-  await run(
-    database,
-    "UPDATE cost_library_items SET library_folder_id = ?, category = ?, category_node_id = NULL, updated_at = ? WHERE id = ? AND workspace_id = ?",
-    [targetFolder.id, targetFolder.name, nowIso(), input.itemId, workspace.id],
-  );
-  const component = await first<{ id: string }>(database, "SELECT id FROM cost_library_items WHERE id = ? AND workspace_id = ? LIMIT 1", [input.itemId, workspace.id]);
-  if (!component) throw new Error("Component not found in the current workspace.");
+  const folderId = input.libraryFolderId
+    ? readLibraryFolderId(input.libraryFolderId, "Library folder not found in the current workspace.")
+    : null;
+  await moveCostLibraryComponentToFolderInD1(database, {
+    workspaceId: workspace.id,
+    itemId: input.itemId,
+    folderId,
+  });
   revalidateLibraryRoutes();
 }
 

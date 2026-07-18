@@ -6,7 +6,7 @@ import {
   readPackageBuilderMemoryPreferences,
   type PackageBuilderMemoryPreferences,
 } from "@/lib/ai/package-builder/memory";
-import { resolveComponentCategory } from "@/lib/component-library/category-folders";
+import { createComponentCategoryResolver } from "@/lib/component-library/category-folders";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { filterMap, filterMapBy } from "@/lib/util/array";
@@ -900,11 +900,12 @@ async function searchScopedComponentSummaries({
     for (const folder of rows) folderById.set(folder.id, folder);
   }
   const libraryFolders = [...folderById.values()];
+  const resolveCategory = createComponentCategoryResolver(libraryFolders);
 
   const matches = filterMap(itemRows, (item) => {
       const priceOption = priceOptionByItemId.get(item.id);
       const folder = item.library_folder_id ? folderById.get(item.library_folder_id) : undefined;
-      const category = resolveComponentCategory(libraryFolders, item.library_folder_id, item.category);
+      const category = resolveCategory(item.library_folder_id, item.category);
       const summary: PackageBuilderComponentSummary = {
         id: item.id,
         material: item.name,

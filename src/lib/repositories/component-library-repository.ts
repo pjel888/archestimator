@@ -13,7 +13,10 @@ import {
   type EstimateTemplateSummary,
 } from "@/lib/component-library/estimate-templates";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
-import { resolveComponentCategory } from "@/lib/component-library/category-folders";
+import {
+  createComponentCategoryResolver,
+  type ComponentCategoryResolver,
+} from "@/lib/component-library/category-folders";
 import {
   buildComponentCategoryTreeFromRows,
   componentCategoryTree,
@@ -617,13 +620,13 @@ function normalizeComponentLibraryItem(
   row: CostLibraryItemRow,
   supplierById: Map<string, ComponentLibrarySupplier>,
   brandById: Map<string, ComponentLibraryBrand>,
-  libraryFolders: ComponentLibraryFolder[],
+  resolveCategory: ComponentCategoryResolver,
   priceOptions: ComponentPriceOption[] = [],
   history: ComponentHistoryEntry[] = [],
   latestVersion?: ComponentVersionRow,
 ): EstimateRowItem {
   const metadata = readMetadataRecord(row.metadata);
-  const category = resolveComponentCategory(libraryFolders, row.library_folder_id, row.category);
+  const category = resolveCategory(row.library_folder_id, row.category);
   const supplier = row.supplier_id ? supplierById.get(row.supplier_id) : undefined;
   const brand = row.brand_id ? brandById.get(row.brand_id) : undefined;
   const defaultPriceOption = priceOptions.find((option) => option.isDefault && option.isActive) ?? priceOptions.find((option) => option.isActive);
@@ -1030,6 +1033,7 @@ function buildComponentRowsLibraryDataset({
 
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
   const brandById = new Map(brands.map((brand) => [brand.id, brand]));
+  const resolveCategory = createComponentCategoryResolver(libraryFolders);
   const libraryItems = itemRows.map((row) => {
     const history = [...(historyByItemId.get(row.id) ?? [])].sort((left, right) => (
       right.effectiveAt.localeCompare(left.effectiveAt) || right.createdAt.localeCompare(left.createdAt)
@@ -1038,7 +1042,7 @@ function buildComponentRowsLibraryDataset({
       row,
       supplierById,
       brandById,
-      libraryFolders,
+      resolveCategory,
       priceOptionsByItemId.get(row.id) ?? [],
       history,
       versionsByItemId.get(row.id)?.[0],

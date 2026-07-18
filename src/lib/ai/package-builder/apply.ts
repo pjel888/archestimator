@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { canEditEstimateInD1, isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
-import { resolveComponentCategory, type ComponentCategoryFolder } from "@/lib/component-library/category-folders";
+import { createComponentCategoryResolver, type ComponentCategoryFolder } from "@/lib/component-library/category-folders";
 import { buildProjectComponentAttachmentDeleteRetentionStatements } from "@/lib/estimates/project-component-attachment-retention";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
@@ -335,8 +335,9 @@ async function validateLinkedLibraryRows({
      WHERE workspace_id = ?`,
     [workspaceId],
   );
+  const resolveCategory = createComponentCategoryResolver(folders);
   const itemById = new Map(items.map((item) => {
-    const category = resolveComponentCategory(folders, item.library_folder_id, item.category);
+    const category = resolveCategory(item.library_folder_id, item.category);
     return [item.id, {
       ...item,
       category: category.category,
@@ -1826,6 +1827,7 @@ async function applyComponentCreateDraft({
   );
   const defaultFolder = folders.find((folder) => folder.is_default_category === 1);
   if (!defaultFolder) throw new Error("The workspace default component category is missing.");
+  const resolveCategory = createComponentCategoryResolver(folders);
 
   const timestamp = nowIso();
   const createdComponentIds: string[] = [];
@@ -1837,8 +1839,7 @@ async function applyComponentCreateDraft({
     const matchingFolders = folders.filter(
       (folder) => folder.name.trim().toLocaleLowerCase() === payload.component.category.trim().toLocaleLowerCase(),
     );
-    const category = resolveComponentCategory(
-      folders,
+    const category = resolveCategory(
       matchingFolders.length === 1 ? matchingFolders[0].id : defaultFolder.id,
     );
     createdComponentIds.push(componentId);

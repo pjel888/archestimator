@@ -373,7 +373,9 @@ export async function DELETE(request: Request) {
       return jsonError("No removable image uploads were found.", 404);
     }
     return NextResponse.json({
-      removedPaths: claim.status === "claimed" ? claim.claimedPaths : paths,
+      removedPaths: claim.claimedPaths,
+      blockedPaths: claim.blockedPaths,
+      alreadyRemovedPaths: claim.alreadyRemovedPaths,
     });
   } catch (error) {
     logAppError(error, {

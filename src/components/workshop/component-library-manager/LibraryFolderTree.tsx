@@ -41,6 +41,7 @@ import {
 } from "@/lib/bulk-selection/tree-selection";
 import { LibraryTree } from "../component-library/tree/LibraryTree";
 import { buildLibraryTreeWithComponentRows } from "../component-library/tree/buildLibraryTree";
+import type { ComponentFolderMoveOutcome } from "../component-library/component-folder-move-coordinator";
 import { filterTree, getAllNodeIds } from "../component-library/tree/helpers";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
@@ -57,6 +58,11 @@ import {
 type LibraryFolderTreeDatum =
   | { kind: "folder"; folderId: string; label: string; isSyntheticRoot: boolean }
   | { kind: "component"; item: EstimateRowItem; parentFolderId: string };
+
+type ComponentFolderMoveHandler = (
+  item: EstimateRowItem,
+  targetFolderId: string,
+) => ComponentFolderMoveOutcome | void | Promise<ComponentFolderMoveOutcome | void>;
 
 const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
 const EMPTY_SELECTED_COMPONENT_IDS = new Set<string>();
@@ -385,7 +391,7 @@ type LibraryFolderTreeProps = {
   disabled: boolean;
   onSelectFolder: (folderId: string) => void;
   onToggleComponentSelected?: (itemId: string) => void;
-  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
+  onMoveComponentToFolder?: ComponentFolderMoveHandler;
   onFoldersChange: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus: (status: ReorderStatus) => void;
   onCreateFolder: (parentId: string | null) => void;
@@ -593,9 +599,16 @@ export function LibraryFolderTree({
     }
     onReorderStatus({ state: "saving", message: `Moving ${getComponentName(item)}...` });
     try {
-      await onMoveComponentToFolder(item, targetFolderId);
-      onSelectFolder(targetFolderId);
-      onReorderStatus({ state: "saved", message: "Component moved." });
+      const outcome = await onMoveComponentToFolder(item, targetFolderId);
+      if (!outcome || outcome.type === "latest-success") {
+        onSelectFolder(targetFolderId);
+        onReorderStatus({ state: "saved", message: "Component moved." });
+      } else if (outcome.type === "latest-failure") {
+        onReorderStatus({
+          state: "error",
+          message: outcome.error instanceof Error ? outcome.error.message : "Could not move component.",
+        });
+      }
     } catch (error) {
       onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not move component." });
     }
@@ -800,7 +813,7 @@ type LibraryFolderTreePickerProps = {
   selectedBrandName?: string | null;
   onSelectFolder: (folderId: string) => void;
   onToggleComponentSelected?: (itemId: string) => void;
-  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
+  onMoveComponentToFolder?: ComponentFolderMoveHandler;
   onSelectSupplier?: (supplierId: string | null, supplierName?: string) => void;
   onSelectBrand?: (brandId: string | null, brandName?: string) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
@@ -824,7 +837,7 @@ type LibraryFolderTreeSurfaceProps = {
   onViewModeChange?: (mode: ComponentViewMode) => void;
   onSelectFolder: (folderId: string) => void;
   onToggleComponentSelected?: (itemId: string) => void;
-  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
+  onMoveComponentToFolder?: ComponentFolderMoveHandler;
   onFoldersChange?: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus?: (status: ReorderStatus) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
