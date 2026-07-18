@@ -69,7 +69,7 @@ Every claim in `05-FINDINGS-REGISTER.md` is grounded in current source with `fil
 - **Still valid (verified current at HEAD)**: 27 of 33 plans. The largest are 021 (async recipient emails — PERF-PUB-001 confirms), 022 (style prop memoization — PERF-FE-001 confirms), 023 (restore batch — PERF-D1-001 confirms), 026 (god-component decomposition — confirmed 3,803 lines), 025 (`workspace-repository.ts` split — confirmed 3,713 lines), 027 (`@firecms/neat` — still imported), 005 (platform-admin email fallback — `philipjonlewis@gmail.com` still hardcoded at `roles.ts:31`), 003 (rate limiter durable — `action-rate-limit.ts` still pure in-memory).
 - **Verified DONE at HEAD**: 002 (D1 batch hard-throw — enforced at 10+ sites); partial 011 (direct-upload checksum binding exists at `direct-upload/route.ts:516-531`).
 - **Stale on assumptions**: 0 of 33 on core claims. All source assumptions still hold.
-- **Newly discovered in this audit**: 14 fresh findings (see `05-FINDINGS-REGISTER.md`). The largest new surfaces are migration 0092 linked-Template propagation, durable rate-limit infrastructure (used by publication but NOT estimate actions), the expanded 5-minute cron, the Client Portal notification durable queue, and the `cron_run_events` always-write pattern.
+- **Newly discovered in this audit**: 16 fresh findings (see `05-FINDINGS-REGISTER.md`). The largest new surfaces are migration 0092 linked-Template propagation, durable rate-limit infrastructure (used by publication but NOT estimate actions), the expanded 5-minute cron, the Client Portal notification durable queue, the `cron_run_events` always-write pattern, the library full-load scan without covering index, and the propagation component-source guard with 15+ `json_extract` correlations.
 
 ---
 

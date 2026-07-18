@@ -63,6 +63,8 @@ Waves are ordered by dependency and risk. Each item cites owner type, effort, ri
 | W3-4 | **Upload-job queue: wire cron through queue** (or document the bypass) | eng | S | Low | — | either cron enqueues real messages OR code comment documents why cron bypasses (current state) | revert | clarity; corrects K-11 sub-finding |
 | W3-5 | **Client Portal notification DLQ reconciliation** | eng | S | Low | — | in-code `state='dead'` and Wrangler DLQ no longer both trip at attempt 10; documented single dead-letter channel | revert | clearer retry semantics |
 | W3-6 | **`max_concurrency` explicit on both queue consumers** | eng | XS | Low | — | wrangler.jsonc sets `max_concurrency` to a deliberate value | revert to unset | predictable queue throughput |
+| W3-7 | **Library full-load index or path migration** (PERF-D1-003) | eng | S/M | Low/Medium | W0-6 (EXPLAIN) | EXPLAIN shows index seek instead of full scan; Large-tier page latency drops | revert path or drop index | eliminates ~10 full workspace scans at Large tier |
+| W3-8 | **Component-source guard CTE refactor** (PERF-D1-004) | eng | M | Medium | W0-6 (EXPLAIN); W3-2 (fanout proof) | propagation job wall-time drops at large component counts | revert guard | propagation convergence improvement |
 
 ---
 
