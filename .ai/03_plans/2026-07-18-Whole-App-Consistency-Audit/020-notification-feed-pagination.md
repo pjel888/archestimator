@@ -1,4 +1,14 @@
-# Unit 020 — Notification Feed Optimistic Update Skips Paginated Cursors (MEDIUM)
+# Unit 020 — Notification Feed Mutation Skips Paginated Cursors (WEAKENED → LOW)
+
+**Finding:** F-20 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **WEAKENED → LOW** · **Status:** TODO (P4)
+
+> **Re-verification:** The mutation-cache bug is real (mutations patch only `feed(null)`, and
+> the toplevel invalidate uses `refetchType:"none"`), but the feed UI is **single-page in
+> practice.** `NotificationCenter.tsx:21` calls `useNotificationsQuery(undefined, ...)` →
+> `feed(null)` key; there is **no "load more"** anywhere — no `fetchNextPage`, no
+> `useInfiniteQuery`. `nextCursor` exists in `repository.ts`/`types.ts` but is never consumed
+> by any component. So the stale-cursor bug is unreachable until/unless pagination is added.
+> Priority P4. Recommend either removing the unused `nextCursor` from the type or wiring it up.
 
 **Finding:** F-20 · **Severity:** MEDIUM · **Priority:** P3 · **Effort:** M · **Risk:** LOW
 **Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED

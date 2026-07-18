@@ -1,76 +1,34 @@
-# Unit 008 — Onboarding "Create An Estimate" Gated On The Wrong Milestone (HIGH)
+# Unit 008 — Onboarding Checklist Wrong Milestone (REFUTED — dead code + false premise)
 
-**Finding:** F-08 · **Severity:** HIGH · **Priority:** P1 · **Effort:** S · **Risk:** LOW
-**Requirement:** `REQ-008` · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED
+**Finding:** F-08 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **REFUTED** · **Status:** REJECTED
 
-## Problem
+## Original claim
 
-The "Create an estimate" checklist item is marked `complete` when
-`hasMilestone(progress, "workspace_ready")` is true. But `workspace_ready` is
-milestone rank 1 — reached right after `invite_accepted` (rank 0) and **before**
-`project_created` (rank 2). So the checklist can report fully complete with **no
-project and no estimate ever created**. The estimate item can also read "complete"
-while the "project" item still reads "next", which is internally inconsistent.
+The "Create an estimate" checklist item gates on `workspace_ready` (rank 1), reached before
+`project_created` (rank 2), so the checklist can report complete with no project/estimate.
 
-## Evidence
+## Why it's refuted (two independent reasons)
 
-`src/lib/onboarding/first-estimate-checklist.ts:11-24` (milestone rank):
-```ts
-const milestoneRank: Record<ActivationMilestone, number> = {
-  invite_accepted: 0,
-  workspace_ready: 1,
-  project_created: 2,
-  first_area_created: 3,
-  first_row_priced: 4,
-  first_valid_total: 5,
-  // ...
-};
-```
+**1. The checklist is not rendered anywhere.** The only consumer,
+`src/components/workshop/FirstEstimateChecklist.tsx`, is mounted nowhere in `src/`
+(`grep "<FirstEstimateChecklist" src/` returns nothing). The route
+`src/app/workshop/getting-started/page.tsx` is now just `redirect("/workshop")` — refactored
+away in commit `a68c8393d` ("tidy workshop routes"). So even if the milestone logic were wrong,
+no user sees it.
 
-`src/lib/onboarding/first-estimate-checklist.ts:37-38`:
-```ts
-{ id: "project", ..., status: hasMilestone(progress, "project_created") ? "complete" : "next" },
-{ id: "estimate", ..., status: hasMilestone(progress, "workspace_ready") ? "complete" : "next" },  // ← wrong gate
-```
+**2. The milestone-order premise is also false.** `workspace_ready` is emitted ONLY in
+`src/lib/projects/actions.ts:1159-1167`, batched together with `project_created` in the **same
+D1 batch with the same `projectId`**. There is no code path that sets
+`lastMilestone = workspace_ready` without a project existing. The "complete with no project"
+state is unreachable on both counts.
 
-The "project" item correctly gates on `project_created`, but the "estimate" item
-gates on the **earlier** `workspace_ready`.
+## Related cleanup (filed as N-04, unit 035)
 
-## Fix Direction
+`tests/vitest/getting-started-route.test.ts` references the removed `FirstEstimateChecklist`
+rendering and is stale — candidate for update/deletion.
 
-Gate the estimate item on a milestone that actually implies an estimate exists.
-Two options, in order of correctness:
+## Disposition
 
-1. **Best:** add/use a real `first_estimate_created` milestone (if activation
-   tracking already records estimate creation) and gate on it.
-2. **Minimum:** gate on `project_created` (rank 2) so the estimate item can never
-   be complete before the project item.
-
-```ts
-{ id: "estimate", ..., status: hasMilestone(progress, "first_estimate_created" /* or "project_created" */) ? "complete" : "next" },
-```
-
-Pick option 1 only if the milestone is already emitted somewhere; otherwise option
-2 is the safe minimal fix. Verify against `activation-types.ts` /
-`activation-repository.ts` for the real milestone set before choosing.
-
-### Owned paths
-- `src/lib/onboarding/first-estimate-checklist.ts`
-- (option 1 only) `src/lib/onboarding/activation-repository.ts`, the place that
-  emits milestones on estimate creation.
-
-### Prohibited
-- Do not reorder the milestone ranks to paper over the bug.
-- Do not change `isComplete` semantics; fix the gate, not the aggregation.
-
-## Acceptance Evidence
-
-- `AC-001`: the "estimate" item's gate is at least as late as `project_created`
-  (option 2) or a real estimate milestone (option 1).
-- `AC-002`: with only `workspace_ready` reached, both "project" and "estimate"
-  read "next"; `isComplete` is false.
-
-## Recovery
-
-If neither `first_estimate_created` nor a usable milestone exists, option 2
-(`project_created`) is the floor and is safe.
+**REJECTED.** No code change. (If `FirstEstimateChecklist` is ever revived, gate the estimate
+item on `project_created` or a real `first_estimate_created` milestone per the original unit's
+guidance — but it's moot today.)

@@ -1,75 +1,40 @@
-# Unit 002 — `selectedVariantId` Deletion Throws Instead Of Falling Back (HIGH)
+# Unit 002 — Variant Deletion Bricking Propagation (REFUTED)
 
-**Finding:** F-02 · **Severity:** HIGH · **Priority:** P1 · **Effort:** S · **Risk:** LOW
-**Requirement:** `REQ-002` · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED
+**Finding:** F-02 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **REFUTED** · **Status:** REJECTED
 
-## Problem
+## Original claim
 
-During linked-Template propagation, if a Template row's stored `selectedVariantId`
-no longer exists (variant deleted or inactivated), the resolver throws
-`template_component_unavailable` with `retryable: false`. This is non-retryable, so
-propagation for **every instance of that Template** is bricked until someone
-manually re-selects a variant in the Template editor.
+`selectedVariantId` deletion throws `template_component_unavailable` (non-retryable) during
+linked-Template propagation, bricking ALL instances until a manual re-select.
 
-## Evidence
+## Why it's refuted (reachability)
 
-`src/lib/component-library/template-propagation-d1.ts:182-192`
+The triggering state — "a variant is deleted/inactivated while a Template row still references
+it as `selectedVariantId`" — **cannot occur via the canonical delete flow**, because deletion
+is guarded upstream:
 
-```ts
-const source = row.selectedVariantId
-  ? componentSources.find((candidate) => candidate.option_id === row.selectedVariantId)
-  : componentSources.find((candidate) => numeric(candidate.option_is_default) === 1);
-if (!source || !source.option_id || source.lifecycle_state !== "available") {
-  throw new TemplatePropagationError(
-    "A required Component is unavailable.",
-    "template_component_unavailable",
-    "component_unavailable",
-    false, // retryable = false → bricks all instances
-  );
-}
-```
+- `src/lib/component-library/component-mutation-d1.ts:1576-1585` (`buildLinkedEstimateRowSyncPlans`):
+  when a variant is removed, the code demands a `removedPriceOptionReplacements[previousSelectedId]`
+  mapping for every row still using it. If missing, it throws
+  *"Variant X is still used by an estimate row. Choose an explicit replacement before deleting it."*
+  The variant is never removed while a live row references it.
+- `component-permanent-delete.ts` blocks permanent delete entirely if template rows still
+  reference the component (`hasTemplateRows` flag surfaced at line 2199).
+- The deactivation `UPDATE ... is_active=0` (line 2028) only runs after `removedPriceOptionIds`
+  is computed from rows already migrated to replacements.
 
-The precedent for the correct fallback exists at
-`src/lib/component-library/express-promotion-actions.ts:160`, which falls back to
-the default variant before giving up.
+So the throw in `template-propagation-d1.ts:182-192` is correct **defensive** code for a state
+the rest of the system prevents from arising. The "bricking ALL instances" severity was wrong.
 
-## Fix Direction
+## Narrow residual gap (filed as N-01, unit 032)
 
-Before throwing, fall back to the default variant when the explicitly-selected one
-is gone:
+`listLinkedEstimateRowTargets` (`component-mutation-d1.ts:485-511`) scans only
+`estimate_row_items`, not `estimate_template_row_items`. So a variant could theoretically be
+removed while an **unpublished Template definition row** references it (the template-row
+`source_snapshot` isn't re-pointed). That surfaces at the next template-version publish as
+`template_component_unavailable` — a consistency gap, NOT an instance-bricking bug, and tracked
+separately as N-01. This unit (F-02) itself needs no change.
 
-```ts
-const explicit = row.selectedVariantId
-  ? componentSources.find((c) => c.option_id === row.selectedVariantId)
-  : undefined;
-const source = explicit
-  ?? componentSources.find((c) => numeric(c.option_is_default) === 1);
-if (!source || !source.option_id || source.lifecycle_state !== "available") {
-  throw new TemplatePropagationError(/* ... */);
-}
-```
+## Disposition
 
-Throw only when **no** available variant exists (genuine brick). Keep the throw
-non-retryable only for the true no-variant case.
-
-### Owned paths
-- `src/lib/component-library/template-propagation-d1.ts`
-
-### Prohibited
-- Do not silently swap the user's explicit variant choice in the **Template
-  editor** — this fallback only applies during instance propagation, where the
-  source of truth is "apply the template to the instance." If the explicit variant
-  is gone, default is the honest next-best.
-- Do not change `retryable` semantics for the genuine no-variant case.
-
-## Acceptance Evidence
-
-- `AC-001`: diff shows the `?? default` fallback before the throw.
-- `AC-002`: when `selectedVariantId` points at a deleted variant but a default
-  exists, propagation succeeds using the default (static reasoning; the default
-  branch already works for the `selectedVariantId == null` case).
-
-## Recovery
-
-If a default variant is also unavailable, the existing throw is correct — revert to
-current behavior for that sub-case.
+**REJECTED.** No code change. Kept in the register so the claim isn't re-raised.

@@ -1,4 +1,19 @@
-# Unit 007 — `UPLOAD_JOBS_QUEUE` Is Dead Infrastructure (HIGH)
+# Unit 007 — Unused enqueue fn; queue misframed as dead (WEAKENED → LOW)
+
+**Finding:** F-07 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **WEAKENED → LOW** · **Status:** TODO
+
+> **Re-verification corrected the framing.** The `UPLOAD_JOBS_QUEUE` is **NOT dead
+> infrastructure.** It is alive via a different path: `POST /__cloudflare/jobs-proof` (routed
+> from `fetch()` in `worker.ts`) calls `queue.sendBatch` directly at `jobs-proof-router.ts:231`;
+> the consumer then runs `runCloudflareUploadJobQueueBatch`. So messages do flow through the
+> queue. What's actually dead is only **one unused enqueue function**:
+> `enqueueCloudflareScheduledUploadJobs` (`upload-job-queue.ts:143`) has zero runtime callers
+> (only a test + an offline proof-generator script reference it). The cron path bypasses the
+> queue by design (in-Worker fetch to `/api/internal/upload-cleanup`).
+>
+> **Revised fix:** delete the unused `enqueueCloudflareScheduledUploadJobs` (and its test) —
+> do NOT remove the queue binding/producer/consumer. Priority P4. The original "remove or
+> wire-in the whole queue" options are moot.
 
 **Finding:** F-07 · **Severity:** HIGH · **Priority:** P2 · **Effort:** S · **Risk:** LOW
 **Requirement:** `REQ-007` · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED

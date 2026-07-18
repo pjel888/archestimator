@@ -1,4 +1,13 @@
-# Unit 013 — `share/[token]/sections/*` Duplicate Client-Portal Routes Without A Token-Type Guard (MEDIUM)
+# Unit 013 — Share Sections Routes Missing Token-Type Guard (WEAKENED → LOW)
+
+**Finding:** F-13 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **WEAKENED → LOW** · **Status:** TODO (P4)
+
+> **Re-verification:** For a true legacy (non-portal) token, all three handlers funnel through
+> `resolveClientPortalPublicContext`, whose `resolvePortalToken` returns null for tokens with no
+> `client_portals` / `client_portal_legacy_mappings` match → the handler returns a harmless 404.
+> **No wrong data is exposed.** The missing `isClientPortalToken` guard is redundant with the
+> 404 already produced inside. Real value is consistency/hardening (short-circuit the extra D1
+> lookup and match sibling routes), not a wrong-data fix. Priority P4.
 
 **Finding:** F-13 · **Severity:** MEDIUM · **Priority:** P3 · **Effort:** S · **Risk:** LOW
 **Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** 005 · **Test:** NOT_REQUIRED

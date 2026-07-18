@@ -62,6 +62,40 @@ divergence has **5** drop sites (not 4), and charts is a PASS site (not a drop).
 Counts by area: Estimate core 7; Publish/Share/Portal 5; Auth/Security 7;
 Admin 3; Uploads/Infra 4; UI State/Cross-cutting 5.
 
+### 3a. RE-VERIFICATION PASS (2026-07-19) — read this before trusting any row
+
+After F-01 (labor) turned out to be **unreachable dead code misdiagnosed as a live
+CRITICAL**, every other finding was re-verified against a strict **reachability**
+standard: *can the buggy state actually occur in a real user/server flow?* The
+re-check materially changed the pack. Several "HIGH" findings were unreachable
+dead code, guarded upstream, or built on a false premise — the same disease as F-01.
+
+**Headline result: the pack's CRITICAL count is now 0, and only ~9 findings
+remain genuinely actionable.** Distribution of the 24 re-reviewed findings:
+
+- **CONFIRMED (reachable as stated or close):** F-06, F-11, F-12, F-15, F-21, F-23, F-25, F-26 (8)
+- **WEAKENED (real but overstated → severity dropped):** F-05, F-07, F-09, F-13, F-14, F-16, F-17, F-20, F-22 (9)
+- **REFUTED (unreachable / dead code / misread — drop or convert to dead-code cleanup):** F-02, F-03, F-04, F-08, F-10, F-18, F-19 (7)
+
+**Root-cause of the false positives (so future audits avoid it):** the initial
+audit inferred a bug from *code shape* without checking whether the triggering
+input/state is ever produced. Patterns that recurred:
+- A function with a bug that has **zero callers** (F-04 `voidClientPortalDecisionAction`, F-10 `getSelectionState`, F-08 `FirstEstimateChecklist` mounted nowhere, F-21 `resetEstimateWorkspaceState` unused).
+- A "stale cache" bug where the value is **never actually cached** (F-03).
+- A downstream check that's **guarded upstream** so the bad state can't be reached (F-02 variant deletion is blocked when a row references it).
+- A **feature currently disabled** so the bypass is dormant (F-09 closed-beta is OFF).
+- A field the audit claimed leaks, that **isn't actually rendered** (F-17 `invited_email`).
+
+**New issues discovered during re-verification (not in original pack):**
+- `N-01` (P3): `listLinkedEstimateRowTargets` (`component-mutation-d1.ts:485`) only scans `estimate_row_items`, not `estimate_template_row_items` — template-definition rows referencing a removed variant aren't re-pointed. Surfaces as `template_component_unavailable` at next publish. (Found while tracing F-02.)
+- `N-02` (LOW): TanStack Query cache is not cleared on `signOut` (`lib/auth/actions.ts:223`) — same cross-user shared-device leak class as F-21. (Found while tracing F-21.)
+- `N-03` (cleanup): `src/lib/client-portal/decision-actions.ts` is an orphaned module (zero importers) — candidate for deletion. (Found while tracing F-04.)
+- `N-04` (cleanup): `tests/vitest/getting-started-route.test.ts` references the removed `FirstEstimateChecklist` rendering and is stale. (Found while tracing F-08.)
+
+The findings register (§5) and per-unit docs now carry the re-verdict in the
+Status/Severity columns. REFUTED findings are kept in the register (not deleted)
+with their refutation evidence, so the same claim isn't re-raised later.
+
 ## 4. Requirements
 
 | ID | Requirement (statement) | Source | Class |
@@ -84,39 +118,60 @@ Each finding has a dedicated unit doc `NNN-*.md` with full evidence. Severity is
 the audit's; Priority is the execution ranking. Effort uses S/M/L. Risk is
 reversibility/blast-radius.
 
-| ID | Sev | Title | Unit | Pri | Effort | Risk | Status |
+| ID | Orig Sev | Re-verdict (2026-07-19) | Eff. Sev | Title | Unit | Pri | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F-01 | CRITICAL | `laborUnitCost` dropped from row totals in 5 of 9 total-computing sites → money diverges across surfaces | `001` | P1 | M | HIGH | TODO |
-| F-02 | HIGH | `selectedVariantId` deletion throws instead of falling back to default variant | `002` | P1 | S | LOW | TODO |
-| F-03 | HIGH | Sheet adjustment rate silently dropped when `percentage === 0` | `003` | P1 | S | LOW | TODO |
-| F-04 | HIGH | Voiding a Client Portal decision never reverts the issue status | `004` | P1 | S | MED | TODO |
-| F-05 | HIGH | Legacy share decision GET uses a different password-error body | `005` | P1 | S | LOW | TODO |
-| F-06 | HIGH | Support inbox `unread_for_admin` never resets on admin reply | `006` | P1 | S | LOW | TODO |
-| F-07 | HIGH | `UPLOAD_JOBS_QUEUE` is dead infrastructure (zero producers) | `007` | P2 | S | LOW | TODO |
-| F-08 | HIGH | Onboarding "Create an estimate" gated on the wrong milestone | `008` | P1 | S | LOW | TODO |
-| F-09 | HIGH | Closed-beta gate not enforced in middleware | `009` | P2 | M | MED | TODO |
-| F-10 | MEDIUM | `getSelectionState` hides partial selection under a selected parent | `010` | P3 | S | LOW | TODO |
-| F-11 | MEDIUM | `resetEstimateColumnWidths` wipes the global last-used key | `011` | P3 | S | LOW | TODO |
-| F-12 | MEDIUM | Client Portal thread pagination cursor can point at a filtered-out row | `012` | P2 | M | MED | TODO |
-| F-13 | MEDIUM | `share/[token]/sections/*` duplicate client-portal routes without a token-type guard | `013` | P3 | S | LOW | TODO |
-| F-14 | MEDIUM | Proof routers use non-timing-safe `===` secret comparison | `014` | P2 | S | LOW | TODO |
-| F-15 | MEDIUM | `acceptInvite` POST forwards a null user to the acceptance RPC | `015` | P3 | S | LOW | TODO |
-| F-16 | MEDIUM | `isAllowedInviteOrigin` fails open when Origin+Referer absent | `016` | P2 | S | LOW | TODO |
-| F-17 | MEDIUM | Invite preview leaks PII to any signed-in token-holder | `017` | P2 | S | LOW | TODO |
-| F-18 | MEDIUM | Cursor broadcast re-subscribes on every displayName/userId change | `018` | P3 | S | LOW | TODO |
-| F-19 | MEDIUM | Cursor broadcast cleanup resets identity refs to stale props | `019` | P3 | S | LOW | TODO |
-| F-20 | MEDIUM | Notification feed optimistic update skips paginated cursors | `020` | P3 | M | LOW | TODO |
-| F-21 | MEDIUM | `useEstimateWorkspaceState` never resets on sign-out (PII leak on shared device) | `021` | P2 | S | LOW | TODO |
-| F-22 | MEDIUM | `featureFlagCache` module singleton — cross-isolate staleness, local-only invalidation | `022` | P3 | S | MED | TODO |
-| F-23 | LOW | Proposal preview signature omits labor/contingency fields | `023` | P3 | S | LOW | TODO |
-| F-24 | LOW | Share snapshot GET labels opaque project id as `publicationId` | `024` | P4 | S | LOW | TODO |
-| F-25 | LOW | `CLOUDFLARE_UPLOAD_JOBS_DRY_RUN` default semantics inverted | `025` | P3 | S | LOW | TODO |
-| F-26 | LOW | `GlobalPresence` DO leaks broadcast timer on idle | `026` | P4 | S | LOW | TODO |
-| F-27 | LOW | `NotificationListItem` locale drift (no `en-PH` pin) | `027` | P4 | S | LOW | TODO |
-| F-28 | LOW | `clampNotificationLimit` swallows NaN/empty-string cursor | `028` | P4 | S | LOW | TODO |
-| F-29 | LOW | Support inbox caps at 100 with no total/indication | `029` | P4 | S | LOW | TODO |
-| F-30 | LOW | Bearer-auth secret loop runs past a match (timing leak) | `030` | P4 | S | LOW | TODO |
-| F-31 | LOW | `buildAcceptedInviteRedirect` trusts form-body display fields | `031` | P4 | S | LOW | TODO |
+| F-01 | CRITICAL | REFUTED (unreachable; removed as dead code) | — (DONE) | `laborUnitCost` dead field — ripped out 2026-07-18 | `001` | — | DONE |
+| F-02 | HIGH | **REFUTED** (variant delete is blocked upstream when a row references it) | — | `selectedVariantId` deletion throws instead of falling back | `002` | — | REJECTED |
+| F-03 | HIGH | **REFUTED** (rate is never cached; re-resolved fresh each request) | — | Sheet adjustment rate silently dropped when `percentage === 0` | `003` | — | REJECTED |
+| F-04 | HIGH | **REFUTED** (`voidClientPortalDecisionAction` has zero callers — dead code) | — | Voiding a Client Portal decision never reverts issue status | `004` | — | REJECTED |
+| F-05 | HIGH | **WEAKENED** (no client reads `passwordRequired` on GET) | LOW | Legacy share decision GET password-error body shape | `005` | P4 | TODO |
+| F-06 | HIGH | CONFIRMED (live; cosmetic ops noise) | LOW | Support inbox `unread_for_admin` never resets on admin reply | `006` | P3 | TODO |
+| F-07 | HIGH | **WEAKENED** (queue IS alive via jobs-proof-router; only one enqueue fn dead) | LOW | `enqueueCloudflareScheduledUploadJobs` unused; queue misframed | `007` | P4 | TODO |
+| F-08 | HIGH | **REFUTED** (checklist mounted nowhere; `workspace_ready` emitted *with* `project_created`) | — | Onboarding "Create an estimate" gated on wrong milestone | `008` | — | REJECTED |
+| F-09 | HIGH | **WEAKENED** (closed-beta currently OFF → dormant) | LOW (latent) | Closed-beta gate not enforced in middleware | `009` | P4 | TODO |
+| F-10 | MEDIUM | **REFUTED** (`getSelectionState` has zero production callers) | — | Selection indeterminacy under selected parent | `010` | — | REJECTED |
+| F-11 | MEDIUM | CONFIRMED (wired to UI reset action) | LOW | `resetEstimateColumnWidths` wipes global last-used key | `011` | P4 | TODO |
+| F-12 | MEDIUM | CONFIRMED (reachable; harm = pagination gap, not corruption) | MED | Client Portal thread pagination cursor keys off filtered-out row | `012` | P3 | TODO |
+| F-13 | MEDIUM | **WEAKENED** (legacy tokens get harmless 404; guard is hardening) | LOW | `share/[token]/sections/*` missing token-type guard | `013` | P4 | TODO |
+| F-14 | MEDIUM | **WEAKENED** (timing attack on high-entropy Bearer impractical) | LOW (hygiene) | Proof routers use `===` not `timingSafeEqual` | `014` | P4 | TODO |
+| F-15 | MEDIUM | CONFIRMED (RPC guard robust → defense-in-depth only) | LOW | `acceptInvite` POST forwards null user to RPC | `015` | P4 | TODO |
+| F-16 | MEDIUM | **WEAKENED** (browsers always send Origin or Referer on legit POST) | LOW | `isAllowedInviteOrigin` fails open when both headers absent | `016` | P4 | TODO |
+| F-17 | MEDIUM | **WEAKENED** (`invited_email` NOT rendered; tokens unguessable) | LOW | Invite preview info disclosure | `017` | P4 | TODO |
+| F-18 | MEDIUM | **REFUTED** (all callers pass stable `displayName`/`null`) | — (latent) | Cursor broadcast re-subscribes on displayName/userId change | `018` | — | REJECTED |
+| F-19 | MEDIUM | **REFUTED** (no mid-session identity change without reload) | — (latent) | Cursor broadcast cleanup resets identity refs to stale props | `019` | — | REJECTED |
+| F-20 | MEDIUM | **WEAKENED** (feed is single-page; no `fetchNextPage` exists) | LOW | Notification feed optimistic update skips paginated cursors | `020` | P4 | TODO |
+| F-21 | MEDIUM | CONFIRMED (genuine shared-device leak; reset fn unused) | LOW-MED | `useEstimateWorkspaceState` never resets on sign-out | `021` | P3 | TODO |
+| F-22 | MEDIUM | **WEAKENED** (rare admin actions; 15s propagation acceptable) | LOW (hygiene) | `featureFlagCache` cross-isolate staleness | `022` | P4 | TODO |
+| F-23 | LOW | CONFIRMED (`quantityBase`/`quantityContingencyAmount` editable → stale preview; drop labor part) | MED | Proposal preview signature omits contingency fields | `023` | P3 | TODO |
+| F-24 | LOW | (not re-reviewed; minor) | LOW | Share snapshot GET labels opaque id as `publicationId` | `024` | P4 | TODO |
+| F-25 | LOW | **CONFIRMED** (real footgun if prod sets ENABLED=1 without DRY_RUN=0) | MED | `CLOUDFLARE_UPLOAD_JOBS_DRY_RUN` default inverted | `025` | P3 | TODO |
+| F-26 | LOW | CONFIRMED (debounced; one short timer) | LOW | `GlobalPresence` DO leaks broadcast timer on idle | `026` | P4 | TODO |
+| F-27 | LOW | (not re-reviewed; minor) | LOW | `NotificationListItem` locale drift | `027` | P4 | TODO |
+| F-28 | LOW | (not re-reviewed; minor) | LOW | `clampNotificationLimit` swallows NaN/empty cursor | `028` | P4 | TODO |
+| F-29 | LOW | (not re-reviewed; minor) | LOW | Support inbox caps at 100 with no total | `029` | P4 | TODO |
+| F-30 | LOW | (not re-reviewed; minor) | LOW | Bearer-auth secret loop runs past a match | `030` | P4 | TODO |
+| F-31 | LOW | (not re-reviewed; minor) | LOW | `buildAcceptedInviteRedirect` trusts form-body display fields | `031` | P4 | TODO |
+
+**New findings from re-verification (added 2026-07-19):**
+
+| ID | Sev | Title | Unit | Pri | Status |
+| --- | --- | --- | --- | --- | --- |
+| N-01 | MED | `listLinkedEstimateRowTargets` ignores `estimate_template_row_items` → template rows referencing a removed variant aren't re-pointed | `032` | P3 | TODO |
+| N-02 | LOW | TanStack Query cache not cleared on `signOut` (same shared-device leak class as F-21) | `033` | P3 | TODO |
+| N-03 | LOW (cleanup) | `src/lib/client-portal/decision-actions.ts` is an orphaned module (zero importers) — delete | `034` | P4 | TODO |
+| N-04 | LOW (cleanup) | `tests/vitest/getting-started-route.test.ts` references removed `FirstEstimateChecklist` rendering — stale | `035` | P4 | TODO |
+
+### Effective actionable shortlist (after re-verification)
+
+The genuinely actionable items, in priority order:
+1. **F-25** (MED) — dry-run default footgun; clear config robustness fix
+2. **F-12** (MED) — thread pagination gap
+3. **F-23** (MED) — stale proposal preview on contingency edit
+4. **F-21** (LOW-MED) + **N-02** (LOW) — shared-device state leak on sign-out (one fix: clear stores + queryClient)
+5. **N-01** (MED) — template-row variant re-pointing gap
+6. The LOW cluster (F-05/06/07/09/11/13/14/15/16/17/20/22/24/26-31) — hygiene/cosmetic; batch opportunistically
+
+The 7 REFUTED findings (F-02, F-03, F-04, F-08, F-10, F-18, F-19) need no code change; their unit docs are rewritten to record the refutation evidence so they aren't re-raised.
 
 ## 6. Decisions And Boundaries
 

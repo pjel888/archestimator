@@ -1,4 +1,14 @@
-# Unit 009 — Closed-Beta Gate Not Enforced In Middleware (HIGH)
+# Unit 009 — Closed-Beta Gate Not In Middleware (WEAKENED → LATENT/LOW)
+
+**Finding:** F-09 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **WEAKENED → LATENT** · **Status:** TODO (P4)
+
+> **Re-verification:** Closed beta is **currently OFF** — `.env.local:17` and `.env.example:54`
+> both set `CLOSED_BETA_ACCESS_ENABLED=false`; `isClosedBetaAccessEnabled` is a strict `=== "true"`
+> check, and when disabled `getClosedBetaAccessForEmail` returns `{allowed:true, status:"disabled"}`.
+> So even routes calling `getCurrentUserContext` wouldn't block today. The middleware cookie-check
+> "bypass" is dormant. The code-level concern (beta runs only inside `getCurrentUserContext`, not
+> middleware) is real and would bite the day beta is flipped on, but it is **not a live bypass
+> now.** Priority dropped to P4/hardening. Recommend fixing it **before** re-enabling closed beta.
 
 **Finding:** F-09 · **Severity:** HIGH · **Priority:** P2 · **Effort:** M · **Risk:** MED
 **Requirement:** `REQ-009` · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED

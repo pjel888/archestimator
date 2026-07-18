@@ -1,71 +1,29 @@
-# Unit 003 — Sheet Adjustment Rate Dropped When `percentage === 0` (HIGH)
+# Unit 003 — Sheet Adjustment 0% Cached (REFUTED)
 
-**Finding:** F-03 · **Severity:** HIGH · **Priority:** P1 · **Effort:** S · **Risk:** LOW
-**Requirement:** `REQ-003` · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED
+**Finding:** F-03 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **REFUTED** · **Status:** REJECTED
 
-## Problem
+## Original claim
 
-`withSheetAdjustmentSettings` returns the settings unchanged whenever
-`sheetAdjustment.percentage === 0`. Because the **mode** is also dropped in that
-branch, a previously-applied adjustment can persist into a later export. Switching
-from a 5% discount back to 0% in the UI can export with the old 5% still applied if
-prior settings cached `sheetAdjustmentRate`.
+`withSheetAdjustmentSettings` returns unchanged when `percentage === 0`, so switching from a
+5% discount back to 0% can export with the old 5% still applied if prior settings cached the rate.
 
-## Evidence
+## Why it's refuted (the cache doesn't exist)
 
-`src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts:177-187`
+The entire premise — "a cached prior value" — is fabricated. `sheetAdjustmentRate` is **never
+cached anywhere**:
 
-```ts
-function withSheetAdjustmentSettings(
-  settings: Partial<ProposalExportSettings>,
-  sheetAdjustment: EstimateSheetAdjustment | null | undefined,
-): Partial<ProposalExportSettings> {
-  if (!sheetAdjustment || sheetAdjustment.percentage === 0) return settings; // drops mode + rate
-  return {
-    ...settings,
-    sheetAdjustmentMode: sheetAdjustment.mode,
-    sheetAdjustmentRate: sheetAdjustment.percentage,
-  };
-}
-```
+- `parseExportSettings` (`route.ts:47-55`) parses only `contingencyRate`/`vatRate` from the URL;
+  `sheetAdjustmentRate` is not in its allowlist.
+- `withSheetAdjustmentSettings` (`route.ts:177-187`) reads `result.sheetAdjustment`, which comes
+  **fresh from the DB** via `getEstimateTabTree` / `getEstimateTreesForTabs` /
+  `getProjectEstimateTreeByEstimate` on every request (`workspace-repository.ts:3516`).
+- When `percentage === 0`, the field is omitted and falls through to
+  `defaultProposalExportSettings.sheetAdjustmentRate = 0` (`settings.ts:16`) — which is correct.
 
-`percentage === 0` is a legitimate, meaningful value (a 0% contingency/discount is
-a real configuration), and clearing a previous non-zero adjustment back to 0 must
-zero the exported rate too.
+There is no client, store, or stale layer holding a prior rate. The 0% short-circuit produces the
+correct value (0) through the default. No bug.
 
-## Fix Direction
+## Disposition
 
-Always pass through the resolved mode and rate when a `sheetAdjustment` exists,
-even at 0%:
-
-```ts
-function withSheetAdjustmentSettings(settings, sheetAdjustment) {
-  if (!sheetAdjustment) return settings; // only short-circuit on absence
-  return {
-    ...settings,
-    sheetAdjustmentMode: sheetAdjustment.mode,
-    sheetAdjustmentRate: sheetAdjustment.percentage, // 0 is a valid, meaningful value
-  };
-}
-```
-
-The only short-circuit that should remain is `!sheetAdjustment` (no adjustment
-configured at all).
-
-### Owned paths
-- `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts`
-
-### Prohibited
-- Do not default `sheetAdjustmentMode` to a guess when absent; only set it when the
-  adjustment object is present.
-
-## Acceptance Evidence
-
-- `AC-001`: diff shows `percentage === 0` no longer short-circuits.
-- `AC-002`: an estimate switched from 5% discount → 0% exports with
-  `sheetAdjustmentRate = 0` and the current mode (static proof via the function
-  body).
-
-## Recovery
-
-None needed; the change is a strict widening of the passthrough condition.
+**REJECTED.** No code change. The `percentage === 0` short-circuit is harmless because the value
+is always re-resolved from the DB and the default is 0.

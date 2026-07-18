@@ -10,7 +10,7 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-18T00:00:00.000Z",
+  "updated_at": "2026-07-19T00:00:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -23,37 +23,37 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "13336d0025e4cd1b34ab486b77103ce4ec7a87d6aa4800e1ac7e274794d18ac9"
+      "sha256": "922574818e54313a995b21203ddb3bd7e5d3b13fd107f8bbda092aeb3db5de19"
     },
     {
       "id": "ART-002",
       "role": "unit",
       "path": "001-labor-cost-divergence.md",
-      "sha256": "9f4ca42f72b4c3b364b58f917466d7c27dbd9e72dee214d3742b3151005a1b25"
+      "sha256": "53c9808b8b7d7b65e11427ed74a9a30faefd14d1ac4c27bdde5e15f3cb7ac0c5"
     },
     {
       "id": "ART-003",
       "role": "unit",
       "path": "002-variant-deletion-fallback.md",
-      "sha256": "b2c2161e708cca57cd5e23a48078ccbd06c1d1d9ff889b43d9bf7127c332d098"
+      "sha256": "c9f87c7ad6f3dcd566414ecbd10aeeab9715f877560b051c84785f304f41ad04"
     },
     {
       "id": "ART-004",
       "role": "unit",
       "path": "003-sheet-adjustment-zero-passthrough.md",
-      "sha256": "2fd3e2b027c5f6e15196c86429b9e42ac8b72e1a13ea7893ced58053e102924b"
+      "sha256": "7efe6dcaa2e8ec51589ea1807193e118fe68ea1695b64f8520e84797aa75686b"
     },
     {
       "id": "ART-005",
       "role": "unit",
       "path": "004-decision-void-status-recompute.md",
-      "sha256": "6bb94ac443ab7ac72c8434c64447a73d42fa129d55ad646cfa4ff624e71f9cfe"
+      "sha256": "9313a84f5b555ca5a8d35808d4a6b5003c355cf9ae4d486816f566c9cfc09c78"
     },
     {
       "id": "ART-006",
       "role": "unit",
       "path": "005-share-password-body-unify.md",
-      "sha256": "a02a06ac268479085001187d5f7db05a6c9f4f8144a985f6bc3ec78a22a183f9"
+      "sha256": "eafa29eeb668cfa01216f197d9c6d5be74f3bdd978ec0af42cc547966afba80c"
     },
     {
       "id": "ART-007",
@@ -65,25 +65,25 @@
       "id": "ART-008",
       "role": "unit",
       "path": "007-dead-upload-queue-disposition.md",
-      "sha256": "29668de6e3be3c6f6b7d463851a35a5a68fbd8aa376e8d9fc1f0b38710316507"
+      "sha256": "0b1a38f1aedc1b9818fff407c96edbf71a2c39200cd75e9f2561eced4a6ec360"
     },
     {
       "id": "ART-009",
       "role": "unit",
       "path": "008-onboarding-milestone-fix.md",
-      "sha256": "64ff616a4c6e249805e33aa9e2dd7e88b27d84b3a21b43bc483eb26cc57ff790"
+      "sha256": "93ec18075c3edf4d3a5886f383a0a63d3bf8afe5192e06869f611bcbe289122f"
     },
     {
       "id": "ART-010",
       "role": "unit",
       "path": "009-closed-beta-centralization.md",
-      "sha256": "a4572dc63bd753f82a726848ed2c80a550818377eb8513253acd761c3bbc34b1"
+      "sha256": "38a3af21cc3ec6f341347773b56441027ba209b957f2751a0250ebb24f6fc91b"
     },
     {
       "id": "ART-011",
       "role": "unit",
       "path": "010-selection-indeterminacy.md",
-      "sha256": "08b68ba3c4ea6c62746137ff5992a4ca7ef204b81003b1a38cbc59b92803a583"
+      "sha256": "0f3d98bb0f2f95ed6ba0e630be3d50d8609252efcecb9c68eebd49ce659637ff"
     },
     {
       "id": "ART-012",
@@ -101,13 +101,13 @@
       "id": "ART-014",
       "role": "unit",
       "path": "013-share-sections-token-type-guard.md",
-      "sha256": "5880a9b05f024a7ce8e1a3c21a704522dc567def8e00a29b34cd367673fdf9cc"
+      "sha256": "6e44b934ce3f63a9f3b6916a50167b819d6ab66db1aac56853c9320d6149d3a1"
     },
     {
       "id": "ART-015",
       "role": "unit",
       "path": "014-proof-router-constant-time.md",
-      "sha256": "587bd2bfe8ad1b77c72dadfd56bc1c5799dbe1623118111c34c4f0503ccd7153"
+      "sha256": "8f6721242579bf2ee6173691a56ca30d0d91c2fdfafc3feee24090f73fa59ec7"
     },
     {
       "id": "ART-016",
@@ -119,25 +119,25 @@
       "id": "ART-017",
       "role": "unit",
       "path": "016-invite-origin-fail-closed.md",
-      "sha256": "87fddf8fe08fc296312909b5b97f5a7dc660aaba1615f1fb0528eaf2137551a9"
+      "sha256": "3d1e419f12d745d617a876a9e4cf544fa26b8cbc370d720fabe8b6e56e76b7d4"
     },
     {
       "id": "ART-018",
       "role": "unit",
       "path": "017-invite-preview-pii-gating.md",
-      "sha256": "31df1c9628a903d8014ec224dd285269a393b02a1b96cdc5602141750478e0a4"
+      "sha256": "20e668c265cb74aa58139d5547c4fa3567db353f67e6e430eadfe9f4cd8edae7"
     },
     {
       "id": "ART-019",
       "role": "unit",
       "path": "018-cursor-broadcast-deps-and-cleanup.md",
-      "sha256": "d77a2000396183c8f58d6cf4acd9a8a65a9bf40debc7f44b74d91509cbd5e4d3"
+      "sha256": "c551fff87ea3397fd4c82c292d15a4152a9d0e4a73cd51b5b1da8f2a3cbcc97b"
     },
     {
       "id": "ART-020",
       "role": "unit",
       "path": "020-notification-feed-pagination.md",
-      "sha256": "8e31c658a2721772c018ddc9a2c89728b7061c2d14795a562ae26fb330731c65"
+      "sha256": "343c6bd0c1f691c9d41e98dd89289488f0575320dba80913ede9f855683cfc09"
     },
     {
       "id": "ART-021",
@@ -149,13 +149,13 @@
       "id": "ART-022",
       "role": "unit",
       "path": "022-feature-flag-cache-staleness.md",
-      "sha256": "9b60721d720156a53d10ba63756f87e8b6994c9dbc744a11024d0254bcfdfe28"
+      "sha256": "ade49fb2091fe86e14fbe87de157cf814fae9a58df5c9b4b463be58a9a2ba2cc"
     },
     {
       "id": "ART-023",
       "role": "unit",
       "path": "023-proposal-preview-signature.md",
-      "sha256": "51ce199a824ce858545f7a1e7793f485394768295fbc10cd9d32e9f202c43aa6"
+      "sha256": "03016143e4ee06c80d68b5b90f4db3ced70e79ee07a588ba2f3b591e5cf7a7b4"
     },
     {
       "id": "ART-024",
@@ -167,7 +167,31 @@
       "id": "ART-025",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "5ed493d03201d89a819b743574da45549ee7bc8ade360baad9c563bf46637f13"
+      "sha256": "79ce0c6d4b81c34d0e8b9739424a62cf14b0106b6e534a42bb902e8532a2fe87"
+    },
+    {
+      "id": "ART-026",
+      "role": "unit",
+      "path": "032-template-row-variant-repointing.md",
+      "sha256": "20ed864e05ab32f15753f7508bd203bfc3f94f1ea16fa5db92dd649dddc4db40"
+    },
+    {
+      "id": "ART-027",
+      "role": "unit",
+      "path": "033-query-cache-clear-on-signout.md",
+      "sha256": "af3c7cd8fb5327ab5c72ed2ca4e214eee150287c1da54575e4d7f1e136ad6138"
+    },
+    {
+      "id": "ART-028",
+      "role": "unit",
+      "path": "034-orphaned-decision-actions-module.md",
+      "sha256": "4a7a96a063aa6766af99031bb0e2bd5b4bf5513960adecf80f60e82569d9cbf6"
+    },
+    {
+      "id": "ART-029",
+      "role": "unit",
+      "path": "035-stale-getting-started-test.md",
+      "sha256": "ef97383f7c1678346f26d8b1a8d02fa87be7b6439c72d37a82ab7866e56482c2"
     }
   ],
   "sources": [
@@ -346,7 +370,9 @@
         "UNIT-018",
         "UNIT-020",
         "UNIT-021",
-        "UNIT-022"
+        "UNIT-022",
+        "UNIT-032",
+        "UNIT-033"
       ],
       "criterion_ids": [
         "AC-010"
@@ -368,7 +394,9 @@
         "UNIT-028",
         "UNIT-029",
         "UNIT-030",
-        "UNIT-031"
+        "UNIT-031",
+        "UNIT-034",
+        "UNIT-035"
       ],
       "criterion_ids": [
         "AC-011"
@@ -644,42 +672,36 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "002-variant-deletion-fallback.md",
       "depends_on": [],
       "requirement_ids": [
         "REQ-002"
       ],
       "risk_ids": [],
-      "evidence_ids": [
-        "EVID-002"
-      ]
+      "evidence_ids": []
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "003-sheet-adjustment-zero-passthrough.md",
       "depends_on": [],
       "requirement_ids": [
         "REQ-003"
       ],
       "risk_ids": [],
-      "evidence_ids": [
-        "EVID-003"
-      ]
+      "evidence_ids": []
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "004-decision-void-status-recompute.md",
       "depends_on": [],
       "requirement_ids": [
         "REQ-004"
       ],
       "risk_ids": [],
-      "evidence_ids": [
-        "EVID-004"
-      ]
+      "evidence_ids": []
     },
     {
       "id": "UNIT-005",
@@ -724,16 +746,14 @@
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "008-onboarding-milestone-fix.md",
       "depends_on": [],
       "requirement_ids": [
         "REQ-008"
       ],
       "risk_ids": [],
-      "evidence_ids": [
-        "EVID-008"
-      ]
+      "evidence_ids": []
     },
     {
       "id": "UNIT-009",
@@ -752,16 +772,14 @@
     },
     {
       "id": "UNIT-010",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "010-selection-indeterminacy.md",
       "depends_on": [],
       "requirement_ids": [
         "REQ-010"
       ],
       "risk_ids": [],
-      "evidence_ids": [
-        "EVID-010"
-      ]
+      "evidence_ids": []
     },
     {
       "id": "UNIT-011",
@@ -866,16 +884,14 @@
     },
     {
       "id": "UNIT-018",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "018-cursor-broadcast-deps-and-cleanup.md",
       "depends_on": [],
       "requirement_ids": [
         "REQ-010"
       ],
       "risk_ids": [],
-      "evidence_ids": [
-        "EVID-018"
-      ]
+      "evidence_ids": []
     },
     {
       "id": "UNIT-020",
@@ -1034,6 +1050,58 @@
       "evidence_ids": [
         "EVID-030"
       ]
+    },
+    {
+      "id": "UNIT-032",
+      "status": "PLANNED",
+      "artifact_path": "032-template-row-variant-repointing.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-032"
+      ]
+    },
+    {
+      "id": "UNIT-033",
+      "status": "PLANNED",
+      "artifact_path": "033-query-cache-clear-on-signout.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-033"
+      ]
+    },
+    {
+      "id": "UNIT-034",
+      "status": "PLANNED",
+      "artifact_path": "034-orphaned-decision-actions-module.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-034"
+      ]
+    },
+    {
+      "id": "UNIT-035",
+      "status": "PLANNED",
+      "artifact_path": "035-stale-getting-started-test.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-035"
+      ]
     }
   ],
   "ready_slices": [
@@ -1043,13 +1111,9 @@
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
         "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
         "UNIT-005",
         "UNIT-006",
         "UNIT-007",
-        "UNIT-008",
         "UNIT-009"
       ],
       "criterion_ids": [
@@ -1070,9 +1134,9 @@
   "evidence_index": [
     {
       "id": "EVID-001",
-      "status": "PLANNED",
+      "status": "COLLECTED",
       "artifact_path": "001-labor-cost-divergence.md",
-      "sha256": "9f4ca42f72b4c3b364b58f917466d7c27dbd9e72dee214d3742b3151005a1b25",
+      "sha256": "53c9808b8b7d7b65e11427ed74a9a30faefd14d1ac4c27bdde5e15f3cb7ac0c5",
       "claim_ids": [
         "UNIT-001"
       ],
@@ -1083,7 +1147,7 @@
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "002-variant-deletion-fallback.md",
-      "sha256": "b2c2161e708cca57cd5e23a48078ccbd06c1d1d9ff889b43d9bf7127c332d098",
+      "sha256": "c9f87c7ad6f3dcd566414ecbd10aeeab9715f877560b051c84785f304f41ad04",
       "claim_ids": [
         "UNIT-002"
       ],
@@ -1094,7 +1158,7 @@
       "id": "EVID-003",
       "status": "PLANNED",
       "artifact_path": "003-sheet-adjustment-zero-passthrough.md",
-      "sha256": "2fd3e2b027c5f6e15196c86429b9e42ac8b72e1a13ea7893ced58053e102924b",
+      "sha256": "7efe6dcaa2e8ec51589ea1807193e118fe68ea1695b64f8520e84797aa75686b",
       "claim_ids": [
         "UNIT-003"
       ],
@@ -1105,7 +1169,7 @@
       "id": "EVID-004",
       "status": "PLANNED",
       "artifact_path": "004-decision-void-status-recompute.md",
-      "sha256": "6bb94ac443ab7ac72c8434c64447a73d42fa129d55ad646cfa4ff624e71f9cfe",
+      "sha256": "9313a84f5b555ca5a8d35808d4a6b5003c355cf9ae4d486816f566c9cfc09c78",
       "claim_ids": [
         "UNIT-004"
       ],
@@ -1116,7 +1180,7 @@
       "id": "EVID-005",
       "status": "PLANNED",
       "artifact_path": "005-share-password-body-unify.md",
-      "sha256": "a02a06ac268479085001187d5f7db05a6c9f4f8144a985f6bc3ec78a22a183f9",
+      "sha256": "eafa29eeb668cfa01216f197d9c6d5be74f3bdd978ec0af42cc547966afba80c",
       "claim_ids": [
         "UNIT-005"
       ],
@@ -1138,7 +1202,7 @@
       "id": "EVID-007",
       "status": "PLANNED",
       "artifact_path": "007-dead-upload-queue-disposition.md",
-      "sha256": "29668de6e3be3c6f6b7d463851a35a5a68fbd8aa376e8d9fc1f0b38710316507",
+      "sha256": "0b1a38f1aedc1b9818fff407c96edbf71a2c39200cd75e9f2561eced4a6ec360",
       "claim_ids": [
         "UNIT-007"
       ],
@@ -1149,7 +1213,7 @@
       "id": "EVID-008",
       "status": "PLANNED",
       "artifact_path": "008-onboarding-milestone-fix.md",
-      "sha256": "64ff616a4c6e249805e33aa9e2dd7e88b27d84b3a21b43bc483eb26cc57ff790",
+      "sha256": "93ec18075c3edf4d3a5886f383a0a63d3bf8afe5192e06869f611bcbe289122f",
       "claim_ids": [
         "UNIT-008"
       ],
@@ -1160,7 +1224,7 @@
       "id": "EVID-009",
       "status": "PLANNED",
       "artifact_path": "009-closed-beta-centralization.md",
-      "sha256": "a4572dc63bd753f82a726848ed2c80a550818377eb8513253acd761c3bbc34b1",
+      "sha256": "38a3af21cc3ec6f341347773b56441027ba209b957f2751a0250ebb24f6fc91b",
       "claim_ids": [
         "UNIT-009"
       ],
@@ -1171,7 +1235,7 @@
       "id": "EVID-010",
       "status": "PLANNED",
       "artifact_path": "010-selection-indeterminacy.md",
-      "sha256": "08b68ba3c4ea6c62746137ff5992a4ca7ef204b81003b1a38cbc59b92803a583",
+      "sha256": "0f3d98bb0f2f95ed6ba0e630be3d50d8609252efcecb9c68eebd49ce659637ff",
       "claim_ids": [
         "UNIT-010"
       ],
@@ -1204,7 +1268,7 @@
       "id": "EVID-013",
       "status": "PLANNED",
       "artifact_path": "013-share-sections-token-type-guard.md",
-      "sha256": "5880a9b05f024a7ce8e1a3c21a704522dc567def8e00a29b34cd367673fdf9cc",
+      "sha256": "6e44b934ce3f63a9f3b6916a50167b819d6ab66db1aac56853c9320d6149d3a1",
       "claim_ids": [
         "UNIT-013"
       ],
@@ -1215,7 +1279,7 @@
       "id": "EVID-014",
       "status": "PLANNED",
       "artifact_path": "014-proof-router-constant-time.md",
-      "sha256": "587bd2bfe8ad1b77c72dadfd56bc1c5799dbe1623118111c34c4f0503ccd7153",
+      "sha256": "8f6721242579bf2ee6173691a56ca30d0d91c2fdfafc3feee24090f73fa59ec7",
       "claim_ids": [
         "UNIT-014"
       ],
@@ -1237,7 +1301,7 @@
       "id": "EVID-016",
       "status": "PLANNED",
       "artifact_path": "016-invite-origin-fail-closed.md",
-      "sha256": "87fddf8fe08fc296312909b5b97f5a7dc660aaba1615f1fb0528eaf2137551a9",
+      "sha256": "3d1e419f12d745d617a876a9e4cf544fa26b8cbc370d720fabe8b6e56e76b7d4",
       "claim_ids": [
         "UNIT-016"
       ],
@@ -1248,7 +1312,7 @@
       "id": "EVID-017",
       "status": "PLANNED",
       "artifact_path": "017-invite-preview-pii-gating.md",
-      "sha256": "31df1c9628a903d8014ec224dd285269a393b02a1b96cdc5602141750478e0a4",
+      "sha256": "20e668c265cb74aa58139d5547c4fa3567db353f67e6e430eadfe9f4cd8edae7",
       "claim_ids": [
         "UNIT-017"
       ],
@@ -1259,7 +1323,7 @@
       "id": "EVID-018",
       "status": "PLANNED",
       "artifact_path": "018-cursor-broadcast-deps-and-cleanup.md",
-      "sha256": "d77a2000396183c8f58d6cf4acd9a8a65a9bf40debc7f44b74d91509cbd5e4d3",
+      "sha256": "c551fff87ea3397fd4c82c292d15a4152a9d0e4a73cd51b5b1da8f2a3cbcc97b",
       "claim_ids": [
         "UNIT-018"
       ],
@@ -1270,7 +1334,7 @@
       "id": "EVID-019",
       "status": "PLANNED",
       "artifact_path": "020-notification-feed-pagination.md",
-      "sha256": "8e31c658a2721772c018ddc9a2c89728b7061c2d14795a562ae26fb330731c65",
+      "sha256": "343c6bd0c1f691c9d41e98dd89289488f0575320dba80913ede9f855683cfc09",
       "claim_ids": [
         "UNIT-020"
       ],
@@ -1292,7 +1356,7 @@
       "id": "EVID-021",
       "status": "PLANNED",
       "artifact_path": "022-feature-flag-cache-staleness.md",
-      "sha256": "9b60721d720156a53d10ba63756f87e8b6994c9dbc744a11024d0254bcfdfe28",
+      "sha256": "ade49fb2091fe86e14fbe87de157cf814fae9a58df5c9b4b463be58a9a2ba2cc",
       "claim_ids": [
         "UNIT-022"
       ],
@@ -1303,7 +1367,7 @@
       "id": "EVID-022",
       "status": "PLANNED",
       "artifact_path": "023-proposal-preview-signature.md",
-      "sha256": "51ce199a824ce858545f7a1e7793f485394768295fbc10cd9d32e9f202c43aa6",
+      "sha256": "03016143e4ee06c80d68b5b90f4db3ced70e79ee07a588ba2f3b591e5cf7a7b4",
       "claim_ids": [
         "UNIT-023"
       ],
@@ -1402,7 +1466,7 @@
       "id": "EVID-031",
       "status": "STALE",
       "artifact_path": "00-PLAN.md",
-      "sha256": "13336d0025e4cd1b34ab486b77103ce4ec7a87d6aa4800e1ac7e274794d18ac9",
+      "sha256": "922574818e54313a995b21203ddb3bd7e5d3b13fd107f8bbda092aeb3db5de19",
       "claim_ids": [
         "GATE-PLAN-001",
         "AC-001",
@@ -1418,12 +1482,56 @@
         "AC-011"
       ],
       "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
-      "valid_until": "2026-07-18T00:00:00.000Z"
+      "valid_until": "2026-07-19T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-032",
+      "status": "PLANNED",
+      "artifact_path": "032-template-row-variant-repointing.md",
+      "sha256": "20ed864e05ab32f15753f7508bd203bfc3f94f1ea16fa5db92dd649dddc4db40",
+      "claim_ids": [
+        "UNIT-032"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-033",
+      "status": "PLANNED",
+      "artifact_path": "033-query-cache-clear-on-signout.md",
+      "sha256": "af3c7cd8fb5327ab5c72ed2ca4e214eee150287c1da54575e4d7f1e136ad6138",
+      "claim_ids": [
+        "UNIT-033"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-034",
+      "status": "PLANNED",
+      "artifact_path": "034-orphaned-decision-actions-module.md",
+      "sha256": "4a7a96a063aa6766af99031bb0e2bd5b4bf5513960adecf80f60e82569d9cbf6",
+      "claim_ids": [
+        "UNIT-034"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-035",
+      "status": "PLANNED",
+      "artifact_path": "035-stale-getting-started-test.md",
+      "sha256": "ef97383f7c1678346f26d8b1a8d02fa87be7b6439c72d37a82ab7866e56482c2",
+      "claim_ids": [
+        "UNIT-035"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": null
     }
   ],
   "stale_triggers": [
     "source-or-config-hash-change",
     "findings-reverified-against-newer-source"
   ],
-  "manifest_sha256": "fe95a06277c1bfed21956e67cdfb7fbc214d3c5c91f3c3b57bc969312aa7712b"
+  "manifest_sha256": "9e6dd84db949e1692db78b1ad7525e5a4519b19e2bf0d2f160d4f1d5645bb9d2"
 }

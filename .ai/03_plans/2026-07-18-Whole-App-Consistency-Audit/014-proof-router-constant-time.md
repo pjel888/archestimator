@@ -1,4 +1,15 @@
-# Unit 014 — Proof Routers Use Non-Timing-Safe Secret Comparison (MEDIUM)
+# Unit 014 — Proof Routers Use `===` Not `timingSafeEqual` (WEAKENED → LOW/hygiene)
+
+**Finding:** F-14 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **WEAKENED → LOW (hygiene)** · **Status:** TODO (P4)
+
+> **Re-verification:** The `/__cloudflare/*-proof` paths are externally reachable, but the
+> compared secret is `CRON_SECRET` — a high-entropy Wrangler operator secret. The response
+> already leaks match/mismatch via HTTP status (401 vs 200/202), so the only additional signal
+> a timing attack could extract is the secret bytes themselves. Over the public internet,
+> per-character timing differences on a Worker (nanoseconds) are dwarfed by network/CGNAT jitter;
+> practical exploitation is not realistic. This is code-hygiene / defense-in-depth, not an
+> exploitable risk. Switching to `timingSafeEqual` is still worthwhile for consistency with
+> `bearer-auth.ts`. Priority P4.
 
 **Finding:** F-14 · **Severity:** MEDIUM · **Priority:** P2 · **Effort:** S · **Risk:** LOW
 **Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED

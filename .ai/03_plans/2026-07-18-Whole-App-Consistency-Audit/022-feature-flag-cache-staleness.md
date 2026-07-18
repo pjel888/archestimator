@@ -1,4 +1,16 @@
-# Unit 022 — `featureFlagCache` Module Singleton — Cross-Isolate Staleness (MEDIUM)
+# Unit 022 — Feature-Flag Cross-Isolate Staleness (WEAKENED → LOW/hygiene)
+
+**Finding:** F-22 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **WEAKENED → LOW (hygiene)** · **Status:** TODO (P4)
+
+> **Re-verification:** Multi-isolate is real (runs on Cloudflare Workers), but the flags are
+> admin-gated rollout switches (`isAdminDashboardEnabled`,
+> `isClientPortalLegacyMigrationEnabled`, `isClientPortalLegacyWriteFreezeEnabled`) that are
+> rarely toggled. `setFeatureFlag` already calls `revalidatePath("/admin/flags")`
+> (`flag-actions.ts:46`) and nulls the local isolate's cache. Other isolates see the new value
+> within 15s. For this use case (rare admin actions, not a security gate, and
+> `isAdminDashboardEnabled` has an env override that takes precedence), 15s propagation is
+> acceptable. The `loadFeatureFlagMap` fail-open-on-D1-outage path shows the design is
+> intentional. Priority P4 — at most lower the TTL and document the window.
 
 **Finding:** F-22 · **Severity:** MEDIUM · **Priority:** P3 · **Effort:** S · **Risk:** MED
 **Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED

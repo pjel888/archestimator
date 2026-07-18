@@ -1,34 +1,35 @@
-# Unit 023 — Proposal Preview Signature Omits Labor/Contingency Fields (LOW)
+# Unit 023 — Proposal Preview Signature Omits Contingency Fields (CONFIRMED, MED)
 
-**Finding:** F-23 · **Severity:** LOW · **Priority:** P3 · **Effort:** S · **Risk:** LOW
-**Requirement:** `REQ-011` (item) · **Status:** TODO · **Depends on:** 001 · **Test:** NOT_REQUIRED
+**Finding:** F-23 · **Original severity:** LOW · **Re-verdict (2026-07-19):** **CONFIRMED (narrowed → MED)** · **Status:** TODO (P3)
+**Depends on:** nothing (the `laborUnitCost` part is dropped — labor was removed 2026-07-18)
 
 ## Problem
 
-`createProposalPreviewSignature` builds the preview cache signature from
-`item.itemCost`, `editableRow.quantity`, `contingencyMode`, `contingencyPercentage`,
-`adjustmentPercentage`, and `miscCost` — but omits `item.laborUnitCost`,
-`editableRow.quantityBase`, and `editableRow.quantityContingencyAmount`. The
-preview cache won't invalidate when only labor rate or contingency base changes, so
-a stale cached preview can sit next to a freshly computed export (which unit 001
-ensures uses labor). This widens the perceived divergence from F-01.
+`createProposalPreviewSignature` builds the preview-cache signature from `item.itemCost`,
+`editableRow.quantity`, `contingencyMode`, `contingencyPercentage`, `adjustmentPercentage`, and
+`miscCost` — but omits `editableRow.quantityBase` and `editableRow.quantityContingencyAmount`.
+Both fields are editable in the UI (`row-table.tsx:542-543` commits them via
+`commitQuantityFields`; `buildEditableQuantityContingencyPatch` at `editable-row-model.ts:266`
+edits base/contingency independently). When a user edits only the base/contingency breakdown in
+a way that leaves the rolled-up `quantity` unchanged (e.g. `100+10=110` → `90+20=110`), the
+signature string is identical → stale preview persists per `isProposalPreviewStale`.
 
-## Evidence
+## Original claim correction
 
-`src/components/workshop/estimate-sheet/proposal-preview-model.ts:36-53` — signature
-parts list (confirmed via the audit; re-read before editing).
+The original also listed `laborUnitCost` as a missing signature input. **Moot** — labor was
+ripped out of the codebase entirely on 2026-07-18 (unit 001). The `quantityBase` /
+`quantityContingencyAmount` claim is the live one.
 
-## Fix Direction
+## Fix
 
-Add the missing fields to the signature parts:
+Add the two fields to the signature parts array (`proposal-preview-model.ts:36-53`):
 
 ```ts
-signatureParts.push(
+parts.push(
   item.itemCost,
-  item.laborUnitCost,                       // ← add
   editableRow.quantity,
-  editableRow.quantityBase,                 // ← add
-  editableRow.quantityContingencyAmount,    // ← add
+  editableRow.quantityBase,              // add
+  editableRow.quantityContingencyAmount, // add
   editableRow.contingencyMode,
   editableRow.contingencyPercentage,
   editableRow.adjustmentPercentage,
@@ -36,21 +37,7 @@ signatureParts.push(
 );
 ```
 
-### Owned paths
-- `src/components/workshop/estimate-sheet/proposal-preview-model.ts`
+## Acceptance
 
-### Prohibited
-- Do not change the signature hashing scheme — just the inputs.
-
-## Acceptance Evidence
-
-- `AC-001`: changing `laborUnitCost` invalidates the preview cache.
-
-## Recovery
-
-None needed.
-
-## Notes
-
-Land **after** unit 001 (which defines the canonical labor field). Otherwise the
-signature references a field that may be renamed.
+Changing `quantityBase`/`quantityContingencyAmount` invalidates the preview cache. Verified by
+diff. Severity MED (user sees stale cost preview until another field perturbs the signature).

@@ -1,86 +1,34 @@
-# Unit 004 — Voiding A Client Portal Decision Never Reverts Issue Status (HIGH)
+# Unit 004 — Decision Void Doesn't Recompute Status (REFUTED — dead code)
 
-**Finding:** F-04 · **Severity:** HIGH · **Priority:** P1 · **Effort:** S · **Risk:** MED
-**Requirement:** `REQ-004` · **Status:** TODO · **Depends on:** — · **Test:** `TEST_PROPOSAL`
+**Finding:** F-04 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **REFUTED** · **Status:** REJECTED
 
-## Problem
+## Original claim
 
-`submitClientPortalDecision` recomputes `client_portal_issues.status` via a CASE
-expression whenever a decision is added (so an issue can move to `accepted` /
-`declined` / `changes_requested` / `under_review`). But `voidClientPortalDecision`
-only sets `voided_at` on the decision row and writes an audit event — it never
-re-runs the status CASE. So an owner voiding the approval that pushed an issue to
-`accepted` (or voiding the lone `declined`/`changes_requested`) leaves the issue
-**permanently stuck** in a terminal state even though no qualifying decision
-remains.
+`voidClientPortalDecision` sets `voided_at` but never recomputes `client_portal_issues.status`,
+so voiding the approval that pushed an issue to `accepted` leaves it permanently stuck terminal.
 
-## Evidence
+## Why it's refuted (the void path is never called)
 
-`src/lib/client-portal/decision-service.ts:116-123` (submit — recomputes status):
-```sql
-UPDATE client_portal_issues
-SET status = CASE
-  WHEN EXISTS (... decision_row.decision = 'declined' ...) THEN 'declined'
-  WHEN EXISTS (... decision_row.decision = 'changes_requested' ...) THEN 'changes_requested'
-  WHEN (SELECT count(*) ... decision_row.decision = 'approved' ...) >= ? THEN 'accepted'
-  ELSE 'under_review'
-END
-WHERE id = ? AND content_hash = ? AND EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)
-```
+The bug in the function is real in isolation, but the function is **dead code** — it has zero
+callers, so the buggy state can never be produced in any user/server flow:
 
-`src/lib/client-portal/decision-service.ts:172-175` (void — does NOT recompute):
-```ts
-const result = await database.batch([
-  statement(database, "UPDATE client_portal_decisions SET voided_at = ?, voided_by = ?, void_reason = ? WHERE id = ? AND voided_at IS NULL", [...]),
-  statement(database, "INSERT INTO client_portal_audit_events (...) VALUES (...)", [...]),
-]);
-```
+- `src/lib/client-portal/decision-actions.ts:14` wraps it as the server action
+  `voidClientPortalDecisionAction`.
+- `grep` for `voidClientPortalDecision` and `voidClientPortalDecisionAction` across `src/`
+  returns **only the definitions**. The module `decision-actions` is imported by nothing.
+- No UI, no cron, no admin route calls it.
 
-A grep confirms the status-recompute CASE exists in exactly one place (the submit
-batch). Void is the only backward transition path and it skips it.
+Status-recompute exists in exactly two places — `submitClientPortalDecision`
+(`decision-service.ts:116`) and the supersede path (`issue-builder.ts:552`). Void is the only
+backward path and it's unreachable. The "permanently stuck terminal" consequence cannot manifest
+until/unless the action is wired up.
 
-## Fix Direction
+## Related cleanup (filed as N-03, unit 034)
 
-Add the same status-recompute statement to the void batch, scoped to the voided
-decision's issue:
+`src/lib/client-portal/decision-actions.ts` is an orphaned module — candidate for deletion.
 
-```ts
-statement(database, `
-  UPDATE client_portal_issues
-  SET status = CASE
-    WHEN EXISTS (... declined ...) THEN 'declined'
-    WHEN EXISTS (... changes_requested ...) THEN 'changes_requested'
-    WHEN (SELECT count(*) ... approved ...) >= ? THEN 'accepted'
-    ELSE 'under_review'
-  END
-  WHERE id = ?
-`, [...policy.requiredRecipientIds, ...policy.requiredRecipientIds, policy.requiredApprovals, decision.issue_id]),
-```
+## Disposition
 
-To avoid drift, **extract the status-recompute SQL into a shared helper**
-(`recomputeIssueStatusSql(issueId)`) used by both submit and void. Resolve the
-issue's policy (`requiredRecipientIds`, `requiredApprovals`) the same way submit
-does — void already loads the portal; add the policy load.
-
-### Owned paths
-- `src/lib/client-portal/decision-service.ts`
-
-### Prohibited
-- Do not introduce a new status value or change the forward-transition guard in
-  submit.
-- Do not void silently — the existing audit event must remain.
-
-## Acceptance Evidence
-
-- `AC-001`: void batch contains a status-recompute UPDATE (or calls the shared
-  helper) scoped to the voided decision's issue.
-- `AC-002`: after voiding the sole approval on an `accepted` issue, the issue
-  returns to `under_review` (or the correct state per remaining decisions).
-- `TEST_PROPOSAL`: run the existing client-portal decision test to prove status
-  recomputes after void.
-
-## Recovery
-
-If the policy cannot be resolved in the void path (it should be — the portal row is
-already loaded), fall back to recomputing with the same `requiredRecipientIds`
-resolution used by `summarizeClientPortalDecisions`.
+**REJECTED** as a bug. If/when the void action is ever wired into the admin UI, **re-open this
+finding** — at that point the missing status recompute (the shared `recomputeIssueStatusSql`
+helper described in the original unit) would become a real requirement. Until then, no change.

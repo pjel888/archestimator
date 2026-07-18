@@ -1,4 +1,18 @@
-# Unit 017 — Invite Preview Leaks PII To Any Signed-In Token-Holder (MEDIUM)
+# Unit 017 — Invite Preview Info Disclosure (WEAKENED → LOW)
+
+**Finding:** F-17 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **WEAKENED → LOW** · **Status:** TODO (P4)
+
+> **Re-verification corrected two overstatements:**
+> 1. `invited_email` is **NOT rendered.** `InvitePreview` (`page.tsx:117-164`) renders
+>    `project_name`, `inviter_label`, `role`, `scope`, `estimate_name`, `project_code`,
+>    `expires_at` — but not `invited_email`. The wrong-account branch (`:199-219`) renders only
+>    `state.currentEmail` (the signed-in user's own email). The audit's "leaks invited_email"
+>    claim is refuted.
+> 2. Tokens are random 32-256 char strings hashed with a pepper — not guessable. Exposure of
+>    project/estimate name requires the recipient to forward/leak the link to someone who then
+>    signs in.
+>
+> Net: minor info disclosure to a party already holding the unguessable token. Priority P4.
 
 **Finding:** F-17 · **Severity:** MEDIUM · **Priority:** P2 · **Effort:** S · **Risk:** LOW
 **Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** 009 · **Test:** NOT_REQUIRED

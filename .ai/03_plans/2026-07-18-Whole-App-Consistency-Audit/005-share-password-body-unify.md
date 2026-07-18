@@ -1,4 +1,14 @@
-# Unit 005 — Legacy Share Decision GET Uses A Different Password-Error Body (HIGH)
+# Unit 005 — Legacy Share Decision GET Password-Error Body (WEAKENED → LOW)
+
+**Finding:** F-05 · **Original severity:** HIGH · **Re-verdict (2026-07-19):** **WEAKENED → LOW** · **Status:** TODO
+
+> **Re-verification:** The body-shape discrepancy is real, but **no client reads
+> `passwordRequired` on the GET path.** `SharePageDecision.tsx:172-173` throws a generic
+> "Could not load your response." on non-OK non-401/404; `ProposalStatusBadge.tsx:28` does
+> `response.ok ? response.json() : null` and ignores the body on 423. The GET-423 is itself
+> rarely reached (the page validates the password cookie before rendering the decision UI).
+> So this is a latent inconsistency, not an active break. Still worth normalizing (cheap), but
+> priority dropped to P4.
 
 **Finding:** F-05 · **Severity:** HIGH · **Priority:** P1 · **Effort:** S · **Risk:** LOW
 **Requirement:** `REQ-005` · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED

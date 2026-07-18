@@ -1,58 +1,26 @@
-# Unit 010 — `getSelectionState` Hides Partial Selection Under A Selected Parent (MEDIUM)
+# Unit 010 — Selection Indeterminacy Under Selected Parent (REFUTED — dead code)
 
-**Finding:** F-10 · **Severity:** MEDIUM · **Priority:** P3 · **Effort:** S · **Risk:** LOW
-**Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** — · **Test:** NOT_REQUIRED
+**Finding:** F-10 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **REFUTED** · **Status:** REJECTED
 
-## Problem
+## Original claim
 
-When a node is itself selectable and in `selectedIds`, `getSelectionState`
-short-circuits to `{ checked: true, indeterminate: false }` without inspecting
-descendants. If a user deselects a leaf under a selected parent (where the parent
-is also independently selectable), the parent still renders fully checked, hiding
-the partial state.
+`getSelectionState` short-circuits to `{checked:true, indeterminate:false}` for a selected node
+without inspecting descendants, hiding partial selection.
 
-## Evidence
+## Why it's refuted (zero production callers)
 
-`src/lib/bulk-selection/tree-selection.ts:61-77`:
-```ts
-export function getSelectionState(nodes, selectedIds, nodeId) {
-  const node = findNode(nodes, nodeId);
-  if (!node) return { checked: false, indeterminate: false };
-  if (isSelectable(node) && selectedIds.has(node.id)) return { checked: true, indeterminate: false }; // ← short-circuit
-  const ids = selectableIdsForSubtree(node, { includeRoot: false });
-  ...
-}
-```
+`grep` across `src/` shows `getSelectionState` has **zero production callers** — only
+`tests/unit/tree-selection.test.ts` imports it. The three UI trees
+(`EstimateSheetTree.tsx:30-35`, `component-library/index.tsx`, `LibraryFolderTree.tsx`) import
+only `toggleCascadeSelection`, `selectVisibleIds`, `pruneSelection`, `dedupeSelectedRoots`.
 
-## Fix Direction
+The short-circuit logic flaw exists in the function body, but it cannot manifest in any UI flow
+because no UI calls the function.
 
-When the node is selected, still check whether any descendant selectable id is NOT
-in `selectedIds`; if so, return indeterminate instead of fully checked:
+## Disposition
 
-```ts
-if (isSelectable(node) && selectedIds.has(node.id)) {
-  const descendantIds = selectableIdsForSubtree(node, { includeRoot: false });
-  const unselected = descendantIds.filter((id) => !selectedIds.has(id.id ?? id));
-  if (unselected.length > 0) return { checked: false, indeterminate: true };
-  return { checked: true, indeterminate: false };
-}
-```
+**REJECTED** as a user-facing bug. The function is dead code. Options for the owner:
+- Delete `getSelectionState` (and its unit test) if it's not intended for future use, or
+- Fix the short-circuit (per original unit) if it will be revived.
 
-(Adapt to the actual id-accessor shape of `selectableIdsForSubtree`.)
-
-### Owned paths
-- `src/lib/bulk-selection/tree-selection.ts`
-
-### Prohibited
-- Do not change the selection set itself — this is read-only state derivation.
-- Preserve the existing `toggleCascadeSelection` ancestor-cleanup behavior (audit
-  confirmed it is correct).
-
-## Acceptance Evidence
-
-- `AC-001`: a selected parent with one deselected selectable leaf renders
-  `indeterminate: true`.
-
-## Recovery
-
-None needed.
+Either way, not an active defect. Kept in the register so the claim isn't re-raised.

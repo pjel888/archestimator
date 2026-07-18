@@ -1,4 +1,13 @@
-# Unit 016 — `isAllowedInviteOrigin` Fails Open When Origin + Referer Absent (MEDIUM)
+# Unit 016 — Invite Origin Fails Open When Origin+Referer Absent (WEAKENED → LOW)
+
+**Finding:** F-16 · **Original severity:** MEDIUM · **Re-verdict (2026-07-19):** **WEAKENED → LOW** · **Status:** TODO (P4)
+
+> **Re-verification:** Modern browsers always send at least one of `Origin`/`Referer` on a
+> legitimate same-origin POST (`fetch`/XHR send `Origin`; form navigations send `Referer`).
+> So the `return true` fall-through only triggers for forged/cross-site or stripped-header
+> requests — which is precisely the CSRF threat the function exists to block. Combined with the
+> token-hash requirement and `checkInviteAcceptRateLimit`, real-world impact is narrow, but the
+> fail-open is a genuine (minor) weakness. Priority P4.
 
 **Finding:** F-16 · **Severity:** MEDIUM · **Priority:** P2 · **Effort:** S · **Risk:** LOW
 **Requirement:** `REQ-010` (item) · **Status:** TODO · **Depends on:** 009 · **Test:** NOT_REQUIRED
