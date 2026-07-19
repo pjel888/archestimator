@@ -164,8 +164,8 @@ founder-decision packet because they can be resolved by execution:
 - M2-02 First-session default — direct implementation.
 - M2-03 Founder notification wiring — direct implementation.
 - M2-05 Founder-ops runbook — documentation.
-- M3-01 Library import — direct implementation (already scoped in
-  `2026-07-18-Codebase-Improve-Audit-Plan-Pack/031-spike-library-bulk-import.md`).
+- M3-01 Library import — direct implementation through this pack's UNIT-005/006;
+  the quality master marks old `IMPROVE-031` as duplicate/external-owner work.
 - M3-02 Retention metrics — direct implementation.
 - M3-03 Contractor profile — direct implementation.
 - M4-01 Feedback synthesis cadence — operational.

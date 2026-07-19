@@ -32,8 +32,9 @@ item.
   `selectedVariantId`; `template-propagation-d1.ts:163-168,182-183,233-234`
   re-resolves the variant and writes `priceOptionId` + `priceOptionLabel`
   into propagated rows.
-- **Import is variant-blind:** `2026-07-18-Codebase-Improve-Audit-Plan-Pack/031-spike-library-bulk-import.md`
-  mentions `variant` / `price_option` / `price_option` zero times. It reuses
+- **Import is variant-blind:** the quality master's preserved `IMPROVE-031`
+  source snapshot mentions `variant` / `price_option` / `price_option` zero
+  times. It reuses
   the exporter's one-row-per-component shape.
 - **BOQ export is variant-blind:** negative grep for
   `priceOption|price_option|variant|Variant|priceOptionLabel` over

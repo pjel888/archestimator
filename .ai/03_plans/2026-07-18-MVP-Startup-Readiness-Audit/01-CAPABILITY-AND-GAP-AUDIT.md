@@ -756,10 +756,11 @@ dependency, owner-decision, recommendation.
 These are documented in the other 2026-07-18 audits. Listed here only for
 their startup-side consequence:
 
-- **E-01 (consistency F-01, CRITICAL):** Single estimate row shows different
-  totals across 5 sites (UI editor, D1, charts, export, snapshot). Source:
-  `01-CAPABILITY-AND-GAP-AUDIT.md` consistency-audit F-01. Startup consequence:
-  if a design partner catches this, trust is gone. **MVP-BLOCKER (trust).**
+- **E-01 (consistency F-01, historically CRITICAL; resolved):** The 2026-07-19
+  quality master reverified `CONSISTENCY-001` as already implemented after the
+  dead labor-cost field and affected projections were removed. Row-total
+  consistency remains a trust invariant, but this historical remediation is no
+  longer runnable backlog or an active cohort blocker.
 - **E-02 (consistency F-09, HIGH):** Closed-beta access not enforced on every
   protected route — a route that forgets `getCurrentUserContext` can bypass it.
   Startup consequence: a leak could expose one design partner's data to

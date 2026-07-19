@@ -107,7 +107,7 @@ encoded as units.
 | `REQ-013` | The first-session empty workspace must surface a single clear primary CTA (guided sample) rather than requiring the user to discover it one nav hop away. | G-06 | CORE |
 | `REQ-014` | The beta operations workflow (grant access, suspend/reactivate, announce, pause cohort, weekly review, incident triage, restore) must be documented in a single runbook. | G-15 (ops) | CORE |
 | `REQ-015` | Source attribution must be captured on every access request so the founder can identify which CTA produced each qualified design partner. | G-01 (subset) + G-18 | CORE |
-| `REQ-016` | Engineering trust blocker E-01 (row-total divergence, consistency F-01 CRITICAL) must be resolved before cohort recruitment; this pack depends on `2026-07-18-Whole-App-Consistency-Audit` UNIT-001. | E-01 cross-ref | CORE |
+| `REQ-016` | The former E-01 row-total divergence trust precondition must remain resolved; the 2026-07-19 quality master reverified `CONSISTENCY-001` as already implemented. | E-01 resolved receipt | AUXILIARY |
 
 ## 5. Findings Register (Authoritative)
 
@@ -129,7 +129,7 @@ Priority is the execution ranking. Effort uses S/M/L.
 | G-15 | MED | CONFIRMED | No pre-access beta agreement beyond Terms clickwrap; ops workflow undocumented | `011` | P0 | TODO |
 | G-18 | MED | CONFIRMED | No source-attrution field on leads; no referral tracking | `001` (subset) | P0 | TODO |
 | G-06 | MED | CONFIRMED | `data/local/seed.json` is dead weight (zero importers); first-session CTA buried one nav hop away | `012` | P1 | TODO |
-| E-01 | CRITICAL (eng) | CONFIRMED | Row-total divergence across 5 sites (UI, D1, charts, export, snapshot) — owned by consistency audit UNIT-001; this pack lists it as a Stage-A trust precondition | `013` | P0 | EXTERNAL-OWNER |
+| E-01 | CRITICAL (historical) | REVERIFIED_RESOLVED | The 2026-07-19 quality master records `CONSISTENCY-001` as already implemented; UNIT-013 is a non-runnable receipt, not an active blocker. | `013` | — | SUPERSEDED |
 | E-02 | HIGH (eng) | CONFIRMED-dormant | Closed-beta not enforced on every protected route — owned by consistency audit UNIT-009; dormant while `CLOSED_BETA_ACCESS_ENABLED=false` | (external) | P2 | EXTERNAL-OWNER |
 
 **Deferred / out-of-executable-scope** (Stage C/D; mapped in `02-…md`
@@ -156,6 +156,7 @@ not yet exist.
 | `DEC-AUTO-010` Variant accommodation is CORE, not auxiliary | Active | 2nd-pass finding: PH bid-prep routinely has 2–3 supplier variants per line item; an import path that cannot represent them structurally breaks the #1 activation fix. Schema already supports variants; only import/export surfaces are variant-blind. |
 | `DEC-AUTO-011` Separate this pack from sibling 2026-07-18 audits | Active | Different intent (startup vs defects/perf). Cross-reference overlaps; do not duplicate engineering findings. |
 | `DEC-AUTO-012` Cut 1st-pass Stage C/D forward projections from the executable backlog | Active | Improve-Plan-Prompt §2 forbids speculative scope; M5/M6 had no current evidence justification. Kept as deferred narrative only. |
+| `DEC-AUTO-013` Supersede UNIT-013 as an active external dependency | Active | The 2026-07-19 quality master reverified the historical row-total remediation as already implemented; keep only a resolved receipt. |
 
 **Genuine founder decisions** (not encoded as schema records; documented in
 `04-FOUNDER-DECISION-PACKET.md` and listed here for traceability):
@@ -195,7 +196,7 @@ flowchart LR
   U010["010 contractor profile + branded export"]
   U011["011 beta agreement + runbook"]
   U012["012 first-session guided-sample CTA + seed.json delete"]
-  U013["013 (external) row-total divergence"]
+  U013["013 resolved row-total divergence receipt"]
 
   U001 --> U002
   U001 --> U007
@@ -254,7 +255,7 @@ Status values: `TODO | IN PROGRESS | DONE | BLOCKED (reason) | REJECTED (rationa
 
 | Unit | Title | Pri | Effort | Risk | Depends | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 013 | (external) row-total divergence | P0 | M | HIGH | — | EXTERNAL-OWNER |
+| 013 | resolved row-total divergence receipt | — | — | LOW | — | SUPERSEDED |
 
 The 15-item Stage A/B list in `02-PRIORITIZED-MVP-BACKLOG.md` consolidates
 these units with their full outcome/reason/scope/acceptance/metric/effort
@@ -313,12 +314,15 @@ If execution is interrupted, resume from `LOOP_LEDGER.md`:
 
 ## 12. Cross-Reference Map (avoid duplication with sibling audits)
 
+Current engineering dispositions live in
+`.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/AUDIT-AND-DISPOSITION.md`.
+
 | Topic | Owner pack | This pack's relationship |
 | --- | --- | --- |
-| Row-total divergence (F-01) | `2026-07-18-Whole-App-Consistency-Audit/001` | Trust precondition (UNIT-013 external); not re-derived. |
-| Closed-beta enforcement (F-09) | `2026-07-18-Whole-App-Consistency-Audit/009` | Trust latent risk; not in this pack's units. |
-| Library bulk-import spike | `2026-07-18-Codebase-Improve-Audit-Plan-Pack/031-spike-library-bulk-import.md` | This pack's UNIT-005 depends on it; UNIT-006 amends it to accommodate variants. |
-| Onboarding checklist (F-08) | `2026-07-18-Whole-App-Consistency-Audit/008` REFUTED | This pack's UNIT-003 absorbs the refutation and broadens scope. |
-| Performance / loading | `2026-07-18-Archestimator-Whole-Repo-Performance-Audit` | Cited for first-load behavior; not duplicated. |
-| Cost-intelligence layer spike | `2026-07-18-Codebase-Improve-Audit-Plan-Pack/030-spike-cost-intelligence-layer.md` | Out of scope for Stage A/B; deferred. |
-| AEC classification decision | `2026-07-18-Codebase-Improve-Audit-Plan-Pack/032-spike-aec-classification-decision.md` | Out of scope; deferred. |
+| Row-total divergence (F-01) | Quality master `CONSISTENCY-001` | Reverified already implemented; UNIT-013 is superseded. |
+| Closed-beta enforcement (F-09) | Quality master `CONSISTENCY-009` / `UNIT-036` | Trust latent risk; evidence-gated outside this pack. |
+| Library bulk-import spike | Quality master `IMPROVE-031` | This pack's UNIT-005/006 are the canonical owner; the old spike is duplicate. |
+| Onboarding checklist (F-08) | Quality master `CONSISTENCY-008` | Refuted; this pack's UNIT-003 owns the broader activation decision. |
+| Performance / loading | Quality master performance dispositions | Cited for first-load behavior; not duplicated. |
+| Cost-intelligence layer spike | Quality master `IMPROVE-030` / `UNIT-050` | `SUPERSEDED/DEFERRED_NO_ACTIVE_OWNER`; reopen only after quality-master `UNIT-014=VERIFIED` and creation of a new named cost-intelligence plan pack. This MVP pack is not the owner. |
+| AEC classification decision | Quality master `IMPROVE-032` | Refuted because the toy classifier has no production callers. |

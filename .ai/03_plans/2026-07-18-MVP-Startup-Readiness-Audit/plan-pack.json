@@ -10,7 +10,7 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-19T00:30:00.000Z",
+  "updated_at": "2026-07-19T04:04:27.213Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -23,19 +23,19 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "b75100fb63e2bc3225a5af1c9c7a64b04bd845ef6337d09c8aa9ec269e644ad0"
+      "sha256": "0a0f9d23d9f6e8e40421c014c70a52d8038684d1cc5708997a1db31fe8a9ad92"
     },
     {
       "id": "ART-002",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "0e74d7a7e0078fbe10cccf24ddd706f50eabfce1a2620f34b5e6180b3c8aa392"
+      "sha256": "2c715d258ce7894287fddba32b65e631a462f5520b04ed9dc6d1c0cb5b17038b"
     },
     {
       "id": "ART-003",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "b13511713f9f6955d764619b3c000c84f63126f831107d3c0136a0bd62d0efc9"
+      "sha256": "8e87047add42fdcb523b040492d33c685858e2c125979efdf2690f295f978435"
     },
     {
       "id": "ART-004",
@@ -47,13 +47,13 @@
       "id": "ART-005",
       "role": "narrative",
       "path": "01-CAPABILITY-AND-GAP-AUDIT.md",
-      "sha256": "ef8b02f155cb801c2fd4f9aea9c2af61e45aa9c252a3f71217522afb12548e32"
+      "sha256": "5c87c0cba702c36356d323725d89d60bd8144b55cde2632e0a10fcc6a1764ed1"
     },
     {
       "id": "ART-006",
       "role": "narrative",
       "path": "02-PRIORITIZED-MVP-BACKLOG.md",
-      "sha256": "c499a159dc54d5f528c5e52da22a0b7cdac7ce93a5a8d7dd37a7fe245e56cb0b"
+      "sha256": "0179ffac967ed90ada349541f5b03bd8a154b0d8280b57ba766c2ea5ce7285aa"
     },
     {
       "id": "ART-007",
@@ -65,7 +65,7 @@
       "id": "ART-008",
       "role": "narrative",
       "path": "04-FOUNDER-DECISION-PACKET.md",
-      "sha256": "ae210ff49557c08c72667c776dc529ec473d9cdf49cfef044a0388c5cf3a1f6e"
+      "sha256": "b95d5b67cbe7c65adbb9b0496a03ffc17d484fb6a9808a33a852f085f3d893a2"
     },
     {
       "id": "ART-009",
@@ -83,7 +83,7 @@
       "id": "ART-011",
       "role": "unit",
       "path": "003-activation-ui-wire-or-remove.md",
-      "sha256": "113b79cdf90e9930d4b4f384e7770bb72f47b19e38ad1b746778164ec2c2f410"
+      "sha256": "b49f3116b9a8145368186a66026b62bd8785884ab048337787605856be4302bb"
     },
     {
       "id": "ART-012",
@@ -95,13 +95,13 @@
       "id": "ART-013",
       "role": "unit",
       "path": "005-library-csv-xlsx-import.md",
-      "sha256": "0501605c8f7fbc0a29c77b09162948323220017dfd77dde22a37ab0d2be8f396"
+      "sha256": "e205025f413b32cbabb6e5f40631bfe3c3263a43b8ef71efe3f7b9201271c518"
     },
     {
       "id": "ART-014",
       "role": "unit",
       "path": "006-variant-accommodation.md",
-      "sha256": "132ce0860204b6c4cfd34b7718b7180afa186cdacbc364385440fe2f93258e33"
+      "sha256": "722290ded53e8f3b423f5cc8fa65064ce61a152238550361b24add087519c921"
     },
     {
       "id": "ART-015",
@@ -143,7 +143,7 @@
       "id": "ART-021",
       "role": "unit",
       "path": "013-external-row-total-divergence.md",
-      "sha256": "6e83e5e171f505153fcf2f1992929fae3c2f87fa4649fac4d80c1a9416c847c7"
+      "sha256": "5adbab36888a03c5ab5f94c62a94031423837085378b9d9467028f3863c76a5a"
     }
   ],
   "sources": [
@@ -519,6 +519,16 @@
       "affected_ids": [
         "GATE-PLAN-001"
       ]
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-016",
+        "RISK-003",
+        "UNIT-013"
+      ]
     }
   ],
   "authorization_boundaries": [],
@@ -547,7 +557,7 @@
     },
     {
       "id": "RISK-003",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "artifact_path": "LOOP_LEDGER.md",
       "unit_ids": [
         "UNIT-013"
@@ -806,7 +816,7 @@
       "artifact_path": "013-external-row-total-divergence.md",
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "PLAN_ONLY audit; external owner (consistency audit UNIT-001) tracks its own acceptance.",
+      "test_rationale": "PLAN_ONLY receipt; the 2026-07-19 quality master reverified CONSISTENCY-001 as already implemented, so UNIT-013 is superseded without a product-test claim.",
       "requirement_ids": [
         "REQ-016"
       ],
@@ -1025,7 +1035,7 @@
     },
     {
       "id": "UNIT-013",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "013-external-row-total-divergence.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1081,7 +1091,7 @@
       "id": "EVID-003",
       "status": "PLANNED",
       "artifact_path": "003-activation-ui-wire-or-remove.md",
-      "sha256": "113b79cdf90e9930d4b4f384e7770bb72f47b19e38ad1b746778164ec2c2f410",
+      "sha256": "b49f3116b9a8145368186a66026b62bd8785884ab048337787605856be4302bb",
       "claim_ids": [
         "UNIT-003",
         "AC-003",
@@ -1106,7 +1116,7 @@
       "id": "EVID-005",
       "status": "PLANNED",
       "artifact_path": "005-library-csv-xlsx-import.md",
-      "sha256": "0501605c8f7fbc0a29c77b09162948323220017dfd77dde22a37ab0d2be8f396",
+      "sha256": "e205025f413b32cbabb6e5f40631bfe3c3263a43b8ef71efe3f7b9201271c518",
       "claim_ids": [
         "UNIT-005",
         "AC-004"
@@ -1118,7 +1128,7 @@
       "id": "EVID-006",
       "status": "PLANNED",
       "artifact_path": "006-variant-accommodation.md",
-      "sha256": "132ce0860204b6c4cfd34b7718b7180afa186cdacbc364385440fe2f93258e33",
+      "sha256": "722290ded53e8f3b423f5cc8fa65064ce61a152238550361b24add087519c921",
       "claim_ids": [
         "UNIT-006",
         "AC-005"
@@ -1201,15 +1211,15 @@
     },
     {
       "id": "EVID-013",
-      "status": "PLANNED",
+      "status": "COLLECTED",
       "artifact_path": "013-external-row-total-divergence.md",
-      "sha256": "6e83e5e171f505153fcf2f1992929fae3c2f87fa4649fac4d80c1a9416c847c7",
+      "sha256": "5adbab36888a03c5ab5f94c62a94031423837085378b9d9467028f3863c76a5a",
       "claim_ids": [
         "UNIT-013",
         "AC-016"
       ],
-      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
-      "valid_until": "2026-08-18T00:00:00.000Z"
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
     }
   ],
   "stale_triggers": [
@@ -1217,5 +1227,5 @@
     "findings-reverified-against-newer-source",
     "cohort-recruitment-begins"
   ],
-  "manifest_sha256": "e51ad3f87162169fe393218b5baedb1c6a287274df6dd7ba7a34628ef3844f53"
+  "manifest_sha256": "67ef99c515af0bf9351d00f55008d1847a82ae19b46916163a54a040d4c8f4b6"
 }

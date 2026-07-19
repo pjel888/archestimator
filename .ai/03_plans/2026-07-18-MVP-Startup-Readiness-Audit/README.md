@@ -6,10 +6,10 @@
   conformance, defect repair, variant accommodation).
 - **Branch:** `main`
 - **Full commit SHA:** `a41a07d0143abf72289a97cd8bd023cfa9986361`
-- **Worktree status (session start):** clean `main` with two pre-existing
-  untracked planning folders unrelated to this audit:
-  - `.ai/03_plans/2026-07-18-Archestimator-Whole-Repo-Performance-Audit/`
-  - `.ai/03_plans/2026-07-18-Whole-App-Consistency-Audit/`
+- **Worktree status (session start):** clean `main` with two then-untracked
+  sibling audit folders. They are now preserved at
+  `.ai/09_archive/store/2026-07-18-Archestimator-Whole-Repo-Performance-Audit-superseded/`
+  and `.ai/09_archive/store/2026-07-18-Whole-App-Consistency-Audit-superseded/`.
 - **Audit mode:** READ-ONLY. No product source, migrations, provider
   configuration, deployments, branches, commits, tests, or builds were touched.
   See `AGENTS.md` "Operating Constraints" and the master prompt's §5.
@@ -83,23 +83,14 @@ Three other audit packs exist for the same date. This audit is distinct in lens
 and does not duplicate their findings; it cites them where engineering defects
 have startup-side consequences.
 
-- `.ai/03_plans/2026-07-18-Codebase-Improve-Audit-Plan-Pack/` — engineering
-  `/improve` audit (33 plans across 9 categories: D1 atomicity, CSRF
-  constant-time, rate-limiter durability, upload scanning, money arithmetic,
-  error consolidation, god-component decomposition, library bulk-import spike,
-  cost-intelligence-layer spike, etc.). Status: PLANNED only, nothing
-  implemented. Its `031-spike-library-bulk-import.md` is directly relevant to
-  this audit's #1 activation blocker (§01 Gap G-02); this audit treats it as a
-  confirmed direction and prioritizes it.
-- `.ai/03_plans/2026-07-18-Whole-App-Consistency-Audit/` — 31 logical/factual/
-  feature bugs (1 CRITICAL: row-total divergence across 5 sites; 8 HIGH).
-  Relevant to startup side: closed-beta enforcement gap (F-09), onboarding
-  milestone bug (F-08), support unread flag (F-06). This audit cites these as
-  trust/correctness risks but does not re-derive them.
-- `.ai/03_plans/2026-07-18-Archestimator-Whole-Repo-Performance-Audit/` —
-  performance/loading audit. Findings recorded under `artifacts/findings.json`
-  and `artifacts/profiles/`. Relevant to first-load and large-estimate behavior
-  in journey 3.
+- `.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/`
+  is now the engineering authority for all three sibling audits. Its
+  `AUDIT-AND-DISPOSITION.md` re-audits all 85 source IDs, records
+  `CONSISTENCY-001` row-total divergence as already implemented, keeps
+  `CONSISTENCY-009` closed-beta enforcement evidence-gated, refutes the stale
+  onboarding claim, and routes performance/loading plus library-import context
+  to their current owners. The original audit text remains available only under
+  the master's immutable source snapshots and recorded archive destinations.
 
 These three audits are engineering lenses. This audit is the
 startup/ICP/pricing/beta-ops/learning lens: who is the user, what loop must
@@ -159,7 +150,7 @@ parallel verification agents (pack-defect, validator-shape,
 variant-accommodation) surfaced a 40-item defect register. Repairs:
 
 - **Schema conformance (BLOCKER fixes):** added canonical `00-PLAN.md` with
-  stable IDs (`REQ-001..016`, `DEC-AUTO-001..012`, `UNIT-001..013`,
+  stable IDs (`REQ-001..016`, `DEC-AUTO-001..013`, `UNIT-001..013`,
   `AC-001..016`, `EVID-001..013`, `RISK-001..003`, `GATE-PLAN-001`,
   `SLICE-001`); added `plan-pack.json` passing `bun run validate:plan-pack`;
   added `LOOP_LEDGER.md`; added 13 per-unit docs (`001-*.md`..`013-*.md`).

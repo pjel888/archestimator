@@ -38,12 +38,14 @@
 | 2026-07-19T01:20Z | lead | COMPLETE · wrote `plan-pack.json` (will refresh `manifest_sha256` via validator `--write`) | New file: `plan-pack.json` |
 | 2026-07-19T01:25Z | lead | COMPLETE · patched substantive evidence defects (DEF-30 GA4, DEF-31 activation framing, DEF-37 admin count, DEF-11/12 speculative scope, DEF-13 §P cut, DEF-14 false blockers) | Edits to `00-EXECUTIVE-VERDICT.md`, `01-CAPABILITY-AND-GAP-AUDIT.md`, `02-PRIORITIZED-MVP-BACKLOG.md`, `04-FOUNDER-DECISION-PACKET.md`, `README.md` |
 | 2026-07-19T01:30Z | lead | VALIDATED · `bun run validate:plan-pack .ai/03_plans/2026-07-18-MVP-Startup-Readiness-Audit --write` PASS | Validator output recorded below |
+| 2026-07-19T03:00Z | quality-master consolidation | REVERIFIED · former E-01 owner was already implemented; UNIT-013 superseded and inbound audit references repointed | Quality master `AUDIT-AND-DISPOSITION.md` row `CONSISTENCY-001` |
 
 ## Decision Ledger
 
 | ID | Decision | Made | Rationale |
 | --- | --- | --- | --- |
 | DEC-AUTO-001..012 | See `00-PLAN.md` §6 | 2026-07-19 | Autonomous per Kernel §4; recorded for future execution traceability. |
+| DEC-AUTO-013 | Supersede UNIT-013 as an active external dependency | 2026-07-19 | Current-source quality re-audit records the historical consistency fix as already implemented. |
 
 ## Authorization Ledger
 
@@ -63,7 +65,7 @@
 | --- | --- | --- | --- |
 | RISK-001 | Hosted D1 PITR default-state claim may drift from current Cloudflare docs; G-11 currently marked `STRONG_INFERENCE-PITR-default` pending re-verification | OPEN | Researcher citation to current Cloudflare D1 docs required before UNIT-004 execution locks "enable" vs "drill-only" scope. |
 | RISK-002 | Recruiting the cohort before the bundled spike (UNIT-001..004) lands sacrifices lead attribution and activation observability for cohort 1 | ACCEPTED | Verdict §12 sets the order: spike before outreach. |
-| RISK-003 | Row-total divergence (E-01, external) is a trust blocker; if consistency UNIT-001 is not resolved pre-cohort, design partners may catch divergent totals | OPEN | Tracked as UNIT-013 external precondition; not a code dependency. |
+| RISK-003 | Historical E-01 row-total divergence could have undermined cohort trust | MITIGATED | Quality master `CONSISTENCY-001` reverified the remediation as already implemented; UNIT-013 is superseded. |
 
 ## Continuation
 

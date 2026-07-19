@@ -28,9 +28,9 @@ emitted) OR removed; the cohort funnel must not show a permanent gap.
 - `src/lib/admin/activation-cohort-repository.ts:144,146` — cohort aggregate
   counts users whose `last_milestone` reaches `health_reviewed`. The
   permanent funnel hole distorts this aggregate.
-- Cross-reference: `2026-07-18-Whole-App-Consistency-Audit` F-08 REFUTED the
-  claim that the checklist was mounted and reclassified the entire subsystem
-  as dead code. UNIT-003 absorbs that refutation: the *display side* is dead
+- Cross-reference: quality master `CONSISTENCY-008` refutes the old claim that
+  the checklist was mounted and reclassifies the entire subsystem as dead code.
+  UNIT-003 absorbs that refutation: the *display side* is dead
   AND the *producer side* is dead.
 
 ## Implementation

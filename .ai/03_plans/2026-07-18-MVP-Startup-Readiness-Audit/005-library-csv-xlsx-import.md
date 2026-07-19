@@ -4,7 +4,9 @@
 - **Priority:** P1 · **Effort:** M · **Risk:** MED · **Status:** PLANNED
 - **Depends on:** UNIT-002 (instrument funnel first)
 - **Evidence:** EVID-005
-- **Cross-reference:** `2026-07-18-Codebase-Improve-Audit-Plan-Pack/031-spike-library-bulk-import.md` — this unit implements and amends that spike.
+- **Cross-reference:** quality master `IMPROVE-031` records the old spike as
+  duplicate/external-owner work; this unit implements it and UNIT-006 adds
+  variant accommodation.
 
 ## Goal
 

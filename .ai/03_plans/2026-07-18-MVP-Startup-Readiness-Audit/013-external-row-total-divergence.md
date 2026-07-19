@@ -1,49 +1,50 @@
-# UNIT-013 · (External) Row-total divergence
+# UNIT-013 · Resolved row-total divergence receipt
 
 - **Requirement:** REQ-016
-- **Priority:** P0 · **Effort:** M · **Risk:** HIGH · **Status:** EXTERNAL-OWNER
-- **Depends on:** — (trust precondition for cohort recruitment; not a code
-  dependency on any unit in this pack)
+- **Historical priority:** P0 · **Current risk:** LOW · **Status:** SUPERSEDED
+- **Depends on:** —
 - **Evidence:** EVID-013
-- **Owner:** `2026-07-18-Whole-App-Consistency-Audit` UNIT-001
+- **Current authority:**
+  `.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/AUDIT-AND-DISPOSITION.md`
+  row `CONSISTENCY-001`
 
 ## Goal
 
-A single estimate row shows the same total across every surface (UI editor,
-D1 authoritative, charts, proposal export, publication snapshot, duplication,
-list summaries). Owned externally; this pack records it as a Stage-A trust
-precondition.
+Keep the former Stage-A trust precondition truthful without leaving a resolved
+external audit unit in the runnable graph.
 
-## Source evidence (commit `a41a07d01`)
+## Current-source re-audit
 
-- Cross-reference only. The full defect, evidence, and remediation plan are
-  in `.ai/03_plans/2026-07-18-Whole-App-Consistency-Audit/001-labor-cost-divergence.md`
-  (consistency F-01, CRITICAL).
+The 2026-07-19 whole-repo quality consolidation reverified the preserved
+consistency F-01 claim and classified `CONSISTENCY-001` as
+`ALREADY_IMPLEMENTED`: the dead labor-cost field and affected projections were
+removed. The original defect narrative remains immutable historical evidence in
+the quality master's source snapshot and archived predecessor.
 
 ## Startup-side consequence
 
-If a design partner catches divergent totals, trust collapses. The cohort
-cannot be safely recruited until this is resolved. It is a precondition
-for the bundled spike in verdict §12, not a unit this pack implements.
+Row-total consistency remains a product trust invariant, but this particular
+historical remediation plan is no longer an active cohort blocker. Future work
+must use current source and the quality master rather than resume the old
+consistency `UNIT-001` pointer.
 
 ## Implementation
 
-None in this pack. The consistency audit owns UNIT-001 there.
+None in this pack. This receipt is `SUPERSEDED` because the external work is
+already present in current source.
 
 ## Acceptance evidence
 
-The consistency audit's UNIT-001 reaches `VERIFIED` status in its own
-`plan-pack.json`.
-
-## Test decision
-
-Deferred to the owning pack.
+- Quality master disposition `CONSISTENCY-001 = ALREADY_IMPLEMENTED`.
+- Current-source re-audit found no surviving `laborUnitCost` remediation unit.
+- No product test or browser claim is made by this plan-only receipt.
 
 ## Recovery
 
-n/a (external owner).
+If current source later proves a row-total divergence, open a new bounded
+current-source correctness unit. Do not reactivate the archived audit plan.
 
 ## Completion signal
 
-Owning pack marks UNIT-001 `VERIFIED`; this pack's `LOOP_LEDGER.md` records
-the cross-pack dependency as resolved.
+`plan-pack.json` marks `UNIT-013` `SUPERSEDED`, `RISK-003` `MITIGATED`, and
+records the quality-master re-audit decision.

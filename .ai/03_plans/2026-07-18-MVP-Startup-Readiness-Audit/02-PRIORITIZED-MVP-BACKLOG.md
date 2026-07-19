@@ -264,7 +264,8 @@ Goal: Cold-start pain is mitigated; reuse signal is measurable.
 - **Reason:** No import exists (negative grep). Library insert is single-row
   only (`AddComponentModal.tsx` 2688 lines). This is the largest adoption
   blocker and the biggest threat to the "never start from zero" thesis. (Gap
-  G-02; matches existing direction in `2026-07-18-Codebase-Improve-Audit-Plan-Pack/031-spike-library-bulk-import.md`.)
+  G-02; the quality master marks old `IMPROVE-031` duplicate because this pack's
+  UNIT-005/006 are now the canonical import/variant owner.)
 - **Smallest coherent scope:**
   - Accept `.csv` and `.xlsx` (use the already-declared `exceljs` dep, or the
     in-house `xlsx-workbook.ts` reader if extended to read).
@@ -529,11 +530,11 @@ Consolidated to satisfy master prompt §13's "≤15 items" rule.
 | 12 | M3-03 Contractor profile + branded export | 3 | MVP-EXPERIENCE-P1 | S |
 | 13 | M4-01 Feedback synthesis cadence | 4 | MVP-LEARNING-P0 | S |
 | 14 | M4-02 Pricing problem + value interviews (start) | 4 | PAID-MVP-P1 | S |
-| 15 | E-01 Row-total divergence fix (engineering, consistency F-01) | 1 | MVP-BLOCKER (trust) | M |
+| 15 | E-01 row-total divergence resolved receipt | 1 | RESOLVED-PREREQUISITE | — |
 
-Item 15 is implemented under the consistency audit (`2026-07-18-Whole-App-Consistency-Audit`),
-not here; it is listed so the startup backlog acknowledges it as a trust
-blocker for the cohort.
+The 2026-07-19 quality master reverified item 15 as already implemented under
+`CONSISTENCY-001`. It remains in this historical list only as a resolved trust
+receipt and is not runnable backlog work.
 
 ---
 
