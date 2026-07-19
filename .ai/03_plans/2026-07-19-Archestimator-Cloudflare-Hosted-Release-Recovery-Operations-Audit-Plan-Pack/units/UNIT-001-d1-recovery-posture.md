@@ -10,7 +10,7 @@ release-gate runbook.
 ## Source finding / requirement
 
 - `OPS-RECOVERY-001` (High) — `04-FINDINGS-REGISTER.md`
-- `REQ-OPS-001` (CORE) — hosted recovery posture is a release-gate NO_GO
+- `REQ-001` (CORE) — hosted recovery posture is a release-gate NO_GO
 
 ## Dependencies
 

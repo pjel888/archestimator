@@ -1,7 +1,9 @@
 # Bug Plan Creation Playbook
 
-Use this when a blocker, stale assumption, tooling failure, validation failure,
-provider-proof gap, merge conflict, or security issue is discovered.
+Use this only for a material unresolved blocker, stale source-of-truth claim,
+validation failure, provider-proof gap, merge conflict, or security issue that
+needs durable follow-up. Do not create a bug plan for an issue resolved in the
+same run or for an optional tool/test gap that does not block the deliverable.
 
 ## File
 

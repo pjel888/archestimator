@@ -11,7 +11,7 @@ token valid, and each of S-01..S-07 scenarios produces a delivered payload.
 - `OPS-OBS-ALERT-002` (High)
 - `OPS-CRON-ALERT-010` (Medium) — cron-failure / missed-run alerting
 - `OPS-OBS-RETENTION-011` (Medium) — Workers Logs retention duration
-- `REQ-OPS-002` (CORE) — alert delivery is a release-gate NO_GO
+- `REQ-002` (CORE) — alert delivery is a release-gate NO_GO
 
 ## Dependencies
 

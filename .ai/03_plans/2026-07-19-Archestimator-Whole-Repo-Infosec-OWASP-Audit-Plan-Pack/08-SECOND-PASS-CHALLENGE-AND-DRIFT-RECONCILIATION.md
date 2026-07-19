@@ -56,11 +56,26 @@ These temper the priority of the Medium/Low units — the architecture is fundam
 - **HEAD at audit end:** `963bb1f25` (drifted during the audit).
 - **Drift source:** concurrent commits by another agent/process (commits `b1b16be78` through `963bb1f25`). The drift touched **only** `.ai/`, `.agents/`, `.ai/00_system/`, `.ai/03_plans/2026-07-18-MVP-Startup-Readiness-Audit/`, and `.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/` — plus the InfoSec pack folder itself was committed in-flight by the concurrent process at an earlier snapshot of my work.
 - **Audited source paths in the drift:** **NONE.** `git diff --name-only 7f9a484b4..963bb1f25 | grep -E '^(src/|worker.ts|wrangler.jsonc|next.config.ts|migrations/)'` returns zero matches. Every file:line citation in `04-FINDINGS-REGISTER.md` remains valid against the current source tree.
-- **Audited source files re-verified:** `worker.ts`, `wrangler.jsonc`, `next.config.ts`, `src/middleware.ts`, `src/lib/authz/d1-access.ts`, `src/lib/cloudflare/collaboration-room.ts`, `src/lib/cloudflare/realtime-room-token.ts`, `src/lib/cloudflare/collaboration-room-revocation.ts` — all unchanged against the audit-baseline content (sha256 match against `artifacts/baseline-hashes.csv` where applicable; spot-checked where the file is large).
+- **Audited source files re-verified:** `worker.ts`, `wrangler.jsonc`, `next.config.ts`, `src/middleware.ts`, `src/lib/authz/d1-access.ts`, `src/lib/cloudflare/collaboration-room.ts`, `src/lib/collaboration/realtime-room-token.ts`, `src/lib/cloudflare/collaboration-room-revocation.ts` — all unchanged against the audit-baseline content (sha256 match against `artifacts/baseline-hashes.csv` where applicable; spot-checked where the file is large).
 - **Working-tree changes during audit:** three files in this pack folder were edited by the lead after the concurrent process committed an earlier snapshot (`00-PLAN.md`, `README.md`, `plan-pack.json` — release_status correction, status-tuple correction, and validator-error fixes). The working-tree version is the canonical artifact; the committed snapshot was an in-flight state.
 - **File:line references:** every `file:start-end` citation in `04-FINDINGS-REGISTER.md` was captured against `7f9a484b4` and remains valid against `963bb1f25` (audited source unchanged).
 - **Coverage ledger closure:** `unclassified_tracked_paths = 0` at audit end.
 - **Validator PASS:** `bun run validate:plan-pack .ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack` passes against the working-tree version.
+- **Post-audit repo HEAD at improvement time:** `5e2d4adea` (further drift after `963bb1f25`). Verified: `git diff --name-only 7f9a484b4..5e2d4adea | grep -E '^(src/|worker.ts|wrangler.jsonc|next.config.ts|migrations/)'` returns only 7 landing-page components under `src/components/landing-new/` — **no cited audited path changed**, so every file:line citation in `04-FINDINGS-REGISTER.md` and `artifacts/findings.json` remains valid.
+
+### 8.4.1 Improvement pass (2026-07-19, post-audit)
+
+A `Improve-Plan-Prompt.md` pass reconciled seven material defects against current repo evidence, without changing any accepted finding, severity rationale, or unit. Changes:
+
+- **R1 (authority path):** corrected `src/lib/cloudflare/realtime-room-token.ts` → `src/lib/collaboration/realtime-room-token.ts` in 7 occurrences (`04-FINDINGS-REGISTER.md`, `artifacts/findings.json`, `units/001-*.md` ×4, this file §8.4). Line citations (1, 87-94, 120-142, 158-185) verified correct against the right path; the prior "re-verified unchanged against baseline" claim was impossible against a nonexistent path and is now truthful.
+- **R2 (severity counts):** the `findings.json` `severity_counts` header said Medium=11 / Low=14 but the `findings[]` array held 25 Medium / 11 Low. Recomputed `severity_counts` from the array. Reconciled `00-PLAN.md` §7/§9, `README.md`, `04-FINDINGS-REGISTER.md` header to the authoritative count. Net: **26 Medium, 11 Low** (after R5).
+- **R3 (drift HEAD):** `00-PLAN.md` §1 said "no drift during the audit" / final HEAD = baseline; this §8.4 (verified correct: 366 drift files, 0 in audited source) said HEAD drifted to `963bb1f25`. Repaired `00` §1 to agree with §8.4 and added the post-audit HEAD `5e2d4adea`.
+- **R4 (`release_status`):** `PACK-MANIFEST.md` said `NOT_EVALUATED`; `00-PLAN.md` §2 and `plan-pack.json` said `BOUNDARY` (both valid validator vocabulary). Aligned the manifest to `BOUNDARY` with rationale.
+- **R5 (orphan ID):** `SEC-CI-002` was referenced in crosswalk/reconciliation/unit-012/findings.json-no-unit-list but never defined. Defined it as a Medium supply-chain finding (Dependabot + dependency-review-action disabled, distinct from `SEC-CI-001`'s build/test gate); removed from `informational_no_unit`. No longer an orphan.
+- **R6 (Low-list consistency):** `SEC-BROWSER-002` was a Medium `###` in the register but Low in json (its own text says "latent — currently safe"). Reclassified to Low in the register to match json and the verifier's latent treatment.
+- **R7 (provenance):** `plan-pack.json` `updated_at` refreshed; artifact hashes refreshed via `validate-plan-pack --write` (last step).
+
+Validator re-run after all edits: PASS (see completion report). No accepted finding, severity rationale, unit, or acceptance criterion changed in substance.
 
 ## 8.5 Negative-space sweep (PASS 9)
 

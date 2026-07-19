@@ -8,10 +8,14 @@
 
 ## Required reading
 
-1. `.ai/13_research/competitor-landscape-construction-estimating-2026-05-16.md`
-2. `.ai/13_research/npm-package-landscape-next-bun-mvp-2026-05-16.md`
-3. `.ai/13_research/open-source-repos-construction-estimating-2026-05-16.md`
-4. `.ai/13_research/social-signal-construction-estimating-2026-05-16.md`
+1. `.ai/06_specs/archestimator-product-thesis.md`
+2. The FAST PATH in `.ai/10_state/current-state.md`
+3. Current source for the product surface being compared
+
+The dated May 2026 competitor, npm, open-source, and social-signal files under
+`.ai/13_research/` are historical baselines, not current market evidence. Refresh
+pricing, product behavior, package versions, maintenance, and licensing from
+primary sources when the task requires current claims.
 
 ## Competitor categories
 
@@ -28,6 +32,7 @@ Track competitors by category:
 
 - Capture source URL and access date.
 - Separate vendor claims from verified product behavior.
+- Prefer primary sources and mark inference explicitly.
 - Record pricing only when visible from a reliable source.
 - For X/Twitter, do not read or expose credential files. Use safe search only.
 - For open-source repos, check license before suggesting reuse.

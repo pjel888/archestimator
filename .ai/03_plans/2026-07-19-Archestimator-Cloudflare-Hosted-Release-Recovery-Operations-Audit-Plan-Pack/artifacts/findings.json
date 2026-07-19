@@ -5,9 +5,9 @@
   "severity_counts": {
     "critical": 0,
     "high": 4,
-    "medium": 9,
-    "low_or_informational": 4,
-    "rejected_refuted_duplicate": 3
+    "medium": 10,
+    "low_or_informational": 3,
+    "rejected_refuted_duplicate": 0
   },
   "findings": [
     {

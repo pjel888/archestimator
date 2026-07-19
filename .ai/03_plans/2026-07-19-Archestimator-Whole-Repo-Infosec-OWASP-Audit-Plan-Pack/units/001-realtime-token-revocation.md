@@ -48,20 +48,20 @@ After administrative removal or role downgrade of a collaboration member, that m
 4. The denylist write is durable across DO eviction (persists in DO SQLite, not in-memory).
 
 ## current_source_evidence
-- `src/lib/cloudflare/realtime-room-token.ts:1` — `DEFAULT_ROOM_TOKEN_TTL_SECONDS = 300`.
-- `src/lib/cloudflare/realtime-room-token.ts:158-185` — `verifyRealtimeRoomToken` checks signature + topic + `exp` only.
+- `src/lib/collaboration/realtime-room-token.ts:1` — `DEFAULT_ROOM_TOKEN_TTL_SECONDS = 300`.
+- `src/lib/collaboration/realtime-room-token.ts:158-185` — `verifyRealtimeRoomToken` checks signature + topic + `exp` only.
 - `src/lib/cloudflare/collaboration-room.ts:378-427` — `authorizeSocket` calls `verifyRealtimeRoomToken` and topic-binds but does not consult any revocation list.
 - `src/lib/cloudflare/collaboration-room.ts:519-538` — `handleControlRequest` for `revoke-subject` iterates open sockets and closes matching ones; does not persist a denylist.
 - `src/lib/cloudflare/collaboration-room-revocation.ts:33-74` — `revokeCollaborationRoomSubject` POSTs the revoke command (used by `actions.ts:1622-1624,1682,1824,1913`).
 - `wrangler.jsonc:64-67` — DO SQLite storage is provisioned for `CollaborationRoom` (tag `v1`).
 
 ## affected_paths_and_resources
-- `src/lib/cloudflare/realtime-room-token.ts` (constant change).
+- `src/lib/collaboration/realtime-room-token.ts` (constant change).
 - `src/lib/cloudflare/collaboration-room.ts` (DO SQLite schema init, denylist read in `authorizeSocket`, denylist write in `handleControlRequest`).
 - (No migration file needed — DO SQLite state is managed by the DO class itself, not by `migrations/`.)
 
 ## owned_paths
-- `src/lib/cloudflare/realtime-room-token.ts`
+- `src/lib/collaboration/realtime-room-token.ts`
 - `src/lib/cloudflare/collaboration-room.ts`
 
 ## dependencies

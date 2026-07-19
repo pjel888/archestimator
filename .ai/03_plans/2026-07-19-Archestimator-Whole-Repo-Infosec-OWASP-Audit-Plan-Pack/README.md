@@ -37,9 +37,9 @@ See [`04-FINDINGS-REGISTER.md`](./04-FINDINGS-REGISTER.md) and `artifacts/findin
 
 - **Critical:** 0
 - **High:** 1 (`SEC-COLLAB-003` realtime token revocation gap)
-- **Medium:** 11
-- **Low / Informational:** 14
-- **Rejected / refuted / duplicate:** recorded in `artifacts/rejected-refuted-findings.json` (notably `SEC-WORKER-001` refuted on-platform; `SEC-WORKER-003` duplicate of `SEC-WORKER-002`).
+- **Medium:** 26
+- **Low:** 11 (plus ~29 informational with no unit)
+- **Rejected / refuted / duplicate:** 3 (`SEC-WORKER-001` refuted on-platform; `SEC-WORKER-003` duplicate of `SEC-WORKER-002`; `SEC-OPS-002` duplicate of `SEC-CRYPTO-001`+`SEC-OPS-001`) + 2 sweep candidates downgraded to Low/Informational — full record in `artifacts/rejected-refuted-findings.json`. Counts reconciled to `artifacts/findings.json` `findings[]`.
 
 ## Reading order
 

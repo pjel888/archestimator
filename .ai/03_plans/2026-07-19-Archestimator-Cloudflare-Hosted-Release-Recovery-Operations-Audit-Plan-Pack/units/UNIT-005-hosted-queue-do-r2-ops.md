@@ -11,7 +11,7 @@ a documented inspection cadence.
 - `OPS-QUEUE-DLQ-012` (Medium) — DLQ depth + replay contract
 - `OPS-DO-STORAGE-013` (Medium) — DO storage use + quarantine runbook
 - `OPS-R2-LIFECYCLE-014` (Medium) — R2 inventory + cleanup execution
-- `REQ-OPS-005` (CORE)
+- `REQ-005` (CORE)
 
 ## Dependencies
 

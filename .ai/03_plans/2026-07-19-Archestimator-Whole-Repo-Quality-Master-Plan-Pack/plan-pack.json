@@ -10,7 +10,7 @@
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-19T04:02:22.710Z",
+  "updated_at": "2026-07-20T16:36:41.569Z",
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -60,7 +60,7 @@
       "id": "ART-006",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "673566e276080c4f1cd6cb6d9381bb49c89a9783c2c63e713ed86b4b1586ccbe"
+      "sha256": "701a11a6dc5c399b97d0a40210d2375ef94c7e8bd8bf40ce6289d495f503da3f"
     },
     {
       "id": "ART-007",
@@ -1710,7 +1710,7 @@
       "id": "EVID-001",
       "status": "PLANNED",
       "artifact_path": "LOOP_LEDGER.md",
-      "sha256": "673566e276080c4f1cd6cb6d9381bb49c89a9783c2c63e713ed86b4b1586ccbe",
+      "sha256": "701a11a6dc5c399b97d0a40210d2375ef94c7e8bd8bf40ce6289d495f503da3f",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -1912,7 +1912,7 @@
       ]
     }
   ],
-  "manifest_sha256": "a029b889e452b8c01a617043889e7ff56637faecfa396df00c5d2198eb6ec51b",
+  "manifest_sha256": "0d76207260c399cc306829de0a7d925708e8cb3e3b17e24a65bcaa1da20f1d38",
   "transition_contract": {
     "version": "quality-master-outcome-transitions.v1",
     "receipt_artifact": "LOOP_LEDGER.md",

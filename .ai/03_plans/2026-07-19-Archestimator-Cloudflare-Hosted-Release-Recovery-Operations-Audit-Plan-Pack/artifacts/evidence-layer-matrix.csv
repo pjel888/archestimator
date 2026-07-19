@@ -34,9 +34,9 @@ EVID-032,O-09,Auth-denial path (null session fail-closed),HOSTED_PRODUCTION_READ
 EVID-033,O-09,/admin and /workshop redirect to /login when unauthenticated,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
 EVID-034,O-10,EMAIL binding present,REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:28-32,HIGH,,
 EVID-035,O-10,Outbound email fail-closed unless ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED,REPO_LOCAL,REPO_LOCAL,src/lib/email/cloudflare-email-client.ts:133-139,HIGH,,
-EVID-036,O-10,MX records route @archestimator.com via Namecheap (NOT Cloudflare),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,Finding OPS-EMAIL-001
+EVID-036,O-10,MX records route @archestimator.com via Namecheap (NOT Cloudflare),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,Finding OPS-EMAIL-MX-007
 EVID-037,O-10,Inbound Worker email() handler absent,REPO_LOCAL,REPO_LOCAL,worker.ts:141-321,HIGH,,No email() handler
-EVID-038,O-10,SPF/DMARC/DKIM hardening,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,MEDIUM,,DMARC p=none; no DKIM; finding OPS-EMAIL-002
+EVID-038,O-10,SPF/DMARC/DKIM hardening,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,MEDIUM,,DMARC p=none; no DKIM; finding OPS-EMAIL-DNS-008
 EVID-039,O-11,Workers Logs 100% sampled + persisted,REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:110-118,HIGH,,Hosted retention duration not evidenced (AUTH-001)
 EVID-040,O-11,Hosted Workers Logs retention duration,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; wrangler.jsonc has no explicit retention,AUTH-001: dashboard / Workers Logs settings
 EVID-041,O-11,Request ID + redaction in logs,REPO_LOCAL,REPO_LOCAL,src/lib/observability/{request-id,redact}.ts + worker.ts:91-115,HIGH,,Cross-ref Infosec SEC-LOG-001..003

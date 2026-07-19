@@ -15,7 +15,7 @@
     "scoped_status_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
-  "updated_at": "2026-07-19T07:30:00.000Z",
+  "updated_at": "2026-07-19T19:30:00.000Z",
   "stale_triggers": [
     "wrangler.jsonc binding changes",
     "new migration in migrations/",
@@ -34,73 +34,73 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "587aca8973cb125b2127ee3b967069c0376806a1642ba7058ade4dc05ef576e3"
+      "sha256": "88f20ae73c9ff6377c6d8accafb51b155af50ea14914b087b5de795679f2c037"
     },
     {
       "id": "ART-002",
       "role": "index",
       "path": "README.md",
-      "sha256": "f84fc1829079341a4f591641cad5037562cd6806a285726b0055e9ec26401bee"
+      "sha256": "8eebda20c78f98b6d756d039071e1cc54330cdb4b5f479562d7a1da7d5bab5fd"
     },
     {
       "id": "ART-003",
       "role": "findings-register",
       "path": "04-FINDINGS-REGISTER.md",
-      "sha256": "313639278205d39031c42565a97c32f7db51c2a39136a100db40b0da1391644f"
+      "sha256": "dbcbbaad74c7115a823e47bdfb3e42f977dc6c9dfa079915db729884ba653896"
     },
     {
       "id": "ART-004",
       "role": "audit-ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "88c41c7c3a9b1e0cad2128b1babe6aefea564a9d1ba8aaba9897e3d618fdcedd"
+      "sha256": "b5a8058e1b763f78629ee3edc5b0b9d09d3aa5eefab553335649e365307cb249"
     },
     {
       "id": "ART-005",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "dd01185087172375c1bbd42b93ea0548d932feec11be7d0fec5b5568e1316b53"
+      "sha256": "1a32d0267c5c501790aa52bd9037aaecacf94bd7178babda4c0b9982de96f213"
     },
     {
       "id": "ART-006",
       "role": "unit",
       "path": "units/UNIT-001-d1-recovery-posture.md",
-      "sha256": "da407d702997d4873df36de5ef29264754c9a779da15710a35dfecf0363fb663"
+      "sha256": "2157509a692ae9cd90e17e7767632fa63ef73dc796921f42b2195bf72550b29b"
     },
     {
       "id": "ART-007",
       "role": "unit",
       "path": "units/UNIT-002-observability-alert-delivery.md",
-      "sha256": "2a2f4761f1c80a26dcea2f00e979a2d01ef99fa0384b2c0a7d66d4334dda99dd"
+      "sha256": "0237129fc435a8a071ae8e6f129cbdd9354e346b168102b39c7ae4e8faaa2d15"
     },
     {
       "id": "ART-008",
       "role": "unit",
       "path": "units/UNIT-003-hosted-oauth-roundtrip.md",
-      "sha256": "d7483872ea9dacf90d34120a5188f18e205d3fe4f7e3dd182f8a5cea8d09aec7"
+      "sha256": "1b5ed9fbdace27a71d9ce151c336849e7b85227f2ef194f7f68335363c7f6ed0"
     },
     {
       "id": "ART-009",
       "role": "unit",
       "path": "units/UNIT-004-email-dns-topology.md",
-      "sha256": "2242267269e1dcc2fb06f4d3168566c0fcf5a426b6e91b905f2b30a4b86647c0"
+      "sha256": "6d75dd3e72bf9a0f7b48445cfde46bea937890c5fc5027a8f6486d2c41e5df18"
     },
     {
       "id": "ART-010",
       "role": "unit",
       "path": "units/UNIT-005-hosted-queue-do-r2-ops.md",
-      "sha256": "8f65da99cd3cf6d91b5ebb5fc8062a1f062a61174a63978d401a62e9e2d5f071"
+      "sha256": "d48dbe0c959c5f144a0954c09697a57fb19a077882cc76765afa17ef8efd98ca"
     },
     {
       "id": "ART-011",
       "role": "unit",
       "path": "units/UNIT-006-release-gate-ritual.md",
-      "sha256": "f668ada052641499a2101a3df7901b0c51145378f8ef6c7f80c12973667fe0a2"
+      "sha256": "242fc56a7f55fe0ae18fa50c1e837f198127466c975535e02409165bb3c96ff0"
     },
     {
       "id": "ART-012",
       "role": "unit",
       "path": "units/UNIT-007-d1-parity-retention.md",
-      "sha256": "da967975845673f6db4acbbea060972e9348bc3ed127b2e80a8bfff87316e11d"
+      "sha256": "251d969a2142d7866c5775bdb5f05fa0e4086f7cd846a9e0d7d3370659ce5005"
     },
     {
       "id": "ART-013",
@@ -112,19 +112,19 @@
       "id": "ART-014",
       "role": "findings-machine",
       "path": "artifacts/findings.json",
-      "sha256": "b7235b8aff547faf8f4c15dfc1dee3be7d989ef017364a7f9dc70ec29ea2cd09"
+      "sha256": "728dd92ff4cce86ad41b9f2e6c4816f80223efed8ad2834202517512e324d3eb"
     },
     {
       "id": "ART-015",
       "role": "overlap-matrix",
       "path": "artifacts/existing-pack-overlap.json",
-      "sha256": "feec2d18449b3e11876937834acc25d8fda4ecafcd54c87d8ae77b2d4d32928a"
+      "sha256": "f2b642e8c4b751518b791016a55071e0979e6ca9b8c601ebc42dda8f14bd8b8b"
     },
     {
       "id": "ART-016",
       "role": "evidence-layer-matrix",
       "path": "artifacts/evidence-layer-matrix.csv",
-      "sha256": "1cfab2610a6d611337318b985bb845afec40180d15fb63aa93e3a2b5cbffa9d1"
+      "sha256": "803c2325bf0d6c52199cb8d9056e11635c1fb274a508d3f3e6b3c5f57d093a4b"
     },
     {
       "id": "ART-017",
@@ -166,7 +166,7 @@
       "id": "ART-023",
       "role": "auth-email-readiness",
       "path": "artifacts/auth-email-hosted-readiness.md",
-      "sha256": "334f6ff38b29f5337099749da6108d2b05a1c311a97f0e5f37309a340b6964ee"
+      "sha256": "0d91e0480de2699f3a730e57da80664309225eb751726415ec10226ac588c6e5"
     },
     {
       "id": "ART-024",
@@ -492,7 +492,7 @@
     },
     {
       "id": "AC-004",
-      "status": "PASS",
+      "status": "BOUNDARY",
       "artifact_path": "units/UNIT-004-email-dns-topology.md",
       "requirement_ids": [
         "REQ-004"
@@ -504,12 +504,12 @@
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
       "test_rationale": "Operator-driven DNS + deliverability verification; no automated product test.",
-      "authorization_boundary_id": null,
+      "authorization_boundary_id": "AUTH-002",
       "statement": "Email DNS topology aligned (Option A or B) with SPF/DKIM/DMARC validation passing for a Worker-sent test message."
     },
     {
       "id": "AC-005",
-      "status": "PASS",
+      "status": "BOUNDARY",
       "artifact_path": "units/UNIT-005-hosted-queue-do-r2-ops.md",
       "requirement_ids": [
         "REQ-005"
@@ -521,12 +521,12 @@
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
       "test_rationale": "Operator-driven hosted baseline capture; no automated product test.",
-      "authorization_boundary_id": null,
+      "authorization_boundary_id": "AUTH-001",
       "statement": "Baseline DLQ depths, R2 object counts, outbox state counts, cleanup dry-run, DO quarantine procedure documented."
     },
     {
       "id": "AC-006",
-      "status": "PASS",
+      "status": "BOUNDARY",
       "artifact_path": "units/UNIT-006-release-gate-ritual.md",
       "requirement_ids": [
         "REQ-006"
@@ -538,7 +538,7 @@
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
       "test_rationale": "Operator-driven ritual; not automated product testing.",
-      "authorization_boundary_id": null,
+      "authorization_boundary_id": "AUTH-002",
       "statement": "Release-gate ritual executed before each cohort wave with a stored release receipt."
     },
     {
@@ -820,6 +820,21 @@
         "REQ-006"
       ],
       "statement": "Controlled-beta decision = CONDITIONAL_GO; three NO_GO blockers (GATE-RECOVERY-001, GATE-ALERT-002, GATE-OAUTH-003); five CONDITIONAL items accepted with documented mitigations."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006",
+        "AUTH-002"
+      ],
+      "statement": "Evidence-honesty repair at improvement pass: AC-004/005/006 demoted from PASS to BOUNDARY and EVID-004/005/006 from PASS to STALE, because each evidence record's own narrative says the work is not done (email topology not aligned, queue/DO/R2 baselines EVIDENCE_BLOCKED, release-gate ritual not executed). AUTH-002 added to bound the two operator-action criteria (AC-004 DNS change, AC-006 cohort admit) that are not wrangler-token-gated."
     }
   ],
   "authorization_boundaries": [
@@ -831,11 +846,22 @@
         "AC-001",
         "AC-002",
         "AC-003",
+        "AC-005",
         "AC-007",
         "AC-008",
         "GATE-CONTROLLED-BETA-001"
       ],
       "statement": "Cloudflare hosted reads via wrangler are blocked by an expired token in this non-interactive session. Continuation: interactive terminal -> bunx wrangler login (or set CLOUDFLARE_API_TOKEN) -> re-run the readback commands listed per finding. Bounds: deployment SHA, D1 info/backups/migrations list/schema, R2 object listing, queue depth, DO storage, secret names (never values), Workers Logs retention. Never authorized in this audit: deploy, secret sync/value read, DNS change, production D1 writes/exports/time-travel restore, production R2 mutation, queue replay/purge, DLQ mutation, cron change, DO production-state mutation, real outbound email, GitHub settings change, paid add-on, account change."
+    },
+    {
+      "id": "AUTH-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-004",
+        "AC-006"
+      ],
+      "statement": "Operator-gated production actions that no audit session (interactive or not) may take autonomously: DNS-record changes for email topology alignment (UNIT-004 Option A/B) and the cohort-admit release-gate ritual that mutates the operator ledger and admits design partners (UNIT-006). These are deliberately operator decisions, not wrangler-token-gated reads. Continuation: operator (Philip) executes the DNS change or cohort admit per the unit's implementation boundary, records the result in the named evidence artifact, and updates release-gate.json. Never authorized in this audit: the audit itself performing DNS changes, sending cohort notifications, or recording an admit decision."
     }
   ],
   "ready_slices": [
@@ -887,12 +913,12 @@
       ],
       "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
       "valid_until": null,
-      "sha256": "334f6ff38b29f5337099749da6108d2b05a1c311a97f0e5f37309a340b6964ee",
+      "sha256": "0d91e0480de2699f3a730e57da80664309225eb751726415ec10226ac588c6e5",
       "claim": "Google OAuth UI present on /login (HOSTED_CONFIRMED); client_id/secret presence EVIDENCE_BLOCKED. Will become HOSTED_CONFIRMED when UNIT-003 completes a real-account round-trip."
     },
     {
       "id": "EVID-004",
-      "status": "PASS",
+      "status": "STALE",
       "artifact_path": "artifacts/auth-email-hosted-readiness.md",
       "claim_ids": [
         "AC-004",
@@ -901,12 +927,12 @@
       ],
       "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
       "valid_until": null,
-      "sha256": "334f6ff38b29f5337099749da6108d2b05a1c311a97f0e5f37309a340b6964ee",
-      "claim": "Email DNS topology HOSTED_CONFIRMED inconsistent (MX via Namecheap; outbound via Workers Send Email). Topology finding captured; UNIT-004 owns remediation."
+      "sha256": "0d91e0480de2699f3a730e57da80664309225eb751726415ec10226ac588c6e5",
+      "claim": "Email DNS topology HOSTED_CONFIRMED inconsistent (MX via Namecheap; outbound via Workers Send Email). Topology finding captured; alignment not yet performed. Will become HOSTED_CONFIRMED-aligned when UNIT-004 resolves AUTH-002 (operator DNS change + Option A/B decision + deliverability re-test)."
     },
     {
       "id": "EVID-005",
-      "status": "PASS",
+      "status": "STALE",
       "artifact_path": "artifacts/queue-dlq-matrix.csv",
       "claim_ids": [
         "AC-005",
@@ -916,11 +942,11 @@
       "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
       "valid_until": null,
       "sha256": "5f78da0bfb394e14c117c05ffac6256c8c5a1498fdafdd62e7a8b03277341c24",
-      "claim": "Queue/DLQ/DO/R2 source-confirmed; hosted baselines EVIDENCE_BLOCKED. Matrix artifact complete; UNIT-005 owns baseline capture."
+      "claim": "Queue/DLQ/DO/R2 source-confirmed; hosted baselines EVIDENCE_BLOCKED. Matrix artifact complete; baselines not yet captured. Will become HOSTED_CONFIRMED when UNIT-005 resolves AUTH-001."
     },
     {
       "id": "EVID-006",
-      "status": "PASS",
+      "status": "STALE",
       "artifact_path": "artifacts/release-gate.json",
       "claim_ids": [
         "AC-006",
@@ -931,7 +957,7 @@
       "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
       "valid_until": null,
       "sha256": "ca78ef901a321e9644619fde560c4b96b2a0b291860e61b1845c21de692309f2",
-      "claim": "Release-gate definition + receipt template authored; ritual not yet executed (operator-driven)."
+      "claim": "Release-gate definition + receipt template authored; ritual not yet executed (operator-driven). Will become HOSTED_CONFIRMED when UNIT-006 resolves AUTH-002 (operator cohort-admit action + populated receipt)."
     },
     {
       "id": "EVID-007",
@@ -962,5 +988,5 @@
       "claim": "84 migrations reconciled in source (REPO_LOCAL); hosted applied state EVIDENCE_BLOCKED. Will become HOSTED_CONFIRMED when UNIT-007 runs wrangler d1 migrations list --remote."
     }
   ],
-  "manifest_sha256": "7819e980153a69730136729597353ffddc5131c180ea2c8736d512add2e11135"
+  "manifest_sha256": "b6004e2b37caab7056a02c84612651b7f9e5ba50788eed6f4ea16cdfb8237585"
 }

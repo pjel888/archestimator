@@ -10,10 +10,12 @@ plan_lifecycle:           ACTIVE
 terminal_status:          ACTIVE
 ```
 
-`release_status = BOUNDARY` reflects one active `AUTH-001` authorization
-boundary (Cloudflare hosted reads blocked by expired wrangler token). None of
-the local audit work is blocked; the boundary bounds only hosted-evidence
-claims that require an authenticated wrangler session.
+`release_status = BOUNDARY` reflects two active authorization boundaries:
+`AUTH-001` (Cloudflare hosted reads blocked by expired wrangler token) and
+`AUTH-002` (operator-gated production actions: DNS changes for email topology
+and the cohort-admit release-gate ritual). None of the local audit work is
+blocked; the boundaries bound only hosted-evidence claims that require an
+authenticated wrangler session or a deliberate operator production action.
 
 ## Baseline
 
@@ -65,11 +67,14 @@ mitigations:
 |---|---|
 | Critical | 0 |
 | High | 4 |
-| Medium | 9 |
-| Low / Informational | 4 |
-| Rejected / Refuted / Duplicate | 3 |
+| Medium | 10 |
+| Low / Informational | 3 |
+| Rejected / Refuted / Duplicate | 0 |
 
 Full detail in `04-FINDINGS-REGISTER.md` and `artifacts/findings.json`.
+(`OPS-D1-RESTORE-005A` is `ALREADY_IMPLEMENTED`/informational context, not a
+live defect; `OPS-CRON-FIVE-MIN-017` is `ALREADY_IMPLEMENTED`. The historical
+9/4/3 draft counts are reconciled in the findings register.)
 
 ## Exact next unit
 

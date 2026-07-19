@@ -12,7 +12,7 @@ runs at the documented cadence with the expected table coverage.
 - `OPS-RETENTION-015` (Low) — retention cadence + coverage unverified at hosted layer
 - `OPS-CRON-UNMATCHED-016` (Low) — 30 3 * * * cosmetic noise (deferred to Quality Master)
 - `OPS-CRON-FIVE-MIN-017` (Informational) — empty-cron-event concern resolved
-- `REQ-OPS-008` (CORE)
+- `REQ-008` (CORE)
 
 ## Dependencies
 

@@ -9,7 +9,7 @@ cookie set → `/workshop` loads.
 ## Source findings / requirements
 
 - `OPS-AUTH-OAUTH-003` (High)
-- `REQ-OPS-003` (CORE) — sign-in is a release-gate NO_GO
+- `REQ-003` (CORE) — sign-in is a release-gate NO_GO
 
 ## Dependencies
 

@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-07-19T06:55:00.000Z",
-  "schema": "Each candidate ends in exactly one disposition state from {NEW_OWNER_HERE, CROSS_REFERENCE_ACTIVE_PACK, ALREADY_IMPLEMENTED, REFUTED_OR_UNREACHABLE, DEFERRED_TO_NAMED_STAGE_OR_OWNER, EVIDENCE_BLOCKED, HISTORICAL_ONLY}. No accepted requirement or unit may have two active owners.",
+  "schema": "Each candidate ends in exactly one disposition state from {NEW_OWNER_HERE, CROSS_REFERENCE_ACTIVE_PACK, ALREADY_IMPLEMENTED, REFUTED_OR_UNREACHABLE, DEFERRED_TO_NAMED_STAGE_OR_OWNER, EVIDENCE_BLOCKED, HISTORICAL_ONLY}. No accepted requirement or unit may have two active owners. candidate_id is the overlap-reconciliation namespace (OPS-*-NNN, sequenced by candidate) and is intentionally distinct from the findings-register IDs in artifacts/findings.json (OPS-*-NNN, sequenced by accepted finding); the two namespaces must not be assumed to match 1:1.",
   "reconciliation_authorities": [
     {
       "pack": "2026-07-18-MVP-Startup-Readiness-Audit",
@@ -197,13 +197,13 @@
     }
   ],
   "summary": {
-    "total_candidates": 20,
-    "NEW_OWNER_HERE": 12,
+    "total_candidates": 21,
+    "NEW_OWNER_HERE": 14,
     "CROSS_REFERENCE_ACTIVE_PACK": 3,
     "ALREADY_IMPLEMENTED": 3,
     "DEFERRED_TO_NAMED_STAGE_OR_OWNER": 1,
     "REFUTED_OR_UNREACHABLE": 0,
     "EVIDENCE_BLOCKED": 0,
-    "HISTORICAL_ONLY": 1
+    "HISTORICAL_ONLY": 0
   }
 }

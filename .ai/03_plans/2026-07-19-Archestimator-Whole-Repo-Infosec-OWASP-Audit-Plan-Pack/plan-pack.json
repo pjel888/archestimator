@@ -10,7 +10,7 @@
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-19T13:00:00.000Z",
+  "updated_at": "2026-07-19T16:10:40.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -23,13 +23,13 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "fb32718b9966ef2081e2d50868bbf20712740fd83a3b25f16881e4cd5916644e"
+      "sha256": "a806880bbd37ec0031a8651d6f8ac9c2f53d94e2e5a7aec810a357f17b68ec03"
     },
     {
       "id": "ART-002",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "a1710b28aea3919c3543f33a4d7affacb27f220473094b9f4e34ce7c9af40681"
+      "sha256": "68b2567f7dc7f9198b61b7dc2599aee51a4fa3cdbd0784d773ffc20008949204"
     },
     {
       "id": "ART-003",
@@ -53,7 +53,7 @@
       "id": "ART-006",
       "role": "narrative",
       "path": "04-FINDINGS-REGISTER.md",
-      "sha256": "83de7fa73fd921d525c4eb697a15e7e2ed647eb508b571211f3ae52c1839d1d8"
+      "sha256": "79af731102cc4ea2d526d2be67496a79d5a74f0ac952c748c84ae6d949232890"
     },
     {
       "id": "ART-007",
@@ -77,7 +77,7 @@
       "id": "ART-010",
       "role": "narrative",
       "path": "08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md",
-      "sha256": "dff72a3aad74c2aad55ea4abd7f7365de3620baab51d0e17a3743cd8db1bfcf1"
+      "sha256": "26aea52f7ddf6d0b806a21f979d9fdc2da2716c689c47661c59bbba26bccd0c4"
     },
     {
       "id": "ART-011",
@@ -89,7 +89,7 @@
       "id": "ART-012",
       "role": "unit",
       "path": "units/001-realtime-token-revocation.md",
-      "sha256": "5af8a5e76d47371968789d797d1a2944501d52e18d0ea564733ae39dc79372cb"
+      "sha256": "f1987ad5f89437c86585dcedcc24b61363d1e597c2a2cdcd59ec8e4d4641ffa6"
     },
     {
       "id": "ART-013",
@@ -203,7 +203,7 @@
       "id": "ART-031",
       "role": "evidence",
       "path": "artifacts/findings.json",
-      "sha256": "9153770140d2f78a6ba28588fa3ce69a760414a4dd46db84a2aaaa2d8a5917e4"
+      "sha256": "6c57ad09ba65770971e8d0026954158b16173bd6d7ae4ff2015a25186d860be1"
     },
     {
       "id": "ART-032",
@@ -233,7 +233,7 @@
       "id": "ART-036",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "ac71488a49a7f688a7f44b27d4e6f7da4c697cc3a5b6b8eb3d1f0baddadcc389"
+      "sha256": "d946e4e26bc659e4f55bf3ffb0ff772c56803830b813d32f14fadbd0ccf7eeac"
     }
   ],
   "sources": [
@@ -1111,7 +1111,7 @@
       "id": "EVID-001",
       "status": "PLANNED",
       "artifact_path": "units/001-realtime-token-revocation.md",
-      "sha256": "5af8a5e76d47371968789d797d1a2944501d52e18d0ea564733ae39dc79372cb",
+      "sha256": "f1987ad5f89437c86585dcedcc24b61363d1e597c2a2cdcd59ec8e4d4641ffa6",
       "claim_ids": [
         "UNIT-001",
         "AC-001"
@@ -1256,5 +1256,5 @@
     "cloudflare/*-proof-router.ts edits",
     "retention-core.ts edits"
   ],
-  "manifest_sha256": "e5f3ad95dbae6eaa6fe73fb361d8bcb22caf81a1e36718e7f9e3d01a29714c80"
+  "manifest_sha256": "f8c3162ed3620cd4b0f10f1b217d281dad5b074e94ea548a4e1d321786940bde"
 }

@@ -13,8 +13,8 @@ UNIT-002 and Infosec UNIT-012.
 - `OPS-RELEASE-GATE-004` (High) — release-gate ritual not yet executed
 - `OPS-DEPLOY-005` (Medium) — hosted deployment provenance unverified
 - `OPS-WORKERS-DEV-009` (Medium) — cross-ref Infosec UNIT-002
-- `REQ-OPS-006` (CORE)
-- `REQ-OPS-007` (CORE)
+- `REQ-006` (CORE)
+- `REQ-007` (CORE)
 
 ## Dependencies
 

@@ -11,7 +11,7 @@ surface during controlled beta.
 
 - `OPS-EMAIL-MX-007` (Medium) — inbound/outbound topology inconsistency
 - `OPS-EMAIL-DNS-008` (Medium) — SPF/DMARC/DKIM hardening
-- `REQ-OPS-004` (CORE)
+- `REQ-004` (CORE)
 
 ## Dependencies
 

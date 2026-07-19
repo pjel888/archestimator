@@ -62,7 +62,7 @@ All artifacts in this pack are owned by the **Lead** (the audit agent). Subagent
 | `SEC-010` (retention registry) | `AC-010` | `EVID-010` | `UNIT-011` | OPEN |
 | `SEC-011` (historical reconciliation) | `AC-011` | `EVID-011` | (no unit — evidence only) | PASS |
 
-All criteria are `OPEN` (status `BOUNDARY` is not used because the pack is `PLAN_ONLY` and not yet executed). The pack's `release_status = NOT_EVALUATED` because no remediation has run. `implementation_status = NOT_STARTED` because no unit has executed.
+All criteria are `OPEN` (the criterion-level `BOUNDARY` status is not used because the pack is `PLAN_ONLY` and no unit has executed yet; each criterion is `OPEN` pending its unit). The pack's `release_status = BOUNDARY` (matching `00-PLAN.md` §2 and `plan-pack.json`): four active `AUTH-*` authorization boundaries bound *hosted-evidence claims*; none block the local remediation edits in any unit. `implementation_status = NOT_STARTED` because no unit has executed.
 
 ## Hash policy
 

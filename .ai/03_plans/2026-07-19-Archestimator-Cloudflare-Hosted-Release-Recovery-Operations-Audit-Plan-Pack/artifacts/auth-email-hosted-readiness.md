@@ -106,7 +106,7 @@
   handler in `worker.ts` — `worker.ts:141-321` has only `fetch`, `scheduled`,
   and `queue` handlers. Confirmed: the EMAIL binding is outbound-only.
 
-### Sender / domain readiness — MIXED (Finding OPS-EMAIL-001 + OPS-EMAIL-002)
+### Sender / domain readiness — MIXED (Finding OPS-EMAIL-MX-007 + OPS-EMAIL-DNS-008)
 
 - **MX records** (`dig +short MX archestimator.com`):
   - `10 eforward1.registrar-servers.com.`
@@ -126,8 +126,8 @@
   sent mail. Replies to Worker-sent mail land in the Namecheap-forwarded mailbox
   (via `efoward`), not in a Worker `email()` handler. There is no path for the
   app to observe bounces or replies programmatically.
-- Finding `OPS-EMAIL-MX-011` (Medium): inconsistent mail topology.
-- Finding `OPS-EMAIL-DNS-012` (Medium): SPF/DMARC/DKIM hardening needed before
+- Finding `OPS-EMAIL-MX-007` (Medium): inconsistent mail topology.
+- Finding `OPS-EMAIL-DNS-008` (Medium): SPF/DMARC/DKIM hardening needed before
   controlled beta sends production mail.
 
 ### MIME construction — CURRENT_SOURCE_CONFIRMED

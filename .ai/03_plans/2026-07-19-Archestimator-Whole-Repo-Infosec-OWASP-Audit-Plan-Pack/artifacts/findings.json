@@ -5,9 +5,9 @@
   "severity_counts": {
     "critical": 0,
     "high": 1,
-    "medium": 11,
-    "low_or_informational": 14,
-    "rejected_refuted_duplicate": 5
+    "medium": 26,
+    "low_or_informational": 11,
+    "rejected_refuted_duplicate": 3
   },
   "findings": [
     {
@@ -16,7 +16,12 @@
       "primary_class": "EXPLOITABLE_VULNERABILITY",
       "severity": "High",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/realtime-room-token.ts:1", "src/lib/cloudflare/realtime-room-token.ts:158-185", "src/lib/cloudflare/collaboration-room.ts:378-427", "src/lib/cloudflare/collaboration-room-revocation.ts:33-74"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/collaboration/realtime-room-token.ts:1",
+        "src/lib/collaboration/realtime-room-token.ts:158-185",
+        "src/lib/cloudflare/collaboration-room.ts:378-427",
+        "src/lib/cloudflare/collaboration-room-revocation.ts:33-74"
+      ],
       "owasp_top10_2025": "A01",
       "owasp_api_2023": "API1",
       "cwe": "CWE-613",
@@ -28,7 +33,10 @@
       "primary_class": "LATENT_SECURITY_DEFECT",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/auth/better-auth-cloudflare.ts:24-31", "src/lib/auth/better-auth-cloudflare.ts:199-204"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/auth/better-auth-cloudflare.ts:24-31",
+        "src/lib/auth/better-auth-cloudflare.ts:199-204"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API2",
       "cwe": "CWE-312",
@@ -40,7 +48,9 @@
       "primary_class": "LATENT_SECURITY_DEFECT",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/repositories/support-conversations-repository.ts"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/repositories/support-conversations-repository.ts"
+      ],
       "owasp_top10_2025": "A01",
       "owasp_api_2023": "API1",
       "cwe": "CWE-639",
@@ -52,7 +62,12 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/uploads/clamd-scanner.ts:158-169", "src/lib/uploads/policy-scanner.ts:39-91", "src/lib/cloudflare/scheduled-upload-jobs.ts:63-65", "src/app/api/internal/upload-scan/route.ts:85"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/uploads/clamd-scanner.ts:158-169",
+        "src/lib/uploads/policy-scanner.ts:39-91",
+        "src/lib/cloudflare/scheduled-upload-jobs.ts:63-65",
+        "src/app/api/internal/upload-scan/route.ts:85"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-693",
@@ -64,7 +79,10 @@
       "primary_class": "SECURE_DESIGN_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/component-library/component-mutation-d1.ts:1233-1239", "src/lib/component-library/component-mutation-d1.ts:1169-1175"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/component-library/component-mutation-d1.ts:1233-1239",
+        "src/lib/component-library/component-mutation-d1.ts:1169-1175"
+      ],
       "owasp_top10_2025": "A01",
       "owasp_api_2023": "API5",
       "cwe": "CWE-284",
@@ -76,7 +94,10 @@
       "primary_class": "LATENT_SECURITY_DEFECT",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/app/api/component-library/attachments/direct-upload/route.ts:510-531", "src/lib/uploads/provider-portability.ts:124-143"],
+      "affected_paths_and_exact_lines": [
+        "src/app/api/component-library/attachments/direct-upload/route.ts:510-531",
+        "src/lib/uploads/provider-portability.ts:124-143"
+      ],
       "owasp_top10_2025": "A08",
       "owasp_api_2023": "API8",
       "cwe": "CWE-345",
@@ -88,7 +109,10 @@
       "primary_class": "SECURE_DESIGN_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/app/api/component-library/attachments/direct-upload/route.ts:510-531", "src/app/api/component-library/attachments/direct-upload/route.ts:596-604"],
+      "affected_paths_and_exact_lines": [
+        "src/app/api/component-library/attachments/direct-upload/route.ts:510-531",
+        "src/app/api/component-library/attachments/direct-upload/route.ts:596-604"
+      ],
       "owasp_top10_2025": "A06",
       "owasp_api_2023": "API8",
       "cwe": "CWE-434",
@@ -100,7 +124,10 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/uploads/scan-job.ts:93-111", "src/lib/uploads/scan-job.ts:359-379"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/uploads/scan-job.ts:93-111",
+        "src/lib/uploads/scan-job.ts:359-379"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API4",
       "cwe": "CWE-409",
@@ -112,7 +139,10 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/collaboration-room.ts:173-213", "worker.ts:167-171"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/collaboration-room.ts:173-213",
+        "worker.ts:167-171"
+      ],
       "owasp_top10_2025": "A01",
       "owasp_api_2023": "API4",
       "cwe": "CWE-306",
@@ -124,7 +154,10 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/collaboration-room.ts:184-189", "src/lib/cloudflare/collaboration-room.ts:343-376"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/collaboration-room.ts:184-189",
+        "src/lib/cloudflare/collaboration-room.ts:343-376"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API4",
       "cwe": "CWE-770",
@@ -136,7 +169,10 @@
       "primary_class": "SECURE_DESIGN_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/support-inbox.ts:162-172", "src/lib/cloudflare/support-inbox.ts:213-218"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/support-inbox.ts:162-172",
+        "src/lib/cloudflare/support-inbox.ts:213-218"
+      ],
       "owasp_top10_2025": "A03",
       "owasp_api_2023": "API8",
       "cwe": "CWE-20",
@@ -148,7 +184,11 @@
       "primary_class": "SECURE_DESIGN_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["worker.ts:142-199", "src/app/api/internal/upload-cleanup/route.ts:99-104", "src/app/api/internal/upload-scan/route.ts:75-80"],
+      "affected_paths_and_exact_lines": [
+        "worker.ts:142-199",
+        "src/app/api/internal/upload-cleanup/route.ts:99-104",
+        "src/app/api/internal/upload-scan/route.ts:75-80"
+      ],
       "owasp_top10_2025": "A01",
       "owasp_api_2023": "API1",
       "cwe": "CWE-306",
@@ -160,7 +200,10 @@
       "primary_class": "SECURE_DESIGN_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/upload-job-queue.ts:178-191", "src/lib/cloudflare/upload-job-queue.ts:338-352"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/upload-job-queue.ts:178-191",
+        "src/lib/cloudflare/upload-job-queue.ts:338-352"
+      ],
       "owasp_top10_2025": "A08",
       "owasp_api_2023": "API8",
       "cwe": "CWE-345",
@@ -172,7 +215,11 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["wrangler.jsonc:10", "src/lib/cloudflare/worker-route-optimizations.ts:35-38", "src/lib/cloudflare/worker-route-optimizations.ts:145"],
+      "affected_paths_and_exact_lines": [
+        "wrangler.jsonc:10",
+        "src/lib/cloudflare/worker-route-optimizations.ts:35-38",
+        "src/lib/cloudflare/worker-route-optimizations.ts:145"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-668",
@@ -184,7 +231,11 @@
       "primary_class": "LATENT_SECURITY_DEFECT",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/worker-route-optimizations.ts:57", "src/lib/cloudflare/worker-route-optimizations.ts:81-88", "src/lib/cloudflare/worker-route-optimizations.ts:115-120"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/worker-route-optimizations.ts:57",
+        "src/lib/cloudflare/worker-route-optimizations.ts:81-88",
+        "src/lib/cloudflare/worker-route-optimizations.ts:115-120"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-525",
@@ -196,7 +247,10 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["next.config.ts:20-47", "next.config.ts:166-299"],
+      "affected_paths_and_exact_lines": [
+        "next.config.ts:20-47",
+        "next.config.ts:166-299"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-79",
@@ -208,7 +262,9 @@
       "primary_class": "LATENT_SECURITY_DEFECT",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["next.config.ts:260-269"],
+      "affected_paths_and_exact_lines": [
+        "next.config.ts:260-269"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-200",
@@ -220,7 +276,11 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/publication/security.ts:370", "src/lib/publication/security.ts:539", "src/lib/publication/security.ts:558-559"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/publication/security.ts:370",
+        "src/lib/publication/security.ts:539",
+        "src/lib/publication/security.ts:558-559"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-614",
@@ -232,7 +292,16 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/better-auth-proof-router.ts:90", "src/lib/cloudflare/collaboration-invitation-proof-router.ts:46", "src/lib/cloudflare/observability-proof-router.ts:25", "src/lib/cloudflare/upload-lifecycle-proof-router.ts:54", "src/lib/cloudflare/d1-performance-proof-router.ts:258", "src/lib/cloudflare/estimate-history-proof-router.ts:52", "src/lib/cloudflare/jobs-proof-router.ts:52", "src/lib/cloudflare/provider-proof-router.ts:214-218"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/better-auth-proof-router.ts:90",
+        "src/lib/cloudflare/collaboration-invitation-proof-router.ts:46",
+        "src/lib/cloudflare/observability-proof-router.ts:25",
+        "src/lib/cloudflare/upload-lifecycle-proof-router.ts:54",
+        "src/lib/cloudflare/d1-performance-proof-router.ts:258",
+        "src/lib/cloudflare/estimate-history-proof-router.ts:52",
+        "src/lib/cloudflare/jobs-proof-router.ts:52",
+        "src/lib/cloudflare/provider-proof-router.ts:214-218"
+      ],
       "owasp_top10_2025": "A02",
       "owasp_api_2023": "API2",
       "cwe": "CWE-208",
@@ -244,7 +313,9 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/collaboration-room.ts:496-500"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/collaboration-room.ts:496-500"
+      ],
       "owasp_top10_2025": "A02",
       "owasp_api_2023": "API2",
       "cwe": "CWE-208",
@@ -256,7 +327,10 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/collaboration/realtime-room-token.ts:4-9", "src/lib/collaboration/realtime-room-token.ts:38"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/collaboration/realtime-room-token.ts:4-9",
+        "src/lib/collaboration/realtime-room-token.ts:38"
+      ],
       "owasp_top10_2025": "A02",
       "owasp_api_2023": "API8",
       "cwe": "CWE-326",
@@ -268,19 +342,40 @@
       "primary_class": "SECURE_SDLC_OR_SUPPLY_CHAIN_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": [".github/workflows-disabled/"],
+      "affected_paths_and_exact_lines": [
+        ".github/workflows-disabled/"
+      ],
       "owasp_top10_2025": "A03",
       "owasp_api_2023": "API9",
       "cwe": "CWE-1357",
       "unit_id": "UNIT-012"
     },
     {
+      "finding_id": "SEC-CI-002",
+      "title": "Dependabot + dependency-review-action disabled; no automated dependency-vulnerability gate on PRs",
+      "primary_class": "SECURE_SDLC_OR_SUPPLY_CHAIN_GAP",
+      "severity": "Medium",
+      "confidence": "HIGH",
+      "affected_paths_and_exact_lines": [
+        ".github/workflows-disabled/dependabot.yml",
+        ".github/workflows-disabled/2026-07-13",
+        ".github/workflows-disabled/codeql.yml"
+      ],
+      "owasp_top10_2025": "A06",
+      "cwe": "CWE-1357",
+      "unit_id": "UNIT-012"
+    },
+    {
       "finding_id": "SEC-LOG-001",
-      "title": "console.error('…failed', error) bypasses redactForLog on 3 Worker cron paths",
+      "title": "console.error('\u2026failed', error) bypasses redactForLog on 3 Worker cron paths",
       "primary_class": "OBSERVABILITY_OR_RESPONSE_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["worker.ts:225", "worker.ts:256", "worker.ts:292"],
+      "affected_paths_and_exact_lines": [
+        "worker.ts:225",
+        "worker.ts:256",
+        "worker.ts:292"
+      ],
       "owasp_top10_2025": "A09",
       "owasp_api_2023": "API9",
       "cwe": "CWE-532",
@@ -292,7 +387,11 @@
       "primary_class": "PRIVACY_OR_DATA_GOVERNANCE_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/admin/audit-repository.ts:65-106", "src/lib/admin/observability-repository.ts:22-31", "src/lib/compliance/privacy-request-repository.ts:47-60"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/admin/audit-repository.ts:65-106",
+        "src/lib/admin/observability-repository.ts:22-31",
+        "src/lib/compliance/privacy-request-repository.ts:47-60"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API3",
       "cwe": "CWE-200",
@@ -304,7 +403,9 @@
       "primary_class": "PRIVACY_OR_DATA_GOVERNANCE_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/compliance/retention-core.ts:87-221"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/compliance/retention-core.ts:87-221"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API10",
       "cwe": "CWE-1300",
@@ -316,7 +417,9 @@
       "primary_class": "OBSERVABILITY_OR_RESPONSE_GAP",
       "severity": "Medium",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/app/api/share/[token]/route.ts:36-62"],
+      "affected_paths_and_exact_lines": [
+        "src/app/api/share/[token]/route.ts:36-62"
+      ],
       "owasp_top10_2025": "A05",
       "owasp_api_2023": "API8",
       "cwe": "CWE-204",
@@ -328,7 +431,10 @@
       "primary_class": "LATENT_SECURITY_DEFECT",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/auth/request-proxy.ts:45", "src/lib/auth/request-proxy.ts:201-203"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/auth/request-proxy.ts:45",
+        "src/lib/auth/request-proxy.ts:201-203"
+      ],
       "owasp_top10_2025": "A05",
       "cwe": "CWE-525",
       "unit_id": "UNIT-013"
@@ -339,7 +445,10 @@
       "primary_class": "OBSERVABILITY_OR_RESPONSE_GAP",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["worker.ts:149-150", "src/lib/cloudflare/worker-route-optimizations.ts:228-248"],
+      "affected_paths_and_exact_lines": [
+        "worker.ts:149-150",
+        "src/lib/cloudflare/worker-route-optimizations.ts:228-248"
+      ],
       "owasp_top10_2025": "A05",
       "cwe": "CWE-451",
       "unit_id": "UNIT-013"
@@ -350,18 +459,24 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/cloudflare/global-presence.ts:38-50", "src/lib/cloudflare/support-inbox.ts:64-76"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/cloudflare/global-presence.ts:38-50",
+        "src/lib/cloudflare/support-inbox.ts:64-76"
+      ],
       "owasp_top10_2025": "A02",
       "cwe": "CWE-598",
       "unit_id": "UNIT-013"
     },
     {
       "finding_id": "SEC-OPS-003",
-      "title": "Upload-scan queue downloads full R2 objects into memory (Low — bounded by ingress cap + Worker memory + DLQ)",
+      "title": "Upload-scan queue downloads full R2 objects into memory (Low \u2014 bounded by ingress cap + Worker memory + DLQ)",
       "primary_class": "SECURITY_HARDENING",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/uploads/scan-job.ts:93-111", "src/lib/uploads/scan-job.ts:329-398"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/uploads/scan-job.ts:93-111",
+        "src/lib/uploads/scan-job.ts:329-398"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API4",
       "cwe": "CWE-770",
@@ -373,7 +488,11 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/admin/support-actions.ts:78", "src/lib/publication/actions.ts:1387", "src/lib/collaboration/actions.ts:768"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/admin/support-actions.ts:78",
+        "src/lib/publication/actions.ts:1387",
+        "src/lib/collaboration/actions.ts:768"
+      ],
       "owasp_top10_2025": "A03",
       "cwe": "CWE-93",
       "unit_id": "UNIT-004"
@@ -384,7 +503,9 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/collaboration/actions.ts:768-772"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/collaboration/actions.ts:768-772"
+      ],
       "owasp_top10_2025": "A03",
       "cwe": "CWE-79",
       "unit_id": "UNIT-004"
@@ -395,7 +516,9 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/email/cloudflare-email-client.ts:130-158"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/email/cloudflare-email-client.ts:130-158"
+      ],
       "owasp_top10_2025": "A03",
       "cwe": "CWE-20",
       "unit_id": "UNIT-004"
@@ -406,7 +529,9 @@
       "primary_class": "SECURE_SDLC_OR_SUPPLY_CHAIN_GAP",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["package.json:70"],
+      "affected_paths_and_exact_lines": [
+        "package.json:70"
+      ],
       "owasp_top10_2025": "A03",
       "cwe": "CWE-494",
       "unit_id": "UNIT-012"
@@ -417,7 +542,9 @@
       "primary_class": "OBSERVABILITY_OR_RESPONSE_GAP",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/admin/observability-repository.ts:75-83"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/admin/observability-repository.ts:75-83"
+      ],
       "owasp_top10_2025": "A09",
       "cwe": "CWE-532",
       "unit_id": "UNIT-010"
@@ -428,7 +555,9 @@
       "primary_class": "OBSERVABILITY_OR_RESPONSE_GAP",
       "severity": "Low",
       "confidence": "MEDIUM",
-      "affected_paths_and_exact_lines": ["wrangler.jsonc:110-124"],
+      "affected_paths_and_exact_lines": [
+        "wrangler.jsonc:110-124"
+      ],
       "owasp_top10_2025": "A09",
       "cwe": "CWE-532",
       "unit_id": "UNIT-010"
@@ -439,7 +568,10 @@
       "primary_class": "SECURITY_HARDENING",
       "severity": "Low",
       "confidence": "HIGH",
-      "affected_paths_and_exact_lines": ["src/lib/ai/rate-limit.ts:22-25", "src/app/api/ai/package-builder/handler.ts:185-556"],
+      "affected_paths_and_exact_lines": [
+        "src/lib/ai/rate-limit.ts:22-25",
+        "src/app/api/ai/package-builder/handler.ts:185-556"
+      ],
       "owasp_top10_2025": "A04",
       "owasp_api_2023": "API4",
       "cwe": "CWE-770",
@@ -447,11 +579,51 @@
     }
   ],
   "rejected_or_refuted": [
-    {"finding_id": "SEC-WORKER-001", "verdict": "REFUTED_ON_PLATFORM", "reason": "Canonical-host map is hard-coded two-entry allowlist; only path/query preserved; Cloudflare normalizes Host at zone. Theoretical only."},
-    {"finding_id": "SEC-WORKER-003", "verdict": "DUPLICATE_OF_SEC-WORKER-002", "reason": "Same evidence; restates worker-edge exposure."},
-    {"finding_id": "SEC-OPS-002", "verdict": "DUPLICATE_OF_SEC-CRYPTO-001_AND_SEC-OPS-001", "reason": "CRON_SECRET reuse + plain === is same as SEC-CRYPTO-001; reachable-from-internet is same as SEC-OPS-001."}
+    {
+      "finding_id": "SEC-WORKER-001",
+      "verdict": "REFUTED_ON_PLATFORM",
+      "reason": "Canonical-host map is hard-coded two-entry allowlist; only path/query preserved; Cloudflare normalizes Host at zone. Theoretical only."
+    },
+    {
+      "finding_id": "SEC-WORKER-003",
+      "verdict": "DUPLICATE_OF_SEC-WORKER-002",
+      "reason": "Same evidence; restates worker-edge exposure."
+    },
+    {
+      "finding_id": "SEC-OPS-002",
+      "verdict": "DUPLICATE_OF_SEC-CRYPTO-001_AND_SEC-OPS-001",
+      "reason": "CRON_SECRET reuse + plain === is same as SEC-CRYPTO-001; reachable-from-internet is same as SEC-OPS-001."
+    }
   ],
   "informational_no_unit": [
-    "SEC-AUTH-002", "SEC-AUTH-004", "SEC-AUTH-005", "SEC-SHARE-001", "SEC-SHARE-003", "SEC-SHARE-004", "SEC-SHARE-005", "SEC-SHARE-007", "SEC-COLLAB-006", "SEC-COLLAB-007", "SEC-COLLAB-008", "SEC-OPS-005", "SEC-OPS-006", "SEC-OPS-008", "SEC-WORKER-005", "SEC-WORKER-006", "SEC-WORKER-007", "SEC-WORKER-008", "SEC-BROWSER-004", "SEC-BROWSER-006", "SEC-BROWSER-007", "SEC-BROWSER-008", "SEC-AI-001", "SEC-AI-003", "SEC-EXT-004", "SEC-CRYPTO-004", "SEC-UPLOAD-006", "SEC-EXPORT-001", "SEC-EXPORT-002", "SEC-CI-002"
+    "SEC-AUTH-002",
+    "SEC-AUTH-004",
+    "SEC-AUTH-005",
+    "SEC-SHARE-001",
+    "SEC-SHARE-003",
+    "SEC-SHARE-004",
+    "SEC-SHARE-005",
+    "SEC-SHARE-007",
+    "SEC-COLLAB-006",
+    "SEC-COLLAB-007",
+    "SEC-COLLAB-008",
+    "SEC-OPS-005",
+    "SEC-OPS-006",
+    "SEC-OPS-008",
+    "SEC-WORKER-005",
+    "SEC-WORKER-006",
+    "SEC-WORKER-007",
+    "SEC-WORKER-008",
+    "SEC-BROWSER-004",
+    "SEC-BROWSER-006",
+    "SEC-BROWSER-007",
+    "SEC-BROWSER-008",
+    "SEC-AI-001",
+    "SEC-AI-003",
+    "SEC-EXT-004",
+    "SEC-CRYPTO-004",
+    "SEC-UPLOAD-006",
+    "SEC-EXPORT-001",
+    "SEC-EXPORT-002"
   ]
 }

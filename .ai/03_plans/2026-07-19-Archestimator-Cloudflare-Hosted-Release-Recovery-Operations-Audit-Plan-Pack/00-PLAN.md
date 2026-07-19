@@ -85,10 +85,12 @@ The central question:
 
 ## Existing-pack reconciliation
 
-Per `artifacts/existing-pack-overlap.json`: 20 candidates considered; 12
+Per `artifacts/existing-pack-overlap.json`: 21 candidates considered; 14
 `NEW_OWNER_HERE`; 3 `CROSS_REFERENCE_ACTIVE_PACK`; 3 `ALREADY_IMPLEMENTED`;
-1 `DEFERRED_TO_NAMED_STAGE_OR_OWNER`; 1 `HISTORICAL_ONLY`. No accepted
-requirement or unit has two active owners.
+1 `DEFERRED_TO_NAMED_STAGE_OR_OWNER`; 0 `HISTORICAL_ONLY`. No accepted
+requirement or unit has two active owners. (Candidate IDs in the overlap
+matrix are a separate reconciliation namespace from the findings-register
+IDs; see the matrix schema note.)
 
 Key dispositions:
 
@@ -103,25 +105,28 @@ Key dispositions:
 
 ## Requirements (CORE unless noted)
 
-- `REQ-OPS-001` (CORE) — Hosted D1 recovery posture must be proven before
+Requirement IDs are canonical `REQ-NNN` (the validator's ID regex). Earlier
+drafts used a `REQ-OPS-NNN` label; the mapping is `REQ-OPS-0NN == REQ-0NN`.
+`REQ-009` was dropped at E-0010 (the no-duplicate-owners matrix in
+`artifacts/existing-pack-overlap.json` stands on its own).
+
+- `REQ-001` (CORE) — Hosted D1 recovery posture must be proven before
   controlled-beta admit. → UNIT-001
-- `REQ-OPS-002` (CORE) — Hosted alert delivery for S-01..S-07 must be
+- `REQ-002` (CORE) — Hosted alert delivery for S-01..S-07 must be
   verified before admit. → UNIT-002
-- `REQ-OPS-003` (CORE) — Hosted Google OAuth round-trip must be exercised
+- `REQ-003` (CORE) — Hosted Google OAuth round-trip must be exercised
   before admit. → UNIT-003
-- `REQ-OPS-004` (CORE) — Email DNS topology + deliverability must be
+- `REQ-004` (CORE) — Email DNS topology + deliverability must be
   aligned before relying on magic-link or sending cohort notifications.
   → UNIT-004
-- `REQ-OPS-005` (CORE) — Hosted queue / DLQ / DO / R2 operational baselines
+- `REQ-005` (CORE) — Hosted queue / DLQ / DO / R2 operational baselines
   must be captured. → UNIT-005
-- `REQ-OPS-006` (CORE) — Controlled-beta release-gate ritual must be
+- `REQ-006` (CORE) — Controlled-beta release-gate ritual must be
   established and executed before each cohort wave. → UNIT-006
-- `REQ-OPS-007` (CORE) — Hosted deployment provenance must be captured at
+- `REQ-007` (CORE) — Hosted deployment provenance must be captured at
   each cohort admit. → UNIT-006
-- `REQ-OPS-008` (CORE) — Hosted D1 migration parity must be verified.
+- `REQ-008` (CORE) — Hosted D1 migration parity must be verified.
   → UNIT-007
-- `REQ-OPS-009` (AUXILIARY) — No-duplicate-owners matrix must cover every
-  candidate. (already satisfied by existing-pack-overlap.json)
 
 ## Decisions
 
@@ -137,6 +142,12 @@ Key dispositions:
 - `DEC-AUTO-006` — (pending operator decision) RPO/RTO targets for D1.
 - `DEC-AUTO-007` — Email DNS topology operator decision deferred to UNIT-004
   (Option A vs Option B).
+- `DEC-AUTO-009` — Evidence-honesty repair at improvement pass: AC-004/005/006
+  demoted from PASS to BOUNDARY and EVID-004/005/006 from PASS to STALE,
+  because each evidence record's own narrative says the work is not done
+  (topology not aligned, baselines EVIDENCE_BLOCKED, ritual not executed).
+  AUTH-002 added to bound the two operator-action criteria (AC-004 DNS,
+  AC-006 cohort admit) that are not wrangler-token-gated.
 
 ## Authorization boundaries
 
@@ -145,7 +156,14 @@ Key dispositions:
   terminal → `bunx wrangler login` or set `CLOUDFLARE_API_TOKEN` → re-run the
   readback commands listed per finding. Bounds: deployment SHA, D1 info/
   backups/migrations list/schema, R2 object listing, queue depth, DO storage,
-  secret names (never values), Workers Logs retention.
+  secret names (never values), Workers Logs retention. Gates AC-001, AC-002,
+  AC-003, AC-005, AC-007, AC-008, GATE-CONTROLLED-BETA-001.
+- `AUTH-002` (ACTIVE) — Operator-gated production actions that no audit session
+  may take autonomously: DNS-record changes for email topology alignment
+  (UNIT-004 Option A/B) and the cohort-admit release-gate ritual that mutates
+  the operator ledger and admits design partners (UNIT-006). These are
+  deliberately operator decisions, not wrangler-token-gated reads. Gates
+  AC-004, AC-006.
 
 Operator actions deliberately outside this audit's authorization (per master
 prompt): deploy, secret sync/value read, DNS change, production D1 writes/
@@ -156,7 +174,9 @@ GitHub settings change, paid add-on, account change.
 ## Findings summary
 
 See `04-FINDINGS-REGISTER.md` for full detail. Severity counts:
-Critical 0, High 4, Medium 9, Low/Informational 4, Rejected/Refuted 3.
+Critical 0, High 4, Medium 10, Low/Informational 3, Rejected/Refuted 0
+(canonical register); see the findings register for the historical 9/4/3
+draft counts and how they reconcile.
 
 The four High findings:
 
@@ -214,8 +234,8 @@ If resuming:
 - Next unit: UNIT-001.
 - Hashes: refreshed by `validate-plan-pack.mjs --write` (see LOOP_LEDGER
   E-0010).
-- Decisions: DEC-AUTO-001..007.
-- Boundaries: AUTH-001 (ACTIVE).
+- Decisions: DEC-AUTO-001..007, DEC-AUTO-009.
+- Boundaries: AUTH-001 (ACTIVE), AUTH-002 (ACTIVE).
 - Ownership: lead.
 - Handoffs: none.
 - Cleanup: no ephemeral state outside the pack folder.

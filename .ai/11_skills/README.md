@@ -1,54 +1,42 @@
-# Skills
+# Archestimator Playbooks And Payloads
 
-This folder documents reusable Archestimator procedures and playbooks.
+This folder contains reusable project procedures. It does not override current
+source, `AGENTS.md`, `DESIGN.md`, or canonical `.ai/00_system` policy.
 
-## Role
+## Authority
 
-Use `11_skills/` for repeatable workflows such as:
-- estimation-source verification
-- cost-data normalization
-- quantity takeoff review
-- AI-agent handoff patterns
-- UX review patterns
-- calculation audit procedures
-- agent run logs
-- agent compliance dry-runs
-- provider proof packets
-- bug-plan creation
+1. Current source, `wrangler.jsonc`, and active `migrations/`
+2. `AGENTS.md`, `DESIGN.md`, and relevant `.ai/00_system` protocols
+3. `.ai/10_state/current-state.md` and active specs/plans
+4. These playbooks and payloads
+5. Archived plans and dated research, as historical context only
 
-## Payloads
+## Active Playbooks
 
-`payloads/` is reserved for agent-loadable skill files. Payloads should reference shared `.ai` docs instead of duplicating policy.
+| File | Use |
+| --- | --- |
+| `agent-compliance-dry-run.md` | Advisory framework-evaluation dry-runs |
+| `agent-run-log.md` | Material durable run or handoff evidence |
+| `bug-plan-creation.md` | Material unresolved bug or proof gap |
+| `capture-perf-trace-baseline.md` | Symptom-led performance measurement, gated by `TEST_TASK` |
+| `provider-proof-packet.md` | Redacted proof for bound Cloudflare resources |
+| `verify-loading-state-compliance.md` | Source-first loading and mount review |
+| `security/breach-response-runbook.md` | Counsel-gated breach-response draft |
 
-## External advisor skills
+## Active Payloads
 
-External advisor/planning skills such as `shadcn/improve` must route plan
-artifacts into `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/`, not root `plans/`.
-`shadcn/improve` is installed globally on this machine, so this repo should not
-keep a duplicate `.agents/skills/improve/` copy. Archestimator's `.ai`
-source-of-truth, proof-boundary, approval-gate, and plan-folder standards still
-override any generic upstream default that points at root `plans/`.
+| File | Use |
+| --- | --- |
+| `payloads/archestimator-product-planning.md` | Product thesis and scope decisions |
+| `payloads/archestimator-estimation-data-modeling.md` | D1 estimate-model integrity |
+| `payloads/archestimator-competitive-research.md` | Current, cited market research |
+| `payloads/react-complex-tree-dnd-archestimator.md` | Narrow React Complex Tree compatibility guidance |
 
-## Framework playbooks
+## Related Project Skill
 
-- `agent-run-log.md`
-- `agent-compliance-dry-run.md`
-- `provider-proof-packet.md`
-- `bug-plan-creation.md`
+- `.agents/skills/archestimator-design/` is the active thin adapter to the
+  tracked `claude-design-reference/` asset library. Current source,
+  `DESIGN.md`, and `.ai` policy remain authoritative over that reference set.
 
-## Loop-engineering playbooks
-
-Loop-engineered product work should use the canonical protocol in
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md` and the plan pack at
-`.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/`.
-Research grounding lives at
-`.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
-
-Use reusable skill payloads only as adapters. They must not fork the
-agent-neutral loop routing: direct execution for narrow work, `ultrawork` for
-in-session parallel lanes, `ultragoal` for durable goal state, `omo:ulw-loop`
-for criterion-led real-surface proof, `autopilot` for the full lifecycle,
-`omo:ultraresearch` for exhaustive research, `ultraqa` for adversarial QA, and
-`vercel:agent-browser` for browser-facing proof. Agent-specific equivalents in
-Claude, Codex, OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Cursor, or
-future tools must still preserve the same `.ai/00_system` contract.
+Automated product tests, builds-as-tests, browser automation, screenshots,
+Storybook, and visual QA run only for an explicit current-task `TEST_TASK`.

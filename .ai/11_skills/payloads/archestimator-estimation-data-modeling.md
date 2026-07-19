@@ -1,58 +1,45 @@
 # Skill: Archestimator Estimation Data Modeling
 
-## Use when
+## Use When
 
-- Designing estimate entities/tables
-- Reviewing database schema
-- Adding fields to projects, estimates, sections, line items, cost library, exports, or revisions
-- Checking calculation and revision-diff logic
+- changing estimate, node, row, library, template, publication, or revision data
+- reviewing D1 schema, constraints, indexes, queries, or mutation integrity
+- changing quantity, rate, adjustment, contingency, misc-cost, or total behavior
 
-## Required reading
+## Authority
 
-1. `.ai/06_specs/initial-data-model.md`
-2. `.ai/06_specs/mvp-ux-flow.md`
-3. `.ai/06_specs/legacy-repo-lessons.md`
+Use current source, `wrangler.jsonc`, active `migrations/`, and repository/D1
+intent code as truth. `migrations/` is the only active migration directory.
+`.ai/06_specs/initial-data-model.md` and `.ai/06_specs/mvp-ux-flow.md` contain
+historical Supabase/prototype descriptions and are context only.
 
-## Core hierarchy
+Start with the narrow current contract:
 
-Use this MVP hierarchy unless requirements prove otherwise:
+- domain shapes: `src/lib/domain/estimate-tree.ts`
+- tree normalization: `src/lib/estimates/tree-hierarchy.ts`
+- row math: `src/lib/estimates/estimate-row-total.ts`
+- D1 reads/intents: `src/lib/estimates/estimate-tree-read-repository.ts` and
+  `src/lib/estimates/d1-intents/`
+- server boundary: `src/lib/estimates/actions.ts`
 
-> Workspace/User → Project → Estimate → Section → Line Item
+## Integrity Rules
 
-Supporting objects:
+- Preserve workspace/project/estimate ownership and stable entity IDs.
+- Keep schema constraints, repository validation, mutation receipts/history, and
+  client optimism aligned for the same change.
+- Use the shared row-total contract; do not duplicate money or percentage
+  formulas in a payload or component.
+- Persist monetary and percentage values through the current validated D1 path;
+  do not revive Supabase/Postgres assumptions.
+- Stored estimate node kinds are currently `group | area`, but current source
+  treats the kind split as vestigial for user-facing hierarchy. Verify the
+  current normalization and reorder rules before asserting containment behavior.
+- Preserve library/template source snapshots, link state, pricing source/date,
+  and project-specific overrides where the current model requires them.
+- AI-derived or externally sourced cost data must remain editable and must not be
+  presented as authoritative without current provenance.
 
-> Cost Library Item, Export Snapshot, Revision Diff, Attachment later
-
-## Modeling rules
-
-- Preserve stable IDs for estimates, sections, and line items.
-- When duplicating an estimate, keep `originLineItemId` or equivalent for revision comparison.
-- Money should avoid floating-point drift; prefer integer minor units or strict decimals.
-- Every cost library item needs source/date fields eventually.
-- AI-generated rows must be marked by source/confidence and remain editable.
-- Do not over-import the old node graph from legacy repos unless the MVP UX needs it.
-
-## Required formula checks
-
-Minimum line-item calculations:
-
-- `subtotal = quantity × unitCost`
-- `markupAmount = subtotal × markupPercent`
-- `contingencyAmount = subtotal × contingencyPercent`
-- `total = subtotal + markupAmount + contingencyAmount`
-
-Minimum validation:
-
-- quantity >= 0
-- unitCost >= 0
-- unit required when quantity exists
-- currency explicit at estimate level
-- source/confidence required for AI suggestions
-
-## Common pitfalls
-
-- Hiding assumptions behind AI-generated totals
-- Treating regional costs as authoritative without source/date
-- Making nested area trees the primary MVP UX
-- Losing revision lineage when duplicating estimates
-- Mutating global library prices when only project-specific override was intended
+For broad, high-risk, or unfamiliar shared-symbol work, use available Code
+Review Graph or GitNexus impact analysis when configured. For narrow reversible
+changes, targeted source, `rg`, diff, and LSP inspection are sufficient.
+Automated tests remain `TEST_TASK`-gated.

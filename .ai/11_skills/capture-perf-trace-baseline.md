@@ -1,105 +1,67 @@
 ---
 status: active
-last_updated: 2026-07-05
-plan_reference: .ai/09_archive/store/2026-07-05-Performance-Optimization/02_IMPLEMENTATION_PLAN.md
-work_package: WP-P4-02
+last_updated: 2026-07-19
 ---
 
-# Capture PERF_TRACE baseline
+# Capture A Performance Trace Baseline
 
-> **Use when:** you need to measure D1 round-trip count or server-action waterfall depth on a specific route. Required by Phase 2 WP-P2-01 before any Promise.all refactor work.
+Use this when a concrete symptom or acceptance claim depends on measured route,
+D1, bundle, or transition behavior. Start from the symptom; do not collect a
+generic baseline merely because instrumentation exists.
 
-PERF_TRACE is the repo's dormant perf instrumentation. It's live in source (`src/lib/perf/server-timing.ts`) but only emits when `PERF_TRACE=1` is set in the request environment. This skill walks through capturing a baseline.
+## Authority And Test Gate
 
-## Prerequisites
+Read `.ai/00_system/PERFORMANCE_LOADING_AND_MOUNT_PROTOCOL.md` and
+`.ai/00_system/VALIDATION_MATRIX.md` first.
 
-- `bun install` is up to date
-- The Cloudflare preview environment is configured (`.env` has the required `AUTH_SECRET`, `BETTER_AUTH_*`, D1 bindings) OR you have a valid authenticated session for the route under test
-- The PERF_TRACE scripts exist: `scripts/measure-workshop-dashboard-query-count.ts` and friends
+- `NOT_REQUIRED` is the default. Use source, diff, package-script, static, or
+  existing-artifact inspection when it can decide the claim.
+- `TEST_PROPOSAL` records the named risk and exact proposed command but does not
+  authorize execution.
+- Only an explicit current-task `TEST_TASK` authorizes performance tests,
+  OpenNext/Cloudflare preview builds, Playwright, browser traces, fixture seeding,
+  or other product-measurement runs.
+- This playbook never authorizes a commit.
 
-## Steps
+## Symptom-First Workflow
 
-### 1. Start the OpenNext preview with PERF_TRACE=1
+1. State the observed symptom, affected route/surface, expected threshold, and
+   decision the measurement will change.
+2. Inspect current instrumentation and scripts before choosing a command:
+   `src/lib/perf/server-timing.ts`, `src/components/workshop/WebVitalsProbe.tsx`,
+   and current `perf:*` entries in `package.json`.
+3. Reuse existing evidence when it matches the same current source, environment,
+   route, dataset shape, and claim. Otherwise treat it as historical context.
+4. Choose the narrowest evidence that can isolate the symptom. Do not expand
+   automatically from a static/source check to a build, browser trace, or seeded
+   dataset.
+5. If measurement is authorized, record environment, route, auth state, dataset
+   shape, warm/cold status, command, raw output, and interpretation. Redact
+   cookies, tokens, private URLs, and customer data.
+6. Compare like-for-like before/after evidence. Distinguish local-only results
+   from provider-backed Cloudflare evidence.
+
+## `TEST_TASK`-Only Command Examples
+
+Confirm each command still exists in `package.json` before running it.
 
 ```bash
 PERF_TRACE=1 bun run cf:preview
+bun run perf:dashboard-query-count
+bun run perf:measure-routes
+bun run perf:library-baseline
 ```
 
-This builds the OpenNext-for-Cloudflare bundle and starts `wrangler preview`. Wait for the "Ready" log line. The Worker listens on http://localhost:8787 by default.
+Playwright, `test:e2e:perf`, browser automation, fixture seeding, and preview
+builds remain user-gated even when an archived performance plan requested them.
 
-### 2. Drive the route under test with Playwright
+## Stop Condition
 
-For an authenticated route (`/workshop`), use an authenticated Playwright session:
+Stop when the named symptom or threshold has decisive authorized evidence and
+the result is labeled `local-only`, `provider-proven`, or still unproven. Do not
+create extra evidence artifacts or Git changes solely for ceremony.
 
-```bash
-# Set env vars for the test session
-export PERF_TRACE=1
-export PERF_TRACE_OUTPUT_DIR=.ai/03_plans/<plan-slug>/_evidence/phase-2/<route-slug>-<YYYYMMDD>/
-mkdir -p "$PERF_TRACE_OUTPUT_DIR"
+## Historical Reference
 
-# Run an existing Playwright spec that hits the route
-bun run test:e2e -- e2e/authenticated-route-smoke.spec.ts
-```
-
-Or use a one-off Playwright script:
-
-```ts
-import { chromium } from "playwright";
-
-const browser = await chromium.launch();
-const page = await browser.newPage();
-await page.goto("http://localhost:8787/login");
-// log in via the test-id flow, then:
-await page.goto("http://localhost:8787/workshop");
-await page.waitForLoadState("networkidle");
-const trace = await page.evaluate(() => (window as any).__PERF_TRACE__);
-console.log(JSON.stringify(trace, null, 2));
-await browser.close();
-```
-
-### 3. Capture the trace
-
-PERF_TRACE writes to the response `Server-Timing` header AND to a `window.__PERF_TRACE__` global if `NEXT_PUBLIC_PERF_TRACE=1` is also set. Use either:
-
-```bash
-# Capture Server-Timing from curl
-curl -sI -H "Cookie: $AUTH_COOKIE" http://localhost:8787/workshop | grep -i 'server-timing'
-
-# Capture the client-side global via Playwright (above)
-```
-
-Save the raw output to `_evidence/phase-2/<route-slug>-<YYYYMMDD>/raw-trace.json`.
-
-### 4. Run the per-surface analyzer
-
-For the workshop dashboard:
-
-```bash
-bun run perf:dashboard-query-count PERF_TRACE_INPUT=_evidence/phase-2/<route-slug>-<YYYYMMDD>/raw-trace.json
-```
-
-This produces a structured report listing every D1 query, its round-trip count, and total wall-clock time. Save the report next to the raw trace.
-
-### 5. Commit the baseline
-
-Add both files to the plan's evidence directory. Update the plan README §6 readiness status to reflect that the baseline is captured.
-
-## What to look for
-
-- **D1 round-trip count per render** — target ≤ 6 for the workshop dashboard (per README §2). The plan's standing hypothesis is that the N+1 authz loop dominated this number; verify with the post-fix baseline.
-- **Sequential `await` chains** — these are the Promise.all opportunities flagged by WP-P2-02. Each sequential chain of independent D1 calls is a candidate.
-- **Slowest query** — the longest single D1 round-trip in the trace. If one query dominates, an index or projection optimization may help more than a Promise.all refactor.
-
-## Common pitfalls
-
-- **PERF_TRACE without NEXT_PUBLIC_PERF_TRACE** — server-side trace is emitted but the client-side global is undefined. Set both for full coverage.
-- **Unauthenticated session** — the trace shows the unauthenticated redirect, not the route's actual queries. Always log in first.
-- **Stale fixture data** — the trace is only meaningful against realistic data volumes. Use `bun run perf:seed-fixture` to seed a 100-row estimate before measuring the estimate editor.
-- **Cold-start noise** — the first request after `bun run cf:preview` includes Worker initialization. Discard the first trace and use the second.
-
-## Cross-references
-
-- Plan (archived): `.ai/09_archive/store/2026-07-05-Performance-Optimization/02_IMPLEMENTATION_PLAN.md` WP-P2-01
-- Existing scripts: `scripts/measure-workshop-dashboard-query-count.ts`, `scripts/measure-route-transitions.ts`, `scripts/measure-library-performance-baseline.ts`
-- Server-timing source: `src/lib/perf/server-timing.ts`
-- Web vitals probe: `src/components/workshop/WebVitalsProbe.tsx`
+`.ai/09_archive/store/2026-07-05-Performance-Optimization/` preserves prior
+work-package hypotheses and targets. It is not current execution authority.

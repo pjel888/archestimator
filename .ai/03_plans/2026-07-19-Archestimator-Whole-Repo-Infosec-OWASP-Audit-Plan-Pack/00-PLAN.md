@@ -13,7 +13,8 @@
 | `package_action_ceiling` | `IMPLEMENT_LOCAL` |
 | `last_observed_run_scope` | `PLAN_ONLY` (audit + plan only; remediation units are `READY`, not executed) |
 | Baseline HEAD | `7f9a484b42b0d951f219e3c4ce1bfbb4364e8847` (2026-07-19T09:44:40+08:00) |
-| Final observed HEAD | `7f9a484b42b0d951f219e3c4ce1bfbb4364e8847` (no drift during the audit) |
+| Final observed HEAD | `963bb1f25` — drifted during the audit via concurrent commits (366 files changed), **none** in audited source paths; every file:line citation re-verified valid against the final tree. See `08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md` §8.4 for the full drift reconciliation. |
+| Post-audit repo HEAD (at improvement time) | `5e2d4adea` — further drift after the audit touched only 7 landing-page files under `src/components/landing-new/`; **no cited audited path changed** (`git diff --name-only 7f9a484b4..5e2d4adea \| grep -E '^(src/\|worker.ts\|wrangler.jsonc\|next.config.ts\|migrations/)'` confirms only landing-page components). |
 | Working-tree status at audit | Pre-existing modified/untracked files in `.ai/` and `.agents/README.md`; none in audited source paths. Concurrent `2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/` work preserved untouched. |
 | Audit mode | Read-only `PLAN_ONLY`. No product source edits, no migrations, no builds-as-tests, no browser automation, no scanners that execute untrusted code, no hosted probes, no provider mutation. |
 
@@ -114,7 +115,7 @@ For an **alpha / pre-beta** product preparing for first users, the security post
 **Headline weaknesses:**
 
 - **One High** (`SEC-COLLAB-003`): membership revocation does not invalidate already-issued HMAC realtime room tokens; a removed or demoted collaborator retains realtime write/presence capabilities for up to 5 minutes (`DEFAULT_ROOM_TOKEN_TTL_SECONDS = 300`). The `CollaborationRoom` Durable Object has SQLite storage provisioned but does not use it for a revocation list. This is a real privilege-boundary crossing after administrative revocation.
-- **Eleven Mediums**, concentrated in:
+- **Twenty-six Mediums** (see `04-FINDINGS-REGISTER.md` and `artifacts/findings.json` for the authoritative list; the indicative summary below names the principal clusters), concentrated in:
   - the email integration boundary (CRLF + unescaped HTML in collaboration invites — defense-in-depth, mitigated by Cloudflare's structured `MimeMessage`);
   - the worker edge seam (`workers_dev: true` exposes production bindings at `*.workers.dev`; shared `CRON_SECRET` on proof routers; non-constant-time bearer compare in proof routers);
   - the scan-and-bind invariant (component-binding accepts `scan_status='pending'`, and the scanner is effectively disabled by default — meaning attachments are bound but currently un-downloadable until scanning is enabled);
@@ -146,11 +147,12 @@ For an **alpha / pre-beta** product preparing for first users, the security post
 |---|---:|---|
 | Critical | 0 | — |
 | High | 1 | `SEC-COLLAB-003` |
-| Medium | 11 | `SEC-AUTH-001`, `SEC-AUTHZ-001`, `SEC-UPLOAD-001`, `SEC-UPLOAD-002`, `SEC-UPLOAD-003`, `SEC-UPLOAD-004`, `SEC-UPLOAD-005`, `SEC-COLLAB-001`, `SEC-COLLAB-002`, `SEC-COLLAB-004`, `SEC-OPS-001`, `SEC-OPS-004`, `SEC-WORKER-002`, `SEC-WORKER-004`, `SEC-BROWSER-001`, `SEC-BROWSER-002`, `SEC-BROWSER-003`, `SEC-BROWSER-005`, `SEC-CRYPTO-001`, `SEC-CRYPTO-002`, `SEC-CRYPTO-003`, `SEC-CI-001`, `SEC-LOG-001`, `SEC-PRIV-001`, `SEC-PRIV-002`, `SEC-SHARE-002` (subset shown; full counts in `04-FINDINGS-REGISTER.md` after final calibration) |
-| Low / Informational | 14 | (see register) |
-| Rejected / Refuted / Duplicate | 5 | `SEC-WORKER-001` (refuted on-platform), `SEC-WORKER-003` (duplicate of `SEC-WORKER-002`), plus 3 from overcall assessment |
+| Medium | 26 | `SEC-AUTH-001`, `SEC-AUTHZ-001`, `SEC-UPLOAD-001`, `SEC-UPLOAD-002`, `SEC-UPLOAD-003`, `SEC-UPLOAD-004`, `SEC-UPLOAD-005`, `SEC-COLLAB-001`, `SEC-COLLAB-002`, `SEC-COLLAB-004`, `SEC-OPS-001`, `SEC-OPS-004`, `SEC-WORKER-002`, `SEC-WORKER-004`, `SEC-BROWSER-001`, `SEC-BROWSER-003`, `SEC-BROWSER-005`, `SEC-CRYPTO-001`, `SEC-CRYPTO-002`, `SEC-CRYPTO-003`, `SEC-CI-001`, `SEC-CI-002`, `SEC-LOG-001`, `SEC-PRIV-001`, `SEC-PRIV-002`, `SEC-SHARE-002` |
+| Low | 11 | `SEC-AI-002`, `SEC-AUTH-003`, `SEC-BROWSER-002`, `SEC-COLLAB-005`, `SEC-EXT-001`, `SEC-EXT-002`, `SEC-EXT-003`, `SEC-LOG-002`, `SEC-LOG-003`, `SEC-OPS-003`, `SEC-SUPPLY-001` |
+| Informational (no unit) | ~29 | `SEC-AUTH-002/004/005`, `SEC-SHARE-001/003/004/005/007`, `SEC-COLLAB-006/007/008`, `SEC-OPS-005/006/008`, `SEC-WORKER-005/006/007/008`, `SEC-BROWSER-004/006/007/008`, `SEC-AI-001/003`, `SEC-EXT-004`, `SEC-CRYPTO-004`, `SEC-UPLOAD-006`, `SEC-EXPORT-001/002` (full list in `artifacts/findings.json` `informational_no_unit`) |
+| Rejected / Refuted / Duplicate | 3 | `SEC-WORKER-001` (refuted on-platform), `SEC-WORKER-003` (duplicate of `SEC-WORKER-002`), `SEC-OPS-002` (duplicate of `SEC-CRYPTO-001` + `SEC-OPS-001`) — plus 2 sweep candidates downgraded to Low/Informational during overcall assessment |
 
-> The exact final counts in `04-FINDINGS-REGISTER.md` are authoritative; the table above is indicative. Several candidates from sweeps were merged into single units (e.g., `SEC-EXT-001/002/003` amalgamated into one email-hardening unit) to keep remediation coherent by root cause.
+> Counts are reconciled to `artifacts/findings.json` `findings[]` (authoritative) and `severity_counts` (derived from the array). Several candidates from sweeps were merged into single units (e.g., `SEC-EXT-001/002/003` amalgamated into one email-hardening unit) to keep remediation coherent by root cause.
 
 ## 10. Stable requirements
 

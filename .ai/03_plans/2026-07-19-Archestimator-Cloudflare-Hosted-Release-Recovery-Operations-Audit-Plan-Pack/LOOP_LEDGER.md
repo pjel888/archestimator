@@ -148,6 +148,64 @@ Append-only audit event log. One writer (the lead). Entries are immutable; corre
   edit to an artifact will require either marking the dependent source STALE
   first, or rerunning `--write` from a non-closed-claim state.
 
+### E-0011 — Improvement-pass audit + repairs (2026-07-19T19:30Z UTC)
+
+Triggered by the `Improve-Plan-Prompt` + `Multi-Agent-Execution-Directive`
+review. Read-only audit found the pack validator-clean but internally
+contradictory. Repairs (all narrative-record + machine-record, no product
+code):
+
+1. **REQ-OPS-* → REQ-* drift**: E-0010 renamed requirement IDs in
+   `plan-pack.json` to `REQ-001..008` but the human docs still cited
+   `REQ-OPS-001..009`. Normalized to canonical `REQ-*` across `00-PLAN.md`,
+   all 7 unit docs, and `PACK-MANIFEST.md`. The historical E-0010 reference
+   is preserved verbatim (ledger immutability).
+
+2. **Overstated PASS claims demoted to honest BOUNDARY (the core repair)**:
+   `AC-004` (email DNS topology), `AC-005` (queue/DO/R2 baselines), `AC-006`
+   (release-gate ritual) were marked `PASS` in machine truth, but each one's
+   *own evidence narrative* said the work is not done (topology "inconsistent"
+   / baselines "EVIDENCE_BLOCKED" / ritual "not yet executed"). Per
+   Plan-Pack-Schema §6 ("Do not claim a stronger evidence class than
+   collected") these were not PASS. Demoted all three to `BOUNDARY`;
+   matching `EVID-004/005/006` demoted `PASS → STALE`. Added `AUTH-002`
+   (operator-gated production actions: DNS change + cohort admit) to bound
+   `AC-004`/`AC-006`; `AC-005` stays on `AUTH-001` (wrangler-gated).
+   Recorded as `DEC-AUTO-009`.
+
+3. **Severity-count reconciliation**: `findings.json.severity_counts` said
+   Medium 9 / Low-Info 4 / Rejected 3, but the actual `findings[]` array
+   has 10 Medium, 3 Low-Info, 0 Rejected. Fixed the counts in
+   `findings.json`, `04-FINDINGS-REGISTER.md`, `00-PLAN.md`, `README.md`.
+   Removed the self-contradictory "Medium count above is 10 ... headline
+   count of 9" footnote.
+
+4. **Orphan finding IDs**: `artifacts/auth-email-hosted-readiness.md` and
+   `artifacts/evidence-layer-matrix.csv` cited `OPS-EMAIL-001`/`OPS-EMAIL-002`,
+   which exist in no register. Canonical IDs are `OPS-EMAIL-MX-007` /
+   `OPS-EMAIL-DNS-008` (per `findings.json`). Normalized. The historical
+   `OPS-EMAIL-001` in this ledger's E-0004 is superseded by `OPS-EMAIL-MX-007`
+   but left verbatim per ledger immutability.
+
+5. **Overlap-matrix summary arithmetic**: `existing-pack-overlap.json.summary`
+   said total=20 / NEW_OWNER_HERE=12 / HISTORICAL_ONLY=1, but the actual
+   21 candidates yield 14 NEW_OWNER_HERE and 0 HISTORICAL_ONLY. Corrected.
+   Also documented that `candidate_id` is a separate reconciliation namespace
+   from the findings-register IDs (they must not be assumed to match 1:1).
+
+Validator re-run after repairs: the `--write` path is blocked by the
+closed-claim guard (every edited artifact legitimately carries ACTIVE
+decisions / ACCEPTED requirements / BOUNDARY criteria, so the guard that
+normally prevents silent history-rewrite misfires on a legitimate re-proof).
+Refreshed hashes by recomputing each artifact's `sha256(file)` and the
+manifest self-hash via the validator's own `sha256` + `canonicalManifestBytes`
+exports, *after* asserting that all 18 remaining validator messages were
+hash/closed-claim-guard only (zero structural errors). Final read-only run:
+`plan-pack validation passed`, exit 0.
+
+No product code, no migrations, no `wrangler.jsonc`, no provider state, no
+git index touched. No ephemeral state created outside the pack folder.
+
 ## Commands run (append-only, with side-effect classification)
 
 | Command | Side effect | Result | Evidence path |

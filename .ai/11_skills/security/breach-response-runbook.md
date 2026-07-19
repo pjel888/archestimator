@@ -8,6 +8,19 @@
 **Status:** DRAFT — gated on OPEN-DEC-005 (notification thresholds)
 **Owner:** Philip (primary) / `[on-call engineer — TBD when team grows]`
 
+## Authority and action gate
+
+This is a historical, counsel-gated operational draft, not legal advice or
+standing authorization for external incident actions. Current source,
+`AGENTS.md`, `wrangler.jsonc`, and canonical security/observability protocols
+override stale commands or provider assumptions in this document.
+
+Safe local triage and redacted evidence preservation may proceed. Credential
+rotation, WAF changes, Worker isolation/deployment, destructive D1 operations,
+paid or unbound provider actions, legal notifications, and customer
+communications require incident-specific authority. Automated tests, browser
+automation, screenshots, and visual QA remain `TEST_TASK`-gated.
+
 ## Definitions
 
 **Personal data breach** (GDPR Art. 4(12)): a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to, personal data transmitted, stored, or otherwise processed.
@@ -60,8 +73,8 @@ Breach signals come from:
 
 ### Phase 2 — Containment (0–24 hours)
 
-1. **Stop ongoing exposure**: rotate compromised credentials; revoke tokens; isolate affected Worker; block malicious IPs at Cloudflare WAF.
-2. **Preserve evidence**: snapshot D1 via `bun run cf:d1-restore-rehearsal` (creates backup); export Workers Observability logs; export affected table data.
+1. **Stop ongoing exposure with incident-specific authority**: rotate compromised credentials; revoke tokens; isolate the affected Worker; or block malicious IPs at Cloudflare WAF.
+2. **Preserve evidence**: use redacted Cloudflare Workers Logs and authorized D1 export/Time Travel procedures. `bun run cf:d1-restore-rehearsal` is local-only rehearsal evidence; it does not create a hosted D1 backup or prove a provider restore.
 3. **Identify scope**: which data subjects? which data categories? which time range?
 4. **Mitigate user impact**: notify affected users if their account was specifically compromised (separate from formal breach notification).
 

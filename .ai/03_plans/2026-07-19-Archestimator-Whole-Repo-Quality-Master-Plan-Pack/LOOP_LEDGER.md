@@ -24,8 +24,9 @@
 | `SOURCE-ARCHIVE` | VERIFIED | Three whole folders moved to their recorded `-superseded` destinations; archive/snapshot comparisons pass with only disposition and lifecycle-manifest exceptions. |
 | `REFERENCE-REPAIR` | VERIFIED | Active-plan index and MVP cross-references point to the quality master or exact archive receipts; live `.ai` stale active-path sweep returned zero. |
 | `ARCHIVED-MANIFESTS` | VERIFIED | Performance and consistency archived manifests pass read-only validation; improve has no manifest. |
-| `PLANNING-PROMPTS` | VERIFIED | Canonical planning-prompt suite passed: 10 documents, 3,592 words, 659 lines, orchestration contracts, and ten simulations. |
+| `PLANNING-PROMPTS` | VERIFIED | Canonical planning-prompt suite passed: 10 documents, 4,171 words, 733 lines, orchestration contracts, and ten simulations. Rechecked 2026-07-20 against `scripts/validate-planning-prompt-suite.mjs` and `scripts/validate-agent-workflow-simulations.mjs` (10/10). |
 | `SCOPED-WHITESPACE` | VERIFIED | Tracked consolidation paths plus authored master/archive receipts pass whitespace checks; unrelated concurrent files remain outside scope. |
+| `CURRENCY-2026-07-20` | VERIFIED | Reconciliation against current HEAD `5e2d4adea0ddd01e8ad93ce40f7d3d8d924b3726` (16 commits past baseline `7f9a484b`). The intervening diff touches only 7 files under `src/components/landing-new/` (landing/marketing redesign) and no unit-owned path; re-spot-checked owned paths for `UNIT-001`, `UNIT-006`, `UNIT-009`, `UNIT-010`, `UNIT-013`, `UNIT-015`, `UNIT-029`, `UNIT-032`, and `UNIT-033` remain present and the cited defect premises still hold. Baseline `7f9a484b` is retained as the audit's reproducible anchor; unit executors reverify premise freshness per the Start Contract before editing. |
 
 ## Unit State
 

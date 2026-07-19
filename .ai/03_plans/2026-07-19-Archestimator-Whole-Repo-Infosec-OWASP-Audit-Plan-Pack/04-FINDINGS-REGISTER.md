@@ -2,7 +2,7 @@
 
 Canonical human-readable source. `artifacts/findings.json` is the machine-readable mirror. Severity is calibrated per master prompt §14 and reconciled against the independent adversarial verifier (`08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md`).
 
-Severity counts (post-adjudication): **Critical 0 · High 1 · Medium 11 · Low/Informational 14 · Rejected/Refuted/Duplicate 5**.
+Severity counts (post-adjudication): **Critical 0 · High 1 · Medium 26 · Low/Informational 11 (+ ~29 informational no-unit) · Rejected/Refuted/Duplicate 3 (+ 2 sweep candidates downgraded to Low/Informational during overcall assessment)**. These counts are reconciled to `artifacts/findings.json` `findings[]` (authoritative) and `severity_counts` (now derived from the array).
 
 Each accepted finding maps to a remediation unit (or to an existing active plan — none in this case) per master prompt §13.6 and §16.
 
@@ -16,7 +16,7 @@ Each accepted finding maps to a remediation unit (or to an existing active plan 
 
 - **primary_class:** `EXPLOITABLE_VULNERABILITY`
 - **severity:** High · **confidence:** HIGH (independently confirmed by adversarial verifier)
-- **affected_paths_and_exact_lines:** `src/lib/cloudflare/realtime-room-token.ts:1` (`DEFAULT_ROOM_TOKEN_TTL_SECONDS = 300`), `:158-185` (`verifyRealtimeRoomToken` checks signature + topic + `exp` only — no revocation list); `src/lib/cloudflare/collaboration-room.ts:378-427` (`authorizeSocket` calls only `verifyRealtimeRoomToken`); `src/lib/cloudflare/collaboration-room-revocation.ts:33-74` (revocation iterates only currently-open sockets and closes them — does not write any persistent denylist); `src/lib/collaboration/actions.ts:1622-1624,1682,1824,1913` (revocation invoked after role change / removal).
+- **affected_paths_and_exact_lines:** `src/lib/collaboration/realtime-room-token.ts:1` (`DEFAULT_ROOM_TOKEN_TTL_SECONDS = 300`), `:158-185` (`verifyRealtimeRoomToken` checks signature + topic + `exp` only — no revocation list); `src/lib/cloudflare/collaboration-room.ts:378-427` (`authorizeSocket` calls only `verifyRealtimeRoomToken`); `src/lib/cloudflare/collaboration-room-revocation.ts:33-74` (revocation iterates only currently-open sockets and closes them — does not write any persistent denylist); `src/lib/collaboration/actions.ts:1622-1624,1682,1824,1913` (revocation invoked after role change / removal).
 - **entrypoint:** WebSocket reconnect to `CollaborationRoom` after administrative removal or role downgrade.
 - **attacker → victim:** Newly-removed or demoted project/estimate member → still-private collaboration room (and all other members of that room).
 - **source_to_sink_trace:**
@@ -193,16 +193,6 @@ Each accepted finding maps to a remediation unit (or to an existing active plan 
 - **fix direction:** Add per-request nonce pipeline; remove `'unsafe-inline'`/`'unsafe-eval'` from share policy; promote workshop+invite to enforced; add `report-to` endpoint.
 - **unit:** `UNIT-009`
 
-### `SEC-BROWSER-002` — `Cache-Control: s-maxage=31536000` on marketing pages with no `private` defense if a route ever serves a logged-in variant
-
-- **class:** `LATENT_SECURITY_DEFECT` · **severity:** Medium · **confidence:** HIGH (latent)
-- **affected:** `src/lib/auth/request-proxy.ts:45` (`MARKETING_PAGE_CACHE_CONTROL = "s-maxage=31536000"`), `:201-203` (applied to `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, `/terms`, `/trust`, `/signup`); `worker-route-optimizations.ts:3-14` (`staticPublicPagePaths` overlaps, adds `/access-required`).
-- **trace:** Proxy sets `s-maxage=31536000` with no `public`/`private`, no `must-revalidate`. CDN stores for a year. Worker *also* independently caches in isolate memory + default cache. Today safe; if `/signup` ever shows a logged-in variant, the first cached variant is replayed to everyone.
-- **compensating:** Today the pages are static; proxy correctly routes authenticated users away via `requestHasVisitorState`.
-- **owasp:** A05 · **cwe:** CWE-525, CWE-532
-- **fix direction:** Add `Cache-Tag` per page + purge integration; cap `s-maxage` to 1 day + `stale-while-revalidate`.
-- **unit:** `UNIT-013` (folded)
-
 ### `SEC-BROWSER-003` — `/invite/:token` carries raw invite token in URL path; missing `Cache-Control: no-store`
 
 - **class:** `LATENT_SECURITY_DEFECT` · **severity:** Medium · **confidence:** HIGH
@@ -260,6 +250,17 @@ Each accepted finding maps to a remediation unit (or to an existing active plan 
 - **compensating:** Disabled workflows are SHA-pinned + narrow `permissions:`; `bun run validate` exists locally but not enforced.
 - **owasp:** A06 (Vulnerable Components — no automated gate) · **cwe:** CWE-1357
 - **fix direction:** Re-enable `ci.yml` (2026-07-13 variant), `codeql.yml`, `dependency-review.yml`, `dependabot.yml`; configure branch protection requiring them.
+- **AUTH note:** Branch-protection / required-checks state is `GITHUB_HOSTED_EVIDENCE_BLOCKED` (`AUTH-001`).
+- **unit:** `UNIT-012` (AUXILIARY)
+
+### `SEC-CI-002` — Dependabot and dependency-review-action disabled; no automated dependency-vulnerability gate on PRs (AUXILIARY)
+
+- **class:** `SECURE_SDLC_OR_SUPPLY_CHAIN_GAP` · **severity:** Medium · **confidence:** HIGH
+- **affected:** `.github/workflows-disabled/dependabot.yml` (Dependabot config exists only in disabled form — no version-update PRs are opened); `.github/workflows-disabled/codeql.yml` and the `2026-07-13/` dependency-review workflow are disabled, so no `dependency-review-action` runs on PR open/update. Distinct from `SEC-CI-001` (which covers the build/test/SAST gate): this finding covers the *dependency-vulnerability advisory* gate specifically.
+- **trace:** With Dependabot disabled and no `dependency-review-action`, a PR that bumps a dependency to a known-vulnerable version (or introduces a new transitive CVE) merges with no automated GitHub Advisory/OSV check. `bun.lock` is tracked, but no PR-time gate rejects vulnerable locks.
+- **compensating:** `bun.lock` is sha512-verified via `patchedDependencies`; narrow `trustedDependencies` + `ignoreScripts`; transitive overrides pin CVE-prone packages (see `02` §9 #12). Manual `bun audit`/OSV-Scanner is available but not enforced (recorded as `RISK-005`).
+- **owasp:** A06 (Vulnerable and Outdated Components — no automated dependency-vuln gate) · **cwe:** CWE-1357, CWE-1104
+- **fix direction:** Re-enable `dependabot.yml` (version updates + security updates) and `dependency-review-action` on PR open/update; require it as a status check before merge (pairs with `SEC-CI-001` branch-protection work).
 - **AUTH note:** Branch-protection / required-checks state is `GITHUB_HOSTED_EVIDENCE_BLOCKED` (`AUTH-001`).
 - **unit:** `UNIT-012` (AUXILIARY)
 
@@ -334,6 +335,7 @@ Each accepted finding maps to a remediation unit (or to an existing active plan 
 - `SEC-WORKER-006` — D1-perf proof router interpolates table-name strings (bounded by constant tuple today). `d1-performance-proof-router.ts:319,391`. **Informational (latent).** No unit.
 - `SEC-WORKER-007` — Inbound `X-Request-Id` echoed with `[A-Za-z0-9._:-]{7,127}` pattern; log-spoofing surface (no CRLF, so no header-splitting). `observability/request-id.ts:14,24-37,54-63`. **Informational.** No unit.
 - `SEC-WORKER-008` — `next.config.ts:84-86` sets `typescript.ignoreBuildErrors: true` for Cloudflare proof build (real errors still caught by separate `bun run type-check`). **Informational.** No unit.
+- `SEC-BROWSER-002` — `Cache-Control: s-maxage=31536000` on marketing pages with no `private` defense if a route ever serves a logged-in variant. `request-proxy.ts:45,201-203`. **Low (latent — currently safe; pages static, authenticated users routed away).** Fix: add `Cache-Tag` + purge, cap `s-maxage` to 1 day. **Unit:** `UNIT-013`. (Reclassified from Medium per verifier latent treatment; matches `findings.json` severity.)
 - `SEC-BROWSER-004` — Recipient session `_ok` mirror cookie is `httpOnly: false` (intentional for client polling). `share/[token]/session/route.ts:113-119`. **Informational.** No unit.
 - `SEC-BROWSER-006` — `SameSite=Lax` on publication-access/session cookies allows cross-site top-level navigation (consistent with link-possession = access model). `publication/security.ts:371,559`. **Informational.** No unit.
 - `SEC-BROWSER-007` — No `Permissions-Policy`/`COOP`/`COEP`/`CORP` headers anywhere. `next.config.ts:166-300`. **Low (hardening).** **Unit:** `UNIT-013`.

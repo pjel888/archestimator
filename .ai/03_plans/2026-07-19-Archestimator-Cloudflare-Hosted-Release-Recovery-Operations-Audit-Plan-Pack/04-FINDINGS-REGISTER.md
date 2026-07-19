@@ -9,9 +9,17 @@ Authoritative narrative findings register. Machine-readable counterpart:
 |---|---|
 | Critical | 0 |
 | High | 4 |
-| Medium | 9 |
-| Low / Informational | 4 |
-| Rejected / Refuted / Duplicate | 3 |
+| Medium | 10 |
+| Low / Informational | 3 |
+| Rejected / Refuted / Duplicate | 0 |
+
+Counts are computed from the authoritative `artifacts/findings.json` (17
+findings: 4 High, 10 Medium, 2 Low + 1 Informational). The earlier "9 Medium /
+4 Low-Informational / 3 Rejected" draft counts double-counted cross-referenced
+items and counted rejected candidates as findings; they are reconciled here.
+Rejected/refuted candidates (`OPS-DEPLOY-CI-AUTO`, `OPS-CRON-CONCURRENCY-LOCK`,
+`OPS-QUEUE-VISIBILITY-TIMEOUT`) live in `artifacts/rejected-refuted-findings.json`
+and are **not** findings, so they do not appear in the count.
 
 ## Evidence classes used
 
@@ -152,12 +160,11 @@ Authoritative narrative findings register. Machine-readable counterpart:
 | OPS-DO-STORAGE-013 | O-08 | DO storage use + quarantine runbook missing | UNIT-005 |
 | OPS-R2-LIFECYCLE-014 | O-05 | Hosted R2 inventory + cleanup execution unverified | UNIT-005 |
 
-(Note: `OPS-RECOVERY-001` and `OPS-OBS-ALERT-002` and `OPS-AUTH-OAUTH-003`
-appear in both High and the severity counts; `OPS-RELEASE-GATE-004` is the
-fourth High. The Medium count above is 10 because `OPS-WORKERS-DEV-009` is
-cross-referenced; the headline count of 9 reflects distinct-pure-NEW_OWNER
-mediums after removing the cross-ref. The full register in findings.json is
-authoritative.)
+All 10 Medium findings are distinct accepted findings. `OPS-WORKERS-DEV-009`
+is `CROSS_REFERENCE_ACTIVE_PACK` for *remediation ownership* (Infosec UNIT-002)
+but is still a finding *discovered here* (hosted reachability evidence), so it
+counts once in the Medium total. No finding is double-counted across severity
+bands.
 
 ## Low / Informational findings
 
@@ -166,7 +173,11 @@ authoritative.)
 | OPS-RETENTION-015 | O-11 | Retention cadence + coverage unverified (cross-ref Infosec UNIT-011) | UNIT-007 |
 | OPS-CRON-UNMATCHED-016 | O-07 | 30 3 * * * records unmatched-cron noise (cosmetic) | DEFERRED_TO_NAMED_STAGE_OR_OWNER (Quality Master) |
 | OPS-CRON-FIVE-MIN-017 | O-07 | 5-min cron writes one event row correctly | ALREADY_IMPLEMENTED (Quality Master UNIT-028 resolved) |
-| OPS-D1-RESTORE-005A | O-04 | localOnly:true / providerBacked:false (correct honest behavior) | ALREADY_IMPLEMENTED |
+
+`OPS-D1-RESTORE-005A` (`localOnly:true / providerBacked:false`) is recorded in
+`artifacts/existing-pack-overlap.json` as `ALREADY_IMPLEMENTED` *context*
+preventing the local rehearsal from being misread as hosted recovery proof. It
+is not a live finding and is intentionally excluded from the count.
 
 ## Rejected / Refuted / Duplicate
 
