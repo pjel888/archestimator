@@ -1,0 +1,118 @@
+# Commands Run — Audit Log
+
+Append-only record of every command executed during this audit. Side-effect
+classification per `command-side-effect-inventory.csv`.
+
+## Authority check + bootstrap
+
+2026-07-19T06:35Z | READ_ONLY_LOCAL  | bun run supermemory:ensure
+  -> ready at http://localhost:6767/
+2026-07-19T06:35Z | READ_ONLY_LOCAL  | git status --short --branch
+  -> clean on main...origin/main
+2026-07-19T06:35Z | READ_ONLY_LOCAL  | git rev-parse HEAD
+  -> b2a934919ce499c0404e5b9f9a5644f22757c78a
+2026-07-19T06:35Z | READ_ONLY_LOCAL  | git rev-parse --abbrev-ref HEAD
+  -> main
+2026-07-19T06:35Z | READ_ONLY_LOCAL  | git log -1 --format='%cI %s'
+  -> 2026-07-19T14:21:07+08:00 docs(ai): add MacBook-Pro agentic workflow bootstrap prompt
+
+## Wrangler auth check (read-only; failed)
+
+2026-07-19T06:38Z | READ_ONLY_PROVIDER | bunx wrangler --version
+  -> wrangler 4.110.0
+2026-07-19T06:38Z | READ_ONLY_PROVIDER | bunx wrangler whoami
+  -> ERROR: Not logged in. Your auth token has expired and could not be refreshed, and the environment is non-interactive.
+  -> AUTH-001 raised; all wrangler auth-gated readback recorded as EVIDENCE_BLOCKED
+
+## DNS probes (read-only public DNS)
+
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short A archestimator.com
+  -> 172.67.201.196, 104.21.74.99
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short A www.archestimator.com
+  -> 172.67.201.196, 104.21.74.99
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short CNAME www.archestimator.com
+  -> (empty)
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short NS archestimator.com
+  -> carl.ns.cloudflare.com., ziggy.ns.cloudflare.com.
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short MX archestimator.com
+  -> eforward1..5.registrar-servers.com. (Namecheap)  [finding OPS-EMAIL-MX-007]
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short TXT archestimator.com
+  -> "v=spf1 include:spf.efwd.registrar-servers.com ~all"
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short TXT _dmarc.archestimator.com
+  -> "v=DMARC1; p=none;"  [finding OPS-EMAIL-DNS-008]
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short TXT {default,google,cloudflare,cf,mail}._domainkey.archestimator.com
+  -> all empty  [finding OPS-EMAIL-DNS-008]
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short A archestimator-proof.philipjonlewis.workers.dev
+  -> 104.21.90.71, 172.67.167.191  [finding OPS-WORKERS-DEV-009]
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short MX support.archestimator.com
+  -> (empty)
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | dig +short MX mail.archestimator.com
+  -> (empty)
+
+## HTTPS probes (read-only public HTTPS GET/HEAD/OPTIONS)
+
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | /usr/bin/curl -sS -o /dev/null -w "..." -L --max-redirs 3 -I https://archestimator.com/
+  -> 200, scheme HTTPS (cf-cache HIT, age 1553184, s-maxage 31536000)
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | /usr/bin/curl ... https://www.archestimator.com/
+  -> 308 -> https://archestimator.com/
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | /usr/bin/curl ... http://archestimator.com/
+  -> 301 -> https://archestimator.com/
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | /usr/bin/curl -sS -D - -o /dev/null https://archestimator.com/
+  -> headers captured in evidence/hosted-probe-2026-07-19T06-39Z.md
+2026-07-19T06:39Z | READ_ONLY_PROVIDER | /usr/bin/curl -sS -D - -o /dev/null https://www.archestimator.com/
+  -> 308 -> https://archestimator.com/
+
+2026-07-19T06:44Z | READ_ONLY_PROVIDER | route status-code sweep (15 paths via for-loop, GET)
+  -> see evidence/hosted-probe-2026-07-19T06-39Z.md
+2026-07-19T06:44Z | READ_ONLY_PROVIDER | /usr/bin/curl -sS -D - https://archestimator.com/api/auth/get-session
+  -> 200, body "null" (fail-closed), security headers
+2026-07-19T06:44Z | READ_ONLY_PROVIDER | /usr/bin/curl -sS -D - https://archestimator.com/api/health
+  -> 200, {"ok":true,"service":"archestimator","timestamp":"2026-07-19T06:44:23.653Z"}
+2026-07-19T06:44Z | READ_ONLY_PROVIDER | /usr/bin/curl ... https://archestimator.com/admin
+  -> 307 Location: /login?next=%2Fadmin
+2026-07-19T06:44Z | READ_ONLY_PROVIDER | /usr/bin/curl ... https://archestimator.com/workshop
+  -> 307 Location: /login?next=%2Fworkshop
+
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator-proof.philipjonlewis.workers.dev/
+  -> 308 -> https://archestimator.com/  [confirms OPS-WORKERS-DEV-009]
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator-proof.philipjonlewis.workers.dev/api/health
+  -> 200  [confirms direct path reachability]
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator-proof.philipjonlewis.workers.dev/api/auth/get-session
+  -> 308 (canonical-host redirect)
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator-proof.philipjonlewis.workers.dev/__cloudflare/health
+  -> 404
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator.com/robots.txt
+  -> 200 content-signal policy text
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator.com/this-route-does-not-exist-xyz
+  -> 404
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl -X OPTIONS https://archestimator.com/api/health
+  -> 204
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator.com/login | grep -oE 'Continue with Google'
+  -> match (Google OAuth UI present)
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator.com/api/auth/providers
+  -> (empty body — Better Auth providers list not exposed at that path)
+2026-07-19T06:46Z | READ_ONLY_PROVIDER | /usr/bin/curl https://archestimator.com/api/auth/sign-in/social/google
+  -> 404 (Better Auth uses different route shape; do not interpret as Google disabled — UI renders)
+
+## Source inspection (read-only local reads)
+
+2026-07-19T06:50Z.. | READ_ONLY_LOCAL | wc/grep/head/sed against worker.ts, wrangler.jsonc, src/lib/**, scripts/**, migrations/
+  -> findings captured in 04-FINDINGS-REGISTER.md and per-domain artifacts
+
+## Plan-pack validator (allowed static-contract validator)
+
+2026-07-19T07:xxZ | LOCAL_FIXTURE_GENERATOR | node scripts/validate-plan-pack.mjs --write <folder>
+  -> result captured in LOOP_LEDGER.md E-0010 (final entry)
+
+## Commands deliberately NOT run (production / unauthorized actions)
+
+- cf:deploy / cf:build-upload-version / bunx wrangler deploy / versions upload — NOT AUTHORIZED
+- cf:sync-worker-secrets / bunx wrangler secret put|list — NOT AUTHORIZED (list deferred to AUTH-001; put never)
+- bunx wrangler d1 migrations apply --remote / execute --remote / time-travel / backup / export — NOT AUTHORIZED
+- bunx wrangler r2 object put|delete — NOT AUTHORIZED
+- bunx wrangler queues send|purge — NOT AUTHORIZED
+- bunx wrangler email send — NOT AUTHORIZED
+- bun run cf:d1-restore-rehearsal — deferred (localOnly by design; would not advance hosted claim)
+- Real outbound email — NOT AUTHORIZED
+- Any browser automation / Playwright / Storybook — NOT AUTHORIZED (User Test Authorization Gate)
+- bun run validate (top-level) — NOT AUTHORIZED (runs product test suite)

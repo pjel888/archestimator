@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-07-19T06:55:00.000Z",
+  "purpose": "Candidates that were considered and rejected/refuted during the audit. Preserved to prevent re-investigation.",
+  "rejected": [
+    {
+      "candidate_id": "OPS-DEPLOY-CI-AUTO",
+      "title": "Automated CI gate required for beta admit",
+      "reason_for_rejection": "Out of scope for this audit. CI activation is owned by Infosec UNIT-012 (AUXILIARY, AUTH-001 gated). For controlled beta, the release-gate.json ritual substitutes for CI enforcement; CI activation is a parallel engineering track.",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK"
+    },
+    {
+      "candidate_id": "OPS-CRON-CONCURRENCY-LOCK",
+      "title": "Cron handler needs explicit distributed lock to prevent overlap",
+      "reason_for_rejection": "REFUTED. Cloudflare cron dispatch is per-cron single-instance per trigger; cron handlers are stateless per run; idempotency is enforced via outbox/state columns (template_intent_recovery, client_portal_notification_outbox, retention policy). A distributed lock would add complexity without a proven obligation.",
+      "disposition": "REFUTED_OR_UNREACHABLE"
+    },
+    {
+      "candidate_id": "OPS-QUEUE-VISIBILITY-TIMEOUT",
+      "title": "Queue consumers need explicit visibility_timeout_ms",
+      "reason_for_rejection": "REFUTED. Both queues use Cloudflare defaults which are adequate for the configured max_batch_size and max_retries. Upload-job queue has per-message idempotency via seenIdempotencyKeys + idempotencyKey field; client-portal queue has per-message lease via conditional UPDATE. No observed need to override default visibility.",
+      "disposition": "REFUTED_OR_UNREACHABLE"
+    }
+  ]
+}

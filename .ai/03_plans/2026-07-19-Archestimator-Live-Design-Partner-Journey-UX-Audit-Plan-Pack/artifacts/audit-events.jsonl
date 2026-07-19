@@ -1,0 +1,14 @@
+{"ts":"2026-07-19T07:51:17.440Z","journey":"J-01-discovery","type":"journey_start","persona":"prospective-design-partner"}
+{"ts":"2026-07-19T07:51:43.875Z","journey":"J-01-discovery","step":"landing","route":"/","error":"goto: Timeout 25000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3020/\", waiting until \"domcontentloaded\"\n","elapsed_ms":25298}
+{"ts":"2026-07-19T07:51:52.364Z","journey":"J-01-discovery","screenshot_failed":"01-landing-hero","error":"screenshot: Timeout 8000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n"}
+{"ts":"2026-07-19T07:52:17.671Z","journey":"J-01-discovery","step":"about","route":"/about","error":"goto: Timeout 25000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3020/about\", waiting until \"domcontentloaded\"\n","elapsed_ms":25274}
+{"ts":"2026-07-19T07:52:43.842Z","journey":"J-01-discovery","step":"features","route":"/features","error":"goto: Timeout 25000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3020/features\", waiting until \"domcontentloaded\"\n","elapsed_ms":26151}
+{"ts":"2026-07-19T07:53:09.832Z","journey":"J-01-discovery","step":"pricing","route":"/pricing","error":"goto: Timeout 25000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3020/pricing\", waiting until \"domcontentloaded\"\n","elapsed_ms":25863}
+{"ts":"2026-07-19T07:53:35.055Z","journey":"J-01-discovery","step":"contact","route":"/contact","error":"goto: Timeout 25000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3020/contact\", waiting until \"domcontentloaded\"\n","elapsed_ms":25201}
+{"ts":"2026-07-19T07:53:43.353Z","journey":"J-01-discovery","screenshot_failed":"02-contact-form","error":"screenshot: Timeout 8000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n"}
+{"ts":"2026-07-19T08:07:04.618Z","journey":"J-01-discovery","contact_form_email_visible":false}
+{"ts":"2026-07-19T08:07:04.727Z","journey":"J-01-discovery","cta_inventory":"/","ctas":"[]"}
+{"ts":"2026-07-19T08:07:04.736Z","journey":"J-01-discovery","cta_inventory":"/pricing","ctas":"[]"}
+{"ts":"2026-07-19T08:07:04.738Z","journey":"J-01-discovery","cta_inventory":"/about","ctas":"[]"}
+{"ts":"2026-07-19T08:07:04.747Z","journey":"J-01-discovery","type":"journey_end"}
+{"ts":"2026-07-19T08:07:04.755Z","journey":"J-02-invitation-auth","type":"journey_start","persona":"new-invited-workspace-owner"}

@@ -1,0 +1,60 @@
+{
+  "captured_at": "2026-07-19T15:00:00+08:00",
+  "auditor": "lead-single-agent (emulated passes labeled per journey)",
+  "server": {
+    "command": "PORT=3020 bun x next dev --webpack --port 3020",
+    "framework": "Next.js 16.2.10 (webpack mode, Turbopack available but playwright config pins webpack for parity)",
+    "base_url": "http://127.0.0.1:3020",
+    "host_header": "127.0.0.1:3020 (qualifies as local-dev hostname for dev-auth bypass)",
+    "env_file": ".env.local (loaded by Next.js; .dev.vars also loaded for Workers secrets)",
+    "node_version_preflight": "scripts/check-node-version.mjs (passed)",
+    "dev_auth_bypass": {
+      "enabled_flag": "ARCHESTIMATOR_DEV_AUTH_BYPASS=1",
+      "secret_length": 64,
+      "header_name": "x-archestimator-dev-auth-bypass",
+      "cookie_name": "archestimator-dev-auth-bypass",
+      "admin_db_flag": "ARCHESTIMATOR_DEV_AUTH_ADMIN_DB (set when admin journeys are exercised)"
+    },
+    "closed_beta": {
+      "flag": "CLOSED_BETA_ACCESS_ENABLED",
+      "value": "false",
+      "effect": "Closed-beta gate is disabled; /signup is reachable; /access-required is only shown when an explicit revoked status is encountered. This matches a pre-recruiting local-preview posture, not a production gated-beta posture."
+    }
+  },
+  "browser": {
+    "tool": "Playwright",
+    "playwright_version": "1.61.1",
+    "default_project": "Chromium (Desktop Chrome)",
+    "chromium_revision": "chromium-1228",
+    "headless_shell_revision": "chromium_headless_shell-1228",
+    "optional_matrix_env": "ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX (left unset; matrix projects not used)",
+    "viewport_default": "1280x720",
+    "mobile_checkpoint_viewport": "iPhone 15 (393x852) used only for high-value recipient-side checkpoints"
+  },
+  "storage_state": {
+    "strategy": "Per-fixture ephemeral browser context. No storage_state file persisted.",
+    "sanitization": "Contexts are closed at end of each journey. No cookies, magic links, OAuth state, or session tokens are written to the pack."
+  },
+  "data_fixtures": {
+    "approach": "Synthetic local-only data via dev-auth-bypass header + signed-in session created through /login magic-link preview (dev bypass) or through workshop server actions. No real-user data, real client estimates, or real invitation recipients.",
+    "persistence": "Local D1 preview via wrangler dev (configured in wrangler.jsonc) when authenticated journeys need D1. State is local preview only.",
+    "identities": "See artifacts/persona-fixture-register.md"
+  },
+  "authored_evidence_classes_used": [
+    "CURRENT_SOURCE_CONFIRMED",
+    "CALL_FLOW_CONFIRMED",
+    "LOCAL_RUNTIME_CONFIRMED",
+    "BROWSER_CONFIRMED"
+  ],
+  "not_used": [
+    "PREVIEW_PROVIDER_CONFIRMED",
+    "HOSTED_CONFIRMED",
+    "OPERATOR_CONFIRMED"
+  ],
+  "out_of_scope_evidence": [
+    "No real email send (preview email transport only).",
+    "No real OAuth provider calls.",
+    "No deployed Worker, no production D1/R2, no production queues/cron.",
+    "No real client portal recipients, no real proposal recipients."
+  ]
+}

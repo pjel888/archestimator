@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-07-19T00:00:00.000Z",
+  "fixture": {
+    "qty": 1.25,
+    "unit_cost": 100,
+    "adjustment": 10,
+    "misc": 5,
+    "expected_oracle_total_minor": 14250,
+    "expected_oracle_total": 142.5
+  },
+  "pinned_model": {
+    "grand_total_with_taxes": 184.34,
+    "grand_total_minor": 18434,
+    "proposal_rows": [
+      {
+        "sourceRowIds": [
+          "audit-row-1"
+        ],
+        "costAmount": 142.5,
+        "materialSubtotal": 125,
+        "contingencySubtotal": 12.5,
+        "miscSubtotal": 5,
+        "includedInTotal": true
+      }
+    ]
+  },
+  "workbook": {
+    "fullCalcOnLoad": "1",
+    "sheets_with_formulas": [
+      {
+        "file": "sheet2.xml",
+        "formulaCount": 7,
+        "cachedValueCount": 8,
+        "hasRound": false
+      },
+      {
+        "file": "sheet1.xml",
+        "formulaCount": 2,
+        "cachedValueCount": 4,
+        "hasRound": true
+      }
+    ],
+    "example_round_formula_cell": {
+      "file": "sheet1.xml",
+      "formula": "IF(OR(G19=\"EXCLUDED\",G19=\"BY OTHERS\",G19=\"OWNER SUPPLIED\",G19=\"OSM\",G19=\"OFCI\",G19=\"OSCI\",G19=\"OMITTED\",G19=\"NOT APPLICABLE\"),0,ROUND(D19*E19,2)+12.5+5)",
+      "cached": "142.5"
+    },
+    "num_fmts": [
+      {
+        "id": "164",
+        "code": "#,##0.####"
+      },
+      {
+        "id": "165",
+        "code": "_-[$₱-3409]* #,##0.00_-;-[$₱-3409]* #,##0.00_-;_-[$₱-3409]* &quot;-&quot;??_-;_-@_-"
+      }
+    ],
+    "xlsx_sha256": "a3329b9d2a3150045b48b5e7b18ff0679e41dfdbc1a60288fe46a0d8a4b35efd",
+    "xlsx_bytes": 18205
+  },
+  "parity_verdict": {
+    "formula_uses_ROUND_qty_times_material": true,
+    "cached_value": 142.5,
+    "pinned_expected": 142.5,
+    "cached_matches_pinned_model": true,
+    "note": "Excel cached value matches pinned canonical model value. The live ROUND(qty*material,2)+adj+misc formula and the per-row canonical round-then-sum agree AT THIS SCALE."
+  }
+}

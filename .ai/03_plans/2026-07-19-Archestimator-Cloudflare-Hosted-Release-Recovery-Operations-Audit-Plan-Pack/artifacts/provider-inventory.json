@@ -1,0 +1,163 @@
+{
+  "generated_at": "2026-07-19T06:55:00.000Z",
+  "source_of_truth": "wrangler.jsonc (lines 1-133) at HEAD b2a934919; redacted where policy requires",
+  "worker": {
+    "name": "archestimator-proof",
+    "main": "worker.ts",
+    "compatibility_date": "2026-06-29",
+    "compatibility_flags": ["nodejs_compat"],
+    "workers_dev": true,
+    "account_id_present": false,
+    "alias": { "server-only": "./node_modules/server-only/empty.js" },
+    "env_blocks": "none (single-environment config)",
+    "versioning": "not present (no version_annotations / traffic_limits / versions / stages)",
+    "limits_block": "not present (default CPU/subrequest limits)",
+    "build_block": "not present (OpenNext handles bundling upstream)",
+    "minify_keep_vars_no_bundle": "not present in wrangler.jsonc; cf:deploy script adds --keep-vars --minify --no-upload-source-maps"
+  },
+  "routes": {
+    "custom_domains": [
+      { "pattern": "archestimator.com", "custom_domain": true, "line": 12 },
+      { "pattern": "www.archestimator.com", "custom_domain": true, "line": 16 }
+    ],
+    "zone_or_zone_id": "not present (Cloudflare manages DNS + cert via custom_domain)",
+    "workers_dev_route": "implicit via workers_dev:true; secondary origin confirmed live at https://archestimator-proof.philipjonlewis.workers.dev/"
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets",
+    "html_handling": "default",
+    "not_found_handling": "default",
+    "run_worker_first": "default"
+  },
+  "images": { "binding": "IMAGES", "line": 26 },
+  "send_email": [
+    { "name": "EMAIL", "line": 29, "email_routing_block": "not present" }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARCH_UPLOADS_R2",
+      "bucket_name": "archestimator-proof-uploads",
+      "preview_bucket_name": "archestimator-proof-uploads-dev",
+      "bucket_id": "not present",
+      "line": 35
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "ARCH_DB",
+      "database_name": "archestimator-proof-db",
+      "database_id": "9bdb29bb<redacted>",
+      "preview_database_id": "363c756a<redacted>",
+      "migrations_dir": "not present on binding (managed via wrangler d1 migrations apply ARCH_DB --local|--remote)",
+      "line": 42
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "COLLAB_ROOMS", "class_name": "CollaborationRoom", "line": 51 },
+      { "name": "GLOBAL_PRESENCE", "class_name": "GlobalPresence", "line": 55 },
+      { "name": "SUPPORT_INBOX", "class_name": "SupportInbox", "line": 59 }
+    ],
+    "migrations": [
+      { "tag": "v1", "new_sqlite_classes": ["CollaborationRoom"], "line": 66 },
+      { "tag": "v2-admin-dashboard", "new_sqlite_classes": ["GlobalPresence", "SupportInbox"], "line": 70 }
+    ],
+    "parity": "class_name <-> binding parity confirmed; sqlite_storage via new_sqlite_classes (no new_classes/deleted_classes/renamed_classes)",
+    "source_class_locations": {
+      "CollaborationRoom": "src/lib/cloudflare/collaboration-room.ts:164",
+      "GlobalPresence": "src/lib/cloudflare/global-presence.ts:71",
+      "SupportInbox": "src/lib/cloudflare/support-inbox.ts:86"
+    }
+  },
+  "queues": {
+    "producers": [
+      { "binding": "UPLOAD_JOBS_QUEUE", "queue": "archestimator-upload-jobs", "line": 84 },
+      { "binding": "CLIENT_PORTAL_NOTIFICATIONS_QUEUE", "queue": "archestimator-client-portal-notifications", "line": 88 }
+    ],
+    "consumers": [
+      {
+        "queue": "archestimator-upload-jobs",
+        "max_batch_size": 5,
+        "max_batch_timeout": 30,
+        "max_retries": 3,
+        "dead_letter_queue": "archestimator-upload-jobs-dlq",
+        "visibility_timeout_ms": "default",
+        "line": 95
+      },
+      {
+        "queue": "archestimator-client-portal-notifications",
+        "max_batch_size": 20,
+        "max_batch_timeout": 30,
+        "max_retries": 10,
+        "dead_letter_queue": "archestimator-client-portal-notifications-dlq",
+        "visibility_timeout_ms": "default",
+        "line": 102
+      }
+    ],
+    "dlq_declaration": "DLQs are referenced as consumer dead_letter_queue targets but are not declared as separate producer/consumer entries (Cloudflare creates them implicitly)"
+  },
+  "crons": [
+    { "schedule": "*/5 * * * *", "handler": "five-minute-drain (enqueue client-portal notifications + reconcile template intents + reconcile template propagation)", "line": 76 },
+    { "schedule": "0 3 * * *", "handler": "upload-jobs:upload-cleanup", "line": 77 },
+    { "schedule": "15 3 * * *", "handler": "upload-jobs:upload-scan", "line": 78 },
+    { "schedule": "30 3 * * *", "handler": "retention-pass (also records upload-jobs:unmatched-cron)", "line": 79 }
+  ],
+  "vars": {
+    "ARCH_UPLOAD_HOSTED_MEMORY_MB": "128",
+    "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES": "4194304",
+    "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS": "30000",
+    "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS": "3",
+    "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS": "250",
+    "line_range": "125-131",
+    "note": "vars are public config strings (limits/budgets); no secret values appear in wrangler.jsonc"
+  },
+  "secrets": {
+    "declared_in_wrangler_jsonc": "none",
+    "known_to_be_consumed_by_source": [
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID (or GOOGLE_CLIENT_ID)",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET (or GOOGLE_CLIENT_SECRET)",
+      "CRON_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "COLLABORATION_ROOM_CONTROL_SECRET",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO",
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "OPERATIONAL_INCIDENT_ALERTS_ENABLED",
+      "OPERATIONAL_INCIDENT_ALERT_WEBHOOK_URL",
+      "OPERATIONAL_INCIDENT_ALERT_WEBHOOK_TOKEN"
+    ],
+    "presence_check": "EVIDENCE_BLOCKED — wrangler not authenticated (see AUTH-001); do not print secret values"
+  },
+  "observability": {
+    "top_level": { "enabled": true, "head_sampling_rate": 1, "line": 110 },
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+      "retention": "default (no explicit retention/max_age)",
+      "line": 113
+    },
+    "traces": { "enabled": false, "head_sampling_rate": 0, "persist": false, "line": 119 },
+    "tail_consumers": "not present",
+    "alerts": "not present (no wrangler alerts block; alerting is application-driven via sendOperationalIncidentAlert)",
+    "legacy_logs_block": "not present (only nested observability.logs)"
+  },
+  "hosted_provider_readback": {
+    "status": "EVIDENCE_BLOCKED",
+    "reason": "wrangler token expired; non-interactive shell",
+    "continuation": "Interactive terminal: bunx wrangler login (or set CLOUDFLARE_API_TOKEN); then bunx wrangler d1 info ARCH_DB --env prod, bunx wrangler r2 bucket info archestimator-proof-uploads, bunx wrangler queues list, bunx wrangler deployments status, bunx wrangler secret list --env prod (names only, never values)"
+  },
+  "hosted_http_readback": {
+    "status": "HOSTED_PRODUCTION_READ_ONLY",
+    "evidence_path": "../evidence/hosted-probe-2026-07-19T06-39Z.md"
+  }
+}

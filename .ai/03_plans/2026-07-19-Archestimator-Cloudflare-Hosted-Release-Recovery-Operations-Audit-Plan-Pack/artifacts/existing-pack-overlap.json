@@ -1,0 +1,209 @@
+{
+  "generated_at": "2026-07-19T06:55:00.000Z",
+  "schema": "Each candidate ends in exactly one disposition state from {NEW_OWNER_HERE, CROSS_REFERENCE_ACTIVE_PACK, ALREADY_IMPLEMENTED, REFUTED_OR_UNREACHABLE, DEFERRED_TO_NAMED_STAGE_OR_OWNER, EVIDENCE_BLOCKED, HISTORICAL_ONLY}. No accepted requirement or unit may have two active owners.",
+  "reconciliation_authorities": [
+    {
+      "pack": "2026-07-18-MVP-Startup-Readiness-Audit",
+      "outcome": "Startup readiness for 5-8 design partners",
+      "owned_for_this_audit": ["D1 backup/PITR enablement (UNIT-004, preview-only drill)"],
+      "cross_reference_units": ["UNIT-004"]
+    },
+    {
+      "pack": "2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack",
+      "outcome": "Whole-repo engineering quality consolidation (85 sources, 67 units)",
+      "owned_for_this_audit": [
+        "PERF/IMPROVE/CONSISTENCY source IDs",
+        "Performance, queues/cron engineering topology, upload state machine, observability repository, auth-read coalescing, CI truthful-claims unit (UNIT-002)"
+      ],
+      "cross_reference_units": ["UNIT-002 (CI claims)", "UNIT-019/020 (upload-job producer)", "UNIT-022 (scan state machine)", "UNIT-024 (publication queue contract)", "UNIT-028 (5-min cron no-op)", "UNIT-035 (auth reads)"]
+    },
+    {
+      "pack": "2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack",
+      "outcome": "Whole-repo security audit + 13 remediation units",
+      "owned_for_this_audit": [
+        "Every SEC-* remediation (realtime revocation, worker-edge seam, queue signing, email CRLF/HTML chokepoint, retention registry, etc.)"
+      ],
+      "cross_reference_units": ["UNIT-001 (realtime revoke)", "UNIT-002 (workers_dev:false + internal-route guard)", "UNIT-004 (email chokepoint)", "UNIT-008 (queue HMAC)", "UNIT-010 (cron redaction)", "UNIT-011 (retention registry)", "UNIT-012 (CI/branch protection)"]
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "OPS-DEPLOY-001",
+      "title": "Worker deployment identity, version, and source SHA provenance cannot be verified without wrangler auth",
+      "domain": "O-01",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Hosted deployment provenance is not owned by any active pack. Quality Master UNIT-002 owns *truthful claims* about CI; Infosec UNIT-012 owns *activation* of CI. Neither owns the operator-facing deployment provenance receipt."
+    },
+    {
+      "candidate_id": "OPS-WORKERS-DEV-002",
+      "title": "workers.dev secondary origin reachable; canonical-host redirect is partial mitigation",
+      "domain": "O-02 / O-01",
+      "severity": "Medium",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK",
+      "justification": "Owned by Infosec SEC-WORKER-002 / UNIT-002. This audit contributes the hosted reachability evidence; the remediation is owned there."
+    },
+    {
+      "candidate_id": "OPS-CACHE-003",
+      "title": "Public marketing page cache-control s-maxage=31536000",
+      "domain": "O-02",
+      "severity": "Low",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK",
+      "justification": "Owned by Infosec SEC-BROWSER-002 / UNIT-013. Hosted header evidence contributed here."
+    },
+    {
+      "candidate_id": "OPS-D1-PARITY-004",
+      "title": "Hosted D1 migration parity and schema fingerprint unverified",
+      "domain": "O-03",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Not owned by any active pack. MVP-Startup UNIT-004 owns backup/PITR enablement only, not migration drift detection."
+    },
+    {
+      "candidate_id": "OPS-D1-RESTORE-005",
+      "title": "Hosted D1 recovery (backup window, restore duration, permissions) unverified",
+      "domain": "O-04",
+      "severity": "High",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "MVP-Startup UNIT-004 owns PITR *enablement* and a *preview* restore drill but explicitly defers hosted D1 recovery proof. The hosted-evidence gap is unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-D1-RESTORE-005A",
+      "title": "scripts/generate-cloudflare-d1-restore-rehearsal.ts is localOnly:true / providerBacked:false",
+      "domain": "O-04",
+      "severity": "Informational",
+      "disposition": "ALREADY_IMPLEMENTED",
+      "justification": "Source explicitly emits these fields. This is correct behavior, not a defect; we cite it to prevent the local-only rehearsal from being misread as hosted recovery proof."
+    },
+    {
+      "candidate_id": "OPS-R2-LIFECYCLE-006",
+      "title": "Hosted R2 object inventory, orphan-cleanup state, and retention evidence unverified",
+      "domain": "O-05",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Quality Master owns the upload/scanner *topology*; Infosec owns the upload *security invariants*. Hosted R2 object lifecycle and orphan-cleanup operational state are not owned."
+    },
+    {
+      "candidate_id": "OPS-QUEUE-DLQ-007",
+      "title": "Live queue DLQ depth, poison message posture, and operator inspection unverified",
+      "domain": "O-06",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Quality Master owns queue *contract/topology* (UNIT-019/024); Infosec owns queue message *signing* (UNIT-008). Live DLQ depth and operator-inspection runbook are unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-CRON-ALERT-008",
+      "title": "Missed-cron-run detection and cron-failure alert not wired at the hosted layer",
+      "domain": "O-07 / O-11",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Quality Master UNIT-028 owns the empty-cron-event-write fix (resolved). Infosec UNIT-010 owns cron-path redaction. Operator-visible cron-failure alerting (a hosted Cloudflare Alert or app-level periodic probe) is unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-DO-STORAGE-009",
+      "title": "Hosted DO storage use, alarm posture, and SQLite-backed revocation state unverified",
+      "domain": "O-08",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Infosec UNIT-001 owns the *revocation logic* (DO SQLite denylist); Quality Master UNIT-033 owns *backpressure*. Hosted DO storage capacity, alarm behavior, and version-compat across deploys are unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-AUTH-OAUTH-010",
+      "title": "Hosted Google OAuth callback round-trip not exercised end-to-end",
+      "domain": "O-09",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Infosec owns token/session security; Quality Master owns session-read coalescing. The hosted OAuth round-trip (login→callback→session cookie→/workshop) is unique to this audit and requires operator action."
+    },
+    {
+      "candidate_id": "OPS-EMAIL-MX-011",
+      "title": "Inbound MX routes @archestimator.com via Namecheap eforward, not Cloudflare Email Routing",
+      "domain": "O-10",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Infosec UNIT-004 owns outbound email CRLF/HTML chokepoint. The inbound mail-routing topology and reply-path inconsistency (outbound FROM via Cloudflare Email, replies land in Namecheap) are unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-EMAIL-DNS-012",
+      "title": "DMARC p=none and no DKIM published; SPF authorizes Namecheap only",
+      "domain": "O-10",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Email DNS posture is operational/deliverability, not Infosec's CRLF/HTML scope. Unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-OBS-ALERT-013",
+      "title": "Hosted alert delivery for S-01..S-07 scenarios unverified",
+      "domain": "O-11",
+      "severity": "High",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Application-level alert scaffolding (operational-alerts.ts) is repo-local; the *delivery* of those alerts to an operator-visible sink (webhook reachable, alerts actually fire on trigger conditions) requires hosted proof."
+    },
+    {
+      "candidate_id": "OPS-OBS-RETENTION-014",
+      "title": "Hosted Workers Logs retention duration and TTL not evidenced",
+      "domain": "O-11",
+      "severity": "Medium",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "wrangler.jsonc has no explicit retention; defaults apply. Operator must verify and pin the retention so incident reconstruction is possible during the controlled beta."
+    },
+    {
+      "candidate_id": "OPS-RELEASE-GATE-015",
+      "title": "Controlled-beta release gate must be exercised end-to-end (GO/CONDITIONAL_GO/NO_GO) before each cohort wave",
+      "domain": "O-12",
+      "severity": "High",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "MVP-Startup pack owns the readiness audit; Quality Master owns CI truthfulness. The operator-facing release-gate ritual (smoke fixture, release receipt, fix-forward playbook) is unique to this audit."
+    },
+    {
+      "candidate_id": "OPS-RECOVERY-PLAYBOOK-016",
+      "title": "Operator runbook for 11 failure scenarios (bad deploy, bad migration, D1 corruption, R2 divergence, queue poison, cron runaway, DO state issue, OAuth outage, email outage, domain/TLS issue, alerting outage)",
+      "domain": "O-12",
+      "severity": "High",
+      "disposition": "NEW_OWNER_HERE",
+      "justification": "Recovery playbook is operator-facing and unique to this audit. Existing packs own root-cause remediation, not operator response."
+    },
+    {
+      "candidate_id": "OPS-CRON-FIVE-MIN-017",
+      "title": "Empty-cron-event-write concern resolved",
+      "domain": "O-07",
+      "severity": "Informational",
+      "disposition": "ALREADY_IMPLEMENTED",
+      "justification": "Quality Master UNIT-028 owns this. Confirmed in current source: every cron branch writes exactly one recordCronRunEvent."
+    },
+    {
+      "candidate_id": "OPS-CRON-RETENTION-018",
+      "title": "30 3 * * * cron also records upload-jobs:unmatched-cron row (cosmetic noise)",
+      "domain": "O-07",
+      "severity": "Low",
+      "disposition": "DEFERRED_TO_NAMED_STAGE_OR_OWNER",
+      "justification": "Cosmetic noise in cron_run_events for the 30 3 path (records both upload-jobs:unmatched-cron and retention-pass). Deferred to Quality Master as an engineering nit, not operator-facing."
+    },
+    {
+      "candidate_id": "OPS-CI-ACTIVATION-019",
+      "title": "CI/CD workflows disabled",
+      "domain": "O-01 / O-12",
+      "severity": "Medium",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK",
+      "justification": "Owned by Infosec UNIT-012 (AUXILIARY, AUTH-001 gated) and Quality Master UNIT-002 (truthful-claims). This audit notes the hosted consequence (no automated release gate) but does not duplicate the remediation."
+    },
+    {
+      "candidate_id": "OPS-CRON-RECONCILE-020",
+      "title": "Five-minute drain runs 3 jobs (notifications + 2 template reconciliations) in parallel waitUntil",
+      "domain": "O-07",
+      "severity": "Informational",
+      "disposition": "ALREADY_IMPLEMENTED",
+      "justification": "Source-confirmed at worker.ts:205-237. Parallel Promise.all is the correct design; each writes one cron-run-event with a merged summary."
+    }
+  ],
+  "summary": {
+    "total_candidates": 20,
+    "NEW_OWNER_HERE": 12,
+    "CROSS_REFERENCE_ACTIVE_PACK": 3,
+    "ALREADY_IMPLEMENTED": 3,
+    "DEFERRED_TO_NAMED_STAGE_OR_OWNER": 1,
+    "REFUTED_OR_UNREACHABLE": 0,
+    "EVIDENCE_BLOCKED": 0,
+    "HISTORICAL_ONLY": 1
+  }
+}

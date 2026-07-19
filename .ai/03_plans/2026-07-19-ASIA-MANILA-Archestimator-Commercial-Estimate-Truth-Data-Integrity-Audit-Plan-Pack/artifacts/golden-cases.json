@@ -1,0 +1,161 @@
+{
+  "spec_version": 1,
+  "oracle_version": "v1-source-mirror",
+  "baseline_head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+  "authored_at": "2026-07-19T00:00:00.000Z",
+  "currency_scale": 2,
+  "quantity_scale": 1000000,
+  "supported_currencies": ["AUD", "CAD", "EUR", "GBP", "HKD", "NZD", "PHP", "SGD", "USD"],
+  "algorithm_note": "Mirrors the documented current product contract in src/lib/estimates/estimate-row-total.ts as of baseline. Per-component round-to-minor-units (Math.round half-away-from-zero), then integer sum. adjustment_percentage defaults to contingency_percentage ONLY when quantity_base is null/undefined; when quantity_base is present, contingency is forced to 0 (folded into quantity). Final quantity must equal max(0, base + contingency_amount).",
+  "cases": [
+    {
+      "id": "G01-basic-row",
+      "invariant_family": "I-01,I-02,I-04",
+      "description": "Basic integer row, no contingency/adjustment.",
+      "input": { "quantity": 10, "unit_cost": 500, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 500000, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 500000, "total": 5000.00 }
+    },
+    {
+      "id": "G02-decimal-quantity",
+      "invariant_family": "I-01,I-02",
+      "description": "Fractional quantity at 6-dp scale.",
+      "input": { "quantity": 1.25, "unit_cost": 100, "misc_cost": 5, "currency_code": "PHP" },
+      "expected": { "material_minor": 12500, "adjustment_minor": 0, "misc_minor": 500, "total_minor": 13000, "total": 130.00 }
+    },
+    {
+      "id": "G03-zero-quantity-zero-rate",
+      "invariant_family": "I-01,I-02,I-04",
+      "description": "Explicit zeros must yield zero total.",
+      "input": { "quantity": 0, "unit_cost": 0, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 0, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 0, "total": 0.00 }
+    },
+    {
+      "id": "G04-quantity-contingency",
+      "invariant_family": "I-02",
+      "description": "Quantity contingency model: final qty = base + contingency_amount. contingency_percentage forced to 0.",
+      "input": { "quantity": 2.5, "quantity_base": 2, "quantity_contingency_amount": 0.5, "unit_cost": 50, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 12500, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 12500, "total": 125.00 }
+    },
+    {
+      "id": "G05-adjustment-percentage-positive",
+      "invariant_family": "I-03",
+      "description": "Positive cost-line adjustment (markup). adjustment = round(material_minor/100 * pct/100 * 100).",
+      "input": { "quantity": 1.25, "unit_cost": 100, "adjustment_percentage": 10, "misc_cost": 5, "currency_code": "PHP" },
+      "expected": { "material_minor": 12500, "adjustment_minor": 1250, "misc_minor": 500, "total_minor": 14250, "total": 142.50 }
+    },
+    {
+      "id": "G06-legacy-contingency-fold",
+      "invariant_family": "I-02,I-03",
+      "description": "Legacy contingency_percentage folds into adjustment when quantity_base is null.",
+      "input": { "quantity": 2, "unit_cost": 50, "contingency_percentage": 10, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 10000, "adjustment_minor": 1000, "misc_minor": 0, "total_minor": 11000, "total": 110.00 }
+    },
+    {
+      "id": "G07-rounding-boundary-half-cent",
+      "invariant_family": "I-01",
+      "description": "Half-cent rounding boundary on material (Math.round half-away-from-zero): 33.335 -> 33.34.",
+      "input": { "quantity": 1, "unit_cost": 33.335, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 3334, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 3334, "total": 33.34 }
+    },
+    {
+      "id": "G08-rounding-boundary-down",
+      "invariant_family": "I-01",
+      "description": "Half-cent rounding boundary just below .xx5 (33.3349 -> 33.33).",
+      "input": { "quantity": 1, "unit_cost": 33.3349, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 3333, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 3333, "total": 33.33 }
+    },
+    {
+      "id": "G09-negative-adjustment-discount",
+      "invariant_family": "I-03",
+      "description": "Negative adjustment (discount) within [-100, 1000] canonical range.",
+      "input": { "quantity": 4, "unit_cost": 250, "adjustment_percentage": -15, "misc_cost": 100, "currency_code": "PHP" },
+      "expected": { "material_minor": 100000, "adjustment_minor": -15000, "misc_minor": 10000, "total_minor": 95000, "total": 950.00 }
+    },
+    {
+      "id": "G10-large-misc-no-rate",
+      "invariant_family": "I-03,I-04",
+      "description": "Zero rate but positive misc cost.",
+      "input": { "quantity": 5, "unit_cost": 0, "misc_cost": 250.5, "currency_code": "PHP" },
+      "expected": { "material_minor": 0, "adjustment_minor": 0, "misc_minor": 25050, "total_minor": 25050, "total": 250.50 }
+    },
+    {
+      "id": "G11-non-PHP-currency",
+      "invariant_family": "I-01",
+      "description": "USD currency code accepted (math is currency-agnostic; only validation differs).",
+      "input": { "quantity": 3, "unit_cost": 99.99, "misc_cost": 10, "currency_code": "USD" },
+      "expected": { "material_minor": 29997, "adjustment_minor": 0, "misc_minor": 1000, "total_minor": 30997, "total": 309.97, "currency_code": "USD" }
+    },
+    {
+      "id": "G12-quantity-contingency-mismatch-rejected",
+      "invariant_family": "I-02",
+      "description": "final quantity != base + contingency must FAIL validation.",
+      "input": { "quantity": 3, "quantity_base": 2, "quantity_contingency_amount": 0.5, "unit_cost": 50, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "ok": false, "code": "invalid_calculation_input" }
+    },
+    {
+      "id": "G13-unsupported-currency-rejected",
+      "invariant_family": "I-01",
+      "description": "JPY is not in supported set; must FAIL with unsupported_currency.",
+      "input": { "quantity": 1, "unit_cost": 100, "misc_cost": 0, "currency_code": "JPY" },
+      "expected": { "ok": false, "code": "unsupported_currency" }
+    },
+    {
+      "id": "G14-empty-string-unit-cost-rejected",
+      "invariant_family": "I-01",
+      "description": "Empty string for unit_cost must FAIL (not silently coerced to 0).",
+      "input": { "quantity": 1, "unit_cost": "", "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "ok": false, "code": "invalid_calculation_input", "field": "unit_cost" }
+    },
+    {
+      "id": "G15-null-unit-cost-coerced-zero",
+      "invariant_family": "I-01",
+      "description": "Null unit_cost coerces to 0 (NOT rejected) — distinguishes null from empty string.",
+      "input": { "quantity": 1, "unit_cost": null, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 0, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 0, "total": 0.00 }
+    },
+    {
+      "id": "G16-adjustment-overflow-max",
+      "invariant_family": "I-01,I-03",
+      "description": "Adjustment beyond canonical max (1000) must FAIL.",
+      "input": { "quantity": 1, "unit_cost": 100, "adjustment_percentage": 1001, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "ok": false, "code": "invalid_calculation_input", "field": "adjustment_percentage" }
+    },
+    {
+      "id": "G17-material-rate-alias",
+      "invariant_family": "I-03",
+      "description": "material_rate is accepted as alias for unit_cost.",
+      "input": { "quantity": 2, "material_rate": 75, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 15000, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 15000, "total": 150.00 }
+    },
+    {
+      "id": "G18-quantity-contingency-zero-base",
+      "invariant_family": "I-02",
+      "description": "quantity_base=0 with contingency_amount; final = max(0, 0 + amount).",
+      "input": { "quantity": 1.5, "quantity_base": 0, "quantity_contingency_amount": 1.5, "unit_cost": 100, "misc_cost": 0, "currency_code": "PHP" },
+      "expected": { "material_minor": 15000, "adjustment_minor": 0, "misc_minor": 0, "total_minor": 15000, "total": 150.00 }
+    },
+    {
+      "id": "G19-aggregate-drift-sentinel",
+      "invariant_family": "I-01,I-04",
+      "description": "Multi-row fixture designed to surface float-vs-minor aggregation drift across many rows (sentinel for cross-surface aggregation divergence). Oracle returns SUM of per-row total_minor (integer). A naive float aggregator would diverge by 0+ centavos.",
+      "input_rows": [
+        { "quantity": 3, "unit_cost": 33.335, "misc_cost": 0, "currency_code": "PHP" },
+        { "quantity": 7, "unit_cost": 11.115, "misc_cost": 0, "currency_code": "PHP" },
+        { "quantity": 1, "unit_cost": 0.005, "misc_cost": 0, "currency_code": "PHP" }
+      ],
+      "expected": {
+        "per_row_minor": [10001, 7781, 1],
+        "sum_minor": 17783,
+        "sum_float_naive": 177.81,
+        "note": "Each row's canonical minor = round(qty*rate*100); naive float sum = 100.005 + 77.805 + 0.005 = 177.815 (formatted 2dp = 177.82) — diverges by 1 centavo from the integer-aggregated 177.83."
+      }
+    },
+    {
+      "id": "G20-large-quantity-and-gbp",
+      "invariant_family": "I-01,I-02",
+      "description": "Large bounded quantity and currency_code GBP — verifies scale and currency acceptance. material = round(999999 * 12.345 * 100) = round(1234498765.5) = 1234498766 (Math.round half-up on positive).",
+      "input": { "quantity": 999999, "unit_cost": 12.345, "misc_cost": 1000, "currency_code": "GBP" },
+      "expected": { "material_minor": 1234498766, "adjustment_minor": 0, "misc_minor": 100000, "total_minor": 1234598766, "total": 12345987.66, "currency_code": "GBP" }
+    }
+  ]
+}

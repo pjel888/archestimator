@@ -1,0 +1,232 @@
+{
+  "oracle_version": "v1-source-mirror",
+  "baseline_head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+  "run_at": "2026-07-19T07:46:13.997Z",
+  "total_cases": 20,
+  "passed": 20,
+  "failed": 0,
+  "float_vs_oracle_drift_on_G19": {
+    "float_sum": 177.815,
+    "float_sum_2dp": 177.82,
+    "oracle_sum_float": 177.83,
+    "drift_cents": -2
+  },
+  "results": [
+    {
+      "id": "G01-basic-row",
+      "invariant_family": "I-01,I-02,I-04",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 500000,
+        "total": 5000,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G02-decimal-quantity",
+      "invariant_family": "I-01,I-02",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 13000,
+        "total": 130,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G03-zero-quantity-zero-rate",
+      "invariant_family": "I-01,I-02,I-04",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 0,
+        "total": 0,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G04-quantity-contingency",
+      "invariant_family": "I-02",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 12500,
+        "total": 125,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G05-adjustment-percentage-positive",
+      "invariant_family": "I-03",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 14250,
+        "total": 142.5,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G06-legacy-contingency-fold",
+      "invariant_family": "I-02,I-03",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 11000,
+        "total": 110,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G07-rounding-boundary-half-cent",
+      "invariant_family": "I-01",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 3334,
+        "total": 33.34,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G08-rounding-boundary-down",
+      "invariant_family": "I-01",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 3333,
+        "total": 33.33,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G09-negative-adjustment-discount",
+      "invariant_family": "I-03",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 95000,
+        "total": 950,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G10-large-misc-no-rate",
+      "invariant_family": "I-03,I-04",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 25050,
+        "total": 250.5,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G11-non-PHP-currency",
+      "invariant_family": "I-01",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 30997,
+        "total": 309.97,
+        "currency": "USD"
+      }
+    },
+    {
+      "id": "G12-quantity-contingency-mismatch-rejected",
+      "invariant_family": "I-02",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "ok": false,
+        "code": "invalid_calculation_input",
+        "field": "quantity_contingency_amount"
+      }
+    },
+    {
+      "id": "G13-unsupported-currency-rejected",
+      "invariant_family": "I-01",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "ok": false,
+        "code": "unsupported_currency",
+        "field": "currency_code"
+      }
+    },
+    {
+      "id": "G14-empty-string-unit-cost-rejected",
+      "invariant_family": "I-01",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "ok": false,
+        "code": "invalid_calculation_input",
+        "field": "unit_cost"
+      }
+    },
+    {
+      "id": "G15-null-unit-cost-coerced-zero",
+      "invariant_family": "I-01",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 0,
+        "total": 0,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G16-adjustment-overflow-max",
+      "invariant_family": "I-01,I-03",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "ok": false,
+        "code": "invalid_calculation_input",
+        "field": "adjustment_percentage"
+      }
+    },
+    {
+      "id": "G17-material-rate-alias",
+      "invariant_family": "I-03",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 15000,
+        "total": 150,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G18-quantity-contingency-zero-base",
+      "invariant_family": "I-02",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 15000,
+        "total": 150,
+        "currency": "PHP"
+      }
+    },
+    {
+      "id": "G19-aggregate-drift-sentinel",
+      "ok": true,
+      "problems": [],
+      "expected_sum_minor": 17783,
+      "actual_sum_minor": 17783
+    },
+    {
+      "id": "G20-large-quantity-and-gbp",
+      "invariant_family": "I-01,I-02",
+      "ok": true,
+      "problems": [],
+      "oracle": {
+        "total_minor": 1234598766,
+        "total": 12345987.66,
+        "currency": "GBP"
+      }
+    }
+  ]
+}

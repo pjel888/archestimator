@@ -1,0 +1,46 @@
+claim_id,domain,claim,layer_required,layer_collected,evidence_path,confidence,blocked_reason,continuation
+EVID-001,O-01,Deployed Worker name=archestimator-proof live at apex,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-002,O-01,Worker version/source SHA provenance,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired,AUTH-001: bunx wrangler deployments list --env prod
+EVID-003,O-01,OpenNext adapter live (x-opennext:1 header observed),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-004,O-01,CI workflows active on main,GITHUB_HOSTED,EVIDENCE_BLOCKED,,HIGH,workflows disabled; cross-ref Infosec SEC-CI-001,Cross-ref Infosec UNIT-012
+EVID-005,O-02,archestimator.com resolves on Cloudflare edge,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-006,O-02,www.archestimator.com 308 redirects to apex,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-007,O-02,HTTP->HTTPS upgrade enforced (301),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-008,O-02,workers.dev secondary origin reachable (308->apex),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-009,O-02,HSTS preload present on auth route,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-010,O-02,Public marketing page cached s-maxage=31536000,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,Cross-ref Infosec SEC-BROWSER-002
+EVID-011,O-02,x-request-id propagated on every response,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-012,O-02,Cache-Control no-store on auth/health/sensitive routes,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-013,O-03,84 migration files 0001..0092 in migrations/,REPO_LOCAL,REPO_LOCAL,worker.ts and migrations/ listing,HIGH,,
+EVID-014,O-03,Production D1 migration parity (applied state),HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired,AUTH-001: bunx wrangler d1 migrations list ARCH_DB --remote
+EVID-015,O-03,D1 schema fingerprint (FK/index/constraint parity),HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired,AUTH-001: bunx wrangler d1 execute ARCH_DB --remote --command ".schema" (or dump+diff)
+EVID-016,O-04,Local restore rehearsal exists and is localOnly,REPO_LOCAL,REPO_LOCAL,scripts/generate-cloudflare-d1-restore-rehearsal.ts:57-58,341-342,HIGH,,Explicitly localOnly:true / providerBacked:false
+EVID-017,O-04,Hosted D1 backup/PITR eligibility + window + cadence,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; cross-ref MVP-Startup UNIT-004,AUTH-001 + cross-ref MVP-Startup UNIT-004
+EVID-018,O-04,Hosted D1 restore drill (preview-only),PREVIEW_PROVIDER,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; not run this session,AUTH-001: bunx wrangler d1 backup create|restore on preview DB
+EVID-019,O-05,R2 binding configured with prod/preview separation,REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:33-39 + provider-inventory.json,HIGH,,
+EVID-020,O-05,Direct-upload/finalize/scan-state lifecycle contract,REPO_LOCAL,REPO_LOCAL,src/lib/uploads/scanning.ts:1-83; src/app/api/component-library/attachments/direct-upload/route.ts,HIGH,,
+EVID-021,O-05,Hosted R2 object inventory + orphan cleanup state,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired,AUTH-001: bunx wrangler r2 object list archestimator-proof-uploads (read-only)
+EVID-022,O-06,Queue producer/consumer + DLQ config parity,REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:82-109 + worker.ts:306-320 + upload-job-queue.ts,HIGH,,
+EVID-023,O-06,Live queue DLQ depth + poison message posture,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; no queue send/purge run,AUTH-001: bunx wrangler queues list (read-only) - depth inspection via dashboard
+EVID-024,O-07,Cron handler paths mapped (4 crons; each writes 1 cron_run_events row),REPO_LOCAL,REPO_LOCAL,worker.ts:201-304 + src/lib/admin/observability-repository.ts:240-279,HIGH,,
+EVID-025,O-07,Cron missed-run detection + alerting wiring,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,MEDIUM,wrangler auth expired; no wrangler alerts block; alerting app-driven,AUTH-001 + alert-scenarios S-04 cross-ref
+EVID-026,O-08,DO class/binding parity confirmed (3 classes; sqlite migrations v1+v2),REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:48-73 + src/lib/cloudflare/*.ts,HIGH,,
+EVID-027,O-08,Hosted DO storage use + alarm posture,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired,AUTH-001: bunx wrangler deployments tail / DO list (read-only)
+EVID-028,O-09,Better Auth hosted route availability,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-029,O-09,Google OAuth UI present on /login,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-030,O-09,Google OAuth client_id/secret presence in Worker secrets,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; never print secret values,AUTH-001: bunx wrangler secret list (names only)
+EVID-031,O-09,Magic-link route readiness (without sending mail),REPO_LOCAL,REPO_LOCAL,src/lib/auth/better-auth-cloudflare.ts:256-296,HIGH,,No real mail sent in this audit
+EVID-032,O-09,Auth-denial path (null session fail-closed),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-033,O-09,/admin and /workshop redirect to /login when unauthenticated,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,
+EVID-034,O-10,EMAIL binding present,REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:28-32,HIGH,,
+EVID-035,O-10,Outbound email fail-closed unless ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED,REPO_LOCAL,REPO_LOCAL,src/lib/email/cloudflare-email-client.ts:133-139,HIGH,,
+EVID-036,O-10,MX records route @archestimator.com via Namecheap (NOT Cloudflare),HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,HIGH,,Finding OPS-EMAIL-001
+EVID-037,O-10,Inbound Worker email() handler absent,REPO_LOCAL,REPO_LOCAL,worker.ts:141-321,HIGH,,No email() handler
+EVID-038,O-10,SPF/DMARC/DKIM hardening,HOSTED_PRODUCTION_READ_ONLY,HOSTED_PRODUCTION_READ_ONLY,evidence/hosted-probe-2026-07-19T06-39Z.md,MEDIUM,,DMARC p=none; no DKIM; finding OPS-EMAIL-002
+EVID-039,O-11,Workers Logs 100% sampled + persisted,REPO_LOCAL,REPO_LOCAL,wrangler.jsonc:110-118,HIGH,,Hosted retention duration not evidenced (AUTH-001)
+EVID-040,O-11,Hosted Workers Logs retention duration,HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; wrangler.jsonc has no explicit retention,AUTH-001: dashboard / Workers Logs settings
+EVID-041,O-11,Request ID + redaction in logs,REPO_LOCAL,REPO_LOCAL,src/lib/observability/{request-id,redact}.ts + worker.ts:91-115,HIGH,,Cross-ref Infosec SEC-LOG-001..003
+EVID-042,O-11,Application-level operational alert webhook,REPO_LOCAL,REPO_LOCAL,src/lib/observability/operational-alerts.ts,HIGH,,Hosted alert delivery not evidenced (AUTH-001)
+EVID-043,O-11,Hosted alert delivery proof (S-01..S-07 scenarios),HOSTED_PRODUCTION_READ_ONLY,EVIDENCE_BLOCKED,,LOW,wrangler auth expired; no real alert fired in this audit,AUTH-001: bun run ops:verify-observability-alert -- --scenario <name> in interactive shell
+EVID-044,O-12,Controlled-beta release gate script exists,REPO_LOCAL,REPO_LOCAL,scripts/check-cloudflare-release-gates.ts,HIGH,,
+EVID-045,O-12,Recovery scenarios documented,REPO_LOCAL,REPO_LOCAL,artifacts/recovery-scenario-matrix.csv,HIGH,,Authored this pack

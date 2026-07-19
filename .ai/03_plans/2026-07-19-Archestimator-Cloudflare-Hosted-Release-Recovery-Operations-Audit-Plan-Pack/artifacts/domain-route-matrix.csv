@@ -1,0 +1,39 @@
+route,method,host,http_status_evidence,auth_requirement,cache_control,canonical_redirect, tls,edge_routing,sensitive_route_fail_closed,evidence_layer,notes
+/,GET,archestimator.com,200 HOSTED_CONFIRMED,none,max-age=14400 s-maxage=31536000,N/A (apex),TLS 1.3 (HSTS preload confirmed on auth route),Cloudflare edge (cf-ray),N/A,HOSTED_PRODUCTION_READ_ONLY,Marketing landing
+/,GET,www.archestimator.com,308->apex HOSTED_CONFIRMED,none,N/A,308->https://archestimator.com/,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,www canonical redirect
+/,GET,archestimator-proof.philipjonlewis.workers.dev,308->apex HOSTED_CONFIRMED,none,N/A,308->https://archestimator.com/,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Secondary origin (cross-ref Infosec SEC-WORKER-002)
+/,HTTP,archestimator.com,301->https,none,N/A,301 HTTPS upgrade,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,HTTP->HTTPS upgrade enforced
+/api/health,GET,archestimator.com,200 HOSTED_CONFIRMED,none,no-store,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Deterministic JSON contract
+/api/health,GET,*...workers.dev,200 HOSTED_CONFIRMED,none,no-store,N/A (routeStaticPublicPageThroughCache exempted),same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Direct reachability of secondary origin (finding OPS-WORKERS-DEV-009)
+/api/auth/get-session,GET,archestimator.com,200 null body HOSTED_CONFIRMED,none (returns null),private no-cache no-store max-age=0 must-revalidate,N/A,same,Cloudflare edge,F Sai-closed (no session leakage),HOSTED_PRODUCTION_READ_ONLY,Fail-closed
+/api/auth/session,GET,archestimator.com,404,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Wrong path; BA uses /api/auth/get-session
+/api/auth/sign-in/social/google,GET,archestimator.com,404,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Better Auth uses different route shape; UI on /login confirms Google enabled
+/api/auth/callback/google,GET,archestimator.com,NOT PROBED,N/A,N/A,N/A,same,Cloudflare edge,N/A,EVIDENCE_BLOCKED,Requires real OAuth flow (GATE-OAUTH-003)
+/admin,GET,archestimator.com,307 /login?next=/admin HOSTED_CONFIRMED,admin (redirect),private no-cache no-store,N/A,same,Cloudflare edge,F Sai-closed,HOSTED_PRODUCTION_READ_ONLY,Auth gate enforced
+/workshop,GET,archestimator.com,307 /login?next=/workshop HOSTED_CONFIRMED,authenticated (redirect),private no-cache no-store,N/A,same,Cloudflare edge,F Sai-closed,HOSTED_PRODUCTION_READ_ONLY,Auth gate enforced
+/login,GET,archestimator.com,200 HOSTED_CONFIRMED,none,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Renders Continue with Google button
+/contact,GET,archestimator.com,200,none,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Landing contact form
+/share/<token>,GET,archestimator.com,404 for fake token HOSTED_CONFIRMED,varies (publication),private no-cache no-store,N/A,same,Cloudflare edge,F Sai-closed (worker.ts:161 returns 404 for malformed tokens),HOSTED_PRODUCTION_READ_ONLY,43-char base64url required
+/invite/<token>,GET,archestimator.com,404 for fake token,varies,N/A,N/A,same,Cloudflare edge,F Sai-closed,HOSTED_PRODUCTION_READ_ONLY,
+/api/share/<token>,GET,archestimator.com,404 for fake token,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,No /api/share surface; share is a page route
+/api/invite/<token>,GET,archestimator.com,404,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,
+/api/internal/health,GET,archestimator.com,404,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,No unauthenticated internal health surface
+/api/internal/upload-cleanup,POST,archestimator.com,NOT PROBED,bearer (CRON_SECRET or UPLOAD_CLEANUP_JOB_SECRET) + UPLOAD_JOBS_ENABLED=1,no-store,N/A,same,Cloudflare edge,F Sai-closed (503 unless enabled),EVIDENCE_BLOCKED,Cross-ref Infosec SEC-OPS-001
+/api/internal/upload-scan,POST,archestimator.com,NOT PROBED,bearer + UPLOAD_JOBS_ENABLED=1,no-store,N/A,same,Cloudflare edge,F Sai-closed (503 unless enabled),EVIDENCE_BLOCKED,Cross-ref Infosec SEC-OPS-001
+/api/internal/client-error,POST,archestimator.com,NOT PROBED,same-origin + Fetch-Metadata,no-store,N/A,same,Cloudflare edge,F Sai-closed (403 otherwise),EVIDENCE_BLOCKED,Rate-limited 10/min
+/api/internal/web-vitals,POST,archestimator.com,NOT PROBED,same-origin,no-store,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/health,GET,archestimator.com,404,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,No canonical OpenNext health path
+/__cloudflare/health,GET,*...workers.dev,404,N/A,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,
+/__cloudflare/provider-proof,GET,archestimator.com,NOT PROBED,proof bearer,no-store,N/A,same,Cloudflare edge,F Sai-closed (proof secret),EVIDENCE_BLOCKED,Dispatched by routeCloudflareProtectedProofRequest
+/__cloudflare/jobs-proof,GET,archestimator.com,NOT PROBED,proof bearer,no-store,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/d1-performance-proof,GET,archestimator.com,NOT PROBED,proof bearer,no-store,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/better-auth-proof,GET,archestimator.com,NOT PROBED,proof bearer,no-store,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/collaboration-invitation-proof,GET,archestimator.com,NOT PROBED,proof bearer,no-store,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/observability-proof,GET,archestimator.com,NOT PROBED,proof bearer,no-store,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/collaboration-room/<room>,GET (WS upgrade),archestimator.com,NOT PROBED,realtime-room token v2,N/A,N/A,same,Cloudflare edge,F Sai-closed (4401 timeout),EVIDENCE_BLOCKED,Cross-ref Infosec SEC-COLLAB-001..004
+/__cloudflare/global-presence,GET (WS upgrade),archestimator.com,NOT PROBED,global-presence token,N/A,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/__cloudflare/support-inbox/<id>,GET (WS + POST fan-out),archestimator.com,NOT PROBED,support-inbox token,N/A,N/A,same,Cloudflare edge,F Sai-closed,EVIDENCE_BLOCKED,
+/robots.txt,GET,archestimator.com,200,none,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Content-signal policy
+/sitemap.xml,GET,archestimator.com,200,none,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,
+/nonexistent-xyz,GET,archestimator.com,404,none,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,Next.js 404 page
+/api/health,OPTIONS,archestimator.com,204,none,N/A,N/A,same,Cloudflare edge,N/A,HOSTED_PRODUCTION_READ_ONLY,CORS preflight

@@ -1,0 +1,34 @@
+{
+  "audit_version": 1,
+  "baseline_head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+  "summary": {
+    "total_candidates": 18,
+    "NEW_OWNER_HERE": 7,
+    "CROSS_REFERENCE_ACTIVE_PACK": 9,
+    "ALREADY_IMPLEMENTED": 0,
+    "REFUTED_OR_UNREACHABLE": 4,
+    "DEFERRED_TO_NAMED_STAGE_OR_OWNER": 1,
+    "EVIDENCE_BLOCKED": 1,
+    "HISTORICAL_ONLY": 1
+  },
+  "matrix": [
+    { "candidate": "canonical oracle parity test failure (labor fixture drift)", "this_pack_finding": "F-01", "disposition": "NEW_OWNER_HERE", "rationale": "test fixture cleanup; no active pack owns test-source reconciliation", "existing_pack": "Quality Master CONSISTENCY-001 (ALREADY_IMPLEMENTED, product side)" },
+    { "candidate": "legacy float row total in estimate list/dashboard/charts", "this_pack_finding": "F-02", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by Quality Master UNIT-014; this audit provides runtime drift evidence", "existing_pack": "Quality Master UNIT-014 (READY, HIGH)" },
+    { "candidate": "currency_code hardcoded PHP in editable model and project charts", "this_pack_finding": "F-03", "disposition": "NEW_OWNER_HERE", "rationale": "no active pack owns UI/charts currency propagation", "existing_pack": "none" },
+    { "candidate": "aggregate float-sum drift on share tree, client portal browser, sheet node totals", "this_pack_finding": "F-04", "disposition": "NEW_OWNER_HERE", "rationale": "consumer-site aggregate sums not covered by UNIT-014 (which is per-row routing only)", "existing_pack": "partial Quality Master UNIT-014" },
+    { "candidate": "AI package-builder formula divergence (4 copies, 4 fallback rules)", "this_pack_finding": "F-05", "disposition": "NEW_OWNER_HERE", "rationale": "no active pack owns AI Copilot formula convergence; deferred until Copilot release", "existing_pack": "none (Quality Master UNIT-050 cost-intelligence is SUPERSEDED/DEFERRED and adjacent)" },
+    { "candidate": "client_portal_issues.total_cost REAL not minor INTEGER", "this_pack_finding": "F-06", "disposition": "NEW_OWNER_HERE", "rationale": "no active pack owns client portal money representation", "existing_pack": "none" },
+    { "candidate": "estimate health amount drops contingency and adjustment", "this_pack_finding": "F-07", "disposition": "NEW_OWNER_HERE", "rationale": "no active pack owns estimate health formula convergence", "existing_pack": "none (Quality Master UNIT-050 SUPERSEDED/DEFERRED adjacent)" },
+    { "candidate": "XLSX formula vs canonical pinned value (latent parity risk)", "this_pack_finding": "F-08", "disposition": "NEW_OWNER_HERE", "rationale": "no active pack owns formula-vs-canonical parity assertion; Quality Master UNIT-034/067 own body-copy/compression perf only", "existing_pack": "partial Quality Master UNIT-034/067" },
+    { "candidate": "duplicateEstimateRecordGraph 4-batch partial-write orphan", "this_pack_finding": "F-09", "disposition": "NEW_OWNER_HERE", "rationale": "graph-level envelope not covered by UNIT-015 (which owns database.batch gate)", "existing_pack": "partial Quality Master UNIT-015" },
+    { "candidate": "currency code validation breadth (JPY etc.)", "this_pack_finding": "F-10", "disposition": "NEW_OWNER_HERE", "rationale": "no active pack owns currency validation breadth", "existing_pack": "none" },
+    { "candidate": "UI adjustment percentage clamp [-100,100] vs canonical [-100,1000]", "this_pack_finding": "F-11", "disposition": "NEW_OWNER_HERE", "rationale": "minor UX inconsistency, no active pack", "existing_pack": "none" },
+    { "candidate": "XLSX Grand Total vs share page Proposal total (design divergence)", "this_pack_finding": "F-12", "disposition": "NEW_OWNER_HERE", "rationale": "product/UX decision; possibly co-owned with MVP UNIT-010 (branded export + terms)", "existing_pack": "partial MVP UNIT-010" },
+    { "candidate": "library CSV/XLSX import gap", "this_pack_finding": "n/a", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by MVP UNIT-005/UNIT-006; no runtime path exists yet", "existing_pack": "MVP UNIT-005/UNIT-006" },
+    { "candidate": "variant accommodation in BOQ export", "this_pack_finding": "n/a", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by MVP UNIT-006", "existing_pack": "MVP UNIT-006" },
+    { "candidate": "contractor profile + branded export", "this_pack_finding": "n/a", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by MVP UNIT-010", "existing_pack": "MVP UNIT-010" },
+    { "candidate": "variant-reference repair on linked template rows", "this_pack_finding": "n/a", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by Quality Master UNIT-001", "existing_pack": "Quality Master UNIT-001" },
+    { "candidate": "proposal preview identity (contingency)", "this_pack_finding": "n/a", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by Quality Master UNIT-004", "existing_pack": "Quality Master UNIT-004" },
+    { "candidate": "cross-tenant commercial-data authorization", "this_pack_finding": "n/a", "disposition": "CROSS_REFERENCE_ACTIVE_PACK", "rationale": "owned by Infosec; this audit did not re-derive", "existing_pack": "Infosec UNIT-001..UNIT-013" }
+  ]
+}

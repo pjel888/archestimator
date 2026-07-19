@@ -1,0 +1,86 @@
+{
+  "audit_version": 1,
+  "baseline_head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+  "rejected_or_refuted": [
+    {
+      "id": "R-01",
+      "candidate_finding": "labor cost field produces divergent row totals (historical CONSISTENCY-001)",
+      "status": "REFUTED_OR_UNREACHABLE",
+      "reason": "Canonical calculator computeEstimateRowCostParts has zero references to labor in src/. The labor field was removed from product code. The only residue is the broken parity test fixture (filed as F-01). Quality Master CONSISTENCY-001 = ALREADY_IMPLEMENTED is correct for the product; the residue is test-only.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED + LOCAL_RUNTIME_CONFIRMED",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK (Quality Master CONSISTENCY-001). Test-fixture reconciliation captured as F-01."
+    },
+    {
+      "id": "R-02",
+      "candidate_finding": "XLSX export writes labor-inclusive totals (historical)",
+      "status": "REFUTED_OR_UNREACHABLE",
+      "reason": "xlsx-inspection artifact confirms XLSX LINE TOTAL formula = ROUND(qty*material,2)+adj+misc with NO labor component. Cached value 142.50 matches canonical. The historical labor claim is fully refuted for current source.",
+      "evidence_class": "LOCAL_RUNTIME_CONFIRMED",
+      "disposition": "REFUTED"
+    },
+    {
+      "id": "R-03",
+      "candidate_finding": "variant deletion can orphan a selected variant reference (historical CONSISTENCY-002)",
+      "status": "REFUTED_OR_UNREACHABLE",
+      "reason": "component-mutation-d1.ts:1576-1588 requires explicit removedPriceOptionReplacements[id] when the selected option is missing/removed; throws if a deleted variant is replaced with itself. Project-scope exactly-one-default enforced at rows.ts:1404-1410. Library-scope default reassignment enforced at component-mutation-d1.ts:1024-1035. The variant deletion path is guarded. Quality Master CONSISTENCY-002 = INVALID.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK (Quality Master CONSISTENCY-002 INVALID). Linked-instance variant-reference repair owned by Quality Master UNIT-001."
+    },
+    {
+      "id": "R-04",
+      "candidate_finding": "rate is cached and goes stale (historical CONSISTENCY-003)",
+      "status": "REFUTED_OR_UNREACHABLE",
+      "reason": "the rate is re-resolved per request from the denormalized EstimateRowItem scalar or the hydrated priceOption; no stale zero cache exists. Quality Master CONSISTENCY-003 = INVALID.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK (Quality Master CONSISTENCY-003 INVALID)."
+    },
+    {
+      "id": "R-05",
+      "candidate_finding": "publication snapshot re-fetches and recomputes totals on view (potential staleness)",
+      "status": "REFUTED_OR_UNREACHABLE",
+      "reason": "the persisted snapshot_json is rendered as-is on view; no re-computation. Editing estimates after publish bumps publication_source_revision and surfaces staleSnapshotWarning. The snapshot is immutable post-publish.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "REFUTED"
+    },
+    {
+      "id": "R-06",
+      "candidate_finding": "concurrent estimate writes can double-commit (potential cross-user corruption)",
+      "status": "REFUTED_OR_UNREACHABLE",
+      "reason": "estimate_mutation_receipts UNIQUE(workspace_id, command_kind, intent_id) written in the same batch as the row mutation. Concurrent losers read the winner's receipt and replay. row_revision guard aborts stale writes. The idempotency surface is robust.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "REFUTED"
+    },
+    {
+      "id": "R-07",
+      "candidate_finding": "client-portal decision actions are reachable and corrupt commercial state (historical CONSISTENCY-004)",
+      "status": "HISTORICAL_ONLY",
+      "reason": "the orphaned decision-actions are dead code; Quality Master UNIT-047 owns their deletion. No runtime impact.",
+      "evidence_class": "STATIC_PATTERN_ONLY",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK (Quality Master UNIT-047)."
+    },
+    {
+      "id": "R-08",
+      "candidate_finding": "library CSV/XLSX import is implemented and may corrupt variants",
+      "status": "EVIDENCE_BLOCKED",
+      "reason": "no estimate-level CSV/XLSX import exists. Only the component-library CSV/JSON importer exists (helpers.ts) and it does not handle quantityBase/quantityContingencyAmount/adjustmentPercentage (filed as a known limitation owned by MVP UNIT-005/UNIT-006). No runtime corruption path was reachable.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK (MVP UNIT-005/UNIT-006 own the import gap)."
+    },
+    {
+      "id": "R-09",
+      "candidate_finding": "AI package-builder produces divergent estimate rows (potential critical)",
+      "status": "DEFERRED_TO_NAMED_STAGE_OR_OWNER",
+      "reason": "the AI Copilot is feature-flagged and pre-release. The divergences ARE real (filed as F-05) but the surface is not yet reachable by end users. Severity capped at MEDIUM pending release.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "NEW_OWNER_HERE (F-05) but deferred until AI Copilot release."
+    },
+    {
+      "id": "R-10",
+      "candidate_finding": "cross-tenant IDOR on commercial data (potential critical)",
+      "status": "CROSS_REFERENCE_ACTIVE_PACK",
+      "reason": "every commercial write/read prepends a workspace-scoped guard. Cross-tenant IDOR findings are owned by Infosec (SEC-AUTHZ-001, SEC-AUTH-001, etc.). This audit did not re-derive any cross-tenant authorization finding.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "disposition": "CROSS_REFERENCE_ACTIVE_PACK (Infosec UNIT-013 folded findings)."
+    }
+  ]
+}

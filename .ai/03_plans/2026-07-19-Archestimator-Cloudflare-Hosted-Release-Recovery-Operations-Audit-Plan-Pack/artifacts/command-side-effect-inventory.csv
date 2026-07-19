@@ -1,0 +1,75 @@
+script,category,target_resource,reads,writes,network,secrets,email,data_retained,cleanup,auth_required,audit_status
+scripts/check-cloudflare-platform-toolchain.ts,READ_ONLY_LOCAL,local toolchain,wrangler/OXC/bun versions,none,none,none,none,none,N/A,not run (not needed; cf:check-provider covers hosted)
+scripts/check-cloudflare-wrangler-auth.ts,READ_ONLY_PROVIDER,wrangler whoami,wrangler auth status,none,wrangler API (auth),reads token presence (not values),none,none,wrangler login,N/A — wrangler auth expired (AUTH-001)
+scripts/check-cloudflare-provider-readiness.ts,READ_ONLY_LOCAL,local config,wrangler.jsonc + bindings,none,none,none,none,none,N/A,not run
+scripts/check-cloudflare-provider-resources.ts,READ_ONLY_PROVIDER,Cloudflare resources,binding presence,none,wrangler API reads,none,none,none,wrangler login,deferred (AUTH-001)
+scripts/check-cloudflare-worker-readiness.ts,READ_ONLY_LOCAL,worker manifest,.open-next/,none,none,none,none,none,N/A,not run
+scripts/check-cloudflare-dns-delegation.ts,READ_ONLY_PROVIDER,DNS zones,NS records,none,DNS over HTTPS,none,none,none,N/A (public DNS),covered by direct dig probe
+scripts/check-cloudflare-email-readiness.ts,READ_ONLY_LOCAL,email config,wrangler.jsonc + env,none,none,reads env keys (not values),none,none,N/A,not run
+scripts/check-cloudflare-latest-deploy-source-smoke.ts,MIXED_OR_REQUIRES_INSPECTION,deployed Worker source,worker source hash + bindings,none,may fetch hosted proof route,reads proof secret,none,none,wrangler login,deferred (AUTH-001); safe to run after inspection
+scripts/check-cloudflare-wrangler-deploy-dry-run.ts,MIXED_OR_REQUIRES_INSPECTION,wrangler dry-run,wrangler config,none,wrangler deploy --dry-run,none,none,none,wrangler login,deferred (deploy-adjacent; inspect first)
+scripts/check-cloudflare-d1-auth-realtime-readiness.ts,READ_ONLY_LOCAL,D1 auth config,source,none,none,none,none,none,N/A,not run
+scripts/check-cloudflare-release-gates.ts,READ_ONLY_LOCAL,release gate artifacts,generated proof JSONs,none,none,none,none,none,N/A,not run; release-gate.json authored directly
+scripts/generate-cloudflare-migration-inventory.ts,LOCAL_FIXTURE_GENERATOR,local artifact,migrations/ + applied-list JSON,proof JSON under artifacts/,none,none,none,proof JSON in repo,none,not run (AUTH-001 for hosted applied-list)
+scripts/generate-cloudflare-better-auth-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/verify-cloudflare-better-auth-provider-proof.ts,READ_ONLY_LOCAL,local source,source,none,none,none,none,none,N/A,not run
+scripts/generate-cloudflare-d1-authz-access-matrix.ts,LOCAL_FIXTURE_GENERATOR,local artifact,SQL/source,matrix JSON,none,none,none,matrix JSON,none,not run
+scripts/generate-cloudflare-d1-rpc-rewrite-map.ts,LOCAL_FIXTURE_GENERATOR,local artifact,SQL/source,map JSON,none,none,none,map JSON,none,not run
+scripts/generate-cloudflare-d1-rpc-transaction-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,SQL/source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/verify-cloudflare-d1-runtime-performance-proof.ts,READ_ONLY_LOCAL,local proof JSONs,proof JSONs,none,none,none,none,none,N/A,not run
+scripts/generate-cloudflare-d1-restore-rehearsal.ts,LOCAL_FIXTURE_GENERATOR,local SQLite,fixture DBs,temp SQLite DBs (cleaned up),none,none,none,temp DBs removed at end,none,explicitly localOnly:true/providerBacked:false; not run this session (would not advance hosted claim)
+scripts/generate-cloudflare-d1-beta-feedback-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/generate-cloudflare-d1-closed-beta-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/generate-cloudflare-d1-collaboration-invitation-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/generate-cloudflare-d1-component-library-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/generate-cloudflare-d1-estimate-history-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/generate-cloudflare-d1-performance-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,source,proof JSON,none,none,none,proof JSON,none,not run
+scripts/verify-cloudflare-provider-proof.ts,READ_ONLY_LOCAL,local proof JSONs,proof JSONs,none,none,none,none,none,N/A,not run
+scripts/verify-cloudflare-jobs-proof.ts,READ_ONLY_LOCAL,local proof JSONs,proof JSONs,none,none,none,none,none,N/A,not run
+scripts/generate-cloudflare-queues-cron-proof.ts,LOCAL_FIXTURE_GENERATOR,local artifact,worker.ts + wrangler.jsonc,proof JSON,none,none,none,proof JSON,none,not run
+scripts/verify-cloudflare-hosted-routes.ts,READ_ONLY_PROVIDER,hosted routes,GET hosted URLs,none,HTTPS GET,none,none,none,N/A (public HTTPS),covered by direct curl probe
+scripts/verify-cloudflare-worker-preview-routes.ts,LOCAL_PREVIEW_RUNTIME,local preview,Miniflare preview,none,localhost only,none,none,none,N/A,not run
+scripts/verify-cloudflare-hosted-collaboration-invitation-proof.ts,READ_ONLY_PROVIDER,hosted proof route,GET hosted proof,none,HTTPS GET,proof bearer,none,none,proof secret,deferred (AUTH-001)
+scripts/verify-cloudflare-hosted-collaboration-ui-proof.ts,HOSTED_MUTATING,production D1 + hosted UI,wrangler d1 execute --remote INSERT/DELETE,wrangler d1 execute --remote (INSERT/DELETE on user/session/profiles),wrangler API (writes) + HTTPS,seeded auth rows,none,seed rows cleaned up,wrangler login + explicit task auth,NOT AUTHORIZED — runs wrangler d1 execute --remote INSERT/DELETE against production D1
+scripts/verify-cloudflare-hosted-upload-ui-proof.ts,HOSTED_MUTATING,production D1 + R2 + hosted UI,wrangler d1/r2 + fetch,wrangler d1 execute --remote INSERT/DELETE + wrangler r2 object delete --remote + fetch DELETE /api/component-library/attachments,wrangler API (writes) + HTTPS,seeded upload-asset rows,none,seed rows + R2 objects cleaned up,wrangler login + explicit task auth + browser gate,NOT AUTHORIZED — runs wrangler d1/r2 --remote writes plus UI DELETE against production
+scripts/verify-cloudflare-hosted-estimate-history-proof.ts,READ_ONLY_PROVIDER,hosted proof,GET proof,none,HTTPS GET,proof bearer,none,none,proof secret,deferred (AUTH-001)
+scripts/verify-cloudflare-hosted-performance.ts,READ_ONLY_PROVIDER,hosted performance,GET timing,none,HTTPS GET,none,none,none,N/A,deferred (browser automation gate)
+scripts/verify-cloudflare-hosted-upload-lifecycle-proof.ts,READ_ONLY_PROVIDER,hosted proof,GET proof,none,HTTPS GET,proof bearer,none,none,proof secret,deferred (AUTH-001)
+scripts/verify-cloudflare-hosted-upload-operations.ts,READ_ONLY_PROVIDER,hosted ops,GET ops,none,HTTPS GET,proof bearer,none,none,proof secret,deferred (AUTH-001)
+scripts/verify-cloudflare-hosted-upload-runtime.ts,READ_ONLY_PROVIDER,hosted runtime,GET runtime,none,HTTPS GET,none,none,none,N/A,deferred (AUTH-001)
+scripts/sync-cloudflare-worker-secrets.ts,MIXED_OR_REQUIRES_INSPECTION,Worker secret store (HOSTED_MUTATING when --apply),local env read + wrangler secret list,HOSTED_MUTATING when --apply: wrangler secret put per secret + local env append,wrangler API (writes when --apply),WRITES secrets when --apply,none,none,wrangler login + explicit task auth for --apply,NOT AUTHORIZED for --apply (would mutate Worker secret store); dry-run path is read-only
+scripts/record-operational-incident.ts,HOSTED_MUTATING,incident D1 table + alert webhook,incident data,D1 INSERT/UPDATE/COMMIT + alert webhook POST,wrangler d1 execute (default --local; --scope remote allowed),none,alert webhook POST unless --dry-run,incident row,operator + D1 write auth,NOT AUTHORIZED this audit (default is NOT dry-run; would write incidents + send alert)
+scripts/generate-cloudflare-pricing-snapshot.ts,LOCAL_FIXTURE_GENERATOR,local artifact,pricing source,snapshot JSON,none,none,none,snapshot JSON,none,not run
+scripts/generate-cloudflare-cost-performance-workbook.ts,LOCAL_FIXTURE_GENERATOR,local artifact,perf data,workbook JSON,none,none,none,workbook JSON,none,not run
+scripts/generate-cloudflare-provider-exit-pack.ts,LOCAL_FIXTURE_GENERATOR,local artifact,config,exit pack files,none,none,none,exit pack,none,not run
+scripts/sync-cloudflare-worker-secrets.ts,MIXED_OR_REQUIRES_INSPECTION (see line 40 — HOSTED_MUTATING when --apply),see line 40,see line 40,see line 40,see line 40,see line 40,see line 40,see line 40,see line 40,see line 40
+scripts/check-alert-scenario-readiness.ts,READ_ONLY_LOCAL,local scenarios,scenario catalog,none,none,none,none,none,N/A,not run
+scripts/check-legal-owner-readiness.ts,READ_ONLY_LOCAL,legal docs,legal docs,none,none,none,none,none,N/A,not run
+scripts/check-limited-cohort-legal-readiness.ts,READ_ONLY_LOCAL,legal docs,legal docs,none,none,none,none,none,N/A,not run
+scripts/check-production-observability-proof.ts,READ_ONLY_LOCAL,local proof JSONs,proof JSONs,none,none,none,none,none,N/A,not run
+scripts/check-support-email-dns.ts,READ_ONLY_PROVIDER,support DNS,DNS records,none,DNS over HTTPS,none,none,none,N/A,covered by direct dig probe
+scripts/check-support-monitoring-readiness.ts,READ_ONLY_LOCAL,local config,source,none,none,none,none,none,N/A,not run
+scripts/verify-hosted-auth-routes.ts,READ_ONLY_PROVIDER,hosted auth,GET auth,none,HTTPS GET,none,none,none,N/A,covered by direct curl probe (get-session)
+scripts/verify-hosted-export-route.ts,READ_ONLY_PROVIDER,hosted export,GET export,none,HTTPS GET,none,none,none,N/A,deferred (auth required)
+scripts/verify-hosted-sensitive-route-fail-closed.ts,READ_ONLY_PROVIDER,hosted sensitive routes,GET routes,none,HTTPS GET,none,none,none,N/A,covered by direct curl probe (/api/internal/health 404)
+scripts/check-agent-debugging-snapshot.ts,READ_ONLY_LOCAL,local snapshot,debug state,none,none,none,none,none,N/A,not run
+scripts/check-dev-auth-bypass.ts,READ_ONLY_LOCAL,dev auth,source,none,none,none,none,none,N/A,not run
+scripts/check-error-handling-contract.ts,READ_ONLY_LOCAL,error contract,source,none,none,none,none,none,N/A,not run
+scripts/check-operational-incidents.ts,READ_ONLY_LOCAL,incident records,incident store,none,none,none,none,none,N/A,not run
+scripts/check-observability-proof-env.ts,READ_ONLY_LOCAL,observability env,env keys,none,none,reads env keys (not values),none,none,N/A,not run
+scripts/check-observability-proof-route.ts,READ_ONLY_PROVIDER,proof route,GET proof,none,HTTPS GET,proof bearer,none,none,proof secret,deferred (AUTH-001)
+scripts/collect-workers-logs-proof.ts,READ_ONLY_PROVIDER,Workers Logs,logs,proof JSON,wrangler tail (read-only),none,none,proof JSON,wrangler login,deferred (AUTH-001)
+scripts/record-debugging-session.ts,LOCAL_FIXTURE_GENERATOR,debug ledger,debug state,ledger entry,none,none,none,ledger entry,none,not run
+scripts/record-operational-incident.ts,HOSTED_MUTATING (see line 41),see line 41,see line 41,see line 41,see line 41,see line 41,see line 41,see line 41,see line 41,see line 41
+scripts/run-observability-proof-drill.ts,MIXED_OR_REQUIRES_INSPECTION,observability,scenario definitions,may write D1 event,depends on drill,drill may include alert trigger,none,proof JSON,operator + drill scope,deferred (AUTH-001 + drill scope inspection)
+scripts/verify-observability-alert-delivery.ts,READ_ONLY_PROVIDER,alert webhook,webhook sink,none,HTTPS GET to sink,reads webhook token,none,none,operator + alert secret,deferred (AUTH-001) — key recovery action for GATE-ALERT-002
+scripts/tail-dev-logs.mjs,READ_ONLY_LOCAL,dev logs,local log stream,none,none,none,none,none,N/A,not run
+scripts/emit-test-log.mjs,LOCAL_FIXTURE_GENERATOR,local log emitter,none,test log line,none,none,none,none,N/A,not run
+scripts/check-cloudflare-release-gates.ts,READ_ONLY_LOCAL,release gate,proof JSONs,none,none,none,none,none,N/A,covered by release-gate.json
+scripts/check-beta-operating-readiness.ts,READ_ONLY_LOCAL,beta readiness,source,none,none,none,none,none,N/A,not run
+scripts/generate-release-candidate-artifact.ts,LOCAL_FIXTURE_GENERATOR,release candidate,build artifact,artifact tarball + metadata,none,none,none,artifact,none,not run (CI context)
+"package.json: cf:deploy",HOSTED_MUTATING,production Worker,bundled worker,deploys Worker,wrangler deploy --keep-vars --minify --no-upload-source-maps,writes Worker,none,none,wrangler login + explicit deploy auth,NOT AUTHORIZED — production deploy
+"package.json: cf:build-upload-version",HOSTED_MUTATING,production Worker version,bundled worker,uploads version,wrangler versions upload,writes Worker version,none,none,wrangler login + explicit deploy auth,NOT AUTHORIZED — production version upload
+"package.json: cf:preview",LOCAL_PREVIEW_RUNTIME,Miniflare,bundled worker,builds + runs local preview,localhost only,none,none,none,N/A,not run
+"package.json: cf:queues-cron-proof",LOCAL_FIXTURE_GENERATOR,local proof,worker.ts + wrangler.jsonc,proof JSON,none,none,none,proof JSON,none,not run
+"package.json: cf:d1-restore-rehearsal",LOCAL_FIXTURE_GENERATOR,local SQLite,fixture DBs,temp DBs,none,none,none,temp DBs cleaned up,none,deferred — localOnly by design; not run this session

@@ -1,0 +1,33 @@
+consumer_id,surface,file_path,formula_variant,input_source,output_fields,rounding,consumers,divergence_risk,finding_ref
+CC-01,canonical-row-total,src/lib/estimates/estimate-row-total.ts:199-229,A,D1+input,materialMinorUnits/adjustmentMinorUnits/miscMinorUnits/totalMinorUnits/total,per-component round-then-sum integer,publication snapshot + proposal export + UI editable + project charts + activity history,NONE (canonical),
+CC-02,validate-only-input,src/lib/estimates/estimate-row-total.ts:158-196,A,server-action input,validated fields,-,updateEstimateRowItem + replaceEstimateRowItemWithLibrary,NONE,
+CC-03,legacy-float-row-total,src/lib/estimates/estimate-row-total.ts:309-318,B,D1 row,float total,no rounding,project-estimate-sheets-repository + workspace-repository + project-charts-repository + d1-intents/estimate-records duplicate,PER-ROW DRIFT,F-02
+CC-04,ui-read-projection,src/lib/estimates/estimate-tree-read-repository.ts:472-525,C,D1 row,totalItemCosts/adjustmentValue/contingencyValue,float (contingencyValue=0),EstimateSheet + share tree panel + activity history + editable-row-model seed,PER-ROW DRIFT,F-02
+CC-05,component-library-projection,src/lib/component-library/project-component-projection.ts:314-362,C,D1 row,totalItemCosts,float,component library UI,PER-ROW DRIFT,F-02
+CC-06,optimistic-editable-row,src/components/workshop/estimate-sheet/rows/editable-row-model.ts:289-342,D,draft+authoritative,totalItemCosts/subTotal/adjustmentValue,canonical (currency_code=PHP hardcoded),EstimateSheet + ProjectTotalHeader,CURRENCY HARDCODE,F-03
+CC-07,editable-node-total,src/components/workshop/estimate-sheet/rows/editable-row-model.ts:396-424,AGG-FLOAT,editable rows,nodeTotals,float sum,ProjectTotalHeader,AGGREGATE DRIFT,F-04
+CC-08,read-repo-node-total,src/lib/estimates/estimate-tree-read-repository.ts:629-635,AGG-FLOAT,EstimateRowItems,node.total,float sum + formatPeso,EstimateSheet tree,AGGREGATE DRIFT,F-04
+CC-09,project-total-header,src/components/workshop/ProjectTotalHeader.tsx via editable-row-store.ts:98-104,AGG-FLOAT,nodeTotals,projectTotal,float sum,workshop header,AGGREGATE DRIFT,F-04
+CC-10,estimate-list-total,src/lib/repositories/project-estimate-sheets-repository.ts:219-222 + workspace-repository.ts:3193-3201,B,D1 rows,totalProjectCost,float per-row + sum,ProjectEstimatesTable + dashboard,PER-ROW + AGGREGATE DRIFT,F-02
+CC-11,project-charts-repo-fact,src/lib/repositories/project-charts-repository.ts:132-140,B,D1 rows,cost fact,float,project charts aggregator,PER-ROW DRIFT,F-02
+CC-12,project-charts-aggregator,src/lib/project-charts/aggregate-project-charts.ts:134-161,E,chart facts,bucket totals,canonical per-row + float aggregate + currency_code=PHP hardcoded,charts series + tables,PER-ROW CANONICAL + AGGREGATE FLOAT DRIFT,F-04
+CC-13,duplicate-estimate-total,src/lib/estimates/d1-intents/estimate-records.ts:332 (sumEstimateRowLineTotals),B,D1 rows,totalProjectCost,float per-row + sum,duplicate action result,PER-ROW + AGGREGATE DRIFT,F-02
+CC-14,d1-history-row-projection,src/lib/estimates/d1-intents/rows.ts:324-356,H,D1 row,line breakdown,float with different adjustment fallback,activity history UI,FALLBACK MISMATCH,F-05
+CC-15,publication-snapshot-row,src/lib/publication/snapshot.ts:271-308,A,D1 row,rowTotal+rowTotalMinorUnits,canonical,snapshot JSON + client portal,NONE,
+CC-16,publication-snapshot-total,src/lib/publication/snapshot.ts:234-241/579/633,INT-SUM,snapshot rows,totalCost+totalCostMinorUnits,integer minor sum,share page + client portal summary,NONE,
+CC-17,proposal-export-row,src/lib/proposal-export/build-proposal-export-model.ts:96-122,A,D1 row,costAmount+materialSubtotal+contingencySubtotal+miscSubtotal,canonical,proposal preview + XLSX,NONE,
+CC-18,proposal-export-section,src/lib/proposal-export/build-proposal-export-model.ts:311-336,FLOAT+roundMoney,proposal rows,section subtotals + grandTotal,float sum with roundMoney after each add,XLSX Summary,THIRD ROUNDING BEHAVIOR,F-04
+CC-19,xlsx-bid-form-cell,src/lib/proposal-export/create-proposal-workbook.ts:345,XLSX-FORMULA,proposal row,LINE TOTAL cached value,live ROUND(qty*mat,2)+adj+misc formula,XLSX Bid Form,PARITY HOLDS VIA COINCIDENCE,F-08
+CC-20,xlsx-summary-totals,src/lib/proposal-export/create-proposal-workbook.ts:419-514,XLSX-FORMULA,cross-sheet refs,grand total + charges,live formulas chained,XLSX Summary,NONE,
+CC-21,client-portal-summary,src/lib/client-portal/financial-sections.ts:51-69,INT-SUM-FALLBACK,snapshot rows,totalCost,integer minor with Math.round(rowTotal*100) fallback,client portal financial summary,DRIFT IF FALLBACK,F-06
+CC-22,client-portal-browser-branch,src/lib/client-portal/estimate-browser.ts:117-157,AGG-FLOAT,snapshot rows,branch.total,float sum of row.rowTotal,client portal browser tree,AGGREGATE DRIFT,F-04
+CC-23,share-tree-branch,src/lib/share/reconstruct-share-tree.ts:71/116/155/304/324,AGG-FLOAT,snapshot rows,branch totals,float sum of row.rowTotal,share page tree,AGGREGATE DRIFT,F-04
+CC-24,share-donut,src/lib/share/aggregate-share-chart-buckets.ts:29/41,AGG-FLOAT,snapshot rows,bucket totals + totalCost,float sum,share page donut,AGGREGATE DRIFT,F-04
+CC-25,ai-read-context,src/lib/ai/read-context.ts:777-787,I,D1 row,estimateOptions.totalCost,float,LLM context,PER-ROW DRIFT,F-02
+CC-26,ai-package-builder-read,src/lib/ai/package-builder/read-tools.ts:361-380,I-prime,D1 row,row total,float,Copilot context,PER-ROW DRIFT,F-02
+CC-27,ai-package-builder-draft,src/lib/ai/package-builder/draft.ts:1846-1854,J,draft,preview total,float with divergent fallbacks,Copilot draft preview,PER-ROW + FALLBACK DRIFT,F-05
+CC-28,ai-package-builder-schema,src/lib/ai/package-builder/schemas.ts:1413-1421,J-prime,draft,package row total + budget,float contingency-only,Copilot budget summary,IGNORES ADJUSTMENT,F-05
+CC-29,ai-package-builder-apply-history,src/lib/ai/package-builder/apply.ts:1298,K,D1+draft,totalDelta,float no adjustment/contingency,AI apply audit history,UNDERREPORTS IMPACT,F-05
+CC-30,ai-package-builder-apply-template-row,src/lib/ai/package-builder/apply.ts:2209-2210/2243-2244,K,D1+draft,row total,float with adjustment,AI apply accumulator,PER-ROW DRIFT,F-05
+CC-31,estimate-health-amount,src/lib/repositories/estimate-health-repository.ts:135,L,D1 row,EstimateHealthRowFact.amount,float qty*rate+misc ONLY (no contingency/adjustment),evaluateEstimateHealth + getEstimateCostDrivers,STRICTLY SMALLER MAGNITUDE,F-07
+CC-32,client-portal-issue-total,migrations/0068_client_portal_foundation.sql (client_portal_issues.total_cost REAL NOT NULL),REAL,persisted,total_cost,float at rest,client portal issue surface,PERSISTED FLOAT,F-06

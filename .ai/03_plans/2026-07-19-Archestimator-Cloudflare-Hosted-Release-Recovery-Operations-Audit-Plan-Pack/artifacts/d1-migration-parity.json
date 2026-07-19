@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-07-19T06:55:00.000Z",
+  "active_migration_directory": "migrations/",
+  "active_migration_count": 84,
+  "migration_range": "0001_closed_beta_feedback.sql .. 0092_linked_estimate_template_instances.sql",
+  "migration_table": "d1_migrations (Cloudflare default; wrangler.jsonc does not override migrations_dir or migrations_table)",
+  "lexical_ordering": "Cloudflare applies in lexical filename order; numbers 0001-0092 with gaps at 0056-0059 and 0061-0064 (intentional; numbers were reserved then merged into later files)",
+  "integrity_assertion_migrations": [
+    "0084_upload_lifecycle_integrity.sql (BEFORE INSERT trigger with RAISE(ROLLBACK))",
+    "0087_upload_actor_and_removal_state_integrity.sql (BEFORE INSERT trigger with RAISE(ROLLBACK))"
+  ],
+  "local_applied_state": "REPO_LOCAL — wrangler d1 migrations apply ARCH_DB --local per README:72",
+  "preview_applied_state": "EVIDENCE_BLOCKED — AUTH-001; wrangler d1 migrations list ARCH_DB --remote --preview (or against preview_database_id)",
+  "production_applied_state": "EVIDENCE_BLOCKED — AUTH-001; continuation: bunx wrangler d1 migrations list ARCH_DB --remote",
+  "schema_fingerprint": "EVIDENCE_BLOCKED — AUTH-001; continuation: bunx wrangler d1 execute ARCH_DB --remote --command '.schema' (then sha256)",
+  "foreign_keys_check_constraints_indexes": "Per-migration SQL defines FK + CHECK + indexes inline. Notable CHECK constraints: profiles.account_status IN ('active','suspended','banned') (0051); collaboration_pending_invitation uniqueness (0054); corporate_account_owner integrity (0053). Hosted post-apply integrity: EVIDENCE_BLOCKED.",
+  "better_auth_schema": "Better Auth runtime generates migrations via compileCloudflareBetterAuthD1Migrations (better-auth-cloudflare.ts:308+). Applied migrations include 0003 profiles, 0004 account_security_events, 0035 account_security_events_hmac_checks, 0041 better_auth_rate_limit, 0051 profiles_account_status. Hosted state: EVIDENCE_BLOCKED.",
+  "data_volume_size_metadata": "EVIDENCE_BLOCKED — AUTH-001; continuation: bunx wrangler d1 info ARCH_DB --remote (size_bytes, num_tables, etc.)",
+  "migration_gaps_squashes": "Gaps at 0056-0059, 0061-0064 (reserved-then-merged). No squash migration; full 84-file history preserved. No drift detection script; operator runs wrangler d1 migrations list --remote and diffs against migrations/.",
+  "migration_command_runbook": {
+    "local_preview": "bunx wrangler d1 migrations apply ARCH_DB --local (per README:72)",
+    "preview_remote": "bunx wrangler d1 migrations apply ARCH_DB --remote --preview (NOT authorized in this audit)",
+    "production_remote": "bunx wrangler d1 migrations apply ARCH_DB --remote (NOT authorized in this audit; operator decision)",
+    "note": "package.json has NO dedicated migration script; all applies are operator-driven via wrangler"
+  },
+  "failure_partial_apply_behavior": "Cloudflare D1 migrations apply per-file in lexical order; a failure stops the sequence at the failing file. Each migration runs in its own transaction; partial apply leaves earlier migrations committed. Integrity assertions in 0084/0087 RAISE(ROLLBACK) within the migration's temp assertion table at apply time.",
+  "drift_detection": "No automated drift detection. Operator workflow: bunx wrangler d1 migrations list ARCH_DB --remote; compare to ls migrations/*.sql.",
+  "authorization_and_query_proof_scripts": "scripts/generate-cloudflare-d1-authz-access-matrix.ts (LOCAL_FIXTURE_GENERATOR); scripts/generate-cloudflare-d1-rpc-rewrite-map.ts (LOCAL_FIXTURE_GENERATOR); scripts/generate-cloudflare-d1-rpc-transaction-proof.ts (LOCAL_FIXTURE_GENERATOR). All produce local artifacts; none compare against hosted state.",
+  "required_post_migration_smoke": "After any hosted migration apply: confirm GET /api/auth/get-session 200 (null body); GET /api/health 200; one estimate round-trip; admin audit row exists.",
+  "findings_referenced": ["OPS-D1-PARITY-006 (Medium)", "OPS-D1-RESTORE-005 (High)", "OPS-RECOVERY-001 (High)"],
+  "honest_verdict": "REPO_LOCAL: 84 migrations reconciled in source. HOSTED: applied state unknown (AUTH-001). Migration parity is a hosted-evidence gap; treat as unverified until operator runs wrangler d1 migrations list --remote."
+}

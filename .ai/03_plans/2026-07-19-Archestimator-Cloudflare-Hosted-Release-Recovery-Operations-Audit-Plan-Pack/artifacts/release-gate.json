@@ -1,0 +1,92 @@
+{
+  "generated_at": "2026-07-19T06:55:00.000Z",
+  "scope": "controlled design-partner beta only — NOT public self-service",
+  "decision": "CONDITIONAL_GO",
+  "decision_rationale": "Worker is live and routes verified. Fail-closed auth, email, and scan gates are source-confirmed. Three NO_GO blockers remain that must be resolved before admitting design partners: (1) hosted D1 recovery posture unverified, (2) hosted alert delivery unverified, (3) hosted OAuth round-trip unverified. Five Medium-severity hosted-evidence gaps are recoverable during beta with documented workarounds.",
+  "NO_GO_items": [
+    {
+      "id": "GATE-RECOVERY-001",
+      "title": "D1 hosted recovery posture (backup cadence + restore rehearsal) unverified",
+      "blocks": "controlled beta admit",
+      "owner_unit": "UNIT-001",
+      "evidence_blocked": "AUTH-001 wrangler auth expired",
+      "continuation": "Interactive terminal: bunx wrangler d1 info ARCH_DB --remote; bunx wrangler d1 backup list ARCH_DB --remote; perform preview-only restore drill (scripts/generate-cloudflare-d1-restore-rehearsal.ts is localOnly by design)"
+    },
+    {
+      "id": "GATE-ALERT-002",
+      "title": "Hosted alert delivery for S-01..S-07 scenarios unverified",
+      "blocks": "controlled beta admit (Philip cannot detect material failure)",
+      "owner_unit": "UNIT-002",
+      "evidence_blocked": "AUTH-001 wrangler auth expired",
+      "continuation": "Interactive terminal: confirm OPERATIONAL_INCIDENT_ALERTS_ENABLED=1 in Worker secrets; run each bun run ops:verify-observability-alert -- --scenario <name>"
+    },
+    {
+      "id": "GATE-OAUTH-003",
+      "title": "Hosted Google OAuth round-trip not exercised end-to-end",
+      "blocks": "controlled beta admit (users cannot sign in)",
+      "owner_unit": "UNIT-003",
+      "evidence_blocked": "requires a real test account; not authorized in this audit",
+      "continuation": "Operator: drive login -> /api/auth/callback/google -> session cookie -> /workshop with a real test account; verify BETTER_AUTH_URL hosted secret is https://archestimator.com"
+    }
+  ],
+  "CONDITIONAL_items": [
+    {
+      "id": "GATE-EMAIL-004",
+      "title": "Email DNS posture (SPF/DMARC/DKIM) and inbound/outbound topology inconsistency",
+      "owner_unit": "UNIT-004",
+      "rationale": "Cohort can still sign in via Google OAuth; magic-link is the fallback and depends on email. Resolve before relying on magic-link or sending client-portal notifications."
+    },
+    {
+      "id": "GATE-CRON-005",
+      "title": "Cron-failure / missed-run hosted alert not wired",
+      "owner_unit": "UNIT-002",
+      "rationale": "Cron writes one cron_run_events row per branch (source-confirmed). Operator can manually inspect; auto-alert deferred."
+    },
+    {
+      "id": "GATE-OBS-RETENTION-006",
+      "title": "Hosted Workers Logs retention duration not pinned",
+      "owner_unit": "UNIT-002",
+      "rationale": "wrangler.jsonc has no explicit retention. Defaults apply. Pin retention before admitting cohort so incident reconstruction is possible."
+    },
+    {
+      "id": "GATE-QUEUE-DLQ-007",
+      "title": "Live queue DLQ depth not inspected",
+      "owner_unit": "UNIT-005",
+      "rationale": "DLQs empty at start of beta (no traffic). Establish baseline and inspect cadence."
+    },
+    {
+      "id": "GATE-DEPLOY-PROOF-008",
+      "title": "Hosted deployment provenance (version/SHA) not captured",
+      "owner_unit": "UNIT-006",
+      "rationale": "Capture the deployment SHA at beta admit; Quality Master UNIT-002 will reconcile truthful CI claims separately."
+    }
+  ],
+  "GO_items_already_satisfied": [
+    "Worker archestimator-proof is live at archestimator.com (HOSTED_CONFIRMED)",
+    "www 308 redirect to apex verified",
+    "HTTP->HTTPS upgrade verified",
+    "Auth route returns null for unauthenticated (fail-closed)",
+    "/admin and /workshop redirect to /login (auth gate enforced)",
+    "/api/health returns deterministic JSON contract",
+    "Sensitive routes (/api/internal/*) return 404 on apex (no unauthenticated internal surface)",
+    "x-request-id propagated end-to-end",
+    "Email fail-closed unless ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+    "Scan gate fail-closed for pending/infected/failed",
+    "HSTS preload + X-Frame-Options DENY + nosniff on auth route",
+    "Every cron branch writes exactly one cron_run_events row"
+  ],
+  "release_receipt_template": {
+    "admit_timestamp": "<ISO-8601 UTC>",
+    "cohort_size": "<int>",
+    "baseline_sha": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+    "deployed_worker_sha": "<bunx wrangler deployments list>",
+    "d1_migration_head": "0092_linked_estimate_template_instances.sql",
+    "applied_migrations_verified": "<bunx wrangler d1 migrations list ARCH_DB --remote>",
+    "alerts_verified_scenarios": ["S-01", "S-02", "S-03", "S-04", "S-05", "S-06", "S-07"],
+    "oauth_roundtrip_account": "<test account email>",
+    "hosted_probe_results": "evidence/hosted-probe-2026-07-19T06-39Z.md",
+    "no_go_items_resolved": ["GATE-RECOVERY-001", "GATE-ALERT-002", "GATE-OAUTH-003"],
+    "conditional_items_accepted": ["GATE-EMAIL-004", "GATE-CRON-005", "GATE-OBS-RETENTION-006", "GATE-QUEUE-DLQ-007", "GATE-DEPLOY-PROOF-008"],
+    "decision": "GO"
+  }
+}

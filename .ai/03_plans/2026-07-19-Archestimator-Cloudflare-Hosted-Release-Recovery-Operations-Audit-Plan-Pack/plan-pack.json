@@ -1,0 +1,966 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-19-archestimator-cloudflare-hosted-release-recovery-operations-audit-plan-pack",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "READ_ONLY",
+  "package_status": "CONDITIONALLY_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "baseline": {
+    "head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+    "scoped_status_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "updated_at": "2026-07-19T07:30:00.000Z",
+  "stale_triggers": [
+    "wrangler.jsonc binding changes",
+    "new migration in migrations/",
+    "worker.ts handler signature change",
+    "Cloudflare D1 backup/PITR semantics change",
+    "operator resolution of AUTH-001 (wrangler login)",
+    "Infosec UNIT-001/002/004/008/010/011/012 landing",
+    "Quality Master UNIT-002/019/022/024/028/035 landing"
+  ],
+  "canonical_execution_artifact": "00-PLAN.md",
+  "title": "Archestimator Cloudflare Hosted-Release / Recovery / Operations Audit Plan Pack",
+  "outcome": "Cloudflare-native hosted-release, recovery, and operations audit + plan pack for controlled design-partner beta readiness. Owns the evidence boundary source-only audits cannot prove.",
+  "next_unit": "UNIT-001",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "587aca8973cb125b2127ee3b967069c0376806a1642ba7058ade4dc05ef576e3"
+    },
+    {
+      "id": "ART-002",
+      "role": "index",
+      "path": "README.md",
+      "sha256": "f84fc1829079341a4f591641cad5037562cd6806a285726b0055e9ec26401bee"
+    },
+    {
+      "id": "ART-003",
+      "role": "findings-register",
+      "path": "04-FINDINGS-REGISTER.md",
+      "sha256": "313639278205d39031c42565a97c32f7db51c2a39136a100db40b0da1391644f"
+    },
+    {
+      "id": "ART-004",
+      "role": "audit-ledger",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "88c41c7c3a9b1e0cad2128b1babe6aefea564a9d1ba8aaba9897e3d618fdcedd"
+    },
+    {
+      "id": "ART-005",
+      "role": "manifest",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "dd01185087172375c1bbd42b93ea0548d932feec11be7d0fec5b5568e1316b53"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/UNIT-001-d1-recovery-posture.md",
+      "sha256": "da407d702997d4873df36de5ef29264754c9a779da15710a35dfecf0363fb663"
+    },
+    {
+      "id": "ART-007",
+      "role": "unit",
+      "path": "units/UNIT-002-observability-alert-delivery.md",
+      "sha256": "2a2f4761f1c80a26dcea2f00e979a2d01ef99fa0384b2c0a7d66d4334dda99dd"
+    },
+    {
+      "id": "ART-008",
+      "role": "unit",
+      "path": "units/UNIT-003-hosted-oauth-roundtrip.md",
+      "sha256": "d7483872ea9dacf90d34120a5188f18e205d3fe4f7e3dd182f8a5cea8d09aec7"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "units/UNIT-004-email-dns-topology.md",
+      "sha256": "2242267269e1dcc2fb06f4d3168566c0fcf5a426b6e91b905f2b30a4b86647c0"
+    },
+    {
+      "id": "ART-010",
+      "role": "unit",
+      "path": "units/UNIT-005-hosted-queue-do-r2-ops.md",
+      "sha256": "8f65da99cd3cf6d91b5ebb5fc8062a1f062a61174a63978d401a62e9e2d5f071"
+    },
+    {
+      "id": "ART-011",
+      "role": "unit",
+      "path": "units/UNIT-006-release-gate-ritual.md",
+      "sha256": "f668ada052641499a2101a3df7901b0c51145378f8ef6c7f80c12973667fe0a2"
+    },
+    {
+      "id": "ART-012",
+      "role": "unit",
+      "path": "units/UNIT-007-d1-parity-retention.md",
+      "sha256": "da967975845673f6db4acbbea060972e9348bc3ed127b2e80a8bfff87316e11d"
+    },
+    {
+      "id": "ART-013",
+      "role": "release-gate",
+      "path": "artifacts/release-gate.json",
+      "sha256": "ca78ef901a321e9644619fde560c4b96b2a0b291860e61b1845c21de692309f2"
+    },
+    {
+      "id": "ART-014",
+      "role": "findings-machine",
+      "path": "artifacts/findings.json",
+      "sha256": "b7235b8aff547faf8f4c15dfc1dee3be7d989ef017364a7f9dc70ec29ea2cd09"
+    },
+    {
+      "id": "ART-015",
+      "role": "overlap-matrix",
+      "path": "artifacts/existing-pack-overlap.json",
+      "sha256": "feec2d18449b3e11876937834acc25d8fda4ecafcd54c87d8ae77b2d4d32928a"
+    },
+    {
+      "id": "ART-016",
+      "role": "evidence-layer-matrix",
+      "path": "artifacts/evidence-layer-matrix.csv",
+      "sha256": "1cfab2610a6d611337318b985bb845afec40180d15fb63aa93e3a2b5cbffa9d1"
+    },
+    {
+      "id": "ART-017",
+      "role": "command-side-effect-inventory",
+      "path": "artifacts/command-side-effect-inventory.csv",
+      "sha256": "ad062edb7cf09588c55132b00436b25e30e538de8b0eeccf9e8a1c6329707436"
+    },
+    {
+      "id": "ART-018",
+      "role": "recovery-scenario-matrix",
+      "path": "artifacts/recovery-scenario-matrix.csv",
+      "sha256": "137bc848c1d651d692f1a049b3d4476102d2275e28007770d4f5f6f1f45a323d"
+    },
+    {
+      "id": "ART-019",
+      "role": "hosted-probe-evidence",
+      "path": "evidence/hosted-probe-2026-07-19T06-39Z.md",
+      "sha256": "0d17ac9844a41e03f62a2218078ced23a9039f7891490f46d29fbfc724409a6e"
+    },
+    {
+      "id": "ART-020",
+      "role": "domain-route-matrix",
+      "path": "artifacts/domain-route-matrix.csv",
+      "sha256": "9bf18ed5d15e547d4edcf3d34c5a243ad94229c7a9b12e7b826299e8ed52a1cc"
+    },
+    {
+      "id": "ART-021",
+      "role": "d1-backup-restore-readiness",
+      "path": "artifacts/d1-backup-restore-readiness.md",
+      "sha256": "85184a51c4b4e260222fbc624b49c82788a35425e2268a9fa2d117943333c4e1"
+    },
+    {
+      "id": "ART-022",
+      "role": "observability-alert-evidence",
+      "path": "artifacts/observability-alert-evidence.md",
+      "sha256": "46e2d2216d880e5a89d86faeee522e4221bf511a34d90e2c0b14fa0a26886918"
+    },
+    {
+      "id": "ART-023",
+      "role": "auth-email-readiness",
+      "path": "artifacts/auth-email-hosted-readiness.md",
+      "sha256": "334f6ff38b29f5337099749da6108d2b05a1c311a97f0e5f37309a340b6964ee"
+    },
+    {
+      "id": "ART-024",
+      "role": "queue-dlq-matrix",
+      "path": "artifacts/queue-dlq-matrix.csv",
+      "sha256": "5f78da0bfb394e14c117c05ffac6256c8c5a1498fdafdd62e7a8b03277341c24"
+    },
+    {
+      "id": "ART-025",
+      "role": "deployment-provenance",
+      "path": "artifacts/deployment-provenance.md",
+      "sha256": "170d9e4c581198f7196a19abbab9bd21a587ec255033f4a0de828763438c525c"
+    },
+    {
+      "id": "ART-026",
+      "role": "d1-migration-parity",
+      "path": "artifacts/d1-migration-parity.json",
+      "sha256": "03ef8bcf186517030c04ddb44898a635a641fd5a4f847155e361965ae5e06cd1"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "description": "Master prompt: Archestimator Cloudflare Hosted-Release, Recovery, and Operations Audit Plan Pack (Philip, 2026-07-19). Establishes the 12 audit domains (O-01..O-12), evidence-layer model, authorization boundary (read-only hosted verification), and required artifacts."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "statement": "Hosted D1 recovery posture (backup cadence, restore window, restore duration, permissions) must be proven before controlled-beta admit."
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "statement": "Hosted alert delivery for S-01..S-07 scenarios must be verified before controlled-beta admit."
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "statement": "Hosted Google OAuth round-trip must be exercised end-to-end before controlled-beta admit."
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "statement": "Email DNS topology + SPF/DMARC/DKIM deliverability posture must be aligned before relying on magic-link or sending cohort notifications."
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "statement": "Hosted queue/DLQ/DO/R2 operational baselines must be captured with documented inspection cadence and replay contract."
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "statement": "Controlled-beta release-gate ritual must be established and executed before each cohort wave with a recorded release receipt."
+    },
+    {
+      "id": "REQ-007",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "statement": "Hosted deployment provenance (version + source SHA + latest-deploy smoke) must be captured at each cohort admit."
+    },
+    {
+      "id": "REQ-008",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "statement": "Hosted D1 migration parity + schema fingerprint + retention cadence must be verified."
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-005",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "statement": "AUTH-001 (wrangler auth expired) is resolvable by the operator in an interactive terminal. Until resolved, hosted-evidence claims for deployment SHA, D1 info/backups, R2 listing, queue depth, DO storage, secret names, and Workers Logs retention remain EVIDENCE_BLOCKED."
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-006"
+      ],
+      "statement": "Quality Master UNIT-002 and Infosec UNIT-012 remain the owners of CI truthful-claims and CI activation respectively; this pack's release-gate ritual substitutes for CI enforcement during controlled beta and does not duplicate their work."
+    },
+    {
+      "id": "ASSUMP-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-004"
+      ],
+      "statement": "Email DNS topology decision (Option A vs Option B in UNIT-004) is operator-gated; Option B is the minimum bar for controlled beta."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003"
+      ],
+      "statement": "AUTH-001 blocks all wrangler auth-gated readback; without operator session, the three NO_GO blockers cannot be resolved."
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "statement": "Email topology decision (UNIT-004 Option A vs B) affects outbound deliverability; wrong choice could softfail cohort notifications."
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "statement": "DO state corruption has no operator-quarantine runbook today; risk is bounded for controlled beta but escalates for public beta."
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "artifact_path": "artifacts/domain-route-matrix.csv",
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "statement": "workers.dev secondary origin reachable; partial mitigation via canonical-host redirect; full remediation owned by Infosec UNIT-002."
+    },
+    {
+      "id": "RISK-005",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "statement": "CI disabled; for controlled beta, release-gate ritual substitutes; not a blocker."
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "BOUNDARY",
+      "artifact_path": "units/UNIT-001-d1-recovery-posture.md",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven hosted verification; not automated product testing. Recovery drill is a manual operator action against the preview D1.",
+      "authorization_boundary_id": "AUTH-001",
+      "statement": "Preview-only restore drill completed; production restore command chain documented; RPO/RTO targets recorded."
+    },
+    {
+      "id": "AC-002",
+      "status": "BOUNDARY",
+      "artifact_path": "units/UNIT-002-observability-alert-delivery.md",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven alert delivery probe; not automated product testing.",
+      "authorization_boundary_id": "AUTH-001",
+      "statement": "Each of S-01..S-07 alert scenarios produces a delivered webhook payload to an operator-visible sink."
+    },
+    {
+      "id": "AC-003",
+      "status": "BOUNDARY",
+      "artifact_path": "units/UNIT-003-hosted-oauth-roundtrip.md",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven OAuth round-trip with a real test account; browser automation is User Test Authorization Gate.",
+      "authorization_boundary_id": "AUTH-001",
+      "statement": "Real test account completes login -> callback -> session cookie -> /workshop round-trip."
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "units/UNIT-004-email-dns-topology.md",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven DNS + deliverability verification; no automated product test.",
+      "authorization_boundary_id": null,
+      "statement": "Email DNS topology aligned (Option A or B) with SPF/DKIM/DMARC validation passing for a Worker-sent test message."
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "units/UNIT-005-hosted-queue-do-r2-ops.md",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven hosted baseline capture; no automated product test.",
+      "authorization_boundary_id": null,
+      "statement": "Baseline DLQ depths, R2 object counts, outbox state counts, cleanup dry-run, DO quarantine procedure documented."
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "units/UNIT-006-release-gate-ritual.md",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven ritual; not automated product testing.",
+      "authorization_boundary_id": null,
+      "statement": "Release-gate ritual executed before each cohort wave with a stored release receipt."
+    },
+    {
+      "id": "AC-007",
+      "status": "BOUNDARY",
+      "artifact_path": "units/UNIT-006-release-gate-ritual.md",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven deployment-provenance capture; requires wrangler auth.",
+      "authorization_boundary_id": "AUTH-001",
+      "statement": "Deployed Worker SHA captured at cohort admit; latest-deploy source smoke matches release-receipt baseline."
+    },
+    {
+      "id": "AC-008",
+      "status": "BOUNDARY",
+      "artifact_path": "units/UNIT-007-d1-parity-retention.md",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Operator-driven hosted migration parity check; requires wrangler auth.",
+      "authorization_boundary_id": "AUTH-001",
+      "statement": "Hosted applied-migration list matches migrations/; schema fingerprint reconciled; retention cadence confirmed."
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-CONTROLLED-BETA-001",
+      "status": "BOUNDARY",
+      "artifact_path": "artifacts/release-gate.json",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": "AUTH-001",
+      "statement": "Controlled-beta release gate: three NO_GO items must be resolved (GATE-RECOVERY-001, GATE-ALERT-002, GATE-OAUTH-003) before admitting design partners; five CONDITIONAL items acceptable with documented mitigations."
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/UNIT-001-d1-recovery-posture.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "goal": "Establish hosted D1 recovery posture: preview-only restore drill, production restore command chain, RPO/RTO targets."
+    },
+    {
+      "id": "UNIT-002",
+      "status": "PLANNED",
+      "artifact_path": "units/UNIT-002-observability-alert-delivery.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "goal": "Verify hosted observability + alert delivery for S-01..S-07 scenarios."
+    },
+    {
+      "id": "UNIT-003",
+      "status": "PLANNED",
+      "artifact_path": "units/UNIT-003-hosted-oauth-roundtrip.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "goal": "Exercise hosted Google OAuth round-trip with a real test account."
+    },
+    {
+      "id": "UNIT-004",
+      "status": "PLANNED",
+      "artifact_path": "units/UNIT-004-email-dns-topology.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "goal": "Align email DNS topology + SPF/DMARC/DKIM deliverability posture."
+    },
+    {
+      "id": "UNIT-005",
+      "status": "PLANNED",
+      "artifact_path": "units/UNIT-005-hosted-queue-do-r2-ops.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "goal": "Establish hosted queue/DLQ/DO/R2 operational baselines + documented inspection cadence."
+    },
+    {
+      "id": "UNIT-006",
+      "status": "PLANNED",
+      "artifact_path": "units/UNIT-006-release-gate-ritual.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-004",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007"
+      ],
+      "goal": "Establish controlled-beta release-gate ritual + deployment provenance capture."
+    },
+    {
+      "id": "UNIT-007",
+      "status": "PLANNED",
+      "artifact_path": "units/UNIT-007-d1-parity-retention.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "goal": "Verify hosted D1 migration parity + schema fingerprint + retention cadence."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "statement": "Lane = Plan Pack (explicit master prompt + genuinely high-blast-radius surface: hosted release, recovery, operations)."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "statement": "Profile = high-blast-radius; ceiling = IMPLEMENT_LOCAL; last observed scope = READ_ONLY. Operator-driven hosted verification only."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "statement": "Suite version = 2026-07-12 (current Plan-Pack-Schema suite)."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "statement": "One writer (lead); no parallel writes; subagents used only for read-only investigation."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "evidence/hosted-probe-2026-07-19T06-39Z.md",
+      "affected_ids": [
+        "REQ-003",
+        "REQ-004"
+      ],
+      "statement": "Hosted probe scope = DNS + HTTPS GET/HEAD/OPTIONS only; no Cloudflare API write; no real email; no D1/R2/queue mutation."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "units/UNIT-001-d1-recovery-posture.md",
+      "affected_ids": [
+        "REQ-001"
+      ],
+      "statement": "RPO/RTO targets: operator decision pending at UNIT-001 execution; record in d1-backup-restore-readiness.md."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "units/UNIT-004-email-dns-topology.md",
+      "affected_ids": [
+        "REQ-004"
+      ],
+      "statement": "Email DNS topology operator decision (Option A migrate to Cloudflare Email Routing vs Option B documented operational split) deferred to UNIT-004; Option B is the minimum bar for controlled beta."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-006"
+      ],
+      "statement": "Controlled-beta decision = CONDITIONAL_GO; three NO_GO blockers (GATE-RECOVERY-001, GATE-ALERT-002, GATE-OAUTH-003); five CONDITIONAL items accepted with documented mitigations."
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-007",
+        "AC-008",
+        "GATE-CONTROLLED-BETA-001"
+      ],
+      "statement": "Cloudflare hosted reads via wrangler are blocked by an expired token in this non-interactive session. Continuation: interactive terminal -> bunx wrangler login (or set CLOUDFLARE_API_TOKEN) -> re-run the readback commands listed per finding. Bounds: deployment SHA, D1 info/backups/migrations list/schema, R2 object listing, queue depth, DO storage, secret names (never values), Workers Logs retention. Never authorized in this audit: deploy, secret sync/value read, DNS change, production D1 writes/exports/time-travel restore, production R2 mutation, queue replay/purge, DLQ mutation, cron change, DO production-state mutation, real outbound email, GitHub settings change, paid add-on, account change."
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "statement": "Operator readiness wave (entry): UNIT-001 (D1 recovery posture). UNIT-002..005 and UNIT-007 are also dependency-free and can run in parallel once AUTH-001 is resolved. UNIT-006 (release-gate ritual) is gated on UNIT-001/002/003 NO_GO resolution and is intentionally NOT in a ready slice until those units are VERIFIED."
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "STALE",
+      "artifact_path": "artifacts/d1-backup-restore-readiness.md",
+      "claim_ids": [
+        "AC-001",
+        "UNIT-001",
+        "REQ-001"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "85184a51c4b4e260222fbc624b49c82788a35425e2268a9fa2d117943333c4e1",
+      "claim": "Hosted D1 recovery posture currently EVIDENCE_BLOCKED; localOnly rehearsal provenance confirmed. Will become HOSTED_CONFIRMED when UNIT-001 resolves AUTH-001."
+    },
+    {
+      "id": "EVID-002",
+      "status": "STALE",
+      "artifact_path": "artifacts/observability-alert-evidence.md",
+      "claim_ids": [
+        "AC-002",
+        "UNIT-002",
+        "REQ-002"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "46e2d2216d880e5a89d86faeee522e4221bf511a34d90e2c0b14fa0a26886918",
+      "claim": "Application-level alert scaffolding source-confirmed; hosted delivery unverified. Will become HOSTED_CONFIRMED when UNIT-002 resolves AUTH-001."
+    },
+    {
+      "id": "EVID-003",
+      "status": "STALE",
+      "artifact_path": "artifacts/auth-email-hosted-readiness.md",
+      "claim_ids": [
+        "AC-003",
+        "UNIT-003",
+        "REQ-003"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "334f6ff38b29f5337099749da6108d2b05a1c311a97f0e5f37309a340b6964ee",
+      "claim": "Google OAuth UI present on /login (HOSTED_CONFIRMED); client_id/secret presence EVIDENCE_BLOCKED. Will become HOSTED_CONFIRMED when UNIT-003 completes a real-account round-trip."
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "artifacts/auth-email-hosted-readiness.md",
+      "claim_ids": [
+        "AC-004",
+        "UNIT-004",
+        "REQ-004"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "334f6ff38b29f5337099749da6108d2b05a1c311a97f0e5f37309a340b6964ee",
+      "claim": "Email DNS topology HOSTED_CONFIRMED inconsistent (MX via Namecheap; outbound via Workers Send Email). Topology finding captured; UNIT-004 owns remediation."
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "artifacts/queue-dlq-matrix.csv",
+      "claim_ids": [
+        "AC-005",
+        "UNIT-005",
+        "REQ-005"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "5f78da0bfb394e14c117c05ffac6256c8c5a1498fdafdd62e7a8b03277341c24",
+      "claim": "Queue/DLQ/DO/R2 source-confirmed; hosted baselines EVIDENCE_BLOCKED. Matrix artifact complete; UNIT-005 owns baseline capture."
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "artifacts/release-gate.json",
+      "claim_ids": [
+        "AC-006",
+        "UNIT-006",
+        "REQ-006",
+        "GATE-CONTROLLED-BETA-001"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "ca78ef901a321e9644619fde560c4b96b2a0b291860e61b1845c21de692309f2",
+      "claim": "Release-gate definition + receipt template authored; ritual not yet executed (operator-driven)."
+    },
+    {
+      "id": "EVID-007",
+      "status": "STALE",
+      "artifact_path": "artifacts/deployment-provenance.md",
+      "claim_ids": [
+        "AC-007",
+        "UNIT-006",
+        "REQ-007"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "170d9e4c581198f7196a19abbab9bd21a587ec255033f4a0de828763438c525c",
+      "claim": "Worker live (HOSTED_CONFIRMED); deployed SHA/version EVIDENCE_BLOCKED. Will become HOSTED_CONFIRMED when UNIT-006 captures SHA at admit."
+    },
+    {
+      "id": "EVID-008",
+      "status": "STALE",
+      "artifact_path": "artifacts/d1-migration-parity.json",
+      "claim_ids": [
+        "AC-008",
+        "UNIT-007",
+        "REQ-008"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null,
+      "sha256": "03ef8bcf186517030c04ddb44898a635a641fd5a4f847155e361965ae5e06cd1",
+      "claim": "84 migrations reconciled in source (REPO_LOCAL); hosted applied state EVIDENCE_BLOCKED. Will become HOSTED_CONFIRMED when UNIT-007 runs wrangler d1 migrations list --remote."
+    }
+  ],
+  "manifest_sha256": "7819e980153a69730136729597353ffddc5131c180ea2c8736d512add2e11135"
+}

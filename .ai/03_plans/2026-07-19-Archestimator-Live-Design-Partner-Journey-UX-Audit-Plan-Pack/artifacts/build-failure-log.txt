@@ -1,0 +1,269 @@
+$ next build
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · optimizePackageImports
+  · staleTimes
+  ⨯ turbopackFileSystemCacheForDev
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 9 errors:
+./src/lib/admin/action-inbox-actions.ts:58:17
+Server Actions must be async functions.
+  [90m56 |[0m }
+  [90m57 |[0m
+[31m[1m>[0m [90m58 |[0m [36mexport[0m [36mfunction[0m snoozeActionItem(itemId: string): [33mPromise[0m<[33mActionInboxActionResult[0m> {
+  [90m   |[0m                 [31m[1m^^^^^^^^^^^^^^^^[0m
+  [90m59 |[0m   [36mreturn[0m runActionInboxMutation(itemId, [32m"snooze"[0m);
+  [90m60 |[0m }
+  [90m61 |[0m [36mexport[0m [36mfunction[0m resolveActionItem(itemId: string): [33mPromise[0m<[33mActionInboxActionResult[0m> {
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/lib/admin/action-inbox-actions.ts [Client Component Browser]
+    ./src/components/admin/AdminActionInbox.tsx [Client Component Browser]
+    ./src/components/admin/AdminActionInbox.tsx [Server Component]
+    ./src/app/admin/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/lib/admin/action-inbox-actions.ts [Client Component SSR]
+    ./src/components/admin/AdminActionInbox.tsx [Client Component SSR]
+    ./src/components/admin/AdminActionInbox.tsx [Server Component]
+    ./src/app/admin/today/page.tsx [Server Component]
+
+
+./src/lib/admin/action-inbox-actions.ts:61:17
+Server Actions must be async functions.
+  [90m59 |[0m   [36mreturn[0m runActionInboxMutation(itemId, [32m"snooze"[0m);
+  [90m60 |[0m }
+[31m[1m>[0m [90m61 |[0m [36mexport[0m [36mfunction[0m resolveActionItem(itemId: string): [33mPromise[0m<[33mActionInboxActionResult[0m> {
+  [90m   |[0m                 [31m[1m^^^^^^^^^^^^^^^^^[0m
+  [90m62 |[0m   [36mreturn[0m runActionInboxMutation(itemId, [32m"resolve"[0m);
+  [90m63 |[0m }
+  [90m64 |[0m [36mexport[0m [36mfunction[0m dismissActionItem(itemId: string): [33mPromise[0m<[33mActionInboxActionResult[0m> {
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/lib/admin/action-inbox-actions.ts [Client Component Browser]
+    ./src/components/admin/AdminActionInbox.tsx [Client Component Browser]
+    ./src/components/admin/AdminActionInbox.tsx [Server Component]
+    ./src/app/admin/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/lib/admin/action-inbox-actions.ts [Client Component SSR]
+    ./src/components/admin/AdminActionInbox.tsx [Client Component SSR]
+    ./src/components/admin/AdminActionInbox.tsx [Server Component]
+    ./src/app/admin/today/page.tsx [Server Component]
+
+
+./src/lib/admin/action-inbox-actions.ts:64:17
+Server Actions must be async functions.
+  [90m62 |[0m   [36mreturn[0m runActionInboxMutation(itemId, [32m"resolve"[0m);
+  [90m63 |[0m }
+[31m[1m>[0m [90m64 |[0m [36mexport[0m [36mfunction[0m dismissActionItem(itemId: string): [33mPromise[0m<[33mActionInboxActionResult[0m> {
+  [90m   |[0m                 [31m[1m^^^^^^^^^^^^^^^^^[0m
+  [90m65 |[0m   [36mreturn[0m runActionInboxMutation(itemId, [32m"dismiss"[0m);
+  [90m66 |[0m }
+  [90m67 |[0m
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/lib/admin/action-inbox-actions.ts [Client Component Browser]
+    ./src/components/admin/AdminActionInbox.tsx [Client Component Browser]
+    ./src/components/admin/AdminActionInbox.tsx [Server Component]
+    ./src/app/admin/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/lib/admin/action-inbox-actions.ts [Client Component SSR]
+    ./src/components/admin/AdminActionInbox.tsx [Client Component SSR]
+    ./src/components/admin/AdminActionInbox.tsx [Server Component]
+    ./src/app/admin/today/page.tsx [Server Component]
+
+
+./src/components/admin/AdminActionInbox.tsx:6:1
+Export dismissActionItem doesn't exist in target module
+  [90m 4 |[0m [36mimport[0m { useRouter } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m 5 |[0m
+[31m[1m>[0m [90m 6 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m 7 |[0m   dismissActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 8 |[0m   resolveActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 9 |[0m   snoozeActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m [36mtype[0m { [33mAdminActionItemRow[0m, [33mActionItemSeverity[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-repo...[0m
+  [90m12 |[0m [36mimport[0m { [33mBadge[0m } [36mfrom[0m [32m"@/components/ui/badge"[0m;
+  [90m13 |[0m
+
+The export dismissActionItem was not found in module [project]/src/lib/admin/action-inbox-actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminActionInbox.tsx
+    ./src/app/admin/today/page.tsx
+
+
+./src/components/admin/AdminActionInbox.tsx:6:1
+Export dismissActionItem doesn't exist in target module
+  [90m 4 |[0m [36mimport[0m { useRouter } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m 5 |[0m
+[31m[1m>[0m [90m 6 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m 7 |[0m   dismissActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 8 |[0m   resolveActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 9 |[0m   snoozeActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m [36mtype[0m { [33mAdminActionItemRow[0m, [33mActionItemSeverity[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-repo...[0m
+  [90m12 |[0m [36mimport[0m { [33mBadge[0m } [36mfrom[0m [32m"@/components/ui/badge"[0m;
+  [90m13 |[0m
+
+The export dismissActionItem was not found in module [project]/src/lib/admin/action-inbox-actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminActionInbox.tsx
+    ./src/app/admin/today/page.tsx
+
+
+./src/components/admin/AdminActionInbox.tsx:6:1
+Export resolveActionItem doesn't exist in target module
+  [90m 4 |[0m [36mimport[0m { useRouter } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m 5 |[0m
+[31m[1m>[0m [90m 6 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m 7 |[0m   dismissActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 8 |[0m   resolveActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 9 |[0m   snoozeActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m [36mtype[0m { [33mAdminActionItemRow[0m, [33mActionItemSeverity[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-repo...[0m
+  [90m12 |[0m [36mimport[0m { [33mBadge[0m } [36mfrom[0m [32m"@/components/ui/badge"[0m;
+  [90m13 |[0m
+
+The export resolveActionItem was not found in module [project]/src/lib/admin/action-inbox-actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminActionInbox.tsx
+    ./src/app/admin/today/page.tsx
+
+
+./src/components/admin/AdminActionInbox.tsx:6:1
+Export resolveActionItem doesn't exist in target module
+  [90m 4 |[0m [36mimport[0m { useRouter } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m 5 |[0m
+[31m[1m>[0m [90m 6 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m 7 |[0m   dismissActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 8 |[0m   resolveActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 9 |[0m   snoozeActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m [36mtype[0m { [33mAdminActionItemRow[0m, [33mActionItemSeverity[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-repo...[0m
+  [90m12 |[0m [36mimport[0m { [33mBadge[0m } [36mfrom[0m [32m"@/components/ui/badge"[0m;
+  [90m13 |[0m
+
+The export resolveActionItem was not found in module [project]/src/lib/admin/action-inbox-actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminActionInbox.tsx
+    ./src/app/admin/today/page.tsx
+
+
+./src/components/admin/AdminActionInbox.tsx:6:1
+Export snoozeActionItem doesn't exist in target module
+  [90m 4 |[0m [36mimport[0m { useRouter } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m 5 |[0m
+[31m[1m>[0m [90m 6 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m 7 |[0m   dismissActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 8 |[0m   resolveActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 9 |[0m   snoozeActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m [36mtype[0m { [33mAdminActionItemRow[0m, [33mActionItemSeverity[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-repo...[0m
+  [90m12 |[0m [36mimport[0m { [33mBadge[0m } [36mfrom[0m [32m"@/components/ui/badge"[0m;
+  [90m13 |[0m
+
+The export snoozeActionItem was not found in module [project]/src/lib/admin/action-inbox-actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminActionInbox.tsx
+    ./src/app/admin/today/page.tsx
+
+
+./src/components/admin/AdminActionInbox.tsx:6:1
+Export snoozeActionItem doesn't exist in target module
+  [90m 4 |[0m [36mimport[0m { useRouter } [36mfrom[0m [32m"next/navigation"[0m;
+  [90m 5 |[0m
+[31m[1m>[0m [90m 6 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m 7 |[0m   dismissActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 8 |[0m   resolveActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m 9 |[0m   snoozeActionItem,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m [36mtype[0m { [33mAdminActionItemRow[0m, [33mActionItemSeverity[0m } [36mfrom[0m [32m"@/lib/admin/action-inbox-repo...[0m
+  [90m12 |[0m [36mimport[0m { [33mBadge[0m } [36mfrom[0m [32m"@/components/ui/badge"[0m;
+  [90m13 |[0m
+
+The export snoozeActionItem was not found in module [project]/src/lib/admin/action-inbox-actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminActionInbox.tsx
+    ./src/app/admin/today/page.tsx
+
+
+    at <unknown> (./src/lib/admin/action-inbox-actions.ts:58:17)
+    at <unknown> (./src/lib/admin/action-inbox-actions.ts:61:17)
+    at <unknown> (./src/lib/admin/action-inbox-actions.ts:64:17)
+    at <unknown> (./src/components/admin/AdminActionInbox.tsx:6:1)
+    at <unknown> (./src/components/admin/AdminActionInbox.tsx:6:1)
+    at <unknown> (./src/components/admin/AdminActionInbox.tsx:6:1)
+    at <unknown> (./src/components/admin/AdminActionInbox.tsx:6:1)
+    at <unknown> (./src/components/admin/AdminActionInbox.tsx:6:1)
+    at <unknown> (./src/components/admin/AdminActionInbox.tsx:6:1)
+error: script "build" exited with code 1

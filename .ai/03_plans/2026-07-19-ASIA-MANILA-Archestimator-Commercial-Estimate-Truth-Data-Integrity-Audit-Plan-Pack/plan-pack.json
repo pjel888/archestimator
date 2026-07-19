@@ -1,0 +1,888 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-19-archestimator-commercial-estimate-truth-data-integrity-audit",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "IN_PROGRESS",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "next_unit": "UNIT-001",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "baseline": {
+    "head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+    "scoped_status_sha256": "5fbcb2990ad25e368c12219bf3ddca36e464d044e7acac16696fa8cd54159185",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stale_triggers": [
+    "source-change",
+    "head-advance",
+    "dependency-change",
+    "owner-decision",
+    "test-authorization-change"
+  ],
+  "updated_at": "2026-07-19T08:46:59.024Z",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "f61e5d69e67e38092b5bf6d6f1e50e81d98758af7d42b48d9d101d16506c5e22"
+    },
+    {
+      "id": "ART-002",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "972e44e662b8b6862cf840e2ff961d73cd0da31ba0789c5fbdba95f88f00020d"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit-catalog",
+      "path": "UNIT-CATALOG.md",
+      "sha256": "e6e27813fb52680ab9e1897986f0ea5e997ded272d1172d5c0577a5774cb57bc"
+    },
+    {
+      "id": "ART-004",
+      "role": "manifest",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "56de65f739212a5eab07d1e587442934fbcfa20530e0bcf0afc804be70e95aa5"
+    },
+    {
+      "id": "ART-005",
+      "role": "recovery",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "9d67b32c2f3911ead0bd33842faa2c980b5d8d0ffa954218be234d138063e77d"
+    },
+    {
+      "id": "ART-006",
+      "role": "truth-model",
+      "path": "artifacts/commercial-truth-model.md",
+      "sha256": "87539b8529b577b4afe20066837fb1efafd2965ea4d6b49748105ce32ec01fd6"
+    },
+    {
+      "id": "ART-007",
+      "role": "truth-graph",
+      "path": "artifacts/source-to-output-truth-graph.md",
+      "sha256": "dfa293d3cf5d39823562751bf10217ea22e468cfd73d0778de07aff8e65148ba"
+    },
+    {
+      "id": "ART-008",
+      "role": "consumer-matrix",
+      "path": "artifacts/calculation-consumer-matrix.csv",
+      "sha256": "97f7a3cf78875e793cf69727295ac0d977ad9930b87a7f7bbaf9d10e58e4b31e"
+    },
+    {
+      "id": "ART-009",
+      "role": "invariant-matrix",
+      "path": "artifacts/data-invariant-matrix.csv",
+      "sha256": "0e36530759066c3fc8234521bbdd1225b4fe1a87a8f56a23c1cbb604341e1f7b"
+    },
+    {
+      "id": "ART-010",
+      "role": "lifecycle-matrix",
+      "path": "artifacts/d1-lifecycle-matrix.csv",
+      "sha256": "d2d5c947c6b6cf9ab5545056687cf148b1919e51710feeb1804dda5b3650b0de"
+    },
+    {
+      "id": "ART-011",
+      "role": "lineage",
+      "path": "artifacts/template-variant-lineage.md",
+      "sha256": "b8fb2eb72e370ecbf805e9a3d2457f43b5f0436349ccec784b284c452b87bb3a"
+    },
+    {
+      "id": "ART-012",
+      "role": "publication-truth",
+      "path": "artifacts/publication-version-truth.md",
+      "sha256": "f98a222553731a705a43205c8bd70b20d0a4b6ab9f798c68a4af9967e79667cb"
+    },
+    {
+      "id": "ART-013",
+      "role": "golden-spec",
+      "path": "artifacts/golden-cases.json",
+      "sha256": "06080fb695d134aed503d2649d25c073cc22a5d2367f171a1c2abdcc9009d916"
+    },
+    {
+      "id": "ART-014",
+      "role": "golden-oracle",
+      "path": "artifacts/golden-oracle/oracle.mjs",
+      "sha256": "4728b56f3cd0f727cab41efdb7978c47d9c1afff71634c7bae55fff59813b282"
+    },
+    {
+      "id": "ART-015",
+      "role": "golden-evidence",
+      "path": "artifacts/golden-results.json",
+      "sha256": "fcf9e91af9313ccb779933aa729811d2533bfe7f24868fa486beb18b37fbabfb"
+    },
+    {
+      "id": "ART-016",
+      "role": "xlsx-inspector",
+      "path": "artifacts/xlsx-inspection/inspect.mjs",
+      "sha256": "594a769a9c386f5a3e4a4b20606ec02ee62626084df536de21b61b6b6ec9b47f"
+    },
+    {
+      "id": "ART-017",
+      "role": "xlsx-artifact",
+      "path": "artifacts/xlsx-inspection/audit-fixture.xlsx",
+      "sha256": "a3329b9d2a3150045b48b5e7b18ff0679e41dfdbc1a60288fe46a0d8a4b35efd"
+    },
+    {
+      "id": "ART-018",
+      "role": "xlsx-evidence",
+      "path": "artifacts/xlsx-inspection/result.json",
+      "sha256": "147eb18b757bf9baf514e22154725026f10f6ee5f58918b98c80eeb7abd96618"
+    },
+    {
+      "id": "ART-019",
+      "role": "findings-register",
+      "path": "artifacts/findings.json",
+      "sha256": "ea5ab2317b7d1e7e61ebacb7e8ba94bc8ab01bd7dda04fbb45b98b8a3be1fc2b"
+    },
+    {
+      "id": "ART-020",
+      "role": "rejected-register",
+      "path": "artifacts/rejected-refuted-findings.json",
+      "sha256": "396d0bed52cf8986da45f1c87c5cf3f6e7fdc33b59af5bc6ac53d9a6a249bd7e"
+    },
+    {
+      "id": "ART-021",
+      "role": "overlap-matrix",
+      "path": "artifacts/existing-pack-overlap.json",
+      "sha256": "d8396c1f6a14e42e0d3b7b7ce8d939c482f9bd4fa7d52f7348e4a2f3af227654"
+    },
+    {
+      "id": "ART-022",
+      "role": "challenge-pass",
+      "path": "artifacts/adversarial-challenge.md",
+      "sha256": "4142c31c4fda85b8be3a6a9bb093782c2ddc4004cf5a5437e2f5139a32e2b6e5"
+    },
+    {
+      "id": "ART-023",
+      "role": "evidence-log",
+      "path": "artifacts/commands-run.log",
+      "sha256": "d5b6bbf310e743674ccb4b42e31fd3b6c7118d5ea54df6134c547e942e69b43c"
+    },
+    {
+      "id": "ART-024",
+      "role": "raw-evidence",
+      "path": "evidence/parity-test-output.txt",
+      "sha256": "7b194af2d578f95f88b99476a10eff3f4e180d49da656d871d2dd0ae590bc849"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/commercial-truth-model.md",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/source-to-output-truth-graph.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/calculation-consumer-matrix.csv",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/data-invariant-matrix.csv",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/d1-lifecycle-matrix.csv",
+      "affected_ids": [
+        "REQ-003"
+      ]
+    },
+    {
+      "id": "SRC-006",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/findings.json",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "SRC-007",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/existing-pack-overlap.json",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "SRC-008",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/adversarial-challenge.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "SRC-009",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/rejected-refuted-findings.json",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "SRC-010",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/golden-cases.json",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-011",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/golden-results.json",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-012",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/xlsx-inspection/result.json",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-013",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/template-variant-lineage.md",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-014",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/publication-version-truth.md",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "SRC-015",
+      "status": "CURRENT",
+      "artifact_path": "evidence/parity-test-output.txt",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Establish the canonical commercial-truth contract from current source and prove it via an independent golden oracle (20 cases) and XLSX formula inspection.",
+      "artifact_path": "artifacts/commercial-truth-model.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-010",
+        "SRC-011",
+        "SRC-012",
+        "SRC-013",
+        "SRC-014"
+      ],
+      "unit_ids": [
+        "UNIT-000"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "File every newly proven cross-surface divergence with one explicit owner; cross-reference existing packs for everything already owned.",
+      "artifact_path": "artifacts/findings.json",
+      "source_ids": [
+        "SRC-002",
+        "SRC-006",
+        "SRC-007",
+        "SRC-008",
+        "SRC-009",
+        "SRC-015"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Prove partial-write and recovery gaps in the estimate lifecycle; file the unowned ones.",
+      "artifact_path": "artifacts/d1-lifecycle-matrix.csv",
+      "source_ids": [
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "statement": "Pass the plan-pack validator and expose exactly one canonical next unit.",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-000"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003"
+      ],
+      "statement": "Baseline b2a9349 is the authoritative source for all commercial-truth claims; any later change to the audited surfaces invalidates the affected evidence."
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002"
+      ],
+      "statement": "Existing packs (MVP UNIT-005/006/010, Quality Master UNIT-001/004/014/015/025/029/034/067, Infosec UNIT-001..013) own their respective surfaces and will land their fixes; this pack only cross-references them."
+    },
+    {
+      "id": "ASSUMP-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-007"
+      ],
+      "statement": "AI Copilot surface is feature-flagged and pre-release; F-05 is filed at MEDIUM and UNIT-007 is deferred until Copilot release."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "artifacts/golden-results.json",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Canonical contract is proven by source inspection plus an independent golden oracle (20/20 cases pass) and an XLSX formula inspection artifact; no automated product test gate is required because the proof is the audit artifact itself.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Twelve findings filed with one explicit owner each; cross-reference matrix proves no duplicate active ownership. The adversarial challenge pass sustained all four High findings. Existing tests are not run as a gate here because the findings are evidence of defects, not proofs of correctness.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "artifacts/d1-lifecycle-matrix.csv",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Forty D1 lifecycle write paths classified; the one unowned partial-write risk (F-09) is filed and owned by UNIT-002. The current-source canonical write paths are atomic and receipt-guarded; the gap is graph-level only.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Validator pass is structural; the canonical next unit UNIT-001 is READY and present in a ready slice. No automated test is needed; the validator itself is the gate.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-PLAN-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-000",
+      "status": "VERIFIED",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-003",
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-003"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "RESOLVED",
+      "boundary": "Hosted/production D1 readback, real customer data inspection, provider-side queries, and deployment remain outside this audit's authorization. All evidence is local runtime or source inspection.",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "status": "RESOLVED",
+      "boundary": "Test-file edits (UNIT-001 parity fixture, UNIT-008 new XLSX parity test) require a separate explicit TEST_TASK for the implementing session; this audit only ran existing tests read-only.",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "AUTH-003",
+      "status": "RESOLVED",
+      "boundary": "AI Copilot remediation (UNIT-007) is deferred until Copilot release; no implementation authorized in this pack.",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-002"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "artifacts/golden-results.json",
+      "sha256": "fcf9e91af9313ccb779933aa729811d2533bfe7f24868fa486beb18b37fbabfb",
+      "claim_ids": [
+        "AC-001",
+        "GATE-PLAN-001",
+        "UNIT-000"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "ea5ab2317b7d1e7e61ebacb7e8ba94bc8ab01bd7dda04fbb45b98b8a3be1fc2b",
+      "claim_ids": [
+        "AC-002",
+        "GATE-PLAN-001",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "artifacts/xlsx-inspection/result.json",
+      "sha256": "147eb18b757bf9baf514e22154725026f10f6ee5f58918b98c80eeb7abd96618",
+      "claim_ids": [
+        "AC-001",
+        "GATE-PLAN-001",
+        "UNIT-000",
+        "UNIT-008"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "artifacts/d1-lifecycle-matrix.csv",
+      "sha256": "d2d5c947c6b6cf9ab5545056687cf148b1919e51710feeb1804dda5b3650b0de",
+      "claim_ids": [
+        "AC-003",
+        "AC-004",
+        "GATE-PLAN-001",
+        "AC-002",
+        "UNIT-000",
+        "UNIT-002"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-000",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011"
+      ]
+    }
+  ],
+  "manifest_sha256": "81bb33b2c9b59bfe880b5432961725cdcd2f493d01123dd508ce9551b29698cf"
+}
