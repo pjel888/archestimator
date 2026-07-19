@@ -100,7 +100,7 @@ partner from first CTA to first value. Nothing here requires a real user.
   be filled when M3-01 ships), open feedback (count by severity), open support
   (count), open incidents (count).
 - **Reason:** "Active teams" metric is hard-coded `"—"` (`admin/page.tsx:107`);
-  insight scattered across ~22 admin pages. (Gap G-05.)
+  insight scattered across exactly 21 admin pages. (Gap G-05.)
 - **Smallest coherent scope:** Replace the placeholder card on `/admin` with a
   composed view; reuse `listActivationCohort` (`activation-cohort-repository.ts`)
   and `getActivationCohortAggregateForPlatformAdmin` (`:126-155`); add

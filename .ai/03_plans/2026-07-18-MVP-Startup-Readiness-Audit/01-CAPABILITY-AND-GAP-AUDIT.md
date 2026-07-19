@@ -299,18 +299,32 @@ item. Not measured (G-08).
 - Cloudflare Web Analytics + Microsoft Clarity page-view beacons on public
   pages.
 
-### Product analytics — effectively ZERO (G-04)
+### Product analytics — effectively ZERO first-party funnel events (G-04)
 
-Negative-grep evidence:
+**2nd-pass correction (DEF-30):** the 1st pass overstated this gap. GA4 IS
+wired via `@next/third-parties/google` (`package.json:140` declares
+`@next/third Parties`; `src/components/landing/LandingAnalyticsLoader.tsx:3,20,27`
+imports `GoogleAnalytics` and mounts `<GoogleAnalytics gaId={gaId} />` gated
+on `NEXT_PUBLIC_GA_MEASUREMENT_ID`). The A/B helper
+(`src/lib/ab-testing/experiment-tracker.ts:29-78`) fires GA4
+`experiment_view` and conversion events for landing-page variants.
 
-- No GA4 / PostHog / Mixpanel / Plausible / Umami SDK in `package.json`.
-- No `/api/track` or `/api/events` route (the directory
-  `src/app/api/share/[token]/events/` exists but is **empty** — no `route.ts`).
-- Grep for `trackEvent|logEvent|recordEvent|emitEvent|identify(` over
+What does NOT exist — and is the load-bearing gap:
+
+- No first-party product-event emitter. Negative grep for
+  `trackEvent|logEvent|recordEvent|emitEvent|identify(` over
   `src/components src/hooks src/app` → only `recordEvent` in
-  `perf/server-timing.ts:44` (internal perf trace).
-- The A/B helpers `trackExperimentView` / `trackConversion`
-  (`experiment-tracker.ts:29-78`) cover landing-page variants only.
+  `perf/server-timing.ts:44` (internal perf trace) and the A/B tracker above.
+- No `/api/track` or `/api/events` route (the directory
+  `src/app/api/share/[token]/events/` exists but is **empty** — confirmed
+  `ls`, no `route.ts`).
+- No PostHog / Mixpanel / Plausible / Umami SDK in `package.json`.
+- No activation-funnel or attribution events emitted anywhere — only landing
+  pageviews + A-B variant events reach GA4.
+
+So the fix scope is unchanged (emit ~8 first-party funnel events to a local
+D1 `product_events` table), but the framing no longer erases the existing
+GA4 mounting.
 
 ### What IS measured — the activation ledger
 
@@ -332,6 +346,13 @@ feature-level usage, and not week-N retention.
   `activation-producer-contract.ts:26`) but **never emitted** anywhere in
   source. Dead milestone; cohort view will never see users past `health_reviewed`
   for that reason, distorting the funnel.
+- **Cross-reference (DEF-31, 2nd pass):** the sibling consistency audit
+  REFUTED F-08 (`FirstEstimateChecklist` mounted nowhere) and reclassified
+  the entire activation-checklist subsystem as dead code. So the G-03 gap is
+  broader than the 1st pass stated: the *display side* is dead (checklist
+  component unmounted, `/workshop/onboarding` is a 5-line redirect) AND the
+  *producer side* is dead (`health_reviewed` never emitted). Confidence stays
+  CONFIRMED; the unit scope (UNIT-003) expands to "mount + wire or remove."
 
 ### Week-N retention — NOT computed (G-08)
 
@@ -658,7 +679,7 @@ delivers most of this via the BOQ export. Missing: signature block content
 
 ### Where the product is overbuilt
 
-- The **Admin shell** (`/admin/*`, ~22 routes, full sidebar grouping) is sized
+- The **Admin shell** (`/admin/*`, exactly 21 routes — `find src/app/admin -name page.tsx \| wc -l`; full sidebar grouping) is sized
   for a company, not a 5–8-user beta. The overbuild is acceptable because it is
   mostly read-only views, but it gives a false sense of operational maturity
   that the underlying metrics do not support.
@@ -673,30 +694,30 @@ delivers most of this via the BOQ export. Missing: signature block content
 
 ## M. Documentation drift (master prompt §4, §8)
 
-### Stale claims vs current source truth
+(2nd pass: trimmed to drift items with a startup-side consequence unique to
+this audit. Provider-era and dead-code drift items (Vercel/Supabase freeze,
+`seed.json` no-importer, `exceljs` unused-in-app, `projects.currency_code`
+USD default) are recorded in `AGENTS.md`, `known-issues.md`, the README, and
+the sibling improve/consistency audits — repeating them here violates
+Frontier-Planning-Kernel §7.)
+
+### Startup-side drift items
 
 | # | Stale claim | Current source truth | Drift path | Risk |
 |---|---|---|---|---|
-| D-01 | "Closed beta: Vercel production deploy is healthy at `www.archestimator.com`" with Resend + Supabase | Cloudflare Workers/OpenNext (no Vercel), Cloudflare Email (no Resend), D1 (no Supabase). The two legacy providers are explicitly frozen and must not be mutated (`AGENTS.md`). | `known-issues.md:8-10` (2026-06-10 note) | Decision risk: any plan that revives Vercel/Resend/Supabase-era recommendations is invalid. The closed-beta launch evidence under `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/` describes a Supabase-era cutover that no longer represents the live runtime. |
 | D-02 | `/signup` is a signup form | `/signup` renders `<ClosedBetaGate />` (request-access gate). Comment: *"L-FUN-2 GATED: when self-serve is enabled, replace with `<SignupForm>`"* (`signup/page.tsx:6-9`). | `signup/page.tsx` | Marketing risk: copy elsewhere may still imply self-serve signup. |
 | D-03 | `/workshop/onboarding` is an onboarding flow | 5-line redirect to `/workshop/settings` (`onboarding/page.tsx`). | `onboarding/page.tsx` | Product risk: any external doc or plan that cites `/workshop/onboarding` as the first-value surface is wrong. |
-| D-04 | `data/local/seed.json` is the sample data | On-disk only; **nothing in `src/` imports it**. Live sample data is `startGuidedSample()` (`activation-actions.ts:85-146`). | `data/local/seed.json`, `data/local/README.md` | Confusion risk: a developer reading seed.json thinks sample data is wired. It is not. |
-| D-05 | `exceljs` is the export library | Production export uses in-house `xlsx-workbook.ts`. `exceljs` is used only by vitest tests. | `package.json` | Maintenance risk: dependency declared but unused in app. |
 | D-06 | Notifications are sent on comment/decision/invite | Only admin broadcasts. Comment/decision/invite event producers do not exist (`notification-actions.ts`). | `migrations/0009_notifications.sql`, `notification-actions.ts:18-30` | Expectation risk: the schema *looks* like notifications are wired; they are broadcast-only. |
 | D-07 | "Active teams" is a real metric | Hard-coded `"—"` with hint *"Repository lane pending"* (`admin/page.tsx:107`). | `admin/page.tsx` | Founder-ops risk: dashboard implies a metric that does not exist. |
 | D-08 | `health_reviewed` is part of activation | Declared in taxonomy; never emitted anywhere in source. | `activation-types.ts:7` | Analytics risk: cohort funnel shows a permanent gap. |
-| D-09 | `projects.currency_code` is PHP | Migration default is `'USD'` (`migrations/0015_…sql:3`); UI masks to PHP. | `migrations/0015_…sql` | Consistency risk: any path reading `projects.currency_code` directly gets USD. |
 | D-10 | Pricing tiers Free/Solo/Pro/Team are real | Marketing copy only; no `tier`/`plan` runtime concept. | `pricing/page.tsx:174-179` | Monetization risk: anyone reading `/pricing` assumes entitlements are enforced. They are not. |
-| D-11 | Supabase-era `.ai/09_archive/2026-06-19-Launch-Readiness-Audit/` | Massive 24-doc + 18-subfolder launch audit assuming Vercel/Supabase/Resend. The current Cloudflare-native stack invalidates most provider-specific guidance. | `.ai/09_archive/2026-06-19-Launch-Readiness-Audit/` | Decision risk: reviving any of this guidance without re-checking against Cloudflare truth. |
 
 ### Recommendation per drift item
 
-- D-01, D-11: **archive / ignore.** Do not revive. The README already notes
-  these are historical.
-- D-02, D-03, D-04, D-05, D-08: **fix-forward** as small implementation tasks
-  (covered by other audits or this one's gap register).
-- D-06, D-07, D-09, D-10: **this audit's gap register** — they have startup-
-  side consequences (G-04, G-05, G-09-adjacent, G-10).
+- D-02, D-03, D-08: **fix-forward** as small implementation tasks (covered
+  by UNIT-001, UNIT-003, UNIT-012).
+- D-06, D-07, D-10: **this audit's gap register** — startup-side
+  consequences (G-04, G-05, G-10).
 
 ---
 
@@ -715,7 +736,7 @@ dependency, owner-decision, recommendation.
 | **G-02** | A/B | Activation | Solo estimator | Journey 3 (first 10–30 min) + Journey 4 (spreadsheet → Archestimator) | No import code: negative grep over `src/` for `xlsx.read`, `sheet_to_json`, `papaparse`, `csv-parse`, `bulkCreate`; library insert is single-row only (`AddComponentModal.tsx` 2688 lines); library empty-state signals library-first (`ComponentLibraryManager.tsx:1909-1922`) | MISSING | CONFIRMED | Largest adoption blocker; user must hand-key their existing supplier price list; product promise "never start from zero" breaks at the moment of cold-start | CSV/XLSX import into cost library: parse → map columns → preview → bulk insert; validation; per-workspace cap | Founder concierge import: user sends spreadsheet, Philip keys it | `import_completion_rate`, `library_size_at_day_7` | M | G-04 (instrument first) | No (already a spike in `031-spike-library-bulk-import.md`) | **build** |
 | **G-03** | A | Activation | Solo estimator | Journey 3 | `/workshop/onboarding/page.tsx` is 5-line redirect to `/workshop/settings`; `FirstEstimateChecklist.tsx` has zero production consumers; milestone `health_reviewed` declared (`activation-types.ts:7`) but never emitted | PARTIAL / MANUAL_BUT_FRAGILE | CONFIRMED | Real users hit empty workshop shell with no in-product guidance; activation milestone funnel shows permanent gap at `health_reviewed` | Mount `FirstEstimateChecklist` in `WorkshopDashboard`; default first-session to guided-sample path; either emit `health_reviewed` or remove it | Founder joins first session live | `time_to_first_value`, `checklist_completion_rate` | S | — | No | **build** |
 | **G-04** | A | Learning | Founder | All journeys | Zero product-event emitters (negative grep); no `/api/track`; no GA4/PostHog SDK; A/B helpers cover landing variants only | MISSING | CONFIRMED | Cannot measure funnel; every retention/pricing/ICP decision is guesswork; activation ledger covers in-product only, not landing-side | `recordProductEvent(name, props)` writing to `product_events` D1; emit ~8 events covering landing + lead + funnel + reuse (see `03-…md` §C); wire `/admin` to surface | Manual review of activation cohort + DB queries | Per-event counts, conversion %, week-N retention | S–M | — | No | **build (narrow scope)** |
-| **G-05** | A/B | Founder ops | Founder | Journey 9 | No single founder dashboard; "Active teams" metric hard-coded `"—"` (`admin/page.tsx:107`); insight scattered across ~22 admin pages | PARTIAL | CONFIRMED | Weekly review is slow; founder cannot see acquisition/access/activation/retention/support/incidents in one view | Single "Beta health" card on `/admin` replacing the placeholder; reuse `listActivationCohort` + new `beta_access_requests` + `beta_feedback_submissions` | Manual cross-page review | Weekly review time | M | G-01, G-04 | No | **build (partial in initial spike)** |
+| **G-05** | A/B | Founder ops | Founder | Journey 9 | No single founder dashboard; "Active teams" metric hard-coded `"—"` (`admin/page.tsx:107`); insight scattered across exactly 21 admin pages | PARTIAL | CONFIRMED | Weekly review is slow; founder cannot see acquisition/access/activation/retention/support/incidents in one view | Single "Beta health" card on `/admin` replacing the placeholder; reuse `listActivationCohort` + new `beta_access_requests` + `beta_feedback_submissions` | Manual cross-page review | Weekly review time | M | G-01, G-04 | No | **build (partial in initial spike)** |
 | **G-06** | A | Activation | Solo estimator | Journey 4 + D-04 | `data/local/seed.json` is dead weight; live sample is `startGuidedSample()` only (button-triggered) | PARTIAL | CONFIRMED | New workspace is empty; only the button-triggered guided sample proves value; first-time user without Philip has no clear "start here" | Either delete `seed.json` or wire it as a real auto-seed on first workspace; default the workshop home empty-state to "Start guided sample" | Philip runs sample in first call | `% users completing guided sample` | S | G-03 | No | **decide** (delete vs wire) |
 | **G-07** | A/B | Learning | Founder | Journey 8 + Lens G | Notification kinds `collaboration`, `publication_activity`, `beta_feedback` defined but no producer writes them (`notification-actions.ts:18-30`); only `broadcastNotification` writes deliveries | PARTIAL | CONFIRMED | Founder must remember to check feedback queue and activity feeds; risk of missing a critical beta issue for days | Have `submitBetaFeedback` + comment/decision routes write a targeted `notification_deliveries` row to the founder (or use `broadcastNotification` with a targeted audience) | Daily manual check | Time-to-founder-acknowledgement of feedback | S | — | No | **build** |
 | **G-08** | B | Retention | Founder | Lens E + Lens F | `activation-retention.ts` is data TTL only; no week-N retention metric; no reuse-rate metric; cohort stalled-state exists but no return-rate | MISSING | CONFIRMED | Cannot tell whether design partners return; cannot prove the reuse thesis with data | Compute week-1 / week-4 active-workspace rate from activation events; compute library-reuse rate from `source_library_item_id` lineage | Manual DB query per cohort | `week_1_active_workspaces`, `library_reuse_rate` | S | G-04 | No | **build** |
@@ -723,7 +744,7 @@ dependency, owner-decision, recommendation.
 | **G-10** | C | Monetization | Founder + first paying user | Journey 10 | No billing code (correct); no manual-invoice helper; no entitlement concept in code | MISSING (intentionally) | CONFIRMED | No path from "user names a budget" to "user is invoiced and entitlement recorded"; pricing conversations cannot convert | `manual_invoices` D1 table + admin helper; `workspace_entitlements` table; manual bank/GCash/PayPal | Off-product: invoice via email, track in spreadsheet | Manual-invoice conversion, churn reason | M | WTP evidence | Yes (pricing structure) | **defer until WTP evidence** |
 | **G-11** | A | Trust | All | Lens J | No `backups` / `time_travel` / PITR config in `wrangler.jsonc`; no restore runbook; no restore drill | EXTERNAL_SETUP_REQUIRED | CONFIRMED | Single bad migration or admin delete is unrecoverable from a process perspective; beta data loss would end the experiment | Enable D1 PITR; document restore procedure; run one restore drill; record evidence under `.ai/05_logs/` | None | Restore drill success, RPO/RTO | S (config) / M (proof) | — | No | **build (config) + operate (drill)** |
 | **G-12** | C | Reliability | Founder | Lens J | `/api/health/route.ts:7-16` returns trivial `{ok:true}` with no DB/R2/Queue probe; no external uptime monitor | PARTIAL | CONFIRMED | Outages invisible until a user complains | Probe-based `/api/health` (D1 + R2 + Queue + Email binding check); wire external uptime monitor (Better Stack / UptimeRobot / Checkly) | Manual check | Uptime %, MTTR | S | — | Yes (monitor choice) | **defer to Stage C**; acceptable for Stage A with 5–8 known users |
-| **G-13** | A | Scope | Founder | Lens L | Admin shell ~22 routes, Client Portal 19 tables, Realtime collaboration 2 DO classes — all overbuilt for solo beachhead | NOT_NEEDED_NOW | STRONG_INFERENCE | Founder attention diffused; maintenance surface larger than needed | Hide (not delete) Client Portal and realtime behind feature flags for first cohort; keep admin shell as-is (mostly read-only) | None | — | — | — | No | **hide** (do not delete) |
+| **G-13** | A | Scope | Founder | Lens L | Admin shell 21 routes, Client Portal 19 tables, Realtime collaboration 2 DO classes — all overbuilt for solo beachhead | NOT_NEEDED_NOW | STRONG_INFERENCE | Founder attention diffused; maintenance surface larger than needed | Hide (not delete) Client Portal and realtime behind feature flags for first cohort; keep admin shell as-is (mostly read-only) | None | — | — | — | No | **hide** (do not delete) |
 | **G-14** | C | Legal | All | Lens J | Data residency not stated (PH placeholder, `terms-content.ts:129`); subprocessor list incomplete (Google omitted, `privacy/page.tsx:49-51`); Terms status `closed_beta_owner_approved_pending_counsel_review` | MANUAL_AND_ACCEPTABLE (beta) / OWNER_DECISION_REQUIRED (paid) | CONFIRMED | Closed-beta-appropriate but not paid-launch-ready; risk if any design partner is outside PH | Complete subprocessor list (Cloudflare + Google at minimum); state PH data residency; counsel review before paid launch | Disclose in beta agreement | Counsel signoff | S (copy) / M (counsel) | — | Yes (counsel) | **operate manually for Stage A; build for Stage C** |
 | **G-15** | A | Onboarding | Solo estimator | Journey 2 | No pre-access beta agreement / expectations doc / risk-disclosure screen beyond Terms clickwrap (`legal/terms-gate.ts:1-26`); request-access gate copy is one line (`ClosedBetaGate.tsx:37-39`) | MANUAL_AND_ACCEPTABLE | CONFIRMED | Design partners have unclear expectations; "is my data safe", "what if it breaks mid-bid", "what does Philip owe me" unanswered | One-page design-partner agreement: data backup expectation, support SLA (none), feedback expectation, founder-member offer terms | Philip explains in kickoff call | Cohort retention, dispute count | S | — | Yes (offer terms) | **operate manually** |
 | **G-16** | B | Retention / Collaboration | Solo estimator + occasional collaborator | Journey 7 | Realtime collaboration built but not core to solo ICP; could distract from solo loop if marketed as headline | NOT_NEEDED_NOW | STRONG_INFERENCE | Premature multi-seat messaging pulls roadmap toward enterprise | De-emphasize collaboration in onboarding and landing copy; keep available but not headline; surface only when user invites first collaborator | None | — | — | — | No | **hide behind first-invite** |
@@ -782,7 +803,7 @@ authority and ordering live in their own packs.
 | Beta feedback + support | BUILT (notifications to founder MISSING) | `workshop/feedback/page.tsx`, `admin/support/page.tsx`, `SupportInbox` DO |
 | Notifications + announcements | PARTIAL (broadcast-only) | `notification-actions.ts:40`, `ReleaseAnnouncementModal.tsx` |
 | Settings + account | BUILT | `workshop/settings/*` |
-| Admin/founder surfaces | BUILT (overbuilt; no single dashboard) | `admin/page.tsx`, ~22 admin routes |
+| Admin/founder surfaces | BUILT (overbuilt; no single dashboard) | `admin/page.tsx`, exactly 21 admin routes |
 | Mobile/desktop guard | NOT_NEEDED_NOW (no guard) | grep negative |
 | Error / loading / recovery | BUILT_AND_PROVEN | `/access-required`, `client_error_events` |
 | Lead capture / waitlist / CRM | **MISSING** | negative grep over migrations |
@@ -795,71 +816,22 @@ authority and ordering live in their own packs.
 
 ---
 
-## P. Answers to the 30 mandatory questions (master prompt §16)
+## P. Master-prompt §16 question index
 
-1. **Strongest initial ICP?** Solo/freelance cost estimator or QS in PH
-   (verdict §2).
-2. **Marketing message specific enough?** No — currently addresses all AEC. The
-   `/pricing` page and hero should speak to the solo estimator's reuse pain.
-3. **Public CTA reliable lead or mailto draft?** Mailto draft only; `POST /contact`
-   has no handler. (G-01.)
-4. **Real design-partner pipeline?** No — `closed_beta_allowed_emails` is the
-   gate but there is no funnel table, no qualification, no source attribution.
-5. **Approval → first login?** Magic link / Google OAuth → middleware cookie
-   check → layout session+terms gate → workshop dashboard. Works.
-6. **Onboarding route substantive?** No — 5-line redirect to settings. (G-03.)
-7. **Median path to first value by source?** Guided sample: ~2 min. Blank path:
-   ~6 hops, ~5–10 min. Empty-library blank path with real data: 30–120 min.
-8. **Need import / sample / concierge?** Yes — at least one of import or
-   concierge-seed is needed for real data. (G-02.)
-9. **Bulk import the largest adoption blocker?** Yes. Confirmed by negative
-   grep (no import) and the library's single-row modal.
-10. **Proves value before library?** Partially — express inline rows allow it,
-    but UI signals library-first. (Lens B.)
-11. **True activation moment?** `first_valid_total` (first priced row producing
-    non-zero total). Already in the activation ledger.
-12. **Behavior predicting retention?** Second estimate with reused library
-    item. Not yet measured. (G-08.)
-13. **Analytics measure activation/retention?** Activation: yes (cohort
-    aggregate). Retention: no. (G-04, G-08.)
-14. **Product vs operational telemetry?** Operational yes (Web Vitals, client
-    errors, cron, ops runs, Workers Observability). Product no (zero events).
-15. **Identify inactive design partner before churn?** Partially — cohort
-    stalled-state query exists (`listActivationCohort` 24h/72h thresholds) but
-    not surfaced on a single dashboard. (G-05.)
-16. **See/act on feedback efficiently?** Capture works; triage works; routing
-    to founder does not (no targeted notification). (G-07.)
-17. **`support@` enough, and where breaks?** Enough at 5–8 users. Breaks at
-    ~20+: no assignee, no SLA, no severity on conversations (`migrations/0042`).
-    For Stage A, async + email is right; SupportChatWidget is built but
-    unmounted, which is the correct posture.
-18. **XLSX enough for first ICP?** Yes. PH contractors and architects live in
-    Excel. (Lens K.)
-19. **PDF a beta blocker?** No. Defer until a paying client asks.
-20. **Immutable snapshots required before charging?** Yes for trust (client
-    needs to know what they approved). Client Portal has it; legacy shared
-    link does not. Stage C: pick one surface and standardize. (Lens J.)
-21. **Collaboration core or secondary?** Secondary for the solo beachhead.
-    (G-16.)
-22. **AI helpful, distracting, or risky?** Distracting and risky at this stage.
-    Correctly OFF by default. Leave OFF. (Lens L.)
-23. **Pricing hypothesis testable?** Yes — `/pricing` philosophy is sound. But
-    no instrument exists to test it through. (G-04 + Lens H.)
-24. **Evidence needed before publishing price?** 5+ problem interviews, 2+
-    active users on real estimates, Van Westendorp, direct WTP ask, alternative
-    mapping. (Lens H.)
-25. **Manual invoicing better than building billing?** Yes for Stage C. Defer
-    Stripe indefinitely until paid volume justifies it. (G-10.)
-26. **Entitlement boundaries for paid MVP?** Free cap on library size + 1
-    active project; Solo = unlimited projects + custom export branding +
-    client portal; Pro/Team later. Reject meters on BOQ rows / estimates /
-    exports. (Lens H.)
-27. **Minimum trust/recovery evidence missing?** Backups/PITR + restore drill
-    (G-11). Everything else is built.
-28. **What can stay manual at 5/20/50 users?** See Lens I classification.
-29. **Most overbuilt relative to demand evidence?** The Admin shell (~22
-    routes), Client Portal immutable issues (19 tables), and realtime
-    collaboration (2 DOs). (Lens L.)
-30. **Single highest-leverage next action?** Ship the bundled lead-capture +
-    product-telemetry + founder-dashboard spike (~3–5 days) before recruiting.
-    (Verdict §12.)
+(2nd pass: full per-question prose removed as ceremonial restatement; each
+answer lives at the cited location. The 30 questions from the master prompt
+are answered by the sections already in this pack.)
+
+| Q | Answer location |
+|---|---|
+| 1, 21, 22, 29 | §A (Lens A), §L (Lens L) |
+| 2 | §A final paragraph (positioning claim discipline) |
+| 3, 4, 23 | §C (Lens C) + G-01, G-04 |
+| 5, 6 | §D (Lens D) + G-03 |
+| 7, 8, 9, 10 | §B (Lens B) + §D + G-02, G-19 |
+| 11, 12, 13, 14 | §B + §F (Lens F) + G-04, G-08 |
+| 15, 16, 17 | §I (Lens I) + §G (Lens G) + G-05, G-07 |
+| 18, 19, 20 | §K (Lens K) + §J (Lens J) |
+| 24, 25, 26 | §H (Lens H) + G-10 |
+| 27, 28 | §J + §I |
+| 30 | `00-EXECUTIVE-VERDICT.md` §12 (single next action) |

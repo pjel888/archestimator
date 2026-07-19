@@ -2,7 +2,8 @@
 
 ## Audit baseline
 
-- **Audit date:** 2026-07-18
+- **Audit dates:** 2026-07-18 (1st pass); 2026-07-19 (2nd pass: schema
+  conformance, defect repair, variant accommodation).
 - **Branch:** `main`
 - **Full commit SHA:** `a41a07d0143abf72289a97cd8bd023cfa9986361`
 - **Worktree status (session start):** clean `main` with two pre-existing
@@ -15,6 +16,9 @@
 - **Audit type:** whole-company MVP startup readiness & gap audit, distinct
   from the engineering-focused audits of the same date (see §Relationship to
   other audits below).
+- **Validator status:** `bun run validate:plan-pack
+  .ai/03_plans/2026-07-18-MVP-Startup-Readiness-Audit` → **PASS**. Manifest
+  hash refreshed via `--write`. Pack conforms to `suite_version: 2026-07-12`.
 
 ## Audit scope
 
@@ -61,11 +65,15 @@ Per master prompt §4 and `AGENTS.md`:
 | Document | Purpose |
 |---|---|
 | `README.md` (this file) | Baseline, scope, source hierarchy, headline conclusion. |
+| `00-PLAN.md` | **Canonical execution index.** Requirements (`REQ-*`), autonomous decisions (`DEC-AUTO-*`), units (`UNIT-*`), criteria (`AC-*`), evidence (`EVID-*`), risks (`RISK-*`), execution graph, execution order, cross-reference map. The artifact referenced by `canonical_execution_artifact` in `plan-pack.json`. |
+| `plan-pack.json` | Machine-readable manifest; passes `bun run validate:plan-pack`. |
+| `LOOP_LEDGER.md` | Append-only coordination log: current state, event ledger, decision ledger, authorization ledger, gate ledger, risks, continuation. |
 | `00-EXECUTIVE-VERDICT.md` | Stage verdicts table, beachhead, core loop, activation/retention events, north-star, top gaps, dangerous assumptions, defer list, single next action. |
 | `01-CAPABILITY-AND-GAP-AUDIT.md` | Capability truth map, ten mandatory journeys, twelve audit lenses, documentation drift, evidence-backed gap register. |
 | `02-PRIORITIZED-MVP-BACKLOG.md` | Seven operating milestones (before recruiting → before public self-service → deferred/killed) with outcome/reason/scope/files/manual-alt/acceptance/metric/effort/dependency/owner/priority/risk. Stage A/B list consolidated under 15 items. |
 | `03-EXPERIMENTS-METRICS-AND-OPERATING-PLAN.md` | Six experiments with pass/fail/inconclusive/kill rules, minimum event taxonomy, founder operating cadence. |
-| `04-FOUNDER-DECISION-PACKET.md` | ≤12 owner decisions only, each with options, recommended default, evidence, cost of delay, latest responsible decision date, what stays reversible. |
+| `04-FOUNDER-DECISION-PACKET.md` | Four genuine founder decisions only (2nd pass: down from 12). Each with options, recommended default, evidence, cost of delay, latest responsible decision date, what stays reversible. |
+| `001-*.md` … `013-*.md` | Per-unit execution docs (one per `UNIT-*`). Source evidence, implementation, acceptance evidence, test decision, recovery, completion signal. |
 
 All findings cite exact `file:line` evidence from commit `a41a07d01`.
 
@@ -134,11 +142,52 @@ lead table, no qualification fields, no pipeline visibility, and the
 first-value checklist component is built but never mounted, there is no
 spreadsheet import, and the activation milestone `health_reviewed` is
 declared but never emitted (G-02/G-03); (3) **learning instrumentation is
-near-zero** — zero first-party product-funnel events are emitted, no GA4/PostHog
-wiring, and the founder dashboard is scattered across ~22 admin pages with the
+near-zero** — GA4 is mounted for landing pageviews/A-B variant events but no
+first-party activation-funnel or attribution events are emitted, and the
+founder dashboard is scattered across exactly 21 admin pages with the
 overview explicitly punting "Active teams" to "Repository lane pending"
 (G-04/G-05). The single highest-leverage move is to ship a working lead-capture
 + activation-telemetry spike (≈3–5 days) before recruiting the cohort, because
 right now Philip cannot tell which CTA produced a signup, cannot tell whether a
 design partner reached first value, and cannot run a pricing conversation
 without that evidence.
+
+## 2nd-pass improvements (2026-07-19)
+
+Per `Improve-Plan-Prompt.md` and `Multi-Agent-Execution-Directive.md`. Three
+parallel verification agents (pack-defect, validator-shape,
+variant-accommodation) surfaced a 40-item defect register. Repairs:
+
+- **Schema conformance (BLOCKER fixes):** added canonical `00-PLAN.md` with
+  stable IDs (`REQ-001..016`, `DEC-AUTO-001..012`, `UNIT-001..013`,
+  `AC-001..016`, `EVID-001..013`, `RISK-001..003`, `GATE-PLAN-001`,
+  `SLICE-001`); added `plan-pack.json` passing `bun run validate:plan-pack`;
+  added `LOOP_LEDGER.md`; added 13 per-unit docs (`001-*.md`..`013-*.md`).
+- **Evidence correction (DEF-30):** GA4 IS wired (`@next/third-parties` at
+  `package.json:140`, `LandingAnalyticsLoader.tsx:3,27`). G-04 framing
+  corrected from "no GA4 wiring" to "no first-party funnel events"; the
+  narrower claim is the load-bearing point.
+- **Evidence correction (DEF-31):** activation framing expanded to
+  acknowledge sibling consistency-audit F-08 REFUTED verdict — the entire
+  activation-progress subsystem (display + producer) is dead.
+- **Evidence correction (DEF-37):** admin route count is exactly 21 (not
+  "~22"); `find src/app/admin -name page.tsx | wc -l`.
+- **Speculative-scope cut (DEF-11, DEF-12):** Stage C/D items (M5/M6) removed
+  from the executable backlog; kept only as deferred narrative. Pricing
+  speculation in `03-…md` §D trimmed to a one-paragraph evidence-first note.
+- **Ceremonial-artifact cut (DEF-13):** `01-…md` §P (30 mandatory questions)
+  compressed to a cross-reference index.
+- **False-blocker removal (DEF-14, DEF-17..23):** 8 of 12 founder decisions
+  downgraded to `DEC-AUTO-*` records (resolved autonomously per Kernel §4);
+  FD-12 removed entirely (non-decision). The packet now contains 4 genuine
+  founder decisions (FD-01, FD-06, FD-07, FD-09).
+- **Context-preload trim (DEF-16):** documentation-drift §M cut from 11 rows
+  to 6 startup-side rows; provider-era and dead-code drift items live in
+  their canonical homes and are not re-stated here.
+- **Variant accommodation (G-19, new finding):** PH bid-prep uses 2–3 supplier
+  variants per line; the variant schema is mature but the import spike
+  (`031-spike-library-bulk-import.md`) and BOQ export are variant-blind. Added
+  REQ-005 / UNIT-006 (DEC-AUTO-010 declares variants CORE, not auxiliary).
+- **Trust precondition (UNIT-013):** row-total divergence (consistency F-01
+  CRITICAL) recorded as an external-owner trust precondition for cohort
+  recruitment, not re-derived.

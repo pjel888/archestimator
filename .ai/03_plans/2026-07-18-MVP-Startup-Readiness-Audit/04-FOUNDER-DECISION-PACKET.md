@@ -1,14 +1,32 @@
 # 04 — Founder Decision Packet
 
-Audit commit `a41a07d01`. Per master prompt §13.4, this packet contains only
-decisions that genuinely require Philip. Everything else in this audit can be
-resolved by source evidence or ordinary execution.
+Audit commit `a41a07d01`. Per master prompt §13.4 and Frontier-Planning-Kernel
+§4, this packet contains only decisions that genuinely require Philip —
+irreversible, destructive, paid, credential-gated, external-production, or
+materially scope-changing. Everything else has been downgraded to autonomous
+`DEC-AUTO-*` records in `00-PLAN.md` §6 and resolved from current evidence.
 
-Twelve decisions. Each: why it matters now, options, recommended default,
-evidence, cost of delay, latest responsible decision date, what stays
-reversible.
+**2nd-pass scope reduction (DEF-14, DEF-17..23):** the 1st pass listed 12
+founder decisions. Seven of those were ordinary reversible choices and are now
+`DEC-AUTO-*` records (lead-capture shape, product-event emitter scope,
+`seed.json` disposition, `health_reviewed` resolution, Stage A proposal
+surface, Stage C payment channel, uptime monitor vendor). FD-12 (cohort pause
+authority) was removed entirely — by definition a non-decision.
+
+**Four genuine founder decisions remain** (the schema has no `FD-*` slot; they
+live here as narrative):
+
+- **FD-01** Beachhead segment confirmation (recruiting real external humans).
+- **FD-06** Founder-member offer terms (external pricing commitment).
+- **FD-07** Paid value metric / entitlement boundary (paid boundary).
+- **FD-09** Counsel engagement (external paid relationship).
+
+Each: why it matters now, options, recommended default, evidence, cost of
+delay, latest responsible decision date, what stays reversible.
 
 ---
+
+
 
 ## FD-01 · Beachhead segment confirmation
 
@@ -29,73 +47,32 @@ reversible.
 - **Latest responsible decision date:** before any outreach.
 - **What stays reversible:** segment can be narrowed again after cohort 1.
 
-## FD-02 · Lead-capture vs mailto continuation
+## FD-02 · (DEC-AUTO-001) Lead-capture shape
 
-- **Decision:** Build `beta_access_requests` + server action (M1-01), or
-  continue with mailto + spreadsheet for cohort 1.
-- **Why it matters now:** Every recruited partner without it = lost signal on
-  source attribution and qualification.
-- **Options:**
-  - (a) Build M1-01 before outreach (recommended);
-  - (b) Defer to cohort 2; use spreadsheet for cohort 1.
-- **Recommended default:** (a). The cost is ~1 founder-day; the value is
-  permanent.
-- **Evidence:** `01-…md` §C; verdict §12.
-- **Cost of delay:** none if built before outreach; otherwise cohort-1
-  attribution is gone.
-- **Latest responsible decision date:** before any outreach.
-- **What stays reversible:** table schema can evolve; existing rows migrate.
+**Downgraded from founder decision in 2nd pass (DEF-17).** Resolved autonomously:
+build `beta_access_requests` + server action. Evidence is one-sided (mailto
+demonstrably loses leads; one D1 table is the smallest coherent scope).
+Reversible (schema migrates). See `00-PLAN.md` DEC-AUTO-001 and UNIT-001.
 
-## FD-03 · Product-event emitter scope
+## FD-03 · (DEC-AUTO-002) Product-event emitter scope
 
-- **Decision:** Approve the narrow 8-event emitter (M1-02) writing to a local
-  D1 `product_events` table, versus deferring analytics entirely, versus
-  adopting an external SDK (GA4 / PostHog).
-- **Why it matters now:** Without any instrumentation, every later decision is
-  guesswork.
-- **Options:**
-  - (a) Local D1 table, 8 events, no external SDK (recommended);
-  - (b) Defer all analytics to cohort 2;
-  - (c) Adopt PostHog or GA4 now.
-- **Recommended default:** (a). Local table avoids external dependency,
-  keeps PII inside D1, and is sufficient for Stage A/B volume.
-- **Evidence:** `01-…md` §F; `03-…md` §C and §F.
-- **Cost of delay:** every cohort-1 user is a missing data point.
-- **Latest responsible decision date:** before user #1.
-- **What stays reversible:** yes — events can be backfilled into PostHog later
-  by exporting the table.
+**Downgraded (DEF-18).** Resolved autonomously: local D1 `product_events`
+table, 8 events, no external SDK. GA4 is already mounted for landing; the gap
+is first-party funnel events. PostHog backfill is reversible. See DEC-AUTO-002
+and UNIT-002.
 
-## FD-04 · Sample-data path
+## FD-04 · (DEC-AUTO-004) Sample-data path
 
-- **Decision:** Delete `data/local/seed.json`, wire it as a real auto-seed on
-  first workspace, or leave it as dead weight.
-- **Why it matters now:** Confuses developers; blocks M2-02 clarity.
-- **Options:**
-  - (a) Delete `seed.json`; rely on `startGuidedSample()` only (recommended);
-  - (b) Wire `seed.json` as a workspace-template option in `FirstProjectZeroState`;
-  - (c) Leave it.
-- **Recommended default:** (a) unless you want a "Workspace template" option
-  distinct from the guided sample — then (b).
-- **Evidence:** `01-…md` §D; library census confirms `seed.json` has no
-  runtime loader.
-- **Cost of delay:** low; mostly developer confusion.
-- **Latest responsible decision date:** before M2-02.
-- **What stays reversible:** yes.
+**Downgraded (DEF-19).** Resolved autonomously: delete `data/local/seed.json`.
+Negative grep confirms zero importers in `src/`. Kernel §4 mandates dead-code
+deletion as the default. See DEC-AUTO-004 and UNIT-012.
 
-## FD-05 · `health_reviewed` milestone
+## FD-05 · (DEC-AUTO-005) `health_reviewed` milestone
 
-- **Decision:** Wire the emitter (M2-01) or remove the milestone from the
-  taxonomy.
-- **Why it matters now:** Distorts the cohort funnel view forever otherwise.
-- **Options:**
-  - (a) Wire the emitter at the health-review action call site (recommended);
-  - (b) Remove from `ACTIVATION_MILESTONES` and `activation-producer-contract.ts:26`.
-- **Recommended default:** (a) if "estimate health review" is a real user
-  action; (b) if it was aspirational and no such UI exists.
-- **Evidence:** `01-…md` §F; activation census.
-- **Cost of delay:** low but compounds in the funnel view.
-- **Latest responsible decision date:** before user #1.
-- **What stays reversible:** yes.
+**Downgraded (DEF-20).** Resolved autonomously: wire the producer if a
+health-review UI call site exists in source, else remove from
+`ACTIVATION_MILESTONES`. A 5-minute grep determines which; either branch is
+reversible. See DEC-AUTO-005 and UNIT-003.
 
 ## FD-06 · Founder-member offer terms
 
@@ -131,21 +108,11 @@ reversible.
 - **Latest responsible decision date:** before first pricing conversation.
 - **What stays reversible:** yes — caps can adjust.
 
-## FD-08 · Payment channel for Stage C
+## FD-08 · (DEC-AUTO-007) Payment channel for Stage C
 
-- **Decision:** Which payment channels does the first manual-invoiced payment
-  use? GCash, bank transfer, PayPal, Wise, Stripe-Link?
-- **Why it matters now:** Affects the manual-invoice helper UX and the
-  Philippines tax/accounting posture.
-- **Options:**
-  - (a) GCash + bank transfer (PH-native; recommended for first paying users);
-  - (b) PayPal / Wise (international-ready);
-  - (c) Stripe (defers Stage C).
-- **Recommended default:** (a).
-- **Evidence:** `01-…md` §H, §K.
-- **Cost of delay:** none until first willing payer.
-- **Latest responsible decision date:** when the first user names a budget.
-- **What stays reversible:** yes.
+**Downgraded (DEF-21).** Resolved autonomously: GCash + bank transfer
+(PH-native, lowest friction). Deferred until first willing payer. Reversible.
+See DEC-AUTO-007.
 
 ## FD-09 · Legal counsel and subprocessor disclosure
 
@@ -163,52 +130,25 @@ reversible.
 - **Latest responsible decision date:** before asking for payment.
 - **What stays reversible:** copy changes are reversible.
 
-## FD-10 · Uptime monitor vendor
+## FD-10 · (DEC-AUTO-008) Uptime monitor vendor
 
-- **Decision:** Pick an external uptime monitor for M5-03.
-- **Options:**
-  - (a) Better Stack (recommended; generous free tier, status page);
-  - (b) UptimeRobot;
-  - (c) Checkly (active probes).
-- **Recommended default:** (a) or (b).
-- **Evidence:** `01-…md` §J.
-- **Cost of delay:** low for Stage A; high for paid.
-- **Latest responsible decision date:** before paid launch.
-- **What stays reversible:** yes.
+**Downgraded (DEF-22).** Resolved autonomously: Better Stack free tier.
+Commodity SaaS choice, reversible. Deferred to Stage C (UNIT for M5-03 is not
+in the executable backlog). See DEC-AUTO-008.
 
-## FD-11 · Proposal surface consolidation
+## FD-11 · (DEC-AUTO-006) Proposal surface consolidation
 
-- **Decision:** Pick the canonical proposal surface: legacy shared link or
-  Client Portal.
-- **Why it matters now:** Two parallel surfaces diverge on immutability,
-  decisions, and complexity. Maintenance and trust clarity suffer if both
-  ship long-term.
-- **Options:**
-  - (a) Make Client Portal canonical; deprecate legacy shared link (recommended
-    for paid; richer features);
-  - (b) Keep legacy shared link canonical; hide Client Portal behind a flag;
-  - (c) Maintain both indefinitely (reject).
-- **Recommended default:** (b) for Stage A (legacy is simpler, ships today),
-  then (a) before paid.
-- **Evidence:** `01-…md` §L; collaboration/share census.
-- **Cost of delay:** low until maintenance burden grows.
-- **Latest responsible decision date:** before paid launch (M5-05).
-- **What stays reversible:** yes.
+**Downgraded (DEF-23).** Resolved autonomously for Stage A: legacy shared
+link is canonical (simpler, BOQ-XLSX-coupled, ships today). Client Portal
+consolidation deferred to Stage C. See DEC-AUTO-006.
 
-## FD-12 · Cohort pause / kill authority
+## FD-12 · (REMOVED) Cohort pause / kill authority
 
-- **Decision:** Philip retains sole authority to pause or kill the cohort on
-  the criteria in `03-…md` §E (trust failure, support-capacity breach, low
-  retention, legal escalation).
-- **Why it matters now:** Without explicit authority, the team (or future
-  agents) may try to "fix through" a pause-worthy event.
-- **Options:** (only one) explicit pause authority resting with Philip.
-- **Recommended default:** adopt the pause criteria verbatim.
-- **Evidence:** `03-…md` §E.
-- **Cost of delay:** low; high value if a trust event occurs.
-- **Latest responsible decision date:** before user #1.
-- **What stays reversible:** a pause is reversible; a kill triggers an exit
-  interview round.
+**Removed in 2nd pass (DEF-14).** By definition not a decision (only one
+option). Pause criteria live in `03-…md` §E and are adopted verbatim; Philip
+retains sole pause authority by default as the founder.
+
+---
 
 ---
 

@@ -19,131 +19,1203 @@
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "artifacts": [
-    { "id": "ART-001", "role": "canonical-execution", "path": "00-PLAN.md", "sha256": "b75100fb63e2bc3225a5af1c9c7a64b04bd845ef6337d09c8aa9ec269e644ad0" },
-    { "id": "ART-002", "role": "recovery", "path": "LOOP_LEDGER.md", "sha256": "0e74d7a7e0078fbe10cccf24ddd706f50eabfce1a2620f34b5e6180b3c8aa392" },
-    { "id": "ART-003", "role": "narrative", "path": "README.md", "sha256": "b04eca7be752c867c46d81c6a2e06f30415facbbe28fd22a5bc822d76fdacba8" },
-    { "id": "ART-004", "role": "narrative", "path": "00-EXECUTIVE-VERDICT.md", "sha256": "64f6cd9dc52dde3c22c8e82625305ee1ea4a5b4bebd123bd3e99681879e288ab" },
-    { "id": "ART-005", "role": "narrative", "path": "01-CAPABILITY-AND-GAP-AUDIT.md", "sha256": "3ce02677dcf57191f9eb1c62a9e479b4f8b084de513e070359e46de1aaea87f3" },
-    { "id": "ART-006", "role": "narrative", "path": "02-PRIORITIZED-MVP-BACKLOG.md", "sha256": "83d2fccceac8ebff8a75015db0bebdc5564f9e598cb6764c0193e8425bf332e9" },
-    { "id": "ART-007", "role": "narrative", "path": "03-EXPERIMENTS-METRICS-AND-OPERATING-PLAN.md", "sha256": "9c8846e4869ba3ad5c6d3069403143c49f9b5dd8a78d99be9bbd93906f0b71ea" },
-    { "id": "ART-008", "role": "narrative", "path": "04-FOUNDER-DECISION-PACKET.md", "sha256": "bc560bea81f5b3dfa3df94de87c990e5219fd572798501e45db8656f82a08339" },
-    { "id": "ART-009", "role": "unit", "path": "001-lead-capture.md", "sha256": "07dc79029143615676f0052dfd50947d08a0c524161a3f4c75065c548c650f40" },
-    { "id": "ART-010", "role": "unit", "path": "002-product-event-emitter.md", "sha256": "43d5c3f80f04ba956fb6dc1ad8b19211c5b2445f8a88265f4e1079485ddaf7e8" },
-    { "id": "ART-011", "role": "unit", "path": "003-activation-ui-wire-or-remove.md", "sha256": "113b79cdf90e9930d4b4f384e7770bb72f47b19e38ad1b746778164ec2c2f410" },
-    { "id": "ART-012", "role": "unit", "path": "004-backup-pitr-and-restore-drill.md", "sha256": "8a2bd37a57cbff225d35700cfe44cee09225ffe732046b7e2815ba854cb8f0e1" },
-    { "id": "ART-013", "role": "unit", "path": "005-library-csv-xlsx-import.md", "sha256": "0501605c8f7fbc0a29c77b09162948323220017dfd77dde22a37ab0d2be8f396" },
-    { "id": "ART-014", "role": "unit", "path": "006-variant-accommodation.md", "sha256": "132ce0860204b6c4cfd34b7718b7180afa186cdacbc364385440fe2f93258e33" },
-    { "id": "ART-015", "role": "unit", "path": "007-beta-health-dashboard.md", "sha256": "9df6355566af42d4faa8f5bb468c4c1a4101bc90e2eb64fa1249fdaa7cd4c0eb" },
-    { "id": "ART-016", "role": "unit", "path": "008-founder-notification-wiring.md", "sha256": "9c78040b730b2f89f28c20b9fb277452be6648b2894f2963821076bd65a3ed9c" },
-    { "id": "ART-017", "role": "unit", "path": "009-retention-and-reuse-metrics.md", "sha256": "a44244469be32aaaf006a037830301c085efabab0408dfad729eabc67081a0fb" },
-    { "id": "ART-018", "role": "unit", "path": "010-contractor-profile-and-branded-export.md", "sha256": "823acc1939d659cb63055537c7b47016e344a4f60c8843260a98922c874e4ead" },
-    { "id": "ART-019", "role": "unit", "path": "011-beta-agreement-and-runbook.md", "sha256": "6e219e604c1e90533322c720f3bc2cace85f0655e20f23b0e85cc289b9427067" },
-    { "id": "ART-020", "role": "unit", "path": "012-first-session-cta-and-seed-json.md", "sha256": "1860360e113949a5e75985ab49244227f996c3ea65b9f4bc25cf07bbb4be6ee9" },
-    { "id": "ART-021", "role": "unit", "path": "013-external-row-total-divergence.md", "sha256": "6e83e5e171f505153fcf2f1992929fae3c2f87fa4649fac4d80c1a9416c847c7" }
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "b75100fb63e2bc3225a5af1c9c7a64b04bd845ef6337d09c8aa9ec269e644ad0"
+    },
+    {
+      "id": "ART-002",
+      "role": "recovery",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "0e74d7a7e0078fbe10cccf24ddd706f50eabfce1a2620f34b5e6180b3c8aa392"
+    },
+    {
+      "id": "ART-003",
+      "role": "narrative",
+      "path": "README.md",
+      "sha256": "b13511713f9f6955d764619b3c000c84f63126f831107d3c0136a0bd62d0efc9"
+    },
+    {
+      "id": "ART-004",
+      "role": "narrative",
+      "path": "00-EXECUTIVE-VERDICT.md",
+      "sha256": "a0148db74c0e7242d41d52236cafcbbc7037e2e4c29a11fbaafa4ea207f32a3f"
+    },
+    {
+      "id": "ART-005",
+      "role": "narrative",
+      "path": "01-CAPABILITY-AND-GAP-AUDIT.md",
+      "sha256": "ef8b02f155cb801c2fd4f9aea9c2af61e45aa9c252a3f71217522afb12548e32"
+    },
+    {
+      "id": "ART-006",
+      "role": "narrative",
+      "path": "02-PRIORITIZED-MVP-BACKLOG.md",
+      "sha256": "c499a159dc54d5f528c5e52da22a0b7cdac7ce93a5a8d7dd37a7fe245e56cb0b"
+    },
+    {
+      "id": "ART-007",
+      "role": "narrative",
+      "path": "03-EXPERIMENTS-METRICS-AND-OPERATING-PLAN.md",
+      "sha256": "9c8846e4869ba3ad5c6d3069403143c49f9b5dd8a78d99be9bbd93906f0b71ea"
+    },
+    {
+      "id": "ART-008",
+      "role": "narrative",
+      "path": "04-FOUNDER-DECISION-PACKET.md",
+      "sha256": "ae210ff49557c08c72667c776dc529ec473d9cdf49cfef044a0388c5cf3a1f6e"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "001-lead-capture.md",
+      "sha256": "07dc79029143615676f0052dfd50947d08a0c524161a3f4c75065c548c650f40"
+    },
+    {
+      "id": "ART-010",
+      "role": "unit",
+      "path": "002-product-event-emitter.md",
+      "sha256": "43d5c3f80f04ba956fb6dc1ad8b19211c5b2445f8a88265f4e1079485ddaf7e8"
+    },
+    {
+      "id": "ART-011",
+      "role": "unit",
+      "path": "003-activation-ui-wire-or-remove.md",
+      "sha256": "113b79cdf90e9930d4b4f384e7770bb72f47b19e38ad1b746778164ec2c2f410"
+    },
+    {
+      "id": "ART-012",
+      "role": "unit",
+      "path": "004-backup-pitr-and-restore-drill.md",
+      "sha256": "8a2bd37a57cbff225d35700cfe44cee09225ffe732046b7e2815ba854cb8f0e1"
+    },
+    {
+      "id": "ART-013",
+      "role": "unit",
+      "path": "005-library-csv-xlsx-import.md",
+      "sha256": "0501605c8f7fbc0a29c77b09162948323220017dfd77dde22a37ab0d2be8f396"
+    },
+    {
+      "id": "ART-014",
+      "role": "unit",
+      "path": "006-variant-accommodation.md",
+      "sha256": "132ce0860204b6c4cfd34b7718b7180afa186cdacbc364385440fe2f93258e33"
+    },
+    {
+      "id": "ART-015",
+      "role": "unit",
+      "path": "007-beta-health-dashboard.md",
+      "sha256": "9df6355566af42d4faa8f5bb468c4c1a4101bc90e2eb64fa1249fdaa7cd4c0eb"
+    },
+    {
+      "id": "ART-016",
+      "role": "unit",
+      "path": "008-founder-notification-wiring.md",
+      "sha256": "9c78040b730b2f89f28c20b9fb277452be6648b2894f2963821076bd65a3ed9c"
+    },
+    {
+      "id": "ART-017",
+      "role": "unit",
+      "path": "009-retention-and-reuse-metrics.md",
+      "sha256": "a44244469be32aaaf006a037830301c085efabab0408dfad729eabc67081a0fb"
+    },
+    {
+      "id": "ART-018",
+      "role": "unit",
+      "path": "010-contractor-profile-and-branded-export.md",
+      "sha256": "823acc1939d659cb63055537c7b47016e344a4f60c8843260a98922c874e4ead"
+    },
+    {
+      "id": "ART-019",
+      "role": "unit",
+      "path": "011-beta-agreement-and-runbook.md",
+      "sha256": "6e219e604c1e90533322c720f3bc2cace85f0655e20f23b0e85cc289b9427067"
+    },
+    {
+      "id": "ART-020",
+      "role": "unit",
+      "path": "012-first-session-cta-and-seed-json.md",
+      "sha256": "1860360e113949a5e75985ab49244227f996c3ea65b9f4bc25cf07bbb4be6ee9"
+    },
+    {
+      "id": "ART-021",
+      "role": "unit",
+      "path": "013-external-row-total-divergence.md",
+      "sha256": "6e83e5e171f505153fcf2f1992929fae3c2f87fa4649fac4d80c1a9416c847c7"
+    }
   ],
   "sources": [
-    { "id": "SRC-001", "status": "CURRENT", "artifact_path": "00-PLAN.md", "affected_ids": ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-011", "REQ-012", "REQ-013", "REQ-014", "REQ-015"] }
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "REQ-015",
+        "REQ-016"
+      ]
+    }
   ],
   "assumptions": [],
   "requirements": [
-    { "id": "REQ-001", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-001"], "criterion_ids": ["AC-001"] },
-    { "id": "REQ-002", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-002"], "criterion_ids": ["AC-002"] },
-    { "id": "REQ-003", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-003"], "criterion_ids": ["AC-003"] },
-    { "id": "REQ-004", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-005"], "criterion_ids": ["AC-004"] },
-    { "id": "REQ-005", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-006"], "criterion_ids": ["AC-005"] },
-    { "id": "REQ-006", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-007"], "criterion_ids": ["AC-006"] },
-    { "id": "REQ-007", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-008"], "criterion_ids": ["AC-007"] },
-    { "id": "REQ-008", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-009"], "criterion_ids": ["AC-008"] },
-    { "id": "REQ-009", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-004"], "criterion_ids": ["AC-009"] },
-    { "id": "REQ-010", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-011"], "criterion_ids": ["AC-010"] },
-    { "id": "REQ-011", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-010"], "criterion_ids": ["AC-011"] },
-    { "id": "REQ-012", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-003"], "criterion_ids": ["AC-012"] },
-    { "id": "REQ-013", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-012"], "criterion_ids": ["AC-013"] },
-    { "id": "REQ-014", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-011"], "criterion_ids": ["AC-014"] },
-    { "id": "REQ-015", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "CORE", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-001"], "criterion_ids": ["AC-015"] },
-    { "id": "REQ-016", "status": "ACCEPTED", "artifact_path": "00-PLAN.md", "completion_role": "AUXILIARY", "source_ids": ["SRC-001"], "unit_ids": ["UNIT-013"], "criterion_ids": ["AC-016"] }
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-014"
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-015"
+      ]
+    },
+    {
+      "id": "REQ-016",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "AUXILIARY",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-016"
+      ]
+    }
   ],
   "decisions": [
-    { "id": "DEC-AUTO-001", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-002", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-003", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-004", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-005", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-006", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-007", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-008", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-009", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-010", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-011", "status": "ACTIVE", "artifact_path": "00-PLAN.md" },
-    { "id": "DEC-AUTO-012", "status": "ACTIVE", "artifact_path": "00-PLAN.md" }
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-013",
+        "UNIT-012"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-013",
+        "UNIT-012"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "REQ-012",
+        "UNIT-003"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-011"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-011"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-011"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "GATE-PLAN-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-004",
+        "REQ-005",
+        "UNIT-005",
+        "UNIT-006"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-011",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "GATE-PLAN-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "GATE-PLAN-001"
+      ]
+    }
   ],
-  "authorization_boundaries": [
-    { "id": "AUTH-001", "status": "ACTIVE", "artifact_path": "00-PLAN.md" }
-  ],
+  "authorization_boundaries": [],
   "risks": [
-    { "id": "RISK-001", "status": "OPEN", "artifact_path": "LOOP_LEDGER.md", "unit_ids": ["UNIT-004"], "criterion_ids": [] },
-    { "id": "RISK-002", "status": "ACCEPTED", "artifact_path": "LOOP_LEDGER.md", "unit_ids": [], "criterion_ids": [] },
-    { "id": "RISK-003", "status": "OPEN", "artifact_path": "LOOP_LEDGER.md", "unit_ids": ["UNIT-013"], "criterion_ids": [] }
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "ACCEPTED",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "LOOP_LEDGER.md",
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-016"
+      ]
+    }
   ],
   "criteria": [
-    { "id": "AC-001", "status": "N/A", "artifact_path": "001-lead-capture.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped manual submit at execution time.", "requirement_ids": ["REQ-001", "REQ-015"], "test_ids": [], "evidence_ids": ["EVID-001"], "authorization_boundary_id": null },
-    { "id": "AC-002", "status": "N/A", "artifact_path": "002-product-event-emitter.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and event-row inspection at execution time.", "requirement_ids": ["REQ-002"], "test_ids": [], "evidence_ids": ["EVID-002"], "authorization_boundary_id": null },
-    { "id": "AC-003", "status": "N/A", "artifact_path": "003-activation-ui-wire-or-remove.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by grep + scoped new-user click at execution time.", "requirement_ids": ["REQ-003", "REQ-012"], "test_ids": [], "evidence_ids": ["EVID-003"], "authorization_boundary_id": null },
-    { "id": "AC-004", "status": "N/A", "artifact_path": "005-library-csv-xlsx-import.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped manual import at execution time.", "requirement_ids": ["REQ-004"], "test_ids": [], "evidence_ids": ["EVID-005"], "authorization_boundary_id": null },
-    { "id": "AC-005", "status": "N/A", "artifact_path": "006-variant-accommodation.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and round-trip export-import at execution time.", "requirement_ids": ["REQ-005"], "test_ids": [], "evidence_ids": ["EVID-006"], "authorization_boundary_id": null },
-    { "id": "AC-006", "status": "N/A", "artifact_path": "007-beta-health-dashboard.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and admin page load at execution time.", "requirement_ids": ["REQ-006"], "test_ids": [], "evidence_ids": ["EVID-007"], "authorization_boundary_id": null },
-    { "id": "AC-007", "status": "N/A", "artifact_path": "008-founder-notification-wiring.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped event fire at execution time.", "requirement_ids": ["REQ-007"], "test_ids": [], "evidence_ids": ["EVID-008"], "authorization_boundary_id": null },
-    { "id": "AC-008", "status": "N/A", "artifact_path": "009-retention-and-reuse-metrics.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by SQL cross-check against raw aggregates at execution time.", "requirement_ids": ["REQ-008"], "test_ids": [], "evidence_ids": ["EVID-009"], "authorization_boundary_id": null },
-    { "id": "AC-009", "status": "N/A", "artifact_path": "004-backup-pitr-and-restore-drill.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by restore drill log against preview D1 at execution time.", "requirement_ids": ["REQ-009"], "test_ids": [], "evidence_ids": ["EVID-004"], "authorization_boundary_id": null },
-    { "id": "AC-010", "status": "N/A", "artifact_path": "011-beta-agreement-and-runbook.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by first-partner acknowledgement at execution time.", "requirement_ids": ["REQ-010"], "test_ids": [], "evidence_ids": ["EVID-011"], "authorization_boundary_id": null },
-    { "id": "AC-011", "status": "N/A", "artifact_path": "010-contractor-profile-and-branded-export.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped export at execution time.", "requirement_ids": ["REQ-011"], "test_ids": [], "evidence_ids": ["EVID-010"], "authorization_boundary_id": null },
-    { "id": "AC-012", "status": "N/A", "artifact_path": "003-activation-ui-wire-or-remove.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by grep returning either zero references or one producer at execution time.", "requirement_ids": ["REQ-012"], "test_ids": [], "evidence_ids": ["EVID-003"], "authorization_boundary_id": null },
-    { "id": "AC-013", "status": "N/A", "artifact_path": "012-first-session-cta-and-seed-json.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and new-user click at execution time.", "requirement_ids": ["REQ-013"], "test_ids": [], "evidence_ids": ["EVID-012"], "authorization_boundary_id": null },
-    { "id": "AC-014", "status": "N/A", "artifact_path": "011-beta-agreement-and-runbook.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by runbook existence and admin README link at execution time.", "requirement_ids": ["REQ-014"], "test_ids": [], "evidence_ids": ["EVID-011"], "authorization_boundary_id": null },
-    { "id": "AC-015", "status": "N/A", "artifact_path": "001-lead-capture.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; acceptance verified by source_cta column populated correctly per CTA at execution time.", "requirement_ids": ["REQ-015"], "test_ids": [], "evidence_ids": ["EVID-001"], "authorization_boundary_id": null },
-    { "id": "AC-016", "status": "N/A", "artifact_path": "013-external-row-total-divergence.md", "test_requirement": "NOT_REQUIRED", "test_trigger": "NONE", "test_rationale": "PLAN_ONLY audit; external owner (consistency audit UNIT-001) tracks its own acceptance.", "requirement_ids": ["REQ-016"], "test_ids": [], "evidence_ids": ["EVID-013"], "authorization_boundary_id": null }
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "001-lead-capture.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped manual submit at execution time.",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-015"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "002-product-event-emitter.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and event-row inspection at execution time.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "003-activation-ui-wire-or-remove.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by grep + scoped new-user click at execution time.",
+      "requirement_ids": [
+        "REQ-003",
+        "REQ-012"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "005-library-csv-xlsx-import.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped manual import at execution time.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "artifact_path": "006-variant-accommodation.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and round-trip export-import at execution time.",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "artifact_path": "007-beta-health-dashboard.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and admin page load at execution time.",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "artifact_path": "008-founder-notification-wiring.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped event fire at execution time.",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "artifact_path": "009-retention-and-reuse-metrics.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by SQL cross-check against raw aggregates at execution time.",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "artifact_path": "004-backup-pitr-and-restore-drill.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by restore drill log against preview D1 at execution time.",
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-010",
+      "status": "N/A",
+      "artifact_path": "011-beta-agreement-and-runbook.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by first-partner acknowledgement at execution time.",
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-011",
+      "status": "N/A",
+      "artifact_path": "010-contractor-profile-and-branded-export.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and scoped export at execution time.",
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-012",
+      "status": "N/A",
+      "artifact_path": "003-activation-ui-wire-or-remove.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by grep returning either zero references or one producer at execution time.",
+      "requirement_ids": [
+        "REQ-012"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-013",
+      "status": "N/A",
+      "artifact_path": "012-first-session-cta-and-seed-json.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source diff and new-user click at execution time.",
+      "requirement_ids": [
+        "REQ-013"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-012"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-014",
+      "status": "N/A",
+      "artifact_path": "011-beta-agreement-and-runbook.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by runbook existence and admin README link at execution time.",
+      "requirement_ids": [
+        "REQ-014"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-015",
+      "status": "N/A",
+      "artifact_path": "001-lead-capture.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; acceptance verified by source_cta column populated correctly per CTA at execution time.",
+      "requirement_ids": [
+        "REQ-015"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-016",
+      "status": "N/A",
+      "artifact_path": "013-external-row-total-divergence.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "PLAN_ONLY audit; external owner (consistency audit UNIT-001) tracks its own acceptance.",
+      "requirement_ids": [
+        "REQ-016"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    }
   ],
   "tests": [],
   "gates": [
-    { "id": "GATE-PLAN-001", "status": "N/A", "artifact_path": "00-PLAN.md", "criterion_ids": ["AC-001", "AC-002", "AC-003", "AC-004", "AC-005", "AC-006", "AC-007", "AC-008", "AC-009", "AC-010", "AC-011", "AC-012", "AC-013", "AC-014", "AC-015", "AC-016"], "evidence_ids": [], "authorization_boundary_id": null }
+    {
+      "id": "GATE-PLAN-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "AC-013",
+        "AC-014",
+        "AC-015",
+        "AC-016"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    }
   ],
   "units": [
-    { "id": "UNIT-001", "status": "READY", "artifact_path": "001-lead-capture.md", "depends_on": [], "requirement_ids": ["REQ-001", "REQ-015"], "risk_ids": [], "evidence_ids": ["EVID-001"] },
-    { "id": "UNIT-002", "status": "PLANNED", "artifact_path": "002-product-event-emitter.md", "depends_on": ["UNIT-001"], "requirement_ids": ["REQ-002"], "risk_ids": [], "evidence_ids": ["EVID-002"] },
-    { "id": "UNIT-003", "status": "READY", "artifact_path": "003-activation-ui-wire-or-remove.md", "depends_on": [], "requirement_ids": ["REQ-003", "REQ-012"], "risk_ids": [], "evidence_ids": ["EVID-003"] },
-    { "id": "UNIT-004", "status": "READY", "artifact_path": "004-backup-pitr-and-restore-drill.md", "depends_on": [], "requirement_ids": ["REQ-009"], "risk_ids": ["RISK-001"], "evidence_ids": ["EVID-004"] },
-    { "id": "UNIT-005", "status": "PLANNED", "artifact_path": "005-library-csv-xlsx-import.md", "depends_on": ["UNIT-002"], "requirement_ids": ["REQ-004"], "risk_ids": [], "evidence_ids": ["EVID-005"] },
-    { "id": "UNIT-006", "status": "PLANNED", "artifact_path": "006-variant-accommodation.md", "depends_on": ["UNIT-005"], "requirement_ids": ["REQ-005"], "risk_ids": [], "evidence_ids": ["EVID-006"] },
-    { "id": "UNIT-007", "status": "PLANNED", "artifact_path": "007-beta-health-dashboard.md", "depends_on": ["UNIT-001", "UNIT-002"], "requirement_ids": ["REQ-006"], "risk_ids": [], "evidence_ids": ["EVID-007"] },
-    { "id": "UNIT-008", "status": "PLANNED", "artifact_path": "008-founder-notification-wiring.md", "depends_on": [], "requirement_ids": ["REQ-007"], "risk_ids": [], "evidence_ids": ["EVID-008"] },
-    { "id": "UNIT-009", "status": "PLANNED", "artifact_path": "009-retention-and-reuse-metrics.md", "depends_on": ["UNIT-002", "UNIT-007"], "requirement_ids": ["REQ-008"], "risk_ids": [], "evidence_ids": ["EVID-009"] },
-    { "id": "UNIT-010", "status": "PLANNED", "artifact_path": "010-contractor-profile-and-branded-export.md", "depends_on": [], "requirement_ids": ["REQ-011"], "risk_ids": [], "evidence_ids": ["EVID-010"] },
-    { "id": "UNIT-011", "status": "PLANNED", "artifact_path": "011-beta-agreement-and-runbook.md", "depends_on": ["UNIT-004"], "requirement_ids": ["REQ-010", "REQ-014"], "risk_ids": [], "evidence_ids": ["EVID-011"] },
-    { "id": "UNIT-012", "status": "PLANNED", "artifact_path": "012-first-session-cta-and-seed-json.md", "depends_on": [], "requirement_ids": ["REQ-013"], "risk_ids": [], "evidence_ids": ["EVID-012"] },
-    { "id": "UNIT-013", "status": "PLANNED", "artifact_path": "013-external-row-total-divergence.md", "depends_on": [], "requirement_ids": ["REQ-016"], "risk_ids": ["RISK-003"], "evidence_ids": ["EVID-013"] }
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "001-lead-capture.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-015"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "PLANNED",
+      "artifact_path": "002-product-event-emitter.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "003-activation-ui-wire-or-remove.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-003",
+        "REQ-012"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "004-backup-pitr-and-restore-drill.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "PLANNED",
+      "artifact_path": "005-library-csv-xlsx-import.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "PLANNED",
+      "artifact_path": "006-variant-accommodation.md",
+      "depends_on": [
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "PLANNED",
+      "artifact_path": "007-beta-health-dashboard.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "PLANNED",
+      "artifact_path": "008-founder-notification-wiring.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "PLANNED",
+      "artifact_path": "009-retention-and-reuse-metrics.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "PLANNED",
+      "artifact_path": "010-contractor-profile-and-branded-export.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "PLANNED",
+      "artifact_path": "011-beta-agreement-and-runbook.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "REQ-010",
+        "REQ-014"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ]
+    },
+    {
+      "id": "UNIT-012",
+      "status": "PLANNED",
+      "artifact_path": "012-first-session-cta-and-seed-json.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-013"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-012"
+      ]
+    },
+    {
+      "id": "UNIT-013",
+      "status": "PLANNED",
+      "artifact_path": "013-external-row-total-divergence.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-016"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-013"
+      ]
+    }
   ],
   "ready_slices": [
-    { "id": "SLICE-001", "status": "READY", "artifact_path": "00-PLAN.md", "unit_ids": ["UNIT-001", "UNIT-003", "UNIT-004"] }
+    {
+      "id": "SLICE-001",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004"
+      ]
+    }
   ],
   "evidence_index": [
-    { "id": "EVID-001", "status": "PLANNED", "artifact_path": "001-lead-capture.md", "sha256": "07dc79029143615676f0052dfd50947d08a0c524161a3f4c75065c548c650f40", "claim_ids": ["UNIT-001", "AC-001", "AC-015"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-002", "status": "PLANNED", "artifact_path": "002-product-event-emitter.md", "sha256": "43d5c3f80f04ba956fb6dc1ad8b19211c5b2445f8a88265f4e1079485ddaf7e8", "claim_ids": ["UNIT-002", "AC-002"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-003", "status": "PLANNED", "artifact_path": "003-activation-ui-wire-or-remove.md", "sha256": "113b79cdf90e9930d4b4f384e7770bb72f47b19e38ad1b746778164ec2c2f410", "claim_ids": ["UNIT-003", "AC-003", "AC-012"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-004", "status": "PLANNED", "artifact_path": "004-backup-pitr-and-restore-drill.md", "sha256": "8a2bd37a57cbff225d35700cfe44cee09225ffe732046b7e2815ba854cb8f0e1", "claim_ids": ["UNIT-004", "AC-009"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-005", "status": "PLANNED", "artifact_path": "005-library-csv-xlsx-import.md", "sha256": "0501605c8f7fbc0a29c77b09162948323220017dfd77dde22a37ab0d2be8f396", "claim_ids": ["UNIT-005", "AC-004"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-006", "status": "PLANNED", "artifact_path": "006-variant-accommodation.md", "sha256": "132ce0860204b6c4cfd34b7718b7180afa186cdacbc364385440fe2f93258e33", "claim_ids": ["UNIT-006", "AC-005"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-007", "status": "PLANNED", "artifact_path": "007-beta-health-dashboard.md", "sha256": "9df6355566af42d4faa8f5bb468c4c1a4101bc90e2eb64fa1249fdaa7cd4c0eb", "claim_ids": ["UNIT-007", "AC-006"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-008", "status": "PLANNED", "artifact_path": "008-founder-notification-wiring.md", "sha256": "9c78040b730b2f89f28c20b9fb277452be6648b2894f2963821076bd65a3ed9c", "claim_ids": ["UNIT-008", "AC-007"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-009", "status": "PLANNED", "artifact_path": "009-retention-and-reuse-metrics.md", "sha256": "a44244469be32aaaf006a037830301c085efabab0408dfad729eabc67081a0fb", "claim_ids": ["UNIT-009", "AC-008"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-010", "status": "PLANNED", "artifact_path": "010-contractor-profile-and-branded-export.md", "sha256": "823acc1939d659cb63055537c7b47016e344a4f60c8843260a98922c874e4ead", "claim_ids": ["UNIT-010", "AC-011"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-011", "status": "PLANNED", "artifact_path": "011-beta-agreement-and-runbook.md", "sha256": "6e219e604c1e90533322c720f3bc2cace85f0655e20f23b0e85cc289b9427067", "claim_ids": ["UNIT-011", "AC-010", "AC-014"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-012", "status": "PLANNED", "artifact_path": "012-first-session-cta-and-seed-json.md", "sha256": "1860360e113949a5e75985ab49244227f996c3ea65b9f4bc25cf07bbb4be6ee9", "claim_ids": ["UNIT-012", "AC-013"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" },
-    { "id": "EVID-013", "status": "PLANNED", "artifact_path": "013-external-row-total-divergence.md", "sha256": "6e83e5e171f505153fcf2f1992929fae3c2f87fa4649fac4d80c1a9416c847c7", "claim_ids": ["UNIT-013", "AC-016"], "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361", "valid_until": "2026-08-18T00:00:00.000Z" }
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "001-lead-capture.md",
+      "sha256": "07dc79029143615676f0052dfd50947d08a0c524161a3f4c75065c548c650f40",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001",
+        "AC-015"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "002-product-event-emitter.md",
+      "sha256": "43d5c3f80f04ba956fb6dc1ad8b19211c5b2445f8a88265f4e1079485ddaf7e8",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "003-activation-ui-wire-or-remove.md",
+      "sha256": "113b79cdf90e9930d4b4f384e7770bb72f47b19e38ad1b746778164ec2c2f410",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-003",
+        "AC-012"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "004-backup-pitr-and-restore-drill.md",
+      "sha256": "8a2bd37a57cbff225d35700cfe44cee09225ffe732046b7e2815ba854cb8f0e1",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-009"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "005-library-csv-xlsx-import.md",
+      "sha256": "0501605c8f7fbc0a29c77b09162948323220017dfd77dde22a37ab0d2be8f396",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-004"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "006-variant-accommodation.md",
+      "sha256": "132ce0860204b6c4cfd34b7718b7180afa186cdacbc364385440fe2f93258e33",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-005"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "007-beta-health-dashboard.md",
+      "sha256": "9df6355566af42d4faa8f5bb468c4c1a4101bc90e2eb64fa1249fdaa7cd4c0eb",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-006"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "artifact_path": "008-founder-notification-wiring.md",
+      "sha256": "9c78040b730b2f89f28c20b9fb277452be6648b2894f2963821076bd65a3ed9c",
+      "claim_ids": [
+        "UNIT-008",
+        "AC-007"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "artifact_path": "009-retention-and-reuse-metrics.md",
+      "sha256": "a44244469be32aaaf006a037830301c085efabab0408dfad729eabc67081a0fb",
+      "claim_ids": [
+        "UNIT-009",
+        "AC-008"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "artifact_path": "010-contractor-profile-and-branded-export.md",
+      "sha256": "823acc1939d659cb63055537c7b47016e344a4f60c8843260a98922c874e4ead",
+      "claim_ids": [
+        "UNIT-010",
+        "AC-011"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-011",
+      "status": "PLANNED",
+      "artifact_path": "011-beta-agreement-and-runbook.md",
+      "sha256": "6e219e604c1e90533322c720f3bc2cace85f0655e20f23b0e85cc289b9427067",
+      "claim_ids": [
+        "UNIT-011",
+        "AC-010",
+        "AC-014"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-012",
+      "status": "PLANNED",
+      "artifact_path": "012-first-session-cta-and-seed-json.md",
+      "sha256": "1860360e113949a5e75985ab49244227f996c3ea65b9f4bc25cf07bbb4be6ee9",
+      "claim_ids": [
+        "UNIT-012",
+        "AC-013"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-013",
+      "status": "PLANNED",
+      "artifact_path": "013-external-row-total-divergence.md",
+      "sha256": "6e83e5e171f505153fcf2f1992929fae3c2f87fa4649fac4d80c1a9416c847c7",
+      "claim_ids": [
+        "UNIT-013",
+        "AC-016"
+      ],
+      "source_revision": "a41a07d0143abf72289a97cd8bd023cfa9986361",
+      "valid_until": "2026-08-18T00:00:00.000Z"
+    }
   ],
   "stale_triggers": [
     "source-or-config-hash-change",
     "findings-reverified-against-newer-source",
     "cohort-recruitment-begins"
   ],
-  "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  "manifest_sha256": "e51ad3f87162169fe393218b5baedb1c6a287274df6dd7ba7a34628ef3844f53"
 }
