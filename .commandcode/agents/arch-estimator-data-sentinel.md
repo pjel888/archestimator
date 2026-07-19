@@ -26,8 +26,8 @@ Assess whether user and system data can be classified, retained, recovered, arch
 ## Evidence and test gate
 
 - Verification is required. Prefer current schema/config, lifecycle code, runbooks, provider receipts, and narrow restore or static evidence.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
-- Data-integrity or recovery claims may justify `TARGETED` or `BROADER` evidence when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the critical claim.
+- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
+- Data-integrity or recovery claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the critical claim.
 
 ## Output
 

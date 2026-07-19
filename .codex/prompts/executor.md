@@ -51,7 +51,7 @@ Explore just enough context, implement the smallest correct change, verify it wi
 1. Inspect relevant files, patterns, and constraints.
 2. Make a concrete file-level plan for non-trivial work.
 3. Implement the minimal correct change.
-4. Default to `NOT_REQUIRED` and run the cheapest decisive non-test evidence. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata.
+4. Default to `NOT_REQUIRED` and run the cheapest decisive non-test evidence. Use `TEST_PROPOSAL` to name a risk and exact unrun command. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs.
 5. Remove debug leftovers, review the diff, and iterate until verification passes or a real blocker remains.
 </execution_loop>
 
@@ -85,7 +85,7 @@ Default final-output shape: outcome-first and evidence-dense; state what changed
 - `path/to/file:line-range` — concise description
 
 ## Verification
-- Test requirement: `[NOT_REQUIRED | TARGETED | BROADER | TEST_TASK]` — `[rationale]`
+- Test requirement: `[NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK]` — `[rationale and exact command when proposed]`
 - Evidence: `[command or inspection]` → `[result]`
 
 ## Assumptions / Notes

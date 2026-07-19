@@ -49,6 +49,32 @@ Supermemory is advisory; `.ai` and current source remain authoritative.
   `bun run validate:skills` for a read-only drift check. Host-owned plugin skills
   remain in their host roots and use that plugin's updater.
 
+## Cross-Agent Skill Parity
+
+The goal is that every codebase AI agent working in this repo (Claude Code,
+Codex, Cursor, OpenCode, Kimi Code, Command Code, Mistral Vibe, ZCode/GLM, and
+any future host) sees the **same** shared skill set, with the canonical
+`dispatching-parallel-agents` skill as the template for what "available"
+means. One shared payload, many host roots.
+
+- **Canonical global source:** `~/.agents/skills/` — one physical payload per
+  skill, shared by every host.
+- **Canonical project source:** `.agents/skills/` — the eight Archestimator
+  adapters (`archestimator-plan-pack`, `debug-issue`, `explore-codebase`,
+  `gitnexus`, `impeccable`, `react-doctor`, `refactor-safely`, `review-changes`).
+- **Per-host exposure:** each non-canonical root (`~/.zcode/skills/`,
+  `~/.claude/skills/`, `~/.cursor/skills/`, `~/.config/opencode/skills/`,
+  `~/.opencode/skills/`, `~/.vibe/skills/`, `~/.commandcode/skills/`,
+  `~/.kimi-code/skills/`) holds **symlinks** into the canonical root, never a
+  second physical copy. Codex is the exception: it consumes skills via OMX
+  plugin delivery and must not mirror the catalog under `~/.codex/`.
+- **Drift gate:** `bun run validate:skills` is the single source of truth. A
+  clean run means shared skills resolve to one inode across every host. A
+  failing run names the exact stray physical copy or broken link to fix.
+- **Repair, don't reintroduce:** if a host regains a physical duplicate, delete
+  it and let `bun run skills:update` (or the validator's instructions) restore
+  the symlink. Never copy a payload across roots to "fix" drift.
+
 `shadcn/improve` is globally managed. Do not restore a repo-local copy unless a
 real Archestimator-specific adapter becomes necessary; project planning policy
 remains authoritative through `AGENTS.md` and `.ai`.

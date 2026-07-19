@@ -1,112 +1,27 @@
 ---
-description: "Quick commit with natural language file targeting — describe what to commit in plain English"
-argument-hint: "[target description] (blank = all changes)"
+description: Commit only explicitly authorized, task-owned changes in a shared worktree.
+argument-hint: "[task-owned paths or batch description]"
 ---
 
-# Smart Commit
+# Grounded Commit Adapter
 
-> Adapted from PRPs-agentic-eng by Wirasm. Part of the PRP workflow series.
+Invocation authorizes local commit creation only. It does not authorize push,
+branch, rebase, merge, worktree, tag, release, or remote mutation.
 
-**Input**: $ARGUMENTS
+1. Load `AGENTS.md` and
+   `.ai/08_prompts/000_Git Commit Prompt/GIt-Commit-Prompt.md`.
+2. Inspect branch, staged, unstaged, and untracked state plus the full diff of
+   every candidate path.
+3. Derive ownership from the current request, never from proximity or a blank
+   argument. Blank input does not mean all changes.
+4. Preserve unfamiliar staged and unstaged work. Never stash, reset, clean,
+   restore, force, bypass hooks, or use broad staging.
+5. Stage explicit task-owned paths or safely isolated hunks, inspect the full
+   staged diff, and run required GitNexus change detection before source-symbol
+   commits.
+6. Commit coherent batches using current repository convention, then reread
+   status and the created commit.
+7. Report exact hashes, paths, evidence, remaining worktree state, skipped Git
+   operations, and blockers. A clean worktree is not required.
 
----
-
-## Phase 1 — ASSESS
-
-```bash
-git status --short
-```
-
-If output is empty → stop: "Nothing to commit."
-
-Show the user a summary of what's changed (added, modified, deleted, untracked).
-
----
-
-## Phase 2 — INTERPRET & STAGE
-
-Interpret `$ARGUMENTS` to determine what to stage:
-
-| Input | Interpretation | Git Command |
-|---|---|---|
-| *(blank / empty)* | Stage everything | `git add -A` |
-| `staged` | Use whatever is already staged | *(no git add)* |
-| `*.ts` or `*.py` etc. | Stage matching glob | `git add '*.ts'` |
-| `except tests` | Stage all, then unstage tests | `git add -A && git reset -- '**/*.test.*' '**/*.spec.*' '**/test_*' 2>/dev/null \|\| true` |
-| `only new files` | Stage untracked files only | `git ls-files --others --exclude-standard \| grep . && git ls-files --others --exclude-standard \| xargs git add` |
-| `the auth changes` | Interpret from status/diff — find auth-related files | `git add <matched files>` |
-| Specific filenames | Stage those files | `git add <files>` |
-
-For natural language inputs (like "the auth changes"), cross-reference the `git status` output and `git diff` to identify relevant files. Show the user which files you're staging and why.
-
-```bash
-git add <determined files>
-```
-
-After staging, verify:
-```bash
-git diff --cached --stat
-```
-
-If nothing staged, stop: "No files matched your description."
-
----
-
-## Phase 3 — COMMIT
-
-Craft a single-line commit message in imperative mood:
-
-```
-{type}: {description}
-```
-
-Types:
-- `feat` — New feature or capability
-- `fix` — Bug fix
-- `refactor` — Code restructuring without behavior change
-- `docs` — Documentation changes
-- `test` — Adding or updating tests
-- `chore` — Build, config, dependencies
-- `perf` — Performance improvement
-- `ci` — CI/CD changes
-
-Rules:
-- Imperative mood ("add feature" not "added feature")
-- Lowercase after the type prefix
-- No period at the end
-- Under 72 characters
-- Describe WHAT changed, not HOW
-
-```bash
-git commit -m "{type}: {description}"
-```
-
----
-
-## Phase 4 — OUTPUT
-
-Report to user:
-
-```
-Committed: {hash_short}
-Message:   {type}: {description}
-Files:     {count} file(s) changed
-
-Next steps:
-  - git push           → push to remote
-  - /prp-pr            → create a pull request
-  - /code-review       → review before pushing
-```
-
----
-
-## Examples
-
-| You say | What happens |
-|---|---|
-| `/prp-commit` | Stages all, auto-generates message |
-| `/prp-commit staged` | Commits only what's already staged |
-| `/prp-commit *.ts` | Stages all TypeScript files, commits |
-| `/prp-commit except tests` | Stages everything except test files |
-| `/prp-commit the database migration` | Finds DB migration files from status, stages them |
-| `/prp-commit only new files` | Stages untracked files only |
+`$ARGUMENTS` narrows the authorized batch; it never broadens ownership.

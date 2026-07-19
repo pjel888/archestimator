@@ -39,7 +39,7 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 2. Convert Metis findings into requirements and acceptance criteria.
 3. Resolve or carry forward Momus objections.
 4. Split execution into sequenced steps or independent lanes.
-5. Map each deliverable to the cheapest decisive verification evidence and record `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK` for tests.
+5. Map each deliverable to the cheapest decisive verification evidence and record `NOT_REQUIRED`, `TEST_PROPOSAL`, or `TEST_TASK` for tests.
 6. State stop, rollback, and escalation conditions.
 7. Provide the recommended OMX handoff.
 

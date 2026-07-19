@@ -4,7 +4,8 @@ description: Safely identify and remove dead code with verification after each c
 
 # Refactor Clean
 
-Safely identify and remove dead code with test verification at every step.
+Safely identify and remove dead code with the cheapest decisive authorized
+verification after every coherent change.
 
 ## Step 1: Detect Dead Code
 
@@ -38,11 +39,13 @@ Sort findings into safety tiers:
 
 For each SAFE item:
 
-1. **Run full test suite** — Establish baseline (all green)
+1. **Establish a baseline** — Use source, graph, type/LSP, lint, or static
+   evidence; run tests only for an explicit current-task `TEST_TASK`
 2. **Delete the dead code** — Use Edit tool for surgical removal
-3. **Re-run test suite** — Verify nothing broke
-4. **If tests fail** — Immediately revert with `git checkout -- <file>` and skip this item
-5. **If tests pass** — Move to next item
+3. **Rerun invalidated authorized evidence** — Verify the named behavior
+4. **If evidence fails** — Diagnose and repair only owned changes; never use Git
+   checkout/reset/stash to overwrite shared-worktree state
+5. **If evidence passes** — Move to the next coherent item
 
 ## Step 4: Handle CAUTION Items
 
@@ -73,12 +76,12 @@ Deleted:   12 unused functions
 Skipped:   2 items (tests failed)
 Saved:     ~450 lines removed
 ──────────────────────────────
-All tests passing PASS:
+Authorized evidence: PASS
 ```
 
 ## Rules
 
-- **Never delete without running tests first**
+- **Never delete without decisive evidence first**
 - **One deletion at a time** — Atomic changes make rollback easy
 - **Skip if uncertain** — Better to keep dead code than break production
 - **Don't refactor while cleaning** — Separate concerns (clean first, refactor later)

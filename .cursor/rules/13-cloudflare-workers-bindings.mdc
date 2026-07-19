@@ -14,20 +14,11 @@ globs:
 
 Archestimator is **Cloudflare-first**. Don't default to hybrid recommendations. Plan runtime work around Workers/OpenNext, D1, Better Auth, R2, Queues/Cron, Durable Objects/WebSockets, KV-only-safe-cache, Email, WAF/rate-limiting/DDoS, Turnstile where in scope, Web Analytics, Workers Observability.
 
-## Active Bindings (from `wrangler.jsonc`)
+## Active Bindings
 
-| Binding | Type | Name |
-|---|---|---|
-| `ARCH_DB` | D1 database | `archestimator-proof-db` (id `9bdb29bb-687e-4f51-ae81-7659c426ea5f`) |
-| `ARCH_UPLOADS_R2` | R2 bucket | `archestimator-proof-uploads` |
-| `COLLAB_ROOMS` | Durable Object | class `CollaborationRoom` (SQLite-backed) |
-| `UPLOAD_JOBS_QUEUE` | Queue | `archestimator-upload-jobs` + DLQ (max 3 retries) |
-| `IMAGES` | Cloudflare Images | (binding) |
-| `EMAIL` | Cloudflare Email | (binding) |
-
-Worker name: `archestimator-proof`. Custom domain: `archestimator.com`.
-
-Cron triggers: `0 3 * * *`, `15 3 * * *`, `30 3 * * *`.
+`wrangler.jsonc` is the executable source for binding names, resource names,
+classes, queues, routes, and cron triggers. Read it immediately before changing
+provider configuration; do not rely on copied inventories in this adapter.
 
 ## Worker Env Types
 
@@ -39,7 +30,7 @@ Generated types from `wrangler.jsonc` via `bun run cf:typegen`. Output: `cloudfl
 bun run cf:typegen                    # regenerate cloudflare-env.d.ts
 bun run cf:build                      # opennextjs-cloudflare build
 bun run cf:preview                    # build + wrangler preview (local bindings)
-bun run cf:deploy                     # build + wrangler deploy to archestimator-proof
+bun run cf:deploy                     # EXTERNAL DEPLOY: explicit current-task authorization required
 bun run cf:check-readiness            # Worker readiness gate
 bun run cf:check-provider             # Cloudflare provider readiness
 bun run cf:check-email                # Cloudflare Email readiness
@@ -95,7 +86,9 @@ Rely on daily D1 backups + `bun run cf:d1-restore-rehearsal` for the cheaper rec
 
 ## Standing Authorization Scope
 
-Philip grants standing authorization for changes inside `wrangler.jsonc` bindings: D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, Images `IMAGES`.
+Philip grants standing authorization for local repository changes inside
+resources currently bound in `wrangler.jsonc`. Derive the complete current
+binding list from that file. Actual deployment remains separately authorized.
 
 **Out of scope (never touch):**
 - Historical Supabase project `ebxxqidacheyapmmzavr`

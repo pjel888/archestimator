@@ -36,6 +36,18 @@ destructive data migration, live auth/token compatibility, material security
 boundaries, broad architecture replacement, or coordinated multi-owner work.
 Follow `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md`.
 
+## Task Contract
+
+For non-trivial work establish: objective and intent; scope and exclusions;
+inputs and authoritative paths; constraints, dependencies, assumptions, and
+authorization boundaries; owner and capability class; tool and write
+permissions; required outputs; acceptance criteria; validation commands and
+evidence/test decision; stop condition; and escalation condition.
+
+Direct work may keep this contract mental. Brief work records it in-session.
+Plan Pack work persists it. Do not create an artifact merely to restate a clear
+request.
+
 ## Execution
 
 Use `DISCOVER -> DECIDE -> EDIT -> VERIFY -> FINISH`.
@@ -88,6 +100,9 @@ Do not repeat an exhausted tactic or lower the objective.
 Work directly by default. Delegate only independent bounded slices where the
 expected time, context-isolation, or coverage gain exceeds coordination cost.
 The lead owns scope, integration, decisions, verification, and the final claim.
+When orchestration is used, follow
+`.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` for
+assignments, ownership, synchronization, handoffs, portability, and recovery.
 
 Use one writer per shared file or contract. A lightweight ownership note is
 enough for ordinary work. Formal leases/heartbeats are plan-pack-only and only
@@ -107,6 +122,19 @@ unapproved tests, hosted proof, and release evidence cannot block safe local wor
 safe local prerequisite is complete. `TECH_BLOCKED` applies only when a core
 deliverable remains impossible after materially different local fallbacks fail
 and no runnable next unit remains.
+
+## Failure And Completion
+
+Classify failure before retrying. Retry a transient tool or transport failure
+once; on recurrence refresh context and use a materially different tactic,
+capability, lane, or serialization strategy. Then take over locally or isolate
+the exact external boundary. Never repeat an exhausted tactic, lower the
+objective, or turn an optional-lane failure into a blocker.
+
+Completion requires every core criterion reconciled to a current artifact and
+fresh evidence, the final source/diff reviewed, authorized validation completed
+or an honest test decision recorded, failures and proof gaps disclosed, and no
+safe in-scope work, ownership, handoff, or cleanup left.
 
 ## Supermemory
 

@@ -26,8 +26,8 @@ Provide evidence-based readiness advice for beta or production promotion without
 ## Evidence and test gate
 
 - Verification is required. Prefer source/config diffs, migration inspection, CI/provider receipts, and narrow readiness checks.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
-- Release-critical integrated claims may justify `TARGETED` or `BROADER` evidence when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the release claim and stop condition.
+- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
+- Release-critical integrated claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the release claim and stop condition.
 
 ## Output
 

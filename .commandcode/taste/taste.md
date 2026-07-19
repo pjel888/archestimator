@@ -10,8 +10,9 @@ Auth. Historical provider examples are not implementation guidance.
 - Use parallel agents only for bounded independent work; the lead owns scope,
   integration, verification, and the final claim.
 - Verification is always required. Classify `test_requirement` as
-  `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`; default to
-  `NOT_REQUIRED` and use the cheapest decisive evidence.
+  `NOT_REQUIRED`, `TEST_PROPOSAL`, or `TEST_TASK`; default to `NOT_REQUIRED`
+  and use the cheapest decisive evidence. A proposal names the risk and exact
+  command but does not authorize execution.
 - Broad tests, builds, browser proof, or repeated review passes need an explicit
   task or a concrete MVP-critical claim that cheaper evidence cannot prove.
 - Plans use adaptive document depth and one canonical execution artifact. Do

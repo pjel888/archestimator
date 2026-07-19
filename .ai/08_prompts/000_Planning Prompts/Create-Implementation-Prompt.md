@@ -2,28 +2,31 @@
 
 ## Load
 
-Read `Frontier-Planning-Kernel.md`, applicable gates, this prompt, then
-`Plan-Pack-Schema.md`.
+Read `Frontier-Planning-Kernel.md`, applicable gates, this prompt, and
+`Plan-Pack-Schema.md`. Load `Multi-Agent-Execution-Directive.md` when
+assignments or handoffs are compiled.
 
 ## Objective
 
-Compile accepted pack content into one canonical `IMPLEMENTATION_PLAN.md`. This
-stage is planning-only.
+Compile accepted pack content into one canonical `IMPLEMENTATION_PLAN.md`.
+This stage is planning-only.
 
 ## Method
 
-1. Validate manifest, current paths, decisions, boundaries, and evidence.
-2. Reconcile every core requirement to at least one implementation unit.
-3. Resolve internal blockers and ordinary choices.
-4. Order exact units by dependency and contention.
-5. For each unit include paths, change, acceptance evidence, recovery, and next
-   state; include tests only as authorized by the Validation Matrix.
-6. Remove duplicated guides and speculative production ceremony.
-7. Promote the canonical plan through `plan-pack.json`, refresh hashes last, and
-   validate the pack.
+1. Validate the Task Contract, manifest, current paths, decisions, boundaries,
+   and evidence.
+2. Reconcile every core requirement to at least one exact implementation unit.
+3. Resolve internal blockers and ordinary reversible choices.
+4. Order units by dependency, mutable-state ownership, and synchronization.
+5. For each unit include owned paths/resources, change, capability class,
+   permissions, acceptance evidence, recovery, handoff, and next state.
+6. Include tests only as authorized by the Validation Matrix.
+7. Remove duplicated guides and speculative production ceremony.
+8. Promote the canonical plan through `plan-pack.json`, refresh hashes last,
+   and validate.
 
 ## Ready Means
 
-A fresh executor can start at an exact unit without reading unrelated prose,
-asking routine questions, or inventing behavior. Only true external `AUTH-*`
-boundaries may remain.
+A fresh executor can begin at an exact unit without unrelated prose, routine
+questions, invented behavior, or ambiguous ownership. Only true external
+`AUTH-*` boundaries may remain.

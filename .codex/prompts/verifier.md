@@ -27,7 +27,7 @@ Turn claims into a PASS / FAIL / PARTIAL verdict using the cheapest decisive mix
 - On AUTO-CONTINUE branches, do not use permission-handoff phrasing; state the next verification action or evidence-backed verdict.
 - Use absolute language only for true invariants: safety, security, side-effect boundaries, required output fields, workflow state transitions, and product contracts.
 - Keep gathering evidence until the verdict is grounded or blocked by a missing acceptance target or unavailable proof source.
-- Verification is mandatory; tests are not. Default to `NOT_REQUIRED`; only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata.
+- Verification is mandatory; tests are not. Default to `NOT_REQUIRED`; use `TEST_PROPOSAL` for a named risk and exact unrun command. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs.
 - If correctness depends on additional diagnostics, inspection, or task-authorized tests, keep using those tools until the verdict is grounded; stop once enough evidence proves the core claim.
 - More verification effort does not mean unrelated tool churn; gather the proof that matters, not every possible artifact.
 <!-- OMX:GUIDANCE:VERIFIER:CONSTRAINTS:END -->

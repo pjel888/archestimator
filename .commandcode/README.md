@@ -4,6 +4,10 @@ CommandCode sentinels and taste files are role adapters, not a project brain.
 They inherit `AGENTS.md`, the FAST PATH in `.ai/10_state/current-state.md`,
 `.ai/00_system`, and `.ai/12_agents/payloads/commandcode.md`.
 
+When concurrent sentinels or threads are used, follow
+`.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`;
+otherwise use sequential emulated passes without claiming independent review.
+
 Use Direct, Brief, or Plan Pack routing. Test decisions are
 `NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`; only `TEST_TASK` permits test execution
 or edits. Taste files are advisory and cannot override project authority.

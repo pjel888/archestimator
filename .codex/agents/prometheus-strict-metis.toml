@@ -54,7 +54,13 @@ The default for ambiguous short inputs is `simple` (1-2 sharply targeted questio
 </anti_over_classification>
 
 <test_strategy_single_decision>
-For every implementation family, record one test-gate decision: `NOT_REQUIRED` (default), `TARGETED`, `BROADER`, or `TEST_TASK`. Map only an explicit current-task user testing/QA/coverage/regression/reproduction request to `TEST_TASK`; it alone authorizes execution. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata. A source edit, multi-file change, user-visible change, critical risk, or nearby suite does not trigger tests.
+For every implementation family, record one test-gate decision:
+`NOT_REQUIRED` (default), `TEST_PROPOSAL`, or `TEST_TASK`. Map only an
+explicit current-task user testing/QA/coverage/regression/reproduction request
+to `TEST_TASK`; it alone authorizes execution. `TEST_PROPOSAL` records the
+named risk and exact command without execution. A source edit, multi-file
+change, user-visible change, critical risk, or nearby suite does not trigger
+tests.
 
 Do not ask the user about test layers when `NOT_REQUIRED` can be inferred safely; record the substitute evidence and continue. For explicitly authorized test work, bundle framework/layer/coverage choices into one decision. TDD is an optional method only when the user explicitly selects it. This is the OMX-side import of the OMO Prometheus "single test-infra decision" pattern (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/interview-mode.ts:L132-L191`).
 </test_strategy_single_decision>
@@ -270,6 +276,6 @@ This role is tuned for frontier-class models.
 - posture: frontier-orchestrator
 - model_class: frontier
 - routing_role: leader
-- native_subagent_delegation: allowed
+- native_subagent_delegation: lead-only; forbidden when this role is a child
 - resolved_model: gpt-5.6
 """

@@ -1,81 +1,33 @@
 ---
-description: "Lean Archestimator Cursor contract: authority, safety, routing, and evidence selection."
+description: "Thin Archestimator Cursor adapter to canonical repo contracts."
 alwaysApply: true
 ---
 
-# Archestimator Cursor Contract
+# Archestimator Cursor Adapter
 
-Cursor is an adapter to the repo contract, not a separate policy source.
+Cursor is an execution surface, not a separate policy source.
 
-## Authority And Fast Start
-
-1. Follow the current user request.
-2. Treat `AGENTS.md`, current source/config, and `.ai/` as project truth.
-3. Use installed framework docs for version-sensitive behavior.
-4. Treat skills, old plans, archives, and model memory as lower authority.
-
-Before meaningful work:
+## Startup
 
 <!-- supermemory-bootstrap: required -->
-- run `bun run supermemory:ensure`; repair failure, then continue through `.ai`
-  in degraded-memory mode if repair is unavailable
-- read `AGENTS.md`
-- read only the marked FAST PATH at the top of `.ai/10_state/current-state.md`
-- pull narrower `.ai` protocols, decisions, specs, or roadmap files only when the task needs them
-- use `rg` instead of linear-reading append-only history
+1. Run `bun run supermemory:ensure`.
+2. Read `AGENTS.md`.
+3. Read only the FAST PATH in `.ai/10_state/current-state.md`.
+4. Inspect `git status --short --branch` before edits.
+5. Pull only the task-relevant system, spec, design, or glob-scoped rule.
 
-Supermemory augments `.ai`; it never overrides current source. Search it before broad, non-trivial, or recovery work, and attempt one sanitized update when durable project truth changes. Availability or indexing failure is a non-blocking capability warning for unrelated core work. When Supermemory repair, indexing, or search is itself the core requested deliverable, apply the standard core-only `TECH_BLOCKED` rule.
+## Routing
 
-## Current Platform
+Use Direct, Brief, or Plan Pack from `AGENTS.md`. Test decisions are
+`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`; only `TEST_TASK` permits product-test,
+build-as-test, browser, screenshot, Storybook, or visual-QA work.
 
-Archestimator is a pre-launch construction estimating platform on Next.js 16, React 19, Bun, TypeScript, Tailwind v4, OpenNext/Cloudflare Workers, D1, R2, Durable Objects, Queues/Cron, Images, Email, and Better Auth. Verify versions, bindings, schedules, and migrations from `package.json`, `wrangler.jsonc`, `cloudflare-env.d.ts`, and `migrations/`; do not copy counts into guidance.
+When orchestration is selected, use
+`.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.
+Cursor threads use the same assignment IDs, file ownership, synchronization,
+handoff, recovery, and lead-owned completion contracts. Without parallel
+support, emulate passes sequentially and do not claim independent review.
 
-Legacy `supabase/migrations/` and project `ebxxqidacheyapmmzavr` are provider-exit archaeology only. Do not run, extend, or mutate them. Cloudflare resource changes are authorized only inside bindings in `wrangler.jsonc`, on free-tier/bundled limits; paid services and unrelated accounts require explicit approval.
-
-## Shared Worktree
-
-- Assume people and agents edit the same checkout concurrently.
-- Recheck `git status --short --branch` and reread each target immediately before editing.
-- Preserve unfamiliar changes and files. Never revert, delete, stage, or overwrite work you do not own.
-- Keep diffs narrow; avoid unrelated cleanup and formatting churn.
-- Stay on the current branch/worktree. Do not create/switch/delete branches or worktrees, commit, push, open a PR, deploy, force-push, reset hard, clean, or rewrite history unless the user explicitly authorizes that exact action.
-- After edits, inspect the focused diff and run `git diff --check`.
-
-If an attempt fails, diagnose and use a materially different recovery path. Roll back only your own edits. Never recover by reverting another contributor's work or weakening a valid check.
-
-## Smallest Effective Lane
-
-Work directly when one agent can finish safely. Delegate only a bounded, independent slice that improves speed, evidence, or review quality. Use installed roles by task shape:
-
-- `explore`: repo-local files, symbols, and current behavior
-- `researcher`: official external docs and version-aware references
-- `architect`: read-only boundaries and tradeoffs
-- `executor`: implementation and refactoring
-- `verifier`: independent completion evidence
-
-The lead owns scope, integration, authority, and the final claim. Workers stay inside assigned write scope and return concise conclusions, evidence, caveats, and recommended handoffs rather than raw dumps. The lead may inspect actual artifacts and rerun decisive evidence; delegated summaries do not replace verification.
-
-Use parallel lanes only for genuinely independent work. Do not invoke agents, workflow plugins, graph tools, or browser tooling as a default chain.
-
-## Evidence And Stop Condition
-
-**Lean Engineering Ethos:** go deep on analysis (problem, blast radius, edge
-cases — where bugs are prevented), lean on implementation (smallest coherent
-change; over-engineering is a bug, not thoroughness), lean on testing
-(user-gated, never a default to feel thorough). Canonical statement:
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
-
-"All possible blast radius" means evidence-supported direct/transitive callers,
-contracts, state, failure/recovery, and rollout—not hypothetical systems. Pull
-context just in time, minimize tokens/tool calls/lanes/artifacts/review passes,
-and stop when the requested claim is grounded.
-
-Verification is required; **tests are user-gated, not automatic.** The **User Test Authorization Gate** is the supreme rule, defined in `AGENTS.md`, `.ai/00_system/VALIDATION_MATRIX.md`, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: do not create, expand, repair, or run any automated test, test suite, build-as-test-gate, browser automation, or broad validation gate unless Philip has explicitly requested testing for the current task.
-
-- Default to `NOT_REQUIRED` and the cheapest decisive source, diff, reference, type/LSP, lint, dry-run, or narrow runtime evidence.
-- `TEST_TASK` is the only decision that authorizes test execution and requires an explicit testing request from the user.
-- `TARGETED` / `BROADER` identify a critical invariant that would benefit from a test but authorize **proposing it only, not running it** — record a `TEST_PROPOSAL` (named risk + exact command) and wait. The previous `CHEAPEST_DECISIVE_EXISTING_TEST` self-authorization exception is withdrawn.
-- Browser, Playwright, screenshots, Storybook, builds, full suites, and visual QA are opt-in and require explicit user authorization. When tests seem warranted, propose them and wait.
-- Local evidence cannot prove hosted, provider, production, manual, GitHub, Notion, or Vercel state.
-
-Stop when the requested result is implemented, each claim has fresh sufficient evidence, no in-scope work remains, and any unproved boundary is reported precisely. Continue while another safe in-scope action materially improves correctness.
+Current source, `wrangler.jsonc`, local Next 16 documentation, and
+`.ai/00_system` supply detail. Preserve unfamiliar work, keep one writer per
+mutable file/resource, and report only evidence actually collected.

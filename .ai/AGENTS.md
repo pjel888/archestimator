@@ -19,7 +19,8 @@ This file governs the Archestimator `.ai/` subtree.
    - reusable playbooks → `11_skills/`
    - agent contracts → `12_agents/`
    - research → `13_research/`
-4. Prefer additive edits. Mark superseded material instead of deleting it.
+4. Prefer consolidation, deletion, and reference repair over additive duplicate
+   policy. Preserve historical evidence only when it remains useful.
 5. Do not store secrets, credentials, private keys, or raw confidential client data.
 6. When project reality changes, update `10_state/current-state.md` and any affected source-of-truth doc.
 7. Keep model-specific payloads thin. They should point back to shared `.ai` rules instead of forking them.

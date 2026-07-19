@@ -26,8 +26,8 @@ Assess whether implemented monetization and entitlement behavior is accurate, se
 ## Evidence and test gate
 
 - Verification is required. Prefer current source/schema/config, representative calculations, sanitized event evidence, and narrow static checks.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
-- Money or entitlement-critical claims may justify `TARGETED` or `BROADER` evidence when cheaper checks cannot prove them. Never call payment APIs or request blanket suites, builds, or browser runs without an explicit claim and authority.
+- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
+- Money or entitlement-critical claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never call payment APIs or request blanket suites, builds, or browser runs without an explicit claim and authority.
 
 ## Output
 

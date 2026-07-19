@@ -65,9 +65,11 @@ hooks without a measured benefit and focused deterministic contract evidence.
 
 1. `AGENTS.md`
 2. the marked FAST PATH at the top of `.ai/10_state/current-state.md`
-3. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` when loop/test/validation rules apply
+3. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` when execution rules apply
 4. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` for agent and payload work
-5. task-specific specs, decisions, roadmap, and `DESIGN.md` only as needed
+5. `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
+   when orchestration is selected
+6. task-specific specs, decisions, roadmap, and `DESIGN.md` only as needed
 
 The planning prompt suite is under `.ai/08_prompts/000_Planning Prompts/`; do
 not copy its contents or line count into Cursor rules.

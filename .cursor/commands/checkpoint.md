@@ -14,9 +14,11 @@ Create or verify a checkpoint in your workflow.
 
 When creating a checkpoint:
 
-1. Run `/verify quick` to ensure current state is clean
-2. Create a git stash or commit with checkpoint name
-3. Log checkpoint to `.claude/checkpoints.log`:
+1. Inspect current state with non-mutating source and diff checks.
+2. Do not stash, commit, reset, clean, switch branches, or require a clean
+   worktree. Git mutation needs its own explicit authorization and canonical Git
+   workflow.
+3. Log a metadata-only checkpoint to `.claude/checkpoints.log`:
 
 ```bash
 echo "$(date +%Y-%m-%d-%H:%M) | $CHECKPOINT_NAME | $(git rev-parse --short HEAD)" >> .claude/checkpoints.log
@@ -32,17 +34,15 @@ When verifying against a checkpoint:
 2. Compare current state to checkpoint:
    - Files added since checkpoint
    - Files modified since checkpoint
-   - Test pass rate now vs then
-   - Coverage now vs then
+   - Authorized evidence now versus then
 
 3. Report:
 ```
 CHECKPOINT COMPARISON: $NAME
 ============================
 Files changed: X
-Tests: +Y passed / -Z failed
-Coverage: +X% / -Y%
-Build: [PASS/FAIL]
+Evidence: [current result versus recorded result]
+Tests: [only if the current task explicitly authorized them]
 ```
 
 ## List Checkpoints
@@ -75,4 +75,4 @@ $ARGUMENTS:
 - `create <name>` - Create named checkpoint
 - `verify <name>` - Verify against named checkpoint
 - `list` - Show all checkpoints
-- `clear` - Remove old checkpoints (keeps last 5)
+- `clear` - List removable checkpoints; deletion needs an explicit request

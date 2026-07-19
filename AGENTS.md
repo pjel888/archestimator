@@ -15,7 +15,9 @@ artifacts are workflow bugs.
 ## Authority And Startup
 
 Current source and this file are authoritative. `.ai/00_system` supplies detail;
-tool payloads and prompts are adapters and cannot override it.
+tool payloads and prompts are adapters and cannot override it. When orchestration
+is selected, `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
+is the canonical lifecycle and handoff contract.
 
 At session start:
 
@@ -71,6 +73,8 @@ For non-trivial work use a lightweight loop:
 
 Use subagents only for independent bounded work when the time or coverage gain
 clearly exceeds coordination cost. The lead owns integration and the final claim.
+Use the directive above for native, parallel-thread, emulated-pass, and
+single-agent fallback behavior.
 
 ## Verification And User Test Gate
 

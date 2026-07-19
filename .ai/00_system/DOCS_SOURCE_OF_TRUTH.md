@@ -15,13 +15,10 @@ append-only history logs (~2,500 and ~1,100 lines), not required full reads.
 - Agent operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
 - Agent framework protocol: `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
 - Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
-- Loop-engineering contract (canonical): the loop sections of `AGENT_OPERATING_PROTOCOL.md` and `AGENT_FRAMEWORK_PROTOCOL.md` above. Origin/background only (not a required active restart read): archived pack `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and research note `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
-- Karpathy-inspired behavioral guardrails (canonical application):
-  `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Karpathy-Inspired Guardrails")
-  and `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` ("Shared Behavioral
-  Guardrails"). Source/background only:
-  `.ai/13_research/2026-07-02-karpathy-skills-agent-workflow-guardrails.md`.
-- Reusable non-trivial-work loop prompt template: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
+- Execution contract: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
+- Orchestration, assignment, handoff, and recovery contract:
+  `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.
+- Reusable task-contract template: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 - Known issues and risks: `.ai/10_state/known-issues.md`
 - Feature inventory (code↔doc cross-reference): `.ai/06_specs/feature-inventory.md`
 
@@ -39,14 +36,14 @@ These docs are the first stops for the current MVP codebase surface:
 - Project charts: `.ai/09_archive/store/2026-05-29-project-charts-estimate-comparison-complete/`
 - Proposal XLSX export: `.ai/09_archive/store/2026-05-29-industry-standard-excel-proposal-export-complete/`
 - Shared link / publication: `.ai/06_specs/shared-link-and-publication-spec.md`, `.ai/06_specs/walkthrough-shared-link-overhaul.md`
-- AI copilot and package builder: `.ai/06_specs/ai-assistant-and-package-builder-spec.md`, `.ai/03_plans/ai-chatbot-agent-readiness/`
+- AI copilot and package builder: `.ai/06_specs/ai-assistant-and-package-builder-spec.md`
 - Teamspaces collaboration: `.ai/06_specs/teamspaces-collaboration-spec.md`
 - Library/Templates: `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/`
 - Component creation/versioning: `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/`
 - Component variants/assets/cost: `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
 - UI componentization: `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md`
-- Route transition performance: `.ai/03_plans/route-transition-performance-optimization/`
-- Landing page improvement: `.ai/03_plans/landing-page-improvement/`
+- Route transition performance: `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-slice-1/`
+- Landing page improvement: `.ai/09_archive/store/2026-05-28-landing-page-below-hero-complete/`
 
 Do not treat an older plan as active if these docs or `.ai/10_state/*` say the implementation has moved on.
 
@@ -57,6 +54,8 @@ Do not treat an older plan as active if these docs or `.ai/10_state/*` say the i
 - Operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
 - Agent framework, payload schema, receipt, proof boundaries, and harness
   adapter rules: `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+- Multi-agent and portable orchestration:
+  `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
 - Performance degradation / stale-context recovery: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 - Validation commands and evidence expectations: `.ai/00_system/VALIDATION_MATRIX.md`
 - Current state: `.ai/10_state/current-state.md`

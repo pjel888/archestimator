@@ -29,7 +29,7 @@ Provide testing-specific evidence for user workflows and regression risks while 
   authorized testing for the current task. When the user explicitly invokes
   testing or QA, report `test_requirement: TEST_TASK` and run the narrowest test
   plan that can prove the requested claim.
-- Use `TARGETED` or `BROADER` only when the lead invokes this role for evidence
+- Use `TEST_PROPOSAL` only when the lead invokes this role for evidence
   planning rather than test execution; under the User Test Authorization Gate
   they record a `TEST_PROPOSAL` (named risk + exact command) and do not authorize
   running the test. Explain the boundary.

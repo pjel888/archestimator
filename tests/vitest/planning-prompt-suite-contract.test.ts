@@ -107,7 +107,9 @@ describe("frontier planning prompt contracts", () => {
     const result = runValidator(folder);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("AC-001=PASS requires TEST-001=PASS");
+    expect(result.stderr).toContain(
+      "AC-001 MVP_CRITICAL_INVARIANT rationale must name the critical invariant and explain why cheaper evidence is insufficient",
+    );
   });
 
   it("requires a trigger and rationale for every new-suite test decision", () => {
@@ -263,7 +265,9 @@ describe("frontier planning prompt contracts", () => {
     const result = runValidator(folder);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("CHEAPEST_DECISIVE_EXISTING_TEST requires exactly one test_id");
+    expect(result.stderr).toContain(
+      "CHEAPEST_DECISIVE_EXISTING_TEST permits at most one proposal test_id",
+    );
   });
 
   it("rejects distinct existing-test exceptions across one plan pack", () => {
@@ -315,7 +319,7 @@ describe("frontier planning prompt contracts", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      "CHEAPEST_DECISIVE_EXISTING_TEST permits exactly one shared test_id and existing_test_path per plan pack",
+      "linked CHEAPEST_DECISIVE_EXISTING_TEST proposal metadata permits exactly one shared test_id and existing_test_path per plan pack",
     );
   });
 
@@ -472,7 +476,9 @@ describe("frontier planning prompt contracts", () => {
     const result = runValidator(folder);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("CHEAPEST_DECISIVE_EXISTING_TEST requires test_requirement TARGETED");
+    expect(result.stderr).toContain(
+      "CHEAPEST_DECISIVE_EXISTING_TEST requires test_requirement TEST_PROPOSAL or legacy TARGETED",
+    );
   });
 
   it("rejects an observed run scope above the package action ceiling", () => {
@@ -1103,7 +1109,9 @@ describe("frontier planning prompt contracts", () => {
     const result = runValidator(folder);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("includes UNIT-001=BLOCKED, expected VERIFIED, READY, or IN_PROGRESS");
+    expect(result.stderr).toContain(
+      "includes UNIT-001=BLOCKED, expected VERIFIED, decision-backed SUPERSEDED, READY, or IN_PROGRESS",
+    );
   });
 
   it("rejects duplicate canonical execution roles", () => {

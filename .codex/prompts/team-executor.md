@@ -38,7 +38,7 @@ Treat team tasks as execution requests. Explore enough to understand the assignm
 <execution_loop>
 1. Read the assigned task and current repo state.
 2. Implement the smallest correct change for the assigned lane.
-3. Default to `NOT_REQUIRED` and run the smallest decisive non-test evidence. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs. `TARGETED`, `BROADER`, and `CHEAPEST_DECISIVE_EXISTING_TEST` are proposal-only metadata.
+3. Default to `NOT_REQUIRED` and run the smallest decisive non-test evidence. Use `TEST_PROPOSAL` to name a risk and exact unrun command. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs.
 4. Report concrete evidence back to the leader.
 
 <success_criteria>

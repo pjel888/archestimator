@@ -34,15 +34,14 @@ Pull deeper files only when the task needs them:
 - Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript 6.0.3, Tailwind CSS v4, Cloudflare Workers/OpenNext (`@opennextjs/cloudflare` ^1.20.1), Wrangler ^4.105.0, D1, R2, Durable Objects, Queues, Cloudflare Email, Better Auth 1.6.22, Storybook 10.4.2, Vitest 4.1.7.
 - Current codebase: ~498 source files, ~218 test files (115 Vitest DOM, 2 Bun unit, 7 Playwright E2E), ~51 app routes/pages, ~17 API routes.
 - Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, and DeepSeek. Ollama is not approved for agent chat models. Gemini is phased out unless explicitly reapproved.
-- Current agent workflow mandate: non-trivial product work is loop-engineered
-  across all coding agents. Ordinary non-trivial work uses an in-session loop;
-  high-blast-radius or explicitly exhaustive work adds a dated `.ai/03_plans/`
-  plan pack and `LOOP_LEDGER.md`. Agents audit current reality, research
-  uncertain claims in `.ai/13_research` when needed, execute through the
-  narrowest adequate loop surface, verify with maker/checker and real-surface
-  evidence, persist state outside chat, and decide the next iteration. See
-  `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and
-  `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+- Current agent workflow: choose Direct, Brief, or Plan Pack from `AGENTS.md`;
+  establish the smallest sufficient Task Contract; run
+  `DISCOVER -> DECIDE -> EDIT -> VERIFY -> FINISH`; and stop when the
+  Completion Contract is evidenced. When orchestration is useful,
+  `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
+  owns assignments, file ownership, handoffs, recovery, and native/thread/
+  emulated/single-agent portability. No ledger or independent checker is
+  required unless a current Plan Pack or named risk justifies it.
 - Current Cloudflare-resource mandate: during pre-launch MVP, Philip grants
   standing authorization for agents to make Archestimator Cloudflare
   D1/R2/Durable Object/Queue/Email changes inside the resources bound in

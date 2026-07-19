@@ -15,7 +15,10 @@ Repo-level entrypoints outside `.ai` still matter:
 ## Top-level canonical folders
 
 - `00_system/` — governance, routing, structure, naming, validation, workflow
-- `00_system/AGENT_FRAMEWORK_PROTOCOL.md` - canonical agent receipt, mode, payload, evidence, and provider-proof rules
+- `00_system/AGENT_FRAMEWORK_PROTOCOL.md` — canonical roles, payload, model
+  mapping, and adapter rules
+- `08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` —
+  canonical orchestration, assignment, handoff, and recovery contract
 - `00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` — canonical recovery loop when agent quality degrades, context is stale, or repeated mistakes appear
 - `01_roadmap/` — roadmap, phases, milestones, launch cutline
 - `02_audits/` — audits, reviews, risk reports, quality checks
@@ -31,7 +34,8 @@ Repo-level entrypoints outside `.ai` still matter:
 - `11_skills/` — reusable project procedures; live payloads under `payloads/`
 - `12_agents/` — agent-role contracts and model routing; live payloads under `payloads/`
 - `13_research/` — domain, market, product, code/legal, cost, materials, competitor research
-- `15_Bugs/` — dated bug plans for material blockers, stale source-of-truth claims, validation failures, and proof gaps; written per `00_system/AGENT_FRAMEWORK_PROTOCOL.md` Bug Protocol
+- `15_Bugs/` — dated bug plans for material blockers, stale source-of-truth
+  claims, validation failures, and proof gaps
 - `99_inbox/` — temporary unsorted intake only
 
 ## Placement rules
@@ -59,6 +63,8 @@ Repo-level entrypoints outside `.ai` still matter:
 - Launch sequence and startup priorities: `01_roadmap/README.md`.
 - Agent recovery from stale context: `00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`.
 - Agent framework and payload/harness rules: `00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
+- Multi-agent and portable orchestration:
+  `08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.
 - Validation gates: `00_system/VALIDATION_MATRIX.md`.
 - Feature-specific implementation contracts: the active plan/spec named by `10_state/current-state.md`.
 - Historical plans under `03_plans/` or `09_archive/store/` are not active instructions unless current-state links them as current.

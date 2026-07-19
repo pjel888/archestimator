@@ -17,5 +17,10 @@ Payloads state only status, lane, prohibited actions, and role-specific notes.
 They must not duplicate canonical workflow prose. Deprecated, unapproved, and
 non-agent entries receive no reasoning or implementation work.
 
+All native, parallel-thread, emulated-pass, and single-agent orchestration uses
+`.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.
+Concrete Codex capability/model defaults and fallbacks live only in
+`codex-role-model-matrix.json`.
+
 Run `bun run validate:agents` after payload changes and
 `bun run validate:agents:full` when resolver-visible behavior changes.

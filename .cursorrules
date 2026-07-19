@@ -1,120 +1,18 @@
-# Archestimator - Cursor Rules (Legacy .cursorrules for back-compat)
+# Archestimator Cursor Adapter
 
-> Full SOTA rules live in `.cursor/rules/*.mdc`. This file is a concise entry point.
+This legacy file exists for Cursor back-compatibility. It is not a project brain
+or a complete ruleset.
 
-## Project
+1. Follow `AGENTS.md`.
+2. Read only the FAST PATH in `.ai/10_state/current-state.md`.
+3. Load `.cursor/rules/README.md` and only the glob-scoped rule for the files
+   being changed.
+4. Use
+   `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
+   when native agents, parallel threads, emulated specialist passes, or
+   coordinated ownership are selected.
 
-**Archestimator** - construction cost estimating platform (AEC, Philippines + SE Asia).
-Mission: "From cost proposal to client approval."
-
-## Stack
-
-Next.js 16 (App Router, RSC, Cache Components) · React 19 · Bun · TypeScript strict · Tailwind v4 (CSS-first) · OpenNext for Cloudflare Workers · D1 (`ARCH_DB`) · R2 (`ARCH_UPLOADS_R2`) · Durable Objects (`COLLAB_ROOMS`) · Queues + Cron · Cloudflare Email · Cloudflare Images · Better Auth 1.6 (Google OAuth + magic link, D1-backed) · TanStack Query/Table/Virtual · Zustand · D3 · React Complex Tree · Radix · ExcelJS · Phosphor/Lucide · Vitest + Bun test + Playwright.
-
-**Historical only (do not mutate/extend):** Supabase (`./supabase/migrations/`, project `ebxxqidacheyapmmzavr`), Resend, Vercel.
-
-## Authority Hierarchy
-
-1. User intent (current explicit request) - product goal
-2. Repo reality (`AGENTS.md`, `.ai/`, source, tests, migrations, `wrangler.jsonc`) - implementation truth
-3. Installed framework docs (`node_modules/next/dist/docs/`, Cloudflare docs) - version behavior
-4. Older plans + model memory - low authority
-
-## Read First
-
-- `AGENTS.md` (repo root) - entry point
-- `.ai/10_state/current-state.md` - FAST PATH block at top only, then `rg` for task area
-- Pull `.ai/00_system/*`, `.ai/06_specs/*`, `DESIGN.md` on demand
-
-## Shared-Worktree Safety (Non-Negotiable)
-
-Multiple agents + humans share this worktree. NEVER auto-create/switch/delete branches, NEVER auto-push, NEVER create worktrees, NEVER `git reset --hard` / `git clean` / force-push without explicit request. Stay on current checkout. Use file-scope ownership + fresh `git status` checks + small diffs.
-
-Re-read files immediately before editing. Preserve unfamiliar changes - they may be another agent's in-progress work. Roll back only your own edits.
-
-## Validation (No 'Done' Without Proof) — User Test Authorization Gate
-
-**Lean Engineering Ethos:** go deep on analysis (problem, blast radius, edge
-cases — where bugs are prevented), lean on implementation (smallest coherent
-change; over-engineering is a bug, not thoroughness), lean on testing
-(user-gated, never a default to feel thorough). Canonical statement:
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
-
-Bound blast radius to evidence-supported direct/transitive callers, contracts,
-state, failure/recovery, and rollout. Do not invent hypothetical systems. Pull
-context just in time, minimize tokens/tool calls/lanes/artifacts/review passes,
-and stop when the requested claim is grounded.
-
-**Tests are user-gated, not automatic.** Do not create, expand, repair, or run
-any automated test, test suite, build-as-test-gate, browser automation, or
-broad validation gate unless Philip has explicitly requested testing for the
-current task. This is the supreme rule and overrides every `TARGETED`,
-`MVP-critical`, blast-radius, or "nearby tests exist" consideration. When tests
-seem warranted (e.g. a critical risk cheaper evidence cannot prove), record a
-`TEST_PROPOSAL` (named risk + exact command) and wait — do not run them.
-`TEST_TASK` is the only execution trigger and requires an explicit user request.
-
-Default non-test verification (encouraged without authorization):
-
-```bash
-bun run type-check         # tsc --noEmit
-bun run lint               # ESLint
-bun run ops:agent-debug-snapshot   # read-only debugging readiness
-bun run logs:debug                  # latest dev error
-git diff --check                   # whitespace/conflict audit
-```
-
-User-authorized test/build surfaces (run ONLY when Philip explicitly asks):
-
-```bash
-bun run test               # Bun unit
-bun run test:dom           # Vitest DOM
-bun run validate           # broad gate: type + lint + error-handling + design + unit + dom
-bun run build              # Next.js production build
-```
-
-Evidence classes (strongest that proves the claim): local static -> local automated -> browser/manual -> provider-backed -> hosted/production. Inferred reasoning is not proof.
-
-## Forbidden
-
-- `as any`, `@ts-ignore`, `@ts-expect-error` type suppressions
-- Empty `catch (e) {}` in server/API/observability/email/ops surfaces
-- `console.error` bypassing structured logger in covered runtime paths
-- Deleting failing tests to make build green
-- Type assertions to satisfy broken types - fix the types
-- Drive-by refactors / formatting churn unrelated to the task
-- Creating or running tests without explicit user authorization, even for
-  auth/db/security/release/route-wide changes (propose via `TEST_PROPOSAL` and
-  wait instead)
-
-## Stack Discipline
-
-- **Server Components by default.** Justify every `"use client"` boundary. Keep server-only data out of client bundles.
-- **Server Actions are POST endpoints.** Validate auth + authz + ownership + input + idempotency on every one.
-- **D1 has no RLS.** App-layer authorization enforced in repositories, Server Actions, and Better Auth route gate (`src/lib/auth/request-proxy.ts` via `src/middleware.ts`). Fail-closed by default.
-- **Cache Components (Next.js 16+):** Identify static/dynamic/partial routes, name `use cache` boundaries, prove token-bearing/auth/share/upload/AI/security responses default to no-store. Don't carry over Next 14/15 cache assumptions - read `node_modules/next/dist/docs/` first.
-- **Repository boundary:** All D1 access through `src/lib/repositories/` helpers. No raw D1 calls from Server Actions or route handlers.
-- **Optimistic mutations:** TanStack Query for server state (30s staleTime, optimistic rollbacks). Zustand for high-frequency UI state (selections, expansions).
-- **Realtime:** Cloudflare Durable Objects broadcast cursors/presence via WebSocket.
-- **Design system:** SF Pro, 12px max font in-app, xs-only radius (3px), zero letter-spacing, neutral palette. Reuse `src/components/ui/` primitives first.
-
-## Cloudflare Resource Boundary
-
-Stay inside `wrangler.jsonc` bindings: Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, Images `IMAGES`. Standing authorization covers D1/R2/DO/Queue/Email/Images mutations in these bindings. Never mutate the historical Supabase project, the unrelated `archestimator` provider project, or other Cloudflare accounts.
-
-## Multi-Agent Execution Directive
-
-For non-trivial work, follow `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`:
-DISCOVER -> PLAN -> EXECUTE -> VERIFY -> RECORD -> DECIDE, looped only while a
-failed criterion needs another action. Add a separate checker only when it
-materially reduces a named risk. Adversarial QA, tests, builds, and browser proof
-require explicit current-task user authorization.
-
-## Full Rules
-
-See `.cursor/rules/` for the complete SOTA ruleset:
-- `00-archestimator-project-brain.mdc` - full stack + authority + .ai/ map
-- `01-shared-worktree-safety.mdc` - multi-agent coordination
-- `02-validation-and-evidence.mdc` - full validation matrix
-- `03-agent-orchestration.mdc` - delegation discipline
-- `10-18-*.mdc` - stack-surface rules (Next.js, D1, Better Auth, Cloudflare, design, observability, state, testing, publication)
+Cursor adapters cannot override repository safety, current
+`wrangler.jsonc`/source facts, Direct/Brief/Plan Pack routing, or
+`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`. Preserve the shared worktree and do not
+copy canonical policy into this file.

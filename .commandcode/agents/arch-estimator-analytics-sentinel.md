@@ -26,7 +26,7 @@ Assess whether Archestimator analytics are accurate, privacy-aware, operationall
 ## Evidence and test gate
 
 - Verification is required. Prefer instrumentation call sites, schema/config references, sanitized event samples, and narrow query or static checks.
-- Report `test_requirement: NOT_REQUIRED | TARGETED | BROADER | TEST_TASK`; default to `NOT_REQUIRED`. Under the **User Test Authorization Gate**, `TARGETED`/`BROADER` are advisory recommendations only — test execution requires explicit user authorization (`TEST_TASK`).
+- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
 - Use tests, browser automation, or builds only for explicit testing/QA work or a concrete MVP-critical analytics claim that cheaper evidence cannot prove. Link every command to that claim.
 
 ## Output

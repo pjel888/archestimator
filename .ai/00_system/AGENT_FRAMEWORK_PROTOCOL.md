@@ -2,16 +2,18 @@
 
 ## Scope
 
-This file governs agent roles, payloads, memory, delegation, and adapter
-validation. `AGENTS.md` and `AGENT_OPERATING_PROTOCOL.md` remain authoritative.
-Payloads translate role capabilities; they do not duplicate or fork policy.
+This file governs agent roles, payloads, memory, model/capability mapping, and
+adapter validation. `AGENTS.md` and `AGENT_OPERATING_PROTOCOL.md` remain
+authoritative. `Multi-Agent-Execution-Directive.md` owns orchestration,
+assignments, handoffs, and recovery. Payloads translate role capabilities; they
+do not duplicate or fork policy.
 
 ## Fast Start
 
 1. Read `AGENTS.md`.
 2. Read only the FAST PATH in `.ai/10_state/current-state.md`.
 3. Run `bun run supermemory:ensure`.
-4. Pull this file only for framework/payload/delegation work.
+4. Pull this file only for framework, payload, or model-routing work.
 
 <!-- supermemory-bootstrap: required -->
 Search Supermemory before broad, non-trivial, or recovery work. Use
@@ -35,19 +37,14 @@ Use the fewest roles needed. Direct lead execution is the default for narrow or
 tightly coupled work. Missing lanes or tools are degraded capabilities; fall
 back to the lead rather than stopping.
 
-## Delegation
+## Orchestration Boundary
 
-Delegate only independent bounded work. A packet needs:
-
-- target result and owned scope;
-- relevant paths/context;
-- constraints and prohibited side effects;
-- expected evidence and return shape.
-
-Workers do not widen scope, edit shared global state, or treat summaries as proof.
-The lead inspects actual artifacts and integrates them. Use one writer for a
-shared file/contract. Formal leases are reserved for genuine concurrent plan-pack
-contention; ordinary work uses simple file ownership.
+Follow
+`.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` when
+delegation, parallel threads, emulated specialist passes, or coordinated
+multi-owner work is selected. This file defines available roles and capability
+mapping only. Missing native orchestration falls back to sequential lead
+execution; it does not create a blocker.
 
 ## Context Economy
 
@@ -77,10 +74,12 @@ fallback instead of manufacturing a blocker.
 
 ## Tool And Model Routing
 
-Use current configured model defaults; do not hardcode stale model assumptions.
-Use strong reasoning for architecture, security, data integrity, ambiguous
-implementation, and final judgment. Use fast lanes for bounded search,
-inventory, formatting, and evidence collection.
+Route semantically before choosing an implementation: frontier judgment for
+ambiguity and synthesis, balanced/read-heavy capability for exploration and
+research, and fast/repeatable capability for bounded mechanical work. Resolve
+current models, reasoning effort, availability, and fallbacks through
+`.ai/12_agents/codex-role-model-matrix.json`. Do not duplicate model slugs in
+planning prompts or manufacture model/reasoning/orchestration composite names.
 
 Optional workflows, graph tools, browser agents, MCPs, and plugins are selected
 only when their expected benefit exceeds setup and context cost. Availability is
