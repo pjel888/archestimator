@@ -1,0 +1,1260 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-19-archestimator-whole-repo-infosec-owasp-audit-plan-pack",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-19T13:00:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "038f3f41f2fa6bdaf264a43723c2d87bc899521f66ee802be3fb469b725745d2"
+    },
+    {
+      "id": "ART-002",
+      "role": "narrative",
+      "path": "README.md",
+      "sha256": "41179ec81c9c95713541ddc3e6e03c46ced538938d8aab0554c7a856beb2a37e"
+    },
+    {
+      "id": "ART-003",
+      "role": "narrative",
+      "path": "01-AUDIT-IDENTITY-AND-COVERAGE.md",
+      "sha256": "d6181f742e4214d1195073f2eef9f6730cae83b74695a1a28ebb8ee1e7805e16"
+    },
+    {
+      "id": "ART-004",
+      "role": "narrative",
+      "path": "02-ARCHITECTURE-THREAT-MODEL-AND-ATTACK-SURFACE.md",
+      "sha256": "e99e5ba57e87406a74b87e4396e4d6af8bd99975fd73594a3c672d21358a418b"
+    },
+    {
+      "id": "ART-005",
+      "role": "narrative",
+      "path": "03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md",
+      "sha256": "918b95f9c8ea1549544411ceb6e0bd50740e4b8053a6b654d3bc31772b8f952e"
+    },
+    {
+      "id": "ART-006",
+      "role": "narrative",
+      "path": "04-FINDINGS-REGISTER.md",
+      "sha256": "83de7fa73fd921d525c4eb697a15e7e2ed647eb508b571211f3ae52c1839d1d8"
+    },
+    {
+      "id": "ART-007",
+      "role": "narrative",
+      "path": "05-OWASP-ASVS-API-AI-CROSSWALK.md",
+      "sha256": "748893f97daeb0b6a442b407bc6b00ccd6e756205ac72e3de10034e043657761"
+    },
+    {
+      "id": "ART-008",
+      "role": "narrative",
+      "path": "06-REMEDIATION-ROADMAP-AND-SECURITY-GATES.md",
+      "sha256": "a7ea1b56cbdba0803eec6a281a85398d3b81d4d293e8a47a877e4e7555c56d1a"
+    },
+    {
+      "id": "ART-009",
+      "role": "narrative",
+      "path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
+      "sha256": "3cee48e5ed966d57af5c0542babb1d46d0b886442c23c4be4bc99e250080600b"
+    },
+    {
+      "id": "ART-010",
+      "role": "narrative",
+      "path": "08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md",
+      "sha256": "a33947d6a7daee2599dbfdfaf035248f9681a30ea9572d026d5f5ccb0f536e0c"
+    },
+    {
+      "id": "ART-011",
+      "role": "unit",
+      "path": "units/README.md",
+      "sha256": "15b966d08468429ce89b3af0bfa55540a5c7c74b1f8fc77d0a065e2f381d853e"
+    },
+    {
+      "id": "ART-012",
+      "role": "unit",
+      "path": "units/001-realtime-token-revocation.md",
+      "sha256": "5af8a5e76d47371968789d797d1a2944501d52e18d0ea564733ae39dc79372cb"
+    },
+    {
+      "id": "ART-013",
+      "role": "unit",
+      "path": "units/002-worker-edge-seam.md",
+      "sha256": "b54e08c01d921dbfa16500f38ac7c7333cdc2164b54cda488688d0cc57342d23"
+    },
+    {
+      "id": "ART-014",
+      "role": "unit",
+      "path": "units/003-constant-time-bearer-and-secret-cleanup.md",
+      "sha256": "14cfe69f1b6ab973a9a4e58802032913e41aa3f69d558d05fd0808a66ff79492"
+    },
+    {
+      "id": "ART-015",
+      "role": "unit",
+      "path": "units/004-email-boundary-chokepoint.md",
+      "sha256": "3355fd28ad85b9dae4a67df6e4885fc58cd0d9b415391d3cd6caf5e2707149fb"
+    },
+    {
+      "id": "ART-016",
+      "role": "unit",
+      "path": "units/005-scan-bind-invariant.md",
+      "sha256": "83d4c26a9087e18f2a7dbc3d7a4dd3b2fd8759c8d002fe3125a0eafa567793bb"
+    },
+    {
+      "id": "ART-017",
+      "role": "unit",
+      "path": "units/006-direct-upload-finalize-integrity.md",
+      "sha256": "6102e6b59b82a43de9ac8233d454f5320d9c035f04ce5be7025904940fc6e024"
+    },
+    {
+      "id": "ART-018",
+      "role": "unit",
+      "path": "units/007-scan-byte-ceiling.md",
+      "sha256": "46da1225a576a1e42c888f9088d28fb49f38714d46e0242c08845dd94cfe096b"
+    },
+    {
+      "id": "ART-019",
+      "role": "unit",
+      "path": "units/008-queue-message-signing.md",
+      "sha256": "1a6383415abab3d0f77e3c621b4f91796205a57b3bd44293c560061d88c8d387"
+    },
+    {
+      "id": "ART-020",
+      "role": "unit",
+      "path": "units/009-browser-hardening.md",
+      "sha256": "1968b1f898f4df34399e9aef5de2ad892e4c0c635d85c84fb0e7abf109e5e9e5"
+    },
+    {
+      "id": "ART-021",
+      "role": "unit",
+      "path": "units/010-cron-redaction-and-audit-pii.md",
+      "sha256": "af7dfca063594fb609ac74f2167ca3e85e48214056467a86f0189f1097938cbd"
+    },
+    {
+      "id": "ART-022",
+      "role": "unit",
+      "path": "units/011-retention-registry.md",
+      "sha256": "428daf55be844ec1a1aeabc24957ad76eb488ec668712c5bde869e3c148d5919"
+    },
+    {
+      "id": "ART-023",
+      "role": "unit",
+      "path": "units/012-ci-and-branch-protection.md",
+      "sha256": "ef4bc290d5da9193cdbda2d43e8689c5b372f56fb53191f81594da5ff4312105"
+    },
+    {
+      "id": "ART-024",
+      "role": "unit",
+      "path": "units/013-defense-in-depth-backlog.md",
+      "sha256": "c099d218e68a0d403328288245ddebb9f8112eaf6d90cecfb79abfc10e2883a1"
+    },
+    {
+      "id": "ART-025",
+      "role": "evidence",
+      "path": "artifacts/repository-file-inventory.csv",
+      "sha256": "a12968f16a5810773a5dee1d95b3126f810d867f4776f7d54dff1b7327fcef02"
+    },
+    {
+      "id": "ART-026",
+      "role": "evidence",
+      "path": "artifacts/coverage-summary.json",
+      "sha256": "dd835c132b6db43355f9d91660239d2d89beaa5b66cf761952a43799d6cc5aa2"
+    },
+    {
+      "id": "ART-027",
+      "role": "evidence",
+      "path": "artifacts/baseline-hashes.csv",
+      "sha256": "176a5a0bc8a954e6782aa6a1a343dec44fd1939a426da44ee1cd7e0ae6e7002e"
+    },
+    {
+      "id": "ART-028",
+      "role": "evidence",
+      "path": "artifacts/route-action-surface.csv",
+      "sha256": "95db66554308872960601d2da68992e30035285c2079f7bdead59810369eb03d"
+    },
+    {
+      "id": "ART-029",
+      "role": "evidence",
+      "path": "artifacts/data-access-authz-matrix.csv",
+      "sha256": "7df834952e340c8aa2232ace99cd965525eeb888b36d32e4f0dc131e2933c1df"
+    },
+    {
+      "id": "ART-030",
+      "role": "evidence",
+      "path": "artifacts/token-secret-lifecycle.csv",
+      "sha256": "565bc084310c3209338381ce8fc89657a220b3ce845e0f33d281cdf1f3a26e7d"
+    },
+    {
+      "id": "ART-031",
+      "role": "evidence",
+      "path": "artifacts/findings.json",
+      "sha256": "9153770140d2f78a6ba28588fa3ce69a760414a4dd46db84a2aaaa2d8a5917e4"
+    },
+    {
+      "id": "ART-032",
+      "role": "evidence",
+      "path": "artifacts/standards-crosswalk.csv",
+      "sha256": "847f3d205d075a750cf479e3869106e3f3b189bb750ecb5ed8c5c060c7fbb8f8"
+    },
+    {
+      "id": "ART-033",
+      "role": "evidence",
+      "path": "artifacts/historical-reconciliation.csv",
+      "sha256": "c56350fd7af740e0283460e8fbdb02103f53fecab6a27eed95c99d912b76bc70"
+    },
+    {
+      "id": "ART-034",
+      "role": "evidence",
+      "path": "artifacts/rejected-refuted-findings.json",
+      "sha256": "7f29f7e1793ee062835c35108e92dd549eb9e8301ef269ef1f18415e1ff3713b"
+    },
+    {
+      "id": "ART-035",
+      "role": "evidence",
+      "path": "artifacts/commands-run.log",
+      "sha256": "9df19ec0369ac8280121f68ebe9e74ee4471022e2cfce16cadd1af08f2f150da"
+    },
+    {
+      "id": "ART-036",
+      "role": "manifest",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "ac71488a49a7f688a7f44b27d4e6f7da4c697cc3a5b6b8eb3d1f0baddadcc389"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "SEC-005",
+        "SEC-006",
+        "SEC-007",
+        "SEC-008",
+        "SEC-009",
+        "SEC-010",
+        "SEC-011"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "SEC-005",
+        "SEC-006",
+        "SEC-007",
+        "SEC-008",
+        "SEC-009",
+        "SEC-010"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "SEC-003",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "SEC-004",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "SEC-005",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "SEC-006",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-010",
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "SEC-007",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "AUXILIARY",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "SEC-008",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "SEC-009",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-009",
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "SEC-010",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-011",
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "SEC-011",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "AUXILIARY",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "SEC-005",
+        "SEC-006",
+        "SEC-007",
+        "SEC-008",
+        "SEC-009",
+        "SEC-010"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "SEC-005",
+        "SEC-006",
+        "SEC-007",
+        "SEC-008",
+        "SEC-009",
+        "SEC-010",
+        "UNIT-013"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-011"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "SEC-005",
+        "SEC-006",
+        "SEC-007",
+        "SEC-008",
+        "SEC-009",
+        "SEC-010"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-007",
+        "UNIT-012"
+      ]
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
+      "affected_ids": [
+        "AC-001",
+        "AC-007",
+        "GATE-OPS-01"
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "status": "ACTIVE",
+      "artifact_path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
+      "affected_ids": [
+        "AC-010",
+        "GATE-OPS-01"
+      ]
+    },
+    {
+      "id": "AUTH-003",
+      "status": "ACTIVE",
+      "artifact_path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
+      "affected_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "AUTH-004",
+      "status": "ACTIVE",
+      "artifact_path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
+      "affected_ids": [
+        "AC-002",
+        "GATE-OPS-01"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-009",
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-010"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "BOUNDARY",
+      "artifact_path": "units/001-realtime-token-revocation.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Revocation is the critical security invariant for realtime collaboration; cheaper non-test evidence (source inspection) cannot prove the DO SQLite denylist read and the alarm/cleanup interaction happen at runtime, so a runtime regression test is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-002",
+      "status": "BOUNDARY",
+      "artifact_path": "units/002-worker-edge-seam.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The worker-edge seam is a critical invariant \u2014 public-internet reachability of admin-equivalent routes must be closed; cheaper non-test evidence (config inspection) cannot prove deployed DNS behavior, so the existing_test_path is insufficient and a hosted probe is the cheapest decisive evidence, which is why the criterion is BOUNDARY pending AUTH-004.",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": "AUTH-004"
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "units/004-email-boundary-chokepoint.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "CHEAPEST_DECISIVE_EXISTING_TEST",
+      "test_rationale": "Email boundary CRLF stripping is the critical invariant for safe email send; an existing vitest run is the cheapest decisive proof that the chokepoint strips CR/LF, and source inspection alone is insufficient because the EMAIL binding's runtime MIME construction cannot be verified statically.",
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "BOUNDARY",
+      "artifact_path": "units/005-scan-bind-invariant.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "CHEAPEST_DECISIVE_EXISTING_TEST",
+      "test_rationale": "Binding gate is a critical invariant \u2014 pending assets must not be bindable; the cheapest decisive existing test asserts the guard rejects a pending asset, and source inspection alone is insufficient because the D1 batch semantics cannot be proven statically.",
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": "AUTH-003"
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "units/006-direct-upload-finalize-integrity.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "CHEAPEST_DECISIVE_EXISTING_TEST",
+      "test_rationale": "Direct-upload finalize integrity (magic-byte + checksum re-verification) is a critical invariant against file-type-confusion uploads; the cheapest decisive existing test asserts the finalize rejects mismatched bytes, and source inspection alone is insufficient because the R2 head/download round-trip is a runtime concern.",
+      "requirement_ids": [
+        "SEC-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "units/010-cron-redaction-and-audit-pii.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "CHEAPEST_DECISIVE_EXISTING_TEST",
+      "test_rationale": "Cron-error redaction is a critical observability invariant \u2014 raw error stacks must not reach persisted logs; the cheapest decisive existing test asserts a fake-JWT-bearing error is redacted, and source inspection alone is insufficient because the Workers Logs runtime serializer cannot be proven statically.",
+      "requirement_ids": [
+        "SEC-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "BOUNDARY",
+      "artifact_path": "units/012-ci-and-branch-protection.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "CI restoration is AUXILIARY; the cheapest decisive evidence is GitHub Actions run green on a PR, which requires hosted GitHub state verification (AUTH-001) and is the cheapest decisive existing-test path for this AUXILIARY requirement.",
+      "requirement_ids": [
+        "SEC-007"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-008",
+      "status": "PASS",
+      "artifact_path": "units/008-queue-message-signing.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Queue-message provenance is a critical security invariant \u2014 unsigned messages could drive privileged work; cheaper non-test evidence (source inspection) cannot prove the HMAC verify at runtime, so a regression test asserting isUploadJobQueueMessage rejects an unsigned/incorrectly-signed message is the cheapest decisive evidence.",
+      "requirement_ids": [
+        "SEC-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "PASS",
+      "artifact_path": "units/009-browser-hardening.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "CHEAPEST_DECISIVE_EXISTING_TEST",
+      "test_rationale": "Invite no-store and CSP hardening are critical browser invariants before first external traffic; the cheapest decisive existing test asserts /invite returns no-store, and source inspection alone is insufficient because Next.js header emission order is a runtime concern.",
+      "requirement_ids": [
+        "SEC-009"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-010",
+      "status": "BOUNDARY",
+      "artifact_path": "units/011-retention-registry.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Retention registry completeness is a critical privacy invariant for DSAR/GDPR erasure; source inspection is decisive for the registry contents, but the hosted backup-side purge cadence requires AUTH-002 verification \u2014 hence BOUNDARY.",
+      "requirement_ids": [
+        "SEC-010"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ],
+      "authorization_boundary_id": "AUTH-002"
+    },
+    {
+      "id": "AC-011",
+      "status": "PASS",
+      "artifact_path": "03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Historical reconciliation is evidenced by the lineage matrix artifact and 03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md; no runtime evidence needed.",
+      "requirement_ids": [
+        "SEC-011"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-SEC-01",
+      "status": "PASS",
+      "artifact_path": "05-OWASP-ASVS-API-AI-CROSSWALK.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011"
+      ],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "PASS",
+      "artifact_path": "08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011"
+      ],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-OPS-01",
+      "status": "BOUNDARY",
+      "artifact_path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-004",
+        "AC-007",
+        "AC-010"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-007",
+        "EVID-010"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-realtime-token-revocation.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-worker-edge-seam.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-constant-time-bearer-and-secret-cleanup.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-email-boundary-chokepoint.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-scan-bind-invariant.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-direct-upload-finalize-integrity.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-004",
+        "SEC-005"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-scan-byte-ceiling.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "units/008-queue-message-signing.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-008"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "artifact_path": "units/009-browser-hardening.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-009"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "READY",
+      "artifact_path": "units/010-cron-redaction-and-audit-pii.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-006"
+      ],
+      "risk_ids": [
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "READY",
+      "artifact_path": "units/011-retention-registry.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-010"
+      ],
+      "risk_ids": [
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-010"
+      ]
+    },
+    {
+      "id": "UNIT-012",
+      "status": "READY",
+      "artifact_path": "units/012-ci-and-branch-protection.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-007"
+      ],
+      "risk_ids": [
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-013",
+      "status": "READY",
+      "artifact_path": "units/013-defense-in-depth-backlog.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-001",
+        "SEC-006",
+        "SEC-009",
+        "SEC-010",
+        "SEC-011"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011",
+        "UNIT-012",
+        "UNIT-013"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-realtime-token-revocation.md",
+      "sha256": "5af8a5e76d47371968789d797d1a2944501d52e18d0ea564733ae39dc79372cb",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-worker-edge-seam.md",
+      "sha256": "b54e08c01d921dbfa16500f38ac7c7333cdc2164b54cda488688d0cc57342d23",
+      "claim_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "AC-002",
+        "GATE-OPS-01"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "units/004-email-boundary-chokepoint.md",
+      "sha256": "3355fd28ad85b9dae4a67df6e4885fc58cd0d9b415391d3cd6caf5e2707149fb",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-003"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/005-scan-bind-invariant.md",
+      "sha256": "83d4c26a9087e18f2a7dbc3d7a4dd3b2fd8759c8d002fe3125a0eafa567793bb",
+      "claim_ids": [
+        "UNIT-005",
+        "UNIT-007",
+        "AC-004"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "units/006-direct-upload-finalize-integrity.md",
+      "sha256": "6102e6b59b82a43de9ac8233d454f5320d9c035f04ce5be7025904940fc6e024",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-005"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "units/010-cron-redaction-and-audit-pii.md",
+      "sha256": "af7dfca063594fb609ac74f2167ca3e85e48214056467a86f0189f1097938cbd",
+      "claim_ids": [
+        "UNIT-010",
+        "AC-006"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "units/012-ci-and-branch-protection.md",
+      "sha256": "ef4bc290d5da9193cdbda2d43e8689c5b372f56fb53191f81594da5ff4312105",
+      "claim_ids": [
+        "UNIT-012",
+        "AC-007",
+        "GATE-OPS-01"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PASS",
+      "artifact_path": "units/008-queue-message-signing.md",
+      "sha256": "1a6383415abab3d0f77e3c621b4f91796205a57b3bd44293c560061d88c8d387",
+      "claim_ids": [
+        "UNIT-008",
+        "AC-008"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-009",
+      "status": "PASS",
+      "artifact_path": "units/009-browser-hardening.md",
+      "sha256": "1968b1f898f4df34399e9aef5de2ad892e4c0c635d85c84fb0e7abf109e5e9e5",
+      "claim_ids": [
+        "UNIT-009",
+        "UNIT-013",
+        "AC-009"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "artifact_path": "units/011-retention-registry.md",
+      "sha256": "428daf55be844ec1a1aeabc24957ad76eb488ec668712c5bde869e3c148d5919",
+      "claim_ids": [
+        "UNIT-011",
+        "AC-010",
+        "GATE-OPS-01"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-011",
+      "status": "PASS",
+      "artifact_path": "03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md",
+      "sha256": "918b95f9c8ea1549544411ceb6e0bd50740e4b8053a6b654d3bc31772b8f952e",
+      "claim_ids": [
+        "AC-011",
+        "GATE-SEC-01",
+        "GATE-VERIFY-01",
+        "SEC-011"
+      ],
+      "source_revision": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "HEAD drift on audited source paths",
+    "worker.ts/wrangler.jsonc/next.config.ts edits",
+    "authz/d1-access.ts edits",
+    "publication/security.ts edits",
+    "cloudflare/*-proof-router.ts edits",
+    "retention-core.ts edits"
+  ],
+  "manifest_sha256": "c0759761127ef7883480b488b8887a0e85286f47b33a89601cc04b11e29e9bb3"
+}
