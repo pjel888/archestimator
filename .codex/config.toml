@@ -24,11 +24,13 @@ USE_OMX_EXPLORE_CMD = "0"
 [agents]
 max_depth = 1
 
-# Managed by LazyCodex: multi_agent_v2 is re-disabled on every Codex session start
-# because enabling it fails every turn with HTTP 400 (openai/codex#26753).
-# Opt out: LAZYCODEX_CONFIG_MIGRATION_DISABLED=1 (or OMO_CODEX_CONFIG_MIGRATION_DISABLED=1).
+# The model catalog overrides multi_agent_v2.enabled=false for gpt-5.6, so this flag
+# does NOT prevent V2. The real fix for the "collaboration.spawn_agent reserved for
+# use by this model" 400 error (openai/codex#31864) is tool_namespace="agents" —
+# it avoids the reserved "collaboration" namespace collision.
 max_threads = 6
 [features.multi_agent_v2]
+tool_namespace = "agents"
 enabled = false
 
 # OMX TUI StatusLine (Codex CLI v0.101.0+)
