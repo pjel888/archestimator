@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator Performance Change"
+  short_description: "Safeguard Archestimator performance changes"
+  default_prompt: "Use $archestimator-performance-change to make this performance-sensitive Archestimator change safely."

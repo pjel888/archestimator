@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator Design"
+  short_description: "Design compact, precise Archestimator interfaces"
+  default_prompt: "Use $archestimator-design to design or review this Archestimator surface with current source, the correct register, restrained typography, precise spacing, and accessible interaction states."

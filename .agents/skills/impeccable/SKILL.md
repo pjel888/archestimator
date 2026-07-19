@@ -1,7 +1,6 @@
 ---
 name: impeccable
 description: Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
-version: 3.7.1
 ---
 
 Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
@@ -18,7 +17,17 @@ You MUST do these steps before proceeding:
 
 ## Design guidance
 
-Produce ready-to-ship, production-grade code, not prototypes or starting points. Take no shortcuts unless the user asks for them (when in doubt, ask). Don't stop until arriving at a complete implementation (beautiful, responsive, fast, precise, bug-free, on brand). You take attention to detail seriously: every page, section or component crafted is battle tested using the tools available to you (browser screenshotting, computer use, etc). GPT is capable of extraordinary work. Don't hold back.
+Produce ready-to-ship, production-grade code, not prototypes or starting points. Take no shortcuts unless the user asks for them (when in doubt, ask). Don't stop until arriving at a complete implementation (beautiful, responsive, fast, precise, bug-free, on brand). Take attention to detail seriously and verify every page, section, or component with the strongest evidence authorized for the task. GPT is capable of extraordinary work. Don't hold back.
+
+### Archestimator verification gate
+
+This gate overrides any browser, screenshot, visual-QA, device-testing, automated-testing, or build instruction in a command reference:
+
+- **NOT_REQUIRED (default):** Do not run browser tools, Playwright, screenshots, visual QA, product tests, test suites, or builds. Verify through source inspection, design-system comparison, static analysis, local detector output, type/LSP evidence, lint, or a narrow non-test runtime/dry-run check.
+- **TEST_PROPOSAL:** When browser or test evidence would materially improve confidence, name the risk and offer the exact command, browser flow, viewports, or devices to check. Do not run it.
+- **TEST_TASK:** Run only the browser, screenshot, visual-QA, test, or build scope the user explicitly requested for the current task. Read returned screenshots before using them as evidence, record the checked states/viewports, and report failures honestly.
+
+Tool availability is never authorization. An explicit `$impeccable live` invocation counts as a browser request for that live session; a general design, critique, audit, craft, polish, harden, adapt, optimize, or overdrive request does not.
 
 ### General rules
 

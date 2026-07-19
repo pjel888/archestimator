@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator Form Alignment"
+  short_description: "Align shared form rows and field chrome"
+  default_prompt: "Use $archestimator-form-alignment to align this Archestimator form without one-off spacing fixes."

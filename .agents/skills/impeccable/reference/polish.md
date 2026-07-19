@@ -2,7 +2,7 @@
 
 Perform a meticulous final pass to catch all the small details that separate good work from great work. The difference between shipped and polished.
 
-Detector and automated QA output are defect evidence only. A clean script result is never proof that the design is strong; gather browser evidence and inspect the real interaction path.
+Detector and automated QA output are defect evidence only. A clean script result is never proof that the design is strong. Follow the parent skill's Archestimator verification gate: use source/static evidence by default, and inspect the real interaction path only when the user explicitly requested browser or test evidence.
 
 ## Design System Discovery
 
@@ -59,9 +59,9 @@ Work through these dimensions methodically:
 - **Grid adherence**: Elements snap to baseline grid
 
 **Check**:
-- Enable grid overlay and verify alignment
-- Check spacing with browser inspector
-- Test at multiple viewport sizes
+- Under `NOT_REQUIRED`, compare layout rules, tokens, container constraints, and breakpoint declarations in source
+- Under `TEST_TASK`, use only the requested grid overlay, browser inspector, and viewport sizes
+- Otherwise propose the exact mobile, tablet, and desktop viewport checks as a `TEST_PROPOSAL`
 - Look for elements that "feel" off
 
 ### Information Architecture & Flow
@@ -154,7 +154,7 @@ Every interactive element needs all states:
 
 ### Responsiveness
 
-- **All breakpoints**: Test mobile, tablet, desktop
+- **All breakpoints**: Inspect responsive source rules by default; test mobile, tablet, and desktop only under `TEST_TASK`
 - **Touch targets**: 44x44px minimum on touch devices
 - **Readable text**: No text smaller than 14px on mobile
 - **No horizontal scroll**: Content fits viewport
@@ -213,7 +213,7 @@ Sweat the details. Zoom in until the alignment is right and the spacing reads as
 - Polish without aligning to the design system; that's decoration on drift
 - Guess at design system principles instead of asking when something is ambiguous
 - Spend hours on polish if it ships in 30 minutes (triage)
-- Introduce bugs while polishing (test thoroughly)
+- Introduce bugs while polishing (verify with authorized evidence and propose tests when needed)
 - Ignore systematic issues (if spacing is off everywhere, fix the system, not just one screen)
 - Perfect one thing while leaving others rough (consistent quality level)
 - Create new one-off components when design system equivalents exist
@@ -224,12 +224,12 @@ Sweat the details. Zoom in until the alignment is right and the spacing reads as
 
 Before marking as done:
 
-- **Use it yourself**: Actually interact with the feature.
-- **Test on real devices**: Not just browser DevTools.
-- **Ask someone else to review**: Fresh eyes catch things.
+- **Default evidence**: Inspect source, tokens, state coverage, responsive rules, semantics, and detector/static findings.
+- **Authorized interaction**: Under `TEST_TASK`, interact with the feature only in the user-requested browser/device scope.
+- **Remaining confidence**: If real-device or second-review evidence would help, state it as a concrete `TEST_PROPOSAL` rather than running or requesting it implicitly.
 - **Compare to design**: Match intended design.
-- **Check all states**: Don't just test happy path.
-- **Treat automation carefully**: Run detector or QA commands when they are available and relevant, fix their defects, but never cite a clean result as proof that the work is polished.
+- **Check all states**: Inspect all implemented states; exercise them only when authorized.
+- **Treat automation carefully**: The bundled static detector may run under `NOT_REQUIRED`; QA, product tests, builds, and browser automation require `TEST_TASK`. Never cite a clean result as proof that the work is polished.
 
 ## Clean Up
 

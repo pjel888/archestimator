@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator Estimate Mutation Integrity"
+  short_description: "Preserve estimate mutation consistency"
+  default_prompt: "Use $archestimator-estimate-mutation-integrity to preserve estimate mutation integrity in this change."

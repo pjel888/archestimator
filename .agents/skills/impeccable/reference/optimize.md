@@ -158,7 +158,7 @@ const observer = new IntersectionObserver((entries) => {
 - Virtualize long lists
 - Code split routes
 - Avoid inline function creation in render
-- Use React DevTools Profiler
+- Under `TEST_TASK`, use React DevTools Profiler when the user requested browser profiling; otherwise inspect render structure statically and offer the exact profiling flow as a `TEST_PROPOSAL`
 
 **Framework-agnostic**:
 - Minimize re-renders
@@ -218,7 +218,7 @@ const observer = new IntersectionObserver((entries) => {
 
 ## Performance Monitoring
 
-**Tools to use**:
+**Tools to use under `TEST_TASK` (otherwise offer the exact command/flow as `TEST_PROPOSAL`)**:
 - Chrome DevTools (Lighthouse, Performance panel)
 - WebPageTest
 - Core Web Vitals (Chrome UX Report)

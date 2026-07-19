@@ -1,32 +1,33 @@
 ---
 name: explore-codebase
-description: Navigate and understand codebase structure using the knowledge graph
+description: Map how Archestimator currently works from source, configuration, and active diffs, with graph context only for relationships that need it. Use for architecture, route, symbol, data-flow, provider, or dependency questions; do not use for implementation, exhaustive repository inventories, or graph-first ceremony on narrow lookups.
 ---
 
 <!-- ARCHESTIMATOR REPO-LOCAL OVERRIDE — additive; preserve through fleet 3-way merge. Do not delete. -->
 > **ArchEstimator repo policy (override):** This skill's graph-first workflow applies to broad/high-risk/unfamiliar-code work. For narrow, reversible local edits, a focused `rg`/targeted-read/LSP check is sufficient — do not force full graph traversal or the token cap on small changes. Canonical authority: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` + `AGENT_FRAMEWORK_PROTOCOL.md`; `.ai` wins on any conflict.
 <!-- END ARCHESTIMATOR REPO-LOCAL OVERRIDE -->
 
-## Explore Codebase
+# Explore Codebase
 
-Use the code-review-graph MCP tools to explore and understand the codebase.
+Return current, traceable facts rather than a generic repository tour.
 
-### Steps
+## Workflow
 
-1. Run `list_graph_stats` to see overall codebase metrics.
-2. Run `get_architecture_overview` for high-level community structure.
-3. Use `list_communities` to find major modules, then `get_community` for details.
-4. Use `semantic_search_nodes` to find specific functions or classes.
-5. Use `query_graph` with patterns like `callers_of`, `callees_of`, `imports_of` to trace relationships.
-6. Use `list_flows` and `get_flow` to understand execution paths.
+1. Define the concrete question, entry surface, and evidence needed to answer
+   it. Keep historical plans and memory subordinate to current source.
+2. Inspect `git status --short --branch` and any relevant diff so concurrent or
+   uncommitted behavior is not missed.
+3. Read the smallest authoritative surfaces: route or action entry points,
+   imported modules, schemas, configuration, package scripts, and nearby
+   callers. Prefer targeted `rg` and source reads over broad dumps.
+4. Use GitNexus or code-review-graph as supplementary evidence when the question
+   genuinely needs transitive callers, execution flows, communities, or
+   unfamiliar-module relationships. Do not request repository-wide graph stats
+   for a narrow lookup.
+5. Reconcile graph results with the active diff and current files. Mark stale
+   index output, historical documents, and unsupported inferences explicitly.
+6. Report the answer with clickable `path:line` references, the relevant flow or
+   boundary, and any evidence gap that remains.
 
-### Tips
-
-- Start broad (stats, architecture) then narrow down to specific areas.
-- Use `children_of` on a file to see all its functions and classes.
-- Use `find_large_functions` to identify complex code.
-
-## Token Efficiency Rules
-- ALWAYS start with `get_minimal_context(task="<your task>")` before any other graph tool.
-- Use `detail_level="minimal"` on all calls. Only escalate to "standard" when minimal is insufficient.
-- Target: complete any review/debug/refactor task in ≤5 tool calls and ≤800 total output tokens.
+Stop once the question is answered with sufficient current-source evidence. Do
+not edit code, add planning artifacts, or expand into unrelated architecture.

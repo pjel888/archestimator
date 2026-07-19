@@ -1,5 +1,7 @@
 Interactive live variant mode: select elements in the browser, pick a design action, and get AI-generated HTML+CSS variants hot-swapped via the dev server's HMR.
 
+This command is browser-dependent and may run only when the user explicitly invokes `$impeccable live` or otherwise explicitly requests this live browser workflow for the current task. Never infer authorization from a general Impeccable request or from browser-tool availability. The explicit live request establishes `TEST_TASK` for this live session only.
+
 ## Prerequisites
 
 A running dev server with hot module replacement (Vite, Next.js, Bun, etc.), OR a static HTML file open in the browser.

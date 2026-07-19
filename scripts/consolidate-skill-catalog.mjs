@@ -8,6 +8,13 @@ const projectCatalog = path.join(projectRoot, ".agents", "skills");
 const globalCatalog = path.join(homeRoot, ".agents", "skills");
 
 const projectSkills = new Set([
+  "archestimator-cloudflare-config-drift",
+  "archestimator-d1-migration-lifecycle",
+  "archestimator-design",
+  "archestimator-estimate-mutation-integrity",
+  "archestimator-form-alignment",
+  "archestimator-next-cloudflare-compatibility",
+  "archestimator-performance-change",
   "archestimator-plan-pack",
   "debug-issue",
   "explore-codebase",

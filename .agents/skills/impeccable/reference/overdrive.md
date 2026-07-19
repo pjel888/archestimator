@@ -19,9 +19,9 @@ This command has the highest potential to misfire. Do NOT jump straight into imp
 
 Skipping this step risks building something embarrassing that needs to be thrown away.
 
-### Iterate with Browser Automation
+### Verify the Ambitious Effect
 
-Technically ambitious effects almost never work on the first try. You MUST actively use browser automation tools to preview your work, visually verify the result, and iterate. Do not assume the effect looks right, check it. Expect multiple rounds of refinement. The gap between "technically works" and "looks extraordinary" is closed through visual iteration, not code alone.
+Technically ambitious effects almost never work on the first try. Follow the parent skill's Archestimator verification gate. Under `TEST_TASK`, actively use only the browser automation, visual proof, viewports, or devices the user requested and iterate from the observed result. Under `NOT_REQUIRED`, inspect the implementation, fallbacks, performance-sensitive properties, responsive constraints, and reduced-motion path; then provide a `TEST_PROPOSAL` with the exact browser flow and target viewports/devices needed to close the remaining visual-confidence gap. Never claim an unobserved effect looks right.
 
 ---
 
@@ -105,7 +105,7 @@ else if (canvas.getContext('webgl2')) { /* WebGL2 fallback */ }
 - Respect `prefers-reduced-motion`, always. Provide a beautiful static alternative.
 - Lazy-initialize heavy resources (WebGL contexts, WASM modules) only when near viewport.
 - Pause off-screen rendering. Kill what you can't see.
-- Test on real mid-range devices, not just your development machine.
+- Under `TEST_TASK`, include a real mid-range device when the user requested device testing; otherwise propose that exact check as remaining evidence.
 
 ### Polish is the difference
 

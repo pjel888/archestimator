@@ -148,7 +148,7 @@ Transform and opacity are reliable defaults, not the whole palette. Premium inte
 - **Shadow / glow / color filters**: energy, affordance, focus, warmth, active state
 - **Grid-template-rows or FLIP-style transforms**: expanding and reflowing layout without animating `height` directly
 
-The hard rule isn't "transform and opacity only." It's: avoid animating layout-driving properties casually (`width`, `height`, `top`, `left`, margins), keep expensive effects bounded to small or isolated areas, and verify smoothness in-browser on target viewports.
+The hard rule isn't "transform and opacity only." It's: avoid animating layout-driving properties casually (`width`, `height`, `top`, `left`, margins), keep expensive effects bounded to small or isolated areas, and follow the parent skill's verification gate. Inspect performance-sensitive code and fallbacks under `NOT_REQUIRED`; verify smoothness in-browser on target viewports only under `TEST_TASK`, otherwise offer the exact viewport/FPS check as a `TEST_PROPOSAL`.
 
 ### Performance
 - **Layout safety**: Avoid casual animation of layout-driving properties (`width`, `height`, `top`, `left`, margins)

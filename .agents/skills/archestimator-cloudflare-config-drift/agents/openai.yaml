@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator Cloudflare Config Drift"
+  short_description: "Reconcile Cloudflare configuration drift"
+  default_prompt: "Use $archestimator-cloudflare-config-drift to reconcile this Cloudflare configuration mismatch from current source."

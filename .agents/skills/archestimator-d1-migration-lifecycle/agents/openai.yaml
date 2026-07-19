@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator D1 Migration Lifecycle"
+  short_description: "Manage authorized D1 migrations safely"
+  default_prompt: "Use $archestimator-d1-migration-lifecycle to plan and implement this active D1 migration safely."

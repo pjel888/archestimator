@@ -59,9 +59,9 @@ means. One shared payload, many host roots.
 
 - **Canonical global source:** `~/.agents/skills/` — one physical payload per
   skill, shared by every host.
-- **Canonical project source:** `.agents/skills/` — the eight Archestimator
-  adapters (`archestimator-plan-pack`, `debug-issue`, `explore-codebase`,
-  `gitnexus`, `impeccable`, `react-doctor`, `refactor-safely`, `review-changes`).
+- **Canonical project source:** `.agents/skills/` — the fifteen adapters tracked
+  by `scripts/validate-skill-catalog.mjs`, including the seven dedicated
+  `archestimator-*` workflow and design adapters.
 - **Per-host exposure:** each non-canonical root (`~/.zcode/skills/`,
   `~/.claude/skills/`, `~/.cursor/skills/`, `~/.config/opencode/skills/`,
   `~/.opencode/skills/`, `~/.vibe/skills/`, `~/.commandcode/skills/`,

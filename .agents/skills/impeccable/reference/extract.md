@@ -47,7 +47,7 @@ Replace existing uses with the new shared versions:
 
 - **Find all instances**: Search for the patterns you extracted
 - **Replace systematically**: Update each use to consume the shared version
-- **Test thoroughly**: Ensure visual and functional parity
+- **Verify parity**: Use source/static evidence under `NOT_REQUIRED`; run visual or functional tests only under `TEST_TASK`, otherwise offer the exact parity check as a `TEST_PROPOSAL`
 - **Delete dead code**: Remove the old implementations
 
 ## Step 6: Document
@@ -66,4 +66,3 @@ Update design system documentation:
 - Skip proper TypeScript types or prop documentation
 - Create tokens for every single value (tokens should have semantic meaning)
 - Extract things that differ in intent (two buttons that look similar but serve different purposes should stay separate)
-

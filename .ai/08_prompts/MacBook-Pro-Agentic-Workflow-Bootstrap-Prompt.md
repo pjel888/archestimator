@@ -92,12 +92,12 @@ Use this only as a parity reference captured on 2026-07-19. Prefer the repositor
 - OpenCode `1.18.3`
 - Kimi Code `0.27.0`
 - GitNexus `1.6.9`
-- Eight project-local Archestimator skills and 24 project compatibility links
-- 289 user-level shared skills, including 278 lock-managed skills
+- Fifteen project-local Archestimator skills and 45 project compatibility links
+- 467 user-level shared skills, including 466 lock-managed skills
 - 19 installed Codex plugins
 - Healthy reference validation:
   - `bun run validate:agents` passed
-  - `bun run validate:skills` reported `project=8`, `project_links=24`, `global=289`, `global_links=628`
+  - `bun run validate:skills` reported `project=15`, `project_links=45`, `global=467`, `global_links=1865`
   - `omx doctor` reported `20 passed`, `1 warning`, `0 failed`
 
 Count differences caused by legitimate newer upstream catalogs are acceptable only when the repository validators pass and no required project skill or OMX workflow is missing.
@@ -164,7 +164,14 @@ Claude Code, OpenCode, and Kimi Code are useful parity tools but are not blocker
 
 1. Confirm `AGENTS.md` is visible at the repository root.
 2. Confirm `.codex/config.toml` and the native roles under `.codex/agents/` are present.
-3. Confirm the eight expected project skills exist under `.agents/skills/`:
+3. Confirm the fifteen expected project skills exist under `.agents/skills/`:
+   - `archestimator-cloudflare-config-drift`
+   - `archestimator-d1-migration-lifecycle`
+   - `archestimator-design`
+   - `archestimator-estimate-mutation-integrity`
+   - `archestimator-form-alignment`
+   - `archestimator-next-cloudflare-compatibility`
+   - `archestimator-performance-change`
    - `archestimator-plan-pack`
    - `debug-issue`
    - `explore-codebase`

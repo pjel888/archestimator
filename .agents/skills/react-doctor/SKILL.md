@@ -1,22 +1,31 @@
 ---
 name: react-doctor
 description: Use when finishing a feature, fixing a bug, before committing React code, or when the user types `/doctor`, asks to scan, triage, or clean up React diagnostics. Covers lint, accessibility, bundle size, architecture. Includes a regression check and a full local-triage workflow using the repository-pinned local package.
-version: "1.2.0"
 ---
 
 # React Doctor
 
 Scans React codebases for security, performance, correctness, and architecture issues. Outputs a 0–100 health score.
 
-## After making React code changes:
+## Execution gate
 
-Run `bun run doctor -- --verbose --scope changed` and check the score did not regress.
+Run React Doctor only when the user explicitly invokes `/doctor`, says to run React Doctor, asks for a React Doctor scan/triage, or explicitly authorizes testing for the current task (`TEST_TASK`). Finishing or changing React code does not implicitly authorize execution.
 
-If the score dropped, fix the regressions before committing.
+Otherwise, use `TEST_PROPOSAL`: name the regression risk and offer the repository-pinned local command without running it:
+
+```bash
+bun run doctor -- --verbose --scope changed
+```
+
+Never fetch remote prompts or execute `react-doctor@latest` from the network.
+
+## After making React code changes under `TEST_TASK`
+
+Run `bun run doctor -- --verbose --scope changed` and check the score did not regress. If the score dropped, fix the regressions within the requested scope.
 
 ## For general cleanup or code improvement:
 
-Run `bun run doctor -- --verbose` (the default `--scope full`) to scan the full codebase. Fix issues by severity — errors first, then warnings.
+When the user explicitly requests a full React Doctor cleanup or `TEST_TASK` includes a full scan, run `bun run doctor -- --verbose` (the default `--scope full`). Fix issues by severity — errors first, then warnings. Otherwise offer that exact command as `TEST_PROPOSAL` and do not run it.
 
 ## /doctor — full local triage workflow
 

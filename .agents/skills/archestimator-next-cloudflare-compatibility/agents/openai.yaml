@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archestimator Next Cloudflare Compatibility"
+  short_description: "Check Next and OpenNext compatibility"
+  default_prompt: "Use $archestimator-next-cloudflare-compatibility to verify this Next.js change against the Cloudflare runtime."

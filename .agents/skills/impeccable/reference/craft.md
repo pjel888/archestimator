@@ -90,19 +90,19 @@ Implement the feature following the design brief. Build in passes so structure, 
 - **Realistic state coverage.** Default, hover, focus-visible, active, disabled, loading, error, success, empty, overflow, long/short text, first-run.
 - **Finished interaction quality.** Keyboard paths, touch targets, feedback timing, scroll behavior, state transitions, no hover-only functionality.
 - **Coherent icon set.** Use the project's established set; otherwise pick one library or use accessible text. Don't mix.
-- **Respect the build pipeline.** Edit source files and run the project's build (`npm run build` or equivalent). Don't write to `build/` / `dist/` / `.next/` with `cat`, heredoc, or Bash redirects; that skips asset hashing, image optimization, code splitting, and CSS extraction, and produces output the dev server won't serve.
+- **Respect the build pipeline.** Edit source files, but run the project's build (`npm run build` or equivalent) only under `TEST_TASK`; otherwise offer the exact project build as a `TEST_PROPOSAL` when it would materially improve confidence. Never write to `build/` / `dist/` / `.next/` with `cat`, heredoc, or Bash redirects; that skips asset hashing, image optimization, code splitting, and CSS extraction, and produces output the dev server won't serve.
 - **Verify image URLs before referencing them.** Use image-search MCP or web-fetch when available; guessed photo IDs ship as broken-image placeholders. Without verification, prefer fewer images you're confident about.
 - **Optimized imagery and media.** Correct dimensions, useful alt text, lazy loading below the fold, modern formats when practical, responsive `srcset`/`picture` for raster, no project-referenced asset left outside the workspace.
-- **Premium motion.** Use atmospheric blur, filter, mask, shadow, reveal when they improve the experience. Avoid casual layout-property animation, bound expensive effects, verify smoothness in-browser, respect reduced motion, and avoid choreography that blocks task completion.
+- **Premium motion.** Use atmospheric blur, filter, mask, shadow, reveal when they improve the experience. Avoid casual layout-property animation, bound expensive effects, inspect performance-sensitive code under `NOT_REQUIRED`, verify smoothness in-browser only under `TEST_TASK`, respect reduced motion, and avoid choreography that blocks task completion.
 - **Maintainable.** Reusable local patterns, clear component boundaries, project conventions. No rasterized UI text or one-off hacks when a local pattern exists.
-- **Technically clean.** Production build passes, no console errors, no avoidable layout shift, no needless dependencies, no broken asset paths.
+- **Technically clean.** Source and static evidence show no avoidable layout shift, needless dependencies, or broken asset paths. A production build or console check is evidence only when authorized under `TEST_TASK`; otherwise propose its exact command or browser flow when material.
 - **Ask when uncertain.** If a discovery materially changes the brief or approved direction, stop and ask. Don't guess.
 
 ## Step 5: Iterate Visually
 
-Look at what you built like a designer would. Your eyes are whatever the harness gives you: a connected browser, a screenshotting tool, Playwright, or asking the user. Use them for responsive testing (mobile, tablet, desktop minimum) and general visual validation.
+Look at what you built like a designer would, subject to the parent skill's Archestimator verification gate. Under `NOT_REQUIRED`, inspect source structure, tokens, responsive rules, content bounds, interactive-state coverage, and reduced-motion fallbacks; do not open a browser or capture screenshots. Under `TEST_TASK`, use only the user-requested browser, screenshot, Playwright, viewport, or device scope for responsive and visual validation.
 
-If your tool returns a file path, read the PNG back into the conversation. A screenshot you didn't read doesn't count.
+If an authorized tool returns a file path, read the PNG back into the conversation. A screenshot you didn't read doesn't count.
 
 For long-form brand surfaces, inspect major sections individually. Thumbnails hide spacing, clipping, and cascade defects.
 
@@ -116,7 +116,7 @@ Detector or QA output is defect evidence only; never proof the work is finished.
 
 Present the result to the user:
 - Show the feature in its primary state
-- Summarize the browser/viewports checked and the most important fixes made after inspection
+- Summarize the source/static evidence used; when `TEST_TASK` applies, also name the browser/viewports checked and the most important fixes made after inspection
 - Walk through the key states (empty, error, responsive)
 - Explain design decisions that connect back to the design brief and, when used, the chosen north-star mock. Include any accepted deviations from the mock; do not hide unimplemented mock ingredients.
 - Note any remaining limitations or follow-up risks honestly
