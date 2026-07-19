@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "audit_head": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+  "total_tracked_files": 12716,
+  "by_runtime_or_tooling_role": {
+    "ROOT_OR_OTHER": 732,
+    "AI_GOVERNANCE": 849,
+    "AUDIT_OR_PLAN_DOC": 8130,
+    "md": 1,
+    "STATIC_ASSET": 377,
+    "BUILD_OR_RUNTIME_CONFIG": 19,
+    "GITHUB_CICD": 10,
+    "TEST_OR_FIXTURE": 894,
+    "PRODUCT_DOC": 19,
+    "EDGE_ENTRY": 3,
+    "ACTIVE_MIGRATION": 84,
+    "PATCHED_DEPENDENCY": 1,
+    "OPS_SCRIPT": 142,
+    "PAGE_OR_LAYOUT": 115,
+    "ROUTE_HANDLER_OR_PAGE": 65,
+    "SOURCE": 1030,
+    "HISTORICAL_PROVIDER_ARTIFACT": 245
+  },
+  "by_disposition": {
+    "NON_SECURITY_RELEVANT_WITH_REASON": 733,
+    "GENERATED_INTERFACE_REVIEWED": 8979,
+    "BINARY_ASSET_CLASSIFIED": 377,
+    "DEEP_REVIEWED": 98,
+    "PATTERN_SCANNED_AND_CLASSIFIED": 1036,
+    "TRACE_REVIEWED": 134,
+    "DEEP_REVIEWED_or_TRACE_REVIEWED": 1114,
+    "HISTORICAL_PROVIDER_ARTIFACT": 245
+  },
+  "unclassified_tracked_paths": 0,
+  "coverage_closure": "CLOSED",
+  "deep_reviewed_estimate": 1212,
+  "trace_reviewed_estimate": 1248,
+  "pattern_scanned_estimate": 1036,
+  "historical_provider_artifact": 245,
+  "binary_asset_classified": 377,
+  "non_security_relevant": 733
+}
