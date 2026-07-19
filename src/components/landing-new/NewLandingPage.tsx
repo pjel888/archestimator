@@ -1,14 +1,15 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
-  CheckCircle,
   ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
-import { NewHeroWorkbench } from "./NewHeroWorkbench";
+import { ArchestimatorLogoMark } from "@/components/brand/ArchestimatorLogo";
+import { NewHeroSceneLoader } from "./NewHeroSceneLoader";
+import { NewEstimateSheet } from "./NewEstimateSheet";
+import { NewLandingMotion } from "./NewLandingMotion";
 import styles from "./new-landing.module.css";
 
 const navItems = [
@@ -16,24 +17,6 @@ const navItems = [
   { label: "Workflow", href: "#workflow" },
   { label: "Specialties", href: "#specialties" },
   { label: "Pricing", href: "/pricing" },
-] as const;
-
-const behaviorCards = [
-  {
-    number: "01",
-    title: "Estimate smarter",
-    body: "Structure scope, rates, assumptions, and source notes around the way the project will actually be built.",
-  },
-  {
-    number: "02",
-    title: "Propose better",
-    body: "Carry the estimate into a client-ready proposal without rebuilding the same number in another document.",
-  },
-  {
-    number: "03",
-    title: "Win faster",
-    body: "Keep comments, revisions, and approvals attached so the next decision starts from the record.",
-  },
 ] as const;
 
 const problemFragments = [
@@ -45,122 +28,33 @@ const problemFragments = [
 
 const workflowSteps = [
   {
-    number: "1.0",
+    number: "01",
     title: "Structure",
     body:
       "Organize the estimate by phase, location, scope, package, or trade. Quantities, rates, assumptions, and source notes stay attached to the work they describe.",
-    state: "Estimate tree, scoped rows, assumptions",
+    state: "Estimate tree · scoped rows · assumptions",
   },
   {
-    number: "2.0",
+    number: "02",
     title: "Reuse",
     body:
       "Reuse materials, labor, services, assemblies, variants, suppliers, and known costs without losing the context behind them.",
-    state: "Library dock, component variants, source notes",
+    state: "Library dock · component variants · source notes",
   },
   {
-    number: "3.0",
+    number: "03",
     title: "Propose",
     body:
       "Carry line items, totals, exclusions, and assumptions into a clean client-facing proposal without reformatting or copy-paste.",
-    state: "Proposal output, exclusions, review link",
+    state: "Proposal output · exclusions · review link",
   },
   {
-    number: "4.0",
+    number: "04",
     title: "Decide",
     body:
       "Capture comments, questions, revision requests, approvals, and version history in the same commercial record.",
-    state: "Comments, versions, decisions",
+    state: "Comments · versions · decisions",
   },
-] as const;
-
-const featureRows = [
-  {
-    feature: "Reusable cost intelligence",
-    value:
-      "Save materials, labor, services, assemblies, variants, suppliers, and source notes as reusable commercial knowledge.",
-    proof: "The value is not simply saving a rate. It is remembering why the rate was trusted.",
-  },
-  {
-    feature: "Proposal handoff",
-    value:
-      "Line items, totals, exclusions, and assumptions move into a client-ready proposal while staying connected to the estimate.",
-    proof: "Client-facing clarity without internal context loss.",
-  },
-  {
-    feature: "Revision and activity history",
-    value:
-      "Comments, changes, versions, and decisions stay attached to the proposal and the work behind it.",
-    proof: "A change should never erase the reason behind it.",
-  },
-  {
-    feature: "Private by design",
-    value:
-      "Your data is never pooled or anonymized across customers. Built on Cloudflare Workers, D1, R2, and Better Auth.",
-    proof: "Privacy is a positioning choice, not a feature.",
-  },
-] as const;
-
-const specialties = [
-  {
-    id: "architects",
-    label: "Architects",
-    copy:
-      "Build estimate trees that mirror your design intent. Keep finish options, exclusions, and client decisions attached from first concept to final approval.",
-    visual: "Area-based estimate tree with finish options and exclusions.",
-  },
-  {
-    id: "engineers",
-    label: "Engineers",
-    copy:
-      "Build reusable assemblies per discipline. Variant costing, supplier context, and labor logic move with the assembly.",
-    visual: "Discipline assemblies with supplier variants and labor logic.",
-  },
-  {
-    id: "general-contractors",
-    label: "General contractors",
-    copy:
-      "Organize costs across phases, locations, trades, bid packages, and allowances. Preserve the assumptions behind the total.",
-    visual: "Phase and package tree with allowances held beside the estimate total.",
-  },
-  {
-    id: "specialty-contractors",
-    label: "Specialty / fit-out contractors",
-    copy:
-      "Build reusable assemblies, variants, supplier references, labor logic, and scope packages that move into future estimates.",
-    visual: "Assembly variants with supplier context and reusable labor logic.",
-  },
-  {
-    id: "cost-estimators-qs",
-    label: "Cost estimators / QS",
-    copy:
-      "Structure BOQ-grade estimates with unit-rate discipline. Every rate keeps its source note, every quantity keeps its assumption.",
-    visual: "BOQ-structured estimate with source notes and assumptions attached.",
-  },
-  {
-    id: "interior-designers",
-    label: "Interior designers",
-    copy:
-      "Keep rooms, finishes, options, exclusions, and client decisions connected from the first estimate through final approval.",
-    visual: "Room-based estimate with finish options and client decisions attached.",
-  },
-  {
-    id: "project-managers",
-    label: "Project managers",
-    copy:
-      "Walk into every pricing conversation with the full record: what was proposed, what changed, what was approved, when, and by whom.",
-    visual: "Activity timeline with proposal, change order, and recorded decision.",
-  },
-] as const;
-
-const recordNodes = [
-  ["Project structure", "Phases, locations, trades"],
-  ["Reusable cost library", "Assemblies, suppliers, variants"],
-  ["Historical rates", "Source notes, assumptions"],
-  ["Estimate", "Scope, quantities, rates"],
-  ["Proposal", "Client-ready output"],
-  ["Review", "Comments and approvals"],
-  ["Decision", "Final response and next action"],
 ] as const;
 
 const comparisonRows = [
@@ -171,30 +65,41 @@ const comparisonRows = [
   ["The next estimate starts from a blank or duplicated sheet.", "Commercial knowledge compounds."],
 ] as const;
 
-const proofFrames = [
+const specialties = [
   {
-    label: "Estimate tree",
-    route: "/workshop/projects",
-    caption: "Hierarchical estimate tree. Drag-and-drop. Inline editing. Live totals.",
-    proves: "Structured estimate surface",
+    label: "Architects",
+    copy:
+      "Estimate trees that mirror design intent, with finish options, exclusions, and client decisions attached from first concept to final approval.",
   },
   {
-    label: "Library dock",
-    route: "/workshop/library",
-    caption: "Reusable cost component library. Brands, suppliers, variants, pricing, images, attachments.",
-    proves: "Cost knowledge reuse",
+    label: "Engineers",
+    copy:
+      "Reusable assemblies per discipline. Variant costing, supplier context, and labor logic move with the assembly.",
   },
   {
-    label: "Activity panel",
-    route: "/workshop/projects",
-    caption: "Activity, node activity, row version history, comments, changes, and recorded decisions.",
-    proves: "Revision memory",
+    label: "General contractors",
+    copy:
+      "Costs organized across phases, locations, trades, bid packages, and allowances — with the assumptions behind the total preserved.",
   },
   {
-    label: "Publication viewer",
-    route: "/share/demo",
-    caption: "Client-ready proposal link with comments, decisions, password protection, and change-order flow.",
-    proves: "Proposal handoff",
+    label: "Specialty / fit-out contractors",
+    copy:
+      "Reusable assemblies, variants, supplier references, and scope packages that move into future estimates.",
+  },
+  {
+    label: "Cost estimators / QS",
+    copy:
+      "BOQ-grade estimates with unit-rate discipline. Every rate keeps its source note; every quantity keeps its assumption.",
+  },
+  {
+    label: "Interior designers",
+    copy:
+      "Rooms, finishes, options, exclusions, and client decisions connected from the first estimate through final approval.",
+  },
+  {
+    label: "Project managers",
+    copy:
+      "Walk into every pricing conversation with the full record: what was proposed, what changed, what was approved, when, and by whom.",
   },
 ] as const;
 
@@ -230,53 +135,38 @@ function PrimaryCta({ location }: { location: string }) {
   return (
     <Link
       href="/contact?intent=access"
-      className={styles.primaryCta}
+      className={styles.ctaPrimary}
       data-new-landing-cta="primary"
       data-new-landing-location={location}
     >
       <span>Request access</span>
-      <ArrowRight size={15} weight="bold" aria-hidden="true" />
+      <span className={styles.ctaIconOrb} aria-hidden="true">
+        <ArrowRight size={14} weight="bold" />
+      </span>
     </Link>
   );
 }
 
-function SecondaryCta({ href, children }: { href: string; children: ReactNode }) {
+function GhostCta({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className={styles.secondaryCta}>
+    <Link href={href} className={styles.ctaGhost}>
       <span>{children}</span>
       <ArrowUpRight size={14} weight="bold" aria-hidden="true" />
     </Link>
   );
 }
 
-function SectionHead({
-  title,
-  body,
-  id,
-}: {
-  title: string;
-  body?: string;
-  id?: string;
-}) {
-  return (
-    <header className={styles.sectionHead}>
-      <h2 id={id}>{title}</h2>
-      {body ? <p>{body}</p> : null}
-    </header>
-  );
-}
-
 function NewLandingNav() {
   return (
-    <header className={styles.navShell}>
+    <header className={styles.nav} data-nav>
       <a href="#new-main" className={styles.skipLink}>
         Skip to content
       </a>
-      <div className={styles.navPill}>
+      <div className={styles.navInner}>
         <Link href="/" className={styles.navBrand} aria-label="Archestimator home">
           <ArchestimatorLogo
             tone="dark"
-            markSize={30}
+            markSize={28}
             markClassName={styles.logoMark}
             separatorClassName={styles.logoSeparator}
             wordmarkClassName={styles.logoWordmark}
@@ -317,43 +207,78 @@ function NewLandingNav() {
 
 function HeroSection() {
   return (
-    <section className={styles.hero} aria-labelledby="new-hero-title">
-      <div className={styles.heroCopy}>
-        <p className={styles.heroEyebrow}>AEC construction cost estimating and proposal platform</p>
-        <h1 id="new-hero-title">Where estimates become client-approved proposals.</h1>
-        <p className={styles.heroIntro}>
-          Build estimates from reusable costs, send client-ready proposals, and keep revisions,
-          comments, and approvals attached.
+    <section className={styles.hero} aria-labelledby="new-hero-title" data-hero-root>
+      <div className={styles.heroStage} data-hero="scene">
+        <NewHeroSceneLoader />
+      </div>
+      <div className={styles.heroShade} aria-hidden="true" />
+
+      <div className={styles.heroInner}>
+        <div className={styles.heroCopy}>
+        <p className={styles.heroKicker} data-hero="kicker">
+          <span className={styles.kickerMark} aria-hidden="true" />
+          Estimating · proposals · approvals
         </p>
-        <div className={styles.ctaRow}>
+        <h1 id="new-hero-title" className={styles.heroTitle}>
+          <span className={styles.maskLine}>
+            <span className={styles.lineInner} data-hero-line>
+              every number
+            </span>
+          </span>
+          <span className={styles.maskLine}>
+            <span className={styles.lineInner} data-hero-line>
+              keeps its{" "}
+              <span className={styles.accentWord}>
+                source
+                <svg
+                  className={styles.accentUnderline}
+                  viewBox="0 0 400 14"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    data-hero="underline"
+                    d="M4 10 C 90 3, 300 3, 396 8"
+                    fill="none"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+              .
+            </span>
+          </span>
+        </h1>
+        <p className={styles.heroIntro} data-hero="intro">
+          Archestimator is the estimating workspace with a memory. Every rate, supplier, and
+          assumption stays attached — from first line item, to client-ready proposal, to recorded
+          approval.
+        </p>
+        <div className={styles.heroCtas} data-hero="ctas">
           <PrimaryCta location="hero" />
-          <SecondaryCta href="#workflow">See how it works</SecondaryCta>
+          <GhostCta href="#workflow">
+            See the workflow
+          </GhostCta>
         </div>
-        <p className={styles.promiseLine}>From cost proposal to client approval.</p>
-      </div>
-      <div className={styles.heroProof} aria-label="Archestimator product proof">
-        <div className={styles.heroImageBand}>
-          <Image
-            src="/landing/archestimator-mountain-hero-photo.png"
-            alt="Architectural mountain project context behind the Archestimator workbench."
-            width={1896}
-            height={830}
-            priority
-            sizes="(min-width: 960px) 46vw, 94vw"
-          />
-        </div>
-        <div className={styles.mockupShell}>
-          <NewHeroWorkbench />
         </div>
       </div>
-      <div className={styles.behaviorRail} aria-label="Archestimator behavior summary">
-        {behaviorCards.map((card) => (
-          <article key={card.number} className={styles.behaviorCard}>
-            <span>{card.number}</span>
-            <h2>{card.title}</h2>
-            <p>{card.body}</p>
-          </article>
-        ))}
+    </section>
+  );
+}
+
+function SheetSection() {
+  return (
+    <section className={styles.sheetSection} aria-labelledby="sheet-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="sheet-title">The estimate sheet is the product.</h2>
+          <p>
+            Materials, quantities, unit costs, and per-row contingency — with every supplier,
+            source note, and revision still attached.
+          </p>
+        </header>
+        <NewEstimateSheet />
       </div>
     </section>
   );
@@ -361,27 +286,29 @@ function HeroSection() {
 
 function ProblemSection() {
   return (
-    <section className={styles.problemSection} aria-labelledby="problem-title">
-      <div className={styles.problemCopy}>
-        <h2 id="problem-title">
-          Spreadsheets calculate.
-          <span>They do not remember.</span>
+    <section className={styles.problem} aria-labelledby="problem-title">
+      <div className={styles.sectionInner}>
+        <h2 id="problem-title" className={styles.problemTitle} data-scrub-words>
+          Spreadsheets calculate. They don&#39;t remember.
         </h2>
-        <div className={styles.problemBody}>
+        <div className={styles.problemBody} data-reveal>
           <p>
             Most estimates stop being useful the moment they become a PDF. Rates lose their
             source. Assumptions disappear. Feedback moves to email. Revisions overwrite why the
             number changed.
           </p>
-          <p>The rate you proved on the last project should not disappear into another copied sheet.</p>
-          <p>Archestimator keeps the commercial record attached to every line.</p>
+          <p>
+            Archestimator keeps the commercial record attached to every line — so the rate you
+            proved on the last project is still working on the next one.
+          </p>
         </div>
-        <p className={styles.problemCloser}>Your cost intelligence layer.</p>
-      </div>
-      <div className={styles.fragmentList} aria-label="Spreadsheet failure points">
-        {problemFragments.map((fragment) => (
-          <span key={fragment}>{fragment}</span>
-        ))}
+        <ul className={styles.fragments} aria-label="Spreadsheet failure points" data-reveal>
+          {problemFragments.map((fragment) => (
+            <li key={fragment} className={styles.fragment}>
+              {fragment}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -389,46 +316,157 @@ function ProblemSection() {
 
 function WorkflowSection() {
   return (
-    <section className={styles.workflowSection} id="workflow" aria-labelledby="workflow-title">
-      <SectionHead
-        id="workflow-title"
-        title="From first cost to final decision, nothing loses context."
-        body="The workflow is a sequence, not a pile of detached files."
-      />
-      <ol className={styles.workflowList}>
-        {workflowSteps.map((step) => (
-          <li key={step.number} className={styles.workflowStep}>
-            <div className={styles.stepNumber}>{step.number}</div>
-            <div className={styles.stepCopy}>
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
-            </div>
-            <div className={styles.stepState}>
-              <span>{step.state}</span>
-            </div>
-          </li>
-        ))}
-      </ol>
+    <section className={styles.workflow} id="workflow" aria-labelledby="workflow-title">
+      <div className={styles.sectionInner}>
+        <div className={styles.workflowGrid}>
+          <div className={styles.workflowSticky}>
+            <h2 id="workflow-title">From first cost to final decision, nothing loses context.</h2>
+            <p>
+              The workflow is a sequence, not a pile of detached files. Each step hands its
+              context to the next.
+            </p>
+            <ol className={styles.progressRail} aria-hidden="true">
+              {workflowSteps.map((step) => (
+                <li key={step.number} className={styles.railItem} data-rail-item={step.number}>
+                  <span className={styles.railIndex}>{step.number}</span>
+                  <span>{step.title}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <ol className={styles.steps}>
+            {workflowSteps.map((step) => (
+              <li key={step.number} className={styles.step} data-step={step.number}>
+                <span className={styles.stepIndex} aria-hidden="true">
+                  {step.number}
+                </span>
+                <div className={styles.stepCopy}>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                  <span className={styles.stepState}>{step.state}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
     </section>
   );
 }
 
 function ProductSection() {
   return (
-    <section className={styles.productSection} id="product" aria-labelledby="product-title">
-      <SectionHead
-        id="product-title"
-        title="The workbench is the product."
-        body="Each surface exists to keep the estimate, the proposal, and the decision trail connected."
-      />
-      <div className={styles.featureSheet} role="list">
-        {featureRows.map((row) => (
-          <article key={row.feature} className={styles.featureRow} role="listitem">
-            <h3>{row.feature}</h3>
-            <p>{row.value}</p>
-            <strong>{row.proof}</strong>
+    <section className={styles.product} id="product" aria-labelledby="product-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="product-title">The workbench is the product.</h2>
+          <p>
+            Each surface exists to keep the estimate, the proposal, and the decision trail
+            connected.
+          </p>
+        </header>
+
+        <div className={styles.bento}>
+          <article className={`${styles.cell} ${styles.cellEstimate}`} data-reveal>
+            <span className={styles.cellLabel}>Estimate tree</span>
+            <h3>Structure the work.</h3>
+            <p>Hierarchical estimate tree with drag-and-drop, inline editing, and live totals.</p>
+            <ul className={styles.miniRows} aria-hidden="true">
+              <li>Phases</li>
+              <li>Locations</li>
+              <li>Trades</li>
+            </ul>
+            <Link href="/workshop/projects" className={styles.cellLink}>
+              Open surface
+              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
+            </Link>
           </article>
-        ))}
+
+          <article className={`${styles.cell} ${styles.cellLibrary}`} data-reveal>
+            <span className={styles.cellLabel}>Cost library</span>
+            <h3>Reuse what you proved.</h3>
+            <p>Brands, suppliers, variants, pricing, images, and attachments as components.</p>
+            <ul className={styles.miniRows} aria-hidden="true">
+              <li>Assemblies</li>
+              <li>Suppliers</li>
+              <li>Variants</li>
+            </ul>
+            <Link href="/workshop/library" className={styles.cellLink}>
+              Open surface
+              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
+            </Link>
+          </article>
+
+          <article className={`${styles.cell} ${styles.cellActivity}`} data-reveal>
+            <span className={styles.cellLabel}>Revision memory</span>
+            <h3>Nothing overwrites why.</h3>
+            <p>Comments, row version history, changes, and recorded decisions stay attached.</p>
+            <ul className={styles.miniRows} aria-hidden="true">
+              <li>Comments</li>
+              <li>Versions</li>
+              <li>Decisions</li>
+            </ul>
+            <Link href="/workshop/projects" className={styles.cellLink}>
+              Open surface
+              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
+            </Link>
+          </article>
+
+          <article className={styles.cellWide} data-reveal>
+            <div>
+              <span className={styles.cellLabel}>Client-ready proposal</span>
+              <h3>Send the number as a proposal. Keep the approval on record.</h3>
+              <p>
+                A client link with comments, decisions, password protection, and change-order
+                flow.
+              </p>
+            </div>
+            <Link href="/share/demo" className={styles.cellLink}>
+              Open the publication viewer
+              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
+            </Link>
+          </article>
+        </div>
+
+        <div className={styles.complianceLine} data-reveal>
+          <ShieldCheck size={19} weight="regular" aria-hidden="true" />
+          <p>
+            Private by design. Built on Cloudflare Workers, D1, R2, and Better Auth — your data is
+            never pooled or anonymized across customers.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ComparisonSection() {
+  return (
+    <section className={styles.compare} aria-labelledby="compare-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="compare-title">The difference is memory.</h2>
+          <p>
+            The estimate should not lose the reason behind the number when it becomes a proposal.
+          </p>
+        </header>
+        <div className={styles.compareTable} role="table" aria-label="Spreadsheet workflow compared with Archestimator">
+          <div className={styles.compareHeader} role="row">
+            <span role="columnheader">Copied workflow</span>
+            <span role="columnheader">Archestimator</span>
+          </div>
+          {comparisonRows.map(([copied, kept]) => (
+            <div key={copied} className={styles.compareRow} role="row" data-reveal>
+              <span role="cell" className={styles.copied}>
+                {copied}
+              </span>
+              <span role="cell" className={styles.kept}>
+                <span className={styles.keptMark} aria-hidden="true" />
+                {kept}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -436,102 +474,38 @@ function ProductSection() {
 
 function SpecialtiesSection() {
   return (
-    <section className={styles.specialtiesSection} id="specialties" aria-labelledby="specialties-title">
-      <SectionHead
-        id="specialties-title"
-        title="Built for the people who own the number on a cost estimate."
-        body="Different roles carry different risk. The record has to travel with each of them."
-      />
-      <div className={styles.specialtyGrid}>
-        {specialties.map((specialty) => (
-          <article key={specialty.id} className={styles.specialtyCard}>
-            <h3>{specialty.label}</h3>
-            <p>{specialty.copy}</p>
-            <span>{specialty.visual}</span>
-          </article>
-        ))}
+    <section className={styles.specialties} id="specialties" aria-labelledby="specialties-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="specialties-title">Built for the people who own the number.</h2>
+          <p>Different roles carry different risk. The record has to travel with each of them.</p>
+        </header>
+        <ul className={styles.specList}>
+          {specialties.map((specialty, index) => (
+            <li key={specialty.label} className={styles.specRow} data-reveal>
+              <span className={styles.specIndex} aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3>{specialty.label}</h3>
+              <p>{specialty.copy}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
 }
 
-function AudienceMapSection() {
+function StatementSection() {
   return (
-    <section className={styles.audienceMap} aria-labelledby="audience-map-title">
-      <SectionHead
-        id="audience-map-title"
-        title="From the first line item to the final approval."
-        body="Archestimator is the path from project structure and reusable cost knowledge to proposal review, revision, decision, and recorded history."
-      />
-      <div className={styles.recordMap}>
-        {recordNodes.map(([label, body]) => (
-          <div key={label} className={styles.recordNode}>
-            <span>{label}</span>
-            <p>{body}</p>
-          </div>
-        ))}
-      </div>
-      <p className={styles.historyRail}>
-        Every comment, change, version, and decision remains attached, searchable, attributable,
-        and recoverable.
-      </p>
-    </section>
-  );
-}
-
-function ComparisonSection() {
-  return (
-    <section className={styles.comparisonSection} aria-labelledby="comparison-title">
-      <SectionHead
-        id="comparison-title"
-        title="The difference is memory."
-        body="The estimate should not lose the reason behind the number when it becomes a proposal."
-      />
-      <div className={styles.comparisonTable} role="table" aria-label="Spreadsheet workflow compared with Archestimator">
-        <div className={styles.comparisonHeader} role="row">
-          <span role="columnheader">Copied workflow</span>
-          <span role="columnheader">Archestimator</span>
-        </div>
-        {comparisonRows.map(([copied, archestimator]) => (
-          <div key={copied} className={styles.comparisonRow} role="row">
-            <span role="cell">{copied}</span>
-            <Link role="cell" href="/features">
-              {archestimator}
-            </Link>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ProofSection() {
-  return (
-    <section className={styles.proofSection} id="proof" aria-labelledby="proof-title">
-      <SectionHead
-        id="proof-title"
-        title="Built for the work you actually do."
-        body="Archestimator ships today. These are product surfaces you can inspect."
-      />
-      <div className={styles.proofGrid}>
-        {proofFrames.map((frame) => (
-          <article key={frame.label} className={styles.proofFrame}>
-            <div className={styles.proofFrameHeader}>
-              <span>{frame.label}</span>
-              <Link href={frame.route} aria-label={`Open ${frame.label}`}>
-                <ArrowUpRight size={15} weight="bold" aria-hidden="true" />
-              </Link>
-            </div>
-            <p>{frame.caption}</p>
-            <strong>{frame.proves}</strong>
-          </article>
-        ))}
-      </div>
-      <div className={styles.complianceLine}>
-        <ShieldCheck size={19} weight="regular" aria-hidden="true" />
-        <p>
-          Private by design. Built on Cloudflare Workers, D1, R2, and Better Auth.
-          Your data is yours, never pooled or anonymized across customers.
+    <section className={styles.statement} aria-labelledby="statement-title">
+      <div className={styles.statementGlow} aria-hidden="true" />
+      <div className={styles.sectionInner}>
+        <h2 id="statement-title" className={styles.statementTitle} data-scrub-words>
+          From cost proposal to client approval.
+        </h2>
+        <p className={styles.statementCaption} data-reveal>
+          Revisions · comments · approvals — attached to the commercial record
         </p>
       </div>
     </section>
@@ -540,19 +514,23 @@ function ProofSection() {
 
 function FaqSection() {
   return (
-    <section className={styles.faqSection} id="faq" aria-labelledby="faq-title">
-      <SectionHead
-        id="faq-title"
-        title="Questions worth answering before the walkthrough."
-        body="Short answers for the commercial and data questions that usually decide whether a team can try a new estimating workflow."
-      />
-      <div className={styles.faqList}>
-        {faqs.map((faq) => (
-          <details key={faq.question} className={styles.faqItem}>
-            <summary>{faq.question}</summary>
-            <p>{faq.answer}</p>
-          </details>
-        ))}
+    <section className={styles.faq} id="faq" aria-labelledby="faq-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="faq-title">Questions worth answering first.</h2>
+          <p>
+            Short answers for the commercial and data questions that usually decide whether a
+            team can try a new estimating workflow.
+          </p>
+        </header>
+        <div className={styles.faqList} data-reveal>
+          {faqs.map((faq) => (
+            <details key={faq.question} className={styles.faqItem}>
+              <summary>{faq.question}</summary>
+              <p>{faq.answer}</p>
+            </details>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -560,14 +538,19 @@ function FaqSection() {
 
 function FinalCtaSection() {
   return (
-    <section className={styles.finalCta} id="final-cta" aria-labelledby="final-cta-title">
-      <div>
-        <h2 id="final-cta-title">Start your next estimate from the ones you have already done.</h2>
-        <p>From cost proposal to client approval.</p>
-      </div>
-      <div className={styles.finalCtaActions}>
-        <PrimaryCta location="final" />
-        <SecondaryCta href="/contact?intent=walkthrough">Book a walkthrough</SecondaryCta>
+    <section className={styles.final} aria-labelledby="final-cta-title" data-final-cta>
+      <div className={styles.finalGridEcho} aria-hidden="true" />
+      <div className={styles.sectionInner}>
+        <h2 id="final-cta-title" data-reveal>
+          Start your next estimate from the ones you&#39;ve already done.
+        </h2>
+        <p data-reveal>From cost proposal to client approval.</p>
+        <div className={styles.finalCtas} data-reveal>
+          <PrimaryCta location="final" />
+          <GhostCta href="/contact?intent=walkthrough">
+            Book a walkthrough
+          </GhostCta>
+        </div>
       </div>
     </section>
   );
@@ -576,24 +559,21 @@ function FinalCtaSection() {
 function LandingFooter() {
   return (
     <footer className={styles.footer}>
-      <p>Client-approved proposals should start with a cost record you trust.</p>
-      <div className={styles.footerMeta}>
-        <Link href="/" aria-label="Archestimator home">
-          <ArchestimatorLogo
-            tone="dark"
-            markSize={28}
-            markClassName={styles.logoMark}
-            separatorClassName={styles.logoSeparator}
-            wordmarkClassName={styles.logoWordmark}
-          />
+      <div className={styles.sectionInner}>
+        <Link href="/" className={styles.footerWordmark} aria-label="Archestimator home">
+          <ArchestimatorLogoMark tone="dark" size={64} />
+          <span aria-hidden="true">archestimator</span>
         </Link>
-        <nav aria-label="Footer">
-          <Link href="/features">Features</Link>
-          <Link href="/pricing">Pricing</Link>
-          <Link href="/trust">Trust</Link>
-          <Link href="/privacy">Privacy</Link>
-        </nav>
-        <span>Copyright 2026 Archestimator.</span>
+        <div className={styles.footerMeta}>
+          <nav aria-label="Footer">
+            <Link href="/features">Features</Link>
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/trust">Trust</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/contact">Contact</Link>
+          </nav>
+          <span>© 2026 Archestimator</span>
+        </div>
       </div>
     </footer>
   );
@@ -601,25 +581,27 @@ function LandingFooter() {
 
 export function NewLandingPage() {
   return (
-    <div className={styles.page}>
-      <NewLandingNav />
-      <main id="new-main" className={styles.main}>
-        <HeroSection />
-        <ProblemSection />
-        <WorkflowSection />
-        <ProductSection />
-        <SpecialtiesSection />
-        <AudienceMapSection />
-        <ComparisonSection />
-        <ProofSection />
-        <FaqSection />
-        <FinalCtaSection />
-      </main>
-      <LandingFooter />
-      <Link href="/contact?intent=access" className={styles.stickyCta}>
-        <CheckCircle size={16} weight="regular" aria-hidden="true" />
-        <span>Request access</span>
-      </Link>
-    </div>
+    <NewLandingMotion>
+      <div className={styles.page}>
+        <NewLandingNav />
+        <main id="new-main">
+          <HeroSection />
+          <SheetSection />
+          <ProblemSection />
+          <WorkflowSection />
+          <ProductSection />
+          <ComparisonSection />
+          <SpecialtiesSection />
+          <StatementSection />
+          <FaqSection />
+          <FinalCtaSection />
+        </main>
+        <LandingFooter />
+        <Link href="/contact?intent=access" className={styles.stickyCta} data-sticky-cta>
+          <span>Request access</span>
+          <ArrowUpRight size={14} weight="bold" aria-hidden="true" />
+        </Link>
+      </div>
+    </NewLandingMotion>
   );
 }

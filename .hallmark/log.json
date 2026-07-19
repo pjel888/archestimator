@@ -1,5 +1,13 @@
 [
   {
+    "date": "2026-07-19",
+    "scope": "src/app/new + src/components/landing-new",
+    "macrostructure": "Split-stage estimate-object hero + precision chapters",
+    "components": ["Scroll-morph edge nav", "Three.js estimate bar-object hero (glass bars, orange signal bar, mono value labels)", "Live estimate sheet section (app cost model: Materials, Qty, Unit cost, Contingency, Total item cost)", "Sticky workflow rail", "Product bento (surfaces only)", "Comparison ledger", "Specialties index", "Brand-slab footer"],
+    "tone": "Brand-true SF Pro display (logo face, lowercase hero), financial data-object, light theme",
+    "notes": "Fourth /new iteration. Owner rejected: dark stage (v1), architectural maquette tower (v2, 'structural engineering firm'), and the invisible-3D + Archivo version (v3, 'ai slop, hate the font, where is the threejs'). v4: Archivo deleted entirely; display type is the brand's own SF Pro (lowercase hero echoing the wordmark). Three.js is the hero centerpiece — the estimate as a physical bar object (heights proportional to line-item totals, signal-orange glass on the largest, floating mono labels, turntable + pointer parallax). Estimate sheet moved to its own section with scroll-triggered choreography (rows, rolling total, draft→sent→approved). Honest copy, no invented metrics, no fake chrome."
+  },
+  {
     "date": "2026-06-23",
     "scope": "src/components/landing-v3",
     "macrostructure": "Two-row marquee hero",
