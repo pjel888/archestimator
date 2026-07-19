@@ -52,12 +52,15 @@ These temper the priority of the Medium/Low units — the architecture is fundam
 
 ## 8.4 Drift reconciliation (PASS 11)
 
-- **HEAD at audit start:** `7f9a484b4`.
-- **HEAD at audit end:** `7f9a484b4` (no concurrent commits to audited paths).
-- **Working-tree changes during audit:** none in audited source paths. Concurrent `2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/` work preserved untouched.
-- **File:line references:** every `file:start-end` citation in `04-FINDINGS-REGISTER.md` was captured against `7f9a484b4`. The validator enforces SHA-256 hashes on every artifact; if HEAD drifts before pack validation, the validator surfaces the mismatch.
+- **HEAD at audit start:** `7f9a484b4` (captured baseline).
+- **HEAD at audit end:** `963bb1f25` (drifted during the audit).
+- **Drift source:** concurrent commits by another agent/process (commits `b1b16be78` through `963bb1f25`). The drift touched **only** `.ai/`, `.agents/`, `.ai/00_system/`, `.ai/03_plans/2026-07-18-MVP-Startup-Readiness-Audit/`, and `.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/` — plus the InfoSec pack folder itself was committed in-flight by the concurrent process at an earlier snapshot of my work.
+- **Audited source paths in the drift:** **NONE.** `git diff --name-only 7f9a484b4..963bb1f25 | grep -E '^(src/|worker.ts|wrangler.jsonc|next.config.ts|migrations/)'` returns zero matches. Every file:line citation in `04-FINDINGS-REGISTER.md` remains valid against the current source tree.
+- **Audited source files re-verified:** `worker.ts`, `wrangler.jsonc`, `next.config.ts`, `src/middleware.ts`, `src/lib/authz/d1-access.ts`, `src/lib/cloudflare/collaboration-room.ts`, `src/lib/cloudflare/realtime-room-token.ts`, `src/lib/cloudflare/collaboration-room-revocation.ts` — all unchanged against the audit-baseline content (sha256 match against `artifacts/baseline-hashes.csv` where applicable; spot-checked where the file is large).
+- **Working-tree changes during audit:** three files in this pack folder were edited by the lead after the concurrent process committed an earlier snapshot (`00-PLAN.md`, `README.md`, `plan-pack.json` — release_status correction, status-tuple correction, and validator-error fixes). The working-tree version is the canonical artifact; the committed snapshot was an in-flight state.
+- **File:line references:** every `file:start-end` citation in `04-FINDINGS-REGISTER.md` was captured against `7f9a484b4` and remains valid against `963bb1f25` (audited source unchanged).
 - **Coverage ledger closure:** `unclassified_tracked_paths = 0` at audit end.
-- **Validator PASS:** `bun run validate:plan-pack .ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack` passes (see `PACK-MANIFEST.md` and the commands-run log).
+- **Validator PASS:** `bun run validate:plan-pack .ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack` passes against the working-tree version.
 
 ## 8.5 Negative-space sweep (PASS 9)
 

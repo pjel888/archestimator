@@ -23,13 +23,13 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "038f3f41f2fa6bdaf264a43723c2d87bc899521f66ee802be3fb469b725745d2"
+      "sha256": "fb32718b9966ef2081e2d50868bbf20712740fd83a3b25f16881e4cd5916644e"
     },
     {
       "id": "ART-002",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "41179ec81c9c95713541ddc3e6e03c46ced538938d8aab0554c7a856beb2a37e"
+      "sha256": "a1710b28aea3919c3543f33a4d7affacb27f220473094b9f4e34ce7c9af40681"
     },
     {
       "id": "ART-003",
@@ -77,7 +77,7 @@
       "id": "ART-010",
       "role": "narrative",
       "path": "08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md",
-      "sha256": "a33947d6a7daee2599dbfdfaf035248f9681a30ea9572d026d5f5ccb0f536e0c"
+      "sha256": "dff72a3aad74c2aad55ea4abd7f7365de3620baab51d0e17a3743cd8db1bfcf1"
     },
     {
       "id": "ART-011",
@@ -1256,5 +1256,5 @@
     "cloudflare/*-proof-router.ts edits",
     "retention-core.ts edits"
   ],
-  "manifest_sha256": "c0759761127ef7883480b488b8887a0e85286f47b33a89601cc04b11e29e9bb3"
+  "manifest_sha256": "e5f3ad95dbae6eaa6fe73fb361d8bcb22caf81a1e36718e7f9e3d01a29714c80"
 }

@@ -22,11 +22,13 @@
 ```
 package_status        = IMPLEMENTATION_READY
 implementation_status = NOT_STARTED
-release_status        = NOT_EVALUATED
+release_status        = BOUNDARY        (active AUTH-001/002/003/004 for hosted-evidence claims)
 plan_lifecycle        = ACTIVE
 terminal_status       = ACTIVE
 next_unit             = UNIT-001   (realtime token revocation — closes SEC-COLLAB-003, the only High)
 ```
+
+`release_status = BOUNDARY` reflects four active `AUTH-*` authorization boundaries that bound *hosted-evidence claims* (`AUTH-001` GitHub state, `AUTH-002` Cloudflare state, `AUTH-003` real-scanner wiring, `AUTH-004` deploy verification). **None** of these boundaries block the local remediation edits in any unit; they bound only the hosted-state claim that can be made after each local edit lands. All 13 units are `READY` and locally executable without crossing any `AUTH-*` boundary.
 
 `UNIT-001` is `READY`, in `SLICE-001`, depends on no other unit, owns an exact file/symbol target, and is immediately executable from current evidence without rediscovery.
 
