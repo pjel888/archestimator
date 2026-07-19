@@ -1,30 +1,29 @@
 ---
-description: Recommend the best model tier for the current task based on complexity, risk, and budget.
+description: Resolve a task capability class through the current role-model matrix and fallback chain.
 ---
 
-# Model Route Command
+# Capability Route Command
 
-Recommend the best model tier for the current task by complexity and budget.
+Read `.ai/12_agents/codex-role-model-matrix.json` and current runtime capability
+before recommending an implementation.
 
-## Usage
+## Routing
 
-`/model-route [task-description] [--budget low|med|high]`
+- `frontier_judgment`: ambiguity, architecture, cross-document synthesis,
+  conflict resolution, and high-risk review.
+- `balanced_read_heavy`: repository exploration, official-doc research,
+  reference tracing, and structured extraction.
+- `fast_repeatable`: bounded deterministic classification, formatting,
+  comparison, and mechanical verification.
 
-## Routing Heuristic
+Resolve in matrix order: configured role/model, repository default at suitable
+effort, nearest available capability with any judgment downgrade disclosed, then
+lead-owned sequential execution. Model identity, reasoning effort, Pro mode, and
+orchestration mode remain separate decisions.
 
-- `haiku`: deterministic, low-risk mechanical changes
-- `sonnet`: default for implementation and refactors
-- `opus`: architecture, deep review, ambiguous requirements
+## Output
 
-## Required Output
-
-- recommended model
-- confidence level
-- why this model fits
-- fallback model if first attempt fails
-
-## Arguments
-
-$ARGUMENTS:
-- `[task-description]` optional free-text
-- `--budget low|med|high` optional
+Return the required capability class, current resolved role/model and effort,
+evidence that the implementation is available, reason, latency/cost tradeoff,
+escalation triggers, and the ordered fallback. Never invent a model slug or rely
+on a stale provider-specific tier name.

@@ -44,6 +44,12 @@ const paths = [
   ".cursor/commands/checkpoint.md",
   ".cursor/commands/refactor-clean.md",
   ".cursor/commands/prp-implement.md",
+  ".cursor/commands/multi-plan.md",
+  ".cursor/commands/multi-execute.md",
+  ".cursor/commands/multi-frontend.md",
+  ".cursor/commands/multi-backend.md",
+  ".cursor/commands/multi-workflow.md",
+  ".cursor/commands/model-route.md",
   ".commandcode/taste/taste.md",
   ".ai/12_agents/README.md",
   ".ai/12_agents/codex-role-model-matrix.json",
@@ -191,6 +197,28 @@ requireText(".cursor/commands/prp-implement.md", docs.get(".cursor/commands/prp-
   "Stay on the current branch/worktree",
   "explicit current-task `TEST_TASK`",
 ]);
+for (const path of [
+  ".cursor/commands/multi-plan.md",
+  ".cursor/commands/multi-execute.md",
+  ".cursor/commands/multi-frontend.md",
+  ".cursor/commands/multi-backend.md",
+  ".cursor/commands/multi-workflow.md",
+]) {
+  requireText(path, docs.get(path), [
+    "Multi-Agent-Execution-Directive.md",
+    "codex-role-model-matrix.json",
+    "native",
+    "emulated",
+    "single-agent",
+  ]);
+}
+requireText(".cursor/commands/model-route.md", docs.get(".cursor/commands/model-route.md"), [
+  "frontier_judgment",
+  "balanced_read_heavy",
+  "fast_repeatable",
+  "ordered fallback",
+  "Never invent a model slug",
+]);
 
 async function collectFiles(directory, suffixes) {
   const files = [];
@@ -230,6 +258,12 @@ const guardedCursorAdapters = [
   ".cursor/commands/checkpoint.md",
   ".cursor/commands/refactor-clean.md",
   ".cursor/commands/prp-implement.md",
+  ".cursor/commands/multi-plan.md",
+  ".cursor/commands/multi-execute.md",
+  ".cursor/commands/multi-frontend.md",
+  ".cursor/commands/multi-backend.md",
+  ".cursor/commands/multi-workflow.md",
+  ".cursor/commands/model-route.md",
 ];
 const forbiddenCursorPatterns = [
   [/\bgit add -A\b/iu, "broad staging"],
@@ -238,6 +272,9 @@ const forbiddenCursorPatterns = [
   [/create a git stash or commit/iu, "automatic checkpoint mutation"],
   [/immediately revert with `git checkout/iu, "shared-worktree overwrite"],
   [/Claude Opus|Gemini 2\.5|gpt-5\.[0-5]/iu, "hardcoded stale reviewer model"],
+  [/gemini-[0-9]|Claude \(self\)|Code Sovereignty|Mandatory Parallel/iu, "provider-specific orchestration"],
+  [/MUST (?:immediately )?(?:parallel )?call (?:Codex|Gemini)/iu, "mandatory external model call"],
+  [/scripts\/orchestrate-worktrees\.js/iu, "non-canonical worktree wrapper"],
 ];
 for (const path of guardedCursorAdapters) {
   const text = docs.get(path);

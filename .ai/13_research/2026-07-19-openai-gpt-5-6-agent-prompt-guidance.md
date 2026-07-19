@@ -1,6 +1,6 @@
 # OpenAI GPT-5.6 Agent Prompt And Orchestration Guidance
 
-**Date:** 2026-07-19  
+**Date:** 2026-07-19
 **Scope:** Official OpenAI guidance applied to Archestimator agent contracts
 
 ## Primary Sources
