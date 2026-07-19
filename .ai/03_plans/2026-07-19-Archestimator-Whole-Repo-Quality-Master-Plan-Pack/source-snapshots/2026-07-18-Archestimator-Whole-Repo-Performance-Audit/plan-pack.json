@@ -1,0 +1,1159 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-11",
+  "package_id": "PLAN-2026-07-18-archestimator-whole-repo-performance-audit",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "CONDITIONALLY_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-19T00:00:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "24b15e829770a78dbb2258ef65f5b955aad22376",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "ef46046f83d14426169e9e1fac269326a55ac87fb83c43a80a64c978b25df669"
+    },
+    {
+      "id": "ART-002",
+      "role": "research",
+      "path": "01-EXISTING-AUDIT-RECONCILIATION.md",
+      "sha256": "421ebfba97dd1ba9dfa4addccca004be1eb5fe42f25bd79a2b7d9e23b9ea1a9c"
+    },
+    {
+      "id": "ART-003",
+      "role": "reference",
+      "path": "02-REPOSITORY-COVERAGE.md",
+      "sha256": "c4adc0ab648fbddc506c494ccd44b521907a97998af1060341f6c05112bd66e7"
+    },
+    {
+      "id": "ART-004",
+      "role": "research",
+      "path": "03-RUNTIME-AND-DATAFLOW-MAP.md",
+      "sha256": "cb4e58344e57a947cbbd616190af04c920dfc0e811ad394fb8471f24b03b0c64"
+    },
+    {
+      "id": "ART-005",
+      "role": "research",
+      "path": "04-BASELINE-METHODOLOGY-AND-RESULTS.md",
+      "sha256": "471a4b9396f1e5c24b4d9d04caccf51cd3d3c2166f53374cc5c63fb26f67f339"
+    },
+    {
+      "id": "ART-006",
+      "role": "normative",
+      "path": "05-FINDINGS-REGISTER.md",
+      "sha256": "a57d26128c4ddcb0bdba41f8a6d4ad7f34d14abced7e2e9b4522af15ec463a0d"
+    },
+    {
+      "id": "ART-007",
+      "role": "reference",
+      "path": "06-QUICK-WINS-AND-HIGH-LEVERAGE-CHANGES.md",
+      "sha256": "693bdfdfb8935f73929d2aafb3e84a9fdd81a349fbace10e30b76b1acfcb5d35"
+    },
+    {
+      "id": "ART-008",
+      "role": "reference",
+      "path": "07-OPTIMIZATION-ROADMAP.md",
+      "sha256": "b7a109a05128ed374d86e3111d48f59e8968c92d45d4307d5a25060bc96c5c7e"
+    },
+    {
+      "id": "ART-009",
+      "role": "reference",
+      "path": "08-PERFORMANCE-BUDGETS-AND-REGRESSION-GATES.md",
+      "sha256": "03c8b7b2b186dd25d9fd1104643b08bfb6361d5466f0ccd1df2b426cbf7e3bc6"
+    },
+    {
+      "id": "ART-010",
+      "role": "research",
+      "path": "09-DOCUMENTATION-AND-TOOLING-DRIFT.md",
+      "sha256": "4ec455d06475a8d19bf72ef2cd61977e53fc051df5165603b950228d2421b8ac"
+    },
+    {
+      "id": "ART-011",
+      "role": "reference",
+      "path": "10-BLOCKED-EVIDENCE-AND-AUTHORIZATION-NEEDED.md",
+      "sha256": "b9963ac7dbe86109b93529966c513c860ef3369c46eb3032b449d780b56510fd"
+    },
+    {
+      "id": "ART-012",
+      "role": "reference",
+      "path": "11-EXECUTIVE-SUMMARY.md",
+      "sha256": "d017559dbc919f00e9266d2fd48dabba293169ed5e88178c0c0f7694adcd03ac"
+    },
+    {
+      "id": "ART-013",
+      "role": "research",
+      "path": "12-DRIFT-RECONCILIATION-PASS2.md",
+      "sha256": "8b5b350b9c31b53f0deea3a904e2280d0edf4f9012eac11c29d85646e418b87f"
+    },
+    {
+      "id": "ART-014",
+      "role": "normative",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "94386715622a7bef9e5a7e0299993f8e9af97801a837d6a99d84abc49910a274"
+    },
+    {
+      "id": "ART-015",
+      "role": "unit-index",
+      "path": "units/README.md",
+      "sha256": "50817c2f2ba18fe17fe137d6ca289a71a50d345852fdbfd9e3cb9274c87ec445"
+    },
+    {
+      "id": "ART-016",
+      "role": "unit",
+      "path": "units/001-restore-ci-workflow.md",
+      "sha256": "757f557be9acb60c0dbb25de376c9deb20739c30ca0cefcf00009ccfaa4140ab"
+    },
+    {
+      "id": "ART-017",
+      "role": "unit",
+      "path": "units/002-web-vitals-batching-and-sampling.md",
+      "sha256": "7c1e6aacec84018670decacd08952a7fcc1470e004879f1cf1b51f662fa82a87"
+    },
+    {
+      "id": "ART-018",
+      "role": "unit",
+      "path": "units/003-virtualized-row-style-memo.md",
+      "sha256": "d98aa187213eb6f06c3f35849ac734b2a2cf2d133d266f900e8dd14745e17a06"
+    },
+    {
+      "id": "ART-019",
+      "role": "unit",
+      "path": "units/004-restore-replay-batch.md",
+      "sha256": "29b7db7a99258061a4bff89e25e7a5e1550f90e040d6068a5346b0c8ad458383"
+    },
+    {
+      "id": "ART-020",
+      "role": "unit",
+      "path": "units/005-cron-noop-insert-gate.md",
+      "sha256": "3b04061c23c9f5d3f170e1accd143ce2f3808e34e0d334d54b729a16285e4114"
+    },
+    {
+      "id": "ART-021",
+      "role": "unit",
+      "path": "units/006-global-presence-broadcast-timer-cleanup.md",
+      "sha256": "db8d9e6d25852500fa94ae05591dcbc38154342025712cc9e95e749d62a0206e"
+    },
+    {
+      "id": "ART-022",
+      "role": "unit",
+      "path": "units/007-do-backpressure-buffered-amount.md",
+      "sha256": "77f6120ae8002d3e9cabf71e74f2a22d25c054b401c30b1650ea1e61889c4a90"
+    },
+    {
+      "id": "ART-023",
+      "role": "unit",
+      "path": "units/008-xlsx-export-buffer-and-compression.md",
+      "sha256": "3e2faff977d458717d7230489595ab376922a1913254ed20d200a4865cf5c276"
+    },
+    {
+      "id": "ART-024",
+      "role": "unit",
+      "path": "units/009-activity-outbox-batch.md",
+      "sha256": "c1522ba3207df8edbaff964a0947ec52cac4e42a12c520afb9cf7b0b89bb783b"
+    },
+    {
+      "id": "ART-025",
+      "role": "unit",
+      "path": "units/010-session-cookie-cache-reenable.md",
+      "sha256": "fb8de6e239a1bda53f1edd23c996a16b8c763b4a1fa2de52c656dfdc8497391b"
+    },
+    {
+      "id": "ART-026",
+      "role": "unit",
+      "path": "units/011-async-recipient-invitation-emails.md",
+      "sha256": "d2c51da3759b6e6296421723dd0aef3e789e2da73f7d1592c5e166638008584f"
+    },
+    {
+      "id": "ART-027",
+      "role": "unit",
+      "path": "units/012-split-appproviders-per-route.md",
+      "sha256": "1851cbe42e4fc559a65fcfdbb4a54deebcfb992d3a70887159a22cc97e2cb0bb"
+    },
+    {
+      "id": "ART-028",
+      "role": "unit",
+      "path": "units/013-library-full-load-covering-index.md",
+      "sha256": "002a3908c98998f5e97bd520f4da7d0394f22fb2dedf291a880b80df6e3f045b"
+    },
+    {
+      "id": "ART-029",
+      "role": "unit",
+      "path": "units/014-component-source-guard-cte.md",
+      "sha256": "1c2ee24a59d0754f28eddc85244a27a3cf3ab66a80fc31097509d5d5cbe27644"
+    },
+    {
+      "id": "ART-030",
+      "role": "unit",
+      "path": "units/015-replace-supabase-perf-scripts.md",
+      "sha256": "9d62792fc909b6f4815ffbe06c3270e940a4f6f0746db460572a564cabdeef6b"
+    },
+    {
+      "id": "ART-031",
+      "role": "unit",
+      "path": "units/016-sweep-budget-doc-provider-language.md",
+      "sha256": "b98b47aea5c35fb41db75abd1652af33ef238057199451811c9875eacac2232e"
+    },
+    {
+      "id": "ART-032",
+      "role": "unit",
+      "path": "units/017-dead-row-update-broadcast-hook.md",
+      "sha256": "c0d29c4f3d8ce777e0736d72fbfff59c6c0beef77d24da9b75cb000221b3d7c5"
+    },
+    {
+      "id": "ART-033",
+      "role": "reference",
+      "path": "README.md",
+      "sha256": "741432c39aa35a7011e242cfbce2563340136de933e06514ad384f54b40cb166"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-013",
+        "UNIT-014"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-012",
+        "UNIT-017"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-015",
+        "UNIT-016"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-006",
+        "REQ-007"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-005",
+        "REQ-008",
+        "REQ-010"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "units/010-session-cookie-cache-reenable.md",
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "units/011-async-recipient-invitation-emails.md",
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "units/012-split-appproviders-per-route.md",
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "units/014-component-source-guard-cte.md",
+      "unit_ids": [
+        "UNIT-014"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "units/001-restore-ci-workflow.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack; implementation not started. Per-unit TEST_PROPOSAL rationale (where applicable) is recorded in the unit doc and deferred until user authorizes execution.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "units/010-session-cookie-cache-reenable.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Revocation correctness must be verified before merge; AUTH-004 hosted D1 probe needed for magnitude. Per-unit rationale deferred.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "units/002-web-vitals-batching-and-sampling.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Browser gate (AUTH-002) for magnitude before/after; the fix itself is low-risk. Per-unit rationale deferred.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "units/005-cron-noop-insert-gate.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. D1 row-count diff observation only.",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "artifact_path": "units/004-restore-replay-batch.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Fix correct by inspection; existing characterization test should still pass.",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "artifact_path": "units/013-library-full-load-covering-index.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. EXPLAIN before/after is the gating evidence (AUTH-004). Per-unit rationale deferred.",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "artifact_path": "units/006-global-presence-broadcast-timer-cleanup.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Wrangler tail observation.",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "artifact_path": "units/003-virtualized-row-style-memo.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Fix needs no gate; magnitude verification needs AUTH-002. Per-unit rationale deferred.",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "artifact_path": "units/008-xlsx-export-buffer-and-compression.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Phase 1 buffer fix low-risk; phase 2 compression needs AUTH-001 build for peak RSS. Per-unit rationale deferred.",
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-010",
+      "status": "N/A",
+      "artifact_path": "units/011-async-recipient-invitation-emails.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Cross-ref /improve Plan 021; Worker tail observation.",
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-011",
+      "status": "N/A",
+      "artifact_path": "units/015-replace-supabase-perf-scripts.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Planning-only pack. Script runs against local Wrangler D1; grep verification.",
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "test_ids": [],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-PLAN-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-restore-ci-workflow.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-web-vitals-batching-and-sampling.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-virtualized-row-style-memo.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-restore-replay-batch.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-cron-noop-insert-gate.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-global-presence-broadcast-timer-cleanup.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-do-backpressure-buffered-amount.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "units/008-xlsx-export-buffer-and-compression.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-009"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "artifact_path": "units/009-activity-outbox-batch.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "PLANNED",
+      "artifact_path": "units/010-session-cookie-cache-reenable.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-010"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "PLANNED",
+      "artifact_path": "units/011-async-recipient-invitation-emails.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-010"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-011"
+      ]
+    },
+    {
+      "id": "UNIT-012",
+      "status": "PLANNED",
+      "artifact_path": "units/012-split-appproviders-per-route.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-012"
+      ]
+    },
+    {
+      "id": "UNIT-013",
+      "status": "PLANNED",
+      "artifact_path": "units/013-library-full-load-covering-index.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-013"
+      ]
+    },
+    {
+      "id": "UNIT-014",
+      "status": "PLANNED",
+      "artifact_path": "units/014-component-source-guard-cte.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "risk_ids": [
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-014"
+      ]
+    },
+    {
+      "id": "UNIT-015",
+      "status": "READY",
+      "artifact_path": "units/015-replace-supabase-perf-scripts.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-015"
+      ]
+    },
+    {
+      "id": "UNIT-016",
+      "status": "READY",
+      "artifact_path": "units/016-sweep-budget-doc-provider-language.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-016"
+      ]
+    },
+    {
+      "id": "UNIT-017",
+      "status": "READY",
+      "artifact_path": "units/017-dead-row-update-broadcast-hook.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-017"
+      ]
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-015",
+        "UNIT-016",
+        "UNIT-017"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-restore-ci-workflow.md",
+      "sha256": "757f557be9acb60c0dbb25de376c9deb20739c30ca0cefcf00009ccfaa4140ab",
+      "claim_ids": [
+        "UNIT-001"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-web-vitals-batching-and-sampling.md",
+      "sha256": "7c1e6aacec84018670decacd08952a7fcc1470e004879f1cf1b51f662fa82a87",
+      "claim_ids": [
+        "UNIT-002"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-virtualized-row-style-memo.md",
+      "sha256": "d98aa187213eb6f06c3f35849ac734b2a2cf2d133d266f900e8dd14745e17a06",
+      "claim_ids": [
+        "UNIT-003"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/004-restore-replay-batch.md",
+      "sha256": "29b7db7a99258061a4bff89e25e7a5e1550f90e040d6068a5346b0c8ad458383",
+      "claim_ids": [
+        "UNIT-004"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "units/005-cron-noop-insert-gate.md",
+      "sha256": "3b04061c23c9f5d3f170e1accd143ce2f3808e34e0d334d54b729a16285e4114",
+      "claim_ids": [
+        "UNIT-005"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "units/006-global-presence-broadcast-timer-cleanup.md",
+      "sha256": "db8d9e6d25852500fa94ae05591dcbc38154342025712cc9e95e749d62a0206e",
+      "claim_ids": [
+        "UNIT-006"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "units/007-do-backpressure-buffered-amount.md",
+      "sha256": "77f6120ae8002d3e9cabf71e74f2a22d25c054b401c30b1650ea1e61889c4a90",
+      "claim_ids": [
+        "UNIT-007"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "artifact_path": "units/008-xlsx-export-buffer-and-compression.md",
+      "sha256": "3e2faff977d458717d7230489595ab376922a1913254ed20d200a4865cf5c276",
+      "claim_ids": [
+        "UNIT-008"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "artifact_path": "units/009-activity-outbox-batch.md",
+      "sha256": "c1522ba3207df8edbaff964a0947ec52cac4e42a12c520afb9cf7b0b89bb783b",
+      "claim_ids": [
+        "UNIT-009"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "artifact_path": "units/010-session-cookie-cache-reenable.md",
+      "sha256": "fb8de6e239a1bda53f1edd23c996a16b8c763b4a1fa2de52c656dfdc8497391b",
+      "claim_ids": [
+        "UNIT-010"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-011",
+      "status": "PLANNED",
+      "artifact_path": "units/011-async-recipient-invitation-emails.md",
+      "sha256": "d2c51da3759b6e6296421723dd0aef3e789e2da73f7d1592c5e166638008584f",
+      "claim_ids": [
+        "UNIT-011"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-012",
+      "status": "PLANNED",
+      "artifact_path": "units/012-split-appproviders-per-route.md",
+      "sha256": "1851cbe42e4fc559a65fcfdbb4a54deebcfb992d3a70887159a22cc97e2cb0bb",
+      "claim_ids": [
+        "UNIT-012"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-013",
+      "status": "PLANNED",
+      "artifact_path": "units/013-library-full-load-covering-index.md",
+      "sha256": "002a3908c98998f5e97bd520f4da7d0394f22fb2dedf291a880b80df6e3f045b",
+      "claim_ids": [
+        "UNIT-013"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-014",
+      "status": "PLANNED",
+      "artifact_path": "units/014-component-source-guard-cte.md",
+      "sha256": "1c2ee24a59d0754f28eddc85244a27a3cf3ab66a80fc31097509d5d5cbe27644",
+      "claim_ids": [
+        "UNIT-014"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-015",
+      "status": "PLANNED",
+      "artifact_path": "units/015-replace-supabase-perf-scripts.md",
+      "sha256": "9d62792fc909b6f4815ffbe06c3270e940a4f6f0746db460572a564cabdeef6b",
+      "claim_ids": [
+        "UNIT-015"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-016",
+      "status": "PLANNED",
+      "artifact_path": "units/016-sweep-budget-doc-provider-language.md",
+      "sha256": "b98b47aea5c35fb41db75abd1652af33ef238057199451811c9875eacac2232e",
+      "claim_ids": [
+        "UNIT-016"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-017",
+      "status": "PLANNED",
+      "artifact_path": "units/017-dead-row-update-broadcast-hook.md",
+      "sha256": "c0d29c4f3d8ce777e0736d72fbfff59c6c0beef77d24da9b75cb000221b3d7c5",
+      "claim_ids": [
+        "UNIT-017"
+      ],
+      "source_revision": "24b15e829770a78dbb2258ef65f5b955aad22376",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "source-or-config-hash-change",
+    "findings-reverified-against-newer-source",
+    "ci-workflow-restored-or-readme-corrected",
+    "laborunitcost-removal-merged-from-sibling-pack"
+  ],
+  "manifest_sha256": "1c14e5d2a03819d639f25360b31715af8038b3aa8186cdb7d895c93c8dedf4f7"
+}

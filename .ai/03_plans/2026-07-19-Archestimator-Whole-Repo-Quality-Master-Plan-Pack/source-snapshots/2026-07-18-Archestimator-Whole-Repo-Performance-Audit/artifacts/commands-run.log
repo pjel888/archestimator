@@ -1,0 +1,56 @@
+# Commands Run Log
+
+Audit date: 2026-07-19T00:11:25+08:00
+Commit: 0b983f996ae5e678b80eb27d67954aefcc410d4b
+
+## Read-only inspection commands
+
+```
+# Startup / metadata
+bun run supermemory:ensure
+git status --short --branch
+git rev-parse HEAD
+git log -1 --date=iso-strict --format='%H%n%ad%n%s'
+
+# Drift
+git diff --stat 0a2667db9..HEAD
+git diff --name-status 0a2667db9..HEAD | awk '{print $1}' | sort | uniq -c
+git log --oneline 0a2667db9..HEAD | wc -l
+
+# File inventory
+git ls-files | wc -l
+
+# Static baselines (MEASURED)
+/usr/bin/time -p bun run type-check   # 11.7s, exit 0
+/usr/bin/time -p bun run lint         # 63.2s, exit 1 (12 errors, 139 warnings)
+
+# Read-only source recon
+find src/app -name 'page.tsx' | wc -l           # 69
+find src/app -name 'route.ts' | wc -l           # 59
+grep -rl '"use client"' src/ | wc -l           # 322
+grep -rl '"server-only"' src/ | wc -l         # 114
+grep -rln '"use server"' src/ | wc -l         # 54
+ls migrations/*.sql | wc -l                     # 84
+ls scripts/*.ts scripts/*.mjs 2>/dev/null | wc -l  # 126
+
+# CI drift verification
+ls -la .github/workflows/                       # empty
+ls -la .github/workflows-disabled/              # contains ci.yml + others
+
+# Worker / DO / Queue / Cron recon (in worker.ts, wrangler.jsonc, src/lib/cloudflare/*)
+# React / estimate editor recon (in src/components/workshop/estimate-sheet/*, src/app/providers.tsx)
+# D1 / intent recon (in src/lib/estimates/d1-intents/*, migrations/0092*)
+# Exports / uploads / auth / observability recon (in src/app/api/.../proposal.xlsx, src/lib/uploads/*, src/lib/auth/*)
+
+## Commands NOT run (BLOCKED — see 10-BLOCKED-EVIDENCE-AND-AUTHORIZATION-NEEDED.md)
+# bun run build                 — build gate
+# bun run cf:build              — build gate
+# ANALYZE=true bun run build    — build gate + analyzer
+# bun run test                  — test gate
+# bun run test:dom              — test gate
+# bun run test:e2e              — browser gate
+# bun run cf:verify-hosted-performance   — credentials gate
+# bun run cf:d1-runtime-proof            — credentials gate
+# wrangler d1 execute ... EXPLAIN QUERY PLAN — credentials gate
+# Lighthouse / React Profiler            — browser gate
+```
