@@ -99,10 +99,13 @@ matrix.md`. Adjusted counts:
 
 - Critical: 2 (UX-BUILD-001, UX-LEAD-001)
 - High: 2 (UX-ACTIVATE-001, UX-CTA-001)
-- Medium: 10 (UX-CTA-002, UX-EMPTY-001, UX-MAGIC-001, UX-LEAD-002, UX-VOCAB-001,
-  UX-ACTIVATE-002, UX-EXPORT-001, UX-SHARE-001, UX-SESSION-001, UX-VOCAB-002-absorbed)
-- Low: 4
+- Medium: 9 (UX-CTA-002, UX-EMPTY-001, UX-MAGIC-001, UX-LEAD-002, UX-VOCAB-001,
+  UX-ACTIVATE-002, UX-EXPORT-001, UX-SHARE-001, UX-SESSION-001)
+- Low: 6
 - Informational: 4
+
+(`UX-VOCAB-002` is a duplicate symptom absorbed into `UX-VOCAB-001`, not a
+standalone finding, so it is not counted in the Medium total.)
 
 These adjusted counts drive the unit count, slice composition, and the
 pack-specific completion gate.

@@ -158,3 +158,65 @@ All requested requirements reconciled against fresh evidence:
 - REQ-004: validator passes; next_unit exposed.
 
 No safe in-scope work remains. Reporting to Philip.
+
+## 2026-07-20T01:30:00+08:00 — Improvement audit (per Improve-Plan-Prompt)
+
+Single-agent emulated-pass improvement audit. Objective: audit, comprehend,
+double-check, and improve the pack without changing the accepted outcome.
+
+**Freshness re-verification at current HEAD (`5e2d4ad`):**
+- `git log b2a9349..HEAD` = 5 commits (landing redesign, two other plan
+  packs, docs). None touched the audited commercial-truth surfaces.
+- Re-ran `bunx vitest run tests/vitest/calculation-output-parity.test.ts
+  --maxWorkers=1` → **2 of 3 FAIL** (F-01 reproduces exactly).
+- Re-ran `node artifacts/golden-oracle/oracle.mjs` → **20/20 PASS**.
+- Spot-checked source claims: `editable-row-model.ts:320` PHP hardcode,
+  `estimate-records.ts` `duplicateEstimateRecordGraph` multi-await,
+  fixtures labor residue — all still hold.
+
+**Internal-contradiction defects found (summary/display layer only):**
+1. `findings.json` `severity_counts` = 4H/6M/3L/2I but actual `findings[]`
+   = 4H/4M/3L/1I. Per-finding severities correct; summary counter wrong.
+2. `existing-pack-overlap.json` `summary` = 7 NEW / 9 CROSS (+ phantom
+   REFUTED/DEFERRED/EVIDENCE_BLOCKED/HISTORICAL_ONLY) but actual `matrix[]`
+   = 11 NEW / 7 CROSS. Matrix body correct; summary wrong.
+3. Three competing DAG diagrams: `00-PLAN.md` + `UNIT-CATALOG.md` ASCII
+   show a linear chain; `plan-pack.json` `depends_on` has only
+   UNIT-003→UNIT-001 and UNIT-007→UNIT-006. Machine truth authoritative.
+
+**Root cause of the stale-hash gap:** commit `5928d721` (2026-07-20)
+corrected the content of 6 artifacts (00-PLAN, UNIT-CATALOG, README,
+findings.json, existing-pack-overlap.json, parity-test-output.txt) to fix
+the three defects above, but did not refresh `plan-pack.json` hashes. The
+validator then reported 7 stale-hash mismatches. An attempt to re-hash via
+`--write` is blocked by `scripts/lib/plan-pack-validator.mjs:971`: the
+canonical artifact (`00-PLAN.md`) cannot be re-hashed while the pack holds
+any VERIFIED unit / PASS criterion / IMPLEMENTATION_READY status (all true
+here). 26 proof-bearing records sit on the changed artifacts; clearing the
+block would require dismantling the pack's claim structure.
+
+**Decision (user-approved):** revert the 6 corrected files to their
+`b60c2e59` content (which matches the committed manifest hashes). This
+restores validator-passing state (0 mismatches) at the cost of re-introducing
+the three summary-layer contradictions. The contradictions are documented in
+`README.md` "Known content defects" and below so a future supersession can
+fix them in one pass. The substantive findings F-01..F-12 are unaffected.
+
+**Recommended successor-pack shape (when the owner is ready):**
+- new folder `2026-07-20-...-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack-v2`;
+- baseline HEAD at creation time;
+- start from the corrected content (4/4/3/1 severity, 11/7 overlap, sparse
+  DAG) so hashes are clean from day one;
+- fresh proof receipts: golden oracle 20/20 + parity 2/3 FAIL (already
+  captured in this session);
+- this pack marked `terminal_status: ARCHIVED` with a supersession note.
+
+**Authorization / scope:** no product source, test source, migration, or
+dependency edits. The parity test was run read-only as evidence refresh
+(matches original AUTH-002 boundary). Only free artifacts (README,
+LOOP_LEDGER, PACK-MANIFEST) were edited; their hashes refreshed via
+`--write` (no proof-bearing records point at them, so no re-prove block).
+
+**Net change to accepted outcome:** none. REQ-001..REQ-004, all 12 finding
+severities and root causes, unit ownership, and `next_unit: UNIT-001` are
+unchanged. Validator passes.

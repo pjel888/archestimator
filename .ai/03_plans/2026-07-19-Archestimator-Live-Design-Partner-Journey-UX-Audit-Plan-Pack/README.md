@@ -48,14 +48,13 @@ leads), the pre-recruiting funnel captures zero leads at HEAD.
 
 ## Accepted findings summary
 
-See [`04-FINDINGS-REGISTER.md`](./artifacts/findings.json) and
-[`artifacts/findings.json`](./artifacts/findings.json) for the canonical
-machine-readable source.
+See [`artifacts/findings.json`](./artifacts/findings.json) for the canonical
+machine-readable source (23 findings total).
 
 - **Critical: 2** — `UX-BUILD-001`, `UX-LEAD-001`
 - **High: 2** — `UX-ACTIVATE-001`, `UX-CTA-001`
-- **Medium: 10**
-- **Low: 4** (approximate — see findings.json for canonical count)
+- **Medium: 9**
+- **Low: 6**
 - **Informational: 4**
 - **Rejected / refuted / deferred / blocked:** 7 candidates in
   [`artifacts/rejected-refuted-findings.json`](./artifacts/rejected-refuted-findings.json).

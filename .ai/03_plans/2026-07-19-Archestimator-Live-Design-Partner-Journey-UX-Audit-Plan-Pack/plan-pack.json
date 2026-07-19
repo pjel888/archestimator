@@ -10,7 +10,7 @@
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-19T07:50:00.000Z",
+  "updated_at": "2026-07-20T00:30:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -23,19 +23,19 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "f2e0352c7cb4730fba7220a108ca692af959cf34f130f3c5e01d604e689c091b"
+      "sha256": "4f346881cf84a3975ada8d8e70a97dd8e3d7cae6af34d73b0f7b7f46476c6fc8"
     },
     {
       "id": "ART-002",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "3d7d5bc123dd2041b18032fa9a388e05bf228fac13cf0fec43f54305bc11f497"
+      "sha256": "01a99c07ec25fd2d7d439196e15d983a7ec7a9a8133c56e7fe21e98d6b9d8598"
     },
     {
       "id": "ART-003",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "3567d7cdcdd5f1aee96658a45cf59196d750abe1a07ac6d6aa6cf4fd13c96902"
+      "sha256": "7c252603ac2bbba6219c32e2c93608c5b3cc51270c528796969e1f462ba4c0bf"
     },
     {
       "id": "ART-004",
@@ -191,7 +191,7 @@
       "id": "ART-029",
       "role": "evidence",
       "path": "artifacts/second-pass-challenge.md",
-      "sha256": "a748ef66b389347801005c32c80a968f7e11faf09311596b1935c227c3adc093"
+      "sha256": "0098977d5bc535a6450ac9601e0ac191d73c14ab7373a594219a7e6d9da911bd"
     },
     {
       "id": "ART-030",
@@ -478,6 +478,35 @@
         "UX-011",
         "UX-012",
         "UX-013"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AUTH-001",
+        "GATE-UX-01",
+        "GATE-VERIFY-01",
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-005",
+        "AC-008",
+        "AC-011"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-003",
+        "UX-004",
+        "UX-007",
+        "AC-003",
+        "AC-004",
+        "AC-007"
       ]
     }
   ],
@@ -1210,7 +1239,7 @@
       "id": "EVID-019",
       "status": "PASS",
       "artifact_path": "artifacts/second-pass-challenge.md",
-      "sha256": "a748ef66b389347801005c32c80a968f7e11faf09311596b1935c227c3adc093",
+      "sha256": "0098977d5bc535a6450ac9601e0ac191d73c14ab7373a594219a7e6d9da911bd",
       "claim_ids": [
         "GATE-VERIFY-01"
       ],
@@ -1242,5 +1271,5 @@
     "CLOSED_BETA_ACCESS_ENABLED env value changes",
     "Re-run of /tmp/ux-audit.mjs after UNIT-001 (would unblock BROWSER_CONFIRMED evidence)"
   ],
-  "manifest_sha256": "2c5f0448672cee1ca059d4744302a0aa41d0c3baa6b0ed30ac572789648ca4de"
+  "manifest_sha256": "39dae00b8f7c3ecd17fde276f241bfb70f0a1fcb8f83daf7a12b515d48d4789a"
 }

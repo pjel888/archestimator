@@ -30,7 +30,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "461ad43959296957362f62d15306feb01c2b0c955a6b61e8a4eec81278abd073"
+      "sha256": "cf5a9ee1411f4350285e06c446b2184fb1dfae87ab655beb2c43513287c7883e"
     },
     {
       "id": "ART-002",
@@ -48,13 +48,13 @@
       "id": "ART-004",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "b38fa99f8fd45778bd94de4ecd90038254fee8387afab077bcbc1700ace48edb"
+      "sha256": "362349dfab1310e6f2fddab402aae0b1f685c5170d2eee3a1752285e5b2034cf"
     },
     {
       "id": "ART-005",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "9978ad2521590d9540f1a0b564a9d7ae29fded36aadf8bdb893698a4d91c748c"
+      "sha256": "8a0a18c5b85f19a2b1898e729622b245a7466df73745233b279c0ac808489c96"
     },
     {
       "id": "ART-006",
@@ -884,5 +884,5 @@
       ]
     }
   ],
-  "manifest_sha256": "e61a7db35d105cfd292f61cfe77cfef92acd70cda2700871b49254196856f3cc"
+  "manifest_sha256": "be7004299786d6b89f2ebfecd1cb3274d5cd38b4af63509177d57dda80db4056"
 }

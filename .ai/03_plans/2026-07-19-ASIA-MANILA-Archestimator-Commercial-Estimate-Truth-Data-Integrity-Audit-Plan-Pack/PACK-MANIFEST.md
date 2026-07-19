@@ -47,3 +47,16 @@ Any change to the audited source surfaces (`src/lib/estimates/*`,
 `src/lib/repositories/estimate-health-repository.ts`, migrations touching
 commercial tables) invalidates the affected evidence. Re-run the golden
 oracle and re-execute the parity test before relying on any finding.
+
+**Re-verified 2026-07-20** at HEAD `5e2d4ad` (5 commits past baseline, none
+touching audited surfaces): parity test 2/3 FAIL (F-01 reproduces), golden
+oracle 20/20 PASS. Substantive findings unaffected.
+
+## Known content defects (2026-07-20 audit)
+
+Three summary/display-layer contradictions exist in the locked
+proof-bearing artifacts (severity count, overlap summary, DAG diagram).
+They are documented in `README.md` "Known content defects" and
+`LOOP_LEDGER.md` (2026-07-20 entry) and require pack supersession to fix
+(the validator blocks in-place re-hash of proof-bearing content). The
+per-finding data, root causes, and owners are all correct as written.

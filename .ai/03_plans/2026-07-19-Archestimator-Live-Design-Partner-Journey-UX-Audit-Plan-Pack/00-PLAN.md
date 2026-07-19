@@ -139,14 +139,16 @@ implementation of any unit; it bounds the *evidence class* available at HEAD.
 
 - **Critical: 2** — `UX-BUILD-001`, `UX-LEAD-001`
 - **High: 2** — `UX-ACTIVATE-001`, `UX-CTA-001` (was Critical; narrowed)
-- **Medium: 10** — `UX-CTA-002` (was High), `UX-EMPTY-001` (was High),
+- **Medium: 9** — `UX-CTA-002` (was High), `UX-EMPTY-001` (was High),
   `UX-MAGIC-001`, `UX-LEAD-002`, `UX-VOCAB-001` (absorbs `UX-VOCAB-002`),
   `UX-ACTIVATE-002`, `UX-EXPORT-001`, `UX-SHARE-001`, `UX-SESSION-001`
-- **Low: 4** — `UX-INVITE-001`, `UX-INVITE-002`, `UX-LEAD-003`, `UX-EMPTY-002`,
-  `UX-SHARE-002`, `UX-COPY-001` (six; the count is approximate — see
-  `findings.json` for the canonical list)
+- **Low: 6** — `UX-INVITE-001`, `UX-INVITE-002`, `UX-LEAD-003`, `UX-EMPTY-002`,
+  `UX-SHARE-002`, `UX-COPY-001`
 - **Informational: 4** — `UX-MAGIC-002`, `UX-EMPTY-003`, `UX-ADMIN-001`,
   `UX-BUILD-002`
+
+(2 + 2 + 9 + 6 + 4 = 23. `findings.json` is the canonical register; counts
+above are reconciled to it.)
 
 Rejected/refuted/deferred/blocked: see `artifacts/rejected-refuted-findings.json`
 (7 candidates including the `UX-ADMIN-002` "no compile break" claim that this

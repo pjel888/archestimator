@@ -12,7 +12,7 @@
     "REFUTED",
     "EVIDENCE_BLOCKED"
   ],
-  "severity_counts": { "critical": 0, "high": 4, "medium": 4, "low": 3, "informational": 1 },
+  "severity_counts": { "critical": 0, "high": 4, "medium": 6, "low": 3, "informational": 2 },
   "findings": [
     {
       "id": "F-01",

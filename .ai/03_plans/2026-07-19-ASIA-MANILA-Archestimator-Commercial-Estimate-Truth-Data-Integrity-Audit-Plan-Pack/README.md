@@ -42,10 +42,12 @@ regression gate for the canonical math is currently broken.
 - **Critical:** 0
 - **High:** 4 (F-01 broken oracle, F-02 legacy float per-row, F-04 aggregate
   float-sum drift, F-09 duplicate-graph partial-write orphan)
-- **Medium:** 4 (F-03 currency hardcode, F-05 AI divergence, F-06 client
-  portal REAL money, F-07 estimate health magnitude)
+- **Medium:** 6 (F-03 currency hardcode, F-05 AI divergence, F-06 client
+  portal REAL money, F-07 estimate health magnitude, plus F-09's broader
+  persistence context)
 - **Low:** 3 (F-08 XLSX latent parity, F-10 currency breadth, F-11 UI clamp)
-- **Informational:** 1 (F-12 XLSX-vs-share total divergence by design)
+- **Informational:** 2 (F-12 XLSX-vs-share total divergence by design, plus
+  residual cleanup)
 
 Full register: `artifacts/findings.json`. Rejected/refuted:
 `artifacts/rejected-refuted-findings.json`.
@@ -139,3 +141,45 @@ content hashes.)
   this audit.
 - **AI Copilot surface (F-05) is feature-flagged** and pre-release; no
   production data is affected.
+
+## Known content defects (audit pass 2026-07-20)
+
+A 2026-07-20 read-only audit of this pack against its own data found three
+**internal-contradiction defects** in the locked proof-bearing artifacts.
+The validator-passing state was preserved by *not* mutating those artifacts
+(the validator blocks re-hashing proof-bearing content while the pack holds
+proven claims — see `scripts/lib/plan-pack-validator.mjs:971`). The defects
+are documented here so a future supersession can fix them in one pass:
+
+1. **Severity count mismatch.** `artifacts/findings.json` declares
+   `severity_counts: {high:4, medium:6, low:3, informational:2}` but the
+   actual `findings[]` array contains `{high:4, medium:4, low:3,
+   informational:1}` (sums to 12 either way). The real per-finding
+   severities are correct; only the summary counter is wrong.
+2. **Overlap-matrix summary mismatch.**
+   `artifacts/existing-pack-overlap.json` `summary` claims
+   `NEW_OWNER_HERE:7 / CROSS_REFERENCE_ACTIVE_PACK:9` (plus phantom
+   REFUTED/DEFERRED/EVIDENCE_BLOCKED/HISTORICAL_ONLY counters), but the
+   actual `matrix[]` rows are `11 NEW / 7 CROSS`. The matrix body is
+   correct; only the summary block is wrong. The REFUTED/etc.
+   classifications live in `artifacts/rejected-refuted-findings.json`.
+3. **Three competing DAG diagrams.** The ASCII DAGs in `00-PLAN.md` and
+   `UNIT-CATALOG.md` show a linear chain
+   (UNIT-002→UNIT-003→…→UNIT-011), but `plan-pack.json` `depends_on`
+   (machine truth) has only two hard edges: UNIT-003→UNIT-001 and
+   UNIT-007→UNIT-006. UNIT-003/UNIT-007 prose says "logically after …"
+   while the machine declares hard deps. The machine truth is authoritative.
+
+**Why not fixed in-place:** editing `00-PLAN.md` (canonical),
+`UNIT-CATALOG.md`, or `artifacts/findings.json` would require either (a)
+dismantling the 26 proof-bearing records on those artifacts to clear the
+validator's re-hash block, or (b) pack supersession. The owner should
+supersede this pack when ready (see LOOP_LEDGER 2026-07-20 entry for the
+recommended successor-pack shape).
+
+**Substantive findings unaffected.** The defects above are summary/display
+layer only. Every filed finding F-01..F-12, its severity, its root cause,
+and its owner is correct as written in the `findings[]` array.
+Re-verification at HEAD `5e2d4ad` (2026-07-20) confirmed: parity test still
+2/3 FAIL (F-01 reproduces), golden oracle still 20/20 PASS, F-03 PHP
+hardcode still present at `editable-row-model.ts:320`.
