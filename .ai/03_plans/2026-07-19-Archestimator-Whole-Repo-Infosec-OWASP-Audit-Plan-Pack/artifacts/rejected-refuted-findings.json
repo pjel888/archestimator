@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "audit_head": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
+  "rejected": [
+    {
+      "candidate_id": "SEC-WORKER-001",
+      "original_sweep_severity": "High",
+      "verifier_verdict": "REFUTED_ON_PLATFORM",
+      "final_severity": "Informational",
+      "verifier_reasoning": "Canonical-host map is hard-coded two-entry allowlist (worker-route-optimizations.ts:35-38); only path/query preserved into redirect, not host/scheme/userinfo; Cloudflare normalizes Host at zone. Theoretical only.",
+      "lead_decision": "ACCEPT_REFUTAL",
+      "disposition": "RECORDED_FOR_FUTURE_AUDITS"
+    },
+    {
+      "candidate_id": "SEC-WORKER-003",
+      "original_sweep_severity": "High",
+      "verifier_verdict": "DUPLICATE_CURRENT_FINDING",
+      "final_severity": null,
+      "verifier_reasoning": "Restates SEC-WORKER-002 (same wrangler.jsonc:10 + worker.ts:142-198 + proof-router evidence).",
+      "lead_decision": "MERGE_INTO_SEC-WORKER-002",
+      "disposition": "DUPLICATE"
+    },
+    {
+      "candidate_id": "SEC-OPS-002",
+      "original_sweep_severity": "Medium",
+      "verifier_verdict": "DUPLICATE_CURRENT_FINDING",
+      "final_severity": null,
+      "verifier_reasoning": "CRON_SECRET reuse + non-constant-time compare is the substance of SEC-CRYPTO-001; reachable-from-internet is the substance of SEC-OPS-001.",
+      "lead_decision": "MERGE_INTO_SEC-CRYPTO-001_AND_SEC-OPS-001",
+      "disposition": "DUPLICATE"
+    }
+  ],
+  "overcalls_downgraded": [
+    {"candidate_id": "SEC-UPLOAD-001", "from": "High", "to": "Medium", "reason": "Download path fails-closed for pending today; functionality defect not exploit."},
+    {"candidate_id": "SEC-WORKER-002", "from": "High", "to": "Medium", "reason": "Bearer-gated; industry-standard scaffolding; residual risk only."},
+    {"candidate_id": "SEC-BROWSER-001", "from": "High", "to": "Medium", "reason": "No reachable XSS sink in share/workshop; CSP is defense-in-depth."},
+    {"candidate_id": "SEC-OPS-003", "from": "Medium", "to": "Low", "reason": "Bounded by 20MB ingress cap + 128MB Worker + DLQ."},
+    {"candidate_id": "SEC-EXT-001/002/003", "from": "Medium", "to": "Low", "reason": "Cloudflare Email binding uses structured MimeMessage; webmail sandbox; author/admin-controlled inputs."}
+  ]
+}

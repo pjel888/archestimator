@@ -1,0 +1,40 @@
+framework,category,status,findings,evidence
+OWASP Top 10:2025,A01 Broken Access Control,ACCEPTED_FINDING,SEC-COLLAB-003;SEC-AUTHZ-001;SEC-UPLOAD-002;SEC-COLLAB-001;SEC-OPS-001;SEC-SHARE-002;SEC-AUTH-003,d1-access.ts centralizes app-layer authz; CollaborationRoom DO revocation gap; support-conversations data layer latent
+OWASP Top 10:2025,A02 Cryptographic Failures,ACCEPTED_FINDING,SEC-AUTH-001;SEC-CRYPTO-001/002/003,Raw session tokens; non-constant-time compares; secret reuse in legacy fallback
+OWASP Top 10:2025,A03 Injection,ACCEPTED_FINDING,SEC-EXT-001/002/003;SEC-COLLAB-004,SQL injection VERIFIED_NO_ACCEPTED_FINDING; email CRLF + HTML + DO message schema
+OWASP Top 10:2025,A04 Insecure Design,ACCEPTED_FINDING,SEC-UPLOAD-001/002/004/005;SEC-COLLAB-002;SEC-BROWSER-002;SEC-PRIV-001/002,Scanner default; bind-accepts-pending; per-DO seat cap; cache; PII; retention
+OWASP Top 10:2025,A05 Security Misconfiguration,ACCEPTED_FINDING,SEC-WORKER-002/004;SEC-BROWSER-001/003/005;SEC-AUTH-004/005,workers_dev; static cache; CSP; invite cache; cookie flag; beta gate; trusted-origin
+OWASP Top 10:2025,A06 Vulnerable and Outdated Components,ACCEPTED_FINDING,SEC-CI-001/002;SEC-SUPPLY-001,CI disabled; Dependabot disabled; mutable-tag skills:update
+OWASP Top 10:2025,A07 Identification and Auth Failures,ACCEPTED_FINDING,SEC-SHARE-001/002;SEC-AUTH-002;SEC-BROWSER-003,Timing/enumeration oracle; hardcoded dev admin; token in URL
+OWASP Top 10:2025,A08 Software and Data Integrity Failures,ACCEPTED_FINDING,SEC-UPLOAD-003;SEC-OPS-004,Unverified checksum; unsigned queue messages
+OWASP Top 10:2025,A09 Security Logging and Monitoring Failures,ACCEPTED_FINDING,SEC-LOG-001/002/003;SEC-OPS-007,Raw console.error; PII; sampling; swallowed cron errors
+OWASP Top 10:2025,A10 SSRF,VERIFIED_NO_ACCEPTED_FINDING,n/a,No fetch(userControlledUrl); all destinations hardcoded
+OWASP API 2023,API1 BOLA,ACCEPTED_FINDING,SEC-COLLAB-003;SEC-AUTHZ-001;SEC-OPS-001,Post-revocation; latent support-conversations; internal routes
+OWASP API 2023,API2 Broken Auth,ACCEPTED_FINDING,SEC-AUTH-001;SEC-SHARE-001/002;SEC-CRYPTO-001/002/003,Session tokens; timing; non-constant-time
+OWASP API 2023,API3 BOPLA,PARTIALLY_VERIFIED,SEC-SHARE-003,Field minimization (token holder authorized); no mass assignment
+OWASP API 2023,API4 Unrestricted Resource Consumption,ACCEPTED_FINDING,SEC-COLLAB-001/002/006;SEC-UPLOAD-005;SEC-OPS-003/005/006,WS seat-flood; per-DO cap; scan bytes; queue redelivery; cron overlap
+OWASP API 2023,API5 BFLA,ACCEPTED_FINDING,SEC-UPLOAD-002,Bind-accepts-pending
+OWASP API 2023,API6 Sensitive Business Flows,VERIFIED_NO_ACCEPTED_FINDING,n/a,Publication/share/decision flows re-derive state every mutation
+OWASP API 2023,API7 SSRF,VERIFIED_NO_ACCEPTED_FINDING,n/a,No fetch(userControlledUrl)
+OWASP API 2023,API8 Security Misconfiguration,ACCEPTED_FINDING,SEC-WORKER-002/004;SEC-BROWSER-001/002/003/005;SEC-AUTH-004/005;SEC-EXT-001/002/003;SEC-COLLAB-004,Multi-surface
+OWASP API 2023,API9 Improper Inventory,PARTIALLY_VERIFIED,SEC-PRIV-002;SEC-WORKER-002,Retention gaps; shadow workers.dev
+OWASP API 2023,API10 Unsafe Consumption,VERIFIED_NO_ACCEPTED_FINDING,n/a,DeepSeek shape-validated; identity-key-rejected
+ASVS 5.0.0,v5.0.0-2.4.1,PARTIALLY_VERIFIED,SEC-SHARE-001,Password verify timing not equalized
+ASVS 5.0.0,v5.0.0-3.5.3,ACCEPTED_FINDING,SEC-COLLAB-003,Session not invalidated after privilege change
+ASVS 5.0.0,v5.0.0-4.1.1/4.1.3,PARTIALLY_VERIFIED,SEC-AUTHZ-001,Data-layer central; one latent gap
+ASVS 5.0.0,v5.0.0-4.2.1,VERIFIED_NO_ACCEPTED_FINDING,n/a,CSRF on all state-changing share/portal/invite
+ASVS 5.0.0,v5.0.0-5.3.x,PARTIALLY_VERIFIED,SEC-EXT-001/002/003;SEC-COLLAB-004,SQL closed; email boundary; DO schema
+ASVS 5.0.0,v5.0.0-6.2.1/6.2.6,ACCEPTED_FINDING,SEC-CRYPTO-001/002/003,Constant-time; per-purpose keys
+ASVS 5.0.0,v5.0.0-7.1.3,PARTIALLY_VERIFIED,SEC-LOG-001/002/003,Structured exists; residual
+ASVS 5.0.0,v5.0.0-8.1.x/8.2.x/8.3.x,ACCEPTED_FINDING,SEC-PRIV-001/002,PII minimization; retention
+ASVS 5.0.0,v5.0.0-12.1.1/12.3.x,ACCEPTED_FINDING,SEC-COLLAB-001/002;SEC-OPS-003/004/005,Resource limits; idempotency; async integrity
+ASVS 5.0.0,v5.0.0-13.1.1/13.4.1,ACCEPTED_FINDING,SEC-COLLAB-001/002/006,WS origin; rate limit
+ASVS 5.0.0,v5.0.0-14.1.1/14.2.x,EVIDENCE_BLOCKED,SEC-CI-001,Hosted GitHub state AUTH-001
+OWASP LLM 2025,LLM01 Prompt Injection,PARTIALLY_VERIFIED,n/a,Direct bounded; indirect not reachable (no file extraction to prompt)
+OWASP LLM 2025,LLM02 Sensitive Info Disclosure,VERIFIED_NO_ACCEPTED_FINDING,n/a,Metadata-only audit; no PII to provider
+OWASP LLM 2025,LLM05 Improper Output Handling,VERIFIED_NO_ACCEPTED_FINDING,n/a,Output rendered as text; deterministic drafts
+OWASP LLM 2025,LLM06 Excessive Agency,VERIFIED_NO_ACCEPTED_FINDING,n/a,Model has no direct write
+OWASP LLM 2025,LLM10 Unbounded Consumption,ACCEPTED_FINDING,SEC-AI-002,Package-builder no quota
+OWASP Agentic,AG01-Agentic autonomous action,NOT_APPLICABLE,n/a,No autonomous agent
+OWASP Agentic,AG02-Privilege inheritance,VERIFIED_NO_ACCEPTED_FINDING,n/a,Apply re-checks userContext
+OWASP Agentic,AG03-Tool allowlist,VERIFIED_NO_ACCEPTED_FINDING,n/a,Model has no tools

@@ -1,0 +1,11 @@
+timestamp,command,purpose,exit_status,output_artifact,redaction_note
+2026-07-19T,bun run supermemory:ensure,bootstrap supermemory per AGENTS.md,0,stdout tail,n/a
+2026-07-19T,git status --short --branch,baseline working tree,0,n/a,n/a
+2026-07-19T,git rev-parse --verify HEAD,baseline HEAD,0,7f9a484b42b0d951f219e3c4ce1bfbb4364e8847,n/a
+2026-07-19T,git log -1 --format=%H%n%cI%n%s,commit metadata,0,n/a,n/a
+2026-07-19T,git ls-files -z,tracked file inventory,0,artifacts/repository-file-inventory.csv,n/a
+2026-07-19T,node -e (sha256 inventory script),compute per-file sha256 + classify,0,artifacts/repository-file-inventory.csv,n/a
+2026-07-19T,node -e (baseline-hashes script),baseline provenance hashes,0,artifacts/baseline-hashes.csv,n/a
+2026-07-19T,bun run validate:plan-pack,plan-pack validation,0,stdout,n/a
+2026-07-19T,Agent dispatch (8 parallel domain sweeps),read-only security review,n/a,per-sweep structured findings to lead,no secret values returned
+2026-07-19T,Agent dispatch (adversarial verifier),Critical/High refutation,n/a,verifier verdicts to lead,no secret values returned
