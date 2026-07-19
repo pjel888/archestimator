@@ -1,10 +1,10 @@
 
- RUN  v4.1.10 /Users/philiplewis/Documents/archestimator
+ RUN  v4.1.10 /Users/philiplewis/archestimator
 
- ❯ tests/vitest/calculation-output-parity.test.ts (3 tests | 2 failed) 260ms
-     × freezes hand-authored row parts, basis membership, and final charge order 30ms
-     ✓ records the Data-page invalid-input refusal matrix 1ms
-     × reconciles live chart, proposal, XLSX, issued-portal, and print payloads 227ms
+ ❯ tests/vitest/calculation-output-parity.test.ts (3 tests | 2 failed) 24ms
+     × freezes hand-authored row parts, basis membership, and final charge order 6ms
+     ✓ records the Data-page invalid-input refusal matrix 0ms
+     × reconciles live chart, proposal, XLSX, issued-portal, and print payloads 17ms
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
 
@@ -60,6 +60,6 @@ AssertionError: expected 420.5 to be 448 // Object.is equality
 
  Test Files  1 failed (1)
       Tests  2 failed | 1 passed (3)
-   Start at  16:12:58
-   Duration  7.34s (transform 746ms, setup 1.16s, import 656ms, tests 260ms, environment 4.25s)
+   Start at  00:40:37
+   Duration  802ms (transform 107ms, setup 63ms, import 107ms, tests 24ms, environment 510ms)
 

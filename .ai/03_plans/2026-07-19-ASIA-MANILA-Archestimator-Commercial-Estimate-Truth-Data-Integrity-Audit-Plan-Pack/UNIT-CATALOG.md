@@ -6,44 +6,18 @@
 
 ## DAG overview
 
+The dependency graph is intentionally sparse. The only **hard** dependencies
+(mirrored in `plan-pack.json` `depends_on`) are:
+
 ```
-UNIT-000 (audit deliverable; REQ-001 + REQ-004)              [VERIFIED — the pack is the deliverable]
-   |
-   v
-UNIT-001 (F-01 parity fixture)        [READY, prerequisite for protection]
-   |
-   v
-UNIT-002 (F-09 graph atomicity)      [READY, isolates persistence truth]
-   |
-   +--------------------------------+--------------------------------+
-   |                                |                                |
-   v                                v                                v
-UNIT-003 (F-04 aggregate       UNIT-004 (F-03 currency         UNIT-005 (F-06 client-portal
- canonicalization)              propagation)                    total_cost minor-unit)
-   |                                                                |
-   +-------------------------------+--------------------------------+
-                                   |
-                                   v
-                          UNIT-006 (F-07 estimate health)      [READY]
-                                    |
-                                    v
-                          UNIT-007 (F-05 AI package-builder)   [READY but DEFERRED until Copilot release]
-                                    |
-                                    v
-                          UNIT-008 (F-08 XLSX parity test)     [READY]
-                                    |
-                                    v
-                          UNIT-009 (F-10 currency breadth)     [READY]
-                                    |
-                                    v
-                          UNIT-010 (F-11 UI clamp alignment)   [READY]
-                                    |
-                                    v
-                          UNIT-011 (F-12 share-page charge note) [READY, product/UX]
+UNIT-003 (F-04) depends on UNIT-001 (F-01)
+UNIT-007 (F-05) depends on UNIT-006 (F-07)
 ```
 
-All implementation units are independent enough to be picked in any order
-after their predecessor; the canonical next unit is **UNIT-001**.
+All other units (UNIT-001, UNIT-002, UNIT-004, UNIT-005, UNIT-006,
+UNIT-008, UNIT-009, UNIT-010, UNIT-011) carry no hard dependency and may be
+picked in any order. UNIT-000 is the VERIFIED audit-deliverable unit. The
+canonical next unit is **UNIT-001**.
 
 ---
 
@@ -139,8 +113,9 @@ after their predecessor; the canonical next unit is **UNIT-001**.
   (integer) and dividing once, instead of summing float `rowTotal` /
   `totalItemCosts`.
 - **Source finding:** F-04 (HIGH, LOCAL_RUNTIME_CONFIRMED).
-- **Dependencies:** none (logically after UNIT-001 to keep parity test
-  meaningful, but they touch disjoint files).
+- **Dependencies:** UNIT-001 (hard — UNIT-003 extends the parity gate that
+  UNIT-001 first repairs; the two touch disjoint files but the dependency
+  keeps the G19 extension meaningful).
 - **Owned paths/resources:**
   - `src/lib/share/reconstruct-share-tree.ts:71, 116, 155, 304, 324` (write).
   - `src/lib/share/aggregate-share-chart-buckets.ts:29, 41` (write).
@@ -245,8 +220,8 @@ after their predecessor; the canonical next unit is **UNIT-001**.
 - **Goal:** eliminate the four divergent row-total copies in the AI
   package-builder by routing through `computeEstimateRowCostParts`.
 - **Source finding:** F-05 (MEDIUM, CURRENT_SOURCE_CONFIRMED).
-- **Dependencies:** none (logically after UNIT-006 to share the canonical
-  routing pattern).
+- **Dependencies:** UNIT-006 (hard — UNIT-007 reuses the canonical-routing
+  pattern established by UNIT-006 for the AI package-builder).
 - **Owned paths/resources:**
   - `src/lib/ai/package-builder/{draft,schemas,apply,read-tools}.ts` (write).
 - **Non-goals:** do NOT change AI feature-flag posture or quota behavior

@@ -42,12 +42,10 @@ regression gate for the canonical math is currently broken.
 - **Critical:** 0
 - **High:** 4 (F-01 broken oracle, F-02 legacy float per-row, F-04 aggregate
   float-sum drift, F-09 duplicate-graph partial-write orphan)
-- **Medium:** 6 (F-03 currency hardcode, F-05 AI divergence, F-06 client
-  portal REAL money, F-07 estimate health magnitude, plus F-09's broader
-  persistence context)
+- **Medium:** 4 (F-03 currency hardcode, F-05 AI divergence, F-06 client
+  portal REAL money, F-07 estimate health magnitude)
 - **Low:** 3 (F-08 XLSX latent parity, F-10 currency breadth, F-11 UI clamp)
-- **Informational:** 2 (F-12 XLSX-vs-share total divergence by design, plus
-  residual cleanup)
+- **Informational:** 1 (F-12 XLSX-vs-share total divergence by design)
 
 Full register: `artifacts/findings.json`. Rejected/refuted:
 `artifacts/rejected-refuted-findings.json`.

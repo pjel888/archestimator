@@ -3,13 +3,10 @@
   "baseline_head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
   "summary": {
     "total_candidates": 18,
-    "NEW_OWNER_HERE": 7,
-    "CROSS_REFERENCE_ACTIVE_PACK": 9,
+    "NEW_OWNER_HERE": 11,
+    "CROSS_REFERENCE_ACTIVE_PACK": 7,
     "ALREADY_IMPLEMENTED": 0,
-    "REFUTED_OR_UNREACHABLE": 4,
-    "DEFERRED_TO_NAMED_STAGE_OR_OWNER": 1,
-    "EVIDENCE_BLOCKED": 1,
-    "HISTORICAL_ONLY": 1
+    "note": "This matrix is the candidate-vs-disposition view of the 12 filed findings (F-01..F-12) plus 6 cross-reference-only candidates. Disposition here is the candidate label; the rejection/refutation ledger (artifacts/rejected-refuted-findings.json) holds the REFUTED / HISTORICAL_ONLY / EVIDENCE_BLOCKED / DEFERRED classifications separately."
   },
   "matrix": [
     { "candidate": "canonical oracle parity test failure (labor fixture drift)", "this_pack_finding": "F-01", "disposition": "NEW_OWNER_HERE", "rationale": "test fixture cleanup; no active pack owns test-source reconciliation", "existing_pack": "Quality Master CONSISTENCY-001 (ALREADY_IMPLEMENTED, product side)" },

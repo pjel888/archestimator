@@ -160,17 +160,22 @@ No accepted requirement or unit has two active owners.
 
 ## Findings summary
 
-12 filed findings + 10 rejected/refuted/cross-referenced.
+12 filed findings + 10 rejected/refuted/cross-referenced candidates.
 
 - **HIGH (4):** F-01 (broken oracle test), F-02 (legacy float per-row),
   F-04 (aggregate float-sum drift), F-09 (duplicate-graph partial-write).
-- **MEDIUM (6):** F-03 (currency hardcode), F-05 (AI divergence), F-06
-  (client portal REAL money), F-07 (estimate health magnitude), plus the
-  persistence-recovery context of F-09.
+- **MEDIUM (4):** F-03 (currency hardcode), F-05 (AI divergence), F-06
+  (client portal REAL money), F-07 (estimate health magnitude).
 - **LOW (3):** F-08 (XLSX latent parity), F-10 (currency breadth), F-11
   (UI clamp).
-- **INFORMATIONAL (2):** F-12 (XLSX-vs-share total by design), plus
-  residual cleanup notes.
+- **INFORMATIONAL (1):** F-12 (XLSX-vs-share total divergence by design).
+
+Dispositions of the 12 filed findings: 9 NEW_OWNER_HERE (F-01, F-03, F-04,
+F-05, F-06, F-07, F-08, F-09, F-12) and 3 CROSS_REFERENCE_ACTIVE_PACK (F-02
+→ Quality Master UNIT-014; plus 6 cross-reference-only candidates with no
+filed finding). The 10 rejected/refuted/cross-referenced candidates live in
+`artifacts/rejected-refuted-findings.json` and
+`artifacts/existing-pack-overlap.json` (R-01..R-10).
 
 See `artifacts/findings.json` for the full register with severity,
 confidence, evidence class, existing-pack disposition, root cause, smallest
@@ -178,20 +183,18 @@ fix direction, data repair need, and acceptance evidence for each.
 
 ## Acyclic dependency graph
 
+The dependency graph is intentionally sparse. The only **hard** dependencies
+(see `plan-pack.json` `depends_on`) are:
+
 ```
-UNIT-000 (audit deliverable; REQ-001 + REQ-004)         [VERIFIED]
-   |
-   v
-UNIT-001 (F-01)  ─┐
-                  ├─→ UNIT-003 (F-04)  ─→ UNIT-006 (F-07) ─→ UNIT-007 (F-05)
-UNIT-002 (F-09)  ─┤                                    ─→ UNIT-008 (F-08)
-                  ├─→ UNIT-004 (F-03)                  ─→ UNIT-009 (F-10)
-                  └─→ UNIT-005 (F-06)                  ─→ UNIT-010 (F-11)
-                                                       ─→ UNIT-011 (F-12)
+UNIT-003 (F-04) depends on UNIT-001 (F-01)   [so F-04 work does not relax the parity gate it must extend]
+UNIT-007 (F-05) depends on UNIT-006 (F-07)   [so AI routing reuses the canonical-routing pattern set by F-07]
 ```
 
-(Edges are soft — implementation units can be picked in any order after
-their predecessor. The canonical next unit is **UNIT-001**.)
+Every other unit (UNIT-001, UNIT-002, UNIT-004, UNIT-005, UNIT-006,
+UNIT-008, UNIT-009, UNIT-010, UNIT-011) has no hard dependency and may be
+picked in any order. UNIT-000 is the verified audit-deliverable unit. The
+canonical next unit is **UNIT-001**.
 
 ## Execution slices/waves
 
