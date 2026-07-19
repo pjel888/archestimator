@@ -1,0 +1,10 @@
+journey_id,journey_title,persona,primary_routes,happy_path_state,failure_path_state,denial_path_state,recovery_path_state,evidence_class,disposition
+J-01,Discovery and intent,P-DP-001,/ + /about + /features + /pricing + /contact,BLOCKED_BUILD,SKIP,SKIP,SKIP,LOCAL_RUNTIME_CONFIRMED + CURRENT_SOURCE_CONFIRMED,NEW_OWNER_HERE
+J-02-invite-auth,Invitation and authentication,P-IW-001 + P-RW-001,/login + /signup + /invite/[token] + /auth/callback,BLOCKED_BUILD,PARTIAL_SOURCE,PARTIAL_SOURCE,PARTIAL_SOURCE,CURRENT_SOURCE_CONFIRMED + CALL_FLOW_CONFIRMED,NEW_OWNER_HERE
+J-03-first-workshop,First workshop session,P-RW-001,/workshop + /workshop/projects,BLOCKED_BUILD,SKIP,SKIP,SKIP,LOCAL_RUNTIME_CONFIRMED + CURRENT_SOURCE_CONFIRMED,NEW_OWNER_HERE
+J-04-first-estimate,First credible estimate,P-RW-001 + P-ED-001 + P-VW-001,/workshop/projects/[id]/estimates/[id],EVIDENCE_BLOCKED,SKIP,SKIP,SKIP,CURRENT_SOURCE_CONFIRMED,NEW_OWNER_HERE
+J-05-reuse,Reuse and cold-start reduction,P-RW-001,/workshop/library + /workshop/library/templates,EVIDENCE_BLOCKED,SKIP,SKIP,SKIP,CURRENT_SOURCE_CONFIRMED,NEW_OWNER_HERE
+J-06-client-output,Client-ready XLSX output,P-RW-001,/workshop/projects/[id]/estimates/[id] export action,EVIDENCE_BLOCKED,SKIP,SKIP,SKIP,CURRENT_SOURCE_CONFIRMED,CROSS_REFERENCE_ACTIVE_PACK
+J-07-public-proposal,Public proposal review,P-CR-001 + P-RW-001,/share/[token] + /workshop/publisher,EVIDENCE_BLOCKED,PARTIAL_SOURCE,PARTIAL_SOURCE,PARTIAL_SOURCE,CURRENT_SOURCE_CONFIRMED,NEW_OWNER_HERE
+J-08-revision,Revision and reuse,P-CR-001 + P-RW-001,recipient decision + workshop revision,EVIDENCE_BLOCKED,SKIP,SKIP,SKIP,STATIC_PATTERN_ONLY,DEFERRED_TO_NAMED_STAGE_OR_OWNER
+J-09-founder-admin,Founder support and intervention,P-FO-001,/admin/* + /workshop/feedback + /admin/support,BLOCKED_BUILD,SKIP,SKIP,SKIP,LOCAL_RUNTIME_CONFIRMED + CURRENT_SOURCE_CONFIRMED,NEW_OWNER_HERE

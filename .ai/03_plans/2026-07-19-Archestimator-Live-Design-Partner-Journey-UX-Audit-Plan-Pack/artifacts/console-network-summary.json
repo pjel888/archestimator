@@ -1,0 +1,23 @@
+{
+  "harness": "lead-single-agent-emulated-passes (Playwright 1.61.1, Chromium 1228 headless)",
+  "base_url": "http://127.0.0.1:3020",
+  "started_at": "2026-07-19T07:51:17Z",
+  "completed_at": "2026-07-19T08:11:00Z",
+  "outcome": "BLOCKED_BY_UX-BUILD-001",
+  "summary": "Playwright domcontentloaded waits timed out at 25s for every probed route (J-01 through J-09) because the dev server's webpack compile is poisoned by the action-inbox-actions.ts Server Actions contract violation (UX-BUILD-001). The poisoning cascades through the entire src/app/** module graph. The browser harness therefore produced zero usable page renders and zero screenshots; this file is the proof of the EVIDENCE_BLOCKED state. Decisive evidence for UX-BUILD-001 itself is captured in build-failure-log.txt (bun run build exit 1) and dev-server-runtime-log.txt (HTTP 500 responses for /workshop, /admin, /admin/today, /privacy, /security, /access-required).",
+  "console_messages": [
+    {"type": "warning", "text": "<REDACTED>: goto timeout 25s exceeded on /"}
+  ],
+  "network_failures_summary": {
+    "count_observed": 28,
+    "dominant_failure": "goto: Timeout 25000ms exceeded (domcontentloaded)",
+    "routes_blocked": ["/", "/about", "/features", "/pricing", "/contact", "/login", "/signup", "/workshop", "/admin", "/admin/today", "/workshop/projects", "/workshop/library", "/workshop/library/templates", "/workshop/publisher", "/workshop/feedback", "/workshop/terms", "/share/<synthetic>", "/invite/<synthetic>"],
+    "interpretation": "The timeouts are not network failures in the usual sense; they are compile failures served over HTTP. Every route's webpack bundle compilation fails because the action-inbox-actions.ts module is unparseable as a 'use server' module. This is the runtime signature of UX-BUILD-001."
+  },
+  "screenshots_captured": 0,
+  "screenshots_blocked_reason": "Every page.goto timed out before DOMContentLoaded; page.screenshot therefore had no rendered content to capture.",
+  "storage_state_persisted": false,
+  "auth_headers_in_artifacts": false,
+  "tokens_in_artifacts": false,
+  "interpretation_for_plan_pack": "Browser evidence could not be collected at HEAD. Once UNIT-001 (UX-BUILD-001) is implemented, a re-audit pass should re-run /tmp/ux-audit.mjs and advance the source-traced (CURRENT_SOURCE_CONFIRMED / CALL_FLOW_CONFIRMED) findings to BROWSER_CONFIRMED where the live behavior matches the source claim."
+}

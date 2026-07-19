@@ -1,0 +1,1246 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-19-archestimator-live-design-partner-journey-ux-audit-plan-pack",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-19T07:50:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "f2e0352c7cb4730fba7220a108ca692af959cf34f130f3c5e01d604e689c091b"
+    },
+    {
+      "id": "ART-002",
+      "role": "narrative",
+      "path": "README.md",
+      "sha256": "3d7d5bc123dd2041b18032fa9a388e05bf228fac13cf0fec43f54305bc11f497"
+    },
+    {
+      "id": "ART-003",
+      "role": "ledger",
+      "path": "LOOP_LEDGER.md",
+      "sha256": "3567d7cdcdd5f1aee96658a45cf59196d750abe1a07ac6d6aa6cf4fd13c96902"
+    },
+    {
+      "id": "ART-004",
+      "role": "manifest",
+      "path": "PACK-MANIFEST.md",
+      "sha256": "b94a2c208c42ee742a52ffb7f4f06791b0898017f57807bdf8a12a5fa636d9b2"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit-index",
+      "path": "units/README.md",
+      "sha256": "c97fe01d8ca4269165b3e698b5a2116315ae2ba09a292f2111363ea184dbfd51"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/001-action-inbox-async-server-actions.md",
+      "sha256": "fcbe4ef102649f099b5a125ad80aa000766da0d011bed48407bacc614223d844"
+    },
+    {
+      "id": "ART-007",
+      "role": "unit",
+      "path": "units/002-closed-beta-lead-capture.md",
+      "sha256": "74f02cf50b2aad625a29da8ea509aa1e239f3638ac07999b13945428aae99743"
+    },
+    {
+      "id": "ART-008",
+      "role": "unit",
+      "path": "units/003-landing-cta-unification.md",
+      "sha256": "bfb4c92696de0260466eede5ab5a0f76f51cc6450f410b55e08f52cf7905dfed"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "units/004-remove-ab-experiment-wrapper.md",
+      "sha256": "f562202a4a0b9f1d8a25f1ce95967307135160c4c3e4c9f89066f77e1f429ae6"
+    },
+    {
+      "id": "ART-010",
+      "role": "unit",
+      "path": "units/005-first-estimate-checklist-publish.md",
+      "sha256": "1f150b55d8300e6c8e3f931003a5b98246257452f8bbe9a4dcd0c472993a8fac"
+    },
+    {
+      "id": "ART-011",
+      "role": "unit",
+      "path": "units/006-guided-sample-prominence.md",
+      "sha256": "ec592e6c7411907cf653696938379eb1a3682621428c0868c7cebd03bbc2c33b"
+    },
+    {
+      "id": "ART-012",
+      "role": "unit",
+      "path": "units/007-library-overview-orientation.md",
+      "sha256": "d903bb523146d2ac7694ac8c1b4cf206ee618aeec4a006caed83f3860c9a8907"
+    },
+    {
+      "id": "ART-013",
+      "role": "unit",
+      "path": "units/008-magic-link-and-session-expiry-copy.md",
+      "sha256": "c775e162a1a55f353033c583d9c6e717de8db8aa1eaa07035c0b5b4c85fb2e2c"
+    },
+    {
+      "id": "ART-014",
+      "role": "unit",
+      "path": "units/009-xlsx-export-discoverability.md",
+      "sha256": "0f947886aca5791dd76e5ee1eaefab867d74b236e359ffed6a29c2f089214368"
+    },
+    {
+      "id": "ART-015",
+      "role": "unit",
+      "path": "units/010-invite-page-affordances.md",
+      "sha256": "ad8cb72d1b0c2423c85ad6944afc98c2df40f14ed7b167773e98849728dc3229"
+    },
+    {
+      "id": "ART-016",
+      "role": "unit",
+      "path": "units/011-share-password-ux.md",
+      "sha256": "1baba0aebc56f012487e2f00b9d1cd3c2bfbe8c8d2dc4749211230fb5545a9f7"
+    },
+    {
+      "id": "ART-017",
+      "role": "unit",
+      "path": "units/012-landing-copy-ph-vocabulary.md",
+      "sha256": "fcebcaeb7220395a721665c64f4759a42addf6917a42177d8744485f4797e18a"
+    },
+    {
+      "id": "ART-018",
+      "role": "unit",
+      "path": "units/013-polish-batch.md",
+      "sha256": "cf06b65ff8c441bddfbe93c4b3db9dec9ec9a2930a85cfa4490bca0cd7d11097"
+    },
+    {
+      "id": "ART-019",
+      "role": "evidence",
+      "path": "artifacts/browser-environment.json",
+      "sha256": "64ac72aefcc9a4520036e9d7100e268c572d3390edf486c1907ba861569e2947"
+    },
+    {
+      "id": "ART-020",
+      "role": "evidence",
+      "path": "artifacts/build-failure-log.txt",
+      "sha256": "9509bff06bb19a0f251a1c418cb6550a9fd7a85730ab85b50fe81c6cdade998b"
+    },
+    {
+      "id": "ART-021",
+      "role": "evidence",
+      "path": "artifacts/dev-server-runtime-log.txt",
+      "sha256": "30de562c9d8f77607803cf96cb67be4a9ea295acde9dd5ada7c6a7b8241c7779"
+    },
+    {
+      "id": "ART-022",
+      "role": "evidence",
+      "path": "artifacts/audit-events.jsonl",
+      "sha256": "9f6505543db954b491f53fd792cc7669bb332efbf8e63457c1cecb350b02f29a"
+    },
+    {
+      "id": "ART-023",
+      "role": "evidence",
+      "path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8"
+    },
+    {
+      "id": "ART-024",
+      "role": "evidence",
+      "path": "artifacts/rejected-refuted-findings.json",
+      "sha256": "1dcde3086d3fd7c888bf1b4b3a110ceed65ace36204c8d31bbad0752f575e02d"
+    },
+    {
+      "id": "ART-025",
+      "role": "evidence",
+      "path": "artifacts/journey-coverage.csv",
+      "sha256": "601967dbcb8672735bf09bc250d20cb09cff749d753cfc7e6d8137b60063aea6"
+    },
+    {
+      "id": "ART-026",
+      "role": "evidence",
+      "path": "artifacts/existing-pack-overlap-matrix.md",
+      "sha256": "2a9f6a8a6ab495ccbf10b5d9fec38b0092545a7d0c882e2dc9eda6115aea725c"
+    },
+    {
+      "id": "ART-027",
+      "role": "evidence",
+      "path": "artifacts/ux-state-matrix.md",
+      "sha256": "9edc240496c971e30cae1c56597138aab94dcfd154e396d8de738327b19ebb14"
+    },
+    {
+      "id": "ART-028",
+      "role": "evidence",
+      "path": "artifacts/founder-rescue-ledger.md",
+      "sha256": "e4645510c0f8553d10d595bb0634549ba8f6c170a4c44002e80dc6acb89455e0"
+    },
+    {
+      "id": "ART-029",
+      "role": "evidence",
+      "path": "artifacts/second-pass-challenge.md",
+      "sha256": "a748ef66b389347801005c32c80a968f7e11faf09311596b1935c227c3adc093"
+    },
+    {
+      "id": "ART-030",
+      "role": "evidence",
+      "path": "artifacts/persona-fixture-register.md",
+      "sha256": "1ac59ba49095331130c6c97f1e20c8c943e2ede585c5749917ad072a432ea67d"
+    },
+    {
+      "id": "ART-031",
+      "role": "evidence",
+      "path": "artifacts/commands-run.log",
+      "sha256": "0af86e60830289c1e121a77e1c54ec8dad2fc67ac74cfa9545b9f8610de7a9f1"
+    },
+    {
+      "id": "ART-032",
+      "role": "evidence",
+      "path": "artifacts/console-network-summary.json",
+      "sha256": "87c4914a265da5cf317a71370ff594a66b42ebfaf57a444d4aba9394c512c67a"
+    },
+    {
+      "id": "ART-033",
+      "role": "evidence",
+      "path": "artifacts/screenshots/INDEX.md",
+      "sha256": "a0ce8db4c113ee234f9ad0b7095b60fb2845f62eff545fa04c68e5ddb211cb67"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "UX-005",
+        "UX-006",
+        "UX-007",
+        "UX-008",
+        "UX-009",
+        "UX-010",
+        "UX-011",
+        "UX-012",
+        "UX-013"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "UX-005",
+        "UX-006",
+        "UX-007",
+        "UX-008",
+        "UX-009",
+        "UX-010",
+        "UX-011",
+        "UX-012",
+        "UX-013"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "UX-004",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "UX-005",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "UX-006",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "UX-007",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "UX-008",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "UX-009",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "UX-010",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-010"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "UX-011",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "UX-012",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-012"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "UX-013",
+      "status": "ACCEPTED",
+      "artifact_path": "00-PLAN.md",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-013"
+      ],
+      "criterion_ids": [
+        "AC-013"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "UX-005",
+        "UX-006",
+        "UX-007",
+        "UX-008",
+        "UX-009",
+        "UX-010",
+        "UX-011",
+        "UX-012",
+        "UX-013"
+      ]
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "AC-013",
+        "GATE-UX-01",
+        "GATE-VERIFY-01"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "BOUNDARY",
+      "artifact_path": "units/001-action-inbox-async-server-actions.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The 'use server' async contract is a critical build invariant; cheaper non-test evidence (source inspection) cannot prove at runtime that bun run build exits 0 and the previously-500 routes serve 200, so a build + route-reach regression test is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-002",
+      "status": "BOUNDARY",
+      "artifact_path": "units/002-closed-beta-lead-capture.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Server-side lead capture is a critical pre-recruiting invariant; cheaper non-test evidence (source inspection) cannot prove the new POST handler actually persists and that the closed-beta gate submits successfully at runtime, so a regression test asserting a D1 row is written is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-003",
+      "status": "BOUNDARY",
+      "artifact_path": "units/003-landing-cta-unification.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Header intent propagation is a critical analytics invariant for lead routing; cheaper non-test evidence (source inspection) cannot prove at runtime that the header CTA href includes an intent param when rendered on secondary pages, so a Playwright assertion against the rendered href is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-004",
+      "status": "BOUNDARY",
+      "artifact_path": "units/004-remove-ab-experiment-wrapper.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "A/B wrapper removal is a static-source change; source inspection is the cheapest decisive evidence that either no ABExperimentProvider wraps the landing page or a real variant assignment exists.",
+      "requirement_ids": [
+        "UX-004"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-005",
+      "status": "BOUNDARY",
+      "artifact_path": "units/005-first-estimate-checklist-publish.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Checklist publish-row reachability is a critical activation invariant; cheaper non-test evidence (source inspection) cannot prove at runtime that the row is hidden or actionable on a fresh user session, so a vitest asserting no row is not_available for a no-milestone user is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "UX-005"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-006",
+      "status": "BOUNDARY",
+      "artifact_path": "units/006-guided-sample-prominence.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Guided-sample card visual prominence is a static-source change; source inspection of Tailwind classes and label is the cheapest decisive evidence.",
+      "requirement_ids": [
+        "UX-006"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-007",
+      "status": "BOUNDARY",
+      "artifact_path": "units/007-library-overview-orientation.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Library overview orientation copy is a static-source change; source inspection of the rendered block is the cheapest decisive evidence that the body is no longer empty.",
+      "requirement_ids": [
+        "UX-007"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-008",
+      "status": "BOUNDARY",
+      "artifact_path": "units/008-magic-link-and-session-expiry-copy.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Distinct magic-link error messages are a critical auth-recovery invariant; cheaper non-test evidence (source inspection) cannot prove at runtime that each Better Auth verify error code maps to a distinct public message, so a vitest asserting each code maps distinctly is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "UX-008"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-009",
+      "status": "BOUNDARY",
+      "artifact_path": "units/009-xlsx-export-discoverability.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "XLSX export overflow-menu entry is a static-source change; source inspection of the menu entry and permission gate is the cheapest decisive evidence.",
+      "requirement_ids": [
+        "UX-009"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-010",
+      "status": "BOUNDARY",
+      "artifact_path": "units/010-invite-page-affordances.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Invite-page affordance and font-size changes are static-source changes; source inspection is the cheapest decisive evidence.",
+      "requirement_ids": [
+        "UX-010"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-014"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-011",
+      "status": "BOUNDARY",
+      "artifact_path": "units/011-share-password-ux.md",
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Share-password lockout countdown is a critical recipient-recovery invariant; cheaper non-test evidence (source inspection) cannot prove at runtime that a 429 response surfaces a countdown and auto-recovers, so a Playwright assertion extending the existing shared-link-receiver lockout test is the cheapest decisive evidence that the invariant holds.",
+      "requirement_ids": [
+        "UX-011"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-012"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-012",
+      "status": "BOUNDARY",
+      "artifact_path": "units/012-landing-copy-ph-vocabulary.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Landing copy PH-vocabulary additions are static-source changes; source inspection of hero copy and audience list is the cheapest decisive evidence.",
+      "requirement_ids": [
+        "UX-012"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "AC-013",
+      "status": "BOUNDARY",
+      "artifact_path": "units/013-polish-batch.md",
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Polish-batch copy and affordance edits are static-source changes; source inspection is the cheapest decisive evidence.",
+      "requirement_ids": [
+        "UX-013"
+      ],
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-016"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-UX-01",
+      "status": "BOUNDARY",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "AC-013"
+      ],
+      "evidence_ids": [
+        "EVID-020"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "BOUNDARY",
+      "artifact_path": "artifacts/second-pass-challenge.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-019",
+        "EVID-020"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-action-inbox-async-server-actions.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-closed-beta-lead-capture.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-landing-cta-unification.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-remove-ab-experiment-wrapper.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-first-estimate-checklist-publish.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-005"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-guided-sample-prominence.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-006"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-010"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-library-overview-orientation.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-007"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "units/008-magic-link-and-session-expiry-copy.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-008"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "artifact_path": "units/009-xlsx-export-discoverability.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-009"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "READY",
+      "artifact_path": "units/010-invite-page-affordances.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-010"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-014"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "READY",
+      "artifact_path": "units/011-share-password-ux.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-011"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-012"
+      ]
+    },
+    {
+      "id": "UNIT-012",
+      "status": "READY",
+      "artifact_path": "units/012-landing-copy-ph-vocabulary.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-012"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-013",
+      "status": "READY",
+      "artifact_path": "units/013-polish-batch.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-013"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-016"
+      ]
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011",
+        "UNIT-012",
+        "UNIT-013"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "artifacts/build-failure-log.txt",
+      "sha256": "9509bff06bb19a0f251a1c418cb6550a9fd7a85730ab85b50fe81c6cdade998b",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "artifacts/dev-server-runtime-log.txt",
+      "sha256": "30de562c9d8f77607803cf96cb67be4a9ea295acde9dd5ada7c6a7b8241c7779",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "AC-003",
+        "AC-004"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-005"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-007"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-008",
+        "AC-008"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-002"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-009",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-012",
+        "AC-012"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-010",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-006"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-011",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-009",
+        "AC-009"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-012",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-011",
+        "AC-011"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-013",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-008"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-014",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-010",
+        "AC-010"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-015",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-012"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-016",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-013",
+        "AC-013"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-017",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-013"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-018",
+      "status": "PASS",
+      "artifact_path": "artifacts/findings.json",
+      "sha256": "717d1909dea1098c7ebb2d4f9b592a2c46a34ef5071095fb3981f2c5d76830f8",
+      "claim_ids": [
+        "UNIT-013"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-019",
+      "status": "PASS",
+      "artifact_path": "artifacts/second-pass-challenge.md",
+      "sha256": "a748ef66b389347801005c32c80a968f7e11faf09311596b1935c227c3adc093",
+      "claim_ids": [
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-020",
+      "status": "PASS",
+      "artifact_path": "artifacts/console-network-summary.json",
+      "sha256": "87c4914a265da5cf317a71370ff594a66b42ebfaf57a444d4aba9394c512c67a",
+      "claim_ids": [
+        "GATE-UX-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "HEAD drift on src/lib/admin/action-inbox-actions.ts",
+    "HEAD drift on src/components/auth/ClosedBetaGate.tsx",
+    "HEAD drift on src/app/contact/page.tsx (new route.ts would resolve UX-LEAD-001)",
+    "HEAD drift on src/components/landing-v3/ArchestimatorLandingPage.tsx or landing-content.ts",
+    "HEAD drift on src/lib/onboarding/first-estimate-checklist.ts",
+    "HEAD drift on src/components/workshop/library/overview/LibraryOverview.tsx",
+    "HEAD drift on src/lib/auth/error-mapping.ts",
+    "bun run build exit code changes from non-zero",
+    "CLOSED_BETA_ACCESS_ENABLED env value changes",
+    "Re-run of /tmp/ux-audit.mjs after UNIT-001 (would unblock BROWSER_CONFIRMED evidence)"
+  ],
+  "manifest_sha256": "2c5f0448672cee1ca059d4744302a0aa41d0c3baa6b0ed30ac572789648ca4de"
+}

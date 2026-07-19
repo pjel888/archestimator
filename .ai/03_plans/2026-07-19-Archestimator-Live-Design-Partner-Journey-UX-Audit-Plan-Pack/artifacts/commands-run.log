@@ -1,0 +1,91 @@
+# Commands Run Log (sanitized)
+
+Audit period: 2026-07-19 14:21 +08:00 → 2026-07-19 15:45 +08:00.
+Baseline HEAD: b2a934919ce499c0404e5b9f9a5644f22757c78a.
+
+## Mandatory startup
+
+- `bun run supermemory:ensure` — ready at http://localhost:6767/
+- `git status --short --branch` — clean tree on main
+- `git rev-parse --abbrev-ref HEAD` — main
+- `git rev-parse HEAD` — b2a934919ce499c0404e5b9f9a5644f22757c78a
+- `git log -1 --format='%cI %s'` — 2026-07-19T14:21:07+08:00 docs(ai): add MacBook-Pro agentic workflow bootstrap prompt
+
+## Environment verification
+
+- `node scripts/validate-plan-pack.mjs --help` — captured validator surface (writes hashes via --write)
+- `cat .env.local | grep CLOSED_BETA_ACCESS_ENABLED` — value=`false`
+- `cat .env.local | grep ARCHESTIMATOR_DEV_AUTH_BYPASS` — value=`1`
+- `cat .env.local | grep ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET` — length=`64`
+- `cat .env.local | grep ARCHESTIMATOR_DEV_AUTH_ADMIN_DB` — NOT SET
+- `bunx playwright --version` — Version 1.61.1
+- `ls ~/Library/Caches/ms-playwright/` — chromium-1228, chromium_headless_shell-1228
+
+## Dev server lifecycle
+
+- `PORT=3020 bun x next dev --webpack --port 3020` — started, listening on 127.0.0.1:3020
+- `curl http://127.0.0.1:3020/` — title `Archestimator — Construction estimating, proposals and approvals`
+- `curl http://127.0.0.1:3020/workshop` (no auth) — 307 → /login?next=%2Fworkshop (correct)
+- `curl -H 'x-archestimator-dev-auth-bypass: <REDACTED>' http://127.0.0.1:3020/workshop` — first compile 200 (initial), later 500 with module-build error
+
+## Build verification
+
+- `bun run build` — exit 1, full error in artifacts/build-failure-log.txt. Headline diagnostic: "Server Actions must be async functions" at src/lib/admin/action-inbox-actions.ts:58,61,64.
+
+## Route probes (curl, 60s timeout each)
+
+Public (unauthenticated):
+- `/` — 200
+- `/about` — 200 (4.1s first compile)
+- `/features` — 200
+- `/pricing` — 200
+- `/contact` — 200
+- `/login` — 200
+- `/signup` — 200 (4.1s first compile)
+- `/terms` — 200
+- `/privacy` — 500 (poisoned by UX-BUILD-001)
+- `/trust` — 200
+- `/security` — 500 (poisoned)
+- `/access-required` — 500 (poisoned)
+
+Authenticated (with dev-auth-bypass header):
+- `/workshop` — 500 (poisoned)
+- `/workshop/projects` — timed out (compile churn)
+- `/workshop/library` — timed out
+- `/workshop/library/templates` — timed out
+- `/workshop/publisher` — timed out
+- `/workshop/feedback` — timed out
+- `/workshop/terms` — timed out
+- `/admin` — timed out (compile churn)
+- `/admin/today` — timed out
+- `/admin/users` — timed out
+
+Synthetic token states:
+- `/invite/00000000-0000-0000-0000-000000000000` — timed out (compile churn; source-traced instead)
+- `/invite/not-a-real-token` — timed out
+- `/share/00000000-0000-0000-0000-000000000000` — timed out
+- `/share/not-a-real-token` — timed out
+
+## Playwright audit harness
+
+- `/tmp/ux-audit.mjs` — Chromium 1228 headless, default viewport 1280x720, mobile checkpoint 393x852
+- Run twice; both runs blocked by UX-BUILD-001. domcontentloaded waits timed out at 25s for every route because webpack compile was poisoned.
+- artifacts/audit-events.jsonl — 14 events, all goto timeouts or screenshot timeouts. Confirms dev server unusability (itself part of UX-BUILD-001 evidence).
+- No storage_state persisted. No cookies, tokens, or auth headers captured into the pack.
+
+## Source-trace lane
+
+- `rg`/`grep` across `src/` for: PH AEC vocabulary, magic-link copy, session-expiry copy, contact form handlers, invite page states, library overview, first-estimate checklist, admin action-inbox
+- Read (full file): ClosedBetaGate.tsx, action-inbox-actions.ts, first-estimate-checklist.ts, LibraryOverview.tsx, error-mapping.ts, ProjectPublicationPasswordForm.tsx, invite/[token]/page.tsx (selected)
+- `git log` on `src/lib/admin/action-inbox-actions.ts` — 6510a0de3 feat(admin): add action inbox UI and server actions (2026-07-16)
+
+## Validator (final)
+
+- `node scripts/validate-plan-pack.mjs --write .ai/03_plans/2026-07-19-Archestimator-Live-Design-Partner-Journey-UX-Audit-Plan-Pack` — see LOOP_LEDGER.md for final result.
+
+## What was NOT run
+
+- `bun run test`, `bun run test:dom`, `bun run validate`, `bun run lint` — not authorized; product tests remain user-gated.
+- Hosted/production probes — out of scope (closed-beta preview posture, no deployed Worker targeted).
+- Real email send, real OAuth, real invitation recipients — explicitly not authorized.
+- Browser matrix beyond Chromium — not used (would multiply blocked evidence).

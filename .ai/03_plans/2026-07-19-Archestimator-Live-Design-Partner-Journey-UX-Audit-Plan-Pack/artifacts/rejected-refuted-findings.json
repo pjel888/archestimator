@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "pack_slug": "Archestimator-Live-Design-Partner-Journey-UX-Audit-Plan-Pack",
+  "captured_at": "2026-07-19T15:30:00+08:00",
+  "rejected_or_refuted": [
+    {
+      "candidate_id": "CANDIDATE-001",
+      "candidate_title": "action-inbox actions are fine - useEffectEvent is valid in React 19.2.7 so no compile break exists",
+      "candidate_source": "Initial source-trace lane hypothesis (STATIC_PATTERN_ONLY)",
+      "verdict": "REFUTED",
+      "verdict_reason": "The actual build error is 'Server Actions must be async functions' for snoozeActionItem/resolveActionItem/dismissActionItem - a Next.js 16 / React 19 'use server' contract violation, NOT a useEffectEvent problem. Decisive refutation: `bun run build` exits 1 with the exact diagnostic (see artifacts/build-failure-log.txt); dev server returns HTTP 500 for /workshop, /admin, /admin/today, /privacy, /security, /access-required (see artifacts/dev-server-runtime-log.txt). The candidate confused two unrelated module concerns.",
+      "evidence_class": "LOCAL_RUNTIME_CONFIRMED",
+      "evidence_files": ["artifacts/build-failure-log.txt", "artifacts/dev-server-runtime-log.txt"]
+    },
+    {
+      "candidate_id": "CANDIDATE-002",
+      "candidate_title": "Workshop first-project zero-state has no path for new users",
+      "candidate_source": "Hypothesis during source-trace",
+      "verdict": "REFUTED",
+      "verdict_reason": "src/components/workshop/FirstProjectZeroState.tsx:39-86 (creator branch) provides three clear paths (Blank / Template / Guided sample). The only sub-finding is UX-ACTIVATE-002 (guided sample is under-promoted relative to its value) - a Medium, not a High or Critical. The viewer-only branch (UX-EMPTY-003) is Informational.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "evidence_files": []
+    },
+    {
+      "candidate_id": "CANDIDATE-003",
+      "candidate_title": "Magic-link / OAuth / session security conclusions are in scope here",
+      "candidate_source": "Master prompt J-02 mention",
+      "verdict": "DEFERRED",
+      "verdict_reason": "Security conclusions belong to the Infosec OWASP pack (.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack). This pack owns only journey usability/recovery consequences. The only UX-owned auth finding is UX-MAGIC-001 (undifferentiated error copy) and UX-SESSION-001 (no workshop session-expiry banner). No new security defect was proven.",
+      "evidence_class": "CURRENT_SOURCE_CONFIRMED",
+      "evidence_files": []
+    },
+    {
+      "candidate_id": "CANDIDATE-004",
+      "candidate_title": "Live browser screenshots for every Critical/High finding",
+      "candidate_source": "Master prompt evidence-discipline requirement",
+      "verdict": "EVIDENCE_BLOCKED",
+      "verdict_reason": "Playwright domcontentloaded waits time out at 25s for every route because the dev server's webpack compile is poisoned by UX-BUILD-001 (the action-inbox compile break cascades through the entire src/app/** module graph). The poisoning is itself part of the UX-BUILD-001 evidence. Browser screenshots were not capturable for any journey; HTML-body probes via curl also timed out for authenticated routes. Source-trace + LOCAL_RUNTIME_CONFIRMED evidence (build failure log, dev server 500s, captured HTTP titles) is the strongest evidence collectable at HEAD.",
+      "evidence_class": "EVIDENCE_BLOCKED",
+      "evidence_files": ["artifacts/build-failure-log.txt", "artifacts/dev-server-runtime-log.txt"]
+    },
+    {
+      "candidate_id": "CANDIDATE-005",
+      "candidate_title": "Visual / cosmetic design-system findings (color, spacing, typography nits)",
+      "candidate_source": "Master prompt: 'A visual preference is not a finding unless it impairs a defined journey outcome. Do not create a cosmetic backlog.'",
+      "verdict": "EXCLUDED_BY_POLICY",
+      "verdict_reason": "Per the master prompt and DESIGN.md-as-alpha-guidance policy, cosmetic preferences are not findings. The only font-size finding retained (UX-INVITE-002) is kept because text-[8px] actively impairs mobile readability of the invite acceptance journey, not because of taste.",
+      "evidence_class": "N/A",
+      "evidence_files": []
+    },
+    {
+      "candidate_id": "CANDIDATE-006",
+      "candidate_title": "Estimate numeric / financial truth defects",
+      "candidate_source": "Master prompt J-04/J-06",
+      "verdict": "DEFERRED",
+      "verdict_reason": "Per the master prompt: 'Do not re-audit financial truth here beyond visible consistency signals; deep numeric and persistence correctness belongs to the Commercial Estimate-Truth pack.' No visible consistency defect was observed in source. UX-EXPORT-001 covers only discoverability.",
+      "evidence_class": "N/A",
+      "evidence_files": []
+    },
+    {
+      "candidate_id": "CANDIDATE-007",
+      "candidate_title": "J-08 revision-workflow deep audit",
+      "candidate_source": "Master prompt J-08",
+      "verdict": "EVIDENCE_BLOCKED",
+      "verdict_reason": "J-08 revision/reuse requires a working publisher + share + recipient decision flow. All three are blocked by UX-BUILD-001. Source-trace of the revision flow exists (recipient-proposals/actions.ts, share/[token]/{comment,decision,threads,sections}) but a live journey audit could not be performed. Classified STATIC_PATTERN_ONLY in journey-coverage.csv and deferred.",
+      "evidence_class": "EVIDENCE_BLOCKED",
+      "evidence_files": []
+    }
+  ]
+}
