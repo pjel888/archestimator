@@ -17,7 +17,8 @@ Load `Frontier-Planning-Kernel.md`, applicable
 Before coordinated work begins, the lead establishes one parent Task Contract:
 
 - objective and user intent;
-- scope, exclusions, authoritative inputs, and current evidence;
+- scope, exclusions, authoritative inputs, relevant files/resources, and current
+  evidence;
 - constraints, dependencies, assumptions, and authorization boundaries;
 - owner, required capability classes, tool permissions, and write permissions;
 - required outputs and acceptance criteria;
@@ -66,6 +67,13 @@ Normal parallel fan-out is three lanes. The configured thread ceiling is a hard
 runtime limit, not a target. More lanes require a concrete elapsed-time or
 coverage benefit.
 
+Each lane moves from assigned to running, then either waits at a named barrier
+or returns one terminal handoff: `COMPLETE|PARTIAL|FAILED|CANCELLED`. The lead
+consumes the handoff and closes the lane; abandoned threads and orphan ownership
+are completion failures. Specialists stay inside the assignment, inspect actual
+evidence, preserve shared state, and escalate scope, authority, ownership, or
+dependency conflicts to the lead.
+
 ## Subagent Assignment Contract
 
 Every assignment includes:
@@ -95,6 +103,15 @@ This repository stays in the current shared checkout unless the user explicitly
 authorizes worktrees or branch changes. When isolated worktrees are unavailable,
 serialize conflicting writes. Formal leases are only for genuine concurrent
 Plan Pack contention; ordinary work uses explicit file ownership and barriers.
+When isolated concurrent writing is authorized, give each writer a distinct
+worktree/branch and one named integrator; merge, rebase, branch cleanup, and
+remote mutation still require their own repository-authorized boundary.
+
+On unexpected shared-file or resource drift, stop the conflicting write, reread
+current state and diffs, identify ownership, and let the designated owner or
+integrator resolve it. Never overwrite, revert, or silently merge unfamiliar
+work. Branch, worktree, Git-index, provider, and external mutations remain
+bounded by the parent Task Contract and repository authority.
 
 At a barrier, the lead confirms required handoffs, current file state, and
 dependency evidence before starting downstream work. A timeout releases no
@@ -111,6 +128,7 @@ Every worker or logical pass returns:
 - commands/evidence with exact results and fresh artifact references;
 - explicitly unrun tests and unproved external boundaries;
 - conflicts, limitations, cleanup state, remaining risk, and confidence;
+- unresolved questions and whether they affect a core acceptance criterion;
 - recommended next action or escalation.
 
 The lead treats the handoff as an index. It verifies the cited artifacts and
@@ -124,6 +142,8 @@ source and diff are reviewed; exact authorized validation commands succeeded or
 their honest gaps are recorded; failures, external proof limits, and unrun tests
 are disclosed; integrated handoffs are reconciled; and no safe in-scope work,
 orphan lane, ownership claim, or cleanup remains.
+No unresolved material contradiction may remain between the request, canonical
+contracts, final artifacts, and collected evidence.
 
 Worker completion never implies parent completion. `PARTIAL`, `FAILED`, or
 `CANCELLED` handoffs must be reassigned, completed by the lead, or isolated to an
@@ -159,6 +179,12 @@ Do not retry identically, lower acceptance criteria, discard shared work, bypass
 validation, create recursive replacement agents, or label an optional worker
 failure `TECH_BLOCKED`. Preserve useful evidence and clean up only owned
 ephemeral state.
+
+For a non-retriable authority, destructive-action, cancellation, or exhausted
+technical failure, preserve partial results, restore only owned ephemeral state
+through a documented reversible recovery, report the exact blocker and proof
+gap, release ownership deliberately, and terminate the lane safely. Never roll
+back, reset, or discard unfamiliar shared work.
 
 ## Capability And Model Fallback
 

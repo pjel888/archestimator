@@ -213,6 +213,7 @@ const activeTaxonomyFiles = [
   ...await collectFiles(".codex/agents", [".toml"]),
   ...await collectFiles(".codex/prompts", [".md"]),
   ...await collectFiles(".commandcode", [".md"]),
+  ...await collectFiles(".cursor/rules", [".mdc"]),
 ];
 for (const path of activeTaxonomyFiles) {
   const text = docs.get(path) ?? await read(path);

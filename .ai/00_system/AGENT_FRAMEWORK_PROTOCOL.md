@@ -4,9 +4,10 @@
 
 This file governs agent roles, payloads, memory, model/capability mapping, and
 adapter validation. `AGENTS.md` and `AGENT_OPERATING_PROTOCOL.md` remain
-authoritative. `Multi-Agent-Execution-Directive.md` owns orchestration,
-assignments, handoffs, and recovery. Payloads translate role capabilities; they
-do not duplicate or fork policy.
+authoritative.
+`.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` owns
+orchestration, assignments, handoffs, and recovery. Payloads translate role capabilities;
+they do not duplicate or fork policy.
 
 ## Fast Start
 

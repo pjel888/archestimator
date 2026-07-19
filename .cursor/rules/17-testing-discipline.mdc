@@ -27,11 +27,9 @@ change touches a critical surface. Instead:
 - If tests seem warranted, record a **`TEST_PROPOSAL`** (named risk + exact
   command you would run) in your report and wait for explicit authorization.
 
-The earlier `TARGETED`/`BROADER`/`CHEAPEST_DECISIVE_EXISTING_TEST` triggers no
-longer authorize running tests on an agent's own judgment — they authorize a
-`TEST_PROPOSAL` only. They still appear in the taxonomy to identify a risk that
-would benefit from a test, but execution always requires `TEST_TASK` with an
-explicit user request.
+The active taxonomy is only `NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`. Risk or
+criticality may justify a proposal, but execution always requires `TEST_TASK`
+with an explicit current-task user request.
 
 ## Test Surfaces (authorized tasks only)
 

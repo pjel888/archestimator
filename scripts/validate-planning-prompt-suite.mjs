@@ -132,6 +132,7 @@ requireText("Executing-Plan-Prompt.md", [
 requireText("Multi-Agent-Execution-Directive.md", [
   "canonical orchestration contract",
   "Task Contract",
+  "relevant files/resources",
   "Native subagents",
   "Parallel threads or team panes",
   "Emulated specialist passes",
@@ -139,13 +140,16 @@ requireText("Multi-Agent-Execution-Directive.md", [
   "Subagent Assignment Contract",
   "timeout behavior",
   "Handoff Contract",
+  "unresolved questions",
   "Completion Contract",
+  "No unresolved material contradiction",
   "Independent Review",
   "Failure, Retry, And Recovery Contract",
   "exact validation commands",
   "agent_type",
   "Never allow concurrent writes to the same file",
   "actual artifacts",
+  "documented reversible recovery",
 ]);
 requireSections("Multi-Agent-Execution-Directive.md", [
   "Canonical Scope",
@@ -198,6 +202,7 @@ const forbidden = [
   [/LOOP_LEDGER\.md/iu, "mandatory legacy ledger"],
   [/DISCOVER\s*(?:→|->)\s*PLAN\s*(?:→|->)\s*EXECUTE/iu, "obsolete six-stage loop"],
   [/always run (?:all )?tests/iu, "automatic testing"],
+  [/\b(?:TARGETED|BROADER|CHEAPEST_DECISIVE_EXISTING_TEST)\b/iu, "legacy test taxonomy"],
   [/gpt-5\.6-(?:sol-)?(?:ultra|pro)\b/iu, "fabricated model identifier"],
 ];
 for (const [pattern, label] of forbidden) {

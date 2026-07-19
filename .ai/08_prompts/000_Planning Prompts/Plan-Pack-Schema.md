@@ -50,10 +50,10 @@ collected.
 ## 7. Tests
 
 Use `NOT_REQUIRED`, `TEST_PROPOSAL`, or `TEST_TASK` from the Validation
-Matrix. `TEST_PROPOSAL` uses `MVP_CRITICAL_INVARIANT` or
-`CHEAPEST_DECISIVE_EXISTING_TEST` as proposal metadata and never grants test
-execution. Only explicit current-task user authorization permits test execution
-or edits. Legacy suite values remain validator compatibility, not new guidance.
+Matrix. `TEST_PROPOSAL` records the named risk, exact unrun command, and
+rationale; it never grants test execution. Only explicit current-task user
+authorization permits test execution or edits. Legacy manifest values may
+remain validator compatibility, but they are not authoring guidance.
 
 ## 8. Status, Resume, And Archive
 

@@ -47,9 +47,9 @@
 
 - `AGENTS.md` remains the repository entry contract. Current source and
   executable configuration remain implementation evidence.
-- `Multi-Agent-Execution-Directive.md` is canonical whenever orchestration is
-  selected and defines portable native, thread, emulated, and single-agent
-  behavior.
+- `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` is
+  canonical whenever orchestration is selected and defines portable native,
+  thread, emulated, and single-agent behavior.
 - Capability classes are semantic; concrete current mapping and fallbacks live
   in `.ai/12_agents/codex-role-model-matrix.json`.
 - The normal fallback is configured role, repository default, nearest available
@@ -68,4 +68,3 @@ OpenAI does not define Archestimator's Task, Assignment, Handoff, Completion, or
 Recovery schemas. Those are repository contracts. Public documentation absence
 alone also does not justify deleting local experimental runtime flags; validate
 resolver behavior before changing them.
-

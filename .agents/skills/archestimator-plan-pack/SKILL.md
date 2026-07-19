@@ -25,7 +25,9 @@ tests, ledgers, reviewers, rollout, or approval.
 
 1. Load `.ai/08_prompts/000_Planning Prompts/README.md`.
 2. Follow the kernel, triggered gates, one stage prompt, and schema.
-3. Load `Multi-Agent-Execution-Directive.md` only when orchestration is used.
+3. Load
+   `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
+   only when orchestration is used.
 4. Create `plan-pack.json` plus the fewest artifacts a fresh executor needs.
 5. Use `NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK` from the Validation Matrix.
 6. Validate the pack and stop when its Completion Contract is evidenced.
