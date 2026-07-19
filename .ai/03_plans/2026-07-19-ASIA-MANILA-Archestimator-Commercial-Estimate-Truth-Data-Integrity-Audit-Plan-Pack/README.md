@@ -4,7 +4,7 @@
 **Created:** 2026-07-19 (Asia/Manila)
 **Baseline SHA:** `b2a934919ce499c0404e5b9f9a5644f22757c78a`
 **Branch:** `main` (clean tree at audit start)
-**Status tuple:** `CONDITIONALLY_READY / NOT_STARTED / BOUNDARY / ACTIVE / ACTIVE`
+**Status tuple:** `IMPLEMENTATION_READY / IN_PROGRESS / NOT_EVALUATED / ACTIVE / ACTIVE`
 **Suite version:** `2026-07-12`
 **Canonical entrypoint:** `00-PLAN.md`
 **Next unit:** `UNIT-001` (reconcile canonical oracle parity fixture)

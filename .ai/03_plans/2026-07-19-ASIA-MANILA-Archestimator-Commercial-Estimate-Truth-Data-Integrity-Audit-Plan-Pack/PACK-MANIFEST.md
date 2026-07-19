@@ -32,10 +32,10 @@
 
 | Requirement | Units | Evidence |
 |---|---|---|
-| REQ-001 canonical contract proven | (artifact-only) | EVID-001 (golden matrix 20/20), EVID-003 (XLSX inspection), commercial-truth-model.md |
+| REQ-001 canonical contract proven | UNIT-000 (VERIFIED) | EVID-001 (golden matrix 20/20), EVID-003 (XLSX inspection), commercial-truth-model.md |
 | REQ-002 divergences filed with one owner | UNIT-001..UNIT-011 | EVID-002 (findings.json + adversarial-challenge.md + overlap matrix) |
-| REQ-003 partial-write / recovery gaps filed | UNIT-002 | EVID-003 (d1-lifecycle-matrix.csv + F-09) |
-| REQ-004 validator pass + one next unit | (artifact-only) | EVID-004 (validator pass on plan-pack.json) |
+| REQ-003 partial-write / recovery gaps filed | UNIT-002 (also REQ-002) | EVID-004 (d1-lifecycle-matrix.csv + F-09) |
+| REQ-004 validator pass + one next unit | UNIT-000 (VERIFIED) | EVID-004 (validator pass on plan-pack.json) |
 
 ## Freshness policy
 

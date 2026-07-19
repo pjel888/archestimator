@@ -24,37 +24,37 @@
     "owner-decision",
     "test-authorization-change"
   ],
-  "updated_at": "2026-07-19T08:46:59.024Z",
+  "updated_at": "2026-07-19T12:31:09.532Z",
   "artifacts": [
     {
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "f61e5d69e67e38092b5bf6d6f1e50e81d98758af7d42b48d9d101d16506c5e22"
+      "sha256": "461ad43959296957362f62d15306feb01c2b0c955a6b61e8a4eec81278abd073"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "972e44e662b8b6862cf840e2ff961d73cd0da31ba0789c5fbdba95f88f00020d"
+      "sha256": "234c79dfb6d0a7c5208e83992b8937616474ef4d245bd67fc611208ce50b2b88"
     },
     {
       "id": "ART-003",
       "role": "unit-catalog",
       "path": "UNIT-CATALOG.md",
-      "sha256": "e6e27813fb52680ab9e1897986f0ea5e997ded272d1172d5c0577a5774cb57bc"
+      "sha256": "d3b5272d205b8a3f23ca231b8d711f5d6cc4d3f50a0e308cbe006184d5d23d74"
     },
     {
       "id": "ART-004",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "56de65f739212a5eab07d1e587442934fbcfa20530e0bcf0afc804be70e95aa5"
+      "sha256": "b38fa99f8fd45778bd94de4ecd90038254fee8387afab077bcbc1700ace48edb"
     },
     {
       "id": "ART-005",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "9d67b32c2f3911ead0bd33842faa2c980b5d8d0ffa954218be234d138063e77d"
+      "sha256": "9978ad2521590d9540f1a0b564a9d7ae29fded36aadf8bdb893698a4d91c748c"
     },
     {
       "id": "ART-006",
@@ -884,5 +884,5 @@
       ]
     }
   ],
-  "manifest_sha256": "81bb33b2c9b59bfe880b5432961725cdcd2f493d01123dd508ce9551b29698cf"
+  "manifest_sha256": "e61a7db35d105cfd292f61cfe77cfef92acd70cda2700871b49254196856f3cc"
 }

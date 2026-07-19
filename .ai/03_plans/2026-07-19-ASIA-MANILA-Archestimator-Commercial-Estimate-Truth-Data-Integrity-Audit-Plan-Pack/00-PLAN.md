@@ -111,16 +111,19 @@ No accepted requirement or unit has two active owners.
 
 - **REQ-001 (CORE):** Establish the canonical commercial-truth contract from
   current source and prove it via an independent golden oracle.
-  → units: none (artifact-only); evidence: EVID-001 (golden matrix).
+  → units: UNIT-000 (VERIFIED — the pack's truth-model and golden artifacts
+  ARE the deliverable); evidence: EVID-001 (golden matrix), EVID-003 (XLSX
+  inspection).
 - **REQ-002 (CORE):** File every newly proven cross-surface divergence with
   one explicit owner, cross-referencing existing packs.
   → units: UNIT-001..UNIT-011; evidence: EVID-002 (findings register).
 - **REQ-003 (CORE):** Prove partial-write and recovery gaps in the estimate
   lifecycle, file the unowned ones.
-  → units: UNIT-002; evidence: EVID-003 (D1 lifecycle matrix + F-09).
+  → units: UNIT-002 (also REQ-002); evidence: EVID-004 (D1 lifecycle matrix + F-09).
 - **REQ-004 (CORE):** Pass the plan-pack validator and expose one canonical
   next unit.
-  → units: none (artifact-only); evidence: EVID-004 (validator pass).
+  → units: UNIT-000 (VERIFIED — validator passes, next_unit=UNIT-001);
+  evidence: EVID-004.
 
 ## Decisions
 
@@ -176,6 +179,9 @@ fix direction, data repair need, and acceptance evidence for each.
 ## Acyclic dependency graph
 
 ```
+UNIT-000 (audit deliverable; REQ-001 + REQ-004)         [VERIFIED]
+   |
+   v
 UNIT-001 (F-01)  ─┐
                   ├─→ UNIT-003 (F-04)  ─→ UNIT-006 (F-07) ─→ UNIT-007 (F-05)
 UNIT-002 (F-09)  ─┤                                    ─→ UNIT-008 (F-08)
@@ -184,15 +190,14 @@ UNIT-002 (F-09)  ─┤                                    ─→ UNIT-008 (F-08
                                                        ─→ UNIT-011 (F-12)
 ```
 
-(Edges are soft — units can be picked in any order after their predecessor.
-The canonical next unit is **UNIT-001**.)
+(Edges are soft — implementation units can be picked in any order after
+their predecessor. The canonical next unit is **UNIT-001**.)
 
 ## Execution slices/waves
 
-- **SLICE-001 (READY):** UNIT-001, UNIT-002, UNIT-003, UNIT-004, UNIT-005,
-  UNIT-006. (Correctness + persistence + UI currency canonicalization.)
-- **SLICE-002 (READY):** UNIT-007, UNIT-008, UNIT-009, UNIT-010, UNIT-011.
-  (Hardening + AI convergence + UX documentation.)
+- **SLICE-001 (READY):** UNIT-000, UNIT-001, UNIT-002, UNIT-003, UNIT-004,
+  UNIT-005, UNIT-006, UNIT-007, UNIT-008, UNIT-009, UNIT-010, UNIT-011
+  (single ready slice; every transitive dependency is internal).
 
 ## Risks
 

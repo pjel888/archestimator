@@ -121,9 +121,7 @@
 
 ## Next action
 
-Author `plan-pack.json` (validator-conformant), run
-`node scripts/validate-plan-pack.mjs --write <pack>` to refresh hashes,
-repair any errors, and report to Philip.
+Report to Philip (audit complete; pack validator-conformant).
 
 ## Drift / cleanup state
 
@@ -131,3 +129,32 @@ repair any errors, and report to Philip.
 - Type-check process exited cleanly.
 - No background jobs remaining.
 - All artifacts baseline-pinned to `b2a9349`.
+
+## 2026-07-19T16:30:00+08:00 — Manifest authored and validated
+
+- Wrote `_generate_manifest.py` (Python generator) — safer than hand-authoring
+  the bidirectional traceability links.
+- Initial validation surfaced 16 errors (mostly evidence reciprocity and
+  artifact-only requirements needing units). Iterated to 0 errors.
+- Introduced UNIT-000 (VERIFIED) as the audit-deliverable unit so REQ-001
+  and REQ-004 have an owner per the validator's reciprocity rules. The
+  audit pack's own artifacts ARE the deliverable.
+- Tuple: `IMPLEMENTATION_READY / IN_PROGRESS / NOT_EVALUATED / ACTIVE / ACTIVE`.
+- `next_unit: UNIT-001` (the canonical oracle parity-fixture reconciliation).
+- AUTH-001/002/003 set to RESOLVED (they document the audit's boundaries;
+  release_status NOT_EVALUATED reflects that the audit makes no release claim).
+- `node scripts/validate-plan-pack.mjs --write <pack>` -> PASS (hashes refreshed).
+- Reconciled README, 00-PLAN, UNIT-CATALOG, PACK-MANIFEST to reflect UNIT-000
+  and the actual manifest tuple.
+- Final read-only validation: PASS.
+
+## Audit completion
+
+All requested requirements reconciled against fresh evidence:
+- REQ-001: canonical contract proven (golden oracle 20/20, XLSX inspection).
+- REQ-002: 12 findings filed with one explicit owner each; 10 candidates
+  disposed via rejection/refutation/cross-reference.
+- REQ-003: 40 D1 lifecycle paths classified; F-09 graph partial-write gap owned.
+- REQ-004: validator passes; next_unit exposed.
+
+No safe in-scope work remains. Reporting to Philip.

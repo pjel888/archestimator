@@ -7,11 +7,14 @@
 ## DAG overview
 
 ```
-                          UNIT-001 (F-01 parity fixture)        [READY, prerequisite for protection]
-                                    |
-                                    v
-                          UNIT-002 (F-09 graph atomicity)      [READY, isolates persistence truth]
-                                    |
+UNIT-000 (audit deliverable; REQ-001 + REQ-004)              [VERIFIED — the pack is the deliverable]
+   |
+   v
+UNIT-001 (F-01 parity fixture)        [READY, prerequisite for protection]
+   |
+   v
+UNIT-002 (F-09 graph atomicity)      [READY, isolates persistence truth]
+   |
    +--------------------------------+--------------------------------+
    |                                |                                |
    v                                v                                v
@@ -39,8 +42,29 @@ UNIT-003 (F-04 aggregate       UNIT-004 (F-03 currency         UNIT-005 (F-06 cl
                           UNIT-011 (F-12 share-page charge note) [READY, product/UX]
 ```
 
-All units are independent enough to be picked in any order after their
-predecessor; the canonical next unit is **UNIT-001**.
+All implementation units are independent enough to be picked in any order
+after their predecessor; the canonical next unit is **UNIT-001**.
+
+---
+
+## UNIT-000 — Audit deliverable (REQ-001 + REQ-004) — VERIFIED
+
+- **Status:** VERIFIED.
+- **Goal:** deliver the audit artifacts themselves: the canonical
+  commercial-truth model (`artifacts/commercial-truth-model.md`), the
+  independent golden oracle (`artifacts/golden-oracle/oracle.mjs`, 20/20
+  pass), the XLSX formula inspection (`artifacts/xlsx-inspection/`), and a
+  validator-conformant `plan-pack.json` exposing one canonical next unit.
+- **Source requirements:** REQ-001, REQ-004.
+- **Dependencies:** none.
+- **Owned paths/resources:** every artifact under the pack folder.
+- **Non-goals:** product remediation (owned by UNIT-001..UNIT-011 and the
+  cross-referenced packs).
+- **Acceptance evidence:** EVID-001 (golden matrix 20/20),
+  EVID-003 (XLSX inspection), EVID-004 (validator pass on plan-pack.json).
+- **Completion signal:** validator passes; this unit is closed by the act of
+  producing the pack. It exists in the DAG so REQ-001 and REQ-004 have a
+  unit owner per the validator's reciprocity rules.
 
 ---
 
