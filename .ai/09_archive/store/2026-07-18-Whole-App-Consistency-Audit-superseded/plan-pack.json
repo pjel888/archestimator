@@ -5,14 +5,14 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
-  "implementation_status": "NOT_STARTED",
+  "package_status": "NOT_READY",
+  "implementation_status": "INCOMPLETE",
   "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
   "updated_at": "2026-07-19T00:00:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "a41a07d0143abf72289a97cd8bd023cfa9986361",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1104,33 +1104,7 @@
       ]
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "status": "READY",
-      "artifact_path": "00-PLAN.md",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-009"
-      ],
-      "criterion_ids": [
-        "AC-001",
-        "AC-002",
-        "AC-003",
-        "AC-004",
-        "AC-005",
-        "AC-006",
-        "AC-007",
-        "AC-008",
-        "AC-009",
-        "AC-010",
-        "AC-011"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
@@ -1533,5 +1507,5 @@
     "source-or-config-hash-change",
     "findings-reverified-against-newer-source"
   ],
-  "manifest_sha256": "9e6dd84db949e1692db78b1ad7525e5a4519b19e2bf0d2f160d4f1d5645bb9d2"
+  "manifest_sha256": "c19a6e3458917a71da63dd79a8a382005b6195e3fb48351758fe96afd6a2cf65"
 }

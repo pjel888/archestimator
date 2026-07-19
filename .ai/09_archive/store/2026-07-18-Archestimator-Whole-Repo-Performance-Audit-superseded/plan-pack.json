@@ -5,14 +5,14 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
-  "implementation_status": "NOT_STARTED",
+  "package_status": "NOT_READY",
+  "implementation_status": "INCOMPLETE",
   "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
   "updated_at": "2026-07-19T00:00:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "24b15e829770a78dbb2258ef65f5b955aad22376",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -927,39 +927,7 @@
       ]
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "status": "READY",
-      "artifact_path": "00-PLAN.md",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-015",
-        "UNIT-016",
-        "UNIT-017"
-      ],
-      "criterion_ids": [
-        "AC-001",
-        "AC-002",
-        "AC-003",
-        "AC-004",
-        "AC-005",
-        "AC-006",
-        "AC-007",
-        "AC-008",
-        "AC-009",
-        "AC-010",
-        "AC-011"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
@@ -1155,5 +1123,5 @@
     "ci-workflow-restored-or-readme-corrected",
     "laborunitcost-removal-merged-from-sibling-pack"
   ],
-  "manifest_sha256": "1c14e5d2a03819d639f25360b31715af8038b3aa8186cdb7d895c93c8dedf4f7"
+  "manifest_sha256": "5d37e6eadefd523ac4f49312811522c20d67dcc49073b713904ea188609b177c"
 }
