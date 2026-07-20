@@ -1,14 +1,14 @@
 # Product Management Operating Model
 
-> Last updated: 2026-05-30
+> Last updated: 2026-07-20
 
-Archestimator's operating model for product management. Defines how the product is steered, how feedback becomes features, and how Philip makes decisions without getting buried in spreadsheets himself. This document is the PM source of truth — canonical over informal notes, Slack threads, or Notion pages.
+Archestimator's operating model for product management. Defines how the product is steered, how feedback becomes features, and how Philip makes decisions without getting buried in spreadsheets himself. Use `.ai/00_corpus/ARCHESTIMATOR_MASTER.md` for the current startup narrative, then use this document to translate that narrative into product decisions.
 
 ---
 
 ## 1. Product Mission
 
-Help contractors, estimators, and their teams create structured, shareable construction estimates and proposals — starting from a spreadsheet but ending with client confidence.
+Help AEC teams create structured, shareable cost estimates and proposals — starting from familiar spreadsheet work but ending with client confidence. Archestimator leads with the people who build estimates: architects, engineers, contractors, estimators, quantity surveyors, fit-out teams, interior designers, and suppliers.
 
 ---
 
@@ -28,8 +28,8 @@ Estimating is rarely a one-person job. The product must support multiple estimat
 **Client-facing outputs build trust, not confusion.**
 Every estimate has two audiences: the team building it and the client receiving it. The client view must be clean, confident, and explainable. If a client asks "what does this number mean?", the output has failed. Line items should include plain-English descriptions, not just trade codes and quantities.
 
-**AI assists, does not autonomously decide.**
-AI can suggest, draft, and check — but the estimator always has final say. No AI-generated number ships to a client without human review. AI is a force multiplier for someone who knows what they're doing, not a replacement for domain expertise.
+**AI is deferred until it earns a deliberate return.**
+AI is not a launch capability or present product promise. If a later, reviewed capability is enabled, it may assist under explicit human review; it must never replace domain expertise or autonomously send numbers to a client.
 
 **Evidence over ambition: ship only what's proven.**
 Every feature starts as a hypothesis, not a certainty. Don't build based on what "feels right" or what competitors have. Ship small, measure actual usage, and iterate. Features that don't prove themselves get cut. The roadmap is written in data, not wishful thinking.
@@ -41,7 +41,7 @@ An estimate evolves from rough takeoff to final proposal through multiple rounds
 
 ## 3. User Value Thesis
 
-Construction estimating lives in spreadsheets because spreadsheets are universal, flexible, and immediately understandable. But spreadsheets fail at everything that happens after the numbers are entered: sharing with the team, presenting to a client, tracking revisions, reusing past work, and turning an estimate into a proposal. Archestimator keeps what spreadsheets do well — the familiar grid, the formula-like thinking, the unfiltered control over every cell — and layers on exactly what's missing: structure, collaboration, client-ready output, and a cost library that makes every estimate faster than the last. The result is a tool that feels as direct as a spreadsheet but produces output that looks like it came from a dedicated estimating system. For contractors who currently spend Sunday nights formatting estimates for Monday morning client meetings, Archestimator turns hours of cleanup into minutes of review.
+AEC estimating lives in spreadsheets because spreadsheets are universal, flexible, and immediately understandable. But spreadsheets fail at everything that happens after the numbers are entered: sharing with a team, presenting a proposal, tracking revisions, reusing past work, and explaining the basis for a price. Archestimator keeps the familiar grid and editable assumptions while adding structure, collaboration, client-ready output, and a reusable cost library that makes every estimate faster and more defensible than the last. The result is a dedicated estimating workspace for AEC teams who need both speed and a reliable proposal record.
 
 ---
 

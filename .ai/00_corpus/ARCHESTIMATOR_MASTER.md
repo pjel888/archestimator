@@ -1,7 +1,11 @@
 # ARCHESTIMATOR MASTER FILE
 
-**Version:** 4.3 · 2026-06-18
+**Version:** 4.4 · 2026-07-20
 **Status:** Working canon. THE single startup corpus for Archestimator: brand, product, business, pricing, marketing, and operations. For marketing AND internal use.
+
+**What changed in v4.4:** Locked the current documentation set to the AEC-first strategy established in v3.1. Construction cost estimating remains the implemented foundation; Archestimator is not positioned as a generic horizontal quoting tool. Updated derivative product, roadmap, executive-summary, and pitch-deck sources must preserve that focus, present AI as deferred, and separate the live MVP from supplier, client-record, procurement, and transaction-layer direction.
+
+**Source hierarchy:** Current source and `AGENTS.md` win for implementation truth. This file is the working startup narrative for product, business, pricing, and brand language. Derived documents, decks, historical snapshots, and plan packs must not silently override either source.
 
 **What changed in v4.3:** Began turning the file into the full startup corpus. Added **§18 Launch Readiness and Startup Operations** (launch plan and sequence, legal/compliance and the Philippine entity, onboarding and activation, support and feedback, analytics, billing, finance and runway, and a consolidated risk pointer). Scanned the Notion Homebase and linked its canonical live trackers (Launch Readiness Checklist, Risk and Decision Register, Customer Discovery Pipeline, and others) and folded in the Task Board launch blockers. Updated the §17 register. The genuine gaps (entity, Data Privacy Act, onboarding, analytics, billing, finance) are flagged NEEDS INPUT.
 

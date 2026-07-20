@@ -2,7 +2,7 @@
 
 **Your cost intelligence layer.** The more you estimate, the more it knows your clients, your project types, and your prices, so every new proposal starts ahead.
 
-_A construction cost estimating platform — a cost proposal workspace for teams that build, send, revise, approve, and track commercial estimates._
+_An AEC cost-estimating platform and cost-proposal workspace for teams that build, send, revise, approve, and track commercial estimates._
 
 > **From cost proposal to client approval.**
 
@@ -16,7 +16,7 @@ Archestimator turns it into reusable commercial infrastructure.
 
 ## Who it is for
 
-Archestimator is AEC-committed. It serves the people who build and approve cost estimates and cost proposals across a project:
+Archestimator is AEC-committed, not a generic quoting tool. It serves the people who build and approve cost estimates and cost proposals across a project:
 
 - **Builders of estimates:** architects, engineers, contractors, cost estimators / quantity surveyors, specialty and fit-out firms, interior designers, and suppliers.
 - **Approvers of proposals:** clients, project owners, developers, project managers, and procurement.
@@ -340,7 +340,7 @@ Archestimator has production observability infrastructure:
 
 ## Business model
 
-**Proposer-side SaaS wedge** today: architects, engineers, contractors, estimators, specialty/fit-out firms, interior designers, and suppliers pay for estimate creation, reusable components, proposal sharing, comments, approvals, and version/Activity history.
+**Proposer-side SaaS wedge** today: architects, engineers, contractors, estimators, specialty and fit-out firms, interior designers, and suppliers pay for estimate creation, reusable components, proposal sharing, comments, approvals, and version/Activity history. The initial motion starts with the teams preparing estimates; client, owner, and procurement roles are proposal reviewers and a later business-side opportunity, not a second launch market.
 
 **Future layers:** client-side proposal-record subscriptions, enterprise portfolio plans, supplier catalogs and quote-request fees, and transaction-linked revenue.
 

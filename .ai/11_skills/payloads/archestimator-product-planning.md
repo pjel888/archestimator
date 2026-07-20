@@ -12,7 +12,7 @@ Read in this order:
 
 1. `AGENTS.md` and the FAST PATH in `.ai/10_state/current-state.md`
 2. current source for the affected product surface
-3. `.ai/06_specs/archestimator-product-thesis.md`
+3. `.ai/00_corpus/ARCHESTIMATOR_MASTER.md`
 4. `.ai/01_roadmap/README.md` and any active plan explicitly linked by current
    state
 
@@ -24,16 +24,16 @@ truth override them.
 
 ## Current Product Thesis
 
-Archestimator helps teams produce and revise structured commercial estimates,
-quotations, and proposal outputs faster, with clearer assumptions, scope
-boundaries, supplier/source context, and client-ready handoffs than ad hoc
-spreadsheets.
+Archestimator is an AEC-first cost-estimating and proposal workspace. It helps
+architects, engineers, contractors, estimators, quantity surveyors, fit-out
+teams, interior designers, and suppliers produce and revise structured
+commercial estimates faster, with clearer assumptions, scope boundaries,
+supplier context, and client-ready handoffs than ad hoc spreadsheets.
 
-The implemented proof case remains construction-style estimating and revision
-updates for teams managing projects, supplier context, and changing scope. The
-broader opportunity includes quote-heavy supplier, sales, buyer, furniture, and
-restaurant-supply workflows, but expansion must be revalidated through focused
-workflows rather than assumed.
+Construction cost estimating is the implemented foundation, not a disposable
+horizontal wedge. The near-term expansion remains within the AEC ecosystem:
+deeper supplier, client-record, portfolio, and proposal-review workflows must
+be validated through focused discovery before they become product commitments.
 
 Archestimator is not currently a full ERP, procurement execution suite,
 takeoff/CAD/BIM engine, project scheduler, or legal-document automation system.
@@ -43,8 +43,7 @@ takeoff/CAD/BIM engine, project scheduler, or legal-document automation system.
 For each proposed feature, ask:
 
 1. Which first user and job does it serve now?
-2. Does it materially speed a structured quote, estimate, revision, or proposal
-   handoff?
+2. Does it materially speed an AEC estimate, revision, or proposal handoff?
 3. Does it reduce spreadsheet rework while preserving editable assumptions and
    source context?
 4. Does current source already provide a simpler path?

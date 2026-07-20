@@ -1,8 +1,12 @@
-# Archestimator Main Corpus
+# Archestimator Main Corpus (Historical Runtime Snapshot)
 
-Last verified: 2026-06-20, against `main` at HEAD commit `3f0901ee` ("feat: make project location maps beta-ready") or later. Pin re-verification to a commit SHA, not a date alone — a date stamp cannot distinguish a doc commit from a later same-day code change (that ambiguity is exactly what hid the map-provider drift this revision repairs).
+**Status: retired as a current source on 2026-07-20.** This document captures a June 2026 Supabase-era runtime and launch-readiness snapshot. It remains in place for historical analysis only; its contractor-first positioning, provider details, and release posture must not be used for current product, business, brand, or implementation decisions.
 
-This is the durable app corpus for Archestimator: a source-grounded description of the software as it exists now. It is not an execution plan, sales page, roadmap, or replacement for source files. When this document conflicts with code, migrations, generated Supabase types, or the current-state fast path, those sources win and this document should be repaired **in the same change** (see "Corpus Maintenance Protocol").
+For current truth, read `AGENTS.md`, the FAST PATH in `.ai/10_state/current-state.md`, current source, `README.md`, and `.ai/00_corpus/ARCHESTIMATOR_MASTER.md` in that order. The master corpus carries the current AEC-first product and business narrative; current source carries the Cloudflare runtime truth.
+
+Historical snapshot basis: 2026-06-20, against `main` at HEAD commit `3f0901ee` ("feat: make project location maps beta-ready") or later. Pin re-verification to a commit SHA, not a date alone — a date stamp cannot distinguish a doc commit from a later same-day code change (that ambiguity is exactly what hid the map-provider drift this revision repairs).
+
+This is not an execution plan, sales page, roadmap, or replacement for source files. Its remaining contents are preserved as historical evidence and must not be repaired piecemeal into a competing source of truth.
 
 ## Reading Rules
 
