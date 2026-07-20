@@ -3471,6 +3471,7 @@ export async function previewBulkDeleteLibraryComponents(input: BulkDeleteLibrar
   await assertCanManageLibrary(database, workspace.id, currentUser);
   try {
     const impact = await loadComponentPermanentDeleteImpact(database, workspace.id, ids);
+    await assertCanPermanentlyDeleteImpactedEstimateRows(database, workspace.id, impact, currentUser);
     return coerceBulkPreviewResult(buildComponentPermanentDeletePreview(impact), {
       targetType: "library_component",
       ids,
@@ -3531,6 +3532,27 @@ function getComponentPermanentDeleteOwners(impact: ComponentPermanentDeleteImpac
     affectedEstimates.push({ estimateId: row.estimateId, projectId: row.projectId });
   }
   return { affectedEstimates, hasTemplateRows: impact.templateRows.length > 0 };
+}
+
+async function assertCanPermanentlyDeleteImpactedEstimateRows(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  impact: ComponentPermanentDeleteImpact,
+  user: CurrentUserForD1,
+) {
+  const estimateIds = [...new Set(impact.estimateRows.map((row) => row.estimateId))].sort();
+  for (const estimateId of estimateIds) {
+    const allowed = await canEditEstimateInD1(database, estimateId, user);
+    if (!allowed) {
+      recordLibraryEvent("authz_denied", {
+        workspaceId,
+        estimateId,
+        action: "permanent_delete_component_impacted_estimate_rows",
+        role: "viewer",
+      });
+      throw new Error("Estimate edit access is required to permanently delete components used by estimate rows.");
+    }
+  }
 }
 
 function revalidateComponentPermanentDeleteSurfaces(input: {
@@ -3660,6 +3682,7 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
   let impact: ComponentPermanentDeleteImpact;
   try {
     impact = await loadComponentPermanentDeleteImpact(database, workspace.id, ids);
+    await assertCanPermanentlyDeleteImpactedEstimateRows(database, workspace.id, impact, currentUser);
   } catch (error) {
     return buildComponentPermanentDeleteFailure(
       ids,
