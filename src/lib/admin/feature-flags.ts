@@ -136,7 +136,68 @@ export async function isFeatureFlagEnabled(key: string): Promise<boolean> {
 }
 
 export async function isAdminDashboardEnabled(): Promise<boolean> {
-  const envOverride = readFlag(process.env[ADMIN_DASHBOARD_ENABLED_ENV]);
-  if (envOverride !== null) return envOverride;
-  return isFeatureFlagEnabled(ADMIN_DASHBOARD_FLAG_KEY);
+  const envRaw = process.env[ADMIN_DASHBOARD_ENABLED_ENV];
+  const envOverride = readFlag(envRaw);
+  if (envOverride !== null) {
+    // #region agent log
+    const body = {
+      sessionId: "154617",
+      runId: "post-fix",
+      hypothesisId: "A",
+      location: "src/lib/admin/feature-flags.ts:isAdminDashboardEnabled",
+      message: "admin dashboard decided by env override",
+      data: { source: "env", envPresent: envRaw !== undefined, envOverride },
+      timestamp: Date.now(),
+    };
+    fetch("http://127.0.0.1:7643/ingest/53e8ba5d-5fe3-4f03-a730-a626c9b45a5a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "154617" },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+    try {
+      const { appendFileSync } = await import("node:fs");
+      appendFileSync(
+        "/Users/philiplewis/archestimator/.cursor/debug-154617.log",
+        `${JSON.stringify(body)}\n`,
+      );
+    } catch {
+      // ignore
+    }
+    // #endregion
+    return envOverride;
+  }
+
+  const flag = await getFeatureFlag(ADMIN_DASHBOARD_FLAG_KEY);
+  const enabled = flag?.enabled ?? false;
+  // #region agent log
+  const body = {
+    sessionId: "154617",
+    runId: "post-fix",
+    hypothesisId: "B-C",
+    location: "src/lib/admin/feature-flags.ts:isAdminDashboardEnabled",
+    message: "admin dashboard decided by D1 feature flag",
+    data: {
+      source: "d1",
+      flagPresent: Boolean(flag),
+      flagEnabled: flag?.enabled ?? null,
+      enabled,
+    },
+    timestamp: Date.now(),
+  };
+  fetch("http://127.0.0.1:7643/ingest/53e8ba5d-5fe3-4f03-a730-a626c9b45a5a", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "154617" },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+  try {
+    const { appendFileSync } = await import("node:fs");
+    appendFileSync(
+      "/Users/philiplewis/archestimator/.cursor/debug-154617.log",
+      `${JSON.stringify(body)}\n`,
+    );
+  } catch {
+    // ignore
+  }
+  // #endregion
+  return enabled;
 }
