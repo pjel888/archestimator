@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { NewLandingExperience } from "@/components/landing/new-redesign/NewLandingExperience";
+import { ImmersiveLandingExperience } from "@/components/landing/immersive/ImmersiveLandingExperience";
 
 export const metadata: Metadata = {
   title: "Archestimator — Build estimates with context intact",
@@ -25,5 +25,5 @@ export const metadata: Metadata = {
 export const dynamic = "force-static";
 
 export default function NewLandingRoute() {
-  return <NewLandingExperience />;
+  return <ImmersiveLandingExperience />;
 }
