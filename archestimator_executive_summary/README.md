@@ -9,11 +9,15 @@ designed as a simple, text-led decision memo rather than a visual pitch sheet.
 
 Primary sources used:
 
-- `archestimator_pitch deck/Archestimator Deck.html`
-- `archestimator_pitch deck/scratchpad.md`
-- `.ai/10_state/current-state.md`
-- `.ai/10_state/decisions.md`
+- `.ai/00_corpus/ARCHESTIMATOR_MASTER.md` — working startup narrative
+- `README.md` — current source-grounded product summary
+- `.ai/10_state/current-state.md` FAST PATH and `.ai/10_state/decisions.md`
 - `.ai/06_specs/brand/`
+
+The executive summary is an AEC-first, pre-launch document. It must not expand
+Archestimator into a generic quoting product or imply that deferred AI,
+procurement execution, immutable issued records, or legal-document automation
+are current capabilities.
 - `README.md`
 - `DESIGN.md`
 
