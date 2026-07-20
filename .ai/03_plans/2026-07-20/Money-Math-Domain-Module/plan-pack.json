@@ -1,0 +1,313 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-20-money-math-domain-module",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-21T00:30:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+    "scoped_status_sha256": "0f0afa9f39a54f2fdb06f4615c9ba9240df600349a07e40a8ea2de12a40ec291",
+    "scoped_diff_sha256": "0f0afa9f39a54f2fdb06f4615c9ba9240df600349a07e40a8ea2de12a40ec291"
+  },
+  "stale_triggers": [
+    "baseline HEAD changes on src/lib/estimates/estimate-row-total.ts (UNIT-001 source of the oracle)",
+    "any of the 4 float-fed surfaces change: workspace-repository.ts:3200, project-estimate-sheets-repository.ts:221, project-charts-repository.ts:132, ai/package-builder/draft.ts:2295 (UNIT-002 targets)",
+    "any of the 11 formatter definition sites change (UNIT-003 targets)",
+    "the pure-math test files estimate-row-total.test.ts or calculation-output-parity.test.ts change (UNIT-001 regression gate)",
+    "the supported currency list in estimate-row-total.ts:17 changes",
+    "Pack C or Pack D begins importing from the domain module — coordinate the leaf placement"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "0f0afa9f39a54f2fdb06f4615c9ba9240df600349a07e40a8ea2de12a40ec291"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "e83a9dbd031101e994599d00f649e54985a2e6e50f7569dba7e7814309f65c6e"
+    },
+    {
+      "id": "ART-003",
+      "role": "reference",
+      "path": "references/money-math-map.md",
+      "sha256": "01d2320485b45b0f7494d3b188b424b0e9d557f311efc7a208f1970203661732"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/001-create-domain-module-relocate-oracle.md",
+      "sha256": "7b00eea582844c3dde18032755b9aa5aa3b0c5fffc4258db5436de7f5b4e4937"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit",
+      "path": "units/002-flip-float-surfaces-to-oracle.md",
+      "sha256": "b9dbc33bf5f6894cc362e309f7952a7649332b3cc56ae2a669dce34f76363b2e"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/003-consolidate-formatters.md",
+      "sha256": "03585a727595a70e67be98705191a49552faab0b3016054e3402b562c7aca093"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "references/money-math-map.md",
+      "affected_ids": [
+        "DATA-001",
+        "DATA-002",
+        "UX-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Oracle relocation verified by the existing pure-math suite (estimate-row-total.test.ts + calculation-output-parity.test.ts) staying green unmodified, plus type-check. The suite is the canonical regression net for arithmetic identity. NOT_REQUIRED under the User Test Authorization Gate — the suite already exists and runs as the gate, not as new test work.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Surface flips verified by ARCH-08 grep audit (no upward repository imports into lib/estimates) and oracle audit (no computeEstimateRowLineTotal in repositories/AI); pure-math suite stays green. NOT_REQUIRED.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Formatter consolidation verified by grep audit (formatPeso/formatCurrency only in domain/format-currency.ts); per-surface intent preserved via parameters. NOT_REQUIRED.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-create-domain-module-relocate-oracle.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-flip-float-surfaces-to-oracle.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-consolidate-formatters.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    }
+  ],
+  "decisions": [],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-create-domain-module-relocate-oracle.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "7b00eea582844c3dde18032755b9aa5aa3b0c5fffc4258db5436de7f5b4e4937",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-flip-float-surfaces-to-oracle.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "b9dbc33bf5f6894cc362e309f7952a7649332b3cc56ae2a669dce34f76363b2e",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-consolidate-formatters.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-003"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "03585a727595a70e67be98705191a49552faab0b3016054e3402b562c7aca093",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "manifest_sha256": "633e6655a7754ef5c39fe895c603b29a84ab123729d0e1122d02dc49ca3a91c2"
+}
