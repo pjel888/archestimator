@@ -40,7 +40,7 @@
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "693b55c30ac0caa11316b2915fcd9f1e057c5ee67d535ed018da7c53da6ebabe"
+      "sha256": "52b93897e503357fa077db17352b8c430929c08446d3a63b145170a475a1dd68"
     },
     {
       "id": "ART-003",
@@ -590,5 +590,5 @@
       ]
     }
   ],
-  "manifest_sha256": "995b7321911a7034714039ecd7d258d6fc963568bf0eacc2f6589ed4cd117e67"
+  "manifest_sha256": "4d49166cb880210fb9e8e3bdedf4ae533799f14710364a76454c441aca8bcd14"
 }
