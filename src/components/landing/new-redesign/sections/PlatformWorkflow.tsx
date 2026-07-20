@@ -19,7 +19,7 @@ export function PlatformWorkflow() {
         <div className={tokenStyles.frame}><h2 id="capability-title" className={styles.visuallyHidden}>Current product capabilities</h2><div className={styles.capabilityGrid}>{capabilities.map((capability) => <div key={capability}>{capability}</div>)}</div></div>
       </section>
       <section id="workflow" className={styles.thesis} data-band="05" aria-labelledby="platform-title">
-        <div className={`${tokenStyles.frame} ${styles.thesisGrid}`}><p>Platform</p><div><h2 id="platform-title">The working estimate should stay connected to every decision it creates.</h2><p>Archestimator keeps the estimate, output, review, and decision context from becoming detached records across separate files and threads.</p></div></div>
+        <div className={`${tokenStyles.frame} ${styles.thesisGrid}`}><p>Estimate lifecycle</p><div><h2 id="platform-title">One estimate. Every handoff.</h2><p>Carry the same cost story from working estimate to proposal, review, and the next revision—instead of reconstructing it across files and threads.</p></div></div>
       </section>
       <section className={styles.workflow} data-band="06" aria-label="Connected estimating workflow">
         <div className={tokenStyles.frame}>

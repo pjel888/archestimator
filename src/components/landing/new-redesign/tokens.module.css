@@ -41,7 +41,7 @@
   outline-offset: 3px;
 }
 
-.page :where(section[id], article[id]) {
+.page :where(section[id], article[id], div[id]) {
   scroll-margin-top: calc(var(--new-stack) + 20px);
 }
 

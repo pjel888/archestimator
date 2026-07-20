@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import menuStyles from "./mobile-menu.module.css";
 
 type NavItem = { readonly label: string; readonly href: string };
 
-export function MobileMenu({ items, cta }: { items: readonly NavItem[]; cta: NavItem }) {
+export function MobileMenu({ items, primary, secondary }: { items: readonly NavItem[]; primary: NavItem; secondary?: NavItem }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const navigationId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -23,13 +24,14 @@ export function MobileMenu({ items, cta }: { items: readonly NavItem[]; cta: Nav
 
   return (
     <div className={menuStyles.menu}>
-      <button ref={triggerRef} type="button" aria-expanded={open} aria-controls="new-mobile-navigation" onClick={() => setOpen((value) => !value)}>
+      <button ref={triggerRef} type="button" aria-expanded={open} aria-controls={navigationId} onClick={() => setOpen((value) => !value)}>
         {open ? "Close" : "Menu"}
       </button>
       {open ? (
-        <nav id="new-mobile-navigation" aria-label="Mobile navigation" className={menuStyles.panel}>
+        <nav id={navigationId} aria-label="Mobile navigation" className={menuStyles.panel}>
           {items.map((item) => <a key={item.href} href={item.href} onClick={() => setOpen(false)}>{item.label}</a>)}
-          <Link href={cta.href} onClick={() => setOpen(false)}>{cta.label}</Link>
+          {secondary ? <Link href={secondary.href} onClick={() => setOpen(false)}>{secondary.label}</Link> : null}
+          <Link href={primary.href} onClick={() => setOpen(false)}>{primary.label}</Link>
         </nav>
       ) : null}
     </div>

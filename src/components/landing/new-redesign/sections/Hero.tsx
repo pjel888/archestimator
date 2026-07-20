@@ -11,7 +11,7 @@ export function Hero() {
       <HeroStage>
         <div className={`${tokenStyles.frame} ${styles.copy}`}>
           <p className={styles.eyebrow}>{pageContract.hero.eyebrow}</p>
-          <h1 id="new-hero-title">Make every estimate easier to build,<br className={styles.desktopBreak} /> clearer to present, and simpler to approve.</h1>
+          <h1 id="new-hero-title">{pageContract.hero.title}</h1>
           <p className={styles.lead}>{pageContract.hero.lead}</p>
           <Link href={pageContract.cta.href} className={styles.cta}>{pageContract.cta.label}<span aria-hidden="true">↗</span></Link>
           <p className={styles.benefit}>{pageContract.benefit}</p>

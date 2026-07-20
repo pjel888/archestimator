@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { pageContract } from "./content";
-import { MobileMenu } from "./interactions/MobileMenu.client";
+import { HeaderActions } from "./interactions/HeaderActions.client";
 import styles from "./tokens.module.css";
 import chrome from "./chrome.module.css";
 
@@ -21,10 +21,7 @@ export function NewLandingHeader() {
           <nav className={chrome.desktopNav} aria-label="Primary navigation">
             {pageContract.nav.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}
           </nav>
-          <div className={chrome.actions}>
-            <Link className={chrome.compactCta} href={pageContract.cta.href}>{pageContract.cta.label}</Link>
-            <MobileMenu items={pageContract.nav} cta={pageContract.cta} />
-          </div>
+          <HeaderActions />
         </div>
       </header>
     </div>

@@ -1,7 +1,7 @@
 .stickyStack { position: sticky; top: 0; z-index: 50; }
 .announcement { height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; background: #0e0f11; color: #fff; font-size: 12px; line-height: 18px; font-weight: 500; }
-.announcement a { color: #fff; text-underline-offset: 3px; transition: color 50ms ease; }
-.announcement a:hover { color: #f7b398; transition-duration: 300ms; }
+.announcement a { color: #fff; text-underline-offset: 3px; transition: color 180ms ease; }
+.announcement a:hover { color: #f7b398; }
 .signalDot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #f24405; }
 .header { height: 52px; border-bottom: 1px solid #e6e6e3; background: color-mix(in srgb, #fff 94%, transparent); backdrop-filter: blur(14px); }
 .headerInner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -9,10 +9,14 @@
 .brand :global(span) { font-size: 17px; }
 .desktopNav { display: none; align-items: center; gap: 28px; }
 .desktopNav a, .footer a { color: inherit; text-decoration: none; }
-.desktopNav a { font-size: 14px; line-height: 20px; font-weight: 500; }
+.desktopNav a { font-size: 14px; line-height: 20px; font-weight: 500; transition: color 180ms ease; }
 .desktopNav a:hover, .footer a:hover { color: #c63804; }
 .actions { display: flex; align-items: center; gap: 8px; }
-.compactCta { display: none; min-height: 40px; align-items: center; justify-content: center; border-radius: 10px; padding: 0 14px; background: #f24405; color: #111214; font-size: 14px; font-weight: 600; text-decoration: none; }
+.signIn { display: none; min-height: 40px; align-items: center; padding: 0 8px; color: #62656c; font-size: 14px; font-weight: 500; text-decoration: none; }
+.signIn:hover { color: #9b2e05; }
+.compactCta { display: none; min-width: 150px; min-height: 40px; align-items: center; justify-content: center; border-radius: 10px; padding: 0 14px; background: #f24405; color: #111214; font-size: 14px; font-weight: 600; text-decoration: none; }
+.compactCta:hover { background: #c63804; }
+.compactCta:active { transform: translateY(1px); }
 .footer { border-top: 1px solid #e6e6e3; background: #f7f7f5; }
 .footerGrid { display: grid; gap: 40px; padding-top: 64px; padding-bottom: 64px; }
 .footerBrand { max-width: 360px; }
@@ -22,5 +26,5 @@
 .footerGroup strong { margin-bottom: 5px; font-size: 13px; font-weight: 600; }
 .footerGroup a { color: #62656c; font-size: 14px; line-height: 20px; }
 .footerBottom { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid #e6e6e3; color: #62656c; font-size: 12px; }
-@media (min-width: 640px) { .compactCta { display: inline-flex; } .footerGrid { grid-template-columns: 2fr repeat(3, 1fr); } }
+@media (min-width: 640px) { .signIn, .compactCta { display: inline-flex; } .footerGrid { grid-template-columns: 2fr repeat(3, 1fr); } }
 @media (min-width: 992px) { .header { height: 68px; } .desktopNav { display: flex; } }

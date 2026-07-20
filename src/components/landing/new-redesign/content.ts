@@ -8,7 +8,7 @@ export const pageContract = {
   hero: {
     eyebrow: "Construction estimate-to-proposal workspace",
     title: "Make every estimate easier to build, clearer to present, and simpler to approve.",
-    lead: "Archestimator helps AEC teams reduce rework, communicate project costs clearly, and move decisions forward without losing context through reviews and revisions.",
+    lead: "Build the estimate, carry it into a clear proposal, and keep review decisions tied to the cost context that created them.",
   },
   cta: { label: "Request early access", href: EARLY_ACCESS_HREF },
   nav: [
