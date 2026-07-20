@@ -355,6 +355,7 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
   database: D1DatabaseLike,
   workspaceId: string,
   itemId: string,
+  user: CurrentUserForD1,
 ): Promise<LibraryComponentInstanceSyncResult> {
   const component = await first<LibraryComponentProjectionD1Row>(
     database,
@@ -467,6 +468,14 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
     [workspaceId, itemId],
   );
   if (affectedRows.length === 0) return { affectedEstimates: [], updatedRowCount: 0 };
+  const editableRows = [];
+  for (const row of affectedRows) {
+    if (await canEditEstimateInD1(database, row.estimate_id, user)) {
+      editableRows.push(row);
+    }
+  }
+  if (editableRows.length === 0) return { affectedEstimates: [], updatedRowCount: 0 };
+  const editableEstimateIds = editableRows.map((row) => row.estimate_id);
 
   const result = await run(
     database,
@@ -487,12 +496,7 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
           updated_at = ?
       WHERE source_library_item_id = ?
         AND (link_state IS NULL OR link_state NOT IN ('detached', 'unlinked'))
-        AND estimate_id IN (
-          SELECT estimate.id
-          FROM estimates estimate
-          INNER JOIN projects project ON project.id = estimate.project_id
-          WHERE project.workspace_id = ?
-        )
+        AND estimate_id IN (${placeholders(editableEstimateIds)})
     `,
     [
       component.name,
@@ -507,14 +511,14 @@ async function reconcileLinkedEstimateRowsForLibraryComponent(
       jsonText(metadataPatch),
       component.updated_at,
       itemId,
-      workspaceId,
+      ...editableEstimateIds,
     ],
   );
-  for (const row of affectedRows) {
+  for (const row of editableRows) {
     revalidatePath(`/workshop/projects/${row.project_id}/estimates/${row.estimate_id}`);
   }
   return {
-    affectedEstimates: affectedRows.map((row) => ({ projectId: row.project_id, estimateId: row.estimate_id })),
+    affectedEstimates: editableRows.map((row) => ({ projectId: row.project_id, estimateId: row.estimate_id })),
     updatedRowCount: result.meta?.changes ?? 0,
   };
 }
@@ -1689,7 +1693,7 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
     effectiveAt: component.effectiveAt,
     userId: currentUser.userId,
   });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId, currentUser);
   revalidateLibraryRoutes();
   return {
     itemId,
@@ -1823,7 +1827,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     effectiveAt: component.effectiveAt,
     userId: currentUser.userId,
   });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId, currentUser);
   revalidateLibraryRoutes();
   return {
     itemId,
@@ -1899,7 +1903,7 @@ export async function upsertCostLibraryComponentPriceOption(itemId: string, inpu
     effectiveAt: priceOption.effectiveAt,
     userId: currentUser.userId,
   });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId);
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, itemId, currentUser);
   revalidateLibraryRoutes();
   return {
     itemId,
@@ -1969,7 +1973,7 @@ export async function changeCostLibraryComponentLifecycleState(input: {
     effectiveAt,
     userId: currentUser.userId,
   });
-  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, input.itemId);
+  const instanceSync = await reconcileLinkedEstimateRowsForLibraryComponent(database, workspace.id, input.itemId, currentUser);
   revalidateLibraryRoutes();
   return {
     itemId: input.itemId,

@@ -184,11 +184,13 @@ describe("library component instance reconciliation", () => {
     expect(linkedRowUpdate?.sql).toContain("link_state = 'linked-clean'");
     expect(linkedRowUpdate?.sql).toContain("row_revision = row_revision + 1");
     expect(linkedRowUpdate?.sql).toContain("link_state IS NULL OR link_state NOT IN ('detached', 'unlinked')");
-    expect(linkedRowUpdate?.sql).toContain("project.workspace_id = ?");
+    expect(linkedRowUpdate?.sql).toContain("estimate_id IN (?)");
     expect(linkedRowUpdate?.sql).not.toContain("quantity =");
     expect(linkedRowUpdate?.sql).not.toContain("contingency_percentage =");
     expect(linkedRowUpdate?.sql).not.toContain("adjustment_percentage =");
     expect(linkedRowUpdate?.values).toContain(COMPONENT_ID);
+    expect(linkedRowUpdate?.values).toContain("estimate-1");
+    expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(database, "estimate-1", { userId: "user-1" });
     expect(result).toMatchObject({
       itemId: COMPONENT_ID,
       versionNumber: 2,
