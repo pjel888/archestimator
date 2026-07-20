@@ -101,6 +101,8 @@ type EstimateWorkspaceClientProps = {
   surfaceVariant?: EstimateSurfaceVariant;
   /** Disable shallow URL writes when the workspace is embedded as a non-route mockup. */
   disableRouteSync?: boolean;
+  /** Keep an embedded product preview entirely on provided data with no route metadata or capability reads. */
+  presentationMode?: boolean;
 };
 
 export function EstimateWorkspaceClient({
@@ -132,11 +134,13 @@ export function EstimateWorkspaceClient({
   libraryEnableReusableProjectSources,
   surfaceVariant = "paper",
   disableRouteSync = false,
+  presentationMode = false,
 }: EstimateWorkspaceClientProps) {
   const queryClient = useQueryClient();
+  const dataProjectId = presentationMode ? "" : projectId;
   const tabQueriesEnabled = Boolean(activeTabId);
   const tabsQuery = useEstimateTabsQuery({
-    projectId,
+    projectId: dataProjectId,
     estimateId,
     initialTabs: estimateTabs,
     enabled: tabQueriesEnabled,
@@ -150,12 +154,14 @@ export function EstimateWorkspaceClient({
     [queryTabs],
   );
   const editCapabilityQuery = useEstimateEditCapabilityQuery({
-    projectId,
+    projectId: dataProjectId,
     estimateId,
     initialCanEdit: canEditEstimate,
-    enabled: true,
+    enabled: !presentationMode,
   });
-  const resolvedCanEditEstimate = canEditEstimate === true || editCapabilityQuery.canEditEstimate;
+  const resolvedCanEditEstimate = presentationMode
+    ? canEditEstimate === true
+    : canEditEstimate === true || editCapabilityQuery.canEditEstimate;
   const defaultTabId = activeTabId ?? queryTabs.find((tab) => tab.isDefault)?.id ?? queryTabs[0]?.id;
   const { activeTabId: storedActiveTabId, setActiveTabId } = useEstimateActiveTab(estimateId, defaultTabId);
   const resolvedActiveTabId = tabQueriesEnabled && storedActiveTabId && queryTabs.some((tab) => tab.id === storedActiveTabId)
@@ -163,11 +169,11 @@ export function EstimateWorkspaceClient({
     : defaultTabId;
   const displayActiveTabId = resolvedActiveTabId ?? fallbackTabs[0]?.id ?? "legacy-main";
   const routeSelectedNodeId = resolvedActiveTabId === activeTabId ? selectedNodeId : null;
-  const resolvedLibraryUseStoredPreferences = libraryUseStoredPreferences ?? !disableRouteSync;
-  const resolvedLibraryEnableReusableProjectSources = libraryEnableReusableProjectSources ?? !disableRouteSync;
+  const resolvedLibraryUseStoredPreferences = presentationMode ? false : (libraryUseStoredPreferences ?? !disableRouteSync);
+  const resolvedLibraryEnableReusableProjectSources = presentationMode ? false : (libraryEnableReusableProjectSources ?? !disableRouteSync);
   return (
     <>
-      <ProjectEstimateMetadataPublisher
+      {!presentationMode ? <ProjectEstimateMetadataPublisher
         metadata={{
           projectId,
           estimateId,
@@ -177,7 +183,7 @@ export function EstimateWorkspaceClient({
           projectBudget: projectBudget ?? null,
           canEditEstimate: resolvedCanEditEstimate,
         }}
-      />
+      /> : null}
       <EstimateSurfaceVariantProvider variant={surfaceVariant}>
       <div
       role="note"
@@ -200,7 +206,7 @@ export function EstimateWorkspaceClient({
       aria-label={`${projectName} estimates`}
     >
       <EstimateSheetTree
-        projectId={projectId}
+        projectId={dataProjectId}
         estimateId={estimateId}
         activeTabId={resolvedActiveTabId}
         initialTabId={activeTabId ?? undefined}
@@ -214,7 +220,7 @@ export function EstimateWorkspaceClient({
       <EstimateSheetContent
         selectedNodeId={routeSelectedNodeId}
         nodes={nodes}
-        projectId={projectId}
+        projectId={dataProjectId}
         workspaceId={workspaceId}
         estimateId={estimateId}
         estimateTabs={fallbackTabs}
@@ -223,7 +229,7 @@ export function EstimateWorkspaceClient({
         loadLimitState={loadLimitState}
         sheetAdjustment={sheetAdjustment}
         canEditEstimate={resolvedCanEditEstimate}
-        canManageLibrary={canManageLibrary}
+        canManageLibrary={presentationMode ? false : canManageLibrary}
         initialTabId={activeTabId ?? undefined}
         disableRouteSync={disableRouteSync}
         onActiveTabChange={setActiveTabId}

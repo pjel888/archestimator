@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { NewLandingExperience } from "@/components/landing/new-redesign/NewLandingExperience";
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-new-inter",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Archestimator — Build estimates with context intact",
@@ -33,5 +25,5 @@ export const metadata: Metadata = {
 export const dynamic = "force-static";
 
 export default function NewLandingRoute() {
-  return <NewLandingExperience fontClassName={inter.variable} />;
+  return <NewLandingExperience />;
 }

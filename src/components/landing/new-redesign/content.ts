@@ -6,8 +6,9 @@ export const pageContract = {
   descriptor: "An estimate-to-proposal workspace built around reusable cost intelligence",
   benefit: "Less rework. Clearer proposals. Better cost decisions.",
   hero: {
-    eyebrow: "Construction estimate-to-proposal workspace",
-    title: "Make every estimate easier to build, clearer to present, and simpler to approve.",
+    eyebrow: "Construction estimating, carried forward",
+    title: "Make every estimate easier to build. Clearer to present. Simpler to approve.",
+    titleLines: ["Make every estimate easier to build.", "Clearer to present. Simpler to approve."],
     lead: "Build the estimate, carry it into a clear proposal, and keep review decisions tied to the cost context that created them.",
   },
   cta: { label: "Request early access", href: EARLY_ACCESS_HREF },
@@ -96,10 +97,10 @@ export const proofPrinciples = [
 ] as const;
 
 export const currentProduct = [
-  { title: "Structured estimating", body: "Build hierarchical estimates with deterministic calculations." },
-  { title: "Reusable library", body: "Search and explicitly insert components, templates, and project sources." },
-  { title: "Proposal and Excel", body: "Preview the proposal and download an editable .xlsx workbook." },
-  { title: "Client review and decision", body: "Issue a version, discuss targeted context, and record a decision." },
+  { title: "Structured estimating", body: "Build hierarchical estimates with deterministic calculations.", evidence: "Areas · rows · quantities · rates" },
+  { title: "Reusable library", body: "Search and explicitly insert components, templates, and project sources.", evidence: "Search · preview · provenance" },
+  { title: "Proposal and Excel", body: "Preview the proposal and download an editable .xlsx workbook.", evidence: "Proposal preview · editable output" },
+  { title: "Client review and decision", body: "Issue a version, discuss targeted context, and record a decision.", evidence: "Issued version · discussion · receipt" },
 ] as const;
 
 export const faqs = [

@@ -1,5 +1,5 @@
 .stickyStack { position: sticky; top: 0; z-index: 50; }
-.announcement { height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; background: #0e0f11; color: #fff; font-size: 12px; line-height: 18px; font-weight: 500; }
+.announcement { height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; background: #0e0f11; color: #fff; font-size: 12px; line-height: 18px; font-weight: 500; }
 .announcement a { color: #fff; text-underline-offset: 3px; transition: color 180ms ease; }
 .announcement a:hover { color: #f7b398; }
 .signalDot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #f24405; }
@@ -15,7 +15,7 @@
 .signIn { display: none; min-height: 40px; align-items: center; padding: 0 8px; color: #62656c; font-size: 14px; font-weight: 500; text-decoration: none; }
 .signIn:hover { color: #9b2e05; }
 .compactCta { display: none; min-width: 150px; min-height: 40px; align-items: center; justify-content: center; border-radius: 10px; padding: 0 14px; background: #f24405; color: #111214; font-size: 14px; font-weight: 600; text-decoration: none; }
-.compactCta:hover { background: #c63804; }
+.compactCta:hover { box-shadow: inset 0 0 0 1px #9b2e05; }
 .compactCta:active { transform: translateY(1px); }
 .footer { border-top: 1px solid #e6e6e3; background: #f7f7f5; }
 .footerGrid { display: grid; gap: 40px; padding-top: 64px; padding-bottom: 64px; }
