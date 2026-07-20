@@ -12,7 +12,8 @@
     "REFUTED",
     "EVIDENCE_BLOCKED"
   ],
-  "severity_counts": { "critical": 0, "high": 4, "medium": 6, "low": 3, "informational": 2 },
+  "severity_counts": { "critical": 0, "high": 4, "medium": 7, "low": 1, "informational": 0 },
+  "severity_counts_note": "Post-council-2026-07-19. F-10 bumped LOW->MEDIUM (currency breadth blocks real PH import workflows). F-12 bumped INFORMATIONAL->MEDIUM (binding-proposal trust gap). F-11 stayed LOW.",
   "findings": [
     {
       "id": "F-01",
@@ -39,7 +40,13 @@
       "data_repair_need": "none",
       "acceptance_evidence": "bunx vitest run tests/vitest/calculation-output-parity.test.ts passes 3/3",
       "test_decision": "TEST_PROPOSAL",
-      "recovery_fix_forward_plan": "Single-pass fixture reconciliation. Risk: any further drift in canonical math would now pass undetected until the test is repaired."
+      "recovery_fix_forward_plan": "Single-pass fixture reconciliation. Risk: any further drift in canonical math would now pass undetected until the test is repaired.",
+      "council_decision": {
+        "decided_at": "2026-07-19 council",
+        "verdict": "GRANT TEST_TASK unconditionally for UNIT-001.",
+        "rationale": "Skeptic and Critic challenged the premise ('was labor removal actually correct?'). Verified against git: commit d9cf5b18e 'fix(estimates): remove dead labor cost feature from row totals and projections' is an explicit fix() commit. Zero labor references in src/. Zero labor columns in any migration. Labor removal was deliberate product-truth, not drift. The failing test is rot, not a canary. TEST_TASK safe to grant.",
+        "vote": "Premise-challenge REFUTED by git evidence; grant proceeds"
+      }
     },
     {
       "id": "F-02",
@@ -66,7 +73,13 @@
       "data_repair_need": "none",
       "acceptance_evidence": "G19 golden case extended to assert list/dashboard/charts totals match oracle_sum_minor within 0 centavos",
       "test_decision": "TEST_PROPOSAL",
-      "recovery_fix_forward_plan": "Owned by Quality Master UNIT-014. This audit provides the runtime drift evidence."
+      "recovery_fix_forward_plan": "Owned by Quality Master UNIT-014. This audit provides the runtime drift evidence.",
+      "council_decision": {
+        "decided_at": "2026-07-19 council",
+        "verdict": "Severity annotation: HIGH confirmed AND marked FIRST-USER-VISIBLE for the PHP target market.",
+        "rationale": "Pragmatist's surprise upheld: PHP carries centavo-denominated retail pricing (₱100.25 × qty 3), so first users WILL hit the centavo drift on exactly the round-quantity rows they will use. The absolute peso value looks tiny but the divergence is on common inputs. Keep HIGH; do not let anyone downgrade based on absolute value.",
+        "vote": "Pragmatist surprise upheld"
+      }
     },
     {
       "id": "F-03",
@@ -277,7 +290,14 @@
       "data_repair_need": "none (no known production rows with unsupported codes)",
       "acceptance_evidence": "JPY row either accepted everywhere or rejected everywhere consistently",
       "test_decision": "TEST_PROPOSAL",
-      "recovery_fix_forward_plan": "Single convergent validation helper."
+      "recovery_fix_forward_plan": "Single convergent validation helper.",
+      "council_decision": {
+        "decided_at": "2026-07-19 council",
+        "verdict": "BOTH expand the set AND centralize. Add CNY, JPY, KRW to the supported set (PH construction routinely sources CNY/JPY/KRW rebar and equipment imports), then refactor every read layer (workbook, snapshot, source-snapshot price options) to call a single shared normalizeCurrency helper. Owned by new UNIT-014.",
+        "rationale": "Critic's dissent upheld over Skeptic+Pragmatist 'tighten only' call. 'Tighten readers alone' would reject a legitimate JPY rebar quote at import time — a real PH construction workflow. Domain truth beats majority vote.",
+        "severity_revised": "MEDIUM (up from LOW — the breadth gap can block a real import workflow for the target market)",
+        "vote": "Critic dissent upheld over Skeptic+Pragmatist"
+      }
     },
     {
       "id": "F-11",
@@ -303,7 +323,14 @@
       "data_repair_need": "none",
       "acceptance_evidence": "UI and server agree on the accepted range",
       "test_decision": "TEST_PROPOSAL",
-      "recovery_fix_forward_plan": "Single constant alignment."
+      "recovery_fix_forward_plan": "Single constant alignment.",
+      "council_decision": {
+        "decided_at": "2026-07-19 council",
+        "verdict": "NARROW canonical per-row adjustment_percentage range to [-100, 100] (NOT widen UI).",
+        "rationale": "Skeptic+Pragmatist+Critic consensus. D1 storage layer already enforces [-100, 100] via migrations/0082_estimate_row_integrity_constraints.sql CHECK constraint, confirmed by tests/vitest/estimate-sheet-version-control-schema.test.ts:208. The 1000 maximum in estimate-row-total.ts:14 applies to sheet-level contingency mode (actions.ts:884 `maximum = mode === 'discount' ? 100 : 1_000`), NOT per-row adjustment_percentage. F-11's original filing conflated per-row adjustment with sheet-level contingency. Owned by new UNIT-013.",
+        "severity_revised": "LOW (unchanged)",
+        "vote": "Skeptic+Pragmatist+Critic vs Architect (overruled)"
+      }
     },
     {
       "id": "F-12",
@@ -329,7 +356,14 @@
       "data_repair_need": "none",
       "acceptance_evidence": "share page either matches XLSX or carries an explanatory note",
       "test_decision": "TEST_PROPOSAL",
-      "recovery_fix_forward_plan": "Product/UX decision; minimal code if option (a)."
+      "recovery_fix_forward_plan": "Product/UX decision; minimal code if option (a).",
+      "council_decision": {
+        "decided_at": "2026-07-19 council",
+        "verdict": "OPTION (b) — extend publication snapshot with finalProposal basis. Share page renders the same Grand Total as XLSX.",
+        "rationale": "Critic+Skeptic convinced the Architect that option (a) is 'shipping confusion with an apology stapled to it' and converts a 23% trust gap into a willfulness exposure on a binding proposal. Pre-beta is the cheap window for (b); shipping (a) now means doing (b) later plus a migration plus an apology to early customers who printed both numbers. Severity bumped from INFORMATIONAL to MEDIUM because the divergence is on a legally-binding document.",
+        "severity_revised": "MEDIUM (up from INFORMATIONAL — binding-proposal trust gap)",
+        "vote": "Skeptic+Critic+Pragmatist(partial) vs Architect (overruled). Owned by new UNIT-012."
+      }
     }
   ]
 }

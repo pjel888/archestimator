@@ -24,37 +24,37 @@
     "owner-decision",
     "test-authorization-change"
   ],
-  "updated_at": "2026-07-19T12:31:09.532Z",
+  "updated_at": "2026-07-20T03:16:29.215Z",
   "artifacts": [
     {
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "cf5a9ee1411f4350285e06c446b2184fb1dfae87ab655beb2c43513287c7883e"
+      "sha256": "e22edfda6aaaefb44131eadb400ea7ea6fe3a8d41fc75d03ca825e553b707447"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "234c79dfb6d0a7c5208e83992b8937616474ef4d245bd67fc611208ce50b2b88"
+      "sha256": "92525be8b07e95647165b625aa389d7346c6173bae63974a754305ae0a5c7121"
     },
     {
       "id": "ART-003",
       "role": "unit-catalog",
       "path": "UNIT-CATALOG.md",
-      "sha256": "d3b5272d205b8a3f23ca231b8d711f5d6cc4d3f50a0e308cbe006184d5d23d74"
+      "sha256": "b88ba458cbc179cd5b0d60efd86b013f43a21c67188642228e25f89163097226"
     },
     {
       "id": "ART-004",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "362349dfab1310e6f2fddab402aae0b1f685c5170d2eee3a1752285e5b2034cf"
+      "sha256": "77e233ab04a952f1dcd9917142ea032aa2c41e6c65cd86af3e5acada53a340e1"
     },
     {
       "id": "ART-005",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "8a0a18c5b85f19a2b1898e729622b245a7466df73745233b279c0ac808489c96"
+      "sha256": "923977ec92d24f6ab084eaea905fbab66f3a82a1a451fc893e8a62648863f8b3"
     },
     {
       "id": "ART-006",
@@ -138,7 +138,7 @@
       "id": "ART-019",
       "role": "findings-register",
       "path": "artifacts/findings.json",
-      "sha256": "ea5ab2317b7d1e7e61ebacb7e8ba94bc8ab01bd7dda04fbb45b98b8a3be1fc2b"
+      "sha256": "20ef75ecb34488ffa4feab89524a51a37ec594fc73f885d111794cc6b1e5113f"
     },
     {
       "id": "ART-020",
@@ -169,6 +169,12 @@
       "role": "raw-evidence",
       "path": "evidence/parity-test-output.txt",
       "sha256": "7b194af2d578f95f88b99476a10eff3f4e180d49da656d871d2dd0ae590bc849"
+    },
+    {
+      "id": "ART-025",
+      "role": "council-verdict",
+      "path": "artifacts/council-2026-07-19.md",
+      "sha256": "05ecfcc1cfb0ac501d98c13ac724dc0821c36b928609533a808aaa2152f7ed5c"
     }
   ],
   "sources": [
@@ -293,6 +299,15 @@
       "affected_ids": [
         "REQ-002"
       ]
+    },
+    {
+      "id": "SRC-016",
+      "status": "CURRENT",
+      "artifact_path": "artifacts/council-2026-07-19.md",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-004"
+      ]
     }
   ],
   "requirements": [
@@ -332,7 +347,8 @@
         "SRC-007",
         "SRC-008",
         "SRC-009",
-        "SRC-015"
+        "SRC-015",
+        "SRC-016"
       ],
       "unit_ids": [
         "UNIT-001",
@@ -345,7 +361,10 @@
         "UNIT-008",
         "UNIT-009",
         "UNIT-010",
-        "UNIT-011"
+        "UNIT-011",
+        "UNIT-012",
+        "UNIT-013",
+        "UNIT-014"
       ],
       "criterion_ids": [
         "AC-002"
@@ -374,7 +393,8 @@
       "statement": "Pass the plan-pack validator and expose exactly one canonical next unit.",
       "artifact_path": "00-PLAN.md",
       "source_ids": [
-        "SRC-002"
+        "SRC-002",
+        "SRC-016"
       ],
       "unit_ids": [
         "UNIT-000"
@@ -584,6 +604,49 @@
       ]
     },
     {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-012",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-013",
+      "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
       "id": "UNIT-002",
       "status": "READY",
       "artifact_path": "UNIT-CATALOG.md",
@@ -597,21 +660,6 @@
       ],
       "evidence_ids": [
         "EVID-004"
-      ]
-    },
-    {
-      "id": "UNIT-003",
-      "status": "READY",
-      "artifact_path": "UNIT-CATALOG.md",
-      "depends_on": [
-        "UNIT-001"
-      ],
-      "requirement_ids": [
-        "REQ-002"
-      ],
-      "risk_ids": [],
-      "evidence_ids": [
-        "EVID-002"
       ]
     },
     {
@@ -684,8 +732,21 @@
       ]
     },
     {
-      "id": "UNIT-009",
+      "id": "UNIT-014",
       "status": "READY",
+      "artifact_path": "UNIT-CATALOG.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -698,7 +759,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -711,7 +772,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -766,6 +827,53 @@
       "affected_ids": [
         "REQ-002"
       ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "artifacts/council-2026-07-19.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-013",
+        "UNIT-010"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "artifacts/council-2026-07-19.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-012",
+        "UNIT-011"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "artifacts/council-2026-07-19.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-014",
+        "UNIT-009"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "artifacts/council-2026-07-19.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "artifacts/council-2026-07-19.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-001"
+      ]
     }
   ],
   "authorization_boundaries": [
@@ -815,16 +923,18 @@
       "id": "EVID-002",
       "status": "PASS",
       "artifact_path": "artifacts/findings.json",
-      "sha256": "ea5ab2317b7d1e7e61ebacb7e8ba94bc8ab01bd7dda04fbb45b98b8a3be1fc2b",
+      "sha256": "20ef75ecb34488ffa4feab89524a51a37ec594fc73f885d111794cc6b1e5113f",
       "claim_ids": [
         "AC-002",
         "GATE-PLAN-001",
         "UNIT-001",
         "UNIT-003",
+        "UNIT-013",
         "UNIT-004",
         "UNIT-005",
         "UNIT-006",
         "UNIT-007",
+        "UNIT-014",
         "UNIT-009",
         "UNIT-010",
         "UNIT-011"
@@ -841,6 +951,7 @@
         "AC-001",
         "GATE-PLAN-001",
         "UNIT-000",
+        "UNIT-012",
         "UNIT-008"
       ],
       "source_revision": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
@@ -871,18 +982,11 @@
       "unit_ids": [
         "UNIT-000",
         "UNIT-001",
-        "UNIT-002",
         "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
+        "UNIT-012",
+        "UNIT-013"
       ]
     }
   ],
-  "manifest_sha256": "be7004299786d6b89f2ebfecd1cb3274d5cd38b4af63509177d57dda80db4056"
+  "manifest_sha256": "7b67d258b134e29f7696fcadf2eec62a6a630266b15e71c1e6311d901f117ecc"
 }

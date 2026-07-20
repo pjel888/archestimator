@@ -60,6 +60,7 @@ ARTIFACT_SPECS = [
     ("ART-022", "challenge-pass",        "artifacts/adversarial-challenge.md"),
     ("ART-023", "evidence-log",          "artifacts/commands-run.log"),
     ("ART-024", "raw-evidence",          "evidence/parity-test-output.txt"),
+    ("ART-025", "council-verdict",       "artifacts/council-2026-07-19.md"),
 ]
 
 artifacts = []
@@ -87,6 +88,7 @@ sources = [
     ("SRC-013", "CURRENT", "artifacts/template-variant-lineage.md",      ["REQ-001"]),
     ("SRC-014", "CURRENT", "artifacts/publication-version-truth.md",     ["REQ-001"]),
     ("SRC-015", "CURRENT", "evidence/parity-test-output.txt",            ["REQ-002"]),
+    ("SRC-016", "CURRENT", "artifacts/council-2026-07-19.md",            ["REQ-002", "REQ-004"]),
 ]
 sources_full = [{"id": s[0], "status": s[1], "artifact_path": s[2], "affected_ids": s[3]} for s in sources]
 src_by_id = {s[0]: s for s in sources}
@@ -119,8 +121,12 @@ requirements = [
         "completion_role": "CORE",
         "statement": "File every newly proven cross-surface divergence with one explicit owner; cross-reference existing packs for everything already owned.",
         "artifact_path": "artifacts/findings.json",
-        "source_ids": ["SRC-002", "SRC-006", "SRC-007", "SRC-008", "SRC-009", "SRC-015"],
-        "unit_ids": all_unit_ids,
+        "source_ids": ["SRC-002", "SRC-006", "SRC-007", "SRC-008", "SRC-009", "SRC-015", "SRC-016"],
+        # REQ-002 owns ALL implementation units (001..014, including superseded
+        # 009/010/011 kept for traceability).
+        "unit_ids": ["UNIT-001", "UNIT-002", "UNIT-003", "UNIT-004", "UNIT-005",
+                     "UNIT-006", "UNIT-007", "UNIT-008", "UNIT-009", "UNIT-010",
+                     "UNIT-011", "UNIT-012", "UNIT-013", "UNIT-014"],
         "criterion_ids": ["AC-002"],
     },
     {
@@ -155,6 +161,14 @@ for s in sources_full:
     if s["id"] == "SRC-002":
         if "REQ-004" not in s["affected_ids"]:
             s["affected_ids"].append("REQ-004")
+
+# Council 2026-07-19 also touched REQ-004 (DEC-AUTO-006..010 resequence units
+# which affects the DAG exposed by the canonical-execution artifact).
+# Add SRC-016 (council verdict) to REQ-004's sources, reciprocated.
+requirements[3]["source_ids"].append("SRC-016")
+for s in sources_full:
+    if s["id"] == "SRC-016" and "REQ-004" not in s["affected_ids"]:
+        s["affected_ids"].append("REQ-004")
 
 # ----------------------------------------------------------------------
 # ASSUMPTIONS
@@ -271,17 +285,24 @@ units = [
     # pass). It is VERIFIED because the audit pack IS the deliverable and
     # the evidence is collected.
     unit("UNIT-000", "VERIFIED", [], ["REQ-001", "REQ-004"], [], ["EVID-001", "EVID-003", "EVID-004"]),
+    # Wave 1 (council-promoted)
     unit("UNIT-001", "READY", [],     ["REQ-002"], ["RISK-001", "RISK-004"], ["EVID-002"]),
-    unit("UNIT-002", "READY", [],     ["REQ-002", "REQ-003"], ["RISK-002"],  ["EVID-004"]),
     unit("UNIT-003", "READY", ["UNIT-001"], ["REQ-002"], [],                 ["EVID-002"]),
+    unit("UNIT-012", "READY", ["UNIT-001"], ["REQ-002"], [],                 ["EVID-003"]),
+    unit("UNIT-013", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
+    # Wave 1.5
+    unit("UNIT-002", "READY", [],     ["REQ-002", "REQ-003"], ["RISK-002"],  ["EVID-004"]),
+    # Wave 2
     unit("UNIT-004", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
     unit("UNIT-005", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
     unit("UNIT-006", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
     unit("UNIT-007", "READY", ["UNIT-006"], ["REQ-002"], ["RISK-003"],       ["EVID-002"]),
     unit("UNIT-008", "READY", [],     ["REQ-002"], [],                       ["EVID-003"]),
-    unit("UNIT-009", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
-    unit("UNIT-010", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
-    unit("UNIT-011", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
+    unit("UNIT-014", "READY", [],     ["REQ-002"], [],                       ["EVID-002"]),
+    # Superseded by council 2026-07-19
+    unit("UNIT-009", "SUPERSEDED", [], ["REQ-002"], [], ["EVID-002"]),
+    unit("UNIT-010", "SUPERSEDED", [], ["REQ-002"], [], ["EVID-002"]),
+    unit("UNIT-011", "SUPERSEDED", [], ["REQ-002"], [], ["EVID-002"]),
 ]
 all_unit_ids = [u["id"] for u in units]
 
@@ -299,6 +320,17 @@ decisions = [
      "affected_ids": ["REQ-003"]},
     {"id": "DEC-AUTO-005", "status": "ACTIVE", "artifact_path": "00-PLAN.md",
      "affected_ids": ["REQ-002"]},
+    # Council 2026-07-19 decisions (see artifacts/council-2026-07-19.md)
+    {"id": "DEC-AUTO-006", "status": "ACTIVE", "artifact_path": "artifacts/council-2026-07-19.md",
+     "affected_ids": ["REQ-002", "UNIT-013", "UNIT-010"]},
+    {"id": "DEC-AUTO-007", "status": "ACTIVE", "artifact_path": "artifacts/council-2026-07-19.md",
+     "affected_ids": ["REQ-002", "UNIT-012", "UNIT-011"]},
+    {"id": "DEC-AUTO-008", "status": "ACTIVE", "artifact_path": "artifacts/council-2026-07-19.md",
+     "affected_ids": ["REQ-002", "UNIT-014", "UNIT-009"]},
+    {"id": "DEC-AUTO-009", "status": "ACTIVE", "artifact_path": "artifacts/council-2026-07-19.md",
+     "affected_ids": ["REQ-002"]},
+    {"id": "DEC-AUTO-010", "status": "ACTIVE", "artifact_path": "artifacts/council-2026-07-19.md",
+     "affected_ids": ["REQ-002", "UNIT-001"]},
 ]
 
 # ----------------------------------------------------------------------
@@ -404,11 +436,14 @@ for eid, art, status in evidence_specs:
 # UNIT-006. Easiest: ONE slice containing all 11 (transitive deps satisfied).
 # ----------------------------------------------------------------------
 ready_slices = [
+    # SLICE-001 = Wave 1 only (council-promoted). Superseded units are NOT
+    # slice members. Transitive deps: UNIT-003 deps UNIT-001 (in slice);
+    # UNIT-012 deps UNIT-001 (in slice); UNIT-013 no deps.
     {
         "id": "SLICE-001",
         "status": "READY",
         "artifact_path": "00-PLAN.md",
-        "unit_ids": all_unit_ids,
+        "unit_ids": ["UNIT-000", "UNIT-001", "UNIT-003", "UNIT-012", "UNIT-013"],
     },
 ]
 

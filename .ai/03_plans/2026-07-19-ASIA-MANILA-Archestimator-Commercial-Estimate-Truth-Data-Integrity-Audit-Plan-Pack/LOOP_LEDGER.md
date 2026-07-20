@@ -159,6 +159,78 @@ All requested requirements reconciled against fresh evidence:
 
 No safe in-scope work remains. Reporting to Philip.
 
+## 2026-07-19T17:00:00+08:00 — LLM council convened (user-requested decision resolution)
+
+User asked for an LLM council to resolve all blocked decisions, no code.
+Convened under the `council` skill: Architect (in-context) + Skeptic +
+Pragmatist + Critic (three dispatched as fresh read-only subagents with
+only the decision question + compact context — anti-anchoring mechanism).
+
+Five blocked questions deliberated:
+1. F-11 adjustment range (UI [-100,100] vs canonical [-100,1000]).
+2. F-12 XLSX-vs-share total divergence (option a note vs option b snapshot).
+3. F-10 currency breadth (expand set vs tighten readers).
+4. Wave 1 prioritization across 11 units.
+5. UNIT-001 TEST_TASK (grant or hold).
+
+### Premise checks (post-council verification)
+
+- **F-01 premise ("was labor removal correct?"):** Skeptic + Critic challenged.
+  Verified via `git log`: commit `d9cf5b18e fix(estimates): remove dead labor
+  cost feature from row totals and projections` is an explicit fix() commit.
+  `grep labor src/` returns zero. No labor column in any migration.
+  **Premise REFUTED.** Labor removal was deliberate. UNIT-001 TEST_TASK safe
+  to grant.
+- **F-11 premise ("is UI the de facto truth, validator the bug?"):** Skeptic
+  challenged. Verified via `migrations/0082_estimate_row_integrity_constraints.sql`:
+  DDL has `CHECK (adjustment_percentage >= -100 AND adjustment_percentage <= 100)`.
+  `tests/vitest/estimate-sheet-version-control-schema.test.ts:208` asserts the
+  same. **Premise UPHELD.** The 1000 max is for sheet-level contingency mode
+  (actions.ts:884 `mode === "discount" ? 100 : 1_000`), not per-row adjustment.
+  F-11 original filing conflated the two scales.
+
+### Verdicts (see artifacts/council-2026-07-19.md for raw positions)
+
+- **F-11:** NARROW canonical per-row to [-100, 100]. (Skeptic+Pragmatist+Critic
+  vs Architect overruled.) New UNIT-013. UNIT-010 SUPERSEDED.
+- **F-12:** OPTION (b) snapshot extension. (Skeptic+Critic+Pragmatist partial
+  vs Architect overruled.) Severity bumped INFORMATIONAL → MEDIUM. New UNIT-012.
+  UNIT-011 SUPERSEDED.
+- **F-10:** EXPAND set (CNY/JPY/KRW) AND centralize. (Critic dissent upheld
+  over Skeptic+Pragmatist majority.) Severity bumped LOW → MEDIUM. New UNIT-014.
+  UNIT-009 SUPERSEDED.
+- **F-02/F-04:** keep HIGH, annotate FIRST-USER-VISIBLE for PHP. (Pragmatist
+  surprise upheld.)
+- **UNIT-001:** GRANT TEST_TASK unconditionally. (Premise-check refuted the
+  Skeptic/Critic gating concern.)
+- **Wave 1:** UNIT-001, UNIT-003, UNIT-012 (new), UNIT-013 (new). UNIT-002
+  to Wave 1.5.
+
+### Bias guardrails applied
+
+The Architect's initial position was wrong on F-11, F-12, F-10, and Wave 1
+sequencing. Three of four external voices overruled on each. The Critic's
+currency-set dissent was upheld over the majority "tighten" call because
+PH-construction-sourcing is verifiable domain truth.
+
+### Files updated
+
+- NEW: `artifacts/council-2026-07-19.md` (council verdict + decision log).
+- UPDATED: `artifacts/findings.json` (council_decision blocks on F-01, F-02,
+  F-04, F-10, F-11, F-12; severity_counts revised).
+- UPDATED: `UNIT-CATALOG.md` (3 new units: 012, 013, 014; 3 superseded: 009,
+  010, 011; DAG + Wave 1 resequenced).
+- UPDATED: `00-PLAN.md` (DEC-AUTO-006..010 added; DAG + slices resequenced).
+- UPDATED: `README.md` (severity table + council outcome section).
+- UPDATED: `PACK-MANIFEST.md` (council artifact + new units in traceability).
+- REGENERATED: `plan-pack.json`.
+
+## Next action
+
+Report council verdict to Philip. No code implemented (per user instruction).
+Next implementation unit when authorized: UNIT-001 (TEST_TASK already granted
+by DEC-AUTO-010).
+
 ## 2026-07-20T01:30:00+08:00 — Improvement audit (per Improve-Plan-Prompt)
 
 Single-agent emulated-pass improvement audit. Objective: audit, comprehend,

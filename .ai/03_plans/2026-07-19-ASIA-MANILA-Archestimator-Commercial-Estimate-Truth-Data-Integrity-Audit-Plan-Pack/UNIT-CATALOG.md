@@ -10,40 +10,42 @@
 UNIT-000 (audit deliverable; REQ-001 + REQ-004)              [VERIFIED — the pack is the deliverable]
    |
    v
-UNIT-001 (F-01 parity fixture)        [READY, prerequisite for protection]
+================= WAVE 1 (council-promoted, all HIGH or binding-proposal) =================
+UNIT-001 (F-01 parity fixture)            [READY — restore canonical-math regression gate]
+UNIT-003 (F-04 aggregate canonicalization)[READY — first-user-visible PHP centavo drift]
+UNIT-012 (F-12-b snapshot extension)      [NEW — binding-proposal trust gap, option (b)]
+UNIT-013 (F-11 narrowing)                 [NEW — narrow canonical per-row to [-100,100]]
    |
    v
-UNIT-002 (F-09 graph atomicity)      [READY, isolates persistence truth]
+================= WAVE 1.5 (HIGH persistence gap) =================
+UNIT-002 (F-09 graph atomicity)           [READY — silent orphan risk]
    |
-   +--------------------------------+--------------------------------+
-   |                                |                                |
-   v                                v                                v
-UNIT-003 (F-04 aggregate       UNIT-004 (F-03 currency         UNIT-005 (F-06 client-portal
- canonicalization)              propagation)                    total_cost minor-unit)
-   |                                                                |
-   +-------------------------------+--------------------------------+
-                                   |
-                                   v
-                          UNIT-006 (F-07 estimate health)      [READY]
-                                    |
-                                    v
-                          UNIT-007 (F-05 AI package-builder)   [READY but DEFERRED until Copilot release]
-                                    |
-                                    v
-                          UNIT-008 (F-08 XLSX parity test)     [READY]
-                                    |
-                                    v
-                          UNIT-009 (F-10 currency breadth)     [READY]
-                                    |
-                                    v
-                          UNIT-010 (F-11 UI clamp alignment)   [READY]
-                                    |
-                                    v
-                          UNIT-011 (F-12 share-page charge note) [READY, product/UX]
+   v
+================= WAVE 2 (medium/low/hardening) =================
+UNIT-004 (F-03 currency propagation)      [READY]
+UNIT-005 (F-06 client-portal minor-unit)  [READY]
+UNIT-006 (F-07 estimate health magnitude) [READY]
+UNIT-007 (F-05 AI package-builder)        [READY but DEFERRED until Copilot release]
+UNIT-008 (F-08 XLSX parity test)          [READY]
+UNIT-009 (F-10 currency centralization)   [RESCOPED by council — replaced by UNIT-014]
+UNIT-010 (F-11 UI clamp)                  [SUPERSEDED by UNIT-013 — council reversed the fix direction]
+UNIT-011 (F-12 share-page note)           [SUPERSEDED by UNIT-012 — council chose option (b)]
+UNIT-014 (F-10 currency expand+centralize)[NEW — council upheld Critic's expand-set dissent]
 ```
 
-All implementation units are independent enough to be picked in any order
-after their predecessor; the canonical next unit is **UNIT-001**.
+**Canonical next unit:** **UNIT-001**.
+
+### Council 2026-07-19 — unit changes
+
+- **UNIT-012** (new): F-12 option (b) snapshot extension. Replaces UNIT-011.
+- **UNIT-013** (new): F-11 narrow canonical to [-100, 100]. Replaces UNIT-010
+  (which had the fix direction backwards — widening UI was wrong).
+- **UNIT-014** (new): F-10 expand set (CNY/JPY/KRW) AND centralize the helper.
+  Replaces UNIT-009 (which only tightened readers — would reject legitimate
+  JPY rebar quotes).
+- **UNIT-009, UNIT-010, UNIT-011**: SUPERSEDED by UNIT-014/013/012 respectively.
+- **Wave 1** resequenced: UNIT-001, UNIT-003, UNIT-012, UNIT-013. All HIGH or
+  binding-proposal. UNIT-002 (orphan atomicity) moved to Wave 1.5.
 
 ---
 
@@ -287,7 +289,12 @@ after their predecessor; the canonical next unit is **UNIT-001**.
   formula.
 - **Completion signal:** latent parity assumption is contract-enforced.
 
-## UNIT-009 — Centralize currency code validation breadth (F-10)
+## UNIT-009 — Centralize currency code validation breadth (F-10) — SUPERSEDED
+
+> **SUPERSEDED by UNIT-014** (council 2026-07-19). The original scope ("tighten
+> readers") would reject a legitimate JPY rebar quote at import time. The
+> Critic's dissent upheld: PH construction routinely sources CNY/JPY/KRW rebar
+> and equipment. New unit expands the set AND centralizes.
 
 - **Status:** READY
 - **Goal:** make every read layer (workbook, snapshot, source-snapshot price
@@ -311,7 +318,15 @@ after their predecessor; the canonical next unit is **UNIT-001**.
 - **Completion signal:** no currency code reaches a layer that cannot handle
   it.
 
-## UNIT-010 — Align UI adjustment percentage clamp with canonical range (F-11)
+## UNIT-010 — Align UI adjustment percentage clamp with canonical range (F-11) — SUPERSEDED
+
+> **SUPERSEDED by UNIT-013** (council 2026-07-19). The original scope proposed
+> widening UI to [-100, 1000]. Council reversed this: narrow the canonical
+> per-row range DOWN to [-100, 100] to match the UI, the server-side sheet
+> adjustment for discount, and the D1 CHECK constraint
+> (`migrations/0082_estimate_row_integrity_constraints.sql`). The 1000 maximum
+> correctly remains only for sheet-level contingency mode, not per-row
+> `adjustment_percentage`.
 
 - **Status:** READY
 - **Goal:** resolve the silent UI clamp from `[-100, 100]` to match the
@@ -333,7 +348,13 @@ after their predecessor; the canonical next unit is **UNIT-001**.
 - **Recovery/fix-forward:** trivial.
 - **Completion signal:** no silent UI clamp divergence.
 
-## UNIT-011 — Document XLSX-vs-share-page total divergence on the share page (F-12)
+## UNIT-011 — Document XLSX-vs-share-page total divergence on the share page (F-12) — SUPERSEDED
+
+> **SUPERSEDED by UNIT-012** (council 2026-07-19). Council chose option (b)
+> (snapshot extension) over option (a) (note). The Skeptic's framing — "a note
+> is shipping confusion with an apology stapled to it" — plus the Critic's
+> willfulness exposure on a binding proposal convinced the Architect to
+> reverse. Severity bumped INFORMATIONAL → MEDIUM.
 
 - **Status:** READY (product/UX decision).
 - **Goal:** the XLSX Grand Total includes contingency+VAT+sheet adjustment;
@@ -358,6 +379,144 @@ after their predecessor; the canonical next unit is **UNIT-001**.
 - **Recovery/fix-forward:** revert the note.
 - **Completion signal:** share page either matches XLSX or explains the
   difference.
+
+---
+
+## UNIT-012 — Extend publication snapshot with `finalProposal` basis (F-12, option b) — NEW
+
+- **Status:** READY (council-promoted to Wave 1).
+- **Goal:** eliminate the ~23% trust gap between the share page Proposal total
+  (direct-cost only) and the XLSX Grand Total (direct + contingency + VAT +
+  sheet adjustment) by extending the publication snapshot to carry a
+  `finalProposal` basis alongside the existing direct basis. The share page
+  renders the Grand Total matching the XLSX.
+- **Source finding:** F-12 (severity bumped INFORMATIONAL → MEDIUM by council
+  2026-07-19; binding-proposal trust gap).
+- **Dependencies:** none (logically after UNIT-001 to keep parity test green).
+- **Owned paths/resources:**
+  - `src/lib/publication/snapshot.ts:594` `buildProjectPublicationSnapshot`
+    (write — add `finalProposal` block; bump schemaVersion to 1.7).
+  - `src/lib/proposal-export/settings.ts:39-51` `resolveProjectCharges`
+    (read — reuse the same charge resolution).
+  - `src/components/share/ShareFinancialOverview.tsx` (write — render the new
+    basis).
+  - `src/components/share/SharePageSummaryCard.tsx` (write).
+- **Non-goals:** do NOT change the XLSX Summary block layout. Do NOT remove
+  the direct basis (keep both; the direct basis is still useful for
+  per-section display). Do NOT touch the publication token/rotation machinery
+  (owned by Infosec).
+- **Implementation boundary:**
+  1. Extend `buildProjectPublicationSnapshot` to compute and attach a
+     `finalProposal: { directMinorUnits, sheetAdjustmentMinorUnits,
+     proposalContingencyMinorUnits, vatMinorUnits, totalMinorUnits, total }`
+     block per estimate and at the top level, using the same
+     `resolveProjectCharges` settings (default contingencyRate=10, vatRate=12
+     unless project overrides).
+  2. Bump snapshot schemaVersion to 1.7; old readers ignore the new block.
+  3. Update `ShareFinancialOverview` and `SharePageSummaryCard` to display
+     `finalProposal.total` as the headline number, with the direct cost as a
+     secondary line.
+- **Invariants to preserve:**
+  - Snapshot immutability post-publish (unchanged).
+  - Source-revision optimistic concurrency (unchanged).
+  - Backward compatibility: snapshots issued before this change keep rendering
+    (direct basis falls back).
+  - `proposalPreviewSignature` blocks download on unsaved edits (unchanged).
+- **Acceptance evidence:** a recipient comparing the XLSX Grand Total and the
+  share page headline sees the same number, within 0 centavos, for the same
+  fixture.
+- **Test decision:** TEST_PROPOSAL — extend the parity test to assert
+  `snapshot.finalProposal.total === workbook.summary.grandTotalWithTaxes`.
+- **Recovery/fix-forward:** if snapshot size grows past D1 JSON limits,
+  compress the block or move charges to a computed read path.
+- **Completion signal:** share page headline matches XLSX Grand Total.
+
+## UNIT-013 — Narrow canonical per-row adjustment range to [-100, 100] (F-11) — NEW
+
+- **Status:** READY (council-promoted to Wave 1).
+- **Goal:** align the canonical per-row `adjustment_percentage` range to
+  `[-100, 100]`, matching the UI clamp, the server-side sheet-discount
+  validator, and the D1 CHECK constraint. The 1000 ceiling correctly remains
+  only for sheet-level contingency mode (a different code path).
+- **Source finding:** F-11 (LOW; council reversed the fix direction).
+- **Dependencies:** none.
+- **Owned paths/resources:**
+  - `src/lib/estimates/estimate-row-total.ts:13-14` (write — keep
+    `MIN_ADJUSTMENT_PERCENTAGE = -100`; change `MAX_ADJUSTMENT_PERCENTAGE`
+    to `100` for the per-row path only; introduce a separate
+    `MAX_SHEET_CONTINGENCY_PERCENTAGE = 1_000` for the sheet path).
+  - `src/lib/estimates/estimate-row-total.ts:236` `applySheetAdjustment`
+    (write — use the new sheet constant, not the per-row one).
+  - `src/lib/estimates/actions.ts:884` (verify — already uses 100 for
+    discount; the 1000 there is for contingency mode and stays).
+- **Non-goals:** do NOT change sheet-level contingency mode (1000 ceiling
+  stays for that path). Do NOT add a UI confirmation dialog above some
+  threshold (the Critic suggested this; out of scope for the narrowing).
+- **Implementation boundary:**
+  1. Introduce `MAX_SHEET_CONTINGENCY_PERCENTAGE = 1_000` as a separate
+     constant.
+  2. Change `MAX_ADJUSTMENT_PERCENTAGE` to `100` (per-row only).
+  3. Update `applySheetAdjustment` to use the sheet constant.
+  4. Re-run the canonical golden oracle (this audit's
+     `artifacts/golden-oracle/oracle.mjs`) to confirm no regression.
+- **Invariants to preserve:**
+  - Existing rows with adjustment in `[-100, 100]` validate identically.
+  - Sheet-level contingency in `(100, 1000]` continues to validate.
+- **Acceptance evidence:** a row with `adjustment_percentage: 150` is rejected
+  by both UI and server; a sheet contingency of 500 still validates.
+- **Test decision:** TEST_PROPOSAL — extend the parity test's invalid-input
+  matrix to assert 150 is rejected per-row.
+- **Recovery/fix-forward:** if a real estimator workflow needs >100% per-row
+  adjustment (e.g. excavation risk markup), revisit as a product decision
+  with an explicit override + reason + author capture (per the Critic's
+  suggestion). For now narrow.
+- **Completion signal:** UI, server, and D1 all enforce `[-100, 100]` per-row.
+
+## UNIT-014 — Expand currency set (CNY/JPY/KRW) AND centralize validation (F-10) — NEW
+
+- **Status:** READY (replaces UNIT-009).
+- **Goal:** add CNY, JPY, and KRW to the supported currency set (PH
+  construction routinely sources CNY/JPY/KRW rebar and equipment imports),
+  then refactor every read layer to call a single shared `normalizeCurrency`
+  helper so the supported set cannot drift again.
+- **Source finding:** F-10 (severity bumped LOW → MEDIUM by council
+  2026-07-19; the breadth gap blocks a real PH import workflow).
+- **Dependencies:** none.
+- **Owned paths/resources:**
+  - `src/lib/estimates/estimate-row-total.ts:17` (write — expand
+    `supportedCurrencies` to add CNY, JPY, KRW; **note**: JPY/KRW are
+    scale-0 currencies in the real world but the canonical formula uses
+    scale 2 uniformly — keep scale 2 for now; document the limitation in
+    a comment).
+  - `src/lib/proposal-export/create-proposal-workbook.ts:54-57` (write —
+    replace ad-hoc `^[A-Z]{3}$` with `normalizeCurrency`).
+  - `src/lib/publication/snapshot.ts:367` (write — same).
+  - `src/lib/component-library/source-snapshot-price-options.ts:187`
+    (write — same).
+  - Consider extracting a shared `src/lib/currency/supported-currencies.ts`
+    with `normalizeCurrency`, `assertSupportedCurrency`, and the canonical
+    set; every layer imports from there.
+- **Non-goals:** do NOT introduce per-currency scale (every supported
+  currency remains scale 2 for now). Do NOT add currency conversion.
+- **Implementation boundary:**
+  1. Extract `src/lib/currency/supported-currencies.ts` with the expanded set
+     (12 codes: AUD CAD EUR GBP HKD NZD PHP SGD USD + CNY JPY KRW).
+  2. Re-export `normalizeCurrency` from `estimate-row-total.ts` for backward
+     compatibility.
+  3. Update the three read layers to call the shared helper.
+  4. Document the scale-2-for-all limitation for JPY/KRW in the helper.
+- **Invariants to preserve:**
+  - Existing 9-code rows validate identically.
+  - Money math is currency-agnostic; no formula change.
+- **Acceptance evidence:** a JPY row is accepted consistently by the
+  workbook, snapshot, source-snapshot, and canonical paths; a ZWL row is
+  rejected consistently.
+- **Test decision:** TEST_PROPOSAL — extend the parity test's invalid-input
+  matrix and add a JPY acceptance case.
+- **Recovery/fix-forward:** if scale-0 precision becomes a real requirement
+  for JPY/KRW, introduce `currencyScale` per currency in a follow-up.
+- **Completion signal:** every layer accepts or rejects the same currency
+  codes; the canonical set lives in exactly one place.
 
 ---
 

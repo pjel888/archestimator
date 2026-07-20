@@ -37,20 +37,43 @@ labor-inclusive expected values (e.g. `totalMinorUnits: 17_000` for a row
 whose canonical answer is `14_250`). This is filed as **F-01 (HIGH)** — the
 regression gate for the canonical math is currently broken.
 
-## Findings by severity
+## Findings by severity (post-council 2026-07-19)
 
 - **Critical:** 0
-- **High:** 4 (F-01 broken oracle, F-02 legacy float per-row, F-04 aggregate
-  float-sum drift, F-09 duplicate-graph partial-write orphan)
-- **Medium:** 6 (F-03 currency hardcode, F-05 AI divergence, F-06 client
-  portal REAL money, F-07 estimate health magnitude, plus F-09's broader
-  persistence context)
-- **Low:** 3 (F-08 XLSX latent parity, F-10 currency breadth, F-11 UI clamp)
-- **Informational:** 2 (F-12 XLSX-vs-share total divergence by design, plus
-  residual cleanup)
+- **High:** 4 (F-01 broken oracle, F-02 legacy float per-row [first-user-visible for PHP], F-04 aggregate float-sum drift [first-user-visible for PHP], F-09 duplicate-graph partial-write orphan)
+- **Medium:** 7 (F-03 currency hardcode, F-05 AI divergence, F-06 client
+  portal REAL money, F-07 estimate health magnitude, F-10 currency breadth
+  [bumped LOW→MEDIUM by council: blocks real PH import workflows], F-12
+  XLSX-vs-share total [bumped INFORMATIONAL→MEDIUM by council: binding-proposal
+  trust gap], plus F-09's broader persistence context)
+- **Low:** 1 (F-08 XLSX latent parity, F-11 UI clamp — kept LOW; council
+  reversed the fix direction to "narrow canonical" rather than "widen UI")
+- **Informational:** 0
 
-Full register: `artifacts/findings.json`. Rejected/refuted:
+Full register: `artifacts/findings.json`. Council verdict:
+`artifacts/council-2026-07-19.md`. Rejected/refuted:
 `artifacts/rejected-refuted-findings.json`.
+
+## Council 2026-07-19 — headline reversals
+
+An LLM council (Architect + Skeptic + Pragmatist + Critic, three external
+voices dispatched fresh) reversed the Architect's initial position on 4 of 5
+blocked decisions:
+
+- **F-11:** narrow canonical to [-100, 100] (was: widen UI to [-100, 1000]).
+  D1 CHECK already enforces [-100, 100]; the 1000 max is for sheet-level
+  contingency only.
+- **F-12:** option (b) snapshot extension (was: option (a) share-page note).
+  Option (a) is "shipping confusion with an apology stapled to it"; pre-beta
+  is the cheap window for (b).
+- **F-10:** expand set AND centralize (was: tighten readers only). PH
+  construction sources CNY/JPY/KRW rebar; tightening alone would reject a
+  legitimate JPY quote.
+- **Wave 1:** UNIT-001 + UNIT-003 + UNIT-012 (new) + UNIT-013 (new). UNIT-002
+  (orphan atomicity) moved to Wave 1.5.
+
+Three new units added (UNIT-012, UNIT-013, UNIT-014); three superseded
+(UNIT-009, UNIT-010, UNIT-011).
 
 ## Golden matrix executed
 

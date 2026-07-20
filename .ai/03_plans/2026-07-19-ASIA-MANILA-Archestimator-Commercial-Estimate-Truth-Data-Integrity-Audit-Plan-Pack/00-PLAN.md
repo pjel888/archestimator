@@ -144,6 +144,26 @@ No accepted requirement or unit has two active owners.
 - **DEC-AUTO-005:** File F-05 (AI Copilot divergence) at MEDIUM severity
   even though four divergent formula copies were found. Reason: surface is
   feature-flagged and pre-release; no production data affected.
+- **DEC-AUTO-006 (council 2026-07-19):** Narrow canonical per-row
+  `adjustment_percentage` to `[-100, 100]`, matching UI/server/D1 CHECK.
+  The 1000 ceiling remains only for sheet-level contingency mode. Reverses
+  the original F-11 fix direction. See `artifacts/council-2026-07-19.md`.
+- **DEC-AUTO-007 (council 2026-07-19):** Extend publication snapshot with a
+  `finalProposal` basis (F-12 option b), not a share-page note. Share page
+  renders the same Grand Total as the XLSX. Severity bumped
+  INFORMATIONAL → MEDIUM. See `artifacts/council-2026-07-19.md`.
+- **DEC-AUTO-008 (council 2026-07-19):** Expand currency set to include
+  CNY/JPY/KRW (PH construction sourcing) AND centralize validation in one
+  helper. Reverses the original F-10 "tighten readers only" plan. Severity
+  bumped LOW → MEDIUM. See `artifacts/council-2026-07-19.md`.
+- **DEC-AUTO-009 (council 2026-07-19):** Annotate F-02 and F-04 centavo
+  drift as FIRST-USER-VISIBLE for the PHP target market (Pragmatist's
+  surprise upheld). Severity stays HIGH.
+- **DEC-AUTO-010 (council 2026-07-19):** Grant UNIT-001 TEST_TASK
+  unconditionally. Premise-challenge ("was labor removal correct?") refuted
+  by `d9cf5b18e fix(estimates): remove dead labor cost feature...` — explicit
+  fix commit, zero labor in src/, zero labor in any migration. See
+  `artifacts/council-2026-07-19.md`.
 
 ## Authorization boundaries
 
@@ -182,22 +202,37 @@ fix direction, data repair need, and acceptance evidence for each.
 UNIT-000 (audit deliverable; REQ-001 + REQ-004)         [VERIFIED]
    |
    v
-UNIT-001 (F-01)  ─┐
-                  ├─→ UNIT-003 (F-04)  ─→ UNIT-006 (F-07) ─→ UNIT-007 (F-05)
-UNIT-002 (F-09)  ─┤                                    ─→ UNIT-008 (F-08)
-                  ├─→ UNIT-004 (F-03)                  ─→ UNIT-009 (F-10)
-                  └─→ UNIT-005 (F-06)                  ─→ UNIT-010 (F-11)
-                                                       ─→ UNIT-011 (F-12)
+================= WAVE 1 (council-promoted) =================
+UNIT-001 (F-01 parity fixture)            [READY]
+UNIT-003 (F-04 aggregate canonicalization)[READY]
+UNIT-012 (F-12-b snapshot extension)      [READY — NEW]
+UNIT-013 (F-11 narrowing)                 [READY — NEW]
+   |
+   v
+================= WAVE 1.5 =================
+UNIT-002 (F-09 graph atomicity)           [READY]
+   |
+   v
+================= WAVE 2 =================
+UNIT-004 (F-03 currency propagation)      [READY]
+UNIT-005 (F-06 client-portal minor-unit)  [READY]
+UNIT-006 (F-07 estimate health magnitude) [READY]
+UNIT-007 (F-05 AI package-builder)        [READY, DEFERRED until Copilot release]
+UNIT-008 (F-08 XLSX parity test)          [READY]
+UNIT-014 (F-10 currency expand+centralize)[READY — NEW]
+UNIT-009, UNIT-010, UNIT-011              [SUPERSEDED]
 ```
 
-(Edges are soft — implementation units can be picked in any order after
-their predecessor. The canonical next unit is **UNIT-001**.)
+The canonical next unit is **UNIT-001**.
 
 ## Execution slices/waves
 
-- **SLICE-001 (READY):** UNIT-000, UNIT-001, UNIT-002, UNIT-003, UNIT-004,
-  UNIT-005, UNIT-006, UNIT-007, UNIT-008, UNIT-009, UNIT-010, UNIT-011
-  (single ready slice; every transitive dependency is internal).
+- **SLICE-001 (WAVE 1, READY):** UNIT-000, UNIT-001, UNIT-003, UNIT-012,
+  UNIT-013. Council-promoted: covers all HIGH findings + the binding-proposal
+  trust gap.
+- **SLICE-002 (WAVE 1.5, PLANNED):** UNIT-002 (orphan atomicity).
+- **SLICE-003 (WAVE 2, PLANNED):** UNIT-004, UNIT-005, UNIT-006, UNIT-007,
+  UNIT-008, UNIT-014.
 
 ## Risks
 

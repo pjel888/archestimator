@@ -27,13 +27,14 @@
 | `artifacts/adversarial-challenge.md` | challenge-pass | lead | 2026-07-19 | REQ-002, F-01/F-02/F-04/F-09 |
 | `artifacts/commands-run.log` | evidence-log | lead | 2026-07-19 | REQ-001..004, EVID-001..004 |
 | `evidence/parity-test-output.txt` | raw-evidence | lead | 2026-07-19 | F-01, EVID-AUD-001 |
+| `artifacts/council-2026-07-19.md` | council-verdict | lead | 2026-07-19 | REQ-002, REQ-004, DEC-AUTO-006..010, UNIT-009/010/011 SUPERSEDED, UNIT-012/013/014 NEW |
 
 ## Requirement / evidence traceability
 
 | Requirement | Units | Evidence |
 |---|---|---|
 | REQ-001 canonical contract proven | UNIT-000 (VERIFIED) | EVID-001 (golden matrix 20/20), EVID-003 (XLSX inspection), commercial-truth-model.md |
-| REQ-002 divergences filed with one owner | UNIT-001..UNIT-011 | EVID-002 (findings.json + adversarial-challenge.md + overlap matrix) |
+| REQ-002 divergences filed with one owner | UNIT-001..UNIT-008, UNIT-012..UNIT-014 (active); UNIT-009..UNIT-011 (SUPERSEDED by council) | EVID-002 (findings.json + adversarial-challenge.md + council-2026-07-19.md + overlap matrix) |
 | REQ-003 partial-write / recovery gaps filed | UNIT-002 (also REQ-002) | EVID-004 (d1-lifecycle-matrix.csv + F-09) |
 | REQ-004 validator pass + one next unit | UNIT-000 (VERIFIED) | EVID-004 (validator pass on plan-pack.json) |
 
