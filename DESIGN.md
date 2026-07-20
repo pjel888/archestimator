@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Archestimator Product Design System
-description: SF Pro, crisp neutral product UI for every non-landing Archestimator surface, now layered on a calm grey canvas where primary surfaces float as white paper or frosted liquid-glass panels (sidebar first, rolling out app-wide). Landing pages may stay more experimental.
+description: Alpha visual guidance for authenticated Archestimator product routes only. Public and otherwise unauthenticated routes, including / and /new, are outside this document's authority.
 colors:
   primary: "#3D3D3D"
   ink: "#3D3D3D"
@@ -29,65 +29,15 @@ colors:
   dangerSoft: "#FEE2E2"
   proposalPaper: "#FFFDF8"
 typography:
-  # Landing/marketing-only scale. Do not use these tokens inside /workshop or product/app surfaces.
-  display:
-    fontFamily: "Inter"
-    fontSize: 4rem
-    fontWeight: 400
-    lineHeight: 1.04
-    letterSpacing: "-0.055em"
-    scope: "landing-only"
-  headline-lg:
-    fontFamily: "Inter"
-    fontSize: 2.8125rem
-    fontWeight: 400
-    lineHeight: 1.08
-    letterSpacing: "-0.045em"
-    scope: "landing-only"
-  h1:
-    fontFamily: "Inter"
-    fontSize: 2.25rem
-    fontWeight: 430
-    lineHeight: 1.1
-    letterSpacing: "-0.04em"
-    scope: "landing-only"
-  h2:
-    fontFamily: "Inter"
-    fontSize: 1.75rem
-    fontWeight: 430
-    lineHeight: 1.16
-    letterSpacing: "-0.035em"
-    scope: "landing-only"
-  h3:
-    fontFamily: "Inter"
-    fontSize: 1.4375rem
-    fontWeight: 450
-    lineHeight: 1.22
-    letterSpacing: "-0.025em"
-    scope: "landing-only"
-  body-lg:
-    fontFamily: "Inter"
-    fontSize: 1.125rem
-    fontWeight: 350
-    lineHeight: 1.45
-    letterSpacing: "-0.015em"
-    scope: "landing-only"
-  body:
-    fontFamily: "Inter"
-    fontSize: 1rem
-    fontWeight: 350
-    lineHeight: 1.45
-    letterSpacing: "-0.01em"
-    scope: "landing-only"
   proposal-body:
     fontFamily: "Source Serif 4"
     fontSize: 0.9375rem
     fontWeight: 400
     lineHeight: 1.55
     letterSpacing: "0em"
-    scope: "proposal/export-only"
+    scope: "authenticated-proposal-preview-or-export-only"
 
-  # Product/workshop/app scale. This is the default outside the landing page.
+  # Product/workshop/app scale. This applies only to authenticated product routes.
   app-title:
     fontFamily: "SF Pro"
     fontSize: 12px
@@ -144,7 +94,7 @@ typography:
     letterSpacing: "0em"
     fontFeature: "tnum"
 
-  # Legacy aliases retained only for landing/proposal compatibility. Product UI must use app-* tokens above.
+  # Legacy aliases retained for authenticated product compatibility. New authenticated product UI should use app-* tokens above.
   body-sm:
     fontFamily: "SF Pro"
     fontSize: 10px
@@ -319,14 +269,25 @@ components:
     padding: 6px
 ---
 
-## Status: Alpha — a guide, not law
+## Scope: Authenticated Routes Only
 
-> **This design system is still being developed. Treat this whole document as a
-> living guide and shared reference, not an enforceable contract.** We do not yet
-> have a settled visual language, so exploration is encouraged: try directions,
-> propose alternatives, and prototype freely. The tokens and rules below are
-> sensible *defaults* that capture where the product is leaning today — they are
-> not a fixed law to be policed.
+> **This document has zero authority over public design.** It applies only to
+> pages and components owned by routes that require a valid authenticated
+> session. `/`, `/new`, marketing pages, auth entry pages, legal/trust/security
+> pages, invite routes, public share/client-portal pages, and every other route
+> that renders without a session are completely exempt.
+>
+> Do not use this file, its frontmatter, its named exceptions, brand specs,
+> landing plans, shared app primitives, design skills, reference sites,
+> screenshots, or design lint to constrain a public surface. Public-page agents
+> may choose or replace any visual language, typography, scale, palette, spacing,
+> radius, layout, imagery, motion, component strategy, or responsive treatment.
+> They do not need to update this file or preserve visual continuity with the
+> authenticated app.
+>
+> **Within authenticated routes, this design system is still being developed.**
+> Treat it as a living guide and shared reference, not an enforceable contract.
+> The tokens and rules below are alpha defaults, not fixed law to be policed.
 >
 > **Philip's direction always wins.** During alpha, the coding AI agent must
 > defer to Philip on every design decision. When Philip asks for something that
@@ -343,13 +304,12 @@ components:
 
 ## Overview
 
-Archestimator is *exploring* an **SF Pro product design system** outside the landing page: regular/medium typography, neutral colors, 1px-outline-style icons, and xs-only radius. The landing page may remain more experimental and can keep larger editorial rhythms, while app/workshop UI currently leans product-like and consistent. These are the defaults we're trialing during alpha, not fixed requirements — see the status banner above.
+Archestimator is *exploring* an **SF Pro product design system** for authenticated product routes: regular/medium typography, neutral colors, 1px-outline-style icons, and xs-only radius. These are alpha defaults, not fixed requirements — see the scope banner above.
 
-The result should not be a generic construction dashboard. It should feel like premium SaaS for contractors and design-build teams: editorial on public/landing pages, efficient and full-browser in the authenticated app, and document-like in proposal output.
+Authenticated product UI should feel efficient and full-browser, with document-like proposal previews and exports where applicable.
 
 Primary product surfaces:
 
-- public landing and dashboard entry pages;
 - full-browser project/estimate workspaces;
 - spreadsheet-like estimate sheets with location hierarchy;
 - reusable material/cost/assembly libraries;
@@ -362,17 +322,17 @@ Primary product surfaces:
 - **Default (`#5D5D5D`)** is the normal app/workshop text color for body copy and controls.
 - **Subtle (`#7F7F7F`)** supports navigation, metadata, descriptions, empty states, labels, and passive states. Do not use subtle text for financial totals or critical risk indicators.
 - **Selected background (`#F5F5F5`)** is the only neutral selected/hover surface outside semantic success/warning/danger states.
-- **Surface (`#FFFFFF`)** is the dominant canvas for landing, cards, grid cells, forms, panels, and modals.
+- **Surface (`#FFFFFF`)** is the dominant authenticated-app canvas for cards, grid cells, forms, panels, and modals.
 - **Border (`#F2F2F2`)** replaces heavy shadows. Use thin borders and whitespace for separation.
 - **Sibling divider (`#D9D9D9`)** is reserved for inset estimate-sheet sibling rules where `#F2F2F2` is too quiet to show hierarchy.
 - **Functional colors** retain meaning only: success for approved/current/safe, warning for provisional/source-review/cost-risk, danger for destructive/error/excluded/cost increase.
 - **Proposal paper (`#FFFDF8`)** distinguishes client-facing documents from app dashboards.
 
-Color discipline is mandatory outside the landing page: use strong/default/subtle text, selected background, and border tokens first. Orange is landing/brand expression only unless Philip explicitly approves a named app exception.
+On authenticated routes, use strong/default/subtle text, selected background, and border tokens first. Orange is not a default authenticated-app accent unless Philip explicitly approves a named exception.
 
 ## Typography
 
-Use the attached product-reference model outside the landing page for font family, weights, colors, icon style, and radius, while preserving Archestimator's compact app font-size density.
+Use the attached product-reference model on authenticated routes for font family, weights, colors, icon style, and radius, while preserving Archestimator's compact app font-size density.
 
 - **App/workshop font:** SF Pro via the system stack: `"SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
 - **App/workshop weights:** regular (`400`) and medium (`500`) only. No bold, semibold, mono, serif, or Poppins in app UI.
@@ -380,17 +340,15 @@ Use the attached product-reference model outside the landing page for font famil
 - **Hierarchy invariant:** labels, eyebrows, metadata, helper copy, and muted subheaders must never render larger than the input/control/body text they describe. Use `8-9px` for labels/meta and keep muted supporting text at `10px` or below.
 - **App/workshop letter spacing:** `0`. Do not use negative tracking, wide uppercase tracking, or arbitrary tracking utilities.
 - **App/workshop icons:** regular 1px-outline-style iconography. Current Phosphor icons must use regular weight until/unless a dedicated 1px icon library is approved.
-- **Display / headline:** light-to-regular weight, very tight tracking, intentional line breaks, generous surrounding whitespace. Use for landing hero, dashboard hero, major product statements, and empty-state moments.
-- **Body copy:** compact, calm, and short. Public pages should avoid dense paragraphs. App panels should use `body-sm` where useful but stay readable for long estimating sessions.
-- **Labels/navigation/buttons:** small sans-serif, high clarity, not over-bold. CTAs are compact and precise, not oversized marketing pills.
+- **Display / headline:** use only inside named authenticated-route exceptions such as the Workshop dashboard.
+- **Body copy:** app panels should use `body-sm` where useful but stay readable for long estimating sessions.
+- **Labels/navigation/buttons:** use small sans-serif text with clear hierarchy inside authenticated product UI.
 - **Numeric:** SF Pro with tabular numbers for quantities, unit costs, subtotals, totals, deltas, percentages, and version comparison values.
 - **Proposal body:** Source Serif 4 remains for formal client-facing proposal paragraphs, terms, assumptions, and signature blocks.
 
 Target text rhythm:
 
-- Landing H1: 64px desktop / 42–48px tablet / 34–38px mobile.
-- Landing section H2: 45px desktop / 34px tablet / 28px mobile.
-- Outside the public landing page, **12px is the hard maximum** unless Philip explicitly approves a named exception.
+- On authenticated routes, **12px is the default maximum** unless Philip explicitly approves a named exception.
 - App/workshop/card titles: `12px` maximum.
 - App subtitles and secondary headings: around `11px`.
 - App body, nav, controls, tables, inputs, tabs, chips, toolbar labels, and button text: normally `10px`.
@@ -454,7 +412,7 @@ zoom — it only scales with the viewBox, so a sub-minimum chart label defeats r
 Categorical chart series use the **Okabe–Ito 8-color CVD-safe palette** (7 hues +
 a neutral "Other" grey), assigned by a stable bucket key so the same category is
 the same color in every series. Okabe–Ito includes orange; this is the named
-exception to the "orange is landing/brand only" rule (`Colors`):
+exception to the authenticated-app orange rule (`Colors`):
 
 - Okabe–Ito hues may appear **only** in chart marks, legends, and data-table
   swatches.
@@ -475,27 +433,13 @@ Mandatory rules:
 - Do not create feature-local raw button class strings. Use and extend `src/components/ui/button.tsx` for buttons, icon buttons, toolbar buttons, ghost buttons, destructive buttons, and overlay/scrim buttons.
 - Do not create new one-off search inputs. Use and extend the shared search/input primitive, currently `src/components/ui/search-input.tsx` when present, or create it once under `src/components/ui/` and reuse it.
 - Do not create one-off icon-button patterns. Add a variant/size to the shared button primitive instead.
-- Do not create one-off dropdowns or native `<select>` controls in app/workshop surfaces. `src/components/ui/dropdown-select.tsx` (`DropdownSelect`) is the canonical value picker and `src/components/ui/dropdown-menu.tsx` (`DropdownMenu`) the canonical action menu — both ride the shared portal popup core (`dropdown-popup.tsx`). Tree right-click/kebab menus stay on `ActionMenu`; the landing page keeps native selects.
+- Do not create one-off dropdowns or native `<select>` controls in app/workshop surfaces. `src/components/ui/dropdown-select.tsx` (`DropdownSelect`) is the canonical value picker and `src/components/ui/dropdown-menu.tsx` (`DropdownMenu`) the canonical action menu — both ride the shared portal popup core (`dropdown-popup.tsx`). Tree right-click/kebab menus stay on `ActionMenu`.
 - Do not duplicate card, chip, tab, filter, dropdown, field, toolbar, panel, empty-state, or inspector patterns inside route files. Extract a shared primitive or workshop component when the pattern appears more than once.
 - New UI primitives must encode this design scale internally: SF Pro stack, regular/medium weights, allowed sizes only, xs radius only, zero tracking, compact padding, accessible states, and token-aligned colors.
 - Form-control font resets must live inside Tailwind `@layer base`; an unlayered `button { font: inherit; }` after `@import "tailwindcss"` can override app button text utilities and create anchor/button typography drift.
 - A visible duplicated button/search/input/icon-button implementation is a blocking design-system defect, not harmless polish.
 
 ## Layout
-
-### Public landing
-
-Landing pages are exempt from the strict app/workshop system and may use the more experimental editorial direction:
-
-1. thin announcement/product-update bar when relevant;
-2. compact global nav with logo left, navigation center, CTAs right;
-3. editorial split hero with orange primary CTA, outlined secondary CTA, and warm halftone product framing;
-4. large product mockup/illustration panel below the hero;
-5. logo/proof band when real proof exists;
-6. alternating feature chapters: intro copy, product visual, supporting cards, testimonial/proof;
-7. final CTA and dense footer.
-
-Use wide responsive containers, strong vertical rhythm, and short copy blocks. Landing pages should feel spacious, editorial, and confident.
 
 ### Authenticated app and estimate workspace
 
@@ -592,7 +536,6 @@ App-wide rollout (header bars, panels, modals, command palette across every rout
 
 ### Buttons and CTAs
 
-- Public landing primary CTA: landing-approved experimental styling.
 - Secondary CTA: white/outlined button with dark text and thin border.
 - Tertiary CTA: text link, often underlined or arrowed.
 - App primary actions use strong neutral (`#292929`) for Create, Add selected item, Duplicate revision, Issue proposal, and Export while preserving clear text/ink hierarchy.
@@ -630,20 +573,12 @@ orange tint disambiguates the primary "add" action and flags where work lives.
 
 ### Navigation
 
-- Use Intercom-like compact top nav on public pages.
 - Use v4-inspired left app sidebar inside the dashboard/authenticated app.
 - Navigation labels must be explicit; avoid hiding primary product areas behind unlabeled icons unless the sidebar is collapsed and tooltips/accessible labels exist.
 - Main sidebar active links are a named app navigation exception: the selected
   icon tile uses `bg-orange-50`, while the icon and 1px inset border use the same
   orange (`text-orange-700` / `rgb(194,65,12)`). Expanded labels stay neutral
   primary text; inactive and hover states remain neutral unless selected.
-
-### Product mockups and illustrations
-
-- Public pages should use large neutral product panels, screenshot-like UI compositions, and hand-drawn black line illustrations where useful.
-- Illustration style: monochrome, botanical/architectural/sketch-like, precise, light, and editorial. Avoid cartoon construction workers, blueprint clichés, heavy gradients, or stocky 3D mascots.
-- Product visuals should show real Archestimator surfaces: estimate grid, project tree, revision diff, proposal preview, and library dock.
-- Use small orange asterisk markers and sparse halftone/dot fields sparingly to create a premium technical feel.
 
 ### Cards and panels
 
@@ -688,7 +623,7 @@ Financial totals should have strong numeric hierarchy and minimal decoration:
 4. prior version delta;
 5. assumptions/source status.
 
-### Proposal pages
+### Authenticated proposal previews and exports
 
 Proposal previews remain document-like:
 
@@ -698,31 +633,28 @@ Proposal previews remain document-like:
 - summary table before detailed BOQ when appropriate;
 - explicit exclusions, owner-supplied items, validity, duration, warranty, payment terms, and signature/conforme blocks.
 
-Do not make client-facing proposal pages look like raw admin dashboards or Intercom marketing pages.
+Do not make authenticated proposal previews or generated export artifacts look like raw admin dashboards.
 
 ## Do's and Don'ts
 
 ### Do
 
 - Use the attached SF Pro neutral product reference for app/workshop UI.
-- Use Intercom/editorial references only for public landing, typography scale, CTA rhythm, art direction, and section rhythm.
 - Use legacy Archestimator frontend v4 as the layout benchmark for the authenticated app shell: full-height workspace, left nav, project tree, central estimate sheet, docked right panel.
 - Maximize the whole browser for app workflows; remove centered max-width caps from workspace routes.
 - Make the estimate grid the primary surface on estimate routes.
-- Keep public pages spacious, editorial, and proof-led.
 - Keep app pages compact, aligned, and efficient for long work sessions.
 - Use strong neutral primary CTAs and outlined secondary CTAs in app/workshop UI.
 - Use the neutral selected background and border tokens for app focus/selection unless a semantic state requires success/warning/danger.
-- Use real product UI mockups and monochrome sketch-style illustrations.
 - Keep controls accessible with semantic buttons/links, visible focus rings, and full labels.
-- Update this DESIGN.md before introducing new visual language.
+- Update this `DESIGN.md` before introducing a new authenticated-app visual language.
 
 ### Don't
 
 - Do not keep dashboard/workspace content cramped in a centered card if the task needs a full-browser canvas.
 - Do not let the right library panel permanently steal width from the estimate grid.
 - Do not stack selected-row controls below the grid as a long form; move them into a contextual dock or inline grid editing.
-- Do not use construction-orange as the brand accent.
+- Do not use construction-orange as the default authenticated-app accent.
 - Do not use **heavy/glossy** shadows, neon glows, blueprint clichés, or decorative dashboard clutter. Soft floating shadows and frosted glass are now part of the system — see [Surfaces & liquid glass](#surfaces--liquid-glass) — but keep them singular and quiet (one soft shadow per surface, not depth on every element).
 - Do not make buttons overly rounded, oversized, or visually loud.
 - Do not use app/workshop radii outside the scale (`3px` inner, `8px` glass pills, `12px` floating panels).

@@ -1,13 +1,21 @@
 ---
 name: archestimator-form-alignment
-description: "Align Archestimator form labels, controls, helper or error rows, dropdown affordances, and paired fields. Use for form polish or shared field-chrome changes, especially in /workshop/library. Do not use for non-form visual work or one-off positional nudges, and do not run browser, Storybook, build, or automated test evidence unless the user explicitly requests it."
+description: "Align form labels, controls, helper or error rows, dropdown affordances, and paired fields on authenticated Archestimator product routes, especially /workshop/library. Do not use this skill to constrain public or otherwise unauthenticated routes, including / and /new, and do not run browser, Storybook, build, or automated test evidence unless the user explicitly requests it."
 ---
 
 # Archestimator Form Alignment
 
+## Public Route Bypass
+
+This skill has no authority over forms on routes that render without a valid
+authenticated session. Public forms may use any visual structure or component
+strategy directed by the current user; do not load `DESIGN.md` or apply this
+skill's alignment contract to them unless the user explicitly asks for it.
+
 ## Authority
 
-- Read `AGENTS.md`, `DESIGN.md`, and `.ai/00_system/VALIDATION_MATRIX.md`.
+- For authenticated form work, read `AGENTS.md`, `DESIGN.md`, and
+  `.ai/00_system/VALIDATION_MATRIX.md`.
 - Inspect the current shared primitives in `src/components/ui/control-input.tsx`, `src/components/ui/control-input-base.tsx`, `src/components/ui/creatable-combobox.tsx`, and `src/components/ui/dropdown-select.tsx` before adding local chrome.
 - Use `src/components/workshop/component-library-manager/AddComponentModal.tsx` as the named starting surface when the request concerns the Add Component flow.
 

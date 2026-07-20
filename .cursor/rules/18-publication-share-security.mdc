@@ -132,4 +132,8 @@ When touching publication/share code, consider:
 
 ## Client Components
 
-`src/components/share/` contains the shared link viewer components. Match the existing patterns. Don't add new client-side data fetching — use Server Components for initial render.
+`src/components/share/` contains the shared link viewer components. Preserve
+the security and data-fetching boundaries above, but do not require existing
+visual patterns or any repository design system; public share pages have full
+design freedom under `AGENTS.md`. Do not add new client-side data fetching — use
+Server Components for initial render.

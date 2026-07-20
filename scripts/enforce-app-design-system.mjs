@@ -7,7 +7,18 @@ const root = process.cwd();
 const maxPx = 12;
 const labelLikeTextSizeLimitPx = 9;
 const secondaryTextSizeLimitPx = 10;
-const scannedRoots = ["src/app", "src/components"];
+// Design enforcement is opt-in by authenticated ownership. Public routes and
+// public-owned components are never scanned, including /, /new, auth entry,
+// marketing, legal, invite, share, and client-portal surfaces.
+const scannedRoots = [
+  "src/app/admin",
+  "src/app/workshop",
+  "src/components/admin",
+  "src/components/sidebar",
+  "src/components/workshop",
+];
+// Legacy classification exports remain for old diagnostics. The CLI no longer
+// uses a public allowlist because it scans authenticated-owned roots only.
 const landingAllowlist = new Set([
   "src/app/page.tsx",
   "src/app/login/page.tsx",
@@ -18,21 +29,14 @@ const landingAllowlist = new Set([
   "src/app/features/page.tsx",
   "src/app/pricing/page.tsx",
 ]);
-// Public auth routes share the landing/public brand surface, not the compact
-// app/workshop tool surface. Keep this path-scoped so dashboard/workshop rules
-// do not silently weaken elsewhere.
 const landingAllowlistPrefixes = [
   "src/components/landing/",
   "src/components/landing-v3/",
   "src/components/auth/",
   "src/components/frontdoor/",
 ];
-// The public /share proposal surface is a documented "Client Portal" exception: it is
-// allowed a larger type scale (label floor 12px, prose body ~15-16px) than the compact
-// app/workshop system. It is EXEMPT ONLY from the three px-threshold rules
-// (maxPx, labelLikeTextSizeLimitPx, secondaryTextSizeLimitPx). Every other rule
-// (named-size prohibition, regular/medium weight, rounded-xs, tracking-0, icon weight,
-// reference tokens) still applies. The exemption is path-scoped, never app-wide.
+// Legacy helper retained for compatibility with old focused diagnostics. The
+// CLI never sends public /share files through the rule evaluator.
 const sharePxExemptPrefixes = ["src/app/share/", "src/components/share/"];
 // The Workshop Dashboard ("command center" homebase) is its OWN exploratory
 // design language (owner directive 2026-06-18: "don't be constrained by DESIGN.md"
@@ -112,17 +116,6 @@ const disallowedFontWeightClasses = [
   "font-serif",
   "font-poppins",
 ];
-const requiredGlobals = new Map([
-  ["--ink", "#3D3D3D"],
-  ["--secondary", "#5d5d5d"],
-  ["--tertiary", "#7f7f7f"],
-  ["--surface-muted", "#f5f5f5"],
-  ["--hairline", "#f2f2f2"],
-  ["--divider", "#f2f2f2"],
-  ["--font-sf-pro", "\"SF Pro Text\", \"SF Pro Display\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"],
-  ["--radius-xs", "3px"],
-]);
-
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
     const absolute = join(dir, entry);
@@ -193,7 +186,7 @@ export function isLandingApprovedPath(rel) {
   return landingAllowlist.has(normalized) || landingAllowlistPrefixes.some((prefix) => normalized.startsWith(prefix));
 }
 
-/** Collect every design-system violation for a single file's source text. */
+/** Collect design-system violations for an authenticated-owned source file. */
 export function collectFileViolations(rel, text) {
   const fileViolations = [];
   // The Workshop Dashboard ("command center" homebase) is its own exploratory
@@ -292,32 +285,12 @@ export function collectFileViolations(rel, text) {
   return fileViolations;
 }
 
-/** Validate the required design tokens in globals.css. */
-function normalizeCssValue(value) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-export function collectGlobalsViolations(globalsCss) {
-  const out = [];
-  for (const [name, expectedValue] of requiredGlobals) {
-    const re = new RegExp(`${name}\\s*:\\s*([^;]+);`);
-    const match = globalsCss.match(re);
-    const actualValue = match?.[1] ? normalizeCssValue(match[1]) : undefined;
-    if (actualValue?.toLowerCase() !== normalizeCssValue(expectedValue).toLowerCase()) {
-      out.push(`src/app/globals.css requires ${name}: ${expectedValue}; found ${actualValue ?? "missing"}`);
-    }
-  }
-  return out;
-}
-
 /** Walk the scanned roots from `scanRoot` and collect every violation. */
 export function collectAllViolations(scanRoot = root) {
   const violations = [];
-  violations.push(...collectGlobalsViolations(readFileSync(join(scanRoot, "src/app/globals.css"), "utf8")));
   for (const scannedRoot of scannedRoots) {
     for (const absolute of walk(join(scanRoot, scannedRoot))) {
       const rel = relative(scanRoot, absolute);
-      if (isLandingApprovedPath(rel)) continue;
       violations.push(...collectFileViolations(rel, readFileSync(absolute, "utf8")));
     }
   }
@@ -327,11 +300,11 @@ export function collectAllViolations(scanRoot = root) {
 function runCli() {
   const violations = collectAllViolations(root);
   if (violations.length) {
-    console.error("App/workshop design-system enforcement failed outside landing-approved surfaces.");
+    console.error("Authenticated app/workshop design-system enforcement failed.");
     console.error(violations.join("\n"));
     process.exit(1);
   }
-  console.log("App/workshop design-system enforcement passed: compact hierarchy, 12px font-size cap, SF/system stack, regular/medium weight, xs radius, zero tracking, reference tokens, and regular icons.");
+  console.log("Authenticated app/workshop design-system enforcement passed. Public routes and public-owned components were not scanned.");
 }
 
 // Only run the CLI when invoked directly (`node scripts/enforce-app-design-system.mjs`),

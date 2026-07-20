@@ -1,6 +1,6 @@
 ---
 name: archestimator-design
-description: "Design or review Archestimator workshop, public, proposal-review, and proposal-document interfaces using current source, shared primitives, compact typography, precise spacing, and restrained Apple-informed product sensibilities. Use for Archestimator-specific UI direction, implementation, critique, or design research; do not use as a generic style generator, copy native Apple chrome, or run browser and visual evidence without an explicit TEST_TASK."
+description: "Design or review authenticated Archestimator workshop, admin, proposal-editor, and product interfaces using current source, shared primitives, compact typography, precise spacing, and restrained Apple-informed product sensibilities. Do not use this skill to constrain public or otherwise unauthenticated routes, including / and /new, and do not run browser or visual evidence without an explicit TEST_TASK."
 ---
 
 # Archestimator Design
@@ -8,6 +8,15 @@ description: "Design or review Archestimator workshop, public, proposal-review, 
 Design Archestimator as a precise work instrument: compact, calm, architectural,
 and trustworthy. Favor hierarchy, alignment, state clarity, and task continuity
 over oversized type, decorative cards, or fashionable SaaS chrome.
+
+## Public Route Bypass
+
+This skill has no design authority over routes that render without a valid
+authenticated session. That includes `/`, `/new`, marketing, auth entry, legal,
+trust, security, invite, public share, and client-portal routes. For those
+surfaces, do not load or enforce this skill's doctrine, rubric, registers,
+shared-primitive preferences, typography limits, Apple references, or review
+criteria. Follow the current user direction and live public-route source freely.
 
 ## Authority Order
 
@@ -17,8 +26,8 @@ Resolve conflicts in this order:
 2. The mounted route entrypoint, active source, imported shared primitives, and
    current worktree diff.
 3. `PRODUCT.md` for durable users, product purpose, and accessibility intent.
-4. `DESIGN.md` for alpha defaults and named exceptions, not proof of current
-   implementation.
+4. `DESIGN.md` for authenticated-route alpha defaults and named exceptions, not
+   proof of current implementation.
 5. [`references/design-doctrine.md`](references/design-doctrine.md) for the
    project-specific synthesis.
 6. [`claude-design-reference`](../../../claude-design-reference/readme.md) for
@@ -35,10 +44,8 @@ Choose one register before proposing or changing UI:
 
 - **Workshop instrument** — authenticated estimating, library, admin, project,
   and operator surfaces. Compact, keyboard-friendly, grid-led, and state-rich.
-- **Public editorial** — landing and brand surfaces. More breathing room and
-  narrative hierarchy, but no giant-font theater or generic marketing blocks.
-- **Interactive proposal review** — responsive client review with navigation,
-  discussion, charts, decisions, security, and touch-safe actions.
+- **Authenticated proposal editor** — owner-side proposal composition, preview,
+  settings, decisions, and publishing controls.
 - **Formal proposal document** — printable or exportable document hierarchy,
   paper surfaces, durable reading order, and restrained document typography.
 
@@ -66,8 +73,8 @@ another without an explicit reason.
 
 ## Selective References
 
-- Read [`references/design-doctrine.md`](references/design-doctrine.md) for any
-  product direction, implementation, or critique.
+- Read [`references/design-doctrine.md`](references/design-doctrine.md) for
+  authenticated product direction, implementation, or critique.
 - Read
   [`references/apple-human-interface-research.md`](references/apple-human-interface-research.md)
   when the request invokes Apple sensibilities, desktop productivity, focus,
@@ -85,10 +92,6 @@ another without an explicit reason.
   paired fields, selects, chevrons, or clear buttons are involved.
 - Use `$impeccable` for product-UI critique or refinement after loading the
   Archestimator register; its product pass cannot replace project authority.
-- Use `$hallmark` for public or brand anti-slop critique. Hallmark themes never
-  override the authenticated product system or the restrained type ceiling.
-  Do not generate theme rotations, token files, logs, stamps, previews, or
-  mandatory viewport proof unless the current task explicitly asks for them.
 - Use `$product-design:research` or `$research` for external evidence. Prefer
   primary sources and separate normative requirements from conventions.
 - Use `$product-design:audit` only for a specified current flow with current
@@ -105,9 +108,8 @@ another without an explicit reason.
 - Apple-like means purposeful, familiar, consistent, content-first, reversible,
   precisely aligned, and calm. It does not mean copied macOS controls, Apple
   assets, glass everywhere, giant SF-style headings, or platform dimensions.
-- The user dislikes large typography. Preserve compact product hierarchy and
-  the public display ceiling in the doctrine; do not enlarge type merely to
-  imitate generic SaaS or Apple examples.
+- Preserve compact hierarchy within authenticated product routes; do not export
+  that preference into public design work.
 - Compact visuals do not excuse tiny hit targets, hidden focus, clipped text,
   color-only state, or failure at browser zoom and responsive reflow.
 - Default to `NOT_REQUIRED`. Do not create or run product tests, builds, browser

@@ -1,5 +1,5 @@
 ---
-description: "Archestimator design system. SF Pro, 12px max font, xs radius, neutral palette, Phosphor/Lucide. Enforced by linter."
+description: "Authenticated-route Archestimator product design guidance. Never constrain public or otherwise unauthenticated routes, including / and /new."
 globs:
   - "src/components/**"
   - "src/app/globals.css"
@@ -11,12 +11,23 @@ globs:
 
 # Archestimator Design System
 
-The app enforces a strict design system via `scripts/enforce-app-design-system.mjs` (run as part of `bun run validate`).
+This rule applies only to pages and components owned by routes that require a
+valid authenticated session. It has no authority over `/`, `/new`, marketing,
+auth entry, legal/trust/security, invite, public share/client-portal, or any
+future route that renders without a session.
+
+For public design work, stop applying this rule. Do not enforce its tokens,
+component strategy, forbidden list, Storybook workflow, Impeccable workflow, or
+`DESIGN.md`. The current user request and live public-route source are the only
+design authority, and the agent may create a completely new visual language.
+
+Authenticated-owned product surfaces use
+`scripts/enforce-app-design-system.mjs` as part of `bun run validate`.
 
 ## Tokens
 
 - **Font**: SF Pro, regular/medium weights only
-- **Font size**: 12px maximum in the app (landing pages are exempt)
+- **Font size**: 12px maximum in the authenticated product UI
 - **Border radius**: xs-only (3px)
 - **Letter spacing**: zero
 - **Palette**: Neutral (`#292929` / `#5D5D5D` / `#7F7F7F`), custom surface/ink tokens defined in `src/app/globals.css`
@@ -29,14 +40,16 @@ Components grow from `src/components/ui/` shared primitives first:
 
 Features **must reuse** these rather than creating one-off markup.
 
-## Workshop vs Landing
+## Scope
 
 - **Workshop** (authenticated app): strict 12px max, xs radius, neutral palette enforced
-- **Landing pages** (`src/components/landing/` — 32 section components): exempt from in-app size constraint, can use larger typography for marketing
+- **Public pages and public-owned components**: completely outside this rule and
+  all authenticated design enforcement
 
 ## DESIGN.md Is Alpha-Stage
 
-`DESIGN.md` is **alpha-stage guidance, not law**. Defer to Philip on design decisions. Don't block or revert work on design-system grounds while the visual language is still being developed.
+`DESIGN.md` is **authenticated-route alpha guidance, not law**. Defer to Philip
+on design decisions. Do not load it as public-page guidance.
 
 ## Storybook
 
@@ -59,7 +72,7 @@ bun run storybook:validate      # component coverage + boundary + build
 
 ## Forbidden
 
-- Font sizes > 12px in workshop UI (use design tokens; landing is exempt)
+- Font sizes > 12px in authenticated workshop UI
 - Border radius > 3px (xs only) in workshop UI
 - Non-zero letter-spacing
 - Non-SF Pro fonts (without explicit design decision)
@@ -84,9 +97,11 @@ Use Impeccable and visual-qa tooling for:
 - Design audits
 - Explicit visual-review tasks
 
-Routine UI fixes can lean on `DESIGN.md` and existing component patterns without loading a full design workflow or browser automation.
+Routine authenticated UI fixes can lean on `DESIGN.md` and existing component
+patterns without loading a full design workflow or browser automation. Public
+UI work must not be evaluated against them.
 
-## Before Adding New Components
+## Before Adding New Authenticated Components
 
 1. Check `src/components/ui/` for existing primitive
 2. Check `src/components/workshop/` for existing workshop pattern (44+ components)
@@ -94,3 +109,5 @@ Routine UI fixes can lean on `DESIGN.md` and existing component patterns without
 4. Only create new if no fit exists AND the new component will be reused
 
 Avoid premature componentization. Inline single-use markup.
+
+None of these component-reuse steps apply to public routes.

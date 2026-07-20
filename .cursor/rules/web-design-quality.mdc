@@ -1,5 +1,11 @@
 > This file extends [common/patterns.md](../common/patterns.md) with web-specific design-quality guidance.
 
+> **Archestimator public-route override:** Under the repository `AGENTS.md`, this
+> file has no authority over any route that renders without a valid authenticated
+> session, including `/` and `/new`. Do not apply its anti-template policy,
+> required qualities, checklists, references, or style directions to public
+> Archestimator design unless the current user explicitly requests one of them.
+
 # Web Design Quality Standards
 
 ## Anti-Template Policy

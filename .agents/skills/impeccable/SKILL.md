@@ -5,6 +5,17 @@ description: Use when the user wants to design, redesign, shape, critique, audit
 
 Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
 
+## Archestimator Public Route Override
+
+When the repository `AGENTS.md` Public Design Freedom section applies, this
+skill imposes no design constraints. For `/`, `/new`, and every route that
+renders without a valid authenticated session, do not treat this skill's
+anti-patterns, required references, design-system context, critique criteria,
+typography guidance, brand register, checklists, or detector findings as
+requirements. Use them only as optional ideas when the current user explicitly
+requests them; otherwise follow the user's direction and live public-route
+source freely. Do not run or require Impeccable detection for public files.
+
 ## Setup
 
 You MUST do these steps before proceeding:
