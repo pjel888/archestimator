@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SupportChatWidget } from "@/components/support/SupportChatWidget";
 import { BetaFeedbackForm } from "@/components/workshop/BetaFeedbackForm";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 
@@ -14,7 +15,7 @@ function feedbackErrorMessage(error?: string) {
 export default async function WorkshopFeedbackPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; fallback?: string; saved?: string }>;
+  searchParams: Promise<{ error?: string; fallback?: string; saved?: string; support?: string }>;
 }) {
   const params = await searchParams;
   const errorMessage = feedbackErrorMessage(params.error);
@@ -35,6 +36,11 @@ export default async function WorkshopFeedbackPage({
             Feedback saved. Philip will review submitted issues.
           </output>
         ) : null}
+        {params.support ? (
+          <output className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
+            Support message sent. The team will see it in the admin support inbox.
+          </output>
+        ) : null}
         {params.fallback ? (
           <output className="rounded-xs border border-warning/25 bg-warningSoft p-2 text-[10px] leading-4 text-warning">
             Feedback could not be saved in the app.{" "}
@@ -50,6 +56,7 @@ export default async function WorkshopFeedbackPage({
           </output>
         ) : null}
 
+        <SupportChatWidget />
         <BetaFeedbackForm />
       </div>
     </WorkshopRouteHeader>
