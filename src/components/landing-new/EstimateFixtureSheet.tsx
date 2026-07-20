@@ -2,11 +2,13 @@ import { fixture } from "./landing-content";
 import styles from "./new-landing.module.css";
 
 /**
- * The canonical estimate fixture sheet — the product's own cost model
- * (Item / Qty / Unit cost / Contingency / Total), server-rendered in its
- * final Revision B state. The Joinery row carries the orange source mark
- * (supplier quote attached) and shows the prior revision value as a ghost.
- * Numbers are an illustrative estimate, not a claim.
+ * The canonical estimate fixture sheet, server-rendered in its final
+ * Revision B state. Columns are a legibility crop of the current estimate
+ * workspace header set (Materials / Qty / Contingency / Subtotal / Total
+ * Item Cost, with Adjustment and Misc Cost cropped out) — real names and
+ * order, never renamed or recombined. This is a concept illustration
+ * pending a sanctioned product capture, not a screenshot. Numbers are an
+ * illustrative estimate, not a claim.
  */
 export function EstimateFixtureSheet() {
   return (
@@ -22,8 +24,8 @@ export function EstimateFixtureSheet() {
       <div className={styles.sheetColumns} aria-hidden="true">
         <span>{fixture.columns[0]}</span>
         <span className={styles.cellQty}>{fixture.columns[1]}</span>
-        <span className={styles.cellUnit}>{fixture.columns[2]}</span>
-        <span className={styles.cellCont}>{fixture.columns[3]}</span>
+        <span className={styles.cellCont}>{fixture.columns[2]}</span>
+        <span className={styles.cellSubtotal}>{fixture.columns[3]}</span>
         <span className={styles.cellTotal}>{fixture.columns[4]}</span>
       </div>
 
@@ -42,8 +44,8 @@ export function EstimateFixtureSheet() {
                   {item.name}
                 </span>
                 <span className={styles.cellQty}>{item.qty}</span>
-                <span className={styles.cellUnit}>{item.unitCost}</span>
                 <span className={styles.cellCont}>{item.contingency}</span>
+                <span className={styles.cellSubtotal}>{item.subtotal}</span>
                 <span className={styles.cellTotal}>
                   {item.prior ? <s className={styles.ghost}>{item.prior}</s> : null}
                   {item.total}

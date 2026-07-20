@@ -38,8 +38,8 @@ const ROW_COUNT = 12;
 const HEADER_SLOTS = 4; // 3 group headers + the total band
 const CAMERA_BASE = new THREE.Vector3(6, 5, 6);
 const CAMERA_TARGET = new THREE.Vector3(0, 0.1, 0.3);
-const PARALLAX_YAW = 0.0262; // ~1.5 degrees
-const PARALLAX_PITCH = 0.0131; // ~0.75 degrees
+const PARALLAX_YAW = 0.0087; // ~0.5 degrees — deliberately tiny
+const PARALLAX_PITCH = 0.0044; // ~0.25 degrees
 
 const toNode = (t: PlateTransform): PlateNode => ({
   x: t.x,
@@ -361,12 +361,12 @@ export default function LivingEstimateScene({ state, reducedMotion, onFirstFrame
         gsap.to(pinNode, {
           ...layout.pin,
           duration: 0.6,
-          ease: layout.pin.s > 0 ? "back.out(2)" : "power3.out",
+          ease: "power3.out",
         });
         gsap.to(highlightNode, { s: layout.highlight.s, duration: 0.5, ease });
         gsap.to(ghostMaterial, { opacity: layout.ghost.opacity, duration: 0.65, ease });
         markerNodes.forEach((marker, i) => {
-          gsap.to(marker, { s: 1, duration: 0.45, ease: "back.out(2.4)", delay: entrance ? 0.7 + i * 0.09 : 0 });
+          gsap.to(marker, { s: 1, duration: 0.45, ease: "power3.out", delay: entrance ? 0.7 + i * 0.09 : 0 });
         });
         pulseNode.s = 1;
         if (next === "revision" && !entrance) {
@@ -418,56 +418,94 @@ export default function LivingEstimateScene({ state, reducedMotion, onFirstFrame
       // Bias the object toward the right of wide stages so the hero copy
       // column on the left stays clear.
       rootGroup.position.x = aspect > 1.55 ? 0.4 : 0;
-      if (reducedMotionRef.current) renderFrame();
+      // One frame per refit keeps the settled canvas correct after resize;
+      // active tweens continue via the woken loop.
+      renderFrame();
     };
 
     const resizeObserver = new ResizeObserver(setSize);
     resizeObserver.observe(host);
     setSize();
 
-    // ---- Visibility-gated loop -------------------------------------------
+    // ---- Settle-and-stop loop --------------------------------------------
+    // The scene renders on demand: while tweens run, while pointer parallax
+    // is converging, and once more whenever inputs change. When the object
+    // has settled — no active tweens, parallax converged — the rAF loop
+    // stops entirely until the next wake. Visibility and viewport gating
+    // still apply: no frames are produced offscreen or on a hidden tab.
     let rafId = 0;
     let running = true;
     let inView = true;
 
     const pointer = { x: 0, y: 0 };
     const parallax = { x: 0, y: 0 };
-    const onPointerMove = (event: PointerEvent) => {
-      const rect = host.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      const clamp = (value: number) => Math.min(1, Math.max(-1, value));
-      pointer.x = clamp(((event.clientX - rect.left) / rect.width - 0.5) * 2);
-      pointer.y = clamp(((event.clientY - rect.top) / rect.height - 0.5) * 2);
-    };
-    if (!reducedMotionRef.current) {
-      window.addEventListener("pointermove", onPointerMove, { passive: true });
-    }
+    const PARALLAX_EPSILON = 0.001;
 
     const tick = () => {
       rafId = 0;
       if (running && inView && !document.hidden) {
         const targetX = reducedMotionRef.current ? 0 : pointer.x;
         const targetY = reducedMotionRef.current ? 0 : pointer.y;
-        parallax.x += (targetX - parallax.x) * 0.06;
-        parallax.y += (targetY - parallax.y) * 0.06;
+        parallax.x += (targetX - parallax.x) * 0.08;
+        parallax.y += (targetY - parallax.y) * 0.08;
         rootGroup.rotation.y = parallax.x * PARALLAX_YAW;
         rootGroup.rotation.x = parallax.y * PARALLAX_PITCH;
         renderFrame();
       }
-      rafId = requestAnimationFrame(tick);
+      const tweening = gsap.isTweening(tweenables);
+      const targetX = reducedMotionRef.current ? 0 : pointer.x;
+      const targetY = reducedMotionRef.current ? 0 : pointer.y;
+      const drifting =
+        Math.abs(parallax.x - targetX) > PARALLAX_EPSILON ||
+        Math.abs(parallax.y - targetY) > PARALLAX_EPSILON;
+      if (running && (tweening || drifting)) {
+        rafId = requestAnimationFrame(tick);
+      }
     };
+
+    const wake = () => {
+      if (running && !rafId && !reducedMotionRef.current) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      const rect = host.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const clamp = (value: number) => Math.min(1, Math.max(-1, value));
+      pointer.x = clamp(((event.clientX - rect.left) / rect.width - 0.5) * 2);
+      pointer.y = clamp(((event.clientY - rect.top) / rect.height - 0.5) * 2);
+      wake();
+    };
+    if (!reducedMotionRef.current) {
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+    }
 
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
         inView = entries[0]?.isIntersecting ?? true;
+        if (inView) wake();
       },
       { threshold: 0 },
     );
     intersectionObserver.observe(host);
 
-    if (!reducedMotionRef.current) {
-      rafId = requestAnimationFrame(tick);
-    }
+    const onVisibilityChange = () => {
+      if (!document.hidden) wake();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    // State application and resizing also wake the loop (tweens or a fresh
+    // frame are needed). applyState is defined above; hook wake into it.
+    const applyStateWithWake = applyStateRef.current;
+    applyStateRef.current = applyStateWithWake
+      ? (next, entrance) => {
+          applyStateWithWake(next, entrance);
+          wake();
+        }
+      : null;
+
+    wake();
 
     // ---- Cleanup (strict) --------------------------------------------------
     return () => {
@@ -475,6 +513,7 @@ export default function LivingEstimateScene({ state, reducedMotion, onFirstFrame
       if (rafId) cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pointermove", onPointerMove);
       gsap.killTweensOf(tweenables);
       applyStateRef.current = null;
@@ -491,7 +530,7 @@ export default function LivingEstimateScene({ state, reducedMotion, onFirstFrame
     <div className={styles.sceneRoot}>
       <div ref={canvasHostRef} className={styles.canvasHost} aria-hidden="true" />
       <div className={styles.overlay} data-reduced={reducedMotion || undefined}>
-        <p className={styles.overlayKicker}>{LIVING_ESTIMATE_PROJECT} · Illustrative</p>
+        <p className={styles.overlayKicker}>Concept illustration · {LIVING_ESTIMATE_PROJECT}</p>
         <div className={styles.overlayStack}>
           {LIVING_ESTIMATE_STATES.map((overlayState) => (
             <div

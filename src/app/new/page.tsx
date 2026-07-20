@@ -4,9 +4,9 @@ import { NewLandingPage } from "@/components/landing-new/NewLandingPage";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 
 export const metadata: Metadata = buildLandingMetadata({
-  title: "Archestimator — Construction estimating software for AEC teams",
+  title: "Archestimator — Construction estimate-to-proposal workspace",
   description:
-    "Archestimator helps AEC teams reduce rework, communicate project costs clearly, and move decisions forward without losing context through reviews and revisions.",
+    "Structure project costs from your own reusable cost knowledge, send a clear client proposal, and keep feedback and revisions connected.",
   path: "/new",
 });
 
