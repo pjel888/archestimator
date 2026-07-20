@@ -2973,6 +2973,26 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
     `,
     [workspace.id, ...deletedIds],
   );
+  const deniedEstimateIds: string[] = [];
+  for (const estimateId of new Set(affectedRows.map((row) => row.estimate_id))) {
+    const allowed = await canEditEstimateInD1(database, estimateId, currentUser);
+    if (!allowed) deniedEstimateIds.push(estimateId);
+  }
+  if (deniedEstimateIds.length > 0) {
+    const blocked = deniedEstimateIds.map((estimateId) => ({
+      id: estimateId,
+      code: "estimate_access_denied",
+      message: "You need edit access to every linked estimate before permanently deleting this component.",
+    }));
+    return coerceBulkExecutionResult({
+      ...preview,
+      ok: false,
+      deletedIds: [],
+      issues: [...preview.issues, ...blocked],
+      blocked: [...preview.blocked, ...blocked],
+    }, { targetType: "library_component", ids });
+  }
+
   const timestamp = nowIso();
   await runAtomicBatch(database, [{
     sql: `
