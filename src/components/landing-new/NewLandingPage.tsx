@@ -1,145 +1,38 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  ShieldCheck,
-} from "@phosphor-icons/react/dist/ssr";
-import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
-import { ArchestimatorLogoMark } from "@/components/brand/ArchestimatorLogo";
-import { NewHeroSceneLoader } from "./NewHeroSceneLoader";
-import { NewEstimateSheet } from "./NewEstimateSheet";
+import { Fragment } from "react";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ArchestimatorLogo, ArchestimatorLogoMark } from "@/components/brand/ArchestimatorLogo";
+import { EstimateFixtureSheet } from "./EstimateFixtureSheet";
+import { LivingEstimatePoster } from "./LivingEstimatePoster";
+import { LivingEstimateSceneLoader } from "./LivingEstimateSceneLoader";
 import { NewLandingMotion } from "./NewLandingMotion";
+import {
+  audience,
+  benefits,
+  costKnowledge,
+  faq,
+  finalCta,
+  fixture,
+  footer,
+  hero,
+  nav,
+  problem,
+  proofChapters,
+  trust,
+  type BenefitDetail,
+  type ProblemFragmentKind,
+} from "./landing-content";
 import styles from "./new-landing.module.css";
-
-const navItems = [
-  { label: "Product", href: "#product" },
-  { label: "Workflow", href: "#workflow" },
-  { label: "Specialties", href: "#specialties" },
-  { label: "Pricing", href: "/pricing" },
-] as const;
-
-const problemFragments = [
-  "Copied rate",
-  "Unnamed attachment",
-  "Email revision",
-  "Overwritten version",
-] as const;
-
-const workflowSteps = [
-  {
-    number: "01",
-    title: "Structure",
-    body:
-      "Organize the estimate by phase, location, scope, package, or trade. Quantities, rates, assumptions, and source notes stay attached to the work they describe.",
-    state: "Estimate tree · scoped rows · assumptions",
-  },
-  {
-    number: "02",
-    title: "Reuse",
-    body:
-      "Reuse materials, labor, services, assemblies, variants, suppliers, and known costs without losing the context behind them.",
-    state: "Library dock · component variants · source notes",
-  },
-  {
-    number: "03",
-    title: "Propose",
-    body:
-      "Carry line items, totals, exclusions, and assumptions into a clean client-facing proposal without reformatting or copy-paste.",
-    state: "Proposal output · exclusions · review link",
-  },
-  {
-    number: "04",
-    title: "Decide",
-    body:
-      "Capture comments, questions, revision requests, approvals, and version history in the same commercial record.",
-    state: "Comments · versions · decisions",
-  },
-] as const;
-
-const comparisonRows = [
-  ["Rates are copied.", "Costs keep their source."],
-  ["Proposal data is reformatted.", "Proposal data stays connected."],
-  ["Feedback moves to email.", "Review remains attached."],
-  ["Revisions overwrite earlier versions.", "Versions stay recoverable."],
-  ["The next estimate starts from a blank or duplicated sheet.", "Commercial knowledge compounds."],
-] as const;
-
-const specialties = [
-  {
-    label: "Architects",
-    copy:
-      "Estimate trees that mirror design intent, with finish options, exclusions, and client decisions attached from first concept to final approval.",
-  },
-  {
-    label: "Engineers",
-    copy:
-      "Reusable assemblies per discipline. Variant costing, supplier context, and labor logic move with the assembly.",
-  },
-  {
-    label: "General contractors",
-    copy:
-      "Costs organized across phases, locations, trades, bid packages, and allowances — with the assumptions behind the total preserved.",
-  },
-  {
-    label: "Specialty / fit-out contractors",
-    copy:
-      "Reusable assemblies, variants, supplier references, and scope packages that move into future estimates.",
-  },
-  {
-    label: "Cost estimators / QS",
-    copy:
-      "BOQ-grade estimates with unit-rate discipline. Every rate keeps its source note; every quantity keeps its assumption.",
-  },
-  {
-    label: "Interior designers",
-    copy:
-      "Rooms, finishes, options, exclusions, and client decisions connected from the first estimate through final approval.",
-  },
-  {
-    label: "Project managers",
-    copy:
-      "Walk into every pricing conversation with the full record: what was proposed, what changed, what was approved, when, and by whom.",
-  },
-] as const;
-
-const faqs = [
-  {
-    question: "How is this different from Excel?",
-    answer:
-      "Excel calculates. It does not remember. Archestimator keeps rates, suppliers, assumptions, revisions, and approvals attached to the work across projects and time.",
-  },
-  {
-    question: "How is this different from Procore, DESTINI, or what I already use?",
-    answer:
-      "Enterprise estimating tools already do parts of this. They are built for US enterprise GCs, priced for enterprise, take weeks to set up, and stop at estimating. Archestimator is built for spreadsheet-bound SEA teams and extends past estimating into proposal-to-approval.",
-  },
-  {
-    question: "Can I bring my existing cost library?",
-    answer:
-      "Yes. Import via Excel template, or build it natively in the Library dock. Each component carries its supplier, brand, variant, price history, and source note.",
-  },
-  {
-    question: "Who owns my data?",
-    answer:
-      "You do. Your data is never pooled or anonymized across customers. Export your library and estimates anytime.",
-  },
-  {
-    question: "What happens when I cancel?",
-    answer:
-      "Your library and estimates remain exportable. Cancel anytime; your data stays yours throughout and after.",
-  },
-] as const;
 
 function PrimaryCta({ location }: { location: string }) {
   return (
     <Link
-      href="/contact?intent=access"
+      href={nav.cta.href}
       className={styles.ctaPrimary}
       data-new-landing-cta="primary"
       data-new-landing-location={location}
     >
-      <span>Request access</span>
+      <span>{nav.cta.label}</span>
       <span className={styles.ctaIconOrb} aria-hidden="true">
         <ArrowRight size={14} weight="bold" />
       </span>
@@ -147,12 +40,12 @@ function PrimaryCta({ location }: { location: string }) {
   );
 }
 
-function GhostCta({ href, children }: { href: string; children: ReactNode }) {
+function Eyebrow({ children }: { children: string }) {
   return (
-    <Link href={href} className={styles.ctaGhost}>
-      <span>{children}</span>
-      <ArrowUpRight size={14} weight="bold" aria-hidden="true" />
-    </Link>
+    <p className={styles.eyebrow}>
+      <span className={styles.eyebrowMark} aria-hidden="true" />
+      {children}
+    </p>
   );
 }
 
@@ -174,15 +67,15 @@ function NewLandingNav() {
           />
         </Link>
         <nav className={styles.navLinks} aria-label="Primary">
-          {navItems.map((item) => (
+          {nav.links.map((item) => (
             <Link key={item.label} href={item.href}>
               {item.label}
             </Link>
           ))}
         </nav>
         <div className={styles.navActions}>
-          <Link href="/login?next=/workshop/projects" className={styles.signInLink}>
-            Sign in
+          <Link href={nav.signIn.href} className={styles.signInLink}>
+            {nav.signIn.label}
           </Link>
           <PrimaryCta location="nav" />
         </div>
@@ -191,13 +84,13 @@ function NewLandingNav() {
             <span>Menu</span>
           </summary>
           <nav aria-label="Mobile primary">
-            {navItems.map((item) => (
+            {nav.links.map((item) => (
               <Link key={item.label} href={item.href}>
                 {item.label}
               </Link>
             ))}
-            <Link href="/login?next=/workshop/projects">Sign in</Link>
-            <Link href="/contact?intent=access">Request access</Link>
+            <Link href={nav.signIn.href}>{nav.signIn.label}</Link>
+            <Link href={nav.cta.href}>{nav.cta.label}</Link>
           </nav>
         </details>
       </div>
@@ -208,305 +101,438 @@ function NewLandingNav() {
 function HeroSection() {
   return (
     <section className={styles.hero} aria-labelledby="new-hero-title" data-hero-root>
-      <div className={styles.heroStage} data-hero="scene">
-        <NewHeroSceneLoader />
-      </div>
-      <div className={styles.heroShade} aria-hidden="true" />
-
       <div className={styles.heroInner}>
         <div className={styles.heroCopy}>
-        <p className={styles.heroKicker} data-hero="kicker">
-          <span className={styles.kickerMark} aria-hidden="true" />
-          Estimating · proposals · approvals
-        </p>
-        <h1 id="new-hero-title" className={styles.heroTitle}>
-          <span className={styles.maskLine}>
-            <span className={styles.lineInner} data-hero-line>
-              every number
-            </span>
-          </span>
-          <span className={styles.maskLine}>
-            <span className={styles.lineInner} data-hero-line>
-              keeps its{" "}
-              <span className={styles.accentWord}>
-                source
-                <svg
-                  className={styles.accentUnderline}
-                  viewBox="0 0 400 14"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  <path
-                    data-hero="underline"
-                    d="M4 10 C 90 3, 300 3, 396 8"
-                    fill="none"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                </svg>
+          <p className={styles.eyebrow} data-hero="eyebrow">
+            <span className={styles.eyebrowMark} aria-hidden="true" />
+            {hero.eyebrow}
+          </p>
+          <h1 id="new-hero-title" className={styles.heroTitle}>
+            {hero.titleLines.map((line, index) => (
+              <span key={line} className={styles.maskLine}>
+                <span className={styles.lineInner} data-hero-line>
+                  {line}
+                </span>
+                {index < hero.titleLines.length - 1 ? " " : null}
               </span>
-              .
-            </span>
-          </span>
-        </h1>
-        <p className={styles.heroIntro} data-hero="intro">
-          Archestimator is the estimating workspace with a memory. Every rate, supplier, and
-          assumption stays attached — from first line item, to client-ready proposal, to recorded
-          approval.
-        </p>
-        <div className={styles.heroCtas} data-hero="ctas">
-          <PrimaryCta location="hero" />
-          <GhostCta href="#workflow">
-            See the workflow
-          </GhostCta>
+            ))}
+          </h1>
+          <p className={styles.heroSub} data-hero="sub">
+            {hero.sub}
+          </p>
+          <div className={styles.heroCtas} data-hero="ctas">
+            <PrimaryCta location="hero" />
+            <Link href={hero.quietLink.href} className={styles.quietLink}>
+              {hero.quietLink.label}
+            </Link>
+          </div>
         </div>
+        <div className={styles.heroStage}>
+          <div className={styles.sceneSlot} data-hero-scene-slot>
+            <LivingEstimatePoster />
+            <LivingEstimateSceneLoader />
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function SheetSection() {
+const fragmentVisualClass: Record<ProblemFragmentKind, string> = {
+  sheet: styles.visSheet,
+  document: styles.visDoc,
+  message: styles.visMail,
+  file: styles.visFile,
+};
+
+function FragmentVisual({ kind }: { kind: ProblemFragmentKind }) {
   return (
-    <section className={styles.sheetSection} aria-labelledby="sheet-title">
-      <div className={styles.sectionInner}>
-        <header className={styles.sectionHead} data-reveal>
-          <h2 id="sheet-title">The estimate sheet is the product.</h2>
-          <p>
-            Materials, quantities, unit costs, and per-row contingency — with every supplier,
-            source note, and revision still attached.
-          </p>
-        </header>
-        <NewEstimateSheet />
-      </div>
-    </section>
+    <div className={`${styles.fragmentVisual} ${fragmentVisualClass[kind]}`} aria-hidden="true">
+      {kind === "document" || kind === "message" ? (
+        <>
+          <span />
+          <span />
+          <span />
+        </>
+      ) : null}
+      {kind === "file" ? <s>v6_final.xlsx</s> : null}
+    </div>
   );
 }
 
 function ProblemSection() {
   return (
-    <section className={styles.problem} aria-labelledby="problem-title">
+    <section className={`${styles.section} ${styles.sectionAlt}`} id="problem" aria-labelledby="problem-title">
       <div className={styles.sectionInner}>
-        <h2 id="problem-title" className={styles.problemTitle} data-scrub-words>
-          Spreadsheets calculate. They don&#39;t remember.
-        </h2>
-        <div className={styles.problemBody} data-reveal>
-          <p>
-            Most estimates stop being useful the moment they become a PDF. Rates lose their
-            source. Assumptions disappear. Feedback moves to email. Revisions overwrite why the
-            number changed.
-          </p>
-          <p>
-            Archestimator keeps the commercial record attached to every line — so the rate you
-            proved on the last project is still working on the next one.
-          </p>
-        </div>
-        <ul className={styles.fragments} aria-label="Spreadsheet failure points" data-reveal>
-          {problemFragments.map((fragment) => (
-            <li key={fragment} className={styles.fragment}>
-              {fragment}
+        <header className={styles.sectionHead} data-reveal>
+          <Eyebrow>{problem.eyebrow}</Eyebrow>
+          <h2 id="problem-title">{problem.title}</h2>
+          <p>{problem.body}</p>
+        </header>
+        <ul
+          className={styles.fragments}
+          aria-label="Detached estimate handoff fragments"
+          data-fragments
+          data-reveal
+        >
+          {problem.fragments.map((fragment) => (
+            <li key={fragment.label} className={styles.fragment}>
+              <FragmentVisual kind={fragment.kind} />
+              <span className={styles.fragmentLabel}>{fragment.label}</span>
             </li>
           ))}
+          <svg
+            className={styles.brokenThread}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            fill="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M0 50 H 34"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeDasharray="5 7"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d="M66 50 H 100"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeDasharray="5 7"
+              strokeLinecap="round"
+              strokeOpacity="0.35"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
         </ul>
-      </div>
-    </section>
-  );
-}
-
-function WorkflowSection() {
-  return (
-    <section className={styles.workflow} id="workflow" aria-labelledby="workflow-title">
-      <div className={styles.sectionInner}>
-        <div className={styles.workflowGrid}>
-          <div className={styles.workflowSticky}>
-            <h2 id="workflow-title">From first cost to final decision, nothing loses context.</h2>
-            <p>
-              The workflow is a sequence, not a pile of detached files. Each step hands its
-              context to the next.
-            </p>
-            <ol className={styles.progressRail} aria-hidden="true">
-              {workflowSteps.map((step) => (
-                <li key={step.number} className={styles.railItem} data-rail-item={step.number}>
-                  <span className={styles.railIndex}>{step.number}</span>
-                  <span>{step.title}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <ol className={styles.steps}>
-            {workflowSteps.map((step) => (
-              <li key={step.number} className={styles.step} data-step={step.number}>
-                <span className={styles.stepIndex} aria-hidden="true">
-                  {step.number}
-                </span>
-                <div className={styles.stepCopy}>
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                  <span className={styles.stepState}>{step.state}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ProductSection() {
-  return (
-    <section className={styles.product} id="product" aria-labelledby="product-title">
-      <div className={styles.sectionInner}>
-        <header className={styles.sectionHead} data-reveal>
-          <h2 id="product-title">The workbench is the product.</h2>
-          <p>
-            Each surface exists to keep the estimate, the proposal, and the decision trail
-            connected.
-          </p>
-        </header>
-
-        <div className={styles.bento}>
-          <article className={`${styles.cell} ${styles.cellEstimate}`} data-reveal>
-            <span className={styles.cellLabel}>Estimate tree</span>
-            <h3>Structure the work.</h3>
-            <p>Hierarchical estimate tree with drag-and-drop, inline editing, and live totals.</p>
-            <ul className={styles.miniRows} aria-hidden="true">
-              <li>Phases</li>
-              <li>Locations</li>
-              <li>Trades</li>
-            </ul>
-            <Link href="/workshop/projects" className={styles.cellLink}>
-              Open surface
-              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
-            </Link>
-          </article>
-
-          <article className={`${styles.cell} ${styles.cellLibrary}`} data-reveal>
-            <span className={styles.cellLabel}>Cost library</span>
-            <h3>Reuse what you proved.</h3>
-            <p>Brands, suppliers, variants, pricing, images, and attachments as components.</p>
-            <ul className={styles.miniRows} aria-hidden="true">
-              <li>Assemblies</li>
-              <li>Suppliers</li>
-              <li>Variants</li>
-            </ul>
-            <Link href="/workshop/library" className={styles.cellLink}>
-              Open surface
-              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
-            </Link>
-          </article>
-
-          <article className={`${styles.cell} ${styles.cellActivity}`} data-reveal>
-            <span className={styles.cellLabel}>Revision memory</span>
-            <h3>Nothing overwrites why.</h3>
-            <p>Comments, row version history, changes, and recorded decisions stay attached.</p>
-            <ul className={styles.miniRows} aria-hidden="true">
-              <li>Comments</li>
-              <li>Versions</li>
-              <li>Decisions</li>
-            </ul>
-            <Link href="/workshop/projects" className={styles.cellLink}>
-              Open surface
-              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
-            </Link>
-          </article>
-
-          <article className={styles.cellWide} data-reveal>
-            <div>
-              <span className={styles.cellLabel}>Client-ready proposal</span>
-              <h3>Send the number as a proposal. Keep the approval on record.</h3>
-              <p>
-                A client link with comments, decisions, password protection, and change-order
-                flow.
-              </p>
-            </div>
-            <Link href="/share/demo" className={styles.cellLink}>
-              Open the publication viewer
-              <ArrowUpRight size={13} weight="bold" aria-hidden="true" />
-            </Link>
-          </article>
-        </div>
-
-        <div className={styles.complianceLine} data-reveal>
-          <ShieldCheck size={19} weight="regular" aria-hidden="true" />
-          <p>
-            Private by design. Built on Cloudflare Workers, D1, R2, and Better Auth — your data is
-            never pooled or anonymized across customers.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ComparisonSection() {
-  return (
-    <section className={styles.compare} aria-labelledby="compare-title">
-      <div className={styles.sectionInner}>
-        <header className={styles.sectionHead} data-reveal>
-          <h2 id="compare-title">The difference is memory.</h2>
-          <p>
-            The estimate should not lose the reason behind the number when it becomes a proposal.
-          </p>
-        </header>
-        <div className={styles.compareTable} role="table" aria-label="Spreadsheet workflow compared with Archestimator">
-          <div className={styles.compareHeader} role="row">
-            <span role="columnheader">Copied workflow</span>
-            <span role="columnheader">Archestimator</span>
-          </div>
-          {comparisonRows.map(([copied, kept]) => (
-            <div key={copied} className={styles.compareRow} role="row" data-reveal>
-              <span role="cell" className={styles.copied}>
-                {copied}
-              </span>
-              <span role="cell" className={styles.kept}>
-                <span className={styles.keptMark} aria-hidden="true" />
-                {kept}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SpecialtiesSection() {
-  return (
-    <section className={styles.specialties} id="specialties" aria-labelledby="specialties-title">
-      <div className={styles.sectionInner}>
-        <header className={styles.sectionHead} data-reveal>
-          <h2 id="specialties-title">Built for the people who own the number.</h2>
-          <p>Different roles carry different risk. The record has to travel with each of them.</p>
-        </header>
-        <ul className={styles.specList}>
-          {specialties.map((specialty, index) => (
-            <li key={specialty.label} className={styles.specRow} data-reveal>
-              <span className={styles.specIndex} aria-hidden="true">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <h3>{specialty.label}</h3>
-              <p>{specialty.copy}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-function StatementSection() {
-  return (
-    <section className={styles.statement} aria-labelledby="statement-title">
-      <div className={styles.statementGlow} aria-hidden="true" />
-      <div className={styles.sectionInner}>
-        <h2 id="statement-title" className={styles.statementTitle} data-scrub-words>
-          From cost proposal to client approval.
-        </h2>
-        <p className={styles.statementCaption} data-reveal>
-          Revisions · comments · approvals — attached to the commercial record
+        <p className={styles.closingLine} data-reveal>
+          {problem.closing}
         </p>
+      </div>
+    </section>
+  );
+}
+
+function BenefitDetailView({ detail }: { detail: BenefitDetail }) {
+  switch (detail.kind) {
+    case "library":
+      return (
+        <div className={styles.detailRow}>
+          <span className={styles.detailName}>{detail.name}</span>
+          <span className={styles.detailMeta}>{detail.meta}</span>
+        </div>
+      );
+    case "proposal":
+      return (
+        <div className={styles.detailRow}>
+          <span className={styles.detailMeta}>{detail.label}</span>
+          <span className={styles.detailValue}>{detail.value}</span>
+        </div>
+      );
+    case "revision":
+      return (
+        <div className={styles.detailRow}>
+          <span className={styles.detailRevision}>
+            <s className={styles.ghost}>{detail.prior}</s>
+            <span className={styles.ghostArrow} aria-hidden="true">
+              →
+            </span>
+            <span className={styles.ghostCurrent}>{detail.current}</span>
+          </span>
+          <span className={styles.detailMeta}>{detail.meta}</span>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function BenefitsSection() {
+  return (
+    <section className={styles.section} id="benefits" aria-labelledby="benefits-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="benefits-title">{benefits.title}</h2>
+        </header>
+        <div className={styles.benefitGrid}>
+          {benefits.panels.map((panel) => (
+            <article key={panel.title} className={styles.benefitPanel} data-reveal>
+              <span className={styles.benefitMark} aria-hidden="true" />
+              <h3>{panel.title}</h3>
+              <p>{panel.body}</p>
+              <div className={styles.benefitDetail}>
+                <BenefitDetailView detail={panel.detail} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CarryVisual() {
+  const miniRows = fixture.groups.flatMap((group) => group.items).slice(1, 4);
+  return (
+    <div className={styles.carrySplit}>
+      <div className={styles.miniSheet}>
+        <span className={styles.miniSheetLabel}>{fixture.project}</span>
+        {miniRows.map((item) => (
+          <div key={item.name} className={styles.miniSheetRow}>
+            <span>
+              {item.source ? (
+                <span className={styles.srcMark} title={item.source}>
+                  <span className={styles.srOnly}>{item.source}</span>
+                </span>
+              ) : null}
+              {item.name}
+            </span>
+            <span className={styles.miniSheetAmount}>{item.total}</span>
+          </div>
+        ))}
+        <div className={styles.miniSheetTotal}>
+          <span>{fixture.totalLabel}</span>
+          <span>{fixture.total}</span>
+        </div>
+      </div>
+      <svg
+        className={styles.carryThread}
+        viewBox="0 0 48 16"
+        fill="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M1 8 H 41 M 35 2 L 42 8 L 35 14"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className={styles.proposalPreview}>
+        <span className={styles.previewLabel}>{proofChapters.proposalPreviewLabel}</span>
+        <span className={styles.previewTitle}>{fixture.proposal.title}</span>
+        <div className={styles.previewLines}>
+          {fixture.proposal.summary.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </div>
+        <span className={styles.excelChip}>{proofChapters.excelChip}</span>
+      </div>
+    </div>
+  );
+}
+
+function RespondVisual() {
+  const joinery = fixture.groups
+    .flatMap((group) => group.items)
+    .find((item) => item.source);
+  if (!joinery) return null;
+  return (
+    <div className={styles.respondCard}>
+      <div className={styles.respondHead}>
+        <span className={styles.respondTitle}>{fixture.proposal.title}</span>
+        <span className={styles.chip}>{fixture.proposal.status}</span>
+      </div>
+      <div className={styles.respondLine}>
+        <span>{joinery.name}</span>
+        <span className={styles.respondAmount}>{joinery.total}</span>
+      </div>
+      <div className={styles.respondComment}>
+        <span className={styles.commentLabel}>{fixture.comment.label}</span>
+        <p className={styles.commentQuote}>“{fixture.comment.quote}”</p>
+      </div>
+      <div className={styles.respondActions}>
+        {proofChapters.respondActions.map((action) => (
+          <span key={action} className={styles.actionChip}>
+            {action}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviseVisual() {
+  return (
+    <div className={styles.activityList}>
+      {proofChapters.activity.map((entry) => (
+        <div key={entry.label} className={styles.activityRow}>
+          <span
+            className={entry.prior ? styles.activityDotSignal : styles.activityDot}
+            aria-hidden="true"
+          />
+          <span className={styles.activityLabel}>{entry.label}</span>
+          {entry.prior && entry.current ? (
+            <span className={styles.activityValue}>
+              <s className={styles.ghost}>{entry.prior}</s>
+              <span className={styles.ghostArrow} aria-hidden="true">
+                →
+              </span>
+              <span className={styles.ghostCurrent}>{entry.current}</span>
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChapterVisual({ chapterKey }: { chapterKey: string }) {
+  switch (chapterKey) {
+    case "build":
+      return <EstimateFixtureSheet />;
+    case "carry":
+      return <CarryVisual />;
+    case "respond":
+      return <RespondVisual />;
+    case "revise":
+      return <ReviseVisual />;
+    default:
+      return null;
+  }
+}
+
+function ProofSection() {
+  return (
+    <section
+      className={`${styles.section} ${styles.sectionAlt}`}
+      id="product"
+      aria-labelledby="product-title"
+      data-proof-root
+    >
+      <div className={styles.sectionInner} id="how-it-works">
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="product-title">{proofChapters.title}</h2>
+          <p>{proofChapters.intro}</p>
+        </header>
+        <div className={styles.proofChapters}>
+          {proofChapters.chapters.map((chapter) => (
+            <article
+              key={chapter.key}
+              className={styles.chapter}
+              data-proof-chapter
+              data-chapter={chapter.key}
+              data-reveal
+            >
+              <div className={styles.chapterCopy}>
+                <span className={styles.chapterIndex} aria-hidden="true">
+                  {chapter.index}
+                </span>
+                <h3>{chapter.title}</h3>
+                <p>{chapter.body}</p>
+              </div>
+              <div>
+                <div className={styles.proofFrame} data-proof-frame>
+                  <ChapterVisual chapterKey={chapter.key} />
+                </div>
+                <span className={styles.proofCaption}>{proofChapters.caption}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CostKnowledgeSection() {
+  return (
+    <section className={styles.section} id="cost-knowledge" aria-labelledby="cost-knowledge-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <Eyebrow>{costKnowledge.eyebrow}</Eyebrow>
+          <h2 id="cost-knowledge-title">{costKnowledge.title}</h2>
+          <p>{costKnowledge.body}</p>
+        </header>
+        <ol className={styles.loop} data-reveal>
+          {costKnowledge.loop.map((node, index) => (
+            <Fragment key={node}>
+              {index > 0 ? <li className={styles.loopConnector} aria-hidden="true" /> : null}
+              <li
+                className={
+                  node === costKnowledge.signalNode ? styles.loopNodeSignal : styles.loopNode
+                }
+              >
+                {node}
+              </li>
+            </Fragment>
+          ))}
+        </ol>
+        <p className={styles.dataLine} data-reveal>
+          {costKnowledge.dataLine}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function AudienceSection() {
+  return (
+    <section
+      className={`${styles.section} ${styles.sectionAlt}`}
+      id="who-its-for"
+      aria-labelledby="audience-title"
+    >
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="audience-title">{audience.title}</h2>
+        </header>
+        <svg
+          className={styles.audienceThread}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          fill="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M0 62 C 24 40, 42 78, 58 52 C 70 34, 86 58, 100 44"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        <div className={styles.audienceGrid}>
+          {audience.columns.map((column) => (
+            <div key={column.title} className={styles.audienceCol} data-reveal>
+              <h3>{column.title}</h3>
+              <ul>
+                {column.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TrustSection() {
+  return (
+    <section className={styles.section} id="trust" aria-labelledby="trust-title">
+      <div className={styles.sectionInner}>
+        <header className={styles.sectionHead} data-reveal>
+          <h2 id="trust-title">{trust.title}</h2>
+        </header>
+        <p className={styles.trustFounder} data-reveal>
+          {trust.founder}
+        </p>
+        <ul className={styles.principles}>
+          {trust.principles.map((principle) => (
+            <li key={principle.title} className={styles.principle} data-reveal>
+              <h3>{principle.title}</h3>
+              <p>{principle.body}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -514,20 +540,16 @@ function StatementSection() {
 
 function FaqSection() {
   return (
-    <section className={styles.faq} id="faq" aria-labelledby="faq-title">
+    <section className={`${styles.section} ${styles.sectionAlt}`} id="faq" aria-labelledby="faq-title">
       <div className={styles.sectionInner}>
         <header className={styles.sectionHead} data-reveal>
-          <h2 id="faq-title">Questions worth answering first.</h2>
-          <p>
-            Short answers for the commercial and data questions that usually decide whether a
-            team can try a new estimating workflow.
-          </p>
+          <h2 id="faq-title">{faq.title}</h2>
         </header>
         <div className={styles.faqList} data-reveal>
-          {faqs.map((faq) => (
-            <details key={faq.question} className={styles.faqItem}>
-              <summary>{faq.question}</summary>
-              <p>{faq.answer}</p>
+          {faq.items.map((item) => (
+            <details key={item.question} className={styles.faqItem}>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
             </details>
           ))}
         </div>
@@ -538,18 +560,42 @@ function FaqSection() {
 
 function FinalCtaSection() {
   return (
-    <section className={styles.final} aria-labelledby="final-cta-title" data-final-cta>
-      <div className={styles.finalGridEcho} aria-hidden="true" />
+    <section className={styles.final} id="early-access" aria-labelledby="final-cta-title">
       <div className={styles.sectionInner}>
+        <svg
+          className={styles.finalThread}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          fill="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M0 78 C 30 78, 44 30, 74 34 C 88 36, 92 44, 96 50"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
         <h2 id="final-cta-title" data-reveal>
-          Start your next estimate from the ones you&#39;ve already done.
+          {finalCta.title}
         </h2>
-        <p data-reveal>From cost proposal to client approval.</p>
+        <p className={styles.finalLine} data-reveal>
+          {finalCta.line}
+        </p>
         <div className={styles.finalCtas} data-reveal>
-          <PrimaryCta location="final" />
-          <GhostCta href="/contact?intent=walkthrough">
-            Book a walkthrough
-          </GhostCta>
+          <Link
+            href={finalCta.cta.href}
+            className={styles.ctaPrimary}
+            data-new-landing-cta="primary"
+            data-new-landing-location="final"
+          >
+            <span>{finalCta.cta.label}</span>
+            <span className={styles.ctaIconOrb} aria-hidden="true">
+              <ArrowRight size={14} weight="bold" />
+            </span>
+          </Link>
         </div>
       </div>
     </section>
@@ -566,13 +612,16 @@ function LandingFooter() {
         </Link>
         <div className={styles.footerMeta}>
           <nav aria-label="Footer">
-            <Link href="/features">Features</Link>
-            <Link href="/pricing">Pricing</Link>
-            <Link href="/trust">Trust</Link>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/contact">Contact</Link>
+            {footer.links.map((link) => (
+              <Link key={link.label} href={link.href}>
+                {link.label}
+              </Link>
+            ))}
           </nav>
-          <span>© 2026 Archestimator</span>
+          <div className={styles.footerMetaRight}>
+            <span className={styles.footerStatus}>{footer.status}</span>
+            <span>{footer.copyright}</span>
+          </div>
         </div>
       </div>
     </footer>
@@ -586,21 +635,16 @@ export function NewLandingPage() {
         <NewLandingNav />
         <main id="new-main">
           <HeroSection />
-          <SheetSection />
           <ProblemSection />
-          <WorkflowSection />
-          <ProductSection />
-          <ComparisonSection />
-          <SpecialtiesSection />
-          <StatementSection />
+          <BenefitsSection />
+          <ProofSection />
+          <CostKnowledgeSection />
+          <AudienceSection />
+          <TrustSection />
           <FaqSection />
           <FinalCtaSection />
         </main>
         <LandingFooter />
-        <Link href="/contact?intent=access" className={styles.stickyCta} data-sticky-cta>
-          <span>Request access</span>
-          <ArrowUpRight size={14} weight="bold" aria-hidden="true" />
-        </Link>
       </div>
     </NewLandingMotion>
   );
