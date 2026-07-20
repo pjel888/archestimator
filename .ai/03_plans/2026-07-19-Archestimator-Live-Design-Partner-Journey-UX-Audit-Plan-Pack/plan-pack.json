@@ -35,7 +35,7 @@
       "id": "ART-003",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "7c252603ac2bbba6219c32e2c93608c5b3cc51270c528796969e1f462ba4c0bf"
+      "sha256": "6de00b457cdb6e0686b6b18de0a35cf90b4fd85667a928b6f692cc487557282c"
     },
     {
       "id": "ART-004",
@@ -1271,5 +1271,5 @@
     "CLOSED_BETA_ACCESS_ENABLED env value changes",
     "Re-run of /tmp/ux-audit.mjs after UNIT-001 (would unblock BROWSER_CONFIRMED evidence)"
   ],
-  "manifest_sha256": "39dae00b8f7c3ecd17fde276f241bfb70f0a1fcb8f83daf7a12b515d48d4789a"
+  "manifest_sha256": "34c451b4bbf7379bf830d4b0d8c197424e797a1fb798aa28146516f58b596395"
 }
